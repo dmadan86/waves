@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "Waves — split expenses with anyone, in any currency",
-    "description": "Waves splits a bill any way you need, keeps the balance in every currency you spent, and hands the settlement to the payment app you already use. Works with the network off. Free, with no limit on groups or expenses.",
-    "ogAlt": "Waves — every bill split, every debt settled",
+    "title": "Waves — split the flat's bills, skip the awkward asking",
+    "description": "Waves tracks every shared expense, works out who owes whom, nudges flatmates for you, and opens UPI with the exact amount. Capture expenses from bank SMS on Android or by voice, and keep going with the network off. Free, with no limit on groups or expenses.",
+    "ogAlt": "Waves — split the flat's bills, skip the awkward asking",
     "priceCurrency": "USD"
   },
   "nav": {
@@ -27,126 +27,145 @@
     "link": "See what's free"
   },
   "hero": {
-    "titleLine1": "Every bill, split.",
-    "titleAccent": "Every debt, settled.",
-    "subtitle": "Waves splits a bill any way you need, keeps the balance in every currency you spent, and hands the settlement to the payment app you already use. It works with the network off.",
+    "titleLine1": "Split the flat's bills.",
+    "titleAccent": "Skip the awkward asking.",
+    "subtitle": "Waves tracks every shared expense, works out who owes whom, nudges flatmates for you, and opens UPI with the exact amount.",
     "ctaPrimary": "Get Waves free",
     "ctaSecondary": "See a worked example",
-    "facts": ["No card to start", "Works offline", "Every ISO currency", "Arabic, right to left"],
+    "facts": [
+      "No card to start",
+      "Works offline",
+      "Pay via UPI",
+      "Bank-SMS capture on Android"
+    ],
     "stores": {
       "ios": "iPhone",
       "android": "Android",
       "soon": "Android and iOS. The web app works in any browser today."
     },
     "card": {
-      "title": "Lisbon trip",
-      "members": "4 people",
-      "dates": "12–19 Sep",
-      "balanceLabel": "You are owed",
-      "balance": "85.10 €",
+      "title": "Flat 302 · Indiranagar",
+      "members": "4 flatmates",
+      "dates": "This month",
+      "balanceLabel": "Arjun owes you",
+      "balance": "₹4,120",
       "rows": [
         {
-          "title": "Dinner at the port",
-          "meta": "You paid · split 4 ways",
-          "amount": "96.00 €"
+          "title": "Rent",
+          "meta": "Monthly · split 4 ways",
+          "amount": "₹18,000"
         },
         {
-          "title": "Airport transfer",
-          "meta": "Nadia paid · split 4 ways",
-          "amount": "52.00 €"
+          "title": "Electricity",
+          "meta": "Monthly · split 4 ways",
+          "amount": "₹2,340"
         },
         {
-          "title": "Museum tickets",
-          "meta": "You paid · £30.00 at trip rate",
-          "amount": "34.80 €"
+          "title": "BigBasket",
+          "meta": "This week · split 4 ways",
+          "amount": "₹1,860"
+        },
+        {
+          "title": "Cook",
+          "meta": "Monthly · split 4 ways",
+          "amount": "₹4,000"
         }
       ],
-      "rateLabel": "Trip rate, fixed 12 Sep",
-      "rate": "£1 = 1.160 €",
+      "rateLabel": "Each flatmate's share",
+      "rate": "₹6,550",
       "settleLabel": "Settle up",
-      "settleLine": "Tomás pays you",
-      "settleAmount": "45.70 €",
-      "settleCta": "Open payment app",
-      "alt": "A group ledger for a trip to Lisbon: four people, you are owed 85.10 euros, three expenses, one of them converted from pounds at the trip's fixed rate."
+      "settleLine": "Arjun owes you",
+      "settleAmount": "₹4,120",
+      "settleCta": "Pay via UPI",
+      "alt": "A group ledger for Flat 302 in Indiranagar: four flatmates, four shared expenses (rent, electricity, BigBasket and the cook), and Arjun owes you 4,120 rupees with a Pay via UPI button."
     }
   },
   "custody": {
     "claim": "Waves never holds, moves, or touches your money.",
-    "body": "It works out who pays whom, hands the amount to the payment app you already use, and records what both sides agreed. That is why it works with any payment method in any country — and why there is nothing here for anyone to run off with.",
+    "body": "It works out who pays whom, hands the amount to the payment app you already use — UPI first — and records what both sides agreed. That is why there is nothing here for anyone to run off with.",
     "railsLabel": "Settles through, for example",
-    "rails": ["Bank transfer", "UPI", "Pix", "SEPA", "PayNow", "Venmo", "PayPal", "Cash"]
+    "rails": [
+      "Bank transfer",
+      "UPI",
+      "Pix",
+      "SEPA",
+      "PayNow",
+      "Venmo",
+      "PayPal",
+      "Cash"
+    ]
   },
   "features": {
     "eyebrow": "What it does",
     "title": "Built around the part that goes wrong",
-    "subtitle": "Splitting is the easy half. Waves is designed for the other half — remembering, reconciling, and actually getting paid back.",
+    "subtitle": "Splitting is the easy half. Waves is designed for the other half — remembering, reconciling, and asking for the money so you don't have to.",
     "explore": "Explore the product surface",
     "tablistLabel": "Choose a feature",
     "items": [
       {
+        "kicker": "SMS capture",
+        "title": "Your bank's SMS becomes an expense",
+        "body": "On Android, Waves reads the transaction SMS your bank already sends and turns it into a draft expense — amount, merchant and date filled in — so you confirm it and pick who shares it, instead of typing it from memory at the end of the month.",
+        "points": [
+          "Android only, for now",
+          "Amount, merchant and date pre-filled",
+          "You confirm each draft before it counts",
+          "Works with the SMS your bank already sends"
+        ]
+      },
+      {
+        "kicker": "Voice",
+        "title": "Say it. Don't type it.",
+        "body": "Hold the microphone and say \"cook three fifty\" or \"twelve fifty for coffee, split with Arjun\" — the expense arrives filled in, ready to check before it is saved. Prefer paper? Point the camera at a receipt and Waves itemises it on the device.",
+        "points": [
+          "Several expenses in one breath",
+          "\"Three fifty\" is read as 350, \"2k\" as 2,000",
+          "Flatmates' names matched even when you say them loosely",
+          "Receipt scanning that itemises the bill"
+        ]
+      },
+      {
+        "kicker": "UPI settle-up",
+        "title": "One tap to UPI, with the exact amount",
+        "body": "Waves works out who owes whom, reduces it to the fewest payments that clear it, and opens your UPI app with the exact amount ready. Pay part of it, attach the proof, and either side can reject a settlement that never happened. Waves never touches the money.",
+        "points": [
+          "Opens UPI with the exact amount",
+          "The fewest payments that settle the flat",
+          "Partial and per-expense settlements",
+          "Attach proof; either side can cancel or reject"
+        ]
+      },
+      {
+        "kicker": "Reminders",
+        "title": "Polite reminders, sent for you",
+        "body": "When a flatmate still owes, Waves nudges them on your behalf, with the amount, so you don't have to bring it up over dinner or in the group chat.",
+        "points": [
+          "Reminders go out for you, not from you",
+          "Each one carries the exact amount owed",
+          "Balances stay up to date as expenses sync",
+          "A full edit history, so nobody argues from memory"
+        ]
+      },
+      {
         "kicker": "Splits",
         "title": "Every kind of split, none of the arithmetic",
-        "body": "Equal, exact amounts, shares, percentages, or one person covering someone else. Waves keeps the remainder honest — the split always adds back to the bill, to the last minor unit, because amounts are stored as whole cents rather than as decimals.",
+        "body": "Equal, exact amounts, shares, percentages, or one person covering someone else. Waves keeps the remainder honest — the split always adds back to the bill, to the last minor unit, because amounts are stored as whole paise and cents rather than as decimals.",
         "points": [
           "Equal, exact, shares and percentage splits",
           "Split one bill between two groups of people",
           "Comment on any expense when the memory gets fuzzy",
-          "A full edit history, so nothing changes quietly"
+          "Recurring bills that reset every month"
         ]
       },
       {
         "kicker": "Offline",
         "title": "Add an expense with no network at all",
-        "body": "Waves writes to your phone first and syncs later. A restaurant with no signal, a flight, a mountain road — none of it stops the ledger. The copy on your device is encrypted at rest, and signing out destroys the key.",
+        "body": "Waves writes to your phone first and syncs later. A basement flat with no signal, a flight, a mountain road — none of it stops the ledger. The copy on your device is encrypted at rest, and signing out destroys the key.",
         "points": [
           "Everything works with the network off",
           "Conflict-safe sync when you come back",
           "Encrypted at rest on your device",
           "Sign out and the local copy becomes unreadable"
-        ]
-      },
-      {
-        "kicker": "Trips",
-        "title": "One trip, four currencies, no spreadsheet",
-        "body": "Set the rate you actually got, once, and every expense on the trip converts the same way — so the total at the end matches the total you really paid. Give the trip a budget, a photo album, and a map of where the money went.",
-        "points": [
-          "Fix a rate per bill, per person, or per trip",
-          "Trip and per-category budgets that warn before they break",
-          "Attach a place to any expense",
-          "A shared album for the trip's receipts and photos"
-        ]
-      },
-      {
-        "kicker": "Capture",
-        "title": "Scan it, or just say it",
-        "body": "Point the camera at a receipt and Waves pulls the line items out on the device itself. Or hold the microphone and say it — \"twelve fifty for coffee, split with Nadia\" — and the expense arrives filled in, ready to check before it is saved.",
-        "points": [
-          "Receipt scanning that itemises the bill",
-          "Voice capture, several expenses in one breath",
-          "Capture now with no group, file it later",
-          "Keep the photo on your own device if you prefer"
-        ]
-      },
-      {
-        "kicker": "Settling",
-        "title": "The part where you get paid back",
-        "body": "Waves reduces the web of who-owes-whom to the fewest payments that clear it, then hands the amount to your own payment app. Pay part of it. Attach the proof. Either side can reject a settlement that never happened.",
-        "points": [
-          "The fewest payments that settle the group",
-          "Partial and per-expense settlements",
-          "Attach proof; either side can cancel or reject",
-          "Reminders that do the asking for you"
-        ]
-      },
-      {
-        "kicker": "Just you",
-        "title": "A private ledger nobody else can see",
-        "body": "Not everything is a group expense. Waves keeps a personal side — your own spending, income, recurring bills, loans and budgets — that never appears in anyone else's copy of the app.",
-        "points": [
-          "Solo expenses and income, kept private",
-          "Recurring bills and subscriptions",
-          "Loans you gave and loans you took",
-          "Monthly budgets with a category breakdown"
         ]
       }
     ]
@@ -154,125 +173,110 @@
   "visuals": {
     "split": {
       "label": "Split · exact",
-      "bill": "Dinner, last night",
-      "total": "96.00 €",
+      "bill": "Rent, October",
+      "total": "₹18,000",
       "typesLabel": "Split type",
-      "types": ["Exact", "Equal", "Shares", "%"],
+      "types": [
+        "Exact",
+        "Equal",
+        "Shares",
+        "%"
+      ],
       "people": [
         {
           "name": "You",
-          "share": "31.00 €"
+          "share": "₹5,500"
         },
         {
-          "name": "Nadia",
-          "share": "24.50 €"
+          "name": "Arjun",
+          "share": "₹5,500"
         },
         {
-          "name": "Tomás",
-          "share": "24.50 €"
+          "name": "Meera",
+          "share": "₹4,000"
         },
         {
-          "name": "Mei",
-          "share": "16.00 €"
+          "name": "Kabir",
+          "share": "₹3,000"
         }
       ],
       "checkLabel": "Adds back to",
-      "alt": "An itemised split: a 96 euro dinner divided into four exact shares that add back to 96 euros."
+      "alt": "An itemised split: ₹18,000 of rent divided into four exact shares that add back to ₹18,000."
     },
     "offline": {
       "label": "Offline queue",
       "noSignal": "No network",
       "waiting": "3 waiting",
       "queued": "queued",
-      "rows": ["Airport transfer", "Dinner at the port", "Museum tickets"],
+      "rows": [
+        "Electricity bill",
+        "BigBasket order",
+        "Cook, October"
+      ],
       "encrypted": "Encrypted on this device",
       "alt": "An offline queue: three expenses saved on the device with no network, marked encrypted."
-    },
-    "trip": {
-      "label": "Trip rate",
-      "rateLabel": "Fixed for the whole trip",
-      "rate": "£1 = 1.160 €",
-      "rateNote": "Set 12 Sep · the rate you actually got",
-      "columns": ["Expense", "Paid", "Converted"],
-      "rows": [
-        {
-          "label": "Museum tickets",
-          "foreign": "£31.00",
-          "home": "35.96 €"
-        },
-        {
-          "label": "Train to Sintra",
-          "foreign": "£18.00",
-          "home": "20.88 €"
-        },
-        {
-          "label": "Bookshop",
-          "foreign": "£9.50",
-          "home": "11.02 €"
-        }
-      ],
-      "alt": "A trip rate fixed at one pound to 1.160 euros, with three expenses shown in both currencies."
     },
     "capture": {
       "label": "Receipt · itemised on device",
       "items": [
         {
-          "name": "Grilled sardines ×2",
-          "price": "24.00 €"
+          "name": "Milk ×2",
+          "price": "₹128"
         },
         {
-          "name": "Vinho verde",
-          "price": "14.00 €"
+          "name": "Atta, 5 kg",
+          "price": "₹260"
         },
         {
-          "name": "Service",
-          "price": "4.00 €"
+          "name": "Eggs ×12",
+          "price": "₹96"
         }
       ],
       "total": "Total",
-      "totalValue": "42.00 €",
-      "quote": "“Twelve fifty for coffee, split with Nadia.”",
-      "alt": "A scanned receipt itemised into three lines totalling 42 euros, and the same kind of expense spoken aloud."
+      "totalValue": "₹484",
+      "quote": "“Cook three fifty.”",
+      "alt": "A scanned grocery receipt itemised into three lines totalling 484 rupees, and an expense spoken aloud: cook three fifty."
     },
     "settle": {
-      "beforeLabel": "Between five people",
+      "beforeLabel": "Between five flatmates",
       "beforeCount": "7 debts",
       "afterLabel": "Waves settles it",
       "afterCount": "2 payments",
-      "line": "Tomás pays you",
-      "amount": "45.70 €",
+      "line": "Arjun pays you",
+      "amount": "₹4,120",
       "paidLabel": "Paid so far",
-      "paidValue": "26.50 € of 45.70 €",
-      "paidPercent": 58,
-      "awaiting": "Waiting for Tomás to confirm",
-      "alt": "Two diagrams: seven debts tangled between five people, then the same group settled by two payments."
+      "paidValue": "₹2,000 of ₹4,120",
+      "paidPercent": 49,
+      "awaiting": "Waiting for Arjun to confirm",
+      "alt": "Two diagrams: seven debts tangled between five flatmates, then the same group settled by two payments."
     },
-    "personal": {
-      "label": "Your side",
-      "onlyYou": "Only you",
-      "month": "September",
-      "spent": "Spent",
-      "spentValue": "1,284 €",
-      "left": "Left in budget",
-      "leftValue": "416 €",
+    "sms": {
+      "label": "Bank SMS · Android",
+      "from": "Your bank",
+      "message": "₹1,860.00 debited from a/c XX1234 via UPI to BIGBASKET.",
+      "draftLabel": "Draft expense",
+      "draftTitle": "BigBasket",
+      "draftMeta": "Today · split 4 ways",
+      "draftAmount": "₹1,860",
+      "alt": "A bank text message about a 1,860 rupee payment to BigBasket, turned into a draft expense split four ways."
+    },
+    "reminder": {
+      "label": "Reminder · sent for you",
+      "message": "Hi Arjun, a gentle nudge: ₹4,120 for October's flat bills. Pay via UPI.",
+      "sentLabel": "Sent on your behalf",
       "rows": [
         {
-          "title": "Rent",
-          "meta": "Recurring · 1st",
-          "amount": "780 €"
+          "name": "Arjun",
+          "owes": "₹4,120",
+          "status": "Reminded today"
         },
         {
-          "title": "Lent to Tomás",
-          "meta": "Owed back",
-          "amount": "120 €"
-        },
-        {
-          "title": "Groceries",
-          "meta": "This week",
-          "amount": "63 €"
+          "name": "Kabir",
+          "owes": "₹2,300",
+          "status": "Not yet due"
         }
       ],
-      "alt": "A private monthly ledger: 1,284 euros spent, 416 euros left in budget, and three entries only you can see."
+      "alt": "A reminder message sent on your behalf asking Arjun for 4,120 rupees, above a list of two flatmates who owe you."
     }
   },
   "how": {
@@ -281,52 +285,56 @@
     "steps": [
       {
         "number": "01",
-        "title": "Start a group, share the link",
-        "body": "A trip, a flat, a dinner, or one person. Send the link or show the QR code — people can join and see the group in a browser, without an account and without installing anything."
+        "title": "Start a flat, share the link",
+        "body": "A flat, a trip, a dinner, or one person. Send the link or show the QR code — flatmates can join and see the group in a browser, without an account and without installing anything."
       },
       {
         "number": "02",
         "title": "Add what you spend",
-        "body": "Type it, scan the receipt, or say it out loud. Waves splits it the way you asked and updates everyone's balance the moment it syncs — or the moment you are back on a network."
+        "body": "Type it, say it, scan the receipt, or let the bank SMS fill it in on Android. Waves splits it the way you asked and updates everyone's balance the moment it syncs — or the moment you are back on a network."
       },
       {
         "number": "03",
-        "title": "Settle, and stay friends",
-        "body": "Waves reduces the web of who-owes-whom to the fewest payments that clear it, opens your own payment app with the amount filled in, and marks it settled once both sides agree."
+        "title": "Settle up without the awkward asking",
+        "body": "Waves works out who owes whom, nudges flatmates for you, opens UPI with the exact amount filled in, and marks it settled once both sides agree."
       }
     ],
     "example": {
       "label": "A worked example",
-      "setup": "Four people share a flat for a week. Nobody keeps a spreadsheet.",
+      "setup": "Four flatmates, one month. Nobody keeps a spreadsheet.",
       "expenses": [
         {
-          "what": "Groceries",
+          "what": "Rent",
           "who": "You paid · split 4 ways",
-          "amount": "60.00 €"
+          "amount": "₹18,000"
         },
         {
           "what": "Electricity",
-          "who": "Tomás paid · split 4 ways",
-          "amount": "42.00 €"
+          "who": "Arjun paid · split 4 ways",
+          "amount": "₹2,340"
         },
         {
-          "what": "Internet",
-          "who": "Mei paid · split 4 ways",
-          "amount": "18.00 €"
+          "what": "Cook",
+          "who": "Meera paid · split 4 ways",
+          "amount": "₹4,000"
         }
       ],
-      "resultLabel": "Waves settles it in two payments",
+      "resultLabel": "Waves settles it in three payments",
       "payments": [
         {
-          "line": "Nadia pays you",
-          "amount": "30.00 €"
+          "line": "Kabir pays you",
+          "amount": "₹6,085"
         },
         {
-          "line": "Mei pays Tomás",
-          "amount": "12.00 €"
+          "line": "Arjun pays you",
+          "amount": "₹3,745"
+        },
+        {
+          "line": "Meera pays you",
+          "amount": "₹2,085"
         }
       ],
-      "note": "Nine IOUs between four people become two transfers. Anyone in the group can open the arithmetic that got there."
+      "note": "Nine IOUs between four flatmates become three transfers. Anyone in the group can open the arithmetic that got there."
     },
     "cards": [
       {
@@ -337,30 +345,26 @@
       {
         "number": "02",
         "title": "Add the expense",
-        "body": "Scan, speak, or type it."
+        "body": "Scan, speak, type — or let the SMS do it."
       }
     ]
   },
   "audience": {
-    "eyebrow": "Who it's for",
-    "title": "However your money tangles",
-    "tagline": "One ledger. Different kinds of money getting tangled.",
+    "eyebrow": "Also great for",
+    "title": "Beyond the flat",
+    "tagline": "The same ledger for the other ways money gets shared.",
     "items": [
       {
         "title": "Trips",
-        "body": "Four people, three currencies and a fortnight of receipts. One budget, one rate, one settlement at the end."
+        "body": "Four people, three currencies and a fortnight of receipts. Fix the rate you actually got, set a budget, and settle once at the end."
       },
       {
-        "title": "Living together",
-        "body": "Rent, power, the internet bill, and whoever always buys the milk. Recurring expenses that reset every month."
+        "title": "Events and weddings",
+        "body": "Track each vendor — the advance paid, the balance still due and who fronted it — and split the rest across the family or the group."
       },
       {
         "title": "Couples",
-        "body": "A shared ledger for what is shared and a private one for what isn't. Both live in the same app."
-      },
-      {
-        "title": "One-offs",
-        "body": "Somebody covered your ticket. Add them as a person — no group, no ceremony — and square it up later."
+        "body": "A shared ledger for what is shared and a private one for what isn't, with recurring bills and budgets. Both live in the same app."
       }
     ]
   },
@@ -395,7 +399,7 @@
         "body": "An email address or the identifier your sign-in provider gives us, plus which devices you use, so a stolen session can be revoked."
       },
       {
-        "title": "Nothing sold, ever",
+        "title": "No data sales",
         "body": "No advertising, no data sales, no tracking for anyone else's benefit. The free tier is paid for by the paid tier."
       }
     ],
@@ -517,8 +521,8 @@
       {
         "name": "Free",
         "price": "Free",
-        "period": "forever",
-        "tagline": "Everything most people ever need.",
+        "period": "",
+        "tagline": "The whole ledger, with no limits.",
         "cta": "Get Waves free",
         "featured": false,
         "badge": "",
@@ -536,7 +540,7 @@
         "name": "Plus",
         "price": "Not priced yet",
         "period": "",
-        "tagline": "For whoever ends up organising the trip.",
+        "tagline": "For whoever ends up running the flat or the trip.",
         "cta": "Join the waitlist",
         "featured": true,
         "badge": "In development",
@@ -612,7 +616,7 @@
     "items": [
       {
         "q": "Is Waves really free?",
-        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier and will stay that way. Plus exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. There is no card at sign-up and no trial that expires."
+        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier. Plus exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. There is no card at sign-up and no trial that expires."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -620,11 +624,11 @@
       },
       {
         "q": "What happens when I have no signal?",
-        "a": "Nothing stops. Waves writes every expense to your phone first, so adding, editing and splitting all work with the network off. When you reconnect it syncs in the background and reconciles anything that changed while you were away."
+        "a": "Adding, editing and splitting keep working. Waves writes every expense to your phone first, so none of it needs the network. When you reconnect it syncs in the background and reconciles anything that changed while you were away."
       },
       {
-        "q": "Can Waves handle more than one currency?",
-        "a": "Yes, from the first expense. Every amount is stored in the currency it was spent in, as whole minor units rather than as a decimal, so nothing drifts. You can fix the exchange rate you actually got for one bill, for one person, or for a whole trip."
+        "q": "Does Waves work with more than one currency?",
+        "a": "Yes. Every amount is stored in the currency it was spent in, as whole minor units rather than as a decimal, so nothing drifts. You can fix the exchange rate you actually got for one bill, for one person, or for a whole trip, and every ISO 4217 currency is supported."
       },
       {
         "q": "Does Waves move money?",
@@ -635,20 +639,24 @@
         "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and there is no advertising and no data selling. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
-        "q": "Which countries does it work in?",
-        "a": "All of them. Waves is not tied to a payment network or a banking licence, so there is nothing to roll out country by country. It speaks English, Tamil, Hindi and Arabic, and handles every ISO 4217 currency."
+        "q": "Where can I use it?",
+        "a": "Waves is not tied to a payment network or a banking licence, so there is nothing to roll out country by country — you can use it wherever you can install the app or open the web app. UPI settle-up is built for India, and other payment apps work the same way: Waves hands over the amount and you pay."
+      },
+      {
+        "q": "Which languages does it speak?",
+        "a": "English, Hindi, Tamil and Arabic, with Arabic laid out right to left."
       }
     ]
   },
   "cta": {
-    "title": "Settle the trip before you land",
-    "subtitle": "Free, unlimited, and it works before the plane's wi-fi does.",
+    "title": "Start this month's flat ledger",
+    "subtitle": "Free, no limit on groups or expenses, and it keeps working with the network off.",
     "primary": "Get Waves free",
     "secondary": "Open the web app",
     "note": "Android and iOS · Apple Watch and Wear OS companions · nothing to pay to start"
   },
   "footer": {
-    "tagline": "The expense ledger that survives real life — offline, in any currency, and free to use.",
+    "tagline": "The shared-expense ledger for flats, trips and events — offline-capable, multi-currency, and free to use.",
     "notABank": "Waves is not a bank and never holds your money.",
     "product": "Product",
     "company": "Company",
