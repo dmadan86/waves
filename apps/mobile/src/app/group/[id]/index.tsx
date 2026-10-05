@@ -61,6 +61,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import {
   displayName,
   groupLabel,
+  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -86,6 +87,8 @@ import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { SettleBody } from '@/components/settle/SettleBody';
+import { VendorsBody } from '@/components/VendorsBody';
+import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { useDialog } from '@/lib/dialog';
@@ -96,6 +99,8 @@ enum Tab {
   Settle = 'settle',
   Timeline = 'timeline',
   Map = 'map',
+  /** Event groups only: vendor advances and balances (docs/event-organizer.md). */
+  Vendors = 'vendors',
 }
 
 /**
@@ -745,6 +750,10 @@ export default function GroupScreen() {
   }
 
   const groupData = group.data;
+  const isEvent = groupData.type === GroupType.Event;
+  // The Vendors tab is Event-only; a stale selection on a group that is not one
+  // falls back to Expenses rather than an empty body.
+  const activeTab = tab === Tab.Vendors && !isEvent ? Tab.Expenses : tab;
   const currency = groupData.default_currency;
   // The hero panel wears its verdict, the same rule the dashboard hero follows:
   // a blue wash when the group owes you, a red one when you owe it, the brand
@@ -1055,7 +1064,7 @@ export default function GroupScreen() {
           }}
         >
           <SegmentedTabs<Tab>
-            value={tab}
+            value={activeTab}
             onChange={(next) => {
               listRef.current?.scrollToOffset({ offset: 0, animated: false });
               setTab(next);
@@ -1068,6 +1077,17 @@ export default function GroupScreen() {
                   <Ionicons name="receipt-outline" size={iconSize.md} color={color} />
                 ),
               },
+              ...(isEvent
+                ? [
+                    {
+                      value: Tab.Vendors,
+                      label: t.eventOrganizer.vendorsTab,
+                      icon: (color: string) => (
+                        <Ionicons name="storefront-outline" size={iconSize.md} color={color} />
+                      ),
+                    },
+                  ]
+                : []),
               {
                 value: Tab.Balances,
                 label: t.balances,
@@ -1103,7 +1123,12 @@ export default function GroupScreen() {
         {/* The waves close the page above the tab bar on every tab, behind the
             content — rows and cards scroll over them. */}
         <FooterWaves bottom={tabBarClearance - WAVES_TUCK} />
-        {tab === Tab.Settle ? (
+        {activeTab === Tab.Vendors ? (
+          <VendorsBody
+            groupId={groupId}
+            today={todayInZone(groupData.time_zone ?? 'Asia/Kolkata')}
+          />
+        ) : tab === Tab.Settle ? (
           // Settling up, as a face of the group rather than a button on its
           // hero: the same flow as the Settle up screen. Recorded, it shows
           // the balances that just moved.

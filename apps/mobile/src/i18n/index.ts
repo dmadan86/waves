@@ -392,6 +392,26 @@ export interface UiStrings {
     /** Details row value: the balance and when it is due; {amount}, {date}. */
     balanceDueValue: string;
     overdueCount: PluralForms;
+    vendorsTab: string;
+    vendorsAdvancesPaid: string;
+    vendorsBalanceDue: string;
+    paidOffCount: string;
+    filterAll: string;
+    filterDue: string;
+    filterOverdue: string;
+    paidOff: string;
+    allSubEvents: string;
+    statusOverdue: string;
+    statusDue: string;
+    dueOn: string;
+    overdueSince: string;
+    dueSoonOn: string;
+    paidBy: string;
+    payBalance: string;
+    payBalanceFor: string;
+    vendorsEmptyTitle: string;
+    vendorsEmptyBody: string;
+    vendorsFilteredEmpty: string;
   };
   /** Display labels for a template's sub-event ids (`@waves/core`'s
    *  `EVENT_TEMPLATES`) — `mehendi`, `sangeet`, … Loosely typed rather than a
@@ -4546,6 +4566,27 @@ const en: UiStrings = {
     advancePaid: 'Advance paid',
     balanceDueValue: '{amount} · due {date}',
     overdueCount: { one: '{n} overdue', other: '{n} overdue' },
+    vendorsTab: 'Vendors',
+    vendorsAdvancesPaid: 'Advances paid',
+    vendorsBalanceDue: 'Balance still due',
+    paidOffCount: '{n} paid off',
+    filterAll: 'All',
+    filterDue: 'Due',
+    filterOverdue: 'Overdue',
+    paidOff: 'Paid off',
+    allSubEvents: 'All sub-events',
+    statusOverdue: 'Overdue',
+    statusDue: 'Due',
+    dueOn: 'Due {date}',
+    overdueSince: 'Overdue since {date}',
+    dueSoonOn: 'Due soon · {date}',
+    paidBy: 'Paid by {name}',
+    payBalance: 'Pay balance',
+    payBalanceFor: 'Pay balance to {vendor}',
+    vendorsEmptyTitle: 'No vendor advances yet',
+    vendorsEmptyBody:
+      'Mark an expense as a vendor deposit to track what you have paid each vendor and what is still owed.',
+    vendorsFilteredEmpty: 'Nothing matches this filter.',
   },
   eventSubEvents: {
     engagement: 'Engagement',
@@ -8053,6 +8094,27 @@ const ta: UiStrings = {
     advancePaid: 'செலுத்திய முன்பணம்',
     balanceDueValue: '{amount} · {date} அன்று செலுத்த வேண்டும்',
     overdueCount: { one: '{n} தாமதமானது', other: '{n} தாமதமானவை' },
+    vendorsTab: 'விற்பனையாளர்கள்',
+    vendorsAdvancesPaid: 'செலுத்திய முன்பணம்',
+    vendorsBalanceDue: 'இன்னும் நிலுவை',
+    paidOffCount: '{n} செலுத்தி முடிந்தது',
+    filterAll: 'அனைத்தும்',
+    filterDue: 'நிலுவை',
+    filterOverdue: 'காலதாமதம்',
+    paidOff: 'செலுத்தி முடிந்தது',
+    allSubEvents: 'அனைத்து துணை நிகழ்வுகள்',
+    statusOverdue: 'காலதாமதம்',
+    statusDue: 'நிலுவை',
+    dueOn: '{date} அன்று நிலுவை',
+    overdueSince: '{date} முதல் காலதாமதம்',
+    dueSoonOn: 'விரைவில் நிலுவை · {date}',
+    paidBy: '{name} செலுத்தினார்',
+    payBalance: 'மீதியை செலுத்து',
+    payBalanceFor: '{vendor}க்கு மீதியை செலுத்து',
+    vendorsEmptyTitle: 'இன்னும் முன்பணம் இல்லை',
+    vendorsEmptyBody:
+      'ஒவ்வொரு விற்பனையாளருக்கும் செலுத்தியதையும் நிலுவையையும் அறிய செலவை விற்பனையாளர் முன்பணமாக குறியிடுங்கள்.',
+    vendorsFilteredEmpty: 'இந்த வடிகட்டிக்கு எதுவும் பொருந்தவில்லை.',
   },
   eventSubEvents: {
     engagement: 'நிச்சயதார்த்தம்',
@@ -11701,6 +11763,27 @@ const hi: UiStrings = {
     advancePaid: 'अग्रिम भुगतान',
     balanceDueValue: '{amount} · देय {date}',
     overdueCount: { one: '{n} बकाया', other: '{n} बकाया' },
+    vendorsTab: 'वेंडर',
+    vendorsAdvancesPaid: 'दी गई अग्रिम राशि',
+    vendorsBalanceDue: 'अभी भी बकाया',
+    paidOffCount: '{n} चुकता',
+    filterAll: 'सभी',
+    filterDue: 'बकाया',
+    filterOverdue: 'अतिदेय',
+    paidOff: 'चुकता',
+    allSubEvents: 'सभी उप-कार्यक्रम',
+    statusOverdue: 'अतिदेय',
+    statusDue: 'बकाया',
+    dueOn: 'देय {date}',
+    overdueSince: '{date} से अतिदेय',
+    dueSoonOn: 'जल्द देय · {date}',
+    paidBy: '{name} ने भुगतान किया',
+    payBalance: 'बकाया चुकाएँ',
+    payBalanceFor: '{vendor} को बकाया चुकाएँ',
+    vendorsEmptyTitle: 'अभी कोई वेंडर अग्रिम नहीं',
+    vendorsEmptyBody:
+      'हर वेंडर को दी गई राशि और बकाया देखने के लिए खर्च को वेंडर जमा राशि के रूप में चिह्नित करें।',
+    vendorsFilteredEmpty: 'इस फ़िल्टर से कुछ नहीं मिला।',
   },
   eventSubEvents: {
     engagement: 'सगाई',
@@ -15239,6 +15322,26 @@ const ar: UiStrings = {
       many: '{n} دفعة متأخرة',
       other: '{n} دفعة متأخرة',
     },
+    vendorsTab: 'المورّدون',
+    vendorsAdvancesPaid: 'الدفعات المقدّمة',
+    vendorsBalanceDue: 'الرصيد المستحق',
+    paidOffCount: '{n} مسدّد',
+    filterAll: 'الكل',
+    filterDue: 'مستحق',
+    filterOverdue: 'متأخر',
+    paidOff: 'مسدّد',
+    allSubEvents: 'كل الفعاليات الفرعية',
+    statusOverdue: 'متأخر',
+    statusDue: 'مستحق',
+    dueOn: 'يستحق {date}',
+    overdueSince: 'متأخر منذ {date}',
+    dueSoonOn: 'يستحق قريبًا · {date}',
+    paidBy: 'دفع {name}',
+    payBalance: 'سداد الرصيد',
+    payBalanceFor: 'سداد الرصيد إلى {vendor}',
+    vendorsEmptyTitle: 'لا توجد دفعات مقدّمة بعد',
+    vendorsEmptyBody: 'حدّد المصروف كدفعة للمورّد لتتبّع ما دفعته لكل مورّد وما تبقّى.',
+    vendorsFilteredEmpty: 'لا شيء يطابق هذا التصفية.',
   },
   eventSubEvents: {
     engagement: 'الخطوبة',
