@@ -28,9 +28,11 @@ import { useConfirmSettlement, useDisputeSettlement, useSettlementProof } from '
 import { groupLabel, type GroupRow, type MemberRow, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
+import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroActionCircle, HeroFigureLine, HeroPillButton } from '@/components/ScreenHero';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
+import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useDialog } from '@/lib/dialog';
 
 /**
@@ -102,6 +104,12 @@ export function GroupHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
+  // Trips and events both carry a date range; show it beside the member count.
+  const dateRange =
+    group.type === 'trip' || group.type === 'event'
+      ? formatShortDateRange(group.start_date, group.end_date, locale)
+      : null;
+  const typeTag = useGroupTypeTag(group.type, group.event_template, group.custom_tag);
   const { confirm } = useDialog();
   const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
@@ -253,9 +261,13 @@ export function GroupHero({
                 ? group.name.trim()
                 : cleanLabel(groupLabel(group, members ?? [], profileId))}
             </Text>
-            <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
-              {plural(locale, members?.length ?? 0, t.memberCount)}
-            </Text>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+              {typeTag ? <GroupTypeTag tag={typeTag} onBrand /> : null}
+              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85, flexShrink: 1 }}>
+                {plural(locale, members?.length ?? 0, t.memberCount)}
+                {dateRange ? ` · ${dateRange}` : ''}
+              </Text>
+            </Row>
           </View>
         </Pressable>
         <SyncStatusIcon onBrand groupId={groupId} />

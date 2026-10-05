@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatShortDateRange,
   inclusiveTripDays,
   tripDateFromIso,
   tripDateRangePatch,
@@ -78,5 +79,24 @@ describe('savesFirstTap', () => {
 
   it('holds it as a draft over a real range, which leaving must keep', () => {
     expect(savesFirstTap('2026-09-08', '2026-09-12')).toBe(false);
+  });
+});
+
+describe('formatShortDateRange', () => {
+  it('collapses a same-month range', () => {
+    expect(formatShortDateRange('2026-12-12', '2026-12-15', 'en-GB')).toBe('12–15 Dec');
+  });
+  it('spells both months across a month boundary', () => {
+    expect(formatShortDateRange('2026-11-28', '2026-12-02', 'en-GB')).toBe('28 Nov – 2 Dec');
+  });
+  it('adds the year across years, and reads one day as one date', () => {
+    expect(formatShortDateRange('2026-12-30', '2027-01-02', 'en-GB')).toBe(
+      '30 Dec 2026 – 2 Jan 2027',
+    );
+    expect(formatShortDateRange('2026-12-12', '2026-12-12', 'en-GB')).toBe('12 Dec');
+  });
+  it('is null without both ends', () => {
+    expect(formatShortDateRange(null, '2026-12-12', 'en-GB')).toBeNull();
+    expect(formatShortDateRange('2026-12-12', undefined, 'en-GB')).toBeNull();
   });
 });

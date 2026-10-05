@@ -45,6 +45,8 @@ import { router } from '@/lib/navigation';
 import { isPhoneCountryError, normaliseContactPhone } from '@/lib/phone';
 import { type PickedContact } from '@/components/ContactPicker';
 import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
+import { GroupTagField } from '@/components/GroupTagField';
+import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { TripRatesCard, type TripRateStore } from '@/components/TripRates';
 import { type TripRateRow } from '@/lib/tripRates';
@@ -165,6 +167,7 @@ export default function NewGroupScreen() {
   // is part of naming the thing rather than a setting about it. Optional, and
   // capped — see `groupDescription.ts` for why at that number.
   const [description, setDescription] = useState('');
+  const [customTag, setCustomTag] = useState('');
   // The group cover is an emoji icon, chosen by tapping the avatar. Photos are
   // a paid feature edited from group settings, not part of creating one.
   const [iconOpen, setIconOpen] = useState(false);
@@ -376,6 +379,7 @@ export default function NewGroupScreen() {
       // and a clone is for the same thing — it is the name that needs "copy of"
       // on it to tell the two apart, not the sentence explaining them both.
       setDescription(group.description ?? '');
+      setCustomTag(group.custom_tag ?? '');
       setPickedType(group.type);
       setPickedEmoji(group.cover_emoji ?? null);
       setSimplify(group.simplify_debts);
@@ -517,10 +521,20 @@ export default function NewGroupScreen() {
         await mutate(MutationKind.GroupUpdate, groupId, { event_template: eventTemplate });
       }
 
+      // The member's own tag, if typed — same ordered queue, same reason.
+      const tagToSave = normaliseGroupTag(customTag);
+      if (tagToSave) {
+        await mutate(MutationKind.GroupUpdate, groupId, { custom_tag: tagToSave });
+      }
+
       // Trip dates are not part of the create call, so they ride behind it as
       // an update on the same ordered queue — only when a trip was actually
       // given a start and end, since that is what turns the reminders on.
-      if (type === GroupType.Trip && tripDates.start_date && tripDates.end_date) {
+      if (
+        (type === GroupType.Trip || type === GroupType.Event) &&
+        tripDates.start_date &&
+        tripDates.end_date
+      ) {
         await mutate(MutationKind.GroupUpdate, groupId, {
           start_date: tripDates.start_date,
           end_date: tripDates.end_date,
@@ -973,6 +987,7 @@ export default function NewGroupScreen() {
                 icon: chipIcon(option.icon),
               }))}
             />
+            <GroupTagField type={type} value={customTag} onChange={setCustomTag} />
           </FormCard>
 
           {/* The group's settings. Dates and budget are trip-only, so a dinner
@@ -981,11 +996,15 @@ export default function NewGroupScreen() {
               ledger underneath is untouched. */}
           <FormCard style={{ paddingVertical: 0 }}>
             <DetailRows>
-              {type === GroupType.Trip ? (
+              {type === GroupType.Trip || type === GroupType.Event ? (
                 <View>
                   <DetailRow
                     icon="calendar-outline"
-                    label={t.misc.tripDatesTitle}
+                    label={
+                      type === GroupType.Event
+                        ? t.eventOrganizer.eventDatesTitle
+                        : t.misc.tripDatesTitle
+                    }
                     value={tripDates.start_date && tripDates.end_date ? dateSummary : t.add}
                     placeholder={!(tripDates.start_date && tripDates.end_date)}
                     expanded={openAttr === 'dates'}
@@ -997,6 +1016,7 @@ export default function NewGroupScreen() {
                         group={tripDates}
                         locale={locale}
                         embedded
+                        forEvent={type === GroupType.Event}
                         onChange={(patch) => setTripDates((current) => ({ ...current, ...patch }))}
                       />
                     </View>

@@ -59,3 +59,31 @@ export function tripDateRangePatch(a: Date, b: Date, timeZone: string): TripDate
 export function savesFirstTap(startDate: string | null, endDate: string | null): boolean {
   return !startDate || !endDate || startDate === endDate;
 }
+
+/**
+ * A compact "12–15 Dec" for the group header. Same month collapses to one
+ * month name; across months it reads "28 Nov – 2 Dec"; across years the year is
+ * added to both ends. A single day reads "12 Dec". Null when either end is
+ * missing or unreadable.
+ */
+export function formatShortDateRange(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined,
+  locale: string,
+): string | null {
+  const start = tripDateFromIso(startIso ?? null);
+  const end = tripDateFromIso(endIso ?? null);
+  if (!start || !end) return null;
+  const [from, to] = start <= end ? [start, end] : [end, start];
+  const dayMonth = (d: Date): string =>
+    d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  if (from.getFullYear() !== to.getFullYear()) {
+    const full = (d: Date): string =>
+      d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${full(from)} – ${full(to)}`;
+  }
+  if (from.getMonth() !== to.getMonth()) return `${dayMonth(from)} – ${dayMonth(to)}`;
+  if (from.getDate() === to.getDate()) return dayMonth(to);
+  const day = from.toLocaleDateString(locale, { day: 'numeric' });
+  return `${day}–${dayMonth(to)}`;
+}

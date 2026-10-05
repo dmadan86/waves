@@ -180,6 +180,9 @@ const GROUP_UPDATABLE_FIELDS = [
   // step with `waves_guard_group_columns`'s allowlist, the same pairing this
   // comment block already warns has drifted before.
   'event_template',
+  // The member-typed short tag shown instead of the automatic type tag;
+  // paired with `waves_guard_group_columns` in 20261006120000_group_custom_tag.
+  'custom_tag',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -580,6 +583,10 @@ export class SyncSession {
         // before (see GROUP_UPDATABLE_FIELDS vs the guard trigger).
         if ('description' in patch)
           patch.description = optionalString(patch.description, 'description');
+        // Same reading for the tag: cleared means NULL, never '' (the column's
+        // CHECK refuses a blank one and enforces the 24-character cap).
+        if ('custom_tag' in patch)
+          patch.custom_tag = optionalString(patch.custom_tag, 'custom_tag');
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };
