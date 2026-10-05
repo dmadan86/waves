@@ -39,7 +39,7 @@ export function Hero({
             </Reveal>
 
             <Reveal delay={60}>
-              <h1 className="mt-8 max-w-[10ch] text-balance text-[3.6rem] leading-[0.92] font-semibold tracking-[-0.065em] text-ink sm:text-[5rem] lg:text-[6.2rem]">
+              <h1 className="mt-8 max-w-[13ch] text-balance text-[2.9rem] leading-[0.98] font-semibold tracking-[-0.055em] text-ink sm:text-[4rem] lg:text-[4.6rem]">
                 {t.titleLine1}
                 <br />
                 <span className="text-gradient">{t.titleAccent}</span>

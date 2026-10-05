@@ -39,7 +39,7 @@ export function HowItWorks({ t }: { t: Dictionary['how'] }) {
             <p className="mt-4 max-w-xl text-[1.35rem] font-semibold tracking-[-0.025em]">
               {t.example.setup}
             </p>
-            <div className="mt-8 grid grid-cols-3 gap-2 border-y border-white/10 py-4">
+            <div className="mt-8 grid grid-cols-2 gap-x-2 gap-y-4 border-y sm:grid-cols-4 border-white/10 py-4">
               {t.example.expenses.map((expense) => (
                 <div key={expense.what}>
                   <p className="truncate text-[0.78rem] text-white/55">{expense.what}</p>

@@ -121,54 +121,6 @@ function OfflineVisual({ t }: VisualProps) {
   );
 }
 
-/** 3 — Trips and currencies. One rate, fixed, and both columns shown. */
-function TripVisual({ t }: VisualProps) {
-  return (
-    <Frame label={t.trip.label} alt={t.trip.alt}>
-      <div className="border-b border-line px-4 py-4">
-        <p className="font-mono text-[0.6875rem] tracking-[0.08em] text-ink-3 uppercase">
-          {t.trip.rateLabel}
-        </p>
-        <p className="mt-1 font-mono tabular text-[1.25rem] font-medium tracking-[-0.02em] text-ink">
-          {t.trip.rate}
-        </p>
-        <p className="mt-1 font-mono text-[0.6875rem] text-ink-3">{t.trip.rateNote}</p>
-      </div>
-
-      <table className="w-full text-start">
-        <thead>
-          <tr className="border-b border-line">
-            {t.trip.columns.map((column, index) => (
-              <th
-                key={column}
-                scope="col"
-                className={`px-4 py-2 font-mono text-[0.6875rem] font-normal tracking-[0.06em] text-ink-3 uppercase ${
-                  index === 0 ? 'text-start' : 'text-end'
-                }`}
-              >
-                {column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-divider">
-          {t.trip.rows.map((row) => (
-            <tr key={row.label}>
-              <td className="px-4 py-2.5 text-[0.8125rem] text-ink-2">{row.label}</td>
-              <td className="px-4 py-2.5 text-end font-mono tabular text-[0.8125rem] text-ink-2">
-                {row.foreign}
-              </td>
-              <td className="px-4 py-2.5 text-end font-mono tabular text-[0.8125rem] text-ink">
-                {row.home}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Frame>
-  );
-}
-
 /** 4 — Capture. The receipt itemised, and the same expense spoken. */
 function CaptureVisual({ t }: VisualProps) {
   return (
@@ -357,61 +309,75 @@ function SettleVisual({ t }: VisualProps) {
   );
 }
 
-/** 6 — The private side. */
-function PersonalVisual({ t }: VisualProps) {
+/** SMS capture. The bank's message on one side, the draft it becomes on the other. */
+function SmsVisual({ t }: VisualProps) {
   return (
-    <Frame label={t.personal.label} alt={t.personal.alt}>
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-        <span className="inline-flex items-center gap-1.5 rounded-sm bg-accent-wash px-2 py-1 font-mono text-[0.6875rem] text-accent">
-          <Lock className="h-3 w-3" aria-hidden="true" />
-          {t.personal.onlyYou}
-        </span>
-        <span className="font-mono text-[0.6875rem] text-ink-3">{t.personal.month}</span>
+    <div role="img" aria-label={t.sms.alt} className="grid gap-3">
+      <Frame label={t.sms.label}>
+        <div className="px-4 py-3.5">
+          <p className="font-mono text-[0.6875rem] tracking-[0.08em] text-ink-3 uppercase">
+            {t.sms.from}
+          </p>
+          <p className="mt-1.5 text-[0.8125rem] leading-snug text-ink-2">{t.sms.message}</p>
+        </div>
+      </Frame>
+      <div className="panel px-4 py-3.5">
+        <p className="font-mono text-[0.6875rem] tracking-[0.08em] text-accent uppercase">
+          {t.sms.draftLabel}
+        </p>
+        <p className="mt-2 flex items-baseline justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block truncate text-[0.9375rem] text-ink">{t.sms.draftTitle}</span>
+            <span className="mt-0.5 block truncate font-mono text-[0.6875rem] text-ink-3">
+              {t.sms.draftMeta}
+            </span>
+          </span>
+          <span className="shrink-0 font-mono tabular text-[1.125rem] font-medium text-ink">
+            {t.sms.draftAmount}
+          </span>
+        </p>
       </div>
+    </div>
+  );
+}
 
-      <dl className="grid grid-cols-2 divide-x divide-divider border-b border-line rtl:divide-x-reverse">
-        <div className="px-4 py-3.5">
-          <dt className="font-mono text-[0.6875rem] tracking-[0.08em] text-ink-3 uppercase">
-            {t.personal.spent}
-          </dt>
-          <dd className="mt-1 font-mono tabular text-[1.125rem] font-medium text-ink">
-            {t.personal.spentValue}
-          </dd>
-        </div>
-        <div className="px-4 py-3.5">
-          <dt className="font-mono text-[0.6875rem] tracking-[0.08em] text-ink-3 uppercase">
-            {t.personal.left}
-          </dt>
-          <dd className="mt-1 font-mono tabular text-[1.125rem] font-medium text-ink">
-            {t.personal.leftValue}
-          </dd>
-        </div>
-      </dl>
-
-      <ul className="divide-y divide-divider">
-        {t.personal.rows.map((row) => (
-          <li key={row.title} className="flex items-baseline gap-3 px-4 py-2.5">
+/** Reminders. The nudge that goes out so you do not have to send it. */
+function ReminderVisual({ t }: VisualProps) {
+  return (
+    <div role="img" aria-label={t.reminder.alt} className="grid gap-3">
+      <Frame label={t.reminder.label}>
+        <p className="px-4 py-3.5 text-[0.8125rem] leading-snug text-ink-2 italic">
+          {t.reminder.message}
+        </p>
+        <p className="flex items-center gap-2 border-t border-line bg-chip px-4 py-2.5 font-mono text-[0.6875rem] text-ink-3">
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
+          {t.reminder.sentLabel}
+        </p>
+      </Frame>
+      <ul className="panel divide-y divide-divider">
+        {t.reminder.rows.map((row) => (
+          <li key={row.name} className="flex items-baseline gap-3 px-4 py-2.5">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.8125rem] text-ink">{row.title}</span>
+              <span className="block truncate text-[0.8125rem] text-ink">{row.name}</span>
               <span className="mt-0.5 block truncate font-mono text-[0.6875rem] text-ink-3">
-                {row.meta}
+                {row.status}
               </span>
             </span>
             <span className="shrink-0 font-mono tabular text-[0.8125rem] text-ink-2">
-              {row.amount}
+              {row.owes}
             </span>
           </li>
         ))}
       </ul>
-    </Frame>
+    </div>
   );
 }
 
 export const featureVisuals = [
-  SplitVisual,
-  OfflineVisual,
-  TripVisual,
+  SmsVisual,
   CaptureVisual,
   SettleVisual,
-  PersonalVisual,
+  ReminderVisual,
+  SplitVisual,
+  OfflineVisual,
 ] as const;

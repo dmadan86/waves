@@ -36,7 +36,7 @@ export function Currencies({ t, rows }: { t: Dictionary['currencies']; rows: Cur
     <Section id="currencies" ground="paper">
       <Container>
         <div className="max-w-3xl">
-          <Eyebrow index="02">{t.eyebrow}</Eyebrow>
+          <Eyebrow index="04">{t.eyebrow}</Eyebrow>
           <SectionTitle className="mt-5">{t.title}</SectionTitle>
           <Lede className="mt-4">{t.subtitle}</Lede>
         </div>

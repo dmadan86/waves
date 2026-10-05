@@ -3,10 +3,10 @@
 import { useId, useRef, useState } from 'react';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { featureVisuals } from './feature-visuals';
-import { ArrowRight, Check, Compass, Handshake, Lock, OfflineBolt, Scan, Split } from './icons';
+import { ArrowRight, Check, Handshake, Home, OfflineBolt, Receipt, Scan, Split } from './icons';
 import { Container, Eyebrow, Lede, Section, SectionTitle } from './ui';
 
-const kickerIcons = [Split, OfflineBolt, Compass, Scan, Handshake, Lock] as const;
+const kickerIcons = [Receipt, Scan, Handshake, Home, Split, OfflineBolt] as const;
 
 export function Features({
   t,
