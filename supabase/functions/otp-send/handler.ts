@@ -296,7 +296,12 @@ export async function handleOtpSend(request: Request, deps: OtpSendDeps): Promis
     return hookError(400, 'Body is not JSON');
   }
 
-  const phone = payload.user?.phone?.trim() ?? '';
+  // GoTrue stores and sends a phone without its leading "+" (`919901511077`),
+  // so the hook normalises it once, here, before anything keys on it — the
+  // relay was parked under `+91…` by `phone-verify`, and a bare-digits number
+  // would never match it (nor pass the E.164 check below).
+  const rawPhone = payload.user?.phone?.trim() ?? '';
+  const phone = /^\d+$/.test(rawPhone) ? `+${rawPhone}` : rawPhone;
   const otp = payload.sms?.otp?.trim() ?? '';
   if (!isE164(phone) || !otp) return hookError(400, 'Missing a phone number or a code');
 
