@@ -17,7 +17,7 @@
  * hardcoded, since it never reaches a release build.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +43,7 @@ import { OtpInput, OTP_LEN } from '@/components/OtpInput';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { onPhoneAutoVerified } from '@/lib/phoneAuth';
 import { phoneSignInMessage } from '@/lib/phoneSignInError';
 import { router } from '@/lib/navigation';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
@@ -160,6 +161,39 @@ export default function PhoneScreen() {
       setBusy(false);
     }
   };
+
+  // Verify the code in the boxes. Dev build: the fixed code takes a guest
+  // session so the app is walkable. Never in release.
+  const submitCode = (): void =>
+    void run(async () => {
+      if (devStub && code.trim() === DEV_OTP) {
+        await continueAsGuest();
+        return;
+      }
+      await verifyOtp(fullPhone, code.trim());
+    });
+
+  // Six digits, however they arrived (typed, pasted, SMS autofill): submit once
+  // per distinct code, so a refused code is not hammered until it is edited.
+  const submitted = useRef('');
+  useEffect(() => {
+    if (code.length !== OTP_LEN) {
+      submitted.current = '';
+      return;
+    }
+    if (stage !== 'code' || busy || submitted.current === code) return;
+    submitted.current = code;
+    submitCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, stage, busy]);
+
+  // Android can prove the number itself: Firebase reads its own SMS and signs
+  // in. Nothing is typed then, so finish the sign-in with that session.
+  useEffect(() => {
+    if (stage !== 'code' || devStub) return undefined;
+    return onPhoneAutoVerified(() => void run(() => verifyOtp(fullPhone, '')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, fullPhone]);
 
   // Back steps the code stage to the number first, then leaves the screen.
   const onBack = (): void => {
@@ -492,17 +526,7 @@ export default function PhoneScreen() {
                   label={t.signIn.verify}
                   disabled={busy || code.length !== OTP_LEN}
                   busy={busy}
-                  onPress={() =>
-                    void run(async () => {
-                      // Dev build: the fixed code takes a guest session so the
-                      // app is walkable. Never in release.
-                      if (devStub && code.trim() === DEV_OTP) {
-                        await continueAsGuest();
-                        return;
-                      }
-                      await verifyOtp(fullPhone, code.trim());
-                    })
-                  }
+                  onPress={submitCode}
                 />
               </>
             )}
