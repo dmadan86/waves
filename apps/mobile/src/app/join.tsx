@@ -135,8 +135,15 @@ export default function JoinScreen() {
       // landing there, and say it is expected so a flush that was already in
       // flight (and answered before the join) cannot make the screen announce
       // "not found" — it keeps loading until the group arrives or the window ends.
+      // Twice on purpose: a flush already in flight is joined rather than
+      // restarted, and that one never asked for this group. The second runs
+      // fresh with the id. Bounded, so a hung request cannot hold the button.
       expectGroup(result.group.id);
-      await flush([result.group.id]).catch(() => undefined);
+      const pull = async (): Promise<void> => {
+        await flush([result.group.id]).catch(() => undefined);
+        await flush([result.group.id]).catch(() => undefined);
+      };
+      await Promise.race([pull(), new Promise<void>((done) => setTimeout(done, 6_000))]);
       router.replace(`/group/${result.group.id}`);
     } catch (caught) {
       setError(friendlyError(caught, t.misc.couldNotJoin, 'join.accept'));

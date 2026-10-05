@@ -52,7 +52,10 @@ export function GroupNotFound({ groupId }: { groupId: string }) {
     if (retrying) return;
     setRetrying(true);
     try {
-      await flush(groupId ? [groupId] : undefined);
+      // Twice: a flush already in flight is joined, not restarted, and that one
+      // never asked for this group; the second runs fresh with the id.
+      await flush([groupId]).catch(() => undefined);
+      await flush([groupId]);
     } catch {
       // A failed pull leaves the same answer on screen; the sync banner owns the why.
     } finally {
