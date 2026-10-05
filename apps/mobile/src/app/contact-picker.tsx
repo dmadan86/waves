@@ -29,16 +29,12 @@
 
 import { useEffect, useState } from 'react';
 
-import { useStrings } from '@/i18n';
-
 import { type PickedContact } from '@/components/ContactPicker';
 import { ContactPickerScene } from '@/components/ContactPickerScene';
 import { takeContactRequest } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
 
 export default function ContactPickerScreen(): React.JSX.Element {
-  const { t } = useStrings();
-
   // Taken once on mount — this captures the request and clears the bridge in
   // one step, so the route owns it outright and no re-render or later open can
   // see a stale request. Nothing else clears it; this screen is the sole owner.
@@ -58,7 +54,6 @@ export default function ContactPickerScreen(): React.JSX.Element {
   return (
     <ContactPickerScene
       onConfirm={confirm}
-      confirmVerb={t.add}
       initialSelected={request?.initial}
       existing={request?.existing}
     />

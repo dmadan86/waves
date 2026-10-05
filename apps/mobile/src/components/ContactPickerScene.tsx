@@ -47,7 +47,6 @@ const SCENE_INTO_CARD = 34;
 
 export interface ContactPickerSceneProps {
   readonly onConfirm: (people: readonly PickedContact[]) => void;
-  readonly confirmVerb: string;
   readonly initialSelected?: readonly PickedContact[];
   readonly existing?: ReadonlySet<string>;
   readonly known?: KnownIndex;
@@ -58,7 +57,6 @@ export interface ContactPickerSceneProps {
 
 export function ContactPickerScene({
   onConfirm,
-  confirmVerb,
   initialSelected,
   existing,
   known,
@@ -161,7 +159,6 @@ export function ContactPickerScene({
           onConfirm={onConfirm}
           initialSelected={initialSelected}
           existing={existing}
-          confirmVerb={confirmVerb}
           known={known}
           escape={escape}
         />

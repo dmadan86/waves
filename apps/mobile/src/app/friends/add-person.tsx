@@ -502,7 +502,7 @@ export default function AddPersonScreen() {
             {pickerOpen ? (
               // Single-pick: a one-to-one IOU has room for exactly one name, so
               // a tap chooses that person and closes the sheet.
-              <ContactPicker single onConfirm={onPickContact} confirmVerb={t.misc.continueWith} />
+              <ContactPicker single onConfirm={onPickContact} />
             ) : null}
           </View>
         </Screen>
