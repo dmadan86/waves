@@ -61,6 +61,9 @@ const firebase = vi.hoisted(() => ({
   /** What sending / confirming throws, when a test wants Firebase to refuse. */
   sendError: null as unknown,
   confirmError: null as unknown,
+  /** The auth-state listener the module registered, to play Firebase signing in by itself. */
+  listener: null as null | ((user: unknown) => void),
+  confirmed: 0,
 }));
 
 vi.mock('@/lib/firebaseModule', () => ({
@@ -71,12 +74,20 @@ vi.mock('@/lib/firebaseModule', () => ({
             if (firebase.sendError) throw firebase.sendError;
             return {
               confirm: async () => {
+                firebase.confirmed += 1;
                 if (firebase.confirmError) throw firebase.confirmError;
                 return firebase.credential;
               },
             };
           },
           signOut: async () => undefined,
+          onAuthStateChanged: (cb: (user: unknown) => void) => {
+            firebase.listener = cb;
+            return () => {
+              firebase.listener = null;
+            };
+          },
+          currentUser: { getIdToken: async () => 'auto-token' },
         })
       : null,
 }));
@@ -87,6 +98,7 @@ const {
   attachPhoneCode,
   confirmPhoneCode,
   forgetPendingPhoneCode,
+  onPhoneAutoVerified,
   phoneSignInAvailable,
   sendPhoneCode,
 } = await import('@/lib/phoneAuth');
@@ -101,6 +113,8 @@ beforeEach(() => {
   firebase.credential = { user: { getIdToken: async () => 'id-token' } };
   firebase.sendError = null;
   firebase.confirmError = null;
+  firebase.listener = null;
+  firebase.confirmed = 0;
   forgetPendingPhoneCode();
 });
 
@@ -336,5 +350,43 @@ describe('what Firebase refuses, said as something to do', () => {
     await expect(attachPhoneCode('+919876543210', '000000')).rejects.toMatchObject({
       kind: 'expired',
     });
+  });
+});
+
+describe('Firebase proving the number by itself (Android auto-retrieval)', () => {
+  it('tells the screen, then finishes from the session instead of confirming a spent code', async () => {
+    const heard = vi.fn();
+    const off = onPhoneAutoVerified(heard);
+    await sendPhoneCode('+919876543210');
+    firebase.listener?.({ uid: 'fb' });
+    firebase.listener?.({ uid: 'fb' });
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect(heard).toHaveBeenCalledWith('+919876543210');
+
+    await confirmPhoneCode('+919876543210', '');
+    expect(firebase.confirmed).toBe(0);
+    expect(world.invoked[0]?.body).toEqual({ idToken: 'auto-token', mode: 'signin' });
+    expect(world.setSession).toHaveBeenCalled();
+    off();
+  });
+
+  it('keeps planAuth: a guest is attached to, not swapped', async () => {
+    world.user = { id: 'guest-1', is_anonymous: true };
+    world.answer = { data: { attached: true }, error: null };
+    await sendPhoneCode('+919876543210');
+    firebase.listener?.({ uid: 'fb' });
+    await confirmPhoneCode('+919876543210', '');
+    expect(world.invoked[0]?.body.mode).toBe('attach');
+    expect(world.setSession).not.toHaveBeenCalled();
+  });
+
+  it('does not mistake its own typed-code sign-in for auto-retrieval', async () => {
+    const heard = vi.fn();
+    const off = onPhoneAutoVerified(heard);
+    await sendPhoneCode('+919876543210');
+    await confirmPhoneCode('+919876543210', '123456');
+    expect(firebase.confirmed).toBe(1);
+    expect(heard).not.toHaveBeenCalled();
+    off();
   });
 });
