@@ -91,6 +91,17 @@ export function vendorDisplayName(description: string, fallbackName?: string | n
   return clean(description) || clean(fallbackName);
 }
 
+/**
+ * Whether a vendor card should draw a separate sub-event line: not when the
+ * card's title already is the sub-event label (a blank deposit named by its
+ * sub-event), which would only repeat it.
+ */
+export function showSubEventLine(vendorName: string, subEventLabel: string): boolean {
+  if (subEventLabel.trim() === '') return false;
+  const fold = (text: string): string => text.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  return fold(vendorName) !== fold(subEventLabel);
+}
+
 /** Fold a vendor name so letter case and spacing do not split one vendor. */
 export function vendorKey(description: string): string {
   return description.trim().replace(/\s+/g, ' ').toLocaleLowerCase();

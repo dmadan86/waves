@@ -9,6 +9,7 @@ import type { ExpenseVersionRow } from '@/data/types';
 import { editStateFromVersion, expenseWritePayload, withBalanceCleared } from '@/lib/expenseEdit';
 import {
   groupVendors,
+  showSubEventLine,
   vendorDisplayName,
   vendorKey,
   vendorSubEventIds,
@@ -89,6 +90,13 @@ describe('groupVendors', () => {
       'Royal Caterers': 1,
       '': 1,
     });
+  });
+
+  it('does not repeat the sub-event line when the title already is the sub-event', () => {
+    expect(showSubEventLine('🎈 Venue & decor', '🎈 Venue & decor')).toBe(false);
+    expect(showSubEventLine(' 🎈 venue  & decor', '🎈 Venue & decor')).toBe(false);
+    expect(showSubEventLine('Royal Caterers', '🎈 Venue & decor')).toBe(true);
+    expect(showSubEventLine('Royal Caterers', '')).toBe(false);
   });
 
   it('vendorDisplayName prefers the typed name', () => {

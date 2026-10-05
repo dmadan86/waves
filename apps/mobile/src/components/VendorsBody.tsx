@@ -35,6 +35,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
 import {
   groupVendors,
+  showSubEventLine,
   vendorSubEventIds,
   vendorSummary,
   VendorStatus,
@@ -208,16 +209,22 @@ export function VendorsBody({
                         {money(row.advancesMinor, row.currency, 'subheading')}
                       </View>
                     ))}
-                    <Row style={{ gap: theme.spacing.xs, flexWrap: 'wrap' }}>
-                      <Badge
-                        label={plural(locale, summary.overdueCount, o.overdueCount)}
-                        tone={summary.overdueCount > 0 ? 'negative' : 'neutral'}
-                      />
-                      <Badge
-                        label={fill(o.paidOffCount, { n: summary.paidOffCount })}
-                        tone="brand"
-                      />
-                    </Row>
+                    {summary.overdueCount > 0 || summary.paidOffCount > 0 ? (
+                      <Row style={{ gap: theme.spacing.xs }}>
+                        {summary.overdueCount > 0 ? (
+                          <Badge
+                            label={plural(locale, summary.overdueCount, o.overdueCount)}
+                            tone="negative"
+                          />
+                        ) : null}
+                        {summary.paidOffCount > 0 ? (
+                          <Badge
+                            label={fill(o.paidOffCount, { n: summary.paidOffCount })}
+                            tone="brand"
+                          />
+                        ) : null}
+                      </Row>
+                    ) : null}
                   </View>
                 </Row>
                 <View style={{ width: 1, backgroundColor: theme.color.border }} />
@@ -238,18 +245,48 @@ export function VendorsBody({
             </Card>
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <View style={{ flex: 1 }}>
-                <ChipRow<VendorFilter>
-                  value={filter}
-                  onChange={setFilter}
-                  options={[
-                    { value: 'all', label: o.filterAll },
-                    { value: 'due', label: o.filterDue },
-                    { value: 'overdue', label: o.filterOverdue },
-                    { value: 'paidOff', label: o.paidOff },
-                  ]}
-                />
-              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ gap: theme.spacing.xs }}
+              >
+                {(
+                  [
+                    ['all', o.filterAll],
+                    ['due', o.filterDue],
+                    ['overdue', o.filterOverdue],
+                    ['paidOff', o.paidOff],
+                  ] as const
+                ).map(([value, label]) => {
+                  const selected = filter === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      onPress={() => setFilter(value)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={label}
+                      style={{
+                        height: 30,
+                        paddingHorizontal: theme.spacing.md,
+                        borderRadius: theme.radius.pill,
+                        justifyContent: 'center',
+                        backgroundColor: selected ? theme.color.buttonPrimary : theme.color.surface,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: selected ? theme.color.onButtonPrimary : theme.color.textMuted,
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
               <IconButton
                 label={o.searchVendors}
                 onPress={() => {
@@ -311,7 +348,10 @@ export function VendorsBody({
             ) : null}
 
             {vendors.map((vendor) => (
-              <Card key={vendor.key} style={{ gap: theme.spacing.sm }}>
+              <Card
+                key={vendor.key}
+                style={{ gap: theme.spacing.xs, paddingVertical: theme.spacing.md }}
+              >
                 <Row
                   style={{
                     justifyContent: 'space-between',
@@ -349,7 +389,7 @@ export function VendorsBody({
                     fill(o.paidBy, { name: payer }),
                   ].join(', ');
                   return (
-                    <View key={entry.expenseId} style={{ gap: theme.spacing.xs }}>
+                    <View key={entry.expenseId} style={{ gap: 2 }}>
                       <Pressable
                         onPress={() => router.push(`/group/${groupId}/expense/${entry.expenseId}`)}
                         accessibilityRole="button"
@@ -358,8 +398,12 @@ export function VendorsBody({
                       >
                         <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                           <Row style={{ gap: theme.spacing.xs, alignItems: 'center', flex: 1 }}>
-                            {entry.subEventId ? (
-                              <Text variant="caption" numberOfLines={1}>
+                            {entry.subEventId &&
+                            showSubEventLine(
+                              vendor.name || o.unnamedVendor,
+                              subEventLabel(entry.subEventId),
+                            ) ? (
+                              <Text variant="micro" tone="muted" numberOfLines={1}>
                                 {subEventLabel(entry.subEventId)}
                               </Text>
                             ) : null}
@@ -385,30 +429,39 @@ export function VendorsBody({
                               </Text>
                               {money(entry.balanceMinor, entry.currency)}
                             </Row>
-                            <Text
-                              variant="micro"
-                              tone={overdue ? 'negative' : 'muted'}
-                              style={
-                                entry.dueSoon
-                                  ? { color: theme.color.warning, fontWeight: '600' }
-                                  : undefined
-                              }
-                            >
-                              {dueText}
-                            </Text>
                           </>
                         ) : null}
                       </Pressable>
                       {entry.balanceMinor > 0n ? (
-                        <Button
-                          label={o.payBalance}
-                          size="sm"
-                          variant="secondary"
-                          accessibilityLabel={fill(o.payBalanceFor, {
-                            vendor: vendor.name || o.unnamedVendor,
-                          })}
-                          onPress={() => payBalance(entry, vendor.name)}
-                        />
+                        <Row
+                          style={{
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: theme.spacing.sm,
+                          }}
+                        >
+                          <Text
+                            variant="micro"
+                            tone={overdue ? 'negative' : 'muted'}
+                            style={
+                              entry.dueSoon
+                                ? { color: theme.color.warning, fontWeight: '600' }
+                                : undefined
+                            }
+                          >
+                            {dueText}
+                          </Text>
+                          <Button
+                            label={o.payBalance}
+                            size="sm"
+                            variant="secondary"
+                            style={{ height: 32, paddingHorizontal: theme.spacing.md }}
+                            accessibilityLabel={fill(o.payBalanceFor, {
+                              vendor: vendor.name || o.unnamedVendor,
+                            })}
+                            onPress={() => payBalance(entry, vendor.name)}
+                          />
+                        </Row>
                       ) : null}
                     </View>
                   );
