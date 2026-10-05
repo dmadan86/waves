@@ -66,6 +66,65 @@ export class PhoneSignInUnavailable extends Error {
   }
 }
 
+/**
+ * What went wrong with a phone code, in the handful of ways a person can act on.
+ * Firebase's own messages are written for developers, and the generic "could not
+ * save" that used to cover all of them left nobody able to tell a typo from an
+ * outage — so the screen picks its sentence by this kind.
+ */
+export type PhoneErrorKind =
+  'invalidNumber' | 'tooMany' | 'unavailable' | 'network' | 'invalidCode' | 'expired';
+
+/** A Firebase failure that has been read, with the raw code kept for the logs. */
+export class PhoneAuthError extends Error {
+  constructor(
+    readonly kind: PhoneErrorKind,
+    readonly firebaseCode: string,
+    options?: { cause?: unknown; message?: string },
+  ) {
+    super(options?.message ?? `Phone verification failed (${firebaseCode || kind}).`);
+    this.name = 'PhoneAuthError';
+    if (options?.cause !== undefined) (this as { cause?: unknown }).cause = options.cause;
+  }
+}
+
+/**
+ * Which kind a Firebase error is, or null when it is not one we can name. Reads
+ * `code` (`auth/invalid-phone-number`, or native `ERROR_...` spellings) and falls
+ * back to the message, since a few native failures carry only text.
+ */
+export function phoneErrorKind(caught: unknown): PhoneErrorKind | null {
+  if (caught instanceof PhoneAuthError) return caught.kind;
+  const { code, message } = (caught ?? {}) as { code?: unknown; message?: unknown };
+  const text =
+    `${typeof code === 'string' ? code : ''} ${typeof message === 'string' ? message : ''}`
+      .toLowerCase()
+      .replace(/_/g, '-');
+  if (!text.trim()) return null;
+  if (/invalid-phone-number|missing-phone-number/.test(text)) return 'invalidNumber';
+  if (/too-many-requests|quota-exceeded/.test(text)) return 'tooMany';
+  if (/invalid-verification-code|invalid-verification-id/.test(text)) return 'invalidCode';
+  if (/session-expired|code-expired/.test(text)) return 'expired';
+  if (/network-request-failed/.test(text)) return 'network';
+  if (
+    /app-not-authorized|missing-client-identifier|operation-not-allowed|billing|app-not-verified|invalid-app-credential|missing-app-credential/.test(
+      text,
+    )
+  ) {
+    return 'unavailable';
+  }
+  return null;
+}
+
+/** Logged with its raw code so a device log says what Firebase actually refused. */
+function readFirebaseError(caught: unknown, where: string): PhoneAuthError | null {
+  const code = (caught as { code?: unknown })?.code;
+  const rawCode = typeof code === 'string' ? code : '';
+  console.warn(`[phoneAuth] ${where} failed`, rawCode || caught);
+  const kind = phoneErrorKind(caught);
+  return kind ? new PhoneAuthError(kind, rawCode, { cause: caught }) : null;
+}
+
 /** Firebase sends the SMS. Nothing of ours is called until the code is right. */
 export async function sendPhoneCode(phone: string): Promise<void> {
   const auth = firebaseAuth();
@@ -82,7 +141,12 @@ export async function sendPhoneCode(phone: string): Promise<void> {
   // App Check is here to protect. Firebase decides, and it decides with the
   // token if there is one.
   await ensureAppCheck();
-  const confirmation = await auth().signInWithPhoneNumber(phone);
+  let confirmation: PhoneConfirmation;
+  try {
+    confirmation = await auth().signInWithPhoneNumber(phone);
+  } catch (caught) {
+    throw readFirebaseError(caught, 'sendPhoneCode') ?? caught;
+  }
   pending = { phone, confirmation };
 }
 
@@ -102,10 +166,17 @@ async function proveNumber(phone: string, code: string): Promise<string> {
     // The number changed under the code screen, or the flow was resumed from
     // somewhere that never sent a code. Asking Firebase to confirm against a
     // stale verification would fail with something unreadable.
-    throw new Error('Ask for a new code.');
+    throw new PhoneAuthError('expired', 'no-pending-verification', {
+      message: 'Ask for a new code.',
+    });
   }
 
-  const credential = await pending.confirmation.confirm(code);
+  let credential: Awaited<ReturnType<PhoneConfirmation['confirm']>>;
+  try {
+    credential = await pending.confirmation.confirm(code);
+  } catch (caught) {
+    throw readFirebaseError(caught, 'confirmPhoneCode') ?? caught;
+  }
   if (!credential?.user) throw new Error('That code did not work.');
 
   try {

@@ -42,7 +42,6 @@ import {
   Callout,
   Card,
   ChipRow,
-  EmptyState,
   iconSize,
   MoneyText,
   Row,
@@ -81,12 +80,22 @@ import { tripRateFor } from '@/lib/tripRates';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useAssignCapture, useGroup, useGroupFxRates } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
+import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { handoverKey } from '@/lib/handover';
 import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
-import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
+import {
+  dateFrom,
+  isoDate,
+  mergeDateAndTime,
+  moveTimeToDay,
+  pickerTime,
+  showDate,
+  showTime,
+} from '@/lib/expenseDay';
+import { timeOfDay } from '@/lib/timeline';
 import {
   expenseDateFor,
   planCollapseToOne,
@@ -426,6 +435,12 @@ export default function AddExpenseScreen() {
   // re-filing an expense it did not mean to move.
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState(false);
+  // The time of day, the same way: `null` is untouched, so an edit keeps the
+  // time it has and a new bill keeps none (the timeline then shows the save
+  // time when that was the bill's own day).
+  const [pickedTime, setPickedTime] = useState<string | null>(null);
+  const [editingTime, setEditingTime] = useState(false);
+  const [openedAt] = useState(() => Date.now());
   const [participants, setParticipants] = useState<MemberId[]>([]);
   // What was typed into each member's field, as text. Two maps, not one: the
   // same person is "2 shares" and "40%", and switching between the two must not
@@ -816,6 +831,19 @@ export default function AddExpenseScreen() {
     today: todayIso(),
   });
 
+  // The chosen time follows the day: moving the date keeps the clock time.
+  const occurredAt = moveTimeToDay(
+    pickedTime ?? editing?.currentVersion?.occurred_at ?? null,
+    expenseDate,
+  );
+  const shownTime = timeOfDay(expenseDate, editing?.created_at, occurredAt);
+
+  const applyTime = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (Platform.OS === 'android') setEditingTime(false);
+    if (event.type === 'dismissed' || !picked) return;
+    setPickedTime(mergeDateAndTime(expenseDate, picked).toISOString());
+  };
+
   const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
     // Android's dialog dismisses itself; iOS keeps the spinner on the screen.
     if (Platform.OS === 'android') setEditingDate(false);
@@ -1147,11 +1175,7 @@ export default function AddExpenseScreen() {
   }
 
   if (!group.data) {
-    return (
-      <Screen>
-        <EmptyState title={t.group.notFound} body={t.group.notFoundArchived} />
-      </Screen>
-    );
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const submit = async (): Promise<void> => {
@@ -1197,6 +1221,7 @@ export default function AddExpenseScreen() {
             // was caught, a saved expense keeps the day it has, and only a new
             // one is today's (expenseDateFor).
             expenseDate,
+            occurredAt,
             currency,
             fx,
             splitKind,
@@ -2033,6 +2058,25 @@ export default function AddExpenseScreen() {
                     mode="date"
                     display={Platform.OS === 'ios' ? 'inline' : 'default'}
                     onChange={applyDate}
+                  />
+                ) : null}
+              </View>
+
+              <View>
+                <DetailRow
+                  icon="time-outline"
+                  tint={theme.tint.pink}
+                  dense
+                  label={t.expense.detailTime}
+                  value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
+                  onPress={() => setEditingTime(true)}
+                />
+                {editingTime ? (
+                  <DateTimePicker
+                    value={pickerTime(shownTime, openedAt)}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={applyTime}
                   />
                 ) : null}
               </View>

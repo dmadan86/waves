@@ -55,6 +55,8 @@ export interface ExpenseEditState {
   categoryMeta: CategoryMeta | null;
   /** ISO day (YYYY-MM-DD) the bill is filed under. */
   expenseDate: string;
+  /** The time of day chosen for the bill (ISO instant), or null when none was. */
+  occurredAt: string | null;
   /** The currency the bill was paid in — never converted by an edit. */
   currency: string;
   fx: FxRecord | null;
@@ -129,6 +131,7 @@ export function editStateFromVersion(
     category: version.category ?? null,
     categoryMeta: (version.category_meta as CategoryMeta | null) ?? null,
     expenseDate: version.expense_date,
+    occurredAt: version.occurred_at ?? null,
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
     splitKind: splitKindOf(version.split_type),
@@ -319,6 +322,7 @@ export function expenseWritePayload(input: {
     category: state.category,
     categoryMeta: state.categoryMeta,
     expenseDate: state.expenseDate,
+    occurredAt: state.occurredAt,
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,

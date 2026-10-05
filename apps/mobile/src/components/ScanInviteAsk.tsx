@@ -214,12 +214,17 @@ export default function ScanInviteAsk({
   onAllow,
   onClose,
   onPasteLink,
+  onPickPhoto,
+  photoError,
 }: {
   /** Requests camera permission. A grant hands straight to the live scanner —
    *  this screen never renders again once it resolves `granted`. */
   onAllow: () => void;
   onClose: () => void;
   onPasteLink: () => void;
+  /** Picks a QR saved as an image — works without camera permission. */
+  onPickPhoto: () => void;
+  photoError: string | null;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -380,6 +385,32 @@ export default function ScanInviteAsk({
             {t.misc.scanPasteLink}
           </Text>
         </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.misc.scanFromPhotos}
+          onPress={onPickPhoto}
+          style={({ pressed }) => ({
+            height: 44,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.brandSoft,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Ionicons name="images-outline" size={iconSize.base} color={theme.color.brand} />
+          <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.brand }}>
+            {t.misc.scanFromPhotos}
+          </Text>
+        </Pressable>
+        {photoError ? (
+          <Text variant="caption" align="center" style={{ color: theme.color.negative }}>
+            {photoError}
+          </Text>
+        ) : null}
 
         <Row
           gap={0}

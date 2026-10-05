@@ -66,7 +66,8 @@ import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { useSync } from '@/sync';
 import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
-import { showDate } from '@/lib/expenseDay';
+import { showDate, showTime } from '@/lib/expenseDay';
+import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
 
 function splitLabels(t: UiStrings): Record<string, string> {
@@ -344,6 +345,8 @@ export default function ExpenseDetailScreen() {
   // not on an itemized or adjusted split — those reopen as equal, so a one-field
   // save would quietly re-split them; the pencil is still the way in there.
   const inlineEditable = !deleted && canEditInline(version.split_type);
+  // The bill's time of day: the one chosen, else the save time on its own day.
+  const shownAt = timeOfDay(version.expense_date, expense.created_at, version.occurred_at);
   const changeOn = (field: ExpenseField): (() => void) | undefined =>
     inlineEditable ? () => setEditingField(field) : undefined;
   // A new total alone cannot be saved when the split is exact or several people
@@ -687,6 +690,13 @@ export default function ExpenseDetailScreen() {
                     timeZone: 'UTC',
                   }).format(new Date(version.expense_date))}
                   onPress={changeOn('date')}
+                  accessibilityHint={t.expense.detailTapHint}
+                />
+                <DetailRow
+                  icon="time-outline"
+                  label={t.expense.detailTime}
+                  value={shownAt != null ? showTime(shownAt, locale) : t.expense.addTime}
+                  onPress={changeOn('time')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
                 <DetailRow
@@ -1052,6 +1062,7 @@ export default function ExpenseDetailScreen() {
           members={members.data ?? []}
           viewerId={viewerId}
           myMemberId={myMemberId}
+          savedAt={expense.created_at}
           onClose={() => setEditingField(null)}
           onOpenEditor={(focus) => openEditor(focus)}
         />

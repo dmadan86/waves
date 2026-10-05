@@ -189,6 +189,8 @@ export interface ExpenseVersionRow {
   is_deposit?: boolean;
   balance_due_minor?: string | null;
   balance_due_date?: string | null;
+  /** The time of day the person chose (ISO instant); null on an older expense. */
+  occurred_at?: string | null;
 }
 
 export interface ExpenseRow {

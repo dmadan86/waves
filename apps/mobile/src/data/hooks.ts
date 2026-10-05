@@ -62,7 +62,7 @@ import {
 } from '@waves/core';
 
 import { isCrossCheckComparable } from '@/data/crossCheck';
-import { DEMO_GROUP_ID, isDemoGroupId } from '@/demo/ids';
+import { DEMO_GROUP_ID, isDemoGroupId, isDemoId } from '@/demo/ids';
 import { DemoWriteBlockedError } from '@/demo/guard';
 import { requestDemoGate } from '@/demo/gateStore';
 import { useDemoActive } from '@/demo/useDemoActive';
@@ -71,6 +71,11 @@ import { useAuth, useViewerId } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
+import {
+  expectedGroupRemaining,
+  forgetExpectedGroup,
+  groupMayStillArrive,
+} from '@/lib/groupArrival';
 import { smsDrafts } from '@/lib/smsDraftStore';
 import {
   routeCaptureAssign,
@@ -520,7 +525,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           amount: BigInt(version.amount),
           currency: version.currency,
           day: version.expense_date,
-          at: timeOfDay(version.expense_date, expense.created_at),
+          at: timeOfDay(version.expense_date, expense.created_at, version.occurred_at),
           place:
             place && Number.isFinite(place.lat) && Number.isFinite(place.lng)
               ? { lat: place.lat, lng: place.lng, name: place.name ?? null }
@@ -1106,7 +1111,7 @@ export function useDestinationUsage(): Map<string, DestinationUsage> {
  * two ever disagree. It is allowed to be absent; a group opens without it.
  */
 export function useGroup(groupId: string) {
-  const { mirror, queue } = useSync();
+  const { mirror, queue, hydrated, hasSynced, status } = useSync();
   const viewerId = useViewerId();
   const demo = isDemoGroupId(groupId);
   // `isNewAccount` is `false` here on purpose, not a real read of the group
@@ -1177,7 +1182,27 @@ export function useGroup(groupId: string) {
     return { group, members, settlements, activity, stored, withPending };
   }, [mirror, queue, groupId, demo, showDemo, viewerId]);
 
-  const group = useLocalRead(rows.group);
+  // A group that is not in the mirror yet is not necessarily a group that does
+  // not exist: one just joined, or a brand-new session's first sync, has not
+  // been pulled. Keep the screen loading through that window rather than
+  // announcing "not found" to somebody who joined a second ago.
+  const found = rows.group !== null;
+  const remaining = found || demo ? 0 : expectedGroupRemaining(groupId);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (remaining <= 0) return;
+    // Re-render when the window closes, so the wait ends even if nothing syncs.
+    const timer = setTimeout(() => setTick((n) => n + 1), remaining + 50);
+    return () => clearTimeout(timer);
+  }, [remaining]);
+  useEffect(() => {
+    if (found) forgetExpectedGroup(groupId);
+  }, [found, groupId]);
+  const arriving =
+    !demo && groupMayStillArrive({ found, hydrated, hasSynced, status, expecting: remaining > 0 });
+
+  const localGroup = useLocalRead(rows.group);
+  const group = arriving ? { ...localGroup, isLoading: true } : localGroup;
   const members = useLocalRead(rows.members);
   const settlements = useLocalRead(rows.settlements);
   const activity = useLocalRead(rows.activity);
@@ -1483,7 +1508,8 @@ export function useGroupRealtime(groupId: string): void {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!groupId) return;
+    // The demo group has no server rows to watch.
+    if (!groupId || isDemoGroupId(groupId)) return;
 
     const channel = backend
       .channel(`group:${groupId}:${++realtimeChannelSeq}`)
@@ -2001,7 +2027,8 @@ export function useExpenseVersions(expenseId: string) {
   return useQuery({
     queryKey: ['expense', expenseId, 'versions'],
     queryFn: () => fetchExpenseVersions(expenseId),
-    enabled: Boolean(expenseId),
+    // A demo expense has no server history, and its id is not a UUID.
+    enabled: Boolean(expenseId) && !isDemoId(expenseId),
   });
 }
 
@@ -2716,7 +2743,7 @@ export function useMemberClaims(groupId: string) {
   return useQuery({
     queryKey: keys.memberClaims(groupId),
     queryFn: () => fetchMemberClaims(groupId),
-    enabled: groupId !== '',
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
   });
 }
 
@@ -2816,7 +2843,7 @@ export function useOpenReceipts(groupId: string) {
   return useQuery({
     queryKey: ['open-receipts', groupId],
     queryFn: () => fetchOpenReceipts(groupId),
-    enabled: groupId !== '',
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
   });
 }
 
