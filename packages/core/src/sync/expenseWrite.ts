@@ -125,6 +125,9 @@ export interface ExpenseWriteBodyInput {
   readonly balanceDueMinor?: bigint | null;
   /** When the balance above is due (ISO date). Null unless `isDeposit`. */
   readonly balanceDueDate?: string | null;
+  /** The time of day the person chose (ISO instant, UTC); null/absent keeps
+   *  whatever the server already has, or none on a new expense. */
+  readonly occurredAt?: string | null;
   /** Idempotency key: a retry after a flaky network must not double-post. */
   readonly clientMutationId: string;
 }
@@ -154,6 +157,7 @@ export interface ExpenseWriteBody {
   readonly isDeposit: boolean;
   readonly balanceDueMinor: string | null;
   readonly balanceDueDate: string | null;
+  readonly occurredAt: string | null;
   readonly clientMutationId: string;
 }
 
@@ -194,6 +198,7 @@ export function buildExpenseWriteBody(input: ExpenseWriteBodyInput): ExpenseWrit
     isDeposit: input.isDeposit ?? false,
     balanceDueMinor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
     balanceDueDate: input.balanceDueDate ?? null,
+    occurredAt: input.occurredAt ?? null,
     clientMutationId: input.clientMutationId,
   };
 }
@@ -241,6 +246,9 @@ export interface ApplyExpenseArgsInput {
   readonly balanceDueMinor?: bigint | null;
   /** When the balance above is due (ISO date). Null unless `isDeposit`. */
   readonly balanceDueDate?: string | null;
+  /** The time of day the person chose (ISO instant, UTC); null/absent keeps
+   *  whatever the server already has, or none on a new expense. */
+  readonly occurredAt?: string | null;
 }
 
 /** The named arguments passed to `waves_apply_expense`. `p_source` is left to
@@ -271,6 +279,16 @@ export interface ApplyExpenseRpcArgs {
   readonly p_is_deposit: boolean;
   readonly p_balance_due_minor: string | null;
   readonly p_balance_due_date: string | null;
+  readonly p_occurred_at: string | null;
+}
+
+/** A client-supplied time of day as a canonical UTC ISO instant, or null when
+ *  absent or unparseable (the server then keeps whatever it already has rather
+ *  than failing the write over a label). */
+export function normaliseOccurredAt(value: string | null | undefined): string | null {
+  if (value == null || value === '') return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
 
 /**
@@ -308,5 +326,6 @@ export function buildApplyExpenseArgs(input: ApplyExpenseArgsInput): ApplyExpens
     p_is_deposit: input.isDeposit ?? false,
     p_balance_due_minor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
     p_balance_due_date: input.balanceDueDate ?? null,
+    p_occurred_at: normaliseOccurredAt(input.occurredAt),
   };
 }

@@ -50,6 +50,7 @@ const APPLY_EXPENSE_KEYS = [
   'p_is_deposit',
   'p_balance_due_minor',
   'p_balance_due_date',
+  'p_occurred_at',
 ].sort();
 
 /** A representative custom-tag snapshot reused across the cases. */
@@ -153,6 +154,7 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     expect(args.p_is_deposit).toBe(false);
     expect(args.p_balance_due_minor).toBeNull();
     expect(args.p_balance_due_date).toBeNull();
+    expect(args.p_occurred_at).toBeNull();
   });
 
   it('carries a vendor deposit through: sub-event, the flag and the balance due (event-organizer.md)', () => {
@@ -168,6 +170,13 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     expect(args.p_is_deposit).toBe(true);
     expect(args.p_balance_due_minor).toBe('450000');
     expect(args.p_balance_due_date).toBe('2027-02-10');
+  });
+
+  it('passes the chosen time of day as a canonical UTC instant, and drops garbage', () => {
+    expect(
+      buildApplyExpenseArgs(baseArgs({ occurredAt: '2026-03-01T20:05:00+05:30' })).p_occurred_at,
+    ).toBe('2026-03-01T14:35:00.000Z');
+    expect(buildApplyExpenseArgs(baseArgs({ occurredAt: 'not a time' })).p_occurred_at).toBeNull();
   });
 });
 
@@ -215,6 +224,7 @@ describe('buildExpenseWriteBody — the client → edge contract', () => {
     expect(body.isDeposit).toBe(false);
     expect(body.balanceDueMinor).toBeNull();
     expect(body.balanceDueDate).toBeNull();
+    expect(body.occurredAt).toBeNull();
   });
 
   it('carries the vendor-deposit fields and stringifies the balance (event-organizer.md)', () => {

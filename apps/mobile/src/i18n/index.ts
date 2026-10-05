@@ -1349,6 +1349,7 @@ export interface UiStrings {
     emailSub: string;
     neverSpam: string;
     onThisPhone: string;
+    offOnPhone: string;
     permissionOn: string;
     permissionOff: string;
     permissionUnset: string;
@@ -1444,6 +1445,15 @@ export interface UiStrings {
     confirm: string;
     sendCodeEmail: string;
     sendCodePhone: string;
+    /** Why a text code could not be sent or checked, by what the person can do. */
+    phoneErrors: {
+      invalidNumber: string;
+      tooMany: string;
+      unavailable: string;
+      network: string;
+      invalidCode: string;
+      expired: string;
+    };
     useDifferent: string;
     added: string;
     signInMethodsTitle: string;
@@ -1493,6 +1503,8 @@ export interface UiStrings {
     notifyTitle: string;
     notifyBody: string;
     notifyEnable: string;
+    /** Carries a `{group}` placeholder — the group somebody just joined. */
+    notifyJoinBody: string;
     notifyNotNow: string;
     clear: string;
     continueLabel: string;
@@ -2519,6 +2531,11 @@ export interface UiStrings {
     notFound: string;
     notFoundBody: string;
     notFoundArchived: string;
+    /** The not-found screen's actions and its help card. */
+    notFoundRetry: string;
+    notFoundHome: string;
+    notFoundHelpTitle: string;
+    notFoundHelp: string;
     loading: string;
     settings: string;
     more: string;
@@ -2968,6 +2985,9 @@ export interface UiStrings {
      *  how it was split. */
     detailGroup: string;
     detailDate: string;
+    /** The time-of-day row beside the date, and its empty state. */
+    detailTime: string;
+    addTime: string;
     detailSplit: string;
     /** Spoken hint on an expense-screen fact that opens a pop-up to change it. */
     detailTapHint: string;
@@ -3081,6 +3101,17 @@ export interface UiStrings {
     scanTorchOn: string;
     scanTorchOff: string;
     scanPasteLink: string;
+    scanFromPhotos: string;
+    scanPhotoNoQr: string;
+    joinWithCode: string;
+    groupsSubtitle: string;
+    filterOwed: string;
+    filterOwe: string;
+    filterFavorites: string;
+    sortGroupsTitle: string;
+    sortRecent: string;
+    sortAmount: string;
+    sortName: string;
     scanPasteTitle: string;
     scanPasteBody: string;
     scanPastePlaceholder: string;
@@ -3094,6 +3125,12 @@ export interface UiStrings {
     linkMissingCode: string;
     goToWaves: string;
     freeNoAccount: string;
+    joinFeatureQuickTitle: string;
+    joinFeatureQuickBody: string;
+    joinFeatureGuestTitle: string;
+    joinFeatureGuestBody: string;
+    joinFeatureTogetherTitle: string;
+    joinFeatureTogetherBody: string;
     isOneOfTheseYou: string;
     /** The line under a group's name on the invite landing screen. */
     peopleSplitting: PluralForms;
@@ -5389,6 +5426,7 @@ const en: UiStrings = {
     neverSpam:
       'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
     onThisPhone: 'Notifications on this phone',
+    offOnPhone: 'Notifications are off on this phone',
     permissionOn:
       'This device is registered. Everything below still lands in your inbox whether or not a push gets through.',
     permissionOff:
@@ -5487,6 +5525,14 @@ const en: UiStrings = {
     confirm: 'Confirm',
     sendCodeEmail: 'Send me a code',
     sendCodePhone: 'Text me a code',
+    phoneErrors: {
+      invalidNumber: 'That phone number does not look right. Check the country code and digits.',
+      tooMany: 'Too many attempts. Please wait a while before asking for another code.',
+      unavailable: "Text codes aren't available right now. Please try again later or use email.",
+      network: 'No connection. Check your internet and try again.',
+      invalidCode: 'That code is not right. Check it and try again.',
+      expired: 'That code has expired. Ask for a new one.',
+    },
     useDifferent: 'Use a different one',
     added: 'Added. You can sign in with it on another phone now.',
     signInMethodsTitle: 'Ways to sign in',
@@ -5532,6 +5578,7 @@ const en: UiStrings = {
     notifyBody:
       "We'll let you know when someone adds an expense, settles up, or invites you to a group. No spam.",
     notifyEnable: 'Enable',
+    notifyJoinBody: 'Get notified when someone adds an expense in {group}, or settles up.',
     notifyNotNow: 'Not now',
     clear: 'Clear',
     continueLabel: 'Continue',
@@ -6319,6 +6366,10 @@ const en: UiStrings = {
     notFound: 'Group not found',
     notFoundBody: 'It may have been archived, or you are no longer a member.',
     notFoundArchived: 'It may have been archived.',
+    notFoundRetry: 'Try again',
+    notFoundHome: 'Go to Home',
+    notFoundHelpTitle: 'Need help?',
+    notFoundHelp: 'Check the invite link or ask the group admin to share a new link.',
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
@@ -6660,6 +6711,8 @@ const en: UiStrings = {
     rowSquare: '{name} is square on this bill',
     detailGroup: 'Group',
     detailDate: 'Date',
+    detailTime: 'Time',
+    addTime: 'Add time',
     detailSplit: 'Split',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -6757,6 +6810,17 @@ const en: UiStrings = {
     scanTorchOn: 'Turn the light on',
     scanTorchOff: 'Turn the light off',
     scanPasteLink: 'Paste a link instead',
+    scanFromPhotos: 'Upload QR from photos',
+    scanPhotoNoQr: 'Could not find a QR code in that photo.',
+    joinWithCode: 'Join with a code or QR',
+    groupsSubtitle: 'All your groups in one place',
+    filterOwed: "I'm owed",
+    filterOwe: 'I owe',
+    filterFavorites: 'Favorites',
+    sortGroupsTitle: 'Sort groups',
+    sortRecent: 'Recent activity',
+    sortAmount: 'Amount',
+    sortName: 'Name',
     scanPasteTitle: 'Paste an invite link',
     scanPasteBody: 'If the link came through a chat on this phone, paste it here.',
     scanPastePlaceholder: 'Paste the invite link',
@@ -6772,6 +6836,12 @@ const en: UiStrings = {
     linkMissingCode: 'This link is missing its invite code',
     goToWaves: 'Go to Waves',
     freeNoAccount: 'Free forever, no account needed',
+    joinFeatureQuickTitle: 'Quick join',
+    joinFeatureQuickBody: 'Start tracking expenses instantly',
+    joinFeatureGuestTitle: 'No account needed',
+    joinFeatureGuestBody: 'Join as a guest',
+    joinFeatureTogetherTitle: 'Split together',
+    joinFeatureTogetherBody: 'Keep everyone on the same page',
     isOneOfTheseYou: 'Is one of these you?',
     peopleSplitting: {
       one: '{n} person is splitting expenses here',
@@ -8990,6 +9060,7 @@ const ta: UiStrings = {
     neverSpam:
       'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
     onThisPhone: 'இந்த ஃபோனில் அறிவிப்புகள்',
+    offOnPhone: 'இந்த ஃபோனில் அறிவிப்புகள் அணைக்கப்பட்டுள்ளன',
     permissionOn:
       'இந்தச் சாதனம் பதிவு செய்யப்பட்டுள்ளது. அறிவிப்பு வந்தாலும் வராவிட்டாலும் கீழே உள்ள அனைத்தும் உங்கள் அஞ்சல் பெட்டியில் வந்து சேரும்.',
     permissionOff:
@@ -9091,6 +9162,16 @@ const ta: UiStrings = {
     confirm: 'உறுதிப்படுத்து',
     sendCodeEmail: 'எனக்கு ஒரு குறியீடு அனுப்பு',
     sendCodePhone: 'குறுஞ்செய்தியில் குறியீடு அனுப்பு',
+    phoneErrors: {
+      invalidNumber:
+        'இந்த ஃபோன் எண் சரியாகத் தெரியவில்லை. நாட்டுக் குறியீடு, எண்களைச் சரிபார்க்கவும்.',
+      tooMany: 'அதிக முயற்சிகள். புதிய குறியீடு கேட்பதற்கு முன் சிறிது நேரம் காத்திருக்கவும்.',
+      unavailable:
+        'குறுஞ்செய்திக் குறியீடுகள் இப்போது கிடைக்கவில்லை. பின்னர் முயலவும் அல்லது மின்னஞ்சலைப் பயன்படுத்தவும்.',
+      network: 'இணைப்பு இல்லை. இணையத்தைச் சரிபார்த்து மீண்டும் முயலவும்.',
+      invalidCode: 'அந்தக் குறியீடு சரியில்லை. சரிபார்த்து மீண்டும் முயலவும்.',
+      expired: 'அந்தக் குறியீடு காலாவதியாகிவிட்டது. புதியதைக் கேட்கவும்.',
+    },
     useDifferent: 'வேறொன்றைப் பயன்படுத்து',
     added: 'சேர்க்கப்பட்டது. இப்போது வேறு ஃபோனிலும் இதைக் கொண்டு உள்நுழையலாம்.',
     signInMethodsTitle: 'உள்நுழையும் வழிகள்',
@@ -9138,6 +9219,8 @@ const ta: UiStrings = {
     notifyBody:
       'யாராவது செலவைச் சேர்க்கும்போது, தீர்த்துக்கொள்ளும்போது, அல்லது ஒரு குழுவிற்கு உங்களை அழைக்கும்போது தெரிவிப்போம். ஸ்பேம் இல்லை.',
     notifyEnable: 'இயக்கு',
+    notifyJoinBody:
+      '{group} குழுவில் யாராவது செலவைச் சேர்த்தால் அல்லது கணக்கு தீர்த்தால் அறிவிப்பு பெறுங்கள்.',
     notifyNotNow: 'இப்போது வேண்டாம்',
     clear: 'அழி',
     continueLabel: 'தொடரவும்',
@@ -9964,6 +10047,11 @@ const ta: UiStrings = {
     notFound: 'குழு கிடைக்கவில்லை',
     notFoundBody: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம், அல்லது நீங்கள் இனி உறுப்பினர் இல்லை.',
     notFoundArchived: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம்.',
+    notFoundRetry: 'மீண்டும் முயற்சிக்கவும்',
+    notFoundHome: 'முகப்புக்குச் செல்',
+    notFoundHelpTitle: 'உதவி வேண்டுமா?',
+    notFoundHelp:
+      'அழைப்பு இணைப்பைச் சரிபார்க்கவும் அல்லது புதிய இணைப்பைப் பகிரும்படி குழு நிர்வாகியிடம் கேளுங்கள்.',
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
@@ -10325,6 +10413,8 @@ const ta: UiStrings = {
     rowSquare: 'இந்த பில்லில் {name} சரிசமம்',
     detailGroup: 'குழு',
     detailDate: 'தேதி',
+    detailTime: 'நேரம்',
+    addTime: 'நேரம் சேர்',
     detailSplit: 'பிரிப்பு',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -10425,6 +10515,17 @@ const ta: UiStrings = {
     scanTorchOn: 'விளக்கை இயக்கு',
     scanTorchOff: 'விளக்கை அணை',
     scanPasteLink: 'இணைப்பை ஒட்டவும்',
+    scanFromPhotos: 'புகைப்படங்களிலிருந்து QR பதிவேற்றவும்',
+    scanPhotoNoQr: 'அந்தப் புகைப்படத்தில் QR குறியீடு கிடைக்கவில்லை.',
+    joinWithCode: 'குறியீடு அல்லது QR மூலம் இணையுங்கள்',
+    groupsSubtitle: 'உங்கள் எல்லா குழுக்களும் ஒரே இடத்தில்',
+    filterOwed: 'எனக்கு வர வேண்டியது',
+    filterOwe: 'நான் தர வேண்டியது',
+    filterFavorites: 'பிடித்தவை',
+    sortGroupsTitle: 'குழுக்களை வரிசைப்படுத்து',
+    sortRecent: 'சமீபத்திய செயல்பாடு',
+    sortAmount: 'தொகை',
+    sortName: 'பெயர்',
     scanPasteTitle: 'அழைப்பு இணைப்பை ஒட்டவும்',
     scanPasteBody: 'இந்த ஃபோனில் ஒரு அரட்டையில் இணைப்பு வந்திருந்தால், அதை இங்கே ஒட்டவும்.',
     scanPastePlaceholder: 'அழைப்பு இணைப்பை ஒட்டவும்',
@@ -10440,6 +10541,12 @@ const ta: UiStrings = {
     linkMissingCode: 'இந்த இணைப்பில் அழைப்புக் குறியீடு இல்லை',
     goToWaves: 'Waves-க்குச் செல்',
     freeNoAccount: 'எப்போதும் இலவசம், கணக்கு தேவையில்லை',
+    joinFeatureQuickTitle: 'விரைவாகச் சேர்',
+    joinFeatureQuickBody: 'உடனே செலவுகளைக் கண்காணிக்கத் தொடங்கு',
+    joinFeatureGuestTitle: 'கணக்கு தேவையில்லை',
+    joinFeatureGuestBody: 'விருந்தினராகச் சேர்',
+    joinFeatureTogetherTitle: 'சேர்ந்து பிரி',
+    joinFeatureTogetherBody: 'எல்லோரும் ஒரே பக்கத்தில் இருங்கள்',
     isOneOfTheseYou: 'இவர்களில் ஒருவர் நீங்களா?',
     peopleSplitting: {
       one: '{n} நபர் இங்கே செலவுகளைப் பகிர்கிறார்',
@@ -12701,6 +12808,7 @@ const hi: UiStrings = {
     neverSpam:
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     onThisPhone: 'इस फ़ोन पर सूचनाएँ',
+    offOnPhone: 'इस फ़ोन पर सूचनाएँ बंद हैं',
     permissionOn:
       'यह डिवाइस पंजीकृत है। सूचना पहुँचे या न पहुँचे, नीचे का सब कुछ आपके इनबॉक्स में आता ही है।',
     permissionOff:
@@ -12798,6 +12906,14 @@ const hi: UiStrings = {
     confirm: 'पुष्टि करें',
     sendCodeEmail: 'मुझे कोड भेजें',
     sendCodePhone: 'मैसेज पर कोड भेजें',
+    phoneErrors: {
+      invalidNumber: 'यह फ़ोन नंबर सही नहीं लग रहा। देश का कोड और अंक जाँचें।',
+      tooMany: 'बहुत ज़्यादा कोशिशें हुईं। नया कोड माँगने से पहले थोड़ी देर रुकें।',
+      unavailable: 'मैसेज कोड अभी उपलब्ध नहीं हैं। बाद में फिर कोशिश करें या ईमेल इस्तेमाल करें।',
+      network: 'कनेक्शन नहीं है। इंटरनेट जाँचकर फिर कोशिश करें।',
+      invalidCode: 'यह कोड सही नहीं है। जाँचकर फिर कोशिश करें।',
+      expired: 'यह कोड समाप्त हो गया है। नया कोड माँगें।',
+    },
     useDifferent: 'कोई दूसरा इस्तेमाल करें',
     added: 'जुड़ गया। अब आप इससे किसी दूसरे फ़ोन पर साइन इन कर सकते हैं।',
     signInMethodsTitle: 'साइन इन करने के तरीके',
@@ -12843,6 +12959,7 @@ const hi: UiStrings = {
     notifyBody:
       'जब कोई खर्च जोड़े, हिसाब चुकाए, या आपको समूह में आमंत्रित करे तो हम आपको बताएँगे। कोई स्पैम नहीं।',
     notifyEnable: 'चालू करें',
+    notifyJoinBody: '{group} में कोई खर्च जोड़े या हिसाब चुकाए तो सूचना पाएँ।',
     notifyNotNow: 'अभी नहीं',
     clear: 'साफ़ करें',
     continueLabel: 'जारी रखें',
@@ -13636,6 +13753,10 @@ const hi: UiStrings = {
     notFound: 'समूह नहीं मिला',
     notFoundBody: 'हो सकता है यह संग्रहित कर दिया गया हो, या आप अब सदस्य न हों।',
     notFoundArchived: 'हो सकता है यह संग्रहित कर दिया गया हो।',
+    notFoundRetry: 'फिर से कोशिश करें',
+    notFoundHome: 'होम पर जाएँ',
+    notFoundHelpTitle: 'मदद चाहिए?',
+    notFoundHelp: 'आमंत्रण लिंक जाँचें या ग्रुप एडमिन से नया लिंक साझा करने को कहें।',
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
@@ -13984,6 +14105,8 @@ const hi: UiStrings = {
     rowSquare: 'इस बिल पर {name} का हिसाब बराबर है',
     detailGroup: 'समूह',
     detailDate: 'तारीख़',
+    detailTime: 'समय',
+    addTime: 'समय जोड़ें',
     detailSplit: 'बँटवारा',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -14083,6 +14206,17 @@ const hi: UiStrings = {
     scanTorchOn: 'लाइट चालू करें',
     scanTorchOff: 'लाइट बंद करें',
     scanPasteLink: 'लिंक पेस्ट करें',
+    scanFromPhotos: 'फ़ोटो से QR अपलोड करें',
+    scanPhotoNoQr: 'उस फ़ोटो में QR कोड नहीं मिला।',
+    joinWithCode: 'कोड या QR से जुड़ें',
+    groupsSubtitle: 'आपके सभी समूह एक जगह',
+    filterOwed: 'मुझे मिलना है',
+    filterOwe: 'मुझे देना है',
+    filterFavorites: 'पसंदीदा',
+    sortGroupsTitle: 'समूह क्रमबद्ध करें',
+    sortRecent: 'हाल की गतिविधि',
+    sortAmount: 'राशि',
+    sortName: 'नाम',
     scanPasteTitle: 'इनवाइट लिंक पेस्ट करें',
     scanPasteBody: 'अगर लिंक इसी फ़ोन की किसी चैट में आया है, तो उसे यहाँ पेस्ट करें।',
     scanPastePlaceholder: 'इनवाइट लिंक पेस्ट करें',
@@ -14097,6 +14231,12 @@ const hi: UiStrings = {
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
     freeNoAccount: 'हमेशा मुफ़्त, खाता ज़रूरी नहीं',
+    joinFeatureQuickTitle: 'झटपट जुड़ें',
+    joinFeatureQuickBody: 'तुरंत खर्च ट्रैक करना शुरू करें',
+    joinFeatureGuestTitle: 'खाता ज़रूरी नहीं',
+    joinFeatureGuestBody: 'मेहमान के रूप में जुड़ें',
+    joinFeatureTogetherTitle: 'साथ में बाँटें',
+    joinFeatureTogetherBody: 'सबको एक ही पेज पर रखें',
     isOneOfTheseYou: 'क्या इनमें से कोई आप हैं?',
     peopleSplitting: {
       one: '{n} व्यक्ति यहाँ खर्च बाँट रहा है',
@@ -16367,6 +16507,7 @@ const ar: UiStrings = {
     neverSpam:
       'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
     onThisPhone: 'الإشعارات على هذا الهاتف',
+    offOnPhone: 'الإشعارات متوقفة على هذا الهاتف',
     permissionOn: 'هذا الجهاز مسجَّل. كل ما في الأسفل يصل إلى صندوقك سواء وصل الإشعار أم لا.',
     permissionOff:
       'هاتفك يحجبها. أعد تفعيلها من إعدادات النظام لـ Waves — وصندوق الوارد يحتفظ بكل شيء في الحالتين.',
@@ -16460,6 +16601,14 @@ const ar: UiStrings = {
     confirm: 'تأكيد',
     sendCodeEmail: 'أرسل لي رمزًا',
     sendCodePhone: 'أرسل الرمز برسالة',
+    phoneErrors: {
+      invalidNumber: 'رقم الهاتف هذا لا يبدو صحيحًا. تحقق من رمز الدولة والأرقام.',
+      tooMany: 'محاولات كثيرة. انتظر قليلًا قبل طلب رمز جديد.',
+      unavailable: 'الرموز النصية غير متاحة الآن. حاول لاحقًا أو استخدم البريد الإلكتروني.',
+      network: 'لا يوجد اتصال. تحقق من الإنترنت وحاول مرة أخرى.',
+      invalidCode: 'هذا الرمز غير صحيح. تحقق منه وحاول مرة أخرى.',
+      expired: 'انتهت صلاحية هذا الرمز. اطلب رمزًا جديدًا.',
+    },
     useDifferent: 'استخدم غيره',
     added: 'تمت الإضافة. يمكنك الآن تسجيل الدخول به على هاتف آخر.',
     signInMethodsTitle: 'طرق تسجيل الدخول',
@@ -16502,6 +16651,7 @@ const ar: UiStrings = {
     notifyBody:
       'سنُعلمك عندما يضيف أحدهم مصروفًا، أو يسوّي حسابًا، أو يدعوك إلى مجموعة. بلا إزعاج.',
     notifyEnable: 'تفعيل',
+    notifyJoinBody: 'احصل على إشعار عندما يضيف أحدهم مصروفًا في {group} أو يسدّد حسابه.',
     notifyNotNow: 'ليس الآن',
     clear: 'مسح',
     continueLabel: 'متابعة',
@@ -17396,6 +17546,10 @@ const ar: UiStrings = {
     notFound: 'المجموعة غير موجودة',
     notFoundBody: 'ربما أُرشفت، أو لم تعد عضوًا فيها.',
     notFoundArchived: 'ربما أُرشفت.',
+    notFoundRetry: 'حاول مرة أخرى',
+    notFoundHome: 'الذهاب إلى الرئيسية',
+    notFoundHelpTitle: 'تحتاج مساعدة؟',
+    notFoundHelp: 'تحقّق من رابط الدعوة أو اطلب من مشرف المجموعة مشاركة رابط جديد.',
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
@@ -17803,6 +17957,8 @@ const ar: UiStrings = {
     rowSquare: 'حساب {name} في هذه الفاتورة متساوٍ',
     detailGroup: 'المجموعة',
     detailDate: 'التاريخ',
+    detailTime: 'الوقت',
+    addTime: 'أضف الوقت',
     detailSplit: 'التقسيم',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -17906,6 +18062,17 @@ const ar: UiStrings = {
     scanTorchOn: 'شغّل الضوء',
     scanTorchOff: 'أطفئ الضوء',
     scanPasteLink: 'ألصق رابطًا بدلاً من ذلك',
+    scanFromPhotos: 'حمّل رمز QR من الصور',
+    scanPhotoNoQr: 'تعذّر العثور على رمز QR في تلك الصورة.',
+    joinWithCode: 'انضم برمز أو QR',
+    groupsSubtitle: 'كل مجموعاتك في مكان واحد',
+    filterOwed: 'مستحق لي',
+    filterOwe: 'عليّ',
+    filterFavorites: 'المفضلة',
+    sortGroupsTitle: 'ترتيب المجموعات',
+    sortRecent: 'النشاط الأخير',
+    sortAmount: 'المبلغ',
+    sortName: 'الاسم',
     scanPasteTitle: 'ألصق رابط الدعوة',
     scanPasteBody: 'إذا وصلك الرابط في محادثة على هذا الهاتف، فألصقه هنا.',
     scanPastePlaceholder: 'ألصق رابط الدعوة',
@@ -17919,6 +18086,12 @@ const ar: UiStrings = {
     linkMissingCode: 'هذا الرابط ينقصه رمز الدعوة',
     goToWaves: 'اذهب إلى Waves',
     freeNoAccount: 'مجاني دائمًا، بلا حاجة إلى حساب',
+    joinFeatureQuickTitle: 'انضمام سريع',
+    joinFeatureQuickBody: 'ابدأ تتبّع المصاريف فورًا',
+    joinFeatureGuestTitle: 'بلا حاجة إلى حساب',
+    joinFeatureGuestBody: 'انضم كضيف',
+    joinFeatureTogetherTitle: 'اقتسموا معًا',
+    joinFeatureTogetherBody: 'أبقوا الجميع على اطلاع',
     isOneOfTheseYou: 'هل أحد هؤلاء أنت؟',
     peopleSplitting: {
       one: 'يتقاسم شخص واحد المصروفات هنا',
