@@ -3044,6 +3044,14 @@ export interface UiStrings {
     scanFromPhotos: string;
     scanPhotoNoQr: string;
     joinWithCode: string;
+    groupsSubtitle: string;
+    filterOwed: string;
+    filterOwe: string;
+    filterFavorites: string;
+    sortGroupsTitle: string;
+    sortRecent: string;
+    sortAmount: string;
+    sortName: string;
     scanPasteTitle: string;
     scanPasteBody: string;
     scanPastePlaceholder: string;
@@ -6703,6 +6711,14 @@ const en: UiStrings = {
     scanFromPhotos: 'Upload QR from photos',
     scanPhotoNoQr: 'Could not find a QR code in that photo.',
     joinWithCode: 'Join with a code or QR',
+    groupsSubtitle: 'All your groups in one place',
+    filterOwed: "I'm owed",
+    filterOwe: 'I owe',
+    filterFavorites: 'Favorites',
+    sortGroupsTitle: 'Sort groups',
+    sortRecent: 'Recent activity',
+    sortAmount: 'Amount',
+    sortName: 'Name',
     scanPasteTitle: 'Paste an invite link',
     scanPasteBody: 'If the link came through a chat on this phone, paste it here.',
     scanPastePlaceholder: 'Paste the invite link',
@@ -10353,6 +10369,14 @@ const ta: UiStrings = {
     scanFromPhotos: 'புகைப்படங்களிலிருந்து QR பதிவேற்றவும்',
     scanPhotoNoQr: 'அந்தப் புகைப்படத்தில் QR குறியீடு கிடைக்கவில்லை.',
     joinWithCode: 'குறியீடு அல்லது QR மூலம் இணையுங்கள்',
+    groupsSubtitle: 'உங்கள் எல்லா குழுக்களும் ஒரே இடத்தில்',
+    filterOwed: 'எனக்கு வர வேண்டியது',
+    filterOwe: 'நான் தர வேண்டியது',
+    filterFavorites: 'பிடித்தவை',
+    sortGroupsTitle: 'குழுக்களை வரிசைப்படுத்து',
+    sortRecent: 'சமீபத்திய செயல்பாடு',
+    sortAmount: 'தொகை',
+    sortName: 'பெயர்',
     scanPasteTitle: 'அழைப்பு இணைப்பை ஒட்டவும்',
     scanPasteBody: 'இந்த ஃபோனில் ஒரு அரட்டையில் இணைப்பு வந்திருந்தால், அதை இங்கே ஒட்டவும்.',
     scanPastePlaceholder: 'அழைப்பு இணைப்பை ஒட்டவும்',
@@ -13994,6 +14018,14 @@ const hi: UiStrings = {
     scanFromPhotos: 'फ़ोटो से QR अपलोड करें',
     scanPhotoNoQr: 'उस फ़ोटो में QR कोड नहीं मिला।',
     joinWithCode: 'कोड या QR से जुड़ें',
+    groupsSubtitle: 'आपके सभी समूह एक जगह',
+    filterOwed: 'मुझे मिलना है',
+    filterOwe: 'मुझे देना है',
+    filterFavorites: 'पसंदीदा',
+    sortGroupsTitle: 'समूह क्रमबद्ध करें',
+    sortRecent: 'हाल की गतिविधि',
+    sortAmount: 'राशि',
+    sortName: 'नाम',
     scanPasteTitle: 'इनवाइट लिंक पेस्ट करें',
     scanPasteBody: 'अगर लिंक इसी फ़ोन की किसी चैट में आया है, तो उसे यहाँ पेस्ट करें।',
     scanPastePlaceholder: 'इनवाइट लिंक पेस्ट करें',
@@ -17800,6 +17832,14 @@ const ar: UiStrings = {
     scanFromPhotos: 'حمّل رمز QR من الصور',
     scanPhotoNoQr: 'تعذّر العثور على رمز QR في تلك الصورة.',
     joinWithCode: 'انضم برمز أو QR',
+    groupsSubtitle: 'كل مجموعاتك في مكان واحد',
+    filterOwed: 'مستحق لي',
+    filterOwe: 'عليّ',
+    filterFavorites: 'المفضلة',
+    sortGroupsTitle: 'ترتيب المجموعات',
+    sortRecent: 'النشاط الأخير',
+    sortAmount: 'المبلغ',
+    sortName: 'الاسم',
     scanPasteTitle: 'ألصق رابط الدعوة',
     scanPasteBody: 'إذا وصلك الرابط في محادثة على هذا الهاتف، فألصقه هنا.',
     scanPastePlaceholder: 'ألصق رابط الدعوة',
