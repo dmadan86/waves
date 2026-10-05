@@ -3041,6 +3041,9 @@ export interface UiStrings {
     scanTorchOn: string;
     scanTorchOff: string;
     scanPasteLink: string;
+    scanFromPhotos: string;
+    scanPhotoNoQr: string;
+    joinWithCode: string;
     scanPasteTitle: string;
     scanPasteBody: string;
     scanPastePlaceholder: string;
@@ -6697,6 +6700,9 @@ const en: UiStrings = {
     scanTorchOn: 'Turn the light on',
     scanTorchOff: 'Turn the light off',
     scanPasteLink: 'Paste a link instead',
+    scanFromPhotos: 'Upload QR from photos',
+    scanPhotoNoQr: 'Could not find a QR code in that photo.',
+    joinWithCode: 'Join with a code or QR',
     scanPasteTitle: 'Paste an invite link',
     scanPasteBody: 'If the link came through a chat on this phone, paste it here.',
     scanPastePlaceholder: 'Paste the invite link',
@@ -10344,6 +10350,9 @@ const ta: UiStrings = {
     scanTorchOn: 'விளக்கை இயக்கு',
     scanTorchOff: 'விளக்கை அணை',
     scanPasteLink: 'இணைப்பை ஒட்டவும்',
+    scanFromPhotos: 'புகைப்படங்களிலிருந்து QR பதிவேற்றவும்',
+    scanPhotoNoQr: 'அந்தப் புகைப்படத்தில் QR குறியீடு கிடைக்கவில்லை.',
+    joinWithCode: 'குறியீடு அல்லது QR மூலம் இணையுங்கள்',
     scanPasteTitle: 'அழைப்பு இணைப்பை ஒட்டவும்',
     scanPasteBody: 'இந்த ஃபோனில் ஒரு அரட்டையில் இணைப்பு வந்திருந்தால், அதை இங்கே ஒட்டவும்.',
     scanPastePlaceholder: 'அழைப்பு இணைப்பை ஒட்டவும்',
@@ -13982,6 +13991,9 @@ const hi: UiStrings = {
     scanTorchOn: 'लाइट चालू करें',
     scanTorchOff: 'लाइट बंद करें',
     scanPasteLink: 'लिंक पेस्ट करें',
+    scanFromPhotos: 'फ़ोटो से QR अपलोड करें',
+    scanPhotoNoQr: 'उस फ़ोटो में QR कोड नहीं मिला।',
+    joinWithCode: 'कोड या QR से जुड़ें',
     scanPasteTitle: 'इनवाइट लिंक पेस्ट करें',
     scanPasteBody: 'अगर लिंक इसी फ़ोन की किसी चैट में आया है, तो उसे यहाँ पेस्ट करें।',
     scanPastePlaceholder: 'इनवाइट लिंक पेस्ट करें',
@@ -17785,6 +17797,9 @@ const ar: UiStrings = {
     scanTorchOn: 'شغّل الضوء',
     scanTorchOff: 'أطفئ الضوء',
     scanPasteLink: 'ألصق رابطًا بدلاً من ذلك',
+    scanFromPhotos: 'حمّل رمز QR من الصور',
+    scanPhotoNoQr: 'تعذّر العثور على رمز QR في تلك الصورة.',
+    joinWithCode: 'انضم برمز أو QR',
     scanPasteTitle: 'ألصق رابط الدعوة',
     scanPasteBody: 'إذا وصلك الرابط في محادثة على هذا الهاتف، فألصقه هنا.',
     scanPastePlaceholder: 'ألصق رابط الدعوة',
