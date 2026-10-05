@@ -38,9 +38,11 @@ function bridgeVoiceAdd(raw: unknown, groups: readonly VoiceGroupRef[]) {
   const msg = parseWatchToPhone(raw);
   if (!msg || msg.t !== 'voiceAdd') return { ack: false, error: 'rejected', captures: [] };
 
-  const items = parseVoiceExpenses(msg.transcript, groups).items.filter(
-    (item) => item.amountMinor > 0n,
-  );
+  const result = parseVoiceExpenses(msg.transcript, groups);
+  const items = result.items.filter((item) => item.amountMinor > 0n);
+  // Someone else paid: a capture cannot keep that and the wrist cannot ask.
+  if (result.intent?.payer.explicit && result.intent.payer.kind === 'member')
+    return { ack: false, error: 'no-amount', captures: [] };
   if (items.length === 0) return { ack: false, error: 'no-amount', captures: [] };
 
   return {
@@ -61,6 +63,11 @@ function bridgeVoiceAdd(raw: unknown, groups: readonly VoiceGroupRef[]) {
 const noGroups: VoiceGroupRef[] = [];
 
 describe('speaking an expense into the watch', () => {
+  it('does not book "Madan paid 500" as the wearer\'s own expense', () => {
+    const result = bridgeVoiceAdd(watchSaid('Madan paid 500 rupees for dinner'), noGroups);
+    expect(result).toMatchObject({ ack: false, error: 'no-amount' });
+  });
+
   it('books ₹500 from "five hundred rupees tea shop"', () => {
     const result = bridgeVoiceAdd(watchSaid('five hundred rupees tea shop'), noGroups);
 

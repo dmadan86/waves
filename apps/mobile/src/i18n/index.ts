@@ -1184,6 +1184,46 @@ export interface UiStrings {
     autoAddingPerson: string;
     /** The button on the auto-act banner that cancels the pending write. */
     autoUndo: string;
+    /** Paid by label on the review. */
+    paidBy: string;
+    /** Split label on the review. */
+    splitLabel: string;
+    /** The speaker, in a list of people. */
+    youLabel: string;
+    /** Summary: equal split across the whole group. */
+    splitEveryone: string;
+    /** Summary: equal split. {names} is a comma list. */
+    splitEqual: string;
+    /** Summary: exact amounts. {names} is a comma list with amounts. */
+    splitExact: string;
+    /** Summary: percentages. {names} is a comma list with percentages. */
+    splitPercent: string;
+    /** Summary: the whole amount on one person. {names}. */
+    splitFullOn: string;
+    /** Prompt when nobody could be matched as the payer. */
+    whoPaid: string;
+    /** What was heard when a name was matched by sound. {heard}. */
+    heardAs: string;
+    /** Title of the who-paid sheet. */
+    whoTitle: string;
+    /** Section: who paid. */
+    whoPaidSection: string;
+    /** Section: who shares. */
+    whoSharesSection: string;
+    /** Hint: changing people resets to an equal split. */
+    whoResets: string;
+    /** Hint: a spoken name nobody matched. {name}. */
+    whoUnknown: string;
+    /** Callout: the spoken group name fits several. */
+    whichGroup: string;
+    /** Callout: no group has that name. {name}. */
+    noGroupNamed: string;
+    /** Callout: a payer other than you needs a group. {name}. */
+    needGroupForPayer: string;
+    /** Callout: a split needs a group. */
+    needGroupForSplit: string;
+    /** Callout: the heard split does not add up. */
+    splitInvalid: string;
     /** The tap a linked-in command needs before it writes: a link never acts on its own. */
     autoConfirm: string;
     /** The header of the read-only answer to a spoken balance question. */
@@ -5256,6 +5296,26 @@ const en: UiStrings = {
     autoReminding: 'Reminding {name}',
     autoAddingPerson: 'Adding {name} to {group}',
     autoUndo: 'Undo',
+    paidBy: 'Paid by',
+    splitLabel: 'Split',
+    youLabel: 'You',
+    splitEveryone: 'Equally between everyone',
+    splitEqual: 'Equally · {names}',
+    splitExact: 'Exact · {names}',
+    splitPercent: 'By percent · {names}',
+    splitFullOn: 'All on {names}',
+    whoPaid: 'Who paid?',
+    heardAs: 'Heard “{heard}”',
+    whoTitle: 'Who paid and who shares',
+    whoPaidSection: 'Paid by',
+    whoSharesSection: 'Shared between',
+    whoResets: 'Changing who shares splits it equally.',
+    whoUnknown: 'Who is “{name}”? Pick them below.',
+    whichGroup: 'Which group did you mean?',
+    noGroupNamed: 'No group called “{name}”. Choose one.',
+    needGroupForPayer: 'Choose a group to record that {name} paid.',
+    needGroupForSplit: 'Choose a group to apply this split.',
+    splitInvalid: 'This split does not add up. Choose who shares to split it equally.',
     autoConfirm: 'Confirm',
     ansTitle: 'Balance',
     ansTheyOweYou: '{name} owes you {amount}',
@@ -8835,6 +8895,27 @@ const ta: UiStrings = {
     autoReminding: '{name} க்கு நினைவூட்டல்',
     autoAddingPerson: '{group} இல் {name} சேர்க்கிறது',
     autoUndo: 'செயல்தவிர்',
+    paidBy: 'செலுத்தியவர்',
+    splitLabel: 'பிரிப்பு',
+    youLabel: 'நீங்கள்',
+    splitEveryone: 'அனைவரும் சமமாக',
+    splitEqual: 'சமமாக · {names}',
+    splitExact: 'சரியான தொகை · {names}',
+    splitPercent: 'சதவீதம் · {names}',
+    splitFullOn: 'முழுவதும் {names} மீது',
+    whoPaid: 'யார் செலுத்தினார்?',
+    heardAs: 'கேட்டது “{heard}”',
+    whoTitle: 'யார் செலுத்தினார், யார் பகிர்கிறார்',
+    whoPaidSection: 'செலுத்தியவர்',
+    whoSharesSection: 'பகிர்பவர்கள்',
+    whoResets: 'பகிர்பவர்களை மாற்றினால் சமமாகப் பிரிக்கப்படும்.',
+    whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
+    whichGroup: 'எந்தக் குழு என்று சொன்னீர்கள்?',
+    noGroupNamed: '“{name}” என்ற குழு இல்லை. ஒன்றைத் தேர்ந்தெடுக்கவும்.',
+    needGroupForPayer: '{name} செலுத்தியதைப் பதிவு செய்ய ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
+    needGroupForSplit: 'இந்தப் பிரிப்பைப் பயன்படுத்த ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
+    splitInvalid:
+      'இந்தப் பிரிப்பு கூட்டுத்தொகைக்குப் பொருந்தவில்லை. பகிர்பவர்களைத் தேர்ந்தெடுத்தால் சமமாகப் பிரிக்கப்படும்.',
     autoConfirm: 'உறுதிப்படுத்து',
     ansTitle: 'இருப்பு',
     ansTheyOweYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
@@ -12529,6 +12610,26 @@ const hi: UiStrings = {
     autoReminding: '{name} को याद दिला रहे हैं',
     autoAddingPerson: '{group} में {name} जोड़ रहे हैं',
     autoUndo: 'पूर्ववत करें',
+    paidBy: 'भुगतान किसने किया',
+    splitLabel: 'बँटवारा',
+    youLabel: 'आप',
+    splitEveryone: 'सबमें बराबर',
+    splitEqual: 'बराबर · {names}',
+    splitExact: 'सटीक रकम · {names}',
+    splitPercent: 'प्रतिशत · {names}',
+    splitFullOn: 'पूरा {names} पर',
+    whoPaid: 'किसने भुगतान किया?',
+    heardAs: 'सुना “{heard}”',
+    whoTitle: 'किसने भुगतान किया और कौन बाँटेगा',
+    whoPaidSection: 'भुगतान किसने किया',
+    whoSharesSection: 'इनके बीच बँटेगा',
+    whoResets: 'लोग बदलने पर बराबर बँटवारा हो जाएगा।',
+    whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
+    whichGroup: 'आपका मतलब कौन सा ग्रुप था?',
+    noGroupNamed: '“{name}” नाम का कोई ग्रुप नहीं है। एक चुनें।',
+    needGroupForPayer: '{name} ने भुगतान किया, यह दर्ज करने के लिए एक ग्रुप चुनें।',
+    needGroupForSplit: 'यह बँटवारा लागू करने के लिए एक ग्रुप चुनें।',
+    splitInvalid: 'यह बँटवारा कुल रकम से मेल नहीं खाता। बाँटने वाले चुनें, बराबर बँट जाएगा।',
     autoConfirm: 'पुष्टि करें',
     ansTitle: 'बैलेंस',
     ansTheyOweYou: '{name} आप पर {amount} बकाया है',
@@ -16171,6 +16272,26 @@ const ar: UiStrings = {
     autoReminding: 'تذكير {name}',
     autoAddingPerson: 'إضافة {name} إلى {group}',
     autoUndo: 'تراجع',
+    paidBy: 'دفع',
+    splitLabel: 'التقسيم',
+    youLabel: 'أنت',
+    splitEveryone: 'بالتساوي بين الجميع',
+    splitEqual: 'بالتساوي · {names}',
+    splitExact: 'مبالغ محددة · {names}',
+    splitPercent: 'بالنسبة المئوية · {names}',
+    splitFullOn: 'كامل المبلغ على {names}',
+    whoPaid: 'من دفع؟',
+    heardAs: 'سُمع “{heard}”',
+    whoTitle: 'من دفع ومن يشارك',
+    whoPaidSection: 'دفع',
+    whoSharesSection: 'مقسوم بين',
+    whoResets: 'تغيير المشاركين يقسم المبلغ بالتساوي.',
+    whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
+    whichGroup: 'أي مجموعة تقصد؟',
+    noGroupNamed: 'لا توجد مجموعة باسم “{name}”. اختر واحدة.',
+    needGroupForPayer: 'اختر مجموعة لتسجيل أن {name} دفع.',
+    needGroupForSplit: 'اختر مجموعة لتطبيق هذا التقسيم.',
+    splitInvalid: 'هذا التقسيم لا يطابق الإجمالي. اختر المشاركين ليُقسَّم بالتساوي.',
     autoConfirm: 'تأكيد',
     ansTitle: 'الرصيد',
     ansTheyOweYou: '{name} يدين لك بمبلغ {amount}',
