@@ -980,6 +980,7 @@ export interface UiStrings {
     regionTitle: string;
     currencyLabel: string;
     currencyFromCountry: string;
+    currencyChosen: string;
     countryRequired: string;
     addressTitle: string;
     addressOptional: string;
@@ -5194,6 +5195,7 @@ const en: UiStrings = {
     regionTitle: 'Region',
     currencyLabel: 'Currency',
     currencyFromCountry: 'Set from your country',
+    currencyChosen: 'Chosen by you',
     countryRequired: 'Pick your country to set your currency and payment options.',
     addressTitle: 'Address',
     addressOptional: 'Optional',
@@ -8827,6 +8829,7 @@ const ta: UiStrings = {
     regionTitle: 'பகுதி',
     currencyLabel: 'நாணயம்',
     currencyFromCountry: 'உங்கள் நாட்டிலிருந்து அமைக்கப்படுகிறது',
+    currencyChosen: 'நீங்கள் தேர்ந்தெடுத்தது',
     countryRequired:
       'நாணயத்தையும் பணச் செலுத்தல் விருப்பங்களையும் அமைக்க உங்கள் நாட்டைத் தேர்ந்தெடுக்கவும்.',
     addressTitle: 'முகவரி',
@@ -12593,6 +12596,7 @@ const hi: UiStrings = {
     regionTitle: 'क्षेत्र',
     currencyLabel: 'मुद्रा',
     currencyFromCountry: 'आपके देश से सेट',
+    currencyChosen: 'आपकी पसंद',
     countryRequired: 'मुद्रा और भुगतान विकल्प सेट करने के लिए अपना देश चुनें।',
     addressTitle: 'पता',
     addressOptional: 'वैकल्पिक',
@@ -16291,6 +16295,7 @@ const ar: UiStrings = {
     regionTitle: 'المنطقة',
     currencyLabel: 'العملة',
     currencyFromCountry: 'يُضبط حسب بلدك',
+    currencyChosen: 'من اختيارك',
     countryRequired: 'اختر بلدك لضبط العملة وخيارات الدفع.',
     addressTitle: 'العنوان',
     addressOptional: 'اختياري',

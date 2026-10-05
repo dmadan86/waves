@@ -39,11 +39,13 @@ import {
 
 import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { DismissibleCallout } from '@/components/DismissibleCallout';
+import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { GoogleMark } from '@/components/SocialTile';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { requestCountry } from '@/lib/countryPickerBridge';
+import { currencyAfterCountryChange, currencyOrigin } from '@/lib/accountCurrency';
 import { friendlyError } from '@/lib/errors';
 import {
   confirmContact,
@@ -130,7 +132,11 @@ function AccountForm() {
   const [address, setAddress] = useState(profile?.address ?? '');
   const [addressStatus, setAddressStatus] = useState<string | null>(null);
   // The country drives this: it is what every new group and expense starts on.
-  const currency = currencyForCountry(country) ?? profile?.default_currency ?? 'INR';
+  const [currency, setCurrency] = useState<string>(
+    profile?.default_currency ?? currencyForCountry(country) ?? 'INR',
+  );
+  const [pickingCurrency, setPickingCurrency] = useState(false);
+  const currencyChosen = currencyOrigin(currency, currencyForCountry(country)) === 'chosen';
   // The list has one place to say something went wrong, so the three writes
   // behind it share one line rather than each owning a slot in a layout that no
   // longer has slots.
@@ -316,18 +322,45 @@ function AccountForm() {
   const saveCountry = async (next: string | null): Promise<void> => {
     if (countrySaving.current) return;
     const prior = country;
+    const priorCurrency = currency;
+    const nextCurrency = currencyAfterCountryChange(
+      currency,
+      currencyForCountry(prior),
+      currencyForCountry(next),
+    );
     countrySaving.current = true;
     setCountry(next);
+    setCurrency(nextCurrency);
     setRegionStatus(null);
     try {
       await updateProfile({
         country_code: next,
-        default_currency: currencyForCountry(next) ?? profile?.default_currency ?? 'INR',
+        default_currency: nextCurrency,
       });
       setRegionStatus(t.account.saved);
     } catch (caught) {
       setCountry(prior);
+      setCurrency(priorCurrency);
       setRegionStatus(friendlyError(caught, t.couldNotSave, 'account.saveCountry'));
+    } finally {
+      countrySaving.current = false;
+    }
+  };
+
+  // Picking a currency overrides the country's; same column, same write.
+  const saveCurrency = async (next: string): Promise<void> => {
+    setPickingCurrency(false);
+    if (countrySaving.current || next === currency) return;
+    const prior = currency;
+    countrySaving.current = true;
+    setCurrency(next);
+    setRegionStatus(null);
+    try {
+      await updateProfile({ default_currency: next });
+      setRegionStatus(t.account.saved);
+    } catch (caught) {
+      setCurrency(prior);
+      setRegionStatus(friendlyError(caught, t.couldNotSave, 'account.saveCurrency'));
     } finally {
       countrySaving.current = false;
     }
@@ -505,52 +538,9 @@ function AccountForm() {
         </View>
 
         {/* What you have set, as label-and-value rows you can read at a glance;
-            each opens a focused editor. Currency has no press: it follows the
-            country and is shown because people look for it. */}
+            each opens a focused editor. Currency follows the country until the
+            person picks one of their own. */}
         <SoftCard style={{ paddingVertical: 0, paddingBottom: 4, gap: 0 }}>
-          <Row
-            style={{
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingTop: 12,
-              paddingBottom: 10,
-            }}
-          >
-            <Text
-              accessibilityRole="header"
-              style={{ fontSize: 16, fontWeight: '800', color: ink }}
-            >
-              {t.contact.personalDetails}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${t.common.edit} ${t.account.displayName}`}
-              onPress={() => setEditing('name')}
-              hitSlop={6}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 14,
-                backgroundColor: theme.color.brandSoft,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name="pencil" size={13} color={accent} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: accent }}>
-                {t.common.edit}
-              </Text>
-            </Pressable>
-          </Row>
-          <View
-            style={{
-              height: 1,
-              backgroundColor: theme.color.border,
-              marginHorizontal: -theme.spacing.md,
-            }}
-          />
           <DetailRow
             icon="person-outline"
             tint={theme.tint.lilac}
@@ -581,8 +571,9 @@ function AccountForm() {
             icon="cash-outline"
             tint={theme.tint.sky}
             label={t.account.currencyLabel}
-            sub={t.account.currencyFromCountry}
+            sub={currencyChosen ? t.account.currencyChosen : t.account.currencyFromCountry}
             value={`${currencySymbol(currency)} ${currency}`}
+            onPress={() => setPickingCurrency(true)}
           />
           <Divider />
           <DetailRow
@@ -870,6 +861,13 @@ function AccountForm() {
       {/* The editors, over the list. Outside the ScrollView so a sheet is
           anchored to the screen, and the keyboard it raises does not push the
           list it came from. */}
+      {pickingCurrency ? (
+        <CurrencySheet
+          value={currency}
+          onPick={(code) => void saveCurrency(code)}
+          onClose={() => setPickingCurrency(false)}
+        />
+      ) : null}
       <EditTextSheet
         visible={editing === 'name'}
         title={t.account.displayName}
