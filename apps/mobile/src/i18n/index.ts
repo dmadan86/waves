@@ -1609,6 +1609,15 @@ export interface UiStrings {
     enterEmailOrPhoneFirst: string;
     /** Fallback when a sign-in attempt fails with nothing a person can act on. */
     couldNotSignIn: string;
+    /** What `phone-verify` refused with, by its error code. */
+    phoneServerErrors: {
+      tooMany: string;
+      alreadyUsed: string;
+      notVerified: string;
+      unavailable: string;
+      misconfigured: string;
+      phoneTaken: string;
+    };
     /** A guest tried to add a Google/Apple login that already has its own
         Waves account. Carries {provider}. */
     accountTakenTitle: string;
@@ -5665,6 +5674,14 @@ const en: UiStrings = {
     enterEmailFirst: 'Enter your email first',
     enterEmailOrPhoneFirst: 'Enter your email or phone number first',
     couldNotSignIn: 'Could not sign in. Please try again.',
+    phoneServerErrors: {
+      tooMany: 'That is too many sign-in attempts today. Try again tomorrow.',
+      alreadyUsed: 'That code has already been used. Ask for a new one.',
+      notVerified: 'We could not verify that sign-in. Ask for a new code.',
+      unavailable: 'Could not sign you in just now. Try again in a moment.',
+      misconfigured: 'Phone sign-in is not switched on right now. Try email instead.',
+      phoneTaken: 'That number is already on another Waves account.',
+    },
     accountTakenTitle: 'This {provider} account already has Waves',
     accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     accountTakenNote: 'Anything you added as a guest stays with the guest account.',
@@ -9311,6 +9328,14 @@ const ta: UiStrings = {
     enterEmailFirst: 'முதலில் உங்கள் மின்னஞ்சலை உள்ளிடவும்',
     enterEmailOrPhoneFirst: 'முதலில் உங்கள் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    phoneServerErrors: {
+      tooMany: 'இன்று அதிக உள்நுழைவு முயற்சிகள். நாளை மீண்டும் முயலவும்.',
+      alreadyUsed: 'அந்தக் குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டது. புதியதைக் கேட்கவும்.',
+      notVerified: 'அந்த உள்நுழைவை சரிபார்க்க முடியவில்லை. புதிய குறியீடு கேட்கவும்.',
+      unavailable: 'இப்போது உள்நுழைய முடியவில்லை. சிறிது நேரம் கழித்து முயலவும்.',
+      misconfigured: 'ஃபோன் உள்நுழைவு இப்போது இயக்கத்தில் இல்லை. மின்னஞ்சலைப் பயன்படுத்தவும்.',
+      phoneTaken: 'அந்த எண் ஏற்கனவே வேறொரு Waves கணக்கில் உள்ளது.',
+    },
     accountTakenTitle: 'This {provider} account already has Waves',
     accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     accountTakenNote: 'Anything you added as a guest stays with the guest account.',
@@ -13046,6 +13071,14 @@ const hi: UiStrings = {
     enterEmailFirst: 'पहले अपना ईमेल दर्ज करें',
     enterEmailOrPhoneFirst: 'पहले अपना ईमेल या फ़ोन नंबर दर्ज करें',
     couldNotSignIn: 'साइन इन नहीं हो सका। फिर से कोशिश करें।',
+    phoneServerErrors: {
+      tooMany: 'आज साइन इन की बहुत ज़्यादा कोशिशें हो गईं। कल फिर कोशिश करें।',
+      alreadyUsed: 'यह कोड पहले ही इस्तेमाल हो चुका है। नया कोड माँगें।',
+      notVerified: 'यह साइन इन सत्यापित नहीं हो सका। नया कोड माँगें।',
+      unavailable: 'अभी साइन इन नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+      misconfigured: 'फ़ोन साइन इन अभी चालू नहीं है। ईमेल इस्तेमाल करें।',
+      phoneTaken: 'यह नंबर पहले से किसी दूसरे Waves खाते में है।',
+    },
     accountTakenTitle: 'This {provider} account already has Waves',
     accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     accountTakenNote: 'Anything you added as a guest stays with the guest account.',
@@ -16735,6 +16768,14 @@ const ar: UiStrings = {
     enterEmailFirst: 'أدخل بريدك الإلكتروني أولاً',
     enterEmailOrPhoneFirst: 'أدخل بريدك الإلكتروني أو رقم هاتفك أولاً',
     couldNotSignIn: 'تعذّر تسجيل الدخول. حاول مرة أخرى.',
+    phoneServerErrors: {
+      tooMany: 'محاولات تسجيل دخول كثيرة اليوم. حاول مرة أخرى غدًا.',
+      alreadyUsed: 'تم استخدام هذا الرمز من قبل. اطلب رمزًا جديدًا.',
+      notVerified: 'تعذّر التحقق من تسجيل الدخول هذا. اطلب رمزًا جديدًا.',
+      unavailable: 'تعذّر تسجيل دخولك الآن. حاول بعد قليل.',
+      misconfigured: 'تسجيل الدخول بالهاتف غير مفعّل الآن. استخدم البريد الإلكتروني.',
+      phoneTaken: 'هذا الرقم مستخدم بالفعل في حساب Waves آخر.',
+    },
     accountTakenTitle: 'This {provider} account already has Waves',
     accountTakenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     accountTakenNote: 'Anything you added as a guest stays with the guest account.',

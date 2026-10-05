@@ -18,10 +18,17 @@ export interface PhoneConfirmation {
   confirm(code: string): Promise<{ user: { getIdToken(): Promise<string> } } | null>;
 }
 
+export interface FirebaseUser {
+  getIdToken(): Promise<string>;
+}
+
 export interface FirebaseAuth {
   (): {
     signInWithPhoneNumber(phone: string): Promise<PhoneConfirmation>;
     signOut(): Promise<void>;
+    /** Fires when Firebase signs somebody in by itself (instant verification or SMS auto-retrieval). */
+    onAuthStateChanged(listener: (user: FirebaseUser | null) => void): () => void;
+    readonly currentUser: FirebaseUser | null;
   };
 }
 
@@ -34,12 +41,16 @@ export function loadFirebaseAuth(): FirebaseAuth | null {
       getAuth?: () => unknown;
       signInWithPhoneNumber?: (auth: unknown, phone: string) => Promise<PhoneConfirmation>;
       signOut?: (auth: unknown) => Promise<void>;
+      onAuthStateChanged?: (
+        auth: unknown,
+        listener: (user: FirebaseUser | null) => void,
+      ) => () => void;
     };
     // v22 onwards is modular, and v26 dropped the default export altogether:
     // reading only `default` made every build since the upgrade answer "no
     // phone sign-in here", hiding the phone door on every screen. The
     // functions are wrapped back into the one shape the callers use.
-    const { getAuth, signInWithPhoneNumber, signOut } = loaded;
+    const { getAuth, signInWithPhoneNumber, signOut, onAuthStateChanged } = loaded;
     if (
       typeof getAuth === 'function' &&
       typeof signInWithPhoneNumber === 'function' &&
@@ -50,6 +61,14 @@ export function loadFirebaseAuth(): FirebaseAuth | null {
         return {
           signInWithPhoneNumber: (phone: string) => signInWithPhoneNumber(auth, phone),
           signOut: () => signOut(auth),
+          // Optional: without it the code is typed, as before.
+          onAuthStateChanged: (listener) =>
+            typeof onAuthStateChanged === 'function'
+              ? onAuthStateChanged(auth, listener)
+              : () => undefined,
+          get currentUser() {
+            return (auth as { currentUser: FirebaseUser | null }).currentUser;
+          },
         };
       };
     }

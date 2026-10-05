@@ -57,7 +57,48 @@ export function phoneSignInAvailable(): boolean {
  * number screen and there is no way to have two going at once. Held here rather
  * than in the screen's state so a remount mid-flow does not lose it.
  */
-let pending: { phone: string; confirmation: PhoneConfirmation } | null = null;
+let pending: {
+  phone: string;
+  confirmation: PhoneConfirmation;
+  /** Set while we are the ones confirming, so our own sign-in is not mistaken for auto-retrieval. */
+  confirming?: boolean;
+  /** Firebase signed in on its own: instant verification or the SMS read by the Android SDK. */
+  auto?: boolean;
+} | null = null;
+
+const autoListeners = new Set<(phone: string) => void>();
+let stopWatching: (() => void) | null = null;
+
+/**
+ * Be told when Firebase proves the number without a typed code. The Android SDK
+ * reads the SMS itself (its app hash is in the message) and signs in, which
+ * `signInWithPhoneNumber` only surfaces through the auth state. The listener
+ * should call `confirmPhoneCode(phone, '')`, which takes the token from that
+ * session. Returns an unsubscribe.
+ */
+export function onPhoneAutoVerified(listener: (phone: string) => void): () => void {
+  autoListeners.add(listener);
+  return () => {
+    autoListeners.delete(listener);
+  };
+}
+
+function watchForAutoVerification(): void {
+  stopWatching?.();
+  stopWatching = null;
+  const auth = firebaseAuth();
+  if (!auth) return;
+  try {
+    stopWatching = auth().onAuthStateChanged((user) => {
+      if (!user || !pending || pending.confirming || pending.auto) return;
+      pending.auto = true;
+      const phone = pending.phone;
+      autoListeners.forEach((listener) => listener(phone));
+    });
+  } catch {
+    // An older binary without the listener still works by typing the code.
+  }
+}
 
 export class PhoneSignInUnavailable extends Error {
   constructor() {
@@ -148,6 +189,7 @@ export async function sendPhoneCode(phone: string): Promise<void> {
     throw readFirebaseError(caught, 'sendPhoneCode') ?? caught;
   }
   pending = { phone, confirmation };
+  watchForAutoVerification();
 }
 
 /**
@@ -171,21 +213,43 @@ async function proveNumber(phone: string, code: string): Promise<string> {
     });
   }
 
-  let credential: Awaited<ReturnType<PhoneConfirmation['confirm']>>;
-  try {
-    credential = await pending.confirmation.confirm(code);
-  } catch (caught) {
-    throw readFirebaseError(caught, 'confirmPhoneCode') ?? caught;
+  // Firebase already signed in by itself: the code is spent, so asking it to
+  // confirm again would fail. Take the token from that session instead.
+  let user: { getIdToken(): Promise<string> } | null | undefined;
+  if (pending.auto) {
+    user = auth().currentUser;
+  } else {
+    pending.confirming = true;
+    try {
+      user = (await pending.confirmation.confirm(code))?.user;
+    } catch (caught) {
+      pending.confirming = false;
+      throw readFirebaseError(caught, 'confirmPhoneCode') ?? caught;
+    }
   }
-  if (!credential?.user) throw new Error('That code did not work.');
+  if (!user) throw new Error('That code did not work.');
 
   try {
-    return await credential.user.getIdToken();
+    return await user.getIdToken();
   } finally {
+    stopWatching?.();
+    stopWatching = null;
     pending = null;
     await auth()
       .signOut()
       .catch(() => undefined);
+  }
+}
+
+export class PhoneVerifyError extends Error {
+  constructor(
+    /** `phone-verify`'s own code (`TOO_MANY`, `ALREADY_USED`, ...), or '' when none was read. */
+    readonly serverCode: string,
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = 'PhoneVerifyError';
   }
 }
 
@@ -198,12 +262,17 @@ async function proveNumber(phone: string, code: string): Promise<string> {
  * unreadable line — and two of those three are things the person can act on.
  * The body is ours and its `message` is written to be read.
  */
-async function explain(error: unknown, fallback: string): Promise<Error> {
+export async function explain(error: unknown, fallback: string): Promise<Error> {
   const response = (error as { context?: unknown })?.context;
-  if (response instanceof Response) {
+  if (typeof Response !== 'undefined' && response instanceof Response) {
     try {
-      const body = (await response.clone().json()) as { message?: unknown };
-      if (typeof body.message === 'string' && body.message) return new Error(body.message);
+      const body = (await response.clone().json()) as { code?: unknown; message?: unknown };
+      const serverCode = typeof body.code === 'string' ? body.code : '';
+      console.warn('[phoneAuth] phone-verify refused', serverCode || response.status);
+      if (typeof body.message === 'string' && body.message) {
+        return new PhoneVerifyError(serverCode, body.message, response.status);
+      }
+      if (serverCode) return new PhoneVerifyError(serverCode, fallback, response.status);
     } catch {
       // A body that is not our JSON says nothing worth showing.
     }
@@ -298,5 +367,7 @@ async function attachProof(idToken: string): Promise<void> {
 
 /** Forget any verification in flight — the screen leaving, or starting over. */
 export function forgetPendingPhoneCode(): void {
+  stopWatching?.();
+  stopWatching = null;
   pending = null;
 }
