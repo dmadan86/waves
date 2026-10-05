@@ -41,6 +41,7 @@ import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { GoogleMark } from '@/components/SocialTile';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { requestCountry } from '@/lib/countryPickerBridge';
 import { friendlyError } from '@/lib/errors';
@@ -54,12 +55,12 @@ import {
 } from '@/data/api';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
-import { displayPhone } from '@/lib/phone';
+import { displayPhone, toE164 } from '@/lib/phone';
 import { useAuth } from '@/lib/auth';
 import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
-import { phoneSignInAvailable } from '@/lib/phoneAuth';
+import { PhoneSignInUnavailable, phoneErrorKind, phoneSignInAvailable } from '@/lib/phoneAuth';
 
 export default function AccountScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
@@ -352,13 +353,20 @@ function AccountForm() {
   // goes to the address the confirmation is checked against. For a phone that is
   // the picked country's dial code plus the local digits typed in the field.
   const dialCode = dialingCodeForCountry(phoneCountry) ?? '';
-  const normalised =
-    channel === ContactChannel.Email ? value.trim() : `${dialCode}${value.replace(/[^\d]/g, '')}`;
+  const normalised = channel === ContactChannel.Email ? value.trim() : toE164(dialCode, value);
 
   const looksValid =
     channel === ContactChannel.Email
       ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised)
       : /^\+?[0-9]{8,15}$/.test(normalised);
+
+  // Firebase's refusals, said as what to do about them; anything else falls
+  // through to the generic sentence.
+  const phoneMessage = (caught: unknown): string | null => {
+    if (caught instanceof PhoneSignInUnavailable) return t.contact.phoneErrors.unavailable;
+    const kind = phoneErrorKind(caught);
+    return kind ? t.contact.phoneErrors[kind] : null;
+  };
 
   const send = async (): Promise<void> => {
     setError(null);
@@ -367,7 +375,9 @@ function AccountForm() {
       await startAddingContact(channel, normalised);
       setSent(true);
     } catch (caught) {
-      setError(friendlyError(caught, t.couldNotSave, 'account.sendContact'));
+      setError(
+        phoneMessage(caught) ?? friendlyError(caught, t.couldNotSave, 'account.sendContact'),
+      );
     } finally {
       setBusy(false);
     }
@@ -383,7 +393,9 @@ function AccountForm() {
       setSent(false);
       setCode('');
     } catch (caught) {
-      setError(friendlyError(caught, t.couldNotSave, 'account.confirmContact'));
+      setError(
+        phoneMessage(caught) ?? friendlyError(caught, t.couldNotSave, 'account.confirmContact'),
+      );
     } finally {
       setBusy(false);
     }
@@ -1117,40 +1129,51 @@ function ProviderRow({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
+  // One shape for both states, so Linked and Link are the same size side by side.
+  const pill = {
+    height: 28,
+    minWidth: 64,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  };
+  const pillText = { fontSize: 12, fontWeight: '600' as const };
   return (
     <Row style={{ gap: 12, paddingVertical: 10, alignItems: 'center' }}>
-      <Ionicons
-        name={icon}
-        size={20}
-        color={icon === 'logo-google' ? '#4285F4' : dark ? theme.color.text : '#000000'}
-      />
+      {icon === 'logo-google' ? (
+        <GoogleMark size={20} />
+      ) : (
+        <Ionicons name={icon} size={20} color={dark ? theme.color.text : '#000000'} />
+      )}
       <Text style={{ flex: 1, fontSize: 15, color: dark ? theme.color.text : SPEC_INK }}>
         {name}
       </Text>
       {linked ? (
-        <View
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 3,
-            borderRadius: 12,
-            backgroundColor: theme.color.positiveSoft,
-          }}
-        >
-          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.color.positive }}>
-            {linkedLabel}
-          </Text>
+        <View style={[pill, { backgroundColor: theme.color.positiveSoft }]}>
+          <Text style={[pillText, { color: theme.color.positive }]}>{linkedLabel}</Text>
         </View>
       ) : (
-        <Button
-          label={linkLabel}
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel={linkA11yLabel}
-          size="sm"
-          variant="secondary"
+          accessibilityState={{ disabled: busy }}
           disabled={busy}
           // hitSlop lifts the target over the 44 floor without enlarging the pill.
           hitSlop={8}
           onPress={onLink}
-        />
+          style={({ pressed }) => [
+            pill,
+            {
+              backgroundColor: dark ? theme.color.surfaceMuted : '#EFEDF8',
+              opacity: busy ? 0.5 : pressed ? 0.85 : 1,
+            },
+          ]}
+        >
+          <Text style={[pillText, { color: dark ? theme.color.text : SPEC_ACCENT }]}>
+            {linkLabel}
+          </Text>
+        </Pressable>
       )}
     </Row>
   );

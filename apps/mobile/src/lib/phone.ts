@@ -82,3 +82,15 @@ export function displayPhone(raw: string | null | undefined): string {
   }
   return `+${digits}`;
 }
+
+/**
+ * The number the phone field holds, as E.164: the picked dial code plus the
+ * local digits. A leading `+` means the person typed the country code
+ * themselves, so it is kept rather than doubled; a national trunk `0` (09876…)
+ * is dropped, because E.164 has none.
+ */
+export function toE164(dialCode: string, typed: string): string {
+  const digits = typed.replace(/[^\d]/g, '');
+  if (typed.trim().startsWith('+')) return `+${digits}`;
+  return `${dialCode}${digits.replace(/^0+/, '')}`;
+}
