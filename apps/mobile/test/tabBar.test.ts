@@ -97,3 +97,10 @@ describe('resolveTabBar', () => {
     expect(resolveTabBar([])).toEqual({ hidden: false, activeKey: '' });
   });
 });
+
+describe('contact pickers', () => {
+  it('hides the bar on both the group-form picker and the Friends picker', () => {
+    expect(resolveTabBar(['contact-picker']).hidden).toBe(true);
+    expect(resolveTabBar(['friends', 'contacts']).hidden).toBe(true);
+  });
+});
