@@ -376,6 +376,10 @@ export interface UiStrings {
     templateNames: Record<EventTemplateId, string>;
     /** The short event-kind word on a group's type tag. */
     tagNames: Record<EventTemplateId, string>;
+    /** Title, info label and body of the Event date-range editor. */
+    eventDatesTitle: string;
+    aboutEventDates: string;
+    eventDatesBody: string;
     subEventLabel: string;
     /** The chip that clears a chosen sub-event back to "untagged". */
     noSubEvent: string;
@@ -3954,6 +3958,14 @@ export interface UiStrings {
     typeEvent: string;
     typeFriends: string;
     typeOther: string;
+    /** "Tag (optional)": the member's own short label for the group. */
+    tagLabel: string;
+    tagPlaceholder: string;
+    /** A few tap-to-fill tag ideas per group type. */
+    tagSuggestions: Record<
+      'trip' | 'home' | 'couple' | 'event' | 'friends' | 'other',
+      readonly string[]
+    >;
     addPeopleByName: string;
     ghostNote: string;
     claimHistoryNote: string;
@@ -4529,6 +4541,10 @@ const en: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'Event template',
+    eventDatesTitle: 'Event dates',
+    aboutEventDates: 'About event dates',
+    eventDatesBody:
+      'While the event is on, everybody gets a nudge to add what they spent — at breakfast about yesterday, and at the end of the day about today. Nobody is asked about a day they have already added to.',
     tagNames: {
       wedding_in: 'Wedding',
       wedding_west: 'Wedding',
@@ -7488,6 +7504,16 @@ const en: UiStrings = {
     typeEvent: 'Event',
     typeFriends: 'Friends',
     typeOther: 'Other',
+    tagLabel: 'Tag (optional)',
+    tagPlaceholder: 'e.g. Office offsite',
+    tagSuggestions: {
+      trip: ['Weekend', 'Road trip', 'Holiday'],
+      home: ['Rent', 'Flatmates', 'Bills'],
+      couple: ['Date night', 'Anniversary'],
+      event: ['Wedding', 'Birthday', 'Engagement', 'Reception', 'Party'],
+      friends: ['Dinner', 'Outing', 'Party'],
+      other: ['Office', 'Family', 'Work'],
+    },
     addPeopleByName: 'Add friends',
     ghostNote: 'They do not need the app. Add them now and they can claim their history later.',
     claimHistoryNote: 'Pick your name and everything already recorded for you comes with you.',
@@ -8042,6 +8068,10 @@ const ta: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'நிகழ்வு வார்ப்புரு',
+    eventDatesTitle: 'நிகழ்வு தேதிகள்',
+    aboutEventDates: 'நிகழ்வு தேதிகள் பற்றி',
+    eventDatesBody:
+      'நிகழ்வு நடக்கும்போது, எல்லோருக்கும் செலவைச் சேர்க்க நினைவூட்டல் வரும் — காலையில் நேற்றைப் பற்றி, நாள் முடிவில் இன்றைப் பற்றி. ஏற்கனவே சேர்த்த நாளைப் பற்றி யாரிடமும் கேட்கப்படாது.',
     tagNames: {
       wedding_in: 'திருமணம்',
       wedding_west: 'திருமணம்',
@@ -11147,6 +11177,16 @@ const ta: UiStrings = {
     typeEvent: 'நிகழ்வு',
     typeFriends: 'நண்பர்கள்',
     typeOther: 'மற்றவை',
+    tagLabel: 'குறிச்சொல் (விருப்பம்)',
+    tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
+    tagSuggestions: {
+      trip: ['வார இறுதி', 'சாலைப் பயணம்', 'விடுமுறை'],
+      home: ['வாடகை', 'அறை நண்பர்கள்', 'கட்டணங்கள்'],
+      couple: ['டேட் நைட்', 'ஆண்டுவிழா'],
+      event: ['திருமணம்', 'பிறந்தநாள்', 'நிச்சயதார்த்தம்', 'வரவேற்பு', 'விருந்து'],
+      friends: ['இரவு உணவு', 'சுற்றுலா', 'விருந்து'],
+      other: ['அலுவலகம்', 'குடும்பம்', 'வேலை'],
+    },
     addPeopleByName: 'நண்பர்களைச் சேர்',
     ghostNote:
       'அவர்களுக்குச் செயலி தேவையில்லை. இப்போதே சேருங்கள், பிறகு அவர்கள் தங்கள் வரலாற்றைக் கோரலாம்.',
@@ -11696,6 +11736,10 @@ const hi: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'इवेंट टेम्पलेट',
+    eventDatesTitle: 'आयोजन की तारीखें',
+    aboutEventDates: 'आयोजन की तारीखों के बारे में',
+    eventDatesBody:
+      'आयोजन के दौरान सभी को खर्च जोड़ने का संदेश मिलता है — सुबह कल के बारे में और दिन के अंत में आज के बारे में। जिस दिन का खर्च पहले जोड़ा जा चुका है, उसके बारे में किसी से नहीं पूछा जाता।',
     tagNames: {
       wedding_in: 'शादी',
       wedding_west: 'शादी',
@@ -14676,6 +14720,16 @@ const hi: UiStrings = {
     typeEvent: 'आयोजन',
     typeFriends: 'दोस्त',
     typeOther: 'अन्य',
+    tagLabel: 'टैग (वैकल्पिक)',
+    tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
+    tagSuggestions: {
+      trip: ['वीकेंड', 'रोड ट्रिप', 'छुट्टी'],
+      home: ['किराया', 'फ्लैटमेट', 'बिल'],
+      couple: ['डेट नाइट', 'सालगिरह'],
+      event: ['शादी', 'जन्मदिन', 'सगाई', 'रिसेप्शन', 'पार्टी'],
+      friends: ['डिनर', 'आउटिंग', 'पार्टी'],
+      other: ['ऑफ़िस', 'परिवार', 'काम'],
+    },
     addPeopleByName: 'दोस्त जोड़ें',
     ghostNote: 'उन्हें ऐप की ज़रूरत नहीं। अभी जोड़ दें, बाद में वे अपना इतिहास ले सकते हैं।',
     claimHistoryNote: 'अपना नाम चुनें और आपके लिए जो कुछ पहले से दर्ज है, सब साथ आ जाएगा।',
@@ -15233,6 +15287,10 @@ const ar: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'قالب المناسبة',
+    eventDatesTitle: 'تواريخ المناسبة',
+    aboutEventDates: 'حول تواريخ المناسبة',
+    eventDatesBody:
+      'أثناء المناسبة يصل الجميع تذكير لإضافة ما أنفقوه — صباحًا عن الأمس وفي نهاية اليوم عن اليوم. لا يُسأل أحد عن يوم أضاف إليه بالفعل.',
     tagNames: {
       wedding_in: 'زفاف',
       wedding_west: 'زفاف',
@@ -18724,6 +18782,16 @@ const ar: UiStrings = {
     typeEvent: 'مناسبة',
     typeFriends: 'الأصدقاء',
     typeOther: 'أخرى',
+    tagLabel: 'وسم (اختياري)',
+    tagPlaceholder: 'مثال: رحلة الشركة',
+    tagSuggestions: {
+      trip: ['عطلة نهاية الأسبوع', 'رحلة برية', 'إجازة'],
+      home: ['الإيجار', 'زملاء السكن', 'الفواتير'],
+      couple: ['موعد', 'ذكرى سنوية'],
+      event: ['زفاف', 'عيد ميلاد', 'خطوبة', 'حفل استقبال', 'حفلة'],
+      friends: ['عشاء', 'نزهة', 'حفلة'],
+      other: ['العمل', 'العائلة', 'دوام'],
+    },
     addPeopleByName: 'أضف أصدقاء',
     ghostNote: 'لا يحتاجون التطبيق. أضفهم الآن ويمكنهم المطالبة بسجلّهم لاحقًا.',
     claimHistoryNote: 'اختر اسمك فيأتي معك كل ما سُجّل لك من قبل.',

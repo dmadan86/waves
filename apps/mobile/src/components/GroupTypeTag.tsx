@@ -13,24 +13,31 @@ import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 export function useGroupTypeTag(
   type: string | null | undefined,
   eventTemplate: string | null | undefined,
+  customTag?: string | null,
 ): GroupTypeTagValue | null {
   const { t } = useStrings();
-  return groupTypeTag(type, eventTemplate, {
-    types: {
-      trip: t.extras.typeTrip,
-      home: t.extras.typeHome,
-      couple: t.extras.typeCouple,
-      event: t.extras.typeEvent,
-      friends: t.extras.typeFriends,
+  return groupTypeTag(
+    type,
+    eventTemplate,
+    {
+      types: {
+        trip: t.extras.typeTrip,
+        home: t.extras.typeHome,
+        couple: t.extras.typeCouple,
+        event: t.extras.typeEvent,
+        friends: t.extras.typeFriends,
+      },
+      events: t.eventOrganizer.tagNames,
     },
-    events: t.eventOrganizer.tagNames,
-  });
+    customTag,
+  );
 }
 
 /** The spoken form — "Kind: Trip" — for an accessibility label. */
 export function useGroupTypeTagSpoken(tag: GroupTypeTagValue | null): string | null {
   const { t } = useStrings();
-  return tag ? `${t.extras.groupKind}: ${tag.label}` : null;
+  if (!tag) return null;
+  return tag.custom ? tag.label : `${t.extras.groupKind}: ${tag.label}`;
 }
 
 /**
@@ -77,7 +84,7 @@ export function GroupTypeTag({
         backgroundColor: bg,
       }}
     >
-      <Ionicons name={GROUP_TYPE_ICON[tag.type]} size={11} color={fg} />
+      <Ionicons name={tag.custom ? 'pricetag' : GROUP_TYPE_ICON[tag.type]} size={11} color={fg} />
       <Text variant="micro" numberOfLines={1} style={{ color: fg, fontWeight: '600' }}>
         {tag.label}
       </Text>

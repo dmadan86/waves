@@ -128,6 +128,7 @@ export function TripDates({
   locale,
   onChange,
   embedded = false,
+  forEvent = false,
 }: {
   group: TripDatesValue;
   locale: string;
@@ -138,6 +139,8 @@ export function TripDates({
    * that already carries the "Dates" label and has already asked for it.
    */
   embedded?: boolean;
+  /** Same editor, Event wording (title, info label, body). */
+  forEvent?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -190,11 +193,15 @@ export function TripDates({
       {embedded ? null : (
         <View style={{ gap: theme.spacing.xs }}>
           <Row style={{ justifyContent: 'space-between', gap: theme.spacing.sm }}>
-            <Text variant="subheading">{t.misc.tripDatesTitle}</Text>
+            <Text variant="subheading">
+              {forEvent ? t.eventOrganizer.eventDatesTitle : t.misc.tripDatesTitle}
+            </Text>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ expanded: showInfo }}
-              accessibilityLabel={t.misc.aboutTripDates}
+              accessibilityLabel={
+                forEvent ? t.eventOrganizer.aboutEventDates : t.misc.aboutTripDates
+              }
               hitSlop={8}
               onPress={() => setShowInfo((shown) => !shown)}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
@@ -208,7 +215,7 @@ export function TripDates({
           </Row>
           {showInfo ? (
             <Text variant="caption" tone="muted">
-              {t.misc.tripDatesBody}
+              {forEvent ? t.eventOrganizer.eventDatesBody : t.misc.tripDatesBody}
             </Text>
           ) : null}
         </View>

@@ -700,6 +700,7 @@ export default function HomeScreen() {
                         coverEmoji={group.cover_emoji}
                         groupType={group.type}
                         eventTemplate={group.event_template}
+                        customTag={group.custom_tag}
                         balance={balance}
                         currency={group.default_currency}
                         locale={locale}
@@ -963,6 +964,7 @@ function GroupRow({
   coverEmoji,
   groupType,
   eventTemplate,
+  customTag,
   balance,
   currency,
   locale,
@@ -988,6 +990,7 @@ function GroupRow({
   /** What kind of group — drawn as a small tag on the member-count line. */
   groupType: string | null | undefined;
   eventTemplate: string | null | undefined;
+  customTag: string | null | undefined;
   balance: bigint;
   currency: string;
   locale: string;
@@ -1044,7 +1047,7 @@ function GroupRow({
   // every line of the list. The spoken label still carries it in full: a screen
   // reader is given the label instead of the text inside the row, so anything
   // said only on screen is not said quietly, it is not said.
-  const typeTag = useGroupTypeTag(groupType, eventTemplate);
+  const typeTag = useGroupTypeTag(groupType, eventTemplate, customTag);
   const typeSpoken = useGroupTypeTagSpoken(typeTag);
   const spoken =
     pendingLabel ?? [typeSpoken, memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');

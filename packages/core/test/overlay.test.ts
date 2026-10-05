@@ -291,6 +291,39 @@ describe('groups', () => {
     expect(row).toMatchObject({ id: GROUP, name: 'Goa 2026', pending: true });
   });
 
+  it('shows a custom tag set (or cleared) offline over the synced row', () => {
+    const mirror = reconcile(emptyMirror(), [
+      {
+        table: SyncTable.Groups,
+        groupId: GROUP,
+        seq: 1,
+        row: {
+          id: GROUP,
+          name: 'Goa',
+          default_currency: 'INR',
+          created_at: AT,
+          archived_at: null,
+          custom_tag: 'Weekend',
+        },
+      },
+    ]).state;
+
+    const [synced] = materialiseGroups(mirror, []);
+    expect(synced).toMatchObject({ custom_tag: 'Weekend' });
+
+    const [set] = materialiseGroups(
+      mirror,
+      queued(envelope('m-3', MutationKind.GroupUpdate, { custom_tag: 'Diwali 2026' })),
+    );
+    expect(set).toMatchObject({ custom_tag: 'Diwali 2026', pending: true });
+
+    const [cleared] = materialiseGroups(
+      mirror,
+      queued(envelope('m-4', MutationKind.GroupUpdate, { custom_tag: null })),
+    );
+    expect(cleared?.custom_tag).toBeNull();
+  });
+
   it('keeps an archived group out, however it was archived', () => {
     const mirror = reconcile(emptyMirror(), [
       {

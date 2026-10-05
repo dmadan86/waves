@@ -32,6 +32,7 @@ import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroActionCircle, HeroFigureLine, HeroPillButton } from '@/components/ScreenHero';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
+import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useDialog } from '@/lib/dialog';
 
 /**
@@ -103,7 +104,12 @@ export function GroupHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
-  const typeTag = useGroupTypeTag(group.type, group.event_template);
+  // Trips and events both carry a date range; show it beside the member count.
+  const dateRange =
+    group.type === 'trip' || group.type === 'event'
+      ? formatShortDateRange(group.start_date, group.end_date, locale)
+      : null;
+  const typeTag = useGroupTypeTag(group.type, group.event_template, group.custom_tag);
   const { confirm } = useDialog();
   const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
@@ -259,6 +265,7 @@ export function GroupHero({
               {typeTag ? <GroupTypeTag tag={typeTag} onBrand /> : null}
               <Text variant="caption" tone="onBrand" style={{ opacity: 0.85, flexShrink: 1 }}>
                 {plural(locale, members?.length ?? 0, t.memberCount)}
+                {dateRange ? ` · ${dateRange}` : ''}
               </Text>
             </Row>
           </View>
