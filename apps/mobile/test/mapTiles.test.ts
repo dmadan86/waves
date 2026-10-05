@@ -130,9 +130,7 @@ describe('tileUrl', () => {
     // override in the test env it must resolve to the OSM template.
     expect(DEFAULT_TILE_URL).toContain('tile.openstreetmap.org');
     expect(DEFAULT_TILE_URL).not.toContain('cartocdn');
-    expect(tileUrl(DEFAULT_TILE_URL, 3, 5, 15)).toBe(
-      'https://tile.openstreetmap.org/15/3/5.png',
-    );
+    expect(tileUrl(DEFAULT_TILE_URL, 3, 5, 15)).toBe('https://tile.openstreetmap.org/15/3/5.png');
   });
 
   it('credits OSM by default, and the credit is env-overridable', () => {
