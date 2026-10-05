@@ -79,11 +79,21 @@ export function localDay(ms: number): string {
 /**
  * The time of day to show for a bill, or null.
  *
+ * `occurredAt` is the time of day the person chose, and wins when there is one.
  * `savedAt` is when the expense was written. It is the bill's time only when it
  * was written on the bill's own day; otherwise it is the time somebody got round
  * to typing it, and showing that as the time of the dinner would be a lie.
  */
-export function timeOfDay(day: string, savedAt: string | null | undefined): number | null {
+export function timeOfDay(
+  day: string,
+  savedAt: string | null | undefined,
+  occurredAt?: string | null,
+): number | null {
+  // A time somebody chose is the bill's time, whatever day it was typed in.
+  if (occurredAt) {
+    const chosen = Date.parse(occurredAt);
+    if (Number.isFinite(chosen)) return chosen;
+  }
   if (!savedAt) return null;
   const ms = Date.parse(savedAt);
   if (!Number.isFinite(ms)) return null;
