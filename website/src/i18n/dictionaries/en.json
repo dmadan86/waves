@@ -43,26 +43,26 @@
       "members": "4 flatmates",
       "dates": "This month",
       "balanceLabel": "Arjun owes you",
-      "balance": "₹4,120",
+      "balance": "₹6,550",
       "rows": [
         {
           "title": "Rent",
-          "meta": "Monthly · split 4 ways",
+          "meta": "You paid · split 4 ways",
           "amount": "₹18,000"
         },
         {
           "title": "Electricity",
-          "meta": "Monthly · split 4 ways",
+          "meta": "You paid · split 4 ways",
           "amount": "₹2,340"
         },
         {
           "title": "BigBasket",
-          "meta": "This week · split 4 ways",
+          "meta": "You paid · split 4 ways",
           "amount": "₹1,860"
         },
         {
           "title": "Cook",
-          "meta": "Monthly · split 4 ways",
+          "meta": "You paid · split 4 ways",
           "amount": "₹4,000"
         }
       ],
@@ -70,9 +70,9 @@
       "rate": "₹6,550",
       "settleLabel": "Settle up",
       "settleLine": "Arjun owes you",
-      "settleAmount": "₹4,120",
+      "settleAmount": "₹6,550",
       "settleCta": "Pay via UPI",
-      "alt": "A group ledger for Flat 302 in Indiranagar: four flatmates, four shared expenses (rent, electricity, BigBasket and the cook), and Arjun owes you 4,120 rupees with a Pay via UPI button."
+      "alt": "A group ledger for Flat 302 in Indiranagar: four flatmates, four shared expenses (rent, electricity, BigBasket and the cook), and Arjun owes you 6,550 rupees with a Pay via UPI button."
     }
   },
   "custody": {
@@ -220,10 +220,10 @@
       "afterLabel": "Waves settles it",
       "afterCount": "2 payments",
       "line": "Arjun pays you",
-      "amount": "₹4,120",
+      "amount": "₹6,550",
       "paidLabel": "Paid so far",
-      "paidValue": "₹2,000 of ₹4,120",
-      "paidPercent": 49,
+      "paidValue": "₹3,000 of ₹6,550",
+      "paidPercent": 46,
       "awaiting": "Waiting for Arjun to confirm",
       "alt": "Two diagrams: seven debts tangled between five flatmates, then the same group settled by two payments."
     },
@@ -239,21 +239,21 @@
     },
     "reminder": {
       "label": "Reminder · sent for you",
-      "message": "Hi Arjun, a gentle nudge: ₹4,120 for October's flat bills. Pay via UPI.",
+      "message": "Hi Arjun, a gentle nudge: ₹6,550 for October's flat bills. Pay via UPI.",
       "sentLabel": "Sent on your behalf",
       "rows": [
         {
           "name": "Arjun",
-          "owes": "₹4,120",
+          "owes": "₹6,550",
           "status": "Reminded today"
         },
         {
           "name": "Kabir",
-          "owes": "₹2,300",
+          "owes": "₹6,550",
           "status": "Not yet due"
         }
       ],
-      "alt": "A reminder message sent on your behalf asking Arjun for 4,120 rupees, above a list of two flatmates who owe you."
+      "alt": "A reminder message sent on your behalf asking Arjun for 6,550 rupees, above a list of two flatmates who owe you."
     }
   },
   "how": {
@@ -287,31 +287,36 @@
         },
         {
           "what": "Electricity",
-          "who": "Arjun paid · split 4 ways",
+          "who": "You paid · split 4 ways",
           "amount": "₹2,340"
         },
         {
+          "what": "BigBasket",
+          "who": "You paid · split 4 ways",
+          "amount": "₹1,860"
+        },
+        {
           "what": "Cook",
-          "who": "Meera paid · split 4 ways",
+          "who": "You paid · split 4 ways",
           "amount": "₹4,000"
         }
       ],
       "resultLabel": "Waves settles it in three payments",
       "payments": [
         {
-          "line": "Kabir pays you",
-          "amount": "₹6,085"
-        },
-        {
           "line": "Arjun pays you",
-          "amount": "₹3,745"
+          "amount": "₹6,550"
         },
         {
           "line": "Meera pays you",
-          "amount": "₹2,085"
+          "amount": "₹6,550"
+        },
+        {
+          "line": "Kabir pays you",
+          "amount": "₹6,550"
         }
       ],
-      "note": "Nine IOUs between four flatmates become three transfers. Anyone in the group can open the arithmetic that got there."
+      "note": "Twelve IOUs between four flatmates become three transfers. Anyone in the group can open the arithmetic that got there."
     },
     "cards": [
       {
