@@ -28,6 +28,7 @@ import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { backend } from '@/lib/backend';
 import { expectGroup } from '@/lib/groupArrival';
+import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { guestJoins } from '@/lib/guestJoins';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
@@ -145,6 +146,8 @@ export default function JoinScreen() {
       };
       await Promise.race([pull(), new Promise<void>((done) => setTimeout(done, 6_000))]);
       router.replace(`/group/${result.group.id}`);
+      // A good moment to offer notifications, if the phone is not yet set up.
+      requestJoinPushPrompt(result.group.name);
     } catch (caught) {
       setError(friendlyError(caught, t.misc.couldNotJoin, 'join.accept'));
     } finally {

@@ -112,6 +112,32 @@ export async function pushPermission(): Promise<PushPermission> {
 }
 
 /**
+ * `pushPermission` plus whether the system will still show its dialog. Android
+ * stops showing it after a refusal or two and iOS after the first, and asking
+ * then returns `denied` instantly without anything on screen — so a button that
+ * only asks looks dead. `canAskAgain` is what tells the caller to send the
+ * person to the app's system settings instead.
+ */
+export async function pushPermissionDetail(): Promise<{
+  permission: PushPermission;
+  canAskAgain: boolean;
+}> {
+  if (!pushSupported || !Device.isDevice) {
+    return { permission: PushPermission.Denied, canAskAgain: false };
+  }
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  return {
+    permission:
+      status === 'granted'
+        ? PushPermission.Granted
+        : status === 'undetermined'
+          ? PushPermission.Undetermined
+          : PushPermission.Denied,
+    canAskAgain: canAskAgain !== false,
+  };
+}
+
+/**
  * Whether the phone may raise a notification *this app* schedules.
  *
  * Deliberately not `pushPermission()`, which answers a different question. That
