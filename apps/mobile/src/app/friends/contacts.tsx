@@ -50,7 +50,8 @@ import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { sameAddress } from '@/lib/contactMatch';
 
-import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
+import { type PickedContact } from '@/components/ContactPicker';
+import { ContactPickerScene } from '@/components/ContactPickerScene';
 import { addGhostMember } from '@/data/api';
 import { useGroupLabeller, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
@@ -165,11 +166,44 @@ export default function ContactsScreen(): React.JSX.Element {
     },
   });
 
+  // Nothing picked yet: the same scenic picker the group forms use, so there is
+  // one contact-picking screen. Also shown after an add (picked is cleared), with
+  // the outcome said under its title — and when nothing was added but somebody was
+  // skipped, because ticking five people and hearing nothing reads as a failure.
+  if (picked.length === 0) {
+    const outcome =
+      added !== null || skipped > 0 || error
+        ? [
+            added !== null
+              ? fill(t.misc.contactsAdded, { count: plural(locale, added, t.misc.peopleCount) })
+              : '',
+            skipped > 0 ? plural(locale, skipped, t.misc.alreadyThereSkipped) : '',
+            error ?? '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+        : undefined;
+    return (
+      <ContactPickerScene
+        onConfirm={setPicked}
+        confirmVerb={t.misc.continueWith}
+        known={known}
+        subtitle={outcome}
+        // The person who is not in the address book at all. Waves already has a
+        // screen that takes a typed name and makes the one-to-one group behind
+        // it, so this points at that rather than growing a second way to invent
+        // a person.
+        escape={{
+          label: t.misc.someoneNotInContacts,
+          onPress: () => router.push('/friends/add-person' as never),
+        }}
+      />
+    );
+  }
+
+  // The group step keeps its plain page: it is a question about the people
+  // picked, not the address book.
   return (
-    // The picker anchors a button to the bottom of the screen, so this one has
-    // to hold the bottom inset too. Without it the button lands under the
-    // navigation bar — invisible on a phone with three buttons rather than a
-    // gesture pill, which is the case an emulator does not show you.
     <Screen edges={['top', 'bottom']}>
       <View
         style={{
@@ -193,62 +227,18 @@ export default function ContactsScreen(): React.JSX.Element {
           <View style={{ width: 44 }} />
         </Row>
 
-        {picked.length > 0 ? (
-          <ChooseGroup
-            contacts={picked}
-            groups={groups.data}
-            alreadyIn={alreadyIn}
-            busy={add.isPending}
-            error={error}
-            onCancel={() => {
-              setPicked([]);
-              setError(null);
-            }}
-            onChoose={(groupId) => add.mutate({ groupId, contacts: picked })}
-          />
-        ) : (
-          <>
-            {/* Also shown when nothing was added but somebody was skipped:
-                ticking five people and being told nothing at all is the outcome
-                that reads as a failure when it was in fact a no-op. */}
-            {added !== null || skipped > 0 ? (
-              <Card style={{ backgroundColor: theme.color.buttonPrimary }}>
-                <Row style={{ gap: theme.spacing.sm }}>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={iconSize.lg}
-                    color={theme.color.onBrand}
-                  />
-                  <Text variant="caption" tone="onBrand" style={{ flex: 1 }}>
-                    {added !== null
-                      ? fill(t.misc.contactsAdded, {
-                          count: plural(locale, added, t.misc.peopleCount),
-                        })
-                      : ''}
-                    {/* Somebody who ticked five and sees "3 people added" is owed
-                        the other two, or the count reads as a bug. */}
-                    {skipped > 0
-                      ? `${added !== null ? ' ' : ''}${plural(locale, skipped, t.misc.alreadyThereSkipped)}`
-                      : ''}
-                  </Text>
-                </Row>
-              </Card>
-            ) : null}
-            <ContactPicker
-              onConfirm={setPicked}
-              confirmVerb={t.misc.continueWith}
-              known={known}
-              // The person who is not in the address book at all. Waves already
-              // has a screen that takes a typed name and makes the one-to-one
-              // group behind it, so this points at that rather than growing a
-              // second way to invent a person.
-              escape={{
-                label: t.misc.someoneNotInContacts,
-                onPress: () => router.push('/friends/add-person' as never),
-              }}
-            />
-          </>
-        )}
+        <ChooseGroup
+          contacts={picked}
+          groups={groups.data}
+          alreadyIn={alreadyIn}
+          busy={add.isPending}
+          error={error}
+          onCancel={() => {
+            setPicked([]);
+            setError(null);
+          }}
+          onChoose={(groupId) => add.mutate({ groupId, contacts: picked })}
+        />
       </View>
     </Screen>
   );
