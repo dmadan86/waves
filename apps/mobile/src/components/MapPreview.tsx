@@ -8,10 +8,11 @@
  * the images simply do not appear and the neutral map-coloured background shows
  * through, so a blocked network degrades to an empty frame, never a crash.
  *
- * The tile source is `EXPO_PUBLIC_MAP_TILE_URL` when set, else CARTO's keyless
- * basemap (attributed below) — not OSM's public server, which refuses app
- * traffic. A production build under real load should point that at a
- * self-hosted or keyed provider.
+ * The tile source is `EXPO_PUBLIC_MAP_TILE_URL` when set, else OSM's
+ * standard server with an identifying User-Agent (attributed below). CARTO's
+ * keyless endpoint is not used: it paints "API KEY REQUIRED" over the tiles. A
+ * production build under real load should point the override at a self-hosted
+ * or keyed provider.
  */
 
 import { useState } from 'react';
@@ -62,13 +63,13 @@ export function MapPreview({
   // Google refuses the request outright when the key's project is not set up
   // for Static Maps (billing off, API disabled, key restricted) — a 403 with a
   // text body, not an image. Without this the frame stays blank, so a failed
-  // Google image hands over to the CARTO tiles for the rest of this preview.
+  // Google image hands over to the map tiles for the rest of this preview.
   const [googleFailed, setGoogleFailed] = useState(false);
 
-  // Google Static Maps when a key is configured, else the CARTO tile grid. One
+  // Google Static Maps when a key is configured, else the tile grid. One
   // composite image vs a mosaic of {z}/{x}/{y} tiles — see `googleStaticMapUrl`.
   // On iOS the preview is a tiny non-interactive Apple map (free, no key) when
-  // the native module is in the binary; otherwise the CARTO tile grid. Google
+  // the native module is in the binary; otherwise the tile grid. Google
   // Static Maps is never called on iOS.
   const appleMap = Platform.OS === 'ios' && nativeMaps !== null;
   const googleUrl =
@@ -103,7 +104,7 @@ export function MapPreview({
           transition={120}
           // Google Maps Platform Terms forbid caching Maps Static API images —
           // each view must re-request. So no disk/memory cache here (unlike the
-          // CARTO tiles below, whose licence permits the normal image cache).
+          // map tiles below, whose licence permits the normal image cache).
           cachePolicy="none"
           onError={() => setGoogleFailed(true)}
         />
@@ -148,7 +149,7 @@ export function MapPreview({
         />
       </View>
 
-      {/* Attribution — required by the tile licence (OSM data, CARTO tiles).
+      {/* Attribution — required by the tile licence (OSM data, map tiles).
           Not translated: it is a fixed credit, like a copyright line. Hidden for
           the Google image, which carries Google's own credit baked in. */}
       {googleUrl || appleMap ? null : (

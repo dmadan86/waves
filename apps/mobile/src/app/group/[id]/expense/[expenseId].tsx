@@ -26,7 +26,14 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { balanceDirection, copyFor, format, money, moneyAccessibilityLabel } from '@waves/core';
+import {
+  balanceDirection,
+  copyFor,
+  format,
+  money,
+  moneyAccessibilityLabel,
+  subEventsForTemplate,
+} from '@waves/core';
 
 import { CategoryBadge, CategoryRow } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
@@ -59,6 +66,8 @@ import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { useSync } from '@/sync';
 import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
+import { showDate } from '@/lib/expenseDay';
+import { eventDetailFacts } from '@/lib/eventDetailFacts';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -296,6 +305,14 @@ export default function ExpenseDetailScreen() {
   // Where it happened (A43), when the author attached one. A plain snapshot — a
   // tap opens the point in the phone's maps app.
   const location = version.location;
+  // Event organizer facts (docs/event-organizer.md): the sub-event tag and the
+  // vendor advance. Only present on an Event group's expense that carries them.
+  const eventFacts = eventDetailFacts({
+    version,
+    subEvents: subEventsForTemplate(group.data?.event_template),
+    timeZone: group.data?.time_zone ?? 'Asia/Kolkata',
+  });
+  const openPlan = () => router.push(`/group/${groupId}/plan`);
   // The typed note. It also names the expense in the hero, but that heading is
   // clamped to a single line while the field is multiline — so a long or
   // multi-line note is only half-shown up top. Render the full text as a "Note"
@@ -679,6 +696,65 @@ export default function ExpenseDetailScreen() {
                   onPress={changeOn('split')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
+                {/* Event organizer: the sub-event this bill belongs to, and the
+                    vendor advance. Only drawn when set; a tap opens the plan,
+                    where the budget and upcoming vendor balances live. */}
+                {eventFacts.subEvent ? (
+                  <DetailRow
+                    icon="albums-outline"
+                    label={t.eventOrganizer.subEventLabel}
+                    value={`${eventFacts.subEvent.emoji} ${
+                      t.eventSubEvents[eventFacts.subEvent.id] ?? eventFacts.subEvent.id
+                    }`.trim()}
+                    onPress={openPlan}
+                    accessibilityLabel={`${t.eventOrganizer.subEventLabel}, ${
+                      t.eventSubEvents[eventFacts.subEvent.id] ?? eventFacts.subEvent.id
+                    }`}
+                  />
+                ) : null}
+                {eventFacts.isDeposit ? (
+                  <DetailRow
+                    icon="cash-outline"
+                    label={t.eventOrganizer.advancePaid}
+                    value={format(money(BigInt(version.amount), currency), { locale })}
+                    onPress={openPlan}
+                    accessibilityLabel={`${t.eventOrganizer.advancePaid}, ${format(
+                      money(BigInt(version.amount), currency),
+                      { locale },
+                    )}`}
+                  />
+                ) : null}
+                {eventFacts.isDeposit && eventFacts.balanceDueMinor != null ? (
+                  <DetailRow
+                    icon="hourglass-outline"
+                    label={t.eventOrganizer.balanceDueLabel}
+                    trailing={
+                      <Text
+                        variant="body"
+                        tone={eventFacts.overdue ? 'negative' : undefined}
+                        numberOfLines={1}
+                        style={{ flexShrink: 1, minWidth: 0, textAlign: 'right' }}
+                      >
+                        {fill(t.eventOrganizer.balanceDueValue, {
+                          amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
+                          date: eventFacts.balanceDueDate
+                            ? showDate(eventFacts.balanceDueDate, locale)
+                            : t.eventOrganizer.dueWhenever,
+                        })}
+                      </Text>
+                    }
+                    onPress={openPlan}
+                    accessibilityLabel={`${t.eventOrganizer.balanceDueLabel}, ${fill(
+                      t.eventOrganizer.balanceDueValue,
+                      {
+                        amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
+                        date: eventFacts.balanceDueDate
+                          ? showDate(eventFacts.balanceDueDate, locale)
+                          : t.eventOrganizer.dueWhenever,
+                      },
+                    )}${eventFacts.overdue ? `, ${plural(locale, 1, t.eventOrganizer.overdueCount)}` : ''}`}
+                  />
+                ) : null}
                 {/* Where this bill sits among everything else you spent: the
                     timeline opens on it, and turns into a map from there. */}
                 <DetailRow
