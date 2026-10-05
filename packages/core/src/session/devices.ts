@@ -107,6 +107,19 @@ export interface DeviceLimitStatus {
   readonly activeCount: number;
   /** True when this account is holding more phones than its tier allows. */
   readonly overLimit: boolean;
+  /**
+   * True when the server says this phone was signed out from another device
+   * and the session asking is the stale one. Absent on servers that predate
+   * the field, which reads as "not revoked".
+   */
+  readonly revoked?: boolean;
+}
+
+/** Whether a registration answer means this phone must sign itself out. */
+export function isRevokedStatus(
+  status: Pick<DeviceLimitStatus, 'revoked'> | null | undefined,
+): boolean {
+  return status?.revoked === true;
 }
 
 /**
