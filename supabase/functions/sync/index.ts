@@ -224,6 +224,7 @@ const EXPENSE_SELECT = `
     fx, receipt_id,
     location, created_at,
     sub_event_id, is_deposit, balance_due_minor, balance_due_date,
+    occurred_at,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -732,6 +733,7 @@ export class SyncSession {
       isDeposit?: boolean;
       balanceDueMinor?: string | null;
       balanceDueDate?: string | null;
+      occurredAt?: string | null;
     };
 
     const amount = parseMinor(payload.amount, 'amount');
@@ -818,6 +820,7 @@ export class SyncSession {
             ? null
             : parseMinor(payload.balanceDueMinor, 'balanceDueMinor'),
         balanceDueDate: payload.balanceDueDate ?? null,
+        occurredAt: payload.occurredAt ?? null,
       }),
     );
     if (error) throw error;

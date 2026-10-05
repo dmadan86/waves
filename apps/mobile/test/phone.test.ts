@@ -8,7 +8,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IdentityError } from '@waves/core';
 
-import { isPhoneCountryError, normaliseContactPhone, regionDialCode } from '../src/lib/phone';
+import {
+  isPhoneCountryError,
+  normaliseContactPhone,
+  regionDialCode,
+  toE164,
+} from '../src/lib/phone';
 
 const device = vi.hoisted(() => ({ country: 'IN' as string | null }));
 
@@ -113,5 +118,18 @@ describe('isPhoneCountryError', () => {
     expect(isPhoneCountryError({ code: 42, message: 'boom' })).toBe(false);
     expect(isPhoneCountryError(null)).toBe(false);
     expect(isPhoneCountryError(new Error('network'))).toBe(false);
+  });
+});
+
+describe('toE164', () => {
+  it('joins the dial code and the digits, dropping spaces and punctuation', () => {
+    expect(toE164('+91', '98765 43210')).toBe('+919876543210');
+    expect(toE164('+91', '(98765) 43-210')).toBe('+919876543210');
+  });
+  it('drops a national trunk zero', () => {
+    expect(toE164('+91', '098765 43210')).toBe('+919876543210');
+  });
+  it('keeps a country code the person typed instead of doubling it', () => {
+    expect(toE164('+91', '+44 7700 900123')).toBe('+447700900123');
   });
 });

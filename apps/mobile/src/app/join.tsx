@@ -27,9 +27,11 @@ import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { backend } from '@/lib/backend';
+import { expectGroup } from '@/lib/groupArrival';
 import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { guestJoins } from '@/lib/guestJoins';
 import { router } from '@/lib/navigation';
+import { useSync } from '@/sync';
 
 /**
  * Landing screen for an invite link (ADR-006).
@@ -48,6 +50,7 @@ export default function JoinScreen() {
   const { session, continueAsGuest } = useAuth();
   const guard = useGuestGuard();
   const queryClient = useQueryClient();
+  const { flush } = useSync();
 
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [claimId, setClaimId] = useState<string | null>(null);
@@ -128,6 +131,20 @@ export default function JoinScreen() {
       void rememberGuestJoin(token);
 
       await queryClient.invalidateQueries({ queryKey: keys.groups });
+      // The membership exists on the server; this phone's mirror does not have
+      // the group yet, and the group screens read the mirror. Pull it before
+      // landing there, and say it is expected so a flush that was already in
+      // flight (and answered before the join) cannot make the screen announce
+      // "not found" — it keeps loading until the group arrives or the window ends.
+      // Twice on purpose: a flush already in flight is joined rather than
+      // restarted, and that one never asked for this group. The second runs
+      // fresh with the id. Bounded, so a hung request cannot hold the button.
+      expectGroup(result.group.id);
+      const pull = async (): Promise<void> => {
+        await flush([result.group.id]).catch(() => undefined);
+        await flush([result.group.id]).catch(() => undefined);
+      };
+      await Promise.race([pull(), new Promise<void>((done) => setTimeout(done, 6_000))]);
       router.replace(`/group/${result.group.id}`);
       // A good moment to offer notifications, if the phone is not yet set up.
       requestJoinPushPrompt(result.group.name);
