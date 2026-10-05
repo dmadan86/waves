@@ -12,7 +12,6 @@ import {
   MoneyText,
   Row,
   Screen,
-  Sheet,
   Text,
   useTabBarClearance,
   useTheme,
@@ -20,7 +19,8 @@ import {
 
 import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
-import { plural, useStrings } from '@/i18n';
+import { plural, useStrings, type UiStrings } from '@/i18n';
+import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { useAuth } from '@/lib/auth';
 import { PressableScale } from '@/lib/anim';
 import {
@@ -50,9 +50,6 @@ const HEADER_BUTTON = 40;
 const SCENE_ROOM = 26;
 const SCENE_OVERLAP = 14;
 const SCENE_INTO_CARD = 34;
-
-/** Chips are a row of small pills; the round sort button matches their height. */
-const CHIP_HEIGHT = 32;
 
 /**
  * The full, browsable list of every group — the "All groups" door off the
@@ -87,7 +84,9 @@ export default function AllGroupsScreen() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroupsFilter>('all');
   const [sort, setSort] = useState<GroupsSort>('amount');
+  const [sortDesc, setSortDesc] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
   const searchRef = useRef<TextInput>(null);
   const trimmed = query.trim().toLowerCase();
   const narrowed = trimmed !== '' || filter !== 'all';
@@ -115,12 +114,17 @@ export default function AllGroupsScreen() {
     });
 
     const isFavorite = (entry: GroupsEntry): boolean => pinnedIds.has(entry.id);
-    const ordered = sortGroups(
+    const sorted = sortGroups(
       filterGroups(decorated, filter, trimmed, isFavorite),
       sort,
       isFavorite,
       locale,
     );
+    // The same toggle Friends has: picking the active sort again flips it. The
+    // favorites keep their place in front either way.
+    const ordered = sortDesc
+      ? sorted
+      : [...sorted.filter(isFavorite), ...sorted.filter((entry) => !isFavorite(entry)).reverse()];
 
     type Entry = (typeof decorated)[number];
     type ListRow = { kind: 'group'; item: Entry } | { kind: 'header'; label: string };
@@ -130,13 +134,25 @@ export default function AllGroupsScreen() {
     // mix, since a block that is all settled (or all active) needs no label.
     const rest = ordered.filter((entry) => !isFavorite(entry));
     const firstSettled = rest.findIndex((entry) => !entry.needsAction);
-    const settledLabelAt = sort === 'amount' && firstSettled > 0 ? rest[firstSettled]!.id : null;
+    const settledLabelAt =
+      sort === 'amount' && sortDesc && firstSettled > 0 ? rest[firstSettled]!.id : null;
     for (const item of ordered) {
       if (item.id === settledLabelAt) out.push({ kind: 'header', label: t.settledHeader });
       out.push({ kind: 'group', item });
     }
     return out;
-  }, [list, summary, profile?.id, trimmed, filter, sort, locale, pinnedIds, t.settledHeader]);
+  }, [
+    list,
+    summary,
+    profile?.id,
+    trimmed,
+    filter,
+    sort,
+    sortDesc,
+    locale,
+    pinnedIds,
+    t.settledHeader,
+  ]);
 
   // What a rendered row reads from outside its own data: the locale (money and
   // member-count formatting) and the theme (its colours). Both hold identity
@@ -196,10 +212,14 @@ export default function AllGroupsScreen() {
           filter on a brand-new account, so they wait for the first group. */}
       {list.length > 0 ? (
         <FilterBar
-          filter={filter}
-          onFilter={setFilter}
-          sortActive={sort !== 'amount'}
-          onOpenSort={() => setSortOpen(true)}
+          favoritesOnly={filter === 'favorites'}
+          onToggleFavorites={() => setFilter((f) => (f === 'favorites' ? 'all' : 'favorites'))}
+          sortLabel={sortLabelFor(sort, t)}
+          sortDesc={sortDesc}
+          onOpenSort={(anchor) => {
+            setSortAnchor(anchor);
+            setSortOpen(true);
+          }}
         />
       ) : null}
 
@@ -288,49 +308,28 @@ export default function AllGroupsScreen() {
         )}
       </View>
 
-      <Sheet
-        visible={sortOpen}
+      <SortMenu
+        open={sortOpen}
+        anchor={sortAnchor}
         onClose={() => setSortOpen(false)}
-        title={t.misc.sortGroupsTitle}
+        title={t.sort.by}
         closeLabel={t.common.close}
-      >
-        <View style={{ paddingBottom: theme.spacing.md }}>
-          {(
-            [
-              ['amount', t.misc.sortAmount, 'cash-outline'],
-              ['recent', t.misc.sortRecent, 'time-outline'],
-              ['name', t.misc.sortName, 'text-outline'],
-            ] as const
-          ).map(([key, label, icon]) => (
-            <Pressable
-              key={key}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: sort === key }}
-              onPress={() => {
-                setSort(key);
-                setSortOpen(false);
-              }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            >
-              <Row
-                style={{
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingVertical: theme.spacing.md,
-                }}
-              >
-                <Ionicons name={icon} size={iconSize.lg} color={theme.color.textMuted} />
-                <Text variant="body" style={{ flex: 1 }}>
-                  {label}
-                </Text>
-                {sort === key ? (
-                  <Ionicons name="checkmark" size={iconSize.lg} color={theme.color.brand} />
-                ) : null}
-              </Row>
-            </Pressable>
-          ))}
-        </View>
-      </Sheet>
+        options={SORT_KEYS.map((key) => ({
+          key,
+          label: sortLabelFor(key, t),
+          icon: SORT_ICONS[key],
+        }))}
+        activeKey={sort}
+        activeIndicator={sortDesc ? 'arrow-down' : 'arrow-up'}
+        onPick={(key) => {
+          if (key === sort) setSortDesc((d) => !d);
+          else {
+            setSort(key);
+            setSortDesc(key !== 'name');
+          }
+          setSortOpen(false);
+        }}
+      />
     </Screen>
   );
 }
@@ -530,132 +529,113 @@ const whiteDisc = {
   backgroundColor: '#FFFFFF',
 } as const;
 
+const SORT_KEYS: readonly GroupsSort[] = ['amount', 'recent', 'name'];
+const SORT_ICONS: Record<GroupsSort, React.ComponentProps<typeof Ionicons>['name']> = {
+  amount: 'cash-outline',
+  recent: 'time-outline',
+  name: 'text-outline',
+};
+function sortLabelFor(key: GroupsSort, t: UiStrings): string {
+  return key === 'amount'
+    ? t.misc.sortAmount
+    : key === 'recent'
+      ? t.misc.sortRecent
+      : t.misc.sortName;
+}
+
 /**
- * The filter chips and, at the far end, the round sort button. The chips scroll
- * if a long translation overflows; the button is pinned outside the scroll so it
- * is always in reach. A chip rests as a soft tint of its colour and fills solid
- * when chosen; "All" is the brand pill.
+ * One quiet row above the list: a Favorites toggle on the left and, on the
+ * right, the same "Sort by" pill Friends wears, opening the same drop-down
+ * (`SortMenu`) from where it sits. Picking the active sort again flips it.
  */
 function FilterBar({
-  filter,
-  onFilter,
-  sortActive,
+  favoritesOnly,
+  onToggleFavorites,
+  sortLabel,
+  sortDesc,
   onOpenSort,
 }: {
-  filter: GroupsFilter;
-  onFilter: (next: GroupsFilter) => void;
-  sortActive: boolean;
-  onOpenSort: () => void;
+  favoritesOnly: boolean;
+  onToggleFavorites: () => void;
+  sortLabel: string;
+  sortDesc: boolean;
+  onOpenSort: (anchor: MenuAnchor | null) => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
-  const chips: readonly {
-    key: GroupsFilter;
-    label: string;
-    icon: React.ComponentProps<typeof Ionicons>['name'];
-    ink: string;
-    soft: string;
-  }[] = [
-    {
-      key: 'all',
-      label: t.filterAll,
-      icon: 'people',
-      ink: theme.color.brand,
-      soft: theme.color.surfaceMuted,
-    },
-    {
-      key: 'owed',
-      label: t.misc.filterOwed,
-      icon: 'arrow-down-circle',
-      ink: theme.color.positive,
-      soft: theme.color.positiveSoft,
-    },
-    {
-      key: 'owe',
-      label: t.misc.filterOwe,
-      icon: 'arrow-up',
-      ink: theme.color.negative,
-      soft: theme.color.negativeSoft,
-    },
-    {
-      key: 'favorites',
-      label: t.misc.filterFavorites,
-      icon: 'star-outline',
-      ink: theme.color.warning,
-      soft: theme.color.warningSoft,
-    },
-  ];
+  const pillRef = useRef<View>(null);
+  const openSort = (): void => {
+    const pill = pillRef.current;
+    if (!pill) return onOpenSort(null);
+    pill.measureInWindow((x, y, width, height) =>
+      onOpenSort(width > 0 ? { x, y, width, height } : null),
+    );
+  };
+  const pill = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 32,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+  } as const;
 
   return (
     <Row
       style={{
         alignItems: 'center',
-        gap: theme.spacing.sm,
+        justifyContent: 'space-between',
         paddingHorizontal: theme.spacing.md,
         paddingTop: theme.spacing.sm,
         paddingBottom: 6,
       }}
     >
-      <Row style={{ flex: 1, gap: theme.spacing.xs }}>
-        {chips.map((chip) => {
-          const selected = filter === chip.key;
-          const color = selected ? theme.color.onBrand : theme.color.text;
-          return (
-            <Pressable
-              key={chip.key}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => onFilter(chip.key)}
-              style={({ pressed }) => ({
-                // Shrinks before it clips, so four chips fit a narrow phone; the
-                // label gives way to an ellipsis, not the icon.
-                flexShrink: 1,
-                height: CHIP_HEIGHT,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: theme.spacing.sm,
-                borderRadius: CHIP_HEIGHT / 2,
-                backgroundColor: selected ? theme.color.brand : theme.color.surface,
-                borderWidth: 1,
-                borderColor: selected ? theme.color.brand : theme.color.border,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name={chip.icon} size={iconSize.sm} color={selected ? color : chip.ink} />
-              <Text
-                variant="caption"
-                numberOfLines={1}
-                style={{ color, fontWeight: selected ? '700' : '500', flexShrink: 1 }}
-              >
-                {chip.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </Row>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t.misc.sortGroupsTitle}
-        onPress={onOpenSort}
+        accessibilityState={{ selected: favoritesOnly }}
+        onPress={onToggleFavorites}
+        hitSlop={8}
         style={({ pressed }) => ({
-          width: CHIP_HEIGHT,
-          height: CHIP_HEIGHT,
-          borderRadius: CHIP_HEIGHT / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: sortActive ? theme.color.brand : theme.color.surface,
-          borderWidth: 1,
-          borderColor: sortActive ? theme.color.brand : theme.color.border,
+          ...pill,
+          backgroundColor: favoritesOnly ? theme.color.warningSoft : theme.color.surface,
+          borderColor: favoritesOnly ? theme.color.warning : theme.color.border,
           opacity: pressed ? 0.7 : 1,
         })}
       >
         <Ionicons
-          name="options-outline"
-          size={iconSize.md}
-          color={sortActive ? theme.color.onBrand : theme.color.textMuted}
+          name={favoritesOnly ? 'star' : 'star-outline'}
+          size={iconSize.sm}
+          color={theme.color.warning}
         />
+        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
+          {t.misc.filterFavorites}
+        </Text>
       </Pressable>
+      <View ref={pillRef} collapsable={false}>
+        <Pressable
+          onPress={openSort}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.sort.by}: ${sortLabel}`}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            ...pill,
+            backgroundColor: theme.color.surface,
+            borderColor: theme.color.border,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
+          <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
+            {t.sort.by}: {sortLabel}
+          </Text>
+          <Ionicons
+            name={sortDesc ? 'chevron-down' : 'chevron-up'}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+      </View>
     </Row>
   );
 }
