@@ -125,8 +125,11 @@ function collect(candidates: readonly VendorCandidate[], today: string): Map<str
   const byVendor = new Map<string, Slot>();
   for (const c of candidates) {
     if (!c.isDeposit) continue;
-    const key = vendorKey(c.description);
-    if (key === '') continue;
+    // A deposit saved with no description (the editor allows a blank one: "no
+    // word nobody typed goes into the ledger") is still money paid to somebody.
+    // Dropping it hid the whole advance and read as "No vendors yet"; it stays,
+    // as its own unnamed vendor (the UI labels it).
+    const key = vendorKey(c.description) || `\0${c.expenseId}`;
     const balance = c.balanceDueMinor != null && c.balanceDueMinor > 0n ? c.balanceDueMinor : 0n;
     const owing = balance > 0n;
     const entry: VendorEntry = {

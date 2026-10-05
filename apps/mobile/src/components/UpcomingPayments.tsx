@@ -92,13 +92,13 @@ export function UpcomingPayments({
             key={payment.expenseId}
             onPress={() => router.push(`/group/${groupId}/expense/${payment.expenseId}`)}
             accessibilityRole="button"
-            accessibilityLabel={`${payment.vendorName}, ${sub ? `${sub}, ` : ''}${due}`}
+            accessibilityLabel={`${payment.vendorName || o.unnamedVendor},${sub ? `${sub}, ` : ''}${due}`}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <Text variant="caption" numberOfLines={1}>
-                  {payment.vendorName}
+                  {payment.vendorName || o.unnamedVendor}
                 </Text>
                 {sub ? (
                   <Text variant="micro" tone="muted" numberOfLines={1}>

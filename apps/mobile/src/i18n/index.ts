@@ -419,6 +419,10 @@ export interface UiStrings {
     statOver: string;
     percentUsed: string;
     addEventBudget: string;
+    addVendor: string;
+    searchVendors: string;
+    filterBySubEvent: string;
+    unnamedVendor: string;
     nothingDue: string;
     viewAll: string;
   };
@@ -4593,8 +4597,7 @@ const en: UiStrings = {
     payBalance: 'Pay balance',
     payBalanceFor: 'Pay balance to {vendor}',
     vendorsEmptyTitle: 'No vendor advances yet',
-    vendorsEmptyBody:
-      'Mark an expense as a vendor deposit to track what you have paid each vendor and what is still owed.',
+    vendorsEmptyBody: 'Add vendors to track advances, payments and balances for this group.',
     vendorsFilteredEmpty: 'Nothing matches this filter.',
     planSubtitle: 'Plan and track your budget',
     planOverall: 'Overall',
@@ -4603,6 +4606,10 @@ const en: UiStrings = {
     statOver: 'Over',
     percentUsed: '{n}% of plan used',
     addEventBudget: 'Add event budget',
+    addVendor: 'Add vendor',
+    searchVendors: 'Search vendors',
+    filterBySubEvent: 'Filter by sub-event',
+    unnamedVendor: 'Unnamed vendor',
     nothingDue: 'Nothing due right now',
     viewAll: 'View all',
   },
@@ -8131,7 +8138,7 @@ const ta: UiStrings = {
     payBalanceFor: '{vendor}க்கு மீதியை செலுத்து',
     vendorsEmptyTitle: 'இன்னும் முன்பணம் இல்லை',
     vendorsEmptyBody:
-      'ஒவ்வொரு விற்பனையாளருக்கும் செலுத்தியதையும் நிலுவையையும் அறிய செலவை விற்பனையாளர் முன்பணமாக குறியிடுங்கள்.',
+      'இந்தக் குழுவிற்கான முன்பணம், கட்டணங்கள் மற்றும் நிலுவைகளை கண்காணிக்க விற்பனையாளர்களை சேர்க்கவும்.',
     vendorsFilteredEmpty: 'இந்த வடிகட்டிக்கு எதுவும் பொருந்தவில்லை.',
     planSubtitle: 'உங்கள் பட்ஜெட்டை திட்டமிட்டு கண்காணிக்கவும்',
     planOverall: 'மொத்தம்',
@@ -8140,6 +8147,10 @@ const ta: UiStrings = {
     statOver: 'அதிகம்',
     percentUsed: 'திட்டத்தில் {n}% பயன்படுத்தப்பட்டது',
     addEventBudget: 'நிகழ்வு பட்ஜெட்டை சேர்',
+    addVendor: 'விற்பனையாளரை சேர்',
+    searchVendors: 'விற்பனையாளர்களை தேடு',
+    filterBySubEvent: 'துணை நிகழ்வு வடிகட்டி',
+    unnamedVendor: 'பெயரில்லா விற்பனையாளர்',
     nothingDue: 'இப்போது நிலுவை எதுவும் இல்லை',
     viewAll: 'அனைத்தும் பார்',
   },
@@ -11808,8 +11819,7 @@ const hi: UiStrings = {
     payBalance: 'बकाया चुकाएँ',
     payBalanceFor: '{vendor} को बकाया चुकाएँ',
     vendorsEmptyTitle: 'अभी कोई वेंडर अग्रिम नहीं',
-    vendorsEmptyBody:
-      'हर वेंडर को दी गई राशि और बकाया देखने के लिए खर्च को वेंडर जमा राशि के रूप में चिह्नित करें।',
+    vendorsEmptyBody: 'इस समूह के अग्रिम, भुगतान और बकाया को ट्रैक करने के लिए वेंडर जोड़ें।',
     vendorsFilteredEmpty: 'इस फ़िल्टर से कुछ नहीं मिला।',
     planSubtitle: 'अपना बजट बनाएँ और ट्रैक करें',
     planOverall: 'कुल',
@@ -11818,6 +11828,10 @@ const hi: UiStrings = {
     statOver: 'अधिक',
     percentUsed: 'योजना का {n}% उपयोग हुआ',
     addEventBudget: 'इवेंट बजट जोड़ें',
+    addVendor: 'वेंडर जोड़ें',
+    searchVendors: 'वेंडर खोजें',
+    filterBySubEvent: 'उप-कार्यक्रम से फ़िल्टर करें',
+    unnamedVendor: 'बिना नाम का वेंडर',
     nothingDue: 'अभी कुछ बकाया नहीं',
     viewAll: 'सभी देखें',
   },
@@ -15376,7 +15390,7 @@ const ar: UiStrings = {
     payBalance: 'سداد الرصيد',
     payBalanceFor: 'سداد الرصيد إلى {vendor}',
     vendorsEmptyTitle: 'لا توجد دفعات مقدّمة بعد',
-    vendorsEmptyBody: 'حدّد المصروف كدفعة للمورّد لتتبّع ما دفعته لكل مورّد وما تبقّى.',
+    vendorsEmptyBody: 'أضف مورّدين لتتبّع الدفعات المقدّمة والمدفوعات والأرصدة لهذه المجموعة.',
     vendorsFilteredEmpty: 'لا شيء يطابق هذا التصفية.',
     planSubtitle: 'خطّط لميزانيتك وتابعها',
     planOverall: 'الإجمالي',
@@ -15385,6 +15399,10 @@ const ar: UiStrings = {
     statOver: 'الزيادة',
     percentUsed: 'تم استخدام {n}% من الخطة',
     addEventBudget: 'إضافة ميزانية المناسبة',
+    addVendor: 'إضافة مورّد',
+    searchVendors: 'ابحث في المورّدين',
+    filterBySubEvent: 'تصفية حسب الفعالية الفرعية',
+    unnamedVendor: 'مورّد بلا اسم',
     nothingDue: 'لا شيء مستحق الآن',
     viewAll: 'عرض الكل',
   },

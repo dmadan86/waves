@@ -284,6 +284,7 @@ export default function AddExpenseScreen() {
     quick,
     subEventId: handedSubEventId,
     settlesExpenseId,
+    deposit,
   } = useLocalSearchParams<{
     id: string;
     expenseId?: string;
@@ -326,6 +327,8 @@ export default function AddExpenseScreen() {
      *  expense is saved, that advance's balance is cleared (a second write of
      *  the original expense, balance 0), so the vendor shows as paid off. */
     settlesExpenseId?: string;
+    /** "1" opens a new expense with Vendor deposit on (Vendors tab "Add vendor"). */
+    deposit?: string;
   }>();
   const groupId = id ?? '';
 
@@ -719,6 +722,7 @@ export default function AddExpenseScreen() {
     } else {
       setParticipants((members.data ?? []).map((member) => member.id));
       seedSolePayer(myMemberId, 0n);
+      if (deposit === '1') setIsDeposit(true);
     }
   }
 
@@ -1714,6 +1718,7 @@ export default function AddExpenseScreen() {
             placeholder={t.expense.descriptionPlaceholder}
             accessibilityLabel={t.description}
             hints={nameHints}
+            autoFocus={focus === 'description'}
           />
 
           {/* Every fact about this bill — what for, who paid, when, how it is

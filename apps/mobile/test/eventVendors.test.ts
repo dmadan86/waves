@@ -57,6 +57,19 @@ describe('groupVendors', () => {
     ]);
   });
 
+  it('keeps a deposit saved with a blank description instead of dropping it', () => {
+    const groups = groupVendors(
+      [
+        adv({ expenseId: 'blank', description: '   ', amountMinor: 1000000n }),
+        adv({ expenseId: 'blank2', description: '' }),
+      ],
+      TODAY,
+    );
+    expect(groups).toHaveLength(2);
+    expect(groups.every((g) => g.name === '')).toBe(true);
+    expect(vendorSummary([adv({ description: '' })], TODAY).totals).toHaveLength(1);
+  });
+
   it('flags overdue, due soon and paid off', () => {
     const [overdue, soon, later, paid] = [
       adv({ expenseId: 'o', balanceDueDate: '2027-02-09' }),
