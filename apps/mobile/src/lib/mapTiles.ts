@@ -22,12 +22,12 @@
  *     policy" we hit), fetching just the current viewport, honouring cache
  *     headers, and no bulk/offline pre-fetching. It is community infrastructure,
  *     not a hosting service.
- *   - CARTO's `basemaps.cartocdn.com` is used here as the built-in default
- *     because it tolerates this kind of light interactive traffic keylessly,
- *     but CARTO's terms expect a plan for production/commercial use — an
- *     unkeyed endpoint may start returning a watermarked or refused tile.
+ *   - CARTO's `basemaps.cartocdn.com` was the default until its keyless
+ *     endpoint began returning tiles watermarked "API KEY REQUIRED" (that text
+ *     showed across the expense map). It is no longer used as a default; a
+ *     deployment with a CARTO plan can still point the override at it.
  *
- * So both built-ins are development conveniences. A production build MUST point
+ * So the built-in is a development convenience. A production build MUST point
  * `EXPO_PUBLIC_MAP_TILE_URL` at a keyed or self-hosted provider (and set
  * `EXPO_PUBLIC_MAP_TILE_ATTRIBUTION` to that provider's required credit).
  * {@link TILE_HEADERS} sends a real, identifying User-Agent to whichever
@@ -40,23 +40,23 @@ import { WEB_URL } from '@/lib/webUrl';
 export const TILE_SIZE = 256;
 
 /**
- * The built-in tile URL template: CARTO's keyless "positron" (light) basemap, a
- * CDN that tolerates light interactive traffic, built from OpenStreetMap data.
- * A development default only — override with `EXPO_PUBLIC_MAP_TILE_URL` for
+ * The built-in tile URL template: OpenStreetMap's standard tile server, which
+ * permits light interactive app viewing with an identifying User-Agent
+ * ({@link TILE_HEADERS}) and renders no watermark. A development default only — override with `EXPO_PUBLIC_MAP_TILE_URL` for
  * production (see the file header). Keep {@link TILE_ATTRIBUTION} shown alongside.
  */
 export const DEFAULT_TILE_URL =
-  process.env.EXPO_PUBLIC_MAP_TILE_URL || 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+  process.env.EXPO_PUBLIC_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /**
  * The credit shown over the map. It follows the tile URL: when a deployment
  * overrides `EXPO_PUBLIC_MAP_TILE_URL` it should also set
  * `EXPO_PUBLIC_MAP_TILE_ATTRIBUTION` to that provider's required credit, so the
  * attribution can never be wrong for the tiles actually being served. The
- * default credits OSM (the data) and CARTO (the default tiles).
+ * default credits OpenStreetMap contributors.
  */
 export const TILE_ATTRIBUTION =
-  process.env.EXPO_PUBLIC_MAP_TILE_ATTRIBUTION || '© OpenStreetMap © CARTO';
+  process.env.EXPO_PUBLIC_MAP_TILE_ATTRIBUTION || '© OpenStreetMap contributors';
 
 /**
  * Headers sent with every tile request. A real, identifying User-Agent is
@@ -76,7 +76,7 @@ export const TILE_HEADERS: Record<string, string> = {
  * CDNs), so a Google preview needs the Static Maps API — a single composite
  * image, key-authenticated and billed. It is therefore opt-in: set
  * `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` and the preview switches to Google; leave it
- * unset and the CARTO tile grid stands. (The "open in maps" deep link is always
+ * unset and the OSM tile grid stands. (The "open in maps" deep link is always
  * Google regardless — see `mapsUrl` — this only governs the inline thumbnail.)
  *
  * SECURITY — the key ships in the client. An `EXPO_PUBLIC_*` value is compiled
@@ -91,7 +91,7 @@ export const TILE_HEADERS: Record<string, string> = {
  * image through a server-side proxy that holds the credential and have this
  * point at the proxy instead — a deliberate follow-up, not required to ship a
  * properly-restricted key. Until a restricted key is supplied the feature stays
- * dark (CARTO), so there is no exposure by default.
+ * dark (OSM tiles), so there is no exposure by default.
  */
 export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -100,7 +100,7 @@ export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY |
  * set (the caller then falls back to the raster tile grid). `scale: 2` serves a
  * retina image; the caller draws its own centre pin over it, so no `markers`
  * param is needed. The returned image already carries Google's own attribution
- * baked in, so the caller hides the CARTO/OSM credit when this is used.
+ * baked in, so the caller hides the tile credit when this is used.
  */
 export function googleStaticMapUrl(
   center: LatLng,

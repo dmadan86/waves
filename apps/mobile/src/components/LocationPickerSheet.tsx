@@ -304,8 +304,8 @@ export function LocationPickerSheet({
                 ))}
               </View>
 
-              {/* Attribution — required by the tile licence (OSM data, CARTO
-                  tiles). Pinned to the trailing corner and rounded on the corner
+              {/* Attribution — required by the tile licence (OSM data,
+                  map tiles). Pinned to the trailing corner and rounded on the corner
                   that faces into the map, both of which flip with the direction:
                   under RTL a `borderTopLeftRadius` would have rounded the corner
                   against the screen edge instead. */}
