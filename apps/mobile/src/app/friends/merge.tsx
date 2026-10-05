@@ -811,7 +811,7 @@ export default function MergePeopleScreen() {
               </View>
               <View style={{ width: 44 }} />
             </Row>
-            <ContactPicker single onConfirm={onPickContact} confirmVerb={t.misc.continueWith} />
+            <ContactPicker single onConfirm={onPickContact} />
           </View>
         </Screen>
       </Modal>
