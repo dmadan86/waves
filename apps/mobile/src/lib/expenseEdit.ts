@@ -390,3 +390,13 @@ export function canEditInline(splitType: SplitParams['kind']): boolean {
     splitType === 'exact'
   );
 }
+
+/**
+ * A vendor advance with its balance paid: the same bill, still a deposit (so it
+ * keeps showing under its vendor as "Paid off"), with nothing left owing and no
+ * due date. Written as an ordinary expense edit (a new version), so it needs no
+ * server change: the schema allows `balance_due_minor = 0`.
+ */
+export function withBalanceCleared(state: ExpenseEditState): ExpenseEditState {
+  return { ...state, isDeposit: true, balanceDueMinor: 0n, balanceDueDate: null };
+}

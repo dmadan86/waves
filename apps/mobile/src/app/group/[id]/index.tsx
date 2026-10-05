@@ -61,6 +61,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import {
   displayName,
   groupLabel,
+  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -86,6 +87,8 @@ import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { SettleBody } from '@/components/settle/SettleBody';
+import { VendorsBody } from '@/components/VendorsBody';
+import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { useDialog } from '@/lib/dialog';
@@ -96,6 +99,8 @@ enum Tab {
   Settle = 'settle',
   Timeline = 'timeline',
   Map = 'map',
+  /** Event groups only: vendor advances and balances (docs/event-organizer.md). */
+  Vendors = 'vendors',
 }
 
 /**
@@ -471,7 +476,18 @@ export default function GroupScreen() {
   // `?welcome=trip` is set once, by the create screen, when a trip is made
   // without dates — it opens this group with a one-time plan-your-trip nudge.
   // The param is gone on any later visit, so the nudge is a moment, not a nag.
-  const { id, welcome } = useLocalSearchParams<{ id: string; welcome?: string }>();
+  const {
+    id,
+    welcome,
+    tab: tabParam,
+    vendorFilter,
+  } = useLocalSearchParams<{
+    id: string;
+    welcome?: string;
+    /** 'vendors' opens the Vendors tab (Plan's "View all"). */
+    tab?: string;
+    vendorFilter?: string;
+  }>();
   const groupId = id ?? '';
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -479,7 +495,7 @@ export default function GroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
-  const [tab, setTab] = useState<Tab>(Tab.Expenses);
+  const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
@@ -745,6 +761,10 @@ export default function GroupScreen() {
   }
 
   const groupData = group.data;
+  const isEvent = groupData.type === GroupType.Event;
+  // The Vendors tab is Event-only; a stale selection on a group that is not one
+  // falls back to Expenses rather than an empty body.
+  const activeTab = tab === Tab.Vendors && !isEvent ? Tab.Expenses : tab;
   const currency = groupData.default_currency;
   // The hero panel wears its verdict, the same rule the dashboard hero follows:
   // a blue wash when the group owes you, a red one when you owe it, the brand
@@ -1055,7 +1075,7 @@ export default function GroupScreen() {
           }}
         >
           <SegmentedTabs<Tab>
-            value={tab}
+            value={activeTab}
             onChange={(next) => {
               listRef.current?.scrollToOffset({ offset: 0, animated: false });
               setTab(next);
@@ -1068,6 +1088,17 @@ export default function GroupScreen() {
                   <Ionicons name="receipt-outline" size={iconSize.md} color={color} />
                 ),
               },
+              ...(isEvent
+                ? [
+                    {
+                      value: Tab.Vendors,
+                      label: t.eventOrganizer.vendorsTab,
+                      icon: (color: string) => (
+                        <Ionicons name="storefront-outline" size={iconSize.md} color={color} />
+                      ),
+                    },
+                  ]
+                : []),
               {
                 value: Tab.Balances,
                 label: t.balances,
@@ -1103,7 +1134,15 @@ export default function GroupScreen() {
         {/* The waves close the page above the tab bar on every tab, behind the
             content — rows and cards scroll over them. */}
         <FooterWaves bottom={tabBarClearance - WAVES_TUCK} />
-        {tab === Tab.Settle ? (
+        {activeTab === Tab.Vendors ? (
+          <VendorsBody
+            groupId={groupId}
+            initialFilter={
+              vendorFilter === 'due' || vendorFilter === 'overdue' ? vendorFilter : 'all'
+            }
+            today={todayInZone(groupData.time_zone ?? 'Asia/Kolkata')}
+          />
+        ) : tab === Tab.Settle ? (
           // Settling up, as a face of the group rather than a button on its
           // hero: the same flow as the Settle up screen. Recorded, it shows
           // the balances that just moved.

@@ -36,6 +36,12 @@ export interface UpcomingPayment {
   readonly overdue: boolean;
 }
 
+/** A balance is overdue once its due date is strictly before `today`; one with
+ *  no date is never overdue. Shared with the Vendors tab (lib/eventVendors). */
+export function isBalanceOverdue(balanceDueDate: string | null, today: string): boolean {
+  return balanceDueDate !== null && balanceDueDate < today;
+}
+
 /**
  * The deposits still owing, soonest due first; overdue ones first of all
  * (by how overdue, oldest first — the one that has waited longest wants
@@ -57,7 +63,7 @@ export function upcomingPayments(
       currency: candidate.currency.toUpperCase(),
       balanceDueMinor: candidate.balanceDueMinor,
       balanceDueDate: candidate.balanceDueDate,
-      overdue: candidate.balanceDueDate !== null && candidate.balanceDueDate < today,
+      overdue: isBalanceOverdue(candidate.balanceDueDate, today),
     }));
 
   return rows.sort((a, b) => {
