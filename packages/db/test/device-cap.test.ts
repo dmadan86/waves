@@ -157,3 +157,62 @@ describe('the device cap', () => {
     expect(third.overLimit).toBe(true); // over the line, but the call succeeded
   });
 });
+
+describe('a revoked device stays revoked until a new sign-in', () => {
+  async function claims(profileId: string, extra: Record<string, unknown> = {}) {
+    await client.query(`SELECT set_config('request.jwt.claims', $1, false)`, [
+      JSON.stringify({ sub: profileId, role: 'authenticated', ...extra }),
+    ]);
+  }
+
+  it('a plain registration reports not revoked', async () => {
+    const p = await makeProfile();
+    const r = (await register(p, randomUUID())) as RegisterResult & { revoked: boolean };
+    expect(r.revoked).toBe(false);
+  });
+
+  it('signing out the others revokes their rows and the caller keeps its own', async () => {
+    const p = await makeProfile();
+    await register(p, 'keep');
+    await register(p, 'drop');
+    await claims(p);
+    const { rows } = await client.query(`SELECT public.waves_sign_out_other_devices('keep') AS n`);
+    await client.query(`SELECT set_config('request.jwt.claims', '', false)`);
+    expect(rows[0].n).toBe(1);
+    const left = await client.query(
+      `SELECT device_id, revoked_at IS NOT NULL AS revoked FROM device_sessions WHERE profile_id = $1 ORDER BY device_id`,
+      [p],
+    );
+    expect(left.rows).toEqual([
+      { device_id: 'drop', revoked: true },
+      { device_id: 'keep', revoked: false },
+    ]);
+  });
+
+  it('without a session id claim a re-registration still revives the row (old behaviour)', async () => {
+    const p = await makeProfile();
+    await register(p, 'a');
+    await client.query(`UPDATE device_sessions SET revoked_at = now() WHERE profile_id = $1`, [p]);
+    const r = (await register(p, 'a')) as RegisterResult & { revoked: boolean };
+    expect(r.revoked).toBe(false);
+  });
+
+  it('a stale session of a revoked device is told so and does not revive the row', async () => {
+    const hasSessions = (await client.query(`SELECT to_regclass('auth.sessions') AS t`)).rows[0].t;
+    if (!hasSessions) return; // the plain-Postgres test database has no GoTrue schema
+    const p = await makeProfile();
+    await register(p, 'a');
+    await client.query(`UPDATE device_sessions SET revoked_at = now() WHERE profile_id = $1`, [p]);
+    await claims(p, { session_id: randomUUID() });
+    const { rows } = await client.query(
+      `SELECT public.waves_register_device('a', 'A phone', 'android', null) AS r`,
+    );
+    await client.query(`SELECT set_config('request.jwt.claims', '', false)`);
+    expect(rows[0].r.revoked).toBe(true);
+    const after = await client.query(
+      `SELECT revoked_at IS NOT NULL AS revoked FROM device_sessions WHERE profile_id = $1`,
+      [p],
+    );
+    expect(after.rows[0].revoked).toBe(true);
+  });
+});
