@@ -96,7 +96,7 @@ export function SubEventBudgets({
   if (rows.length === 0 && !isAdmin) return null;
 
   return (
-    <Card style={{ gap: theme.spacing.md }}>
+    <Card style={{ gap: theme.spacing.sm, paddingVertical: theme.spacing.md }}>
       <Text variant="subheading">{t.eventOrganizer.budgetTitle}</Text>
 
       {error ? (
@@ -237,9 +237,17 @@ export function SubEventBudgets({
           </Row>
         </View>
       ) : isAdmin && unbudgeted.length > 0 ? (
-        <Text variant="caption" tone="brand" onPress={() => setAdding(true)}>
-          + {t.eventOrganizer.budgetTitle}
-        </Text>
+        <Button
+          label={
+            rows.length === 0
+              ? t.eventOrganizer.addEventBudget
+              : `+ ${t.eventOrganizer.budgetTitle}`
+          }
+          size="sm"
+          variant="secondary"
+          fullWidth
+          onPress={() => setAdding(true)}
+        />
       ) : null}
     </Card>
   );

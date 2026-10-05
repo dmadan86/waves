@@ -28,6 +28,7 @@ import {
   subEventsForTemplate,
   type BudgetProgress,
   type PlanItem,
+  spendBySubEvent,
   type SubEventExpense,
   type TimelineExpense,
 } from '@waves/core';
@@ -51,6 +52,7 @@ import {
 
 import {
   useAddPlanItem,
+  useCategoryBudgets,
   useClearMyTripBudget,
   useGroup,
   useGroupBudget,
@@ -68,7 +70,9 @@ import { SkeletonList } from '@/components/Skeletons';
 import { CategoryBudgets } from '@/components/CategoryBudgets';
 import { SubEventBudgets } from '@/components/SubEventBudgets';
 import { UpcomingPayments } from '@/components/UpcomingPayments';
-import { type DepositCandidate } from '@/lib/upcomingPayments';
+import { type VendorCandidate } from '@/lib/eventVendors';
+import { vendorCandidates } from '@/lib/vendorCandidates';
+import { EventPlanHeader, EventPlanSummary, type PlanScope } from '@/components/EventPlanSummary';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -110,6 +114,7 @@ export default function PlanScreen() {
   const plan = usePlanItems(groupId);
   const budgets = useMemberBudgets(groupId);
   const groupBudget = useGroupBudget(groupId);
+  const categoryBudgets = useCategoryBudgets(groupId);
 
   // Every write goes through the offline queue (A23), so the plan works with no
   // connection and the mirror updates the moment a mutation is enqueued.
@@ -173,24 +178,6 @@ export default function PlanScreen() {
           subEventId: expense.currentVersion!.sub_event_id ?? null,
           currency: expense.currentVersion!.currency,
           amountMinor: BigInt(expense.currentVersion!.amount),
-        })),
-    [expenses.rows],
-  );
-
-  const depositCandidates: DepositCandidate[] = useMemo(
-    () =>
-      expenses.rows
-        .filter((expense) => expense.currentVersion && !expense.deleted_at)
-        .map((expense) => ({
-          expenseId: expense.id,
-          description: expense.currentVersion!.description,
-          currency: expense.currentVersion!.currency,
-          isDeposit: expense.currentVersion!.is_deposit ?? false,
-          balanceDueMinor:
-            expense.currentVersion!.balance_due_minor == null
-              ? null
-              : BigInt(expense.currentVersion!.balance_due_minor),
-          balanceDueDate: expense.currentVersion!.balance_due_date ?? null,
         })),
     [expenses.rows],
   );
@@ -348,6 +335,59 @@ export default function PlanScreen() {
   // Event's template suggests — empty for a group with no template, which is
   // what hides the "Event budget" card below.
   const eventSubEvents = subEventsForTemplate(group.data?.event_template);
+  const isEvent = group.data?.type === 'event';
+  const subEventLabel = (id: string): string =>
+    `${eventSubEvents.find((s) => s.id === id)?.emoji ?? ''} ${t.eventSubEvents[id] ?? id}`.trim();
+  const depositCandidates: VendorCandidate[] = vendorCandidates(expenses.rows, {
+    subEvent: subEventLabel,
+    category: (id) => (t.categories as Record<string, string | undefined>)[id] ?? null,
+  });
+  // Overall plan = the group's overall budget when set, else the sum of the
+  // sub-event budgets (in the group's currency; currencies are never mixed).
+  // Nothing set is 0, which the summary reads as "no budget", not "over".
+  const eventScopes: PlanScope[] = useMemo(() => {
+    const code = currency.toUpperCase();
+    const bySub = spendBySubEvent(subEventSpend);
+    const rows = (categoryBudgets.data ?? []).filter(
+      (row) =>
+        row.currency.toUpperCase() === code && eventSubEvents.some((s) => s.id === row.category),
+    );
+    const summed = rows.reduce((total, row) => total + row.amountMinor, 0n);
+    const overallPlanned =
+      groupBudget.data?.amountMinor != null &&
+      (groupBudget.data.currency ?? currency).toUpperCase() === code
+        ? groupBudget.data.amountMinor
+        : summed;
+    const usedIds = new Set([
+      ...rows.map((row) => row.category),
+      ...[...bySub].filter(([, spent]) => (spent[code] ?? 0n) > 0n).map(([id]) => id),
+    ]);
+    return [
+      {
+        id: null,
+        label: t.eventOrganizer.planOverall,
+        plannedMinor: overallPlanned,
+        spentMinor: timeline.spentByCurrency[code] ?? 0n,
+      },
+      ...eventSubEvents
+        .filter((s) => usedIds.has(s.id))
+        .map((s) => ({
+          id: s.id,
+          label: subEventLabel(s.id),
+          plannedMinor: rows.find((row) => row.category === s.id)?.amountMinor ?? 0n,
+          spentMinor: bySub.get(s.id)?.[code] ?? 0n,
+        })),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    categoryBudgets.data,
+    groupBudget.data,
+    subEventSpend,
+    timeline,
+    currency,
+    eventSubEvents,
+    t,
+  ]);
 
   // Burn-rate: the pace so far, projected across the whole trip, per currency
   // and against the overall cap in its own currency (ADR-004). Empty until the
@@ -445,92 +485,104 @@ export default function PlanScreen() {
   }
 
   return (
-    <Screen>
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          gap: theme.spacing.sm,
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <Text variant="heading">{t.plan}</Text>
-        <View style={{ flex: 1 }} />
-        {group.data?.type === 'trip' ? (
-          <IconButton label={t.tripMap.title} onPress={() => router.push(`/group/${groupId}/map`)}>
-            <Ionicons name="location-outline" size={iconSize.lg} color={theme.color.text} />
+    <Screen edges={isEvent ? ['bottom'] : undefined}>
+      {isEvent ? (
+        <EventPlanHeader />
+      ) : (
+        <Row
+          style={{
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.md,
+            gap: theme.spacing.sm,
+          }}
+        >
+          <IconButton label={t.common.back} onPress={() => router.back()}>
+            <Ionicons
+              name={directionalIcon('chevron-back')}
+              size={iconSize.lg}
+              color={theme.color.text}
+            />
           </IconButton>
-        ) : null}
-      </Row>
+          <Text variant="heading">{t.plan}</Text>
+          <View style={{ flex: 1 }} />
+          {group.data?.type === 'trip' ? (
+            <IconButton
+              label={t.tripMap.title}
+              onPress={() => router.push(`/group/${groupId}/map`)}
+            >
+              <Ionicons name="location-outline" size={iconSize.lg} color={theme.color.text} />
+            </IconButton>
+          ) : null}
+        </Row>
+      )}
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingTop: isEvent ? theme.spacing.sm : theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: isEvent ? theme.spacing.md : theme.spacing.xl,
         }}
         showsVerticalScrollIndicator={false}
       >
         {error ? <Callout tone="negative">{error}</Callout> : null}
 
-        {/* Planned against actual, per currency and never added together. */}
-        <Card style={{ gap: theme.spacing.sm }}>
-          <Text variant="caption" tone="muted">
-            {currentDay ? `${t.plan} · ${fill(t.dayNumber, { n: String(currentDay) })}` : t.plan}
-          </Text>
-          {Object.keys(variance).length === 0 ? (
-            <Text variant="caption" tone="faint">
-              {t.nothingPlannedYet}
+        {/* Planned against actual, per currency and never added together. An
+            Event reads it from its budgets (no budget is "No budget set", never
+            over budget); other groups from their plan items. */}
+        {isEvent ? <EventPlanSummary currency={currency} scopes={eventScopes} /> : null}
+        {!isEvent ? (
+          <Card style={{ gap: theme.spacing.sm }}>
+            <Text variant="caption" tone="muted">
+              {currentDay ? `${t.plan} · ${fill(t.dayNumber, { n: String(currentDay) })}` : t.plan}
             </Text>
-          ) : (
-            Object.entries(variance).map(([code, over]) => (
-              <Row key={code} style={{ justifyContent: 'space-between' }}>
-                <View>
-                  <Text variant="caption" tone="muted">
-                    {t.planned}
-                  </Text>
-                  <MoneyText
-                    amount={timeline.plannedByCurrency[code] ?? 0n}
-                    currency={code}
-                    locale={locale}
-                    variant="subheading"
-                  />
-                </View>
-                <View>
-                  <Text variant="caption" tone="muted">
-                    {t.spent}
-                  </Text>
-                  <MoneyText
-                    amount={timeline.spentByCurrency[code] ?? 0n}
-                    currency={code}
-                    locale={locale}
-                    variant="subheading"
-                  />
-                </View>
-                <View>
-                  <Text variant="caption" tone="muted">
-                    {over > 0n ? t.overBudget : t.underBudget}
-                  </Text>
-                  <MoneyText
-                    amount={over < 0n ? -over : over}
-                    currency={code}
-                    locale={locale}
-                    variant="subheading"
-                    mode="plain"
-                  />
-                </View>
-              </Row>
-            ))
-          )}
-        </Card>
+            {Object.keys(variance).length === 0 ? (
+              <Text variant="caption" tone="faint">
+                {t.nothingPlannedYet}
+              </Text>
+            ) : (
+              Object.entries(variance).map(([code, over]) => (
+                <Row key={code} style={{ justifyContent: 'space-between' }}>
+                  <View>
+                    <Text variant="caption" tone="muted">
+                      {t.planned}
+                    </Text>
+                    <MoneyText
+                      amount={timeline.plannedByCurrency[code] ?? 0n}
+                      currency={code}
+                      locale={locale}
+                      variant="subheading"
+                    />
+                  </View>
+                  <View>
+                    <Text variant="caption" tone="muted">
+                      {t.spent}
+                    </Text>
+                    <MoneyText
+                      amount={timeline.spentByCurrency[code] ?? 0n}
+                      currency={code}
+                      locale={locale}
+                      variant="subheading"
+                    />
+                  </View>
+                  <View>
+                    <Text variant="caption" tone="muted">
+                      {over > 0n ? t.overBudget : t.underBudget}
+                    </Text>
+                    <MoneyText
+                      amount={over < 0n ? -over : over}
+                      currency={code}
+                      locale={locale}
+                      variant="subheading"
+                      mode="plain"
+                    />
+                  </View>
+                </Row>
+              ))
+            )}
+          </Card>
+        ) : null}
 
         {/* Budgets: an overall ceiling the admin sets, and a personal one each
             member sets for themselves. A bar shows spend against each — and only
@@ -699,7 +751,22 @@ export default function PlanScreen() {
         {/* Vendor deposits still owing a balance — on any group, not only an
             Event: a trip's hotel deposit is the same shape. Hidden by
             `UpcomingPayments` itself when there are none. */}
-        <UpcomingPayments groupId={groupId} expenses={depositCandidates} today={today} />
+        <UpcomingPayments
+          groupId={groupId}
+          candidates={depositCandidates}
+          today={today}
+          subEventLabel={subEventLabel}
+          showEmpty={isEvent}
+          onViewAll={
+            isEvent
+              ? () =>
+                  router.push({
+                    pathname: `/group/${groupId}`,
+                    params: { tab: 'vendors', vendorFilter: 'due' },
+                  })
+              : undefined
+          }
+        />
 
         {isTrip && forecasts.length > 0 ? (
           <Card style={{ gap: theme.spacing.sm }}>

@@ -109,6 +109,7 @@ import {
   previewShares,
   splitIssueFor,
   splitParamsFor,
+  withBalanceCleared,
 } from '@/lib/expenseEdit';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
@@ -281,6 +282,9 @@ export default function AddExpenseScreen() {
     focus,
     currency: handedCurrency,
     quick,
+    subEventId: handedSubEventId,
+    settlesExpenseId,
+    deposit,
   } = useLocalSearchParams<{
     id: string;
     expenseId?: string;
@@ -317,6 +321,14 @@ export default function AddExpenseScreen() {
      *  is an explicit choice to carry on with what was typed, and without a
      *  marker the amount is read as a stale draft and dropped. */
     quick?: string;
+    /** Event "Pay balance" (Vendors tab): the sub-event the vendor was tagged with. */
+    subEventId?: string;
+    /** Event "Pay balance": the vendor advance this payment settles. Once this
+     *  expense is saved, that advance's balance is cleared (a second write of
+     *  the original expense, balance 0), so the vendor shows as paid off. */
+    settlesExpenseId?: string;
+    /** "1" opens a new expense with Vendor deposit on (Vendors tab "Add vendor"). */
+    deposit?: string;
   }>();
   const groupId = id ?? '';
 
@@ -465,6 +477,9 @@ export default function AddExpenseScreen() {
   // currency, exactly as the old in-card chips did (see CurrencyRate.choose).
   const [pickingCurrency, setPickingCurrency] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A vendor deposit saved with no vendor name gets one gentle prompt; the next
+  // tap ("Save without name") saves anyway.
+  const [namePrompted, setNamePrompted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -625,6 +640,7 @@ export default function AddExpenseScreen() {
       // default; anything the ledger does not know falls back to it too.
       setPaymentMethod(capturePaymentMethod(capturePayment));
       seedSolePayer(myMemberId, routeAmount(captureAmount));
+      if (handedSubEventId) setSubEventId(handedSubEventId);
     } else if (draft) {
       // A draft outranks the saved version: it is what the user was in the
       // middle of writing when the app went away.
@@ -709,6 +725,7 @@ export default function AddExpenseScreen() {
     } else {
       setParticipants((members.data ?? []).map((member) => member.id));
       seedSolePayer(myMemberId, 0n);
+      if (deposit === '1') setIsDeposit(true);
     }
   }
 
@@ -1142,6 +1159,10 @@ export default function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
+    if (isDeposit && !description.trim() && !namePrompted) {
+      setNamePrompted(true);
+      return;
+    }
     // The same check the server makes. Catching it here means a bill that does
     // not add up is a sentence under the button rather than a PAYER_MISMATCH
     // that comes back minutes later off a queue.
@@ -1194,6 +1215,31 @@ export default function AddExpenseScreen() {
           editing: editing?.currentVersion,
         }),
       );
+      // Paying a vendor's balance: the advance it settles is rewritten with its
+      // balance cleared (a new version of that expense, via the ordinary edit
+      // path), so the Vendors tab shows the vendor as paid off.
+      if (!expenseId && settlesExpenseId) {
+        const advance = expenses.rows.find((row) => row.id === settlesExpenseId);
+        const advanceVersion = advance?.currentVersion;
+        // Only the advance's author or a payer may edit it (same rule as the
+        // editor); anybody else's payment still saves, the balance stays.
+        const mayEdit =
+          advanceVersion !== null &&
+          advanceVersion !== undefined &&
+          (advanceVersion.author_member_id === myMemberId ||
+            advanceVersion.payers.some((row) => row.member_id === myMemberId));
+        if (advance && advanceVersion && mayEdit && !advance.deleted_at) {
+          await mutate(
+            MutationKind.ExpenseUpdate,
+            groupId,
+            expenseWritePayload({
+              expenseId: settlesExpenseId,
+              state: withBalanceCleared(editStateFromVersion(advanceVersion, myMemberId)),
+              editing: advanceVersion,
+            }),
+          );
+        }
+      }
       await clearDraft(draftKey);
       // The receipts held for a new expense can go now (see sendHeldReceipts).
       if (!expenseId) {
@@ -1676,9 +1722,12 @@ export default function AddExpenseScreen() {
           <DescriptionField
             value={description}
             onChange={setDescription}
-            placeholder={t.expense.descriptionPlaceholder}
-            accessibilityLabel={t.description}
+            placeholder={
+              isDeposit ? t.eventOrganizer.vendorNamePlaceholder : t.expense.descriptionPlaceholder
+            }
+            accessibilityLabel={isDeposit ? t.eventOrganizer.vendorNameLabel : t.description}
             hints={nameHints}
+            autoFocus={focus === 'description'}
           />
 
           {/* Every fact about this bill — what for, who paid, when, how it is
@@ -2183,7 +2232,13 @@ export default function AddExpenseScreen() {
                   shorter Save to match, and the label stays one line at this
                   height on every locale this form ships in. */}
               <Button
-                label={editing ? t.expense.saveChanges : t.expense.saveExpense}
+                label={
+                  namePrompted && isDeposit && !description.trim()
+                    ? t.eventOrganizer.saveWithoutName
+                    : editing
+                      ? t.expense.saveChanges
+                      : t.expense.saveExpense
+                }
                 size="lg"
                 style={{ height: 46 }}
                 disabled={!canSave || saving}
@@ -2194,6 +2249,11 @@ export default function AddExpenseScreen() {
           {/* The one reason Save cannot be tapped yet, spelled out under it —
             shown only while the button is actually blocked and no save is in
             flight. */}
+          {namePrompted && isDeposit && !description.trim() && !saving ? (
+            <Text variant="micro" tone="muted" accessibilityLiveRegion="polite">
+              {t.eventOrganizer.vendorNamePrompt}
+            </Text>
+          ) : null}
           {saveHint && !saving ? (
             <Text variant="micro" tone="muted">
               {saveHint}

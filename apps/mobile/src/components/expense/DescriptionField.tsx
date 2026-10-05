@@ -26,6 +26,7 @@ export function DescriptionField({
   hints,
   multiline = false,
   boxed = false,
+  autoFocus = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -36,6 +37,8 @@ export function DescriptionField({
   multiline?: boolean;
   /** The Save an expense look: a card of its own, the mic set off by a rule. */
   boxed?: boolean;
+  /** Raise the keyboard on arrival (the "Add vendor" hand-off). */
+  autoFocus?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   return (
@@ -75,6 +78,7 @@ export function DescriptionField({
         placeholderTextColor={theme.color.textFaint}
         accessibilityLabel={accessibilityLabel}
         multiline={multiline}
+        autoFocus={autoFocus}
         textAlignVertical={multiline ? 'top' : undefined}
         style={{
           flex: 1,
