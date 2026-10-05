@@ -236,8 +236,8 @@ export default function AllGroupsScreen() {
             // The foot goes on the list's content, so the last card can be
             // scrolled clear of the tab bar.
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.lg,
-              paddingTop: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.md,
+              paddingTop: 0,
               paddingBottom: clearance,
             }}
             // With the search keyboard open, a tap on a result row should open
@@ -392,7 +392,7 @@ function GroupsHeader({
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
           paddingTop: insetsTop + theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.md,
           paddingBottom: SCENE_ROOM,
         }}
       >
@@ -459,7 +459,7 @@ function GroupsHeader({
 
       {/* The search field rides up over the scene's foot by exactly the overlap
           the scene was drawn with. */}
-      <View style={{ marginTop: -SCENE_OVERLAP, paddingHorizontal: theme.spacing.lg }}>
+      <View style={{ marginTop: -SCENE_OVERLAP, paddingHorizontal: theme.spacing.md }}>
         <Pressable
           onPress={() => searchRef.current?.focus()}
           accessible={false}
@@ -591,8 +591,9 @@ function FilterBar({
       style={{
         alignItems: 'center',
         gap: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        paddingTop: theme.spacing.sm,
+        paddingBottom: 6,
       }}
     >
       <Row style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -736,7 +737,7 @@ const GroupListRow = memo(function GroupListRow({
   const { t } = useStrings();
 
   return (
-    <View style={{ paddingBottom: 6 }}>
+    <View style={{ paddingBottom: 4 }}>
       <Pressable
         accessibilityRole="button"
         // The full subtitle, not just the status word: a pending group at a zero
@@ -769,7 +770,7 @@ const GroupListRow = memo(function GroupListRow({
             minHeight: 56,
             paddingVertical: 8,
             paddingStart: theme.spacing.sm,
-            paddingEnd: theme.spacing.sm,
+            paddingEnd: 6,
             opacity: dim ? 0.7 : 1,
           }}
         >
