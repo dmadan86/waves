@@ -41,6 +41,7 @@ import { Button, Callout, iconSize, palette, Row, Text, useTheme } from '@waves/
 
 import ScanInviteAsk from '@/components/ScanInviteAsk';
 import { useStrings } from '@/i18n';
+import { devicePhotoQrDeps, readInviteFromPhoto } from '@/lib/qrPhoto';
 import { tokenFromScan } from '@/lib/qrScan';
 
 /** The wash over everything that is not the viewfinder. Dark enough to say
@@ -61,7 +62,7 @@ const CORNER = 34;
 const STROKE = 4;
 
 /** What the camera has to say about the last thing it read. */
-type Reading = 'idle' | 'found' | 'invalid';
+type Reading = 'idle' | 'found' | 'invalid' | 'no-qr';
 
 /**
  * One of the four bracket arms around the viewfinder. Drawn as a corner rather
@@ -156,16 +157,23 @@ function DarkState({
   action,
   onClose,
   onPasteLink,
+  onPickPhoto,
+  photoError,
   closeLabel,
   pasteLabel,
+  photoLabel,
 }: {
   title: string;
   body: string;
   action?: ReactNode;
   onClose: () => void;
   onPasteLink: () => void;
+  onPickPhoto: () => void;
+  /** Why the last picked photo did not work, if it did not. */
+  photoError: string | null;
   closeLabel: string;
   pasteLabel: string;
+  photoLabel: string;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -211,6 +219,13 @@ function DarkState({
         <View style={{ height: theme.spacing.md }} />
         {action}
         <Button label={pasteLabel} variant="onBrandOutline" onPress={onPasteLink} />
+        <Button
+          label={photoLabel}
+          variant="onBrandOutline"
+          icon={<Ionicons name="images-outline" size={iconSize.base} color={palette.white} />}
+          onPress={onPickPhoto}
+        />
+        {photoError ? <Callout tone="negative">{photoError}</Callout> : null}
       </View>
     </View>
   );
@@ -268,6 +283,52 @@ export default function ScannerCamera({
     [],
   );
 
+  // A photo of a code is read once per tap, and a second tap while the first is
+  // still decoding would open a second picker over the first.
+  const photoBusy = useRef(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const accept = (token: string): void => {
+    handled.current = true;
+    setReading('found');
+    AccessibilityInfo.announceForAccessibility(t.misc.scanFound);
+    // Hand off a beat later, so the frame turning and the "code found" line are
+    // seen. A scanner that navigates the instant it reads leaves the person
+    // wondering whether their own tap did it.
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => onToken(token), FOUND_MS);
+  };
+
+  /** The other way in: a QR saved as an image — typically one that arrived in a
+   *  chat on this phone. Ends in the same hand-off as a live read, and says the
+   *  same thing about a code that is not ours. */
+  const pickPhoto = (): void => {
+    if (paused || handled.current || photoBusy.current) return;
+    photoBusy.current = true;
+    setPhotoError(null);
+    void readInviteFromPhoto(devicePhotoQrDeps)
+      .then((outcome) => {
+        if (handled.current) return;
+        if (outcome.kind === 'token') {
+          accept(outcome.token);
+        } else if (outcome.kind !== 'cancelled') {
+          const message = outcome.kind === 'invalid' ? t.misc.scanInvalid : t.misc.scanPhotoNoQr;
+          setPhotoError(message);
+          setReading(outcome.kind);
+          AccessibilityInfo.announceForAccessibility(message);
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(() => {
+            announced.current = false;
+            setReading('idle');
+            setPhotoError(null);
+          }, INVALID_MS);
+        }
+      })
+      .finally(() => {
+        photoBusy.current = false;
+      });
+  };
+
   const onScan = (data: string): void => {
     if (paused || handled.current) return;
     const token = tokenFromScan(data);
@@ -284,14 +345,7 @@ export default function ScannerCamera({
       setReading('invalid');
       return;
     }
-    handled.current = true;
-    setReading('found');
-    AccessibilityInfo.announceForAccessibility(t.misc.scanFound);
-    // Hand off a beat later, so the frame turning and the "code found" line are
-    // seen. A scanner that navigates the instant it reads leaves the person
-    // wondering whether their own tap did it.
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => onToken(token), FOUND_MS);
+    accept(token);
   };
 
   if (!permission) {
@@ -321,6 +375,8 @@ export default function ScannerCamera({
           onAllow={() => void requestPermission()}
           onClose={onClose}
           onPasteLink={onPasteLink}
+          onPickPhoto={pickPhoto}
+          photoError={photoError}
         />
       );
     }
@@ -338,8 +394,11 @@ export default function ScannerCamera({
         }
         onClose={onClose}
         onPasteLink={onPasteLink}
+        onPickPhoto={pickPhoto}
+        photoError={photoError}
         closeLabel={t.common.close}
         pasteLabel={t.misc.scanPasteLink}
+        photoLabel={t.misc.scanFromPhotos}
       />
     );
   }
@@ -353,8 +412,11 @@ export default function ScannerCamera({
         body={t.misc.scanCameraFailed}
         onClose={onClose}
         onPasteLink={onPasteLink}
+        onPickPhoto={pickPhoto}
+        photoError={photoError}
         closeLabel={t.common.close}
         pasteLabel={t.misc.scanPasteLink}
+        photoLabel={t.misc.scanFromPhotos}
       />
     );
   }
@@ -396,9 +458,12 @@ export default function ScannerCamera({
           }}
         >
           <Row>
-            <GlassButton label={t.common.close} onPress={onClose}>
-              <Ionicons name="close" size={iconSize.lg} color={palette.white} />
-            </GlassButton>
+            {/* Both sides are two buttons wide so the title stays centred. */}
+            <View style={{ width: 96, alignItems: 'flex-start' }}>
+              <GlassButton label={t.common.close} onPress={onClose}>
+                <Ionicons name="close" size={iconSize.lg} color={palette.white} />
+              </GlassButton>
+            </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text variant="heading" style={{ color: palette.white }}>
                 {t.misc.scanToJoin}
@@ -407,17 +472,23 @@ export default function ScannerCamera({
             {/* Restaurants at night are most of what gets scanned, so the light
                 is a peer of the close button rather than something to go
                 looking for. */}
-            <GlassButton
-              label={torch ? t.misc.scanTorchOff : t.misc.scanTorchOn}
-              active={torch}
-              onPress={() => setTorch((on) => !on)}
-            >
-              <Ionicons
-                name={torch ? 'flashlight' : 'flashlight-outline'}
-                size={iconSize.lg}
-                color={torch ? palette.ink900 : palette.white}
-              />
-            </GlassButton>
+            <Row style={{ width: 96, justifyContent: 'flex-end', gap: theme.spacing.sm }}>
+              {/* A QR saved as an image, from the photo library. */}
+              <GlassButton label={t.misc.scanFromPhotos} onPress={pickPhoto}>
+                <Ionicons name="images-outline" size={iconSize.lg} color={palette.white} />
+              </GlassButton>
+              <GlassButton
+                label={torch ? t.misc.scanTorchOff : t.misc.scanTorchOn}
+                active={torch}
+                onPress={() => setTorch((on) => !on)}
+              >
+                <Ionicons
+                  name={torch ? 'flashlight' : 'flashlight-outline'}
+                  size={iconSize.lg}
+                  color={torch ? palette.ink900 : palette.white}
+                />
+              </GlassButton>
+            </Row>
           </Row>
 
           {/* The one instruction, above the hole so it is never covering the
@@ -480,6 +551,8 @@ export default function ScannerCamera({
               </Row>
             ) : reading === 'invalid' ? (
               <Callout tone="negative">{t.misc.scanInvalid}</Callout>
+            ) : reading === 'no-qr' ? (
+              <Callout tone="negative">{t.misc.scanPhotoNoQr}</Callout>
             ) : null}
           </View>
 

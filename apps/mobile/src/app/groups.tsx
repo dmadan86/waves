@@ -203,7 +203,16 @@ export default function AllGroupsScreen() {
       icon={<Ionicons name="people-outline" size={iconSize.xxl} color={theme.color.brand} />}
       title={t.tabs.noGroups}
       body={t.noGroupsBody}
-      action={<Button label={t.newGroup} onPress={() => router.push('/new-group')} />}
+      action={
+        <View style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+          <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
+          <Button
+            label={t.misc.joinWithCode}
+            variant="ghost"
+            onPress={() => router.push('/scan' as never)}
+          />
+        </View>
+      }
     />
   );
 
@@ -406,6 +415,25 @@ function GroupsHero({
         <Text variant="title" tone="onBrand" style={{ flex: 1 }} numberOfLines={1}>
           {t.groupsTitle}
         </Text>
+        {/* The join door, beside the new-group one: somebody handed a QR or a
+            link has nowhere else obvious to look. A quieter translucent disc, so
+            the solid one stays the primary action. */}
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={t.misc.joinWithCode}
+          onPress={() => router.push('/scan' as never)}
+          hitSlop={10}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255,255,255,0.22)',
+          }}
+        >
+          <Ionicons name="qr-code-outline" size={iconSize.lg} color={theme.color.onBrand} />
+        </PressableScale>
         {/* The new-group door, where a new-thing button belongs. A solid white
             disc with the hero's green glyph — a real button, the same one Friends
             puts in its hero — rather than a bare icon that disappears into the
