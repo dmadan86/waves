@@ -1309,6 +1309,7 @@ export interface UiStrings {
     emailSub: string;
     neverSpam: string;
     onThisPhone: string;
+    offOnPhone: string;
     permissionOn: string;
     permissionOff: string;
     permissionUnset: string;
@@ -1453,6 +1454,8 @@ export interface UiStrings {
     notifyTitle: string;
     notifyBody: string;
     notifyEnable: string;
+    /** Carries a `{group}` placeholder — the group somebody just joined. */
+    notifyJoinBody: string;
     notifyNotNow: string;
     clear: string;
     continueLabel: string;
@@ -5329,6 +5332,7 @@ const en: UiStrings = {
     neverSpam:
       'Waves never emails you about routine expense activity. Only the six things you would actually want in your inbox, each unsubscribable on its own.',
     onThisPhone: 'Notifications on this phone',
+    offOnPhone: 'Notifications are off on this phone',
     permissionOn:
       'This device is registered. Everything below still lands in your inbox whether or not a push gets through.',
     permissionOff:
@@ -5472,6 +5476,7 @@ const en: UiStrings = {
     notifyBody:
       "We'll let you know when someone adds an expense, settles up, or invites you to a group. No spam.",
     notifyEnable: 'Enable',
+    notifyJoinBody: 'Get notified when someone adds an expense in {group}, or settles up.',
     notifyNotNow: 'Not now',
     clear: 'Clear',
     continueLabel: 'Continue',
@@ -8909,6 +8914,7 @@ const ta: UiStrings = {
     neverSpam:
       'வழக்கமான செலவுச் செயல்பாடுகள் குறித்து Waves உங்களுக்கு மின்னஞ்சல் அனுப்புவதே இல்லை. உங்கள் அஞ்சல் பெட்டியில் நீங்கள் உண்மையிலேயே விரும்பும் ஆறு விஷயங்கள் மட்டுமே, ஒவ்வொன்றையும் தனித்தனியே நிறுத்தலாம்.',
     onThisPhone: 'இந்த ஃபோனில் அறிவிப்புகள்',
+    offOnPhone: 'இந்த ஃபோனில் அறிவிப்புகள் அணைக்கப்பட்டுள்ளன',
     permissionOn:
       'இந்தச் சாதனம் பதிவு செய்யப்பட்டுள்ளது. அறிவிப்பு வந்தாலும் வராவிட்டாலும் கீழே உள்ள அனைத்தும் உங்கள் அஞ்சல் பெட்டியில் வந்து சேரும்.',
     permissionOff:
@@ -9057,6 +9063,8 @@ const ta: UiStrings = {
     notifyBody:
       'யாராவது செலவைச் சேர்க்கும்போது, தீர்த்துக்கொள்ளும்போது, அல்லது ஒரு குழுவிற்கு உங்களை அழைக்கும்போது தெரிவிப்போம். ஸ்பேம் இல்லை.',
     notifyEnable: 'இயக்கு',
+    notifyJoinBody:
+      '{group} குழுவில் யாராவது செலவைச் சேர்த்தால் அல்லது கணக்கு தீர்த்தால் அறிவிப்பு பெறுங்கள்.',
     notifyNotNow: 'இப்போது வேண்டாம்',
     clear: 'அழி',
     continueLabel: 'தொடரவும்',
@@ -12600,6 +12608,7 @@ const hi: UiStrings = {
     neverSpam:
       'रोज़मर्रा की खर्च गतिविधि के लिए Waves कभी ईमेल नहीं करता। सिर्फ़ वे छह चीज़ें जो आप वाकई इनबॉक्स में चाहेंगे, और हर एक अलग से बंद की जा सकती है।',
     onThisPhone: 'इस फ़ोन पर सूचनाएँ',
+    offOnPhone: 'इस फ़ोन पर सूचनाएँ बंद हैं',
     permissionOn:
       'यह डिवाइस पंजीकृत है। सूचना पहुँचे या न पहुँचे, नीचे का सब कुछ आपके इनबॉक्स में आता ही है।',
     permissionOff:
@@ -12742,6 +12751,7 @@ const hi: UiStrings = {
     notifyBody:
       'जब कोई खर्च जोड़े, हिसाब चुकाए, या आपको समूह में आमंत्रित करे तो हम आपको बताएँगे। कोई स्पैम नहीं।',
     notifyEnable: 'चालू करें',
+    notifyJoinBody: '{group} में कोई खर्च जोड़े या हिसाब चुकाए तो सूचना पाएँ।',
     notifyNotNow: 'अभी नहीं',
     clear: 'साफ़ करें',
     continueLabel: 'जारी रखें',
@@ -16246,6 +16256,7 @@ const ar: UiStrings = {
     neverSpam:
       'لا يرسل Waves بريدًا عن نشاط المصروفات المعتاد. ستة أشياء فقط قد ترغب فعلًا في وصولها إلى بريدك، ويمكن إيقاف كل منها وحده.',
     onThisPhone: 'الإشعارات على هذا الهاتف',
+    offOnPhone: 'الإشعارات متوقفة على هذا الهاتف',
     permissionOn: 'هذا الجهاز مسجَّل. كل ما في الأسفل يصل إلى صندوقك سواء وصل الإشعار أم لا.',
     permissionOff:
       'هاتفك يحجبها. أعد تفعيلها من إعدادات النظام لـ Waves — وصندوق الوارد يحتفظ بكل شيء في الحالتين.',
@@ -16381,6 +16392,7 @@ const ar: UiStrings = {
     notifyBody:
       'سنُعلمك عندما يضيف أحدهم مصروفًا، أو يسوّي حسابًا، أو يدعوك إلى مجموعة. بلا إزعاج.',
     notifyEnable: 'تفعيل',
+    notifyJoinBody: 'احصل على إشعار عندما يضيف أحدهم مصروفًا في {group} أو يسدّد حسابه.',
     notifyNotNow: 'ليس الآن',
     clear: 'مسح',
     continueLabel: 'متابعة',

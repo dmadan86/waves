@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
   directionalIcon,
@@ -35,7 +35,10 @@ import {
   PushFailure,
   PushPermission,
   pushPermission,
+  pushPermissionDetail,
+  refreshPushToken,
 } from '@/lib/push';
+import { pushCtaAction } from '@/lib/pushPromptPolicy';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type PrefRow = {
@@ -136,6 +139,7 @@ export default function NotificationSettingsScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [permission, setPermission] = useState<PushPermission>(PushPermission.Undetermined);
   const [asking, setAsking] = useState(false);
+  const [canAskAgain, setCanAskAgain] = useState(true);
 
   // The one switch on this screen that is not a server preference: the reminder
   // this phone raises itself about expenses saved for later. It is stored on
@@ -158,13 +162,36 @@ export default function NotificationSettingsScreen() {
     };
   }, [profile?.id]);
 
+  // Read on open and on every return to the app: the person may have switched
+  // notifications on in the phone's settings, and the screen should say so —
+  // and this phone should register for pushes then, not at the next sign-in.
   useEffect(() => {
     let active = true;
-    void pushPermission().then((value) => {
-      if (active) setPermission(value);
+    let previous: PushPermission | null = null;
+    const read = (): void => {
+      void pushPermissionDetail()
+        .then((detail) => {
+          if (!active) return;
+          setPermission(detail.permission);
+          setCanAskAgain(detail.canAskAgain);
+          if (
+            detail.permission === PushPermission.Granted &&
+            previous !== null &&
+            previous !== PushPermission.Granted
+          ) {
+            void refreshPushToken();
+          }
+          previous = detail.permission;
+        })
+        .catch(() => {});
+    };
+    read();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') read();
     });
     return () => {
       active = false;
+      subscription.remove();
     };
   }, []);
 
@@ -178,7 +205,9 @@ export default function NotificationSettingsScreen() {
     setStatus(null);
     try {
       const result = await enablePush();
-      setPermission(await pushPermission());
+      const detail = await pushPermissionDetail();
+      setPermission(detail.permission);
+      setCanAskAgain(detail.canAskAgain);
       if (!result.ok) setStatus(pushFailureCopy(t)[result.why]);
     } finally {
       setAsking(false);
@@ -275,10 +304,11 @@ export default function NotificationSettingsScreen() {
             bg: theme.color.surfaceMuted,
           };
 
-  // Denied is past asking, so the button says where it goes instead.
+  // Past asking, so the button says where it goes instead.
+  const opensSettings = pushCtaAction({ permission, canAskAgain }) === 'settings';
   const buttonLabel = asking
     ? t.notifications.asking
-    : permission === 'denied'
+    : opensSettings
       ? t.location.openSettings
       : t.notifications.turnOn;
 
@@ -345,7 +375,9 @@ export default function NotificationSettingsScreen() {
             <Disc icon="phone-portrait-outline" color={ink} bg={theme.color.surfaceMuted} />
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: ink }}>
-                {t.notifications.onThisPhone}
+                {permission === 'granted'
+                  ? t.notifications.onThisPhone
+                  : t.notifications.offOnPhone}
               </Text>
               <Text style={{ fontSize: 13, lineHeight: 18, color: muted }}>
                 {permission === 'granted'
@@ -375,7 +407,7 @@ export default function NotificationSettingsScreen() {
               accessibilityState={{ disabled: asking, busy: asking }}
               disabled={asking}
               onPress={() =>
-                permission === 'denied'
+                opensSettings
                   ? void Linking.openSettings().catch(() => setStatus(t.notifications.failDenied))
                   : void turnOnPush()
               }

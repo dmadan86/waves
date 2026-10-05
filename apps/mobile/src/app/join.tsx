@@ -27,6 +27,7 @@ import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { backend } from '@/lib/backend';
+import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { guestJoins } from '@/lib/guestJoins';
 import { router } from '@/lib/navigation';
 
@@ -128,6 +129,8 @@ export default function JoinScreen() {
 
       await queryClient.invalidateQueries({ queryKey: keys.groups });
       router.replace(`/group/${result.group.id}`);
+      // A good moment to offer notifications, if the phone is not yet set up.
+      requestJoinPushPrompt(result.group.name);
     } catch (caught) {
       setError(friendlyError(caught, t.misc.couldNotJoin, 'join.accept'));
     } finally {
