@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -10,6 +17,7 @@ import {
   Button,
   Callout,
   Card,
+  directionalIcon,
   EmptyState,
   iconSize,
   Row,
@@ -18,7 +26,6 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { GroupMark } from '@/components/GroupMark';
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 
@@ -28,7 +35,8 @@ import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { backend } from '@/lib/backend';
 import { guestJoins } from '@/lib/guestJoins';
-import { router } from '@/lib/navigation';
+import { router, useGoBack } from '@/lib/navigation';
+import { TranslucentBackButton } from '@/components/ContactPickerScene';
 
 /**
  * Landing screen for an invite link (ADR-006).
@@ -47,6 +55,8 @@ export default function JoinScreen() {
   const { session, continueAsGuest } = useAuth();
   const guard = useGuestGuard();
   const queryClient = useQueryClient();
+  const goBack = useGoBack('/');
+  const { width, height: windowHeight } = useWindowDimensions();
 
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [claimId, setClaimId] = useState<string | null>(null);
@@ -148,6 +158,7 @@ export default function JoinScreen() {
   if (!preview?.group) {
     return (
       <Screen>
+        <BackRow onPress={goBack} label={t.common.back} />
         <EmptyState
           title={t.misc.linkExpired}
           body={shown ?? t.misc.linkExpiredBody}
@@ -174,6 +185,7 @@ export default function JoinScreen() {
     const claimed = preview.claimable.find((candidate) => candidate.memberId === claimId);
     return (
       <Screen edges={['top', 'bottom']}>
+        <BackRow onPress={goBack} label={t.common.back} />
         <View
           style={{
             flex: 1,
@@ -216,109 +228,235 @@ export default function JoinScreen() {
     );
   }
 
-  // Read out of the narrowed preview before the render: inside the `mark`
-  // callback below TypeScript can no longer see that `preview.group` survived
-  // the guard above.
-  const group = preview.group;
+  const features: { icon: ComponentProps<typeof Ionicons>['name']; title: string; body: string }[] =
+    [
+      { icon: 'flash', title: t.misc.joinFeatureQuickTitle, body: t.misc.joinFeatureQuickBody },
+      {
+        icon: 'shield-outline',
+        title: t.misc.joinFeatureGuestTitle,
+        body: t.misc.joinFeatureGuestBody,
+      },
+      {
+        icon: 'people',
+        title: t.misc.joinFeatureTogetherTitle,
+        body: t.misc.joinFeatureTogetherBody,
+      },
+    ];
+
+  // The foot scene is backdrop, not content: on a short screen it would sit
+  // under the button, so it is left out rather than shrunk to a sliver.
+  const showScene = windowHeight >= 700;
+  // Roughly square art: about 70% of the width, capped, and smaller on short
+  // screens so the Join button stays in view without scrolling.
+  const heroSize = Math.min(
+    width * 0.7,
+    300,
+    windowHeight < 700 ? 150 : windowHeight < 800 ? 190 : 300,
+  );
 
   return (
     <Screen edges={['top', 'bottom']}>
+      {showScene ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width,
+            height: (width * 330) / 849,
+          }}
+        >
+          <Image
+            source={SCENE}
+            accessible={false}
+            resizeMode="contain"
+            style={{ width: '100%', height: '100%' }}
+          />
+        </View>
+      ) : null}
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingBottom: theme.spacing.xxxl,
-          gap: theme.spacing.xl,
+          paddingBottom: theme.spacing.xl,
+          gap: theme.spacing.lg,
           flexGrow: 1,
-          justifyContent: 'center',
         }}
       >
-        <Card style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <Avatar
-            name={group.name}
-            mark={(color) => <GroupMark emoji={group.cover_emoji} size={40} color={color} />}
-            size={78}
+        <BackRow onPress={goBack} label={t.common.back} />
+        <View style={{ alignItems: 'center' }}>
+          <Image
+            source={HERO}
+            accessible={false}
+            resizeMode="contain"
+            style={{ width: heroSize, height: heroSize * (1000 / 1010) }}
           />
-          <Text variant="title" align="center">
-            {preview.group.name}
-          </Text>
-          <Text variant="caption" tone="muted" align="center">
-            {plural(locale, preview.memberCount, t.misc.peopleSplitting)}
-          </Text>
-          <Badge label={t.misc.freeNoAccount} tone="positive" />
-        </Card>
-
-        {preview.claimable.length > 0 ? (
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="subheading">{t.misc.isOneOfTheseYou}</Text>
-            <Text variant="caption" tone="muted">
-              {t.extras.claimHistoryNote}
+          {/* The card overlaps the foot of the art, which is painted with its own
+              ground and would otherwise show a seam. */}
+          <Card
+            style={{
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              marginTop: -20,
+              marginHorizontal: theme.spacing.xl,
+              alignSelf: 'stretch',
+            }}
+          >
+            <Text variant="title" align="center">
+              {preview.group.name}
             </Text>
-            <Row style={{ flexWrap: 'wrap', gap: theme.spacing.md }}>
-              {preview.claimable.map((candidate) => (
-                <Pressable
-                  key={candidate.memberId}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: claimId === candidate.memberId }}
-                  accessibilityLabel={candidate.name ?? t.misc.unnamed}
-                  onPress={() =>
-                    setClaimId((current) =>
-                      current === candidate.memberId ? null : candidate.memberId,
-                    )
-                  }
-                  style={{
-                    alignItems: 'center',
-                    gap: 4,
-                    opacity: claimId === candidate.memberId ? 1 : 0.5,
-                  }}
-                >
-                  <Avatar name={candidate.name ?? '?'} ghost size={52} />
-                  <Text variant="micro" tone={claimId === candidate.memberId ? 'brand' : 'muted'}>
-                    {candidate.name ?? t.misc.unnamed}
-                  </Text>
-                </Pressable>
+            <Text variant="caption" tone="muted" align="center">
+              {plural(locale, preview.memberCount, t.misc.peopleSplitting)}
+            </Text>
+            <Badge label={t.misc.freeNoAccount} tone="positive" />
+            <Row style={{ alignItems: 'flex-start', marginTop: theme.spacing.sm }}>
+              {features.map((feature, index) => (
+                <Row key={feature.icon} style={{ flex: 1, alignItems: 'stretch' }}>
+                  {index > 0 ? (
+                    <View style={{ width: 1, backgroundColor: theme.color.border }} />
+                  ) : null}
+                  <View style={{ flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 4 }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons
+                        name={feature.icon}
+                        size={iconSize.base}
+                        color={theme.color.brand}
+                      />
+                    </View>
+                    <Text variant="micro" align="center" style={{ fontWeight: '700' }}>
+                      {feature.title}
+                    </Text>
+                    <Text variant="micro" tone="muted" align="center" numberOfLines={2}>
+                      {feature.body}
+                    </Text>
+                  </View>
+                </Row>
               ))}
             </Row>
-            {claimId ? (
-              <Row style={{ gap: theme.spacing.sm }}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={iconSize.base}
-                  color={theme.color.brand}
-                />
-                <Text variant="micro" tone="brand" style={{ flex: 1 }}>
-                  {`${t.extras.theirPastBecomesYours} ${t.claims.needsConfirming}`}
-                </Text>
-              </Row>
-            ) : null}
           </Card>
-        ) : null}
+        </View>
 
-        {shown ? <Callout tone="negative">{shown}</Callout> : null}
+        <View style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.lg }}>
+          {preview.claimable.length > 0 ? (
+            <Card style={{ gap: theme.spacing.md }}>
+              <Text variant="subheading">{t.misc.isOneOfTheseYou}</Text>
+              <Text variant="caption" tone="muted">
+                {t.extras.claimHistoryNote}
+              </Text>
+              <Row style={{ flexWrap: 'wrap', gap: theme.spacing.md }}>
+                {preview.claimable.map((candidate) => (
+                  <Pressable
+                    key={candidate.memberId}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: claimId === candidate.memberId }}
+                    accessibilityLabel={candidate.name ?? t.misc.unnamed}
+                    onPress={() =>
+                      setClaimId((current) =>
+                        current === candidate.memberId ? null : candidate.memberId,
+                      )
+                    }
+                    style={{
+                      alignItems: 'center',
+                      gap: 4,
+                      opacity: claimId === candidate.memberId ? 1 : 0.5,
+                    }}
+                  >
+                    <Avatar name={candidate.name ?? '?'} ghost size={52} />
+                    <Text variant="micro" tone={claimId === candidate.memberId ? 'brand' : 'muted'}>
+                      {candidate.name ?? t.misc.unnamed}
+                    </Text>
+                  </Pressable>
+                ))}
+              </Row>
+              {claimId ? (
+                <Row style={{ gap: theme.spacing.sm }}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={iconSize.base}
+                    color={theme.color.brand}
+                  />
+                  <Text variant="micro" tone="brand" style={{ flex: 1 }}>
+                    {`${t.extras.theirPastBecomesYours} ${t.claims.needsConfirming}`}
+                  </Text>
+                </Row>
+              ) : null}
+            </Card>
+          ) : null}
 
-        <Button
-          // Claiming asks; joining as somebody new does not. The button says
-          // which of the two is about to happen.
-          label={
-            claimId
-              ? fill(t.claims.askToJoinAs, {
-                  name:
-                    preview.claimable.find((candidate) => candidate.memberId === claimId)?.name ??
-                    t.misc.unnamed,
-                })
-              : t.misc.joinGroup
-          }
-          size="lg"
-          fullWidth
-          disabled={joining}
-          onPress={() => void join()}
-        />
-        {joining ? <ActivityIndicator color={theme.color.brand} /> : null}
+          {shown ? <Callout tone="negative">{shown}</Callout> : null}
 
-        <Text variant="micro" tone="muted" align="center">
-          {t.extras.guestKeepsItHere}
-        </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: joining, busy: joining }}
+            disabled={joining}
+            onPress={() => void join()}
+            style={({ pressed }) => ({
+              minHeight: 54,
+              borderRadius: 27,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: theme.spacing.sm,
+              backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
+              opacity: joining ? 0.7 : 1,
+            })}
+          >
+            {/* Claiming asks; joining as somebody new does not. The button says
+              which of the two is about to happen. */}
+            <Text variant="subheading" style={{ color: theme.color.onBrand }}>
+              {claimId
+                ? fill(t.claims.askToJoinAs, {
+                    name:
+                      preview.claimable.find((candidate) => candidate.memberId === claimId)?.name ??
+                      t.misc.unnamed,
+                  })
+                : t.misc.joinGroup}
+            </Text>
+            {joining ? (
+              <ActivityIndicator color={theme.color.onBrand} />
+            ) : (
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={iconSize.base}
+                color={theme.color.onBrand}
+              />
+            )}
+          </Pressable>
+
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={iconSize.base}
+              color={theme.color.brand}
+            />
+            <Text variant="micro" tone="muted" style={{ flex: 1 }}>
+              {t.extras.guestKeepsItHere}
+            </Text>
+          </Row>
+        </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+const HERO = require('../../assets/images/join-hero.webp') as number;
+const SCENE = require('../../assets/images/join-scene.webp') as number;
+
+/** The round back button, on the page background above whatever state follows. */
+function BackRow({ onPress, label }: { onPress: () => void; label: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
+      <TranslucentBackButton dark label={label} onPress={onPress} />
+    </View>
   );
 }
 
