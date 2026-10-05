@@ -4,7 +4,7 @@ import { site } from '@/lib/site';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'Waves — split the flat\'s bills, skip the awkward asking';
+export const alt = "Waves — split the flat's bills, skip the awkward asking";
 
 /**
  * The share card. The wordmark and tagline stay in English in every locale on
@@ -55,7 +55,8 @@ export default function OpengraphImage() {
           <span style={{ color: '#9880f9' }}>Skip the awkward asking.</span>
         </div>
         <div style={{ fontSize: 30, color: 'rgba(255,255,255,0.66)' }}>
-          Tracks every shared expense. Opens UPI with the exact amount. Waves never holds your money.
+          Tracks every shared expense. Opens UPI with the exact amount. Waves never holds your
+          money.
         </div>
       </div>
 

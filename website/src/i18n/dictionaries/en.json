@@ -32,12 +32,7 @@
     "subtitle": "Waves tracks every shared expense, works out who owes whom, nudges flatmates for you, and opens UPI with the exact amount.",
     "ctaPrimary": "Get Waves free",
     "ctaSecondary": "See a worked example",
-    "facts": [
-      "No card to start",
-      "Works offline",
-      "Pay via UPI",
-      "Bank-SMS capture on Android"
-    ],
+    "facts": ["No card to start", "Works offline", "Pay via UPI", "Bank-SMS capture on Android"],
     "stores": {
       "ios": "iPhone",
       "android": "Android",
@@ -84,16 +79,7 @@
     "claim": "Waves never holds, moves, or touches your money.",
     "body": "It works out who pays whom, hands the amount to the payment app you already use — UPI first — and records what both sides agreed. That is why there is nothing here for anyone to run off with.",
     "railsLabel": "Settles through, for example",
-    "rails": [
-      "Bank transfer",
-      "UPI",
-      "Pix",
-      "SEPA",
-      "PayNow",
-      "Venmo",
-      "PayPal",
-      "Cash"
-    ]
+    "rails": ["Bank transfer", "UPI", "Pix", "SEPA", "PayNow", "Venmo", "PayPal", "Cash"]
   },
   "features": {
     "eyebrow": "What it does",
@@ -176,12 +162,7 @@
       "bill": "Rent, October",
       "total": "₹18,000",
       "typesLabel": "Split type",
-      "types": [
-        "Exact",
-        "Equal",
-        "Shares",
-        "%"
-      ],
+      "types": ["Exact", "Equal", "Shares", "%"],
       "people": [
         {
           "name": "You",
@@ -208,11 +189,7 @@
       "noSignal": "No network",
       "waiting": "3 waiting",
       "queued": "queued",
-      "rows": [
-        "Electricity bill",
-        "BigBasket order",
-        "Cook, October"
-      ],
+      "rows": ["Electricity bill", "BigBasket order", "Cook, October"],
       "encrypted": "Encrypted on this device",
       "alt": "An offline queue: three expenses saved on the device with no network, marked encrypted."
     },
