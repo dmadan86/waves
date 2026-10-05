@@ -18,9 +18,13 @@ import {
   CATEGORIES,
   isCurrencyCode,
   minorUnitScale,
+  namesSoundAlike,
   normaliseDigits,
   normaliseSpokenAmounts,
+  parseVoiceIntent,
   type CategoryId,
+  type VoiceIntent,
+  type VoiceIntentContext,
 } from '@waves/core';
 
 /** Above this, a voice parse is more likely corrupted or misheard than safe to book. */
@@ -41,11 +45,17 @@ const SPOKEN_NEGATIVE_AMOUNT =
   /\b(?:minus|negative)\s+(?=(?:\d|zero\b|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fourty\b|fifty\b|sixty\b|seventy\b|eighty\b|ninety\b|hundred\b|thousand\b|lakh\b|lakhs\b|crore\b|crores\b))/i;
 const THIRD_PARTY_PAYER_INTENT = /\b(?!(?:i|we|you)\b)[\p{L}][\p{L}'’.-]*\s+paid\b/iu;
 
-function isUnsupportedVoiceExpenseClause(text: string): boolean {
+/**
+ * "Ravi paid" is only safe to read when the payer is carried through to the
+ * review (see {@link parseVoiceExpenses}); without that, the expense would be
+ * booked as the speaker's own, so the clause is refused — the old behaviour,
+ * still used by the single-sentence reader and the watch.
+ */
+function isUnsupportedVoiceExpenseClause(text: string, allowThirdPartyPayer = false): boolean {
   return (
     UNSUPPORTED_EXPENSE_CLAUSE.test(text) ||
     SPOKEN_NEGATIVE_AMOUNT.test(text) ||
-    THIRD_PARTY_PAYER_INTENT.test(text)
+    (!allowThirdPartyPayer && THIRD_PARTY_PAYER_INTENT.test(text))
   );
 }
 
@@ -359,6 +369,20 @@ const STOPWORDS: ReadonlySet<string> = new Set([
   'hmm',
   'hmmm',
   'namaste',
+  // Hindi grammar around an amount — "madan ne 500 diya dinner ka": markers and
+  // verbs, never a description or a group name.
+  'ka',
+  'ki',
+  'ke',
+  'ko',
+  'ne',
+  'diya',
+  'diye',
+  'liye',
+  'mein',
+  'wala',
+  'wale',
+  'wali',
   'ok',
   'okay',
   'please',
@@ -775,44 +799,6 @@ export function matchMemberNames(
   return [...ids];
 }
 
-/** A rough sound key: enough to equate "Priya"/"Pria", "Sumit"/"Sumeet", "Arun"/"Arrun". */
-function phoneticKey(word: string): string {
-  return word
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/ph/g, 'f')
-    .replace(/w/g, 'v')
-    .replace(/(?<=[a-z])h/g, '')
-    .replace(/ee|ea|ie|y/g, 'i')
-    .replace(/oo/g, 'u')
-    .replace(/ck|c(?=[aou])|q/g, 'k')
-    .replace(/(.)\1+/g, '$1')
-    .replace(/(?<=.)[aeiou]/g, 'a');
-}
-
-/** Edit distance of at most one (insert, delete, substitute, or swap). */
-function withinOneEdit(a: string, b: string): boolean {
-  if (a === b) return true;
-  if (Math.abs(a.length - b.length) > 1) return false;
-  let i = 0;
-  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
-  if (a.length === b.length) {
-    if (a.slice(i + 1) === b.slice(i + 1)) return true;
-    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
-  }
-  const [long, short] = a.length > b.length ? [a, b] : [b, a];
-  return long.slice(i + 1) === short.slice(i);
-}
-
-function namesSoundAlike(heard: string, name: string): boolean {
-  if (heard === name) return true;
-  if (Math.min(heard.length, name.length) < 4) return false;
-  if (Math.min(heard.length, name.length) >= 5 && withinOneEdit(heard, name)) return true;
-  const key = phoneticKey(heard);
-  return key.length >= 3 && key === phoneticKey(name);
-}
-
 /**
  * The note with any member's name taken out.
  *
@@ -1042,6 +1028,13 @@ export interface VoiceParseResult {
    * when no group was named — an explicit group wins over a solo marker.
    */
   personal: boolean;
+  /**
+   * Who paid, which group and how it divides, as read from the sentence — set
+   * whenever the sentence was read at all (null for a bare create-group or a
+   * refused command). `intent.hasSocialDetail` says whether anything beyond "I
+   * paid, split equally" was said, which is when the review must show it.
+   */
+  intent: VoiceIntent | null;
 }
 
 /**
@@ -1075,7 +1068,10 @@ export function voiceAutoAction(result: VoiceParseResult): VoiceAutoAction | nul
 
   const [item] = result.items;
   const hasSplitInstructions =
-    result.splitCount !== null || splitParticipantClause(result.peopleText) !== null;
+    result.splitCount !== null ||
+    splitParticipantClause(result.peopleText) !== null ||
+    // A named payer, people, split rule or group is a decision someone should see.
+    result.intent?.hasSocialDetail === true;
   const hasNonDefaultExpenseFields = result.expenseDate !== null || item?.category !== null;
 
   if (
@@ -2066,6 +2062,7 @@ function segmentExpenses(text: string): string[] {
 export function parseVoiceExpenses(
   transcript: string,
   groups: readonly VoiceGroupRef[],
+  context: Pick<VoiceIntentContext, 'members' | 'currentGroupId' | 'now'> = {},
 ): VoiceParseResult {
   if (UNSUPPORTED_GLOBAL_EXPENSE_INTENT.test(transcript))
     return {
@@ -2075,16 +2072,56 @@ export function parseVoiceExpenses(
       peopleText: null,
       expenseDate: null,
       personal: false,
+      intent: null,
     };
 
   const normalized = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
-  const expenseDate = parseVoiceExpenseDate(normalized);
-  const category = parseVoiceCategory(normalized);
   const created = detectCreateGroup(normalized);
+
+  // Who paid, which group, how it splits. When the sentence says any of that
+  // (and is not a repayment — "Ravi paid me back" stays refused), the words that
+  // said it are taken out before the amounts and the note are read, so "Madan 300
+  // Renny 200" is one split and not two expenses, and "Madan" is a payer rather
+  // than a word in the description.
+  const intent = created
+    ? null
+    : parseVoiceIntent(normalized, {
+        groups,
+        members: context.members,
+        currentGroupId: context.currentGroupId,
+        now: context.now,
+      });
+  // Money handed over ("Madan gave me 400") is not an expense at all. A
+  // repayment ("paid me back") is already refused clause by clause below, so a
+  // neighbouring safe expense in the same breath survives.
+  const transfer = intent?.notes.includes('looks_like_transfer') === true;
+  if (transfer && !UNSUPPORTED_EXPENSE_CLAUSE.test(normalized))
+    return {
+      items: [],
+      group: null,
+      splitCount: null,
+      peopleText: null,
+      expenseDate: null,
+      personal: false,
+      intent,
+    };
+  const readIntent =
+    intent !== null && !transfer && (intent.hasSocialDetail || intent.groupHint !== undefined);
+  const sentence = readIntent ? intent.remainder : normalized;
+
+  const expenseDate =
+    parseVoiceExpenseDate(normalized) ?? (readIntent ? (intent.date ?? null) : null);
+  const category = parseVoiceCategory(sentence);
   // Strip the routing lead-in ("assign to group …", "put it in …") after any
   // create-group clause is lifted, so the destination name and the notes are
   // read from the clean remainder.
-  let body = stripDatePhrases(stripAssignmentLeadIn(created ? created.rest : normalized));
+  let body = stripDatePhrases(stripAssignmentLeadIn(created ? created.rest : sentence));
+  // The Hinglish day words the intent turned into a date ("kal 300 ka petrol").
+  if (readIntent)
+    body = body
+      .replace(/\b(?:aaj|kal|parso)\b/gi, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
 
   // The group is settled before the notes are built, so each note can have the
   // named group's words taken out ("dinner on the Goa trip" → note "dinner").
@@ -2100,6 +2137,18 @@ export function parseVoiceExpenses(
     group = { kind: 'existing', groupId: groups[0].id };
     matchedName = groups[0].name;
     body = stripRelativeGroupPhrase(body);
+  } else if (readIntent && intent.groupSource === 'named' && intent.targetGroupId) {
+    // "…in Goa trip group": the intent read the name (fuzzily) and its words are
+    // already out of the sentence.
+    group = { kind: 'existing', groupId: intent.targetGroupId };
+    matchedName = groups.find((candidate) => candidate.id === intent.targetGroupId)?.name ?? null;
+  } else if (
+    readIntent &&
+    (intent.groupSource === 'ambiguous' || intent.groupSource === 'unresolved')
+  ) {
+    // A group was named but is not (clearly) one of the reader's: leave it for the
+    // review to ask, rather than file under whichever name overlaps most.
+    group = null;
   } else {
     const groupId = matchGroup(tokenize(body), groups);
     if (groupId) {
@@ -2119,7 +2168,7 @@ export function parseVoiceExpenses(
   let carriedCurrency: string | null = null;
 
   for (const segment of segments) {
-    if (isUnsupportedVoiceExpenseClause(segment)) continue;
+    if (isUnsupportedVoiceExpenseClause(segment, readIntent)) continue;
     const amountMajor = extractAmount(segment);
     if (amountMajor === null) continue;
     const currency: string | null = detectCurrency(segment) ?? carriedCurrency;
@@ -2136,7 +2185,7 @@ export function parseVoiceExpenses(
 
   // Nothing segmented out but there is still a single amount — treat the whole
   // sentence as one expense, matching the single-expense parser's reach.
-  if (items.length === 0 && !isUnsupportedVoiceExpenseClause(workBody)) {
+  if (items.length === 0 && !isUnsupportedVoiceExpenseClause(workBody, readIntent)) {
     const one = parseVoiceExpense(workBody, groups);
     if (one.amountMinor !== null && one.amountMajor !== null) {
       items.push({
@@ -2164,13 +2213,18 @@ export function parseVoiceExpenses(
 
   // Solo means nobody to split with, so no people and no split count survive to
   // the review — they would only muddy a private "Me" expense.
-  const peopleText = personal ? '' : stripCategoryPhrase(workBody).trim();
+  // The people are in the intent when it read them; the old "split with …" clause
+  // is only for sentences it left alone.
+  const peopleText = personal || readIntent ? '' : stripCategoryPhrase(workBody).trim();
   return {
     items: finalItems,
     group,
-    splitCount: personal ? null : extractSplitCount(workBody),
+    splitCount: personal
+      ? null
+      : (extractSplitCount(workBody) ?? (readIntent ? (intent.splitCount ?? null) : null)),
     peopleText: peopleText || null,
     expenseDate,
     personal,
+    intent: personal ? null : intent,
   };
 }

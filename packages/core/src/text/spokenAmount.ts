@@ -15,7 +15,7 @@
  *     are spoken. Rupees, dirhams and everything else keep the hundreds reading.
  *   - Digit shorthand "2k", "1.5k", "two k" means thousands.
  *
- * Not touched, because they are not prices: a time ("at three fifty", "3 50
+ * Not touched, because they are not prices: a percentage split ("60 40"), a time ("at three fifty", "3 50
  * pm"), a people count ("between three fifty"), a bare "5 10" (two numbers) and
  * anything already carrying a scale word ("three hundred fifty", "fifteen
  * hundred"), which the ordinary number-word reader handles.
@@ -104,6 +104,10 @@ export function foldSpokenPriceIdiom(text: string): string {
     const xValue = isDigits(x) ? Number(x) : wordsToNumber(x);
     const yValue = isDigits(y) ? Number(y) : wordsToNumber(y);
     if (xValue < 1 || xValue > 99 || yValue < 10 || yValue > 99) return match;
+    // "60 40" and "70 30" are a split by percentage, not ₹6040: two round
+    // numbers that make exactly a hundred stay two numbers.
+    if (xValue >= 10 && xValue % 5 === 0 && yValue % 5 === 0 && xValue + yValue === 100)
+      return match;
 
     if (!money) {
       // No currency to lean on: only an ending that is unmistakably a price

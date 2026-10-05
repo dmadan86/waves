@@ -245,6 +245,12 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               const refs: VoiceGroupRef[] = s.groups.map((g) => ({ id: g.id, name: g.name }));
               const result = parseVoiceExpenses(msg.transcript, refs);
               const items = result.items.filter((item) => item.amountMinor > 0n);
+              // "Madan paid 500": a capture has nowhere to keep who paid, and the
+              // wrist cannot ask — so it is not booked as the wearer's own.
+              if (result.intent?.payer.explicit && result.intent.payer.kind === 'member') {
+                sendToWatch({ t: 'ack', ok: false, error: 'no-amount' });
+                break;
+              }
               if (items.length === 0) {
                 sendToWatch({ t: 'ack', ok: false, error: 'no-amount' });
                 break;
