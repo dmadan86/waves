@@ -111,6 +111,7 @@ function editorPayloadBeforeExtraction(
     category: state.category,
     categoryMeta: state.categoryMeta,
     expenseDate: state.expenseDate,
+    occurredAt: state.occurredAt,
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,
@@ -133,12 +134,24 @@ function editorPayloadBeforeExtraction(
   };
 }
 
+describe('occurredAt', () => {
+  it('is carried from the saved version into the write', () => {
+    const saved = { ...version(), occurred_at: '2026-09-01T14:30:00.000Z' };
+    const state = editStateFromVersion(saved, 'm-z');
+    expect(state.occurredAt).toBe('2026-09-01T14:30:00.000Z');
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).occurredAt).toBe(
+      '2026-09-01T14:30:00.000Z',
+    );
+  });
+});
+
 describe('editStateFromVersion', () => {
   it('opens a saved bill on what it carries', () => {
     const state = editStateFromVersion(version(), 'm-z');
     expect(state.amount).toBe(100000n);
     expect(state.currency).toBe('INR');
     expect(state.expenseDate).toBe('2026-09-01');
+    expect(state.occurredAt).toBeNull();
     expect(state.paymentMethod).toBe('upi');
     expect(state.location).toEqual({ lat: 13.08, lng: 80.27, name: 'Chennai' });
     expect(state.participants).toEqual(['m-a', 'm-b', 'm-c']);

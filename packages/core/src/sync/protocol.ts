@@ -151,6 +151,9 @@ export interface ExpenseCreatePayload {
   readonly balanceDueMinor?: string | null;
   /** When the balance above is due (ISO date). Null unless `isDeposit`. */
   readonly balanceDueDate?: string | null;
+  /** The time of day the person chose (ISO instant, UTC); null/absent keeps
+   *  whatever the server already has, or none on a new expense. */
+  readonly occurredAt?: string | null;
 }
 
 /** The four ways an expense is paid for; optional everywhere it appears. */

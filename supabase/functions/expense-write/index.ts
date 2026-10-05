@@ -78,6 +78,8 @@ interface ExpenseWriteRequest {
   balanceDueMinor?: string | null;
   /** When the balance above is due (ISO date). Null unless `isDeposit`. */
   balanceDueDate?: string | null;
+  /** The time of day the person chose (ISO instant); omitted keeps the stored one. */
+  occurredAt?: string | null;
   /**
    * The rate used, when the expense is not in the group's currency (ADR-003).
    * Stored as an exact rational so the conversion can be reproduced a year
@@ -219,6 +221,7 @@ serveWithCors(async (request) => {
         balanceDueMinor:
           body.balanceDueMinor == null ? null : parseMinor(body.balanceDueMinor, 'balanceDueMinor'),
         balanceDueDate: body.balanceDueDate ?? null,
+        occurredAt: body.occurredAt ?? null,
       }),
     );
 

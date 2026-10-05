@@ -46,7 +46,16 @@ import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEdi
 import { displayName, isGhost, type ExpenseVersionRow, type MemberRow } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
+import {
+  dateFrom,
+  isoDate,
+  mergeDateAndTime,
+  moveTimeToDay,
+  pickerTime,
+  showDate,
+  showTime,
+} from '@/lib/expenseDay';
+import { timeOfDay } from '@/lib/timeline';
 import {
   editBlocker,
   editStateFromVersion,
@@ -63,7 +72,8 @@ import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import { clearDraft, useSync } from '@/sync';
 
 /** The facts on the expense screen that open a pop-up. */
-export type ExpenseField = 'amount' | 'description' | 'date' | 'payer' | 'split' | 'category';
+export type ExpenseField =
+  'amount' | 'description' | 'date' | 'time' | 'payer' | 'split' | 'category';
 
 /** How long the sheet stays mounted after a dismissal, so its exit is seen. */
 const EXIT_MS = 220;
@@ -83,6 +93,7 @@ export function ExpenseFieldSheet({
   members,
   viewerId,
   myMemberId,
+  savedAt,
   onClose,
   onOpenEditor,
 }: {
@@ -94,6 +105,8 @@ export function ExpenseFieldSheet({
   members: readonly MemberRow[];
   viewerId: string | null | undefined;
   myMemberId: MemberId | null;
+  /** When the expense was first written — the time shown for an old bill. */
+  savedAt?: string | null;
   /** Called once the sheet has finished leaving. */
   onClose: () => void;
   /**
@@ -133,8 +146,19 @@ export function ExpenseFieldSheet({
   // own calendar dialog with no sheet behind it, iOS shows the calendar inline,
   // and choosing a day saves it. The sheet (with its row to raise the dialog
   // again) only appears on Android if that save was refused, to say why.
-  const [pickingDate, setPickingDate] = useState(field === 'date' && Platform.OS === 'android');
-  const bareDatePicker = field === 'date' && Platform.OS === 'android' && error === null;
+  // The time of day works the same way: a bare dialog on Android, and a wheel
+  // in the sheet on iOS (a wheel fires on every turn, so it has Save).
+  const timeSheet = field === 'time';
+  const [openedAt] = useState(() => Date.now());
+  const [pickingDate, setPickingDate] = useState(
+    (field === 'date' || timeSheet) && Platform.OS === 'android',
+  );
+  const bareDatePicker =
+    (field === 'date' || timeSheet) && Platform.OS === 'android' && error === null;
+  // What the time reads now: the chosen one, else the save time when that was
+  // the bill's own day (what the timeline shows), else nothing yet.
+  const shownTime = timeOfDay(state.expenseDate, savedAt, state.occurredAt);
+  const timeValue = pickerTime(shownTime, openedAt);
 
   // A scrim tap and a drag can both land in one gesture; the screen hears once.
   const leaving = useRef(false);
@@ -230,9 +254,31 @@ export function ExpenseFieldSheet({
       if (bareDatePicker) leave();
       return;
     }
-    const next = { ...state, expenseDate: isoDate(picked) };
+    // The chosen time of day moves with the day rather than being dropped.
+    const expenseDate = isoDate(picked);
+    const next = {
+      ...state,
+      expenseDate,
+      occurredAt: moveTimeToDay(state.occurredAt, expenseDate),
+    };
     setState(next);
     void save(next);
+  };
+
+  const applyTime = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (Platform.OS === 'android') setPickingDate(false);
+    if (event.type === 'dismissed' || !picked) {
+      if (bareDatePicker) leave();
+      return;
+    }
+    const next = {
+      ...state,
+      occurredAt: mergeDateAndTime(state.expenseDate, picked).toISOString(),
+    };
+    setState(next);
+    // Android's dialog answers once, on OK. iOS's wheel answers on every turn,
+    // so it only records the time and waits for Save.
+    if (Platform.OS === 'android') void save(next);
   };
 
   const nameHints = members
@@ -246,11 +292,13 @@ export function ExpenseFieldSheet({
         ? t.description
         : field === 'date'
           ? t.expense.detailDate
-          : field === 'payer'
-            ? t.paidBy
-            : field === 'category'
-              ? t.whatFor
-              : t.expense.detailSplit;
+          : timeSheet
+            ? t.expense.detailTime
+            : field === 'payer'
+              ? t.paidBy
+              : field === 'category'
+                ? t.whatFor
+                : t.expense.detailSplit;
 
   // Several payers are changed on the full editor: their figures have to add
   // up to the total, and that is a form, not a pick. The pop-up says so rather
@@ -294,6 +342,23 @@ export function ExpenseFieldSheet({
         />
       </View>
     );
+  } else if (timeSheet) {
+    body =
+      Platform.OS === 'ios' ? (
+        <DateTimePicker value={timeValue} mode="time" display="spinner" onChange={applyTime} />
+      ) : (
+        <View>
+          <DetailRow
+            icon="time-outline"
+            label={t.expense.detailTime}
+            value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
+            onPress={() => setPickingDate(true)}
+          />
+          {pickingDate ? (
+            <DateTimePicker value={timeValue} mode="time" display="default" onChange={applyTime} />
+          ) : null}
+        </View>
+      );
   } else if (field === 'date') {
     body =
       Platform.OS === 'ios' ? (
@@ -395,12 +460,16 @@ export function ExpenseFieldSheet({
 
   if (bareDatePicker) {
     return pickingDate ? (
-      <DateTimePicker
-        value={dateFrom(state.expenseDate)}
-        mode="date"
-        display="default"
-        onChange={applyDate}
-      />
+      timeSheet ? (
+        <DateTimePicker value={timeValue} mode="time" display="default" onChange={applyTime} />
+      ) : (
+        <DateTimePicker
+          value={dateFrom(state.expenseDate)}
+          mode="date"
+          display="default"
+          onChange={applyDate}
+        />
+      )
     ) : null;
   }
 
@@ -448,7 +517,7 @@ export function ExpenseFieldSheet({
         ) : null}
       </ScrollView>
 
-      {field === 'date' ? (
+      {field === 'date' || (timeSheet && Platform.OS === 'android') ? (
         error ? (
           <View style={{ paddingTop: theme.spacing.md }}>
             <Callout tone="negative">{error}</Callout>

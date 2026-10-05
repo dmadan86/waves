@@ -55,6 +55,19 @@ describe('timeOfDay', () => {
   it('shows no time without a save time', () => {
     expect(timeOfDay('2026-09-14', null)).toBeNull();
   });
+
+  it('prefers a chosen time over the save time, even on a later day', () => {
+    const saved = new Date(at('2026-09-17', 9)).toISOString();
+    const chosen = new Date(at('2026-09-14', 20, 15)).toISOString();
+    expect(timeOfDay('2026-09-14', saved, chosen)).toBe(at('2026-09-14', 20, 15));
+    expect(timeOfDay('2026-09-14', null, chosen)).toBe(at('2026-09-14', 20, 15));
+  });
+
+  it('falls back to the save-time rule for an old row with no chosen time', () => {
+    const saved = new Date(at('2026-09-14', 19, 42)).toISOString();
+    expect(timeOfDay('2026-09-14', saved, null)).toBe(at('2026-09-14', 19, 42));
+    expect(timeOfDay('2026-09-14', saved, 'garbage')).toBe(at('2026-09-14', 19, 42));
+  });
 });
 
 describe('filterTimeline', () => {
