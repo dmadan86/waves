@@ -68,26 +68,32 @@ export function OtpInput({
   // Asked more than once, a beat apart: the first request can land before the
   // window is interactive (new architecture mounts and focuses in one commit).
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const focusSoon = useCallback(() => {
+  const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
+    timers.current = [];
+  }, []);
+  const focusSoon = useCallback(() => {
+    clearTimers();
     timers.current = [60, 350].map((ms) => setTimeout(focus, ms));
-  }, [focus]);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  }, [focus, clearTimers]);
+  useEffect(() => clearTimers, [clearTimers]);
 
   // On arrival, on the screen regaining focus, and on the app coming back to
   // the foreground — never relying on `autoFocus` alone.
   useFocusEffect(
     useCallback(() => {
       if (autoFocus) focusSoon();
-    }, [autoFocus, focusSoon]),
+      return clearTimers;
+    }, [autoFocus, focusSoon, clearTimers]),
   );
   useEffect(() => {
     if (!autoFocus) return undefined;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') focusSoon();
+      else clearTimers();
     });
     return () => sub.remove();
-  }, [autoFocus, focusSoon]);
+  }, [autoFocus, focusSoon, clearTimers]);
 
   return (
     <Pressable
