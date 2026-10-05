@@ -20,7 +20,6 @@ import {
   Button,
   Callout,
   Card,
-  EmptyState,
   IconButton,
   iconSize,
   MoneyText,
@@ -46,6 +45,7 @@ import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { recogniseReceipt } from '@/lib/ocr';
 import { useGroup, useItemClaims, useReceipt, useWriteExpense } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
+import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { handoverIsFresh, handoverKey, type ReceiptHandover } from '@/lib/handover';
@@ -372,11 +372,7 @@ export default function ItemizeScreen() {
   }
 
   if (!group.data) {
-    return (
-      <Screen>
-        <EmptyState title={t.group.notFound} body={t.group.notFoundArchived} />
-      </Screen>
-    );
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const addItem = (): void => {
