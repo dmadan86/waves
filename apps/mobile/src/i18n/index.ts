@@ -3077,6 +3077,12 @@ export interface UiStrings {
     linkMissingCode: string;
     goToWaves: string;
     freeNoAccount: string;
+    joinFeatureQuickTitle: string;
+    joinFeatureQuickBody: string;
+    joinFeatureGuestTitle: string;
+    joinFeatureGuestBody: string;
+    joinFeatureTogetherTitle: string;
+    joinFeatureTogetherBody: string;
     isOneOfTheseYou: string;
     /** The line under a group's name on the invite landing screen. */
     peopleSplitting: PluralForms;
@@ -6754,6 +6760,12 @@ const en: UiStrings = {
     linkMissingCode: 'This link is missing its invite code',
     goToWaves: 'Go to Waves',
     freeNoAccount: 'Free forever, no account needed',
+    joinFeatureQuickTitle: 'Quick join',
+    joinFeatureQuickBody: 'Start tracking expenses instantly',
+    joinFeatureGuestTitle: 'No account needed',
+    joinFeatureGuestBody: 'Join as a guest',
+    joinFeatureTogetherTitle: 'Split together',
+    joinFeatureTogetherBody: 'Keep everyone on the same page',
     isOneOfTheseYou: 'Is one of these you?',
     peopleSplitting: {
       one: '{n} person is splitting expenses here',
@@ -10424,6 +10436,12 @@ const ta: UiStrings = {
     linkMissingCode: 'இந்த இணைப்பில் அழைப்புக் குறியீடு இல்லை',
     goToWaves: 'Waves-க்குச் செல்',
     freeNoAccount: 'எப்போதும் இலவசம், கணக்கு தேவையில்லை',
+    joinFeatureQuickTitle: 'விரைவாகச் சேர்',
+    joinFeatureQuickBody: 'உடனே செலவுகளைக் கண்காணிக்கத் தொடங்கு',
+    joinFeatureGuestTitle: 'கணக்கு தேவையில்லை',
+    joinFeatureGuestBody: 'விருந்தினராகச் சேர்',
+    joinFeatureTogetherTitle: 'சேர்ந்து பிரி',
+    joinFeatureTogetherBody: 'எல்லோரும் ஒரே பக்கத்தில் இருங்கள்',
     isOneOfTheseYou: 'இவர்களில் ஒருவர் நீங்களா?',
     peopleSplitting: {
       one: '{n} நபர் இங்கே செலவுகளைப் பகிர்கிறார்',
@@ -14080,6 +14098,12 @@ const hi: UiStrings = {
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
     freeNoAccount: 'हमेशा मुफ़्त, खाता ज़रूरी नहीं',
+    joinFeatureQuickTitle: 'झटपट जुड़ें',
+    joinFeatureQuickBody: 'तुरंत खर्च ट्रैक करना शुरू करें',
+    joinFeatureGuestTitle: 'खाता ज़रूरी नहीं',
+    joinFeatureGuestBody: 'मेहमान के रूप में जुड़ें',
+    joinFeatureTogetherTitle: 'साथ में बाँटें',
+    joinFeatureTogetherBody: 'सबको एक ही पेज पर रखें',
     isOneOfTheseYou: 'क्या इनमें से कोई आप हैं?',
     peopleSplitting: {
       one: '{n} व्यक्ति यहाँ खर्च बाँट रहा है',
@@ -17901,6 +17925,12 @@ const ar: UiStrings = {
     linkMissingCode: 'هذا الرابط ينقصه رمز الدعوة',
     goToWaves: 'اذهب إلى Waves',
     freeNoAccount: 'مجاني دائمًا، بلا حاجة إلى حساب',
+    joinFeatureQuickTitle: 'انضمام سريع',
+    joinFeatureQuickBody: 'ابدأ تتبّع المصاريف فورًا',
+    joinFeatureGuestTitle: 'بلا حاجة إلى حساب',
+    joinFeatureGuestBody: 'انضم كضيف',
+    joinFeatureTogetherTitle: 'اقتسموا معًا',
+    joinFeatureTogetherBody: 'أبقوا الجميع على اطلاع',
     isOneOfTheseYou: 'هل أحد هؤلاء أنت؟',
     peopleSplitting: {
       one: 'يتقاسم شخص واحد المصروفات هنا',
