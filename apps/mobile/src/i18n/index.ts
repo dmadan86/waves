@@ -891,6 +891,7 @@ export interface UiStrings {
   /** The devices screen and the free-tier two-device cap. */
   devices: {
     couldNotSignOut: string;
+    signedOutElsewhere: string;
     title: string;
     intro: string;
     thisDevice: string;
@@ -4961,6 +4962,8 @@ const en: UiStrings = {
   },
   devices: {
     couldNotSignOut: 'Could not sign out the other devices. Please try again.',
+    signedOutElsewhere:
+      'You were signed out because you logged out this device from another device.',
     title: 'Devices',
     intro:
       'The free plan covers two devices at a time. A device you have not opened in a while stops counting on its own.',
@@ -8468,6 +8471,8 @@ const ta: UiStrings = {
   },
   devices: {
     couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    signedOutElsewhere:
+      'மற்றொரு சாதனத்திலிருந்து இந்தச் சாதனத்தை வெளியேற்றியதால் நீங்கள் வெளியேற்றப்பட்டீர்கள்.',
     title: 'சாதனங்கள்',
     intro:
       'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள். சிறிது காலம் திறக்காத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்.',
@@ -12107,6 +12112,8 @@ const hi: UiStrings = {
   },
   devices: {
     couldNotSignOut: 'अन्य डिवाइस साइन आउट नहीं हो सके। कृपया फिर कोशिश करें।',
+    signedOutElsewhere:
+      'आपने किसी दूसरे डिवाइस से इस डिवाइस को लॉग आउट किया था, इसलिए आप साइन आउट हो गए।',
     title: 'डिवाइस',
     intro:
       'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं। जो डिवाइस कुछ समय से नहीं खुला, वह अपने आप गिनती से हट जाता है।',
@@ -15674,6 +15681,7 @@ const ar: UiStrings = {
   },
   devices: {
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
+    signedOutElsewhere: 'تم تسجيل خروجك لأنك سجّلت الخروج من هذا الجهاز من جهاز آخر.',
     title: 'الأجهزة',
     intro:
       'الخطة المجانية تشمل جهازين في وقت واحد. الجهاز الذي لم تفتحه منذ فترة يتوقف عن العدّ من تلقاء نفسه.',

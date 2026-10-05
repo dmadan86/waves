@@ -14,6 +14,7 @@ import {
   deviceLimitFor,
   deviceLimitStatus,
   isDeviceActive,
+  isRevokedStatus,
   recentDevices,
   type DeviceSession,
 } from '../src/session/devices';
@@ -129,5 +130,14 @@ describe('recentDevices', () => {
 
   it('has nothing to say about no devices', () => {
     expect(recentDevices([], NOW)).toEqual([]);
+  });
+});
+
+describe('isRevokedStatus', () => {
+  it('is true only when the server says so', () => {
+    expect(isRevokedStatus({ revoked: true })).toBe(true);
+    expect(isRevokedStatus({ revoked: false })).toBe(false);
+    expect(isRevokedStatus({})).toBe(false);
+    expect(isRevokedStatus(null)).toBe(false);
   });
 });

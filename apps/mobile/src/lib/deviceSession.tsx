@@ -38,7 +38,7 @@ import {
   View,
 } from 'react-native';
 
-import { type DeviceLimitStatus } from '@waves/core';
+import { isRevokedStatus, type DeviceLimitStatus } from '@waves/core';
 import { directionalIcon, Popup, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
@@ -48,11 +48,17 @@ import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
 import { usePromptSlot } from '@/lib/promptQueue';
+import { useToast } from '@/lib/toast';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
-/** How stale a registration may get before a foreground refreshes it. */
-const HEARTBEAT_MS = 60 * 60 * 1000;
+/**
+ * How often a foreground (and a phone left open) asks whether it was signed out
+ * from another device. Revoking a session only kills the refresh token; the
+ * access token a phone already holds lasts up to an hour, and an offline-first
+ * app keeps working on it, so without this check the phone looks signed in.
+ */
+const REVOKE_CHECK_MS = 2 * 60 * 1000;
 
 interface DeviceSessionValue {
   /** Null until the first registration answers, or for guests. */
@@ -78,12 +84,21 @@ export function useDeviceSession(): DeviceSessionValue {
 
 export function DeviceSessionProvider({ children }: { children: ReactNode }) {
   const { session, isGuest } = useAuth();
+  const { t } = useStrings();
+  const toast = useToast();
   const userId = session?.user?.id ?? null;
   const eligible = Boolean(userId) && !isGuest;
 
   const [status, setStatus] = useState<DeviceLimitStatus | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const lastBeatAt = useRef(0);
+  const leaving = useRef(false);
+  // The sentence to show, kept in a ref so the registration callbacks stay
+  // stable across renders (a new `t` must not re-run the registration).
+  const notice = useRef({ message: t.devices.signedOutElsewhere, show: toast.show });
+  useEffect(() => {
+    notice.current = { message: t.devices.signedOutElsewhere, show: toast.show };
+  }, [t, toast]);
 
   // Reset in render rather than an effect (the pattern `AuthProvider` uses):
   // the previous account's answer must not flash on the next one, and clearing
@@ -95,30 +110,55 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     setDismissed(false);
   }
 
+  // The server said another device signed this one out. End the local session
+  // (no wipe: nothing here was lost, so the unsent queue is kept) and say why.
+  const leaveRevokedDevice = useCallback(async () => {
+    if (leaving.current) return;
+    leaving.current = true;
+    try {
+      await backend.auth.signOut({ scope: 'local' });
+    } catch {
+      // The listener on the auth state does the rest when it lands; a failure
+      // here is retried by the next check.
+      leaving.current = false;
+      return;
+    }
+    notice.current.show(notice.current.message, 'info');
+  }, []);
+
   const register = useCallback(async () => {
     if (!eligible) return;
     try {
       const identity = await deviceIdentity();
       const next = await registerDevice(identity);
+      if (isRevokedStatus(next)) {
+        await leaveRevokedDevice();
+        return;
+      }
       lastBeatAt.current = Date.now();
       setStatus(next);
     } catch {
       // Registration is best-effort: a failed call must never keep somebody out
       // of their own app. The next foreground tries again.
     }
-  }, [eligible]);
+  }, [eligible, leaveRevokedDevice]);
 
   // Register on sign-in. Sign-out is handled by the render-phase reset above.
   // The work is an async IIFE (the pattern `AuthProvider` uses) so the state
   // update lands after the round trip rather than synchronously in the effect.
   useEffect(() => {
     if (!eligible) return;
+    leaving.current = false;
     let active = true;
     void (async () => {
       try {
         const identity = await deviceIdentity();
         const next = await registerDevice(identity);
         if (!active) return;
+        if (isRevokedStatus(next)) {
+          await leaveRevokedDevice();
+          return;
+        }
         lastBeatAt.current = Date.now();
         setStatus(next);
       } catch {
@@ -129,16 +169,26 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [eligible, userId]);
+  }, [eligible, userId, leaveRevokedDevice]);
 
   // Heartbeat: a foreground, throttled, is enough to keep last-seen fresh.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && Date.now() - lastBeatAt.current > HEARTBEAT_MS) {
+      if (state === 'active' && Date.now() - lastBeatAt.current > REVOKE_CHECK_MS) {
         void register();
       }
     });
-    return () => sub.remove();
+    // A phone left open on the screen never re-foregrounds, so ask on a timer
+    // too. The registration is the check: a revoked phone's answer says so.
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active' || AppState.currentState === undefined) {
+        void register();
+      }
+    }, REVOKE_CHECK_MS);
+    return () => {
+      sub.remove();
+      clearInterval(timer);
+    };
   }, [register]);
 
   const signOutOthers = useCallback(async () => {

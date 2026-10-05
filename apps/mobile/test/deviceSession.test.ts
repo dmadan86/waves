@@ -22,6 +22,7 @@ const world = vi.hoisted(() => ({
   signOutOthersTable: vi.fn(),
   signOut: vi.fn(),
   identity: vi.fn(),
+  alert: vi.fn(),
 }));
 
 vi.mock('react-native', () => ({
@@ -32,6 +33,7 @@ vi.mock('react-native', () => ({
   View: 'View',
   useWindowDimensions: () => ({ width: 390, height: 844 }),
   AppState: {
+    currentState: 'active',
     addEventListener: (_: string, fn: (state: string) => void) => {
       world.appState = fn;
       return {
@@ -69,6 +71,7 @@ vi.mock('@/i18n', () => ({
         gateDetail: 'You are on {active}, the plan allows {limit}.',
         gateAction: 'Sign out other devices',
         couldNotSignOut: 'Could not sign out',
+        signedOutElsewhere: 'Signed out from another device',
       },
       common: { close: 'Close' },
     },
@@ -80,6 +83,7 @@ vi.mock('@/data/api', () => ({
 }));
 vi.mock('@/lib/device', () => ({ deviceIdentity: () => world.identity() }));
 vi.mock('@/lib/deviceLimitArt', () => ({ DEVICE_LIMIT_ART: 1, DEVICE_LIMIT_ART_RATIO: 2 }));
+vi.mock('@/lib/toast', () => ({ useToast: () => ({ show: world.alert }) }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => world.auth }));
 // The gate takes its turn in the prompt queue. Alone on the screen it is
 // always the winner, so the stand-in grants whatever is claimed.
@@ -106,6 +110,7 @@ beforeEach(() => {
   world.register = vi.fn(async () => UNDER);
   world.signOutOthersTable = vi.fn(async () => 2);
   world.signOut = vi.fn(async () => ({ error: null }));
+  world.alert = vi.fn();
   world.identity = vi.fn(async () => ({ deviceId: 'dev-1', label: 'Pixel' }));
 });
 
@@ -177,7 +182,7 @@ describe('registering this phone', () => {
 });
 
 describe('the heartbeat', () => {
-  it('re-registers on a foreground only once the last one is an hour old', async () => {
+  it('re-registers on a foreground only once the last one is a couple of minutes old', async () => {
     await mount();
     expect(world.register).toHaveBeenCalledTimes(1);
 
@@ -185,7 +190,7 @@ describe('the heartbeat', () => {
     await flush();
     expect(world.register).toHaveBeenCalledTimes(1);
 
-    vi.setSystemTime(new Date('2026-09-01T11:00:01Z'));
+    vi.setSystemTime(new Date('2026-09-01T10:02:01Z'));
     world.appState!('background');
     await flush();
     expect(world.register).toHaveBeenCalledTimes(1);
@@ -193,6 +198,43 @@ describe('the heartbeat', () => {
     world.appState!('active');
     await flush();
     expect(world.register).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('being signed out from another device', () => {
+  const REVOKED = { overLimit: false, activeCount: 0, limit: 2, revoked: true };
+
+  it('signs this phone out locally and says why when registration reports it revoked', async () => {
+    world.register.mockResolvedValue(REVOKED);
+    const app = await mount();
+    expect(world.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(world.alert).toHaveBeenCalledWith('Signed out from another device', 'info');
+    expect(app.value.status).toBeNull();
+  });
+
+  it('notices on a later foreground, not only at launch', async () => {
+    world.register.mockResolvedValueOnce(UNDER);
+    await mount();
+    expect(world.signOut).not.toHaveBeenCalled();
+
+    world.register.mockResolvedValue(REVOKED);
+    vi.setSystemTime(new Date('2026-09-01T10:05:00Z'));
+    world.appState!('active');
+    await flush();
+    expect(world.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(world.alert).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a phone that is not revoked signed in', async () => {
+    await mount();
+    expect(world.signOut).not.toHaveBeenCalled();
+    expect(world.alert).not.toHaveBeenCalled();
+  });
+
+  it('treats a server that predates the field as not revoked', async () => {
+    world.register.mockResolvedValue({ overLimit: false, activeCount: 1, limit: 2 });
+    await mount();
+    expect(world.signOut).not.toHaveBeenCalled();
   });
 });
 
