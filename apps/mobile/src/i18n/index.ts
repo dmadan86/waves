@@ -2539,6 +2539,15 @@ export interface UiStrings {
   /** A group: its screen, its settings, and the ways out of it. */
   group: {
     notFound: string;
+    /** Group screen expense filters. */
+    filterAll: string;
+    filterMine: string;
+    filterOthers: string;
+    allMonths: string;
+    searchExpenses: string;
+    noExpenseMatches: string;
+    clearExpenseSearch: string;
+    membersLabel: string;
     notFoundBody: string;
     notFoundArchived: string;
     /** The not-found screen's actions and its help card. */
@@ -6383,6 +6392,14 @@ const en: UiStrings = {
   },
   group: {
     notFound: 'Group not found',
+    filterAll: 'All',
+    filterMine: 'Mine',
+    filterOthers: 'Others',
+    allMonths: 'All months',
+    searchExpenses: 'Search expenses',
+    noExpenseMatches: 'No expenses match',
+    clearExpenseSearch: 'Clear search',
+    membersLabel: 'Members',
     notFoundBody: 'It may have been archived, or you are no longer a member.',
     notFoundArchived: 'It may have been archived.',
     notFoundRetry: 'Try again',
@@ -10073,6 +10090,14 @@ const ta: UiStrings = {
   },
   group: {
     notFound: 'குழு கிடைக்கவில்லை',
+    filterAll: 'அனைத்தும்',
+    filterMine: 'என்னுடையவை',
+    filterOthers: 'மற்றவை',
+    allMonths: 'எல்லா மாதங்களும்',
+    searchExpenses: 'செலவுகளைத் தேடு',
+    noExpenseMatches: 'பொருந்தும் செலவுகள் இல்லை',
+    clearExpenseSearch: 'தேடலை அழி',
+    membersLabel: 'உறுப்பினர்கள்',
     notFoundBody: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம், அல்லது நீங்கள் இனி உறுப்பினர் இல்லை.',
     notFoundArchived: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம்.',
     notFoundRetry: 'மீண்டும் முயற்சிக்கவும்',
@@ -13788,6 +13813,14 @@ const hi: UiStrings = {
   },
   group: {
     notFound: 'समूह नहीं मिला',
+    filterAll: 'सभी',
+    filterMine: 'मेरे',
+    filterOthers: 'अन्य',
+    allMonths: 'सभी महीने',
+    searchExpenses: 'खर्च खोजें',
+    noExpenseMatches: 'कोई खर्च नहीं मिला',
+    clearExpenseSearch: 'खोज साफ़ करें',
+    membersLabel: 'सदस्य',
     notFoundBody: 'हो सकता है यह संग्रहित कर दिया गया हो, या आप अब सदस्य न हों।',
     notFoundArchived: 'हो सकता है यह संग्रहित कर दिया गया हो।',
     notFoundRetry: 'फिर से कोशिश करें',
@@ -17590,6 +17623,14 @@ const ar: UiStrings = {
   },
   group: {
     notFound: 'المجموعة غير موجودة',
+    filterAll: 'الكل',
+    filterMine: 'الخاصة بي',
+    filterOthers: 'الآخرون',
+    allMonths: 'كل الأشهر',
+    searchExpenses: 'ابحث في المصروفات',
+    noExpenseMatches: 'لا توجد مصروفات مطابقة',
+    clearExpenseSearch: 'مسح البحث',
+    membersLabel: 'الأعضاء',
     notFoundBody: 'ربما أُرشفت، أو لم تعد عضوًا فيها.',
     notFoundArchived: 'ربما أُرشفت.',
     notFoundRetry: 'حاول مرة أخرى',
