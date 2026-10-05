@@ -71,6 +71,7 @@ import { CategoryBudgets } from '@/components/CategoryBudgets';
 import { SubEventBudgets } from '@/components/SubEventBudgets';
 import { UpcomingPayments } from '@/components/UpcomingPayments';
 import { type VendorCandidate } from '@/lib/eventVendors';
+import { vendorCandidates } from '@/lib/vendorCandidates';
 import { EventPlanHeader, EventPlanSummary, type PlanScope } from '@/components/EventPlanSummary';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -178,28 +179,6 @@ export default function PlanScreen() {
           currency: expense.currentVersion!.currency,
           amountMinor: BigInt(expense.currentVersion!.amount),
         })),
-    [expenses.rows],
-  );
-
-  const depositCandidates: VendorCandidate[] = useMemo(
-    () =>
-      expenses.rows
-        .filter((expense) => expense.currentVersion && !expense.deleted_at)
-        .map((expense) => {
-          const v = expense.currentVersion!;
-          return {
-            expenseId: expense.id,
-            description: v.description,
-            currency: v.currency,
-            amountMinor: BigInt(v.amount),
-            isDeposit: v.is_deposit ?? false,
-            balanceDueMinor: v.balance_due_minor == null ? null : BigInt(v.balance_due_minor),
-            balanceDueDate: v.balance_due_date ?? null,
-            subEventId: v.sub_event_id ?? null,
-            payerMemberId: v.payers[0]?.member_id ?? null,
-            expenseDate: v.expense_date,
-          };
-        }),
     [expenses.rows],
   );
 
@@ -359,6 +338,10 @@ export default function PlanScreen() {
   const isEvent = group.data?.type === 'event';
   const subEventLabel = (id: string): string =>
     `${eventSubEvents.find((s) => s.id === id)?.emoji ?? ''} ${t.eventSubEvents[id] ?? id}`.trim();
+  const depositCandidates: VendorCandidate[] = vendorCandidates(expenses.rows, {
+    subEvent: subEventLabel,
+    category: (id) => (t.categories as Record<string, string | undefined>)[id] ?? null,
+  });
   // Overall plan = the group's overall budget when set, else the sum of the
   // sub-event budgets (in the group's currency; currencies are never mixed).
   // Nothing set is 0, which the summary reads as "no budget", not "over".

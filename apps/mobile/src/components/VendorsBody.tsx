@@ -43,6 +43,7 @@ import {
   type VendorFilter,
 } from '@/lib/eventVendors';
 import { router } from '@/lib/navigation';
+import { vendorCandidates } from '@/lib/vendorCandidates';
 import { useViewerId } from '@/lib/auth';
 
 export function VendorsBody({
@@ -72,37 +73,21 @@ export function VendorsBody({
     return member ? displayName(member, viewerId, blockedIds, t.misc.someone) : t.misc.someone;
   };
 
-  const candidates: VendorCandidate[] = useMemo(
-    () =>
-      expenses.rows
-        .filter((expense) => expense.currentVersion && !expense.deleted_at)
-        .map((expense) => {
-          const v = expense.currentVersion!;
-          const lead = v.payers.reduce<{ id: string; amount: bigint } | null>((best, row) => {
-            const amount = BigInt(row.amount);
-            return best === null || amount > best.amount ? { id: row.member_id, amount } : best;
-          }, null);
-          return {
-            expenseId: expense.id,
-            description: v.description,
-            currency: v.currency,
-            amountMinor: BigInt(v.amount),
-            isDeposit: v.is_deposit ?? false,
-            balanceDueMinor: v.balance_due_minor == null ? null : BigInt(v.balance_due_minor),
-            balanceDueDate: v.balance_due_date ?? null,
-            subEventId: v.sub_event_id ?? null,
-            payerMemberId: lead?.id ?? null,
-            expenseDate: v.expense_date,
-          };
-        }),
-    [expenses.rows],
-  );
-
   const templateSubEvents = subEventsForTemplate(group.data?.event_template);
   const emojiOf = (id: string | null): string =>
     (id ? templateSubEvents.find((s) => s.id === id)?.emoji : undefined) ?? '';
   const subEventLabel = (id: string): string =>
     `${emojiOf(id)} ${t.eventSubEvents[id] ?? id}`.trim();
+
+  const candidates: VendorCandidate[] = useMemo(
+    () =>
+      vendorCandidates(expenses.rows, {
+        subEvent: subEventLabel,
+        category: (id) => (t.categories as Record<string, string | undefined>)[id] ?? null,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expenses.rows, group.data?.event_template, t],
+  );
 
   const summary = useMemo(
     () => vendorSummary(candidates, today, subEvent),

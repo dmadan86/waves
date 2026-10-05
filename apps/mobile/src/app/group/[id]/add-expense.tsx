@@ -477,6 +477,9 @@ export default function AddExpenseScreen() {
   // currency, exactly as the old in-card chips did (see CurrencyRate.choose).
   const [pickingCurrency, setPickingCurrency] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A vendor deposit saved with no vendor name gets one gentle prompt; the next
+  // tap ("Save without name") saves anyway.
+  const [namePrompted, setNamePrompted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -1156,6 +1159,10 @@ export default function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
+    if (isDeposit && !description.trim() && !namePrompted) {
+      setNamePrompted(true);
+      return;
+    }
     // The same check the server makes. Catching it here means a bill that does
     // not add up is a sentence under the button rather than a PAYER_MISMATCH
     // that comes back minutes later off a queue.
@@ -1715,8 +1722,10 @@ export default function AddExpenseScreen() {
           <DescriptionField
             value={description}
             onChange={setDescription}
-            placeholder={t.expense.descriptionPlaceholder}
-            accessibilityLabel={t.description}
+            placeholder={
+              isDeposit ? t.eventOrganizer.vendorNamePlaceholder : t.expense.descriptionPlaceholder
+            }
+            accessibilityLabel={isDeposit ? t.eventOrganizer.vendorNameLabel : t.description}
             hints={nameHints}
             autoFocus={focus === 'description'}
           />
@@ -2223,7 +2232,13 @@ export default function AddExpenseScreen() {
                   shorter Save to match, and the label stays one line at this
                   height on every locale this form ships in. */}
               <Button
-                label={editing ? t.expense.saveChanges : t.expense.saveExpense}
+                label={
+                  namePrompted && isDeposit && !description.trim()
+                    ? t.eventOrganizer.saveWithoutName
+                    : editing
+                      ? t.expense.saveChanges
+                      : t.expense.saveExpense
+                }
                 size="lg"
                 style={{ height: 46 }}
                 disabled={!canSave || saving}
@@ -2234,6 +2249,11 @@ export default function AddExpenseScreen() {
           {/* The one reason Save cannot be tapped yet, spelled out under it —
             shown only while the button is actually blocked and no save is in
             flight. */}
+          {namePrompted && isDeposit && !description.trim() && !saving ? (
+            <Text variant="micro" tone="muted" accessibilityLiveRegion="polite">
+              {t.eventOrganizer.vendorNamePrompt}
+            </Text>
+          ) : null}
           {saveHint && !saving ? (
             <Text variant="micro" tone="muted">
               {saveHint}

@@ -9,6 +9,7 @@ import type { ExpenseVersionRow } from '@/data/types';
 import { editStateFromVersion, expenseWritePayload, withBalanceCleared } from '@/lib/expenseEdit';
 import {
   groupVendors,
+  vendorDisplayName,
   vendorKey,
   vendorSubEventIds,
   vendorSummary,
@@ -68,6 +69,32 @@ describe('groupVendors', () => {
     expect(groups).toHaveLength(2);
     expect(groups.every((g) => g.name === '')).toBe(true);
     expect(vendorSummary([adv({ description: '' })], TODAY).totals).toHaveLength(1);
+  });
+
+  it('names a blank deposit by its sub-event, then category, then nothing, and groups by that name', () => {
+    const groups = groupVendors(
+      [
+        adv({ expenseId: '1', description: '', fallbackName: '📍 Venue & decor' }),
+        adv({ expenseId: '2', description: ' ', fallbackName: '📍 Venue  & decor' }),
+        adv({ expenseId: '3', description: '', fallbackName: 'Food' }),
+        adv({ expenseId: '4', description: 'Royal Caterers', fallbackName: '📍 Venue & decor' }),
+        adv({ expenseId: '5', description: '', fallbackName: null }),
+      ],
+      TODAY,
+    );
+    const byName = Object.fromEntries(groups.map((g) => [g.name, g.entries.length]));
+    expect(byName).toEqual({
+      '📍 Venue & decor': 2,
+      Food: 1,
+      'Royal Caterers': 1,
+      '': 1,
+    });
+  });
+
+  it('vendorDisplayName prefers the typed name', () => {
+    expect(vendorDisplayName('  DJ  Rohan ', 'Sangeet')).toBe('DJ Rohan');
+    expect(vendorDisplayName('', 'Sangeet')).toBe('Sangeet');
+    expect(vendorDisplayName('', null)).toBe('');
   });
 
   it('flags overdue, due soon and paid off', () => {

@@ -419,6 +419,10 @@ export interface UiStrings {
     statOver: string;
     percentUsed: string;
     addEventBudget: string;
+    vendorNameLabel: string;
+    vendorNamePlaceholder: string;
+    vendorNamePrompt: string;
+    saveWithoutName: string;
     addVendor: string;
     searchVendors: string;
     filterBySubEvent: string;
@@ -4606,6 +4610,10 @@ const en: UiStrings = {
     statOver: 'Over',
     percentUsed: '{n}% of plan used',
     addEventBudget: 'Add event budget',
+    vendorNameLabel: 'Vendor name',
+    vendorNamePlaceholder: 'Who did you pay? e.g. Royal Caterers',
+    vendorNamePrompt: 'Add who you paid so this shows under the right vendor.',
+    saveWithoutName: 'Save without name',
     addVendor: 'Add vendor',
     searchVendors: 'Search vendors',
     filterBySubEvent: 'Filter by sub-event',
@@ -8147,6 +8155,11 @@ const ta: UiStrings = {
     statOver: 'அதிகம்',
     percentUsed: 'திட்டத்தில் {n}% பயன்படுத்தப்பட்டது',
     addEventBudget: 'நிகழ்வு பட்ஜெட்டை சேர்',
+    vendorNameLabel: 'விற்பனையாளர் பெயர்',
+    vendorNamePlaceholder: 'யாருக்கு செலுத்தினீர்கள்? எ.கா. ராயல் கேட்டரர்ஸ்',
+    vendorNamePrompt:
+      'சரியான விற்பனையாளரின் கீழ் காட்ட, யாருக்கு செலுத்தினீர்கள் என்பதை சேர்க்கவும்.',
+    saveWithoutName: 'பெயர் இல்லாமல் சேமி',
     addVendor: 'விற்பனையாளரை சேர்',
     searchVendors: 'விற்பனையாளர்களை தேடு',
     filterBySubEvent: 'துணை நிகழ்வு வடிகட்டி',
@@ -11828,6 +11841,10 @@ const hi: UiStrings = {
     statOver: 'अधिक',
     percentUsed: 'योजना का {n}% उपयोग हुआ',
     addEventBudget: 'इवेंट बजट जोड़ें',
+    vendorNameLabel: 'वेंडर का नाम',
+    vendorNamePlaceholder: 'आपने किसे भुगतान किया? जैसे रॉयल कैटरर्स',
+    vendorNamePrompt: 'किसे भुगतान किया, यह जोड़ें ताकि यह सही वेंडर के तहत दिखे।',
+    saveWithoutName: 'बिना नाम सहेजें',
     addVendor: 'वेंडर जोड़ें',
     searchVendors: 'वेंडर खोजें',
     filterBySubEvent: 'उप-कार्यक्रम से फ़िल्टर करें',
@@ -15399,6 +15416,10 @@ const ar: UiStrings = {
     statOver: 'الزيادة',
     percentUsed: 'تم استخدام {n}% من الخطة',
     addEventBudget: 'إضافة ميزانية المناسبة',
+    vendorNameLabel: 'اسم المورّد',
+    vendorNamePlaceholder: 'لمن دفعت؟ مثل رويال كيتررز',
+    vendorNamePrompt: 'أضف اسم من دفعت له ليظهر تحت المورّد الصحيح.',
+    saveWithoutName: 'حفظ بدون اسم',
     addVendor: 'إضافة مورّد',
     searchVendors: 'ابحث في المورّدين',
     filterBySubEvent: 'تصفية حسب الفعالية الفرعية',

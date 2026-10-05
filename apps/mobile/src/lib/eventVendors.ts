@@ -15,6 +15,9 @@ import { isBalanceOverdue } from './upcomingPayments';
 export interface VendorCandidate {
   readonly expenseId: string;
   readonly description: string;
+  /** What names the vendor when `description` is blank: the sub-event label
+   *  (with emoji), else the category label; null when neither exists. */
+  readonly fallbackName?: string | null;
   readonly currency: string;
   /** The amount paid (the advance when `isDeposit`), in minor units. */
   readonly amountMinor: bigint;
@@ -77,6 +80,17 @@ export interface VendorSummary {
 
 export const DUE_SOON_DAYS = 7;
 
+/**
+ * The name a vendor is shown (and grouped) under: what was typed, else the
+ * sub-event label, else the category label, else '' (the UI says "Unnamed
+ * vendor"). Whitespace is collapsed.
+ */
+export function vendorDisplayName(description: string, fallbackName?: string | null): string {
+  const clean = (text: string | null | undefined): string =>
+    (text ?? '').trim().replace(/\s+/g, ' ');
+  return clean(description) || clean(fallbackName);
+}
+
 /** Fold a vendor name so letter case and spacing do not split one vendor. */
 export function vendorKey(description: string): string {
   return description.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
@@ -129,7 +143,8 @@ function collect(candidates: readonly VendorCandidate[], today: string): Map<str
     // word nobody typed goes into the ledger") is still money paid to somebody.
     // Dropping it hid the whole advance and read as "No vendors yet"; it stays,
     // as its own unnamed vendor (the UI labels it).
-    const key = vendorKey(c.description) || `\0${c.expenseId}`;
+    const display = vendorDisplayName(c.description, c.fallbackName);
+    const key = vendorKey(display) || `\0${c.expenseId}`;
     const balance = c.balanceDueMinor != null && c.balanceDueMinor > 0n ? c.balanceDueMinor : 0n;
     const owing = balance > 0n;
     const entry: VendorEntry = {
@@ -152,7 +167,7 @@ function collect(candidates: readonly VendorCandidate[], today: string): Map<str
     slot.entries.push(entry);
     if (slot.name === '' || c.expenseDate >= slot.latest) {
       slot.latest = c.expenseDate;
-      slot.name = c.description.trim().replace(/\s+/g, ' ');
+      slot.name = display;
     }
     byVendor.set(key, slot);
   }
