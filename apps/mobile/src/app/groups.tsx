@@ -5,6 +5,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  directionalIcon,
   Button,
   EmptyState,
   iconSize,
@@ -34,7 +35,6 @@ import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
 import { SkeletonList } from '@/components/Skeletons';
 import { HeroScene } from '@/components/home/HeroScene';
-import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { router } from '@/lib/navigation';
 
@@ -47,7 +47,7 @@ const HEADER_BUTTON = 40;
  * the same three numbers, and the same rule (overlap never past the room), the
  * contact picker's scene uses.
  */
-const SCENE_ROOM = 16;
+const SCENE_ROOM = 26;
 const SCENE_OVERLAP = 14;
 const SCENE_INTO_CARD = 34;
 
@@ -391,21 +391,43 @@ function GroupsHeader({
       <View
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
-          paddingTop: insetsTop + theme.spacing.xs,
+          paddingTop: insetsTop + theme.spacing.sm,
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: SCENE_ROOM,
         }}
       >
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <TranslucentBackButton dark={darkInk} label={backLabel} onPress={() => router.back()} />
-          <View style={{ flex: 1 }}>
-            <Text variant="subheading" numberOfLines={1} style={{ color: ink }}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+            onPress={() => router.back()}
+            hitSlop={6}
+            style={whiteDisc}
+          >
+            <Ionicons
+              name={directionalIcon('arrow-back')}
+              size={iconSize.lg}
+              color={theme.color.text}
+            />
+          </PressableScale>
+          <View style={{ flex: 1, gap: 1 }}>
+            <Text
+              variant="title"
+              numberOfLines={1}
+              style={{
+                color: ink,
+                fontSize: 22,
+                lineHeight: 26,
+                fontWeight: '800',
+                ...inkShadow(darkInk),
+              }}
+            >
               {title}
             </Text>
             <Text
-              variant="micro"
+              variant="caption"
               numberOfLines={1}
-              style={{ color: ink, opacity: darkInk ? 0.7 : 0.85 }}
+              style={{ color: ink, opacity: darkInk ? 0.75 : 0.92, ...inkShadow(darkInk) }}
             >
               {subtitle}
             </Text>
@@ -451,6 +473,11 @@ function GroupsHeader({
             backgroundColor: theme.color.surface,
             borderWidth: 1,
             borderColor: theme.color.border,
+            shadowColor: '#000',
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
           }}
         >
           <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
@@ -482,7 +509,18 @@ function GroupsHeader({
   );
 }
 
-/** A solid white disc — the header's own action button, glyph in brand. */
+/** Light text over a bright patch of sky still reads with a soft shadow. */
+function inkShadow(darkInk: boolean) {
+  return darkInk
+    ? {}
+    : {
+        textShadowColor: 'rgba(0,0,0,0.25)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+      };
+}
+
+/** A solid white disc — the header's own action buttons. */
 const whiteDisc = {
   width: HEADER_BUTTON,
   height: HEADER_BUTTON,
@@ -535,14 +573,14 @@ function FilterBar({
     {
       key: 'owe',
       label: t.misc.filterOwe,
-      icon: 'arrow-up-circle',
+      icon: 'arrow-up',
       ink: theme.color.negative,
       soft: theme.color.negativeSoft,
     },
     {
       key: 'favorites',
       label: t.misc.filterFavorites,
-      icon: 'star',
+      icon: 'star-outline',
       ink: theme.color.warning,
       soft: theme.color.warningSoft,
     },
@@ -560,7 +598,7 @@ function FilterBar({
       <Row style={{ flex: 1, gap: theme.spacing.xs }}>
         {chips.map((chip) => {
           const selected = filter === chip.key;
-          const color = selected ? '#FFFFFF' : chip.ink;
+          const color = selected ? theme.color.onBrand : theme.color.text;
           return (
             <Pressable
               key={chip.key}
@@ -577,15 +615,17 @@ function FilterBar({
                 gap: 4,
                 paddingHorizontal: theme.spacing.sm,
                 borderRadius: CHIP_HEIGHT / 2,
-                backgroundColor: selected ? chip.ink : chip.soft,
+                backgroundColor: selected ? theme.color.brand : theme.color.surface,
+                borderWidth: 1,
+                borderColor: selected ? theme.color.brand : theme.color.border,
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Ionicons name={chip.icon} size={iconSize.sm} color={color} />
+              <Ionicons name={chip.icon} size={iconSize.sm} color={selected ? color : chip.ink} />
               <Text
                 variant="caption"
                 numberOfLines={1}
-                style={{ color, fontWeight: '600', flexShrink: 1 }}
+                style={{ color, fontWeight: selected ? '700' : '500', flexShrink: 1 }}
               >
                 {chip.label}
               </Text>
@@ -696,7 +736,7 @@ const GroupListRow = memo(function GroupListRow({
   const { t } = useStrings();
 
   return (
-    <View style={{ paddingBottom: theme.spacing.sm }}>
+    <View style={{ paddingBottom: 6 }}>
       <Pressable
         accessibilityRole="button"
         // The full subtitle, not just the status word: a pending group at a zero
@@ -726,19 +766,19 @@ const GroupListRow = memo(function GroupListRow({
           style={{
             gap: theme.spacing.sm,
             alignItems: 'center',
-            minHeight: 64,
-            paddingVertical: theme.spacing.sm,
-            paddingStart: theme.spacing.md,
+            minHeight: 56,
+            paddingVertical: 8,
+            paddingStart: theme.spacing.sm,
             paddingEnd: theme.spacing.sm,
             opacity: dim ? 0.7 : 1,
           }}
         >
           <View
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.color.surfaceMuted,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: theme.color.brandSoft,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -788,29 +828,29 @@ const GroupListRow = memo(function GroupListRow({
               {direction}
             </Text>
           </View>
-          <Ionicons
-            name="chevron-forward"
-            size={iconSize.sm}
-            color={theme.color.textMuted}
-            style={{ width: 14 }}
-          />
-        </Row>
-        {onTogglePin ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={pinLabel}
-            accessibilityState={{ selected: pinned }}
-            onPress={onTogglePin}
-            hitSlop={8}
-            style={{ position: 'absolute', top: 6, end: 6 }}
-          >
+          <View style={{ alignItems: 'center', gap: 4, width: 18 }}>
+            {onTogglePin ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={pinLabel}
+                accessibilityState={{ selected: pinned }}
+                onPress={onTogglePin}
+                hitSlop={10}
+              >
+                <Ionicons
+                  name={pinned ? 'star' : 'star-outline'}
+                  size={14}
+                  color={pinned ? theme.color.warning : theme.color.textMuted}
+                />
+              </Pressable>
+            ) : null}
             <Ionicons
-              name={pinned ? 'star' : 'star-outline'}
-              size={14}
-              color={pinned ? theme.color.warning : theme.color.textMuted}
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textMuted}
             />
-          </Pressable>
-        ) : null}
+          </View>
+        </Row>
       </Pressable>
     </View>
   );
