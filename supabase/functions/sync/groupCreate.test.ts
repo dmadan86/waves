@@ -224,4 +224,33 @@ describe('group.update and the name column', () => {
     expect(outcome).toMatchObject({ status: 'applied' });
     expect(scoped.update).toHaveBeenCalledWith({ cover_emoji: 'X' });
   });
+
+  it('lets custom_tag through the allowlist, trimmed', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(updateGroup({ custom_tag: '  Diwali 2026 ' }, 'tag-set'));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.update).toHaveBeenCalledWith({ custom_tag: 'Diwali 2026' });
+  });
+
+  it('writes NULL, never an empty string, when the tag is cleared', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(updateGroup({ custom_tag: '   ' }, 'tag-clear'));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.update).toHaveBeenCalledWith({ custom_tag: null });
+  });
+
+  it('still drops columns that are not on the allowlist', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    await session.apply(updateGroup({ custom_tag: 'X', updated_seq: 9 }, 'tag-extra'));
+
+    expect(scoped.update).toHaveBeenCalledWith({ custom_tag: 'X' });
+  });
 });

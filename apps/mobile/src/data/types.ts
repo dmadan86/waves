@@ -83,6 +83,9 @@ export interface GroupRow {
    *  Optional for the same reason `budget_minor` is — a narrow REST select can
    *  omit it; the mirror row (a full `*` pull) always carries it. */
   event_template?: string | null;
+  /** A member-typed short tag shown instead of the automatic type tag (<= 24
+   *  chars, trimmed), or null. Optional for the same reason `event_template` is. */
+  custom_tag?: string | null;
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;
   /**

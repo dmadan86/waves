@@ -256,6 +256,11 @@ model Group {
   /// picking a template is part of describing the group, not a budget decision.
   eventTemplate   String?   @map("event_template")
 
+  /// A member-typed short label ("Office offsite") shown in place of the
+  /// automatic type tag. NULL when unset. <= 24 chars, trimmed, non-empty (CHECK
+  /// `groups_custom_tag_shape`). Ordinary member-writable, like `eventTemplate`.
+  customTag       String?   @map("custom_tag")
+
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
   /// Group-visible by design: everyone sees the overall budget; only an admin

@@ -161,6 +161,7 @@ describe('the columns the app actually writes still go through', () => {
     await patch(member, groupId, 'simplify_debts', false);
     await patch(member, groupId, 'default_currency', 'EUR');
     await patch(member, groupId, 'country_code', 'IN');
+    await patch(member, groupId, 'custom_tag', 'Diwali 2026');
 
     const { rows } = await client.query(
       `SELECT name, description, cover_emoji, remind_daily FROM groups WHERE id = $1`,

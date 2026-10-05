@@ -44,7 +44,9 @@ import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { InfoDisclosure } from '@/components/InfoDisclosure';
+import { GroupTagField } from '@/components/GroupTagField';
 import { TripDates } from '@/components/TripDates';
+import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
@@ -351,12 +353,14 @@ export default function GroupSettingsScreen() {
   // description would be unclearable. The name field gets away with a plain
   // null here only because its empty value is '' rather than null.
   const [sentDescription, setSentDescription] = useState<string | null | undefined>(undefined);
+  const [tag, setTag] = useState(group.data?.custom_tag ?? '');
   if (group.data && seededId !== group.data.id) {
     setSeededId(group.data.id);
     setName(group.data.name ?? '');
     setSentName(null);
     setDescription(group.data.description ?? '');
     setSentDescription(undefined);
+    setTag(group.data.custom_tag ?? '');
   }
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -387,6 +391,13 @@ export default function GroupSettingsScreen() {
     if (next === (group.data?.name ?? '') || next === sentName) return;
     setSentName(next);
     updateGroup.mutate({ name: next || null }, { onSuccess: () => setStatus(t.account.saved) });
+  };
+
+  /** Save the tag on blur or a chip tap; clearing it writes NULL. */
+  const commitTag = (raw: string): void => {
+    const next = normaliseGroupTag(raw);
+    if (next === (group.data?.custom_tag ?? null)) return;
+    updateGroup.mutate({ custom_tag: next }, { onSuccess: () => setStatus(t.account.saved) });
   };
 
   /**
@@ -788,6 +799,11 @@ export default function GroupSettingsScreen() {
           />
         </View>
 
+        {/* The member's own short tag, shown instead of the automatic type tag
+            on Home and the group header. Saved on blur or a chip tap; empty
+            clears it back to the type. */}
+        <GroupTagField type={group.data.type} value={tag} onChange={setTag} onCommit={commitTag} />
+
         {/* Decides which payment rails the settle screen offers, and what a new
             expense starts in. Nothing already recorded changes. */}
         <CountryRow
@@ -822,10 +838,12 @@ export default function GroupSettingsScreen() {
             section appears only for that type and disappears the moment the
             group is changed to another kind. Nothing recorded is touched — the
             stored dates simply stop being shown until it is a trip again. */}
-        {(group.data.type ?? GroupType.Other) === GroupType.Trip ? (
+        {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
+        (group.data.type ?? GroupType.Other) === GroupType.Event ? (
           <TripDates
             group={group.data}
             locale={locale}
+            forEvent={group.data.type === GroupType.Event}
             onChange={(patch) =>
               updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
             }

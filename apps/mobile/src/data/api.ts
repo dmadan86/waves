@@ -769,6 +769,8 @@ export async function updateGroup(
     remind_daily: boolean;
     remind_morning_at: string;
     remind_evening_at: string;
+    /** Normalise through `normaliseGroupTag`: NULL, not '', max 24 chars. */
+    custom_tag: string | null;
   }>,
 ): Promise<void> {
   const { error } = await backend.from('groups').update(patch).eq('id', groupId);

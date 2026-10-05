@@ -30,6 +30,8 @@ export interface GroupRow {
   simplify_debts: boolean;
   cover_emoji: string | null;
   photo_path: string | null;
+  /** Member-typed short tag; null when unset. Optional: narrow selects omit it. */
+  custom_tag?: string | null;
   start_date: string | null;
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */
