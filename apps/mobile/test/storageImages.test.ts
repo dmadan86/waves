@@ -317,3 +317,37 @@ describe('with R2 on — presigned, brokered by r2-sign', () => {
     await expect(removeImage('avatars', 'p1')).rejects.toThrow('denied');
   });
 });
+
+describe('a missing object with R2 on', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_R2_ENABLED = 'true';
+  });
+
+  it('is asked about once, not on every look', async () => {
+    h.invoke.mockResolvedValue({
+      data: null,
+      error: functionError({ code: 'NOT_FOUND', message: 'No such object' }),
+    });
+    expect(await imageUrl('receipts', 'g1/e1.jpg')).toBeNull();
+    expect(await imageUrl('receipts', 'g1/e1.jpg')).toBeNull();
+    expect(h.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again once the object is uploaded here', async () => {
+    h.invoke.mockResolvedValueOnce({
+      data: null,
+      error: functionError({ code: 'NOT_FOUND', message: 'No such object' }),
+    });
+    expect(await imageUrl('receipts', 'g1/e1.jpg')).toBeNull();
+    signedUrls.invalidate('receipts|g1/e1.jpg');
+    h.invoke.mockResolvedValueOnce({ data: { url: 'https://r2/e1' }, error: null });
+    expect(await imageUrl('receipts', 'g1/e1.jpg')).toBe('https://r2/e1');
+  });
+
+  it('does not remember a failure that is not a 404', async () => {
+    h.invoke.mockResolvedValue({ data: null, error: functionError({ code: 'INTERNAL' }) });
+    expect(await imageUrl('receipts', 'g1/e2.jpg')).toBeNull();
+    expect(await imageUrl('receipts', 'g1/e2.jpg')).toBeNull();
+    expect(h.invoke).toHaveBeenCalledTimes(2);
+  });
+});

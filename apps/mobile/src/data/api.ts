@@ -29,6 +29,7 @@ import {
   type SplitParams,
 } from '@waves/core';
 
+import { isDemoGroupId, isDemoId } from '@/demo/ids';
 import { activeStrings } from '@/i18n';
 import type { DeviceIdentity } from '@/lib/device';
 import { normaliseContactPhone } from '@/lib/phone';
@@ -73,6 +74,7 @@ export async function fetchGroups(): Promise<GroupRow[]> {
 }
 
 export async function fetchMembers(groupId: string): Promise<MemberRow[]> {
+  if (isDemoGroupId(groupId)) return [];
   return unwrap(
     await backend
       .from('group_members')
@@ -89,6 +91,7 @@ export async function fetchMembers(groupId: string): Promise<MemberRow[]> {
  * wrong and the user is told, rather than shown a plausible wrong number.
  */
 export async function fetchBalances(groupId: string): Promise<BalanceRow[]> {
+  if (isDemoGroupId(groupId)) return [];
   return unwrap(
     await backend
       .from('group_balances')
@@ -237,6 +240,7 @@ export async function removeGroupPhoto(groupId: string, path: string | null): Pr
  * whose subscription it was. Pass `null` for the new-group case.
  */
 export async function canUploadGroupPhoto(groupId: string | null): Promise<boolean> {
+  if (isDemoGroupId(groupId)) return false;
   const { data, error } = await backend.rpc('waves_can_upload_group_photo', {
     p_group_id: groupId,
   });
@@ -255,6 +259,7 @@ export async function canUploadGroupPhoto(groupId: string | null): Promise<boole
  * this is the affordance, not the boundary.
  */
 export async function canAddReceipt(groupId: string): Promise<boolean> {
+  if (isDemoGroupId(groupId)) return true; // demo ids are not UUIDs; the server would reject them
   const { data, error } = await backend.rpc('waves_can_add_receipt', {
     p_group_id: groupId,
   });
@@ -269,6 +274,7 @@ export async function canAddReceipt(groupId: string): Promise<boolean> {
  * `waves_attach_expense_attachment` enforces the same ceiling server-side.
  */
 export async function canAddExpenseAttachment(expenseId: string): Promise<boolean> {
+  if (isDemoId(expenseId)) return true;
   const { data, error } = await backend.rpc('waves_can_add_expense_attachment', {
     p_expense_id: expenseId,
   });
@@ -424,6 +430,7 @@ export async function expenseReceiptUrl(
   groupId: string,
   expenseId: string,
 ): Promise<string | null> {
+  if (isDemoGroupId(groupId) || isDemoId(expenseId)) return null;
   return imageUrl(RECEIPT_BUCKET, expenseReceiptPath(groupId, expenseId));
 }
 
@@ -688,6 +695,8 @@ export interface ExpenseVersionAudit {
 }
 
 export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVersionAudit[]> {
+  // A demo expense has no server history; its ids are not UUIDs.
+  if (isDemoId(expenseId)) return [];
   return unwrap(
     await backend
       .from('expense_versions')
@@ -904,6 +913,7 @@ export interface PendingClaim {
 
 /** What an admin of this group has been asked. Empty for everybody else. */
 export async function fetchMemberClaims(groupId: string): Promise<PendingClaim[]> {
+  if (isDemoGroupId(groupId)) return [];
   const { data, error } = await backend.rpc('waves_group_member_claims', { p_group_id: groupId });
   if (error) throw new Error(error.message);
   return (data ?? []) as PendingClaim[];
@@ -1722,6 +1732,7 @@ export interface OpenReceiptRow {
 
 /** The bills scanned in this group that nobody has turned into an expense yet. */
 export async function fetchOpenReceipts(groupId: string): Promise<OpenReceiptRow[]> {
+  if (isDemoGroupId(groupId)) return [];
   const { data, error } = await backend.rpc('waves_open_receipts', { p_group_id: groupId });
   if (error) throw new Error(error.message);
   return (data ?? []) as OpenReceiptRow[];
