@@ -456,7 +456,7 @@ export default function GroupSettingsScreen() {
   if (group.isLoading) return <GroupSkeleton />;
 
   if (!group.data) {
-    return <GroupNotFound />;
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const settled = ledger.myBalance === 0n;

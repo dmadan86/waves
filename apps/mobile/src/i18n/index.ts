@@ -2479,6 +2479,11 @@ export interface UiStrings {
     notFound: string;
     notFoundBody: string;
     notFoundArchived: string;
+    /** The not-found screen's actions and its help card. */
+    notFoundRetry: string;
+    notFoundHome: string;
+    notFoundHelpTitle: string;
+    notFoundHelp: string;
     loading: string;
     settings: string;
     more: string;
@@ -6259,6 +6264,10 @@ const en: UiStrings = {
     notFound: 'Group not found',
     notFoundBody: 'It may have been archived, or you are no longer a member.',
     notFoundArchived: 'It may have been archived.',
+    notFoundRetry: 'Try again',
+    notFoundHome: 'Go to Home',
+    notFoundHelpTitle: 'Need help?',
+    notFoundHelp: 'Check the invite link or ask the group admin to share a new link.',
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
@@ -9883,6 +9892,11 @@ const ta: UiStrings = {
     notFound: 'குழு கிடைக்கவில்லை',
     notFoundBody: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம், அல்லது நீங்கள் இனி உறுப்பினர் இல்லை.',
     notFoundArchived: 'அது காப்பகப்படுத்தப்பட்டிருக்கலாம்.',
+    notFoundRetry: 'மீண்டும் முயற்சிக்கவும்',
+    notFoundHome: 'முகப்புக்குச் செல்',
+    notFoundHelpTitle: 'உதவி வேண்டுமா?',
+    notFoundHelp:
+      'அழைப்பு இணைப்பைச் சரிபார்க்கவும் அல்லது புதிய இணைப்பைப் பகிரும்படி குழு நிர்வாகியிடம் கேளுங்கள்.',
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
@@ -13535,6 +13549,10 @@ const hi: UiStrings = {
     notFound: 'समूह नहीं मिला',
     notFoundBody: 'हो सकता है यह संग्रहित कर दिया गया हो, या आप अब सदस्य न हों।',
     notFoundArchived: 'हो सकता है यह संग्रहित कर दिया गया हो।',
+    notFoundRetry: 'फिर से कोशिश करें',
+    notFoundHome: 'होम पर जाएँ',
+    notFoundHelpTitle: 'मदद चाहिए?',
+    notFoundHelp: 'आमंत्रण लिंक जाँचें या ग्रुप एडमिन से नया लिंक साझा करने को कहें।',
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
@@ -17275,6 +17293,10 @@ const ar: UiStrings = {
     notFound: 'المجموعة غير موجودة',
     notFoundBody: 'ربما أُرشفت، أو لم تعد عضوًا فيها.',
     notFoundArchived: 'ربما أُرشفت.',
+    notFoundRetry: 'حاول مرة أخرى',
+    notFoundHome: 'الذهاب إلى الرئيسية',
+    notFoundHelpTitle: 'تحتاج مساعدة؟',
+    notFoundHelp: 'تحقّق من رابط الدعوة أو اطلب من مشرف المجموعة مشاركة رابط جديد.',
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',

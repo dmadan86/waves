@@ -1,82 +1,95 @@
+import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { useSegments } from 'expo-router';
+import { Image, ScrollView, View, useWindowDimensions } from 'react-native';
 
-import { Button, directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  Card,
+  iconSize,
+  Screen,
+  Text,
+  useScreenClearance,
+  useTabBarClearance,
+  useTheme,
+} from '@waves/ui';
 
+import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { useStrings } from '@/i18n';
 import { router, useGoBack } from '@/lib/navigation';
-import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
+import { resolveTabBar } from '@/lib/tabBar';
+import { useSync } from '@/sync';
+
+const ART = require('../../assets/images/group-not-found.webp') as number;
+/** The artwork's own proportions (960 x 610). */
+const ART_RATIO = 610 / 960;
 
 /**
  * The one "this group is not here" screen, shared by the group, its settings,
  * the add-expense form and itemize, so a missing group reads the same wherever
  * it is reached from.
  *
- * Only shown once the group has had its chance to arrive (see `useGroup`).
- *
- * It has a full-width action of its own at the bottom, so the root bar stands
- * down: left up, its raised centre button peeked out from behind this screen's
- * own bar and read as a second, stray call to action.
+ * Only shown once the group has had its chance to arrive (see `useGroup`) — so
+ * "Try again" is a real second look: it pulls this group from the server and, if
+ * it lands, the screen that rendered this replaces it with the group.
  */
-export function GroupNotFound() {
+export function GroupNotFound({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const goBack = useGoBack('/');
-  useTabBarStandDown(true);
+  const { flush } = useSync();
+  const { width } = useWindowDimensions();
+  const segments = useSegments() as readonly string[];
+  const [retrying, setRetrying] = useState(false);
 
-  // A group can vanish for ordinary reasons — archived, left, a link that has
-  // gone stale — so this is a place to step back from, not a crash. It wears
-  // the shape the category's own not-found screens use: an escape at the top,
-  // a soft-tinted tile so the state looks like the app rather than a failure,
-  // and the one way out as a full-width bar under the thumb rather than a pill
-  // adrift in the middle of the page.
+  // Nothing may sit under the root bar: keep its room where it is on screen, and
+  // an ordinary bottom inset where this route hides it (add-expense, itemize).
+  const barClearance = useTabBarClearance();
+  const insetClearance = useScreenClearance(theme.spacing.xl);
+  const bottom = resolveTabBar(segments).hidden ? insetClearance : barClearance;
+
+  const retry = async (): Promise<void> => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await flush(groupId ? [groupId] : undefined);
+    } catch {
+      // A failed pull leaves the same answer on screen; the sync banner owns the why.
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const artWidth = Math.min(width - theme.spacing.xl * 2, 420);
+
   return (
-    <Screen edges={['top', 'bottom']}>
-      <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl }}>
-        <Row style={{ paddingTop: theme.spacing.md }}>
-          {/* Never a dead control: a cold open from a notification or a stale
-              invite link has no history to pop, so the chevron falls back to
-              home rather than silently doing nothing. */}
-          <Pressable
-            onPress={goBack}
-            accessibilityRole="button"
-            accessibilityLabel={t.common.back}
-            hitSlop={10}
-          >
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.xxl}
-              color={theme.color.text}
-            />
-          </Pressable>
-        </Row>
+    <Screen edges={['top']}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: theme.spacing.xl,
+          paddingTop: theme.spacing.md,
+          paddingBottom: bottom,
+          gap: theme.spacing.lg,
+        }}
+      >
+        {/* Never a dead control: a cold open from a notification or a stale
+            invite link has no history to pop, so the chevron falls back to
+            home rather than silently doing nothing. */}
+        <TranslucentBackButton
+          dark={theme.scheme === 'light'}
+          label={t.common.back}
+          onPress={goBack}
+        />
 
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: theme.spacing.md,
-          }}
-        >
-          {/* Decorative: the title carries the meaning. A tile the size of a
-              group cover, in the soft brand tint the app uses for its empty
-              states. */}
-          <View
+        <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <Image
+            source={ART}
             accessibilityElementsHidden
             importantForAccessibility="no"
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: theme.radius.xl,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.buttonPrimary,
-              marginBottom: theme.spacing.sm,
-            }}
-          >
-            <Ionicons name="compass-outline" size={48} color={theme.color.onBrand} />
-          </View>
+            style={{ width: artWidth, height: artWidth * ART_RATIO }}
+            resizeMode="contain"
+          />
           <Text variant="title" align="center" accessibilityRole="header">
             {t.group.notFound}
           </Text>
@@ -85,16 +98,49 @@ export function GroupNotFound() {
           </Text>
         </View>
 
-        {/* The reliable way out. This state is most often reached by following
-            a link to a group that has gone, where there is no back stack — so
-            the primary action goes home for certain, the way join.tsx does. */}
-        <Button
-          label={t.misc.goToWaves}
-          onPress={() => router.replace('/')}
-          fullWidth
-          style={{ marginBottom: theme.spacing.xl }}
-        />
-      </View>
+        <View style={{ gap: theme.spacing.md }}>
+          <Button
+            variant="brand"
+            size="lg"
+            fullWidth
+            label={retrying ? t.group.loading : t.group.notFoundRetry}
+            disabled={retrying}
+            icon={<Ionicons name="refresh" size={iconSize.md} color={theme.color.onBrand} />}
+            onPress={() => void retry()}
+          />
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            label={t.group.notFoundHome}
+            icon={<Ionicons name="home-outline" size={iconSize.md} color={theme.color.text} />}
+            onPress={() => router.replace('/')}
+          />
+        </View>
+
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="bulb-outline" size={iconSize.lg} color={theme.color.brand} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="subheading">{t.group.notFoundHelpTitle}</Text>
+            <Text variant="caption" tone="muted">
+              {t.group.notFoundHelp}
+            </Text>
+          </View>
+        </Card>
+      </ScrollView>
     </Screen>
   );
 }

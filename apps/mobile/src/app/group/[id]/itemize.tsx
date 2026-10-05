@@ -372,7 +372,7 @@ export default function ItemizeScreen() {
   }
 
   if (!group.data) {
-    return <GroupNotFound />;
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const addItem = (): void => {

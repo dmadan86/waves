@@ -685,7 +685,7 @@ export default function GroupScreen() {
   }
 
   if (group.isError || !group.data) {
-    return <GroupNotFound />;
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const groupData = group.data;

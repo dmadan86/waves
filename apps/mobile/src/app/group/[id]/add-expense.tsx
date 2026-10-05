@@ -1147,7 +1147,7 @@ export default function AddExpenseScreen() {
   }
 
   if (!group.data) {
-    return <GroupNotFound />;
+    return <GroupNotFound groupId={groupId} />;
   }
 
   const submit = async (): Promise<void> => {
