@@ -1404,6 +1404,15 @@ export interface UiStrings {
     confirm: string;
     sendCodeEmail: string;
     sendCodePhone: string;
+    /** Why a text code could not be sent or checked, by what the person can do. */
+    phoneErrors: {
+      invalidNumber: string;
+      tooMany: string;
+      unavailable: string;
+      network: string;
+      invalidCode: string;
+      expired: string;
+    };
     useDifferent: string;
     added: string;
     signInMethodsTitle: string;
@@ -5427,6 +5436,14 @@ const en: UiStrings = {
     confirm: 'Confirm',
     sendCodeEmail: 'Send me a code',
     sendCodePhone: 'Text me a code',
+    phoneErrors: {
+      invalidNumber: 'That phone number does not look right. Check the country code and digits.',
+      tooMany: 'Too many attempts. Please wait a while before asking for another code.',
+      unavailable: "Text codes aren't available right now. Please try again later or use email.",
+      network: 'No connection. Check your internet and try again.',
+      invalidCode: 'That code is not right. Check it and try again.',
+      expired: 'That code has expired. Ask for a new one.',
+    },
     useDifferent: 'Use a different one',
     added: 'Added. You can sign in with it on another phone now.',
     signInMethodsTitle: 'Ways to sign in',
@@ -9010,6 +9027,14 @@ const ta: UiStrings = {
     confirm: 'உறுதிப்படுத்து',
     sendCodeEmail: 'எனக்கு ஒரு குறியீடு அனுப்பு',
     sendCodePhone: 'குறுஞ்செய்தியில் குறியீடு அனுப்பு',
+    phoneErrors: {
+      invalidNumber: 'இந்த ஃபோன் எண் சரியாகத் தெரியவில்லை. நாட்டுக் குறியீடு, எண்களைச் சரிபார்க்கவும்.',
+      tooMany: 'அதிக முயற்சிகள். புதிய குறியீடு கேட்பதற்கு முன் சிறிது நேரம் காத்திருக்கவும்.',
+      unavailable: 'குறுஞ்செய்திக் குறியீடுகள் இப்போது கிடைக்கவில்லை. பின்னர் முயலவும் அல்லது மின்னஞ்சலைப் பயன்படுத்தவும்.',
+      network: 'இணைப்பு இல்லை. இணையத்தைச் சரிபார்த்து மீண்டும் முயலவும்.',
+      invalidCode: 'அந்தக் குறியீடு சரியில்லை. சரிபார்த்து மீண்டும் முயலவும்.',
+      expired: 'அந்தக் குறியீடு காலாவதியாகிவிட்டது. புதியதைக் கேட்கவும்.',
+    },
     useDifferent: 'வேறொன்றைப் பயன்படுத்து',
     added: 'சேர்க்கப்பட்டது. இப்போது வேறு ஃபோனிலும் இதைக் கொண்டு உள்நுழையலாம்.',
     signInMethodsTitle: 'உள்நுழையும் வழிகள்',
@@ -12697,6 +12722,14 @@ const hi: UiStrings = {
     confirm: 'पुष्टि करें',
     sendCodeEmail: 'मुझे कोड भेजें',
     sendCodePhone: 'मैसेज पर कोड भेजें',
+    phoneErrors: {
+      invalidNumber: 'यह फ़ोन नंबर सही नहीं लग रहा। देश का कोड और अंक जाँचें।',
+      tooMany: 'बहुत ज़्यादा कोशिशें हुईं। नया कोड माँगने से पहले थोड़ी देर रुकें।',
+      unavailable: 'मैसेज कोड अभी उपलब्ध नहीं हैं। बाद में फिर कोशिश करें या ईमेल इस्तेमाल करें।',
+      network: 'कनेक्शन नहीं है। इंटरनेट जाँचकर फिर कोशिश करें।',
+      invalidCode: 'यह कोड सही नहीं है। जाँचकर फिर कोशिश करें।',
+      expired: 'यह कोड समाप्त हो गया है। नया कोड माँगें।',
+    },
     useDifferent: 'कोई दूसरा इस्तेमाल करें',
     added: 'जुड़ गया। अब आप इससे किसी दूसरे फ़ोन पर साइन इन कर सकते हैं।',
     signInMethodsTitle: 'साइन इन करने के तरीके',
@@ -16339,6 +16372,14 @@ const ar: UiStrings = {
     confirm: 'تأكيد',
     sendCodeEmail: 'أرسل لي رمزًا',
     sendCodePhone: 'أرسل الرمز برسالة',
+    phoneErrors: {
+      invalidNumber: 'رقم الهاتف هذا لا يبدو صحيحًا. تحقق من رمز الدولة والأرقام.',
+      tooMany: 'محاولات كثيرة. انتظر قليلًا قبل طلب رمز جديد.',
+      unavailable: 'الرموز النصية غير متاحة الآن. حاول لاحقًا أو استخدم البريد الإلكتروني.',
+      network: 'لا يوجد اتصال. تحقق من الإنترنت وحاول مرة أخرى.',
+      invalidCode: 'هذا الرمز غير صحيح. تحقق منه وحاول مرة أخرى.',
+      expired: 'انتهت صلاحية هذا الرمز. اطلب رمزًا جديدًا.',
+    },
     useDifferent: 'استخدم غيره',
     added: 'تمت الإضافة. يمكنك الآن تسجيل الدخول به على هاتف آخر.',
     signInMethodsTitle: 'طرق تسجيل الدخول',
