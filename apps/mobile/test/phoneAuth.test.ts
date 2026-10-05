@@ -58,21 +58,32 @@ const firebase = vi.hoisted(() => ({
   present: true,
   /** What confirming the code gives back; null is a code Firebase refused. */
   credential: { user: { getIdToken: async () => 'id-token' } } as unknown,
+  /** What sending / confirming throws, when a test wants Firebase to refuse. */
+  sendError: null as unknown,
+  confirmError: null as unknown,
 }));
 
 vi.mock('@/lib/firebaseModule', () => ({
   loadFirebaseAuth: () =>
     firebase.present
       ? () => ({
-          signInWithPhoneNumber: async () => ({
-            confirm: async () => firebase.credential,
-          }),
+          signInWithPhoneNumber: async () => {
+            if (firebase.sendError) throw firebase.sendError;
+            return {
+              confirm: async () => {
+                if (firebase.confirmError) throw firebase.confirmError;
+                return firebase.credential;
+              },
+            };
+          },
           signOut: async () => undefined,
         })
       : null,
 }));
 
 const {
+  PhoneAuthError,
+  phoneErrorKind,
   attachPhoneCode,
   confirmPhoneCode,
   forgetPendingPhoneCode,
@@ -88,6 +99,8 @@ beforeEach(() => {
   world.refreshSession.mockClear();
   firebase.present = true;
   firebase.credential = { user: { getIdToken: async () => 'id-token' } };
+  firebase.sendError = null;
+  firebase.confirmError = null;
   forgetPendingPhoneCode();
 });
 
@@ -272,5 +285,56 @@ describe('a build with no Firebase in it', () => {
     await expect(fresh.confirmPhoneCode('+919876543210', '1')).rejects.toThrow(
       'cannot sign in by phone',
     );
+  });
+});
+
+describe('what Firebase refuses, said as something to do', () => {
+  it.each([
+    ['auth/invalid-phone-number', 'invalidNumber'],
+    ['auth/too-many-requests', 'tooMany'],
+    ['auth/quota-exceeded', 'tooMany'],
+    ['auth/app-not-authorized', 'unavailable'],
+    ['auth/missing-client-identifier', 'unavailable'],
+    ['auth/operation-not-allowed', 'unavailable'],
+    ['auth/billing-not-enabled', 'unavailable'],
+    ['auth/BILLING_NOT_ENABLED', 'unavailable'],
+    ['auth/network-request-failed', 'network'],
+    ['auth/invalid-verification-code', 'invalidCode'],
+    ['auth/session-expired', 'expired'],
+    ['auth/code-expired', 'expired'],
+  ])('reads %s as %s', (code, kind) => {
+    expect(phoneErrorKind({ code })).toBe(kind);
+  });
+
+  it('leaves what it cannot name to the generic sentence', () => {
+    expect(phoneErrorKind({ code: 'auth/internal-error' })).toBeNull();
+    expect(phoneErrorKind(new Error('boom'))).toBeNull();
+    expect(phoneErrorKind(undefined)).toBeNull();
+  });
+
+  it('turns a refused send into a named error and logs the raw code', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    firebase.sendError = { code: 'auth/invalid-phone-number', message: 'bad' };
+    const caught = await sendPhoneCode('+91123').catch((e: unknown) => e);
+    expect(caught).toBeInstanceOf(PhoneAuthError);
+    expect((caught as InstanceType<typeof PhoneAuthError>).kind).toBe('invalidNumber');
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('sendPhoneCode'),
+      'auth/invalid-phone-number',
+    );
+    warn.mockRestore();
+  });
+
+  it('names a wrong code, and a code with nothing in flight', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await sendPhoneCode('+919876543210');
+    firebase.confirmError = { code: 'auth/invalid-verification-code' };
+    await expect(attachPhoneCode('+919876543210', '000000')).rejects.toMatchObject({
+      kind: 'invalidCode',
+    });
+    forgetPendingPhoneCode();
+    await expect(attachPhoneCode('+919876543210', '000000')).rejects.toMatchObject({
+      kind: 'expired',
+    });
   });
 });
