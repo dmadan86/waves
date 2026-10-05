@@ -189,6 +189,18 @@ async function proveNumber(phone: string, code: string): Promise<string> {
   }
 }
 
+export class PhoneVerifyError extends Error {
+  constructor(
+    /** `phone-verify`'s own code (`TOO_MANY`, `ALREADY_USED`, ...), or '' when none was read. */
+    readonly serverCode: string,
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = 'PhoneVerifyError';
+  }
+}
+
 /**
  * What `phone-verify` actually said.
  *
@@ -198,12 +210,17 @@ async function proveNumber(phone: string, code: string): Promise<string> {
  * unreadable line — and two of those three are things the person can act on.
  * The body is ours and its `message` is written to be read.
  */
-async function explain(error: unknown, fallback: string): Promise<Error> {
+export async function explain(error: unknown, fallback: string): Promise<Error> {
   const response = (error as { context?: unknown })?.context;
-  if (response instanceof Response) {
+  if (typeof Response !== 'undefined' && response instanceof Response) {
     try {
-      const body = (await response.clone().json()) as { message?: unknown };
-      if (typeof body.message === 'string' && body.message) return new Error(body.message);
+      const body = (await response.clone().json()) as { code?: unknown; message?: unknown };
+      const serverCode = typeof body.code === 'string' ? body.code : '';
+      console.warn('[phoneAuth] phone-verify refused', serverCode || response.status);
+      if (typeof body.message === 'string' && body.message) {
+        return new PhoneVerifyError(serverCode, body.message, response.status);
+      }
+      if (serverCode) return new PhoneVerifyError(serverCode, fallback, response.status);
     } catch {
       // A body that is not our JSON says nothing worth showing.
     }

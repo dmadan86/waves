@@ -43,6 +43,7 @@ import { OtpInput, OTP_LEN } from '@/components/OtpInput';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { phoneSignInMessage } from '@/lib/phoneSignInError';
 import { router } from '@/lib/navigation';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
@@ -145,7 +146,16 @@ export default function PhoneScreen() {
     try {
       await action();
     } catch (caught) {
-      setError(friendlyError(caught, t.signIn.couldNotSignIn, 'auth.phone'));
+      const specific = phoneSignInMessage(caught, {
+        phoneErrors: t.contact.phoneErrors,
+        phoneServerErrors: t.signIn.phoneServerErrors,
+      });
+      if (specific)
+        console.warn(
+          '[phone] sign-in failed',
+          (caught as { serverCode?: string }).serverCode ?? (caught as { kind?: string }).kind,
+        );
+      setError(specific ?? friendlyError(caught, t.signIn.couldNotSignIn, 'auth.phone'));
     } finally {
       setBusy(false);
     }

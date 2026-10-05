@@ -11,7 +11,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { AppState, Pressable, TextInput, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -51,7 +52,42 @@ export function OtpInput({
   }, [blink]);
   const caretStyle = useAnimatedStyle(() => ({ opacity: blink.value }));
 
-  const focus = useCallback(() => inputRef.current?.focus(), []);
+  // `focus()` on a field the native side already believes is focused does
+  // nothing, and that is exactly the state a return from a browser leaves it in:
+  // Firebase's reCAPTCHA custom tab backgrounds the activity while this screen
+  // mounts, `autoFocus` fires once into a window that is not showing, and the
+  // field is left "focused" with no keyboard and no input connection — the
+  // caret draws, typing goes nowhere. So a focus request lets go first.
+  const focus = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    if (input.isFocused()) input.blur();
+    input.focus();
+  }, []);
+
+  // Asked more than once, a beat apart: the first request can land before the
+  // window is interactive (new architecture mounts and focuses in one commit).
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const focusSoon = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [60, 350].map((ms) => setTimeout(focus, ms));
+  }, [focus]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  // On arrival, on the screen regaining focus, and on the app coming back to
+  // the foreground — never relying on `autoFocus` alone.
+  useFocusEffect(
+    useCallback(() => {
+      if (autoFocus) focusSoon();
+    }, [autoFocus, focusSoon]),
+  );
+  useEffect(() => {
+    if (!autoFocus) return undefined;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') focusSoon();
+    });
+    return () => sub.remove();
+  }, [autoFocus, focusSoon]);
 
   return (
     <Pressable
@@ -103,11 +139,14 @@ export function OtpInput({
         ref={inputRef}
         value={value}
         onChangeText={(next) => onChangeText(next.replace(/\D/g, '').slice(0, length))}
+        // No `maxLength`: the native cap would cut a pasted "G-123456" before
+        // it could be stripped to its digits.
         keyboardType="number-pad"
         autoComplete="sms-otp"
         textContentType="oneTimeCode"
-        maxLength={length}
         autoFocus={autoFocus}
+        autoCorrect={false}
+        importantForAutofill="yes"
         accessibilityLabel={accessibilityLabel}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
