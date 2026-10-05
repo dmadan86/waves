@@ -520,7 +520,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
           amount: BigInt(version.amount),
           currency: version.currency,
           day: version.expense_date,
-          at: timeOfDay(version.expense_date, expense.created_at),
+          at: timeOfDay(version.expense_date, expense.created_at, version.occurred_at),
           place:
             place && Number.isFinite(place.lat) && Number.isFinite(place.lng)
               ? { lat: place.lat, lng: place.lng, name: place.name ?? null }

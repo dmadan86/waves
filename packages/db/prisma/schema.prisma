@@ -615,6 +615,12 @@ model ExpenseVersion {
   /// known due date carries an amount but no date, which the "Upcoming
   /// payments" list reads as "due, whenever" rather than hiding it.
   balanceDueDate   DateTime?     @map("balance_due_date") @db.Date
+  /// The moment of day the person chose for the spend (a UTC instant, shown in
+  /// local time). Null on every row written before time-of-day was editable;
+  /// readers then fall back to `createdAt`. `expenseDate` stays the source of
+  /// truth for the day. Carried forward by waves_apply_expense when an edit
+  /// from an older client sends none and the day did not change.
+  occurredAt       DateTime?     @map("occurred_at") @db.Timestamptz(6)
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)
