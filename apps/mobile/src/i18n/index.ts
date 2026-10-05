@@ -374,6 +374,8 @@ export interface UiStrings {
   eventOrganizer: {
     templateLabel: string;
     templateNames: Record<EventTemplateId, string>;
+    /** The short event-kind word on a group's type tag. */
+    tagNames: Record<EventTemplateId, string>;
     subEventLabel: string;
     /** The chip that clears a chosen sub-event back to "untagged". */
     noSubEvent: string;
@@ -4527,6 +4529,12 @@ const en: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'Event template',
+    tagNames: {
+      wedding_in: 'Wedding',
+      wedding_west: 'Wedding',
+      birthday: 'Birthday',
+      other: 'Event',
+    },
     templateNames: {
       wedding_in: 'Wedding (Indian)',
       wedding_west: 'Wedding (Western)',
@@ -8034,6 +8042,12 @@ const ta: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'நிகழ்வு வார்ப்புரு',
+    tagNames: {
+      wedding_in: 'திருமணம்',
+      wedding_west: 'திருமணம்',
+      birthday: 'பிறந்தநாள்',
+      other: 'நிகழ்வு',
+    },
     templateNames: {
       wedding_in: 'திருமணம் (இந்திய)',
       wedding_west: 'திருமணம் (மேற்கத்திய)',
@@ -11682,6 +11696,12 @@ const hi: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'इवेंट टेम्पलेट',
+    tagNames: {
+      wedding_in: 'शादी',
+      wedding_west: 'शादी',
+      birthday: 'जन्मदिन',
+      other: 'आयोजन',
+    },
     templateNames: {
       wedding_in: 'शादी (भारतीय)',
       wedding_west: 'शादी (पश्चिमी)',
@@ -15213,6 +15233,12 @@ const ar: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'قالب المناسبة',
+    tagNames: {
+      wedding_in: 'زفاف',
+      wedding_west: 'زفاف',
+      birthday: 'عيد ميلاد',
+      other: 'مناسبة',
+    },
     templateNames: {
       wedding_in: 'زفاف (هندي)',
       wedding_west: 'زفاف (غربي)',

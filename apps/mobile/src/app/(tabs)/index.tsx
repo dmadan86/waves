@@ -70,6 +70,7 @@ import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { groupLabel, GroupType } from '@/data/types';
+import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
@@ -697,6 +698,8 @@ export default function HomeScreen() {
                             : null
                         }
                         coverEmoji={group.cover_emoji}
+                        groupType={group.type}
+                        eventTemplate={group.event_template}
                         balance={balance}
                         currency={group.default_currency}
                         locale={locale}
@@ -958,6 +961,8 @@ function GroupRow({
   memberLabel,
   draftLabel,
   coverEmoji,
+  groupType,
+  eventTemplate,
   balance,
   currency,
   locale,
@@ -980,6 +985,9 @@ function GroupRow({
    *  is waiting on the reader. */
   draftLabel: string | null;
   coverEmoji: string | null;
+  /** What kind of group — drawn as a small tag on the member-count line. */
+  groupType: string | null | undefined;
+  eventTemplate: string | null | undefined;
   balance: bigint;
   currency: string;
   locale: string;
@@ -1036,7 +1044,10 @@ function GroupRow({
   // every line of the list. The spoken label still carries it in full: a screen
   // reader is given the label instead of the text inside the row, so anything
   // said only on screen is not said quietly, it is not said.
-  const spoken = pendingLabel ?? [memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
+  const typeTag = useGroupTypeTag(groupType, eventTemplate);
+  const typeSpoken = useGroupTypeTagSpoken(typeTag);
+  const spoken =
+    pendingLabel ?? [typeSpoken, memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
 
   return (
     <Animated.View
@@ -1112,16 +1123,19 @@ function GroupRow({
               that you recognise a group by who is in it; on the row it read as
               clutter beside a line that already says how many and where you
               stand. */}
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {pendingLabel ?? memberLabel}
-            {/* A draft is the one thing here waiting on the reader, so it is
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            {typeTag ? <GroupTypeTag tag={typeTag} /> : null}
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {pendingLabel ?? memberLabel}
+              {/* A draft is the one thing here waiting on the reader, so it is
                 said in the warning's orange rather than the muted grey. */}
-            {!pendingLabel && draftLabel ? (
-              <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-                {` · ${draftLabel}`}
-              </Text>
-            ) : null}
-          </Text>
+              {!pendingLabel && draftLabel ? (
+                <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
+                  {` · ${draftLabel}`}
+                </Text>
+              ) : null}
+            </Text>
+          </Row>
         </View>
         {pendingBalance ? (
           <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
