@@ -101,6 +101,14 @@ export function redirectSystemPath({
     ) {
       return `/capture?scan=${Date.now()}`;
     }
+    // The Photo tile of the home widget: `?gallery=1` opens the photo library on
+    // capture. Same fresh-nonce rewrite as `scan`, for the same reason.
+    if (
+      (url.hostname === 'capture' || firstSegment === 'capture') &&
+      url.searchParams.has('gallery')
+    ) {
+      return `/capture?gallery=${Date.now()}`;
+    }
     return path;
   } catch {
     return path;

@@ -79,6 +79,10 @@ describe('the links that were already rewritten', () => {
     expect(first).toMatch(/^\/capture\?scan=\d+$/);
   });
 
+  it('gives the Photo tile a fresh gallery nonce on every tap', () => {
+    expect(go('waves:///capture?gallery=1')).toMatch(/^\/capture\?gallery=\d+$/);
+  });
+
   it('passes anything it does not recognise straight through', () => {
     expect(go('waves://group/abc')).toBe('waves://group/abc');
     expect(go('not a url at all')).toBe('not a url at all');
