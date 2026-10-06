@@ -289,7 +289,6 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   isFirst,
   isLast,
   myMemberId,
-  onMenu,
   groupId,
   groupCurrency,
   locale,
@@ -301,8 +300,6 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   expense: ExpenseRow;
   isFirst: boolean;
   isLast: boolean;
-  /** Opens the row's ⋮ menu. A stable reference, so the memo holds. */
-  onMenu: (expense: ExpenseRow) => void;
   myMemberId: MemberId | null;
   groupId: string;
   /** What this group counts in, so a foreign bill can say what it came to. */
@@ -475,21 +472,27 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             ) : null}
           </Row>
         </Pressable>
-        <Pressable
-          onPress={() => onMenu(expense)}
-          accessibilityRole="button"
-          accessibilityLabel={t.group.more}
-          hitSlop={{ top: 8, bottom: 8 }}
-          style={({ pressed }) => ({
-            width: 32,
-            alignSelf: 'stretch',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
-        </Pressable>
+        {/* Tapping the row opens it; the pencil goes straight to editing. A
+            deleted expense has nothing to edit, so it keeps the space empty. */}
+        {expense.deleted_at ? (
+          <View style={{ width: 32 }} />
+        ) : (
+          <Pressable
+            onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.edit}
+            hitSlop={{ top: 8, bottom: 8 }}
+            style={({ pressed }) => ({
+              width: 32,
+              alignSelf: 'stretch',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Ionicons name="pencil-outline" size={iconSize.md} color={theme.color.textMuted} />
+          </Pressable>
+        )}
       </Row>
     </CardRow>
   );
@@ -583,7 +586,6 @@ export default function GroupScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   // The expense whose ⋮ menu is open, if any.
-  const [rowMenu, setRowMenu] = useState<ExpenseRow | null>(null);
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
@@ -928,25 +930,6 @@ export default function GroupScreen() {
       onPress: () => setMonthKey(key),
     })),
   ];
-  // One expense's ⋮ menu: open it, or go straight to editing it.
-  const rowMenuItems: OverflowMenuItem[] = rowMenu
-    ? [
-        {
-          icon: 'open-outline',
-          label: t.activityScreen.viewDetails,
-          route: `/group/${groupId}/expense/${rowMenu.id}`,
-        },
-        ...(rowMenu.deleted_at
-          ? []
-          : [
-              {
-                icon: 'create-outline',
-                label: t.common.edit,
-                route: `/group/${groupId}/add-expense?expenseId=${rowMenu.id}`,
-              } as OverflowMenuItem,
-            ]),
-      ]
-    : [];
 
   // A month heading or an expense row. Headings carry the between-section gap the
   // ScrollView used to give for free; the first item needs none, its space comes
@@ -977,7 +960,6 @@ export default function GroupScreen() {
           expense={item.expense}
           isFirst={item.isFirst}
           isLast={item.isLast}
-          onMenu={setRowMenu}
           myMemberId={ledger.myMemberId}
           groupId={groupId}
           groupCurrency={currency}
@@ -1253,18 +1235,13 @@ export default function GroupScreen() {
           ) : null}
         </View>
 
-        {/* The header menu and the month and row menus live at the screen's root,
+        {/* The header menu and the month menu live at the screen's root,
             not in the list header, so they open from every tab. */}
         <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
         <OverflowMenu
           visible={monthMenuOpen}
           onClose={() => setMonthMenuOpen(false)}
           items={monthItems}
-        />
-        <OverflowMenu
-          visible={rowMenu !== null}
-          onClose={() => setRowMenu(null)}
-          items={rowMenuItems}
         />
 
         {/* The waves close the page above the tab bar on every tab, behind the
