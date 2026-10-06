@@ -98,7 +98,7 @@ export function HeroIconButton({
       hitSlop={10}
       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: theme.spacing.xs })}
     >
-      <Glyph name={icon as never} size={iconSize.xxl} color={ink ?? theme.color.onBrand} />
+      <Glyph name={icon as never} size={iconSize.xxxl} color={ink ?? theme.color.onBrand} />
       {dot ? (
         <View
           style={{
