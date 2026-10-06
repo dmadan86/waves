@@ -1775,6 +1775,57 @@ export default function AddExpenseScreen() {
             Nothing inside either fold changed; only the shell around it did. */}
           <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
             <DetailRows>
+              {/* Event organizer (docs/event-organizer.md): a vendor deposit
+                  — this expense is a part-payment, with a balance still
+                  owing. The row's own control states the value and changes
+                  it in the same gesture (tapping toggles it on/off), the same
+                  idiom the "simplify debts" row elsewhere in the app uses;
+                  the amount and due date unfold under it once it is on. First in the
+                  card, directly under the amount: with a deposit the money
+                  (what is still owing, and by when) comes before the rest. */}
+              <View>
+                <DetailRow
+                  icon="pricetag-outline"
+                  tint={theme.tint.coral}
+                  dense
+                  label={t.eventOrganizer.depositLabel}
+                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
+                  expanded={isDeposit}
+                  onPress={() => setIsDeposit((was) => !was)}
+                />
+                {isDeposit ? (
+                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
+                    <DetailRow
+                      icon="cash-outline"
+                      label={t.eventOrganizer.balanceDueLabel}
+                      trailing={
+                        <AmountField
+                          currency={currency}
+                          value={balanceDueMinor ?? 0n}
+                          onChange={setBalanceDueMinor}
+                          size="compact"
+                        />
+                      }
+                    />
+                    <DetailRow
+                      icon="calendar-outline"
+                      label={t.eventOrganizer.balanceDueDateLabel}
+                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
+                      placeholder={!balanceDueDate}
+                      onPress={() => setEditingBalanceDueDate(true)}
+                    />
+                    {editingBalanceDueDate ? (
+                      <DateTimePicker
+                        value={dateFrom(balanceDueDate ?? expenseDate)}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={applyBalanceDueDate}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+
               <CategoryRow
                 value={category}
                 meta={categoryMeta}
@@ -2157,55 +2208,6 @@ export default function AddExpenseScreen() {
                 value={`${currencySymbol(currency)} ${currency}`}
                 onPress={() => setPickingCurrency(true)}
               />
-
-              {/* Event organizer (docs/event-organizer.md): a vendor deposit
-                  — this expense is a part-payment, with a balance still
-                  owing. The row's own control states the value and changes
-                  it in the same gesture (tapping toggles it on/off), the same
-                  idiom the "simplify debts" row elsewhere in the app uses;
-                  the amount and due date unfold under it once it is on. */}
-              <View>
-                <DetailRow
-                  icon="pricetag-outline"
-                  tint={theme.tint.coral}
-                  dense
-                  label={t.eventOrganizer.depositLabel}
-                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
-                  expanded={isDeposit}
-                  onPress={() => setIsDeposit((was) => !was)}
-                />
-                {isDeposit ? (
-                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
-                    <DetailRow
-                      icon="cash-outline"
-                      label={t.eventOrganizer.balanceDueLabel}
-                      trailing={
-                        <AmountField
-                          currency={currency}
-                          value={balanceDueMinor ?? 0n}
-                          onChange={setBalanceDueMinor}
-                          size="compact"
-                        />
-                      }
-                    />
-                    <DetailRow
-                      icon="calendar-outline"
-                      label={t.eventOrganizer.balanceDueDateLabel}
-                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
-                      placeholder={!balanceDueDate}
-                      onPress={() => setEditingBalanceDueDate(true)}
-                    />
-                    {editingBalanceDueDate ? (
-                      <DateTimePicker
-                        value={dateFrom(balanceDueDate ?? expenseDate)}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                        onChange={applyBalanceDueDate}
-                      />
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
 
               {/* Where it happened (A43) — optional, opt-in, never a background
                 track — as the one-line row `compact` draws: a pin, the

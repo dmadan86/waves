@@ -632,6 +632,76 @@ export default function ExpenseDetailScreen() {
           />
         ) : (
           <>
+            {/* Vendor deposit: the money comes first. What was paid now, and what
+                is still owing and by when, ahead of the receipts and the
+                group / category / split details. A tap opens the plan. */}
+            {eventFacts.isDeposit ? (
+              <Pressable
+                onPress={openPlan}
+                accessibilityRole="button"
+                accessibilityLabel={`${t.eventOrganizer.advancePaid}, ${format(
+                  money(BigInt(version.amount), currency),
+                  { locale },
+                )}. ${
+                  eventFacts.balanceDueMinor != null
+                    ? fill(t.eventOrganizer.balanceDueValue, {
+                        amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
+                        date: eventFacts.balanceDueDate
+                          ? showDate(eventFacts.balanceDueDate, locale)
+                          : t.eventOrganizer.dueWhenever,
+                      })
+                    : t.eventOrganizer.fullyPaid
+                }`}
+              >
+                <Card>
+                  <Row style={{ alignItems: 'flex-start', gap: theme.spacing.lg }}>
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text variant="caption" tone="muted">
+                        {t.eventOrganizer.advancePaid}
+                      </Text>
+                      <MoneyText
+                        amount={BigInt(version.amount)}
+                        currency={currency}
+                        locale={locale}
+                        variant="title"
+                      />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0, gap: 2, alignItems: 'flex-end' }}>
+                      <Text variant="caption" tone="muted">
+                        {t.eventOrganizer.balanceDueLabel}
+                      </Text>
+                      {eventFacts.balanceDueMinor != null ? (
+                        <>
+                          <MoneyText
+                            amount={eventFacts.balanceDueMinor}
+                            currency={currency}
+                            locale={locale}
+                            variant="title"
+                            style={eventFacts.overdue ? { color: theme.color.negative } : undefined}
+                          />
+                          <Text
+                            variant="caption"
+                            tone={eventFacts.overdue ? 'negative' : 'muted'}
+                            numberOfLines={1}
+                          >
+                            {eventFacts.balanceDueDate
+                              ? fill(t.eventOrganizer.balanceDueBy, {
+                                  date: showDate(eventFacts.balanceDueDate, locale),
+                                })
+                              : t.eventOrganizer.dueWhenever}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text variant="body" style={{ fontWeight: '600' }}>
+                          {t.eventOrganizer.fullyPaid}
+                        </Text>
+                      )}
+                    </View>
+                  </Row>
+                </Card>
+              </Pressable>
+            ) : null}
+
             {/* Receipts — one gallery, many images, each group-visible or private.
             Folds in the legacy single bill (E2) as its first item. Adding is now
             the hero button (externalAdd), driven through the ref; this section
@@ -720,49 +790,6 @@ export default function ExpenseDetailScreen() {
                     accessibilityLabel={`${t.eventOrganizer.subEventLabel}, ${
                       t.eventSubEvents[eventFacts.subEvent.id] ?? eventFacts.subEvent.id
                     }`}
-                  />
-                ) : null}
-                {eventFacts.isDeposit ? (
-                  <DetailRow
-                    icon="cash-outline"
-                    label={t.eventOrganizer.advancePaid}
-                    value={format(money(BigInt(version.amount), currency), { locale })}
-                    onPress={openPlan}
-                    accessibilityLabel={`${t.eventOrganizer.advancePaid}, ${format(
-                      money(BigInt(version.amount), currency),
-                      { locale },
-                    )}`}
-                  />
-                ) : null}
-                {eventFacts.isDeposit && eventFacts.balanceDueMinor != null ? (
-                  <DetailRow
-                    icon="hourglass-outline"
-                    label={t.eventOrganizer.balanceDueLabel}
-                    trailing={
-                      <Text
-                        variant="body"
-                        tone={eventFacts.overdue ? 'negative' : undefined}
-                        numberOfLines={1}
-                        style={{ flexShrink: 1, minWidth: 0, textAlign: 'right' }}
-                      >
-                        {fill(t.eventOrganizer.balanceDueValue, {
-                          amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
-                          date: eventFacts.balanceDueDate
-                            ? showDate(eventFacts.balanceDueDate, locale)
-                            : t.eventOrganizer.dueWhenever,
-                        })}
-                      </Text>
-                    }
-                    onPress={openPlan}
-                    accessibilityLabel={`${t.eventOrganizer.balanceDueLabel}, ${fill(
-                      t.eventOrganizer.balanceDueValue,
-                      {
-                        amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
-                        date: eventFacts.balanceDueDate
-                          ? showDate(eventFacts.balanceDueDate, locale)
-                          : t.eventOrganizer.dueWhenever,
-                      },
-                    )}${eventFacts.overdue ? `, ${plural(locale, 1, t.eventOrganizer.overdueCount)}` : ''}`}
                   />
                 ) : null}
                 {/* Where this bill sits among everything else you spent: the
