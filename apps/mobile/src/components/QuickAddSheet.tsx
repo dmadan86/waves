@@ -11,6 +11,7 @@
  * on-screen position to float a card beside it.
  */
 
+import { useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -69,13 +70,23 @@ export function QuickAddSheet({
   const theme = useTheme();
   const { t } = useStrings();
 
+  // The chosen action runs once the sheet has left the screen, not on the tap.
+  // "Scan bill" opens the native scanner straight away, and on iOS a camera
+  // presented while this sheet's Modal is still dismissing is dropped — the
+  // capture screen then waits on "Opening camera…" for ever.
+  const pending = useRef<QuickAddAction | null>(null);
   const activate = (action: QuickAddAction): void => {
+    pending.current = action;
     onClose();
-    action.onPress();
+  };
+  const onClosed = (): void => {
+    const action = pending.current;
+    pending.current = null;
+    action?.onPress();
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} closeLabel={t.common.close}>
+    <Sheet visible={visible} onClose={onClose} onClosed={onClosed} closeLabel={t.common.close}>
       {actions.map((action) => {
         const tint = theme.tint[tintForKey(action.tintKey)];
         return (
