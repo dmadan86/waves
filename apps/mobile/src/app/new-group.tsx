@@ -60,6 +60,7 @@ import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -1317,23 +1318,11 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
         gap: theme.spacing.md,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.common.back}
+      <TranslucentBackButton
+        dark={headerInk !== '#FFFFFF'}
+        label={t.common.back}
         onPress={() => router.back()}
-        hitSlop={4}
-        style={({ pressed }) => ({
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: 'rgba(255, 255, 255, 0.35)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={headerInk} />
-      </Pressable>
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={1}
