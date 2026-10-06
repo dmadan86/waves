@@ -1762,6 +1762,7 @@ export interface UiStrings {
   newGroupForm: {
     title: string;
     headerSub: string;
+    tagline: string;
     nameExample: string;
     whatFor: string;
     descriptionExample: string;
@@ -5818,6 +5819,7 @@ const en: UiStrings = {
   newGroupForm: {
     title: 'Create a new group',
     headerSub: 'Start a group and share expenses together',
+    tagline: 'Plan together, split easily',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
@@ -9488,6 +9490,7 @@ const ta: UiStrings = {
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
     headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளை ஒன்றாகப் பகிருங்கள்',
+    tagline: 'ஒன்றாகத் திட்டமிடுங்கள், எளிதாகப் பிரியுங்கள்',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
@@ -13242,6 +13245,7 @@ const hi: UiStrings = {
   newGroupForm: {
     title: 'नया समूह बनाएँ',
     headerSub: 'ग्रुप बनाएँ और खर्च साथ मिलकर बाँटें',
+    tagline: 'साथ मिलकर प्लान करें, आसानी से बाँटें',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
@@ -16978,6 +16982,7 @@ const ar: UiStrings = {
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
     headerSub: 'ابدأ مجموعة وتقاسموا المصروفات معاً',
+    tagline: 'خططوا معًا، وقسّموا بسهولة',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',

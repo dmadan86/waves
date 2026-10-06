@@ -27,7 +27,6 @@ import {
   Callout,
   ChipRow,
   directionalIcon,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -53,7 +52,8 @@ import { type TripRateRow } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
-import { suggestPeople } from '@/lib/addFromAnotherGroup';
+import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
+import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { useHeroScene } from '@/lib/heroScenePreference';
@@ -247,8 +247,10 @@ export default function NewGroupScreen() {
         })),
       };
     });
-    return suggestPeople(sources, viewerId, ghosts);
-  }, [allGroups, membersByGroup, viewerId, ghosts]);
+    // Nobody is excluded for being picked: a picked face stays on the row with
+    // a check, and a second tap takes them back off.
+    return suggestPeople(sources, viewerId, []);
+  }, [allGroups, membersByGroup, viewerId]);
   // What each suggestion reads under its face: a clean first name, with an
   // initial added where two would otherwise read the same.
   const suggestionLabels = useMemo(
@@ -261,14 +263,23 @@ export default function NewGroupScreen() {
     const needle = ghostName.trim().toLowerCase();
     const digits = needle.replace(/\D/g, '');
     return suggestions
-      .map((person, index) => ({ person, label: suggestionLabels[index] ?? person.name }))
+      .map((person, index) => ({
+        person,
+        label: suggestionLabels[index] ?? person.name,
+        picked: ghosts.some((ghost) => sameHuman(ghost, person)),
+      }))
       .filter(
         ({ person }) =>
           !needle ||
           person.name.toLowerCase().includes(needle) ||
           (digits.length >= 3 && (person.phone ?? '').replace(/\D/g, '').includes(digits)),
       );
-  }, [ghostName, suggestions, suggestionLabels]);
+  }, [ghostName, suggestions, suggestionLabels, ghosts]);
+  // Added people who are not a face on the Suggested row (typed names, picked
+  // contacts) keep their removable chip.
+  const chipGhosts = ghosts.filter(
+    (ghost) => !suggestions.some((person) => sameHuman(ghost, person)),
+  );
   const [error, setError] = useState<string | null>(null);
   // Not asked on this screen — taken from the account country (which the user
   // sets on "Your account"), falling back to the phone's region. Decides the
@@ -412,16 +423,21 @@ export default function NewGroupScreen() {
   // not. Follows the type until somebody says otherwise.
   const effectiveSimplify = simplify ?? (type === GroupType.Trip || type === GroupType.Event);
 
-  // The kinds of group, one place — the chips inside the picker and the icon on
-  // the collapsed pill both read from this.
-  const typeOptions: { value: GroupType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { value: GroupType.Trip, label: t.extras.typeTrip, icon: 'airplane' },
-    { value: GroupType.Home, label: t.extras.typeHome, icon: 'home' },
-    { value: GroupType.Couple, label: t.extras.typeCouple, icon: 'heart' },
-    { value: GroupType.Event, label: t.extras.typeEvent, icon: 'sparkles' },
-    { value: GroupType.Friends, label: t.extras.typeFriends, icon: 'people-circle' },
-    { value: GroupType.Other, label: t.extras.typeOther, icon: 'people' },
-  ];
+  // The five tiles. Friends reads as Others (see `tileForType`).
+  const tileIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+    [GroupType.Trip]: 'airplane',
+    [GroupType.Home]: 'home',
+    [GroupType.Couple]: 'heart',
+    [GroupType.Event]: 'people',
+    [GroupType.Other]: 'ellipsis-horizontal',
+  };
+  const tileLabels: Record<string, string> = {
+    [GroupType.Trip]: t.extras.typeTrip,
+    [GroupType.Home]: t.extras.typeHome,
+    [GroupType.Couple]: t.extras.typeCouple,
+    [GroupType.Event]: t.extras.typeEvent,
+    [GroupType.Other]: t.extras.typeOther,
+  };
 
   // A short "9 Jan" for the date pill; the full weekday form lives inside the
   // picker. Parsed at local noon so a date-only string never slips a day.
@@ -895,7 +911,7 @@ export default function NewGroupScreen() {
                 already been added, as the same small inline faces — kept to
                 one dense strip rather than a tall block. Only placeholders are
                 offered as suggestions: a real account joins a group by invite. */}
-            {shownSuggestions.length > 0 || ghosts.length > 0 ? (
+            {shownSuggestions.length > 0 || chipGhosts.length > 0 ? (
               <View style={{ gap: theme.spacing.xs }}>
                 {shownSuggestions.length > 0 ? (
                   <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -931,32 +947,40 @@ export default function NewGroupScreen() {
                       paddingHorizontal: theme.spacing.md,
                     }}
                   >
-                    {shownSuggestions.map(({ person, label }, index) => (
+                    {shownSuggestions.map(({ person, label, picked }, index) => (
                       <SuggestedPersonButton
                         key={person.key}
                         name={label}
                         index={index}
-                        label={fill(t.voice.addNamed, { name: person.name })}
+                        picked={picked}
+                        label={fill(
+                          picked ? t.itemize.removeItem : t.voice.addNamed,
+                          picked ? { label: person.name } : { name: person.name },
+                        )}
                         onPress={() =>
-                          setGhosts((current) => [
-                            ...current,
-                            { name: person.name, email: person.email, phone: person.phone },
-                          ])
+                          setGhosts((current) =>
+                            picked
+                              ? current.filter((ghost) => !sameHuman(ghost, person))
+                              : [
+                                  ...current,
+                                  { name: person.name, email: person.email, phone: person.phone },
+                                ],
+                          )
                         }
                       />
                     ))}
                   </ScrollView>
                 ) : null}
-                {ghosts.length > 0 ? (
+                {chipGhosts.length > 0 ? (
                   <Row style={{ flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                    {ghosts.map((ghost, index) => (
+                    {chipGhosts.map((ghost, index) => (
                       <PersonChip
                         key={`${keyOfGhost(ghost)}-${index}`}
                         name={ghost.name}
                         index={index}
                         removeLabel={fill(t.itemize.removeItem, { label: ghost.name })}
                         onRemove={() =>
-                          setGhosts((current) => current.filter((_, i) => i !== index))
+                          setGhosts((current) => current.filter((it) => it !== ghost))
                         }
                       />
                     ))}
@@ -978,16 +1002,18 @@ export default function NewGroupScreen() {
                 {` ${t.newGroupForm.optional}`}
               </Text>
             </FieldLabel>
-            <ChipRow<GroupType>
-              value={type}
-              onChange={setPickedType}
-              options={typeOptions.map((option) => ({
-                value: option.value,
-                label: option.label,
-                icon: chipIcon(option.icon),
-              }))}
-            />
-            <GroupTagField type={type} value={customTag} onChange={setCustomTag} />
+            <Row style={{ gap: theme.spacing.xs }}>
+              {NEW_GROUP_TILES.map((value) => (
+                <TypeTile
+                  key={value}
+                  label={tileLabels[value] ?? ''}
+                  icon={tileIcons[value] ?? 'people'}
+                  selected={tileForType(type) === value}
+                  onPress={() => setPickedType(value)}
+                />
+              ))}
+            </Row>
+            <GroupTagField filled type={type} value={customTag} onChange={setCustomTag} />
           </FormCard>
 
           {/* The group's settings. Dates and budget are trip-only, so a dinner
@@ -1203,18 +1229,11 @@ const ROOMY_ROW_WIDTH = 400;
 /** The camera button floating on the cover's corner. */
 const CAMERA_FAB = 34;
 
-/** The kind-of-group icon, one place, matching the chip row group settings
- *  wears so changing a group's kind looks like the same control everywhere. */
-const chipIcon =
-  (name: keyof typeof Ionicons.glyphMap) =>
-  // eslint-disable-next-line react/display-name
-  (color: string): ReactNode => <Ionicons name={name} size={iconSize.base} color={color} />;
-
 /** An outlined input box: 50pt tall, 12pt corners, the hairline border. */
 function fieldBox(theme: Theme) {
   return {
     alignItems: 'center' as const,
-    minHeight: 42,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: theme.scheme === 'dark' ? theme.color.border : '#E5E5ED',
     borderRadius: 12,
@@ -1262,7 +1281,7 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
         {
           backgroundColor: theme.color.surface,
           borderRadius: 20,
-          padding: theme.spacing.md,
+          padding: theme.spacing.md - 2,
           shadowColor: '#2A1E6B',
           shadowOpacity: 0.06,
           shadowRadius: 12,
@@ -1295,27 +1314,88 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
         // rides up over their foot.
         paddingBottom: SCENE_ROOM,
         alignItems: 'center',
-        gap: theme.spacing.sm,
+        gap: theme.spacing.md,
       }}
     >
-      <IconButton label={t.common.back} onPress={() => router.back()}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.common.back}
+        onPress={() => router.back()}
+        hitSlop={4}
+        style={({ pressed }) => ({
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(255, 255, 255, 0.35)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
         <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={headerInk} />
-      </IconButton>
+      </Pressable>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={{ fontSize: 19, lineHeight: 24, fontWeight: '800', color: headerInk }}
+        >
+          {title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 13, lineHeight: 17, color: headerInk, opacity: 0.85 }}
+        >
+          {t.newGroupForm.tagline}
+        </Text>
+      </View>
+    </Row>
+  );
+}
+
+/** One group-kind tile: icon over label, outlined in the accent when lit. */
+function TypeTile({
+  label,
+  icon,
+  selected,
+  onPress,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const tone = selected ? accent(theme) : muted(theme);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        height: 64,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        borderWidth: 1.5,
+        borderColor: selected ? accent(theme) : 'transparent',
+        backgroundColor: selected ? theme.color.brandSoft : theme.color.surfaceMuted,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={22} color={tone} />
       <Text
         numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-        style={{
-          flex: 1,
-          fontSize: 19,
-          lineHeight: 24,
-          fontWeight: '800',
-          color: headerInk,
-        }}
+        style={{ fontSize: 12, lineHeight: 15, fontWeight: selected ? '700' : '500', color: tone }}
       >
-        {title}
+        {label}
       </Text>
-    </Row>
+    </Pressable>
   );
 }
 
@@ -1401,7 +1481,7 @@ function CreateButton({
           alignItems: 'center',
           justifyContent: 'center',
           gap: theme.spacing.sm,
-          height: 50,
+          height: 48,
         }}
       >
         <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
@@ -1429,10 +1509,13 @@ function SuggestedPersonButton({
   index,
   label,
   onPress,
+  picked = false,
   more = false,
 }: {
   name: string;
   index: number;
+  /** Already in the group: the badge is a check. */
+  picked?: boolean;
   label: string;
   onPress: () => void;
   more?: boolean;
@@ -1453,9 +1536,9 @@ function SuggestedPersonButton({
     >
       <View
         style={{
-          width: 42,
-          height: 42,
-          borderRadius: 21,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           backgroundColor: more ? theme.color.surface : tint.bg,
           borderWidth: more ? 1.5 : 0,
           borderStyle: more ? 'dashed' : 'solid',
@@ -1480,14 +1563,14 @@ function SuggestedPersonButton({
               width: 17,
               height: 17,
               borderRadius: 9,
-              backgroundColor: accent(theme),
+              backgroundColor: picked ? theme.color.positive : accent(theme),
               borderWidth: 1.5,
               borderColor: theme.color.surface,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="add" size={10} color="#FFFFFF" />
+            <Ionicons name={picked ? 'checkmark' : 'add'} size={10} color="#FFFFFF" />
           </View>
         )}
       </View>
