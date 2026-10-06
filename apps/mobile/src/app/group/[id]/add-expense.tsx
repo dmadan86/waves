@@ -846,7 +846,6 @@ export default function AddExpenseScreen() {
 
   const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
     // Android's dialog dismisses itself; iOS keeps the spinner on the screen.
-    if (Platform.OS === 'android') setEditingDate(false);
     if (event.type === 'dismissed' || !picked) return;
     setPickedDate(isoDate(picked));
   };
@@ -1775,6 +1774,57 @@ export default function AddExpenseScreen() {
             Nothing inside either fold changed; only the shell around it did. */}
           <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
             <DetailRows>
+              {/* Event organizer (docs/event-organizer.md): a vendor deposit
+                  — this expense is a part-payment, with a balance still
+                  owing. The row's own control states the value and changes
+                  it in the same gesture (tapping toggles it on/off), the same
+                  idiom the "simplify debts" row elsewhere in the app uses;
+                  the amount and due date unfold under it once it is on. First in the
+                  card, directly under the amount: with a deposit the money
+                  (what is still owing, and by when) comes before the rest. */}
+              <View>
+                <DetailRow
+                  icon="pricetag-outline"
+                  tint={theme.tint.coral}
+                  dense
+                  label={t.eventOrganizer.depositLabel}
+                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
+                  expanded={isDeposit}
+                  onPress={() => setIsDeposit((was) => !was)}
+                />
+                {isDeposit ? (
+                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
+                    <DetailRow
+                      icon="cash-outline"
+                      label={t.eventOrganizer.balanceDueLabel}
+                      trailing={
+                        <AmountField
+                          currency={currency}
+                          value={balanceDueMinor ?? 0n}
+                          onChange={setBalanceDueMinor}
+                          size="compact"
+                        />
+                      }
+                    />
+                    <DetailRow
+                      icon="calendar-outline"
+                      label={t.eventOrganizer.balanceDueDateLabel}
+                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
+                      placeholder={!balanceDueDate}
+                      onPress={() => setEditingBalanceDueDate(true)}
+                    />
+                    {editingBalanceDueDate ? (
+                      <DateTimePicker
+                        value={dateFrom(balanceDueDate ?? expenseDate)}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={applyBalanceDueDate}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+
               <CategoryRow
                 value={category}
                 meta={categoryMeta}
@@ -2043,41 +2093,52 @@ export default function AddExpenseScreen() {
                 ) : null}
               </View>
 
+              {/* One row for the day and the time: "Mon, 5 Oct · 8:17 PM", or just
+                  the day while no time is set. A tap unfolds the date picker with
+                  the (optional) time control right under it. */}
               <View>
                 <DetailRow
                   icon="calendar-outline"
                   tint={theme.tint.pink}
                   dense
                   label={t.captures.date}
-                  value={showDate(expenseDate, locale)}
-                  onPress={() => setEditingDate(true)}
+                  value={
+                    shownTime != null
+                      ? `${showDate(expenseDate, locale)} · ${showTime(shownTime, locale)}`
+                      : showDate(expenseDate, locale)
+                  }
+                  expanded={editingDate}
+                  onPress={() => {
+                    setEditingDate((open) => !open);
+                    setEditingTime(false);
+                  }}
                 />
                 {editingDate ? (
-                  <DateTimePicker
-                    value={dateFrom(expenseDate)}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                    onChange={applyDate}
-                  />
-                ) : null}
-              </View>
-
-              <View>
-                <DetailRow
-                  icon="time-outline"
-                  tint={theme.tint.pink}
-                  dense
-                  label={t.expense.detailTime}
-                  value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
-                  onPress={() => setEditingTime(true)}
-                />
-                {editingTime ? (
-                  <DateTimePicker
-                    value={pickerTime(shownTime, openedAt)}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={applyTime}
-                  />
+                  <View>
+                    <DateTimePicker
+                      value={dateFrom(expenseDate)}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={applyDate}
+                    />
+                    <DetailRow
+                      icon="time-outline"
+                      tint={theme.tint.pink}
+                      dense
+                      label={t.expense.detailTime}
+                      value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
+                      placeholder={shownTime == null}
+                      onPress={() => setEditingTime((open) => !open)}
+                    />
+                    {editingTime ? (
+                      <DateTimePicker
+                        value={pickerTime(shownTime, openedAt)}
+                        mode="time"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={applyTime}
+                      />
+                    ) : null}
+                  </View>
                 ) : null}
               </View>
 
@@ -2157,55 +2218,6 @@ export default function AddExpenseScreen() {
                 value={`${currencySymbol(currency)} ${currency}`}
                 onPress={() => setPickingCurrency(true)}
               />
-
-              {/* Event organizer (docs/event-organizer.md): a vendor deposit
-                  — this expense is a part-payment, with a balance still
-                  owing. The row's own control states the value and changes
-                  it in the same gesture (tapping toggles it on/off), the same
-                  idiom the "simplify debts" row elsewhere in the app uses;
-                  the amount and due date unfold under it once it is on. */}
-              <View>
-                <DetailRow
-                  icon="pricetag-outline"
-                  tint={theme.tint.coral}
-                  dense
-                  label={t.eventOrganizer.depositLabel}
-                  value={isDeposit ? t.eventOrganizer.depositOn : t.eventOrganizer.depositOff}
-                  expanded={isDeposit}
-                  onPress={() => setIsDeposit((was) => !was)}
-                />
-                {isDeposit ? (
-                  <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
-                    <DetailRow
-                      icon="cash-outline"
-                      label={t.eventOrganizer.balanceDueLabel}
-                      trailing={
-                        <AmountField
-                          currency={currency}
-                          value={balanceDueMinor ?? 0n}
-                          onChange={setBalanceDueMinor}
-                          size="compact"
-                        />
-                      }
-                    />
-                    <DetailRow
-                      icon="calendar-outline"
-                      label={t.eventOrganizer.balanceDueDateLabel}
-                      value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
-                      placeholder={!balanceDueDate}
-                      onPress={() => setEditingBalanceDueDate(true)}
-                    />
-                    {editingBalanceDueDate ? (
-                      <DateTimePicker
-                        value={dateFrom(balanceDueDate ?? expenseDate)}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                        onChange={applyBalanceDueDate}
-                      />
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
 
               {/* Where it happened (A43) — optional, opt-in, never a background
                 track — as the one-line row `compact` draws: a pin, the
