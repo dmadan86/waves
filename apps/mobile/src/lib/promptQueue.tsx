@@ -13,6 +13,17 @@
  * live claim with the largest number, and a slot's `granted` is "am I the winner
  * (once my delay has passed)". No timers or ordering live in the provider; the
  * delay is the waiting slot's own concern.
+ *
+ * Two rules keep it from feeling like a barrage:
+ *
+ * - **A prompt on screen keeps it.** Once a slot is granted it holds the screen
+ *   until it releases, even if a higher claim turns up meanwhile (a check that
+ *   finished late). Pulling a popup out from under somebody and putting it back
+ *   after the other one reads as the same popup opening twice.
+ * - **One per launch.** After a prompt has been shown and dismissed, the rest
+ *   wait for the next launch. An `essential` claim — one that cannot be put off,
+ *   like the required phone ask — is the only exception. The tour is not a
+ *   popup and never holds, so the first prompt can still follow it.
  */
 
 import {
@@ -27,48 +38,82 @@ import {
 
 interface PromptQueueValue {
   /** Register or update a claim; higher priority wins the screen. */
-  claim: (id: string, priority: number) => void;
+  claim: (id: string, priority: number, essential?: boolean) => void;
   /** Drop a claim — the next-highest live claim becomes the winner. */
   release: (id: string) => void;
+  /** A granted slot is now on screen: it keeps the screen until it releases. */
+  hold: (id: string) => void;
   /** The id of the live claim with the highest priority, or `null` if none. */
   winnerId: string | null;
 }
 
 const PromptQueueContext = createContext<PromptQueueValue | null>(null);
 
+interface Claim {
+  readonly priority: number;
+  readonly essential: boolean;
+}
+
+interface QueueState {
+  readonly claims: Readonly<Record<string, Claim>>;
+  /** The slot on screen right now, if any. */
+  readonly holder: string | null;
+  /** A prompt has been shown and dismissed this launch. */
+  readonly spent: boolean;
+}
+
 export function PromptQueueProvider({ children }: { children: ReactNode }) {
-  const [claims, setClaims] = useState<Record<string, number>>({});
+  const [state, setState] = useState<QueueState>({ claims: {}, holder: null, spent: false });
 
-  const claim = useCallback((id: string, priority: number) => {
-    setClaims((prev) => (prev[id] === priority ? prev : { ...prev, [id]: priority }));
-  }, []);
-
-  const release = useCallback((id: string) => {
-    setClaims((prev) => {
-      if (!(id in prev)) return prev;
-      const next = { ...prev };
-      delete next[id];
-      return next;
+  const claim = useCallback((id: string, priority: number, essential = false) => {
+    setState((prev) => {
+      const current = prev.claims[id];
+      if (current && current.priority === priority && current.essential === essential) return prev;
+      return { ...prev, claims: { ...prev.claims, [id]: { priority, essential } } };
     });
   }, []);
 
-  // The winner is the highest-priority live claim. `>` keeps the first-inserted
-  // on a tie, but priorities are meant to be distinct, so ties should not arise.
+  const release = useCallback((id: string) => {
+    setState((prev) => {
+      if (!(id in prev.claims)) return prev;
+      const claims = { ...prev.claims };
+      delete claims[id];
+      const wasHolder = prev.holder === id;
+      return {
+        claims,
+        holder: wasHolder ? null : prev.holder,
+        spent: prev.spent || wasHolder,
+      };
+    });
+  }, []);
+
+  const hold = useCallback((id: string) => {
+    setState((prev) =>
+      prev.holder === id || !(id in prev.claims) ? prev : { ...prev, holder: id },
+    );
+  }, []);
+
+  // The prompt on screen keeps it. Otherwise the highest-priority live claim —
+  // only essential ones once a prompt has had its turn this launch. `>` keeps
+  // the first-inserted on a tie, but priorities are meant to be distinct.
   const winnerId = useMemo(() => {
+    const { claims, holder, spent } = state;
+    if (holder && holder in claims) return holder;
     let best: string | null = null;
     let bestPriority = -Infinity;
-    for (const [id, priority] of Object.entries(claims)) {
+    for (const [id, { priority, essential }] of Object.entries(claims)) {
+      if (spent && !essential) continue;
       if (priority > bestPriority) {
         bestPriority = priority;
         best = id;
       }
     }
     return best;
-  }, [claims]);
+  }, [state]);
 
   const value = useMemo<PromptQueueValue>(
-    () => ({ claim, release, winnerId }),
-    [claim, release, winnerId],
+    () => ({ claim, release, hold, winnerId }),
+    [claim, release, hold, winnerId],
   );
 
   return <PromptQueueContext.Provider value={value}>{children}</PromptQueueContext.Provider>;
@@ -102,29 +147,35 @@ export function usePromptQueueClear(): boolean {
  *
  * `granted` is true only when this slot is the queue's winner *and* its
  * `delayMs` has elapsed since it became the winner. A higher-priority claim
- * appearing pulls `granted` straight back to false and cancels the wait, so a
- * tip that was a beat from showing steps aside the instant the tour starts.
+ * appearing while it waits pulls `granted` back to false and cancels the wait,
+ * so a tip that was a beat from showing steps aside the instant the tour starts.
+ * Once granted it holds the screen until it goes inactive or unmounts.
+ *
+ * `essential` is for a prompt that cannot be put off (the required phone ask):
+ * it still shows after another prompt has had this launch's turn.
  */
 export function usePromptSlot({
   id,
   priority,
   active,
   delayMs = 0,
+  essential = false,
 }: {
   id: string;
   priority: number;
   active: boolean;
   delayMs?: number;
+  essential?: boolean;
 }): boolean {
   const ctx = useContext(PromptQueueContext);
   if (!ctx) throw new Error('usePromptSlot must be used within a PromptQueueProvider');
-  const { claim, release, winnerId } = ctx;
+  const { claim, release, hold, winnerId } = ctx;
 
   useEffect(() => {
-    if (active) claim(id, priority);
+    if (active) claim(id, priority, essential);
     else release(id);
     return () => release(id);
-  }, [id, priority, active, claim, release]);
+  }, [id, priority, active, essential, claim, release]);
 
   const isWinner = active && winnerId === id;
   const [granted, setGranted] = useState(false);
@@ -143,6 +194,10 @@ export function usePromptSlot({
       setGranted(false);
     };
   }, [isWinner, delayMs]);
+
+  useEffect(() => {
+    if (granted) hold(id);
+  }, [granted, hold, id]);
 
   return granted;
 }

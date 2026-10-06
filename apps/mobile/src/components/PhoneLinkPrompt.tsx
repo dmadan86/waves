@@ -98,7 +98,15 @@ export function PhoneLinkPrompt() {
   // Above the push ask: being findable is the reason the app works between
   // friends, and the push ask will still be there after. Below the restore
   // prompt, which is about data already on the account.
-  const granted = usePromptSlot({ id: 'phonePrompt', priority: 85, active: wants, delayMs: 400 });
+  // The required ask is the one prompt that still shows after another has had
+  // this launch's turn: it cannot be put off, so it cannot wait for tomorrow.
+  const granted = usePromptSlot({
+    id: 'phonePrompt',
+    priority: 85,
+    active: wants,
+    delayMs: 400,
+    essential: mode === PhonePromptMode.Required,
+  });
 
   const required = mode === PhonePromptMode.Required;
   const number = `${dialingCodeForCountry(country) ?? ''}${local.replace(/[^\d]/g, '')}`;
