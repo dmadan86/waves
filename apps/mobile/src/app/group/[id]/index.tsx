@@ -492,7 +492,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
               opacity: pressed ? 0.5 : 1,
             })}
           >
-            <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
+            <Ionicons name="pencil" size={14} color={theme.color.brand} style={{ opacity: 0.5 }} />
           </Pressable>
         )}
       </Row>
