@@ -475,22 +475,24 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
         {/* Tapping the row opens it; the pencil goes straight to editing. A
             deleted expense has nothing to edit, so it keeps the space empty. */}
         {expense.deleted_at ? (
-          <View style={{ width: 32 }} />
+          <View style={{ width: iconSize.md + theme.spacing.sm + theme.spacing.md }} />
         ) : (
           <Pressable
             onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
             accessibilityRole="button"
             accessibilityLabel={t.common.edit}
             hitSlop={{ top: 8, bottom: 8 }}
+            // The right inset matches the badge's left one, so the row reads even.
             style={({ pressed }) => ({
-              width: 32,
+              paddingStart: theme.spacing.sm,
+              paddingEnd: theme.spacing.md,
               alignSelf: 'stretch',
               alignItems: 'center',
               justifyContent: 'center',
               opacity: pressed ? 0.5 : 1,
             })}
           >
-            <Ionicons name="pencil-outline" size={iconSize.md} color={theme.color.textMuted} />
+            <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
           </Pressable>
         )}
       </Row>
@@ -1297,7 +1299,8 @@ export default function GroupScreen() {
             // 1500 was still being outrun by a hard fling on a long ledger.
             drawDistance={2500}
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.xl,
+              // The same side margin as Home's group list and this screen's tabs.
+              paddingHorizontal: theme.spacing.lg,
               paddingBottom: clearance,
             }}
             showsVerticalScrollIndicator={false}
