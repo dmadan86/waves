@@ -101,7 +101,7 @@ overrides:
   # gadget that reaches RCE. Both arrive only through the docs site
   # (@docusaurus/core -> webpack-dev-server/express, and tinypool directly).
   proxy-addr: ^2.0.8
-  "@docusaurus/core>tinypool": ^2.1.2
+  '@docusaurus/core>tinypool': ^2.1.2
 
 # Expo loads a package's config plugin from inside that package, and several of
 # them require `@expo/config-plugins` without declaring it — it is always
