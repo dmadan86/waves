@@ -40,7 +40,7 @@ export function HeroScene({
   height,
   horizon,
   headerBottom,
-  shade = true,
+  shade = false,
   haze = true,
   pageColor,
 }: {
@@ -52,7 +52,7 @@ export function HeroScene({
   horizon: number;
   /** Where the greeting row ends: nothing leafy is drawn above it but at the edge. */
   headerBottom: number;
-  /** Draw the darkening shade across the top (for white text). On by default. */
+  /** Draw a darkening shade across the top. Off by default: the scene shows whole, and every hero picks its ink from the scene. */
   shade?: boolean;
   /** Draw the haze band between the two mountain ranges. On by default. */
   haze?: boolean;

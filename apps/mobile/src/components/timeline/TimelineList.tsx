@@ -29,7 +29,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import type { TimelineDay, TimelineEntry, TimelineRow } from '@/lib/timeline';
 
-const TIME_COL = 40;
+const TIME_COL = 32;
 const RAIL_COL = 18;
 /** Equal space either side of the rail: time | gap | rail | gap | card. */
 const RAIL_GAP = 6;
@@ -255,7 +255,7 @@ function EntryRow({
 
   return (
     <Row style={{ alignItems: 'stretch' }}>
-      <View style={{ width: TIME_COL, paddingTop: theme.spacing.md, alignItems: 'flex-end' }}>
+      <View style={{ width: TIME_COL, paddingTop: theme.spacing.md }}>
         {time ? (
           <>
             <Text style={{ fontSize: 12, lineHeight: 15, color: muted }}>{time[0]}</Text>
@@ -264,10 +264,7 @@ function EntryRow({
             ) : null}
           </>
         ) : (
-          <Text
-            numberOfLines={2}
-            style={{ fontSize: 11, lineHeight: 14, color: muted, textAlign: 'right' }}
-          >
+          <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 14, color: muted }}>
             {t.timeline.addedLater}
           </Text>
         )}

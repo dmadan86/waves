@@ -1203,7 +1203,9 @@ export default function GroupScreen() {
                 {
                   value: Tab.Settle,
                   label: t.settleUp,
-                  icon: (color) => <Ionicons name="checkmark" size={iconSize.md} color={color} />,
+                  icon: (color) => (
+                    <Ionicons name="cash-outline" size={iconSize.md} color={color} />
+                  ),
                 },
                 {
                   value: Tab.Timeline,

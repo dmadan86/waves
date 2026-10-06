@@ -52,7 +52,7 @@ export function HomeQuickActions({
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="swap-horizontal" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="cash-outline" size={16} color={color} />,
       onPress: onSettleUp,
     },
     {
