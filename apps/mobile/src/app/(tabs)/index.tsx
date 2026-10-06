@@ -61,6 +61,8 @@ import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
 import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { HeroScene } from '@/components/home/HeroScene';
+import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -317,6 +319,14 @@ export default function HomeScreen() {
     if (guard.blockAddGroup()) return;
     router.push('/new-group');
   };
+  // Every "new group" door on Home opens this menu: create, scan, or join.
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [newGroupAnchor, setNewGroupAnchor] = useState<MenuAnchor | null>(null);
+  const openNewGroupMenu = (anchor: MenuAnchor | null): void => {
+    setNewGroupAnchor(anchor);
+    setNewGroupOpen(true);
+  };
+  const emptyGroupBtnRef = useRef<View>(null);
 
   /**
    * The headline is one currency, because there is no such thing as a total
@@ -552,7 +562,7 @@ export default function HomeScreen() {
                     onAddExpenseLong={() => setQuickAddOpen(true)}
                     onReports={openReports}
                     onSettleUp={() => setSettleOpen(true)}
-                    onNewGroup={openNewGroup}
+                    onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}
                   />
                 }
@@ -596,7 +606,8 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t.newGroup}
-                  onPress={openNewGroup}
+                  onPress={() => measureAnchor(emptyGroupBtnRef, openNewGroupMenu)}
+                  ref={emptyGroupBtnRef}
                   style={({ pressed }) => ({
                     marginTop: 6,
                     height: 42,
@@ -754,6 +765,12 @@ export default function HomeScreen() {
       </View>
 
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <NewGroupMenu
+        open={newGroupOpen}
+        anchor={newGroupAnchor}
+        onClose={() => setNewGroupOpen(false)}
+        onCreate={openNewGroup}
+      />
       <SettlePickerSheet
         visible={settleOpen}
         onClose={() => setSettleOpen(false)}

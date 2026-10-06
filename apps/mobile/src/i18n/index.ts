@@ -1810,6 +1810,9 @@ export interface UiStrings {
     youOwe: string;
     settleUp: string;
     newGroup: string;
+    createGroup: string;
+    scanQrCode: string;
+    joinLinkOrCode: string;
     addExpense: string;
     reports: string;
     settleTitle: string;
@@ -5859,6 +5862,9 @@ const en: UiStrings = {
     youOwe: 'You owe',
     settleUp: 'Settle up',
     newGroup: 'New group',
+    createGroup: 'Create a group',
+    scanQrCode: 'Scan a QR code',
+    joinLinkOrCode: 'Join with a link or code',
     addExpense: 'Add expense',
     reports: 'Reports',
     settleTitle: 'Settle up in',
@@ -9524,6 +9530,9 @@ const ta: UiStrings = {
     youOwe: 'நீங்கள் தர வேண்டியது',
     settleUp: 'கணக்கு தீர்',
     newGroup: 'புதிய குழு',
+    createGroup: 'குழுவை உருவாக்கு',
+    scanQrCode: 'QR குறியீட்டை ஸ்கேன் செய்',
+    joinLinkOrCode: 'இணைப்பு அல்லது குறியீட்டால் இணை',
     addExpense: 'செலவு சேர்',
     reports: 'அறிக்கைகள்',
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
@@ -13273,6 +13282,9 @@ const hi: UiStrings = {
     youOwe: 'आपको देने हैं',
     settleUp: 'हिसाब चुकाएँ',
     newGroup: 'नया समूह',
+    createGroup: 'समूह बनाएँ',
+    scanQrCode: 'QR कोड स्कैन करें',
+    joinLinkOrCode: 'लिंक या कोड से जुड़ें',
     addExpense: 'खर्च जोड़ें',
     reports: 'रिपोर्ट',
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
@@ -17004,6 +17016,9 @@ const ar: UiStrings = {
     youOwe: 'عليك',
     settleUp: 'تسوية',
     newGroup: 'مجموعة جديدة',
+    createGroup: 'إنشاء مجموعة',
+    scanQrCode: 'مسح رمز QR',
+    joinLinkOrCode: 'انضم برابط أو رمز',
     addExpense: 'إضافة مصروف',
     reports: 'التقارير',
     settleTitle: 'التسوية في أي مجموعة؟',
