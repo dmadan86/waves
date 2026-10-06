@@ -395,6 +395,8 @@ export interface UiStrings {
     dueWhenever: string;
     /** Details row for a deposit: what has been paid so far (the expense amount). */
     advancePaid: string;
+    fullyPaid: string;
+    balanceDueBy: string;
     /** Details row value: the balance and when it is due; {amount}, {date}. */
     balanceDueValue: string;
     overdueCount: PluralForms;
@@ -4704,6 +4706,8 @@ const en: UiStrings = {
     upcomingPaymentsTitle: 'Upcoming payments',
     dueWhenever: 'Due date not set',
     advancePaid: 'Advance paid',
+    fullyPaid: 'Fully paid',
+    balanceDueBy: 'by {date}',
     balanceDueValue: '{amount} · due {date}',
     overdueCount: { one: '{n} overdue', other: '{n} overdue' },
     vendorsTab: 'Vendors',
@@ -8341,6 +8345,8 @@ const ta: UiStrings = {
     upcomingPaymentsTitle: 'வரவிருக்கும் பணம் செலுத்துதல்கள்',
     dueWhenever: 'தேதி குறிப்பிடப்படவில்லை',
     advancePaid: 'செலுத்திய முன்பணம்',
+    fullyPaid: 'முழுமையாகச் செலுத்தப்பட்டது',
+    balanceDueBy: '{date} க்குள்',
     balanceDueValue: '{amount} · {date} அன்று செலுத்த வேண்டும்',
     overdueCount: { one: '{n} தாமதமானது', other: '{n} தாமதமானவை' },
     vendorsTab: 'விற்பனையாளர்கள்',
@@ -12126,6 +12132,8 @@ const hi: UiStrings = {
     upcomingPaymentsTitle: 'आने वाले भुगतान',
     dueWhenever: 'देय तिथि तय नहीं',
     advancePaid: 'अग्रिम भुगतान',
+    fullyPaid: 'पूरा भुगतान हो गया',
+    balanceDueBy: '{date} तक',
     balanceDueValue: '{amount} · देय {date}',
     overdueCount: { one: '{n} बकाया', other: '{n} बकाया' },
     vendorsTab: 'वेंडर',
@@ -15787,6 +15795,8 @@ const ar: UiStrings = {
     upcomingPaymentsTitle: 'الدفعات القادمة',
     dueWhenever: 'لم يُحدَّد تاريخ الاستحقاق',
     advancePaid: 'الدفعة المقدّمة',
+    fullyPaid: 'مدفوع بالكامل',
+    balanceDueBy: 'بحلول {date}',
     balanceDueValue: '{amount} · مستحق في {date}',
     overdueCount: {
       zero: 'لا دفعات متأخرة',
