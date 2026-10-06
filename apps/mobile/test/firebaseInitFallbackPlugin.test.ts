@@ -50,4 +50,12 @@ describe('withFirebaseInitFallback', () => {
       /super\.onCreate/,
     );
   });
+
+  it('also starts ML Kit, whose provider is skipped on the same phones', () => {
+    const out = withFallback(
+      'class A {\n  override fun onCreate() {\n    super.onCreate()\n  }\n}',
+    );
+    expect(out).toContain('com.google.mlkit.common.sdkinternal.MlKitContext');
+    expect(out).toContain('initializeIfNeeded');
+  });
 });
