@@ -1,6 +1,7 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, TextInput, View } from 'react-native';
 
 import {
@@ -20,6 +21,7 @@ import {
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { cameraAvailable, tokenFromScan } from '@/lib/qrScan';
+import { scanOpensPaste } from '@/lib/scanMode';
 
 // Only pulled in when the native camera is present — a dynamic import so an
 // older binary never even evaluates `expo-camera`.
@@ -45,7 +47,10 @@ export default function ScanScreen() {
   const theme = useTheme();
   const { t } = useStrings();
   const available = cameraAvailable();
-  const [pasting, setPasting] = useState(false);
+  // `?mode=paste` (Home's "Join with a link or code") lands on the paste step
+  // directly instead of the viewfinder.
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const [pasting, setPasting] = useState(() => scanOpensPaste(mode));
   const [pasted, setPasted] = useState('');
   const [pasteError, setPasteError] = useState<string | null>(null);
 
@@ -70,13 +75,7 @@ export default function ScanScreen() {
    * shown, so the sheet cannot surface clipboard contents that have nothing to
    * do with Waves.
    */
-  const openPaste = (): void => {
-    // A fresh sheet every time. Reopening onto the rejected text from last time,
-    // with the error that explained it already gone, reads as the field having
-    // broken rather than as a link that did not work.
-    setPasted('');
-    setPasteError(null);
-    setPasting(true);
+  const prefillFromClipboard = (): void => {
     void Clipboard.getStringAsync()
       .then((clip) => {
         if (!clip || !tokenFromScan(clip)) return;
@@ -90,6 +89,23 @@ export default function ScanScreen() {
         // field is there to be typed into either way.
       });
   };
+
+  const openPaste = (): void => {
+    // A fresh sheet every time. Reopening onto the rejected text from last time,
+    // with the error that explained it already gone, reads as the field having
+    // broken rather than as a link that did not work.
+    setPasted('');
+    setPasteError(null);
+    setPasting(true);
+    prefillFromClipboard();
+  };
+
+  // Opened straight onto the paste step: the sheet is already up, so only the
+  // clipboard offer is left to make.
+  useEffect(() => {
+    if (scanOpensPaste(mode)) prefillFromClipboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on arrival only
+  }, []);
 
   const submitPaste = (): void => {
     const token = tokenFromScan(pasted);
