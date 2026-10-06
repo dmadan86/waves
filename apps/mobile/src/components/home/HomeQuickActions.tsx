@@ -14,12 +14,16 @@
  * Friends' own quick actions use — brand-tinted here, lilac there.
  */
 
+import { useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { View } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
 import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
+import type { MenuAnchor } from '@/components/home/NewGroupMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { useStrings } from '@/i18n';
 
 export function HomeQuickActions({
@@ -34,19 +38,22 @@ export function HomeQuickActions({
   onAddExpenseLong: () => void;
   onReports: () => void;
   onSettleUp: () => void;
-  onNewGroup: () => void;
+  /** Handed the tile's window position so the menu can drop from it. */
+  onNewGroup: (anchor: MenuAnchor | null) => void;
   /** The card's corner radius, which the strip's bottom corners follow. */
   radius: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const groupRef = useRef<View>(null);
 
   const actions: QuickAction[] = [
     {
       key: 'group',
       label: t.homeDash.newGroup,
       glyph: (color) => <GroupAddIcon size={13} color={color} />,
-      onPress: onNewGroup,
+      onPress: () => measureAnchor(groupRef, onNewGroup),
+      ref: groupRef,
       tourId: 'addGroup',
     },
     {
