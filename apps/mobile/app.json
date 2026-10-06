@@ -25,7 +25,8 @@
       "associatedDomains": ["applinks:app.wavs.co.in"],
       "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["fetch", "remote-notification"]
       }
     },
     "android": {
