@@ -4188,6 +4188,18 @@ export interface UiStrings {
     oneEquals: string;
     /** The tier a bill's rate came from, said on the expense form. */
     tierTrip: string;
+    /** The one quiet line under a foreign amount: "= {amount} in the group's money". */
+    inGroupMoney: string;
+    /** Where the rate on that line came from, in three plain words. */
+    rateToday: string;
+    rateYours: string;
+    rateTrip: string;
+    /** The line shown while no rate is set yet. */
+    rateNotSet: string;
+    /** The one sentence at the top of the rate sheet. */
+    rateExplainer: string;
+    /** Under the amount on a saved expense: "at 1 $ = ₹93.00". */
+    viewAt: string;
     tierBill: string;
     /** The button that opens the full rate methods on an expense. */
     change: string;
@@ -7841,6 +7853,14 @@ const en: UiStrings = {
     typeIt: 'Type the rate',
     oneEquals: '1 {from} =',
     tierTrip: 'Trip rate',
+    inGroupMoney: '= {amount} in the group’s money',
+    rateToday: 'today’s rate',
+    rateYours: 'your rate',
+    rateTrip: 'trip rate',
+    rateNotSet: 'Tap to set the rate',
+    rateExplainer:
+      'We use today’s market rate. Change it if you got a different rate (for example at the airport).',
+    viewAt: 'at {rate}',
     tierBill: 'This bill',
     change: 'Change',
     useTodaysRate: 'Use today’s rate',
@@ -11636,6 +11656,14 @@ const ta: UiStrings = {
     typeIt: 'விகிதத்தைத் தட்டச்சு செய்யுங்கள்',
     oneEquals: '1 {from} =',
     tierTrip: 'பயண விகிதம்',
+    inGroupMoney: '= {amount} குழுவின் பணத்தில்',
+    rateToday: 'இன்றைய விகிதம்',
+    rateYours: 'உங்கள் விகிதம்',
+    rateTrip: 'பயண விகிதம்',
+    rateNotSet: 'விகிதத்தை அமைக்கத் தட்டவும்',
+    rateExplainer:
+      'நாங்கள் இன்றைய சந்தை விகிதத்தைப் பயன்படுத்துகிறோம். வேறு விகிதம் கிடைத்திருந்தால் (எ.கா. விமான நிலையத்தில்) மாற்றுங்கள்.',
+    viewAt: '{rate} என்ற விகிதத்தில்',
     tierBill: 'இந்த பில்',
     change: 'மாற்று',
     useTodaysRate: 'இன்றைய விகிதத்தைப் பயன்படுத்து',
@@ -15287,6 +15315,14 @@ const hi: UiStrings = {
     typeIt: 'दर टाइप करें',
     oneEquals: '1 {from} =',
     tierTrip: 'यात्रा दर',
+    inGroupMoney: '= {amount} समूह की मुद्रा में',
+    rateToday: 'आज की दर',
+    rateYours: 'आपकी दर',
+    rateTrip: 'यात्रा दर',
+    rateNotSet: 'दर तय करने के लिए छुएँ',
+    rateExplainer:
+      'हम आज की बाज़ार दर लेते हैं। अगर आपको कोई और दर मिली (जैसे एयरपोर्ट पर), तो उसे बदल दें।',
+    viewAt: '{rate} की दर से',
     tierBill: 'यह बिल',
     change: 'बदलें',
     useTodaysRate: 'आज की दर लें',
@@ -19462,6 +19498,13 @@ const ar: UiStrings = {
     typeIt: 'اكتب السعر',
     oneEquals: '1 {from} =',
     tierTrip: 'سعر الرحلة',
+    inGroupMoney: '= {amount} بعملة المجموعة',
+    rateToday: 'سعر اليوم',
+    rateYours: 'سعرك',
+    rateTrip: 'سعر الرحلة',
+    rateNotSet: 'اضغط لتحديد السعر',
+    rateExplainer: 'نستخدم سعر السوق اليوم. غيّره إذا حصلت على سعر مختلف (مثلاً في المطار).',
+    viewAt: 'بسعر {rate}',
     tierBill: 'هذه الفاتورة',
     change: 'تغيير',
     useTodaysRate: 'استخدم سعر اليوم',

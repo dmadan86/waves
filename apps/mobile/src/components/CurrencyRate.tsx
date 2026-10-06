@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import {
   convertWithRecord,
@@ -34,11 +34,11 @@ import {
   toFxRecord,
   type FxRecord,
 } from '@waves/core';
-import { Button, Callout, Card, ChipRow, Row, Text, useTheme } from '@waves/ui';
+import { Button, Callout, ChipRow, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { rateLine } from '@/lib/tripRates';
+import { rateNote, rateOrigin } from '@/lib/fxLine';
 
 import { fetchFxRate } from '@/data/api';
 
@@ -88,11 +88,8 @@ export function CurrencyRate({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Whether the methods are open. They start closed while the bill is riding the
-  // trip's rate, and open the moment somebody asks to change it — or the moment
-  // the bill carries a rate that is not the trip's, since that is a choice
-  // already made and hiding it would be hiding it from the person who made it.
-  const [overriding, setOverriding] = useState(false);
+  // Whether the rate sheet is open.
+  const [open, setOpen] = useState(false);
   // The pair the component is showing right now. `fetchToday` captures the pair
   // it launched for and, on return, applies its result only if this still
   // matches — otherwise a rate fetched for a currency the user has since changed
@@ -149,7 +146,6 @@ export function CurrencyRate({
     // A new currency is a new question. Whatever was decided about the last
     // one — including a decision to override the trip's rate for it — does not
     // carry over to a rate for a different pair.
-    setOverriding(false);
   }
 
   const applyTyped = (text: string): void => {
@@ -214,46 +210,39 @@ export function CurrencyRate({
   // expense is foreign, and then only the rate.
   if (!foreign) return null;
 
-  // Riding the trip's rate: one line, not a card of controls. What the bill
-  // comes to in the group's currency, the rate that said so, and the way out.
-  if (foreign && pinned && onTripRate && !overriding) {
-    return (
-      <Card style={{ gap: theme.spacing.xs }}>
-        <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            {converted ? (
-              <Text variant="body" numberOfLines={1}>
-                {t.misc.convertedApprox
-                  .replace('{amount}', format(converted))
-                  .replace('{currency}', groupCurrency)}
-              </Text>
-            ) : null}
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {`${t.fx.tierTrip} · ${rateLine(pinned)}`}
-            </Text>
-          </View>
-          <Button
-            label={t.fx.change}
-            variant="ghost"
-            size="sm"
-            onPress={() => setOverriding(true)}
-          />
-        </Row>
-      </Card>
-    );
-  }
+  // One quiet line, whatever the source of the rate: what the bill comes to in
+  // the group's money, and in small print the rate and where it came from. A tap
+  // opens the sheet where the rate can be changed.
+  const origin = fx ? rateOrigin(fx, onTripRate) : null;
 
   return (
-    <Card style={{ gap: theme.spacing.md }}>
-      <Text variant="caption" tone="muted">
-        {t.extras.paidIn}
-      </Text>
-
-      {foreign ? (
-        <>
-          <Text variant="caption" tone="muted">
-            {t.misc.howDoYouKnowRate.replace('{currency}', groupCurrency)}
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityHint={t.fx.rateExplainer}
+        hitSlop={8}
+        style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}
+      >
+        {converted ? (
+          <Text variant="body" numberOfLines={1}>
+            {t.fx.inGroupMoney.replace('{amount}', format(converted))}
           </Text>
+        ) : (
+          <Text variant="body" tone="muted" numberOfLines={1}>
+            {t.fx.rateNotSet}
+          </Text>
+        )}
+        {fx && origin ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {rateNote(fx, origin, t.fx)}
+          </Text>
+        ) : null}
+      </Pressable>
+
+      <Sheet visible={open} onClose={() => setOpen(false)}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="body">{t.fx.rateExplainer}</Text>
           <ChipRow<Method>
             value={method}
             onChange={(next) => {
@@ -319,37 +308,12 @@ export function CurrencyRate({
             />
           ) : null}
 
-          {converted ? (
-            <Text variant="caption" tone="positive">
-              {t.misc.convertedApprox
-                .replace('{amount}', format(converted))
-                .replace('{currency}', groupCurrency)}
-            </Text>
-          ) : null}
-
-          {fx ? (
-            <Text variant="micro" tone="muted">
-              {t.misc.rateStoredNote
-                .replace('{rate}', rateToDecimal(fromFxRecord(fx), 4))
-                .replace(
-                  '{source}',
-                  fx.source === 'ecb'
-                    ? t.misc.rateSourceEcb
-                    : fx.source === 'implied'
-                      ? t.misc.rateSourceImplied
-                      : t.misc.rateSourceYou,
-                )}
-            </Text>
-          ) : (
-            <Text variant="micro" tone="muted">
-              {t.misc.noRateNote.replaceAll('{currency}', currency)}
-            </Text>
-          )}
-
           {error ? <Callout tone="negative">{error}</Callout> : null}
-        </>
-      ) : null}
-    </Card>
+
+          <Button label={t.common.done} onPress={() => setOpen(false)} />
+        </View>
+      </Sheet>
+    </>
   );
 }
 
