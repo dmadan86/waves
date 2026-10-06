@@ -37,10 +37,13 @@ let disabledCache: Set<string> | null = null;
 export function CountryCodePicker({
   code,
   onChange,
+  bare = false,
 }: {
   /** The selected country as an ISO-3166 alpha-2 code (e.g. `IN`). */
   code: string;
   onChange: (countryCode: string) => void;
+  /** Drop the chip's own fill, for a chip sitting inside a field that already has one. */
+  bare?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -130,7 +133,7 @@ export function CountryCodePicker({
           paddingVertical: theme.spacing.sm,
           paddingHorizontal: theme.spacing.md,
           borderRadius: theme.radius.md,
-          backgroundColor: theme.color.surfaceMuted,
+          backgroundColor: bare ? 'transparent' : theme.color.surfaceMuted,
         }}
       >
         <Text style={{ fontSize: 20 }}>{flag}</Text>

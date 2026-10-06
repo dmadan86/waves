@@ -1403,6 +1403,9 @@ export interface UiStrings {
     signOut: string;
     sendCode: string;
     codeSent: string;
+    didntReceive: string;
+    retry: string;
+    retryIn: string;
     confirm: string;
     changeNumber: string;
     done: string;
@@ -5505,6 +5508,9 @@ const en: UiStrings = {
     signOut: 'Sign out',
     sendCode: 'Send code',
     codeSent: 'Enter the six-digit code we texted to {phone}',
+    didntReceive: 'Didn’t receive the code?',
+    retry: 'Retry',
+    retryIn: 'Retry ({time})',
     confirm: 'Confirm',
     changeNumber: 'Change number',
     done: 'You are all set. Friends can now find you by your number.',
@@ -9164,6 +9170,9 @@ const ta: UiStrings = {
     signOut: 'வெளியேறு',
     sendCode: 'குறியீட்டை அனுப்பு',
     codeSent: '{phone} க்கு அனுப்பிய ஆறு இலக்கக் குறியீட்டை உள்ளிடவும்',
+    didntReceive: 'குறியீடு வரவில்லையா?',
+    retry: 'மீண்டும் முயற்சி',
+    retryIn: 'மீண்டும் முயற்சி ({time})',
     confirm: 'உறுதிப்படுத்து',
     changeNumber: 'எண்ணை மாற்று',
     done: 'எல்லாம் தயார். நண்பர்கள் இப்போது உங்கள் எண்ணைக் கொண்டு உங்களைக் கண்டுபிடிக்கலாம்.',
@@ -12930,6 +12939,9 @@ const hi: UiStrings = {
     signOut: 'साइन आउट',
     sendCode: 'कोड भेजें',
     codeSent: '{phone} पर भेजा गया छह अंकों का कोड डालें',
+    didntReceive: 'कोड नहीं मिला?',
+    retry: 'दोबारा कोशिश करें',
+    retryIn: 'दोबारा कोशिश करें ({time})',
     confirm: 'पुष्टि करें',
     changeNumber: 'नंबर बदलें',
     done: 'सब तैयार है। अब दोस्त आपको आपके नंबर से ढूँढ सकते हैं।',
@@ -16647,6 +16659,9 @@ const ar: UiStrings = {
     signOut: 'تسجيل الخروج',
     sendCode: 'أرسل الرمز',
     codeSent: 'أدخل الرمز المكوّن من ستة أرقام الذي أرسلناه إلى {phone}',
+    didntReceive: 'لم يصلك الرمز؟',
+    retry: 'إعادة المحاولة',
+    retryIn: 'إعادة المحاولة ({time})',
     confirm: 'تأكيد',
     changeNumber: 'غيّر الرقم',
     done: 'كل شيء جاهز. يمكن لأصدقائك الآن العثور عليك برقمك.',
