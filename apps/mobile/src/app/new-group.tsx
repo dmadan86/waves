@@ -1210,8 +1210,8 @@ const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.t
 /** Home's scene behind the header: the room under the title row where its
  *  landscape shows, how far the first card rides up over its foot, and how far
  *  it runs on under that card before it has faded into the page. */
-const SCENE_ROOM = 36;
-const SCENE_OVERLAP = 40;
+const SCENE_ROOM = 54;
+const SCENE_OVERLAP = 28;
 const SCENE_INTO_CARD = 60;
 /** The header row's own height (the 44pt back button plus its top padding),
  *  where the scene's readability shade ends. */
