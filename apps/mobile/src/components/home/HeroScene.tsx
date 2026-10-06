@@ -41,7 +41,7 @@ export function HeroScene({
   horizon,
   headerBottom,
   shade = false,
-  haze = true,
+  haze = false,
   pageColor,
 }: {
   scene: Scene;
@@ -54,7 +54,7 @@ export function HeroScene({
   headerBottom: number;
   /** Draw a darkening shade across the top. Off by default: the scene shows whole, and every hero picks its ink from the scene. */
   shade?: boolean;
-  /** Draw the haze band between the two mountain ranges. On by default. */
+  /** Draw the haze band between the two mountain ranges. Off by default: on a short header it reads as a stray line across the title. */
   haze?: boolean;
   /** The page behind the hero, which the scene's foot fades into. */
   pageColor: string;

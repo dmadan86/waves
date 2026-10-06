@@ -24,10 +24,11 @@ import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
+import { SPEC_INK } from '@/lib/specPalette';
 
 /** The back button's own size, so the subtitle below it can line up under the
  *  title rather than under the button. */
-const BACK_BUTTON = 40;
+const BACK_BUTTON = 44;
 
 /**
  * How far under the header's own text the mountains still show before the
@@ -109,16 +110,21 @@ export function ContactPickerScene({
         {/* One row: the button inline with the title, not stacked above it —
             a row of its own cost the header a whole extra line of height for
             nothing the title couldn't say beside it. */}
-        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <TranslucentBackButton
             dark={darkInk}
             label={t.common.back}
             onPress={() => router.back()}
           />
           <Text
-            variant="subheading"
             numberOfLines={1}
-            style={{ flex: 1, color: darkInk ? theme.color.text : '#FFFFFF' }}
+            style={{
+              flex: 1,
+              fontSize: 19,
+              lineHeight: 24,
+              fontWeight: '800',
+              color: darkInk ? SPEC_INK : '#FFFFFF',
+            }}
           >
             {t.misc.fromYourContacts}
           </Text>
@@ -127,12 +133,13 @@ export function ContactPickerScene({
             it is given — a wrap here is what the search card's ride then
             covers half of. */}
         <Text
-          variant="micro"
           numberOfLines={1}
           style={{
-            marginStart: BACK_BUTTON + theme.spacing.sm,
-            color: darkInk ? theme.color.text : '#FFFFFF',
-            opacity: darkInk ? 0.7 : 0.85,
+            marginStart: BACK_BUTTON + theme.spacing.md,
+            fontSize: 13,
+            lineHeight: 17,
+            color: darkInk ? SPEC_INK : '#FFFFFF',
+            opacity: 0.85,
           }}
         >
           {subtitle ?? t.pickers.fromYourContactsSubtitle}
@@ -185,26 +192,29 @@ export function TranslucentBackButton({
   label: string;
   onPress: () => void;
 }): React.JSX.Element {
-  const theme = useTheme();
+  // The one back button every scenic header wears (new group, contacts, join,
+  // event plan…): a frosted white disc with a bold chevron in the scene's ink —
+  // near-black on a light scene, white on a dark one.
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
+      hitSlop={4}
       style={({ pressed }) => ({
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: BACK_BUTTON,
+        height: BACK_BUTTON,
+        borderRadius: BACK_BUTTON / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: dark ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.18)',
-        opacity: pressed ? 0.7 : 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.35)',
+        opacity: pressed ? 0.6 : 1,
       })}
     >
       <Ionicons
         name={directionalIcon('chevron-back')}
-        size={iconSize.lg}
-        color={dark ? theme.color.text : '#FFFFFF'}
+        size={iconSize.xl}
+        color={dark ? SPEC_INK : '#FFFFFF'}
       />
     </Pressable>
   );

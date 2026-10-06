@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, View } from 'react-native';
 
 import { Text, useTheme } from '@waves/ui';
@@ -17,12 +18,16 @@ export function GroupTagField({
   onChange,
   onCommit,
   type,
+  filled = false,
 }: {
   value: string;
   onChange: (next: string) => void;
   onCommit?: (next: string) => void;
   /** The group's type, which picks the suggestions. */
   type: string | null | undefined;
+  /** The create screen's look: a tag icon on the label, a filled 44pt pill
+   *  input and pill chips, instead of settings' underlined field. */
+  filled?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -33,9 +38,18 @@ export function GroupTagField({
 
   return (
     <View style={{ gap: theme.spacing.xs }}>
-      <Text variant="caption" tone="muted">
-        {t.extras.tagLabel}
-      </Text>
+      {filled ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+          <Ionicons name="pricetag-outline" size={20} color={theme.color.textMuted} />
+          <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600' }} tone="muted">
+            {t.extras.tagLabel}
+          </Text>
+        </View>
+      ) : (
+        <Text variant="caption" tone="muted">
+          {t.extras.tagLabel}
+        </Text>
+      )}
       <TextInput
         value={value}
         onChangeText={onChange}
@@ -50,13 +64,27 @@ export function GroupTagField({
         maxLength={GROUP_TAG_MAX}
         returnKeyType="done"
         autoCorrect={false}
-        style={{
-          fontSize: 16,
-          color: theme.color.text,
-          paddingVertical: theme.spacing.xs,
-          borderBottomWidth: 1.5,
-          borderBottomColor: focused ? theme.color.brand : theme.color.border,
-        }}
+        style={
+          filled
+            ? {
+                fontSize: 15,
+                color: theme.color.text,
+                height: 44,
+                paddingVertical: 0,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: 22,
+                borderWidth: 1.5,
+                borderColor: focused ? theme.color.brand : 'transparent',
+                backgroundColor: theme.color.surfaceMuted,
+              }
+            : {
+                fontSize: 16,
+                color: theme.color.text,
+                paddingVertical: theme.spacing.xs,
+                borderBottomWidth: 1.5,
+                borderBottomColor: focused ? theme.color.brand : theme.color.border,
+              }
+        }
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
         {suggestions.map((suggestion) => {
@@ -74,7 +102,7 @@ export function GroupTagField({
               }}
               style={({ pressed }) => ({
                 paddingHorizontal: theme.spacing.sm,
-                paddingVertical: 3,
+                paddingVertical: filled ? 6 : 3,
                 borderRadius: theme.radius.pill,
                 backgroundColor: selected ? theme.color.brandSoft : theme.color.surfaceMuted,
                 opacity: pressed ? 0.6 : 1,
