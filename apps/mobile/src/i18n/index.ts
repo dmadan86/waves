@@ -2163,6 +2163,9 @@ export interface UiStrings {
     editTitle: string;
     edit: string;
     emptyBody: string;
+    /** Phrases inside `emptyBody` drawn heavier. Missing from the text, nothing is emphasised. */
+    emptyEmphasisLead: string;
+    emptyEmphasisPhoto: string;
     amount: string;
     description: string;
     descriptionPlaceholder: string;
@@ -6109,6 +6112,8 @@ const en: UiStrings = {
     edit: 'Edit',
     emptyBody:
       'Catch a spend the moment it happens — the amount, a note, a photo of the bill — and choose which group it belongs to later.',
+    emptyEmphasisLead: 'Catch a spend the moment it happens',
+    emptyEmphasisPhoto: 'a photo of the bill',
     amount: 'Amount',
     description: 'What was it?',
     descriptionPlaceholder: 'Coffee, taxi, groceries…',
@@ -9817,6 +9822,8 @@ const ta: UiStrings = {
     edit: 'திருத்து',
     emptyBody:
       'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள் — தொகை, ஒரு குறிப்பு, ரசீதின் படம் — எந்தக் குழுவுக்கு உரியது என்பதைப் பிறகு தீர்மானியுங்கள்.',
+    emptyEmphasisLead: 'செலவு நடந்த அந்த நொடியிலேயே பிடித்து வையுங்கள்',
+    emptyEmphasisPhoto: 'ரசீதின் படம்',
     amount: 'தொகை',
     description: 'இது என்ன?',
     descriptionPlaceholder: 'காபி, டாக்ஸி, மளிகை…',
@@ -13594,6 +13601,8 @@ const hi: UiStrings = {
     edit: 'बदलें',
     emptyBody:
       'खर्च होते ही उसे पकड़ लें — रकम, एक नोट, बिल की तस्वीर — और बाद में तय करें कि यह किस समूह का है।',
+    emptyEmphasisLead: 'खर्च होते ही उसे पकड़ लें',
+    emptyEmphasisPhoto: 'बिल की तस्वीर',
     amount: 'रकम',
     description: 'यह क्या था?',
     descriptionPlaceholder: 'कॉफ़ी, टैक्सी, राशन…',
@@ -17398,6 +17407,8 @@ const ar: UiStrings = {
     edit: 'تعديل',
     emptyBody:
       'التقط المصروف لحظة حدوثه — المبلغ، ملاحظة، صورة الفاتورة — وقرّر لاحقًا إلى أي مجموعة ينتمي.',
+    emptyEmphasisLead: 'التقط المصروف لحظة حدوثه',
+    emptyEmphasisPhoto: 'صورة الفاتورة',
     amount: 'المبلغ',
     description: 'ما هذا؟',
     descriptionPlaceholder: 'قهوة، تاكسي، بقالة…',

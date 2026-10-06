@@ -74,7 +74,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -795,6 +803,140 @@ function ActionSheetRow({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+const REVIEW_EMPTY_ART = require('../../../assets/images/review-empty-art.webp') as number;
+const REVIEW_EMPTY_ART_RATIO = 710 / 400;
+
+/** `body` with each `emphasis` phrase marked strong; plain when a phrase is absent. */
+function emphasised(body: string, emphasis: readonly string[]): (string | { strong: string })[] {
+  let parts: (string | { strong: string })[] = [body];
+  for (const phrase of emphasis) {
+    if (!phrase) continue;
+    parts = parts.flatMap((part) => {
+      if (typeof part !== 'string') return [part];
+      const at = part.indexOf(phrase);
+      if (at < 0) return [part];
+      return [part.slice(0, at), { strong: phrase }, part.slice(at + phrase.length)];
+    });
+  }
+  return parts.filter((part) => part !== '');
+}
+
+/**
+ * The zero state: a picture, "Nothing needs you", one line of what Review is
+ * for, and the two ways in — a solid pill to save an expense, a soft one to add
+ * from a message.
+ */
+function ReviewEmptyState({
+  title,
+  body,
+  emphasis,
+  captureLabel,
+  messageLabel,
+  onCapture,
+  onMessage,
+}: {
+  title: string;
+  body: string;
+  emphasis: readonly string[];
+  captureLabel: string;
+  messageLabel: string;
+  onCapture: () => void;
+  onMessage: () => void;
+}) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const artWidth = Math.min(width - theme.spacing.xl, 340);
+  return (
+    <View style={{ alignItems: 'center', paddingHorizontal: theme.spacing.xl }}>
+      <Image
+        source={REVIEW_EMPTY_ART}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ width: artWidth, height: artWidth / REVIEW_EMPTY_ART_RATIO }}
+      />
+      <Text
+        variant="title"
+        accessibilityRole="header"
+        style={{ fontWeight: '800', textAlign: 'center', marginTop: theme.spacing.sm }}
+      >
+        {title}
+      </Text>
+      <Text
+        variant="body"
+        tone="muted"
+        style={{ textAlign: 'center', marginTop: theme.spacing.xs, maxWidth: 320 }}
+      >
+        {emphasised(body, emphasis).map((part, i) =>
+          typeof part === 'string' ? (
+            part
+          ) : (
+            <Text key={i} variant="body" style={{ fontWeight: '600', color: theme.color.text }}>
+              {part.strong}
+            </Text>
+          ),
+        )}
+      </Text>
+      <View style={{ alignSelf: 'stretch', gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={captureLabel}
+          onPress={onCapture}
+          style={({ pressed }) => ({
+            borderRadius: 26,
+            opacity: pressed ? 0.9 : 1,
+            shadowColor: theme.color.brand,
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 4,
+          })}
+        >
+          <LinearGradient
+            colors={[theme.color.brand, '#8B6CF6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              height: 52,
+              borderRadius: 26,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+            }}
+          >
+            <Ionicons name="camera" size={iconSize.md} color={theme.color.onBrand} />
+            <Text variant="body" style={{ fontWeight: '700', color: theme.color.onBrand }}>
+              {captureLabel}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={messageLabel}
+          onPress={onMessage}
+          style={({ pressed }) => ({
+            alignSelf: 'center',
+            height: 44,
+            paddingHorizontal: theme.spacing.xl,
+            borderRadius: 22,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: theme.color.brandSoft,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="chatbox-ellipses-outline" size={iconSize.md} color={theme.color.brand} />
+          <Text variant="body" style={{ fontWeight: '700', color: theme.color.brand }}>
+            {messageLabel}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -2364,14 +2506,7 @@ export default function CapturesScreen() {
                 justifyContent: 'center',
               }}
             >
-              <EmptyState
-                icon={
-                  <Ionicons
-                    name="checkmark-done-outline"
-                    size={iconSize.huge}
-                    color={theme.color.brand}
-                  />
-                }
+              <ReviewEmptyState
                 title={t.captures.nothingNeedsYou}
                 body={
                   filedThisWeek > 0
@@ -2380,16 +2515,11 @@ export default function CapturesScreen() {
                       ? t.captures.watchingNothingYet
                       : t.captures.emptyBody
                 }
-                action={
-                  <View style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                    <Button label={t.captures.captureCta} onPress={() => router.push('/capture')} />
-                    <Button
-                      label={auto.enabled ? t.captures.addAnotherWay : t.captures.fromMessage}
-                      variant="ghost"
-                      onPress={() => router.push('/captures/paste')}
-                    />
-                  </View>
-                }
+                emphasis={[t.captures.emptyEmphasisLead, t.captures.emptyEmphasisPhoto]}
+                captureLabel={t.captures.captureCta}
+                messageLabel={auto.enabled ? t.captures.addAnotherWay : t.captures.fromMessage}
+                onCapture={() => router.push('/capture')}
+                onMessage={() => router.push('/captures/paste')}
               />
             </View>
           )
