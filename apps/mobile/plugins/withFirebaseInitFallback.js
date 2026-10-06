@@ -1,6 +1,6 @@
 /**
- * Start the default Firebase app from `MainApplication.onCreate` when the
- * platform did not.
+ * Start the default Firebase app (and ML Kit) from `MainApplication.onCreate`
+ * when the platform did not.
  *
  * Firebase normally starts itself through `FirebaseInitProvider`, a content
  * provider Android runs before `Application.onCreate`. On 2026-10-03 a vivo
@@ -37,6 +37,17 @@ const KOTLIN_BLOCK = `
       }
     } catch (e: Throwable) {
       android.util.Log.w("WavesFirebase", "Firebase init fallback skipped", e)
+    }
+    // ML Kit starts the same way (MlKitInitProvider), so a phone that skips
+    // Firebase's provider skips this one too, and every barcode scan — the
+    // camera's and a QR read from a photo — fails with "MlKitContext has not
+    // been initialized". initializeIfNeeded is a no-op when it did run.
+    try {
+      Class.forName("com.google.mlkit.common.sdkinternal.MlKitContext")
+        .getMethod("initializeIfNeeded", android.content.Context::class.java)
+        .invoke(null, this)
+    } catch (e: Throwable) {
+      android.util.Log.w("WavesFirebase", "ML Kit init fallback skipped", e)
     }
     // @generated end ${MARKER}
 `;
