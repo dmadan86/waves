@@ -793,20 +793,16 @@ export default function ExpenseDetailScreen() {
                 <DetailRow
                   icon="calendar-outline"
                   label={t.expense.detailDate}
-                  value={new Intl.DateTimeFormat(locale, {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    timeZone: 'UTC',
-                  }).format(new Date(version.expense_date))}
+                  value={[
+                    new Intl.DateTimeFormat(locale, {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      timeZone: 'UTC',
+                    }).format(new Date(version.expense_date)),
+                    ...(shownAt != null ? [showTime(shownAt, locale)] : []),
+                  ].join(' · ')}
                   onPress={changeOn('date')}
-                  accessibilityHint={t.expense.detailTapHint}
-                />
-                <DetailRow
-                  icon="time-outline"
-                  label={t.expense.detailTime}
-                  value={shownAt != null ? showTime(shownAt, locale) : t.expense.addTime}
-                  onPress={changeOn('time')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
                 <DetailRow
