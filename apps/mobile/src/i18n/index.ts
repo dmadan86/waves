@@ -4189,6 +4189,31 @@ export interface UiStrings {
     oneEquals: string;
     /** The tier a bill's rate came from, said on the expense form. */
     tierTrip: string;
+    /** The one quiet line under a foreign amount: "= {amount} in the group's money". */
+    inGroupMoney: string;
+    /** Where the rate on that line came from, in three plain words. */
+    rateToday: string;
+    rateYours: string;
+    rateTrip: string;
+    /** The line shown while no rate is set yet. */
+    rateNotSet: string;
+    /** The one sentence at the top of the rate sheet. */
+    rateExplainer: string;
+    rateMarket: string;
+    sheetNeutral: string;
+    sheetTitle: string;
+    sheetLiveMarket: string;
+    sheetUpdatedNow: string;
+    sheetUpdatedMin: string;
+    sheetUpdatedHour: string;
+    sheetUpdatedDay: string;
+    sheetReliable: string;
+    sheetPreview: string;
+    sheetAmountIn: string;
+    sheetGetRate: string;
+    sheetRefresh: string;
+    /** Under the amount on a saved expense: "at 1 $ = ₹93.00". */
+    viewAt: string;
     tierBill: string;
     /** The button that opens the full rate methods on an expense. */
     change: string;
@@ -7843,6 +7868,28 @@ const en: UiStrings = {
     typeIt: 'Type the rate',
     oneEquals: '1 {from} =',
     tierTrip: 'Trip rate',
+    inGroupMoney: '= {amount} in the group’s money',
+    rateToday: 'today’s rate',
+    rateYours: 'your rate',
+    rateTrip: 'trip rate',
+    rateNotSet: 'Tap to set the rate',
+    rateExplainer:
+      'We use today’s market rate. Change it if you got a different rate (for example at the airport).',
+    sheetTitle: 'Currency conversion',
+    sheetLiveMarket: 'Live market rate',
+    sheetUpdatedNow: 'Updated just now',
+    sheetUpdatedMin: 'Updated {n} min ago',
+    sheetUpdatedHour: 'Updated {n} h ago',
+    sheetUpdatedDay: 'Updated {n} d ago',
+    sheetReliable: 'Rates from reliable sources',
+    sheetPreview: 'Preview (optional)',
+    sheetAmountIn: 'Amount in {currency}',
+    sheetGetRate: 'Get today’s {from} → {to} rate',
+    sheetRefresh: 'Refresh the rate',
+    rateMarket: 'market rate · {date}',
+    sheetNeutral:
+      'Choose how to set the rate for this expense. You can change it any time before you save.',
+    viewAt: 'at {rate}',
     tierBill: 'This bill',
     change: 'Change',
     useTodaysRate: 'Use today’s rate',
@@ -11639,6 +11686,28 @@ const ta: UiStrings = {
     typeIt: 'விகிதத்தைத் தட்டச்சு செய்யுங்கள்',
     oneEquals: '1 {from} =',
     tierTrip: 'பயண விகிதம்',
+    inGroupMoney: '= {amount} குழுவின் பணத்தில்',
+    rateToday: 'இன்றைய விகிதம்',
+    rateYours: 'உங்கள் விகிதம்',
+    rateTrip: 'பயண விகிதம்',
+    rateNotSet: 'விகிதத்தை அமைக்கத் தட்டவும்',
+    rateExplainer:
+      'நாங்கள் இன்றைய சந்தை விகிதத்தைப் பயன்படுத்துகிறோம். வேறு விகிதம் கிடைத்திருந்தால் (எ.கா. விமான நிலையத்தில்) மாற்றுங்கள்.',
+    sheetTitle: 'நாணய மாற்றம்',
+    sheetLiveMarket: 'நேரடி சந்தை விகிதம்',
+    sheetUpdatedNow: 'இப்போதுதான் புதுப்பிக்கப்பட்டது',
+    sheetUpdatedMin: '{n} நிமிடம் முன் புதுப்பிக்கப்பட்டது',
+    sheetUpdatedHour: '{n} மணி முன் புதுப்பிக்கப்பட்டது',
+    sheetUpdatedDay: '{n} நாள் முன் புதுப்பிக்கப்பட்டது',
+    sheetReliable: 'நம்பகமான மூலங்களின் விகிதங்கள்',
+    sheetPreview: 'முன்னோட்டம் (விருப்பம்)',
+    sheetAmountIn: '{currency} தொகை',
+    sheetGetRate: 'இன்றைய {from} → {to} விகிதத்தைப் பெறு',
+    sheetRefresh: 'விகிதத்தைப் புதுப்பி',
+    rateMarket: 'சந்தை விகிதம் · {date}',
+    sheetNeutral:
+      'இந்தச் செலவுக்கான விகிதத்தை எப்படி அமைப்பது என்று தேர்ந்தெடுங்கள். சேமிக்கும் முன் எப்போதும் மாற்றலாம்.',
+    viewAt: '{rate} என்ற விகிதத்தில்',
     tierBill: 'இந்த பில்',
     change: 'மாற்று',
     useTodaysRate: 'இன்றைய விகிதத்தைப் பயன்படுத்து',
@@ -15291,6 +15360,27 @@ const hi: UiStrings = {
     typeIt: 'दर टाइप करें',
     oneEquals: '1 {from} =',
     tierTrip: 'यात्रा दर',
+    inGroupMoney: '= {amount} समूह की मुद्रा में',
+    rateToday: 'आज की दर',
+    rateYours: 'आपकी दर',
+    rateTrip: 'यात्रा दर',
+    rateNotSet: 'दर तय करने के लिए छुएँ',
+    rateExplainer:
+      'हम आज की बाज़ार दर लेते हैं। अगर आपको कोई और दर मिली (जैसे एयरपोर्ट पर), तो उसे बदल दें।',
+    sheetTitle: 'मुद्रा बदलाव',
+    sheetLiveMarket: 'लाइव बाज़ार दर',
+    sheetUpdatedNow: 'अभी अपडेट हुआ',
+    sheetUpdatedMin: '{n} मिनट पहले अपडेट हुआ',
+    sheetUpdatedHour: '{n} घंटे पहले अपडेट हुआ',
+    sheetUpdatedDay: '{n} दिन पहले अपडेट हुआ',
+    sheetReliable: 'भरोसेमंद स्रोतों से दरें',
+    sheetPreview: 'पूर्वावलोकन (वैकल्पिक)',
+    sheetAmountIn: '{currency} में राशि',
+    sheetGetRate: 'आज की {from} → {to} दर पाएँ',
+    sheetRefresh: 'दर ताज़ा करें',
+    rateMarket: 'बाज़ार दर · {date}',
+    sheetNeutral: 'इस खर्च की दर कैसे तय करनी है, चुनें। सेव करने से पहले कभी भी बदल सकते हैं।',
+    viewAt: '{rate} की दर से',
     tierBill: 'यह बिल',
     change: 'बदलें',
     useTodaysRate: 'आज की दर लें',
@@ -19467,6 +19557,26 @@ const ar: UiStrings = {
     typeIt: 'اكتب السعر',
     oneEquals: '1 {from} =',
     tierTrip: 'سعر الرحلة',
+    inGroupMoney: '= {amount} بعملة المجموعة',
+    rateToday: 'سعر اليوم',
+    rateYours: 'سعرك',
+    rateTrip: 'سعر الرحلة',
+    rateNotSet: 'اضغط لتحديد السعر',
+    rateExplainer: 'نستخدم سعر السوق اليوم. غيّره إذا حصلت على سعر مختلف (مثلاً في المطار).',
+    sheetTitle: 'تحويل العملة',
+    sheetLiveMarket: 'سعر السوق المباشر',
+    sheetUpdatedNow: 'تم التحديث الآن',
+    sheetUpdatedMin: 'تم التحديث قبل {n} دقيقة',
+    sheetUpdatedHour: 'تم التحديث قبل {n} ساعة',
+    sheetUpdatedDay: 'تم التحديث قبل {n} يوم',
+    sheetReliable: 'أسعار من مصادر موثوقة',
+    sheetPreview: 'معاينة (اختياري)',
+    sheetAmountIn: 'المبلغ بـ {currency}',
+    sheetGetRate: 'احصل على سعر {from} → {to} اليوم',
+    sheetRefresh: 'حدّث السعر',
+    rateMarket: 'سعر السوق · {date}',
+    sheetNeutral: 'اختر كيف تحدد السعر لهذا المصروف. يمكنك تغييره قبل الحفظ.',
+    viewAt: 'بسعر {rate}',
     tierBill: 'هذه الفاتورة',
     change: 'تغيير',
     useTodaysRate: 'استخدم سعر اليوم',
