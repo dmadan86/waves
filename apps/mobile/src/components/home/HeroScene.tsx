@@ -40,6 +40,8 @@ export function HeroScene({
   height,
   horizon,
   headerBottom,
+  shade = false,
+  haze = true,
   pageColor,
 }: {
   scene: Scene;
@@ -50,6 +52,10 @@ export function HeroScene({
   horizon: number;
   /** Where the greeting row ends: nothing leafy is drawn above it but at the edge. */
   headerBottom: number;
+  /** Draw a darkening shade across the top. Off by default: the scene shows whole, and every hero picks its ink from the scene. */
+  shade?: boolean;
+  /** Draw the haze band between the two mountain ranges. On by default. */
+  haze?: boolean;
   /** The page behind the hero, which the scene's foot fades into. */
   pageColor: string;
 }) {
@@ -132,7 +138,7 @@ export function HeroScene({
         style={{ position: 'absolute', left: 0, top: rangeBottom - rangeFrame }}
       >
         <Path d={FAR_RANGE} fill={theme.mountains[0]} />
-        <Rect x={0} y={80} width={RANGE_VIEW.w} height={80} fill={theme.haze} />
+        {haze ? <Rect x={0} y={80} width={RANGE_VIEW.w} height={80} fill={theme.haze} /> : null}
         <Path d={NEAR_RANGE} fill={theme.mountains[1]} />
         {theme.decoration === SceneDecoration.Snow ? (
           <Path d={FAR_SNOW} fill="#FFFFFF" opacity={0.85} />
@@ -178,16 +184,18 @@ export function HeroScene({
       </Svg>
 
       {/* Readability: a shade across the top, under the greeting and icons. */}
-      <LinearGradient
-        colors={[theme.overlay, 'rgba(0, 0, 0, 0)']}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          height: headerBottom + 40,
-        }}
-      />
+      {shade ? (
+        <LinearGradient
+          colors={[theme.overlay, 'rgba(0, 0, 0, 0)']}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            height: headerBottom + 40,
+          }}
+        />
+      ) : null}
 
       {/* The foot: the scene runs into the page behind the card, gradually. */}
       <LinearGradient
