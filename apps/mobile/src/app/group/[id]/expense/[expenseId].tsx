@@ -539,12 +539,57 @@ export default function ExpenseDetailScreen() {
                 </View>
               ) : null}
             </Row>
+            {/* The group this bill belongs to, as a small chip under the amount;
+                a tap opens the group. */}
+            <Pressable
+              onPress={() => router.push(`/group/${groupId}`)}
+              accessibilityRole="button"
+              accessibilityLabel={groupLabel(group.data, members.data ?? [], viewerId)}
+              hitSlop={6}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                maxWidth: '100%',
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 2,
+                borderRadius: theme.radius.pill,
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              {group.data?.cover_emoji ? (
+                <Text variant="micro">{group.data.cover_emoji}</Text>
+              ) : (
+                <Ionicons name="people-outline" size={iconSize.sm} color={theme.color.onBrand} />
+              )}
+              <Text
+                variant="micro"
+                tone="onBrand"
+                numberOfLines={1}
+                style={{ fontWeight: '600', flexShrink: 1 }}
+              >
+                {groupLabel(group.data, members.data ?? [], viewerId)}
+              </Text>
+            </Pressable>
           </View>
           {/* Edit, in the open. It was the first item of the three-dot menu, which
                 made the one action a bill is reopened for something you had to
                 remember was hidden there. A pencil on the wash costs one glyph
                 and answers "how do I change this" without a tap. Gone on a
                 deleted bill: there is nothing to edit until it is restored. */}
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/timeline', params: { focus: expenseId ?? '' } })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${t.timeline.entryRow}: ${t.timeline.entryRowValue}`}
+            hitSlop={10}
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+          >
+            <Ionicons name="git-commit-outline" size={iconSize.xxl} color={theme.color.onBrand} />
+          </Pressable>
           {deleted ? null : (
             <Pressable
               onPress={() => openEditor()}
@@ -725,11 +770,6 @@ export default function ExpenseDetailScreen() {
                 is placed without crowding the hero. */}
             <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
               <DetailRows>
-                <DetailRow
-                  icon="people-circle-outline"
-                  label={t.expense.detailGroup}
-                  value={groupLabel(group.data, members.data ?? [], viewerId)}
-                />
                 {/* What kind of bill it is, in words. The badge in the hero
                     shows it only as an icon, so the name was visible only in
                     the editor. Same row the editor uses; a tap changes it. */}
@@ -792,16 +832,6 @@ export default function ExpenseDetailScreen() {
                     }`}
                   />
                 ) : null}
-                {/* Where this bill sits among everything else you spent: the
-                    timeline opens on it, and turns into a map from there. */}
-                <DetailRow
-                  icon="git-commit-outline"
-                  label={t.timeline.entryRow}
-                  value={t.timeline.entryRowValue}
-                  onPress={() =>
-                    router.push({ pathname: '/timeline', params: { focus: expenseId ?? '' } })
-                  }
-                />
                 {/* Where it happened (A43), folded into the facts: the place's
                     name, and a tap opens the map here rather than spending a
                     card's height on it for everyone. The map's corner opens it

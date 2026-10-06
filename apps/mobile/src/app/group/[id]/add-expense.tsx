@@ -846,7 +846,6 @@ export default function AddExpenseScreen() {
 
   const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
     // Android's dialog dismisses itself; iOS keeps the spinner on the screen.
-    if (Platform.OS === 'android') setEditingDate(false);
     if (event.type === 'dismissed' || !picked) return;
     setPickedDate(isoDate(picked));
   };
@@ -2094,41 +2093,52 @@ export default function AddExpenseScreen() {
                 ) : null}
               </View>
 
+              {/* One row for the day and the time: "Mon, 5 Oct · 8:17 PM", or just
+                  the day while no time is set. A tap unfolds the date picker with
+                  the (optional) time control right under it. */}
               <View>
                 <DetailRow
                   icon="calendar-outline"
                   tint={theme.tint.pink}
                   dense
                   label={t.captures.date}
-                  value={showDate(expenseDate, locale)}
-                  onPress={() => setEditingDate(true)}
+                  value={
+                    shownTime != null
+                      ? `${showDate(expenseDate, locale)} · ${showTime(shownTime, locale)}`
+                      : showDate(expenseDate, locale)
+                  }
+                  expanded={editingDate}
+                  onPress={() => {
+                    setEditingDate((open) => !open);
+                    setEditingTime(false);
+                  }}
                 />
                 {editingDate ? (
-                  <DateTimePicker
-                    value={dateFrom(expenseDate)}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                    onChange={applyDate}
-                  />
-                ) : null}
-              </View>
-
-              <View>
-                <DetailRow
-                  icon="time-outline"
-                  tint={theme.tint.pink}
-                  dense
-                  label={t.expense.detailTime}
-                  value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
-                  onPress={() => setEditingTime(true)}
-                />
-                {editingTime ? (
-                  <DateTimePicker
-                    value={pickerTime(shownTime, openedAt)}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={applyTime}
-                  />
+                  <View>
+                    <DateTimePicker
+                      value={dateFrom(expenseDate)}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={applyDate}
+                    />
+                    <DetailRow
+                      icon="time-outline"
+                      tint={theme.tint.pink}
+                      dense
+                      label={t.expense.detailTime}
+                      value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
+                      placeholder={shownTime == null}
+                      onPress={() => setEditingTime((open) => !open)}
+                    />
+                    {editingTime ? (
+                      <DateTimePicker
+                        value={pickerTime(shownTime, openedAt)}
+                        mode="time"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={applyTime}
+                      />
+                    ) : null}
+                  </View>
                 ) : null}
               </View>
 
