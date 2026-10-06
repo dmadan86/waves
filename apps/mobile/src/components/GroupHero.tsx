@@ -226,7 +226,7 @@ export function GroupHero({
           accessibilityLabel={t.common.back}
           hitSlop={10}
         >
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xxl} color={ink} />
         </Pressable>
         <Pressable
           onPress={() => router.push(`/group/${groupId}/settings`)}
@@ -290,7 +290,7 @@ export function GroupHero({
           accessibilityLabel={t.activity}
           hitSlop={10}
         >
-          <Ionicons name="notifications-outline" size={iconSize.xl} color={ink} />
+          <Ionicons name="notifications-outline" size={iconSize.xxl} color={ink} />
           {pendingForMe.length > 0 ? (
             <View
               style={{
@@ -313,7 +313,7 @@ export function GroupHero({
           accessibilityLabel={t.group.more}
           hitSlop={10}
         >
-          <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={ink} />
+          <Ionicons name="ellipsis-vertical" size={iconSize.xxl} color={ink} />
         </Pressable>
       </Row>
 
@@ -432,7 +432,7 @@ export function GroupHero({
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name="add" size={iconSize.md} color={ink} />
+                <Ionicons name="add" size={iconSize.lg} color={ink} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -443,14 +443,14 @@ export function GroupHero({
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: theme.spacing.xs,
-                  height: 36,
+                  height: 40,
                   paddingHorizontal: theme.spacing.md,
                   borderRadius: theme.radius.pill,
                   backgroundColor: '#FFFFFF',
                   opacity: pressed ? 0.85 : 1,
                 })}
               >
-                <Ionicons name="add" size={iconSize.lg} color={pillInk} />
+                <Ionicons name="add" size={iconSize.xl} color={pillInk} />
                 <Text variant="subheading" style={{ color: pillInk }} numberOfLines={1}>
                   {t.addExpense}
                 </Text>
@@ -597,10 +597,10 @@ export function GroupHero({
 }
 
 /** The white tile the group's mark sits on. */
-const TILE = 44;
+const TILE = 48;
 
 /** The member faces under the balance, and how many are drawn before "+N". */
-const FACE = 28;
+const FACE = 32;
 const MAX_FACES = 4;
 
 /** A name built from people's names reads without the punctuation an address
