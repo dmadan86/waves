@@ -94,6 +94,7 @@ import { VendorsBody } from '@/components/VendorsBody';
 import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
+import { amountMatches } from '@/lib/expenseSearch';
 import { useDialog } from '@/lib/dialog';
 
 enum Tab {
@@ -724,7 +725,9 @@ export default function GroupScreen() {
           t,
           version?.category_meta,
         );
-        if (!`${title} ${version?.description ?? ''}`.toLowerCase().includes(needle)) return false;
+        const byText = `${title} ${version?.description ?? ''}`.toLowerCase().includes(needle);
+        // A number searches amounts too: "500" finds the ₹500.00 bill.
+        if (!byText && !(version && amountMatches(needle, version.amount))) return false;
       }
       return true;
     });
