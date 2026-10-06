@@ -393,6 +393,12 @@ export function PhoneLinkPrompt() {
                   onPress={() => void send()}
                   disabled={!retryReady}
                   accessibilityRole="button"
+                  accessibilityLabel={
+                    retryReady
+                      ? t.phonePrompt.retry
+                      : t.phonePrompt.retryIn.replace('{time}', clock(retryLeft))
+                  }
+                  accessibilityState={{ disabled: !retryReady }}
                   hitSlop={8}
                   style={{
                     flexDirection: 'row',
