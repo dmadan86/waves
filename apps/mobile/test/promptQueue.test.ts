@@ -13,8 +13,9 @@ vi.mock('react', async () => (await import('./support/fakeReact')).reactModule()
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
 type Queue = {
-  claim: (id: string, p: number) => void;
+  claim: (id: string, p: number, essential?: boolean) => void;
   release: (id: string) => void;
+  hold: (id: string) => void;
   winnerId: string | null;
 };
 
@@ -25,8 +26,9 @@ function mountQueue() {
   // Consumers read the provider's latest value through this view, so a
   // re-render of a consumer sees what the provider holds now.
   const consumerValue: Queue = {
-    claim: (id, p) => value().claim(id, p),
+    claim: (id, p, essential) => value().claim(id, p, essential),
     release: (id) => value().release(id),
+    hold: (id) => value().hold(id),
     get winnerId() {
       return value().winnerId;
     },
@@ -59,6 +61,48 @@ describe('the queue', () => {
   });
 });
 
+describe('one prompt at a time, one per launch', () => {
+  it('keeps the screen for the prompt showing, even when a higher claim arrives', () => {
+    const { value } = mountQueue();
+    value().claim('backup', 70);
+    value().hold('backup');
+    value().claim('phone', 85);
+    expect(value().winnerId).toBe('backup');
+
+    // Dismissed: that was this launch's prompt, so the phone ask waits.
+    value().release('backup');
+    expect(value().winnerId).toBeNull();
+  });
+
+  it('still lets an essential prompt through after the launch has had its prompt', () => {
+    const { value } = mountQueue();
+    value().claim('tip', 10);
+    value().hold('tip');
+    value().release('tip');
+
+    value().claim('backup', 70);
+    value().claim('phone', 85, true);
+    expect(value().winnerId).toBe('phone');
+    value().release('phone');
+    expect(value().winnerId).toBeNull();
+  });
+
+  it('does not spend the launch on a claim that never showed (the tour)', () => {
+    const { value } = mountQueue();
+    value().claim('tour', 100);
+    value().claim('tip', 10);
+    value().release('tour');
+    expect(value().winnerId).toBe('tip');
+  });
+
+  it('ignores a hold from a slot with no live claim', () => {
+    const { value } = mountQueue();
+    const before = value();
+    value().hold('ghost');
+    expect(value()).toBe(before);
+  });
+});
+
 describe('usePromptQueueClear', () => {
   it('is clear with no provider, and clear only while nobody holds the screen', () => {
     expect(renderHook(() => usePromptQueueClear()).result.current).toBe(true);
@@ -87,9 +131,6 @@ describe('usePromptSlot', () => {
 
     vi.advanceTimersByTime(499);
     expect(tip.result.current).toBe(false);
-    vi.advanceTimersByTime(1);
-    expect(tip.result.current).toBe(true);
-
     value().claim('tour', 10);
     tip.rerender();
     expect(tip.result.current).toBe(false);
@@ -97,6 +138,23 @@ describe('usePromptSlot', () => {
     value().release('tour');
     tip.rerender();
     vi.advanceTimersByTime(500);
+    expect(tip.result.current).toBe(true);
+  });
+
+  it('holds the screen once granted, so a later higher claim waits its turn', () => {
+    const { value, ctx, consumerValue } = mountQueue();
+    const tip = renderHook(
+      (active: boolean) => usePromptSlot({ id: 'tip', priority: 1, active, delayMs: 100 }),
+      { props: true, contexts: [[ctx, consumerValue]] },
+    );
+    tip.rerender();
+    vi.advanceTimersByTime(100);
+    tip.rerender();
+    expect(tip.result.current).toBe(true);
+
+    value().claim('phone', 85);
+    tip.rerender();
+    expect(value().winnerId).toBe('tip');
     expect(tip.result.current).toBe(true);
   });
 
