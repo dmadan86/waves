@@ -43,7 +43,14 @@ import { Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { minorToPlain, rateNote, rateOrigin, rateParts, updatedAgo } from '@/lib/fxLine';
+import {
+  marketLabel,
+  minorToPlain,
+  rateNote,
+  rateOrigin,
+  rateParts,
+  updatedAgo,
+} from '@/lib/fxLine';
 
 import { fetchFxRate } from '@/data/api';
 
@@ -86,7 +93,7 @@ export function CurrencyRate({
   tripRate = null,
 }: CurrencyRateProps): React.JSX.Element | null {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const [method, setMethod] = useState<Method>(Method.Fetched);
   const [chargedText, setChargedText] = useState('');
   const [rateText, setRateText] = useState('');
@@ -221,7 +228,10 @@ export function CurrencyRate({
   // One quiet line, whatever the source of the rate: what the bill comes to in
   // the group's money, and in small print the rate and where it came from. A tap
   // opens the sheet where the rate can be changed.
-  const origin = fx ? rateOrigin(fx, onTripRate) : null;
+  const origin = fx ? rateOrigin(fx, onTripRate, now) : null;
+  // Source claims ("market rate", "reliable sources") only when the rate on
+  // show really is a fetched market one.
+  const marketShown = origin === 'today' || origin === 'market';
   const parts = fx ? rateParts(fx) : { left: '', right: '' };
   const updated = fx ? updatedAgo(fx.ts, now, t.fx) : null;
 
@@ -265,7 +275,7 @@ export function CurrencyRate({
           setOpen(true);
         }}
         accessibilityRole="button"
-        accessibilityHint={t.fx.rateExplainer}
+        accessibilityHint={t.fx.sheetTitle}
         hitSlop={8}
         style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}
       >
@@ -280,7 +290,7 @@ export function CurrencyRate({
         )}
         {fx && origin ? (
           <Text variant="micro" tone="muted" numberOfLines={1}>
-            {rateNote(fx, origin, t.fx)}
+            {rateNote(fx, origin, t.fx, locale)}
           </Text>
         ) : null}
       </Pressable>
@@ -303,7 +313,9 @@ export function CurrencyRate({
             <View style={{ flex: 1, gap: 2 }}>
               <Text variant="heading">{t.fx.sheetTitle}</Text>
               <Text variant="caption" tone="muted">
-                {t.fx.rateExplainer}
+                {method === Method.Fetched && (!fx || marketShown)
+                  ? t.fx.rateExplainer
+                  : t.fx.sheetNeutral}
               </Text>
             </View>
             <Image
@@ -368,9 +380,11 @@ export function CurrencyRate({
                     <Text variant="caption" style={{ fontWeight: '600' }}>
                       {origin === 'today'
                         ? t.fx.sheetLiveMarket
-                        : origin === 'trip'
-                          ? t.fx.tierTrip
-                          : t.fx.rateYours}
+                        : origin === 'market'
+                          ? marketLabel(fx, t.fx.rateMarket, locale)
+                          : origin === 'trip'
+                            ? t.fx.tierTrip
+                            : t.fx.rateYours}
                     </Text>
                     {origin === 'today' && updated ? (
                       <Text variant="micro" tone="positive">
@@ -384,9 +398,11 @@ export function CurrencyRate({
                       {parts.right}
                     </Text>
                   </Text>
-                  <Text variant="micro" tone="muted">
-                    {t.fx.sheetReliable}
-                  </Text>
+                  {marketShown ? (
+                    <Text variant="micro" tone="muted">
+                      {t.fx.sheetReliable}
+                    </Text>
+                  ) : null}
                 </View>
                 <Pressable
                   onPress={() => void fetchToday()}
@@ -468,7 +484,7 @@ export function CurrencyRate({
               label={t.fx.sheetAmountIn.replace('{currency}', currency)}
               symbol={currencySymbol(currency)}
               value={shownFrom}
-              editable={method !== Method.Charged}
+              editable={method !== Method.Charged && Boolean(fx)}
               onChange={(text) => setPreview({ side: 'from', text })}
             />
             <Ionicons

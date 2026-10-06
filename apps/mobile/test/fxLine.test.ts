@@ -11,7 +11,12 @@ import {
   updatedAgo,
 } from '../src/lib/fxLine';
 
-const words = { rateToday: "today's rate", rateYours: 'your rate', rateTrip: 'trip rate' };
+const words = {
+  rateMarket: 'market rate · {date}',
+  rateToday: "today's rate",
+  rateYours: 'your rate',
+  rateTrip: 'trip rate',
+};
 const record = (source: string) =>
   toFxRecord(
     fxRate({
@@ -26,7 +31,8 @@ const record = (source: string) =>
 
 describe('rateOrigin', () => {
   it('calls a fetched rate today’s, a typed or implied one yours, a pinned one the trip’s', () => {
-    expect(rateOrigin(record('ecb'))).toBe('today');
+    expect(rateOrigin(record('ecb'), false, Date.parse('2026-01-01T12:00:00.000Z'))).toBe('today');
+    expect(rateOrigin(record('ecb'), false, Date.parse('2026-01-04T12:00:00.000Z'))).toBe('market');
     expect(rateOrigin(record('manual'))).toBe('yours');
     expect(rateOrigin(record('implied'))).toBe('yours');
     expect(rateOrigin(record('ecb'), true)).toBe('trip');
@@ -37,6 +43,11 @@ describe('rateNote / rateAt', () => {
   it('writes the rate and where it came from on one line', () => {
     expect(rateNote(record('ecb'), 'today', words)).toBe("1 $ = ₹93 · today's rate");
     expect(rateNote(record('manual'), 'yours', words)).toBe('1 $ = ₹93 · your rate');
+  });
+  it('dates an older market rate', () => {
+    expect(rateNote(record('ecb'), 'market', words, 'en-US')).toBe(
+      '1 $ = ₹93 · market rate · Jan 1',
+    );
   });
   it('fills the "at {rate}" template', () => {
     expect(rateAt(record('ecb'), 'at {rate}')).toBe('at 1 $ = ₹93');

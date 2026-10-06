@@ -4198,6 +4198,8 @@ export interface UiStrings {
     rateNotSet: string;
     /** The one sentence at the top of the rate sheet. */
     rateExplainer: string;
+    rateMarket: string;
+    sheetNeutral: string;
     sheetTitle: string;
     sheetLiveMarket: string;
     sheetUpdatedNow: string;
@@ -7882,6 +7884,9 @@ const en: UiStrings = {
     sheetAmountIn: 'Amount in {currency}',
     sheetGetRate: 'Get today’s {from} → {to} rate',
     sheetRefresh: 'Refresh the rate',
+    rateMarket: 'market rate · {date}',
+    sheetNeutral:
+      'Choose how to set the rate for this expense. You can change it any time before you save.',
     viewAt: 'at {rate}',
     tierBill: 'This bill',
     change: 'Change',
@@ -11696,6 +11701,9 @@ const ta: UiStrings = {
     sheetAmountIn: '{currency} தொகை',
     sheetGetRate: 'இன்றைய {from} → {to} விகிதத்தைப் பெறு',
     sheetRefresh: 'விகிதத்தைப் புதுப்பி',
+    rateMarket: 'சந்தை விகிதம் · {date}',
+    sheetNeutral:
+      'இந்தச் செலவுக்கான விகிதத்தை எப்படி அமைப்பது என்று தேர்ந்தெடுங்கள். சேமிக்கும் முன் எப்போதும் மாற்றலாம்.',
     viewAt: '{rate} என்ற விகிதத்தில்',
     tierBill: 'இந்த பில்',
     change: 'மாற்று',
@@ -15366,6 +15374,8 @@ const hi: UiStrings = {
     sheetAmountIn: '{currency} में राशि',
     sheetGetRate: 'आज की {from} → {to} दर पाएँ',
     sheetRefresh: 'दर ताज़ा करें',
+    rateMarket: 'बाज़ार दर · {date}',
+    sheetNeutral: 'इस खर्च की दर कैसे तय करनी है, चुनें। सेव करने से पहले कभी भी बदल सकते हैं।',
     viewAt: '{rate} की दर से',
     tierBill: 'यह बिल',
     change: 'बदलें',
@@ -19559,6 +19569,8 @@ const ar: UiStrings = {
     sheetAmountIn: 'المبلغ بـ {currency}',
     sheetGetRate: 'احصل على سعر {from} → {to} اليوم',
     sheetRefresh: 'حدّث السعر',
+    rateMarket: 'سعر السوق · {date}',
+    sheetNeutral: 'اختر كيف تحدد السعر لهذا المصروف. يمكنك تغييره قبل الحفظ.',
     viewAt: 'بسعر {rate}',
     tierBill: 'هذه الفاتورة',
     change: 'تغيير',

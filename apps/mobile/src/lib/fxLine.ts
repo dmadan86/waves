@@ -10,28 +10,60 @@ import { fromFxRecord, minorUnitExponent, rateToDecimal, type FxRecord } from '@
 
 import { ratePlaces, rateLine } from '@/lib/tripRates';
 
-export type RateOrigin = 'today' | 'yours' | 'trip';
+export type RateOrigin = 'today' | 'market' | 'yours' | 'trip';
+
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
 
 /**
- * Where a rate came from, in the three ways a person would say it.
- * A fetched market rate is "today's"; a pinned trip rate is the trip's; anything
- * typed or implied from a card statement is the person's own.
+ * Where a rate came from, in the ways a person would say it.
+ * A market rate is "today's" only if it is dated today; an older one is the
+ * market rate of its day. A pinned trip rate is the trip's; anything typed or
+ * implied from a card statement is the person's own.
  */
-export function rateOrigin(fx: FxRecord, onTripRate = false): RateOrigin {
+export function rateOrigin(fx: FxRecord, onTripRate = false, now: number = Date.now()): RateOrigin {
   if (onTripRate) return 'trip';
-  return fx.source === 'ecb' ? 'today' : 'yours';
+  if (fx.source !== 'ecb') return 'yours';
+  const when = new Date(fx.ts);
+  return Number.isNaN(when.getTime()) || sameDay(when, new Date(now)) ? 'today' : 'market';
 }
 
 export interface RateNoteStrings {
   rateToday: string;
   rateYours: string;
   rateTrip: string;
+  /** "market rate · {date}" */
+  rateMarket: string;
+}
+
+/** The dated label for an older market rate: "market rate · 3 Oct". */
+export function marketLabel(fx: FxRecord, template: string, locale?: string): string {
+  const date = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(
+    new Date(fx.ts),
+  );
+  return template.replace('{date}', date);
 }
 
 /** "1 $ = ₹93.00 · today's rate". */
-export function rateNote(fx: FxRecord, origin: RateOrigin, words: RateNoteStrings): string {
+export function rateNote(
+  fx: FxRecord,
+  origin: RateOrigin,
+  words: RateNoteStrings,
+  locale?: string,
+): string {
   const label =
-    origin === 'trip' ? words.rateTrip : origin === 'today' ? words.rateToday : words.rateYours;
+    origin === 'trip'
+      ? words.rateTrip
+      : origin === 'today'
+        ? words.rateToday
+        : origin === 'market'
+          ? marketLabel(fx, words.rateMarket, locale)
+          : words.rateYours;
   return `${rateLine(fromFxRecord(fx))} · ${label}`;
 }
 
