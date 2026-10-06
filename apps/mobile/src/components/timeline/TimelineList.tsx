@@ -31,6 +31,8 @@ import type { TimelineDay, TimelineEntry, TimelineRow } from '@/lib/timeline';
 
 const TIME_COL = 40;
 const RAIL_COL = 18;
+/** Equal space either side of the rail: time | gap | rail | gap | card. */
+const RAIL_GAP = 6;
 
 export interface TimelineListProps {
   rows: readonly TimelineRow[];
@@ -155,7 +157,14 @@ function GapRow({ hours }: { hours: number }) {
   return (
     <Row style={{ alignItems: 'center', minHeight: 20 }}>
       <View style={{ width: TIME_COL }} />
-      <View style={{ width: RAIL_COL, alignItems: 'center', alignSelf: 'stretch' }}>
+      <View
+        style={{
+          width: RAIL_COL,
+          alignItems: 'center',
+          alignSelf: 'stretch',
+          marginHorizontal: RAIL_GAP,
+        }}
+      >
         <View
           style={{
             flex: 1,
@@ -166,7 +175,7 @@ function GapRow({ hours }: { hours: number }) {
           }}
         />
       </View>
-      <Text style={{ marginStart: theme.spacing.sm, fontSize: 11, color: muted }}>
+      <Text style={{ fontSize: 11, color: muted }}>
         {plural(locale, hours, t.timeline.quietFor).replace('{n}', String(hours))}
       </Text>
     </Row>
@@ -247,7 +256,7 @@ function EntryRow({
 
   return (
     <Row style={{ alignItems: 'stretch' }}>
-      <View style={{ width: TIME_COL, paddingTop: theme.spacing.md }}>
+      <View style={{ width: TIME_COL, paddingTop: theme.spacing.md, alignItems: 'flex-end' }}>
         {time ? (
           <>
             <Text style={{ fontSize: 12, lineHeight: 15, color: muted }}>{time[0]}</Text>
@@ -256,12 +265,16 @@ function EntryRow({
             ) : null}
           </>
         ) : (
-          <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 14, color: muted }}>
+          <Text
+            numberOfLines={2}
+            style={{ fontSize: 11, lineHeight: 14, color: muted, textAlign: 'right' }}
+          >
             {t.timeline.addedLater}
           </Text>
         )}
       </View>
-      <View style={{ width: RAIL_COL, alignItems: 'center' }}>
+      {/* The rail sits the same distance from the time and from the card. */}
+      <View style={{ width: RAIL_COL, alignItems: 'center', marginHorizontal: RAIL_GAP }}>
         {/* The rail: above the dot unless this is the day's first bill, below
             it unless it is the last, so each day is one continuous line. */}
         <View
@@ -282,7 +295,6 @@ function EntryRow({
         style={({ pressed }) => ({
           flex: 1,
           minWidth: 0,
-          marginStart: theme.spacing.sm,
           marginVertical: 3,
           paddingVertical: theme.spacing.sm,
           paddingStart: theme.spacing.sm + 2,

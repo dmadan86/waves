@@ -429,6 +429,9 @@ export default function HomeScreen() {
             horizon={cardTop}
             headerBottom={insets.top + theme.spacing.sm + greetingHeight}
             pageColor={theme.color.bg}
+            // The scene shows whole: no darkening box across the top. The
+            // greeting's ink already follows the scene (light or dark).
+            shade={false}
           />
         </BlurTargetView>
 
