@@ -179,12 +179,12 @@ export function GroupHero({
   return (
     <View
       style={{
-        paddingTop: insets.top + theme.spacing.sm,
+        paddingTop: insets.top + theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
-        paddingBottom: theme.spacing.md,
+        paddingBottom: theme.spacing.sm,
         borderBottomLeftRadius: theme.radius.xxl,
         borderBottomRightRadius: theme.radius.xxl,
-        gap: theme.spacing.sm,
+        gap: theme.spacing.xs,
         overflow: 'hidden',
         backgroundColor: HERO_THEMES[scene].sky[0],
       }}
@@ -369,7 +369,7 @@ export function GroupHero({
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
-                style={{ color: ink, fontSize: 30, lineHeight: 36, fontWeight: '800' }}
+                style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
               />
             </View>
 

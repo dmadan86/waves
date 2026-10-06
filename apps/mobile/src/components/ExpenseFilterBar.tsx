@@ -20,6 +20,7 @@ export function ExpenseFilterBar({
   monthText,
   monthActive,
   onOpenMonth,
+  onOpenScope,
   searchOpen,
   onToggleSearch,
   query,
@@ -38,99 +39,74 @@ export function ExpenseFilterBar({
   monthText: string;
   monthActive: boolean;
   onOpenMonth: () => void;
+  /** Opens the All / Mine / Others menu. */
+  onOpenScope: () => void;
   searchOpen: boolean;
   onToggleSearch: () => void;
   query: string;
   onQuery: (next: string) => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  const chips: readonly { key: ExpenseScope; label: string }[] = [
-    { key: 'all', label: labels.all },
-    { key: 'mine', label: labels.mine },
-    { key: 'others', label: labels.others },
-  ];
+  const scopeText =
+    scope === 'mine' ? labels.mine : scope === 'others' ? labels.others : labels.all;
+  // Quiet text buttons, not filled pills: the filters are there when wanted
+  // and take one slim line when not.
+  const quiet =
+    (active: boolean) =>
+    ({ pressed }: { pressed: boolean }) => ({
+      height: CHIP_HEIGHT,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 4,
+      paddingHorizontal: theme.spacing.sm,
+      borderRadius: CHIP_HEIGHT / 2,
+      backgroundColor: active ? theme.color.brandSoft : 'transparent',
+      opacity: pressed ? 0.6 : 1,
+    });
+  const inkFor = (active: boolean) => (active ? theme.color.brand : theme.color.textMuted);
   return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        {chips.map((chip) => {
-          const live = chip.key === scope;
-          return (
-            <Pressable
-              key={chip.key}
-              onPress={() => onScope(chip.key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: live }}
-              style={({ pressed }) => ({
-                height: CHIP_HEIGHT,
-                paddingHorizontal: theme.spacing.lg,
-                borderRadius: CHIP_HEIGHT / 2,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: live ? theme.color.brand : theme.color.surfaceMuted,
-                opacity: pressed ? 0.8 : 1,
-              })}
-            >
-              <Text
-                variant="caption"
-                numberOfLines={1}
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: live ? theme.color.onBrand : theme.color.textMuted,
-                }}
-              >
-                {chip.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+    <View style={{ gap: theme.spacing.xs }}>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+        <Pressable
+          onPress={onOpenScope}
+          accessibilityRole="button"
+          accessibilityLabel={scopeText}
+          style={quiet(scope !== 'all')}
+        >
+          <Ionicons name="people-outline" size={iconSize.sm} color={inkFor(scope !== 'all')} />
+          <Text
+            variant="caption"
+            numberOfLines={1}
+            style={{ fontSize: 13, fontWeight: '600', color: inkFor(scope !== 'all') }}
+          >
+            {scopeText}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color={inkFor(scope !== 'all')} />
+        </Pressable>
         <Pressable
           onPress={onOpenMonth}
           accessibilityRole="button"
           accessibilityLabel={monthText}
-          style={({ pressed }) => ({
-            marginStart: 'auto',
-            flexShrink: 1,
-            height: CHIP_HEIGHT,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            paddingHorizontal: theme.spacing.md,
-            borderRadius: CHIP_HEIGHT / 2,
-            borderWidth: 1,
-            borderColor: monthActive ? theme.color.brand : theme.color.border,
-            backgroundColor: theme.color.surface,
-            opacity: pressed ? 0.8 : 1,
-          })}
+          style={(state) => ({ ...quiet(monthActive)(state), flexShrink: 1 })}
         >
-          <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.text} />
+          <Ionicons name="calendar-outline" size={iconSize.sm} color={inkFor(monthActive)} />
           <Text
             variant="caption"
             numberOfLines={1}
-            style={{ fontSize: 13, fontWeight: '600', flexShrink: 1 }}
+            style={{ fontSize: 13, fontWeight: '600', flexShrink: 1, color: inkFor(monthActive) }}
           >
             {monthText}
           </Text>
-          <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+          <Ionicons name="chevron-down" size={12} color={inkFor(monthActive)} />
         </Pressable>
         <Pressable
           onPress={onToggleSearch}
           accessibilityRole="button"
           accessibilityLabel={labels.search}
           accessibilityState={{ selected: searchOpen }}
-          style={({ pressed }) => ({
-            width: CHIP_HEIGHT,
-            height: CHIP_HEIGHT,
-            borderRadius: CHIP_HEIGHT / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: searchOpen || query ? theme.color.brand : theme.color.border,
-            backgroundColor: theme.color.surface,
-            opacity: pressed ? 0.8 : 1,
-          })}
+          style={(state) => ({ ...quiet(searchOpen || !!query)(state), marginStart: 'auto' })}
         >
-          <Ionicons name="search" size={iconSize.md} color={theme.color.text} />
+          <Ionicons name="search" size={iconSize.md} color={inkFor(searchOpen || !!query)} />
         </Pressable>
       </Row>
       {searchOpen ? (

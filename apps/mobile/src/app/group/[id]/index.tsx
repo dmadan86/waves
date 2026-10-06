@@ -589,6 +589,7 @@ export default function GroupScreen() {
   const [query, setQuery] = useState('');
   // The expense whose ⋮ menu is open, if any.
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
+  const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
   // Live updates from the other devices in this group (TDR §1).
@@ -920,6 +921,17 @@ export default function GroupScreen() {
   ];
 
   // The month pill's choices: every month the ledger spans, or all of them.
+  const scopeItems: OverflowMenuItem[] = (
+    [
+      ['all', t.group.filterAll],
+      ['mine', t.group.filterMine],
+      ['others', t.group.filterOthers],
+    ] as const
+  ).map(([key, label]) => ({
+    icon: scope === key ? 'checkmark' : 'ellipse-outline',
+    label,
+    onPress: () => setScope(key),
+  }));
   const monthItems: OverflowMenuItem[] = [
     {
       icon: activeMonth === null ? 'checkmark' : 'calendar-outline',
@@ -1145,8 +1157,8 @@ export default function GroupScreen() {
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.md,
-            gap: theme.spacing.sm,
+            paddingTop: theme.spacing.xs,
+            gap: theme.spacing.xs,
           }}
         >
           {/* Plain underline tabs on the page — no card, no border. */}
@@ -1163,7 +1175,7 @@ export default function GroupScreen() {
                   value: Tab.Expenses,
                   label: t.expenses,
                   icon: (color) => (
-                    <Ionicons name="calendar-outline" size={iconSize.md} color={color} />
+                    <Ionicons name="receipt-outline" size={iconSize.md} color={color} />
                   ),
                 },
                 ...(isEvent
@@ -1226,6 +1238,7 @@ export default function GroupScreen() {
               }
               monthActive={activeMonth !== null}
               onOpenMonth={() => setMonthMenuOpen(true)}
+              onOpenScope={() => setScopeMenuOpen(true)}
               searchOpen={searchOpen}
               onToggleSearch={() => {
                 if (searchOpen) setQuery('');
@@ -1240,6 +1253,11 @@ export default function GroupScreen() {
         {/* The header menu and the month menu live at the screen's root,
             not in the list header, so they open from every tab. */}
         <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+        <OverflowMenu
+          visible={scopeMenuOpen}
+          onClose={() => setScopeMenuOpen(false)}
+          items={scopeItems}
+        />
         <OverflowMenu
           visible={monthMenuOpen}
           onClose={() => setMonthMenuOpen(false)}
