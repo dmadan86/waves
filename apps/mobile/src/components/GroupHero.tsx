@@ -37,6 +37,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroPillButton } from '@/components/ScreenHero';
 import { HeroScene } from '@/components/home/HeroScene';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { useBlockedUsers } from '@/data/blocked';
@@ -211,6 +212,10 @@ export function GroupHero({
             horizon={heroHeight - 6}
             headerBottom={insets.top + TILE + theme.spacing.sm}
             pageColor={theme.color.bg}
+            // The scene is seen whole here: no top shade, no haze band —
+            // both read as a tinted box on a header this short.
+            shade={false}
+            haze={false}
           />
         </View>
       ) : null}
@@ -385,11 +390,20 @@ export function GroupHero({
                       borderColor: 'rgba(255,255,255,0.9)',
                     }}
                   >
-                    <Avatar
-                      name={displayName(member, null, blockedIds, t.misc.someone)}
-                      ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
-                      size={FACE}
-                    />
+                    {isGhost(member) || isBlockedMember(member, blockedIds) ? (
+                      <Avatar
+                        name={displayName(member, null, blockedIds, t.misc.someone)}
+                        ghost
+                        size={FACE}
+                      />
+                    ) : (
+                      // Their photo when they have one; initials otherwise.
+                      <ProfileAvatar
+                        name={displayName(member, null, blockedIds, t.misc.someone)}
+                        avatarUrl={member.profile?.avatar_url ?? null}
+                        size={FACE}
+                      />
+                    )}
                   </View>
                 ))}
                 {extraMembers > 0 ? (

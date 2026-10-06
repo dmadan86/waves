@@ -1165,17 +1165,10 @@ export default function GroupScreen() {
             gap: theme.spacing.sm,
           }}
         >
-          {/* The tab bar is a card of its own, as in the design. */}
-          <View
-            style={{
-              backgroundColor: theme.color.surface,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              overflow: 'hidden',
-            }}
-          >
+          {/* Plain underline tabs on the page — no card, no border. */}
+          <View>
             <SegmentedTabs<Tab>
+              divider={false}
               value={activeTab}
               onChange={(next) => {
                 listRef.current?.scrollToOffset({ offset: 0, animated: false });
