@@ -151,7 +151,6 @@ function DayHeader({ day }: { day: TimelineDay }) {
 }
 
 function GapRow({ hours }: { hours: number }) {
-  const theme = useTheme();
   const { muted, rail } = useInks();
   const { t, locale } = useStrings();
   return (
