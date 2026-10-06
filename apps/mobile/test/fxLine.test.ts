@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { fxRate, toFxRecord } from '@waves/core';
 
-import { rateAt, rateNote, rateOrigin } from '../src/lib/fxLine';
+import {
+  minorToPlain,
+  rateAt,
+  rateNote,
+  rateOrigin,
+  rateParts,
+  updatedAgo,
+} from '../src/lib/fxLine';
 
 const words = { rateToday: "today's rate", rateYours: 'your rate', rateTrip: 'trip rate' };
 const record = (source: string) =>
@@ -33,5 +40,30 @@ describe('rateNote / rateAt', () => {
   });
   it('fills the "at {rate}" template', () => {
     expect(rateAt(record('ecb'), 'at {rate}')).toBe('at 1 $ = ₹93');
+  });
+});
+
+describe('sheet helpers', () => {
+  it('writes minor units as plain digits', () => {
+    expect(minorToPlain(624300n, 'INR')).toBe('6243.00');
+    expect(minorToPlain(5n, 'INR')).toBe('0.05');
+    expect(minorToPlain(1500n, 'JPY')).toBe('1500');
+  });
+  it('splits the big rate line', () => {
+    expect(rateParts(record('ecb'))).toEqual({ left: '1 USD =', right: '93.00 INR' });
+  });
+  it('says how long ago the rate was fetched', () => {
+    const w = {
+      sheetUpdatedNow: 'now',
+      sheetUpdatedMin: '{n} min',
+      sheetUpdatedHour: '{n} h',
+      sheetUpdatedDay: '{n} d',
+    };
+    const t0 = Date.parse('2026-01-01T00:00:00.000Z');
+    expect(updatedAgo('2026-01-01T00:00:00.000Z', t0 + 20_000, w)).toBe('now');
+    expect(updatedAgo('2026-01-01T00:00:00.000Z', t0 + 120_000, w)).toBe('2 min');
+    expect(updatedAgo('2026-01-01T00:00:00.000Z', t0 + 3 * 3600_000, w)).toBe('3 h');
+    expect(updatedAgo('2026-01-01T00:00:00.000Z', t0 + 2 * 86400_000, w)).toBe('2 d');
+    expect(updatedAgo('nope', t0, w)).toBeNull();
   });
 });
