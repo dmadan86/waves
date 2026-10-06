@@ -6,6 +6,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  afterDateDialog,
+  afterTimeDialog,
   dateFrom,
   isoDate,
   mergeDateAndTime,
@@ -102,5 +104,17 @@ describe('pickerTime', () => {
     const now = new Date(2026, 8, 14, 10, 7, 40).getTime();
     expect(pickerTime(null, now).getMinutes() % 5).toBe(0);
     expect(Math.abs(pickerTime(null, now).getTime() - now)).toBeLessThanOrEqual(150_000);
+  });
+});
+
+describe('android date/time dialog chain', () => {
+  it('goes on to the time dialog only after OK on the date dialog', () => {
+    expect(afterDateDialog('set')).toBe('time');
+    expect(afterDateDialog('dismissed')).toBe('stop');
+  });
+
+  it('keeps the time as it was when the time dialog is cancelled', () => {
+    expect(afterTimeDialog('set')).toBe('set');
+    expect(afterTimeDialog('dismissed')).toBe('keep');
   });
 });
