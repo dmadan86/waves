@@ -16,7 +16,7 @@
  * drops the scale.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -114,11 +114,22 @@ export function OverflowMenu({
     transform: [{ scale: reduceMotion ? 1 : START_SCALE + (1 - START_SCALE) * progress.get() }],
   }));
 
+  // The tapped row runs once the menu has left the screen, not on the tap. On
+  // iOS this Modal is a presented view controller: a confirm opened while it is
+  // still closing is presented on top of it and dismissed along with it, which
+  // left "Delete?" never shown and the screen no longer answering a tap.
+  const pending = useRef<OverflowMenuItem | null>(null);
   const activate = (item: OverflowMenuItem): void => {
+    pending.current = item;
     onClose();
-    if (item.onPress) item.onPress();
-    else if (item.route) router.push(item.route);
   };
+  useEffect(() => {
+    if (mounted) return;
+    const item = pending.current;
+    pending.current = null;
+    if (item?.onPress) item.onPress();
+    else if (item?.route) router.push(item.route);
+  }, [mounted]);
 
   if (!mounted) return null;
 
