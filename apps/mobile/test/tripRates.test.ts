@@ -23,6 +23,7 @@ import {
   rateLine,
   ratePlaces,
   shownText,
+  tripCurrencyValue,
   tripRateFor,
 } from '../src/lib/tripRates';
 
@@ -132,5 +133,18 @@ describe('typing a rate in either direction means the same rate', () => {
     expect(shownText(rate, true)).toBe('0.011');
     const reparsed = rateFromTyped('0.011', 'USD', 'INR', true)!;
     expect(convert(money(10000n, 'USD'), reparsed).minor).not.toBe(912500n);
+  });
+});
+
+describe('tripCurrencyValue', () => {
+  it('names the currency alone when there is no rate', () => {
+    expect(tripCurrencyValue('USD', null)).toBe('$ USD');
+  });
+  it('drops a mark that only repeats the code', () => {
+    expect(tripCurrencyValue('AED', null)).toBe('AED');
+  });
+  it('adds the rate line when there is one', () => {
+    const rate = rateFromDecimal('83.24', 'USD', 'INR');
+    expect(tripCurrencyValue('USD', rate)).toBe(`$ USD · ${rateLine(rate)}`);
   });
 });

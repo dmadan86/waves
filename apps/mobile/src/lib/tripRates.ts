@@ -175,3 +175,13 @@ export function shownText(rate: FxRate, homeFirst: boolean): string {
     ratePlaces(Number(num) / Number(den)),
   );
 }
+
+/**
+ * The create-group row's value: "$ USD · 1 $ = ₹83.24", or just "$ USD" when
+ * there is no rate to show (the trip is in the home currency, or none is set).
+ */
+export function tripCurrencyValue(code: string, rate: FxRate | null): string {
+  const mark = currencyMark(code);
+  const name = mark ? `${mark} ${code}` : code;
+  return rate ? `${name} · ${rateLine(rate)}` : name;
+}
