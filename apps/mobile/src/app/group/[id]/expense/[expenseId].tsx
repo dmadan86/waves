@@ -28,6 +28,7 @@ import {
 
 import {
   balanceDirection,
+  convertWithRecord,
   copyFor,
   format,
   money,
@@ -53,6 +54,7 @@ import {
   useGroup,
   useRestoreExpense,
 } from '@/data/hooks';
+import { rateAt } from '@/lib/fxLine';
 import { expenseTitle } from '@/data/expenseTitle';
 import { useBlockedUsers } from '@/data/blocked';
 import { displayName, groupLabel, isBlockedMember, isGhost, isViewer } from '@/data/types';
@@ -272,6 +274,15 @@ export default function ExpenseDetailScreen() {
 
   const currency = version.currency;
   const deleted = Boolean(expense.deleted_at);
+  // Paid in a currency other than the group's: what it comes to at the stored
+  // rate. Nothing for a same-currency bill or one with no rate.
+  const convertedHome =
+    version.fx &&
+    group.data &&
+    currency !== group.data.default_currency &&
+    BigInt(version.amount) > 0n
+      ? convertWithRecord(money(BigInt(version.amount), currency), version.fx)
+      : null;
 
   /**
    * Everyone this bill touches, and what it does to them.
@@ -539,6 +550,18 @@ export default function ExpenseDetailScreen() {
                 </View>
               ) : null}
             </Row>
+            {/* Paid in another currency: the amount above stays the main figure,
+                with what it came to in the group's money and the rate, small. */}
+            {version.fx && convertedHome ? (
+              <View style={{ gap: 2 }}>
+                <Text variant="caption" style={{ color: theme.color.onBrand }}>
+                  {`= ${format(convertedHome, { locale })}`}
+                </Text>
+                <Text variant="micro" tone="onBrand" style={{ opacity: 0.8 }}>
+                  {rateAt(version.fx, t.fx.viewAt)}
+                </Text>
+              </View>
+            ) : null}
             {/* The group this bill belongs to, as a small chip under the amount;
                 a tap opens the group. */}
             <Pressable

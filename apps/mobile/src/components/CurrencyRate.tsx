@@ -18,10 +18,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, TextInput, View } from 'react-native';
 
 import {
+  convert,
   convertWithRecord,
+  currencySymbol,
+  invertRate,
   format,
   fromFxRecord,
   type FxRate,
@@ -34,11 +39,18 @@ import {
   toFxRecord,
   type FxRecord,
 } from '@waves/core';
-import { Button, Callout, Card, ChipRow, Row, Text, useTheme } from '@waves/ui';
+import { Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
-import { rateLine } from '@/lib/tripRates';
+import {
+  marketLabel,
+  minorToPlain,
+  rateNote,
+  rateOrigin,
+  rateParts,
+  updatedAgo,
+} from '@/lib/fxLine';
 
 import { fetchFxRate } from '@/data/api';
 
@@ -81,18 +93,17 @@ export function CurrencyRate({
   tripRate = null,
 }: CurrencyRateProps): React.JSX.Element | null {
   const theme = useTheme();
-  const { t } = useStrings();
-  const [method, setMethod] = useState<Method>(Method.Charged);
+  const { t, locale } = useStrings();
+  const [method, setMethod] = useState<Method>(Method.Fetched);
   const [chargedText, setChargedText] = useState('');
   const [rateText, setRateText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Whether the methods are open. They start closed while the bill is riding the
-  // trip's rate, and open the moment somebody asks to change it — or the moment
-  // the bill carries a rate that is not the trip's, since that is a choice
-  // already made and hiding it would be hiding it from the person who made it.
-  const [overriding, setOverriding] = useState(false);
+  // Whether the rate sheet is open.
+  const [open, setOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [preview, setPreview] = useState<{ side: 'from' | 'to'; text: string } | null>(null);
   // The pair the component is showing right now. `fetchToday` captures the pair
   // it launched for and, on return, applies its result only if this still
   // matches — otherwise a rate fetched for a currency the user has since changed
@@ -149,7 +160,6 @@ export function CurrencyRate({
     // A new currency is a new question. Whatever was decided about the last
     // one — including a decision to override the trip's rate for it — does not
     // carry over to a rate for a different pair.
-    setOverriding(false);
   }
 
   const applyTyped = (text: string): void => {
@@ -177,6 +187,7 @@ export function CurrencyRate({
       const record = await fetchFxRate(currency, groupCurrency);
       if (latestPair.current !== pair) return;
       onFxChange(record);
+      setNow(Date.now());
       setRateText(rateToDecimal(fromFxRecord(record), 4));
     } catch (caught) {
       if (latestPair.current !== pair) return;
@@ -214,81 +225,224 @@ export function CurrencyRate({
   // expense is foreign, and then only the rate.
   if (!foreign) return null;
 
-  // Riding the trip's rate: one line, not a card of controls. What the bill
-  // comes to in the group's currency, the rate that said so, and the way out.
-  if (foreign && pinned && onTripRate && !overriding) {
-    return (
-      <Card style={{ gap: theme.spacing.xs }}>
-        <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            {converted ? (
-              <Text variant="body" numberOfLines={1}>
-                {t.misc.convertedApprox
-                  .replace('{amount}', format(converted))
-                  .replace('{currency}', groupCurrency)}
-              </Text>
-            ) : null}
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {`${t.fx.tierTrip} · ${rateLine(pinned)}`}
-            </Text>
-          </View>
-          <Button
-            label={t.fx.change}
-            variant="ghost"
-            size="sm"
-            onPress={() => setOverriding(true)}
-          />
-        </Row>
-      </Card>
-    );
+  // One quiet line, whatever the source of the rate: what the bill comes to in
+  // the group's money, and in small print the rate and where it came from. A tap
+  // opens the sheet where the rate can be changed.
+  const origin = fx ? rateOrigin(fx, onTripRate, now) : null;
+  // Source claims ("market rate", "reliable sources") only when the rate on
+  // show really is a fetched market one.
+  const marketShown = origin === 'today' || origin === 'market';
+  const parts = fx ? rateParts(fx) : { left: '', right: '' };
+  const updated = fx ? updatedAgo(fx.ts, now, t.fx) : null;
+
+  // The preview boxes are a calculator over the rate and change nothing on the
+  // form. Whichever box was typed in keeps its text; the other is worked out.
+  const plain = (minor: bigint, code: string): string => minorToPlain(minor, code);
+  let shownFrom = amount > 0n ? plain(amount, currency) : '';
+  let shownTo = converted ? plain(converted.minor, groupCurrency) : '';
+  if (method === Method.Charged) {
+    shownTo = chargedText;
+  } else if (preview && fx) {
+    try {
+      if (preview.side === 'from') {
+        shownFrom = preview.text;
+        shownTo = plain(
+          convertWithRecord(money(parseMinor(preview.text, currency), currency), fx).minor,
+          groupCurrency,
+        );
+      } else {
+        shownTo = preview.text;
+        shownFrom = plain(
+          convert(
+            money(parseMinor(preview.text, groupCurrency), groupCurrency),
+            invertRate(fromFxRecord(fx)),
+          ).minor,
+          currency,
+        );
+      }
+    } catch {
+      // Half-typed text ("12.") just leaves the other box where it was.
+      if (preview.side === 'from') shownFrom = preview.text;
+      else shownTo = preview.text;
+    }
   }
 
   return (
-    <Card style={{ gap: theme.spacing.md }}>
-      <Text variant="caption" tone="muted">
-        {t.extras.paidIn}
-      </Text>
-
-      {foreign ? (
-        <>
-          <Text variant="caption" tone="muted">
-            {t.misc.howDoYouKnowRate.replace('{currency}', groupCurrency)}
+    <>
+      <Pressable
+        onPress={() => {
+          setNow(Date.now());
+          setOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityHint={t.fx.sheetTitle}
+        hitSlop={8}
+        style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}
+      >
+        {converted ? (
+          <Text variant="body" numberOfLines={1}>
+            {t.fx.inGroupMoney.replace('{amount}', format(converted))}
           </Text>
-          <ChipRow<Method>
-            value={method}
-            onChange={(next) => {
-              setMethod(next);
-              setError(null);
-            }}
-            options={[
-              { value: Method.Charged, label: t.misc.whatIWasCharged },
-              { value: Method.Typed, label: t.extras.iKnowTheRate },
-              { value: Method.Fetched, label: t.misc.todaysRate },
-            ]}
-          />
+        ) : (
+          <Text variant="body" tone="muted" numberOfLines={1}>
+            {t.fx.rateNotSet}
+          </Text>
+        )}
+        {fx && origin ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {rateNote(fx, origin, t.fx, locale)}
+          </Text>
+        ) : null}
+      </Pressable>
 
-          {method === Method.Charged ? (
-            <View style={{ gap: theme.spacing.xs }}>
+      <Sheet visible={open} onClose={() => setOpen(false)}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons name="swap-horizontal" size={22} color={theme.color.brand} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="heading">{t.fx.sheetTitle}</Text>
               <Text variant="caption" tone="muted">
-                {t.misc.statementAmountLabel.replace('{currency}', groupCurrency)}
+                {method === Method.Fetched && (!fx || marketShown)
+                  ? t.fx.rateExplainer
+                  : t.fx.sheetNeutral}
               </Text>
-              <TextInput
-                value={chargedText}
-                onChangeText={applyCharged}
-                keyboardType="decimal-pad"
-                accessibilityLabel={t.misc.amountChargedIn.replace('{currency}', groupCurrency)}
-                placeholder="4562.50"
-                placeholderTextColor={theme.color.textFaint}
-                style={inputStyle(theme)}
-              />
-              <Text variant="micro" tone="muted">
-                {t.misc.bankRateNote}
-              </Text>
+            </View>
+            <Image
+              source={require('../../assets/images/fx-globe.webp') as number}
+              style={{ width: 84, height: 52 }}
+              resizeMode="contain"
+            />
+          </Row>
+
+          <Row style={{ gap: theme.spacing.xs }}>
+            {METHODS.map(({ value, icon, label }) => {
+              const on = method === value;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => {
+                    setMethod(value);
+                    setError(null);
+                    setPreview(null);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  style={{
+                    flex: 1,
+                    height: 40,
+                    borderRadius: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    paddingHorizontal: 6,
+                    backgroundColor: on ? theme.color.brand : theme.color.surfaceMuted,
+                  }}
+                >
+                  <Ionicons
+                    name={icon}
+                    size={14}
+                    color={on ? theme.color.onBrand : theme.color.textMuted}
+                  />
+                  <Text
+                    variant="micro"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{
+                      flexShrink: 1,
+                      fontWeight: '600',
+                      color: on ? theme.color.onBrand : theme.color.text,
+                    }}
+                  >
+                    {label(t)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Row>
+
+          {method === Method.Fetched && fx ? (
+            <View style={panelStyle(theme)}>
+              <Row style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Row style={{ alignItems: 'center', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
+                    <Text variant="caption" style={{ fontWeight: '600' }}>
+                      {origin === 'today'
+                        ? t.fx.sheetLiveMarket
+                        : origin === 'market'
+                          ? marketLabel(fx, t.fx.rateMarket, locale)
+                          : origin === 'trip'
+                            ? t.fx.tierTrip
+                            : t.fx.rateYours}
+                    </Text>
+                    {origin === 'today' && updated ? (
+                      <Text variant="micro" tone="positive">
+                        {`● ${updated}`}
+                      </Text>
+                    ) : null}
+                  </Row>
+                  <Text variant="title" numberOfLines={1} adjustsFontSizeToFit>
+                    {`${parts.left} `}
+                    <Text variant="title" style={{ color: theme.color.brand }}>
+                      {parts.right}
+                    </Text>
+                  </Text>
+                  {marketShown ? (
+                    <Text variant="micro" tone="muted">
+                      {t.fx.sheetReliable}
+                    </Text>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={() => void fetchToday()}
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.fx.sheetRefresh}
+                  hitSlop={8}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.color.surface,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
+                    opacity: busy ? 0.5 : 1,
+                  }}
+                >
+                  <Ionicons name="refresh" size={18} color={theme.color.text} />
+                </Pressable>
+              </Row>
             </View>
           ) : null}
 
+          {method === Method.Fetched && !fx ? (
+            <Button
+              label={
+                busy
+                  ? t.misc.askingRate
+                  : t.fx.sheetGetRate.replace('{from}', currency).replace('{to}', groupCurrency)
+              }
+              variant="secondary"
+              disabled={busy}
+              onPress={() => void fetchToday()}
+            />
+          ) : null}
+
           {method === Method.Typed ? (
-            <View style={{ gap: theme.spacing.xs }}>
+            <View style={[panelStyle(theme), { gap: theme.spacing.xs }]}>
               <Text variant="caption" tone="muted">
                 {t.misc.fxOneEquals.replace('{from}', currency).replace('{to}', groupCurrency)}
               </Text>
@@ -306,50 +460,76 @@ export function CurrencyRate({
             </View>
           ) : null}
 
-          {method === Method.Fetched ? (
-            <Button
-              label={
-                busy
-                  ? t.misc.askingRate
-                  : t.misc.getTodaysRate.replace('{from}', currency).replace('{to}', groupCurrency)
-              }
-              variant="secondary"
-              disabled={busy}
-              onPress={() => void fetchToday()}
+          {method === Method.Charged ? (
+            <Text variant="micro" tone="muted">
+              {t.misc.bankRateNote}
+            </Text>
+          ) : null}
+
+          <Text variant="caption" tone="muted" style={{ fontWeight: '600' }}>
+            {t.fx.sheetPreview}
+          </Text>
+          <Row
+            style={{
+              alignItems: 'flex-end',
+              gap: theme.spacing.sm,
+              padding: 12,
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              backgroundColor: theme.color.surface,
+            }}
+          >
+            <PreviewBox
+              label={t.fx.sheetAmountIn.replace('{currency}', currency)}
+              symbol={currencySymbol(currency)}
+              value={shownFrom}
+              editable={method !== Method.Charged && Boolean(fx)}
+              onChange={(text) => setPreview({ side: 'from', text })}
             />
-          ) : null}
-
-          {converted ? (
-            <Text variant="caption" tone="positive">
-              {t.misc.convertedApprox
-                .replace('{amount}', format(converted))
-                .replace('{currency}', groupCurrency)}
-            </Text>
-          ) : null}
-
-          {fx ? (
-            <Text variant="micro" tone="muted">
-              {t.misc.rateStoredNote
-                .replace('{rate}', rateToDecimal(fromFxRecord(fx), 4))
-                .replace(
-                  '{source}',
-                  fx.source === 'ecb'
-                    ? t.misc.rateSourceEcb
-                    : fx.source === 'implied'
-                      ? t.misc.rateSourceImplied
-                      : t.misc.rateSourceYou,
-                )}
-            </Text>
-          ) : (
-            <Text variant="micro" tone="muted">
-              {t.misc.noRateNote.replaceAll('{currency}', currency)}
-            </Text>
-          )}
+            <Ionicons
+              name="swap-horizontal"
+              size={20}
+              color={theme.color.brand}
+              style={{ marginBottom: 12 }}
+            />
+            <PreviewBox
+              label={t.fx.sheetAmountIn.replace('{currency}', groupCurrency)}
+              symbol={currencySymbol(groupCurrency)}
+              value={shownTo}
+              editable={method === Method.Charged || Boolean(fx)}
+              onChange={(text) =>
+                method === Method.Charged ? applyCharged(text) : setPreview({ side: 'to', text })
+              }
+            />
+          </Row>
 
           {error ? <Callout tone="negative">{error}</Callout> : null}
-        </>
-      ) : null}
-    </Card>
+
+          <Pressable
+            onPress={() => setOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.done}
+          >
+            <LinearGradient
+              colors={theme.gradient.brand as unknown as [string, string, ...string[]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                height: 48,
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text variant="body" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+                {t.common.done}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </Sheet>
+    </>
   );
 }
 
@@ -377,4 +557,75 @@ function inputStyle(theme: ReturnType<typeof useTheme>) {
     color: theme.color.text,
     paddingVertical: theme.spacing.sm,
   };
+}
+
+const METHODS: {
+  value: Method;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: (t: ReturnType<typeof useStrings>['t']) => string;
+}[] = [
+  { value: Method.Fetched, icon: 'bar-chart-outline', label: (t) => t.misc.todaysRate },
+  { value: Method.Typed, icon: 'create-outline', label: (t) => t.extras.iKnowTheRate },
+  { value: Method.Charged, icon: 'receipt-outline', label: (t) => t.misc.whatIWasCharged },
+];
+
+function panelStyle(theme: ReturnType<typeof useTheme>) {
+  return {
+    padding: 14,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.color.surfaceMuted,
+  };
+}
+
+function PreviewBox({
+  label,
+  symbol,
+  value,
+  editable,
+  onChange,
+}: {
+  label: string;
+  symbol: string;
+  value: string;
+  editable: boolean;
+  onChange: (text: string) => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <View style={{ flex: 1, gap: 4 }}>
+      <Text variant="micro" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+      <Row
+        style={{
+          alignItems: 'center',
+          gap: 6,
+          paddingHorizontal: 10,
+          borderRadius: theme.radius.sm,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          backgroundColor: theme.color.surfaceMuted,
+        }}
+      >
+        <Text variant="body" tone="muted">
+          {symbol}
+        </Text>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          editable={editable}
+          keyboardType="decimal-pad"
+          accessibilityLabel={label}
+          placeholderTextColor={theme.color.textFaint}
+          style={{
+            flex: 1,
+            fontSize: 17,
+            fontWeight: '600',
+            color: theme.color.text,
+            paddingVertical: 8,
+          }}
+        />
+      </Row>
+    </View>
+  );
 }
