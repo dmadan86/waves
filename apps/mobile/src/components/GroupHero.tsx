@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   I18nManager,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -10,13 +9,12 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  Avatar,
   Badge,
   directionalIcon,
-  Gradient,
   iconSize,
   MoneyText,
   Row,
@@ -25,11 +23,24 @@ import {
 } from '@waves/ui';
 
 import { useConfirmSettlement, useDisputeSettlement, useSettlementProof } from '@/data/hooks';
-import { groupLabel, type GroupRow, type MemberRow, type SettlementRow } from '@/data/types';
+import {
+  displayName,
+  groupLabel,
+  isBlockedMember,
+  isGhost,
+  type GroupRow,
+  type MemberRow,
+  type SettlementRow,
+} from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
-import { HeroActionCircle, HeroFigureLine, HeroPillButton } from '@/components/ScreenHero';
+import { HeroPillButton } from '@/components/ScreenHero';
+import { HeroScene } from '@/components/home/HeroScene';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useHeroScene } from '@/lib/heroScenePreference';
+import { HERO_THEMES } from '@/lib/scene';
+import { useBlockedUsers } from '@/data/blocked';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
 import { formatShortDateRange } from '@/lib/tripDateRange';
@@ -150,30 +161,43 @@ export function GroupHero({
     });
   };
 
+  const { blockedIds } = useBlockedUsers();
+  const scene = useHeroScene();
+  // A light scene (morning, winter) puts dark ink on the hero, like the Groups screen.
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  const ink = darkInk ? theme.color.text : theme.color.onBrand;
+  const pillInk = theme.color.brand;
+  const shownMembers = members.slice(0, MAX_FACES);
+  const extraMembers = Math.max(0, members.length - shownMembers.length);
+  const startedOn =
+    dateRange ??
+    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(
+      new Date(group.created_at),
+    );
+  const typeTagNode = typeTag ? <GroupTypeTag tag={typeTag} onBrand={!darkInk} /> : null;
+
   return (
-    <Gradient
-      radius={0}
-      colors={heroGradient}
+    <View
       style={{
-        paddingTop: insets.top + theme.spacing.md,
-        paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.lg,
+        paddingTop: insets.top + theme.spacing.xs,
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.sm,
         borderBottomLeftRadius: theme.radius.xxl,
         borderBottomRightRadius: theme.radius.xxl,
-        gap: theme.spacing.lg,
+        gap: theme.spacing.xs,
         overflow: 'hidden',
+        backgroundColor: HERO_THEMES[scene].sky[0],
       }}
     >
-      {/* Measures the hero for the scene above; draws nothing. */}
+      {/* Measures the hero for the scene behind it; draws nothing. */}
       <View
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
         onLayout={(event) => setHeroHeight(Math.round(event.nativeEvent.layout.height))}
       />
-      {/* The scene on the right of the hero — hills at dusk, a cup and a plant
-          on a table — at the hero's full height, fading into the wash towards
-          the left, where the name and the balance sit. The fade runs across the
-          whole hero, so there is no edge where the picture begins. */}
+      {/* The scene (`HeroScene`, the dashboard's dusk hills) fills the hero; it
+          is drawn a little taller than the hero so its page-colour fade falls
+          below the rounded foot, which clips it. */}
       {heroHeight > 0 ? (
         <View
           pointerEvents="none"
@@ -181,42 +205,28 @@ export function GroupHero({
           importantForAccessibility="no-hide-descendants"
           style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
         >
-          <Image
-            source={GROUP_HERO_ART}
-            resizeMode="cover"
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: Math.round(windowW * 0.72),
-              height: heroHeight,
-            }}
-          />
-          <LinearGradient
-            colors={[
-              heroGradient[0] ?? '#4F55E8',
-              heroGradient[0] ?? '#4F55E8',
-              `${heroGradient[0] ?? '#4F55E8'}00`,
-            ]}
-            locations={[0, 0.3, 0.64]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
+          <HeroScene
+            scene={scene}
+            width={windowW}
+            height={heroHeight + 30}
+            horizon={heroHeight - 6}
+            headerBottom={insets.top + TILE + theme.spacing.sm}
+            pageColor={theme.color.bg}
+            // The scene is seen whole here: no top shade, no haze band —
+            // both read as a tinted box on a header this short.
+            shade={false}
+            haze={false}
           />
         </View>
       ) : null}
-      <Row style={{ gap: theme.spacing.sm }}>
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
         <Pressable
           onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel={t.common.back}
           hitSlop={10}
         >
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.xxl}
-            color={theme.color.onBrand}
-          />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
         </Pressable>
         <Pressable
           onPress={() => router.push(`/group/${groupId}/settings`)}
@@ -225,7 +235,7 @@ export function GroupHero({
           style={({ pressed }) => ({
             flex: 1,
             flexDirection: 'row',
-            gap: theme.spacing.md,
+            gap: theme.spacing.sm,
             justifyContent: 'flex-start',
             alignItems: 'center',
             opacity: pressed ? 0.6 : 1,
@@ -234,53 +244,68 @@ export function GroupHero({
           {/* The group's mark straight on a white tile, so it reads on any scene. */}
           <View
             style={{
-              borderRadius: AVATAR_TILE / 3,
+              borderRadius: TILE / 3,
               shadowColor: '#1B1340',
               shadowOpacity: 0.15,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 3 },
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
               elevation: 3,
             }}
           >
             <GroupPhoto
               photoPath={group.photo_path}
               emoji={group.cover_emoji}
-              size={AVATAR_TILE}
+              size={TILE}
               background="#FFFFFF"
             />
           </View>
-          <View style={{ flexShrink: 1 }}>
-            {/* Two lines before an ellipsis: a group named by its people
-                ("You, Anoop and 4 others") needs the room. */}
+          <View style={{ flexShrink: 1, gap: 2 }}>
             <Text
-              tone="onBrand"
-              numberOfLines={2}
-              style={{ fontSize: 20, lineHeight: 25, fontWeight: '700' }}
+              numberOfLines={1}
+              style={{ color: ink, fontSize: 18, lineHeight: 22, fontWeight: '700' }}
             >
               {group.name?.trim()
                 ? group.name.trim()
                 : cleanLabel(groupLabel(group, members ?? [], profileId))}
             </Text>
             <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              {typeTag ? <GroupTypeTag tag={typeTag} onBrand /> : null}
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85, flexShrink: 1 }}>
+              {typeTagNode}
+              <Text
+                variant="micro"
+                numberOfLines={1}
+                style={{ color: ink, opacity: 0.9, flexShrink: 1, fontSize: 12 }}
+              >
                 {plural(locale, members?.length ?? 0, t.memberCount)}
-                {dateRange ? ` · ${dateRange}` : ''}
+                {` · ${startedOn}`}
               </Text>
             </Row>
           </View>
         </Pressable>
-        <SyncStatusIcon onBrand groupId={groupId} />
-        {/* The group's activity, up here beside the menu: it is something you
-            glance at, not a face of the page, so it left the tab row. The QR
-            that used to sit here is Invite in the ⋯ menu. */}
+        <SyncStatusIcon onBrand={!darkInk} groupId={groupId} />
+        {/* The group's activity, beside the menu. The dot says a payment claim is
+            waiting on you. */}
         <Pressable
           onPress={() => router.push({ pathname: '/activity', params: { group: groupId } })}
           accessibilityRole="button"
           accessibilityLabel={t.activity}
           hitSlop={10}
         >
-          <Ionicons name="notifications-outline" size={iconSize.xl} color={theme.color.onBrand} />
+          <Ionicons name="notifications-outline" size={iconSize.xl} color={ink} />
+          {pendingForMe.length > 0 ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: -1,
+                right: 0,
+                width: 9,
+                height: 9,
+                borderRadius: 5,
+                backgroundColor: theme.color.negative,
+                borderWidth: 1.5,
+                borderColor: darkInk ? theme.color.surface : '#3A2A78',
+              }}
+            />
+          ) : null}
         </Pressable>
         <Pressable
           onPress={onOpenMenu}
@@ -288,7 +313,7 @@ export function GroupHero({
           accessibilityLabel={t.group.more}
           hitSlop={10}
         >
-          <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={theme.color.onBrand} />
+          <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={ink} />
         </Pressable>
       </Row>
 
@@ -315,15 +340,25 @@ export function GroupHero({
             }
           }}
         >
-          {/* Slide 0 — balance as a verdict, then the three hero actions. */}
-          <View style={{ width: slideW, gap: theme.spacing.md }}>
-            <HeroFigureLine
-              colon={false}
-              label={myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
-              trailing={
-                pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : undefined
-              }
-            >
+          {/* Slide 0 — the verdict and its figure, then who is in and the one action. */}
+          <View style={{ width: slideW, gap: theme.spacing.sm }}>
+            <View>
+              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: ink,
+                    fontSize: 14,
+                    lineHeight: 18,
+                    fontWeight: '600',
+                    opacity: 0.9,
+                    flexShrink: 1,
+                  }}
+                >
+                  {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
+                </Text>
+                {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
+              </Row>
               <MoneyText
                 amount={myBalance}
                 currency={currency}
@@ -334,25 +369,92 @@ export function GroupHero({
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
-                style={{ color: theme.color.onBrand }}
+                style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
               />
-            </HeroFigureLine>
+            </View>
 
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <HeroPillButton
-                label={t.group.heroExpense}
-                spokenLabel={t.addExpense}
-                icon="add"
-                gradient={heroGradient}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Pressable
+                onPress={() => router.push(`/group/${groupId}/members`)}
+                accessibilityRole="button"
+                accessibilityLabel={t.group.membersLabel}
+                style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
+              >
+                {shownMembers.map((member, index) => (
+                  <View
+                    key={member.id}
+                    style={{
+                      marginStart: index === 0 ? 0 : -6,
+                      borderRadius: FACE / 2,
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(255,255,255,0.9)',
+                    }}
+                  >
+                    {isGhost(member) || isBlockedMember(member, blockedIds) ? (
+                      <Avatar
+                        name={displayName(member, null, blockedIds, t.misc.someone)}
+                        ghost
+                        size={FACE}
+                      />
+                    ) : (
+                      // Their photo when they have one; initials otherwise.
+                      <ProfileAvatar
+                        name={displayName(member, null, blockedIds, t.misc.someone)}
+                        avatarUrl={member.profile?.avatar_url ?? null}
+                        size={FACE}
+                      />
+                    )}
+                  </View>
+                ))}
+                {extraMembers > 0 ? (
+                  <Text
+                    variant="micro"
+                    style={{ color: ink, marginStart: theme.spacing.xs, fontWeight: '700' }}
+                  >
+                    +{extraMembers}
+                  </Text>
+                ) : null}
+              </Pressable>
+              {/* The way to bring somebody in: the group's invite sheet. */}
+              <Pressable
+                onPress={() => router.push(`/group/${groupId}/invite`)}
+                accessibilityRole="button"
+                accessibilityLabel={t.people.inviteTitle}
+                hitSlop={6}
+                style={{
+                  width: FACE,
+                  height: FACE,
+                  borderRadius: FACE / 2,
+                  borderWidth: 1.5,
+                  borderStyle: 'dashed',
+                  borderColor: ink,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="add" size={iconSize.md} color={ink} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.addExpense}
                 onPress={() => router.push(`/group/${groupId}/add-expense`)}
-              />
-              <Row style={{ marginLeft: 'auto', gap: theme.spacing.sm }}>
-                <HeroActionCircle
-                  icon="git-network-outline"
-                  label={group.simplify_debts ? t.simplify : t.whoPaysWhom}
-                  onPress={() => router.push(`/group/${groupId}/simplify`)}
-                />
-              </Row>
+                style={({ pressed }) => ({
+                  marginStart: 'auto',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  height: 36,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: '#FFFFFF',
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Ionicons name="add" size={iconSize.lg} color={pillInk} />
+                <Text variant="subheading" style={{ color: pillInk }} numberOfLines={1}>
+                  {t.addExpense}
+                </Text>
+              </Pressable>
             </Row>
           </View>
 
@@ -490,12 +592,16 @@ export function GroupHero({
           </Row>
         ) : null}
       </View>
-    </Gradient>
+    </View>
   );
 }
 
 /** The white tile the group's mark sits on. */
-const AVATAR_TILE = 52;
+const TILE = 44;
+
+/** The member faces under the balance, and how many are drawn before "+N". */
+const FACE = 28;
+const MAX_FACES = 4;
 
 /** A name built from people's names reads without the punctuation an address
  *  book puts in front of one (".Rvs Anoop" → "Rvs Anoop"). Only for that
@@ -503,6 +609,3 @@ const AVATAR_TILE = 52;
 function cleanLabel(label: string): string {
   return label.replace(/(^|,\s*)[^\p{L}\p{N}\s]+(?=\p{L}|\p{N})/gu, '$1');
 }
-
-/** The hero's scene: hills at dusk, a cup and a plant on a table. */
-const GROUP_HERO_ART = require('../../assets/images/group-hero.webp') as number;
