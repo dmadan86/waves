@@ -20,7 +20,10 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { MutationKind, type CurrencyCode, type MemberId } from '@waves/core';
@@ -47,6 +50,8 @@ import { displayName, isGhost, type ExpenseVersionRow, type MemberRow } from '@/
 import { plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import {
+  afterDateDialog,
+  afterTimeDialog,
   dateFrom,
   isoDate,
   mergeDateAndTime,
@@ -72,8 +77,7 @@ import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import { clearDraft, useSync } from '@/sync';
 
 /** The facts on the expense screen that open a pop-up. */
-export type ExpenseField =
-  'amount' | 'description' | 'date' | 'time' | 'payer' | 'split' | 'category';
+export type ExpenseField = 'amount' | 'description' | 'date' | 'payer' | 'split' | 'category';
 
 /** How long the sheet stays mounted after a dismissal, so its exit is seen. */
 const EXIT_MS = 220;
@@ -142,19 +146,14 @@ export function ExpenseFieldSheet({
   const [open, setOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // A date is one tap, like everywhere else a date is picked: Android raises its
-  // own calendar dialog with no sheet behind it, iOS shows the calendar inline,
-  // and choosing a day saves it. The sheet (with its row to raise the dialog
-  // again) only appears on Android if that save was refused, to say why.
-  // The time of day works the same way: a bare dialog on Android, and a wheel
-  // in the sheet on iOS (a wheel fires on every turn, so it has Save).
-  const timeSheet = field === 'time';
+  // Date and time are one tap, like the form's one Date row: Android raises its
+  // own date dialog then (on OK) its time dialog with no sheet behind them, and
+  // saves when they finish; iOS shows one inline date-and-time picker in the
+  // sheet, which writes on every change and so has Save. The sheet (with its
+  // row to raise the dialogs again) only appears on Android if that save was
+  // refused, to say why.
   const [openedAt] = useState(() => Date.now());
-  const [pickingDate, setPickingDate] = useState(
-    (field === 'date' || timeSheet) && Platform.OS === 'android',
-  );
-  const bareDatePicker =
-    (field === 'date' || timeSheet) && Platform.OS === 'android' && error === null;
+  const bareDatePicker = field === 'date' && Platform.OS === 'android' && error === null;
   // What the time reads now: the chosen one, else the save time when that was
   // the bill's own day (what the timeline shows), else nothing yet.
   const shownTime = timeOfDay(state.expenseDate, savedAt, state.occurredAt);
@@ -247,38 +246,52 @@ export function ExpenseFieldSheet({
     }));
   };
 
-  const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
-    if (Platform.OS === 'android') setPickingDate(false);
-    if (event.type === 'dismissed' || !picked) {
-      // Backing out of the bare Android dialog is backing out of the edit.
-      if (bareDatePicker) leave();
-      return;
-    }
-    // The chosen time of day moves with the day rather than being dropped.
-    const expenseDate = isoDate(picked);
-    const next = {
-      ...state,
-      expenseDate,
-      occurredAt: moveTimeToDay(state.occurredAt, expenseDate),
-    };
-    setState(next);
-    void save(next);
+  // Android: the date dialog, then (on OK) the time dialog, each opened once and
+  // imperatively so nothing re-renders into a loop. Cancel on the date dialog
+  // ends the edit; Cancel on the time dialog keeps the new day and the old time.
+  const openAndroidDateTime = (): void => {
+    DateTimePickerAndroid.open({
+      value: dateFrom(state.expenseDate),
+      mode: 'date',
+      onChange: (event, picked) => {
+        if (afterDateDialog(event.type) !== 'time' || !picked) {
+          if (bareDatePicker) leave();
+          return;
+        }
+        const day = isoDate(picked);
+        DateTimePickerAndroid.open({
+          value: timeValue,
+          mode: 'time',
+          onChange: (timeEvent, time) => {
+            const occurredAt =
+              afterTimeDialog(timeEvent.type) === 'set' && time
+                ? mergeDateAndTime(day, time).toISOString()
+                : moveTimeToDay(state.occurredAt, day);
+            const next = { ...state, expenseDate: day, occurredAt };
+            setState(next);
+            void save(next);
+          },
+        });
+      },
+    });
   };
 
-  const applyTime = (event: DateTimePickerEvent, picked?: Date): void => {
-    if (Platform.OS === 'android') setPickingDate(false);
-    if (event.type === 'dismissed' || !picked) {
-      if (bareDatePicker) leave();
-      return;
-    }
-    const next = {
-      ...state,
-      occurredAt: mergeDateAndTime(state.expenseDate, picked).toISOString(),
-    };
-    setState(next);
-    // Android's dialog answers once, on OK. iOS's wheel answers on every turn,
-    // so it only records the time and waits for Save.
-    if (Platform.OS === 'android') void save(next);
+  // Raised once when the sheet opens on Android; a refused save re-raises it
+  // only through the row.
+  useEffect(() => {
+    if (bareDatePicker) openAndroidDateTime();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // iOS: one inline date-and-time picker; it records both as they change.
+  const applyDateTime = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (event.type === 'dismissed' || !picked) return;
+    const day = isoDate(picked);
+    setState((current) => ({
+      ...current,
+      expenseDate: day,
+      occurredAt: mergeDateAndTime(day, picked).toISOString(),
+    }));
   };
 
   const nameHints = members
@@ -292,13 +305,11 @@ export function ExpenseFieldSheet({
         ? t.description
         : field === 'date'
           ? t.expense.detailDate
-          : timeSheet
-            ? t.expense.detailTime
-            : field === 'payer'
-              ? t.paidBy
-              : field === 'category'
-                ? t.whatFor
-                : t.expense.detailSplit;
+          : field === 'payer'
+            ? t.paidBy
+            : field === 'category'
+              ? t.whatFor
+              : t.expense.detailSplit;
 
   // Several payers are changed on the full editor: their figures have to add
   // up to the total, and that is a form, not a pick. The pop-up says so rather
@@ -342,49 +353,26 @@ export function ExpenseFieldSheet({
         />
       </View>
     );
-  } else if (timeSheet) {
-    body =
-      Platform.OS === 'ios' ? (
-        <DateTimePicker value={timeValue} mode="time" display="spinner" onChange={applyTime} />
-      ) : (
-        <View>
-          <DetailRow
-            icon="time-outline"
-            label={t.expense.detailTime}
-            value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
-            onPress={() => setPickingDate(true)}
-          />
-          {pickingDate ? (
-            <DateTimePicker value={timeValue} mode="time" display="default" onChange={applyTime} />
-          ) : null}
-        </View>
-      );
   } else if (field === 'date') {
     body =
       Platform.OS === 'ios' ? (
         <DateTimePicker
-          value={dateFrom(state.expenseDate)}
-          mode="date"
+          value={mergeDateAndTime(state.expenseDate, timeValue)}
+          mode="datetime"
           display="inline"
-          onChange={applyDate}
+          onChange={applyDateTime}
         />
       ) : (
-        <View>
-          <DetailRow
-            icon="calendar-outline"
-            label={t.expense.detailDate}
-            value={showDate(state.expenseDate, locale)}
-            onPress={() => setPickingDate(true)}
-          />
-          {pickingDate ? (
-            <DateTimePicker
-              value={dateFrom(state.expenseDate)}
-              mode="date"
-              display="default"
-              onChange={applyDate}
-            />
-          ) : null}
-        </View>
+        <DetailRow
+          icon="calendar-outline"
+          label={t.expense.detailDate}
+          value={
+            shownTime != null
+              ? `${showDate(state.expenseDate, locale)} · ${showTime(shownTime, locale)}`
+              : showDate(state.expenseDate, locale)
+          }
+          onPress={openAndroidDateTime}
+        />
       );
   } else if (field === 'payer') {
     body = severalPayers ? (
@@ -458,20 +446,8 @@ export function ExpenseFieldSheet({
   // that no longer matches the payers' figures, or an exact split's.
   const inlineIssue = field === 'split' || severalPayers ? null : blocker;
 
-  if (bareDatePicker) {
-    return pickingDate ? (
-      timeSheet ? (
-        <DateTimePicker value={timeValue} mode="time" display="default" onChange={applyTime} />
-      ) : (
-        <DateTimePicker
-          value={dateFrom(state.expenseDate)}
-          mode="date"
-          display="default"
-          onChange={applyDate}
-        />
-      )
-    ) : null;
-  }
+  // The native dialogs are the whole UI; nothing of the sheet shows.
+  if (bareDatePicker) return null;
 
   return (
     <Sheet
@@ -517,7 +493,7 @@ export function ExpenseFieldSheet({
         ) : null}
       </ScrollView>
 
-      {field === 'date' || (timeSheet && Platform.OS === 'android') ? (
+      {field === 'date' && Platform.OS === 'android' ? (
         error ? (
           <View style={{ paddingTop: theme.spacing.md }}>
             <Callout tone="negative">{error}</Callout>

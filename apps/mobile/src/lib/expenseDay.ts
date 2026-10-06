@@ -71,3 +71,17 @@ export function pickerTime(shownMs: number | null, nowMs: number): Date {
 export function showTime(ms: number, locale: string): string {
   return new Date(ms).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
+
+/**
+ * Android's date-then-time dialog chain, as a decision. Only an "OK" (`set`)
+ * on the date dialog moves on to the time dialog; a cancel closes everything.
+ * A cancel on the time dialog keeps the date and leaves the time as it was.
+ * Nothing here ever re-opens a dialog: each is opened once, imperatively.
+ */
+export function afterDateDialog(eventType: string): 'time' | 'stop' {
+  return eventType === 'set' ? 'time' : 'stop';
+}
+
+export function afterTimeDialog(eventType: string): 'set' | 'keep' {
+  return eventType === 'set' ? 'set' : 'keep';
+}

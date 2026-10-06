@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
@@ -89,6 +92,8 @@ import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
 import {
   dateFrom,
   isoDate,
+  afterDateDialog,
+  afterTimeDialog,
   mergeDateAndTime,
   moveTimeToDay,
   pickerTime,
@@ -439,7 +444,6 @@ export default function AddExpenseScreen() {
   // time it has and a new bill keeps none (the timeline then shows the save
   // time when that was the bill's own day).
   const [pickedTime, setPickedTime] = useState<string | null>(null);
-  const [editingTime, setEditingTime] = useState(false);
   const [openedAt] = useState(() => Date.now());
   const [participants, setParticipants] = useState<MemberId[]>([]);
   // What was typed into each member's field, as text. Two maps, not one: the
@@ -838,16 +842,36 @@ export default function AddExpenseScreen() {
   );
   const shownTime = timeOfDay(expenseDate, editing?.created_at, occurredAt);
 
-  const applyTime = (event: DateTimePickerEvent, picked?: Date): void => {
-    if (Platform.OS === 'android') setEditingTime(false);
-    if (event.type === 'dismissed' || !picked) return;
-    setPickedTime(mergeDateAndTime(expenseDate, picked).toISOString());
+  // Android: the native date dialog, then (on OK) the native time dialog, each
+  // opened once and imperatively so nothing re-renders into a loop. Cancel on
+  // the date dialog ends it; Cancel on the time dialog keeps the date and
+  // leaves the time as it was.
+  const openAndroidDateTime = (): void => {
+    DateTimePickerAndroid.open({
+      value: dateFrom(expenseDate),
+      mode: 'date',
+      onChange: (event, picked) => {
+        if (afterDateDialog(event.type) !== 'time' || !picked) return;
+        const day = isoDate(picked);
+        setPickedDate(day);
+        DateTimePickerAndroid.open({
+          value: pickerTime(shownTime, openedAt),
+          mode: 'time',
+          onChange: (timeEvent, time) => {
+            if (afterTimeDialog(timeEvent.type) !== 'set' || !time) return;
+            setPickedTime(mergeDateAndTime(day, time).toISOString());
+          },
+        });
+      },
+    });
   };
 
-  const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
-    // Android's dialog dismisses itself; iOS keeps the spinner on the screen.
+  // iOS: one inline date-and-time sheet; it writes both as they change.
+  const applyDateTime = (event: DateTimePickerEvent, picked?: Date): void => {
     if (event.type === 'dismissed' || !picked) return;
-    setPickedDate(isoDate(picked));
+    const day = isoDate(picked);
+    setPickedDate(day);
+    setPickedTime(mergeDateAndTime(day, picked).toISOString());
   };
 
   // Event organizer (docs/event-organizer.md): the fixed sub-event list this
@@ -2094,8 +2118,8 @@ export default function AddExpenseScreen() {
               </View>
 
               {/* One row for the day and the time: "Mon, 5 Oct · 8:17 PM", or just
-                  the day while no time is set. A tap unfolds the date picker with
-                  the (optional) time control right under it. */}
+                  the day while no time is set. Android opens the native date
+                  then time dialogs; iOS unfolds one inline date-and-time sheet. */}
               <View>
                 <DetailRow
                   icon="calendar-outline"
@@ -2107,37 +2131,21 @@ export default function AddExpenseScreen() {
                       ? `${showDate(expenseDate, locale)} · ${showTime(shownTime, locale)}`
                       : showDate(expenseDate, locale)
                   }
-                  expanded={editingDate}
+                  expanded={Platform.OS === 'ios' ? editingDate : undefined}
                   onPress={() => {
-                    setEditingDate((open) => !open);
-                    setEditingTime(false);
+                    if (Platform.OS === 'android') openAndroidDateTime();
+                    else setEditingDate((open) => !open);
                   }}
                 />
-                {editingDate ? (
+                {Platform.OS === 'ios' && editingDate ? (
                   <View>
                     <DateTimePicker
-                      value={dateFrom(expenseDate)}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                      onChange={applyDate}
+                      value={mergeDateAndTime(expenseDate, pickerTime(shownTime, openedAt))}
+                      mode="datetime"
+                      display="inline"
+                      onChange={applyDateTime}
                     />
-                    <DetailRow
-                      icon="time-outline"
-                      tint={theme.tint.pink}
-                      dense
-                      label={t.expense.detailTime}
-                      value={shownTime != null ? showTime(shownTime, locale) : t.expense.addTime}
-                      placeholder={shownTime == null}
-                      onPress={() => setEditingTime((open) => !open)}
-                    />
-                    {editingTime ? (
-                      <DateTimePicker
-                        value={pickerTime(shownTime, openedAt)}
-                        mode="time"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={applyTime}
-                      />
-                    ) : null}
+                    <Button label={t.common.done} onPress={() => setEditingDate(false)} />
                   </View>
                 ) : null}
               </View>

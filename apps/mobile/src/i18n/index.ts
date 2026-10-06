@@ -3010,8 +3010,6 @@ export interface UiStrings {
     detailGroup: string;
     detailDate: string;
     /** The time-of-day row beside the date, and its empty state. */
-    detailTime: string;
-    addTime: string;
     detailSplit: string;
     /** Spoken hint on an expense-screen fact that opens a pop-up to change it. */
     detailTapHint: string;
@@ -6786,8 +6784,6 @@ const en: UiStrings = {
     rowSquare: '{name} is square on this bill',
     detailGroup: 'Group',
     detailDate: 'Date',
-    detailTime: 'Time',
-    addTime: 'Add time',
     detailSplit: 'Split',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -10536,8 +10532,6 @@ const ta: UiStrings = {
     rowSquare: 'இந்த பில்லில் {name} சரிசமம்',
     detailGroup: 'குழு',
     detailDate: 'தேதி',
-    detailTime: 'நேரம்',
-    addTime: 'நேரம் சேர்',
     detailSplit: 'பிரிப்பு',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -14276,8 +14270,6 @@ const hi: UiStrings = {
     rowSquare: 'इस बिल पर {name} का हिसाब बराबर है',
     detailGroup: 'समूह',
     detailDate: 'तारीख़',
-    detailTime: 'समय',
-    addTime: 'समय जोड़ें',
     detailSplit: 'बँटवारा',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
@@ -18175,8 +18167,6 @@ const ar: UiStrings = {
     rowSquare: 'حساب {name} في هذه الفاتورة متساوٍ',
     detailGroup: 'المجموعة',
     detailDate: 'التاريخ',
-    detailTime: 'الوقت',
-    addTime: 'أضف الوقت',
     detailSplit: 'التقسيم',
     detailTapHint: 'Double tap to change',
     fullEditor: 'Full editor',
