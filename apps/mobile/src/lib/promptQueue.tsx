@@ -88,7 +88,9 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hold = useCallback((id: string) => {
-    setState((prev) => (prev.holder === id || !(id in prev.claims) ? prev : { ...prev, holder: id }));
+    setState((prev) =>
+      prev.holder === id || !(id in prev.claims) ? prev : { ...prev, holder: id },
+    );
   }, []);
 
   // The prompt on screen keeps it. Otherwise the highest-priority live claim —
