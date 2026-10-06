@@ -108,15 +108,26 @@ export function TipSheet() {
     setPage(next);
     pager.current?.setPage(next);
   };
+  // Where "Show me" goes, held until the sheet has left the screen. The scan
+  // tip opens the native scanner on arrival, and on iOS a camera presented while
+  // this sheet's Modal is still dismissing is dropped — the capture screen then
+  // waits on "Opening camera…" for ever.
+  const pendingRoute = useRef<string | null>(null);
   const act = () => {
     if (tip?.route) {
       // The scan tip's route carries a constant `scan=` sentinel; swap it for a
       // fresh nonce so the capture screen fires the camera exactly once and does
       // not reopen it when Android recreates the screen on the camera's return.
-      const href = tip.route.includes('scan=') ? `/capture?scan=${Date.now()}` : tip.route;
-      router.push(href as never);
+      pendingRoute.current = tip.route.includes('scan=')
+        ? `/capture?scan=${Date.now()}`
+        : tip.route;
     }
     close();
+  };
+  const onClosed = () => {
+    const href = pendingRoute.current;
+    pendingRoute.current = null;
+    if (href) router.push(href as never);
   };
 
   // Presented through the shared Sheet, which mounts fresh with visible=true
@@ -125,6 +136,7 @@ export function TipSheet() {
     <Sheet
       visible={open}
       onClose={close}
+      onClosed={onClosed}
       closeLabel={t.common.close}
       style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}
     >
