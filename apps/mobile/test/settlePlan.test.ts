@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { splitSettlePlan, summariseSettlePlan, type PlanTransfer } from '../src/lib/settlePlan';
+import {
+  settleHero,
+  splitSettlePlan,
+  summariseSettlePlan,
+  type PlanTransfer,
+} from '../src/lib/settlePlan';
 
 const t = (from: string, to: string, amount: bigint, currency = 'INR'): PlanTransfer => ({
   from,
@@ -54,5 +59,29 @@ describe('summariseSettlePlan', () => {
   it('never adds across currencies', () => {
     const split = splitSettlePlan([t('a', 'me', 100n), t('b', 'me', 900n, 'USD')], 'me');
     expect(summariseSettlePlan(split, 'INR').owed).toBe(100n);
+  });
+});
+
+describe('settleHero', () => {
+  const hero = (rows: PlanTransfer[]) => {
+    const split = splitSettlePlan(rows, 'me');
+    return settleHero(split, summariseSettlePlan(split, 'INR'), 'INR');
+  };
+
+  it('leads with what I owe and how many payments make it up', () => {
+    expect(hero([t('me', 'a', 100n), t('me', 'b', 25n)])).toEqual({
+      tone: 'owe',
+      amount: 125n,
+      count: 2,
+    });
+  });
+
+  it('leads with what I am owed', () => {
+    expect(hero([t('a', 'me', 90n)])).toEqual({ tone: 'owed', amount: 90n, count: 1 });
+  });
+
+  it('is settled when I have no rows or the net is zero', () => {
+    expect(hero([t('a', 'b', 10n)]).tone).toBe('settled');
+    expect(hero([t('a', 'me', 50n), t('me', 'b', 50n)]).tone).toBe('settled');
   });
 });

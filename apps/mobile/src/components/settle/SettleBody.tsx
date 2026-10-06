@@ -9,12 +9,13 @@
  * simplified or pairwise as the group chose), reminders go through `useNudge`,
  * payments through the same hand-off + `useRecordSettlement` the screen has
  * always used (ADR-007: Waves records, it never moves money). Debts between
- * other members and the payment history sit behind one "See all balances" link.
+ * other members, the payment history and the who-pays-whom view sit below.
  */
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, View } from 'react-native';
 
 import {
   allocateSettlement,
@@ -32,7 +33,6 @@ import {
   Avatar,
   Button,
   Callout,
-  EmptyState,
   iconSize,
   MoneyText,
   Row,
@@ -57,14 +57,21 @@ import {
   SettlementStatus,
   type MemberRow,
 } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
-import { splitSettlePlan, summariseSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
+import {
+  settleHero,
+  splitSettlePlan,
+  summariseSettlePlan,
+  type PlanTransfer,
+  type SettleHero,
+} from '@/lib/settlePlan';
 
 export function SettleBody({
   groupId,
@@ -90,7 +97,7 @@ export function SettleBody({
   const guard = useGuestGuard();
 
   const [error, setError] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   const currency = group.data?.default_currency ?? 'INR';
   const country = group.data?.country_code ?? null;
@@ -241,21 +248,14 @@ export function SettleBody({
     );
   }
 
-  const headline =
-    summary.kind === 'settled'
-      ? t.misc.settleSimpleSettled
-      : summary.net > 0n
-        ? fill(t.misc.settleSimpleOwed, { amount: fmt(summary.net) })
-        : summary.net < 0n
-          ? fill(t.misc.settleSimpleOwe, { amount: fmt(-summary.net) })
-          : t.misc.settleSimpleEven;
+  const hero = settleHero(split, summary, currency);
 
   const history = (settlements.data ?? [])
     .filter((row) => row.status !== SettlementStatus.Cancelled)
     .slice()
     .sort((a, b) => b.initiated_at.localeCompare(a.initiated_at));
-
-  const hasMore = split.others.length > 0 || history.length > 0;
+  const shownHistory = showAllHistory ? history : history.slice(0, HISTORY_PREVIEW);
+  const historyExpandable = history.length > HISTORY_PREVIEW;
 
   const personFor = (memberId: string): MemberRow | undefined => lookup.get(memberId);
   const ghostFor = (member: MemberRow | undefined): boolean =>
@@ -266,34 +266,62 @@ export function SettleBody({
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
           paddingBottom: clearance,
-          gap: theme.spacing.lg,
+          gap: GAP,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="heading" accessibilityRole="header">
-          {headline}
-        </Text>
-
-        {summary.kind === 'settled' ? (
-          <EmptyState
-            title={t.allSettled}
-            body={t.group.nobodyOwes}
-            icon={
-              <Ionicons name="checkmark-circle" size={iconSize.xxl} color={theme.color.positive} />
-            }
-          />
-        ) : null}
+        <SummaryCard hero={hero} currency={currency} locale={locale} />
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
 
-        {split.owesMe.length > 0 ? (
-          <View>
-            <Text variant="caption" tone="muted" accessibilityRole="header">
-              {t.misc.settleOwesYou}
-            </Text>
+        {split.owesMe.length + split.iOwe.length > 0 ? (
+          <Card>
+            <CardHeader title={t.misc.settleYourPayments} subtitle={t.misc.settleYourPaymentsSub} />
+            {split.iOwe.map((transfer) => {
+              const person = personFor(transfer.to);
+              const name = nameOf(transfer.to);
+              const amountText = fmt(transfer.amount, transfer.currency);
+              return (
+                <PersonRow
+                  key={`${transfer.to}-${transfer.currency}`}
+                  name={name}
+                  member={person}
+                  ghost={ghostFor(person)}
+                  amount={transfer.amount}
+                  currency={transfer.currency}
+                  direction={BalanceDirection.YouOwe}
+                  locale={locale}
+                  subAction={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={fill(t.misc.settleMarkPaidA11y, {
+                        name,
+                        amount: amountText,
+                      })}
+                      disabled={recordSettlement.isPending}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => void markPaid(transfer)}
+                    >
+                      <Text variant="caption" tone="brand">
+                        {t.misc.settleMarkPaid}
+                      </Text>
+                    </Pressable>
+                  }
+                  action={
+                    <Button
+                      label={t.misc.settlePay}
+                      size="sm"
+                      accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
+                      disabled={recordSettlement.isPending}
+                      onPress={() => void pay(transfer)}
+                    />
+                  }
+                />
+              );
+            })}
             {split.owesMe.map((transfer) => {
               const person = personFor(transfer.from);
               const name = nameOf(transfer.from);
@@ -301,14 +329,25 @@ export function SettleBody({
                 <PersonRow
                   key={`${transfer.from}-${transfer.currency}`}
                   name={name}
+                  member={person}
                   ghost={ghostFor(person)}
                   amount={transfer.amount}
                   currency={transfer.currency}
                   direction={BalanceDirection.OwedToYou}
                   locale={locale}
-                  onPress={() => void markReceived(transfer)}
-                  accessibilityLabel={`${name}. ${fmt(transfer.amount, transfer.currency)}`}
-                  accessibilityHint={t.misc.settleReceivedHint}
+                  subAction={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${name}. ${t.misc.settleReceivedHint}`}
+                      disabled={recordSettlement.isPending}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => void markReceived(transfer)}
+                    >
+                      <Text variant="caption" tone="brand">
+                        {t.misc.settleReceivedConfirm}
+                      </Text>
+                    </Pressable>
+                  }
                   action={
                     person && !isGhost(person) ? (
                       <RemindButton
@@ -329,166 +368,259 @@ export function SettleBody({
                 />
               );
             })}
-          </View>
-        ) : null}
-
-        {split.iOwe.length > 0 ? (
-          <View>
-            <Text variant="caption" tone="muted" accessibilityRole="header">
-              {t.misc.settleYouOweHeading}
-            </Text>
-            {split.iOwe.map((transfer) => {
-              const person = personFor(transfer.to);
-              const name = nameOf(transfer.to);
-              const amountText = fmt(transfer.amount, transfer.currency);
-              return (
-                <PersonRow
-                  key={`${transfer.to}-${transfer.currency}`}
-                  name={name}
-                  ghost={ghostFor(person)}
-                  amount={transfer.amount}
-                  currency={transfer.currency}
-                  direction={BalanceDirection.YouOwe}
-                  locale={locale}
-                  accessibilityLabel={`${name}. ${amountText}`}
-                  subAction={
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={fill(t.misc.settleMarkPaidA11y, {
-                        name,
-                        amount: amountText,
-                      })}
-                      disabled={recordSettlement.isPending}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => void markPaid(transfer)}
-                    >
-                      <Text variant="micro" tone="brand">
-                        {t.misc.settleMarkPaid}
-                      </Text>
-                    </Pressable>
-                  }
-                  action={
-                    <Button
-                      label={t.misc.settlePay}
-                      size="sm"
-                      accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
-                      disabled={recordSettlement.isPending}
-                      onPress={() => void pay(transfer)}
-                    />
-                  }
-                />
-              );
-            })}
-          </View>
+          </Card>
         ) : null}
 
         {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
 
-        {hasMore ? (
-          <View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showAll }}
-              accessibilityLabel={showAll ? t.misc.settleHideAll : t.misc.settleSeeAll}
-              onPress={() => setShowAll((open) => !open)}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
-              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                <Text variant="caption" tone="brand">
-                  {showAll ? t.misc.settleHideAll : t.misc.settleSeeAll}
-                </Text>
-                <Ionicons
-                  name={showAll ? 'chevron-up' : 'chevron-down'}
-                  size={iconSize.sm}
-                  color={theme.color.brand}
+        {split.others.length > 0 ? (
+          <Card>
+            <CardHeader
+              title={t.misc.settleBetweenOthers}
+              subtitle={t.misc.settleBetweenOthersSub}
+            />
+            {split.others.map((transfer) => {
+              const payer = personFor(transfer.from);
+              return (
+                <PersonRow
+                  key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
+                  name={fill(t.simplifyPaysWhom, {
+                    from: nameOf(transfer.from),
+                    to: nameOf(transfer.to),
+                  })}
+                  member={payer}
+                  avatarName={nameOf(transfer.from)}
+                  ghost={ghostFor(payer)}
+                  amount={transfer.amount}
+                  currency={transfer.currency}
+                  direction={null}
+                  locale={locale}
                 />
-              </Row>
-            </Pressable>
-
-            {showAll ? (
-              <View style={{ gap: theme.spacing.md }}>
-                {split.others.length > 0 ? (
-                  <View>
-                    <Text variant="caption" tone="muted" accessibilityRole="header">
-                      {t.misc.settleBetweenOthers}
-                    </Text>
-                    {split.others.map((transfer) => (
-                      <PersonRow
-                        key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
-                        name={fill(t.simplifyPaysWhom, {
-                          from: nameOf(transfer.from),
-                          to: nameOf(transfer.to),
-                        })}
-                        ghost={ghostFor(personFor(transfer.from))}
-                        avatarName={nameOf(transfer.from)}
-                        amount={transfer.amount}
-                        currency={transfer.currency}
-                        direction={null}
-                        locale={locale}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-
-                <View>
-                  <Text variant="caption" tone="muted" accessibilityRole="header">
-                    {t.misc.settleHistory}
-                  </Text>
-                  {history.length === 0 ? (
-                    <Text
-                      variant="caption"
-                      tone="muted"
-                      style={{ paddingVertical: theme.spacing.md }}
-                    >
-                      {t.misc.settleNoHistory}
-                    </Text>
-                  ) : (
-                    history.map((row) => (
-                      <PersonRow
-                        key={row.id}
-                        name={fill(t.misc.settleHistoryPaid, {
-                          from: nameOf(row.from_member_id),
-                          to: nameOf(row.to_member_id),
-                        })}
-                        ghost={ghostFor(personFor(row.from_member_id))}
-                        avatarName={nameOf(row.from_member_id)}
-                        amount={BigInt(row.amount)}
-                        currency={row.currency}
-                        direction={null}
-                        locale={locale}
-                      />
-                    ))
-                  )}
-                </View>
-
-                {/* The full who-pays-whom list is still one tap away. */}
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel={t.whoPaysWhom}
-                  onPress={() => router.push(`/group/${groupId}/simplify`)}
-                  style={{ minHeight: 44, justifyContent: 'center' }}
-                >
-                  <Text variant="caption" tone="brand">
-                    {t.whoPaysWhom}
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+              );
+            })}
+          </Card>
         ) : null}
+
+        <Card>
+          <Pressable
+            accessibilityRole={historyExpandable ? 'button' : undefined}
+            accessibilityState={historyExpandable ? { expanded: showAllHistory } : undefined}
+            disabled={!historyExpandable}
+            onPress={() => setShowAllHistory((open) => !open)}
+          >
+            <Row style={{ gap: theme.spacing.md, alignItems: 'center', minHeight: 48 }}>
+              <Ionicons name="time-outline" size={iconSize.xxl} color={theme.color.text} />
+              <View style={{ flex: 1 }}>
+                <Text variant="subheading" accessibilityRole="header">
+                  {t.misc.settleHistory}
+                </Text>
+                {history.length === 0 ? (
+                  <Text variant="caption" tone="muted">
+                    {t.misc.settleNoHistory}
+                  </Text>
+                ) : null}
+              </View>
+              {history.length === 0 ? (
+                <Image
+                  source={HISTORY_ART}
+                  style={{ width: 88, height: 45 }}
+                  resizeMode="contain"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+              ) : historyExpandable ? (
+                <Ionicons
+                  name={showAllHistory ? 'chevron-up' : 'chevron-down'}
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              ) : null}
+            </Row>
+          </Pressable>
+          {shownHistory.map((row) => {
+            const payer = personFor(row.from_member_id);
+            return (
+              <PersonRow
+                key={row.id}
+                name={fill(t.misc.settleHistoryPaid, {
+                  from: nameOf(row.from_member_id),
+                  to: nameOf(row.to_member_id),
+                })}
+                member={payer}
+                ghost={ghostFor(payer)}
+                avatarName={nameOf(row.from_member_id)}
+                amount={BigInt(row.amount)}
+                currency={row.currency}
+                direction={null}
+                locale={locale}
+              />
+            );
+          })}
+        </Card>
+
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={t.whoPaysWhom}
+          onPress={() => router.push(`/group/${groupId}/simplify`)}
+          style={({ pressed }) => [
+            {
+              backgroundColor: theme.color.surface,
+              borderRadius: theme.radius.lg,
+              paddingHorizontal: theme.spacing.md,
+              minHeight: 52,
+              justifyContent: 'center',
+              opacity: pressed ? 0.7 : 1,
+            },
+            theme.shadow.soft,
+          ]}
+        >
+          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: theme.color.brandSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
+            </View>
+            <Text variant="subheading" tone="brand" style={{ flex: 1 }}>
+              {t.whoPaysWhom}
+            </Text>
+            <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textMuted} />
+          </Row>
+        </Pressable>
       </ScrollView>
     </View>
   );
 }
 
+const GAP = 10;
+const HISTORY_PREVIEW = 3;
+const WALLET_ART = require('../../../assets/images/settle-wallet.webp') as number;
+const HISTORY_ART = require('../../../assets/images/settle-history.webp') as number;
+
+/** A white card: the one surface every block below the summary sits on. */
+function Card({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.lg,
+          paddingHorizontal: theme.spacing.md,
+          paddingVertical: theme.spacing.md,
+        },
+        theme.shadow.soft,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function CardHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        paddingBottom: theme.spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.color.border,
+      }}
+    >
+      <Text variant="subheading" accessibilityRole="header">
+        {title}
+      </Text>
+      <Text variant="caption" tone="muted">
+        {subtitle}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The top card: which side of the ledger I am on, the amount, and how many
+ * payments make it up. A soft wash of the money colours (never the saturated
+ * balance panel) with the wallet on the right.
+ */
+function SummaryCard({
+  hero,
+  currency,
+  locale,
+}: {
+  hero: SettleHero;
+  currency: string;
+  locale: string;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const colors: [string, string] =
+    hero.tone === 'owe'
+      ? [theme.color.negativeSoft, theme.color.brandSoft]
+      : hero.tone === 'owed'
+        ? [theme.color.positiveSoft, theme.tint.sky.bg]
+        : [theme.color.surfaceMuted, theme.color.brandSoft];
+
+  return (
+    <LinearGradient
+      colors={colors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        borderRadius: theme.radius.lg,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
+        minHeight: 96,
+        overflow: 'hidden',
+        justifyContent: 'center',
+      }}
+    >
+      <Image
+        source={WALLET_ART}
+        style={{ position: 'absolute', right: 8, bottom: 4, width: 132, height: 70 }}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+      />
+      {hero.tone === 'settled' ? (
+        <Text variant="title" accessibilityRole="header">
+          {t.allSettled}
+        </Text>
+      ) : (
+        <View accessible accessibilityRole="header">
+          <Text variant="body" tone="muted">
+            {hero.tone === 'owe' ? t.youOwe : t.youAreOwed}
+          </Text>
+          <MoneyText
+            amount={hero.amount}
+            currency={currency as CurrencyCode}
+            locale={locale}
+            variant="display"
+            mode="balance"
+            direction={hero.tone === 'owe' ? BalanceDirection.YouOwe : BalanceDirection.OwedToYou}
+          />
+          <Text variant="caption" tone="muted">
+            {plural(locale, hero.count, t.misc.settlePaymentsCount)}
+          </Text>
+        </View>
+      )}
+    </LinearGradient>
+  );
+}
+
 /**
  * One compact line: avatar, name, amount, and at most one action. Held to a
- * 56pt floor so a short row is still a comfortable target. The row is one
- * control only when it has somewhere to go (`onPress`).
+ * 56pt floor so a short row is still a comfortable target.
  */
 function PersonRow({
   name,
   avatarName,
+  member,
   ghost,
   amount,
   currency,
@@ -496,12 +628,10 @@ function PersonRow({
   locale,
   action,
   subAction,
-  onPress,
-  accessibilityLabel,
-  accessibilityHint,
 }: {
   name: string;
   avatarName?: string;
+  member?: MemberRow;
   ghost: boolean;
   amount: bigint;
   currency: string;
@@ -510,46 +640,28 @@ function PersonRow({
   locale: string;
   action?: ReactNode;
   subAction?: ReactNode;
-  onPress?: () => void;
-  accessibilityLabel?: string;
-  accessibilityHint?: string;
 }) {
   const theme = useTheme();
-  const body = (
-    <Row style={{ gap: theme.spacing.md, alignItems: 'center', minHeight: 56 }}>
-      <Avatar name={avatarName ?? name} ghost={ghost} size={36} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="subheading" numberOfLines={2}>
-          {name}
-        </Text>
-        {subAction ?? null}
-      </View>
-      <MoneyText
-        amount={amount}
-        currency={currency}
-        locale={locale}
-        mode={direction === null ? 'plain' : 'balance'}
-        direction={direction ?? undefined}
-      />
-      {action ?? null}
-    </Row>
-  );
-
+  const photoUrl = useAvatarUrl(member?.profile?.avatar_url);
   return (
     <View style={{ borderBottomWidth: 1, borderBottomColor: theme.color.border }}>
-      {onPress ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
-          onPress={onPress}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          {body}
-        </Pressable>
-      ) : (
-        body
-      )}
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center', minHeight: 56 }}>
+        <Avatar name={avatarName ?? name} ghost={ghost} photoUrl={photoUrl} size={40} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="subheading" numberOfLines={2}>
+            {name}
+          </Text>
+          {subAction ?? null}
+        </View>
+        <MoneyText
+          amount={amount}
+          currency={currency as CurrencyCode}
+          locale={locale}
+          mode={direction === null ? 'plain' : 'balance'}
+          direction={direction ?? undefined}
+        />
+        {action ?? null}
+      </Row>
     </View>
   );
 }
@@ -584,7 +696,6 @@ function RemindButton({
   return (
     <Button
       label={t.people.remind}
-      variant="secondary"
       size="sm"
       accessibilityLabel={label}
       disabled={nudge.pending}

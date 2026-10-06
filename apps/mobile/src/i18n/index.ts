@@ -3094,6 +3094,10 @@ export interface UiStrings {
     settleHistory: string;
     settleHistoryPaid: string;
     settleNoHistory: string;
+    settlePaymentsCount: PluralForms;
+    settleYourPayments: string;
+    settleYourPaymentsSub: string;
+    settleBetweenOthersSub: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -6852,6 +6856,10 @@ const en: UiStrings = {
     settleHistory: 'History',
     settleHistoryPaid: '{from} paid {to}',
     settleNoHistory: 'No payments yet',
+    settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
+    settleYourPayments: 'Your payments',
+    settleYourPaymentsSub: 'Settle with your friends',
+    settleBetweenOthersSub: 'These don’t affect your balance',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -10600,6 +10608,10 @@ const ta: UiStrings = {
     settleHistory: 'வரலாறு',
     settleHistoryPaid: '{from} → {to} செலுத்தினார்',
     settleNoHistory: 'இன்னும் கட்டணங்கள் இல்லை',
+    settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
+    settleYourPayments: 'உங்கள் கட்டணங்கள்',
+    settleYourPaymentsSub: 'நண்பர்களுடன் கணக்கை தீர்க்கவும்',
+    settleBetweenOthersSub: 'இவை உங்கள் இருப்பைப் பாதிக்காது',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -14336,6 +14348,10 @@ const hi: UiStrings = {
     settleHistory: 'इतिहास',
     settleHistoryPaid: '{from} ने {to} को चुकाया',
     settleNoHistory: 'अभी कोई भुगतान नहीं',
+    settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
+    settleYourPayments: 'आपके भुगतान',
+    settleYourPaymentsSub: 'दोस्तों के साथ हिसाब चुकाएँ',
+    settleBetweenOthersSub: 'ये आपके बैलेंस पर असर नहीं डालते',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -18236,6 +18252,17 @@ const ar: UiStrings = {
     settleHistory: 'السجل',
     settleHistoryPaid: '{from} دفع إلى {to}',
     settleNoHistory: 'لا توجد مدفوعات بعد',
+    settlePaymentsCount: {
+      zero: 'عبر {n} مدفوعات',
+      one: 'عبر دفعة واحدة',
+      two: 'عبر دفعتين',
+      few: 'عبر {n} دفعات',
+      many: 'عبر {n} دفعة',
+      other: 'عبر {n} دفعة',
+    },
+    settleYourPayments: 'مدفوعاتك',
+    settleYourPaymentsSub: 'سوِّ حسابك مع أصدقائك',
+    settleBetweenOthersSub: 'هذه لا تؤثر على رصيدك',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',

@@ -66,3 +66,30 @@ export function summariseSettlePlan(split: SettlePlanSplit, currency: string): S
   if (owe > 0n) return { kind: 'owe', owed, owe, net };
   return { kind: 'owed', owed, owe, net };
 }
+
+export type SettleHeroTone = 'owe' | 'owed' | 'settled';
+
+export interface SettleHero {
+  readonly tone: SettleHeroTone;
+  /** The amount the card leads with, always positive, in the group's currency. */
+  readonly amount: bigint;
+  /** How many payments make that amount up (rows in the group's currency). */
+  readonly count: number;
+}
+
+/**
+ * What the summary card says: the side the net falls on, how much, and across
+ * how many payments. A net of zero (or no rows) is "settled" whatever rows sit
+ * below it. Presentation only, built from the split and summary above.
+ */
+export function settleHero(
+  split: SettlePlanSplit,
+  summary: SettleSummary,
+  currency: string,
+): SettleHero {
+  const countIn = (rows: readonly PlanTransfer[]): number =>
+    rows.filter((row) => row.currency === currency).length;
+  if (summary.net < 0n) return { tone: 'owe', amount: -summary.net, count: countIn(split.iOwe) };
+  if (summary.net > 0n) return { tone: 'owed', amount: summary.net, count: countIn(split.owesMe) };
+  return { tone: 'settled', amount: 0n, count: 0 };
+}
