@@ -19,6 +19,7 @@ import { currencyMark, currencyName } from '../src/lib/tripRates';
 // The component module pulls React Native, the UI kit and the network in at
 // import time; none of that is under test here.
 vi.mock('react-native', () => ({ TextInput: () => null, View: () => null }));
+vi.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
 vi.mock('@waves/ui', () => ({
   Button: () => null,
   Callout: () => null,
