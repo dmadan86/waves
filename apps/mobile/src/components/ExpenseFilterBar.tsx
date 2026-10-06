@@ -1,7 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRef } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
+
+import { type MenuAnchor } from '@/components/SortMenu';
 
 /** Who paid: everything, what you paid for, or what somebody else paid. */
 export type ExpenseScope = 'all' | 'mine' | 'others';
@@ -38,15 +41,23 @@ export function ExpenseFilterBar({
   /** What the month pill says: the chosen month, or "All months". */
   monthText: string;
   monthActive: boolean;
-  onOpenMonth: () => void;
-  /** Opens the All / Mine / Others menu. */
-  onOpenScope: () => void;
+  /** Opens the month menu, dropping from where the month button sits. */
+  onOpenMonth: (anchor: MenuAnchor | null) => void;
+  /** Opens the All / Mine / Others menu, dropping from its button. */
+  onOpenScope: (anchor: MenuAnchor | null) => void;
   searchOpen: boolean;
   onToggleSearch: () => void;
   query: string;
   onQuery: (next: string) => void;
 }): React.JSX.Element {
   const theme = useTheme();
+  const scopeRef = useRef<View>(null);
+  const monthRef = useRef<View>(null);
+  const openFrom = (ref: React.RefObject<View | null>, open: (a: MenuAnchor | null) => void) => {
+    const node = ref.current;
+    if (!node) return open(null);
+    node.measureInWindow((x, y, width, height) => open(width > 0 ? { x, y, width, height } : null));
+  };
   const scopeText =
     scope === 'mine' ? labels.mine : scope === 'others' ? labels.others : labels.all;
   // Quiet text buttons, not filled pills: the filters are there when wanted
@@ -67,38 +78,42 @@ export function ExpenseFilterBar({
   return (
     <View style={{ gap: theme.spacing.xs }}>
       <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-        <Pressable
-          onPress={onOpenScope}
-          accessibilityRole="button"
-          accessibilityLabel={scopeText}
-          style={quiet(scope !== 'all')}
-        >
-          <Ionicons name="people-outline" size={iconSize.sm} color={inkFor(scope !== 'all')} />
-          <Text
-            variant="caption"
-            numberOfLines={1}
-            style={{ fontSize: 13, fontWeight: '600', color: inkFor(scope !== 'all') }}
+        <View ref={scopeRef} collapsable={false}>
+          <Pressable
+            onPress={() => openFrom(scopeRef, onOpenScope)}
+            accessibilityRole="button"
+            accessibilityLabel={scopeText}
+            style={quiet(scope !== 'all')}
           >
-            {scopeText}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={inkFor(scope !== 'all')} />
-        </Pressable>
-        <Pressable
-          onPress={onOpenMonth}
-          accessibilityRole="button"
-          accessibilityLabel={monthText}
-          style={(state) => ({ ...quiet(monthActive)(state), flexShrink: 1 })}
-        >
-          <Ionicons name="calendar-outline" size={iconSize.sm} color={inkFor(monthActive)} />
-          <Text
-            variant="caption"
-            numberOfLines={1}
-            style={{ fontSize: 13, fontWeight: '600', flexShrink: 1, color: inkFor(monthActive) }}
+            <Ionicons name="people-outline" size={iconSize.sm} color={inkFor(scope !== 'all')} />
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              style={{ fontSize: 13, fontWeight: '600', color: inkFor(scope !== 'all') }}
+            >
+              {scopeText}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={inkFor(scope !== 'all')} />
+          </Pressable>
+        </View>
+        <View ref={monthRef} collapsable={false} style={{ flexShrink: 1 }}>
+          <Pressable
+            onPress={() => openFrom(monthRef, onOpenMonth)}
+            accessibilityRole="button"
+            accessibilityLabel={monthText}
+            style={(state) => ({ ...quiet(monthActive)(state), flexShrink: 1 })}
           >
-            {monthText}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={inkFor(monthActive)} />
-        </Pressable>
+            <Ionicons name="calendar-outline" size={iconSize.sm} color={inkFor(monthActive)} />
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              style={{ fontSize: 13, fontWeight: '600', flexShrink: 1, color: inkFor(monthActive) }}
+            >
+              {monthText}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={inkFor(monthActive)} />
+          </Pressable>
+        </View>
         <Pressable
           onPress={onToggleSearch}
           accessibilityRole="button"

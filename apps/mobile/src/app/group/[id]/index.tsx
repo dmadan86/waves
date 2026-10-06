@@ -80,6 +80,7 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { ExpenseFilterBar, type ExpenseScope } from '@/components/ExpenseFilterBar';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
@@ -544,6 +545,9 @@ function CardRow({
   );
 }
 
+/** The month menu's key for "every month". */
+const ALL_MONTHS = 'all-months';
+
 export default function GroupScreen() {
   const theme = useTheme();
   // The root bar is over this screen, so the room starts from the bar's own
@@ -590,6 +594,8 @@ export default function GroupScreen() {
   // The expense whose ⋮ menu is open, if any.
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  const [scopeAnchor, setScopeAnchor] = useState<MenuAnchor | null>(null);
+  const [monthAnchor, setMonthAnchor] = useState<MenuAnchor | null>(null);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
   // Live updates from the other devices in this group (TDR §1).
@@ -921,27 +927,14 @@ export default function GroupScreen() {
   ];
 
   // The month pill's choices: every month the ledger spans, or all of them.
-  const scopeItems: OverflowMenuItem[] = (
-    [
-      ['all', t.group.filterAll],
-      ['mine', t.group.filterMine],
-      ['others', t.group.filterOthers],
-    ] as const
-  ).map(([key, label]) => ({
-    icon: scope === key ? 'checkmark' : 'ellipse-outline',
-    label,
-    onPress: () => setScope(key),
-  }));
-  const monthItems: OverflowMenuItem[] = [
-    {
-      icon: activeMonth === null ? 'checkmark' : 'calendar-outline',
-      label: t.group.allMonths,
-      onPress: () => setMonthKey(null),
-    },
-    ...monthKeys.map((key): OverflowMenuItem => ({
-      icon: key === activeMonth ? 'checkmark' : 'calendar-outline',
+  // The month menu's rows: every month with an expense, newest first, behind
+  // "All months". `ALL_MONTHS` stands in for "no month" as the menu's key.
+  const monthOptions = [
+    { key: ALL_MONTHS, label: t.group.allMonths, icon: 'calendar-outline' as const },
+    ...monthKeys.map((key) => ({
+      key,
       label: monthFmtWithYear.format(monthDate(key)),
-      onPress: () => setMonthKey(key),
+      icon: 'calendar-outline' as const,
     })),
   ];
 
@@ -1237,8 +1230,14 @@ export default function GroupScreen() {
                 activeMonth ? monthFmtShort.format(monthDate(activeMonth)) : t.group.allMonths
               }
               monthActive={activeMonth !== null}
-              onOpenMonth={() => setMonthMenuOpen(true)}
-              onOpenScope={() => setScopeMenuOpen(true)}
+              onOpenMonth={(anchor) => {
+                setMonthAnchor(anchor);
+                setMonthMenuOpen(true);
+              }}
+              onOpenScope={(anchor) => {
+                setScopeAnchor(anchor);
+                setScopeMenuOpen(true);
+              }}
               searchOpen={searchOpen}
               onToggleSearch={() => {
                 if (searchOpen) setQuery('');
@@ -1253,15 +1252,42 @@ export default function GroupScreen() {
         {/* The header menu and the month menu live at the screen's root,
             not in the list header, so they open from every tab. */}
         <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
-        <OverflowMenu
-          visible={scopeMenuOpen}
+        {/* Both drop from the button that opened them, as Friends' sort does. */}
+        <SortMenu
+          open={scopeMenuOpen}
+          anchor={scopeAnchor}
           onClose={() => setScopeMenuOpen(false)}
-          items={scopeItems}
+          title={t.group.filterAll}
+          closeLabel={t.common.close}
+          options={[
+            { key: 'all' as const, label: t.group.filterAll, icon: 'people-outline' as const },
+            { key: 'mine' as const, label: t.group.filterMine, icon: 'person-outline' as const },
+            {
+              key: 'others' as const,
+              label: t.group.filterOthers,
+              icon: 'people-circle-outline' as const,
+            },
+          ]}
+          activeKey={scope}
+          activeIndicator="checkmark"
+          onPick={(key) => {
+            setScope(key);
+            setScopeMenuOpen(false);
+          }}
         />
-        <OverflowMenu
-          visible={monthMenuOpen}
+        <SortMenu
+          open={monthMenuOpen}
+          anchor={monthAnchor}
           onClose={() => setMonthMenuOpen(false)}
-          items={monthItems}
+          title={t.group.allMonths}
+          closeLabel={t.common.close}
+          options={monthOptions}
+          activeKey={activeMonth ?? ALL_MONTHS}
+          activeIndicator="checkmark"
+          onPick={(key) => {
+            setMonthKey(key === ALL_MONTHS ? null : key);
+            setMonthMenuOpen(false);
+          }}
         />
 
         {/* The waves close the page above the tab bar on every tab, behind the
