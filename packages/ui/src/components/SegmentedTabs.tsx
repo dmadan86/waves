@@ -41,6 +41,7 @@ export function SegmentedTabs<T extends string>({
   onChange,
   tabs,
   scrollable = false,
+  divider = true,
 }: {
   value: T;
   onChange: (value: T) => void;
@@ -53,6 +54,8 @@ export function SegmentedTabs<T extends string>({
    * that read as an icon grid rather than a row of labels.
    */
   scrollable?: boolean;
+  /** The hairline under the whole row. On by default; off for a borderless bar. */
+  divider?: boolean;
 }) {
   const theme = useTheme();
   // Three or more tabs with a glyph each do not fit side by side on a phone:
@@ -168,7 +171,9 @@ export function SegmentedTabs<T extends string>({
   if (scrollable) {
     return (
       <View
-        style={{ borderBottomWidth: 1, borderBottomColor: theme.color.border }}
+        style={
+          divider ? { borderBottomWidth: 1, borderBottomColor: theme.color.border } : undefined
+        }
         onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
       >
         <ScrollView
@@ -189,7 +194,7 @@ export function SegmentedTabs<T extends string>({
       accessibilityRole="tablist"
       style={{
         flexDirection: 'row',
-        borderBottomWidth: 1,
+        borderBottomWidth: divider ? 1 : 0,
         borderBottomColor: theme.color.border,
       }}
     >

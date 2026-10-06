@@ -33,7 +33,6 @@ describe('every hero is a deliberate shape, not a drift from the shared one', ()
   it('the group hero uses the shared controls rather than its own copies', () => {
     const hero = source('components/GroupHero.tsx');
     const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
-    expect(shared?.[1]).toMatch(/\bHeroActionCircle\b/);
     expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
     // The white pill and the dim disc were defined here and are now shared. A
     // local `function HeroActionCircle` reappearing means somebody has forked
@@ -41,22 +40,13 @@ describe('every hero is a deliberate shape, not a drift from the shared one', ()
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
   });
 
-  it('every headline figure is said as one "Label: figure" line', () => {
-    // The label used to sit on its own line above the figure ("Net receivable ·
-    // INR"); the shared line puts them together. A hero drawing its own label
-    // row again has drifted from the rest.
-    for (const file of [
-      'components/GroupHero.tsx',
-      // Personal is left out: its scenic hero says "Total spent this month"
-      // over the figure, the way Home's balance card does. Bank messages too:
-      // its figure is on a light card with the label above it. Friends has no
-      // headline figure at all any more (see below) — its glass card opens
-      // straight on the two-sided "Owed to you" / "You owe" row, the owner
-      // having asked for the repeated net figure above it to be cut once the
-      // picture band itself took over saying what screen this is.
-    ]) {
-      expect(source(file), file).toMatch(/<HeroFigureLine\b/);
-    }
+  it("the group hero wears Home's dusk scene, with its figure stacked under its label", () => {
+    // The group screen follows its own design: the scenic hero (`HeroScene`, as
+    // on Home and Groups) with "You are owed" over a large figure, rather than
+    // the shared one-line "Label: figure". A deliberate shape, pinned here.
+    const hero = source('components/GroupHero.tsx');
+    expect(hero).toMatch(/import \{ HeroScene \} from '@\/components\/home\/HeroScene';/);
+    expect(hero).not.toMatch(/<HeroFigureLine\b/);
   });
 
   it("Friends wears Home's own hero shape, not the shared gradient shell", () => {

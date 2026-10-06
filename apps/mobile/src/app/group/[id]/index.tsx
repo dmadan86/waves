@@ -80,6 +80,8 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
+import { ExpenseFilterBar, type ExpenseScope } from '@/components/ExpenseFilterBar';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
 import { PendingMark } from '@/components/PendingMark';
@@ -92,6 +94,7 @@ import { VendorsBody } from '@/components/VendorsBody';
 import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
+import { amountMatches } from '@/lib/expenseSearch';
 import { useDialog } from '@/lib/dialog';
 
 enum Tab {
@@ -239,6 +242,11 @@ function monthLabel(
   return (sameYear ? fmtSameYear : fmtWithYear).format(when);
 }
 
+/** The first of a "YYYY-MM" month, as a Date the UTC-pinned month formatters read. */
+function monthDate(key: string): Date {
+  return new Date(`${key}-01T00:00:00Z`);
+}
+
 /**
  * One row of the virtualized expense feed. The feed used to render every expense
  * a group ever had at once inside a ScrollView; on a long-lived group that mounts
@@ -252,6 +260,7 @@ type FeedItem =
       readonly kind: 'expense';
       readonly key: string;
       readonly expense: ExpenseRow;
+      readonly isFirst: boolean;
       readonly isLast: boolean;
     }
   | {
@@ -259,6 +268,7 @@ type FeedItem =
       readonly key: string;
       readonly member: MemberRow;
       readonly balance: bigint;
+      readonly isFirst: boolean;
       readonly isLast: boolean;
     };
 
@@ -278,6 +288,7 @@ type FeedItem =
  */
 const ExpenseFeedRow = memo(function ExpenseFeedRow({
   expense,
+  isFirst,
   isLast,
   myMemberId,
   groupId,
@@ -289,6 +300,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   nameOf,
 }: {
   expense: ExpenseRow;
+  isFirst: boolean;
   isLast: boolean;
   myMemberId: MemberId | null;
   groupId: string;
@@ -380,84 +392,162 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   const rowLabel = [title, version ? directionLabel : null, amountA11y, dateStamp]
     .filter(Boolean)
     .join(', ');
+  // The amount's colour: blue when you lent, the negative red when you borrowed
+  // (the sign is also said in words under it, so colour is never the only cue).
+  const stakeColor =
+    stake === null || stake === 0n
+      ? theme.color.textMuted
+      : stake > 0n
+        ? theme.scheme === 'dark'
+          ? '#7AA2FF'
+          : '#2563EB'
+        : theme.color.negative;
   return (
-    <View>
-      <Pressable
-        onPress={() => router.push(`/group/${groupId}/expense/${expense.id}`)}
-        accessibilityRole="button"
-        accessibilityLabel={rowLabel}
-        style={({ pressed }) => ({
-          opacity: pressed ? 0.6 : expense.deleted_at ? 0.55 : 1,
-        })}
-      >
-        <Row
-          style={{
-            gap: theme.spacing.md,
-            alignItems: 'center',
-            paddingVertical: theme.spacing.sm,
-          }}
+    <CardRow isFirst={isFirst} isLast={isLast} theme={theme}>
+      <Row style={{ alignItems: 'center' }}>
+        <Pressable
+          onPress={() => router.push(`/group/${groupId}/expense/${expense.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={rowLabel}
+          style={({ pressed }) => ({
+            flex: 1,
+            minWidth: 0,
+            opacity: pressed ? 0.6 : expense.deleted_at ? 0.55 : 1,
+          })}
         >
-          <CategoryBadge
-            category={version?.category}
-            meta={version?.category_meta}
-            description={version?.description}
-            size={40}
-          />
-          {/* MIDDLE — the one zone that yields. `minWidth: 0` lets a long title
-              or payer name actually ellipsize here rather than shoving the amount
-              and date off the row; the flex swallows the slack so the right
-              column can stay at its natural width. */}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="subheading" numberOfLines={1}>
-              {title}
-            </Text>
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {[
-                paidLineWithRate,
-                expense.deleted_at ? t.expense.deleted : null,
-                (version?.version_no ?? 1) > 1
-                  ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-          </View>
-          {/* RIGHT — fixed and right-aligned, the money column. `flexShrink: 0`
-              makes the amount the hero: for any normal value it can never be
-              squeezed or clipped by a long name, and the date sits directly under
-              it so it is always on the row too. Only the middle ever gives. The
-              `maxWidth` is a pure safety valve for a pathological amount on a
-              narrow screen — it stops the column from ever eating the whole row
-              and starving the name to zero; short of that ceiling the amount is
-              never capped. */}
-          {version ? (
-            <View style={{ flexShrink: 0, maxWidth: '55%', alignItems: 'flex-end' }}>
-              <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                {stake !== null && stake !== 0n ? (
-                  <MoneyText
-                    amount={stake}
-                    currency={version.currency}
-                    locale={locale}
-                    mode="balance"
-                    numberOfLines={1}
-                    variant="subheading"
-                    style={{ fontWeight: '700' }}
-                  />
-                ) : null}
-                {expense.pending ? <PendingMark /> : null}
-              </Row>
-              <Text variant="micro" tone="muted" numberOfLines={1}>
-                {rightMeta}
+          <Row
+            style={{
+              gap: theme.spacing.md,
+              alignItems: 'center',
+              paddingVertical: ROW_PAD,
+              paddingStart: theme.spacing.md,
+            }}
+          >
+            <CategoryBadge
+              category={version?.category}
+              meta={version?.category_meta}
+              description={version?.description}
+              size={36}
+            />
+            {/* MIDDLE — the one zone that yields. `minWidth: 0` lets a long title
+                or payer name ellipsize here rather than shoving the amount and
+                date off the row. */}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={{ fontSize: 15, lineHeight: 20, fontWeight: '700' }}>
+                {title}
+              </Text>
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 12 }}>
+                {[
+                  paidLineWithRate,
+                  expense.deleted_at ? t.expense.deleted : null,
+                  (version?.version_no ?? 1) > 1
+                    ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </View>
-          ) : null}
-        </Row>
-      </Pressable>
-      {!isLast ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
-    </View>
+            {/* RIGHT — fixed and right-aligned, the money column: the amount is
+                the hero and never squeezed by a long name; only the middle gives.
+                `maxWidth` is a safety valve for a pathological amount. */}
+            {version ? (
+              <View style={{ flexShrink: 0, maxWidth: '50%', alignItems: 'flex-end' }}>
+                <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+                  {stake !== null && stake !== 0n ? (
+                    <MoneyText
+                      amount={stake}
+                      currency={version.currency}
+                      locale={locale}
+                      mode="balance"
+                      numberOfLines={1}
+                      variant="subheading"
+                      style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: stakeColor }}
+                    />
+                  ) : null}
+                  {expense.pending ? <PendingMark /> : null}
+                </Row>
+                <Text variant="micro" tone="muted" numberOfLines={1} style={{ fontSize: 11 }}>
+                  {rightMeta}
+                </Text>
+              </View>
+            ) : null}
+          </Row>
+        </Pressable>
+        {/* Tapping the row opens it; the pencil goes straight to editing. A
+            deleted expense has nothing to edit, so it keeps the space empty. */}
+        {expense.deleted_at ? (
+          <View style={{ width: iconSize.md + theme.spacing.sm + theme.spacing.md }} />
+        ) : (
+          <Pressable
+            onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.edit}
+            hitSlop={{ top: 8, bottom: 8 }}
+            // The right inset matches the badge's left one, so the row reads even.
+            style={({ pressed }) => ({
+              paddingStart: theme.spacing.sm,
+              paddingEnd: theme.spacing.md,
+              alignSelf: 'stretch',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Ionicons name="pencil" size={14} color={theme.color.brand} style={{ opacity: 0.5 }} />
+          </Pressable>
+        )}
+      </Row>
+    </CardRow>
   );
 });
+
+/** Vertical padding of a ledger row; with the 36dp badge it makes a ~56dp row. */
+const ROW_PAD = 10;
+
+/**
+ * One row of a "card" the flat feed draws: FlashList cannot wrap a run of rows
+ * in a container, so each row paints its own slice of the card — side borders
+ * throughout, the top edge and corners on the first, the bottom on the last, a
+ * hairline between neighbours.
+ */
+function CardRow({
+  isFirst,
+  isLast,
+  theme,
+  children,
+}: {
+  isFirst: boolean;
+  isLast: boolean;
+  theme: ReturnType<typeof useTheme>;
+  children: React.ReactNode;
+}) {
+  const radius = theme.radius.lg;
+  return (
+    <View
+      style={{
+        backgroundColor: theme.color.surface,
+        borderColor: theme.color.border,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderTopWidth: isFirst ? 1 : 0,
+        borderBottomWidth: 1,
+        borderTopLeftRadius: isFirst ? radius : 0,
+        borderTopRightRadius: isFirst ? radius : 0,
+        borderBottomLeftRadius: isLast ? radius : 0,
+        borderBottomRightRadius: isLast ? radius : 0,
+        // The last row's bottom edge closes the card; the others' is the divider.
+        borderBottomColor: theme.color.border,
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** The month menu's key for "every month". */
+const ALL_MONTHS = 'all-months';
 
 export default function GroupScreen() {
   const theme = useTheme();
@@ -497,6 +587,16 @@ export default function GroupScreen() {
   const viewerId = useViewerId();
   const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The Expenses tab's filters: who paid, which month, and a text search.
+  const [scope, setScope] = useState<ExpenseScope>('all');
+  const [monthKey, setMonthKey] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  // The expense whose ⋮ menu is open, if any.
+  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
+  const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  const [scopeAnchor, setScopeAnchor] = useState<MenuAnchor | null>(null);
+  const [monthAnchor, setMonthAnchor] = useState<MenuAnchor | null>(null);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
   // Live updates from the other devices in this group (TDR §1).
@@ -574,8 +674,8 @@ export default function GroupScreen() {
     () => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }),
     [locale],
   );
-  const monthFmtSameYear = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }),
+  const monthFmtShort = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }),
     [locale],
   );
   const monthFmtWithYear = useMemo(
@@ -594,7 +694,46 @@ export default function GroupScreen() {
     () => expenses.rows.filter((expense) => !expense.deleted_at),
     [expenses.rows],
   );
-  const expenseSections = useMemo(() => groupExpensesByMonth(visibleExpenses), [visibleExpenses]);
+  // The months the ledger spans, newest first — what the month pill offers.
+  const monthKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const expense of visibleExpenses) {
+      const date = expense.currentVersion?.expense_date;
+      if (date) keys.add(date.slice(0, 7));
+    }
+    return [...keys].sort().reverse();
+  }, [visibleExpenses]);
+  // A month that no longer has any expense (deleted, or a different group) must
+  // not leave the feed empty behind a pill that cannot be seen to clear.
+  const activeMonth = monthKey && monthKeys.includes(monthKey) ? monthKey : null;
+  const myId = ledger.myMemberId;
+  const filteredExpenses = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (scope === 'all' && !activeMonth && !needle) return visibleExpenses;
+    return visibleExpenses.filter((expense) => {
+      const version = expense.currentVersion;
+      if (activeMonth && version?.expense_date.slice(0, 7) !== activeMonth) return false;
+      if (scope !== 'all') {
+        // "Mine" is what you paid for; "Others" is what somebody else paid.
+        const iPaid = myId !== null && (version?.payers ?? []).some((p) => p.member_id === myId);
+        if ((scope === 'mine') !== iPaid) return false;
+      }
+      if (needle) {
+        const title = expenseTitle(
+          version?.description,
+          version?.category,
+          t,
+          version?.category_meta,
+        );
+        const byText = `${title} ${version?.description ?? ''}`.toLowerCase().includes(needle);
+        // A number searches amounts too: "500" finds the ₹500.00 bill.
+        if (!byText && !(version && amountMatches(needle, version.amount))) return false;
+      }
+      return true;
+    });
+  }, [visibleExpenses, scope, activeMonth, query, myId, t]);
+  const filtersActive = scope !== 'all' || activeMonth !== null || query.trim() !== '';
+  const expenseSections = useMemo(() => groupExpensesByMonth(filteredExpenses), [filteredExpenses]);
   // The month sections flattened into one recyclable list: a heading item per
   // month, then its expense rows. FlashList mounts only what is on screen, so a
   // group with a thousand bills opens as fast as one with ten.
@@ -609,6 +748,7 @@ export default function GroupScreen() {
           kind: 'expense',
           key: expense.id,
           expense,
+          isFirst: index === 0,
           isLast: index === section.rows.length - 1,
         }),
       );
@@ -626,6 +766,7 @@ export default function GroupScreen() {
         key: `balance-${member.id}`,
         member,
         balance: ledger.balances.get(member.id) ?? 0n,
+        isFirst: index === 0,
         isLast: index === arr.length - 1,
       })),
     [members.data, ledger.balances],
@@ -788,6 +929,18 @@ export default function GroupScreen() {
       : []),
   ];
 
+  // The month pill's choices: every month the ledger spans, or all of them.
+  // The month menu's rows: every month with an expense, newest first, behind
+  // "All months". `ALL_MONTHS` stands in for "no month" as the menu's key.
+  const monthOptions = [
+    { key: ALL_MONTHS, label: t.group.allMonths, icon: 'calendar-outline' as const },
+    ...monthKeys.map((key) => ({
+      key,
+      label: monthFmtWithYear.format(monthDate(key)),
+      icon: 'calendar-outline' as const,
+    })),
+  ];
+
   // A month heading or an expense row. Headings carry the between-section gap the
   // ScrollView used to give for free; the first item needs none, its space comes
   // from the header block above it. The row itself is a memoized component fed
@@ -800,13 +953,14 @@ export default function GroupScreen() {
           variant="micro"
           tone="muted"
           style={{
-            marginTop: index === 0 ? 0 : theme.spacing.xl,
-            marginBottom: theme.spacing.sm,
+            marginTop: index === 0 ? 0 : theme.spacing.lg,
+            marginBottom: theme.spacing.xs,
             textTransform: 'uppercase',
             letterSpacing: 0.6,
+            fontWeight: '600',
           }}
         >
-          {monthLabel(monthFmtSameYear, monthFmtWithYear, item.date)}
+          {monthLabel(monthFmtWithYear, monthFmtWithYear, item.date)}
         </Text>
       );
     }
@@ -814,6 +968,7 @@ export default function GroupScreen() {
       return (
         <ExpenseFeedRow
           expense={item.expense}
+          isFirst={item.isFirst}
           isLast={item.isLast}
           myMemberId={ledger.myMemberId}
           groupId={groupId}
@@ -827,7 +982,7 @@ export default function GroupScreen() {
       );
     }
     if (item.kind === 'balance') {
-      const { member, balance, isLast } = item;
+      const { member, balance, isFirst, isLast } = item;
       // The name the row is allowed to say — already masked for a blocked
       // person, and it travels with the tap so the destination opens under the
       // same mask rather than flashing the real name while it loads.
@@ -862,13 +1017,14 @@ export default function GroupScreen() {
           style={{
             gap: theme.spacing.md,
             alignItems: 'center',
-            paddingVertical: theme.spacing.sm,
+            paddingVertical: ROW_PAD,
+            paddingHorizontal: theme.spacing.md,
           }}
         >
           <Avatar
             name={displayName(member, null, blockedIds, t.misc.someone)}
             ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
-            size={40}
+            size={36}
           />
           {/* The name gets the row's width. It used to share its line with an
               admin badge while the Remind chip and the amount sat beside it,
@@ -927,7 +1083,7 @@ export default function GroupScreen() {
         </Row>
       );
       return (
-        <View>
+        <CardRow isFirst={isFirst} isLast={isLast} theme={theme}>
           {personKey ? (
             <Pressable
               accessibilityRole="button"
@@ -959,8 +1115,7 @@ export default function GroupScreen() {
           ) : (
             row
           )}
-          {!isLast ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
-        </View>
+        </CardRow>
       );
     }
     return null;
@@ -997,67 +1152,146 @@ export default function GroupScreen() {
             rather than the selection pills the rest of the app fills in. */}
         <View
           style={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.md,
-            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.xs,
+            gap: theme.spacing.xs,
           }}
         >
-          <SegmentedTabs<Tab>
-            value={activeTab}
-            onChange={(next) => {
-              listRef.current?.scrollToOffset({ offset: 0, animated: false });
-              setTab(next);
-            }}
-            tabs={[
-              {
-                value: Tab.Expenses,
-                label: t.expenses,
-                icon: (color) => (
-                  <Ionicons name="receipt-outline" size={iconSize.md} color={color} />
-                ),
-              },
-              ...(isEvent
-                ? [
-                    {
-                      value: Tab.Vendors,
-                      label: t.eventOrganizer.vendorsTab,
-                      icon: (color: string) => (
-                        <Ionicons name="storefront-outline" size={iconSize.md} color={color} />
-                      ),
-                    },
-                  ]
-                : []),
-              {
-                value: Tab.Balances,
-                label: t.balances,
-                icon: (color) => (
-                  <Ionicons name="swap-horizontal-outline" size={iconSize.md} color={color} />
-                ),
-              },
-              {
-                value: Tab.Settle,
-                label: t.settleUp,
-                icon: (color) => (
-                  <Ionicons name="checkmark-done-outline" size={iconSize.md} color={color} />
-                ),
-              },
-              {
-                value: Tab.Timeline,
-                label: t.timeline.viewTimeline,
-                icon: (color) => <Ionicons name="time-outline" size={iconSize.md} color={color} />,
-              },
-              {
-                value: Tab.Map,
-                label: t.timeline.viewMap,
-                icon: (color) => <Ionicons name="map-outline" size={iconSize.md} color={color} />,
-              },
-            ]}
-            // Five faces do not share a phone's width evenly with their words
-            // on one line, so the row scrolls rather than stacking each glyph
-            // over its word.
-            scrollable
-          />
+          {/* Plain underline tabs on the page — no card, no border. */}
+          <View>
+            <SegmentedTabs<Tab>
+              divider={false}
+              value={activeTab}
+              onChange={(next) => {
+                listRef.current?.scrollToOffset({ offset: 0, animated: false });
+                setTab(next);
+              }}
+              tabs={[
+                {
+                  value: Tab.Expenses,
+                  label: t.expenses,
+                  icon: (color) => (
+                    <Ionicons name="receipt-outline" size={iconSize.md} color={color} />
+                  ),
+                },
+                ...(isEvent
+                  ? [
+                      {
+                        value: Tab.Vendors,
+                        label: t.eventOrganizer.vendorsTab,
+                        icon: (color: string) => (
+                          <Ionicons name="storefront-outline" size={iconSize.md} color={color} />
+                        ),
+                      },
+                    ]
+                  : []),
+                {
+                  value: Tab.Balances,
+                  label: t.balances,
+                  icon: (color) => (
+                    <Ionicons name="swap-horizontal-outline" size={iconSize.md} color={color} />
+                  ),
+                },
+                {
+                  value: Tab.Settle,
+                  label: t.settleUp,
+                  icon: (color) => (
+                    <Ionicons name="cash-outline" size={iconSize.md} color={color} />
+                  ),
+                },
+                {
+                  value: Tab.Timeline,
+                  label: t.timeline.viewTimeline,
+                  icon: (color) => (
+                    <Ionicons name="time-outline" size={iconSize.md} color={color} />
+                  ),
+                },
+                {
+                  value: Tab.Map,
+                  label: t.timeline.viewMap,
+                  icon: (color) => <Ionicons name="map-outline" size={iconSize.md} color={color} />,
+                },
+              ]}
+              // Five faces do not share a phone's width evenly with their words
+              // on one line, so the row scrolls rather than stacking each glyph
+              // over its word.
+              scrollable
+            />
+          </View>
+          {activeTab === Tab.Expenses && visibleExpenses.length > 0 ? (
+            <ExpenseFilterBar
+              scope={scope}
+              onScope={setScope}
+              labels={{
+                all: t.group.filterAll,
+                mine: t.group.filterMine,
+                others: t.group.filterOthers,
+                search: t.group.searchExpenses,
+                clearSearch: t.group.clearExpenseSearch,
+              }}
+              monthText={
+                activeMonth ? monthFmtShort.format(monthDate(activeMonth)) : t.group.allMonths
+              }
+              monthActive={activeMonth !== null}
+              onOpenMonth={(anchor) => {
+                setMonthAnchor(anchor);
+                setMonthMenuOpen(true);
+              }}
+              onOpenScope={(anchor) => {
+                setScopeAnchor(anchor);
+                setScopeMenuOpen(true);
+              }}
+              searchOpen={searchOpen}
+              onToggleSearch={() => {
+                if (searchOpen) setQuery('');
+                setSearchOpen(!searchOpen);
+              }}
+              query={query}
+              onQuery={setQuery}
+            />
+          ) : null}
         </View>
+
+        {/* The header menu and the month menu live at the screen's root,
+            not in the list header, so they open from every tab. */}
+        <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+        {/* Both drop from the button that opened them, as Friends' sort does. */}
+        <SortMenu
+          open={scopeMenuOpen}
+          anchor={scopeAnchor}
+          onClose={() => setScopeMenuOpen(false)}
+          title={t.group.filterAll}
+          closeLabel={t.common.close}
+          options={[
+            { key: 'all' as const, label: t.group.filterAll, icon: 'people-outline' as const },
+            { key: 'mine' as const, label: t.group.filterMine, icon: 'person-outline' as const },
+            {
+              key: 'others' as const,
+              label: t.group.filterOthers,
+              icon: 'people-circle-outline' as const,
+            },
+          ]}
+          activeKey={scope}
+          activeIndicator="checkmark"
+          onPick={(key) => {
+            setScope(key);
+            setScopeMenuOpen(false);
+          }}
+        />
+        <SortMenu
+          open={monthMenuOpen}
+          anchor={monthAnchor}
+          onClose={() => setMonthMenuOpen(false)}
+          title={t.group.allMonths}
+          closeLabel={t.common.close}
+          options={monthOptions}
+          activeKey={activeMonth ?? ALL_MONTHS}
+          activeIndicator="checkmark"
+          onPick={(key) => {
+            setMonthKey(key === ALL_MONTHS ? null : key);
+            setMonthMenuOpen(false);
+          }}
+        />
 
         {/* The waves close the page above the tab bar on every tab, behind the
             content — rows and cards scroll over them. */}
@@ -1112,7 +1346,8 @@ export default function GroupScreen() {
             // 1500 was still being outrun by a hard fling on a long ledger.
             drawDistance={2500}
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.xl,
+              // The same side margin as Home's group list and this screen's tabs.
+              paddingHorizontal: theme.spacing.lg,
               paddingBottom: clearance,
             }}
             showsVerticalScrollIndicator={false}
@@ -1135,12 +1370,6 @@ export default function GroupScreen() {
               // takes no room at all and the rows start `lg` under the tabs.
               <View style={{ marginBottom: hasHeaderCards ? theme.spacing.xl : 0 }}>
                 <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
-                  <OverflowMenu
-                    visible={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    items={menuItems}
-                  />
-
                   {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
@@ -1341,7 +1570,11 @@ export default function GroupScreen() {
               </View>
             }
             ListEmptyComponent={
-              tab === Tab.Expenses ? (
+              tab === Tab.Expenses && filtersActive && visibleExpenses.length > 0 ? (
+                <Text tone="muted" style={{ textAlign: 'center', paddingTop: theme.spacing.xl }}>
+                  {t.group.noExpenseMatches}
+                </Text>
+              ) : tab === Tab.Expenses ? (
                 // An empty list that only describes itself leaves the one thing to
                 // do on the screen to a floating button in the corner. The way out
                 // of an empty state belongs inside it.
