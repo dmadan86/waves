@@ -51,7 +51,7 @@ export function HomeQuickActions({
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={13} color={color} />,
+      glyph: (color) => <GroupAddIcon size={17} color={color} />,
       onPress: () => measureAnchor(groupRef, onNewGroup),
       ref: groupRef,
       tourId: 'addGroup',
@@ -59,20 +59,20 @@ export function HomeQuickActions({
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="cash-outline" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
       onPress: onSettleUp,
     },
     {
       key: 'reports',
       label: t.homeDash.reports,
-      glyph: (color) => <Ionicons name="stats-chart" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="stats-chart" size={19} color={color} />,
       onPress: onReports,
     },
     // Last, at the right-hand end: the one reached for most, under the thumb.
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add" size={20} color={color} />,
+      glyph: (color) => <Ionicons name="add" size={24} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',

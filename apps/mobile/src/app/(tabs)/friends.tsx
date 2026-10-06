@@ -1025,26 +1025,26 @@ function FriendsQuickActions({
     {
       key: 'add',
       label: t.tabs.friendShort,
-      glyph: (color) => <Ionicons name="person-add-outline" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="person-add-outline" size={19} color={color} />,
       onPress: onAdd,
       ref: addTileRef,
     },
     {
       key: 'scan',
       label: t.misc.scanToJoin,
-      glyph: (color) => <Ionicons name="qr-code-outline" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="qr-code-outline" size={19} color={color} />,
       onPress: onScan,
     },
     {
       key: 'settle',
       label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="cash-outline" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="cash-outline" size={19} color={color} />,
       onPress: onSettleUp,
     },
     {
       key: 'merge',
       label: t.mergePeople.entry,
-      glyph: (color) => <Ionicons name="git-merge-outline" size={16} color={color} />,
+      glyph: (color) => <Ionicons name="git-merge-outline" size={19} color={color} />,
       onPress: onMerge,
       // Hidden at 0 or when the count is not yet known (`duplicateCount` is 0
       // in both cases — see `findDuplicates`), never a "(0)" badge nobody asked
@@ -1068,7 +1068,7 @@ function FriendsQuickActions({
 
 /** The quick-action row's own, smaller disc — Home's 34dp reads as the
  *  right weight for three tiles; a fourth asked for one size down. */
-const FRIENDS_DISC_SIZE = 30;
+const FRIENDS_DISC_SIZE = 38;
 
 /** 12pt labels for the same row, a point above the shared `micro` variant's
  *  11 — legible at the narrower column four tiles leave each one. */
