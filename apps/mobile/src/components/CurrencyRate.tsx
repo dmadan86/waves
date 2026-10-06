@@ -82,6 +82,12 @@ export interface CurrencyRateProps {
    * number is a default, never a rule.
    */
   tripRate?: FxRate | null;
+  /**
+   * Controlled, sheet-only use (the create-group screen): no summary line, the
+   * sheet is shown while `visible`. Nothing is hidden for a same-currency pair
+   * — the caller decides whether to ask at all.
+   */
+  sheet?: { visible: boolean; onClose: () => void };
 }
 
 export function CurrencyRate({
@@ -91,6 +97,7 @@ export function CurrencyRate({
   fx,
   onFxChange,
   tripRate = null,
+  sheet,
 }: CurrencyRateProps): React.JSX.Element | null {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -101,7 +108,9 @@ export function CurrencyRate({
   const [error, setError] = useState<string | null>(null);
 
   // Whether the rate sheet is open.
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const open = sheet ? sheet.visible : openState;
+  const closeSheet = (): void => (sheet ? sheet.onClose() : setOpen(false));
   const [now, setNow] = useState(() => Date.now());
   const [preview, setPreview] = useState<{ side: 'from' | 'to'; text: string } | null>(null);
   // The pair the component is showing right now. `fetchToday` captures the pair
@@ -269,33 +278,35 @@ export function CurrencyRate({
 
   return (
     <>
-      <Pressable
-        onPress={() => {
-          setNow(Date.now());
-          setOpen(true);
-        }}
-        accessibilityRole="button"
-        accessibilityHint={t.fx.sheetTitle}
-        hitSlop={8}
-        style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}
-      >
-        {converted ? (
-          <Text variant="body" numberOfLines={1}>
-            {t.fx.inGroupMoney.replace('{amount}', format(converted))}
-          </Text>
-        ) : (
-          <Text variant="body" tone="muted" numberOfLines={1}>
-            {t.fx.rateNotSet}
-          </Text>
-        )}
-        {fx && origin ? (
-          <Text variant="micro" tone="muted" numberOfLines={1}>
-            {rateNote(fx, origin, t.fx, locale)}
-          </Text>
-        ) : null}
-      </Pressable>
+      {sheet ? null : (
+        <Pressable
+          onPress={() => {
+            setNow(Date.now());
+            setOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityHint={t.fx.sheetTitle}
+          hitSlop={8}
+          style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}
+        >
+          {converted ? (
+            <Text variant="body" numberOfLines={1}>
+              {t.fx.inGroupMoney.replace('{amount}', format(converted))}
+            </Text>
+          ) : (
+            <Text variant="body" tone="muted" numberOfLines={1}>
+              {t.fx.rateNotSet}
+            </Text>
+          )}
+          {fx && origin ? (
+            <Text variant="micro" tone="muted" numberOfLines={1}>
+              {rateNote(fx, origin, t.fx, locale)}
+            </Text>
+          ) : null}
+        </Pressable>
+      )}
 
-      <Sheet visible={open} onClose={() => setOpen(false)}>
+      <Sheet visible={open} onClose={closeSheet}>
         <View style={{ gap: theme.spacing.md }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <View
@@ -507,7 +518,7 @@ export function CurrencyRate({
           {error ? <Callout tone="negative">{error}</Callout> : null}
 
           <Pressable
-            onPress={() => setOpen(false)}
+            onPress={closeSheet}
             accessibilityRole="button"
             accessibilityLabel={t.common.done}
           >

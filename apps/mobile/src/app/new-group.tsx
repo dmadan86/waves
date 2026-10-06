@@ -21,6 +21,7 @@ import {
   minorUnitScale,
   MutationKind,
   type EventTemplateId,
+  type FxRecord,
 } from '@waves/core';
 import {
   AmountField,
@@ -47,8 +48,10 @@ import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
 import { GroupTagField } from '@/components/GroupTagField';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { TripDates, type TripDatesValue } from '@/components/TripDates';
-import { TripRatesCard, type TripRateStore } from '@/components/TripRates';
-import { type TripRateRow } from '@/lib/tripRates';
+import { CurrencyRate } from '@/components/CurrencyRate';
+import { CurrencySheet } from '@/components/expense/CurrencySheet';
+import { fetchFxRate } from '@/data/api';
+import { type TripRateRow, tripCurrencyValue, tripRateFor } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
@@ -192,9 +195,9 @@ export default function NewGroupScreen() {
   // split, as a stack of named facts with their values, each one a tap from
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
-  const [openAttr, setOpenAttr] = useState<
-    'kind' | 'dates' | 'budget' | 'rates' | 'eventTemplate' | null
-  >(null);
+  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | 'eventTemplate' | null>(
+    null,
+  );
 
   /**
    * Bring an unfolded row back into view.
@@ -322,27 +325,50 @@ export default function NewGroupScreen() {
     () => pendingRates.filter((row) => row.to === currency),
     [pendingRates, currency],
   );
-  const rateStore = useMemo<TripRateStore>(
-    () => ({
-      rows: liveRates,
-      pending: false,
-      set: async ({ from, num, den, source }) => {
-        setPendingRates((rows) => {
-          // Drop anything quoted against a currency this group has stopped
-          // using, at the same time as dropping the key being rewritten.
-          const without = rows.filter((row) => row.to === currency && row.from !== from);
-          // Null clears, which here means simply not carrying that currency.
-          if (num === null || den === null) return without;
-          return [...without, { from, to: currency, num, den, source: source ?? 'manual' }].sort(
-            (a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0),
-          );
-        });
-      },
-    }),
-    [liveRates, currency],
-  );
-  const ratesSummary =
-    liveRates.length === 0 ? t.fx.addRate : liveRates.map((row) => row.from).join(', ');
+  // The trip's currency, picked from the shared currency sheet. Same as the
+  // home currency means nothing to convert, so no rate is asked for.
+  const [tripCur, setTripCur] = useState<string | null>(null);
+  const [pickingTripCur, setPickingTripCur] = useState(false);
+  const [rateSheetOpen, setRateSheetOpen] = useState(false);
+  // The record the sheet is editing; what is kept for the group is
+  // `pendingRates`, written out after Create like any other pinned rate.
+  const [tripFx, setTripFx] = useState<FxRecord | null>(null);
+  const tripFxRef = useRef<FxRecord | null>(null);
+  const tripCurRef = useRef<string | null>(null);
+  const applyTripFx = (fx: FxRecord | null): void => {
+    tripFxRef.current = fx;
+    setTripFx(fx);
+    const code = tripCurRef.current;
+    setPendingRates(
+      fx && code
+        ? [
+            {
+              from: code,
+              to: currency,
+              num: BigInt(fx.num),
+              den: BigInt(fx.den),
+              source: fx.source,
+            },
+          ]
+        : [],
+    );
+  };
+  const pickTripCur = (code: string): void => {
+    setPickingTripCur(false);
+    tripCurRef.current = code;
+    setTripCur(code);
+    applyTripFx(null);
+    if (code === currency) return;
+    setRateSheetOpen(true);
+    // Today's rate is the default; the sheet is open meanwhile and a rate the
+    // person has already typed is never replaced by it.
+    fetchFxRate(code, currency)
+      .then((fx) => {
+        if (tripCurRef.current === code && !tripFxRef.current) applyTripFx(fx);
+      })
+      .catch(() => undefined);
+  };
+  const tripRate = tripCur ? tripRateFor(liveRates, tripCur, currency) : null;
   const [tripDates, setTripDates] = useState<TripDatesValue>(() => ({
     start_date: null,
     end_date: null,
@@ -1079,20 +1105,32 @@ export default function NewGroupScreen() {
                     icon="cash-outline"
                     label={t.newGroupForm.tripCurrency}
                     value={
-                      liveRates.length > 0
-                        ? ratesSummary
+                      tripCur
+                        ? tripCurrencyValue(tripCur, tripRate)
                         : roomyRows
                           ? t.newGroupForm.addCurrency
                           : t.add
                     }
-                    placeholder={liveRates.length === 0}
-                    expanded={openAttr === 'rates'}
-                    onPress={() => setOpenAttr((current) => (current === 'rates' ? null : 'rates'))}
+                    placeholder={!tripCur}
+                    onPress={() => setPickingTripCur(true)}
                   />
-                  {openAttr === 'rates' ? (
-                    <View style={{ paddingBottom: theme.spacing.md }}>
-                      <TripRatesCard store={rateStore} groupCurrency={currency} canEdit embedded />
-                    </View>
+                  {pickingTripCur ? (
+                    <CurrencySheet
+                      value={tripCur ?? currency}
+                      onPick={pickTripCur}
+                      onClose={() => setPickingTripCur(false)}
+                    />
+                  ) : null}
+                  {tripCur && tripCur !== currency ? (
+                    <CurrencyRate
+                      key={tripCur}
+                      groupCurrency={currency}
+                      currency={tripCur}
+                      amount={minorUnitScale(tripCur)}
+                      fx={tripFx}
+                      onFxChange={applyTripFx}
+                      sheet={{ visible: rateSheetOpen, onClose: () => setRateSheetOpen(false) }}
+                    />
                   ) : null}
                 </View>
               ) : null}
