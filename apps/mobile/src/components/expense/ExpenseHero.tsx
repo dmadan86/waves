@@ -76,9 +76,9 @@ export function ExpenseHero({
         // Shorter than this used to be: the header's one job is to say what
         // screen this is and hold the amount, not to spend a third of the
         // first screenful on a status-bar-sized gutter above a 40pt badge.
-        paddingTop: insets.top + theme.spacing.sm,
-        paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.md,
+        paddingTop: insets.top + theme.spacing.xs,
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.sm,
         borderBottomLeftRadius: theme.radius.xl,
         borderBottomRightRadius: theme.radius.xl,
       }}
@@ -110,7 +110,7 @@ export function ExpenseHero({
           size={32}
         />
 
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 0 }}>
           <Text variant="micro" tone="onBrand" numberOfLines={1} style={{ opacity: 0.85 }}>
             {title}
           </Text>
@@ -148,8 +148,8 @@ export function ExpenseHero({
                 flexShrink: 0,
                 // A real tap target, not a label: the pill is the only way to
                 // change the currency, and `hitSlop` alone left it under 44pt.
-                minHeight: 36,
-                paddingVertical: theme.spacing.xs,
+                minHeight: 32,
+                paddingVertical: 2,
                 paddingHorizontal: theme.spacing.md,
                 borderRadius: theme.radius.pill,
                 // A ghost outline, not a filled chip: now that the amount wears
