@@ -529,6 +529,117 @@ function tokenise(text: string): string[] {
 }
 
 const isNumber = (token: string | undefined): boolean => token !== undefined && /^\d/.test(token);
+
+/** Words that lead into a name and never are one, so never joined into one. */
+const NEVER_PART_OF_A_NAME = new Set([
+  'with',
+  'for',
+  'by',
+  'to',
+  'from',
+  'on',
+  'at',
+  'of',
+  'the',
+  'between',
+  'among',
+  'amongst',
+  'is',
+  'was',
+  'ne',
+  'ko',
+  'ka',
+  'ki',
+  'ke',
+  'se',
+]);
+
+/** What a recogniser writes for "paid" after a name: "madhan p 500", "bilal pit 500". */
+const MISHEARD_PAID = new Set(['p', 'pid', 'pit', 'peed']);
+
+/**
+ * Undo what a recogniser does to a name it doesn't know, when the group says
+ * who it must be:
+ *
+ * - a name split into words — "so neil" for Sunil, "job in" for Jobin, "d pack"
+ *   for Deepak, "a run" for Arun — is joined back when neither word is anybody
+ *   on its own but the two together are;
+ * - "for" heard as "full" between an amount and a name ("8000 full renny");
+ * - "paid" heard as "p" or "pit" between a name and an amount.
+ */
+function repairMisheard(tokens: string[], members: readonly VoiceNameCandidate[]): string[] {
+  if (members.length === 0) return tokens;
+  const known = (word: string): boolean => resolveSpokenName(word, members).status !== 'unresolved';
+  const out: string[] = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i] ?? '';
+    const next = tokens[i + 1];
+    const splittable = (word: string | undefined): word is string =>
+      word !== undefined &&
+      /^\p{L}+$/u.test(word) &&
+      word.length <= 6 &&
+      !SEPARATORS.has(word) &&
+      !NEVER_PART_OF_A_NAME.has(word) &&
+      !isMeWord(word) &&
+      !EVERYONE_WORDS.has(word) &&
+      !PAY_VERBS.has(word) &&
+      !SPLIT_VERBS.has(word);
+    if (
+      splittable(token) &&
+      splittable(next) &&
+      !known(token) &&
+      !known(next) &&
+      resolveSpokenName(`${token} ${next}`, members).status === 'resolved'
+    ) {
+      out.push(token + next);
+      i += 1;
+      continue;
+    }
+    const prev = out[out.length - 1];
+    if (token === 'full' && prev !== undefined && isNumber(prev) && next && known(next)) {
+      out.push('for');
+      continue;
+    }
+    if (
+      MISHEARD_PAID.has(token) &&
+      prev !== undefined &&
+      /^\p{L}/u.test(prev) &&
+      known(prev) &&
+      isNumber(tokens[i + 1])
+    ) {
+      out.push('paid');
+      continue;
+    }
+    out.push(token);
+  }
+  return out;
+}
+
+/**
+ * "8000 for renny" comes back from a recogniser as "8004 renny" (eight thousand
+ * plus four) or "80004 renny" (8000 then 4): the "for" became a digit. When the
+ * word after such a number is somebody in the group, read it as the round
+ * amount and "for" again. A real 8004 before a name is far rarer than this.
+ */
+function unglueFor(tokens: string[], members: readonly VoiceNameCandidate[]): string[] {
+  if (members.length === 0) return tokens;
+  const out: string[] = [];
+  tokens.forEach((token, i) => {
+    const next = tokens[i + 1];
+    const glued = /^[1-9]\d*4$/.test(token) && next !== undefined && /^\p{L}/u.test(next);
+    if (!glued || resolveSpokenName(next, members).status === 'unresolved') {
+      out.push(token);
+      return;
+    }
+    const concatenated = token.slice(0, -1);
+    const summed = Number(token) - 4;
+    // "80004" is 8000 then 4; "8004" and "504" are eight thousand / five hundred plus four.
+    if (/[1-9]000$/.test(concatenated)) out.push(concatenated, 'for');
+    else if (summed >= 100 && summed % 100 === 0) out.push(String(summed), 'for');
+    else out.push(token);
+  });
+  return out;
+}
 const isAlpha = (token: string | undefined): boolean =>
   token !== undefined && /^\p{L}/u.test(token);
 
@@ -565,7 +676,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   const members = ctx.members ?? [];
   const groups = ctx.groups ?? [];
   const memberMode = members.length > 0;
-  const tok = tokenise(prepare(transcript));
+  const tok = repairMisheard(unglueFor(tokenise(prepare(transcript)), members), members);
   const n = tok.length;
   /** The token at `i`, or an empty string past either end. */
   const at = (i: number): string => tok[i] ?? '';
