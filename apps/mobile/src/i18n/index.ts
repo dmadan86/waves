@@ -1217,6 +1217,12 @@ export interface UiStrings {
     whoResets: string;
     /** Hint: a spoken name nobody matched. {name}. */
     whoUnknown: string;
+    /** Question: one member fits a heard name but not surely enough to fill in. {name}. */
+    didYouMean: string;
+    /** The one-tap confirm beside "Did you mean …?". */
+    didYouMeanYes: string;
+    /** Question: two or three members fit a heard name. {names} is a comma list, {last} the last. */
+    whichOf: string;
     /** Callout: the spoken group name fits several. */
     whichGroup: string;
     /** Callout: no group has that name. {name}. */
@@ -5409,6 +5415,9 @@ const en: UiStrings = {
     whoSharesSection: 'Shared between',
     whoResets: 'Changing who shares splits it equally.',
     whoUnknown: 'Who is “{name}”? Pick them below.',
+    didYouMean: 'Did you mean {name}?',
+    didYouMeanYes: 'Yes',
+    whichOf: '{names} or {last}?',
     whichGroup: 'Which group did you mean?',
     noGroupNamed: 'No group called “{name}”. Choose one.',
     needGroupForPayer: 'Choose a group to record that {name} paid.',
@@ -9093,6 +9102,9 @@ const ta: UiStrings = {
     whoSharesSection: 'பகிர்பவர்கள்',
     whoResets: 'பகிர்பவர்களை மாற்றினால் சமமாகப் பிரிக்கப்படும்.',
     whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
+    didYouMean: '{name} என்று சொன்னீர்களா?',
+    didYouMeanYes: 'ஆம்',
+    whichOf: '{names} அல்லது {last}?',
     whichGroup: 'எந்தக் குழு என்று சொன்னீர்கள்?',
     noGroupNamed: '“{name}” என்ற குழு இல்லை. ஒன்றைத் தேர்ந்தெடுக்கவும்.',
     needGroupForPayer: '{name} செலுத்தியதைப் பதிவு செய்ய ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
@@ -12897,6 +12909,9 @@ const hi: UiStrings = {
     whoSharesSection: 'इनके बीच बँटेगा',
     whoResets: 'लोग बदलने पर बराबर बँटवारा हो जाएगा।',
     whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
+    didYouMean: 'क्या आपका मतलब {name} था?',
+    didYouMeanYes: 'हाँ',
+    whichOf: '{names} या {last}?',
     whichGroup: 'आपका मतलब कौन सा ग्रुप था?',
     noGroupNamed: '“{name}” नाम का कोई ग्रुप नहीं है। एक चुनें।',
     needGroupForPayer: '{name} ने भुगतान किया, यह दर्ज करने के लिए एक ग्रुप चुनें।',
@@ -16643,6 +16658,9 @@ const ar: UiStrings = {
     whoSharesSection: 'مقسوم بين',
     whoResets: 'تغيير المشاركين يقسم المبلغ بالتساوي.',
     whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
+    didYouMean: 'هل تقصد {name}؟',
+    didYouMeanYes: 'نعم',
+    whichOf: '{names} أو {last}؟',
     whichGroup: 'أي مجموعة تقصد؟',
     noGroupNamed: 'لا توجد مجموعة باسم “{name}”. اختر واحدة.',
     needGroupForPayer: 'اختر مجموعة لتسجيل أن {name} دفع.',

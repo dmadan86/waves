@@ -1190,7 +1190,8 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
         (name) =>
           name.everyone === true ||
           isMeWord(name.text) ||
-          (fit !== null && fit(name.text).status === 'resolved'),
+          (memberMode &&
+            resolveSpokenName(name.text, members, { learned, span: 'weak' }).status === 'resolved'),
       );
     return false;
   };

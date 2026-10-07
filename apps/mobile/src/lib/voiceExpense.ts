@@ -2062,7 +2062,10 @@ function segmentExpenses(text: string): string[] {
 export function parseVoiceExpenses(
   transcript: string,
   groups: readonly VoiceGroupRef[],
-  context: Pick<VoiceIntentContext, 'members' | 'currentGroupId' | 'now'> = {},
+  context: Pick<
+    VoiceIntentContext,
+    'members' | 'currentGroupId' | 'now' | 'alternatives' | 'learned'
+  > = {},
 ): VoiceParseResult {
   if (UNSUPPORTED_GLOBAL_EXPENSE_INTENT.test(transcript))
     return {
@@ -2075,7 +2078,9 @@ export function parseVoiceExpenses(
       intent: null,
     };
 
-  const normalized = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
+  const normalize = (text: string): string =>
+    normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(text)));
+  const normalized = normalize(transcript);
   const created = detectCreateGroup(normalized);
 
   // Who paid, which group, how it splits. When the sentence says any of that
@@ -2090,6 +2095,10 @@ export function parseVoiceExpenses(
         members: context.members,
         currentGroupId: context.currentGroupId,
         now: context.now,
+        // The recogniser's other hypotheses, read the same way, so a name is
+        // scored across all of them.
+        alternatives: context.alternatives?.map(normalize),
+        learned: context.learned,
       });
   // Money handed over ("Madan gave me 400") is not an expense at all. A
   // repayment ("paid me back") is already refused clause by clause below, so a

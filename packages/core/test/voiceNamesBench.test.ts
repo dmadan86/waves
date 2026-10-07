@@ -11,11 +11,13 @@
  *
  * Every case drops the target into a seeded group of 3–8 people — the speaker,
  * a couple of names that sound or spell alike, and a few strangers — and runs
- * the whole sentence through `parseVoiceIntent`. A case is:
+ * the whole sentence through `parseVoiceIntent`. A case lands in the tier the
+ * review screen would show (see `Outcome`): filled in (right or wrong — the
+ * wrong one is what costs money), "Did you mean …?", "A or B?", or nobody.
  *
- * - correct: the target was found;
- * - wrong person: somebody else was picked (the outcome that costs money);
- * - unresolved: nobody was picked, or the parser asked (ambiguous).
+ * Further sections read the same utterances with the sibling engine's
+ * transcript as an n-best alternative, replay learned corrections, and check
+ * ~620 sentences that name nobody (220 of them built to sound like somebody).
  *
  * Deterministic: no randomness beyond a seeded generator, no network.
  */
@@ -708,5 +710,7 @@ describe('spoken-name bench: everyday words that sound like somebody', () => {
         [...result.autoInserted, ...result.askedInserted, ...result.missedPayer].join('\n'),
       );
     expect(result.autoInserted).toEqual([]);
+    expect(result.askedInserted).toEqual([]);
+    expect(result.missedPayer).toEqual([]);
   });
 });
