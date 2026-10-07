@@ -102,6 +102,7 @@ import {
 import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { VoiceMascotArt } from '@/components/VoiceMascotArt';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
@@ -1968,8 +1969,8 @@ export default function VoiceScreen() {
         onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingBottom: phase === 'review' ? theme.spacing.lg : clearance,
-          gap: phase === 'review' ? theme.spacing.md : theme.spacing.xl,
+          paddingBottom: phase === 'review' || phase === 'agent' ? theme.spacing.lg : clearance,
+          gap: phase === 'review' || phase === 'agent' ? theme.spacing.sm : theme.spacing.xl,
           // Fill the viewport when the capture surface is shorter than it, so the
           // mic panel's own footer (the offline-voice offer) can sit at the foot of
           // the screen rather than tucked under the mic. `flexGrow` only ever sets a
@@ -2019,7 +2020,16 @@ export default function VoiceScreen() {
             {t.voice.agentQuotaFallback}
           </Text>
         ) : null}
-        {phase !== 'listening' ? (
+        {phase === 'agent' ? (
+          <View style={{ marginTop: -theme.spacing.xs }}>
+            <Text tone="muted" variant="caption">
+              {t.voice.confirmSubtitle}
+            </Text>
+            <VoiceMascotArt />
+          </View>
+        ) : null}
+        {/* On the agent screen the engine's pill lives behind the allowance's (i). */}
+        {phase !== 'listening' && phase !== 'agent' ? (
           <View style={{ alignItems: 'center' }}>
             <VoiceEngineBadge info={engine} />
           </View>
@@ -2032,6 +2042,7 @@ export default function VoiceScreen() {
             today={today()}
             onFallback={agentFellBack}
             followUp={agentFollowUp}
+            engine={engine}
             onRetry={(followUp) => {
               setAgentFollowUp(followUp ?? null);
               setAgentSession(null);
