@@ -155,15 +155,64 @@ export function pcmLevel(bytes: Uint8Array): number {
 }
 
 /**
- * What a `voice-stream-token` failure means for the mic. A 402 is the month's
- * allowance spent (`VOICE_AGENT_QUOTA`, or a streaming budget's own code), and
- * the badge says so; every other failure (offline, 5xx, a bad body) is a plain
- * "could not stream". The status decides, so a new 402 code needs no change here.
+ * What a refused stream means for the mic. A 402 is the month's allowance spent
+ * (`VOICE_AGENT_QUOTA`, or a streaming budget's own code), and the badge says
+ * so; every other failure (offline, 5xx, a bad body) is a plain "could not
+ * stream". The status decides, so a new 402 code needs no change here.
  */
 export type StreamTokenFailure = 'quota' | 'error';
 
 export function streamTokenFailure(status: number | null | undefined): StreamTokenFailure {
   return status === 402 ? 'quota' : 'error';
+}
+
+/**
+ * The `voice-stream` relay. The phone streams to it, not to Deepgram: the relay
+ * holds the Deepgram socket and its server-side caps (20 s of audio, 25 s of
+ * wall time, 5 s idle). See supabase/functions/voice-stream/handler.ts.
+ */
+export const RELAY_PROTOCOL = 'waves-voice-v1';
+
+/** The relay's WebSocket URL: the functions base with ws(s), plus where and in what language. */
+export function relayStreamUrl(
+  functionsBase: string,
+  request: { readonly groupId?: string | null; readonly locale: string },
+): string {
+  const base = functionsBase.replace(/^http(s?):\/\//i, (_m, s: string) => `ws${s}://`);
+  const params = new URLSearchParams({ locale: request.locale });
+  if (request.groupId) params.set('groupId', request.groupId);
+  return `${base}/voice-stream?${params.toString()}`;
+}
+
+/**
+ * The subprotocols the app offers: the relay's own (which it selects) and the
+ * access token as `jwt-<token>` — a WebSocket upgrade cannot carry an
+ * Authorization header from React Native or a browser, and a subprotocol, unlike
+ * a query string, stays out of access logs.
+ */
+export function relayProtocols(accessToken: string): string[] {
+  return [RELAY_PROTOCOL, `jwt-${accessToken}`];
+}
+
+/**
+ * Why the relay closed before the stream was ready. A refusal arrives as close
+ * code 4000 + the HTTP status (4402: the month is spent); anything else — a
+ * dropped connection, 1006 — is a plain failure.
+ */
+export function relayCloseFailure(code: number | null | undefined): StreamTokenFailure {
+  return typeof code === 'number' && code >= 4000 && code < 5000
+    ? streamTokenFailure(code - 4000)
+    : 'error';
+}
+
+/** Whether a relay message is its "Deepgram is connected" signal. */
+export function isRelayReady(data: unknown): boolean {
+  if (typeof data !== 'string' || !data.includes('"Ready"')) return false;
+  try {
+    return (JSON.parse(data) as { type?: unknown } | null)?.type === 'Ready';
+  } catch {
+    return false;
+  }
 }
 
 /** 16 kHz mono 16-bit PCM: bytes per second of audio. */

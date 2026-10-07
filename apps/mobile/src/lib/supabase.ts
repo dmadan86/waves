@@ -22,6 +22,13 @@ const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
  * false, so no request is ever made to the placeholder.
  */
 export const supabaseConfigured = Boolean(url && anonKey);
+
+/**
+ * The edge functions' base URL (`…/functions/v1`), for the one call that cannot
+ * go through `functions.invoke`: the `voice-stream` WebSocket. Empty when the
+ * build has no backend config.
+ */
+export const functionsBaseUrl = url ? `${url.replace(/\/+$/, '')}/functions/v1` : '';
 if (!supabaseConfigured) {
   console.error(
     'Waves is misconfigured: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY are not set in this build.',

@@ -91,6 +91,11 @@ Every function here verifies a Supabase JWT except `email-events` and
   typing theirs. GET renders a confirmation page and changes nothing — corporate
   scanners follow every link in every message before it is delivered.
 
+`voice-stream` (the live-transcription WebSocket relay) and `otp-send` are the
+others. `voice-stream` does verify a Supabase JWT — itself, from the
+`jwt-<token>` subprotocol, because a WebSocket upgrade from React Native or a
+browser cannot carry an Authorization header for the gateway to check.
+
 If either is ever deployed with the default `verify_jwt = true`, both fail
 silently: delivery reports are answered 401 until Resend stops sending them, and
 nobody can get off the list.

@@ -20,7 +20,8 @@ export const VOICE_AGENT_FREE_MONTHLY = 10;
 export const VOICE_AGENT_PRO_MONTHLY = 150;
 
 /**
- * Live-stream tokens (`voice-stream-token`) a month: 3x the command allowance.
+ * Live streams a month (one per `voice-stream` connect, or per
+ * `voice-stream-token` mint from older builds): 3x the command allowance.
  * Counted on their own because a stream opened and abandoned still bills
  * Deepgram minutes but spends no command.
  */
@@ -31,7 +32,7 @@ export interface VoiceAgentRequest {
   readonly schemaVersion: typeof VOICE_AGENT_SCHEMA_VERSION;
   /**
    * What was said, already transcribed — the streaming path: the app streams the
-   * mic to Deepgram live (token from `voice-stream-token`) and sends only text.
+   * mic to Deepgram live (through the `voice-stream` relay) and sends only text.
    * When present, the audio fields are ignored.
    */
   readonly transcript?: string;
@@ -57,7 +58,10 @@ export interface VoiceAgentRequest {
   readonly meterOnly?: boolean;
 }
 
-/** `voice-stream-token` request: where the mic was opened and the UI locale. */
+/**
+ * Where the mic was opened and the UI locale: the `voice-stream` relay's query
+ * (`?locale=&groupId=`), and the `voice-stream-token` body for older builds.
+ */
 export interface VoiceStreamTokenRequest {
   readonly groupId?: string | null;
   readonly locale: string;
