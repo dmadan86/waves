@@ -23,6 +23,8 @@ export interface AgentLocalMember {
   id: string;
   name: string;
   isViewer: boolean;
+  /** Stored avatar value, for the confirmation tiles. */
+  avatarUrl?: string | null;
 }
 
 export interface AgentLocalGroup {
@@ -30,6 +32,9 @@ export interface AgentLocalGroup {
   name: string;
   currency: string;
   members: readonly AgentLocalMember[];
+  /** What the group's tile in the confirmation screen wears. */
+  photoPath?: string | null;
+  coverEmoji?: string | null;
 }
 
 export interface AgentLocalData {

@@ -23,6 +23,9 @@ import {
 } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
+import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
+import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+
 import { nudgeToSettle } from '@/data/api';
 import {
   useAddGhostMember,
@@ -38,7 +41,8 @@ import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
-import type { AgentFailure } from '@/lib/voiceEnginePure';
+import type { AddExpenseAction } from '@/lib/voiceConfirmPure';
+import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
   planVoiceAgentActions,
@@ -67,6 +71,8 @@ export interface VoiceAgentPanelProps {
   onRetry: (followUp?: { transcript: string; question: string }) => void;
   /** This clip answers the agent's earlier question. */
   followUp?: { transcript: string; question: string } | null;
+  /** Which engine heard the clip, for the pill behind the allowance's (i). */
+  engine?: VoiceEngineInfo | null;
   /** Everything is confirmed or discarded. */
   onClose: () => void;
 }
@@ -108,10 +114,13 @@ function useAgentLocalData(viewerId: string | null): AgentLocalData {
         id: group.id,
         name: group.name?.trim() || '',
         currency: group.default_currency,
+        photoPath: group.photo_path,
+        coverEmoji: group.cover_emoji,
         members: members.map((member) => ({
           id: member.id,
           name: member.profile?.display_name ?? member.ghost_name ?? '',
           isViewer: isViewer(member, viewerId),
+          avatarUrl: member.profile?.avatar_url ?? null,
         })),
       });
     }
@@ -128,6 +137,7 @@ export function VoiceAgentPanel({
   onFallback,
   onRetry,
   followUp,
+  engine = null,
   onClose,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
@@ -203,6 +213,34 @@ export function VoiceAgentPanel({
   const quota = quotaLeft(plan.quota);
   const nothing = plan.cards.length === 0 && !plan.answer && !plan.clarify;
 
+  // One proposed expense and nothing else: the confirmation screen, with its
+  // fields editable in place. Anything more (several actions, a settle-up, an
+  // answer or a question) keeps the card list below.
+  const only = plan.cards.length === 1 ? plan.cards[0] : undefined;
+  if (only && only.action.type === 'add_expense' && !plan.answer && !plan.clarify) {
+    return statusOf(only.key) === 'discarded' ? (
+      <View style={{ gap: theme.spacing.md }}>
+        <Button label={t.voice.agentDone} onPress={onClose} />
+      </View>
+    ) : (
+      <ConfirmExpense
+        action={only.action}
+        transcript={plan.transcript || transcript}
+        local={local}
+        today={today}
+        quota={quota}
+        engine={engine}
+        onEdited={() => setCardStatus(only.key, 'discarded')}
+        onAdded={() => {
+          setCardStatus(only.key, 'done');
+          toast.show(t.voice.agentDone);
+          onClose();
+        }}
+        onRetry={() => onRetry()}
+      />
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.md }}>
       <Text variant="caption" tone="muted">
@@ -276,7 +314,72 @@ export function VoiceAgentPanel({
       <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
         {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
       </Text>
+      <VoiceEngineBadge info={engine} />
     </View>
+  );
+}
+
+/** Writes the confirmed expense, the same way the card list's Confirm does. */
+function ConfirmExpense({
+  action,
+  transcript,
+  local,
+  today,
+  quota,
+  engine,
+  onEdited,
+  onAdded,
+  onRetry,
+}: {
+  action: AddExpenseAction;
+  transcript: string;
+  local: AgentLocalData;
+  today: string;
+  quota: { left: number; limit: number };
+  engine: VoiceEngineInfo | null;
+  onEdited: () => void;
+  onAdded: () => void;
+  onRetry: () => void;
+}) {
+  // Minted once, so a retry after a failure reuses the id and appends no duplicate.
+  const [expenseId] = useState(() => randomUUID());
+  const [groupId, setGroupId] = useState(action.groupId);
+  const writeExpense = useWriteExpense(groupId);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const add = async (resolved: AddExpenseAction): Promise<void> => {
+    const group = local.groups.find((candidate) => candidate.id === resolved.groupId);
+    const write = expenseWriteFromAction(resolved, group, expenseId, today);
+    if (!write) {
+      setFailed(true);
+      return;
+    }
+    setBusy(true);
+    setFailed(false);
+    try {
+      await writeExpense.mutateAsync(write);
+      onAdded();
+    } catch {
+      setFailed(true);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <VoiceConfirmCard
+      action={action}
+      transcript={transcript}
+      local={local}
+      quota={quota}
+      engine={engine}
+      busy={busy}
+      failed={failed}
+      onGroupChange={(next) => setGroupId(next ?? action.groupId)}
+      onAdd={(resolved) => void add(resolved)}
+      onEdited={onEdited}
+      onRetry={onRetry}
+    />
   );
 }
 
