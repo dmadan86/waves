@@ -1097,6 +1097,11 @@ export default function AddExpenseScreen() {
     setPickingCurrency(false);
   };
 
+  // Off from the moment Save starts. The draft write is debounced, so a last
+  // keystroke just before Save could otherwise land after the save cleared the
+  // draft — and the next "Add expense" in this group opened on the old amount.
+  const [draftsPaused, setDraftsPaused] = useState(false);
+
   // Every keystroke, debounced just enough to avoid one write per character.
   useDraft<ExpenseDraft>(
     draftKey,
@@ -1117,7 +1122,7 @@ export default function AddExpenseScreen() {
       categoryChosen,
       location,
     },
-    { enabled: seededFor !== null },
+    { enabled: seededFor !== null && !draftsPaused },
   );
 
   // Auto-stamp the current place on a brand-new expense (A43 follow-up), but
@@ -1245,6 +1250,7 @@ export default function AddExpenseScreen() {
       return;
     }
     setSaving(true);
+    setDraftsPaused(true);
     try {
       // Straight into the durable queue: this returns as soon as the mutation
       // is on disk, so the expense is saved whether or not there is a network.
@@ -1359,6 +1365,8 @@ export default function AddExpenseScreen() {
 
       router.back();
     } catch (caught) {
+      // Not saved: what was typed is still the only copy, so keep drafting it.
+      setDraftsPaused(false);
       setError(friendlyError(caught, t.couldNotSave, 'expense.save'));
     } finally {
       setSaving(false);
