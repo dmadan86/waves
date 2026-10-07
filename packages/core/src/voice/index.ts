@@ -9,6 +9,8 @@ export {
   VOICE_AGENT_MAX_CLIP_MS,
   VOICE_AGENT_PRO_MONTHLY,
   VOICE_AGENT_SCHEMA_VERSION,
+  VOICE_STREAM_FREE_MONTHLY,
+  VOICE_STREAM_PRO_MONTHLY,
   VoiceAgentError,
   type VoiceAgentAction,
   type VoiceAgentRequest,
