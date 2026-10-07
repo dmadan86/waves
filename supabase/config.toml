@@ -384,5 +384,11 @@ verify_jwt = false
 [functions.otp-send]
 verify_jwt = false
 
+# RevenueCat's subscription webhook. The caller is RevenueCat, which has no
+# Supabase session; the Authorization header carries REVENUECAT_WEBHOOK_SECRET
+# instead and is checked before the body is read.
+[functions.revenuecat-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = false

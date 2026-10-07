@@ -15,7 +15,7 @@
  * both sides speak, and the part worth testing without a phone.
  */
 
-import type { PlanTier } from '../billing/plans';
+import { isPaidTier, type PlanTier } from '../billing/plans';
 
 /**
  * The default caps, and only the defaults. As of the device-cap A/B work the
@@ -60,7 +60,7 @@ export interface DeviceSession {
 }
 
 export function deviceLimitFor(tier: PlanTier): number {
-  return tier === 'plus' ? PLUS_DEVICE_LIMIT : FREE_DEVICE_LIMIT;
+  return isPaidTier(tier) ? PLUS_DEVICE_LIMIT : FREE_DEVICE_LIMIT;
 }
 
 /**
