@@ -8,7 +8,7 @@ import {
   type AgentLocalData,
   type VoiceAgentText,
 } from '@/lib/voiceAgentPlan';
-import { clipMimeType, resultFromError } from '@/lib/voiceAgentPure';
+import { resultFromError } from '@/lib/voiceAgentPure';
 
 const text: VoiceAgentText = {
   add: 'Add {amount}',
@@ -215,10 +215,5 @@ describe('voice agent error mapping', () => {
     expect(resultFromError('VOICE_AGENT_CLIP_TOO_LONG', null)).toEqual({ kind: 'too-long' });
     expect(resultFromError(null, 422)).toEqual({ kind: 'nothing-heard' });
     expect(resultFromError(null, 500)).toEqual({ kind: 'error' });
-  });
-
-  it('names the mime type from the file extension', () => {
-    expect(clipMimeType('file:///a/recording.wav')).toBe('audio/wav');
-    expect(clipMimeType('file:///a/audio.caf')).toBe('audio/x-caf');
   });
 });

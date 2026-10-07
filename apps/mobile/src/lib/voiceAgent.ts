@@ -1,5 +1,5 @@
 /**
- * The advanced-voice call (Pro): send the recorded clip to the `voice-agent`
+ * The advanced-voice call (Pro): send the live-transcribed sentence to the `voice-agent`
  * edge function and get proposed actions back. Nothing is written here — the
  * screen confirms each action and runs it through the ordinary write paths.
  *
@@ -14,19 +14,12 @@ import {
   type VoiceAgentRequest,
   type VoiceAgentResponse,
 } from '@waves/core';
-import * as FileSystem from 'expo-file-system';
 
 import { backend } from '@/lib/backend';
-import {
-  clipMimeType,
-  clipTooLong,
-  resultFromError,
-  type VoiceAgentResult,
-  type VoiceClip,
-} from '@/lib/voiceAgentPure';
+import { resultFromError, type VoiceAgentResult } from '@/lib/voiceAgentPure';
 
-export { clipMimeType, clipTooLong, resultFromError };
-export type { VoiceAgentResult, VoiceClip };
+export { resultFromError };
+export type { VoiceAgentResult };
 
 async function readError(error: unknown): Promise<VoiceAgentResult> {
   const response = (error as { context?: unknown } | null)?.context;
@@ -65,33 +58,21 @@ export async function callVoiceAgent(request: VoiceAgentRequest): Promise<VoiceA
   }
 }
 
-/** Read the clip and call the agent. A clip that cannot be read is a plain error. */
-export async function sendVoiceClip(input: {
-  clip: VoiceClip;
+/** Send what Deepgram heard (streamed live) to the agent. */
+export function sendVoiceTranscript(input: {
+  transcript: string;
   groupId: string | null;
   locale: string;
   today: string;
-  /** The phone's own transcript of the same clip — a second opinion. */
-  deviceTranscript?: string;
-  /** This clip answers the agent's last question. */
+  /** This sentence answers the agent's last question. */
   followUp?: { transcript: string; question: string } | null;
 }): Promise<VoiceAgentResult> {
-  if (clipTooLong(input.clip)) return { kind: 'too-long' };
-  let audioBase64: string;
-  try {
-    audioBase64 = await new FileSystem.File(input.clip.uri).base64();
-  } catch {
-    return { kind: 'error' };
-  }
   return callVoiceAgent({
     schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
-    audioBase64,
-    mimeType: clipMimeType(input.clip.uri),
-    durationMs: Math.round(input.clip.durationMs),
+    transcript: input.transcript,
     groupId: input.groupId,
     locale: input.locale,
     today: input.today,
-    ...(input.deviceTranscript?.trim() ? { deviceTranscript: input.deviceTranscript.trim() } : {}),
     ...(input.followUp ? { followUp: input.followUp } : {}),
   });
 }
