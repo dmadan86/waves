@@ -40,7 +40,9 @@ export const PRIMARY_MODEL = 'claude-haiku-4-5-20251001';
 export const ESCALATION_MODEL = 'claude-sonnet-5-5';
 export const DEEPSEEK_PRIMARY_MODEL = 'deepseek-flash';
 export const DEEPSEEK_ESCALATION_MODEL = 'deepseek-v4-pro';
-export const GEMINI_MODEL = 'gemini-flash-latest';
+/** Flash-Lite first (about a second for one tool call); Flash when a key cannot reach Lite. */
+export const GEMINI_MODEL = 'gemini-flash-lite-latest';
+export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
 
 /** One model to ask, in the order the chain tries them. */
 export interface LlmStep {
@@ -72,7 +74,12 @@ export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
       ]
     : [];
   const gemini = env('GEMINI_API_KEY');
-  const ge: LlmStep[] = gemini ? [{ provider: 'gemini', model: GEMINI_MODEL, key: gemini }] : [];
+  const ge: LlmStep[] = gemini
+    ? [
+        { provider: 'gemini', model: GEMINI_MODEL, key: gemini },
+        { provider: 'gemini', model: GEMINI_FALLBACK_MODEL, key: gemini },
+      ]
+    : [];
   const lead =
     env('VOICE_LLM_PROVIDER') ?? (gemini ? 'gemini' : deepseek ? 'deepseek' : 'anthropic');
   const ordered =

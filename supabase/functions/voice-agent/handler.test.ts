@@ -219,7 +219,7 @@ describe('LLM provider chain', () => {
 
   it('leads with Gemini when its key is set, then DeepSeek', () => {
     const chain = llmChain(env({ GEMINI_API_KEY: 'ge', DEEPSEEK_API_KEY: 'ds' }));
-    expect(chain.map((s) => s.provider)).toEqual(['gemini', 'deepseek', 'deepseek']);
+    expect(chain.map((s) => s.provider)).toEqual(['gemini', 'gemini', 'deepseek']);
   });
 
   it('leads with DeepSeek when its key is set, Claude after it', () => {
