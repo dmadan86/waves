@@ -33,8 +33,12 @@ describe('resolveEngine', () => {
   it('names offline when there is no connection', () => {
     expect(resolveEngine({ enabled: true, online: false }).reason).toBe('offline');
   });
-  it('treats a stream that would not open as offline, unless the build cannot stream', () => {
-    expect(resolveEngine({ enabled: true, online: true, streamOk: false }).reason).toBe('offline');
+  it('names the cloud (not offline) when online and the stream would not open', () => {
+    expect(resolveEngine({ enabled: true, online: true, streamOk: false }).reason).toBe(
+      'cloud-down',
+    );
+    // Offline is only ever the phone's own network state.
+    expect(resolveEngine({ enabled: true, online: false, streamOk: false }).reason).toBe('offline');
     expect(
       resolveEngine({ enabled: true, online: true, streamOk: false, streamAvailable: false })
         .reason,

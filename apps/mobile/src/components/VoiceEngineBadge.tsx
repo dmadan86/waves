@@ -23,7 +23,9 @@ export function VoiceEngineBadge({ info }: { info: VoiceEngineInfo | null }) {
         ? t.voice.engineReasonQuota
         : info.reason === 'offline'
           ? t.voice.engineReasonOffline
-          : null;
+          : info.reason === 'cloud-down'
+            ? t.voice.engineReasonCloudDown
+            : null;
   const label = cloud ? t.voice.engineCloud : t.voice.engineOnDevice;
   const text = reason ? `${label} · ${reason}` : label;
   return (

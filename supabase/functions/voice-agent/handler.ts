@@ -22,6 +22,14 @@ import {
 } from '../_shared/core.js';
 import { HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
 import {
+  CircuitBreaker,
+  DeadlineExceeded,
+  fetchJsonWithDeadline,
+  raceDeadline,
+  type DeadlineResponse,
+} from '../_shared/resilience.ts';
+import { chaosFetch, chaosFor } from '../_shared/voiceChaos.ts';
+import {
   buildContext,
   deepgramUrl,
   keyterms,
@@ -65,7 +73,11 @@ export interface LlmStep {
  * provider (when its key is set) follows as the fallback. At most three asks —
  * the person is waiting.
  */
-export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
+export function llmChain(
+  env: (name: string) => string | undefined,
+  /** Providers to leave out (an open circuit breaker); the rest move up. */
+  skip: (provider: LlmStep['provider']) => boolean = () => false,
+): LlmStep[] {
   const deepseek = env('DEEPSEEK_API_KEY');
   const anthropic = env('ANTHROPIC_API_KEY');
   const ds: LlmStep[] = deepseek
@@ -110,8 +122,41 @@ export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
         : lead === 'gemini'
           ? [...ge, ...or, ...ds, ...an]
           : [...or, ...ge, ...ds, ...an];
-  return ordered.slice(0, 3);
+  return ordered.filter((step) => !skip(step.provider)).slice(0, 3);
 }
+
+/**
+ * Time budgets (docs/voice-failure-modes.md). The app gives up on this call
+ * after 10 s and reads the sentence on the phone, so the whole request must be
+ * answered — success or a refunded 503 — inside 9 s.
+ */
+export interface Limits {
+  /** The whole request, from arrival to response. */
+  readonly totalMs: number;
+  /** Deepgram pre-recorded (clip mode only). */
+  readonly sttMs: number;
+  /** One LLM step (a DeepSeek-style 400 retry shares it). */
+  readonly llmAttemptMs: number;
+  /** One database round trip the request waits on (flag, quota, context). */
+  readonly dbMs: number;
+  /** Below this much budget left, another LLM step is not started. */
+  readonly minAttemptMs: number;
+}
+
+export const LIMITS: Limits = {
+  totalMs: 9_000,
+  sttMs: 8_000,
+  llmAttemptMs: 4_000,
+  dbMs: 3_000,
+  minAttemptMs: 750,
+};
+
+/**
+ * Per warm instance: after 3 consecutive failures a provider (or Deepgram) is
+ * skipped for 60 s, so a provider that is down costs one person a timeout, not
+ * every person for as long as the outage lasts.
+ */
+export const breaker = new CircuitBreaker();
 
 /** A spoken command is a sentence or two; anything longer is not one. */
 const MAX_TRANSCRIPT_CHARS = 2000;
@@ -127,6 +172,10 @@ export interface Deps {
   readonly now: () => number;
   /** Throws a 429 HttpError when the caller is going too fast. */
   readonly rateLimit: (profileId: string) => Promise<void>;
+  /** Overrides for {@link LIMITS} (tests). */
+  readonly limits?: Partial<Limits>;
+  /** Keep the worker alive for work that outlives the response (a late refund). */
+  readonly waitUntil?: (work: Promise<unknown>) => void;
 }
 
 interface Quota {
@@ -139,6 +188,8 @@ interface Quota {
 export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Response> {
   if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
   const started = deps.now();
+  const limits: Limits = { ...LIMITS, ...deps.limits };
+  const left = (): number => started + limits.totalMs - deps.now();
   const body = parseBody(await request.json().catch(() => null));
 
   const { data: userData, error: userError } = await deps.caller.auth.getUser();
@@ -149,18 +200,30 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
 
   // Flag first: when the feature is off for this person nothing else about the
   // request should be observable, not even a quota or rate-limit answer.
-  const { data: enabled, error: flagError } = await deps.service.rpc('waves_voice_agent_enabled', {
-    p_profile: profileId,
-  });
+  const dbDeadline = () => Math.min(limits.dbMs, left());
+  const { data: enabled, error: flagError } = await raceDeadline(
+    Promise.resolve(deps.service.rpc('waves_voice_agent_enabled', { p_profile: profileId })),
+    dbDeadline(),
+    () => unavailable('Advanced voice is not available'),
+  );
   if (flagError || enabled !== true) throw unavailable('Advanced voice is not available');
 
   const deepgramKey = deps.env('DEEPGRAM_API_KEY');
-  const chain = llmChain(deps.env);
   // Text from the app's live stream needs no Deepgram here; a clip does.
   const spoken = body.transcript?.trim() ?? '';
-  if ((!spoken && !deepgramKey) || chain.length === 0) {
+  if ((!spoken && !deepgramKey) || llmChain(deps.env).length === 0) {
     throw unavailable('Advanced voice is not configured');
   }
+  // Every configured provider's breaker is open: say so now, before any spend
+  // or wait, and the app reads the sentence on the phone at once.
+  const chain = llmChain(deps.env, (provider) => breaker.isOpen(provider));
+  if (chain.length === 0 || (!spoken && breaker.isOpen('deepgram'))) {
+    throw unavailable('Advanced voice is unavailable just now');
+  }
+
+  // Failure drills on allowlisted accounts only (VOICE_CHAOS, _shared/voiceChaos.ts).
+  const chaos = await chaosFor(deps.env, deps.service, profileId);
+  const outbound = chaosFetch(deps.fetch, chaos);
 
   await deps.rateLimit(profileId);
 
@@ -180,11 +243,38 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     ? Promise.resolve(null as unknown as VoiceContext)
     : loadContext(deps.caller, profileId, body);
   contextLoad.catch(() => undefined);
-  const { data: quotaData, error: quotaError } = await deps.service.rpc('waves_voice_agent_quota', {
-    p_profile: profileId,
-    p_free_limit: VOICE_AGENT_FREE_MONTHLY,
-    p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
-  });
+  // At most once per request, whichever failure path gets there first.
+  let refunded = false;
+  const refund = async (): Promise<void> => {
+    if (refunded) return;
+    refunded = true;
+    await Promise.resolve(
+      deps.service.rpc('waves_voice_agent_refund', { p_profile: profileId }),
+    ).catch(() => null);
+  };
+  const reservation = Promise.resolve(
+    deps.service.rpc('waves_voice_agent_quota', {
+      p_profile: profileId,
+      p_free_limit: VOICE_AGENT_FREE_MONTHLY,
+      p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
+    }),
+  );
+  let quotaResult: Awaited<typeof reservation>;
+  try {
+    quotaResult = await raceDeadline(reservation, dbDeadline(), () =>
+      unavailable('Advanced voice is not available'),
+    );
+  } catch (error) {
+    // The reservation is a write that may still land after we gave up on it:
+    // when it does, give the command back — the person got nothing for it.
+    const late = reservation.then(
+      (r) => ((r.data as Quota | null)?.allowed ? refund() : null),
+      () => null,
+    );
+    deps.waitUntil?.(late);
+    throw error;
+  }
+  const { data: quotaData, error: quotaError } = quotaResult;
   if (quotaError || !quotaData) throw unavailable('Advanced voice is not available');
   const quota = quotaData as Quota;
   if (!quota.allowed) {
@@ -201,8 +291,18 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   }
 
   try {
-    const context = await contextLoad;
-    const transcript = spoken || (await transcribe(deps, deepgramKey as string, body, context));
+    const context = await raceDeadline(contextLoad, Math.min(limits.dbMs, left()), () =>
+      unavailable('Advanced voice is unavailable just now'),
+    );
+    const transcript =
+      spoken ||
+      (await transcribe(
+        outbound,
+        deepgramKey as string,
+        body,
+        context,
+        Math.min(limits.sttMs, left()),
+      ));
     if (!transcript) {
       throw new HttpError(422, VoiceAgentError.NothingHeard, 'Nothing was heard');
     }
@@ -214,22 +314,40 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       cloud: transcript,
       followUp: body.followUp,
     });
+    // Each step gets at most llmAttemptMs and never more than the request has
+    // left; a provider whose breaker opened during this request is skipped.
     let parsed: Parsed | null = null;
     let model = chain[0].model;
-    let lastError: unknown = null;
-    for (const [index, step] of chain.entries()) {
+    const failures: string[] = [];
+    for (const step of chain) {
+      const budget = Math.min(limits.llmAttemptMs, left());
+      if (budget < limits.minAttemptMs) {
+        failures.push('budget');
+        break;
+      }
+      if (breaker.isOpen(step.provider)) continue;
       try {
-        const attempt = await ask(deps, step, context, message);
+        const attempt = await ask(outbound, step, context, message, budget);
+        breaker.success(step.provider);
         model = step.model;
         parsed = attempt;
         if (attempt.ok) break;
       } catch (error) {
-        lastError = error;
-        if (index === chain.length - 1 && !parsed) throw error;
+        breaker.failure(step.provider);
+        failures.push(
+          error instanceof DeadlineExceeded ? `${step.provider}:timeout` : step.provider,
+        );
       }
     }
-    if (!parsed) throw lastError ?? new HttpError(502, 'VOICE_AGENT_FAILED', 'No answer');
+    if (!parsed) {
+      console.error(JSON.stringify({ fn: 'voice-agent', event: 'llm_unavailable', failures }));
+      throw unavailable('The assistant is unavailable just now');
+    }
     const escalated = model !== chain[0].model;
+    // No step produced a usable answer: the person is asked to say it again,
+    // and that is not a command they should pay for.
+    const used = parsed.ok ? quota.used : Math.max(0, quota.used - 1);
+    if (!parsed.ok) await refund();
 
     const response: VoiceAgentResponse = parsed.ok
       ? {
@@ -238,14 +356,14 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
-          quota: { used: quota.used, limit: quota.limit, tier: quota.tier },
+          quota: { used, limit: quota.limit, tier: quota.tier },
         }
       : {
           schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
           transcript,
           actions: [],
           clarify: "Sorry, I didn't catch what to do with that. Could you say it again?",
-          quota: { used: quota.used, limit: quota.limit, tier: quota.tier },
+          quota: { used, limit: quota.limit, tier: quota.tier },
         };
 
     // Metadata only: never the audio, the transcript or any name.
@@ -258,13 +376,15 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
         model,
         escalated,
         valid: parsed.ok,
+        failures,
+        ...(chaos.size > 0 ? { chaos: [...chaos] } : {}),
         actions: response.actions.map((a) => a.type),
       }),
     );
     return json(response);
   } catch (error) {
     // The person got nothing for the command: give it back.
-    await deps.service.rpc('waves_voice_agent_refund', { p_profile: profileId }).catch(() => null);
+    await refund();
     throw error;
   }
 }
@@ -382,10 +502,11 @@ async function loadContextFresh(
 }
 
 async function transcribe(
-  deps: Deps,
+  fetchFn: typeof fetch,
   key: string,
   body: VoiceAgentRequest,
   context: VoiceContext,
+  budgetMs: number,
 ): Promise<string> {
   let audio: Uint8Array;
   try {
@@ -394,43 +515,73 @@ async function transcribe(
   } catch {
     throw new HttpError(400, 'BAD_REQUEST', 'Audio is not valid base64');
   }
-  const response = await deps.fetch(deepgramUrl(body.locale, keyterms(context)), {
-    method: 'POST',
-    headers: { Authorization: `Token ${key}`, 'Content-Type': body.mimeType ?? 'audio/wav' },
-    body: new Blob([audio]),
-  });
-  if (!response.ok) {
-    console.error('deepgram error', response.status);
-    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'Speech recognition failed just now');
+  const sttDown = () =>
+    new HttpError(503, VoiceAgentError.Unavailable, 'Speech recognition is unavailable just now');
+  let response: DeadlineResponse;
+  try {
+    response = await fetchJsonWithDeadline(
+      fetchFn,
+      deepgramUrl(body.locale, keyterms(context)),
+      {
+        method: 'POST',
+        headers: { Authorization: `Token ${key}`, 'Content-Type': body.mimeType ?? 'audio/wav' },
+        body: new Blob([audio]),
+      },
+      budgetMs,
+      'deepgram',
+    );
+  } catch (error) {
+    breaker.failure('deepgram');
+    console.error('deepgram error', error instanceof DeadlineExceeded ? 'timeout' : String(error));
+    throw sttDown();
   }
-  const result = (await response.json()) as {
+  if (!response.ok || response.body === null) {
+    breaker.failure('deepgram');
+    console.error('deepgram error', response.status);
+    throw sttDown();
+  }
+  breaker.success('deepgram');
+  const result = response.body as {
     results?: { channels?: { alternatives?: { transcript?: string }[] }[] };
   };
   return (result.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '').trim();
 }
 
+/** POST JSON to a provider within what is left of this step's budget. */
+type Post = (url: string, init: RequestInit) => Promise<DeadlineResponse>;
+
 async function ask(
-  deps: Deps,
+  fetchFn: typeof fetch,
   step: LlmStep,
   context: VoiceContext,
   transcript: string,
+  budgetMs: number,
 ): Promise<Parsed> {
+  const end = Date.now() + budgetMs;
+  const post: Post = (url, init) =>
+    fetchJsonWithDeadline(fetchFn, url, init, end - Date.now(), `${step.provider}:${step.model}`);
   const calls =
     step.provider === 'deepseek' || step.provider === 'openrouter'
-      ? await askDeepSeek(deps, step, context, transcript)
+      ? await askDeepSeek(post, step, context, transcript)
       : step.provider === 'gemini'
-        ? await askGemini(deps, step, context, transcript)
-        : await askAnthropic(deps, step, context, transcript);
+        ? await askGemini(post, step, context, transcript)
+        : await askAnthropic(post, step, context, transcript);
   return parseToolCalls(calls, context);
 }
 
+/** A provider answered with an error status, or with a body that is not JSON. */
+function providerFailed(provider: string, response: DeadlineResponse): HttpError {
+  console.error(`${provider} error`, response.ok ? 'malformed body' : response.status);
+  return new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
+}
+
 async function askAnthropic(
-  deps: Deps,
+  post: Post,
   step: LlmStep,
   context: VoiceContext,
   transcript: string,
 ): Promise<ToolCall[]> {
-  const response = await deps.fetch('https://api.anthropic.com/v1/messages', {
+  const response = await post('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': step.key,
@@ -447,11 +598,8 @@ async function askAnthropic(
       messages: [{ role: 'user', content: transcript }],
     }),
   });
-  if (!response.ok) {
-    console.error('anthropic error', response.status);
-    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
-  }
-  const message = (await response.json()) as {
+  if (!response.ok || response.body === null) throw providerFailed('anthropic', response);
+  const message = response.body as {
     content?: { type: string; name?: string; input?: unknown }[];
   };
   return (message.content ?? [])
@@ -466,13 +614,13 @@ export const DEEPSEEK_TOOLS = TOOLS.map((tool) => ({
 }));
 
 async function askDeepSeek(
-  deps: Deps,
+  post: Post,
   step: LlmStep,
   context: VoiceContext,
   transcript: string,
 ): Promise<ToolCall[]> {
   const request = (lowEffort: boolean) =>
-    deps.fetch(
+    post(
       step.provider === 'openrouter'
         ? 'https://openrouter.ai/api/v1/chat/completions'
         : 'https://api.deepseek.com/chat/completions',
@@ -504,11 +652,8 @@ async function askDeepSeek(
   let response = await request(true);
   // An API that does not know the effort knob says so with a 400; ask plainly.
   if (response.status === 400) response = await request(false);
-  if (!response.ok) {
-    console.error(`${step.provider} error`, response.status);
-    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
-  }
-  const completion = (await response.json()) as {
+  if (!response.ok || response.body === null) throw providerFailed(step.provider, response);
+  const completion = response.body as {
     choices?: {
       message?: { tool_calls?: { function?: { name?: string; arguments?: string } }[] };
     }[];
@@ -539,12 +684,12 @@ export const GEMINI_TOOLS = [
 ];
 
 async function askGemini(
-  deps: Deps,
+  post: Post,
   step: LlmStep,
   context: VoiceContext,
   transcript: string,
 ): Promise<ToolCall[]> {
-  const response = await deps.fetch(
+  const response = await post(
     `https://generativelanguage.googleapis.com/v1beta/models/${step.model}:generateContent`,
     {
       method: 'POST',
@@ -562,11 +707,8 @@ async function askGemini(
       }),
     },
   );
-  if (!response.ok) {
-    console.error('gemini error', response.status);
-    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
-  }
-  const result = (await response.json()) as {
+  if (!response.ok || response.body === null) throw providerFailed('gemini', response);
+  const result = response.body as {
     candidates?: { content?: { parts?: { functionCall?: { name?: string; args?: unknown } }[] } }[];
   };
   return (result.candidates?.[0]?.content?.parts ?? [])
