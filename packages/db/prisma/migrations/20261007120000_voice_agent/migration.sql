@@ -170,3 +170,14 @@ REVOKE ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer) FR
 GRANT ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer) TO service_role;
 REVOKE ALL ON FUNCTION public.waves_voice_agent_refund(uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.waves_voice_agent_refund(uuid) TO service_role;
+
+-- 6. The app's own question: is the advanced voice on for me? -----------------
+-- The client cannot read the allowlist (service-role only) and the plain flag
+-- stays OFF while testers are allowlisted, so the app asks this instead.
+CREATE OR REPLACE FUNCTION public.waves_my_voice_agent_enabled() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$ SELECT public.waves_voice_agent_enabled(public.waves_current_profile_id()) $$;
+
+REVOKE ALL ON FUNCTION public.waves_my_voice_agent_enabled() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_my_voice_agent_enabled() TO authenticated, service_role;
