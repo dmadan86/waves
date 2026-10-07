@@ -84,6 +84,7 @@ import { usePersonalOffered } from '@/lib/guestGuard';
 import type { PickedImage } from '@/lib/image';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
+import { handOffReceipt } from '@/lib/receiptHandoff';
 import { useQuickReceipt } from '@/lib/quickReceipt';
 import { useToast } from '@/lib/toast';
 import { tripRateFor } from '@/lib/tripRates';
@@ -300,6 +301,9 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     const typed = note.trim();
     const carriedCategory = category;
     const carriedMeta = categoryMeta;
+    // The photo too: parked under a key (it is too big for a route param) and
+    // taken back out by the screen that opens. "Just me" has nowhere for one.
+    const receiptKey = receipt && !personalPicked ? handOffReceipt(receipt) : undefined;
     closeAndReset();
     if (chosen) {
       router.push({
@@ -314,6 +318,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           // Says where this came from, which is what lets the form seed the
           // amount rather than read it as a stale draft and drop it.
           quick: '1',
+          ...(receiptKey ? { receipt: receiptKey } : {}),
         },
       });
       return;
@@ -338,6 +343,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
         ...(typed ? { desc: typed } : {}),
         ...(carriedCategory ? { category: carriedCategory } : {}),
         ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
+        ...(receiptKey ? { receipt: receiptKey } : {}),
       },
     });
   };

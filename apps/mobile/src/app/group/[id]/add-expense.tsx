@@ -129,6 +129,7 @@ import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEdi
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
 import { discardHeldReceipts, flushReceiptQueue, releaseHeldReceipts } from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
+import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -296,6 +297,7 @@ export default function AddExpenseScreen() {
     focus,
     currency: handedCurrency,
     quick,
+    receipt: handedReceiptKey,
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
@@ -335,6 +337,8 @@ export default function AddExpenseScreen() {
      *  is an explicit choice to carry on with what was typed, and without a
      *  marker the amount is read as a stale draft and dropped. */
     quick?: string;
+    /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
+    receipt?: string;
     /** Event "Pay balance" (Vendors tab): the sub-event the vendor was tagged with. */
     subEventId?: string;
     /** Event "Pay balance": the vendor advance this payment settles. Once this
@@ -510,11 +514,19 @@ export default function AddExpenseScreen() {
   // kept — a group receipt in R2 is group-readable, so it survives a reinstall
   // and shows on any member's device. The thumbnail URI is the local image just
   // after a capture, and the signed R2 URL once reloaded.
-  const [receiptUri, setReceiptUri] = useState<string | null>(null);
-  const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  // Seeded with a photo Quick expense picked before "Advanced" (parked in
+  // `lib/receiptHandoff`), staged exactly as an attach would stage it.
+  const [handedReceipt] = useState(() => peekHandedReceipt(handedReceiptKey));
+  useEffect(() => {
+    dropHandedReceipt(handedReceiptKey);
+  }, [handedReceiptKey]);
+  const [receiptUri, setReceiptUri] = useState<string | null>(() => handedReceipt?.uri ?? null);
+  const [receiptPath, setReceiptPath] = useState<string | null>(() =>
+    handedReceipt ? expenseReceiptPath(groupId, targetExpenseId) : null,
+  );
   // The picked bill, held until the expense is saved. Uploading on save (not on
   // pick) means an add that is abandoned never leaves an orphaned object in R2.
-  const [pendingReceipt, setPendingReceipt] = useState<PickedImage | null>(null);
+  const [pendingReceipt, setPendingReceipt] = useState<PickedImage | null>(handedReceipt);
 
   // Where the spend happened (A43). Optional and opt-in: null until the person
   // taps "Add location" and grants the permission. Kept in the draft so a crash
