@@ -40,10 +40,11 @@ export const PRIMARY_MODEL = 'claude-haiku-4-5-20251001';
 export const ESCALATION_MODEL = 'claude-sonnet-5-5';
 export const DEEPSEEK_PRIMARY_MODEL = 'deepseek-flash';
 export const DEEPSEEK_ESCALATION_MODEL = 'deepseek-v4-pro';
+export const GEMINI_MODEL = 'gemini-flash-latest';
 
 /** One model to ask, in the order the chain tries them. */
 export interface LlmStep {
-  readonly provider: 'anthropic' | 'deepseek';
+  readonly provider: 'anthropic' | 'deepseek' | 'gemini';
   readonly model: string;
   readonly key: string;
 }
@@ -70,8 +71,16 @@ export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
         { provider: 'anthropic', model: ESCALATION_MODEL, key: anthropic },
       ]
     : [];
-  const lead = env('VOICE_LLM_PROVIDER') ?? (deepseek ? 'deepseek' : 'anthropic');
-  const ordered = lead === 'anthropic' ? [...an, ...ds] : [...ds, ...an];
+  const gemini = env('GEMINI_API_KEY');
+  const ge: LlmStep[] = gemini ? [{ provider: 'gemini', model: GEMINI_MODEL, key: gemini }] : [];
+  const lead =
+    env('VOICE_LLM_PROVIDER') ?? (gemini ? 'gemini' : deepseek ? 'deepseek' : 'anthropic');
+  const ordered =
+    lead === 'anthropic'
+      ? [...an, ...ge, ...ds]
+      : lead === 'deepseek'
+        ? [...ds, ...ge, ...an]
+        : [...ge, ...ds, ...an];
   return ordered.slice(0, 3);
 }
 
@@ -311,7 +320,9 @@ async function ask(
   const calls =
     step.provider === 'deepseek'
       ? await askDeepSeek(deps, step, context, transcript)
-      : await askAnthropic(deps, step, context, transcript);
+      : step.provider === 'gemini'
+        ? await askGemini(deps, step, context, transcript)
+        : await askAnthropic(deps, step, context, transcript);
   return parseToolCalls(calls, context);
 }
 
@@ -403,4 +414,54 @@ async function askDeepSeek(
       }
       return { name: call.function?.name as string, input };
     });
+}
+
+/** The same tools as Gemini function declarations. */
+export const GEMINI_TOOLS = [
+  {
+    functionDeclarations: TOOLS.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.input_schema,
+    })),
+  },
+];
+
+async function askGemini(
+  deps: Deps,
+  step: LlmStep,
+  context: VoiceContext,
+  transcript: string,
+): Promise<ToolCall[]> {
+  const response = await deps.fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${step.model}:generateContent`,
+    {
+      method: 'POST',
+      headers: { 'x-goog-api-key': step.key, 'content-type': 'application/json' },
+      // `contents` first: the endpoint was seen answering 404 to otherwise
+      // identical bodies that led with `systemInstruction`.
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: transcript }] }],
+        systemInstruction: { parts: [{ text: systemPrompt(context) }] },
+        tools: GEMINI_TOOLS,
+        // Always a tool: an answer, a question or an action, never free text.
+        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+        // A short tool call: as little thinking as the model allows.
+        generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+      }),
+    },
+  );
+  if (!response.ok) {
+    console.error('gemini error', response.status);
+    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
+  }
+  const result = (await response.json()) as {
+    candidates?: { content?: { parts?: { functionCall?: { name?: string; args?: unknown } }[] } }[];
+  };
+  return (result.candidates?.[0]?.content?.parts ?? [])
+    .filter((part) => typeof part.functionCall?.name === 'string')
+    .map((part) => ({
+      name: part.functionCall?.name as string,
+      input: part.functionCall?.args ?? {},
+    }));
 }

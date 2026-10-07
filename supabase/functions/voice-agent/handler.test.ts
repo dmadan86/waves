@@ -217,6 +217,11 @@ describe('handleVoiceAgent', () => {
 describe('LLM provider chain', () => {
   const env = (e: Record<string, string>) => (n: string) => e[n];
 
+  it('leads with Gemini when its key is set, then DeepSeek', () => {
+    const chain = llmChain(env({ GEMINI_API_KEY: 'ge', DEEPSEEK_API_KEY: 'ds' }));
+    expect(chain.map((s) => s.provider)).toEqual(['gemini', 'deepseek', 'deepseek']);
+  });
+
   it('leads with DeepSeek when its key is set, Claude after it', () => {
     const chain = llmChain(env({ DEEPSEEK_API_KEY: 'ds', ANTHROPIC_API_KEY: 'an' }));
     expect(chain.map((s) => s.model)).toEqual([
