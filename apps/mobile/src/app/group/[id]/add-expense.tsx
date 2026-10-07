@@ -115,7 +115,11 @@ import { recogniseReceipt } from '@/lib/ocr';
 import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
-import { decodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
+import {
+  agentHandoffCategory,
+  agentHandoffDate,
+  decodeAgentSplitParams,
+} from '@/lib/voiceAgentHandoff';
 import {
   editStateFromVersion,
   expenseWritePayload,
@@ -295,6 +299,7 @@ export default function AddExpenseScreen() {
     people: voicePeople,
     payer: handedPayer,
     split: handedSplit,
+    proposal,
     amount: captureAmount,
     description: captureDescription,
     category: captureCategory,
@@ -321,6 +326,9 @@ export default function AddExpenseScreen() {
     payer?: string;
     /** And its split, JSON {mode, shares} — see `lib/voiceAgentHandoff`. */
     split?: string;
+    /** '1' when the hand-off is an AI proposal ("Edit" on an agent card): every
+     *  value it carries is decided, so none of them follows the description. */
+    proposal?: string;
     amount?: string;
     description?: string;
     category?: string;
@@ -703,12 +711,25 @@ export default function AddExpenseScreen() {
             )
           : (captureDescription ?? ''),
       );
-      setCategory(captureCategory || null);
       // A capture tagged with a custom tag carries its display as a JSON param,
       // so the assigned expense keeps the same tag rather than dropping to a
       // built-in. A malformed param is simply no meta (a built-in).
       setCategoryMeta(parseCategoryMetaParam(captureCategoryMeta));
-      setCategoryChosen(Boolean(captureCategory));
+      if (proposal === '1') {
+        // An AI proposal's category is settled on arrival (its own, or the
+        // guess from its description), so retyping the description later does
+        // not turn it into a different expense.
+        const settled = agentHandoffCategory(
+          captureCategory,
+          captureDescription ?? '',
+          guessCategory,
+        );
+        setCategory(settled.category);
+        setCategoryChosen(settled.chosen);
+      } else {
+        setCategory(captureCategory || null);
+        setCategoryChosen(Boolean(captureCategory));
+      }
       // Carry the capture's place onto the expense it becomes (A43).
       setLocation(parseLocationParam(captureLocation));
       // And how the draft says it was paid, so assigning does not quietly turn a
@@ -887,7 +908,11 @@ export default function AddExpenseScreen() {
   // The day this expense is filed under, picked or inherited (expenseDateFor).
   const expenseDate = expenseDateFor({
     picked: pickedDate,
-    captureDate: captureId ? captureExpenseDate : null,
+    captureDate: captureId
+      ? captureExpenseDate
+      : proposal === '1' && !editing
+        ? agentHandoffDate(captureExpenseDate)
+        : null,
     savedDate: editing?.currentVersion?.expense_date,
     today: todayIso(),
   });

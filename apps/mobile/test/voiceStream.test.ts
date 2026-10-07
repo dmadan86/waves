@@ -9,6 +9,7 @@ import {
   parseMessage,
   pcmLevel,
   streamAlternatives,
+  streamTokenFailure,
 } from '@/lib/voiceStreamPure';
 
 const result = (transcript: string, isFinal: boolean): string =>
@@ -100,5 +101,18 @@ describe('PCM helpers', () => {
       loud[i * 2 + 1] = (value >> 8) & 0xff;
     }
     expect(pcmLevel(loud)).toBeGreaterThan(0.9);
+  });
+});
+
+describe('streamTokenFailure', () => {
+  it('reads any 402 as the monthly limit, whatever its code', () => {
+    expect(streamTokenFailure(402)).toBe('quota');
+  });
+
+  it('reads everything else as a plain failure (shown as offline)', () => {
+    expect(streamTokenFailure(503)).toBe('error');
+    expect(streamTokenFailure(429)).toBe('error');
+    expect(streamTokenFailure(null)).toBe('error');
+    expect(streamTokenFailure(undefined)).toBe('error');
   });
 });

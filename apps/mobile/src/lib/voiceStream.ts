@@ -23,8 +23,14 @@ import {
   liveText,
   pcmLevel,
   streamAlternatives,
+  streamTokenFailure,
+  type StreamTokenFailure,
   type TranscriptState,
 } from '@/lib/voiceStreamPure';
+
+/** A token for the stream, or why there is none (`quota`: the month is spent). */
+export type StreamTokenResult =
+  { kind: 'ok'; token: VoiceStreamTokenResponse } | { kind: StreamTokenFailure };
 
 /** How long stop() waits for Deepgram's last results after CloseStream. */
 const FLUSH_TIMEOUT_MS = 1500;
@@ -46,7 +52,7 @@ const TOKEN_REUSE_MS = 40_000;
 let ahead: {
   key: string;
   at: number;
-  value: Promise<VoiceStreamTokenResponse | null>;
+  value: Promise<StreamTokenResult>;
 } | null = null;
 
 const tokenKey = (request: VoiceStreamTokenRequest): string =>
@@ -68,34 +74,44 @@ export function prefetchStreamToken(request: VoiceStreamTokenRequest): void {
   ahead = { key, at: Date.now(), value: fetchStreamToken(request) };
 }
 
-/** A token for this press: the one fetched ahead if still fresh, else a new one. */
-export async function getStreamToken(
-  request: VoiceStreamTokenRequest,
-): Promise<VoiceStreamTokenResponse | null> {
+/**
+ * A token for this press: the one fetched ahead if still fresh, else a new one.
+ * A prefetch that hit the monthly limit is the answer too (no second round trip
+ * to hear the same 402); any other prefetch failure is retried once here.
+ */
+export async function getStreamToken(request: VoiceStreamTokenRequest): Promise<StreamTokenResult> {
   const key = tokenKey(request);
   if (ahead && ahead.key === key && Date.now() - ahead.at < TOKEN_REUSE_MS) {
     const held = ahead;
     // One use: the next press fetches its own (or the next prefetch does).
     ahead = null;
     const value = await held.value;
-    if (value) return value;
+    if (value.kind !== 'error') return value;
   }
   return fetchStreamToken(request);
 }
 
-async function fetchStreamToken(
-  request: VoiceStreamTokenRequest,
-): Promise<VoiceStreamTokenResponse | null> {
+/** The HTTP status behind a `functions.invoke` error, the way voiceAgent reads it. */
+function errorStatus(error: unknown): number | null {
+  const response = (error as { context?: unknown } | null)?.context;
+  if (typeof Response !== 'undefined' && response instanceof Response) return response.status;
+  const status = (response as { status?: unknown } | null | undefined)?.status;
+  return typeof status === 'number' ? status : null;
+}
+
+async function fetchStreamToken(request: VoiceStreamTokenRequest): Promise<StreamTokenResult> {
   try {
     const { data, error } = await backend.functions.invoke('voice-stream-token', {
       body: request,
     });
-    if (error) return null;
+    if (error) return { kind: streamTokenFailure(errorStatus(error)) };
     const value = data as Partial<VoiceStreamTokenResponse> | null;
-    if (!value || typeof value.token !== 'string' || typeof value.url !== 'string') return null;
-    return value as VoiceStreamTokenResponse;
+    if (!value || typeof value.token !== 'string' || typeof value.url !== 'string') {
+      return { kind: 'error' };
+    }
+    return { kind: 'ok', token: value as VoiceStreamTokenResponse };
   } catch {
-    return null;
+    return { kind: 'error' };
   }
 }
 

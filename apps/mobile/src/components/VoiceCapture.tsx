@@ -931,13 +931,18 @@ export function VoiceCapture({
     };
   }, [streamLive, groupId, locale]);
 
-  /** Try to open the stream. False means "use the on-device recogniser". */
-  const beginStream = useCallback(async (): Promise<boolean> => {
+  /**
+   * Try to open the stream. Anything but 'streaming' means "use the on-device
+   * recogniser"; 'quota' (the token answered 402) also names why.
+   */
+  const beginStream = useCallback(async (): Promise<'streaming' | 'quota' | 'failed'> => {
     setListening(true);
-    const token = await getStreamToken({ groupId, locale });
-    if (!token || !mounted.current) return false;
+    const got = await getStreamToken({ groupId, locale });
+    if (!mounted.current) return 'failed';
+    if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
+    const token = got.token;
     // An ending that came while the token was in flight is applied here.
-    if (pendingEnd.current === 'cancel') return false;
+    if (pendingEnd.current === 'cancel') return 'failed';
     const armSilence = (ms: number): void => {
       if (streamSilence.current) clearTimeout(streamSilence.current);
       streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
@@ -969,10 +974,10 @@ export function VoiceCapture({
         }
       },
     });
-    if (!live) return false;
+    if (!live) return 'failed';
     if (!mounted.current) {
       live.cancel();
-      return false;
+      return 'failed';
     }
     stream.current = live;
     // `starting` stays set while the stream is live: a second start (an
@@ -984,7 +989,7 @@ export function VoiceCapture({
       pendingEnd.current = null;
       void finishStream();
     }
-    return true;
+    return 'streaming';
   }, [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t]);
 
   const start = useCallback(
@@ -1073,15 +1078,18 @@ export function VoiceCapture({
       });
       endRules.current = plan;
       if (plan.stream) {
-        if (await beginStream()) {
+        const opened = await beginStream();
+        if (opened === 'streaming') {
           reportEngine(CLOUD);
           return;
         }
         // The token, the socket or the mic would not open: carry on locally.
+        // A 402 on the token is the month's allowance, not the connection.
         reportEngine(
           resolveEngine({
             enabled: true,
             online: await checkOnline(),
+            quotaReached: opened === 'quota',
             streamOk: false,
             streamAvailable: streamingAvailable(),
           }),

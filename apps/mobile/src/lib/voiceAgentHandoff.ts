@@ -22,12 +22,17 @@ export interface AgentSplit {
   readonly shares: readonly AgentSplitShare[];
 }
 
-/** The route params that carry an agent proposal's payer and split. */
+/**
+ * The route params that carry an agent proposal's payer and split, plus the
+ * `proposal: '1'` marker that tells the form the whole hand-off is a decided
+ * proposal (see {@link agentHandoffCategory}), not a capture still being typed.
+ */
 export function encodeAgentSplitParams(input: {
   paidByMemberId?: string | null;
   split?: AgentSplit | null;
-}): { payer?: string; split?: string } {
+}): { proposal: '1'; payer?: string; split?: string } {
   return {
+    proposal: '1',
     ...(input.paidByMemberId ? { payer: input.paidByMemberId } : {}),
     ...(input.split && input.split.shares.length > 0
       ? { split: JSON.stringify({ mode: input.split.mode, shares: input.split.shares }) }
@@ -95,4 +100,26 @@ export function decodeAgentSplitParams(
     }
   }
   return { payer, participants, splitKind, weights, percents, exactMinor };
+}
+
+/**
+ * The category an agent proposal opens the form with, and that it is settled.
+ *
+ * A capture or quick hand-off without a category lets the form guess one from
+ * the description and keep guessing while it is typed. A proposal is already
+ * decided: its own category, or else what the form would have guessed from the
+ * proposal's description on arrival — and `chosen`, so editing the description
+ * afterwards changes only the description.
+ */
+export function agentHandoffCategory(
+  handed: string | undefined,
+  description: string,
+  guess: (description: string) => string | null,
+): { category: string | null; chosen: true } {
+  return { category: handed || guess(description) || null, chosen: true };
+}
+
+/** The proposal's own date when it named one (YYYY-MM-DD), else none. */
+export function agentHandoffDate(handed: string | undefined): string | null {
+  return handed && /^\d{4}-\d{2}-\d{2}$/.test(handed) ? handed : null;
 }

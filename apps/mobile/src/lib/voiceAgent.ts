@@ -76,3 +76,33 @@ export function sendVoiceTranscript(input: {
     ...(input.followUp ? { followUp: input.followUp } : {}),
   });
 }
+
+/**
+ * Count a fast-path command: the sentence was streamed (Deepgram) but read on
+ * the phone, so the agent never saw it. The server reserves one command and
+ * answers `{actions: [], quota}`, or 402 once the month is spent — which the
+ * caller ignores: the review is already on screen, and the next mic start's
+ * token answers 402 too and falls back with "Monthly limit reached". On-device
+ * (non-streamed) commands are never metered, so nothing else calls this.
+ */
+export async function meterVoiceCommand(input: {
+  transcript: string;
+  locale: string;
+  today: string;
+}): Promise<VoiceAgentResult['kind']> {
+  try {
+    const { data, error } = await backend.functions.invoke('voice-agent', {
+      body: {
+        schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
+        transcript: input.transcript,
+        meterOnly: true,
+        locale: input.locale,
+        today: input.today,
+      } satisfies VoiceAgentRequest,
+    });
+    if (error) return (await readError(error)).kind;
+    return data ? 'ok' : 'error';
+  } catch {
+    return 'error';
+  }
+}

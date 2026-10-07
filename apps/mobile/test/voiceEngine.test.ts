@@ -25,6 +25,11 @@ describe('resolveEngine', () => {
   it('names the monthly limit', () => {
     expect(resolveEngine({ enabled: true, online: true, quotaReached: true }).reason).toBe('quota');
   });
+  it('names the monthly limit, not offline, when the stream token was refused with 402', () => {
+    expect(
+      resolveEngine({ enabled: true, online: true, quotaReached: true, streamOk: false }).reason,
+    ).toBe('quota');
+  });
   it('names offline when there is no connection', () => {
     expect(resolveEngine({ enabled: true, online: false }).reason).toBe('offline');
   });

@@ -313,10 +313,16 @@ function line(label: string, t: Tally): string {
  */
 const WRONG_CEILING = 0.0007;
 const AUTO_FLOOR = 0.63;
+/**
+ * Each bench test parses thousands of whole sentences; on a shared CI runner
+ * that takes 5-15 s, past vitest's 5 s default. The limit is explicit here
+ * rather than raised for every test in the package.
+ */
+const BENCH = { timeout: 60_000 };
 /** Filled in or offered as the one suggestion. */
 const COVERAGE_FLOOR = 0.73;
 
-describe('spoken-name bench (real recogniser transcripts)', () => {
+describe('spoken-name bench (real recogniser transcripts)', BENCH, () => {
   const { byEngine, total, wrongCases } = run();
   const n = count(total);
 
@@ -400,7 +406,7 @@ function runLearned(): { before: Tally; once: Tally; twice: Tally } {
   return { before, once, twice };
 }
 
-describe('spoken-name bench: more evidence than one transcript', () => {
+describe('spoken-name bench: more evidence than one transcript', BENCH, () => {
   it('reads the other hypotheses without filling in more wrong people', () => {
     const { single, nbest } = runNBest();
     console.log([line('one hypothesis', single), line('with alternative', nbest)].join('\n'));
@@ -554,7 +560,7 @@ function falsePeople(): { count: number; picks: string[] } {
   return { count, picks };
 }
 
-describe('spoken-name bench: sentences that name nobody', () => {
+describe('spoken-name bench: sentences that name nobody', BENCH, () => {
   const { count, picks } = falsePeople();
   it('picks nobody', () => {
     console.log(`no-name sentences n=${count}  people wrongly picked ${picks.length}`);
@@ -694,7 +700,7 @@ function baitSentences(
   return result;
 }
 
-describe('spoken-name bench: everyday words that sound like somebody', () => {
+describe('spoken-name bench: everyday words that sound like somebody', BENCH, () => {
   const result = baitSentences();
   it('fills in nobody who was not said', () => {
     console.log(

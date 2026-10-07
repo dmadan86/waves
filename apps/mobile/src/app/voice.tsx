@@ -102,6 +102,7 @@ import {
 import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { meterVoiceCommand } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
 import { CLOUD, local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
@@ -1082,6 +1083,9 @@ export default function VoiceScreen() {
         if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
         setEngine(CLOUD);
         runBasic(transcript, alternatives);
+        // The stream was used, so the command counts: meter it without waiting.
+        // A 402 changes nothing now (the review is up); the next start falls back.
+        void meterVoiceCommand({ transcript, locale, today: today() });
         return;
       }
       if (__DEV__) console.log('[voice] path: agent');

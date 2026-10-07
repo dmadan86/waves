@@ -153,3 +153,15 @@ export function pcmLevel(bytes: Uint8Array): number {
   const rms = Math.sqrt(sum / samples) / 32768;
   return Math.max(0, Math.min(1, rms * 6));
 }
+
+/**
+ * What a `voice-stream-token` failure means for the mic. A 402 is the month's
+ * allowance spent (`VOICE_AGENT_QUOTA`, or a streaming budget's own code), and
+ * the badge says so; every other failure (offline, 5xx, a bad body) is a plain
+ * "could not stream". The status decides, so a new 402 code needs no change here.
+ */
+export type StreamTokenFailure = 'quota' | 'error';
+
+export function streamTokenFailure(status: number | null | undefined): StreamTokenFailure {
+  return status === 402 ? 'quota' : 'error';
+}
