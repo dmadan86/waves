@@ -1,18 +1,16 @@
 /**
- * The entry, and nothing behind it yet.
+ * The entry to the paid tiers, and the boundary they never cross.
  *
- * There is no paid tier to sell today — no store products, no prices, no
- * receipts. What there is, is a decision worth writing down before anything is
- * built on top of it: the ledger is free forever, and the only thing Waves
- * would ever charge for is convenience. Splitting a bill, settling it, seeing
- * what you owe and being owed are not features to be taken away and sold back.
+ * The ledger is free forever; the only thing Waves charges for is convenience.
+ * Splitting a bill, settling it, seeing what you owe and being owed are not
+ * features to be taken away and sold back.
  *
- * So this screen says the boundary out loud and admits there is nothing to buy.
- * A row that leads nowhere would be worse than no row: somebody who taps
- * "Upgrade" and lands on a dead screen learns that the app is broken, and
- * somebody who finds a price list here learns something that is not true yet.
- * The three cards' chevrons open the card to its whole sentence rather than
- * pointing at a screen that does not exist.
+ * Two states. Where the paywall is live (the `paywall` flag on, and a build
+ * with a RevenueCat key), the hero names Plus and Pro, says which one the
+ * person is on, and opens `/paywall`. Everywhere else there is nothing to buy,
+ * and the screen says so: a price list for something that cannot be bought
+ * would teach somebody something that is not true. The three cards' chevrons
+ * open the card to its whole sentence either way.
  */
 
 import { useState } from 'react';
@@ -21,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import {
+  Button,
   directionalIcon,
   IconButton,
   iconSize,
@@ -31,8 +30,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useStrings, type UiStrings } from '@/i18n';
+import { PlanTier } from '@waves/core';
+
+import { fill, useStrings, type UiStrings } from '@/i18n';
+import { useFlagEnabled } from '@/lib/flags';
 import { router } from '@/lib/navigation';
+import { purchasesAvailable } from '@/lib/purchases';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -85,6 +89,15 @@ export default function UpgradeScreen() {
   const { t } = useStrings();
   const { dark, ink, muted, accent, line } = useUpgradeInks();
   const [open, setOpen] = useState<string | null>(null);
+  const plansLive = useFlagEnabled('paywall') && purchasesAvailable();
+  const { tier, isPaid } = useEntitlement();
+  const heroTitle = !plansLive
+    ? t.upgradeScreen.nothingToBuy
+    : isPaid
+      ? fill(t.upgradeScreen.onPlan, {
+          plan: tier === PlanTier.Pro ? t.paywall.proTitle : t.paywall.plusTitle,
+        })
+      : t.upgradeScreen.plansTitle;
 
   return (
     <Screen>
@@ -128,18 +141,26 @@ export default function UpgradeScreen() {
           }}
         >
           <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
-            <Text style={{ fontSize: 21, fontWeight: '800', color: ink }}>
-              {t.upgradeScreen.nothingToBuy}
-            </Text>
+            <Text style={{ fontSize: 21, fontWeight: '800', color: ink }}>{heroTitle}</Text>
             <Text style={{ fontSize: 13, lineHeight: 19, color: muted }}>
-              {t.upgradeScreen.nothingToBuyBody}
+              {plansLive ? t.upgradeScreen.plansBody : t.upgradeScreen.nothingToBuyBody}
             </Text>
+            {plansLive ? (
+              <View style={{ alignSelf: 'flex-start', marginTop: 2 }}>
+                <Button
+                  label={t.upgradeScreen.seePlans}
+                  variant="brand"
+                  size="sm"
+                  onPress={() => router.push('/paywall')}
+                />
+              </View>
+            ) : null}
           </View>
           <DoorArt />
         </LinearGradient>
 
         <Text style={{ fontSize: 16, fontWeight: '700', color: ink, marginTop: 6 }}>
-          {t.upgradeScreen.whatWouldCost}
+          {plansLive ? t.upgradeScreen.whatCosts : t.upgradeScreen.whatWouldCost}
         </Text>
 
         {cards(t).map((card) => {
@@ -240,7 +261,9 @@ export default function UpgradeScreen() {
         <Row style={{ alignItems: 'center', gap: 10, marginTop: 4 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: line }} />
           <Ionicons name="shield-checkmark-outline" size={16} color={muted} />
-          <Text style={{ fontSize: 12, color: muted }}>{t.upgradeScreen.promise}</Text>
+          <Text style={{ fontSize: 12, color: muted }}>
+            {plansLive ? t.upgradeScreen.plansPromise : t.upgradeScreen.promise}
+          </Text>
           <View style={{ flex: 1, height: 1, backgroundColor: line }} />
         </Row>
       </ScrollView>

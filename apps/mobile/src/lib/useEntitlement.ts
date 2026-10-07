@@ -1,60 +1,41 @@
 /**
- * Whether this phone currently holds a Pro plan, read off the store's own
- * active subscriptions rather than anything Waves wrote down.
+ * Which plan this account holds, as RevenueCat's CustomerInfo reports it.
  *
- * NOT a security boundary. This is a client-side read of `expo-iap`'s
- * `getActiveSubscriptions()` — it is what a jailbroken phone or a tampered
- * purchase token says about itself, with nothing checked against Apple's or
- * Google's servers. It is fine for "show the Pro badge" and "hide the
- * upgrade row"; it must not be trusted for anything a person could profit
- * from faking (unlocking a paid feature a backend enforces, crediting an
- * account, granting a refundable benefit) until server-side receipt
- * verification lands — see docs/pricing.md, "Next step: server-side
- * verification". That work is out of scope for this PR.
+ * Display only — "show the Pro badge", "hide the upgrade row", "this card is
+ * your current plan". It is NOT what unlocks anything a person could profit
+ * from faking: the server decides that from `subscriptions`, which only the
+ * RevenueCat webhook writes (supabase/functions/revenuecat-webhook), via
+ * `waves_profile_is_paid` / `waves_my_plan` / the voice quota.
  *
- * Mounts its own store connection via `useIAP()`. expo-iap's `initConnection`
- * tolerates being called while already connected, but `endConnection` on
- * this hook's unmount tears down the *shared* native billing client /
- * StoreKit listener — including for any other `useIAP()` consumer still
- * mounted elsewhere in the tree. Nothing else calls this hook today
- * (`paywall.tsx` derives the same entitlement from its own single `useIAP()`
- * call via `entitlementFromActiveSubscriptions`, precisely to avoid a second
- * connection). Mount this in a second place only once that sharing problem is
- * solved — a single provider around both consumers is the fix.
+ * One SDK listener feeds every caller (lib/purchases.ts), so this can be
+ * mounted anywhere without opening another store connection.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
-import { useIAP } from 'expo-iap';
+import { isPaidTier, PlanTier } from '@waves/core';
 
-import {
-  entitlementFromActiveSubscriptions,
-  PRO_PRODUCT_IDS,
-  type Entitlement,
-} from '@/lib/pricing';
+import { purchasesAvailable, refreshCustomerInfo, useCustomerTier } from '@/lib/purchases';
 
-export interface UseEntitlementResult extends Entitlement {
-  /** True until the store connection has answered at least once. */
+export interface UseEntitlementResult {
+  tier: PlanTier;
+  /** Plus or Pro. */
+  isPaid: boolean;
+  /** Pro: everything, including the advanced voice agent. */
+  isPro: boolean;
+  /** True until CustomerInfo has been read once for this account. */
   loading: boolean;
-  /** Re-reads the store's active subscriptions — call after a purchase or
-   *  restore completes elsewhere, or on pull-to-refresh. */
+  /** False on a build with no RevenueCat key: nothing can be bought. */
+  available: boolean;
   refresh: () => Promise<void>;
 }
 
 export function useEntitlement(): UseEntitlementResult {
-  const { connected, activeSubscriptions, getActiveSubscriptions } = useIAP();
-
-  const refresh = useCallback(async () => {
-    await getActiveSubscriptions(Object.values(PRO_PRODUCT_IDS));
-  }, [getActiveSubscriptions]);
-
-  useEffect(() => {
-    if (connected) void refresh();
-  }, [connected, refresh]);
-
-  const entitlement = useMemo(
-    () => entitlementFromActiveSubscriptions(activeSubscriptions),
-    [activeSubscriptions],
-  );
-
-  return { ...entitlement, loading: !connected, refresh };
+  const { tier, loading } = useCustomerTier();
+  return {
+    tier,
+    isPaid: isPaidTier(tier),
+    isPro: tier === PlanTier.Pro,
+    loading,
+    available: purchasesAvailable(),
+    refresh: refreshCustomerInfo,
+  };
 }

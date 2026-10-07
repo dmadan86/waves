@@ -1,222 +1,214 @@
-# Waves Pro pricing
+# Waves pricing: Free, Plus and Pro
 
 What the paywall (`apps/mobile/src/app/paywall.tsx`, behind the `paywall`
-route flag — see "Status" below) sells, what it actually charges, and how to
-set the products up on both stores so that it can.
+flag) sells, how a purchase reaches the server, and the setup checklist for
+RevenueCat, App Store Connect, Play Console and Supabase.
 
-## The model
+## The tiers
 
-Two plans. Monthly is pay-as-you-go; yearly is paid once a year, at roughly
-ten months' worth of the monthly price — "2 months free" — with a 7-day free
-trial.
+| Tier | India price | What it adds                                                                     |
+| ---- | ----------- | -------------------------------------------------------------------------------- |
+| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export.   |
+| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers. No AI voice. |
+| Pro  | ₹99 / month | Everything in Plus, plus the advanced AI voice agent (150 commands/month).       |
 
-| Market      | Currency | Monthly | Yearly  | Yearly ≈ monthly × | Free trial          |
-| ----------- | -------- | ------- | ------- | ------------------ | ------------------- |
-| US          | USD      | $0.99   | $9.99   | 10.09×             | 7 days, yearly only |
-| UK          | GBP      | £0.99   | £9.99   | 10.09×             | 7 days, yearly only |
-| Australia   | AUD      | A$1.49  | A$14.99 | 10.06×             | 7 days, yearly only |
-| UAE / Gulf¹ | AED      | 3.99    | 39.99   | 10.02×             | 7 days, yearly only |
-| India       | INR      | ₹39     | ₹399    | 10.23×             | 7 days, yearly only |
+Annual plans and every other market's price are set **in the stores** later.
+The app never hardcodes a charged price: the paywall shows RevenueCat's
+`priceString`, which is the store's own localized price. Yearly cards and a
+Monthly/Yearly switch appear by themselves once the offering has yearly
+packages.
 
-¹ "Gulf" means the AED price is also the fallback shown for Saudi Arabia,
-Qatar, Kuwait, Bahrain and Oman (`fallbackRegionForCountry` in
-`apps/mobile/src/lib/pricing.ts`), not UAE alone. Each of those storefronts
-still needs its own price point entered in its own local currency when the
-products are created (see "Store setup" below) — this table is USD-equivalent
-intent, not a substitute for setting SAR/QAR/KWD/BHD/OMR prices.
+How the server reads the tiers (migration `20261008120000_revenuecat_webhook`):
 
-**These are introductory prices, not a permanent commitment.** The owner can
-raise them later; existing subscribers typically keep their price under both
-stores' price-increase-grandfathering rules unless the increase is explicitly
-pushed to them.
+- `waves_profile_is_paid(profile)`: an `active` or `grace`, unexpired
+  `subscriptions` row with tier `plus` or `pro`. Plus and Pro are both paid.
+- `waves_my_plan()`: `tier` is `'plus'` for any paid row (the device cap and
+  older apps read it as "paid"); the new `plan` key is `'plus'` or `'pro'`.
+- `waves_voice_agent_quota` / `waves_voice_stream_mint`: only an active `pro`
+  row gets the Pro allowance. **Plus gets the free voice allowance**, by design.
 
-**The app never hardcodes a charged price.** `paywall.tsx` fetches the real
-product from the store at runtime (`expo-iap`'s `fetchProducts`) and shows
-exactly what the store says it will charge, in the buyer's own currency and
-locale formatting. The table above exists only as `FALLBACK_PRICES` in
-`apps/mobile/src/lib/pricing.ts`, shown — clearly marked "approximate" — when
-the store connection isn't available yet (no native IAP build, a simulator, a
-dev client, a network blip). It is a display fallback, never a purchase
-input: every purchase is requested by product id, and the store, not this
-table, decides what it charges.
-
-## Product ids
+## How a purchase flows
 
 ```
-waves_pro_monthly
-waves_pro_yearly
+app ── Purchases.purchasePackage ──▶ store ──▶ RevenueCat
+                                                  │ webhook (Authorization: <secret>)
+                                                  ▼
+                              supabase/functions/revenuecat-webhook
+                                                  │ waves_revenuecat_apply (one transaction)
+                                                  ▼
+                               revenuecat_events (dedupe) + subscriptions
 ```
 
-**Two flat products, on both stores — not one subscription with two Android
-base plans.** Google Play's "base plans" (one subscription, several
-billing-interval variants under it) have no equivalent on the App Store:
-there, every price point is its own product, grouped only by a Subscription
-Group. Two top-level product ids keep both stores symmetric and let the app
-query both with one call — `fetchProducts({ skus: ['waves_pro_monthly',
-'waves_pro_yearly'], type: 'subs' })` — rather than branching the client on
-"Android base plan" vs "iOS product". The cost of this choice: on Android, the
-two plans don't share a renewal/upgrade-proration relationship the way two
-base plans of one subscription would. That is not needed here — the two plans
-are alternatives a buyer picks once, not a tier ladder — so it is not a loss
-worth avoiding the simpler, symmetric shape for.
+- **RevenueCat app user id = Waves profile id.** `lib/auth.tsx` calls
+  `syncPurchasesUser(session.user.id)`: the SDK is configured with that id at
+  sign-in, `Purchases.logIn` on an account switch, `Purchases.logOut` on
+  sign-out. No anonymous RevenueCat users are created.
+- **The server is the authority.** The app's `useEntitlement()` reads
+  RevenueCat's CustomerInfo for display only (badge, "current plan").
+- **No key, no billing.** Without `EXPO_PUBLIC_REVENUECAT_IOS_KEY` /
+  `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` the SDK is never touched, the paywall
+  route is not registered and `settings/upgrade` says there is nothing to buy.
 
-## In-app purchase library
+### Webhook event mapping
 
-[`expo-iap`](https://www.npmjs.com/package/expo-iap) (OpenIAP's Expo Module
-implementation). Added at `apps/mobile/package.json` (`^5.8.2`) and
-`apps/mobile/app.json`'s `plugins` (`"expo-iap"`, no plugin options — the
-Android manifest's billing permission ships inside Play Billing's own AAR, and
-iOS needs no Info.plist entry for StoreKit).
+One `subscriptions` row per store subscription, keyed by `store_txn_id` =
+RevenueCat's `original_transaction_id`. Tier comes from the event's
+`entitlement_ids` (`pro` beats `plus`), else from the product id.
 
-Why this one over the alternatives:
+| Event                                                  | Row                                                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| INITIAL_PURCHASE, RENEWAL, UNCANCELLATION              | `active` until `expiration_at_ms`; price/currency when charged                |
+| PRODUCT_CHANGE                                         | `active`; the new tier only if it is an upgrade (downgrades land at renewal)  |
+| CANCELLATION                                           | stays `active` until expiry; `refunded` if `cancel_reason = CUSTOMER_SUPPORT` |
+| BILLING_ISSUE                                          | `grace` until `grace_period_expiration_at_ms` (still paid)                    |
+| EXPIRATION                                             | `expired`                                                                     |
+| REFUND                                                 | `refunded`                                                                    |
+| TRANSFER                                               | store rows of `transferred_from` move to `transferred_to` (promo rows stay)   |
+| SUBSCRIPTION_EXTENDED, REFUND_REVERSED                 | `active`                                                                      |
+| TEST, anything else, non-Waves products, Stripe/Amazon | recorded in `revenuecat_events`, nothing written                              |
 
-- **`react-native-iap`** (by the same maintainers) is the Nitro-Modules
-  version of the same OpenIAP client protocol. Either would work; `expo-iap`
-  was picked because it is an Expo Module, which fits this app's Expo Modules
-  / config-plugin-based native setup (no extra Nitro codegen step in the
-  build), and its config plugin is already wired into `app.json` the same way
-  every other native dependency here is.
-- **RevenueCat** was considered and rejected for this PR. It's a reasonable
-  choice once server-side entitlement and cross-platform receipt sync matter
-  more than they do today, but it is a paid SaaS dependency (free tier caps at
-  $2.5k MTR) for a problem this app doesn't have yet: one backend, one set of
-  product ids, no cross-platform entitlement sync requirement, and the receipt
-  verification RevenueCat would otherwise own is explicitly out of scope for
-  this PR anyway (see "Status" below). Reaching for it now would mean paying
-  for and learning a second system before the first one (a verifying backend)
-  exists at all. Revisit if/when subscription logic needs to live outside the
-  app (web, email receipts, an admin dashboard) rather than just inside it.
+Every event id is recorded once in `revenuecat_events`; a replay answers 200
+`duplicate` and writes nothing. An older event delivered after a newer one
+(`subscriptions.store_event_at`) is `stale` and ignored. An `app_user_id` that
+is not a profile (e.g. `$RCAnonymousID:…`) answers 200 `unknown_profile`, so
+RevenueCat does not retry it forever. Only a database failure answers 5xx
+(RevenueCat retries; the write is atomic, so that is safe).
 
-**A new native build is required.** `expo-iap` is a native module; it is not
-usable from the currently running JS-only / Expo Go-style setup. Run (or have
-CI run) `expo prebuild` and a fresh dev client / release build before testing
-any purchase flow on a device or simulator.
+## Setup checklist (owner)
 
-## Store setup
+### 1. RevenueCat project and apps
 
-### Play Console
+1. app.revenuecat.com → create project **Waves**.
+2. Add an **App Store** app: bundle id from `apps/mobile/app.json`
+   (`ios.bundleIdentifier`). Upload an **In-App Purchase Key** (App Store
+   Connect → Users and Access → Integrations → In-App Purchase) and set the
+   App Store Connect API key so RevenueCat can import products.
+3. Add a **Play Store** app: package name from `app.json`
+   (`android.package`). Upload the Google service-account JSON with the
+   "View financial data" and "Manage orders and subscriptions" permissions in
+   Play Console (RevenueCat's guide walks through it), and turn on **Real-time
+   developer notifications** with the Pub/Sub topic RevenueCat shows.
+4. Copy each app's **public SDK key** (`appl_…`, `goog_…`) for step 5.
 
-1. **Create the app's base subscription scaffolding** (once, if not already
-   done): Play Console → your app → Monetize → Subscriptions.
-2. **Create `waves_pro_monthly`**: "Create subscription" → product ID
-   `waves_pro_monthly` → name "Waves Pro (monthly)". Add one base plan:
-   - Base plan ID: `monthly` (or any id — the _product_ id is what the app
-     queries by, the base plan id is Google's internal detail).
-   - Billing period: 1 month, auto-renewing.
-   - Price: set each market's local price from the table above (plus every
-     other market Play requires a price for — Play will suggest conversions;
-     override the ones in the table).
-   - Activate the base plan.
-3. **Create `waves_pro_yearly`** the same way: product ID `waves_pro_yearly`,
-   one base plan, billing period 1 year, same price table (yearly column).
-   On this base plan, add an **offer**:
-   - Offer type: free trial.
-   - Duration: 7 days.
-   - Eligibility: new subscribers only (standard — prevents a lapsed
-     subscriber from re-triggering the trial every time they resubscribe).
-   - Activate the offer.
-4. The app resolves the offer at runtime: `fetchProducts` returns the
-   subscription with its current `subscriptionOffers`, and `paywall.tsx`
-   passes the first offer's `offerTokenAndroid` into `requestPurchase` — no
-   offer id is hardcoded client-side, so changing the trial length or adding a
-   second offer later does not need an app update.
+### 2. Store products
 
-### App Store Connect
+Product ids are the same on both stores (`packages/core/src/billing/revenuecat.ts`):
 
-1. **Create a Subscription Group** (once): App Store Connect → your app →
-   Monetization → Subscriptions → "+" next to Subscription Groups — e.g.
-   "Waves Pro". Both plans must live in the _same_ group so App Store treats
-   them as alternatives (a buyer can be on at most one at a time, and
-   switching is an upgrade/downgrade rather than two separate purchases).
-2. **Create the monthly subscription**: inside that group, "+" → Reference
-   Name "Waves Pro Monthly" → Product ID `waves_pro_monthly` → Subscription
-   duration 1 month. Add a price (the US row from the table above; App Store
-   Connect auto-generates every other storefront's price from Apple's price
-   tiers — review and override the UK/AU/UAE/India rows to match the table,
-   since Apple's auto-conversion will not land on the owner's exact numbers).
-3. **Create the yearly subscription** the same way: Product ID
-   `waves_pro_yearly`, duration 1 year, same price table (yearly column).
-4. **Add the free trial** on the yearly subscription only: its subscription
-   page → Introductory Offers → "+" → type "Free Trial" → duration 1 week →
-   apply to all territories (or the same markets as the price table; Apple
-   requires an introductory offer to be configured per-territory the same way
-   prices are).
-5. Submit both subscriptions' metadata (display name, description) for
-   review with the next app version — a new in-app purchase is reviewed
-   alongside the binary that uses it, which the StoreKit config plugin's
-   native build already requires regardless.
+```
+waves_plus_monthly    ₹49
+waves_pro_monthly     ₹99
+waves_plus_yearly     later
+waves_pro_yearly      later
+```
 
-## Net revenue
+**App Store Connect** → app → Monetization → Subscriptions:
 
-**Assumptions, stated so the numbers can be redone when they change:**
+1. Create **one subscription group**, e.g. "Waves", holding every Plus and Pro
+   product, so a person is on at most one and switching is an upgrade or
+   downgrade, not a second subscription.
+2. In the group, rank **Pro above Plus** (group level order: Pro monthly/yearly
+   at level 1, Plus at level 2), so Plus → Pro is an immediate upgrade.
+3. Create `waves_plus_monthly` (1 month) and `waves_pro_monthly` (1 month).
+   Set India to ₹49 / ₹99; leave other storefronts to be set later.
+4. Fill in display names, descriptions and the review screenshot; submit them
+   with the app version that ships this paywall.
+5. Agreements, Tax and Banking must be active (Paid Apps agreement).
 
-- **Store commission: 15%** on both stores. This is Apple's and Google's
-  small-business / standard-subscriber-retention rate (Apple: enrolled in the
-  Small Business Program, or any subscriber retained paid for 12+ months
-  regardless of program; Google: the first $1M of a developer's annual
-  revenue, which a pricing model this low will not exceed). The standard 30%
-  applies to a developer outside those bands — redo the "net" column at 0.70×
-  gross-after-tax instead of 0.85× if that ever applies here.
-- **VAT/GST is already included in the listed price** in every market except
-  the US (this is how Apple and Google price subscriptions everywhere VAT/GST
-  applies — the buyer never sees a price that grows at checkout). The
-  commission is computed on the _tax-exclusive_ amount, because the tax
-  portion is collected and remitted to the relevant tax authority by the
-  store, not kept by the developer and not commissioned.
-- **US sales tax is added on top of the listed price at checkout** (it is
-  destination-based and varies by the buyer's state/county, so it cannot be
-  baked into one listed price the way a national VAT can). It is not part of
-  developer proceeds either way, so it does not change the "net" column — the
-  developer's net is 85% of the _listed_ price, full stop, for the US row.
-- Rates used: India GST 18%, UK VAT 20%, Australia GST 10%, UAE VAT 5%.
+**Play Console** → app → Monetize → Products → Subscriptions:
 
-**Net = listed price ÷ (1 + VAT/GST rate) × 0.85** (US: **listed price × 0.85**,
-no VAT/GST divide).
+1. Create subscription `waves_plus_monthly` with one auto-renewing base plan
+   (e.g. `monthly`, 1 month), India ₹49; activate it.
+2. Create `waves_pro_monthly` the same way at ₹99.
+3. Later: yearly base plans (`yearly`) or separate `*_yearly` products; the app
+   picks them up from the offering with no release.
+4. Play needs an uploaded build with the billing library (any internal-testing
+   build of this branch) before subscriptions can be created.
 
-| Market    | Plan    | Listed price | Net to Waves |
-| --------- | ------- | ------------ | ------------ |
-| US        | Monthly | $0.99        | $0.84        |
-| US        | Yearly  | $9.99        | $8.49        |
-| UK        | Monthly | £0.99        | £0.70        |
-| UK        | Yearly  | £9.99        | £7.08        |
-| Australia | Monthly | A$1.49       | A$1.15       |
-| Australia | Yearly  | A$14.99      | A$11.58      |
-| UAE       | Monthly | AED 3.99     | AED 3.23     |
-| UAE       | Yearly  | AED 39.99    | AED 32.37    |
-| India     | Monthly | ₹39          | ₹28.09       |
-| India     | Yearly  | ₹399         | ₹287.42      |
+### 3. Entitlements and offering (RevenueCat)
 
-(Figures rounded to the nearest minor unit. Real settlement will also move
-with exchange rates on non-USD markets and with whichever exact commission
-tier a given subscriber's tenure/program status lands on — treat this table
-as the planning model, not an accounting source of truth.)
+1. Product catalog → **Products**: import the four store products (both apps).
+2. **Entitlements**: create `plus` and `pro`.
+   - `plus` ← `waves_plus_monthly` (+ `waves_plus_yearly` later)
+   - `pro` ← `waves_pro_monthly` (+ `waves_pro_yearly` later)
+   - Attach Pro products to `pro` only; the app and server treat Pro as a
+     superset of Plus.
+3. **Offerings**: create `default`, mark it **current**, add packages:
+   - `plus_monthly` → `waves_plus_monthly` (both stores)
+   - `pro_monthly` → `waves_pro_monthly` (both stores)
+   - later `plus_annual`, `pro_annual` (custom identifiers containing
+     `monthly` / `annual` are how the app tells periods apart; `$rc_monthly` /
+     `$rc_annual` also work but only fit one tier each).
 
-## Status — what this PR does and does not do
+### 4. Webhook
 
-**Does:** real store products and prices at runtime; buy, restore, and
-pending/cancelled/error handling for both plans; a `useEntitlement()` hook
-reading the store's current active subscriptions; the redesigned paywall UI,
-in the four shipped languages; this pricing/setup doc.
+1. Pick a long random secret: `openssl rand -hex 32`.
+2. Supabase secret:
+   `supabase secrets set REVENUECAT_WEBHOOK_SECRET=<secret> --project-ref <ref>`
+3. Deploy the function (it has `verify_jwt = false` in `supabase/config.toml`):
+   `pnpm edge:build && supabase functions deploy revenuecat-webhook --project-ref <ref>`
+4. Apply migration `20261008120000_revenuecat_webhook` (`pnpm db:migrate`
+   against the target database) **before** sending events.
+5. RevenueCat → Project → Integrations → **Webhooks** → add:
+   - URL: `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`
+     (production: `https://ywojpnfyxxltvihqmcni.supabase.co/functions/v1/revenuecat-webhook`)
+   - Authorization header value: the secret (bare, or `Bearer <secret>`).
+   - Environment: both, while testing. To drop sandbox events in production
+     later, set `REVENUECAT_IGNORE_SANDBOX=true` on the function.
+6. Press **Send test event**: the function answers 200 `{"outcome":"ignored"}`
+   and a `TEST` row appears in `revenuecat_events`.
 
-**Does not — required before this can be trusted or turned on:**
+### 5. Env keys
 
-- **Server-side receipt verification.** Nothing in this PR calls a backend to
-  verify a purchase. `useEntitlement()` and the paywall's own "already
-  subscribed" check both read `expo-iap`'s on-device active-subscriptions
-  list, which is exactly as trustworthy as the phone it's running on — fine
-  for UI state (show the Pro badge, hide the upgrade button), **not fine**
-  for anything a person could profit from faking. Next step: a backend
-  endpoint that verifies the App Store / Play receipt (or uses
-  [IAPKit](https://kit.openiap.dev/docs) / the stores' own server
-  notifications — `App Store Server Notifications V2`, Play's Real-time
-  Developer Notifications) and is the _only_ thing that ever grants
-  anything security-sensitive.
-- **The `paywall` route flag stays off.** This PR does not turn it on, and
-  does not reconcile the paywall with `settings/upgrade` (which still tells
-  people there is nothing to buy) — see both screens' header comments.
-  Turning the flag on, and deciding how `settings/upgrade` should change, is
-  a product decision for whoever owns that reconciliation.
-- **The store products themselves.** Nothing in this repository creates them
-  — "Store setup" above is the human checklist for Play Console and App Store
-  Connect. The app will show the approximate fallback table until both
-  products exist, are active, and have been through each store's review.
+| Where                                       | Key                                  | Value                         |
+| ------------------------------------------- | ------------------------------------ | ----------------------------- |
+| EAS (`eas env:create`, or `eas.json` `env`) | `EXPO_PUBLIC_REVENUECAT_IOS_KEY`     | `appl_…` (public)             |
+| EAS                                         | `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | `goog_…` (public)             |
+| Supabase function secrets                   | `REVENUECAT_WEBHOOK_SECRET`          | the webhook secret            |
+| Supabase (optional)                         | `REVENUECAT_IGNORE_SANDBOX`          | `true` to drop sandbox events |
+
+The SDK keys are public by design; the webhook secret is not and never goes in
+the app. A new native build is required (`react-native-purchases` is native;
+no config plugin is needed, autolinking handles it).
+
+### 6. Turn it on
+
+Seed or flip the `paywall` feature flag (it is unseeded, i.e. off). With the
+flag on and a key in the build, `settings/upgrade` shows "See plans" and the
+paywall route is reachable.
+
+### 7. Sandbox testing
+
+- **iOS:** App Store Connect → Users and Access → Sandbox → add a tester. On
+  the device, sign in under Settings → App Store → Sandbox Account. Install a
+  dev/TestFlight build with the iOS key. Renewals run fast (1 month = 5
+  minutes, 6 renewals max), so RENEWAL and EXPIRATION arrive within the hour.
+- **Android:** Play Console → Settings → License testing → add the tester's
+  Google account; install from an internal-testing track. Test cards
+  ("always approves", "declines", "slow") exercise BILLING_ISSUE; renewals are
+  accelerated (1 month = 5 minutes).
+- **Check each step:** RevenueCat → Customers → search the profile id → the
+  entitlement and the event history; then in SQL:
+  `select tier, status, current_period_end, store from subscriptions where profile_id = '<id>';`
+  and `select waves_my_plan('<id>');`.
+- Walk: buy Plus → `plus active`; upgrade to Pro → `pro`; cancel in the store
+  → still `active` until expiry; let it lapse → `expired`; restore on a second
+  device signed in to the same Waves account → same tier.
+
+### 8. Apple Small Business Program
+
+Enrol at developer.apple.com/app-store/small-business-program **before** the
+first sale: commission drops from 30% to 15% on proceeds under $1M/year, and
+it only applies from the enrolment date onward. Google Play is 15% on
+subscriptions (and the first $1M) without enrolment.
+
+## Net revenue (India, monthly)
+
+Net = listed ÷ 1.18 (GST) × 0.85 (15% commission, Small Business Program).
+
+| Plan | Listed | Net to Waves |
+| ---- | ------ | ------------ |
+| Plus | ₹49    | ₹35.30       |
+| Pro  | ₹99    | ₹71.31       |
+
+A planning model, not accounting: settlement also moves with exchange rates
+and each subscriber's commission tier.

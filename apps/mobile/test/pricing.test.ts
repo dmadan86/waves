@@ -1,164 +1,147 @@
 /**
- * The pure math and fallback lookup behind the paywall: no React, no store,
- * no native module — see src/lib/pricing.ts for why.
+ * The pure logic behind the paywall: RevenueCat offering → plan cards and
+ * CustomerInfo → tier. No React, no store, no native module — see
+ * src/lib/pricing.ts.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { PlanTier } from '@waves/core';
+
 import {
-  entitlementFromActiveSubscriptions,
-  fallbackPriceFor,
-  fallbackRegionForCountry,
-  formatApproxMoney,
-  freeMonthsForYearly,
-  monthlyEquivalent,
-  planForProductId,
+  activeProductId,
+  periodOfPackage,
+  periodsInOffering,
+  planCardsFromOffering,
+  revenueCatApiKey,
+  tierFromCustomerInfo,
+  tierOfPackage,
   yearlySavingsPercent,
-  MONTHLY_PRODUCT_ID,
-  YEARLY_PRODUCT_ID,
+  type OfferingLike,
+  type PackageLike,
 } from '../src/lib/pricing';
 
-describe('planForProductId', () => {
-  it('names the plan behind each product id', () => {
-    expect(planForProductId(MONTHLY_PRODUCT_ID)).toBe('monthly');
-    expect(planForProductId(YEARLY_PRODUCT_ID)).toBe('yearly');
+function pkg(
+  identifier: string,
+  productId: string,
+  priceString: string,
+  price: number,
+): PackageLike {
+  return {
+    identifier,
+    packageType: 'CUSTOM',
+    product: { identifier: productId, price, priceString, currencyCode: 'INR' },
+  };
+}
+
+const OFFERING: OfferingLike = {
+  identifier: 'default',
+  availablePackages: [
+    // Out of order on purpose: the cards must still come out Plus, then Pro.
+    pkg('pro_monthly', 'waves_pro_monthly', '₹99.00', 99),
+    pkg('plus_monthly', 'waves_plus_monthly:monthly', '₹49.00', 49),
+  ],
+};
+
+describe('planCardsFromOffering', () => {
+  it('makes a Plus card then a Pro card with the store’s own prices', () => {
+    expect(planCardsFromOffering(OFFERING, 'monthly')).toEqual([
+      {
+        tier: PlanTier.Plus,
+        period: 'monthly',
+        packageId: 'plus_monthly',
+        productId: 'waves_plus_monthly:monthly',
+        priceString: '₹49.00',
+        price: 49,
+        currency: 'INR',
+      },
+      {
+        tier: PlanTier.Pro,
+        period: 'monthly',
+        packageId: 'pro_monthly',
+        productId: 'waves_pro_monthly',
+        priceString: '₹99.00',
+        price: 99,
+        currency: 'INR',
+      },
+    ]);
   });
 
-  it('is null for anything else, including null and empty input', () => {
-    expect(planForProductId('some.other.sku')).toBeNull();
-    expect(planForProductId(null)).toBeNull();
-    expect(planForProductId(undefined)).toBeNull();
-    expect(planForProductId('')).toBeNull();
+  it('has no cards for a period the offering does not sell, or no offering', () => {
+    expect(planCardsFromOffering(OFFERING, 'yearly')).toEqual([]);
+    expect(planCardsFromOffering(null, 'monthly')).toEqual([]);
+    expect(periodsInOffering(OFFERING)).toEqual(['monthly']);
+    expect(periodsInOffering(undefined)).toEqual([]);
+  });
+
+  it('picks up annual packages once they exist, by package type or id', () => {
+    const withAnnual: OfferingLike = {
+      identifier: 'default',
+      availablePackages: [
+        ...OFFERING.availablePackages,
+        { ...pkg('$rc_annual', 'waves_plus_yearly', '₹499.00', 499), packageType: 'ANNUAL' },
+        pkg('pro_annual', 'waves_pro_y', '₹999.00', 999),
+      ],
+    };
+    expect(periodsInOffering(withAnnual)).toEqual(['monthly', 'yearly']);
+    expect(planCardsFromOffering(withAnnual, 'yearly').map((c) => c.packageId)).toEqual([
+      '$rc_annual',
+      'pro_annual',
+    ]);
+  });
+
+  it('ignores a package for a product Waves does not sell', () => {
+    const odd = pkg('tip_jar', 'waves_tip', '₹10.00', 10);
+    expect(tierOfPackage(odd)).toBeNull();
+    expect(periodOfPackage({ ...odd, packageType: 'MONTHLY' })).toBe('monthly');
+    expect(planCardsFromOffering({ identifier: 'x', availablePackages: [odd] }, 'monthly')).toEqual(
+      [],
+    );
   });
 });
 
-describe('fallbackRegionForCountry / fallbackPriceFor', () => {
-  it('maps the five named markets to their own row', () => {
-    expect(fallbackRegionForCountry('US')).toBe('US');
-    expect(fallbackRegionForCountry('GB')).toBe('UK');
-    expect(fallbackRegionForCountry('AU')).toBe('AU');
-    expect(fallbackRegionForCountry('IN')).toBe('IN');
-    expect(fallbackRegionForCountry('AE')).toBe('GULF');
+describe('tierFromCustomerInfo', () => {
+  const info = (active: Record<string, { isActive?: boolean; productIdentifier?: string }>) => ({
+    entitlements: { active },
   });
 
-  it('treats the whole Gulf as one region, not just the UAE', () => {
-    for (const country of ['AE', 'SA', 'QA', 'KW', 'BH', 'OM']) {
-      expect(fallbackRegionForCountry(country)).toBe('GULF');
-    }
+  it('is free with nothing active, or no info at all', () => {
+    expect(tierFromCustomerInfo(null)).toBe(PlanTier.Free);
+    expect(tierFromCustomerInfo(info({}))).toBe(PlanTier.Free);
   });
 
-  it('is case-insensitive and tolerates whitespace', () => {
-    expect(fallbackRegionForCountry(' in ')).toBe('IN');
-    expect(fallbackRegionForCountry('gb')).toBe('UK');
+  it('is Plus for the plus entitlement and Pro whenever pro is active', () => {
+    expect(tierFromCustomerInfo(info({ plus: { isActive: true } }))).toBe(PlanTier.Plus);
+    expect(tierFromCustomerInfo(info({ pro: { isActive: true } }))).toBe(PlanTier.Pro);
+    expect(tierFromCustomerInfo(info({ plus: { isActive: true }, pro: { isActive: true } }))).toBe(
+      PlanTier.Pro,
+    );
+    expect(tierFromCustomerInfo(info({ pro: { isActive: false } }))).toBe(PlanTier.Free);
   });
 
-  it('falls back to the US row for anywhere unlisted, and for no country at all', () => {
-    expect(fallbackRegionForCountry('DE')).toBe('US');
-    expect(fallbackRegionForCountry(null)).toBe('US');
-    expect(fallbackRegionForCountry(undefined)).toBe('US');
-  });
-
-  it('returns the owner-decided price for each row', () => {
-    expect(fallbackPriceFor('US')).toEqual({ currency: 'USD', monthly: 0.99, yearly: 9.99 });
-    expect(fallbackPriceFor('GB')).toEqual({ currency: 'GBP', monthly: 0.99, yearly: 9.99 });
-    expect(fallbackPriceFor('AU')).toEqual({ currency: 'AUD', monthly: 1.49, yearly: 14.99 });
-    expect(fallbackPriceFor('AE')).toEqual({ currency: 'AED', monthly: 3.99, yearly: 39.99 });
-    expect(fallbackPriceFor('IN')).toEqual({ currency: 'INR', monthly: 39, yearly: 399 });
+  it('names the product behind the active entitlement, without a Play base plan', () => {
+    expect(
+      activeProductId(info({ plus: { productIdentifier: 'waves_plus_monthly:monthly' } })),
+    ).toBe('waves_plus_monthly');
+    expect(activeProductId(info({}))).toBeNull();
   });
 });
 
-describe('monthlyEquivalent', () => {
-  it('spreads the yearly price across 12 months', () => {
-    expect(monthlyEquivalent(9.99)).toBeCloseTo(0.8325, 4);
-    expect(monthlyEquivalent(0)).toBe(0);
-  });
-});
-
-describe('freeMonthsForYearly', () => {
-  it('reads ~2 free months off every market in the price list', () => {
-    expect(freeMonthsForYearly(0.99, 9.99)).toBe(2);
-    expect(freeMonthsForYearly(1.49, 14.99)).toBe(2);
-    expect(freeMonthsForYearly(3.99, 39.99)).toBe(2);
-    expect(freeMonthsForYearly(39, 399)).toBe(2);
-  });
-
-  it('is exactly 2 when the yearly price is exactly 10x the monthly one', () => {
-    expect(freeMonthsForYearly(10, 100)).toBe(2);
-  });
-
-  it('never goes negative, and is 0 with no usable monthly price', () => {
-    expect(freeMonthsForYearly(0, 9.99)).toBe(0);
-    expect(freeMonthsForYearly(-1, 9.99)).toBe(0);
-    expect(freeMonthsForYearly(1, 1000)).toBe(0);
+describe('revenueCatApiKey', () => {
+  it('uses the platform’s key and treats a blank one as none', () => {
+    const env = { ios: 'appl_abc', android: ' goog_xyz ' };
+    expect(revenueCatApiKey('ios', env)).toBe('appl_abc');
+    expect(revenueCatApiKey('android', env)).toBe('goog_xyz');
+    expect(revenueCatApiKey('web', env)).toBeNull();
+    expect(revenueCatApiKey('ios', { ios: '  ' })).toBeNull();
+    expect(revenueCatApiKey('android', {})).toBeNull();
   });
 });
 
 describe('yearlySavingsPercent', () => {
-  it('matches the ~17% implied by 2 months free', () => {
-    expect(yearlySavingsPercent(0.99, 9.99)).toBe(16);
-    expect(yearlySavingsPercent(10, 100)).toBe(17);
-  });
-
-  it('is 0 when the yearly price saves nothing, and never negative', () => {
-    expect(yearlySavingsPercent(10, 120)).toBe(0);
-    expect(yearlySavingsPercent(10, 200)).toBe(0);
-  });
-
-  it('is 0 with no usable monthly price', () => {
-    expect(yearlySavingsPercent(0, 9.99)).toBe(0);
-  });
-});
-
-describe('formatApproxMoney', () => {
-  it('formats a plain number as that currency, not whatever locale is default', () => {
-    expect(formatApproxMoney(9.99, 'USD', 'en-US')).toBe('$9.99');
-    expect(formatApproxMoney(399, 'INR', 'en-IN')).toBe('₹399.00');
-  });
-
-  it('falls back to a plain "CODE amount" string for a currency Intl rejects', () => {
-    expect(formatApproxMoney(9.99, 'NOTACODE', 'en-US')).toBe('NOTACODE 9.99');
-  });
-});
-
-describe('entitlementFromActiveSubscriptions', () => {
-  it('is not pro with no active subscriptions', () => {
-    expect(entitlementFromActiveSubscriptions([])).toEqual({
-      isPro: false,
-      plan: null,
-      expiry: null,
-    });
-  });
-
-  it('ignores a subscription that is not active', () => {
-    const result = entitlementFromActiveSubscriptions([
-      { productId: YEARLY_PRODUCT_ID, isActive: false },
-    ]);
-    expect(result.isPro).toBe(false);
-  });
-
-  it('ignores an active subscription for a product that is not a Pro plan', () => {
-    const result = entitlementFromActiveSubscriptions([
-      { productId: 'some.other.sku', isActive: true },
-    ]);
-    expect(result.isPro).toBe(false);
-  });
-
-  it('reports the plan and, on iOS, the expiry of an active Pro subscription', () => {
-    const expirationDateIOS = Date.parse('2026-12-01T00:00:00.000Z');
-    const result = entitlementFromActiveSubscriptions([
-      { productId: MONTHLY_PRODUCT_ID, isActive: true, expirationDateIOS },
-    ]);
-    expect(result).toEqual({
-      isPro: true,
-      plan: 'monthly',
-      expiry: new Date(expirationDateIOS),
-    });
-  });
-
-  it('reports the plan with a null expiry when the platform has none (Android)', () => {
-    const result = entitlementFromActiveSubscriptions([
-      { productId: YEARLY_PRODUCT_ID, isActive: true },
-    ]);
-    expect(result).toEqual({ isPro: true, plan: 'yearly', expiry: null });
+  it('compares a year against twelve months', () => {
+    expect(yearlySavingsPercent(49, 490)).toBe(17);
+    expect(yearlySavingsPercent(0, 490)).toBe(0);
+    expect(yearlySavingsPercent(49, 999)).toBe(0);
   });
 });

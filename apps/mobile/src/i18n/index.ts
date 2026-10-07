@@ -3958,35 +3958,50 @@ export interface UiStrings {
     whatWouldCost: string;
     whatNeverWill: string;
     whatNeverWillBody: string;
+    plansTitle: string;
+    plansBody: string;
+    seePlans: string;
+    onPlan: string;
+    plansPromise: string;
+    whatCosts: string;
   };
   /**
-   * The paywall (`/paywall`, behind the `paywall` route flag): two Pro plans
-   * priced from the store, a free trial on the yearly one, and the
-   * restore-purchases row both app stores require.
+   * The paywall (`/paywall`, behind the `paywall` route flag): Plus and Pro
+   * cards priced from the store through RevenueCat, a monthly/yearly switch
+   * once yearly plans exist, and the restore-purchases row both stores require.
    */
   paywall: {
     title: string;
-    yearlyTitle: string;
-    yearlyBadge: string;
-    /** The yearly plan card's cadence suffix, beside its price — "/yr". */
-    perYear: string;
-    /** The monthly plan card's cadence suffix, beside its price — "/mo". */
+    plusTitle: string;
+    proTitle: string;
+    plusTagline: string;
+    proTagline: string;
+    proBadge: string;
+    featureScans: string;
+    featureDevices: string;
+    featureTransfers: string;
+    featureEverythingPlus: string;
+    featureVoice: string;
     perMonth: string;
-    perMonthEquivalent: string;
-    monthlyTitle: string;
-    monthlySubtitle: string;
-    trialLine: string;
-    noTrialLine: string;
-    approxNote: string;
+    perYear: string;
+    monthlyTab: string;
+    yearlyTab: string;
+    yearlySave: string;
+    renewNote: string;
+    loading: string;
+    unavailable: string;
+    retry: string;
     subscribe: string;
     subscribing: string;
+    currentPlan: string;
+    alreadySubscribed: string;
+    purchased: string;
     restore: string;
     restoring: string;
     restoredSuccess: string;
     restoredNothing: string;
     purchasePending: string;
     genericError: string;
-    alreadySubscribed: string;
     terms: string;
     privacy: string;
   };
@@ -7778,28 +7793,46 @@ const en: UiStrings = {
     whatNeverWill: 'What never will',
     whatNeverWillBody:
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
+    plansTitle: 'Waves Plus and Pro',
+    plansBody:
+      'More scans, bigger transfers and, on Pro, the advanced AI voice. The ledger stays free.',
+    seePlans: 'See plans',
+    onPlan: 'You are on Waves {plan}',
+    plansPromise: 'The ledger is never locked.',
+    whatCosts: 'What the plans add',
   },
   paywall: {
     title: 'Choose your plan',
-    yearlyTitle: 'Yearly',
-    yearlyBadge: '{months} months free',
-    perYear: '/yr',
+    plusTitle: 'Plus',
+    proTitle: 'Pro',
+    plusTagline: 'The paid features, without AI voice',
+    proTagline: 'Everything in Waves, including advanced AI voice',
+    proBadge: 'Everything',
+    featureScans: '{scans} receipt scans a month',
+    featureDevices: 'Signed in on up to {devices} devices',
+    featureTransfers: 'Bigger exports, imports and backups',
+    featureEverythingPlus: 'Everything in Plus',
+    featureVoice: 'Advanced AI voice: {commands} commands a month',
     perMonth: '/mo',
-    perMonthEquivalent: '≈ {price} / month',
-    monthlyTitle: 'Monthly',
-    monthlySubtitle: 'Billed monthly',
-    trialLine: '{days}-day free trial, then {price} billed yearly. Cancel anytime.',
-    noTrialLine: '{price} billed every month. Cancel anytime.',
-    approxNote: 'Approximate — the store shows the exact price at checkout.',
-    subscribe: 'Subscribe',
+    perYear: '/yr',
+    monthlyTab: 'Monthly',
+    yearlyTab: 'Yearly',
+    yearlySave: 'Save {percent}%',
+    renewNote: 'Renews automatically until you cancel. Cancel anytime in your app store account.',
+    loading: 'Loading prices…',
+    unavailable: 'Plans could not be loaded. Check your connection and try again.',
+    retry: 'Try again',
+    subscribe: 'Get {plan}',
     subscribing: 'Subscribing…',
+    currentPlan: 'Current plan',
+    alreadySubscribed: 'You are on Waves {plan}.',
+    purchased: 'Welcome to Waves {plan}.',
     restore: 'Restore purchases',
     restoring: 'Restoring…',
     restoredSuccess: 'Your purchase was restored.',
     restoredNothing: 'No previous purchase was found on this account.',
     purchasePending: 'Your purchase is pending approval. It unlocks as soon as it clears.',
     genericError: 'That did not go through. Try again in a moment.',
-    alreadySubscribed: 'You are already on Waves Pro.',
     terms: 'Terms',
     privacy: 'Privacy',
   },
@@ -11710,29 +11743,47 @@ const ta: UiStrings = {
     whatNeverWill: 'எதற்கு ஒருபோதும் இல்லை',
     whatNeverWillBody:
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
+    plansTitle: 'Waves Plus மற்றும் Pro',
+    plansBody:
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், Pro-வில் மேம்பட்ட AI குரல். கணக்கேடு இலவசமாகவே இருக்கும்.',
+    seePlans: 'திட்டங்களைப் பார்',
+    onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
+    plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
+    whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
-    yearlyTitle: 'வருடாந்திரம்',
-    yearlyBadge: '{months} மாதங்கள் இலவசம்',
-    perYear: '/ஆண்டு',
+    plusTitle: 'Plus',
+    proTitle: 'Pro',
+    plusTagline: 'கட்டண அம்சங்கள், AI குரல் இல்லாமல்',
+    proTagline: 'Waves-இல் அனைத்தும், மேம்பட்ட AI குரல் உட்பட',
+    proBadge: 'அனைத்தும்',
+    featureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
+    featureDevices: '{devices} சாதனங்கள் வரை உள்நுழைவு',
+    featureTransfers: 'பெரிய ஏற்றுமதிகள், இறக்குமதிகள், காப்புப் பிரதிகள்',
+    featureEverythingPlus: 'Plus-இல் உள்ள அனைத்தும்',
+    featureVoice: 'மேம்பட்ட AI குரல்: மாதத்திற்கு {commands} கட்டளைகள்',
     perMonth: '/மாதம்',
-    perMonthEquivalent: '≈ {price} / மாதம்',
-    monthlyTitle: 'மாதாந்திரம்',
-    monthlySubtitle: 'மாதந்தோறும் கட்டணம்',
-    trialLine:
-      '{days} நாள் இலவச சோதனை, பிறகு வருடத்திற்கு {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
-    noTrialLine: 'மாதந்தோறும் {price} கட்டணம். எப்போதும் ரத்து செய்யலாம்.',
-    approxNote: 'தோராயமானது — சரியான விலையை கடை செக்அவுட்டில் காட்டும்.',
-    subscribe: 'சந்தா செய்யுங்கள்',
+    perYear: '/ஆண்டு',
+    monthlyTab: 'மாதாந்திரம்',
+    yearlyTab: 'வருடாந்திரம்',
+    yearlySave: '{percent}% சேமிப்பு',
+    renewNote:
+      'நீங்கள் ரத்து செய்யும் வரை தானாகப் புதுப்பிக்கப்படும். உங்கள் ஆப் ஸ்டோர் கணக்கில் எப்போதும் ரத்து செய்யலாம்.',
+    loading: 'விலைகள் ஏற்றப்படுகின்றன…',
+    unavailable: 'திட்டங்களை ஏற்ற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
+    retry: 'மீண்டும் முயற்சி',
+    subscribe: '{plan} பெறுக',
     subscribing: 'சந்தா செய்கிறது…',
+    currentPlan: 'தற்போதைய திட்டம்',
+    alreadySubscribed: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்.',
+    purchased: 'Waves {plan}-க்கு வரவேற்கிறோம்.',
     restore: 'வாங்கியதை மீட்டமைக்கவும்',
     restoring: 'மீட்டமைக்கிறது…',
     restoredSuccess: 'உங்கள் வாங்குதல் மீட்டமைக்கப்பட்டது.',
     restoredNothing: 'இந்தக் கணக்கில் முந்தைய வாங்குதல் எதுவும் கிடைக்கவில்லை.',
     purchasePending: 'உங்கள் வாங்குதல் ஒப்புதலுக்காக நிலுவையில் உள்ளது. அது தீர்ந்ததும் திறக்கும்.',
     genericError: 'அது முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
-    alreadySubscribed: 'நீங்கள் ஏற்கெனவே Waves Pro-வில் உள்ளீர்கள்.',
     terms: 'விதிமுறைகள்',
     privacy: 'தனியுரிமை',
   },
@@ -15526,28 +15577,45 @@ const hi: UiStrings = {
     whatNeverWill: 'किसके कभी नहीं',
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
+    plansTitle: 'Waves Plus और Pro',
+    plansBody: 'ज़्यादा स्कैन, बड़े ट्रांसफ़र और Pro पर एडवांस्ड AI वॉइस। लेजर मुफ़्त ही रहेगा।',
+    seePlans: 'प्लान देखें',
+    onPlan: 'आप Waves {plan} पर हैं',
+    plansPromise: 'लेजर कभी लॉक नहीं होता।',
+    whatCosts: 'प्लान में क्या जुड़ता है',
   },
   paywall: {
     title: 'अपना प्लान चुनें',
-    yearlyTitle: 'सालाना',
-    yearlyBadge: '{months} महीने मुफ़्त',
-    perYear: '/वर्ष',
+    plusTitle: 'Plus',
+    proTitle: 'Pro',
+    plusTagline: 'पेड फ़ीचर, AI वॉइस के बिना',
+    proTagline: 'Waves में सब कुछ, एडवांस्ड AI वॉइस समेत',
+    proBadge: 'सब कुछ',
+    featureScans: 'हर महीने {scans} रसीद स्कैन',
+    featureDevices: '{devices} डिवाइस तक साइन इन',
+    featureTransfers: 'बड़े एक्सपोर्ट, इम्पोर्ट और बैकअप',
+    featureEverythingPlus: 'Plus की हर चीज़',
+    featureVoice: 'एडवांस्ड AI वॉइस: हर महीने {commands} कमांड',
     perMonth: '/महीना',
-    perMonthEquivalent: '≈ {price} / महीना',
-    monthlyTitle: 'मासिक',
-    monthlySubtitle: 'हर महीने बिल होगा',
-    trialLine: '{days} दिन का मुफ़्त ट्रायल, फिर सालाना {price} बिल होगा। कभी भी रद्द करें।',
-    noTrialLine: 'हर महीने {price} बिल होगा। कभी भी रद्द करें।',
-    approxNote: 'अनुमानित — सही कीमत स्टोर चेकआउट पर दिखेगी।',
-    subscribe: 'सब्सक्राइब करें',
+    perYear: '/वर्ष',
+    monthlyTab: 'मासिक',
+    yearlyTab: 'वार्षिक',
+    yearlySave: '{percent}% बचत',
+    renewNote: 'रद्द करने तक अपने-आप रिन्यू होता है। अपने ऐप स्टोर खाते में कभी भी रद्द करें।',
+    loading: 'कीमतें लोड हो रही हैं…',
+    unavailable: 'प्लान लोड नहीं हो सके। कनेक्शन जाँचें और फिर कोशिश करें।',
+    retry: 'फिर कोशिश करें',
+    subscribe: '{plan} लें',
     subscribing: 'सब्सक्राइब हो रहा है…',
+    currentPlan: 'मौजूदा प्लान',
+    alreadySubscribed: 'आप Waves {plan} पर हैं।',
+    purchased: 'Waves {plan} में आपका स्वागत है।',
     restore: 'खरीदारी वापस लाएँ',
     restoring: 'वापस लाया जा रहा है…',
     restoredSuccess: 'आपकी खरीदारी वापस लाई गई।',
     restoredNothing: 'इस खाते पर कोई पुरानी खरीदारी नहीं मिली।',
     purchasePending: 'आपकी खरीदारी मंज़ूरी के लिए लंबित है। मंज़ूर होते ही यह खुल जाएगी।',
     genericError: 'यह नहीं हो पाया। कुछ देर में फिर से कोशिश करें।',
-    alreadySubscribed: 'आप पहले से ही Waves Pro पर हैं।',
     terms: 'शर्तें',
     privacy: 'निजता',
   },
@@ -19827,28 +19895,45 @@ const ar: UiStrings = {
     whatNeverWill: 'وما لن يكلّف أبدًا',
     whatNeverWillBody:
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
+    plansTitle: 'Waves Plus وPro',
+    plansBody: 'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم في Pro. يبقى السجل مجانيًا.',
+    seePlans: 'عرض الخطط',
+    onPlan: 'أنت على Waves {plan}',
+    plansPromise: 'السجل لا يُقفل أبدًا.',
+    whatCosts: 'ما تضيفه الخطط',
   },
   paywall: {
     title: 'اختر خطتك',
-    yearlyTitle: 'سنويًا',
-    yearlyBadge: '{months} أشهر مجانًا',
-    perYear: '/سنة',
+    plusTitle: 'Plus',
+    proTitle: 'Pro',
+    plusTagline: 'الميزات المدفوعة، بدون الصوت الذكي',
+    proTagline: 'كل شيء في Waves، بما فيه الصوت الذكي المتقدّم',
+    proBadge: 'كل شيء',
+    featureScans: '{scans} مسحًا للإيصالات شهريًا',
+    featureDevices: 'تسجيل الدخول على ما يصل إلى {devices} أجهزة',
+    featureTransfers: 'تصدير واستيراد ونسخ احتياطي أكبر',
+    featureEverythingPlus: 'كل ما في Plus',
+    featureVoice: 'الصوت الذكي المتقدّم: {commands} أمرًا شهريًا',
     perMonth: '/شهر',
-    perMonthEquivalent: '≈ {price} / شهريًا',
-    monthlyTitle: 'شهريًا',
-    monthlySubtitle: 'تُحصَّل شهريًا',
-    trialLine: 'تجربة مجانية لمدة {days} أيام، ثم {price} سنويًا. يمكنك الإلغاء في أي وقت.',
-    noTrialLine: '{price} شهريًا. يمكنك الإلغاء في أي وقت.',
-    approxNote: 'تقريبي — سيظهر السعر الدقيق عند الدفع في المتجر.',
-    subscribe: 'اشترك',
+    perYear: '/سنة',
+    monthlyTab: 'شهري',
+    yearlyTab: 'سنوي',
+    yearlySave: 'وفّر {percent}%',
+    renewNote: 'يتجدد تلقائيًا حتى تلغيه. يمكنك الإلغاء في أي وقت من حساب متجر التطبيقات.',
+    loading: 'جارٍ تحميل الأسعار…',
+    unavailable: 'تعذّر تحميل الخطط. تحقّق من الاتصال وحاول مجددًا.',
+    retry: 'حاول مجددًا',
+    subscribe: 'احصل على {plan}',
     subscribing: 'جارٍ الاشتراك…',
+    currentPlan: 'خطتك الحالية',
+    alreadySubscribed: 'أنت على Waves {plan}.',
+    purchased: 'مرحبًا بك في Waves {plan}.',
     restore: 'استرجاع عمليات الشراء',
     restoring: 'جارٍ الاسترجاع…',
     restoredSuccess: 'تم استرجاع عملية الشراء.',
     restoredNothing: 'لم يُعثر على عملية شراء سابقة على هذا الحساب.',
     purchasePending: 'عملية الشراء في انتظار الموافقة. ستُفعَّل بمجرد اكتمالها.',
     genericError: 'لم تنجح العملية. حاول مرة أخرى بعد قليل.',
-    alreadySubscribed: 'أنت مشترك بالفعل في Waves Pro.',
     terms: 'الشروط',
     privacy: 'الخصوصية',
   },

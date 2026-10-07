@@ -27,6 +27,7 @@ import { cancelNudges } from './captureNudge/schedule';
 import { clearCaptureNudge } from './captureNudge/settings';
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
+import { syncPurchasesUser } from './purchases';
 import { claimCode } from './oauthClaim';
 import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
@@ -539,6 +540,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // enough to tell one person hitting a bug fifty times from fifty people.
   useEffect(() => {
     identifyForReporting(currentUserId);
+  }, [currentUserId]);
+
+  // RevenueCat's app user id is the profile id, so the subscription webhook
+  // writes `subscriptions` for the right person. A no-op on a build without a
+  // RevenueCat key.
+  useEffect(() => {
+    void syncPurchasesUser(currentUserId);
   }, [currentUserId]);
 
   // Silent, and only when permission already exists — a push token can change

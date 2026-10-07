@@ -384,6 +384,12 @@ verify_jwt = false
 [functions.otp-send]
 verify_jwt = false
 
+# RevenueCat's subscription webhook. The caller is RevenueCat, which has no
+# Supabase session; the Authorization header carries REVENUECAT_WEBHOOK_SECRET
+# instead and is checked before the body is read.
+[functions.revenuecat-webhook]
+verify_jwt = false
+
 # `voice-stream` is the live-transcription relay: a WebSocket. Browsers and
 # React Native cannot set an Authorization header on the upgrade, so the app
 # sends its access token as a `jwt-<token>` subprotocol and the function checks
