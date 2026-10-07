@@ -58,6 +58,7 @@ export const LIMITS = {
    * a stuck retry loop spending a month of commands in seconds.
    */
   'voice-agent': { limit: 10, windowSeconds: 60 },
+  'voice-stream-token': { limit: 12, windowSeconds: 60 },
   /**
    * Erasing an account: rare, idempotent, and a caller only ever does it to
    * their own. The cap is a fuse on the admin API behind it, so a stuck

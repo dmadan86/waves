@@ -291,3 +291,33 @@ describe('LLM provider chain', () => {
     expect(urls.filter((u) => u.includes('deepseek'))).toHaveLength(2);
   });
 });
+
+describe('text mode (live stream transcript)', () => {
+  it('skips Deepgram and asks the model with the given transcript', async () => {
+    const urls: string[] = [];
+    const { deps } = makeDeps({
+      env: { DEEPGRAM_API_KEY: '' },
+      fetchImpl: async (url) => {
+        urls.push(url);
+        return claude({ name: 'add_expense', input: goodExpense });
+      },
+    });
+    const response = await handleVoiceAgent(
+      new Request('https://x/voice-agent', {
+        method: 'POST',
+        body: JSON.stringify({
+          schemaVersion: 1,
+          transcript: 'I paid 1200 for dinner with Anu',
+          locale: 'en',
+          today: '2026-10-07',
+          groupId: 'g1',
+        }),
+      }),
+      deps,
+    );
+    const body = (await response.json()) as { transcript: string; actions: unknown[] };
+    expect(body.transcript).toBe('I paid 1200 for dinner with Anu');
+    expect(body.actions).toHaveLength(1);
+    expect(urls.some((u) => u.includes('deepgram'))).toBe(false);
+  });
+});

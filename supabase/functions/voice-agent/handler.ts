@@ -113,6 +113,9 @@ export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
   return ordered.slice(0, 3);
 }
 
+/** A spoken command is a sentence or two; anything longer is not one. */
+const MAX_TRANSCRIPT_CHARS = 2000;
+
 /** ~12 MB of audio. A 60 s clip is a fraction of this in any accepted format. */
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 
@@ -153,13 +156,18 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
 
   const deepgramKey = deps.env('DEEPGRAM_API_KEY');
   const chain = llmChain(deps.env);
-  if (!deepgramKey || chain.length === 0) throw unavailable('Advanced voice is not configured');
+  // Text from the app's live stream needs no Deepgram here; a clip does.
+  const spoken = body.transcript?.trim() ?? '';
+  if ((!spoken && !deepgramKey) || chain.length === 0) {
+    throw unavailable('Advanced voice is not configured');
+  }
 
   await deps.rateLimit(profileId);
 
   if (
-    body.durationMs > VOICE_AGENT_MAX_CLIP_MS ||
-    body.audioBase64.length * 0.75 > MAX_AUDIO_BYTES
+    !spoken &&
+    ((body.durationMs ?? 0) > VOICE_AGENT_MAX_CLIP_MS ||
+      (body.audioBase64?.length ?? 0) * 0.75 > MAX_AUDIO_BYTES)
   ) {
     throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
   }
@@ -178,7 +186,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
 
   try {
     const context = await loadContext(deps.caller, profileId, body);
-    const transcript = await transcribe(deps, deepgramKey, body, context);
+    const transcript = spoken || (await transcribe(deps, deepgramKey as string, body, context));
     if (!transcript) {
       throw new HttpError(422, VoiceAgentError.NothingHeard, 'Nothing was heard');
     }
@@ -247,19 +255,24 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
 
 function parseBody(raw: unknown): VoiceAgentRequest {
   const b = raw as Partial<VoiceAgentRequest> | null;
+  const textMode =
+    typeof b?.transcript === 'string' &&
+    b.transcript.trim().length > 0 &&
+    b.transcript.length <= MAX_TRANSCRIPT_CHARS;
+  const audioMode =
+    typeof b?.audioBase64 === 'string' &&
+    b.audioBase64.length > 0 &&
+    typeof b.mimeType === 'string' &&
+    typeof b.durationMs === 'number' &&
+    Number.isFinite(b.durationMs) &&
+    b.durationMs > 0;
   if (
     !b ||
     b.schemaVersion !== VOICE_AGENT_SCHEMA_VERSION ||
-    typeof b.audioBase64 !== 'string' ||
-    b.audioBase64.length === 0 ||
-    typeof b.mimeType !== 'string' ||
-    typeof b.durationMs !== 'number' ||
-    !Number.isFinite(b.durationMs) ||
-    b.durationMs <= 0 ||
+    !(textMode || audioMode) ||
     typeof b.locale !== 'string' ||
     typeof b.today !== 'string' ||
     !/^\d{4}-\d{2}-\d{2}$/.test(b.today) ||
-    (b.deviceTranscript !== undefined && typeof b.deviceTranscript !== 'string') ||
     (b.followUp !== undefined &&
       (typeof b.followUp?.transcript !== 'string' || typeof b.followUp?.question !== 'string'))
   ) {
@@ -269,7 +282,7 @@ function parseBody(raw: unknown): VoiceAgentRequest {
 }
 
 /** The caller's groups, members and balances, read as the caller (RLS-scoped). */
-async function loadContext(
+export async function loadContext(
   caller: SupabaseClient,
   profileId: string,
   body: VoiceAgentRequest,
@@ -327,14 +340,14 @@ async function transcribe(
 ): Promise<string> {
   let audio: Uint8Array;
   try {
-    const binary = atob(body.audioBase64);
+    const binary = atob(body.audioBase64 ?? '');
     audio = Uint8Array.from(binary, (c) => c.charCodeAt(0));
   } catch {
     throw new HttpError(400, 'BAD_REQUEST', 'Audio is not valid base64');
   }
   const response = await deps.fetch(deepgramUrl(body.locale, keyterms(context)), {
     method: 'POST',
-    headers: { Authorization: `Token ${key}`, 'Content-Type': body.mimeType },
+    headers: { Authorization: `Token ${key}`, 'Content-Type': body.mimeType ?? 'audio/wav' },
     body: new Blob([audio]),
   });
   if (!response.ok) {

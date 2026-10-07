@@ -581,3 +581,26 @@ export function userMessage(input: {
   lines.push(input.cloud.trim());
   return lines.join('\n');
 }
+
+/** The live (WebSocket) transcription URL for the app's stream: raw 16 kHz mono
+ *  PCM in, interim results back, the same model, language, formatting and
+ *  keyterms as the pre-recorded path. */
+export function deepgramStreamUrl(locale: string, terms: readonly string[]): string {
+  const params = new URLSearchParams({
+    model: 'nova-3',
+    language: deepgramLanguage(locale),
+    encoding: 'linear16',
+    sample_rate: '16000',
+    channels: '1',
+    interim_results: 'true',
+    smart_format: 'true',
+    punctuate: 'true',
+    numerals: 'true',
+    // A short pause marks a phrase final; the app still decides when the
+    // command ends (the person lets go of the mic).
+    endpointing: '300',
+    mip_opt_out: 'true',
+  });
+  for (const t of terms) params.append('keyterm', t);
+  return `wss://api.deepgram.com/v1/listen?${params.toString()}`;
+}
