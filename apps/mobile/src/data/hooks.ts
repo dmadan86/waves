@@ -2860,6 +2860,11 @@ export function useOpenReceipts(groupId: string) {
  * plain flag stays off. Unknown or failed reads as off — the basic voice path.
  */
 export function useVoiceAgentEnabled(): boolean {
+  return useVoiceAgentStatus().enabled;
+}
+
+/** `enabled` plus whether the answer is known yet (a pending read is not "off"). */
+export function useVoiceAgentStatus(): { enabled: boolean; ready: boolean } {
   const { profile } = useAuth();
   const query = useQuery({
     queryKey: ['voiceAgentEnabled', profile?.id ?? null],
@@ -2871,7 +2876,7 @@ export function useVoiceAgentEnabled(): boolean {
     enabled: !!profile?.id,
     staleTime: 10 * 60_000,
   });
-  return query.data === true;
+  return { enabled: query.data === true, ready: !profile?.id || !query.isPending };
 }
 
 export function useVoiceAccess() {

@@ -38,11 +38,22 @@ import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/di
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 import {
+  checkOnline,
   getStreamToken,
   prefetchStreamToken,
   startLiveTranscription,
+  streamingAvailable,
   type LiveTranscription,
 } from '@/lib/voiceStream';
+import { pushToTalk } from '@/lib/pushToTalk';
+import {
+  CLOUD,
+  planMicStart,
+  resolveEngine,
+  type MicStartPlan,
+  type VoiceEngineInfo,
+} from '@/lib/voiceEnginePure';
+import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VOICE_AGENT_MAX_CLIP_MS } from '@waves/core';
 
 const MIC_SIZE = 104;
@@ -86,8 +97,6 @@ const MAX_LISTEN_MS = 9500;
  * A streamed sentence ends the way the recogniser's own endpointing would: this
  * long after the last word, or — if nothing is said at all — after this long.
  */
-const STREAM_SILENCE_MS = 2200;
-const STREAM_FIRST_WORD_MS = 8000;
 const HARD_STOP_MS = 1800;
 
 /** How soon after our own stop an audio error is taken as that stop's echo. */
@@ -434,6 +443,13 @@ export interface VoiceCaptureProps {
    * recogniser, exactly as when this is off.
    */
   streamLive?: boolean;
+  /**
+   * Whether `streamLive` is settled. While the entitlement is still loading the
+   * mic waits briefly for it rather than starting on the on-device engine.
+   */
+  agentReady?: boolean;
+  /** Told which engine is in use (and why, when it is the on-device one). */
+  onEngine?: (info: VoiceEngineInfo) => void;
   /** The group the mic was opened from — a hint for the stream's name keyterms. */
   groupId?: string | null;
   /** Names to bias the recogniser towards — group and member names. */
@@ -555,6 +571,8 @@ export function VoiceCapture({
   endSignal = null,
   onEndConsumed,
   streamLive = false,
+  agentReady = true,
+  onEngine,
   groupId = null,
 }: VoiceCaptureProps) {
   const theme = useTheme();
@@ -564,6 +582,29 @@ export function VoiceCapture({
   const [available] = useState(recognitionAvailable);
   const [listening, setListening] = useState(false);
   const [live, setLive] = useState('');
+  // Which engine hears the mic. null until it is known (the entitlement may
+  // still be loading); the start decides it and every start refreshes it.
+  const [micEngine, setMicEngineState] = useState<VoiceEngineInfo | null>(null);
+  // The latest entitlement, read when the mic actually opens: the auto-start on
+  // mount captured whatever the first render held, which is how a tap could open
+  // on the on-device engine before the flag had loaded.
+  const streamLiveRef = useRef(streamLive);
+  const agentReadyRef = useRef(agentReady);
+  const onEngineRef = useRef(onEngine);
+  useEffect(() => {
+    streamLiveRef.current = streamLive;
+    agentReadyRef.current = agentReady;
+    onEngineRef.current = onEngine;
+  });
+  const reportEngine = useCallback((info: VoiceEngineInfo): void => {
+    setMicEngineState(info);
+    onEngineRef.current?.(info);
+  }, []);
+  // How the live sentence ends, decided at the start (tap: silence; hold: release).
+  const endRules = useRef<Pick<MicStartPlan, 'silenceMs' | 'firstWordMs'>>({
+    silenceMs: null,
+    firstWordMs: null,
+  });
   const [error, setError] = useState<string | null>(null);
   // The error on show is a refused permission, so Settings is the cure and the
   // panel offers a button for it. Every other error is just text: tapping
@@ -836,7 +877,15 @@ export function VoiceCapture({
 
   // Fetch the stream's token while the screen opens, not on the press.
   useEffect(() => {
-    if (streamLive) prefetchStreamToken({ groupId, locale });
+    if (!streamLive) return;
+    let alive = true;
+    // Offline: skip the round trip, the start goes straight to on-device.
+    void checkOnline().then((online) => {
+      if (alive && online) prefetchStreamToken({ groupId, locale });
+    });
+    return () => {
+      alive = false;
+    };
   }, [streamLive, groupId, locale]);
 
   /** Try to open the stream. False means "use the on-device recogniser". */
@@ -853,7 +902,8 @@ export function VoiceCapture({
     const hear = (text: string): void => {
       latest.current = text;
       setLive(text);
-      if (text.trim()) armSilence(STREAM_SILENCE_MS);
+      const { silenceMs } = endRules.current;
+      if (text.trim() && silenceMs !== null) armSilence(silenceMs);
     };
     const live = await startLiveTranscription(token, {
       onInterim: hear,
@@ -881,7 +931,7 @@ export function VoiceCapture({
     }
     stream.current = live;
     starting.current = false;
-    armSilence(STREAM_FIRST_WORD_MS);
+    if (endRules.current.firstWordMs !== null) armSilence(endRules.current.firstWordMs);
     streamMax.current = setTimeout(() => void finishStreamRef.current(), VOICE_AGENT_MAX_CLIP_MS);
     // The finger lifted while the stream was opening.
     if (pendingEnd.current !== null) {
@@ -958,7 +1008,37 @@ export function VoiceCapture({
       // Advanced voice: stream to Deepgram. A token we cannot get (offline, 503,
       // 429) or a stream that will not open drops straight to the on-device
       // recogniser below, unchanged.
-      if (streamLive && (await beginStream())) return;
+      // Tap, hold, retry and auto-start all come through here, so none of them
+      // can pick a different engine. The entitlement is read now, not from the
+      // render this start was created in; a flag still loading is waited for.
+      for (let waited = 0; !agentReadyRef.current && waited < 1500; waited += 50) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      }
+      if (!mounted.current) return give();
+      const online = streamLiveRef.current ? await checkOnline() : true;
+      if (!mounted.current) return give();
+      const plan = planMicStart({
+        enabled: streamLiveRef.current,
+        online,
+        held: pushToTalk.getSnapshot().holding,
+        streamAvailable: streamingAvailable(),
+      });
+      endRules.current = plan;
+      if (plan.stream) {
+        if (await beginStream()) {
+          reportEngine(CLOUD);
+          return;
+        }
+        // The token, the socket or the mic would not open: carry on locally.
+        reportEngine(
+          resolveEngine({
+            enabled: true,
+            online: await checkOnline(),
+            streamOk: false,
+            streamAvailable: streamingAvailable(),
+          }),
+        );
+      } else if (plan.fallback) reportEngine(plan.fallback);
       if (!mounted.current) return give();
       // A push-to-talk cancel that landed while the token was in flight.
       const endedEarly = pendingEnd.current as 'send' | 'cancel' | null;
@@ -1098,7 +1178,7 @@ export function VoiceCapture({
       beginStream,
       session,
       stopListening,
-      streamLive,
+      reportEngine,
       t,
     ],
   );
@@ -1401,6 +1481,7 @@ export function VoiceCapture({
           </Text>
         </Pressable>
         {listening && !reduceMotion ? <Waveform active={listening} level={level} /> : null}
+        <VoiceEngineBadge info={micEngine} />
       </View>
 
       {/* Things to say, under the wave: three sentences that each show one
