@@ -21,7 +21,7 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
-import { useSettledTotals } from '@/data/hooks';
+import { useSettledTotals, useVoiceAgentEnabled } from '@/data/hooks';
 import { useDemoActive } from '@/demo/useDemoActive';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
@@ -162,6 +162,7 @@ function ProfileForm() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { session, profile, isGuest, signOut } = useAuth();
+  const showVoiceRecorder = useVoiceAgentEnabled() || __DEV__;
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
   // accounts have a null `avatar_url` and so showed initials here. Fall back to
@@ -386,6 +387,17 @@ function ProfileForm() {
               hint: t.offlineVoice.rowHint,
               route: '/settings/offline-voice',
             },
+            // Testers only: the server flag for advanced voice, or a dev build.
+            ...(showVoiceRecorder
+              ? [
+                  {
+                    icon: 'recording-outline' as const,
+                    label: t.voiceRecorder.row,
+                    hint: t.voiceRecorder.rowHint,
+                    route: '/settings/voice-recorder' as const,
+                  },
+                ]
+              : []),
             {
               icon: 'watch-outline',
               label: t.recent.title,

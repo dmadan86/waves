@@ -1286,6 +1286,60 @@ export interface UiStrings {
     agentUnknownGroup: string;
     agentUnknownPerson: string;
   };
+  voiceRecorder: {
+    row: string;
+    rowHint: string;
+    title: string;
+    consentTitle: string;
+    consentBody: string;
+    consentNames: string;
+    consentAgree: string;
+    labelField: string;
+    labelPlaceholder: string;
+    backgroundField: string;
+    accentField: string;
+    bgEnglish: string;
+    bgTamil: string;
+    bgHindi: string;
+    bgArabic: string;
+    bgOther: string;
+    accentIndian: string;
+    accentSouthIndian: string;
+    accentNorthIndian: string;
+    accentGulf: string;
+    accentBritish: string;
+    accentAmerican: string;
+    accentOther: string;
+    startSession: string;
+    resumeSession: string;
+    newSession: string;
+    progress: string;
+    tapToRecord: string;
+    tapToStop: string;
+    listening: string;
+    saving: string;
+    next: string;
+    reRecord: string;
+    skip: string;
+    finish: string;
+    allDone: string;
+    shareRecordings: string;
+    deleteAll: string;
+    deleteTitle: string;
+    deleteBody: string;
+    deleteConfirm: string;
+    cancel: string;
+    sharing: string;
+    shareUnavailable: string;
+    shareFailed: string;
+    unavailable: string;
+    micDenied: string;
+    noSpeech: string;
+    onDeviceOn: string;
+    onDeviceOff: string;
+    saved: string;
+    traps: string;
+  };
   /**
    * The on-device speech models, and the one screen that manages them.
    *
@@ -5501,6 +5555,62 @@ const en: UiStrings = {
     agentUnknownGroup: 'Unknown group',
     agentUnknownPerson: 'Unknown person',
   },
+  voiceRecorder: {
+    row: 'Voice test recorder',
+    rowHint: 'Record test sentences to help improve recognition',
+    title: 'Voice test recorder',
+    consentTitle: 'Before you start',
+    consentBody:
+      'You will read about 40 short sentences aloud. Each one is saved as an audio file on this phone only. Nothing is uploaded: the recordings leave this phone only if you choose Share recordings at the end. They are used only to improve how well Waves recognises names and amounts.',
+    consentNames:
+      'Some sentences use the names of people in your own groups, so the recordings and the list of sentences will contain those names. Share them only with the team running the test.',
+    consentAgree: 'I understand, continue',
+    labelField: 'Speaker label',
+    labelPlaceholder: 'e.g. Madan · Tamil · Bangalore',
+    backgroundField: 'Language background (optional)',
+    accentField: 'Accent (optional)',
+    bgEnglish: 'English',
+    bgTamil: 'Tamil',
+    bgHindi: 'Hindi',
+    bgArabic: 'Arabic',
+    bgOther: 'Other',
+    accentIndian: 'Indian',
+    accentSouthIndian: 'South Indian',
+    accentNorthIndian: 'North Indian',
+    accentGulf: 'Gulf',
+    accentBritish: 'British',
+    accentAmerican: 'American',
+    accentOther: 'Other',
+    startSession: 'Start recording',
+    resumeSession: 'Continue session',
+    newSession: 'Start a new session',
+    progress: '{n} / {total}',
+    tapToRecord: 'Tap to record',
+    tapToStop: 'Tap to stop',
+    listening: 'Listening. Stops after 2 seconds of silence.',
+    saving: 'Saving…',
+    next: 'Next',
+    reRecord: 'Re-record',
+    skip: 'Skip',
+    finish: 'Finish',
+    allDone: 'All done. Thank you!',
+    shareRecordings: 'Share recordings',
+    deleteAll: 'Delete all recordings',
+    deleteTitle: 'Delete all recordings?',
+    deleteBody: 'Every recording on this phone is removed. This cannot be undone.',
+    deleteConfirm: 'Delete',
+    cancel: 'Cancel',
+    sharing: 'Preparing…',
+    shareUnavailable: 'Sharing is not available on this phone.',
+    shareFailed: 'Could not share the recordings.',
+    unavailable: 'This build cannot record audio.',
+    micDenied: 'Microphone access is needed to record.',
+    noSpeech: 'Nothing heard. Try again.',
+    onDeviceOn: "This phone's own recogniser also transcribes each take, on the phone.",
+    onDeviceOff: 'This phone cannot transcribe saved audio, so only the audio is kept.',
+    saved: 'Saved',
+    traps: 'Read the sentence exactly as written.',
+  },
   offlineVoice: {
     row: 'Offline voice',
     title: 'Offline voice',
@@ -9222,6 +9332,62 @@ const ta: UiStrings = {
     agentAddMember: '{name}-ஐ {group}-ல் சேர்',
     agentUnknownGroup: 'தெரியாத குழு',
     agentUnknownPerson: 'தெரியாத நபர்',
+  },
+  voiceRecorder: {
+    row: 'குரல் சோதனை பதிவு',
+    rowHint: 'அங்கீகாரத்தை மேம்படுத்த சோதனை வாக்கியங்களைப் பதிவு செய்யுங்கள்',
+    title: 'குரல் சோதனை பதிவு',
+    consentTitle: 'தொடங்குவதற்கு முன்',
+    consentBody:
+      'சுமார் 40 சிறு வாக்கியங்களை உரக்கப் படிப்பீர்கள். ஒவ்வொன்றும் இந்த ஃபோனில் மட்டுமே ஆடியோ கோப்பாகச் சேமிக்கப்படும். எதுவும் பதிவேற்றப்படாது: இறுதியில் "பதிவுகளைப் பகிர்" என்பதைத் தேர்ந்தால் மட்டுமே பதிவுகள் ஃபோனை விட்டு வெளியே செல்லும். பெயர்களையும் தொகைகளையும் Waves நன்கு புரிந்துகொள்ள மட்டுமே இவை பயன்படுத்தப்படும்.',
+    consentNames:
+      'சில வாக்கியங்கள் உங்கள் குழுக்களில் உள்ளவர்களின் பெயர்களைப் பயன்படுத்தும்; எனவே பதிவுகளிலும் வாக்கியப் பட்டியலிலும் அந்தப் பெயர்கள் இருக்கும். சோதனையை நடத்தும் குழுவிடம் மட்டுமே பகிருங்கள்.',
+    consentAgree: 'புரிந்தது, தொடர்க',
+    labelField: 'பேசுபவர் குறிப்பு',
+    labelPlaceholder: 'எ.கா. Madan · Tamil · Bangalore',
+    backgroundField: 'மொழிப் பின்னணி (விருப்பம்)',
+    accentField: 'உச்சரிப்பு (விருப்பம்)',
+    bgEnglish: 'ஆங்கிலம்',
+    bgTamil: 'தமிழ்',
+    bgHindi: 'இந்தி',
+    bgArabic: 'அரபி',
+    bgOther: 'மற்றவை',
+    accentIndian: 'இந்திய',
+    accentSouthIndian: 'தென்னிந்திய',
+    accentNorthIndian: 'வட இந்திய',
+    accentGulf: 'வளைகுடா',
+    accentBritish: 'பிரிட்டிஷ்',
+    accentAmerican: 'அமெரிக்க',
+    accentOther: 'மற்றவை',
+    startSession: 'பதிவைத் தொடங்கு',
+    resumeSession: 'அமர்வைத் தொடர்',
+    newSession: 'புதிய அமர்வைத் தொடங்கு',
+    progress: '{n} / {total}',
+    tapToRecord: 'பதிவு செய்ய தட்டவும்',
+    tapToStop: 'நிறுத்த தட்டவும்',
+    listening: 'கேட்கிறது. 2 விநாடி அமைதிக்குப் பின் நின்றுவிடும்.',
+    saving: 'சேமிக்கிறது…',
+    next: 'அடுத்து',
+    reRecord: 'மீண்டும் பதிவு',
+    skip: 'தவிர்',
+    finish: 'முடி',
+    allDone: 'முடிந்தது. நன்றி!',
+    shareRecordings: 'பதிவுகளைப் பகிர்',
+    deleteAll: 'அனைத்துப் பதிவுகளையும் நீக்கு',
+    deleteTitle: 'அனைத்துப் பதிவுகளையும் நீக்கவா?',
+    deleteBody: 'இந்த ஃபோனில் உள்ள ஒவ்வொரு பதிவும் நீக்கப்படும். இதை மீட்க முடியாது.',
+    deleteConfirm: 'நீக்கு',
+    cancel: 'ரத்து',
+    sharing: 'தயாராகிறது…',
+    shareUnavailable: 'இந்த ஃபோனில் பகிர்வு கிடைக்கவில்லை.',
+    shareFailed: 'பதிவுகளைப் பகிர முடியவில்லை.',
+    unavailable: 'இந்த பதிப்பால் ஆடியோவைப் பதிவு செய்ய முடியாது.',
+    micDenied: 'பதிவு செய்ய மைக்ரோஃபோன் அனுமதி தேவை.',
+    noSpeech: 'எதுவும் கேட்கவில்லை. மீண்டும் முயலவும்.',
+    onDeviceOn: 'ஃபோனின் சொந்த அங்கீகாரியும் ஒவ்வொரு பதிவையும் ஃபோனிலேயே எழுத்தாக்கும்.',
+    onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
+    saved: 'சேமிக்கப்பட்டது',
+    traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   offlineVoice: {
     row: 'ஆஃப்லைன் குரல்',
@@ -13062,6 +13228,62 @@ const hi: UiStrings = {
     agentUnknownGroup: 'अज्ञात ग्रुप',
     agentUnknownPerson: 'अज्ञात व्यक्ति',
   },
+  voiceRecorder: {
+    row: 'वॉइस टेस्ट रिकॉर्डर',
+    rowHint: 'पहचान बेहतर करने के लिए टेस्ट वाक्य रिकॉर्ड करें',
+    title: 'वॉइस टेस्ट रिकॉर्डर',
+    consentTitle: 'शुरू करने से पहले',
+    consentBody:
+      'आप लगभग 40 छोटे वाक्य ज़ोर से पढ़ेंगे। हर एक इसी फ़ोन पर ऑडियो फ़ाइल के रूप में सेव होता है। कुछ भी अपलोड नहीं होता: रिकॉर्डिंग तभी फ़ोन से बाहर जाती है जब आप अंत में "रिकॉर्डिंग शेयर करें" चुनते हैं। इनका उपयोग सिर्फ़ इसलिए होता है कि Waves नाम और रकम बेहतर पहचाने।',
+    consentNames:
+      'कुछ वाक्यों में आपके अपने ग्रुप के लोगों के नाम होते हैं, इसलिए रिकॉर्डिंग और वाक्यों की सूची में वे नाम होंगे। इन्हें सिर्फ़ टेस्ट चलाने वाली टीम के साथ शेयर करें।',
+    consentAgree: 'समझ गया, आगे बढ़ें',
+    labelField: 'बोलने वाले का लेबल',
+    labelPlaceholder: 'जैसे Madan · Tamil · Bangalore',
+    backgroundField: 'भाषा की पृष्ठभूमि (वैकल्पिक)',
+    accentField: 'लहजा (वैकल्पिक)',
+    bgEnglish: 'अंग्रेज़ी',
+    bgTamil: 'तमिल',
+    bgHindi: 'हिन्दी',
+    bgArabic: 'अरबी',
+    bgOther: 'अन्य',
+    accentIndian: 'भारतीय',
+    accentSouthIndian: 'दक्षिण भारतीय',
+    accentNorthIndian: 'उत्तर भारतीय',
+    accentGulf: 'खाड़ी',
+    accentBritish: 'ब्रिटिश',
+    accentAmerican: 'अमेरिकी',
+    accentOther: 'अन्य',
+    startSession: 'रिकॉर्डिंग शुरू करें',
+    resumeSession: 'सत्र जारी रखें',
+    newSession: 'नया सत्र शुरू करें',
+    progress: '{n} / {total}',
+    tapToRecord: 'रिकॉर्ड करने के लिए टैप करें',
+    tapToStop: 'रोकने के लिए टैप करें',
+    listening: 'सुन रहा है। 2 सेकंड की चुप्पी पर रुक जाएगा।',
+    saving: 'सेव हो रहा है…',
+    next: 'आगे',
+    reRecord: 'फिर से रिकॉर्ड करें',
+    skip: 'छोड़ें',
+    finish: 'पूरा करें',
+    allDone: 'हो गया। धन्यवाद!',
+    shareRecordings: 'रिकॉर्डिंग शेयर करें',
+    deleteAll: 'सभी रिकॉर्डिंग हटाएं',
+    deleteTitle: 'सभी रिकॉर्डिंग हटाएं?',
+    deleteBody: 'इस फ़ोन की हर रिकॉर्डिंग हट जाएगी। इसे वापस नहीं लाया जा सकता।',
+    deleteConfirm: 'हटाएं',
+    cancel: 'रद्द करें',
+    sharing: 'तैयार हो रहा है…',
+    shareUnavailable: 'इस फ़ोन पर शेयरिंग उपलब्ध नहीं है।',
+    shareFailed: 'रिकॉर्डिंग शेयर नहीं हो सकीं।',
+    unavailable: 'यह बिल्ड ऑडियो रिकॉर्ड नहीं कर सकता।',
+    micDenied: 'रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति चाहिए।',
+    noSpeech: 'कुछ सुनाई नहीं दिया। फिर कोशिश करें।',
+    onDeviceOn: 'फ़ोन का अपना रिकॉग्नाइज़र भी हर टेक को फ़ोन पर ही टेक्स्ट में बदलता है।',
+    onDeviceOff: 'यह फ़ोन सेव ऑडियो को टेक्स्ट में नहीं बदल सकता, इसलिए सिर्फ़ ऑडियो रखा जाता है।',
+    saved: 'सेव हुआ',
+    traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
+  },
   offlineVoice: {
     row: 'ऑफ़लाइन आवाज़',
     title: 'ऑफ़लाइन आवाज़',
@@ -16843,6 +17065,62 @@ const ar: UiStrings = {
     agentAddMember: 'أضف {name} إلى {group}',
     agentUnknownGroup: 'مجموعة غير معروفة',
     agentUnknownPerson: 'شخص غير معروف',
+  },
+  voiceRecorder: {
+    row: 'مسجّل اختبار الصوت',
+    rowHint: 'سجّل جملًا تجريبية لتحسين التعرّف',
+    title: 'مسجّل اختبار الصوت',
+    consentTitle: 'قبل أن تبدأ',
+    consentBody:
+      'ستقرأ بصوت عالٍ نحو 40 جملة قصيرة. تُحفظ كل جملة كملف صوتي على هذا الهاتف فقط. لا يُرفع شيء: لا تغادر التسجيلات هذا الهاتف إلا إذا اخترت «مشاركة التسجيلات» في النهاية. وتُستخدم فقط لتحسين تعرّف Waves على الأسماء والمبالغ.',
+    consentNames:
+      'تستخدم بعض الجمل أسماء أشخاص من مجموعاتك أنت، لذا ستحتوي التسجيلات وقائمة الجمل على تلك الأسماء. شاركها فقط مع الفريق الذي يُجري الاختبار.',
+    consentAgree: 'فهمت، تابع',
+    labelField: 'تسمية المتحدث',
+    labelPlaceholder: 'مثال: Madan · Tamil · Bangalore',
+    backgroundField: 'الخلفية اللغوية (اختياري)',
+    accentField: 'اللهجة (اختياري)',
+    bgEnglish: 'الإنجليزية',
+    bgTamil: 'التاميلية',
+    bgHindi: 'الهندية',
+    bgArabic: 'العربية',
+    bgOther: 'أخرى',
+    accentIndian: 'هندية',
+    accentSouthIndian: 'جنوب هندية',
+    accentNorthIndian: 'شمال هندية',
+    accentGulf: 'خليجية',
+    accentBritish: 'بريطانية',
+    accentAmerican: 'أمريكية',
+    accentOther: 'أخرى',
+    startSession: 'ابدأ التسجيل',
+    resumeSession: 'تابع الجلسة',
+    newSession: 'ابدأ جلسة جديدة',
+    progress: '{n} / {total}',
+    tapToRecord: 'اضغط للتسجيل',
+    tapToStop: 'اضغط للإيقاف',
+    listening: 'يستمع. يتوقف بعد ثانيتين من الصمت.',
+    saving: 'جارٍ الحفظ…',
+    next: 'التالي',
+    reRecord: 'إعادة التسجيل',
+    skip: 'تخطَّ',
+    finish: 'إنهاء',
+    allDone: 'انتهينا. شكرًا لك!',
+    shareRecordings: 'مشاركة التسجيلات',
+    deleteAll: 'حذف كل التسجيلات',
+    deleteTitle: 'حذف كل التسجيلات؟',
+    deleteBody: 'ستُحذف كل التسجيلات على هذا الهاتف ولا يمكن التراجع.',
+    deleteConfirm: 'حذف',
+    cancel: 'إلغاء',
+    sharing: 'جارٍ التحضير…',
+    shareUnavailable: 'المشاركة غير متاحة على هذا الهاتف.',
+    shareFailed: 'تعذّرت مشاركة التسجيلات.',
+    unavailable: 'لا يستطيع هذا الإصدار تسجيل الصوت.',
+    micDenied: 'مطلوب إذن الميكروفون للتسجيل.',
+    noSpeech: 'لم يُسمع شيء. حاول مرة أخرى.',
+    onDeviceOn: 'يقوم معرّف الكلام في الهاتف أيضًا بتفريغ كل تسجيل على الهاتف نفسه.',
+    onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
+    saved: 'تم الحفظ',
+    traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   offlineVoice: {
     row: 'الصوت دون اتصال',
