@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearContextCache } from '../voice-agent/handler.ts';
 import {
   BYTE_MARGIN,
+  CHAOS_DROP_MS,
+  CONTEXT_WAIT_MS,
   FLUSH_MS,
   IDLE_MS,
   MAX_AUDIO_BYTES,
@@ -22,6 +24,7 @@ import {
   type RelayDeps,
   type RelaySocket,
   type RelaySummary,
+  upstreamBreaker,
 } from './handler.ts';
 
 const ME = 'profile-me';
@@ -77,9 +80,21 @@ function table(rows: unknown[]) {
   return q;
 }
 
-function makeDeps(over: { authFails?: boolean; used?: number; mints?: number } = {}) {
+function makeDeps(
+  over: {
+    authFails?: boolean;
+    used?: number;
+    mints?: number;
+    env?: Record<string, string>;
+    /** On voice_agent_allowlist (chaos applies). */
+    allowlisted?: boolean;
+    /** The caller's group read never answers (a slow database). */
+    contextHangs?: boolean;
+  } = {},
+) {
   const upstreams: FakeSocket[] = [];
   const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
+  const serviceReads: string[] = [];
   const connectUpstream = vi.fn((url: string, key: string) => {
     void url;
     void key;
@@ -95,24 +110,29 @@ function makeDeps(over: { authFails?: boolean; used?: number; mints?: number } =
           : { data: { user: { id: ME } }, error: null },
     },
     from: (t: string) =>
-      table(
-        t === 'groups'
-          ? [{ id: 'g1', name: 'Goa', type: 'trip', default_currency: 'INR' }]
-          : t === 'group_members'
-            ? [
-                {
-                  id: 'm-renny',
-                  group_id: 'g1',
-                  profile_id: null,
-                  ghost_name: 'Renny',
-                  profile: null,
-                },
-              ]
-            : [],
-      ),
+      over.contextHangs
+        ? new Proxy({} as Record<string, unknown>, {
+            get: (_target, prop) =>
+              prop === 'then' ? () => undefined : () => caller.from('__hang__'),
+          })
+        : table(
+            t === 'groups'
+              ? [{ id: 'g1', name: 'Goa', type: 'trip', default_currency: 'INR' }]
+              : t === 'group_members'
+                ? [
+                    {
+                      id: 'm-renny',
+                      group_id: 'g1',
+                      profile_id: null,
+                      ghost_name: 'Renny',
+                      profile: null,
+                    },
+                  ]
+                : [],
+          ),
   };
   const deps: RelayDeps = {
-    env: (n) => ({ DEEPGRAM_API_KEY: 'dg-key' })[n],
+    env: (n) => ({ DEEPGRAM_API_KEY: 'dg-key', ...over.env })[n],
     service: {
       rpc: async (name: string, args: Record<string, number>) => {
         rpcCalls.push({ name, args });
@@ -128,11 +148,17 @@ function makeDeps(over: { authFails?: boolean; used?: number; mints?: number } =
         return { data: true, error: null };
       },
       from: (t: string) => {
+        serviceReads.push(t);
         const q: Record<string, unknown> = {};
         const chain = () => q;
         for (const m of ['select', 'eq']) q[m] = chain;
         q.maybeSingle = async () => ({
-          data: t === 'voice_agent_usage' ? { count: over.used ?? 0 } : null,
+          data:
+            t === 'voice_agent_usage'
+              ? { count: over.used ?? 0 }
+              : t === 'voice_agent_allowlist' && over.allowlisted
+                ? { profile_id: ME }
+                : null,
           error: null,
         });
         q.then = (resolve: (v: unknown) => unknown) => resolve({ data: [], error: null });
@@ -145,12 +171,23 @@ function makeDeps(over: { authFails?: boolean; used?: number; mints?: number } =
     connectUpstream,
     waitUntil: vi.fn(),
   };
-  return { deps, upstreams, rpcCalls, connectUpstream };
+  return { deps, upstreams, rpcCalls, connectUpstream, serviceReads };
 }
 
 /** Let the gate's promises (and crypto.subtle) run. Timers stay faked. */
 async function settle(): Promise<void> {
   for (let i = 0; i < 40; i++) await new Promise((resolve) => setImmediate(resolve));
+}
+
+/**
+ * Turn the event loop until `ready` holds, bounded by real (unfaked) time, so a
+ * slow CI box gets as many turns as it needs.
+ */
+async function until(ready: () => boolean, budgetMs = 5_000): Promise<void> {
+  const end = performance.now() + budgetMs;
+  while (!ready() && performance.now() < end) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
 }
 
 const session = { jwt: 'jwt-abc', locale: 'en', groupId: 'g1' };
@@ -164,9 +201,15 @@ async function started(over: Parameters<typeof makeDeps>[0] = {}, connect = true
   // Wait for the gate to finish and Deepgram to be dialled — however many
   // turns that takes on a slow CI box — rather than a fixed number of turns.
   await settle();
-  for (let i = 0; i < 2000 && made.upstreams.length === 0 && !client.closed; i++) {
-    await new Promise((resolve) => setImmediate(resolve));
-  }
+  // Chaos drills (deepgram-slow) may never dial: there, the allowlist read
+  // marks the gate as done.
+  await until(
+    () =>
+      made.upstreams.length > 0 ||
+      client.closed !== null ||
+      made.serviceReads.includes('voice_agent_allowlist'),
+  );
+  await settle();
   const upstream = made.upstreams[0];
   if (connect && upstream) upstream.open();
   return { ...made, client, upstream, done };
@@ -177,6 +220,7 @@ const audio = (bytes = CHUNK) => new Uint8Array(bytes).fill(7).buffer;
 let log: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   clearContextCache();
+  upstreamBreaker.reset();
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
   log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -269,8 +313,9 @@ describe('runRelay: the gate', () => {
   it('sends a refusal that lands before the client socket opened once it opens', async () => {
     const made = makeDeps({ authFails: true });
     const client = new FakeSocket();
-    void runRelay(client, session, made.deps);
-    await settle();
+    let refused = false;
+    void runRelay(client, session, made.deps).then(() => (refused = true));
+    await until(() => refused);
     expect(client.closed).toBeNull();
     client.open();
     expect(client.texts[0]).toMatchObject({ type: 'Error', status: 401 });
@@ -303,6 +348,7 @@ describe('runRelay: piping', () => {
     client.receive(new Uint8Array(CHUNK).fill(1).buffer);
     client.receive(new Uint8Array(CHUNK).fill(2).buffer);
     await settle();
+    await until(() => made.upstreams.length > 0);
     const upstream = made.upstreams[0]!;
     upstream.open();
     expect(client.texts[0]).toMatchObject({ type: 'Ready' });
@@ -347,6 +393,7 @@ describe('runRelay: piping', () => {
     client.receive(audio());
     client.receive(JSON.stringify({ type: 'CloseStream' }));
     await settle();
+    await until(() => made.upstreams.length > 0);
     const upstream = made.upstreams[0]!;
     upstream.open();
     expect(upstream.audioBytes).toBe(CHUNK);
@@ -442,5 +489,102 @@ describe('runRelay: caps', () => {
     const summary: RelaySummary = await done;
     expect(summary.reason).toBe('byte_cap');
     expect(summary.bytes).toBe(MAX_AUDIO_BYTES);
+  });
+});
+
+describe('runRelay: failure modes (docs/voice-failure-modes.md)', () => {
+  const chaosEnv = (flags: string) => ({ VOICE_CHAOS_ENABLED: '1', VOICE_CHAOS: flags });
+
+  it('Deepgram refusing the upstream socket (401/5xx closes before open) → 4503', async () => {
+    const { client, upstreams, done } = await started({}, false);
+    upstreams[0]!.drop();
+    expect(client.texts).toContainEqual(
+      expect.objectContaining({ type: 'Error', status: 503, code: 'VOICE_AGENT_UNAVAILABLE' }),
+    );
+    expect(client.closed?.code).toBe(4503);
+    // Nothing was forwarded, so nothing is metered.
+    await expect(done).resolves.toMatchObject({ bytes: 0 });
+  });
+
+  it('a slow database does not hold the stream: it opens without keyterms', async () => {
+    const made = makeDeps({ contextHangs: true });
+    const client = new FakeSocket();
+    void runRelay(client, session, made.deps);
+    client.open();
+    await settle();
+    // The three caps are armed at once; the fourth timer is the context wait,
+    // armed only once the gate has let the caller in.
+    await until(() => vi.getTimerCount() >= 4);
+    expect(made.connectUpstream).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(CONTEXT_WAIT_MS);
+    await until(() => made.connectUpstream.mock.calls.length > 0);
+    expect(made.connectUpstream).toHaveBeenCalledTimes(1);
+    expect(made.connectUpstream.mock.calls[0]![0]).not.toContain('keyterm=');
+  });
+
+  it('opens the breaker after 3 failed connects and then refuses at once, before minting', async () => {
+    for (let i = 0; i < 3; i++) {
+      const { upstreams } = await started({}, false);
+      upstreams[0]!.drop();
+    }
+    expect(upstreamBreaker.isOpen('deepgram-live')).toBe(true);
+    const { client, connectUpstream, rpcCalls } = await started();
+    expect(client.closed?.code).toBe(4503);
+    expect(connectUpstream).not.toHaveBeenCalled();
+    expect(rpcCalls.map((c) => c.name)).not.toContain('waves_voice_stream_mint');
+    // After the cooldown the next stream is tried again.
+    await vi.advanceTimersByTimeAsync(60_000);
+    const retry = await started();
+    expect(retry.connectUpstream).toHaveBeenCalledTimes(1);
+    expect(retry.client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
+  });
+
+  it('a connect that succeeds closes the breaker count', async () => {
+    for (let i = 0; i < 2; i++) (await started({}, false)).upstreams[0]!.drop();
+    await started();
+    (await started({}, false)).upstreams[0]!.drop();
+    expect(upstreamBreaker.isOpen('deepgram-live')).toBe(false);
+  });
+
+  it('chaos deepgram-down refuses with 4503 for an allowlisted caller', async () => {
+    const { client, connectUpstream } = await started({
+      env: chaosEnv('deepgram-down'),
+      allowlisted: true,
+    });
+    expect(client.closed?.code).toBe(4503);
+    expect(connectUpstream).not.toHaveBeenCalled();
+  });
+
+  it('chaos deepgram-slow never dials, and the 4 s open budget refuses', async () => {
+    const { client, connectUpstream } = await started({
+      env: chaosEnv('deepgram-slow'),
+      allowlisted: true,
+    });
+    expect(connectUpstream).not.toHaveBeenCalled();
+    expect(client.closed).toBeNull();
+    await vi.advanceTimersByTimeAsync(UPSTREAM_OPEN_MS);
+    expect(client.closed?.code).toBe(4503);
+  });
+
+  it('chaos relay-drop cuts a live stream with 1011 after Ready', async () => {
+    const { client } = await started({ env: chaosEnv('relay-drop'), allowlisted: true });
+    expect(client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
+    expect(client.closed).toBeNull();
+    await vi.advanceTimersByTimeAsync(CHAOS_DROP_MS);
+    expect(client.closed?.code).toBe(1011);
+  });
+
+  it('chaos is ignored for a caller not on the allowlist', async () => {
+    const { client, connectUpstream } = await started({ env: chaosEnv('deepgram-down') });
+    expect(connectUpstream).toHaveBeenCalledTimes(1);
+    expect(client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
+  });
+
+  it('chaos is ignored without VOICE_CHAOS_ENABLED=1, even for the allowlist', async () => {
+    const { client } = await started({
+      env: { VOICE_CHAOS: 'deepgram-down' },
+      allowlisted: true,
+    });
+    expect(client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
   });
 });

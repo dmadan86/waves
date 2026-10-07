@@ -1290,6 +1290,8 @@ export interface UiStrings {
     engineReasonFree: string;
     engineReasonQuota: string;
     engineReasonOffline: string;
+    /** Online, but the cloud voice (stream or agent) failed or timed out. */
+    engineReasonCloudDown: string;
     /** Cloud voice switched off in Settings. */
     engineReasonOff: string;
     agentQuotaFallback: string;
@@ -5590,6 +5592,7 @@ const en: UiStrings = {
     engineReasonFree: 'Free plan',
     engineReasonQuota: 'Monthly limit reached',
     engineReasonOffline: 'Offline',
+    engineReasonCloudDown: 'Cloud unavailable',
     engineReasonOff: 'Off in settings',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
@@ -9395,6 +9398,7 @@ const ta: UiStrings = {
     engineReasonFree: 'இலவசத் திட்டம்',
     engineReasonQuota: 'மாத வரம்பு முடிந்தது',
     engineReasonOffline: 'இணைப்பு இல்லை',
+    engineReasonCloudDown: 'கிளவுட் கிடைக்கவில்லை',
     engineReasonOff: 'அமைப்புகளில் ஆஃப்',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
@@ -13319,6 +13323,7 @@ const hi: UiStrings = {
     engineReasonFree: 'फ्री प्लान',
     engineReasonQuota: 'मासिक सीमा पूरी',
     engineReasonOffline: 'ऑफ़लाइन',
+    engineReasonCloudDown: 'क्लाउड उपलब्ध नहीं',
     engineReasonOff: 'सेटिंग्स में बंद',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
@@ -17185,6 +17190,7 @@ const ar: UiStrings = {
     engineReasonFree: 'الخطة المجانية',
     engineReasonQuota: 'بلغتَ الحد الشهري',
     engineReasonOffline: 'غير متصل',
+    engineReasonCloudDown: 'السحابة غير متاحة',
     engineReasonOff: 'متوقف في الإعدادات',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',

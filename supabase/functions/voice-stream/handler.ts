@@ -44,6 +44,8 @@
  */
 
 import { HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
+import { CircuitBreaker, raceDeadline } from '../_shared/resilience.ts';
+import { chaosFor, NO_CHAOS, type Chaos } from '../_shared/voiceChaos.ts';
 import { admitStream, type Admitted } from '../_shared/voiceStreamGate.ts';
 import { loadContext } from '../voice-agent/handler.ts';
 import { deepgramStreamUrl, keyterms } from '../voice-agent/logic.ts';
@@ -68,6 +70,22 @@ export const IDLE_MS = 5_000;
 export const FLUSH_MS = 1_500;
 /** How long Deepgram may take to accept the upstream socket. */
 export const UPSTREAM_OPEN_MS = 4_000;
+/**
+ * How long the stream waits on the caller's names (keyterms). They only help
+ * spelling: a slow database must not hold the stream, so past this it opens
+ * without them.
+ */
+export const CONTEXT_WAIT_MS = 1_500;
+/** `relay-drop` chaos: how long after Ready the relay cuts the stream. */
+export const CHAOS_DROP_MS = 1_000;
+
+/**
+ * Deepgram's live endpoint, per warm instance: after 3 failed upstream connects
+ * in a row the relay refuses at once (503) for 60 s, so the app falls back to
+ * on-device in one round trip instead of waiting out a 4 s connect each time.
+ */
+export const upstreamBreaker = new CircuitBreaker();
+const DEEPGRAM = 'deepgram-live';
 
 const CONNECTING = 0;
 const OPEN = 1;
@@ -376,7 +394,18 @@ export function runRelay(
     finish(code, closeCodeFor(status));
   };
 
+  /** The upstream never came up (refused, closed, timed out): counted, then refused. */
+  const upstreamFailed = (message: string): void => {
+    upstreamBreaker.failure(DEEPGRAM);
+    refuse(new HttpError(503, 'VOICE_AGENT_UNAVAILABLE', message));
+  };
+
   const connect = async (): Promise<void> => {
+    // Deepgram has been failing on this instance: refuse before anything is
+    // spent (no mint, no context read). The app listens on the phone.
+    if (upstreamBreaker.isOpen(DEEPGRAM)) {
+      return refuse(new HttpError(503, 'VOICE_AGENT_UNAVAILABLE', 'Live transcription down'));
+    }
     const caller = deps.callerFor(session.jwt);
     try {
       admitted = await admitStream(
@@ -388,36 +417,49 @@ export function runRelay(
     }
     if (finished) return;
 
-    const context = await loadContext(caller, admitted.profileId, {
-      schemaVersion: 1,
-      locale: session.locale,
-      today: new Date().toISOString().slice(0, 10),
-      groupId: session.groupId,
-    }).catch(() => null);
+    const [context, chaos] = await Promise.all([
+      raceDeadline(
+        loadContext(caller, admitted.profileId, {
+          schemaVersion: 1,
+          locale: session.locale,
+          today: new Date().toISOString().slice(0, 10),
+          groupId: session.groupId,
+        }),
+        CONTEXT_WAIT_MS,
+        () => new Error('context timed out'),
+      ).catch(() => null),
+      // Failure drills on allowlisted accounts only (_shared/voiceChaos.ts).
+      chaosFor(deps.env, deps.service, admitted.profileId).catch((): Chaos => NO_CHAOS),
+    ]);
     if (finished) return;
+    if (chaos.has('deepgram-down')) return upstreamFailed('Live transcription down (chaos)');
     const url = deepgramStreamUrl(
       session.locale,
       context ? keyterms(context) : [],
       `vst-${admitted.profileHash}`,
     );
 
+    const openTimer = after(UPSTREAM_OPEN_MS, () => upstreamFailed('Live transcription timed out'));
+    // `deepgram-slow`: the upstream never answers; the open timer above ends it.
+    if (chaos.has('deepgram-slow')) return;
     let socket: RelaySocket;
     try {
       socket = deps.connectUpstream(url, admitted.key);
     } catch (error) {
+      cancel(openTimer);
       console.error('deepgram connect failed', String(error));
-      return refuse(new HttpError(503, 'VOICE_AGENT_UNAVAILABLE', 'Live transcription down'));
+      return upstreamFailed('Live transcription down');
     }
     upstream = socket;
     socket.binaryType = 'arraybuffer';
-    const openTimer = after(UPSTREAM_OPEN_MS, () =>
-      refuse(new HttpError(503, 'VOICE_AGENT_UNAVAILABLE', 'Live transcription timed out')),
-    );
     socket.onopen = () => {
       cancel(openTimer);
       if (finished) return;
       upstreamOpen = true;
+      upstreamBreaker.success(DEEPGRAM);
       sendClient(JSON.stringify({ type: 'Ready', maxAudioSeconds: MAX_AUDIO_SECONDS }));
+      // `relay-drop`: the stream dies mid-sentence, as a dropped Deepgram socket would.
+      if (chaos.has('relay-drop')) after(CHAOS_DROP_MS, () => finish('chaos_drop', 1011));
       for (const bytes of pending.splice(0)) {
         if (forwarded >= MAX_AUDIO_BYTES) break;
         forward(bytes);
@@ -431,9 +473,8 @@ export function runRelay(
     socket.onerror = () => {};
     socket.onclose = () => {
       cancel(openTimer);
-      if (!upstreamOpen) {
-        return refuse(new HttpError(503, 'VOICE_AGENT_UNAVAILABLE', 'Live transcription down'));
-      }
+      if (finished) return;
+      if (!upstreamOpen) return upstreamFailed('Live transcription down');
       // Deepgram closing after CloseStream is the normal end; on its own, it
       // is a failure the app should hear as one.
       finish(closing ?? 'upstream_closed', closing ? 1000 : 1011);

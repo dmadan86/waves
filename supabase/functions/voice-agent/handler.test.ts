@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  breaker,
   DEEPSEEK_ESCALATION_MODEL,
   DEEPSEEK_PRIMARY_MODEL,
   ESCALATION_MODEL,
@@ -19,7 +20,10 @@ import {
 
 const ME = 'profile-me';
 
-beforeEach(() => clearContextCache());
+beforeEach(() => {
+  clearContextCache();
+  breaker.reset();
+});
 
 function table(rows: unknown[]) {
   const q: Record<string, unknown> = {};
@@ -202,6 +206,16 @@ describe('handleVoiceAgent', () => {
     expect(body.clarify).toBeTruthy();
   });
 
+  it('does not charge for an "ask again": the command is refunded once', async () => {
+    const { deps, rpc } = makeDeps({
+      fetchImpl: (url) =>
+        url.includes('deepgram') ? deepgram('uh') : claude({ name: 'add_expense', input: {} }),
+    });
+    const body = await (await handleVoiceAgent(request(), deps)).json();
+    expect(body.quota.used).toBe(0);
+    expect(rpc.mock.calls.filter(([name]) => name === 'waves_voice_agent_refund')).toHaveLength(1);
+  });
+
   it('422s and refunds on an empty transcript', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => deepgram('  ') });
     await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({
@@ -213,7 +227,10 @@ describe('handleVoiceAgent', () => {
 
   it('refunds when a provider fails', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => new Response('no', { status: 500 }) });
-    await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({ status: 502 });
+    await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({
+      status: 503,
+      code: 'VOICE_AGENT_UNAVAILABLE',
+    });
     expect(rpc).toHaveBeenCalledWith('waves_voice_agent_refund', { p_profile: ME });
   });
 });

@@ -6,7 +6,13 @@
  */
 
 export type VoiceEngine = 'cloud' | 'on-device';
-export type VoiceEngineReason = 'free' | 'quota' | 'offline' | 'off';
+/**
+ * Why the phone's own recogniser/parser is in use. `cloud-down`: the phone is
+ * online but the cloud side (relay, Deepgram, the agent or its models) failed
+ * or timed out — distinct from `offline`, which only the phone's own network
+ * state may claim. `off`: cloud voice switched off / not consented.
+ */
+export type VoiceEngineReason = 'free' | 'quota' | 'offline' | 'cloud-down' | 'off';
 
 /**
  * The person's say over sending voice to third-party AI: `granted`, `revoked`
@@ -70,9 +76,32 @@ export function resolveEngine(input: EngineInputs): VoiceEngineInfo {
   if (!input.online) return local('offline');
   if (input.streamOk === false) {
     // A build without the native stream is not "offline"; say nothing extra.
-    return local(input.streamAvailable === false ? null : 'offline');
+    // Online but the stream would not open: the cloud is what failed.
+    return local(input.streamAvailable === false ? null : 'cloud-down');
   }
   return CLOUD;
+}
+
+/**
+ * How long the app waits for the agent (voice-agent) before it reads the
+ * sentence it already has on the phone. The server answers — success or a
+ * refunded 503 — within 9 s, so this only fires when the network or the
+ * function itself is stuck.
+ */
+export const AGENT_CALL_TIMEOUT_MS = 10_000;
+
+/** Why the agent call did not give the screen an answer. */
+export type AgentFailure = 'quota' | 'timeout' | 'unavailable' | 'error';
+
+/**
+ * The badge after the agent call failed and the basic parser took the
+ * transcript: the monthly limit, else offline when the phone says so, else the
+ * cloud was unavailable (a 503, a timeout, a bad reply).
+ */
+export function engineAfterAgentFailure(failure: AgentFailure, online: boolean): VoiceEngineInfo {
+  if (failure === 'quota') return local('quota');
+  if (!online) return local('offline');
+  return local('cloud-down');
 }
 
 export interface MicStartInputs {
