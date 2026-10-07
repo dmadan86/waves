@@ -59,6 +59,9 @@ export function StaticMapSurface({
       pointerEvents="none"
       style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
       provider={mapViewProviderProp(Platform.OS)}
+      // Android: a lite-mode bitmap rather than a live map — cheap to hold in
+      // a list or a card, and exactly what a preview is.
+      liteMode={Platform.OS === 'android'}
       userInterfaceStyle={theme.scheme}
       initialRegion={regionForZoom(center, zoom, width, height)}
       scrollEnabled={false}
