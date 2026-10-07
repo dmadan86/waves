@@ -28,21 +28,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   buildVoiceSplit,
   computeShares,
+  decimalToMinor,
   encodeTxn,
+  format as formatMoney,
   guessCategory,
   minorUnitScale,
+  money,
+  nameKey,
   peopleSignatureKey,
   resolveIntentPeople,
   type ExpenseLocation,
+  type LearnedName,
   type SplitParams,
+  type VoiceAmountReading,
   type VoiceIntent,
   type VoiceNameCandidate,
+  type VoiceParty,
   type VoiceSplitPlan,
 } from '@waves/core';
 import {
   Button,
   Callout,
   Card,
+  Chip,
   Divider,
   IconButton,
   iconSize,
@@ -56,6 +64,7 @@ import {
 
 import {
   useAddGhostMember,
+  useAllGroupMembers,
   useCreateCapture,
   useCreateGroup,
   useGroup,
@@ -66,6 +75,7 @@ import {
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
+  useVoiceAgentStatus,
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
@@ -77,6 +87,11 @@ import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
+import {
+  voiceAmountQuestion,
+  voiceCurrencyQuestion,
+  type VoiceAmountQuestion,
+} from '@/lib/voiceAmountChoice';
 import { friendlyError } from '@/lib/errors';
 import {
   DestinationPicker,
@@ -84,7 +99,14 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
+import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
+import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { meterVoiceCommand } from '@/lib/voiceAgent';
+import { checkOnline } from '@/lib/voiceStream';
+import { CLOUD, local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
+import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
 import {
@@ -109,6 +131,8 @@ import {
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
 import { logVoiceAttempt } from '@/lib/voiceLog';
+import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
+import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { VoiceFooterScene } from '@/components/VoiceFooterScene';
 
 /** One editable line on the review screen. */
@@ -118,6 +142,14 @@ interface Draft {
   note: string;
   currency: string | null;
   category: string | null;
+  /**
+   * How the spoken amount reads, when it has a question to ask ("₹15 or ₹50?",
+   * "US or Australian dollars?"). Kept on the row, so a question stays with the
+   * expense it is about while more are added. Save waits for every answer.
+   */
+  amountReading: VoiceAmountReading | null;
+  amountAnswered: boolean;
+  currencyAnswered: boolean;
 }
 
 /** Where the reviewed expenses will be written. */
@@ -200,6 +232,8 @@ function toMinor(amount: string, currency: string): bigint | null {
 interface WhoEdit {
   payerId?: string;
   participantIds?: string[];
+  /** A heard name settled with one tap ("Did you mean Renny?" → yes): its {@link nameKey} → member id. */
+  picks?: Record<string, string>;
 }
 
 /** A group's members as the voice parser matches names against them. */
@@ -232,8 +266,9 @@ function planWho(
   edit: WhoEdit | null,
   amountMinor: bigint | null,
   draftCount: number,
+  learned: readonly LearnedName[],
 ): WhoView {
-  const resolved = resolveIntentPeople(intent, members);
+  const resolved = resolveIntentPeople(intent, members, { learned, picks: edit?.picks });
   const plan = buildVoiceSplit(resolved, {
     memberIds: members.map((member) => member.id),
     meMemberId: members.find((member) => member.isMe)?.id ?? null,
@@ -259,7 +294,14 @@ function planWho(
     );
     if (participantIds.length === 0) problems.push({ code: 'no_participants' });
   }
-  return { intent: resolved, payerId, participantIds, params, problems, edited: edit !== null };
+  return {
+    intent: resolved,
+    payerId,
+    participantIds,
+    params,
+    problems,
+    edited: edit?.payerId !== undefined || edit?.participantIds !== undefined,
+  };
 }
 
 export default function VoiceScreen() {
@@ -340,9 +382,27 @@ export default function VoiceScreen() {
   // scrolls only when it does not fit (see the ScrollView below).
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [phase, setPhase] = useState<'listening' | 'thinking' | 'review' | 'committing' | 'answer'>(
-    widgetHeard ? 'thinking' : 'listening',
-  );
+  const [phase, setPhase] = useState<
+    'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent'
+  >(widgetHeard ? 'thinking' : 'listening');
+  // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
+  // and the live transcript goes to the agent (phase 'agent') instead of straight
+  // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
+  const { enabled: agentOn, ready: agentReady } = useVoiceAgentStatus();
+  // Which engine heard the last capture — shown on every step after it too.
+  const [engine, setEngine] = useState<VoiceEngineInfo | null>(null);
+  // The agent's open question and what prompted it, while the next clip is its
+  // answer; cleared once that answer has been read.
+  const [agentFollowUp, setAgentFollowUp] = useState<{
+    transcript: string;
+    question: string;
+  } | null>(null);
+  const [agentSession, setAgentSession] = useState<{
+    transcript: string;
+    alternatives: readonly string[];
+  } | null>(null);
+  // The agent's allowance was spent, so the basic path took over — said once.
+  const [agentQuotaNote, setAgentQuotaNote] = useState(false);
   // The answer shown in the 'answer' phase. `text` is a ready line (a person
   // balance, or "couldn't find X"); `group` is answered live from the group's
   // ledger once it loads, since that read is async.
@@ -459,8 +519,16 @@ export default function VoiceScreen() {
   const navigation = useNavigation();
 
   const groupRows = useMemo(() => groups.data ?? [], [groups.data]);
-  const groupRefs: VoiceGroupRef[] = groupRows.map((group) => ({ id: group.id, name: group.name }));
-  const hints = groupRows.map((group) => group.name ?? '').filter(Boolean);
+  const groupRefs: VoiceGroupRef[] = groupRows.map((group) => ({
+    id: group.id,
+    name: group.name,
+    currency: group.default_currency,
+  }));
+  // The reader's own group names, for the "Try saying…" example card.
+  const groupNames = groupRows.map((group) => group.name ?? '').filter(Boolean);
+  // Names this reader confirmed on earlier reviews, per group, on this phone.
+  const nameMemory = useVoiceNameMemory(viewerId);
+  const everyMember = useAllGroupMembers();
 
   // Members and currency of the chosen group, read from the local mirror. Empty
   // id (the unassigned/create cases) reads nothing, which is what we want. A
@@ -474,9 +542,29 @@ export default function VoiceScreen() {
   // from a description ("for Arjun" vs "for dinner") while the sentence is read.
   const launchGroup = useGroup(launchGroupId ?? '');
   const launchMembers = useMemo(
-    () => (launchGroupId ? toCandidates(launchGroup.members.data, viewerId) : undefined),
-    [launchGroupId, launchGroup.members.data, viewerId],
+    () =>
+      launchGroupId
+        ? withAliases(toCandidates(launchGroup.members.data, viewerId), nameMemory, launchGroupId)
+        : undefined,
+    [launchGroupId, launchGroup.members.data, viewerId, nameMemory],
   );
+  // What the recogniser is told to listen for: the people this sentence may
+  // name — the launch group's, else everybody across the reader's groups —
+  // by display name, first name and confirmed alias (capped in voiceNameHints).
+  const hints = useMemo(() => {
+    if (launchMembers) return voiceNameHints(launchMembers);
+    const aliased = groupRows.flatMap((group) =>
+      withAliases(
+        toCandidates(
+          everyMember.filter((member) => member.group_id === group.id),
+          viewerId,
+        ),
+        nameMemory,
+        group.id,
+      ),
+    );
+    return voiceNameHints(aliased);
+  }, [launchMembers, groupRows, everyMember, viewerId, nameMemory]);
   // Only the group destinations carry a group id to write into; unassigned and
   // "just me" have none, so the write hook reads the empty id and stays inert.
   const writeGroupId =
@@ -615,15 +703,7 @@ export default function VoiceScreen() {
       setPhase('listening');
       return;
     }
-    setDrafts(
-      result.items.map((item) => ({
-        key: randomUUID(),
-        amount: String(item.amountMajor),
-        note: item.note,
-        currency: item.currency,
-        category: item.category,
-      })),
-    );
+    setDrafts(toDrafts(result));
     setVoicePeopleText(result.peopleText);
     setVoiceSplitCount(result.splitCount);
     setVoiceExpenseDate(result.expenseDate);
@@ -698,10 +778,12 @@ export default function VoiceScreen() {
   // The heard batch, read by the pure heuristic — amounts, currencies, a named
   // group, several expenses in a breath, a spoken new group, "just for me".
   const interpret = useCallback(
-    async (transcript: string): Promise<VoiceParseResult> => {
+    async (transcript: string, alternatives?: readonly string[]): Promise<VoiceParseResult> => {
       const final = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
         currentGroupId: launchGroupId,
+        alternatives,
+        learned: learnedForGroup(nameMemory, launchGroupId),
       });
       // Report what was heard when nothing usable came back, so the parser can be
       // improved against a real miss. Best-effort: the lib decides whether to send
@@ -714,12 +796,14 @@ export default function VoiceScreen() {
       });
       return final;
     },
-    [groupRefs, locale, launchMembers, launchGroupId],
+    [groupRefs, locale, launchMembers, launchGroupId, nameMemory],
   );
 
   // Drafts minted from heard expenses — the shared shape for the opening batch
   // and the appended ones, so an added expense reads and saves exactly like an
   // original (same category-less default, same batch folding at save time).
+  // The amount reading belongs to the one expense it was read for; with several,
+  // only an open currency question (a bare "dollars") applies to every row.
   const toDrafts = (result: VoiceParseResult): Draft[] =>
     result.items.map((item) => ({
       key: randomUUID(),
@@ -727,11 +811,20 @@ export default function VoiceScreen() {
       note: item.note,
       currency: item.currency,
       category: item.category,
+      amountReading:
+        result.items.length === 1 ||
+        (item.currency !== null && result.amount?.currencyOptions.includes(item.currency))
+          ? result.amount
+          : null,
+      amountAnswered: false,
+      currencyAnswered: false,
     }));
 
   const editDraft = (key: string, patch: Partial<Draft>): void => {
+    // Typing the amount in by hand answers the row's amount question too.
+    const answered = patch.amount !== undefined ? { amountAnswered: true } : null;
     setDrafts((current) =>
-      current.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)),
+      current.map((draft) => (draft.key === key ? { ...draft, ...answered, ...patch } : draft)),
     );
   };
   const removeDraft = (key: string): void => {
@@ -927,7 +1020,45 @@ export default function VoiceScreen() {
     return true;
   };
 
-  const handleTranscript = (transcript: string): void => {
+  // What the fast path may resolve names against: the same 1:1 contacts the
+  // settle/remind/balance paths use, and the members of the launch group (the
+  // only group whose members are loaded before one is chosen).
+  const fastPathContext = (alternatives: readonly string[]): FastPathContext => {
+    const rows = (people.data ?? []).filter(
+      (row) => row.only_group_id && oneToOne.data.has(row.only_group_id),
+    );
+    const byPerson = new Map<string, { id: string; name: string; balances: bigint[] }>();
+    for (const row of rows) {
+      const entry = byPerson.get(row.person_key) ?? {
+        id: row.person_key,
+        name: row.display_name,
+        balances: [],
+      };
+      const net = BigInt(row.net);
+      if (net !== 0n) entry.balances.push(net);
+      byPerson.set(row.person_key, entry);
+    }
+    return {
+      groups: groupRefs,
+      currentGroupId: launchGroupId,
+      membersByGroup: launchGroupId && launchMembers ? { [launchGroupId]: launchMembers } : {},
+      contacts: [...byPerson.values()],
+      // The same evidence the basic path reads with, so a name it would only
+      // suggest or ask about, or an amount it would ask about, is seen here too.
+      alternatives,
+      learnedByGroup: launchGroupId
+        ? { [launchGroupId]: learnedForGroup(nameMemory, launchGroupId) }
+        : {},
+    };
+  };
+
+  // `info.alternatives` are the engine's other readings (n-best), when it gives
+  // them: they let the parser ask "₹15 or ₹50?" or "Ravi or Rajiv?" instead of
+  // guessing.
+  const handleTranscript = (
+    transcript: string,
+    { streamed = false, alternatives = [] }: Partial<VoiceDoneInfo> = {},
+  ): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -935,6 +1066,51 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
+    // A fresh opening capture that was streamed goes to the advanced agent; "add
+    // another", a link-supplied sentence, or a capture that fell back to the
+    // on-device recogniser stay on the basic path.
+    if (agentOn && streamed && micMode !== 'append' && !heardFromLink.current) {
+      // Fast path: when the instant on-device parser reads the sentence with full
+      // confidence, skip the agent (no wait, no allowance spent) and show the
+      // ordinary basic review. The speech still came from the cloud engine.
+      // An answer to the agent's own question ("Answer") always goes back to the
+      // agent with what prompted it — on its own it is half a sentence.
+      const fastContext = fastPathContext(alternatives);
+      if (
+        !agentFollowUp &&
+        localParseIsConfident(parseLocally(transcript, fastContext), fastContext)
+      ) {
+        if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
+        setEngine(CLOUD);
+        runBasic(transcript, alternatives);
+        // The stream was used, so the command counts: meter it without waiting.
+        // A 402 changes nothing now (the review is up); the next start falls back.
+        void meterVoiceCommand({ transcript, locale, today: today() });
+        return;
+      }
+      if (__DEV__) console.log('[voice] path: agent');
+      setAgentSession({ transcript, alternatives });
+      setPhase('agent');
+      return;
+    }
+    runBasic(transcript, alternatives);
+  };
+
+  // The agent could not help (quota, offline, unavailable, a bad reply): carry
+  // on with the same transcript on the basic parser, as if the flag were off.
+  const agentFellBack = (reason: AgentFallbackReason): void => {
+    const heard = agentSession?.transcript;
+    const heardAlternatives = agentSession?.alternatives ?? [];
+    setAgentSession(null);
+    if (!heard) return;
+    setAgentQuotaNote(reason === 'quota');
+    if (reason === 'quota') setEngine(local('quota'));
+    // The call failed: if the phone is offline that is why, and the badge says so.
+    else void checkOnline().then((online) => online || setEngine(local('offline')));
+    runBasic(heard, heardAlternatives);
+  };
+
+  const runBasic = (transcript: string, alternatives: readonly string[] = []): void => {
     const mode = micMode;
     // A settle/remind/add-member command, or a read-only balance question, only
     // makes sense as a fresh utterance, never as an expense appended to a batch.
@@ -948,7 +1124,7 @@ export default function VoiceScreen() {
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
-      const parsed = await interpret(transcript);
+      const parsed = await interpret(transcript, alternatives);
       // Dropped if the reader has since backed out of 'thinking' (which bumps the
       // token), or a newer capture superseded this one — a late append must not
       // land on the review they returned to.
@@ -1245,8 +1421,12 @@ export default function VoiceScreen() {
   // spoken intent read against them, with the reader's corrections on top. Only
   // for an existing group — a new one has nobody to name yet.
   const targetMembers = useMemo(
-    () => toCandidates(target.members.data, viewerId),
-    [target.members.data, viewerId],
+    () => withAliases(toCandidates(target.members.data, viewerId), nameMemory, targetGroupId),
+    [target.members.data, viewerId, nameMemory, targetGroupId],
+  );
+  const targetLearned = useMemo(
+    () => learnedForGroup(nameMemory, targetGroupId),
+    [nameMemory, targetGroupId],
   );
   const who: WhoView | null = (() => {
     // A plain "I paid, split equally" keeps the way it has always been written;
@@ -1263,15 +1443,122 @@ export default function VoiceScreen() {
       whoEdit,
       first ? toMinor(first.amount, firstCurrency) : null,
       drafts.length,
+      targetLearned,
     );
   })();
+
+  // The reader settled a heard name: "Did you mean Renny?" → yes, a tap on one
+  // of "Ravi or Rajiv?", or a pick in the sheet. It counts for this review at
+  // once and is remembered for this group, so the same words find the same
+  // person next time.
+  const rememberPick = (heard: string | undefined, memberId: string): void => {
+    if (!heard || !targetGroupId) return;
+    void rememberNamePick(viewerId, {
+      heard,
+      memberId,
+      groupId: targetGroupId,
+      members: targetMembers,
+    });
+  };
+  const pickName = (party: VoiceParty, memberId: string): void => {
+    const heard = party.heard ?? party.name;
+    setWhoEdit((current) => ({
+      ...current,
+      picks: { ...current?.picks, [nameKey(heard)]: memberId },
+    }));
+    rememberPick(heard, memberId);
+  };
+  // A change made in the sheet is a correction of what was heard, when it is
+  // clear which heard name it answers: the named payer, or the one person in
+  // the split still in question.
+  const editWho = (next: WhoEdit): void => {
+    setWhoEdit((current) => ({ ...current, ...next }));
+    if (!who) return;
+    const { payer, participants } = who.intent;
+    if (next.payerId && payer.kind === 'member' && payer.explicit)
+      rememberPick(payer.heard, next.payerId);
+    if (next.participantIds) {
+      const added = next.participantIds.filter((id) => !who.participantIds.includes(id));
+      const open = (participants ?? []).filter(
+        (party) => party.kind === 'member' && party.status !== 'resolved',
+      );
+      const only = open[0];
+      if (added.length === 1 && open.length === 1 && only && added[0])
+        rememberPick(only.heard, added[0]);
+    }
+  };
   // Someone other than me paid: nowhere but a group can keep that.
   const payerElsewhere = intent?.payer.explicit === true && intent.payer.kind === 'member';
   const groupPending =
     intent !== null &&
     (intent.groupSource === 'ambiguous' || intent.groupSource === 'unresolved') &&
     !groupChosen;
+  // The spoken amount's open questions, one at a time: the first row whose
+  // amount could be read two ways, then any bare "dollars" still unanswered.
+  const choiceStrings = {
+    amountWhich: t.voice.amountWhich,
+    amountTotalOrEach: t.voice.amountTotalOrEach,
+    amountTotal: t.voice.amountTotal,
+    amountEach: t.voice.amountEach,
+    whichDollars: t.voice.whichDollars,
+    dollarNames: { USD: t.voice.usDollars, AUD: t.voice.audDollars },
+  };
+  const sharePeople =
+    who?.participantIds.length ??
+    voiceSplitCount ??
+    (dest.kind === 'existing' && targetMembers.length > 0
+      ? targetMembers.length
+      : dest.kind === 'people'
+        ? dest.ghostNames.length + 1
+        : null);
+  const groupCurrencyNow = target.group.data?.default_currency ?? null;
+  let amountQuestion: { draft: Draft; question: VoiceAmountQuestion } | null = null;
+  for (const draft of drafts) {
+    if (draft.amountAnswered || !draft.amountReading) continue;
+    const shown = voiceSaveCurrency(draft.currency, groupCurrencyNow, dc);
+    const question = voiceAmountQuestion(
+      draft.amountReading,
+      draft.currency,
+      sharePeople,
+      choiceStrings,
+      (major) => formatMoney(money(decimalToMinor(major, shown) ?? 0n, shown), { locale }),
+    );
+    if (question) {
+      amountQuestion = { draft, question };
+      break;
+    }
+  }
+  const currencyDraft = drafts.find(
+    (draft) => !draft.currencyAnswered && voiceCurrencyQuestion(draft.amountReading, choiceStrings),
+  );
+  const currencyQuestion = currencyDraft
+    ? voiceCurrencyQuestion(currencyDraft.amountReading, choiceStrings)
+    : null;
+  const answerAmount = (key: string): void => {
+    if (!amountQuestion) return;
+    const answer = amountQuestion.question.answers.find((candidate) => candidate.key === key);
+    if (!answer) return;
+    editDraft(amountQuestion.draft.key, {
+      amountAnswered: true,
+      ...(answer.amount !== undefined ? { amount: answer.amount } : null),
+    });
+  };
+  const answerCurrency = (key: string): void => {
+    const answer = currencyQuestion?.answers.find((candidate) => candidate.key === key);
+    if (!answer?.currency) return;
+    const chosen = answer.currency;
+    // Every row still asking which dollars takes the answer.
+    setDrafts((current) =>
+      current.map((draft) =>
+        !draft.currencyAnswered && voiceCurrencyQuestion(draft.amountReading, choiceStrings)
+          ? { ...draft, currency: chosen, currencyAnswered: true }
+          : draft,
+      ),
+    );
+  };
+  const amountPending = amountQuestion !== null || currencyQuestion !== null;
   const whoBlocked =
+    amountPending ||
     groupPending ||
     (who !== null && who.problems.length > 0) ||
     (payerElsewhere && dest.kind !== 'existing');
@@ -1643,7 +1930,7 @@ export default function VoiceScreen() {
       {/* The desk scene along the foot, under everything. Not on the review:
           that list keeps its pinned Save bar there, and a picture behind the
           figures being checked would only be in the way. */}
-      {phase === 'review' ? null : <VoiceFooterScene />}
+      {phase === 'review' || phase === 'agent' ? null : <VoiceFooterScene />}
       <ScrollView
         style={{ flex: 1 }}
         // Capturing is one still screen — the mic, what to say, the scene at the
@@ -1703,8 +1990,33 @@ export default function VoiceScreen() {
         </Row>
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
+        {agentQuotaNote && phase !== 'agent' ? (
+          <Text variant="caption" tone="muted">
+            {t.voice.agentQuotaFallback}
+          </Text>
+        ) : null}
+        {phase !== 'listening' ? (
+          <View style={{ alignItems: 'center' }}>
+            <VoiceEngineBadge info={engine} />
+          </View>
+        ) : null}
 
-        {phase === 'thinking' ? (
+        {phase === 'agent' && agentSession ? (
+          <VoiceAgentPanel
+            transcript={agentSession.transcript}
+            groupId={launchGroupId}
+            today={today()}
+            onFallback={agentFellBack}
+            followUp={agentFollowUp}
+            onRetry={(followUp) => {
+              setAgentFollowUp(followUp ?? null);
+              setAgentSession(null);
+              setAttempt((current) => current + 1);
+              setPhase('listening');
+            }}
+            onClose={() => router.back()}
+          />
+        ) : phase === 'thinking' ? (
           <View
             style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}
           >
@@ -1718,6 +2030,15 @@ export default function VoiceScreen() {
                 card, the way a receipt lists what it charged. Tapping a line opens
                 it to correct the amount or the note; it is closed again by
                 default. The parser is not put on trial the moment you land here. */}
+            {amountQuestion ? (
+              <AmountChooser
+                question={amountQuestion.question}
+                onAnswer={answerAmount}
+                theme={theme}
+              />
+            ) : currencyQuestion ? (
+              <AmountChooser question={currencyQuestion} onAnswer={answerCurrency} theme={theme} />
+            ) : null}
             <Card padded={false} style={{ overflow: 'hidden' }}>
               {drafts.map((draft, index) => (
                 <View key={draft.key}>
@@ -1860,6 +2181,7 @@ export default function VoiceScreen() {
                 members={targetMembers}
                 currency={destCurrency ?? dc}
                 onOpen={() => setWhoOpen(true)}
+                onPick={pickName}
                 t={t}
                 theme={theme}
               />
@@ -1934,8 +2256,12 @@ export default function VoiceScreen() {
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
+              streamLive={agentOn}
+              agentReady={agentReady}
+              onEngine={setEngine}
+              groupId={launchGroupId}
               hints={hints}
-              groupNames={hints}
+              groupNames={groupNames}
               missed={noAmount}
               autoStart={!noAmount}
               endSignal={hold.ended}
@@ -1945,6 +2271,7 @@ export default function VoiceScreen() {
                 // transcript is accepted (and a dismissed one's is not).
                 captureActive.current = true;
                 heardFromLink.current = false;
+                setAgentQuotaNote(false);
                 setNoAmount(false);
               }}
             />
@@ -2086,7 +2413,7 @@ export default function VoiceScreen() {
           <WhoSheet
             who={who}
             members={targetMembers}
-            onChange={(next) => setWhoEdit((current) => ({ ...current, ...next }))}
+            onChange={editWho}
             onClose={() => setWhoOpen(false)}
             t={t}
             theme={theme}
@@ -2139,6 +2466,51 @@ function describeDest(
 type Strings = ReturnType<typeof useStrings>['t'];
 type ThemeT = ReturnType<typeof useTheme>;
 
+/**
+ * The spoken amount's one question, compact: the prompt on a line and the
+ * answers as pills under it, the way the group question reads. Nothing is
+ * pre-picked; Save waits for a tap.
+ */
+function AmountChooser({
+  question,
+  onAnswer,
+  theme,
+}: {
+  question: VoiceAmountQuestion;
+  onAnswer: (key: string) => void;
+  theme: ThemeT;
+}) {
+  return (
+    <View style={{ gap: theme.spacing.xs }}>
+      <Text variant="caption" style={{ fontWeight: '600' }}>
+        {question.prompt}
+      </Text>
+      <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
+        {question.answers.map((answer) => (
+          <Pressable
+            key={answer.key}
+            onPress={() => onAnswer(answer.key)}
+            accessibilityRole="button"
+            accessibilityLabel={answer.label}
+            style={({ pressed }) => ({
+              paddingVertical: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: theme.color.warning,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text variant="caption" style={{ fontWeight: '600' }}>
+              {answer.label}
+            </Text>
+          </Pressable>
+        ))}
+      </Row>
+    </View>
+  );
+}
+
 /** A member's name as the review writes it: "You" for the speaker. */
 function whoName(members: readonly VoiceNameCandidate[], id: string, t: Strings): string {
   const member = members.find((candidate) => candidate.id === id);
@@ -2184,6 +2556,7 @@ function WhoCard({
   members,
   currency,
   onOpen,
+  onPick,
   t,
   theme,
 }: {
@@ -2191,6 +2564,8 @@ function WhoCard({
   members: readonly VoiceNameCandidate[];
   currency: string;
   onOpen: () => void;
+  /** A one-tap answer to "Did you mean …?" or "A or B?". */
+  onPick: (party: VoiceParty, memberId: string) => void;
   t: Strings;
   theme: ThemeT;
 }) {
@@ -2204,7 +2579,11 @@ function WhoCard({
   );
   const { payer } = who.intent;
   const payerName = who.payerId ? whoName(members, who.payerId, t) : '';
-  const heard = payer.explicit && payer.fuzzy && !payerOpen ? payer.name : null;
+  // People in the split still in question, each asked on its own line.
+  const asked = (who.intent.participants ?? []).filter(
+    (party) => party.status === 'suggested' || party.status === 'ambiguous',
+  );
+  const heard = payer.explicit && payer.fuzzy && !payerOpen ? (payer.heard ?? payer.name) : null;
   const rowStyle = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -2250,6 +2629,9 @@ function WhoCard({
           {t.voice.change}
         </Text>
       </Pressable>
+      {payerOpen ? (
+        <NameQuestion party={payer} members={members} onPick={onPick} t={t} theme={theme} />
+      ) : null}
       <Divider />
       <Pressable
         onPress={onOpen}
@@ -2268,7 +2650,9 @@ function WhoCard({
             <Text tone="faint"> · </Text>
             <Text style={{ fontWeight: '600' }}>{describeSplit(who, members, currency, t)}</Text>
           </Text>
-          {peopleOpen && peopleOpen.code === 'participant_unresolved' ? (
+          {peopleOpen &&
+          peopleOpen.code === 'participant_unresolved' &&
+          !asked.some((party) => party.name === peopleOpen.name) ? (
             <Text variant="micro" style={{ color: warn }}>
               {t.voice.whoUnknown.replace('{name}', peopleOpen.name)}
             </Text>
@@ -2282,7 +2666,93 @@ function WhoCard({
           {t.voice.change}
         </Text>
       </Pressable>
+      {asked.map((party, index) => (
+        <NameQuestion
+          key={`${party.heard ?? party.name}-${index}`}
+          party={party}
+          members={members}
+          onPick={onPick}
+          t={t}
+          theme={theme}
+        />
+      ))}
     </Card>
+  );
+}
+
+/**
+ * A heard name the review could not fill in on its own, asked in one compact
+ * line: "Did you mean Renny?" with a Yes, or "Ravi or Rajiv?" with a pill for
+ * each. One tap settles it (and is remembered for this group); anything else is
+ * a tap on the row above, which opens the full list.
+ */
+function NameQuestion({
+  party,
+  members,
+  onPick,
+  t,
+  theme,
+}: {
+  party: VoiceParty;
+  members: readonly VoiceNameCandidate[];
+  onPick: (party: VoiceParty, memberId: string) => void;
+  t: Strings;
+  theme: ThemeT;
+}) {
+  const candidates = (party.candidates ?? []).filter((candidate) =>
+    members.some((member) => member.id === candidate.id),
+  );
+  const label = (candidate: VoiceNameCandidate): string =>
+    candidate.isMe ? t.voice.youLabel : candidate.name;
+  const first = candidates[0];
+  if (!first || (party.status !== 'suggested' && party.status !== 'ambiguous')) return null;
+  const rowStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  };
+  if (party.status === 'suggested') {
+    return (
+      <View style={rowStyle}>
+        <Text variant="caption" numberOfLines={1} style={{ flex: 1, color: theme.color.warning }}>
+          {t.voice.didYouMean.replace('{name}', label(first))}
+        </Text>
+        <Chip
+          label={t.voice.didYouMeanYes}
+          selected
+          variant="brand"
+          onPress={() => onPick(party, first.id)}
+        />
+      </View>
+    );
+  }
+  if (candidates.length < 2) return null;
+  const names = candidates.map(label);
+  const question = t.voice.whichOf
+    .replace('{names}', names.slice(0, -1).join(', '))
+    .replace('{last}', names[names.length - 1] ?? '');
+  return (
+    <View style={rowStyle}>
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        style={{ flexBasis: '100%', color: theme.color.warning }}
+      >
+        {question}
+      </Text>
+      {candidates.map((candidate) => (
+        <Chip
+          key={candidate.id}
+          label={label(candidate)}
+          selected
+          variant="brand"
+          onPress={() => onPick(party, candidate.id)}
+        />
+      ))}
+    </View>
   );
 }
 

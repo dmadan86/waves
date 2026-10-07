@@ -793,6 +793,7 @@ function AuthGate() {
           <Stack.Screen name="settings/lock" />
           <Stack.Screen name="settings/devices" />
           <Stack.Screen name="settings/offline-voice" />
+          <Stack.Screen name="settings/voice-recorder" />
           <Stack.Screen name="settings/recent" />
           <Stack.Screen name="settings/sync" />
           <Stack.Screen name="settings/backup" />
