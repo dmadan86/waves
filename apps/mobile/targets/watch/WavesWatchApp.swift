@@ -6,7 +6,10 @@ import WatchConnectivity
 // Sends intents to the paired phone over WatchConnectivity and shows what the
 // phone relays back. The wire shapes match @waves/core's relay contract:
 //   watch → phone: {t:"quickAdd"|"voiceAdd"|"requestRecent", ...}
+//                  and a recorded clip as a file (transferFile) with metadata
+//                  {t:"voiceClip", id, durationMs}
 //   phone → watch: {t:"recent", items:[...]} | {t:"settings", recentCount} | {t:"ack", ok}
+//                  | {t:"voiceResult", id, status:"added"|"review"|"error", text, error?}
 //
 // UNVERIFIED: authored on Windows without Xcode. Build on a Mac/EAS before trust.
 
@@ -20,6 +23,17 @@ struct RecentItem: Identifiable {
   let whenText: String
 }
 
+/// Where a recorded clip is on its way to becoming an expense.
+enum VoiceOutcome: Equatable {
+  case idle
+  case sending
+  /// Handed to WatchConnectivity but no answer yet — the phone is out of reach.
+  case queued
+  case added(String)
+  case review
+  case failed(String)
+}
+
 final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   @Published var recent: [RecentItem] = []
   @Published var recentCount: Int = 5
@@ -28,6 +42,10 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
   @Published var reachable: Bool = false
   /// An expense this watch sent that WatchConnectivity could not deliver.
   @Published var lastSendFailed: Bool = false
+  /// The latest voice clip's journey, shown on the Speak screen.
+  @Published var voiceOutcome: VoiceOutcome = .idle
+  private var currentClipId: String?
+  private var queuedTimer: Timer?
 
   private var session: WCSession? { WCSession.isSupported() ? WCSession.default : nil }
 
@@ -63,6 +81,46 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
 
   func voiceAdd(_ transcript: String) {
     lastSendFailed = !send(["t": "voiceAdd", "id": UUID().uuidString, "transcript": transcript])
+  }
+
+  /// Send a recorded clip to the phone with `transferFile`, which is queued and
+  /// survives the phone being out of reach. The outcome comes back as a
+  /// `voiceResult` message — immediately when the phone is reachable, otherwise
+  /// whenever it next runs Waves.
+  func sendClip(_ url: URL, durationMs: Int) {
+    guard let session, session.activationState == .activated else {
+      voiceOutcome = .failed("Phone not connected")
+      try? FileManager.default.removeItem(at: url)
+      return
+    }
+    let id = UUID().uuidString
+    currentClipId = id
+    voiceOutcome = .sending
+    session.transferFile(
+      url,
+      metadata: ["t": "voiceClip", "id": id, "durationMs": durationMs, "version": relayVersion]
+    )
+    // Not reachable: say so rather than spin on "Sending…" for minutes. The
+    // transfer stays queued and the answer still lands when it arrives.
+    queuedTimer?.invalidate()
+    queuedTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
+      guard let self, self.currentClipId == id, self.voiceOutcome == .sending else { return }
+      self.voiceOutcome = .queued
+    }
+  }
+
+  func resetVoiceOutcome() {
+    if voiceOutcome != .sending && voiceOutcome != .queued { voiceOutcome = .idle }
+  }
+
+  private static func voiceErrorText(_ code: String?, _ text: String) -> String {
+    switch code {
+    case "clarify": return text.isEmpty ? "Try again with an amount" : text
+    case "no-amount": return "No amount heard"
+    case "nothing-heard": return "Didn't catch that"
+    case "payer": return "Open Waves to add what someone else paid"
+    default: return "Couldn't add that. Try again."
+    }
   }
 
   /// Hand a message to WatchConnectivity for delivery. Returns whether it was
@@ -138,6 +196,24 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
     DispatchQueue.main.async { self.lastSendFailed = failed }
   }
 
+  /// A clip's file transfer finished. Success only means it reached the phone;
+  /// the outcome is the `voiceResult`. A failure is terminal.
+  func session(
+    _ session: WCSession,
+    didFinish fileTransfer: WCSessionFileTransfer,
+    error: Error?
+  ) {
+    try? FileManager.default.removeItem(at: fileTransfer.file.fileURL)
+    guard error != nil else { return }
+    DispatchQueue.main.async {
+      self.queuedTimer?.invalidate()
+      self.lastSendFailed = true
+      if self.voiceOutcome == .sending || self.voiceOutcome == .queued {
+        self.voiceOutcome = .failed("Couldn't reach your phone")
+      }
+    }
+  }
+
   private func handle(_ message: [String: Any]) {
     guard let t = message["t"] as? String else { return }
     DispatchQueue.main.async {
@@ -155,6 +231,17 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
       case "settings":
         if let n = message["recentCount"] as? Int { self.recentCount = n }
         if let c = message["currency"] as? String, !c.isEmpty { self.currency = c }
+      case "voiceResult":
+        // Ignore an answer for a clip that is not the current one.
+        guard (message["id"] as? String) == self.currentClipId else { break }
+        self.queuedTimer?.invalidate()
+        let text = message["text"] as? String ?? ""
+        switch message["status"] as? String {
+        case "added": self.voiceOutcome = .added(text)
+        case "review": self.voiceOutcome = .review
+        default:
+          self.voiceOutcome = .failed(Self.voiceErrorText(message["error"] as? String, text))
+        }
       case "ack":
         self.lastAckOk = message["ok"] as? Bool ?? false
       default:

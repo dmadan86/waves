@@ -26,6 +26,12 @@ interface NativeWatch {
   // iOS only: a queued WatchConnectivity transfer that never reached the watch.
   // Android has no equivalent event — its failures surface as a rejection from
   // `sendToWatch` above — and both are funnelled into `onWatchSendFailed`.
+  // iOS only: a file the watch transferred (`transferFile`) — a voice clip. `uri`
+  // is a copy in the app's caches, `metadata` the watch's property list.
+  addListener(
+    event: 'onWatchFile',
+    handler: (event: { uri: string; metadata: unknown }) => void,
+  ): { remove(): void };
   addListener(
     event: 'onWatchSendFailed',
     handler: (event: { t?: unknown }) => void,
@@ -139,6 +145,35 @@ export function onWatchMessage(handler: (raw: unknown) => void): () => void {
     };
   } catch {
     // Subscribing failed — behave as if there were no transport.
+    return () => undefined;
+  }
+}
+
+/** A file the watch transferred, as the native module hands it over. */
+export interface WatchFileEvent {
+  uri: string;
+  metadata: unknown;
+}
+
+/**
+ * Subscribe to files the watch transfers (voice clips). iOS only — Android has
+ * no watch audio path — so a build without the event, or without the module,
+ * gets a no-op unsubscribe.
+ */
+export function onWatchFile(handler: (event: WatchFileEvent) => void): () => void {
+  if (!native) return () => undefined;
+  try {
+    const sub = native.addListener('onWatchFile', (event) =>
+      handler({ uri: event.uri, metadata: event.metadata }),
+    );
+    return () => {
+      try {
+        sub.remove();
+      } catch {
+        // The module was torn down first; nothing to remove.
+      }
+    };
+  } catch {
     return () => undefined;
   }
 }
