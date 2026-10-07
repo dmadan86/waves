@@ -94,6 +94,7 @@ function makeDeps(
 ) {
   const upstreams: FakeSocket[] = [];
   const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
+  const serviceReads: string[] = [];
   const connectUpstream = vi.fn((url: string, key: string) => {
     void url;
     void key;
@@ -147,6 +148,7 @@ function makeDeps(
         return { data: true, error: null };
       },
       from: (t: string) => {
+        serviceReads.push(t);
         const q: Record<string, unknown> = {};
         const chain = () => q;
         for (const m of ['select', 'eq']) q[m] = chain;
@@ -169,12 +171,23 @@ function makeDeps(
     connectUpstream,
     waitUntil: vi.fn(),
   };
-  return { deps, upstreams, rpcCalls, connectUpstream };
+  return { deps, upstreams, rpcCalls, connectUpstream, serviceReads };
 }
 
 /** Let the gate's promises (and crypto.subtle) run. Timers stay faked. */
 async function settle(): Promise<void> {
   for (let i = 0; i < 40; i++) await new Promise((resolve) => setImmediate(resolve));
+}
+
+/**
+ * Turn the event loop until `ready` holds, bounded by real (unfaked) time, so a
+ * slow CI box gets as many turns as it needs.
+ */
+async function until(ready: () => boolean, budgetMs = 5_000): Promise<void> {
+  const end = performance.now() + budgetMs;
+  while (!ready() && performance.now() < end) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
 }
 
 const session = { jwt: 'jwt-abc', locale: 'en', groupId: 'g1' };
@@ -188,9 +201,15 @@ async function started(over: Parameters<typeof makeDeps>[0] = {}, connect = true
   // Wait for the gate to finish and Deepgram to be dialled — however many
   // turns that takes on a slow CI box — rather than a fixed number of turns.
   await settle();
-  for (let i = 0; i < 2000 && made.upstreams.length === 0 && !client.closed; i++) {
-    await new Promise((resolve) => setImmediate(resolve));
-  }
+  // Chaos drills (deepgram-slow) may never dial: there, the allowlist read
+  // marks the gate as done.
+  await until(
+    () =>
+      made.upstreams.length > 0 ||
+      client.closed !== null ||
+      made.serviceReads.includes('voice_agent_allowlist'),
+  );
+  await settle();
   const upstream = made.upstreams[0];
   if (connect && upstream) upstream.open();
   return { ...made, client, upstream, done };
@@ -490,9 +509,12 @@ describe('runRelay: failure modes (docs/voice-failure-modes.md)', () => {
     void runRelay(client, session, made.deps);
     client.open();
     await settle();
+    // The three caps are armed at once; the fourth timer is the context wait,
+    // armed only once the gate has let the caller in.
+    await until(() => vi.getTimerCount() >= 4);
     expect(made.connectUpstream).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(CONTEXT_WAIT_MS);
-    await settle();
+    await until(() => made.connectUpstream.mock.calls.length > 0);
     expect(made.connectUpstream).toHaveBeenCalledTimes(1);
     expect(made.connectUpstream.mock.calls[0]![0]).not.toContain('keyterm=');
   });
