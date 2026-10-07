@@ -88,7 +88,8 @@ import {
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { checkOnline } from '@/lib/voiceStream';
-import { local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import { CLOUD, local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
@@ -947,6 +948,32 @@ export default function VoiceScreen() {
     return true;
   };
 
+  // What the fast path may resolve names against: the same 1:1 contacts the
+  // settle/remind/balance paths use, and the members of the launch group (the
+  // only group whose members are loaded before one is chosen).
+  const fastPathContext = (): FastPathContext => {
+    const rows = (people.data ?? []).filter(
+      (row) => row.only_group_id && oneToOne.data.has(row.only_group_id),
+    );
+    const byPerson = new Map<string, { id: string; name: string; balances: bigint[] }>();
+    for (const row of rows) {
+      const entry = byPerson.get(row.person_key) ?? {
+        id: row.person_key,
+        name: row.display_name,
+        balances: [],
+      };
+      const net = BigInt(row.net);
+      if (net !== 0n) entry.balances.push(net);
+      byPerson.set(row.person_key, entry);
+    }
+    return {
+      groups: groupRefs,
+      currentGroupId: launchGroupId,
+      membersByGroup: launchGroupId && launchMembers ? { [launchGroupId]: launchMembers } : {},
+      contacts: [...byPerson.values()],
+    };
+  };
+
   const handleTranscript = (transcript: string, streamed?: boolean): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
@@ -959,6 +986,18 @@ export default function VoiceScreen() {
     // another", a link-supplied sentence, or a capture that fell back to the
     // on-device recogniser stay on the basic path.
     if (agentOn && streamed && micMode !== 'append' && !heardFromLink.current) {
+      // Fast path: when the instant on-device parser reads the sentence with full
+      // confidence, skip the agent (no wait, no allowance spent) and show the
+      // ordinary basic review. The speech still came from the cloud engine.
+      const fastContext = fastPathContext();
+      const heardLocally = parseLocally(transcript, fastContext);
+      if (localParseIsConfident(heardLocally, fastContext)) {
+        if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
+        setEngine(CLOUD);
+        runBasic(transcript);
+        return;
+      }
+      if (__DEV__) console.log('[voice] path: agent');
       setAgentSession({ transcript });
       setPhase('agent');
       return;
