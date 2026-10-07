@@ -65,20 +65,26 @@ export function nameTokens(text: string): string[] {
   return text.split(/\s+/).map(nameToken).filter(Boolean);
 }
 
-/** A rough sound key: enough to equate "Priya"/"Pria", "Sumit"/"Sumeet", "Arun"/"Arrun". */
+/** A rough sound key: enough to equate "Priya"/"Pria", "Sumit"/"Sumeet", "Arun"/"Arrun",
+ *  "Renny"/"rainy". */
 export function phoneticKey(word: string): string {
-  return word
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/ph/g, 'f')
-    .replace(/w/g, 'v')
-    .replace(/(?<=[a-z])h/g, '')
-    .replace(/ee|ea|ie|y/g, 'i')
-    .replace(/oo/g, 'u')
-    .replace(/ck|c(?=[aou])|q/g, 'k')
-    .replace(/(.)\1+/g, '$1')
-    .replace(/(?<=.)[aeiou]/g, 'a');
+  return (
+    word
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/ph/g, 'f')
+      .replace(/w/g, 'v')
+      .replace(/(?<=[a-z])h/g, '')
+      // "ai"/"ay"/"ei"/"ey" mid-word are the long e an Indian-English ear hears:
+      // a phone's recogniser writes "Renny" as "rainy", "Shreya" as "shraya".
+      .replace(/(?<=.)(ai|ay|ei|ey)/g, 'e')
+      .replace(/ee|ea|ie|y/g, 'i')
+      .replace(/oo/g, 'u')
+      .replace(/ck|c(?=[aou])|q/g, 'k')
+      .replace(/(.)\1+/g, '$1')
+      .replace(/(?<=.)[aeiou]/g, 'a')
+  );
 }
 
 /** The consonants alone, repeats folded: "renny" and "rainy" are both "rny". */
