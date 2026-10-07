@@ -17,14 +17,13 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 
 import { MutationKind, rowsFor, SyncTable } from '@waves/core';
 import {
   Button,
   Card,
   directionalIcon,
-  EmptyState,
   IconButton,
   iconSize,
   Row,
@@ -36,11 +35,14 @@ import {
 
 import { useArchivedGroups } from '@/data/hooks';
 import { GroupPhoto } from '@/components/GroupPhoto';
+import { InfoRowsCard } from '@/components/InfoRowsCard';
 import { groupLabel, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync/provider';
+
+const ARCHIVED_ART = require('../../../assets/images/archived-empty-art.webp') as number;
 
 export default function ArchivedGroupsScreen() {
   const theme = useTheme();
@@ -92,7 +94,47 @@ export default function ArchivedGroupsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {groups.length === 0 ? (
-          <EmptyState title={t.group.archivedEmpty} body={t.group.archivedEmptyBody} />
+          <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            {/* The art is 590x380; fixed sizes because a percentage width with
+                an aspect ratio renders zoomed and cropped on Android. */}
+            <Image
+              source={ARCHIVED_ART}
+              accessibilityIgnoresInvertColors
+              importantForAccessibility="no"
+              resizeMode="contain"
+              style={{ width: 264, height: 170 }}
+            />
+            <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+              <Text variant="title" style={{ textAlign: 'center' }}>
+                {t.group.archivedEmpty}
+              </Text>
+              <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+                {t.group.archivedEmptyBody}
+              </Text>
+            </View>
+            <InfoRowsCard
+              rows={[
+                {
+                  icon: 'archive',
+                  tint: 'lilac',
+                  title: t.group.archivedTidyTitle,
+                  body: t.group.archivedTidyBody,
+                },
+                {
+                  icon: 'refresh',
+                  tint: 'sky',
+                  title: t.group.archivedBackTitle,
+                  body: t.group.archivedBackBody,
+                },
+                {
+                  icon: 'people',
+                  tint: 'mint',
+                  title: t.group.archivedSafeTitle,
+                  body: t.group.archivedSafeBody,
+                },
+              ]}
+            />
+          </View>
         ) : (
           <View style={{ gap: theme.spacing.md }}>
             {groups.map((group) => (

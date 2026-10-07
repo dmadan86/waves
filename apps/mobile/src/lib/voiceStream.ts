@@ -59,10 +59,17 @@ export type StreamSessionResult =
 /** How long stop() waits for Deepgram's last results after CloseStream. */
 const FLUSH_TIMEOUT_MS = 1500;
 /**
- * How long the relay may take to say Ready: its auth and budget checks plus
- * its own connect to Deepgram (which it gives 4 s).
+ * How long the relay's WebSocket may take to open at all. A relay that cannot
+ * even be reached (offline mid-press, a cold or failing function) is given up
+ * on here, and the person is moved to the on-device recogniser.
  */
-const OPEN_TIMEOUT_MS = 6000;
+export const SOCKET_OPEN_TIMEOUT_MS = 4000;
+/**
+ * How long the relay may take to say Ready, from the press of the socket: its
+ * auth and budget checks plus its own connect to Deepgram (which it gives 4 s
+ * and then refuses with 4503).
+ */
+export const OPEN_TIMEOUT_MS = 6000;
 /** Send a KeepAlive when no audio has gone out for this long. */
 const KEEPALIVE_AFTER_MS = 4000;
 
@@ -301,11 +308,14 @@ export async function attachStream(
   let settleOpen: (result: 'ready' | StreamTokenFailure) => void = () => {};
   const opened = new Promise<'ready' | StreamTokenFailure>((resolve) => {
     const timer = setTimeout(() => resolve('error'), OPEN_TIMEOUT_MS);
+    const socketTimer = setTimeout(() => resolve('error'), SOCKET_OPEN_TIMEOUT_MS);
     settleOpen = (result) => {
       clearTimeout(timer);
+      clearTimeout(socketTimer);
       resolve(result);
     };
     socket.onopen = () => {
+      clearTimeout(socketTimer);
       isOpen = true;
       lastSent = Date.now();
       // The buffered start of the sentence goes now, in order, then live: the

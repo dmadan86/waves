@@ -373,6 +373,9 @@ export interface UiStrings {
    *  the per-sub-event budget and vendor-deposit tracking on an Event group. */
   eventOrganizer: {
     templateLabel: string;
+    /** Placeholder of the own-template name field, and the label for removing a remembered one. */
+    customTemplatePlaceholder: string;
+    customTemplateRemove: string;
     templateNames: Record<EventTemplateId, string>;
     /** The short event-kind word on a group's type tag. */
     tagNames: Record<EventTemplateId, string>;
@@ -1287,6 +1290,8 @@ export interface UiStrings {
     engineReasonFree: string;
     engineReasonQuota: string;
     engineReasonOffline: string;
+    /** Online, but the cloud voice (stream or agent) failed or timed out. */
+    engineReasonCloudDown: string;
     /** Cloud voice switched off in Settings. */
     engineReasonOff: string;
     agentQuotaFallback: string;
@@ -2799,6 +2804,12 @@ export interface UiStrings {
     archivedTitle: string;
     archivedEmpty: string;
     archivedEmptyBody: string;
+    archivedTidyTitle: string;
+    archivedTidyBody: string;
+    archivedBackTitle: string;
+    archivedBackBody: string;
+    archivedSafeTitle: string;
+    archivedSafeBody: string;
     unarchive: string;
     /** Subtitle under Unarchive on a group's own settings screen. */
     unarchiveHint: string;
@@ -4854,6 +4865,8 @@ const en: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'Event template',
+    customTemplatePlaceholder: 'e.g. Housewarming',
+    customTemplateRemove: 'Remove',
     eventDatesTitle: 'Event dates',
     aboutEventDates: 'About event dates',
     eventDatesBody:
@@ -5594,6 +5607,7 @@ const en: UiStrings = {
     engineReasonFree: 'Free plan',
     engineReasonQuota: 'Monthly limit reached',
     engineReasonOffline: 'Offline',
+    engineReasonCloudDown: 'Cloud unavailable',
     engineReasonOff: 'Off in settings',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
@@ -6791,6 +6805,12 @@ const en: UiStrings = {
     archivedTitle: 'Archived groups',
     archivedEmpty: 'Nothing archived',
     archivedEmptyBody: 'Groups you archive show up here, ready to bring back.',
+    archivedTidyTitle: 'Keep things tidy',
+    archivedTidyBody: "Archive groups you're no longer using.",
+    archivedBackTitle: 'Bring them back anytime',
+    archivedBackBody: 'Unarchive to view and add expenses again.',
+    archivedSafeTitle: 'Nothing is lost',
+    archivedSafeBody: 'All expenses and history are safely saved.',
     unarchive: 'Unarchive',
     unarchiveHint: 'Put it back on your list',
     archivedOn: 'Archived {date}',
@@ -8653,6 +8673,8 @@ const ta: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'நிகழ்வு வார்ப்புரு',
+    customTemplatePlaceholder: 'எ.கா. புதுமனை புகுவிழா',
+    customTemplateRemove: 'நீக்கு',
     eventDatesTitle: 'நிகழ்வு தேதிகள்',
     aboutEventDates: 'நிகழ்வு தேதிகள் பற்றி',
     eventDatesBody:
@@ -9409,6 +9431,7 @@ const ta: UiStrings = {
     engineReasonFree: 'இலவசத் திட்டம்',
     engineReasonQuota: 'மாத வரம்பு முடிந்தது',
     engineReasonOffline: 'இணைப்பு இல்லை',
+    engineReasonCloudDown: 'கிளவுட் கிடைக்கவில்லை',
     engineReasonOff: 'அமைப்புகளில் ஆஃப்',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
@@ -10658,6 +10681,12 @@ const ta: UiStrings = {
     archivedEmpty: 'காப்பகத்தில் ஏதுமில்லை',
     archivedEmptyBody:
       'நீங்கள் காப்பகப்படுத்தும் குழுக்கள் இங்கே தோன்றும், மீண்டும் கொண்டுவரத் தயார்.',
+    archivedTidyTitle: 'எல்லாம் நேர்த்தியாக',
+    archivedTidyBody: 'இனி பயன்படுத்தாத குழுக்களைக் காப்பகப்படுத்துங்கள்.',
+    archivedBackTitle: 'எப்போது வேண்டுமானாலும் மீட்கலாம்',
+    archivedBackBody: 'மீட்டெடுத்து செலவுகளைப் பார்க்கவும் சேர்க்கவும்.',
+    archivedSafeTitle: 'எதுவும் இழக்கப்படாது',
+    archivedSafeBody: 'எல்லா செலவுகளும் வரலாறும் பாதுகாப்பாக சேமிக்கப்படும்.',
     unarchive: 'மீட்டெடு',
     unarchiveHint: 'உங்கள் பட்டியலுக்குத் திரும்பக் கொண்டுவா',
     archivedOn: '{date} அன்று காப்பகப்படுத்தப்பட்டது',
@@ -12601,6 +12630,8 @@ const hi: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'इवेंट टेम्पलेट',
+    customTemplatePlaceholder: 'जैसे गृह प्रवेश',
+    customTemplateRemove: 'हटाएँ',
     eventDatesTitle: 'आयोजन की तारीखें',
     aboutEventDates: 'आयोजन की तारीखों के बारे में',
     eventDatesBody:
@@ -13343,6 +13374,7 @@ const hi: UiStrings = {
     engineReasonFree: 'फ्री प्लान',
     engineReasonQuota: 'मासिक सीमा पूरी',
     engineReasonOffline: 'ऑफ़लाइन',
+    engineReasonCloudDown: 'क्लाउड उपलब्ध नहीं',
     engineReasonOff: 'सेटिंग्स में बंद',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
@@ -14542,6 +14574,12 @@ const hi: UiStrings = {
     archivedTitle: 'संग्रहित समूह',
     archivedEmpty: 'कुछ भी संग्रहित नहीं',
     archivedEmptyBody: 'आप जो समूह संग्रहित करते हैं वे यहाँ दिखते हैं, वापस लाने के लिए तैयार।',
+    archivedTidyTitle: 'सब कुछ व्यवस्थित',
+    archivedTidyBody: 'जिन समूहों का अब उपयोग नहीं करते, उन्हें संग्रहित करें।',
+    archivedBackTitle: 'जब चाहें वापस लाएँ',
+    archivedBackBody: 'वापस लाकर खर्च देखें और जोड़ें।',
+    archivedSafeTitle: 'कुछ भी नहीं खोता',
+    archivedSafeBody: 'सभी खर्च और इतिहास सुरक्षित सहेजे रहते हैं।',
     unarchive: 'वापस लाएँ',
     unarchiveHint: 'इसे फिर आपकी सूची में लाएँ',
     archivedOn: '{date} को संग्रहित',
@@ -16422,6 +16460,8 @@ const ar: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'قالب المناسبة',
+    customTemplatePlaceholder: 'مثال: حفل افتتاح المنزل',
+    customTemplateRemove: 'إزالة',
     eventDatesTitle: 'تواريخ المناسبة',
     aboutEventDates: 'حول تواريخ المناسبة',
     eventDatesBody:
@@ -17218,6 +17258,7 @@ const ar: UiStrings = {
     engineReasonFree: 'الخطة المجانية',
     engineReasonQuota: 'بلغتَ الحد الشهري',
     engineReasonOffline: 'غير متصل',
+    engineReasonCloudDown: 'السحابة غير متاحة',
     engineReasonOff: 'متوقف في الإعدادات',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',
@@ -18539,6 +18580,12 @@ const ar: UiStrings = {
     archivedTitle: 'المجموعات المؤرشفة',
     archivedEmpty: 'لا شيء في الأرشيف',
     archivedEmptyBody: 'المجموعات التي تؤرشفها تظهر هنا، جاهزة للاستعادة.',
+    archivedTidyTitle: 'حافظ على الترتيب',
+    archivedTidyBody: 'أرشف المجموعات التي لم تعد تستخدمها.',
+    archivedBackTitle: 'أعدها في أي وقت',
+    archivedBackBody: 'ألغِ الأرشفة لعرض المصروفات وإضافتها مجددًا.',
+    archivedSafeTitle: 'لا شيء يضيع',
+    archivedSafeBody: 'كل المصروفات والسجل محفوظة بأمان.',
     unarchive: 'إلغاء الأرشفة',
     unarchiveHint: 'أعِدها إلى قائمتك',
     archivedOn: 'أُرشفت في {date}',

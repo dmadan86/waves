@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, TextInput, View } from 'react-native';
+import { Image, Pressable, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { dialingCodeForCountry } from '@waves/core';
 import { Button, Popup, Row, Text, useTheme } from '@waves/ui';
@@ -63,6 +63,7 @@ enum Stage {
 
 export function PhoneLinkPrompt() {
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
   const { session, profile, isGuest, refresh, signOut } = useAuth();
   const enabled = useFlagEnabled(FLAG);
@@ -213,16 +214,21 @@ export function PhoneLinkPrompt() {
       hitSlop={8}
       style={{
         alignSelf: 'center',
-        paddingVertical: theme.spacing.xs,
+        paddingVertical: theme.spacing.sm,
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <Text variant="subheading" tone="brand">
+      <Text variant="body" tone="muted" style={{ fontWeight: '600' }}>
         {label}
       </Text>
     </Pressable>
   );
 
+  // The card is at most 380 wide, inset from the window, less its own padding.
+  const artWidth = Math.max(
+    0,
+    Math.min(380, windowWidth - theme.spacing.xl * 2) - theme.spacing.lg * 2,
+  );
   const [codeBefore, codeAfter] = t.phonePrompt.codeSent.split('{phone}');
   const retryReady = retryLeft <= 0 && !busy;
 
@@ -250,12 +256,17 @@ export function PhoneLinkPrompt() {
           backgroundColor: theme.color.border,
         }}
       />
-      <Image
-        source={art.source}
-        accessible={false}
-        resizeMode="contain"
-        style={{ width: '100%', aspectRatio: art.ratio }}
-      />
+      {/* Sized from the card, not '100%': on an iPad running the phone app in its
+          window the percentage resolved against the wrong box and the art ran
+          past the card's edge. Clipped to the card either way. */}
+      <View style={{ width: artWidth, alignSelf: 'center', overflow: 'hidden' }}>
+        <Image
+          source={art.source}
+          accessible={false}
+          resizeMode="contain"
+          style={{ width: artWidth, height: artWidth / art.ratio }}
+        />
+      </View>
 
       {stage === Stage.Done ? (
         <>
@@ -432,7 +443,8 @@ export function PhoneLinkPrompt() {
             </Text>
           ) : null}
 
-          <View style={{ gap: theme.spacing.xs }}>
+          {/* The primary action, then a clear gap, then the quiet text actions. */}
+          <View style={{ gap: theme.spacing.md }}>
             {stage === Stage.Ask ? (
               <Button
                 label={t.phonePrompt.add}
