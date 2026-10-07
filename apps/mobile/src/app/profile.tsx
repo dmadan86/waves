@@ -20,6 +20,8 @@ import {
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
+import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
+import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { SkeletonList } from '@/components/Skeletons';
 import { useSettledTotals, useVoiceAgentEnabled } from '@/data/hooks';
 import { useDemoActive } from '@/demo/useDemoActive';
@@ -162,7 +164,10 @@ function ProfileForm() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { session, profile, isGuest, signOut } = useAuth();
-  const showVoiceRecorder = useVoiceAgentEnabled() || __DEV__;
+  const voiceAgentOn = useVoiceAgentEnabled();
+  const showVoiceRecorder = voiceAgentOn || __DEV__;
+  const voiceConsent = useVoiceConsent(session?.user?.id);
+  const [consentSheet, setConsentSheet] = useState(false);
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
   // accounts have a null `avatar_url` and so showed initials here. Fall back to
@@ -387,6 +392,25 @@ function ProfileForm() {
               hint: t.offlineVoice.rowHint,
               route: '/settings/offline-voice',
             },
+            // Advanced voice (Pro): the switch that grants or revokes sending
+            // voice to Deepgram and Google Gemini. Turning it on asks first.
+            ...(voiceAgentOn
+              ? [
+                  {
+                    icon: 'cloud-outline' as const,
+                    label: t.voiceConsent.row,
+                    hint: t.voiceConsent.toggle,
+                    toggle: {
+                      value: voiceConsent.state === 'granted',
+                      disabled: !voiceConsent.ready,
+                      onChange: (on: boolean) => {
+                        if (on) setConsentSheet(true);
+                        else voiceConsent.revoke();
+                      },
+                    },
+                  },
+                ]
+              : []),
             // Testers only: the server flag for advanced voice, or a dev build.
             ...(showVoiceRecorder
               ? [
@@ -558,6 +582,14 @@ function ProfileForm() {
         </Text>
       </ScrollView>
 
+      <VoiceConsentSheet
+        visible={consentSheet}
+        onAllow={() => {
+          voiceConsent.allow();
+          setConsentSheet(false);
+        }}
+        onNotNow={() => setConsentSheet(false)}
+      />
       {/* Signing out is a confirmation the OS cannot draw: it wipes this
           device's mirror and the queue with it, so the question has to be able
           to name what is still unsent and offer to send it or save a copy

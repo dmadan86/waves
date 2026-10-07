@@ -26,6 +26,7 @@ import {
   Row,
   SectionHeader,
   Text,
+  Toggle,
   useTheme,
 } from '@waves/ui';
 
@@ -44,6 +45,8 @@ export interface SettingsRow {
   value?: string;
   /** Say a value is missing in the muted voice — "Add one" rather than a blank. */
   valueMuted?: boolean;
+  /** A switch at the end of the row instead of a chevron; the row itself is not pressable. */
+  toggle?: { value: boolean; onChange: (value: boolean) => void; disabled?: boolean };
   route?: string;
   onPress?: () => void;
   /** Ends something. Red title, red icon. */
@@ -57,7 +60,7 @@ export function SettingsSection({ title, rows }: { title?: string; rows: Setting
       {title ? <SectionHeader title={title} /> : null}
       <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
         {rows.map((item, index) => {
-          const live = Boolean(item.route ?? item.onPress);
+          const live = Boolean(item.route ?? item.onPress ?? item.toggle);
           return (
             <View key={item.label}>
               <ListRow
@@ -96,7 +99,14 @@ export function SettingsSection({ title, rows }: { title?: string; rows: Setting
                   </View>
                 }
                 trailing={
-                  item.value !== undefined ? (
+                  item.toggle ? (
+                    <Toggle
+                      value={item.toggle.value}
+                      disabled={item.toggle.disabled}
+                      onValueChange={item.toggle.onChange}
+                      accessibilityLabel={item.label}
+                    />
+                  ) : item.value !== undefined ? (
                     // The value shares the row with the title, so it takes only
                     // what is left: `flexShrink` with a zero `minWidth` lets a
                     // long answer clip rather than push the chevron off the
