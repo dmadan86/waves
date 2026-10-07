@@ -188,7 +188,6 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     // failed outright does the request fail (and the command is refunded).
     const message = userMessage({
       cloud: transcript,
-      device: body.deviceTranscript,
       followUp: body.followUp,
     });
     let parsed: Parsed | null = null;

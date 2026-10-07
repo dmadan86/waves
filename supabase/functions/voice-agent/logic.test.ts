@@ -302,12 +302,8 @@ describe('parseToolCalls', () => {
 });
 
 describe('userMessage', () => {
-  it('passes one transcript through, and both when the phone heard something else', () => {
-    expect(userMessage({ cloud: 'Dinner 500' })).toBe('Dinner 500');
-    expect(userMessage({ cloud: 'Dinner 500', device: 'dinner 500' })).toBe('Dinner 500');
-    expect(userMessage({ cloud: 'Add thousand rupees for Renny', device: '8000 for any' })).toBe(
-      'cloud: Add thousand rupees for Renny\nphone: 8000 for any',
-    );
+  it('passes the transcript through', () => {
+    expect(userMessage({ cloud: ' Dinner 500 ' })).toBe('Dinner 500');
   });
 
   it('frames a follow-up as the answer to the earlier question', () => {

@@ -185,7 +185,6 @@ Rules:
 - Relative dates ("yesterday", "last Friday") resolve against today, as YYYY-MM-DD. Omit date when it is today.
 - nudge reminds a member who owes the caller. record_settlement is a payment between two members of one group and one party must be the caller (me).
 - Keep descriptions short, in the speaker's words.
-- You may get two transcripts of the same clip: "cloud" and "phone". They mishear differently — one may get the number right ("8000") and the other the name ("Renny"). Combine them: trust digits and amounts that either one states clearly, and names that match a member in the context. Never ask just because the two disagree.
 - Pick the group yourself whenever you can: if everyone named is in exactly one group, use it; if several, prefer the one-to-one group with that person, else the CURRENT group. Ask which group only when the people named are in several groups and nothing else decides it.
 - "<amount> for <person>" (e.g. "8000 for Renny") means the speaker paid and that person owes all of it: split.shares lists only that person.
 - Use add_personal only when no other person is named and the speaker says it is just for them, or they have no groups at all.
@@ -558,30 +557,27 @@ export function deepgramUrl(locale: string, terms: readonly string[]): string {
     language: deepgramLanguage(locale),
     smart_format: 'true',
     punctuate: 'true',
+    // Spoken numbers as digits ("eight thousand" -> "8000"): the amount is the
+    // one word an expense cannot get wrong.
+    numerals: 'true',
     mip_opt_out: 'true',
   });
   for (const t of terms) params.append('keyterm', t);
   return `https://api.deepgram.com/v1/listen?${params.toString()}`;
 }
 
-/** The user turn the model reads: the cloud transcript, the phone's own, and an
- *  earlier command plus the question this clip answers, when there is one. */
+/** The user turn the model reads: the transcript, and an earlier command plus the
+ *  question this clip answers, when there is one. */
 export function userMessage(input: {
   cloud: string;
-  device?: string | null;
   followUp?: { transcript: string; question: string } | null;
 }): string {
-  const device = input.device?.trim();
   const lines: string[] = [];
   if (input.followUp?.transcript && input.followUp.question) {
     lines.push(`Earlier command: ${input.followUp.transcript.trim()}`);
     lines.push(`You asked: ${input.followUp.question.trim()}`);
     lines.push('Their answer:');
   }
-  if (device && device.toLowerCase() !== input.cloud.trim().toLowerCase()) {
-    lines.push(`cloud: ${input.cloud.trim()}`, `phone: ${device}`);
-  } else {
-    lines.push(input.cloud.trim());
-  }
+  lines.push(input.cloud.trim());
   return lines.join('\n');
 }
