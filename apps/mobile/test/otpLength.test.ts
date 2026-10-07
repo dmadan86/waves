@@ -138,7 +138,7 @@ describe.each(TEMPLATES)('the code mail %s', (name) => {
 
   it('carries the app icon from the public email-assets bucket, and no recipient line', () => {
     expect(html).toMatch(
-      /<img src="https:\/\/[^"]+\/storage\/v1\/object\/public\/email-assets\/waves-icon-192\.png"/,
+      /<img\s+src="https:\/\/[^"]+\/storage\/v1\/object\/public\/email-assets\/waves-icon-192\.png"/,
     );
     expect(html).toContain('alt="Waves"');
     expect(html).not.toContain('Sent to {{ .Email }}');
