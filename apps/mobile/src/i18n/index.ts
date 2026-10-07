@@ -1284,6 +1284,25 @@ export interface UiStrings {
     agentAnswer: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
+    confirmSubtitle: string;
+    confirmUnderstood: string;
+    confirmEditHint: string;
+    confirmEditAll: string;
+    confirmAmount: string;
+    confirmPaidFor: string;
+    confirmJustMe: string;
+    confirmWhichGroup: string;
+    confirmNewGroup: string;
+    confirmOtherGroup: string;
+    confirmChooseAll: string;
+    confirmNote: string;
+    confirmNotePlaceholder: string;
+    confirmAdd: string;
+    confirmClear: string;
+    confirmQuotaInfo: string;
+    confirmPersonMissing: string;
+    confirmPickGroup: string;
+    confirmNeedAmount: string;
     /** Engine badge on the voice screen. */
     engineCloud: string;
     engineOnDevice: string;
@@ -5602,6 +5621,25 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
+    confirmUnderstood: 'I understood this',
+    confirmEditHint: 'You can edit if something looks wrong.',
+    confirmEditAll: 'Edit all',
+    confirmAmount: 'Amount',
+    confirmPaidFor: 'Paid for',
+    confirmJustMe: 'Just me',
+    confirmWhichGroup: 'Which group is this for?',
+    confirmNewGroup: 'Create new group',
+    confirmOtherGroup: 'Other group',
+    confirmChooseAll: 'Choose from all groups',
+    confirmNote: 'Note (optional)',
+    confirmNotePlaceholder: 'What was it for?',
+    confirmAdd: 'Add expense',
+    confirmClear: 'Clear',
+    confirmQuotaInfo: 'About advanced commands',
+    confirmPersonMissing: "{name} isn't in this group",
+    confirmPickGroup: 'Pick a group to add this to',
+    confirmNeedAmount: 'Enter an amount',
     engineCloud: 'Cloud',
     engineOnDevice: 'On-device',
     engineReasonFree: 'Free plan',
@@ -9426,6 +9464,25 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
+    confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
+    confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
+    confirmEditAll: 'எல்லாவற்றையும் திருத்து',
+    confirmAmount: 'தொகை',
+    confirmPaidFor: 'யாருக்காக',
+    confirmJustMe: 'நான் மட்டும்',
+    confirmWhichGroup: 'இது எந்த குழுவிற்கு?',
+    confirmNewGroup: 'புதிய குழு உருவாக்கு',
+    confirmOtherGroup: 'வேறு குழு',
+    confirmChooseAll: 'எல்லா குழுக்களிலிருந்தும் தேர்வு செய்',
+    confirmNote: 'குறிப்பு (விருப்பம்)',
+    confirmNotePlaceholder: 'எதற்காக?',
+    confirmAdd: 'செலவைச் சேர்',
+    confirmClear: 'அழி',
+    confirmQuotaInfo: 'மேம்பட்ட கட்டளைகள் பற்றி',
+    confirmPersonMissing: '{name} இந்த குழுவில் இல்லை',
+    confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
+    confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
     engineCloud: 'கிளவுட்',
     engineOnDevice: 'சாதனத்தில்',
     engineReasonFree: 'இலவசத் திட்டம்',
@@ -13369,6 +13426,25 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
+    confirmUnderstood: 'मैंने यह समझा',
+    confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
+    confirmEditAll: 'सब बदलें',
+    confirmAmount: 'राशि',
+    confirmPaidFor: 'किसके लिए',
+    confirmJustMe: 'सिर्फ मैं',
+    confirmWhichGroup: 'यह किस ग्रुप के लिए है?',
+    confirmNewGroup: 'नया ग्रुप बनाएँ',
+    confirmOtherGroup: 'दूसरा ग्रुप',
+    confirmChooseAll: 'सभी ग्रुप में से चुनें',
+    confirmNote: 'नोट (वैकल्पिक)',
+    confirmNotePlaceholder: 'किसलिए था?',
+    confirmAdd: 'खर्च जोड़ें',
+    confirmClear: 'हटाएँ',
+    confirmQuotaInfo: 'एडवांस्ड कमांड के बारे में',
+    confirmPersonMissing: '{name} इस ग्रुप में नहीं है',
+    confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
+    confirmNeedAmount: 'राशि डालें',
     engineCloud: 'क्लाउड',
     engineOnDevice: 'ऑन-डिवाइस',
     engineReasonFree: 'फ्री प्लान',
@@ -17253,6 +17329,25 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
+    confirmUnderstood: 'فهمتُ هذا',
+    confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',
+    confirmEditAll: 'تعديل الكل',
+    confirmAmount: 'المبلغ',
+    confirmPaidFor: 'دُفع لأجل',
+    confirmJustMe: 'أنا فقط',
+    confirmWhichGroup: 'لأي مجموعة هذا؟',
+    confirmNewGroup: 'إنشاء مجموعة جديدة',
+    confirmOtherGroup: 'مجموعة أخرى',
+    confirmChooseAll: 'اختر من كل المجموعات',
+    confirmNote: 'ملاحظة (اختياري)',
+    confirmNotePlaceholder: 'لأي غرض؟',
+    confirmAdd: 'إضافة المصروف',
+    confirmClear: 'مسح',
+    confirmQuotaInfo: 'عن الأوامر المتقدمة',
+    confirmPersonMissing: '{name} ليس في هذه المجموعة',
+    confirmPickGroup: 'اختر مجموعة لإضافته إليها',
+    confirmNeedAmount: 'أدخل مبلغًا',
     engineCloud: 'السحابة',
     engineOnDevice: 'على الجهاز',
     engineReasonFree: 'الخطة المجانية',
