@@ -150,6 +150,57 @@ describe('waves_voice_agent_enabled', () => {
   });
 });
 
+describe('stream mint budget', () => {
+  async function mint(profile: string, free = 2, pro = 4): Promise<Record<string, unknown>> {
+    const { rows } = await client.query(`SELECT public.waves_voice_stream_mint($1, $2, $3) AS m`, [
+      profile,
+      free,
+      pro,
+    ]);
+    return rows[0].m as Record<string, unknown>;
+  }
+
+  it('counts mints up to the budget, then refuses without counting', async () => {
+    expect(await mint(a)).toMatchObject({ allowed: true, mints: 1, budget: 2, tier: 'free' });
+    expect(await mint(a)).toMatchObject({ allowed: true, mints: 2 });
+    expect(await mint(a)).toMatchObject({ allowed: false, mints: 2 });
+    expect(await mint(b)).toMatchObject({ allowed: true, mints: 1 });
+  });
+
+  it('gives Pro the Pro budget', async () => {
+    await subscribe(a, 'pro');
+    for (let i = 0; i < 4; i += 1) expect((await mint(a)).allowed).toBe(true);
+    expect(await mint(a)).toMatchObject({ allowed: false, mints: 4, tier: 'pro' });
+  });
+
+  it('is its own meter: mints spend no command and commands spend no mint', async () => {
+    await mint(a);
+    await reserve(a);
+    const { rows } = await client.query(
+      `SELECT count, stream_mints FROM voice_agent_usage WHERE profile_id = $1`,
+      [a],
+    );
+    expect(rows[0]).toEqual({ count: 1, stream_mints: 1 });
+  });
+
+  it('cannot be overspent by concurrent mints', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 6 }, async () => {
+        const c = await connect();
+        try {
+          const { rows } = await c.query(`SELECT public.waves_voice_stream_mint($1, 3, 3) AS m`, [
+            a,
+          ]);
+          return (rows[0].m as { allowed: boolean }).allowed;
+        } finally {
+          await c.end();
+        }
+      }),
+    );
+    expect(results.filter(Boolean)).toHaveLength(3);
+  });
+});
+
 describe('access control', () => {
   it('lets a person read only their own usage and write none', async () => {
     await reserve(a);
@@ -170,6 +221,7 @@ describe('access control', () => {
       `SELECT public.waves_voice_agent_quota('${a}')`,
       `SELECT public.waves_voice_agent_refund('${a}')`,
       `SELECT public.waves_voice_agent_enabled('${a}')`,
+      `SELECT public.waves_voice_stream_mint('${a}')`,
       `SELECT * FROM public.voice_agent_allowlist`,
     ]) {
       await expectDenied(

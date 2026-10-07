@@ -26,6 +26,8 @@ function makeDeps(over: {
   grant?: Response;
   used?: number;
   pro?: boolean;
+  mints?: number;
+  mintError?: boolean;
 }) {
   const tables: Record<string, unknown[]> = {
     groups: [{ id: 'g1', name: 'Goa', type: 'trip', default_currency: 'INR' }],
@@ -52,7 +54,21 @@ function makeDeps(over: {
       from: (t: string) => table(tables[t] ?? []),
     } as never,
     service: {
-      rpc: async () => ({ data: over.enabled ?? true, error: null }),
+      rpc: async (name: string, args: Record<string, number>) => {
+        if (name !== 'waves_voice_stream_mint') return { data: over.enabled ?? true, error: null };
+        if (over.mintError) return { data: null, error: { message: 'down' } };
+        const budget = over.pro ? args.p_pro_budget : args.p_free_budget;
+        const used = over.mints ?? 0;
+        return {
+          data: {
+            allowed: used < budget,
+            mints: Math.min(used + 1, budget),
+            budget,
+            tier: over.pro ? 'pro' : 'free',
+          },
+          error: null,
+        };
+      },
       from: (t: string) => {
         const rows =
           t === 'subscriptions'
@@ -99,6 +115,47 @@ describe('handleVoiceStreamToken', () => {
     expect(free.fetchMock).not.toHaveBeenCalled();
     const pro = makeDeps({ used: 10, pro: true });
     await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
+  });
+
+  it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 450)', async () => {
+    const free = makeDeps({ mints: 30 });
+    await expect(handleVoiceStreamToken(request(), free.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_STREAM_BUDGET',
+    });
+    expect(free.fetchMock).not.toHaveBeenCalled();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ mints: 29 }).deps),
+    ).resolves.toBeTruthy();
+    const pro = makeDeps({ mints: 449, pro: true });
+    await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
+    const proSpent = makeDeps({ mints: 450, pro: true });
+    await expect(handleVoiceStreamToken(request(), proSpent.deps)).rejects.toMatchObject({
+      code: 'VOICE_STREAM_BUDGET',
+    });
+  });
+
+  it('fails closed (503) when the stream budget cannot be checked', async () => {
+    const { deps, fetchMock } = makeDeps({ mintError: true });
+    await expect(handleVoiceStreamToken(request(), deps)).rejects.toMatchObject({ status: 503 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('logs each mint with a hashed profile, tier and count, and tags the stream', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    try {
+      const { deps } = makeDeps({ mints: 4 });
+      const body = (await (await handleVoiceStreamToken(request(), deps)).json()) as {
+        url: string;
+      };
+      const line = JSON.parse(String(log.mock.calls.at(-1)?.[0])) as Record<string, unknown>;
+      expect(line).toMatchObject({ event: 'mint', tier: 'free', mintsThisMonth: 5, budget: 30 });
+      expect(line.profile).toMatch(/^[0-9a-f]{12}$/);
+      expect(JSON.stringify(line)).not.toContain(ME);
+      expect(new URL(body.url).searchParams.get('tag')).toBe(`vst-${String(line.profile)}`);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it('503s when the key cannot mint tokens', async () => {

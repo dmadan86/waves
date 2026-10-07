@@ -261,7 +261,7 @@ model Group {
   /// A member-typed short label ("Office offsite") shown in place of the
   /// automatic type tag. NULL when unset. <= 24 chars, trimmed, non-empty (CHECK
   /// `groups_custom_tag_shape`). Ordinary member-writable, like `eventTemplate`.
-  customTag       String?   @map("custom_tag")
+  customTag String? @map("custom_tag")
 
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
@@ -2045,11 +2045,14 @@ model VoiceSttUsage {
 /// Reserved atomically by `waves_voice_agent_quota`, refunded on provider
 /// failure by `waves_voice_agent_refund`; a person may read their own row.
 model VoiceAgentUsage {
-  profileId String   @map("profile_id") @db.Uuid
+  profileId   String   @map("profile_id") @db.Uuid
   /// 'YYYY-MM' (UTC); a new month is a new key.
-  month     String
-  count     Int      @default(0)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  month       String
+  count       Int      @default(0)
+  /// Live-stream tokens minted this month (`waves_voice_stream_mint`); its own
+  /// budget, because a mint that never becomes a command still costs minutes.
+  streamMints Int      @default(0) @map("stream_mints")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

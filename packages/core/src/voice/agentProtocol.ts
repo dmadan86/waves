@@ -19,6 +19,14 @@ export const VOICE_AGENT_MAX_CLIP_MS = 60_000;
 export const VOICE_AGENT_FREE_MONTHLY = 10;
 export const VOICE_AGENT_PRO_MONTHLY = 150;
 
+/**
+ * Live-stream tokens (`voice-stream-token`) a month: 3x the command allowance.
+ * Counted on their own because a stream opened and abandoned still bills
+ * Deepgram minutes but spends no command.
+ */
+export const VOICE_STREAM_FREE_MONTHLY = 3 * VOICE_AGENT_FREE_MONTHLY;
+export const VOICE_STREAM_PRO_MONTHLY = 3 * VOICE_AGENT_PRO_MONTHLY;
+
 export interface VoiceAgentRequest {
   readonly schemaVersion: typeof VOICE_AGENT_SCHEMA_VERSION;
   /**
@@ -152,6 +160,8 @@ export interface VoiceAgentResponse {
 export enum VoiceAgentError {
   /** [402] Free/Pro monthly allowance used up — fall back to basic voice. */
   QuotaReached = 'VOICE_AGENT_QUOTA',
+  /** [402] This month's live-stream token budget used up — listen on the phone. */
+  StreamBudget = 'VOICE_STREAM_BUDGET',
   /** [503] Flag off, or a provider key missing — fall back to basic voice. */
   Unavailable = 'VOICE_AGENT_UNAVAILABLE',
   /** [413] Clip longer than VOICE_AGENT_MAX_CLIP_MS. */

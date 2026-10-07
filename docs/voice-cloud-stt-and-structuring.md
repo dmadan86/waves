@@ -338,6 +338,48 @@ Each phase is its own PR; Phases 2–3 are **deploy-gated** on the provider keys
 - Hard caps (`max_clip_seconds`, monthly quota, optional rate limit) bound spend
   before any provider bill.
 
+### 10.1 Live-stream budget and worst-case cost (advanced voice, Oct 2026)
+
+`voice-stream-token` mints a 60 s Deepgram token per mic open. A mint spends no
+command (the command is counted when voice-agent uses the words), so mints have
+their own server-enforced budget: `voice_agent_usage.stream_mints`, taken
+atomically by `waves_voice_stream_mint` before the mint, refused with
+**402 `VOICE_STREAM_BUDGET`** past **3 x the command allowance — free 30, Pro 450
+a UTC month** (`VOICE_STREAM_*_MONTHLY`). Each mint logs
+`{profile: sha256(id)[0..12], tier, mintsThisMonth, budget}` (no names, no
+transcripts), and the stream URL carries `tag=vst-<hash>` so Deepgram's usage API
+can reconcile billed minutes per caller against that log.
+
+Worst case with the client's 20 s session cap (1/3 min per mint), Nova-3
+streaming + keyterm prompting ($0.0013/min), pay-as-you-go list price
+(English/Hindi monolingual $0.0077/min, other locales `multi` $0.0092/min;
+current promo $0.0048 / $0.0058):
+
+| Tier | Mints/month | Minutes | Monolingual (list) | Multilingual (list) | At promo |
+| ---- | ----------- | ------- | ------------------ | ------------------- | -------- |
+| Free | 30          | 10      | $0.09              | $0.11               | ≤ $0.07  |
+| Pro  | 450         | 150     | $1.35              | $1.58               | ≤ $1.07  |
+
+**The 20 s cap is client-side only.** The token TTL gates the socket _open_, not
+its life: once open, a Deepgram stream stays up as long as audio (or a
+`KeepAlive`) keeps arriving and closes only after ~10 s of silence. Deepgram's
+`/v1/auth/grant` takes only `ttl_seconds` (1–3600) and returns a fixed
+`usage::write` token: there is no per-token scope, minute quota or max-duration
+option, and no documented listen parameter that caps a stream. A modified client
+can therefore hold each mint open for as long as it sends audio (e.g. 30 free
+mints x 1 h = 30 h ≈ $19 at list). Mitigations, in order of strength:
+
+1. **Server relay** (the only hard cap): open the Deepgram socket from an edge
+   function and proxy the app's audio through it, closing at 20 s. Costs a hop
+   of latency and an edge-function wall-clock slot per command.
+2. **Detect and cut off**: reconcile Deepgram usage (by `tag`) against the mint
+   log daily; a profile whose minutes per mint exceed ~0.5 loses the flag
+   (allowlist row deleted / budget set to 0).
+3. Deepgram project-level spend alerts on the key's project as a backstop.
+
+The mint budget already bounds the number of streams; (2) is the cheap next
+step, (1) if abuse is seen.
+
 ---
 
 ## 11. Spec amendments required

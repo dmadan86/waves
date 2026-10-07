@@ -10,13 +10,17 @@
  *
  * Gated like voice-agent (flag/allowlist, rate limit). Quota is spent later, on
  * the text call to voice-agent, so opening the mic and saying nothing costs no
- * command.
+ * command. It does cost Deepgram minutes, so every mint is also counted against
+ * a separate monthly stream budget (`waves_voice_stream_mint`, 3x the command
+ * allowance) and logged with a hashed profile id, so the spend can be measured.
  */
 
 import { HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
 import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
+  VOICE_STREAM_FREE_MONTHLY,
+  VOICE_STREAM_PRO_MONTHLY,
   VoiceAgentError,
   type VoiceStreamTokenRequest,
   type VoiceStreamTokenResponse,
@@ -64,6 +68,35 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
     throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
   }
 
+  // The stream budget: a reservation, taken before the mint so a mic opened and
+  // abandoned over and over runs out too. Fails closed — this is a spend gate,
+  // and the app falls back to on-device listening on any refusal.
+  const { data: mintData, error: mintError } = await deps.service.rpc('waves_voice_stream_mint', {
+    p_profile: profileId,
+    p_free_budget: VOICE_STREAM_FREE_MONTHLY,
+    p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
+  });
+  const mint = mintData as StreamMint | null;
+  if (mintError || !mint) {
+    console.error('stream budget check failed', mintError?.message);
+    throw unavailable('Live transcription is not available');
+  }
+  const profileHash = await hashProfile(profileId);
+  // Cost measurement: one line per mint, no names, no transcripts.
+  console.log(
+    JSON.stringify({
+      fn: 'voice-stream-token',
+      event: mint.allowed ? 'mint' : 'mint_refused',
+      profile: profileHash,
+      tier: mint.tier,
+      mintsThisMonth: mint.mints,
+      budget: mint.budget,
+    }),
+  );
+  if (!mint.allowed) {
+    throw new HttpError(402, VoiceAgentError.StreamBudget, 'Live transcription budget used up');
+  }
+
   // The caller's names (for keyterms) and the minted token, together.
   const contextLoad = loadContext(deps.caller, profileId, {
     schemaVersion: 1,
@@ -90,12 +123,29 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
   const context = await contextLoad;
   const body: VoiceStreamTokenResponse = {
     token: minted.access_token,
-    url: deepgramStreamUrl(locale, keyterms(context)),
+    // Tagged with the hashed profile so Deepgram's usage API can reconcile the
+    // real streamed minutes against the mint log.
+    url: deepgramStreamUrl(locale, keyterms(context), `vst-${profileHash}`),
     expiresInSeconds: minted.expires_in ?? STREAM_TOKEN_TTL_SECONDS,
     sampleRate: 16000,
     encoding: 'linear16',
   };
   return json(body);
+}
+
+interface StreamMint {
+  readonly allowed: boolean;
+  readonly mints: number;
+  readonly budget: number;
+  readonly tier: 'free' | 'plus' | 'pro';
+}
+
+/** First 12 hex of SHA-256(profile id): stable per person, not reversible to it. */
+export async function hashProfile(profileId: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(profileId));
+  return Array.from(new Uint8Array(digest).slice(0, 6), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
 }
 
 /**

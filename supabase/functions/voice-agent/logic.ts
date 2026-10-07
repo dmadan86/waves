@@ -585,7 +585,7 @@ export function userMessage(input: {
 /** The live (WebSocket) transcription URL for the app's stream: raw 16 kHz mono
  *  PCM in, interim results back, the same model, language, formatting and
  *  keyterms as the pre-recorded path. */
-export function deepgramStreamUrl(locale: string, terms: readonly string[]): string {
+export function deepgramStreamUrl(locale: string, terms: readonly string[], tag?: string): string {
   const params = new URLSearchParams({
     model: 'nova-3',
     language: deepgramLanguage(locale),
@@ -602,5 +602,7 @@ export function deepgramStreamUrl(locale: string, terms: readonly string[]): str
     mip_opt_out: 'true',
   });
   for (const t of terms) params.append('keyterm', t);
+  // Deepgram usage-API tag (free): lets billed minutes be reconciled per caller.
+  if (tag) params.append('tag', tag);
   return `wss://api.deepgram.com/v1/listen?${params.toString()}`;
 }
