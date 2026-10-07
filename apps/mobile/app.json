@@ -98,6 +98,11 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions,SourceFile,LineNumberTable\n-renamesourcefileattribute SourceFile\n-keep class expo.modules.wavesstoreupdate.** { *; }\n-keep class expo.modules.waveswatch.** { *; }\n-dontwarn com.google.android.play.core.**\n-dontwarn com.google.errorprone.annotations.**\n-dontwarn javax.annotation.**"
+          },
           "ios": {
             "useFrameworks": "static"
           }
@@ -177,6 +182,7 @@
       "./plugins/withShortNativeBuildPath",
       "./plugins/withGradleMemory",
       "./plugins/withSideBySideDebug",
+      "./plugins/withEdgeToEdgeTheme",
       "./plugins/withReleaseSigning",
       "./plugins/withSmsReader",
       "./plugins/withWavesWidgets",
