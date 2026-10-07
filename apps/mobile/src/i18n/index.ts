@@ -1287,6 +1287,8 @@ export interface UiStrings {
     engineReasonFree: string;
     engineReasonQuota: string;
     engineReasonOffline: string;
+    /** Cloud voice switched off in Settings. */
+    engineReasonOff: string;
     agentQuotaFallback: string;
     /** Card text (the next ones too): {placeholders} are filled in. */
     agentAdd: string;
@@ -1368,6 +1370,16 @@ export interface UiStrings {
    * OEM ROMs. This screen brings that download inside the app instead of asking
    * somebody to go hunting through Android settings for it.
    */
+  /** Consent to send voice to third-party AI, and its Settings row. */
+  voiceConsent: {
+    title: string;
+    body: string;
+    allow: string;
+    notNow: string;
+    learnMore: string;
+    row: string;
+    toggle: string;
+  };
   offlineVoice: {
     /** Settings-row label, and the screen's own title. */
     row: string;
@@ -5567,6 +5579,7 @@ const en: UiStrings = {
     engineReasonFree: 'Free plan',
     engineReasonQuota: 'Monthly limit reached',
     engineReasonOffline: 'Offline',
+    engineReasonOff: 'Off in settings',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
     agentPaid: '{name} paid',
@@ -5640,6 +5653,15 @@ const en: UiStrings = {
     onDeviceOff: 'This phone cannot transcribe saved audio, so only the audio is kept.',
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
+  },
+  voiceConsent: {
+    title: "Use Waves' advanced voice?",
+    body: "Your voice is sent to Deepgram to turn it into text. The text, with your group and member names and balances, goes to Google Gemini (via OpenRouter) to work out the expense. Waves doesn't store the recording, and Deepgram is told not to use it for training. OpenRouter only sends the text to providers that don't store it or train on it.",
+    allow: 'Allow',
+    notNow: 'Not now',
+    learnMore: 'Learn more',
+    row: 'Advanced voice',
+    toggle: 'Allow cloud voice',
   },
   offlineVoice: {
     row: 'Offline voice',
@@ -9354,6 +9376,7 @@ const ta: UiStrings = {
     engineReasonFree: 'இலவசத் திட்டம்',
     engineReasonQuota: 'மாத வரம்பு முடிந்தது',
     engineReasonOffline: 'இணைப்பு இல்லை',
+    engineReasonOff: 'அமைப்புகளில் ஆஃப்',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
     agentAdd: '{amount} சேர்',
@@ -9428,6 +9451,15 @@ const ta: UiStrings = {
     onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
+  },
+  voiceConsent: {
+    title: 'Waves-இன் மேம்பட்ட குரலைப் பயன்படுத்தவா?',
+    body: 'உங்கள் குரல் எழுத்தாக மாற்ற Deepgram-க்கு அனுப்பப்படும். அந்த எழுத்து, உங்கள் குழு மற்றும் உறுப்பினர் பெயர்கள், இருப்புகளுடன், செலவைப் புரிந்துகொள்ள Google Gemini-க்கு (OpenRouter வழியாக) செல்லும். Waves பதிவைச் சேமிக்காது; பயிற்சிக்குப் பயன்படுத்த வேண்டாம் என்று Deepgram-க்குச் சொல்லப்பட்டுள்ளது. அந்த எழுத்தைச் சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டுமே OpenRouter அனுப்பும்.',
+    allow: 'அனுமதி',
+    notNow: 'இப்போது வேண்டாம்',
+    learnMore: 'மேலும் அறிக',
+    row: 'மேம்பட்ட குரல்',
+    toggle: 'கிளவுட் குரலை அனுமதி',
   },
   offlineVoice: {
     row: 'ஆஃப்லைன் குரல்',
@@ -13260,6 +13292,7 @@ const hi: UiStrings = {
     engineReasonFree: 'फ्री प्लान',
     engineReasonQuota: 'मासिक सीमा पूरी',
     engineReasonOffline: 'ऑफ़लाइन',
+    engineReasonOff: 'सेटिंग्स में बंद',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
     agentPaid: '{name} ने भुगतान किया',
@@ -13333,6 +13366,15 @@ const hi: UiStrings = {
     onDeviceOff: 'यह फ़ोन सेव ऑडियो को टेक्स्ट में नहीं बदल सकता, इसलिए सिर्फ़ ऑडियो रखा जाता है।',
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
+  },
+  voiceConsent: {
+    title: 'Waves की एडवांस्ड वॉइस इस्तेमाल करें?',
+    body: 'आपकी आवाज़ टेक्स्ट बनाने के लिए Deepgram को भेजी जाती है। वह टेक्स्ट, आपके ग्रुप और सदस्यों के नाम व बैलेंस के साथ, खर्च समझने के लिए Google Gemini (OpenRouter के ज़रिए) को जाता है। Waves रिकॉर्डिंग सेव नहीं करता, और Deepgram को इसे ट्रेनिंग में इस्तेमाल न करने के लिए कहा गया है। OpenRouter टेक्स्ट सिर्फ़ उन्हीं प्रोवाइडर को भेजता है जो इसे न सेव करते हैं, न इससे ट्रेनिंग करते हैं।',
+    allow: 'अनुमति दें',
+    notNow: 'अभी नहीं',
+    learnMore: 'और जानें',
+    row: 'एडवांस्ड वॉइस',
+    toggle: 'क्लाउड वॉइस की अनुमति',
   },
   offlineVoice: {
     row: 'ऑफ़लाइन आवाज़',
@@ -17108,6 +17150,7 @@ const ar: UiStrings = {
     engineReasonFree: 'الخطة المجانية',
     engineReasonQuota: 'بلغتَ الحد الشهري',
     engineReasonOffline: 'غير متصل',
+    engineReasonOff: 'متوقف في الإعدادات',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',
     agentPaid: 'دفع {name}',
@@ -17181,6 +17224,15 @@ const ar: UiStrings = {
     onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
+  },
+  voiceConsent: {
+    title: 'استخدام الصوت المتقدم في Waves؟',
+    body: 'يُرسَل صوتك إلى Deepgram لتحويله إلى نص. ثم يذهب النص، مع أسماء مجموعاتك وأعضائها وأرصدتهم، إلى Google Gemini (عبر OpenRouter) لاستخلاص المصروف. لا يحفظ Waves التسجيل، وقد طُلب من Deepgram عدم استخدامه للتدريب. ولا يرسل OpenRouter النص إلا إلى مزوّدين لا يحفظونه ولا يستخدمونه للتدريب.',
+    allow: 'سماح',
+    notNow: 'ليس الآن',
+    learnMore: 'اعرف المزيد',
+    row: 'الصوت المتقدم',
+    toggle: 'السماح بالصوت السحابي',
   },
   offlineVoice: {
     row: 'الصوت دون اتصال',
