@@ -59,6 +59,8 @@ export const LIMITS = {
    */
   'voice-agent': { limit: 10, windowSeconds: 60 },
   'voice-stream-token': { limit: 12, windowSeconds: 60 },
+  /** One per mic press, like the token it replaces. */
+  'voice-stream': { limit: 12, windowSeconds: 60 },
   /**
    * Erasing an account: rare, idempotent, and a caller only ever does it to
    * their own. The cap is a fuse on the admin API behind it, so a stuck

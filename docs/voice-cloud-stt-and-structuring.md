@@ -380,6 +380,32 @@ mints x 1 h = 30 h ≈ $19 at list). Mitigations, in order of strength:
 The mint budget already bounds the number of streams; (2) is the cheap next
 step, (1) if abuse is seen.
 
+**Update (Oct 2026): (1) is built** — `supabase/functions/voice-stream`, a
+WebSocket relay. Current app builds stream to it instead of to Deepgram; the
+Deepgram key and socket never leave the server. On connect it runs the same gate
+as `voice-stream-token` (shared in `_shared/voiceStreamGate.ts`: auth, flag /
+allowlist, rate limit, command peek, one stream mint), then opens Deepgram with
+the server key and pipes audio up and results down. It ends every stream at 20 s
+of audio forwarded, 25 s of wall time or 5 s without an audio frame (CloseStream,
+then a 1.5 s flush; hard deadline 26.5 s), and closes outright on a frame over
+32 kB or more than 22 s of audio received. Each stream logs
+`{profile hash, seconds, bytes, reason}` and adds its seconds to
+`voice_agent_usage.stream_seconds` (migration `20261008090000_voice_stream_seconds`).
+
+- **Auth:** a WebSocket upgrade from React Native or a browser cannot carry an
+  `Authorization` header, so the function is deployed with `verify_jwt = false`
+  and the app sends its access token as a `jwt-<token>` subprotocol next to
+  `waves-voice-v1` (the one the relay selects) — Supabase's documented pattern;
+  `?access_token=` is accepted as a fallback. The relay verifies it with
+  `auth.getUser` before anything is spent.
+- **Refusals** arrive as `{type: "Error", status, code}` and a close code of
+  `4000 + status` (4402 = the month is spent → "Monthly limit reached").
+- **Platform limits:** edge functions allow 150 s wall clock (free) / 400 s
+  (paid), 2 s CPU and 256 MB per invocation; a 25 s stream is well inside them.
+  The worker is kept alive with `EdgeRuntime.waitUntil` until both sockets close.
+- `voice-stream-token` stays deployed for builds from before the relay; with
+  those gone it can be removed, which removes the uncapped path entirely.
+
 ---
 
 ## 11. Spec amendments required

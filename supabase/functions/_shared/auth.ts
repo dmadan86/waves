@@ -158,6 +158,18 @@ export function asCaller(request: Request): SupabaseClient {
   if (!authorization) {
     throw new HttpError(401, 'NOT_AUTHENTICATED', 'Missing Authorization header');
   }
+  return callerWithAuthorization(authorization);
+}
+
+/**
+ * The caller's client from a bare access token, for a request that cannot carry
+ * an Authorization header (a WebSocket upgrade: see `voice-stream`).
+ */
+export function asCallerFromToken(accessToken: string): SupabaseClient {
+  return callerWithAuthorization(`Bearer ${accessToken}`);
+}
+
+function callerWithAuthorization(authorization: string): SupabaseClient {
   return createClient(requiredEnv('SUPABASE_URL'), requiredEnv('SUPABASE_ANON_KEY'), {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false },
