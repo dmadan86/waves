@@ -859,6 +859,7 @@ export function VoiceCapture({
     const live = stream.current;
     if (!live) return;
     stream.current = null;
+    starting.current = false;
     clearStreamTimers();
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
@@ -913,6 +914,7 @@ export function VoiceCapture({
         // The stream died mid-sentence: keep what was heard, if anything.
         const said = latest.current.trim();
         stream.current = null;
+        starting.current = false;
         clearStreamTimers();
         setListening(false);
         level.set(withTiming(0, { duration: 150 }));
@@ -930,7 +932,8 @@ export function VoiceCapture({
       return false;
     }
     stream.current = live;
-    starting.current = false;
+    // `starting` stays set while the stream is live: a second start (an
+    // auto-start racing the tap) must not open a second recording.
     if (endRules.current.firstWordMs !== null) armSilence(endRules.current.firstWordMs);
     streamMax.current = setTimeout(() => void finishStreamRef.current(), VOICE_AGENT_MAX_CLIP_MS);
     // The finger lifted while the stream was opening.
@@ -944,7 +947,8 @@ export function VoiceCapture({
   const start = useCallback(
     async (forceNetwork = false): Promise<void> => {
       // One start at a time from this panel, and one capture at a time in the app.
-      if (starting.current) return;
+      // A live stream is a capture in progress too.
+      if (starting.current || stream.current) return;
       starting.current = true;
       // A fresh user-initiated start re-arms the one-time network fallback; a
       // fallback re-entry keeps it spent. Either way, drop the old attempt's
@@ -1253,11 +1257,14 @@ export function VoiceCapture({
   // eye — the mic is simply given back, and the panel is gone a frame later.
   useEffect(() => {
     if (!endSignal) return;
-    if (starting.current || !speechMic.owns(session)) {
+    // A live stream is past its start (its guard stays set only to refuse a
+    // second start), so an ending applies to it now, not later.
+    if ((starting.current && !stream.current) || !speechMic.owns(session)) {
       pendingEnd.current = endSignal.mode;
     } else if (endSignal.mode === 'cancel') {
       stream.current?.cancel();
       stream.current = null;
+      starting.current = false;
       clearStreamTimers();
       clearStall();
       clearMaxListen();

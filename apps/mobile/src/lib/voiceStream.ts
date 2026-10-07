@@ -152,6 +152,14 @@ export async function startLiveTranscription(
 ): Promise<LiveTranscription | null> {
   const audio = loadAudioModule();
   if (!audio) return null;
+  // One live stream in the app at a time. The recorder is a single native
+  // instance, so a second start silently replaced the first's recording and
+  // left a handle whose stop no longer reached it — the mic ran on and the
+  // screen could not be stopped. A new start ends the previous one first.
+  if (active) {
+    active.cancel();
+    active = null;
+  }
 
   let state: TranscriptState = EMPTY_TRANSCRIPT;
   let socket: WebSocket;
@@ -299,8 +307,9 @@ export async function startLiveTranscription(
     return null;
   }
 
-  return {
+  const handle: LiveTranscription = {
     stop: async () => {
+      if (active === handle) active = null;
       if (finished) return fullText(state);
       finished = true;
       stopAll();
@@ -325,6 +334,7 @@ export async function startLiveTranscription(
       return fullText(state);
     },
     cancel: () => {
+      if (active === handle) active = null;
       if (finished) return;
       finished = true;
       stopAll();
@@ -335,4 +345,9 @@ export async function startLiveTranscription(
       }
     },
   };
+  active = handle;
+  return handle;
 }
+
+/** The stream that currently owns the recorder, if any. */
+let active: LiveTranscription | null = null;
