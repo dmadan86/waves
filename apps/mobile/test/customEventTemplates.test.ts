@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@react-native-async-storage/async-storage', () => ({
-  default: { getItem: vi.fn(), setItem: vi.fn() },
-}));
-
 import {
   addCustomTemplate,
   CUSTOM_TEMPLATES_MAX,
   removeCustomTemplate,
 } from '../src/lib/customEventTemplates';
 import { showEmptyAddCta } from '../src/lib/emptyAddCta';
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: { getItem: vi.fn(), setItem: vi.fn() },
+}));
 
 describe('custom event templates', () => {
   it('puts the newest first and dedupes case-insensitively', () => {
