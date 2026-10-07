@@ -66,6 +66,7 @@ import {
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
+  useVoiceAgentEnabled,
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
@@ -86,7 +87,6 @@ import {
 } from '@/components/DestinationPicker';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
-import { useFlagEnabled } from '@/lib/flags';
 import type { VoiceClip } from '@/lib/voiceAgentPure';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
@@ -349,7 +349,7 @@ export default function VoiceScreen() {
   // Pro advanced voice (flag `voice_agent`): when on, the mic keeps its audio and
   // the clip goes to the agent (phase 'agent') instead of straight to the on-device
   // parser. Off, none of this runs and the screen behaves as it always has.
-  const agentOn = useFlagEnabled('voice_agent');
+  const agentOn = useVoiceAgentEnabled();
   const [agentSession, setAgentSession] = useState<{
     clip: VoiceClip;
     transcript: string;
