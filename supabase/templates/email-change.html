@@ -51,20 +51,22 @@
                   text-align: left;
                 "
               >
-                <!-- Wordmark: no hosted logo PNG exists on the public site yet
-                     (see _README.md), and inline SVG / data URIs are stripped by
-                     Gmail, so this is brand-purple text. -->
-                <p
+                <!-- The app icon, hosted in the public `email-assets` bucket: Gmail strips
+                     inline SVG and data URIs, so a mail logo must be a plain https image. -->
+                <img
+                  src="https://ywojpnfyxxltvihqmcni.supabase.co/storage/v1/object/public/email-assets/waves-icon-192.png"
+                  width="64"
+                  height="64"
+                  alt="Waves"
                   style="
-                    margin: 0 0 40px;
-                    font-size: 22px;
-                    font-weight: 700;
-                    letter-spacing: -0.3px;
-                    color: #7a5af8;
+                    display: block;
+                    width: 64px;
+                    height: 64px;
+                    border: 0;
+                    border-radius: 14px;
+                    margin: 0 0 32px;
                   "
-                >
-                  Waves
-                </p>
+                />
                 <h1
                   style="
                     margin: 0 0 12px;
@@ -130,9 +132,7 @@
                         color: #6b7280;
                       "
                     >
-                      &copy; 2026 Waves &middot; wavs.co.in<br />
-                      Sent to {{ .Email }}. Questions? Write to
-                      <a href="mailto:hello@wavs.co.in" style="color: #6b7280">hello@wavs.co.in</a>.
+                      &copy; 2026 Waves &middot; wavs.co.in
                     </td>
                   </tr>
                 </table>

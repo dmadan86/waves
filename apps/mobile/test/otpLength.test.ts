@@ -136,8 +136,11 @@ describe.each(TEMPLATES)('the code mail %s', (name) => {
     expect(html).toContain("Didn't request this?");
   });
 
-  it('uses the brand purple and names the recipient', () => {
-    expect(html.toLowerCase()).toContain('#7a5af8');
-    expect(html).toContain('Sent to {{ .Email }}');
+  it('carries the app icon from the public email-assets bucket, and no recipient line', () => {
+    expect(html).toMatch(
+      /<img src="https:\/\/[^"]+\/storage\/v1\/object\/public\/email-assets\/waves-icon-192\.png"/,
+    );
+    expect(html).toContain('alt="Waves"');
+    expect(html).not.toContain('Sent to {{ .Email }}');
   });
 });
