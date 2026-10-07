@@ -5656,7 +5656,7 @@ const en: UiStrings = {
   },
   voiceConsent: {
     title: "Use Waves' advanced voice?",
-    body: "Your voice is sent to Deepgram to turn it into text. The text, with your group and member names and balances, goes to Google Gemini (via OpenRouter) to work out the expense. Waves doesn't store the recording, and Deepgram is told not to use it for training. Each provider handles the text under its own policy.",
+    body: "Your voice is sent to Deepgram to turn it into text. The text, with your group and member names and balances, goes to Google Gemini (via OpenRouter) to work out the expense. Waves doesn't store the recording, and Deepgram is told not to use it for training. OpenRouter only sends the text to providers that don't store it or train on it.",
     allow: 'Allow',
     notNow: 'Not now',
     learnMore: 'Learn more',
@@ -9454,7 +9454,7 @@ const ta: UiStrings = {
   },
   voiceConsent: {
     title: 'Waves-இன் மேம்பட்ட குரலைப் பயன்படுத்தவா?',
-    body: 'உங்கள் குரல் எழுத்தாக மாற்ற Deepgram-க்கு அனுப்பப்படும். அந்த எழுத்து, உங்கள் குழு மற்றும் உறுப்பினர் பெயர்கள், இருப்புகளுடன், செலவைப் புரிந்துகொள்ள Google Gemini-க்கு (OpenRouter வழியாக) செல்லும். Waves பதிவைச் சேமிக்காது; பயிற்சிக்குப் பயன்படுத்த வேண்டாம் என்று Deepgram-க்குச் சொல்லப்பட்டுள்ளது. ஒவ்வொரு வழங்குநரும் அந்த எழுத்தைத் தங்கள் சொந்தக் கொள்கைப்படி கையாளுவர்.',
+    body: 'உங்கள் குரல் எழுத்தாக மாற்ற Deepgram-க்கு அனுப்பப்படும். அந்த எழுத்து, உங்கள் குழு மற்றும் உறுப்பினர் பெயர்கள், இருப்புகளுடன், செலவைப் புரிந்துகொள்ள Google Gemini-க்கு (OpenRouter வழியாக) செல்லும். Waves பதிவைச் சேமிக்காது; பயிற்சிக்குப் பயன்படுத்த வேண்டாம் என்று Deepgram-க்குச் சொல்லப்பட்டுள்ளது. அந்த எழுத்தைச் சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டுமே OpenRouter அனுப்பும்.',
     allow: 'அனுமதி',
     notNow: 'இப்போது வேண்டாம்',
     learnMore: 'மேலும் அறிக',
@@ -13369,7 +13369,7 @@ const hi: UiStrings = {
   },
   voiceConsent: {
     title: 'Waves की एडवांस्ड वॉइस इस्तेमाल करें?',
-    body: 'आपकी आवाज़ टेक्स्ट बनाने के लिए Deepgram को भेजी जाती है। वह टेक्स्ट, आपके ग्रुप और सदस्यों के नाम व बैलेंस के साथ, खर्च समझने के लिए Google Gemini (OpenRouter के ज़रिए) को जाता है। Waves रिकॉर्डिंग सेव नहीं करता, और Deepgram को इसे ट्रेनिंग में इस्तेमाल न करने के लिए कहा गया है। हर प्रोवाइडर टेक्स्ट को अपनी नीति के अनुसार संभालता है।',
+    body: 'आपकी आवाज़ टेक्स्ट बनाने के लिए Deepgram को भेजी जाती है। वह टेक्स्ट, आपके ग्रुप और सदस्यों के नाम व बैलेंस के साथ, खर्च समझने के लिए Google Gemini (OpenRouter के ज़रिए) को जाता है। Waves रिकॉर्डिंग सेव नहीं करता, और Deepgram को इसे ट्रेनिंग में इस्तेमाल न करने के लिए कहा गया है। OpenRouter टेक्स्ट सिर्फ़ उन्हीं प्रोवाइडर को भेजता है जो इसे न सेव करते हैं, न इससे ट्रेनिंग करते हैं।',
     allow: 'अनुमति दें',
     notNow: 'अभी नहीं',
     learnMore: 'और जानें',
@@ -17227,7 +17227,7 @@ const ar: UiStrings = {
   },
   voiceConsent: {
     title: 'استخدام الصوت المتقدم في Waves؟',
-    body: 'يُرسَل صوتك إلى Deepgram لتحويله إلى نص. ثم يذهب النص، مع أسماء مجموعاتك وأعضائها وأرصدتهم، إلى Google Gemini (عبر OpenRouter) لاستخلاص المصروف. لا يحفظ Waves التسجيل، وقد طُلب من Deepgram عدم استخدامه للتدريب. يعالج كل مزوّد النص وفق سياسته الخاصة.',
+    body: 'يُرسَل صوتك إلى Deepgram لتحويله إلى نص. ثم يذهب النص، مع أسماء مجموعاتك وأعضائها وأرصدتهم، إلى Google Gemini (عبر OpenRouter) لاستخلاص المصروف. لا يحفظ Waves التسجيل، وقد طُلب من Deepgram عدم استخدامه للتدريب. ولا يرسل OpenRouter النص إلا إلى مزوّدين لا يحفظونه ولا يستخدمونه للتدريب.',
     allow: 'سماح',
     notNow: 'ليس الآن',
     learnMore: 'اعرف المزيد',
