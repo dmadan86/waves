@@ -3,11 +3,14 @@
  * and the live URL carrying the caller's names as keyterms.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clearContextCache } from '../voice-agent/handler.ts';
 import { handleVoiceStreamToken, type Deps } from './handler.ts';
 
 const ME = 'profile-me';
+
+beforeEach(() => clearContextCache());
 
 function table(rows: unknown[]) {
   const q: Record<string, unknown> = {};

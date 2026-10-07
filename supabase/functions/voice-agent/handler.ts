@@ -286,7 +286,40 @@ function parseBody(raw: unknown): VoiceAgentRequest {
 }
 
 /** The caller's groups, members and balances, read as the caller (RLS-scoped). */
-export async function loadContext(
+/**
+ * The caller's groups, members and balances, kept for a short while per warm
+ * function instance: a person speaking several commands in a row should not wait
+ * on the same three reads each time. Short enough that a member added a moment
+ * ago is seen on the next command or the one after.
+ */
+export const CONTEXT_TTL_MS = 30_000;
+const contextCache = new Map<string, { at: number; value: Promise<VoiceContext> }>();
+
+export function loadContext(
+  caller: SupabaseClient,
+  profileId: string,
+  body: VoiceAgentRequest,
+  now: number = Date.now(),
+): Promise<VoiceContext> {
+  const key = `${profileId}|${body.groupId ?? ''}|${body.today}`;
+  const hit = contextCache.get(key);
+  if (hit && now - hit.at < CONTEXT_TTL_MS) return hit.value;
+  const value = loadContextFresh(caller, profileId, body);
+  contextCache.set(key, { at: now, value });
+  // A failed read is not kept: the next command tries again.
+  value.catch(() => contextCache.delete(key));
+  if (contextCache.size > 500) {
+    for (const [k, v] of contextCache) if (now - v.at >= CONTEXT_TTL_MS) contextCache.delete(k);
+  }
+  return value;
+}
+
+/** Test seam: forget every cached context. */
+export function clearContextCache(): void {
+  contextCache.clear();
+}
+
+async function loadContextFresh(
   caller: SupabaseClient,
   profileId: string,
   body: VoiceAgentRequest,

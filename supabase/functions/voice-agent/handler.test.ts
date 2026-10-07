@@ -3,19 +3,23 @@
  * gating order, quota reserve/refund, escalation and the clarify fallback.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DEEPSEEK_ESCALATION_MODEL,
   DEEPSEEK_PRIMARY_MODEL,
   ESCALATION_MODEL,
+  clearContextCache,
   handleVoiceAgent,
+  loadContext,
   llmChain,
   PRIMARY_MODEL,
   type Deps,
 } from './handler.ts';
 
 const ME = 'profile-me';
+
+beforeEach(() => clearContextCache());
 
 function table(rows: unknown[]) {
   const q: Record<string, unknown> = {};
@@ -319,5 +323,24 @@ describe('text mode (live stream transcript)', () => {
     expect(body.transcript).toBe('I paid 1200 for dinner with Anu');
     expect(body.actions).toHaveLength(1);
     expect(urls.some((u) => u.includes('deepgram'))).toBe(false);
+  });
+});
+
+describe('context cache', () => {
+  it('reads the caller context once within the TTL, again after it', async () => {
+    const reads = vi.fn();
+    const caller = {
+      from: (t: string) => {
+        reads(t);
+        return table([]);
+      },
+    } as never;
+    const body = { schemaVersion: 1, locale: 'en', today: '2026-10-07', groupId: null } as never;
+    await loadContext(caller, ME, body, 1_000);
+    await loadContext(caller, ME, body, 20_000);
+    const afterTwo = reads.mock.calls.length;
+    await loadContext(caller, ME, body, 40_000);
+    expect(reads.mock.calls.length).toBeGreaterThan(afterTwo);
+    expect(afterTwo).toBeGreaterThan(0);
   });
 });
