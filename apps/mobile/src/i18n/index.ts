@@ -2799,6 +2799,12 @@ export interface UiStrings {
     archivedTitle: string;
     archivedEmpty: string;
     archivedEmptyBody: string;
+    archivedTidyTitle: string;
+    archivedTidyBody: string;
+    archivedBackTitle: string;
+    archivedBackBody: string;
+    archivedSafeTitle: string;
+    archivedSafeBody: string;
     unarchive: string;
     /** Subtitle under Unarchive on a group's own settings screen. */
     unarchiveHint: string;
@@ -6776,6 +6782,12 @@ const en: UiStrings = {
     archivedTitle: 'Archived groups',
     archivedEmpty: 'Nothing archived',
     archivedEmptyBody: 'Groups you archive show up here, ready to bring back.',
+    archivedTidyTitle: 'Keep things tidy',
+    archivedTidyBody: "Archive groups you're no longer using.",
+    archivedBackTitle: 'Bring them back anytime',
+    archivedBackBody: 'Unarchive to view and add expenses again.',
+    archivedSafeTitle: 'Nothing is lost',
+    archivedSafeBody: 'All expenses and history are safely saved.',
     unarchive: 'Unarchive',
     unarchiveHint: 'Put it back on your list',
     archivedOn: 'Archived {date}',
@@ -10625,6 +10637,12 @@ const ta: UiStrings = {
     archivedEmpty: 'காப்பகத்தில் ஏதுமில்லை',
     archivedEmptyBody:
       'நீங்கள் காப்பகப்படுத்தும் குழுக்கள் இங்கே தோன்றும், மீண்டும் கொண்டுவரத் தயார்.',
+    archivedTidyTitle: 'எல்லாம் நேர்த்தியாக',
+    archivedTidyBody: 'இனி பயன்படுத்தாத குழுக்களைக் காப்பகப்படுத்துங்கள்.',
+    archivedBackTitle: 'எப்போது வேண்டுமானாலும் மீட்கலாம்',
+    archivedBackBody: 'மீட்டெடுத்து செலவுகளைப் பார்க்கவும் சேர்க்கவும்.',
+    archivedSafeTitle: 'எதுவும் இழக்கப்படாது',
+    archivedSafeBody: 'எல்லா செலவுகளும் வரலாறும் பாதுகாப்பாக சேமிக்கப்படும்.',
     unarchive: 'மீட்டெடு',
     unarchiveHint: 'உங்கள் பட்டியலுக்குத் திரும்பக் கொண்டுவா',
     archivedOn: '{date} அன்று காப்பகப்படுத்தப்பட்டது',
@@ -14491,6 +14509,12 @@ const hi: UiStrings = {
     archivedTitle: 'संग्रहित समूह',
     archivedEmpty: 'कुछ भी संग्रहित नहीं',
     archivedEmptyBody: 'आप जो समूह संग्रहित करते हैं वे यहाँ दिखते हैं, वापस लाने के लिए तैयार।',
+    archivedTidyTitle: 'सब कुछ व्यवस्थित',
+    archivedTidyBody: 'जिन समूहों का अब उपयोग नहीं करते, उन्हें संग्रहित करें।',
+    archivedBackTitle: 'जब चाहें वापस लाएँ',
+    archivedBackBody: 'वापस लाकर खर्च देखें और जोड़ें।',
+    archivedSafeTitle: 'कुछ भी नहीं खोता',
+    archivedSafeBody: 'सभी खर्च और इतिहास सुरक्षित सहेजे रहते हैं।',
     unarchive: 'वापस लाएँ',
     unarchiveHint: 'इसे फिर आपकी सूची में लाएँ',
     archivedOn: '{date} को संग्रहित',
@@ -18471,6 +18495,12 @@ const ar: UiStrings = {
     archivedTitle: 'المجموعات المؤرشفة',
     archivedEmpty: 'لا شيء في الأرشيف',
     archivedEmptyBody: 'المجموعات التي تؤرشفها تظهر هنا، جاهزة للاستعادة.',
+    archivedTidyTitle: 'حافظ على الترتيب',
+    archivedTidyBody: 'أرشف المجموعات التي لم تعد تستخدمها.',
+    archivedBackTitle: 'أعدها في أي وقت',
+    archivedBackBody: 'ألغِ الأرشفة لعرض المصروفات وإضافتها مجددًا.',
+    archivedSafeTitle: 'لا شيء يضيع',
+    archivedSafeBody: 'كل المصروفات والسجل محفوظة بأمان.',
     unarchive: 'إلغاء الأرشفة',
     unarchiveHint: 'أعِدها إلى قائمتك',
     archivedOn: 'أُرشفت في {date}',
