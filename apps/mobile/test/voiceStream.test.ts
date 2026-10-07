@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   applyMessage,
   base64ToBytes,
+  createPcmBuffer,
   EMPTY_TRANSCRIPT,
   fullText,
   liveText,
   parseMessage,
   pcmLevel,
+  remainingFrom,
   streamAlternatives,
   streamTokenFailure,
 } from '@/lib/voiceStreamPure';
@@ -114,5 +116,77 @@ describe('streamTokenFailure', () => {
     expect(streamTokenFailure(429)).toBe('error');
     expect(streamTokenFailure(null)).toBe('error');
     expect(streamTokenFailure(undefined)).toBe('error');
+  });
+});
+
+describe('early capture: the PCM buffer', () => {
+  const chunk = (id: number, byteLength = 3200) => ({ id, byteLength });
+
+  it('sends every chunk heard before the socket opened, in order, before the live ones', () => {
+    const buffer = createPcmBuffer<ReturnType<typeof chunk>>(1_000_000);
+    buffer.push(chunk(1));
+    buffer.push(chunk(2));
+    buffer.push(chunk(3));
+    const sent: number[] = [];
+    buffer.attach((c) => sent.push(c.id));
+    expect(sent).toEqual([1, 2, 3]);
+    buffer.push(chunk(4));
+    buffer.push(chunk(5));
+    expect(sent).toEqual([1, 2, 3, 4, 5]);
+    expect(buffer.heldBytes()).toBe(0);
+  });
+
+  it('holds at most the cap, keeping the start of the sentence', () => {
+    const buffer = createPcmBuffer<ReturnType<typeof chunk>>(10_000);
+    for (let i = 1; i <= 5; i += 1) buffer.push(chunk(i)); // 3 fit (9600 bytes)
+    expect(buffer.heldBytes()).toBe(9600);
+    const sent: number[] = [];
+    buffer.attach((c) => sent.push(c.id));
+    expect(sent).toEqual([1, 2, 3]);
+    // Once attached, live audio is not capped.
+    for (let i = 6; i <= 10; i += 1) buffer.push(chunk(i));
+    expect(sent).toEqual([1, 2, 3, 6, 7, 8, 9, 10]);
+  });
+
+  it('caps a whole 20 s session of 16 kHz PCM', () => {
+    const buffer = createPcmBuffer<ReturnType<typeof chunk>>(20 * 32000);
+    // 100 ms chunks: 200 of them is 20 s; the 201st does not fit.
+    for (let i = 0; i < 205; i += 1) buffer.push(chunk(i));
+    expect(buffer.heldBytes()).toBe(200 * 3200);
+  });
+
+  it('discard drops everything, and nothing after it is sent', () => {
+    const buffer = createPcmBuffer<ReturnType<typeof chunk>>(1_000_000);
+    buffer.push(chunk(1));
+    buffer.push(chunk(2));
+    buffer.discard();
+    expect(buffer.heldBytes()).toBe(0);
+    buffer.push(chunk(3));
+    const sent: number[] = [];
+    buffer.attach((c) => sent.push(c.id));
+    buffer.push(chunk(4));
+    expect(sent).toEqual([]);
+  });
+
+  it('discard after attach stops forwarding', () => {
+    const buffer = createPcmBuffer<ReturnType<typeof chunk>>(1_000_000);
+    const sent: number[] = [];
+    buffer.attach((c) => sent.push(c.id));
+    buffer.push(chunk(1));
+    buffer.discard();
+    buffer.push(chunk(2));
+    expect(sent).toEqual([1]);
+  });
+});
+
+describe('early capture: timers count from the recorder start', () => {
+  it('takes the time already recorded off the timer', () => {
+    expect(remainingFrom(1000, 3000, 5000, 1500)).toBe(3000);
+    expect(remainingFrom(1000, 1000, 20_000, 1500)).toBe(20_000);
+  });
+
+  it('never goes below the floor', () => {
+    expect(remainingFrom(0, 4800, 5000, 1500)).toBe(1500);
+    expect(remainingFrom(0, 30_000, 20_000, 1500)).toBe(1500);
   });
 });

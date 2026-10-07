@@ -5,6 +5,11 @@
  * `voice-agent` function. A short-lived token (from `voice-stream-token`) is the
  * socket's credential, so no long-lived key ever reaches the phone.
  *
+ * The mic starts on the press ({@link startCapture}) and buffers; the socket is
+ * attached once the entitlement and token are in ({@link attachStream}), and the
+ * buffered start of the sentence goes first — so the first words are not lost
+ * to the round trips. A fallback to on-device discards the capture.
+ *
  * Every failure here is a typed "no" the caller answers with the on-device
  * recogniser — this module never throws into the UI.
  */
@@ -14,7 +19,7 @@ import type { VoiceStreamTokenRequest, VoiceStreamTokenResponse } from '@waves/c
 import * as Network from 'expo-network';
 
 import { backend } from '@/lib/backend';
-import { isOnline } from '@/lib/voiceEnginePure';
+import { isOnline, STREAM_MAX_SESSION_MS } from '@/lib/voiceEnginePure';
 import {
   applyMessage,
   base64ToBytes,
@@ -23,7 +28,10 @@ import {
   liveText,
   pcmLevel,
   streamAlternatives,
+  createPcmBuffer,
+  PCM_BYTES_PER_SECOND,
   streamTokenFailure,
+  type PcmBuffer,
   type StreamTokenFailure,
   type TranscriptState,
 } from '@/lib/voiceStreamPure';
@@ -38,8 +46,6 @@ const FLUSH_TIMEOUT_MS = 1500;
 const OPEN_TIMEOUT_MS = 4000;
 /** Send a KeepAlive when no audio has gone out for this long. */
 const KEEPALIVE_AFTER_MS = 4000;
-/** Audio held back while the socket is still opening (~100 ms chunks). */
-const MAX_PENDING_CHUNKS = 100;
 
 /**
  * A token fetched ahead — when the voice screen opens — so pressing the mic
@@ -120,10 +126,8 @@ export interface LiveTranscriptionHandlers {
   onInterim: (text: string) => void;
   /** A segment was finalised; the text is everything finalised so far. */
   onFinal: (text: string) => void;
-  /** The stream died mid-way (socket error/close or the mic failed). */
+  /** The stream died mid-way (socket error/close). */
   onError: () => void;
-  /** Input loudness 0…1 per chunk, for the waveform. */
-  onLevel?: (level: number) => void;
 }
 
 export interface LiveTranscription {
@@ -164,24 +168,129 @@ export function streamingAvailable(): boolean {
   return loadAudioModule() !== null;
 }
 
+/** The single owner of the recorder: a buffering capture or a live stream. */
+let active: { cancel: () => void } | null = null;
+
+/** Release the recorder from whoever holds it (a new capture is starting). */
+function takeRecorder(): void {
+  if (active) {
+    const previous = active;
+    active = null;
+    previous.cancel();
+  }
+}
+
+export interface CaptureHandlers {
+  /** Input loudness 0…1 per chunk, for the waveform. */
+  onLevel?: (level: number) => void;
+}
+
 /**
- * Open the socket and the mic together. Resolves once both are running, or null
- * if either could not start (nothing is left open in that case).
+ * The mic, recording from the press. Audio is held in memory (up to one whole
+ * session, {@link STREAM_MAX_SESSION_MS}) until {@link attachStream} hands it to
+ * a socket, or {@link MicCapture.discard} drops it for the on-device recogniser.
  */
-export async function startLiveTranscription(
+export interface MicCapture {
+  /** When the recorder reported started (ms since epoch). */
+  readonly startedAt: number;
+  /** Stop the recorder and drop everything held. Resolves once the mic is free. */
+  discard: () => Promise<void>;
+}
+
+interface CaptureInternals extends MicCapture {
+  readonly buffer: PcmBuffer<ArrayBuffer>;
+  /** Stop the recorder, keeping whatever was already forwarded. */
+  stopRecorder: () => Promise<void>;
+  isLive: () => boolean;
+}
+
+const BUFFER_MAX_BYTES = Math.ceil((STREAM_MAX_SESSION_MS / 1000) * PCM_BYTES_PER_SECOND);
+
+/**
+ * Start the recorder now and buffer what it hears. Resolves once the native
+ * recorder reports started, or null if it could not start (nothing left open).
+ * One recording in the app at a time: a new capture ends the previous one.
+ */
+export async function startCapture(handlers: CaptureHandlers = {}): Promise<MicCapture | null> {
+  const audio = loadAudioModule();
+  if (!audio) return null;
+  // The recorder is a single native instance, so a second start silently
+  // replaced the first's recording and left a handle whose stop no longer
+  // reached it. A new start ends the previous one first.
+  takeRecorder();
+
+  const buffer = createPcmBuffer<ArrayBuffer>(BUFFER_MAX_BYTES);
+  let subscription: { remove: () => void } | null = null;
+  let recording = false;
+  let stopping: Promise<void> | null = null;
+
+  const stopRecorder = (): Promise<void> => {
+    if (stopping) return stopping;
+    subscription?.remove();
+    subscription = null;
+    if (!recording) return (stopping = Promise.resolve());
+    recording = false;
+    stopping = Promise.resolve(audio.stopRecording()).then(
+      () => undefined,
+      () => undefined,
+    );
+    return stopping;
+  };
+
+  try {
+    subscription = audio.addListener('AudioData', (event) => {
+      if (!event.encoded || event.deltaSize === 0) return;
+      const bytes = base64ToBytes(event.encoded);
+      if (bytes.length === 0) return;
+      handlers.onLevel?.(pcmLevel(bytes));
+      buffer.push(
+        bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+      );
+    });
+    await audio.startRecording({
+      sampleRate: 16000,
+      channels: 1,
+      encoding: 'pcm_16bit',
+      interval: 100,
+      // Streaming only: no file is written.
+      output: { primary: { enabled: false } },
+    });
+    recording = true;
+  } catch {
+    buffer.discard();
+    await stopRecorder();
+    return null;
+  }
+
+  const capture: CaptureInternals = {
+    startedAt: Date.now(),
+    buffer,
+    stopRecorder,
+    isLive: () => recording,
+    discard: async () => {
+      if (active === owner) active = null;
+      buffer.discard();
+      await stopRecorder();
+    },
+  };
+  const owner = { cancel: () => void capture.discard() };
+  active = owner;
+  return capture;
+}
+
+/**
+ * Open the socket for a running capture: everything heard since the press goes
+ * first, in order, then the mic streams live. Resolves once the socket is open,
+ * or null if it would not open — the capture is then still the caller's, to
+ * discard before the on-device recogniser starts.
+ */
+export async function attachStream(
+  mic: MicCapture,
   session: Pick<VoiceStreamTokenResponse, 'token' | 'url'>,
   handlers: LiveTranscriptionHandlers,
 ): Promise<LiveTranscription | null> {
-  const audio = loadAudioModule();
-  if (!audio) return null;
-  // One live stream in the app at a time. The recorder is a single native
-  // instance, so a second start silently replaced the first's recording and
-  // left a handle whose stop no longer reached it — the mic ran on and the
-  // screen could not be stopped. A new start ends the previous one first.
-  if (active) {
-    active.cancel();
-    active = null;
-  }
+  const capture = mic as CaptureInternals;
+  if (!capture.isLive()) return null;
 
   let state: TranscriptState = EMPTY_TRANSCRIPT;
   let socket: WebSocket;
@@ -196,18 +305,10 @@ export async function startLiveTranscription(
   let closed = false;
   let finished = false;
   let lastSent = Date.now();
-  const pending: ArrayBuffer[] = [];
   let onClosed: (() => void) | null = null;
 
-  const send = (bytes: Uint8Array): void => {
-    const buffer = bytes.buffer.slice(
-      bytes.byteOffset,
-      bytes.byteOffset + bytes.byteLength,
-    ) as ArrayBuffer;
-    if (!isOpen) {
-      if (pending.length < MAX_PENDING_CHUNKS) pending.push(buffer);
-      return;
-    }
+  const send = (buffer: ArrayBuffer): void => {
+    if (!isOpen) return;
     try {
       socket.send(buffer);
       lastSent = Date.now();
@@ -226,13 +327,6 @@ export async function startLiveTranscription(
     };
     socket.onopen = () => {
       isOpen = true;
-      for (const chunk of pending.splice(0)) {
-        try {
-          socket.send(chunk);
-        } catch {
-          break;
-        }
-      }
       lastSent = Date.now();
       resolve(true);
     };
@@ -271,70 +365,37 @@ export async function startLiveTranscription(
     }
   }, 2000);
 
-  let subscription: { remove: () => void } | null = null;
-  let recording = false;
   function stopAll(): void {
     clearInterval(keepAlive);
-    subscription?.remove();
-    subscription = null;
-    if (recording) {
-      recording = false;
-      void Promise.resolve(audio!.stopRecording()).catch(() => {});
-    }
+    void capture.discard();
   }
-
-  try {
-    subscription = audio.addListener('AudioData', (event) => {
-      if (!event.encoded || event.deltaSize === 0) return;
-      const bytes = base64ToBytes(event.encoded);
-      if (bytes.length === 0) return;
-      handlers.onLevel?.(pcmLevel(bytes));
-      send(bytes);
-    });
-    await audio.startRecording({
-      sampleRate: 16000,
-      channels: 1,
-      encoding: 'pcm_16bit',
-      interval: 100,
-      // Streaming only: no file is written.
-      output: { primary: { enabled: false } },
-    });
-    recording = true;
-  } catch {
-    finished = true;
-    stopAll();
+  const closeSocket = (): void => {
     try {
       socket.close();
     } catch {
       // Already gone.
     }
-    return null;
-  }
+  };
 
-  if (!(await opened)) {
-    finished = true;
-    stopAll();
-    try {
-      socket.close();
-    } catch {
-      // Already gone.
-    }
+  if (!(await opened) || closed) {
+    // The capture stays the caller's; only the socket is ours to close.
+    clearInterval(keepAlive);
+    closeSocket();
     return null;
   }
+  // The buffered start of the sentence first, in order, then live.
+  capture.buffer.attach(send);
   ready = true;
-  // The socket may have died while the mic was still opening.
-  if (closed) {
-    finished = true;
-    stopAll();
-    return null;
-  }
 
   const handle: LiveTranscription = {
     stop: async () => {
       if (active === handle) active = null;
       if (finished) return fullText(state);
       finished = true;
-      stopAll();
+      clearInterval(keepAlive);
+      // Stop the mic (every chunk already went to the socket), then flush.
+      await capture.stopRecorder();
+      capture.buffer.discard();
       if (!closed) {
         const flushed = new Promise<void>((resolve) => {
           onClosed = resolve;
@@ -347,11 +408,7 @@ export async function startLiveTranscription(
           onClosed?.();
         }
         await flushed;
-        try {
-          socket.close();
-        } catch {
-          // Already gone.
-        }
+        closeSocket();
       }
       return fullText(state);
     },
@@ -361,16 +418,9 @@ export async function startLiveTranscription(
       if (finished) return;
       finished = true;
       stopAll();
-      try {
-        socket.close();
-      } catch {
-        // Already gone.
-      }
+      closeSocket();
     },
   };
   active = handle;
   return handle;
 }
-
-/** The stream that currently owns the recorder, if any. */
-let active: LiveTranscription | null = null;

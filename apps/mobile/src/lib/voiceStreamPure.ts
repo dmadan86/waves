@@ -165,3 +165,73 @@ export type StreamTokenFailure = 'quota' | 'error';
 export function streamTokenFailure(status: number | null | undefined): StreamTokenFailure {
   return status === 402 ? 'quota' : 'error';
 }
+
+/** 16 kHz mono 16-bit PCM: bytes per second of audio. */
+export const PCM_BYTES_PER_SECOND = 16000 * 2;
+
+/**
+ * The audio heard before the stream's socket is open. The mic starts on the
+ * press; the entitlement, the token and the socket arrive later, and without
+ * this the first words fell into that gap. Chunks are held in order until a
+ * sink is attached, then all of them go first and every later chunk follows
+ * live. Holding stops at `maxBytes` (one whole session's worth) — the session
+ * ends there anyway, and the start of the sentence is what matters.
+ */
+export interface PcmBuffer<T extends { byteLength: number }> {
+  /** A chunk from the mic: held, or sent straight on once attached. */
+  push: (chunk: T) => void;
+  /** Send everything held, in order, then forward each new chunk as it comes. */
+  attach: (sink: (chunk: T) => void) => void;
+  /** Drop everything held and ignore whatever still arrives. */
+  discard: () => void;
+  /** Bytes held and not yet sent. */
+  heldBytes: () => number;
+}
+
+export function createPcmBuffer<T extends { byteLength: number }>(maxBytes: number): PcmBuffer<T> {
+  let held: T[] = [];
+  let bytes = 0;
+  let sink: ((chunk: T) => void) | null = null;
+  let dropped = false;
+  return {
+    push: (chunk) => {
+      if (dropped) return;
+      if (sink) {
+        sink(chunk);
+        return;
+      }
+      if (bytes + chunk.byteLength > maxBytes) return;
+      held.push(chunk);
+      bytes += chunk.byteLength;
+    },
+    attach: (next) => {
+      if (dropped) return;
+      const queued = held;
+      held = [];
+      bytes = 0;
+      for (const chunk of queued) next(chunk);
+      sink = next;
+    },
+    discard: () => {
+      dropped = true;
+      held = [];
+      bytes = 0;
+      sink = null;
+    },
+    heldBytes: () => bytes,
+  };
+}
+
+/**
+ * How long a session timer still has, counted from when the recorder actually
+ * started rather than from when the stream opened — but never less than
+ * `floorMs`, so audio flushed from the buffer gets a moment to be transcribed.
+ */
+export function remainingFrom(
+  startedAt: number,
+  now: number,
+  totalMs: number,
+  floorMs: number,
+): number {
+  return Math.max(floorMs, totalMs - Math.max(0, now - startedAt));
+}

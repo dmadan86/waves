@@ -40,11 +40,14 @@ import { speechMic } from '@/lib/speechMic';
 import {
   checkOnline,
   getStreamToken,
+  attachStream,
   prefetchStreamToken,
-  startLiveTranscription,
+  startCapture,
   streamingAvailable,
   type LiveTranscription,
+  type MicCapture,
 } from '@/lib/voiceStream';
+import { remainingFrom } from '@/lib/voiceStreamPure';
 import { pushToTalk } from '@/lib/pushToTalk';
 
 import {
@@ -56,6 +59,12 @@ import {
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+
+/**
+ * The least a session timer is given once the stream attaches, however long the
+ * token took: the buffered audio still has to reach Deepgram and come back.
+ */
+const ATTACH_FLOOR_MS = 1500;
 
 /** How long Stop waits for the cloud's last words before ending without them. */
 const STOP_GRACE_MS = 2000;
@@ -653,6 +662,14 @@ export function VoiceCapture({
   const latestAlternatives = useRef<string[]>([]);
   // The live Deepgram stream, while one is open (advanced voice).
   const stream = useRef<LiveTranscription | null>(null);
+  // The mic recording since the press, before the stream is attached (or the
+  // start falls back to on-device and discards it). See lib/voiceStream.
+  const capture = useRef<MicCapture | null>(null);
+  const dropCapture = useCallback(async (): Promise<void> => {
+    const held = capture.current;
+    capture.current = null;
+    await held?.discard();
+  }, []);
   // The silence timer that ends a streamed sentence the way the recogniser's own
   // endpointing ends an on-device one.
   const streamSilence = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -932,65 +949,79 @@ export function VoiceCapture({
   }, [streamLive, groupId, locale]);
 
   /**
-   * Try to open the stream. Anything but 'streaming' means "use the on-device
-   * recogniser"; 'quota' (the token answered 402) also names why.
+   * Attach the stream to the capture already recording. Anything but
+   * 'streaming' means "use the on-device recogniser" (the caller discards the
+   * capture); 'quota' (the token answered 402) also names why.
    */
-  const beginStream = useCallback(async (): Promise<'streaming' | 'quota' | 'failed'> => {
-    setListening(true);
-    const got = await getStreamToken({ groupId, locale });
-    if (!mounted.current) return 'failed';
-    if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
-    const token = got.token;
-    // An ending that came while the token was in flight is applied here.
-    if (pendingEnd.current === 'cancel') return 'failed';
-    const armSilence = (ms: number): void => {
-      if (streamSilence.current) clearTimeout(streamSilence.current);
-      streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
-    };
-    const hear = (text: string): void => {
-      latest.current = text;
-      setLive(text);
-      const { silenceMs } = endRules.current;
-      if (text.trim() && silenceMs !== null) armSilence(silenceMs);
-    };
-    const live = await startLiveTranscription(token, {
-      onInterim: hear,
-      onFinal: hear,
-      onLevel: (value) => level.set(withTiming(value, { duration: 90 })),
-      onError: () => {
-        // The stream died mid-sentence: keep what was heard, if anything.
-        const said = latest.current.trim();
-        const alternatives = stream.current?.alternatives() ?? [];
-        stream.current = null;
-        starting.current = false;
-        clearStreamTimers();
-        setListening(false);
-        level.set(withTiming(0, { duration: 150 }));
-        speechMic.release(session);
-        if (said) onDone(said, { streamed: true, alternatives });
-        else {
-          setError(t.misc.dictationFailed);
-          setErrorInSettings(false);
-        }
-      },
-    });
-    if (!live) return 'failed';
-    if (!mounted.current) {
-      live.cancel();
-      return 'failed';
-    }
-    stream.current = live;
-    // `starting` stays set while the stream is live: a second start (an
-    // auto-start racing the tap) must not open a second recording.
-    if (endRules.current.firstWordMs !== null) armSilence(endRules.current.firstWordMs);
-    streamMax.current = setTimeout(() => void finishStreamRef.current(), STREAM_MAX_SESSION_MS);
-    // The finger lifted while the stream was opening.
-    if (pendingEnd.current !== null) {
-      pendingEnd.current = null;
-      void finishStream();
-    }
-    return 'streaming';
-  }, [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t]);
+  const beginStream = useCallback(
+    async (mic: MicCapture): Promise<'streaming' | 'quota' | 'failed'> => {
+      const got = await getStreamToken({ groupId, locale });
+      if (!mounted.current) return 'failed';
+      if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
+      const token = got.token;
+      // An ending that came while the token was in flight is applied here.
+      if (pendingEnd.current === 'cancel') return 'failed';
+      const armSilence = (ms: number): void => {
+        if (streamSilence.current) clearTimeout(streamSilence.current);
+        streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
+      };
+      const hear = (text: string): void => {
+        latest.current = text;
+        setLive(text);
+        const { silenceMs } = endRules.current;
+        if (text.trim() && silenceMs !== null) armSilence(silenceMs);
+      };
+      const live = await attachStream(mic, token, {
+        onInterim: hear,
+        onFinal: hear,
+        onError: () => {
+          // The stream died mid-sentence: keep what was heard, if anything.
+          const said = latest.current.trim();
+          const alternatives = stream.current?.alternatives() ?? [];
+          stream.current = null;
+          starting.current = false;
+          clearStreamTimers();
+          setListening(false);
+          level.set(withTiming(0, { duration: 150 }));
+          speechMic.release(session);
+          if (said) onDone(said, { streamed: true, alternatives });
+          else {
+            setError(t.misc.dictationFailed);
+            setErrorInSettings(false);
+          }
+        },
+      });
+      if (!live) return 'failed';
+      if (!mounted.current) {
+        live.cancel();
+        return 'failed';
+      }
+      // The stream owns the recorder now.
+      if (capture.current === mic) capture.current = null;
+      stream.current = live;
+      setListening(true);
+      // `starting` stays set while the stream is live: a second start (an
+      // auto-start racing the tap) must not open a second recording.
+      // The timers count from when the recorder started, not from the attach.
+      const now = Date.now();
+      if (endRules.current.firstWordMs !== null) {
+        armSilence(
+          remainingFrom(mic.startedAt, now, endRules.current.firstWordMs, ATTACH_FLOOR_MS),
+        );
+      }
+      streamMax.current = setTimeout(
+        () => void finishStreamRef.current(),
+        remainingFrom(mic.startedAt, now, STREAM_MAX_SESSION_MS, ATTACH_FLOOR_MS),
+      );
+      // The finger lifted while the stream was opening.
+      if (pendingEnd.current !== null) {
+        pendingEnd.current = null;
+        void finishStream();
+      }
+      return 'streaming';
+    },
+    [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t],
+  );
 
   const start = useCallback(
     async (forceNetwork = false): Promise<void> => {
@@ -1058,6 +1089,21 @@ export function VoiceCapture({
         return give();
       }
 
+      // Advanced voice records from the press: the mic starts here, before the
+      // flag wait, the online check and the token, and buffers until the stream
+      // attaches — otherwise the first words fell into those round trips. Only
+      // once the recorder has reported started does the panel say "Listening".
+      if ((streamLiveRef.current || !agentReadyRef.current) && streamingAvailable()) {
+        capture.current = await startCapture({
+          onLevel: (value) => level.set(withTiming(value, { duration: 90 })),
+        });
+        if (!mounted.current) {
+          await dropCapture();
+          return give();
+        }
+        if (capture.current && streamLiveRef.current) setListening(true);
+      }
+
       // Advanced voice: stream to Deepgram. A token we cannot get (offline, 503,
       // 429) or a stream that will not open drops straight to the on-device
       // recogniser below, unchanged.
@@ -1067,9 +1113,15 @@ export function VoiceCapture({
       for (let waited = 0; !agentReadyRef.current && waited < 1500; waited += 50) {
         await new Promise<void>((resolve) => setTimeout(resolve, 50));
       }
-      if (!mounted.current) return give();
+      if (!mounted.current) {
+        await dropCapture();
+        return give();
+      }
       const online = streamLiveRef.current ? await checkOnline() : true;
-      if (!mounted.current) return give();
+      if (!mounted.current) {
+        await dropCapture();
+        return give();
+      }
       const plan = planMicStart({
         enabled: streamLiveRef.current,
         online,
@@ -1078,7 +1130,7 @@ export function VoiceCapture({
       });
       endRules.current = plan;
       if (plan.stream) {
-        const opened = await beginStream();
+        const opened = capture.current ? await beginStream(capture.current) : 'failed';
         if (opened === 'streaming') {
           reportEngine(CLOUD);
           return;
@@ -1095,6 +1147,13 @@ export function VoiceCapture({
           }),
         );
       } else if (plan.fallback) reportEngine(plan.fallback);
+      // On-device from here: the early recording is dropped (and the mic freed
+      // for the recogniser), and "Listening" waits for the recogniser itself.
+      if (capture.current) {
+        await dropCapture();
+        setListening(false);
+        level.set(0);
+      }
       if (!mounted.current) return give();
       // A push-to-talk cancel that landed while the token was in flight.
       const endedEarly = pendingEnd.current as 'send' | 'cancel' | null;
@@ -1112,7 +1171,6 @@ export function VoiceCapture({
       usedOnDevice.current = onDevice;
       setEngine(onDevice ? 'on-device' : 'network');
 
-      setListening(true);
       try {
         ExpoSpeechRecognitionModule.start({
           // Recognition is English-only — the surface each speaker reads is still
@@ -1145,6 +1203,7 @@ export function VoiceCapture({
           },
         });
         speechMic.opened(session);
+        setListening(true);
         openedAt.current = Date.now();
         stoppedAt.current = 0;
         starting.current = false;
@@ -1234,6 +1293,7 @@ export function VoiceCapture({
       onDone,
       onListen,
       beginStream,
+      dropCapture,
       session,
       stopListening,
       reportEngine,
@@ -1279,6 +1339,12 @@ export function VoiceCapture({
       void finishStream();
       return;
     }
+    // Recording, but the stream is not attached yet: the start applies the
+    // ending once it is (the buffered words are sent first), or on-device.
+    if (capture.current) {
+      pendingEnd.current = 'send';
+      return;
+    }
     // Ask the recogniser to finish, but keep the session: `stop()` (unlike
     // `abort()`) still delivers one last `result`, and giving the mic up here
     // would make the handler above drop the words spoken before the tap.
@@ -1319,6 +1385,7 @@ export function VoiceCapture({
     } else if (endSignal.mode === 'cancel') {
       stream.current?.cancel();
       stream.current = null;
+      void dropCapture();
       starting.current = false;
       clearStreamTimers();
       clearStall();
@@ -1394,10 +1461,11 @@ export function VoiceCapture({
       starting.current = false;
       stream.current?.cancel();
       stream.current = null;
+      void dropCapture();
       clearStreamTimers();
       speechMic.release(session);
     };
-  }, [clearMaxListen, clearProgress, clearStall, clearStreamTimers, session]);
+  }, [clearMaxListen, clearProgress, clearStall, clearStreamTimers, dropCapture, session]);
 
   if (!available) {
     return (
