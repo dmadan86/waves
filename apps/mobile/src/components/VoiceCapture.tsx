@@ -46,15 +46,19 @@ import {
   type LiveTranscription,
 } from '@/lib/voiceStream';
 import { pushToTalk } from '@/lib/pushToTalk';
+
 import {
   CLOUD,
   planMicStart,
   resolveEngine,
+  STREAM_MAX_SESSION_MS,
   type MicStartPlan,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
-import { VOICE_AGENT_MAX_CLIP_MS } from '@waves/core';
+
+/** How long Stop waits for the cloud's last words before ending without them. */
+const STOP_GRACE_MS = 2000;
 
 const MIC_SIZE = 104;
 
@@ -890,7 +894,18 @@ export function VoiceCapture({
     clearStreamTimers();
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
-    const said = (await live.stop()).trim();
+    // Bounded: a socket that never answers the close must not hold the screen.
+    const said = (
+      await Promise.race([
+        live.stop(),
+        new Promise<string>((resolve) =>
+          setTimeout(() => {
+            live.cancel();
+            resolve(latest.current);
+          }, STOP_GRACE_MS),
+        ),
+      ])
+    ).trim();
     if (!mounted.current) return;
     speechMic.release(session);
     if (said) {
@@ -963,7 +978,7 @@ export function VoiceCapture({
     // `starting` stays set while the stream is live: a second start (an
     // auto-start racing the tap) must not open a second recording.
     if (endRules.current.firstWordMs !== null) armSilence(endRules.current.firstWordMs);
-    streamMax.current = setTimeout(() => void finishStreamRef.current(), VOICE_AGENT_MAX_CLIP_MS);
+    streamMax.current = setTimeout(() => void finishStreamRef.current(), STREAM_MAX_SESSION_MS);
     // The finger lifted while the stream was opening.
     if (pendingEnd.current !== null) {
       pendingEnd.current = null;
@@ -1273,7 +1288,8 @@ export function VoiceCapture({
    * and everything `stop` is careful about belong to both taps or to neither.
    */
   const toggle = useCallback((): void => {
-    if (listening) stop();
+    // A live stream is always stoppable, whatever the screen thinks it shows.
+    if (listening || stream.current) stop();
     else void start();
   }, [listening, start, stop]);
 

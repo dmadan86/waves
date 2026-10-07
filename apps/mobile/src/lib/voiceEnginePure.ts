@@ -16,7 +16,9 @@ export interface VoiceEngineInfo {
 /** A streamed sentence ends this long after the last word... */
 export const STREAM_SILENCE_MS = 2200;
 /** ...or, if nothing is said at all, after this long. */
-export const STREAM_FIRST_WORD_MS = 8000;
+export const STREAM_FIRST_WORD_MS = 5000;
+/** No voice session runs longer than this, however it was started. */
+export const STREAM_MAX_SESSION_MS = 20_000;
 
 export const CLOUD: VoiceEngineInfo = { engine: 'cloud', reason: null };
 export const local = (reason: VoiceEngineReason | null): VoiceEngineInfo => ({
@@ -74,7 +76,12 @@ export interface MicStartPlan {
   stream: boolean;
   /** Why it will not stream (the badge's reason). */
   fallback: VoiceEngineInfo | null;
-  /** When the sentence ends by itself. A hold ends on release, so it has no timers. */
+  /**
+   * When the sentence ends by itself. Every session has them — a hold that was
+   * misread (a tap the gesture took for a hold) must not leave the mic open
+   * with nothing to end it. A real hold gets a longer pause allowance, since
+   * the finger lifting is its usual end.
+   */
   silenceMs: number | null;
   firstWordMs: number | null;
 }
@@ -89,7 +96,7 @@ export function planMicStart(input: MicStartInputs): MicStartPlan {
   return {
     stream: info.engine === 'cloud',
     fallback: info.engine === 'cloud' ? null : info,
-    silenceMs: input.held ? null : STREAM_SILENCE_MS,
-    firstWordMs: input.held ? null : STREAM_FIRST_WORD_MS,
+    silenceMs: input.held ? STREAM_SILENCE_MS * 2 : STREAM_SILENCE_MS,
+    firstWordMs: STREAM_FIRST_WORD_MS,
   };
 }

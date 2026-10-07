@@ -6,6 +6,7 @@ import {
   resolveEngine,
   STREAM_FIRST_WORD_MS,
   STREAM_SILENCE_MS,
+  STREAM_MAX_SESSION_MS,
 } from '@/lib/voiceEnginePure';
 
 describe('resolveEngine', () => {
@@ -51,11 +52,16 @@ describe('planMicStart', () => {
     expect(planMicStart({ ...base, held: false }).stream).toBe(true);
     expect(planMicStart({ ...base, held: true }).stream).toBe(true);
   });
-  it('a tap ends on silence, a hold only on release', () => {
+  it('every session can end by itself: a tap on a short pause, a hold on a longer one', () => {
     const tap = planMicStart({ ...base, held: false });
     expect([tap.silenceMs, tap.firstWordMs]).toEqual([STREAM_SILENCE_MS, STREAM_FIRST_WORD_MS]);
     const hold = planMicStart({ ...base, held: true });
-    expect([hold.silenceMs, hold.firstWordMs]).toEqual([null, null]);
+    expect([hold.silenceMs, hold.firstWordMs]).toEqual([
+      STREAM_SILENCE_MS * 2,
+      STREAM_FIRST_WORD_MS,
+    ]);
+    expect(STREAM_FIRST_WORD_MS).toBeLessThanOrEqual(5000);
+    expect(STREAM_MAX_SESSION_MS).toBeLessThanOrEqual(30_000);
   });
   it('falls back with the reason, for either start', () => {
     for (const held of [false, true]) {
