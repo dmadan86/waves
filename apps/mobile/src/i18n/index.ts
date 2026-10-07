@@ -1245,6 +1245,38 @@ export interface UiStrings {
     ansNoPerson: string;
     /** The button on the answer card that reopens the mic for another question. */
     askAgain: string;
+    /** Shown while the advanced voice agent reads the clip. */
+    agentUnderstanding: string;
+    agentHeard: string;
+    agentConfirm: string;
+    agentConfirmAll: string;
+    agentEdit: string;
+    agentDiscard: string;
+    agentDone: string;
+    agentCouldNotRun: string;
+    agentProblem: string;
+    agentClarifyTitle: string;
+    agentTryAgain: string;
+    agentNothingToDo: string;
+    agentQuotaLeft: string;
+    agentQuotaFallback: string;
+    /** Card text (the next ones too): {placeholders} are filled in. */
+    agentAdd: string;
+    agentPaid: string;
+    agentYou: string;
+    agentSplitEqual: string;
+    agentNotSplit: string;
+    agentSplitExact: string;
+    agentSplitPercent: string;
+    agentSplitShares: string;
+    agentJustYou: string;
+    agentSettle: string;
+    agentRemind: string;
+    agentCreateGroup: string;
+    agentWithPeople: string;
+    agentAddMember: string;
+    agentUnknownGroup: string;
+    agentUnknownPerson: string;
   };
   /**
    * The on-device speech models, and the one screen that manages them.
@@ -5424,6 +5456,36 @@ const en: UiStrings = {
     ansGroupSettled: "You're all settled up in {group}",
     ansNoPerson: "Couldn't find {name}",
     askAgain: 'Ask again',
+    agentUnderstanding: 'Understanding…',
+    agentHeard: 'Heard',
+    agentConfirm: 'Confirm',
+    agentConfirmAll: 'Confirm all',
+    agentEdit: 'Edit',
+    agentDiscard: 'Discard',
+    agentDone: 'Done',
+    agentCouldNotRun: "Couldn't do that. Try again.",
+    agentProblem: "Couldn't match this to your people or groups.",
+    agentClarifyTitle: "I didn't quite get that",
+    agentTryAgain: 'Try again',
+    agentNothingToDo: 'Nothing to add from that. Try again.',
+    agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
+    agentAdd: 'Add {amount}',
+    agentPaid: '{name} paid',
+    agentYou: 'You',
+    agentSplitEqual: 'split equally with {names}',
+    agentNotSplit: 'not split',
+    agentSplitExact: 'split by amounts: {parts}',
+    agentSplitPercent: 'split by percent: {parts}',
+    agentSplitShares: 'split by shares: {parts}',
+    agentJustYou: 'Just for you',
+    agentSettle: '{from} paid {to} {amount}',
+    agentRemind: 'Remind {name} to settle',
+    agentCreateGroup: 'Create group {name}',
+    agentWithPeople: 'with {names}',
+    agentAddMember: 'Add {name} to {group}',
+    agentUnknownGroup: 'Unknown group',
+    agentUnknownPerson: 'Unknown person',
   },
   offlineVoice: {
     row: 'Offline voice',
@@ -9109,6 +9171,37 @@ const ta: UiStrings = {
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
     ansNoPerson: '{name} கிடைக்கவில்லை',
     askAgain: 'மீண்டும் கேள்',
+    agentUnderstanding: 'புரிந்துகொள்கிறது…',
+    agentHeard: 'கேட்டது',
+    agentConfirm: 'உறுதிப்படுத்து',
+    agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
+    agentEdit: 'திருத்து',
+    agentDiscard: 'நீக்கு',
+    agentDone: 'முடிந்தது',
+    agentCouldNotRun: 'இதைச் செய்ய முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
+    agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
+    agentTryAgain: 'மீண்டும் முயல்',
+    agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
+    agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    agentQuotaFallback:
+      'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
+    agentAdd: '{amount} சேர்',
+    agentPaid: '{name} செலுத்தினார்',
+    agentYou: 'நீங்கள்',
+    agentSplitEqual: '{names} உடன் சமமாகப் பிரி',
+    agentNotSplit: 'பிரிக்கப்படவில்லை',
+    agentSplitExact: 'தொகைப்படி பிரி: {parts}',
+    agentSplitPercent: 'சதவீதப்படி பிரி: {parts}',
+    agentSplitShares: 'பங்குகளின்படி பிரி: {parts}',
+    agentJustYou: 'உங்களுக்கு மட்டும்',
+    agentSettle: '{from} {to}-க்கு {amount} செலுத்தினார்',
+    agentRemind: '{name}-க்கு நினைவூட்டு',
+    agentCreateGroup: '{name} குழுவை உருவாக்கு',
+    agentWithPeople: '{names} உடன்',
+    agentAddMember: '{name}-ஐ {group}-ல் சேர்',
+    agentUnknownGroup: 'தெரியாத குழு',
+    agentUnknownPerson: 'தெரியாத நபர்',
   },
   offlineVoice: {
     row: 'ஆஃப்லைன் குரல்',
@@ -12912,6 +13005,36 @@ const hi: UiStrings = {
     ansGroupSettled: '{group} में सब हिसाब बराबर है',
     ansNoPerson: '{name} नहीं मिला',
     askAgain: 'फिर पूछें',
+    agentUnderstanding: 'समझा जा रहा है…',
+    agentHeard: 'सुना',
+    agentConfirm: 'पुष्टि करें',
+    agentConfirmAll: 'सभी की पुष्टि करें',
+    agentEdit: 'बदलें',
+    agentDiscard: 'हटाएँ',
+    agentDone: 'हो गया',
+    agentCouldNotRun: 'यह नहीं हो सका। फिर कोशिश करें।',
+    agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
+    agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
+    agentTryAgain: 'फिर कोशिश करें',
+    agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
+    agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
+    agentAdd: '{amount} जोड़ें',
+    agentPaid: '{name} ने भुगतान किया',
+    agentYou: 'आप',
+    agentSplitEqual: '{names} के साथ बराबर बाँटें',
+    agentNotSplit: 'बाँटा नहीं गया',
+    agentSplitExact: 'रकम के अनुसार बाँटें: {parts}',
+    agentSplitPercent: 'प्रतिशत के अनुसार बाँटें: {parts}',
+    agentSplitShares: 'हिस्सों के अनुसार बाँटें: {parts}',
+    agentJustYou: 'सिर्फ आपके लिए',
+    agentSettle: '{from} ने {to} को {amount} दिए',
+    agentRemind: '{name} को याद दिलाएँ',
+    agentCreateGroup: 'ग्रुप {name} बनाएँ',
+    agentWithPeople: '{names} के साथ',
+    agentAddMember: '{name} को {group} में जोड़ें',
+    agentUnknownGroup: 'अज्ञात ग्रुप',
+    agentUnknownPerson: 'अज्ञात व्यक्ति',
   },
   offlineVoice: {
     row: 'ऑफ़लाइन आवाज़',
@@ -16658,6 +16781,36 @@ const ar: UiStrings = {
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
     ansNoPerson: 'تعذر العثور على {name}',
     askAgain: 'اسأل مرة أخرى',
+    agentUnderstanding: 'جارٍ الفهم…',
+    agentHeard: 'سمعتُ',
+    agentConfirm: 'تأكيد',
+    agentConfirmAll: 'تأكيد الكل',
+    agentEdit: 'تعديل',
+    agentDiscard: 'تجاهل',
+    agentDone: 'تم',
+    agentCouldNotRun: 'تعذّر تنفيذ ذلك. حاول مرة أخرى.',
+    agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
+    agentClarifyTitle: 'لم أفهم تمامًا',
+    agentTryAgain: 'حاول مرة أخرى',
+    agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
+    agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
+    agentAdd: 'أضف {amount}',
+    agentPaid: 'دفع {name}',
+    agentYou: 'أنت',
+    agentSplitEqual: 'تقسيم بالتساوي مع {names}',
+    agentNotSplit: 'بدون تقسيم',
+    agentSplitExact: 'تقسيم بالمبالغ: {parts}',
+    agentSplitPercent: 'تقسيم بالنسبة: {parts}',
+    agentSplitShares: 'تقسيم بالحصص: {parts}',
+    agentJustYou: 'لك وحدك',
+    agentSettle: 'دفع {from} إلى {to} مبلغ {amount}',
+    agentRemind: 'ذكّر {name} بالتسوية',
+    agentCreateGroup: 'أنشئ مجموعة {name}',
+    agentWithPeople: 'مع {names}',
+    agentAddMember: 'أضف {name} إلى {group}',
+    agentUnknownGroup: 'مجموعة غير معروفة',
+    agentUnknownPerson: 'شخص غير معروف',
   },
   offlineVoice: {
     row: 'الصوت دون اتصال',
