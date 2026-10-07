@@ -21,22 +21,46 @@ export const VOICE_AGENT_PRO_MONTHLY = 150;
 
 export interface VoiceAgentRequest {
   readonly schemaVersion: typeof VOICE_AGENT_SCHEMA_VERSION;
-  /** Base64 audio (m4a/aac, wav or webm). */
-  readonly audioBase64: string;
-  readonly mimeType: string;
-  readonly durationMs: number;
+  /**
+   * What was said, already transcribed — the streaming path: the app streams the
+   * mic to Deepgram live (token from `voice-stream-token`) and sends only text.
+   * When present, the audio fields are ignored.
+   */
+  readonly transcript?: string;
+  /** Base64 audio (m4a/aac, wav or webm) — the older record-then-send path. */
+  readonly audioBase64?: string;
+  readonly mimeType?: string;
+  readonly durationMs?: number;
   /** The group screen the mic was opened from, if any — a strong default. */
   readonly groupId?: string | null;
   /** UI locale (en, hi, ta, ar) — a language hint for transcription. */
   readonly locale: string;
   /** The caller's local date (YYYY-MM-DD), for "yesterday", "on Monday". */
   readonly today: string;
-  /** What the phone's own recogniser heard of the same clip — a second opinion
-   *  the model reconciles with the cloud transcript (numbers vs names). */
-  readonly deviceTranscript?: string;
   /** An answer to the agent's last clarifying question: what was said first
    *  and what was asked, so this clip is read as the reply. */
   readonly followUp?: { readonly transcript: string; readonly question: string };
+}
+
+/** `voice-stream-token` request: where the mic was opened and the UI locale. */
+export interface VoiceStreamTokenRequest {
+  readonly groupId?: string | null;
+  readonly locale: string;
+}
+
+/**
+ * A short-lived Deepgram token and the exact live-transcription URL to open with
+ * it (model, language, linear16 @ 16 kHz mono, interim results, numerals, the
+ * caller's names as keyterms). The app opens `url` as a WebSocket with
+ * subprotocols ['bearer', token] and streams raw PCM; the token only has to be
+ * valid when the socket opens.
+ */
+export interface VoiceStreamTokenResponse {
+  readonly token: string;
+  readonly url: string;
+  readonly expiresInSeconds: number;
+  readonly sampleRate: 16000;
+  readonly encoding: 'linear16';
 }
 
 export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'shares';
