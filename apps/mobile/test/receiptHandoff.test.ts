@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/image', () => ({}));
-
 import { dropHandedReceipt, handOffReceipt, peekHandedReceipt } from '../src/lib/receiptHandoff';
+
+vi.mock('@/lib/image', () => ({}));
 
 const shot = { uri: 'file:///bill.jpg', base64: 'AAAA', mimeType: 'image/jpeg' } as never;
 
