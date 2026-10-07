@@ -116,6 +116,11 @@ import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import {
+  agentHandoffCategory,
+  agentHandoffDate,
+  decodeAgentSplitParams,
+} from '@/lib/voiceAgentHandoff';
+import {
   editStateFromVersion,
   expenseWritePayload,
   lineAmountFor,
@@ -127,8 +132,14 @@ import {
 } from '@/lib/expenseEdit';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
-import { discardHeldReceipts, flushReceiptQueue, releaseHeldReceipts } from '@/lib/receiptQueue';
+import {
+  discardHeldReceipts,
+  enqueueReceipt,
+  flushReceiptQueue,
+  releaseHeldReceipts,
+} from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
+import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -286,6 +297,9 @@ export default function AddExpenseScreen() {
     captureId,
     voice,
     people: voicePeople,
+    payer: handedPayer,
+    split: handedSplit,
+    proposal,
     amount: captureAmount,
     description: captureDescription,
     category: captureCategory,
@@ -296,6 +310,7 @@ export default function AddExpenseScreen() {
     focus,
     currency: handedCurrency,
     quick,
+    receipt: handedReceiptKey,
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
@@ -307,6 +322,13 @@ export default function AddExpenseScreen() {
     voice?: string;
     /** The raw spoken sentence, for matching names to members on a voice hand-off. */
     people?: string;
+    /** An AI-proposed expense's payer (member id), when "Edit" opened this form. */
+    payer?: string;
+    /** And its split, JSON {mode, shares} — see `lib/voiceAgentHandoff`. */
+    split?: string;
+    /** '1' when the hand-off is an AI proposal ("Edit" on an agent card): every
+     *  value it carries is decided, so none of them follows the description. */
+    proposal?: string;
     amount?: string;
     description?: string;
     category?: string;
@@ -335,6 +357,8 @@ export default function AddExpenseScreen() {
      *  is an explicit choice to carry on with what was typed, and without a
      *  marker the amount is read as a stale draft and dropped. */
     quick?: string;
+    /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
+    receipt?: string;
     /** Event "Pay balance" (Vendors tab): the sub-event the vendor was tagged with. */
     subEventId?: string;
     /** Event "Pay balance": the vendor advance this payment settles. Once this
@@ -515,6 +539,24 @@ export default function AddExpenseScreen() {
   // The picked bill, held until the expense is saved. Uploading on save (not on
   // pick) means an add that is abandoned never leaves an orphaned object in R2.
   const [pendingReceipt, setPendingReceipt] = useState<PickedImage | null>(null);
+  // A photo Quick expense picked before "Advanced" (parked in
+  // `lib/receiptHandoff`): into this new expense's held receipts, the same place
+  // a photo added here goes — shown from the device at once, sent on save,
+  // discarded if the add is abandoned.
+  useEffect(() => {
+    const handed = peekHandedReceipt(handedReceiptKey);
+    dropHandedReceipt(handedReceiptKey);
+    if (!handed || expenseId) return;
+    void enqueueReceipt({
+      expenseId: targetExpenseId,
+      groupId,
+      visibility: 'group',
+      sourceUri: handed.uri,
+      contentType: handed.mimeType,
+      held: true,
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on arrival only
+  }, [handedReceiptKey]);
 
   // Where the spend happened (A43). Optional and opt-in: null until the person
   // taps "Add location" and grants the permission. Kept in the draft so a crash
@@ -634,7 +676,30 @@ export default function AddExpenseScreen() {
             ? [...named, myMemberId]
             : named
           : memberRows.map((member) => member.id);
-      setParticipants(chosen);
+      // An AI proposal opened with Edit carries its own payer and split; those
+      // win over the defaults, against this group's real members only.
+      const handed = decodeAgentSplitParams(
+        handedPayer,
+        handedSplit,
+        memberRows.map((member) => member.id),
+      );
+      setParticipants(handed && handed.participants.length > 0 ? handed.participants : chosen);
+      if (handed && handed.participants.length > 0) {
+        setSplitKind(handed.splitKind);
+        setWeights(handed.weights);
+        setPercents(handed.percents);
+        setExacts(
+          Object.fromEntries(
+            Object.entries(handed.exactMinor).map(([memberId, minor]) => [
+              memberId,
+              formatMinorInput(
+                minor,
+                (expenseCurrency ?? group.data?.default_currency ?? 'INR') as CurrencyCode,
+              ),
+            ]),
+          ),
+        );
+      }
       setDescription(
         voice
           ? stripMemberNames(
@@ -646,19 +711,32 @@ export default function AddExpenseScreen() {
             )
           : (captureDescription ?? ''),
       );
-      setCategory(captureCategory || null);
       // A capture tagged with a custom tag carries its display as a JSON param,
       // so the assigned expense keeps the same tag rather than dropping to a
       // built-in. A malformed param is simply no meta (a built-in).
       setCategoryMeta(parseCategoryMetaParam(captureCategoryMeta));
-      setCategoryChosen(Boolean(captureCategory));
+      if (proposal === '1') {
+        // An AI proposal's category is settled on arrival (its own, or the
+        // guess from its description), so retyping the description later does
+        // not turn it into a different expense.
+        const settled = agentHandoffCategory(
+          captureCategory,
+          captureDescription ?? '',
+          guessCategory,
+        );
+        setCategory(settled.category);
+        setCategoryChosen(settled.chosen);
+      } else {
+        setCategory(captureCategory || null);
+        setCategoryChosen(Boolean(captureCategory));
+      }
       // Carry the capture's place onto the expense it becomes (A43).
       setLocation(parseLocationParam(captureLocation));
       // And how the draft says it was paid, so assigning does not quietly turn a
       // card payment into cash. A voice hand-off carries none and keeps the
       // default; anything the ledger does not know falls back to it too.
       setPaymentMethod(capturePaymentMethod(capturePayment));
-      seedSolePayer(myMemberId, routeAmount(captureAmount));
+      seedSolePayer(handed?.payer ?? myMemberId, routeAmount(captureAmount));
       if (handedSubEventId) setSubEventId(handedSubEventId);
     } else if (draft) {
       // A draft outranks the saved version: it is what the user was in the
@@ -830,7 +908,11 @@ export default function AddExpenseScreen() {
   // The day this expense is filed under, picked or inherited (expenseDateFor).
   const expenseDate = expenseDateFor({
     picked: pickedDate,
-    captureDate: captureId ? captureExpenseDate : null,
+    captureDate: captureId
+      ? captureExpenseDate
+      : proposal === '1' && !editing
+        ? agentHandoffDate(captureExpenseDate)
+        : null,
     savedDate: editing?.currentVersion?.expense_date,
     today: todayIso(),
   });
@@ -1070,6 +1152,11 @@ export default function AddExpenseScreen() {
     setPickingCurrency(false);
   };
 
+  // Off from the moment Save starts. The draft write is debounced, so a last
+  // keystroke just before Save could otherwise land after the save cleared the
+  // draft — and the next "Add expense" in this group opened on the old amount.
+  const [draftsPaused, setDraftsPaused] = useState(false);
+
   // Every keystroke, debounced just enough to avoid one write per character.
   useDraft<ExpenseDraft>(
     draftKey,
@@ -1090,7 +1177,7 @@ export default function AddExpenseScreen() {
       categoryChosen,
       location,
     },
-    { enabled: seededFor !== null },
+    { enabled: seededFor !== null && !draftsPaused },
   );
 
   // Auto-stamp the current place on a brand-new expense (A43 follow-up), but
@@ -1218,6 +1305,7 @@ export default function AddExpenseScreen() {
       return;
     }
     setSaving(true);
+    setDraftsPaused(true);
     try {
       // Straight into the durable queue: this returns as soon as the mutation
       // is on disk, so the expense is saved whether or not there is a network.
@@ -1332,6 +1420,8 @@ export default function AddExpenseScreen() {
 
       router.back();
     } catch (caught) {
+      // Not saved: what was typed is still the only copy, so keep drafting it.
+      setDraftsPaused(false);
       setError(friendlyError(caught, t.couldNotSave, 'expense.save'));
     } finally {
       setSaving(false);

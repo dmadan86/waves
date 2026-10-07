@@ -49,9 +49,10 @@ export interface VoiceAgentRequest {
    *  and what was asked, so this clip is read as the reply. */
   readonly followUp?: { readonly transcript: string; readonly question: string };
   /**
-   * Count this command against the allowance and do nothing else — the app's
-   * instant on-phone path, which used the live stream (a cost) but needed no
-   * model. Answers with no actions, just the quota.
+   * Count this command against the month's allowance without reading it: the
+   * app parsed a streamed sentence on the device (the fast path) and only needs
+   * it metered. The server reserves one command and answers `{actions: [],
+   * quota}`, or 402 when the allowance is spent.
    */
   readonly meterOnly?: boolean;
 }

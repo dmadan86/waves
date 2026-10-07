@@ -37,8 +37,46 @@ import { exampleCountry, voiceExamples } from '@/lib/voiceExamples';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
+import {
+  checkOnline,
+  getStreamToken,
+  attachStream,
+  prefetchStreamToken,
+  startCapture,
+  streamingAvailable,
+  type LiveTranscription,
+  type MicCapture,
+} from '@/lib/voiceStream';
+import { remainingFrom } from '@/lib/voiceStreamPure';
+import { pushToTalk } from '@/lib/pushToTalk';
+
+import {
+  CLOUD,
+  planMicStart,
+  resolveEngine,
+  STREAM_MAX_SESSION_MS,
+  type MicStartPlan,
+  type VoiceEngineInfo,
+} from '@/lib/voiceEnginePure';
+import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+
+/**
+ * The least a session timer is given once the stream attaches, however long the
+ * token took: the buffered audio still has to reach Deepgram and come back.
+ */
+const ATTACH_FLOOR_MS = 1500;
+
+/** How long Stop waits for the cloud's last words before ending without them. */
+const STOP_GRACE_MS = 2000;
 
 const MIC_SIZE = 104;
+
+/**
+ * Hypotheses to ask the recogniser for. iOS hands back its `transcriptions`;
+ * Android its RESULTS_RECOGNITION list (EXTRA_MAX_RESULTS), which on-device
+ * engines fill on Android 14+ and many network engines always did.
+ */
+const MAX_ALTERNATIVES = 5;
 
 // Hand the shared arbiter the real recogniser. Safe at module scope: this file
 // is only ever loaded through `VoiceMicPanel`'s guarded require, so reaching it
@@ -74,6 +112,11 @@ const STALL_MS = 8000;
  * path reports first.
  */
 const MAX_LISTEN_MS = 9500;
+
+/**
+ * A streamed sentence ends the way the recogniser's own endpointing would: this
+ * long after the last word, or — if nothing is said at all — after this long.
+ */
 const HARD_STOP_MS = 1800;
 
 /** How soon after our own stop an audio error is taken as that stop's echo. */
@@ -407,10 +450,43 @@ function Waveform({ active, level }: { active: boolean; level: SharedValue<numbe
   );
 }
 
+/** What the capture knows about a finished sentence besides its text. */
+export interface VoiceDoneInfo {
+  /** True when it came from the live Deepgram stream, not the on-device recogniser. */
+  readonly streamed: boolean;
+  /** The engine's other hypotheses for it, best first (empty when it gave one). */
+  readonly alternatives: readonly string[];
+}
+
 export interface VoiceCaptureProps {
-  /** Called with the final sentence once the speaker stops. */
-  onDone: (transcript: string) => void;
-  /** Names to bias the recogniser towards — group and member names. */
+  /**
+   * Called with the final sentence once the speaker stops. `info.streamed` is
+   * true when it came from the live Deepgram stream (advanced voice) rather
+   * than the on-device recogniser; `info.alternatives` are the engine's other
+   * hypotheses for it (its n-best list without the top one, best first — empty
+   * when the engine gave only one).
+   */
+  onDone: (transcript: string, info: VoiceDoneInfo) => void;
+  /**
+   * Stream the mic to Deepgram for the advanced voice agent (Pro). If the token
+   * or the stream cannot be had, the capture quietly uses the on-device
+   * recogniser, exactly as when this is off.
+   */
+  streamLive?: boolean;
+  /**
+   * Whether `streamLive` is settled. While the entitlement is still loading the
+   * mic waits briefly for it rather than starting on the on-device engine.
+   */
+  agentReady?: boolean;
+  /** Told which engine is in use (and why, when it is the on-device one). */
+  onEngine?: (info: VoiceEngineInfo) => void;
+  /** The group the mic was opened from — a hint for the stream's name keyterms. */
+  groupId?: string | null;
+  /**
+   * Words to bias the recogniser towards — the people the sentence may name.
+   * Android passes them as EXTRA_BIASING_STRINGS (API 33+), iOS as the
+   * request's contextualStrings; the live stream sends them as keyterms.
+   */
   hints?: readonly string[];
   /** The reader's own group names, for the "Try saying…" card's group example.
    *  Separate from `hints`, which may carry any word worth biasing towards. */
@@ -528,6 +604,10 @@ export function VoiceCapture({
   autoStart = true,
   endSignal = null,
   onEndConsumed,
+  streamLive = false,
+  agentReady = true,
+  onEngine,
+  groupId = null,
 }: VoiceCaptureProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -536,6 +616,29 @@ export function VoiceCapture({
   const [available] = useState(recognitionAvailable);
   const [listening, setListening] = useState(false);
   const [live, setLive] = useState('');
+  // Which engine hears the mic. null until it is known (the entitlement may
+  // still be loading); the start decides it and every start refreshes it.
+  const [micEngine, setMicEngineState] = useState<VoiceEngineInfo | null>(null);
+  // The latest entitlement, read when the mic actually opens: the auto-start on
+  // mount captured whatever the first render held, which is how a tap could open
+  // on the on-device engine before the flag had loaded.
+  const streamLiveRef = useRef(streamLive);
+  const agentReadyRef = useRef(agentReady);
+  const onEngineRef = useRef(onEngine);
+  useEffect(() => {
+    streamLiveRef.current = streamLive;
+    agentReadyRef.current = agentReady;
+    onEngineRef.current = onEngine;
+  });
+  const reportEngine = useCallback((info: VoiceEngineInfo): void => {
+    setMicEngineState(info);
+    onEngineRef.current?.(info);
+  }, []);
+  // How the live sentence ends, decided at the start (tap: silence; hold: release).
+  const endRules = useRef<Pick<MicStartPlan, 'silenceMs' | 'firstWordMs'>>({
+    silenceMs: null,
+    firstWordMs: null,
+  });
   const [error, setError] = useState<string | null>(null);
   // The error on show is a refused permission, so Settings is the cure and the
   // panel offers a button for it. Every other error is just text: tapping
@@ -555,6 +658,22 @@ export function VoiceCapture({
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
   const latest = useRef('');
+  // The recogniser's other hypotheses for `latest`, best first.
+  const latestAlternatives = useRef<string[]>([]);
+  // The live Deepgram stream, while one is open (advanced voice).
+  const stream = useRef<LiveTranscription | null>(null);
+  // The mic recording since the press, before the stream is attached (or the
+  // start falls back to on-device and discards it). See lib/voiceStream.
+  const capture = useRef<MicCapture | null>(null);
+  const dropCapture = useCallback(async (): Promise<void> => {
+    const held = capture.current;
+    capture.current = null;
+    await held?.discard();
+  }, []);
+  // The silence timer that ends a streamed sentence the way the recogniser's own
+  // endpointing ends an on-device one.
+  const streamSilence = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const streamMax = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(true);
   // Guards the one auto-start so a re-render never reopens the mic.
   const started = useRef(false);
@@ -675,6 +794,10 @@ export function VoiceCapture({
     gotResult.current = true;
     const transcript = event.results[0]?.transcript ?? '';
     latest.current = transcript;
+    latestAlternatives.current = event.results
+      .slice(1, MAX_ALTERNATIVES)
+      .map((result) => result.transcript.trim())
+      .filter((text) => text && text !== transcript.trim());
     setLive(transcript);
   });
 
@@ -763,17 +886,148 @@ export function VoiceCapture({
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
-    if (said) onDone(said);
+    if (said) onDone(said, { streamed: false, alternatives: latestAlternatives.current });
     // Heard nothing usable — surface the same calm recovery a parsed miss shows,
     // rather than silently dropping back to the opening prompt as if nothing had
     // been tried, and record why so a silent-mic device can be diagnosed.
     else setEmptyMiss(true);
   });
 
+  // ── Live streaming (advanced voice) ───────────────────────────────────────
+  const clearStreamTimers = useCallback((): void => {
+    if (streamSilence.current) clearTimeout(streamSilence.current);
+    if (streamMax.current) clearTimeout(streamMax.current);
+    streamSilence.current = null;
+    streamMax.current = null;
+  }, []);
+
+  // End the streamed sentence: stop the mic, let Deepgram flush, hand the whole
+  // transcript to the screen. Always gives the mic claim back.
+  const finishStream = useCallback(async (): Promise<void> => {
+    const live = stream.current;
+    if (!live) return;
+    stream.current = null;
+    starting.current = false;
+    clearStreamTimers();
+    setListening(false);
+    level.set(withTiming(0, { duration: 150 }));
+    // Bounded: a socket that never answers the close must not hold the screen.
+    const said = (
+      await Promise.race([
+        live.stop(),
+        new Promise<string>((resolve) =>
+          setTimeout(() => {
+            live.cancel();
+            resolve(latest.current);
+          }, STOP_GRACE_MS),
+        ),
+      ])
+    ).trim();
+    if (!mounted.current) return;
+    speechMic.release(session);
+    if (said) {
+      latest.current = said;
+      onDone(said, { streamed: true, alternatives: live.alternatives() });
+    } else setEmptyMiss(true);
+  }, [clearStreamTimers, level, onDone, session]);
+  const finishStreamRef = useRef(finishStream);
+  useEffect(() => {
+    finishStreamRef.current = finishStream;
+  }, [finishStream]);
+
+  // Fetch the stream's token while the screen opens, not on the press.
+  useEffect(() => {
+    if (!streamLive) return;
+    let alive = true;
+    // Offline: skip the round trip, the start goes straight to on-device.
+    void checkOnline().then((online) => {
+      if (alive && online) prefetchStreamToken({ groupId, locale });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [streamLive, groupId, locale]);
+
+  /**
+   * Attach the stream to the capture already recording. Anything but
+   * 'streaming' means "use the on-device recogniser" (the caller discards the
+   * capture); 'quota' (the token answered 402) also names why.
+   */
+  const beginStream = useCallback(
+    async (mic: MicCapture): Promise<'streaming' | 'quota' | 'failed'> => {
+      const got = await getStreamToken({ groupId, locale });
+      if (!mounted.current) return 'failed';
+      if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
+      const token = got.token;
+      // An ending that came while the token was in flight is applied here.
+      if (pendingEnd.current === 'cancel') return 'failed';
+      const armSilence = (ms: number): void => {
+        if (streamSilence.current) clearTimeout(streamSilence.current);
+        streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
+      };
+      const hear = (text: string): void => {
+        latest.current = text;
+        setLive(text);
+        const { silenceMs } = endRules.current;
+        if (text.trim() && silenceMs !== null) armSilence(silenceMs);
+      };
+      const live = await attachStream(mic, token, {
+        onInterim: hear,
+        onFinal: hear,
+        onError: () => {
+          // The stream died mid-sentence: keep what was heard, if anything.
+          const said = latest.current.trim();
+          const alternatives = stream.current?.alternatives() ?? [];
+          stream.current = null;
+          starting.current = false;
+          clearStreamTimers();
+          setListening(false);
+          level.set(withTiming(0, { duration: 150 }));
+          speechMic.release(session);
+          if (said) onDone(said, { streamed: true, alternatives });
+          else {
+            setError(t.misc.dictationFailed);
+            setErrorInSettings(false);
+          }
+        },
+      });
+      if (!live) return 'failed';
+      if (!mounted.current) {
+        live.cancel();
+        return 'failed';
+      }
+      // The stream owns the recorder now.
+      if (capture.current === mic) capture.current = null;
+      stream.current = live;
+      setListening(true);
+      // `starting` stays set while the stream is live: a second start (an
+      // auto-start racing the tap) must not open a second recording.
+      // The timers count from when the recorder started, not from the attach.
+      const now = Date.now();
+      if (endRules.current.firstWordMs !== null) {
+        armSilence(
+          remainingFrom(mic.startedAt, now, endRules.current.firstWordMs, ATTACH_FLOOR_MS),
+        );
+      }
+      streamMax.current = setTimeout(
+        () => void finishStreamRef.current(),
+        remainingFrom(mic.startedAt, now, STREAM_MAX_SESSION_MS, ATTACH_FLOOR_MS),
+      );
+      // The finger lifted while the stream was opening.
+      if (pendingEnd.current !== null) {
+        pendingEnd.current = null;
+        void finishStream();
+      }
+      return 'streaming';
+    },
+    [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t],
+  );
+
   const start = useCallback(
     async (forceNetwork = false): Promise<void> => {
       // One start at a time from this panel, and one capture at a time in the app.
-      if (starting.current) return;
+      // A live stream is a capture in progress too.
+      if (starting.current || stream.current) return;
       starting.current = true;
       // A fresh user-initiated start re-arms the one-time network fallback; a
       // fallback re-entry keeps it spent. Either way, drop the old attempt's
@@ -799,6 +1053,7 @@ export function VoiceCapture({
       setEmptyMiss(false);
       onListen?.();
       latest.current = '';
+      latestAlternatives.current = [];
       setLive('');
       level.set(0);
       gotResult.current = false;
@@ -834,6 +1089,80 @@ export function VoiceCapture({
         return give();
       }
 
+      // Advanced voice records from the press: the mic starts here, before the
+      // flag wait, the online check and the token, and buffers until the stream
+      // attaches — otherwise the first words fell into those round trips. Only
+      // once the recorder has reported started does the panel say "Listening".
+      if ((streamLiveRef.current || !agentReadyRef.current) && streamingAvailable()) {
+        capture.current = await startCapture({
+          onLevel: (value) => level.set(withTiming(value, { duration: 90 })),
+        });
+        if (!mounted.current) {
+          await dropCapture();
+          return give();
+        }
+        if (capture.current && streamLiveRef.current) setListening(true);
+      }
+
+      // Advanced voice: stream to Deepgram. A token we cannot get (offline, 503,
+      // 429) or a stream that will not open drops straight to the on-device
+      // recogniser below, unchanged.
+      // Tap, hold, retry and auto-start all come through here, so none of them
+      // can pick a different engine. The entitlement is read now, not from the
+      // render this start was created in; a flag still loading is waited for.
+      for (let waited = 0; !agentReadyRef.current && waited < 1500; waited += 50) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      }
+      if (!mounted.current) {
+        await dropCapture();
+        return give();
+      }
+      const online = streamLiveRef.current ? await checkOnline() : true;
+      if (!mounted.current) {
+        await dropCapture();
+        return give();
+      }
+      const plan = planMicStart({
+        enabled: streamLiveRef.current,
+        online,
+        held: pushToTalk.getSnapshot().holding,
+        streamAvailable: streamingAvailable(),
+      });
+      endRules.current = plan;
+      if (plan.stream) {
+        const opened = capture.current ? await beginStream(capture.current) : 'failed';
+        if (opened === 'streaming') {
+          reportEngine(CLOUD);
+          return;
+        }
+        // The token, the socket or the mic would not open: carry on locally.
+        // A 402 on the token is the month's allowance, not the connection.
+        reportEngine(
+          resolveEngine({
+            enabled: true,
+            online: await checkOnline(),
+            quotaReached: opened === 'quota',
+            streamOk: false,
+            streamAvailable: streamingAvailable(),
+          }),
+        );
+      } else if (plan.fallback) reportEngine(plan.fallback);
+      // On-device from here: the early recording is dropped (and the mic freed
+      // for the recogniser), and "Listening" waits for the recogniser itself.
+      if (capture.current) {
+        await dropCapture();
+        setListening(false);
+        level.set(0);
+      }
+      if (!mounted.current) return give();
+      // A push-to-talk cancel that landed while the token was in flight.
+      const endedEarly = pendingEnd.current as 'send' | 'cancel' | null;
+      if (endedEarly === 'cancel') {
+        pendingEnd.current = null;
+        setListening(false);
+        return give();
+      }
+
       // On-device only when an English model is actually installed; otherwise the
       // recogniser is left to use the network, which speaks English on every phone.
       // Requiring on-device for a model that is not there is what returned silence.
@@ -842,7 +1171,6 @@ export function VoiceCapture({
       usedOnDevice.current = onDevice;
       setEngine(onDevice ? 'on-device' : 'network');
 
-      setListening(true);
       try {
         ExpoSpeechRecognitionModule.start({
           // Recognition is English-only — the surface each speaker reads is still
@@ -850,7 +1178,9 @@ export function VoiceCapture({
           // else en-IN), so there is one locale to get right and no chip to miss.
           lang: englishSpeechLocale(locale),
           interimResults: true,
-          maxAlternatives: 1,
+          // The n-best list: names are scored across every hypothesis, so an
+          // engine that heard "rainy" first and "Renny" second still finds her.
+          maxAlternatives: MAX_ALTERNATIVES,
           // One sentence, then it settles — the same shape a note dictation uses.
           continuous: false,
           requiresOnDeviceRecognition: onDevice,
@@ -873,6 +1203,7 @@ export function VoiceCapture({
           },
         });
         speechMic.opened(session);
+        setListening(true);
         openedAt.current = Date.now();
         stoppedAt.current = 0;
         starting.current = false;
@@ -940,7 +1271,7 @@ export function VoiceCapture({
             setListening(false);
             level.set(withTiming(0, { duration: 150 }));
             const said = latest.current.trim();
-            if (said) onDone(said);
+            if (said) onDone(said, { streamed: false, alternatives: latestAlternatives.current });
             else setEmptyMiss(true);
             speechMic.release(session);
           }, HARD_STOP_MS);
@@ -961,8 +1292,11 @@ export function VoiceCapture({
       locale,
       onDone,
       onListen,
+      beginStream,
+      dropCapture,
       session,
       stopListening,
+      reportEngine,
       t,
     ],
   );
@@ -1001,11 +1335,21 @@ export function VoiceCapture({
   }, [downloading, locale, start, t]);
 
   const stop = useCallback((): void => {
+    if (stream.current) {
+      void finishStream();
+      return;
+    }
+    // Recording, but the stream is not attached yet: the start applies the
+    // ending once it is (the buffered words are sent first), or on-device.
+    if (capture.current) {
+      pendingEnd.current = 'send';
+      return;
+    }
     // Ask the recogniser to finish, but keep the session: `stop()` (unlike
     // `abort()`) still delivers one last `result`, and giving the mic up here
     // would make the handler above drop the words spoken before the tap.
     stopListening();
-  }, [stopListening]);
+  }, [finishStream, stopListening]);
 
   /**
    * The one act this screen offers: open the mic, or close it.
@@ -1018,7 +1362,8 @@ export function VoiceCapture({
    * and everything `stop` is careful about belong to both taps or to neither.
    */
   const toggle = useCallback((): void => {
-    if (listening) stop();
+    // A live stream is always stoppable, whatever the screen thinks it shows.
+    if (listening || stream.current) stop();
     else void start();
   }, [listening, start, stop]);
 
@@ -1033,9 +1378,16 @@ export function VoiceCapture({
   // eye — the mic is simply given back, and the panel is gone a frame later.
   useEffect(() => {
     if (!endSignal) return;
-    if (starting.current || !speechMic.owns(session)) {
+    // A live stream is past its start (its guard stays set only to refuse a
+    // second start), so an ending applies to it now, not later.
+    if ((starting.current && !stream.current) || !speechMic.owns(session)) {
       pendingEnd.current = endSignal.mode;
     } else if (endSignal.mode === 'cancel') {
+      stream.current?.cancel();
+      stream.current = null;
+      void dropCapture();
+      starting.current = false;
+      clearStreamTimers();
       clearStall();
       clearMaxListen();
       clearProgress();
@@ -1107,9 +1459,13 @@ export function VoiceCapture({
       clearMaxListen();
       clearProgress();
       starting.current = false;
+      stream.current?.cancel();
+      stream.current = null;
+      void dropCapture();
+      clearStreamTimers();
       speechMic.release(session);
     };
-  }, [clearMaxListen, clearProgress, clearStall, session]);
+  }, [clearMaxListen, clearProgress, clearStall, clearStreamTimers, dropCapture, session]);
 
   if (!available) {
     return (
@@ -1255,6 +1611,7 @@ export function VoiceCapture({
           </Text>
         </Pressable>
         {listening && !reduceMotion ? <Waveform active={listening} level={level} /> : null}
+        <VoiceEngineBadge info={micEngine} />
       </View>
 
       {/* Things to say, under the wave: three sentences that each show one

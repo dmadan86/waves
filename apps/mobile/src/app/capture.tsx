@@ -62,6 +62,7 @@ import {
   type GroupRow,
   type MemberRow,
 } from '@/data/types';
+import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { usePersonalOffered } from '@/lib/guestGuard';
@@ -384,7 +385,10 @@ export default function CaptureScreen() {
     photoPath: photoPathParam,
     rawText: rawTextParam,
     parsed: parsedParam,
+    receipt: handedReceiptKey,
   } = useLocalSearchParams<{
+    /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
+    receipt?: string;
     scan?: string;
     /** Nonce: open the photo library straight away (the home widget's Photo tile). */
     gallery?: string;
@@ -461,7 +465,11 @@ export default function CaptureScreen() {
     jsonParam<Record<string, unknown>>(parsedParam),
   );
   const [editingDate, setEditingDate] = useState(false);
-  const [photo, setPhoto] = useState<PickedImage | null>(null);
+  // Seeded with the photo Quick expense picked before "Advanced", if any.
+  const [photo, setPhoto] = useState<PickedImage | null>(() => peekHandedReceipt(handedReceiptKey));
+  useEffect(() => {
+    dropHandedReceipt(handedReceiptKey);
+  }, [handedReceiptKey]);
   // Full-screen preview of the attached bill, opened by tapping the thumbnail.
   const [previewing, setPreviewing] = useState(false);
   const [rawText, setRawText] = useState<string | null>(() => rawTextParam ?? null);
