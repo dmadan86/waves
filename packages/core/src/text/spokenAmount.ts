@@ -86,43 +86,87 @@ function isDigits(token: string): boolean {
   return /^\d+$/.test(token);
 }
 
+interface PriceReading {
+  /** What the pair is folded to. */
+  readonly replacement: string;
+  /** Read as hundreds with no currency to say so — the decimal reading is as likely. */
+  readonly ambiguous?: { readonly hundreds: string; readonly decimal: string };
+}
+
+/** How one "<X> <Y>" pair reads, or null when it is not a price at all. */
+function readPricePair(
+  match: string,
+  x: string,
+  y: string,
+  offset: number,
+  whole: string,
+): PriceReading | null {
+  const before = whole.slice(0, offset);
+  const after = whole.slice(offset + match.length);
+  if (NON_PRICE_BEFORE.test(before) || NON_PRICE_AFTER.test(after)) return null;
+
+  const decimalMoney = MONEY_AFTER_DECIMAL.test(after) || MONEY_BEFORE_DECIMAL.test(before);
+  const otherMoney = MONEY_AFTER_OTHER.test(after) || MONEY_BEFORE_OTHER.test(before);
+  const money = decimalMoney || otherMoney;
+
+  const xValue = isDigits(x) ? Number(x) : wordsToNumber(x);
+  const yValue = isDigits(y) ? Number(y) : wordsToNumber(y);
+  if (xValue < 1 || xValue > 99 || yValue < 10 || yValue > 99) return null;
+  // "60 40" and "70 30" are a split by percentage, not ₹6040: two round
+  // numbers that make exactly a hundred stay two numbers.
+  if (xValue >= 10 && xValue % 5 === 0 && yValue % 5 === 0 && xValue + yValue === 100) return null;
+
+  if (!money) {
+    // No currency to lean on: only an ending that is unmistakably a price
+    // ending. Two plain digit groups ("5 10") stay two numbers, and a teen
+    // ("three fifteen") reads as a time as often as a price. A mixed pair
+    // ("three 50", "3 fifty") is a recogniser split, never two amounts.
+    if (yValue < 20) return null;
+    if (isDigits(x) && isDigits(y) && yValue % 5 !== 0) return null;
+  }
+
+  const decimal = `${xValue}.${String(yValue).padStart(2, '0')}`;
+  if (decimalMoney) return { replacement: decimal };
+  const hundreds = String(xValue * 100 + yValue);
+  return money
+    ? { replacement: hundreds }
+    : { replacement: hundreds, ambiguous: { hundreds, decimal } };
+}
+
 /**
  * Fold "three fifty" / "three 50" / "3 50" into 350 (or 3.50 against a dollar,
  * euro or pound word), when the surroundings say it is a price. Left as spoken
  * otherwise.
  */
 export function foldSpokenPriceIdiom(text: string): string {
-  return text.replace(PRICE_PAIR, (match, x: string, y: string, offset: number, whole: string) => {
-    const before = whole.slice(0, offset);
-    const after = whole.slice(offset + match.length);
-    if (NON_PRICE_BEFORE.test(before) || NON_PRICE_AFTER.test(after)) return match;
+  return text.replace(
+    PRICE_PAIR,
+    (match, x: string, y: string, offset: number, whole: string) =>
+      readPricePair(match, x, y, offset, whole)?.replacement ?? match,
+  );
+}
 
-    const decimalMoney = MONEY_AFTER_DECIMAL.test(after) || MONEY_BEFORE_DECIMAL.test(before);
-    const otherMoney = MONEY_AFTER_OTHER.test(after) || MONEY_BEFORE_OTHER.test(before);
-    const money = decimalMoney || otherMoney;
-
-    const xValue = isDigits(x) ? Number(x) : wordsToNumber(x);
-    const yValue = isDigits(y) ? Number(y) : wordsToNumber(y);
-    if (xValue < 1 || xValue > 99 || yValue < 10 || yValue > 99) return match;
-    // "60 40" and "70 30" are a split by percentage, not ₹6040: two round
-    // numbers that make exactly a hundred stay two numbers.
-    if (xValue >= 10 && xValue % 5 === 0 && yValue % 5 === 0 && xValue + yValue === 100)
-      return match;
-
-    if (!money) {
-      // No currency to lean on: only an ending that is unmistakably a price
-      // ending. Two plain digit groups ("5 10") stay two numbers, and a teen
-      // ("three fifteen") reads as a time as often as a price. A mixed pair
-      // ("three 50", "3 fifty") is a recogniser split, never two amounts.
-      if (yValue < 20) return match;
-      if (isDigits(x) && isDigits(y) && yValue % 5 !== 0) return match;
-    }
-
-    if (decimalMoney) {
-      return `${xValue}.${String(yValue).padStart(2, '0')}`;
-    }
-    return String(xValue * 100 + yValue);
-  });
+/**
+ * The price pairs {@link foldSpokenPriceIdiom} read as hundreds with nothing
+ * to say so: "one fifty" with no currency is 150 to one speaker and 1.50 to
+ * another. Both readings, so the screen can ask instead of guessing.
+ */
+export function findAmbiguousPriceIdioms(
+  text: string,
+): { readonly hundreds: string; readonly decimal: string }[] {
+  const found: { hundreds: string; decimal: string }[] = [];
+  const source = foldThousandsShorthand(text);
+  for (const match of source.matchAll(PRICE_PAIR)) {
+    const reading = readPricePair(
+      match[0],
+      match[1] ?? '',
+      match[2] ?? '',
+      match.index ?? 0,
+      source,
+    );
+    if (reading?.ambiguous) found.push(reading.ambiguous);
+  }
+  return found;
 }
 
 /** "2k", "1.5k", "two k", "2 K" — thousands. Never a bare letter inside a word ("5km"). */

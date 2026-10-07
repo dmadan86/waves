@@ -28,13 +28,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   buildVoiceSplit,
   computeShares,
+  decimalToMinor,
   encodeTxn,
+  format as formatMoney,
   guessCategory,
   minorUnitScale,
+  money,
   peopleSignatureKey,
   resolveIntentPeople,
   type ExpenseLocation,
   type SplitParams,
+  type VoiceAmountReading,
   type VoiceIntent,
   type VoiceNameCandidate,
   type VoiceSplitPlan,
@@ -77,6 +81,11 @@ import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
+import {
+  voiceAmountQuestion,
+  voiceCurrencyQuestion,
+  type VoiceAmountQuestion,
+} from '@/lib/voiceAmountChoice';
 import { friendlyError } from '@/lib/errors';
 import {
   DestinationPicker,
@@ -118,6 +127,14 @@ interface Draft {
   note: string;
   currency: string | null;
   category: string | null;
+  /**
+   * How the spoken amount reads, when it has a question to ask ("₹15 or ₹50?",
+   * "US or Australian dollars?"). Kept on the row, so a question stays with the
+   * expense it is about while more are added. Save waits for every answer.
+   */
+  amountReading: VoiceAmountReading | null;
+  amountAnswered: boolean;
+  currencyAnswered: boolean;
 }
 
 /** Where the reviewed expenses will be written. */
@@ -459,7 +476,11 @@ export default function VoiceScreen() {
   const navigation = useNavigation();
 
   const groupRows = useMemo(() => groups.data ?? [], [groups.data]);
-  const groupRefs: VoiceGroupRef[] = groupRows.map((group) => ({ id: group.id, name: group.name }));
+  const groupRefs: VoiceGroupRef[] = groupRows.map((group) => ({
+    id: group.id,
+    name: group.name,
+    currency: group.default_currency,
+  }));
   const hints = groupRows.map((group) => group.name ?? '').filter(Boolean);
 
   // Members and currency of the chosen group, read from the local mirror. Empty
@@ -615,15 +636,7 @@ export default function VoiceScreen() {
       setPhase('listening');
       return;
     }
-    setDrafts(
-      result.items.map((item) => ({
-        key: randomUUID(),
-        amount: String(item.amountMajor),
-        note: item.note,
-        currency: item.currency,
-        category: item.category,
-      })),
-    );
+    setDrafts(toDrafts(result));
     setVoicePeopleText(result.peopleText);
     setVoiceSplitCount(result.splitCount);
     setVoiceExpenseDate(result.expenseDate);
@@ -698,10 +711,11 @@ export default function VoiceScreen() {
   // The heard batch, read by the pure heuristic — amounts, currencies, a named
   // group, several expenses in a breath, a spoken new group, "just for me".
   const interpret = useCallback(
-    async (transcript: string): Promise<VoiceParseResult> => {
+    async (transcript: string, alternatives?: readonly string[]): Promise<VoiceParseResult> => {
       const final = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
         currentGroupId: launchGroupId,
+        alternatives,
       });
       // Report what was heard when nothing usable came back, so the parser can be
       // improved against a real miss. Best-effort: the lib decides whether to send
@@ -720,6 +734,8 @@ export default function VoiceScreen() {
   // Drafts minted from heard expenses — the shared shape for the opening batch
   // and the appended ones, so an added expense reads and saves exactly like an
   // original (same category-less default, same batch folding at save time).
+  // The amount reading belongs to the one expense it was read for; with several,
+  // only an open currency question (a bare "dollars") applies to every row.
   const toDrafts = (result: VoiceParseResult): Draft[] =>
     result.items.map((item) => ({
       key: randomUUID(),
@@ -727,11 +743,20 @@ export default function VoiceScreen() {
       note: item.note,
       currency: item.currency,
       category: item.category,
+      amountReading:
+        result.items.length === 1 ||
+        (item.currency !== null && result.amount?.currencyOptions.includes(item.currency))
+          ? result.amount
+          : null,
+      amountAnswered: false,
+      currencyAnswered: false,
     }));
 
   const editDraft = (key: string, patch: Partial<Draft>): void => {
+    // Typing the amount in by hand answers the row's amount question too.
+    const answered = patch.amount !== undefined ? { amountAnswered: true } : null;
     setDrafts((current) =>
-      current.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)),
+      current.map((draft) => (draft.key === key ? { ...draft, ...answered, ...patch } : draft)),
     );
   };
   const removeDraft = (key: string): void => {
@@ -927,7 +952,9 @@ export default function VoiceScreen() {
     return true;
   };
 
-  const handleTranscript = (transcript: string): void => {
+  // `alternatives` are the recogniser's other readings (n-best), when it gives
+  // them: they let the parser ask "₹15 or ₹50?" instead of guessing.
+  const handleTranscript = (transcript: string, alternatives?: readonly string[]): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -948,7 +975,7 @@ export default function VoiceScreen() {
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
-      const parsed = await interpret(transcript);
+      const parsed = await interpret(transcript, alternatives);
       // Dropped if the reader has since backed out of 'thinking' (which bumps the
       // token), or a newer capture superseded this one — a late append must not
       // land on the review they returned to.
@@ -1271,7 +1298,72 @@ export default function VoiceScreen() {
     intent !== null &&
     (intent.groupSource === 'ambiguous' || intent.groupSource === 'unresolved') &&
     !groupChosen;
+  // The spoken amount's open questions, one at a time: the first row whose
+  // amount could be read two ways, then any bare "dollars" still unanswered.
+  const choiceStrings = {
+    amountWhich: t.voice.amountWhich,
+    amountTotalOrEach: t.voice.amountTotalOrEach,
+    amountTotal: t.voice.amountTotal,
+    amountEach: t.voice.amountEach,
+    whichDollars: t.voice.whichDollars,
+    dollarNames: { USD: t.voice.usDollars, AUD: t.voice.audDollars },
+  };
+  const sharePeople =
+    who?.participantIds.length ??
+    voiceSplitCount ??
+    (dest.kind === 'existing' && targetMembers.length > 0
+      ? targetMembers.length
+      : dest.kind === 'people'
+        ? dest.ghostNames.length + 1
+        : null);
+  const groupCurrencyNow = target.group.data?.default_currency ?? null;
+  let amountQuestion: { draft: Draft; question: VoiceAmountQuestion } | null = null;
+  for (const draft of drafts) {
+    if (draft.amountAnswered || !draft.amountReading) continue;
+    const shown = voiceSaveCurrency(draft.currency, groupCurrencyNow, dc);
+    const question = voiceAmountQuestion(
+      draft.amountReading,
+      draft.currency,
+      sharePeople,
+      choiceStrings,
+      (major) => formatMoney(money(decimalToMinor(major, shown) ?? 0n, shown), { locale }),
+    );
+    if (question) {
+      amountQuestion = { draft, question };
+      break;
+    }
+  }
+  const currencyDraft = drafts.find(
+    (draft) => !draft.currencyAnswered && voiceCurrencyQuestion(draft.amountReading, choiceStrings),
+  );
+  const currencyQuestion = currencyDraft
+    ? voiceCurrencyQuestion(currencyDraft.amountReading, choiceStrings)
+    : null;
+  const answerAmount = (key: string): void => {
+    if (!amountQuestion) return;
+    const answer = amountQuestion.question.answers.find((candidate) => candidate.key === key);
+    if (!answer) return;
+    editDraft(amountQuestion.draft.key, {
+      amountAnswered: true,
+      ...(answer.amount !== undefined ? { amount: answer.amount } : null),
+    });
+  };
+  const answerCurrency = (key: string): void => {
+    const answer = currencyQuestion?.answers.find((candidate) => candidate.key === key);
+    if (!answer?.currency) return;
+    const chosen = answer.currency;
+    // Every row still asking which dollars takes the answer.
+    setDrafts((current) =>
+      current.map((draft) =>
+        !draft.currencyAnswered && voiceCurrencyQuestion(draft.amountReading, choiceStrings)
+          ? { ...draft, currency: chosen, currencyAnswered: true }
+          : draft,
+      ),
+    );
+  };
+  const amountPending = amountQuestion !== null || currencyQuestion !== null;
   const whoBlocked =
+    amountPending ||
     groupPending ||
     (who !== null && who.problems.length > 0) ||
     (payerElsewhere && dest.kind !== 'existing');
@@ -1718,6 +1810,15 @@ export default function VoiceScreen() {
                 card, the way a receipt lists what it charged. Tapping a line opens
                 it to correct the amount or the note; it is closed again by
                 default. The parser is not put on trial the moment you land here. */}
+            {amountQuestion ? (
+              <AmountChooser
+                question={amountQuestion.question}
+                onAnswer={answerAmount}
+                theme={theme}
+              />
+            ) : currencyQuestion ? (
+              <AmountChooser question={currencyQuestion} onAnswer={answerCurrency} theme={theme} />
+            ) : null}
             <Card padded={false} style={{ overflow: 'hidden' }}>
               {drafts.map((draft, index) => (
                 <View key={draft.key}>
@@ -2138,6 +2239,51 @@ function describeDest(
 
 type Strings = ReturnType<typeof useStrings>['t'];
 type ThemeT = ReturnType<typeof useTheme>;
+
+/**
+ * The spoken amount's one question, compact: the prompt on a line and the
+ * answers as pills under it, the way the group question reads. Nothing is
+ * pre-picked; Save waits for a tap.
+ */
+function AmountChooser({
+  question,
+  onAnswer,
+  theme,
+}: {
+  question: VoiceAmountQuestion;
+  onAnswer: (key: string) => void;
+  theme: ThemeT;
+}) {
+  return (
+    <View style={{ gap: theme.spacing.xs }}>
+      <Text variant="caption" style={{ fontWeight: '600' }}>
+        {question.prompt}
+      </Text>
+      <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
+        {question.answers.map((answer) => (
+          <Pressable
+            key={answer.key}
+            onPress={() => onAnswer(answer.key)}
+            accessibilityRole="button"
+            accessibilityLabel={answer.label}
+            style={({ pressed }) => ({
+              paddingVertical: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: theme.color.warning,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text variant="caption" style={{ fontWeight: '600' }}>
+              {answer.label}
+            </Text>
+          </Pressable>
+        ))}
+      </Row>
+    </View>
+  );
+}
 
 /** A member's name as the review writes it: "You" for the speaker. */
 function whoName(members: readonly VoiceNameCandidate[], id: string, t: Strings): string {
