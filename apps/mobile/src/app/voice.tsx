@@ -85,6 +85,9 @@ import {
   type PersonChoice,
 } from '@/components/DestinationPicker';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
+import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
+import { useFlagEnabled } from '@/lib/flags';
+import type { VoiceClip } from '@/lib/voiceAgentPure';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
 import {
@@ -340,9 +343,19 @@ export default function VoiceScreen() {
   // scrolls only when it does not fit (see the ScrollView below).
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [phase, setPhase] = useState<'listening' | 'thinking' | 'review' | 'committing' | 'answer'>(
-    widgetHeard ? 'thinking' : 'listening',
-  );
+  const [phase, setPhase] = useState<
+    'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent'
+  >(widgetHeard ? 'thinking' : 'listening');
+  // Pro advanced voice (flag `voice_agent`): when on, the mic keeps its audio and
+  // the clip goes to the agent (phase 'agent') instead of straight to the on-device
+  // parser. Off, none of this runs and the screen behaves as it always has.
+  const agentOn = useFlagEnabled('voice_agent');
+  const [agentSession, setAgentSession] = useState<{
+    clip: VoiceClip;
+    transcript: string;
+  } | null>(null);
+  // The agent's allowance was spent, so the basic path took over — said once.
+  const [agentQuotaNote, setAgentQuotaNote] = useState(false);
   // The answer shown in the 'answer' phase. `text` is a ready line (a person
   // balance, or "couldn't find X"); `group` is answered live from the group's
   // ledger once it loads, since that read is async.
@@ -927,7 +940,7 @@ export default function VoiceScreen() {
     return true;
   };
 
-  const handleTranscript = (transcript: string): void => {
+  const handleTranscript = (transcript: string, clip?: VoiceClip): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -935,6 +948,28 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
+    // A fresh opening capture with a clip goes to the advanced agent; "add
+    // another", a link-supplied sentence, or a device that could not record
+    // stay on the basic path.
+    if (agentOn && clip && micMode !== 'append' && !heardFromLink.current) {
+      setAgentSession({ clip, transcript });
+      setPhase('agent');
+      return;
+    }
+    runBasic(transcript);
+  };
+
+  // The agent could not help (quota, offline, unavailable, a bad reply): carry
+  // on with the on-device transcript of the same audio, as if the flag were off.
+  const agentFellBack = (reason: AgentFallbackReason): void => {
+    const heard = agentSession?.transcript;
+    setAgentSession(null);
+    if (!heard) return;
+    setAgentQuotaNote(reason === 'quota');
+    runBasic(heard);
+  };
+
+  const runBasic = (transcript: string): void => {
     const mode = micMode;
     // A settle/remind/add-member command, or a read-only balance question, only
     // makes sense as a fresh utterance, never as an expense appended to a batch.
@@ -1643,7 +1678,7 @@ export default function VoiceScreen() {
       {/* The desk scene along the foot, under everything. Not on the review:
           that list keeps its pinned Save bar there, and a picture behind the
           figures being checked would only be in the way. */}
-      {phase === 'review' ? null : <VoiceFooterScene />}
+      {phase === 'review' || phase === 'agent' ? null : <VoiceFooterScene />}
       <ScrollView
         style={{ flex: 1 }}
         // Capturing is one still screen — the mic, what to say, the scene at the
@@ -1703,8 +1738,25 @@ export default function VoiceScreen() {
         </Row>
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
+        {agentQuotaNote && phase !== 'agent' ? (
+          <Callout tone="warning">{t.voice.agentQuotaFallback}</Callout>
+        ) : null}
 
-        {phase === 'thinking' ? (
+        {phase === 'agent' && agentSession ? (
+          <VoiceAgentPanel
+            clip={agentSession.clip}
+            localTranscript={agentSession.transcript}
+            groupId={launchGroupId}
+            today={today()}
+            onFallback={agentFellBack}
+            onRetry={() => {
+              setAgentSession(null);
+              setAttempt((current) => current + 1);
+              setPhase('listening');
+            }}
+            onClose={() => router.back()}
+          />
+        ) : phase === 'thinking' ? (
           <View
             style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}
           >
@@ -1934,6 +1986,7 @@ export default function VoiceScreen() {
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
+              captureAudio={agentOn}
               hints={hints}
               groupNames={hints}
               missed={noAmount}
@@ -1945,6 +1998,7 @@ export default function VoiceScreen() {
                 // transcript is accepted (and a dismissed one's is not).
                 captureActive.current = true;
                 heardFromLink.current = false;
+                setAgentQuotaNote(false);
                 setNoAmount(false);
               }}
             />

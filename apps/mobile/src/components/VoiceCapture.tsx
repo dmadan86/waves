@@ -37,6 +37,7 @@ import { exampleCountry, voiceExamples } from '@/lib/voiceExamples';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
+import type { VoiceClip } from '@/lib/voiceAgentPure';
 
 const MIC_SIZE = 104;
 
@@ -408,8 +409,16 @@ function Waveform({ active, level }: { active: boolean; level: SharedValue<numbe
 }
 
 export interface VoiceCaptureProps {
-  /** Called with the final sentence once the speaker stops. */
-  onDone: (transcript: string) => void;
+  /**
+   * Called with the final sentence once the speaker stops — and, when
+   * `captureAudio` is on and the device can record, the persisted clip.
+   */
+  onDone: (transcript: string, clip?: VoiceClip) => void;
+  /**
+   * Keep the session's audio (recordingOptions.persist) for the advanced voice
+   * agent. Off by default, so every other caller records exactly as before.
+   */
+  captureAudio?: boolean;
   /** Names to bias the recogniser towards — group and member names. */
   hints?: readonly string[];
   /** The reader's own group names, for the "Try saying…" card's group example.
@@ -450,6 +459,14 @@ export interface VoiceCaptureProps {
    * cannot be closed by an ending that belonged to an earlier one.
    */
   onEndConsumed?: () => void;
+}
+
+function recordingSupported(): boolean {
+  try {
+    return ExpoSpeechRecognitionModule.supportsRecording();
+  } catch {
+    return false;
+  }
 }
 
 function recognitionAvailable(): boolean {
@@ -528,6 +545,7 @@ export function VoiceCapture({
   autoStart = true,
   endSignal = null,
   onEndConsumed,
+  captureAudio = false,
 }: VoiceCaptureProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -555,6 +573,9 @@ export function VoiceCapture({
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
   const latest = useRef('');
+  // The persisted audio of this session, filled by audiostart/audioend (only
+  // when `captureAudio` asked for it).
+  const clip = useRef<{ uri: string | null; startedAt: number; endedAt: number } | null>(null);
   const mounted = useRef(true);
   // Guards the one auto-start so a re-render never reopens the mic.
   const started = useRef(false);
@@ -668,6 +689,21 @@ export function VoiceCapture({
     clearStall();
   });
 
+  useSpeechRecognitionEvent('audiostart', (event) => {
+    if (!speechMic.owns(session)) return;
+    clip.current = { uri: null, startedAt: event.timestamp, endedAt: 0 };
+  });
+
+  useSpeechRecognitionEvent('audioend', (event) => {
+    if (!speechMic.owns(session)) return;
+    if (!event.uri) return;
+    clip.current = {
+      uri: event.uri,
+      startedAt: clip.current?.startedAt ?? event.timestamp,
+      endedAt: event.timestamp,
+    };
+  });
+
   useSpeechRecognitionEvent('result', (event) => {
     if (!speechMic.owns(session)) return;
     clearStall();
@@ -763,7 +799,16 @@ export function VoiceCapture({
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
-    if (said) onDone(said);
+    const recorded = clip.current;
+    clip.current = null;
+    if (said) {
+      onDone(
+        said,
+        captureAudio && recorded?.uri
+          ? { uri: recorded.uri, durationMs: Math.max(0, recorded.endedAt - recorded.startedAt) }
+          : undefined,
+      );
+    }
     // Heard nothing usable — surface the same calm recovery a parsed miss shows,
     // rather than silently dropping back to the opening prompt as if nothing had
     // been tried, and record why so a silent-mic device can be diagnosed.
@@ -855,6 +900,9 @@ export function VoiceCapture({
           continuous: false,
           requiresOnDeviceRecognition: onDevice,
           addsPunctuation: onDevice,
+          // Keep the audio for the advanced voice agent — only where the OS can
+          // (Android 13+, iOS); elsewhere the screen simply has no clip to send.
+          ...(captureAudio && recordingSupported() ? { recordingOptions: { persist: true } } : {}),
           // Meter the input so the waveform can ride real loudness (~10 Hz is
           // plenty for a smooth wave and cheap to ease over).
           volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
@@ -953,6 +1001,7 @@ export function VoiceCapture({
       }
     },
     [
+      captureAudio,
       clearMaxListen,
       clearProgress,
       clearStall,
