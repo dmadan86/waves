@@ -15,4 +15,6 @@ export {
   type VoiceAgentResponse,
   type VoiceSplitMode as VoiceAgentSplitMode,
   type VoiceSplitShare,
+  type VoiceStreamTokenRequest,
+  type VoiceStreamTokenResponse,
 } from './agentProtocol';
