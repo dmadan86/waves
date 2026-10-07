@@ -2854,6 +2854,26 @@ export function useOpenReceipts(groupId: string) {
  * (`pickVoiceMode`). A minute of staleness is harmless — the server re-meters on
  * every real STT call.
  */
+/**
+ * Is Pro advanced voice on for this person? The server answers (allowlist, then
+ * the `voice_agent` flag's rollout), since testers are allowlisted while the
+ * plain flag stays off. Unknown or failed reads as off — the basic voice path.
+ */
+export function useVoiceAgentEnabled(): boolean {
+  const { profile } = useAuth();
+  const query = useQuery({
+    queryKey: ['voiceAgentEnabled', profile?.id ?? null],
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await backend.rpc('waves_my_voice_agent_enabled');
+      if (error) throw new Error(error.message);
+      return data === true;
+    },
+    enabled: !!profile?.id,
+    staleTime: 10 * 60_000,
+  });
+  return query.data === true;
+}
+
 export function useVoiceAccess() {
   // Key on the signed-in profile: waves_my_voice_access resolves the caller from
   // the JWT, and the QueryClient is persisted across sign-outs, so a bare
