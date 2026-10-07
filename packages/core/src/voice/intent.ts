@@ -23,6 +23,7 @@ import { guessCategory, type CategoryId } from '../category/categories';
 import { isCurrencyCode, minorUnitScale } from '../money/currency';
 import { normaliseDigits } from '../text/digits';
 import { normaliseSpokenAmounts } from '../text/spokenAmount';
+import { foldSpokenAmountWords, majorToMinor, maskNonMoneyNumbers } from './amounts';
 import {
   isMeWord,
   resolveSpokenGroup,
@@ -74,6 +75,8 @@ export interface VoiceIntentItem {
 export interface VoiceIntent {
   readonly transcript: string;
   readonly amountMinor: bigint | null;
+  /** One person's share, when the amount was said "each" ("500 each"). */
+  readonly eachMinor?: bigint;
   readonly currency?: string;
   readonly description?: string;
   readonly category?: CategoryId;
@@ -508,7 +511,10 @@ const DESCRIPTION_STOP = new Set([
 /* ───────────────────────────── tokens ───────────────────────────── */
 
 function prepare(raw: string): string {
-  let text = normaliseSpokenAmounts(normaliseDigits(raw.normalize('NFKC')));
+  // Regional number words and a spoken correction are folded first; dates,
+  // times, labels and quantities are hidden from the amount at the end ("flight
+  // 302 at 7" names no money), so a number is only ever read as money here.
+  let text = normaliseSpokenAmounts(foldSpokenAmountWords(normaliseDigits(raw.normalize('NFKC'))));
   text = text
     .toLowerCase()
     .replace(/(\p{L})['’]s\b/gu, '$1')
@@ -519,7 +525,8 @@ function prepare(raw: string): string {
     .replace(/\brs\.?(?=\s*\d)/g, 'rs ')
     .replace(/\s*[.;!?]+(?=\s|$)/g, ' ')
     .replace(/\s*[|/]\s*/g, ' ');
-  return text;
+  // "3 days ago" stays readable: the date words below turn it into a date.
+  return maskNonMoneyNumbers(text, (_span, after) => /^\s*days?\s+ago\b/.test(after));
 }
 
 const TOKEN_RE = /\d+(?:\.\d+)?|[\p{L}\p{M}]+|[,:%₹$€£&+]/gu;
@@ -1452,7 +1459,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   const scale = (code: string | undefined): number =>
     code && isCurrencyCode(code) ? Number(minorUnitScale(code)) : 100;
   const toMinor = (value: number, code: string | undefined): bigint =>
-    BigInt(Math.round(value * scale(code)));
+    scale(code) > 0 ? majorToMinor(value, code ?? null) : 0n;
 
   // Date words.
   let date: string | undefined;
@@ -1491,6 +1498,19 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   // Total and the per-person shares.
   const statedTotal = amountIdx[0] !== undefined ? Number(at(amountIdx[0])) : null;
   let amountMinor: bigint | null = statedTotal === null ? null : toMinor(statedTotal, currency);
+  // "500 each": the number is one person's share. With a spoken count it becomes
+  // the bill; without one it stays the share and the screen asks.
+  let eachMinor: bigint | undefined;
+  if (amountMinor !== null && amountIdx[0] !== undefined) {
+    let j = amountIdx[0] + 1;
+    if (CURRENCY_WORDS.has(at(j))) j += 1;
+    const perWord = at(j) === 'per' && /^(?:person|head|plate|pax)$/.test(at(j + 1));
+    if (at(j) === 'each' || at(j) === 'apiece' || perWord) {
+      eachMinor = amountMinor;
+      note('amount_each');
+      if (splitCount !== undefined && splitCount > 0) amountMinor = eachMinor * BigInt(splitCount);
+    }
+  }
   let remainderExtra = '';
   if (pairs.length > 0 && !pairs.some((p) => p.percent)) {
     const sum = pairs.reduce((a, p) => a + p.value, 0);
@@ -1706,6 +1726,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   let intent: VoiceIntent = {
     transcript,
     amountMinor,
+    ...(eachMinor !== undefined ? { eachMinor } : {}),
     ...(currency ? { currency } : {}),
     ...(description ? { description } : {}),
     ...(category ? { category } : {}),

@@ -1,0 +1,3932 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "say": "five hundred rupees",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "Five hundred rupees for dinner",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "two thousand three hundred rupees groceries",
+      "minor": "230000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "₹450 petrol",
+      "minor": "45000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "1,250 rupees taxi",
+      "minor": "125000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "rs 80 tea",
+      "minor": "8000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "Rs. 350 auto",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "three hundred and fifty rupees lunch",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "nine hundred ninety nine rupees",
+      "minor": "99900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "seven thousand rupees rent share",
+      "minor": "700000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "forty five rupees bus",
+      "minor": "4500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "twenty rupees for parking",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "paid 640 rupees for the cab",
+      "minor": "64000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "spent 1200 on groceries",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "dinner 1800",
+      "minor": "180000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "lunch 350",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "movie tickets 600",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "add 500 to Goa trip",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "500 for snacks",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "Uber 230",
+      "minor": "23000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "electricity bill 2,340",
+      "minor": "234000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "paid fifty for lunch",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "it cost two hundred",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "spent eighty on coffee",
+      "minor": "8000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "one thousand two hundred",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "two thousand five hundred",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "three hundred fifty",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "six hundred and seventy five rupees",
+      "minor": "67500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "fifty",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "two hundred",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english"
+    },
+    {
+      "say": "five hundred dirhams",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "AED"
+    },
+    {
+      "say": "twenty quid",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "GBP"
+    },
+    {
+      "say": "15 pounds for the taxi",
+      "minor": "1500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "GBP"
+    },
+    {
+      "say": "40 euros dinner",
+      "minor": "4000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "EUR"
+    },
+    {
+      "say": "ninety dirhams for groceries",
+      "minor": "9000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "AED"
+    },
+    {
+      "say": "thirty pounds",
+      "minor": "3000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "GBP"
+    },
+    {
+      "say": "12 pounds 50 pence",
+      "minor": "1250",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "GBP"
+    },
+    {
+      "say": "hundred rupees",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "a hundred rupees for chai",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "thousand rupees",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "english",
+      "currency": "INR"
+    },
+    {
+      "say": "One lakh twenty-five thousand",
+      "minor": "12500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "two crore",
+      "minor": "2000000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "Fifteen hundred",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "2.5 lakh",
+      "minor": "25000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "three lakh rupees deposit",
+      "minor": "30000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "one crore",
+      "minor": "1000000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "twenty five hundred rupees",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "1.5k",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "two k for rent",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "4 lakh 50 thousand",
+      "minor": "45000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "five lakh",
+      "minor": "50000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "ten lakh rupees",
+      "minor": "100000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "one lakh",
+      "minor": "10000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "twelve hundred",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "eighteen hundred rupees",
+      "minor": "180000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "3k for the hotel",
+      "minor": "300000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "two lakh fifty thousand",
+      "minor": "25000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "1,20,000 rupees",
+      "minor": "12000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "60,000 rupees",
+      "minor": "6000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "fifty thousand",
+      "minor": "5000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "one lakh rupees",
+      "minor": "10000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "seven lakh",
+      "minor": "70000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "two point five lakh",
+      "minor": "25000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "half a lakh",
+      "minor": "5000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "nineteen hundred",
+      "minor": "190000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "5 lakh rupees for the car",
+      "minor": "50000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "forty thousand rupees",
+      "minor": "4000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "three crore",
+      "minor": "3000000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "dinner for 2k",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale"
+    },
+    {
+      "say": "eleven hundred rupees",
+      "minor": "110000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en-IN",
+      "tag": "indian-scale",
+      "currency": "INR"
+    },
+    {
+      "say": "One point five lakh",
+      "minor": "15000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "Twenty point zero five",
+      "minor": "2005",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "ninety nine point nine nine rupees",
+      "minor": "9999",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "INR"
+    },
+    {
+      "say": "12.50 dollars",
+      "minor": "1250",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "two point five crore",
+      "minor": "2500000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "three hundred point five",
+      "minor": "30050",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "forty five point two five rupees",
+      "minor": "4525",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "INR"
+    },
+    {
+      "say": "one point two lakh rupees",
+      "minor": "12000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "INR"
+    },
+    {
+      "say": "ten point five",
+      "minor": "1050",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "99.50 rupees",
+      "minor": "9950",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "INR"
+    },
+    {
+      "say": "149.99 for the app",
+      "minor": "14999",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "point five lakh",
+      "minor": "5000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "seven point seven five",
+      "minor": "775",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "zero point five",
+      "minor": "50",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "eight point nine nine dirhams",
+      "minor": "899",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "AED"
+    },
+    {
+      "say": "four point five thousand",
+      "minor": "450000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "three point two five lakh",
+      "minor": "32500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "one point five crore",
+      "minor": "1500000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal"
+    },
+    {
+      "say": "fifteen point five pounds",
+      "minor": "1550",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "GBP"
+    },
+    {
+      "say": "25.75 euros",
+      "minor": "2575",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal",
+      "currency": "EUR"
+    },
+    {
+      "say": "hundred rupees fifty paise",
+      "minor": "10050",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "Twelve dollars fifty cents",
+      "minor": "1250",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "twenty dollars ninety nine cents",
+      "minor": "2099",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "fifty paise",
+      "minor": "50",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "thirty nine cents",
+      "minor": "39",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units"
+    },
+    {
+      "say": "five pounds twenty pence",
+      "minor": "520",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "GBP"
+    },
+    {
+      "say": "ten euros fifty cents",
+      "minor": "1050",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "EUR"
+    },
+    {
+      "say": "ten rupees five paise",
+      "minor": "1005",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "ninety nine cents coffee",
+      "minor": "99",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units"
+    },
+    {
+      "say": "two dollars and fifty cents",
+      "minor": "250",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "seventy five paise",
+      "minor": "75",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "99 cents",
+      "minor": "99",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units"
+    },
+    {
+      "say": "one rupee fifty paise",
+      "minor": "150",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "6 dollars 20 cents",
+      "minor": "620",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "three pounds 99 pence",
+      "minor": "399",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "GBP"
+    },
+    {
+      "say": "five dirhams",
+      "minor": "500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "AED"
+    },
+    {
+      "say": "twenty five paise",
+      "minor": "25",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "INR"
+    },
+    {
+      "say": "40 pence",
+      "minor": "40",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "GBP"
+    },
+    {
+      "say": "8 dollars 5 cents",
+      "minor": "805",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "fifty cents",
+      "minor": "50",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "minor-units"
+    },
+    {
+      "say": "Five hundred each for three people",
+      "minor": "150000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "200 rupees each for 5 people",
+      "minor": "100000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "300 each between 4",
+      "minor": "120000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "500 per person for 4 people",
+      "minor": "200000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "250 a head for 4 people",
+      "minor": "100000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "1500 split 3 ways 500 each",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "dinner 600 for 3 people",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "i paid 600 for 3 people",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "we each paid 400",
+      "minor": "40000",
+      "role": "each",
+      "ambiguity": "total-or-each",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "500 each",
+      "minor": "50000",
+      "role": "each",
+      "ambiguity": "total-or-each",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "pizza 300 rupees each for 2 people",
+      "minor": "60000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "tickets 450 each for 2 people",
+      "minor": "90000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "split 900 among 3",
+      "minor": "90000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "900 split 3 ways",
+      "minor": "90000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "each paid 250",
+      "minor": "25000",
+      "role": "each",
+      "ambiguity": "total-or-each",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "100 apiece for 6 people",
+      "minor": "60000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "lunch 1200 split between 4 people",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "two hundred each for four people",
+      "minor": "80000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "fifty rupees each",
+      "minor": "5000",
+      "role": "each",
+      "ambiguity": "total-or-each",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "300 per head for 5 people",
+      "minor": "150000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "cab 400 split 2 ways",
+      "minor": "40000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "1000 for 4 people 250 each",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "hundred each for ten people",
+      "minor": "100000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "600 total for 3 people",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "dinner was 2400 for 4 of us",
+      "minor": "240000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "each-vs-total"
+    },
+    {
+      "say": "Fifteen sorry fifty",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "500 no wait 600 for dinner",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "two hundred I mean three hundred rupees",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "twelve hundred actually fourteen hundred rupees",
+      "minor": "140000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "do sau matlab teen sau rupaye",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "fifty rupees sorry sixty",
+      "minor": "6000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "300 make it 350 for lunch",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "forty, no, forty five rupees",
+      "minor": "4500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "eighty sorry eighteen rupees",
+      "minor": "1800",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "1000 or rather 1200 for the hotel",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "five hundred, sorry, five thousand rupees rent",
+      "minor": "500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "700 oops 750",
+      "minor": "75000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "twenty dollars sorry thirty dollars",
+      "minor": "3000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "ninety, I mean nineteen",
+      "minor": "1900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "2 lakh actually 2.5 lakh",
+      "minor": "25000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "six hundred no no seven hundred",
+      "minor": "70000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "sixty matlab sattar rupaye",
+      "minor": "7000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "500 wait 550 rupees",
+      "minor": "55000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "three fifty sorry four fifty rupees",
+      "minor": "45000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "1500 correction 1800",
+      "minor": "180000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "ek hazaar nahi do hazaar",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "ten I meant eleven rupees",
+      "minor": "1100",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction",
+      "currency": "INR"
+    },
+    {
+      "say": "sorry I am late, 500 for snacks",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "I actually paid 300 for lunch",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "400 for petrol, no wait, 450 for petrol",
+      "minor": "45000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "self-correction"
+    },
+    {
+      "say": "paanch sau",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "ek hazaar",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "do hazaar paanch sau",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "dedh sau",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "dhai hazaar",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "saade teen sau",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "sava sau",
+      "minor": "12500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "paune do sau",
+      "minor": "17500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "pachaas rupaye chai",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "teen hazaar rupaye kiraya",
+      "minor": "300000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "ek lakh",
+      "minor": "10000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "dedh lakh",
+      "minor": "15000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "dhai sau rupaye auto",
+      "minor": "25000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "char sau",
+      "minor": "40000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "saat sau pachaas",
+      "minor": "75000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "nau hazaar",
+      "minor": "900000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "bees hazaar",
+      "minor": "2000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "do sau rupaye",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "das rupaye",
+      "minor": "1000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "pachees hazaar",
+      "minor": "2500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "पाँच सौ रुपये",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "डेढ़ सौ",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "ढाई हज़ार",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "साढ़े तीन सौ",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "दो हजार",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "madan ne paanch sau diya dinner ka",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "kal do sau ka petrol",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "saade paanch hazaar",
+      "minor": "550000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "chhe sau rupaye",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "ek sau bees",
+      "minor": "12000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "sau rupaye",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "teen sau rupaiye",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "dedh hazaar rupaye",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi",
+      "currency": "INR"
+    },
+    {
+      "say": "dus hazaar",
+      "minor": "1000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "hi",
+      "tag": "hindi"
+    },
+    {
+      "say": "nooru",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "aayiram",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "rendu aayiram",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "aimbadhu",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "anju nooru",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "ainooru rubai",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "moonu aayiram",
+      "minor": "300000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "irunooru",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "pathu aayiram",
+      "minor": "1000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "oru latcham",
+      "minor": "10000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "rendu latcham",
+      "minor": "20000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "nooru rubai",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "aimbadhu rubai tea",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "naalu aayiram rubai",
+      "minor": "400000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "aayiram rupees",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "ஆயிரம் ரூபாய்",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "இரண்டு ஆயிரம்",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "ஐந்து நூறு ரூபாய்",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "rendu aayiram anju nooru",
+      "minor": "250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "ezhu nooru",
+      "minor": "70000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "ettu aayiram",
+      "minor": "800000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "irubadhu rubai",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "munnooru rubai bus",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "oru aayiram",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil"
+    },
+    {
+      "say": "anju aayiram rubai rent",
+      "minor": "500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ta",
+      "tag": "tamil",
+      "currency": "INR"
+    },
+    {
+      "say": "khamsa mia",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "alf",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "alfain",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "khamsa mia dirham",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "thalath alaf",
+      "minor": "300000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "alf w khamsa mia",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "mitain dirham",
+      "minor": "20000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "ishreen dirham",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "khamseen dirham",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "arba mia",
+      "minor": "40000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "ashara alaf",
+      "minor": "1000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "خمسة مئة درهم",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "ألف درهم",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "alf dirham",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "sitta mia",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "thalatha mia dirham",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "alfain dirham taxi",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "wahid alf",
+      "minor": "100000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "ashara dirham",
+      "minor": "1000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic",
+      "currency": "AED"
+    },
+    {
+      "say": "tisa mia",
+      "minor": "90000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "ar",
+      "tag": "arabic"
+    },
+    {
+      "say": "One fifty",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "twelve fifty for parking",
+      "minor": "125000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "three fifty rupees",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "currency": "INR"
+    },
+    {
+      "say": "twelve fifty dollars",
+      "minor": "1250",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "one fifty for coffee",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "group": "INR"
+    },
+    {
+      "say": "one fifty for coffee",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "group": "USD"
+    },
+    {
+      "say": "two fifty",
+      "minor": "25000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "three 50",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "four seventy five",
+      "minor": "47500",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "nine ninety nine",
+      "minor": "99900",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "two fifty rupees auto",
+      "minor": "25000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "currency": "INR"
+    },
+    {
+      "say": "seven fifty for the gym",
+      "minor": "75000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "group": "INR"
+    },
+    {
+      "say": "five twenty five dirhams",
+      "minor": "52500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "currency": "AED"
+    },
+    {
+      "say": "three fifty for coffee",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "decimal-or-hundreds",
+      "group": "AUD"
+    },
+    {
+      "say": "three hundred fifty",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "decimal-or-hundreds"
+    },
+    {
+      "say": "fifteen rupees for tea",
+      "minor": "1500",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["fifty rupees for tea"]
+    },
+    {
+      "say": "sixteen hundred",
+      "minor": "160000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "alts": ["sixty hundred"]
+    },
+    {
+      "say": "one fifty for parking",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "alts": ["ten fifty for parking"]
+    },
+    {
+      "say": "fifty rupees",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["fifty rupees"]
+    },
+    {
+      "say": "thirteen dirhams",
+      "minor": "1300",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "AED",
+      "alts": ["thirty dirhams"]
+    },
+    {
+      "say": "eighty rupees snacks",
+      "minor": "8000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["eighteen rupees snacks"]
+    },
+    {
+      "say": "seventy rupees",
+      "minor": "7000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["seventeen rupees", "seventy rupees"]
+    },
+    {
+      "say": "fourteen hundred rupees",
+      "minor": "140000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["forty hundred rupees"]
+    },
+    {
+      "say": "ninety rupees",
+      "minor": "9000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["nineteen rupees"]
+    },
+    {
+      "say": "500 rupees",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["five hundred rupees", "500 rupees"]
+    },
+    {
+      "say": "nineteen pounds",
+      "minor": "1900",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "GBP",
+      "alts": ["ninety pounds"]
+    },
+    {
+      "say": "sixty rupees",
+      "minor": "6000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["sixteen rupees"]
+    },
+    {
+      "say": "two thousand rupees",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["2000 rupees"]
+    },
+    {
+      "say": "fifteen hundred rupees",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["fifty hundred rupees"]
+    },
+    {
+      "say": "forty rupees",
+      "minor": "4000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["forty rupees for", "40 rupees"]
+    },
+    {
+      "say": "seventeen dirhams",
+      "minor": "1700",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "AED",
+      "alts": ["seventy dirhams"]
+    },
+    {
+      "say": "thirty rupees chai",
+      "minor": "3000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["thirteen rupees chai"]
+    },
+    {
+      "say": "fifty dirhams",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "AED",
+      "alts": ["hello"]
+    },
+    {
+      "say": "eighteen hundred rupees",
+      "minor": "180000",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR",
+      "alts": ["eighty hundred rupees"]
+    },
+    {
+      "say": "twelve rupees",
+      "minor": "1200",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "teen-vs-ty",
+      "currency": "INR"
+    },
+    {
+      "say": "20 dollars lunch",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "20 dollars lunch",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD",
+      "group": "INR"
+    },
+    {
+      "say": "20 US dollars",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "30 Australian dollars",
+      "minor": "3000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD"
+    },
+    {
+      "say": "50 dirhams",
+      "minor": "5000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AED"
+    },
+    {
+      "say": "10 pounds",
+      "minor": "1000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "GBP"
+    },
+    {
+      "say": "300 rupees",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "INR"
+    },
+    {
+      "say": "$40 dinner",
+      "minor": "4000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "$40 dinner",
+      "minor": "4000",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "40 bucks",
+      "minor": "4000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "25 dollars",
+      "minor": "2500",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "A$30 for lunch",
+      "minor": "3000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD"
+    },
+    {
+      "say": "15 USD",
+      "minor": "1500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "80 AUD taxi",
+      "minor": "8000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD"
+    },
+    {
+      "say": "100 aussie dollars",
+      "minor": "10000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "AUD"
+    },
+    {
+      "say": "twenty bucks",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "60 dollars groceries",
+      "minor": "6000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "12 american dollars",
+      "minor": "1200",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD"
+    },
+    {
+      "say": "45 dollars",
+      "minor": "4500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "CAD",
+      "group": "CAD"
+    },
+    {
+      "say": "ten dollars for coffee",
+      "minor": "1000",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "currency",
+      "currency": "USD",
+      "group": "AED"
+    },
+    {
+      "say": "dinner at 7 for 500 rupees",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "flight 302 ticket 4500 rupees",
+      "minor": "450000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "on the 5th paid 300 for lunch",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "room 204 1200 rupees",
+      "minor": "120000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "2 nights 6000",
+      "minor": "600000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "5 kg rice 300",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "3 hours parking 60",
+      "minor": "6000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "table for 4 dinner 2400",
+      "minor": "240000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "lunch for 3 people 900",
+      "minor": "90000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "2 tickets 500",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "5th of October lunch 300",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "at 7 dinner 500",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "500 rupees for dinner at 7",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "gate 12 coffee 180",
+      "minor": "18000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "2 days ago 450 for groceries",
+      "minor": "45000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "yesterday 300 for petrol",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "bus no 47 ticket 25 rupees",
+      "minor": "2500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "order number 5521 pizza 640",
+      "minor": "64000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "platform 3 tea 20 rupees",
+      "minor": "2000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "3 days ago coffee 150",
+      "minor": "15000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "meeting at 3 pm lunch 250",
+      "minor": "25000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "2 coffees 300",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "paid 1500 on 21st October",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "at 9 breakfast 120 rupees",
+      "minor": "12000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "5 km auto 90",
+      "minor": "9000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "context-numbers"
+    },
+    {
+      "say": "5th of October dinner",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "at 7 tonight",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "table for two",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "table for 2",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "flight 302",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "flight 302 to Delhi",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "room 204",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "gate 12",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "platform 3",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "meeting at 3 pm",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "Paid for dinner with two friends",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "on the 21st",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "3 days ago coffee",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "see you at 8",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "we were 4 people",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "2 kg onions",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "book a table for 6",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "pnr 4521",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "seat 14 B",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "call me at 5",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "page 12",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "3 hours parking",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "dinner with 3 friends",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "party of 5",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "on 12th march",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "March 5 dinner",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "in 2024 we went to Goa",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "7:30 movie",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "2024-10-05 lunch",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "10 minutes walk",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "split it 3 ways",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "dinner for two",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "remind me at 6",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "one of us paid",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "the 3rd one",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "chapter 4",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "2 nights stay",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "5 km run",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "version 2",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "episode 7",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "house number 42",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "it was 2 days ago",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "lunch tomorrow at 1",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "train number 12627",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "row 5",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "floor 3",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "at 10 am",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "between 2 and 4 pm",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "room 12 and 14",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "see you on the 5th",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "Ravi and Priya came",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "just me and two friends",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "do it later",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "teen patti night",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "order no 77",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "3 kids",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "dinner with Mia",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "so far so good",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "char minar trip",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "gate number 5",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "negative"
+    },
+    {
+      "say": "i spent three hundred and twenty rupees on vegetables",
+      "minor": "32000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "paid the plumber eight hundred",
+      "minor": "80000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "netflix 649 this month",
+      "minor": "64900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "two thousand for the electrician",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "swiggy order 456 rupees",
+      "minor": "45600",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "coffee with ravi 220",
+      "minor": "22000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "hotel booking 12,500",
+      "minor": "1250000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "groceries came to 1,845 rupees",
+      "minor": "184500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "forty two dollars for gas",
+      "minor": "4200",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "uber eats 18 dollars 40 cents",
+      "minor": "1840",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "parking 3 pounds 60",
+      "minor": "360",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "GBP"
+    },
+    {
+      "say": "lunch was 85 dirhams",
+      "minor": "8500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "AED"
+    },
+    {
+      "say": "fifty five dirhams taxi",
+      "minor": "5500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "AED"
+    },
+    {
+      "say": "teen sau pachaas rupaye",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "do hazaar rupaye bijli ka bill",
+      "minor": "200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "ek hazaar paanch sau",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "dhai lakh",
+      "minor": "25000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "moonu nooru rubai",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "khamsa alaf dirham",
+      "minor": "500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "AED"
+    },
+    {
+      "say": "arba alaf",
+      "minor": "400000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "400 each for 5 of us",
+      "minor": "200000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "150 rupees per person for 6 people",
+      "minor": "90000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "3000 split equally between 3 people",
+      "minor": "300000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "seven hundred I mean eight hundred for the cab",
+      "minor": "80000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "two fifty, sorry, three fifty rupees",
+      "minor": "35000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "one point seven five lakh",
+      "minor": "17500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "nineteen point nine nine pounds",
+      "minor": "1999",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "GBP"
+    },
+    {
+      "say": "dinner at 8 was 2200",
+      "minor": "220000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "on the 3rd i paid 900 for internet",
+      "minor": "90000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "flight 6E 204 cost 5400 rupees",
+      "minor": "540000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "INR"
+    },
+    {
+      "say": "2 beers 600",
+      "minor": "60000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "eighteen dollars",
+      "minor": "1800",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "USD",
+      "alts": ["eighty dollars"],
+      "group": "USD"
+    },
+    {
+      "say": "five sixty",
+      "minor": "56000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "held-out"
+    },
+    {
+      "say": "ten dollars",
+      "minor": "1000",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "USD"
+    },
+    {
+      "say": "twelve bucks for lunch",
+      "minor": "1200",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "see you at 6 for dinner",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "we are 5 people",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "my flight is 447",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "room 1203",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "dinner on 14th",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "2 hours late",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "table for three tonight",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "meet at gate 22",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "it is 4 km away",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "class of 2019 reunion",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-negative"
+    },
+    {
+      "say": "mobile recharge 299",
+      "minor": "29900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "i paid 2,150 for the dinner at taj",
+      "minor": "215000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "add three thousand two hundred to flat expenses",
+      "minor": "320000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "zomato 389 rupees",
+      "minor": "38900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "gym membership twelve thousand rupees",
+      "minor": "1200000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "paid 75 dollars for the concert",
+      "minor": "7500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "USD",
+      "group": "USD"
+    },
+    {
+      "say": "brunch 64 pounds",
+      "minor": "6400",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "GBP"
+    },
+    {
+      "say": "taxi to airport 120 dirhams",
+      "minor": "12000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "AED"
+    },
+    {
+      "say": "i spent eleven hundred on books",
+      "minor": "110000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "kiraya pachees hazaar",
+      "minor": "2500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "sabzi ke liye do sau pachaas",
+      "minor": "25000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "anju nooru rubai petrol",
+      "minor": "50000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "thalath mia dirham",
+      "minor": "30000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "AED"
+    },
+    {
+      "say": "250 each for 4 people",
+      "minor": "100000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "600 per head for 3 of us",
+      "minor": "180000",
+      "role": "each",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "nine hundred sorry nineteen hundred rupees",
+      "minor": "190000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "hotel 3 nights 9000",
+      "minor": "900000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "on 2nd october petrol 1500",
+      "minor": "150000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "dinner for six people 4800",
+      "minor": "480000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "3 movie tickets 750",
+      "minor": "75000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "fifteen dollars twenty five cents",
+      "minor": "1525",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "AUD",
+      "group": "AUD"
+    },
+    {
+      "say": "point five lakh rupees",
+      "minor": "5000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "2.75 lakh",
+      "minor": "27500000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "one lakh fifty thousand rupees for the bike",
+      "minor": "15000000",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "twenty five dollars",
+      "minor": "2500",
+      "role": "total",
+      "ambiguity": "currency",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "USD",
+      "group": "INR"
+    },
+    {
+      "say": "six fifty",
+      "minor": "65000",
+      "role": "total",
+      "ambiguity": "decimal-or-hundreds",
+      "lang": "en",
+      "tag": "held-out-2"
+    },
+    {
+      "say": "fourteen rupees",
+      "minor": "1400",
+      "role": "total",
+      "ambiguity": "teen-vs-ty",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR",
+      "alts": ["forty rupees"]
+    },
+    {
+      "say": "5 rupees for the toilet",
+      "minor": "500",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "ninety nine rupees",
+      "minor": "9900",
+      "role": "total",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2",
+      "currency": "INR"
+    },
+    {
+      "say": "meet at 5 30",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "flight AI 302",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "3 of us went",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "we stayed 2 nights",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "see you on october 10",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "platform number 9",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "table for 8 please",
+      "minor": null,
+      "role": "count",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "booked room 305",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "around 6 pm",
+      "minor": null,
+      "role": "date-ish",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    },
+    {
+      "say": "it took 45 minutes",
+      "minor": null,
+      "role": "quantity",
+      "ambiguity": "none",
+      "lang": "en",
+      "tag": "held-out-2-negative"
+    }
+  ]
+}

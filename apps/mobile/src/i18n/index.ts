@@ -1221,6 +1221,20 @@ export interface UiStrings {
     whichGroup: string;
     /** Callout: no group has that name. {name}. */
     noGroupNamed: string;
+    /** Chooser: a spoken amount heard two ways. {a} and {b} are formatted amounts. */
+    amountWhich: string;
+    /** Chooser: a share with nobody counted. {amount} appears twice. */
+    amountTotalOrEach: string;
+    /** Answer: the amount is the whole bill. {amount}. */
+    amountTotal: string;
+    /** Answer: the amount is each person's share. {amount}. */
+    amountEach: string;
+    /** Chooser: a bare "dollars" with no dollar group to settle it. */
+    whichDollars: string;
+    /** Answer: US dollars. */
+    usDollars: string;
+    /** Answer: Australian dollars. */
+    audDollars: string;
     /** Callout: a payer other than you needs a group. {name}. */
     needGroupForPayer: string;
     /** Callout: a split needs a group. */
@@ -5411,6 +5425,13 @@ const en: UiStrings = {
     whoUnknown: 'Who is “{name}”? Pick them below.',
     whichGroup: 'Which group did you mean?',
     noGroupNamed: 'No group called “{name}”. Choose one.',
+    amountWhich: 'Was that {a} or {b}?',
+    amountTotalOrEach: '{amount} total or {amount} each?',
+    amountTotal: '{amount} total',
+    amountEach: '{amount} each',
+    whichDollars: 'US or Australian dollars?',
+    usDollars: 'US dollars',
+    audDollars: 'Australian dollars',
     needGroupForPayer: 'Choose a group to record that {name} paid.',
     needGroupForSplit: 'Choose a group to apply this split.',
     splitInvalid: 'This split does not add up. Choose who shares to split it equally.',
@@ -9095,6 +9116,13 @@ const ta: UiStrings = {
     whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
     whichGroup: 'எந்தக் குழு என்று சொன்னீர்கள்?',
     noGroupNamed: '“{name}” என்ற குழு இல்லை. ஒன்றைத் தேர்ந்தெடுக்கவும்.',
+    amountWhich: 'அது {a}-ஆ, {b}-ஆ?',
+    amountTotalOrEach: 'மொத்தம் {amount} ஆ, ஒவ்வொருவருக்கும் {amount} ஆ?',
+    amountTotal: 'மொத்தம் {amount}',
+    amountEach: 'ஒவ்வொருவருக்கும் {amount}',
+    whichDollars: 'அமெரிக்க டாலரா, ஆஸ்திரேலிய டாலரா?',
+    usDollars: 'அமெரிக்க டாலர்',
+    audDollars: 'ஆஸ்திரேலிய டாலர்',
     needGroupForPayer: '{name} செலுத்தியதைப் பதிவு செய்ய ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
     needGroupForSplit: 'இந்தப் பிரிப்பைப் பயன்படுத்த ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
     splitInvalid:
@@ -12899,6 +12927,13 @@ const hi: UiStrings = {
     whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
     whichGroup: 'आपका मतलब कौन सा ग्रुप था?',
     noGroupNamed: '“{name}” नाम का कोई ग्रुप नहीं है। एक चुनें।',
+    amountWhich: 'वह {a} था या {b}?',
+    amountTotalOrEach: 'कुल {amount} या हर व्यक्ति {amount}?',
+    amountTotal: 'कुल {amount}',
+    amountEach: 'हर व्यक्ति {amount}',
+    whichDollars: 'अमेरिकी डॉलर या ऑस्ट्रेलियाई डॉलर?',
+    usDollars: 'अमेरिकी डॉलर',
+    audDollars: 'ऑस्ट्रेलियाई डॉलर',
     needGroupForPayer: '{name} ने भुगतान किया, यह दर्ज करने के लिए एक ग्रुप चुनें।',
     needGroupForSplit: 'यह बँटवारा लागू करने के लिए एक ग्रुप चुनें।',
     splitInvalid: 'यह बँटवारा कुल रकम से मेल नहीं खाता। बाँटने वाले चुनें, बराबर बँट जाएगा।',
@@ -16645,6 +16680,13 @@ const ar: UiStrings = {
     whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
     whichGroup: 'أي مجموعة تقصد؟',
     noGroupNamed: 'لا توجد مجموعة باسم “{name}”. اختر واحدة.',
+    amountWhich: 'هل قلت {a} أم {b}؟',
+    amountTotalOrEach: '{amount} إجمالًا أم {amount} لكل شخص؟',
+    amountTotal: '{amount} إجمالًا',
+    amountEach: '{amount} لكل شخص',
+    whichDollars: 'دولار أمريكي أم أسترالي؟',
+    usDollars: 'دولار أمريكي',
+    audDollars: 'دولار أسترالي',
     needGroupForPayer: 'اختر مجموعة لتسجيل أن {name} دفع.',
     needGroupForSplit: 'اختر مجموعة لتطبيق هذا التقسيم.',
     splitInvalid: 'هذا التقسيم لا يطابق الإجمالي. اختر المشاركين ليُقسَّم بالتساوي.',
