@@ -40,6 +40,13 @@ import { speechMic } from '@/lib/speechMic';
 
 const MIC_SIZE = 104;
 
+/**
+ * Hypotheses to ask the recogniser for. iOS hands back its `transcriptions`;
+ * Android its RESULTS_RECOGNITION list (EXTRA_MAX_RESULTS), which on-device
+ * engines fill on Android 14+ and many network engines always did.
+ */
+const MAX_ALTERNATIVES = 5;
+
 // Hand the shared arbiter the real recogniser. Safe at module scope: this file
 // is only ever loaded through `VoiceMicPanel`'s guarded require, so reaching it
 // at all means the native module imported cleanly.
@@ -408,9 +415,17 @@ function Waveform({ active, level }: { active: boolean; level: SharedValue<numbe
 }
 
 export interface VoiceCaptureProps {
-  /** Called with the final sentence once the speaker stops. */
-  onDone: (transcript: string) => void;
-  /** Names to bias the recogniser towards — group and member names. */
+  /**
+   * Called with the final sentence once the speaker stops, and the
+   * recogniser's other hypotheses for it (its n-best list without the top one,
+   * best first — empty when the engine gave only one).
+   */
+  onDone: (transcript: string, alternatives: readonly string[]) => void;
+  /**
+   * Words to bias the recogniser towards — the people the sentence may name.
+   * Android passes them as EXTRA_BIASING_STRINGS (API 33+), iOS as the
+   * request's contextualStrings.
+   */
   hints?: readonly string[];
   /** The reader's own group names, for the "Try saying…" card's group example.
    *  Separate from `hints`, which may carry any word worth biasing towards. */
@@ -555,6 +570,8 @@ export function VoiceCapture({
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
   const latest = useRef('');
+  // The recogniser's other hypotheses for `latest`, best first.
+  const latestAlternatives = useRef<string[]>([]);
   const mounted = useRef(true);
   // Guards the one auto-start so a re-render never reopens the mic.
   const started = useRef(false);
@@ -675,6 +692,10 @@ export function VoiceCapture({
     gotResult.current = true;
     const transcript = event.results[0]?.transcript ?? '';
     latest.current = transcript;
+    latestAlternatives.current = event.results
+      .slice(1, MAX_ALTERNATIVES)
+      .map((result) => result.transcript.trim())
+      .filter((text) => text && text !== transcript.trim());
     setLive(transcript);
   });
 
@@ -763,7 +784,7 @@ export function VoiceCapture({
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
-    if (said) onDone(said);
+    if (said) onDone(said, latestAlternatives.current);
     // Heard nothing usable — surface the same calm recovery a parsed miss shows,
     // rather than silently dropping back to the opening prompt as if nothing had
     // been tried, and record why so a silent-mic device can be diagnosed.
@@ -799,6 +820,7 @@ export function VoiceCapture({
       setEmptyMiss(false);
       onListen?.();
       latest.current = '';
+      latestAlternatives.current = [];
       setLive('');
       level.set(0);
       gotResult.current = false;
@@ -850,7 +872,9 @@ export function VoiceCapture({
           // else en-IN), so there is one locale to get right and no chip to miss.
           lang: englishSpeechLocale(locale),
           interimResults: true,
-          maxAlternatives: 1,
+          // The n-best list: names are scored across every hypothesis, so an
+          // engine that heard "rainy" first and "Renny" second still finds her.
+          maxAlternatives: MAX_ALTERNATIVES,
           // One sentence, then it settles — the same shape a note dictation uses.
           continuous: false,
           requiresOnDeviceRecognition: onDevice,
@@ -940,7 +964,7 @@ export function VoiceCapture({
             setListening(false);
             level.set(withTiming(0, { duration: 150 }));
             const said = latest.current.trim();
-            if (said) onDone(said);
+            if (said) onDone(said, latestAlternatives.current);
             else setEmptyMiss(true);
             speechMic.release(session);
           }, HARD_STOP_MS);
