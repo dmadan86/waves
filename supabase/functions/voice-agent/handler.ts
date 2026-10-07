@@ -43,10 +43,16 @@ export const DEEPSEEK_ESCALATION_MODEL = 'deepseek-v4-pro';
 /** Flash-Lite first (about a second for one tool call); Flash when a key cannot reach Lite. */
 export const GEMINI_MODEL = 'gemini-flash-lite-latest';
 export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
+/**
+ * Through OpenRouter (one key, many vendors), picked by a bench of real Waves
+ * commands on 7 Oct 2026: both 6/6, about 1.7 s median. Override with
+ * `OPENROUTER_MODELS` (comma-separated) to try others without a deploy.
+ */
+export const OPENROUTER_MODELS = ['google/gemini-3.5-flash-lite', 'openai/gpt-4.1-mini'];
 
 /** One model to ask, in the order the chain tries them. */
 export interface LlmStep {
-  readonly provider: 'anthropic' | 'deepseek' | 'gemini';
+  readonly provider: 'anthropic' | 'deepseek' | 'gemini' | 'openrouter';
   readonly model: string;
   readonly key: string;
 }
@@ -80,14 +86,29 @@ export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
         { provider: 'gemini', model: GEMINI_FALLBACK_MODEL, key: gemini },
       ]
     : [];
+  const openrouter = env('OPENROUTER_API_KEY');
+  const orModels = (env('OPENROUTER_MODELS') ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const or: LlmStep[] = openrouter
+    ? (orModels.length > 0 ? orModels : OPENROUTER_MODELS).map((model) => ({
+        provider: 'openrouter' as const,
+        model,
+        key: openrouter,
+      }))
+    : [];
   const lead =
-    env('VOICE_LLM_PROVIDER') ?? (gemini ? 'gemini' : deepseek ? 'deepseek' : 'anthropic');
+    env('VOICE_LLM_PROVIDER') ??
+    (openrouter ? 'openrouter' : gemini ? 'gemini' : deepseek ? 'deepseek' : 'anthropic');
   const ordered =
     lead === 'anthropic'
-      ? [...an, ...ge, ...ds]
+      ? [...an, ...or, ...ge, ...ds]
       : lead === 'deepseek'
-        ? [...ds, ...ge, ...an]
-        : [...ge, ...ds, ...an];
+        ? [...ds, ...or, ...ge, ...an]
+        : lead === 'gemini'
+          ? [...ge, ...or, ...ds, ...an]
+          : [...or, ...ge, ...ds, ...an];
   return ordered.slice(0, 3);
 }
 
@@ -325,7 +346,7 @@ async function ask(
   transcript: string,
 ): Promise<Parsed> {
   const calls =
-    step.provider === 'deepseek'
+    step.provider === 'deepseek' || step.provider === 'openrouter'
       ? await askDeepSeek(deps, step, context, transcript)
       : step.provider === 'gemini'
         ? await askGemini(deps, step, context, transcript)
@@ -368,7 +389,7 @@ async function askAnthropic(
     .map((block) => ({ name: block.name as string, input: block.input }));
 }
 
-/** The same tools in the OpenAI-style shape DeepSeek's API takes. */
+/** The same tools in the OpenAI-style shape DeepSeek's and OpenRouter's APIs take. */
 export const DEEPSEEK_TOOLS = TOOLS.map((tool) => ({
   type: 'function' as const,
   function: { name: tool.name, description: tool.description, parameters: tool.input_schema },
@@ -381,27 +402,40 @@ async function askDeepSeek(
   transcript: string,
 ): Promise<ToolCall[]> {
   const request = (lowEffort: boolean) =>
-    deps.fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${step.key}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: step.model,
-        max_tokens: 2000,
-        // A short tool call, not an essay: light reasoning keeps it quick.
-        ...(lowEffort ? { reasoning_effort: 'low' } : {}),
-        tools: DEEPSEEK_TOOLS,
-        tool_choice: 'required',
-        messages: [
-          { role: 'system', content: systemPrompt(context) },
-          { role: 'user', content: transcript },
-        ],
-      }),
-    });
+    deps.fetch(
+      step.provider === 'openrouter'
+        ? 'https://openrouter.ai/api/v1/chat/completions'
+        : 'https://api.deepseek.com/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${step.key}`,
+          'content-type': 'application/json',
+          ...(step.provider === 'openrouter' ? { 'x-title': 'Waves voice' } : {}),
+        },
+        body: JSON.stringify({
+          model: step.model,
+          max_tokens: 2000,
+          // A short tool call, not an essay: light reasoning keeps it quick.
+          ...(lowEffort
+            ? step.provider === 'openrouter'
+              ? { reasoning: { effort: 'low' } }
+              : { reasoning_effort: 'low' }
+            : {}),
+          tools: DEEPSEEK_TOOLS,
+          tool_choice: 'required',
+          messages: [
+            { role: 'system', content: systemPrompt(context) },
+            { role: 'user', content: transcript },
+          ],
+        }),
+      },
+    );
   let response = await request(true);
   // An API that does not know the effort knob says so with a 400; ask plainly.
   if (response.status === 400) response = await request(false);
   if (!response.ok) {
-    console.error('deepseek error', response.status);
+    console.error(`${step.provider} error`, response.status);
     throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
   }
   const completion = (await response.json()) as {

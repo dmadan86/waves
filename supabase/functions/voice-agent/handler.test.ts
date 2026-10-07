@@ -217,6 +217,20 @@ describe('handleVoiceAgent', () => {
 describe('LLM provider chain', () => {
   const env = (e: Record<string, string>) => (n: string) => e[n];
 
+  it('leads with OpenRouter (Flash-Lite, then GPT-4.1 mini) when its key is set', () => {
+    const chain = llmChain(env({ OPENROUTER_API_KEY: 'or', GEMINI_API_KEY: 'ge' }));
+    expect(chain.map((s) => s.model)).toEqual([
+      'google/gemini-3.5-flash-lite',
+      'openai/gpt-4.1-mini',
+      'gemini-flash-lite-latest',
+    ]);
+    expect(
+      llmChain(env({ OPENROUTER_API_KEY: 'or', OPENROUTER_MODELS: 'x/a, y/b' })).map(
+        (s) => s.model,
+      ),
+    ).toEqual(['x/a', 'y/b']);
+  });
+
   it('leads with Gemini when its key is set, then DeepSeek', () => {
     const chain = llmChain(env({ GEMINI_API_KEY: 'ge', DEEPSEEK_API_KEY: 'ds' }));
     expect(chain.map((s) => s.provider)).toEqual(['gemini', 'gemini', 'deepseek']);
