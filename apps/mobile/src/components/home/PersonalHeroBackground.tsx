@@ -42,7 +42,9 @@ export function PersonalHeroBackground({
   pageColor: string;
 }) {
   if (height <= 0) return null;
-  const fadeFrom = Math.min(0.95, Math.max(0, (horizon - 24) / height));
+  // From just under the tiles' top edge, as Home and Friends do: started above
+  // it, the pale foot showed as a fog band across the photo over the card.
+  const fadeFrom = Math.min(0.95, (horizon + 8) / height);
   return (
     <View
       pointerEvents="none"
@@ -64,14 +66,16 @@ export function PersonalHeroBackground({
       {/* Readability: dark enough at the top for the white header and figure
           on a bright afternoon or winter sky, easing off towards the tiles. */}
       <LinearGradient
-        colors={['rgba(8, 12, 32, 0.58)', 'rgba(8, 12, 32, 0.4)', 'rgba(8, 12, 32, 0.18)']}
+        // Eased out to nothing at its foot — a shade that stops at 0.18 drew a
+        // hard line across the photo where it ended.
+        colors={['rgba(8, 12, 32, 0.58)', 'rgba(8, 12, 32, 0.4)', 'rgba(8, 12, 32, 0)']}
         locations={[0, 0.55, 1]}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, height: horizon }}
       />
       {/* The foot: the photo runs into the page behind the tiles, gradually. */}
       <LinearGradient
-        colors={[`${pageColor}00`, `${pageColor}B3`, pageColor]}
-        locations={[fadeFrom, fadeFrom + (1 - fadeFrom) * 0.55, 1]}
+        colors={[`${pageColor}00`, `${pageColor}99`, pageColor]}
+        locations={[fadeFrom, fadeFrom + (1 - fadeFrom) * 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
     </View>
