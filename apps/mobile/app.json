@@ -2,7 +2,7 @@
   "expo": {
     "name": "Waves",
     "slug": "waves",
-    "version": "1.2.5",
+    "version": "1.2.6",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "waves",
@@ -31,7 +31,7 @@
     "android": {
       "package": "app.waves.mobile",
       "allowBackup": false,
-      "versionCode": 12,
+      "versionCode": 13,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
