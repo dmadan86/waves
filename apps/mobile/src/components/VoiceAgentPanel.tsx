@@ -35,6 +35,7 @@ import { GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
+import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import {
   expenseWriteFromAction,
@@ -416,6 +417,9 @@ function AgentActionCard({
           description: action.description,
           ...(action.category ? { category: action.category } : {}),
           ...(action.date ? { expenseDate: action.date } : {}),
+          // Who paid and how it was split, so editing never quietly resets the
+          // proposal to "I paid, split with everyone".
+          ...encodeAgentSplitParams({ paidByMemberId: action.paidByMemberId, split: action.split }),
           quick: '1',
         },
       });

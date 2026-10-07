@@ -115,6 +115,7 @@ import { recogniseReceipt } from '@/lib/ocr';
 import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
+import { decodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import {
   editStateFromVersion,
   expenseWritePayload,
@@ -292,6 +293,8 @@ export default function AddExpenseScreen() {
     captureId,
     voice,
     people: voicePeople,
+    payer: handedPayer,
+    split: handedSplit,
     amount: captureAmount,
     description: captureDescription,
     category: captureCategory,
@@ -314,6 +317,10 @@ export default function AddExpenseScreen() {
     voice?: string;
     /** The raw spoken sentence, for matching names to members on a voice hand-off. */
     people?: string;
+    /** An AI-proposed expense's payer (member id), when "Edit" opened this form. */
+    payer?: string;
+    /** And its split, JSON {mode, shares} — see `lib/voiceAgentHandoff`. */
+    split?: string;
     amount?: string;
     description?: string;
     category?: string;
@@ -661,7 +668,30 @@ export default function AddExpenseScreen() {
             ? [...named, myMemberId]
             : named
           : memberRows.map((member) => member.id);
-      setParticipants(chosen);
+      // An AI proposal opened with Edit carries its own payer and split; those
+      // win over the defaults, against this group's real members only.
+      const handed = decodeAgentSplitParams(
+        handedPayer,
+        handedSplit,
+        memberRows.map((member) => member.id),
+      );
+      setParticipants(handed && handed.participants.length > 0 ? handed.participants : chosen);
+      if (handed && handed.participants.length > 0) {
+        setSplitKind(handed.splitKind);
+        setWeights(handed.weights);
+        setPercents(handed.percents);
+        setExacts(
+          Object.fromEntries(
+            Object.entries(handed.exactMinor).map(([memberId, minor]) => [
+              memberId,
+              formatMinorInput(
+                minor,
+                (expenseCurrency ?? group.data?.default_currency ?? 'INR') as CurrencyCode,
+              ),
+            ]),
+          ),
+        );
+      }
       setDescription(
         voice
           ? stripMemberNames(
@@ -685,7 +715,7 @@ export default function AddExpenseScreen() {
       // card payment into cash. A voice hand-off carries none and keeps the
       // default; anything the ledger does not know falls back to it too.
       setPaymentMethod(capturePaymentMethod(capturePayment));
-      seedSolePayer(myMemberId, routeAmount(captureAmount));
+      seedSolePayer(handed?.payer ?? myMemberId, routeAmount(captureAmount));
       if (handedSubEventId) setSubEventId(handedSubEventId);
     } else if (draft) {
       // A draft outranks the saved version: it is what the user was in the
