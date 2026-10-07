@@ -52,12 +52,14 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
   if (!key) throw unavailable('Advanced voice is not configured');
   await deps.rateLimit(profileId);
 
-  const context = await loadContext(deps.caller, profileId, {
+  // The caller's names (for keyterms) and the minted token, together.
+  const contextLoad = loadContext(deps.caller, profileId, {
     schemaVersion: 1,
     locale,
     today: new Date().toISOString().slice(0, 10),
     groupId,
   });
+  contextLoad.catch(() => undefined);
 
   const grant = await deps.fetch('https://api.deepgram.com/v1/auth/grant', {
     method: 'POST',
@@ -73,6 +75,7 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
   const minted = (await grant.json()) as { access_token?: string; expires_in?: number };
   if (!minted.access_token) throw unavailable('Live transcription is not available');
 
+  const context = await contextLoad;
   const body: VoiceStreamTokenResponse = {
     token: minted.access_token,
     url: deepgramStreamUrl(locale, keyterms(context)),

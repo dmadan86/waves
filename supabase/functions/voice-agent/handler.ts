@@ -172,7 +172,11 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
   }
 
-  // Quota before any provider spend; refunded if the providers then fail.
+  // Quota before any provider spend; refunded if the providers then fail. The
+  // caller's groups load alongside it — both are reads the person is waiting
+  // on, and a refused quota simply never uses the context.
+  const contextLoad = loadContext(deps.caller, profileId, body);
+  contextLoad.catch(() => undefined);
   const { data: quotaData, error: quotaError } = await deps.service.rpc('waves_voice_agent_quota', {
     p_profile: profileId,
     p_free_limit: VOICE_AGENT_FREE_MONTHLY,
@@ -185,7 +189,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   }
 
   try {
-    const context = await loadContext(deps.caller, profileId, body);
+    const context = await contextLoad;
     const transcript = spoken || (await transcribe(deps, deepgramKey as string, body, context));
     if (!transcript) {
       throw new HttpError(422, VoiceAgentError.NothingHeard, 'Nothing was heard');
