@@ -31,7 +31,46 @@ const KEEPALIVE_AFTER_MS = 4000;
 /** Audio held back while the socket is still opening (~100 ms chunks). */
 const MAX_PENDING_CHUNKS = 100;
 
+/**
+ * A token fetched ahead — when the voice screen opens — so pressing the mic
+ * starts listening at once instead of after a server round trip (otherwise the
+ * first words of a sentence spoken straight away would fall into that gap). A
+ * token only has to be valid when the socket opens; one is reused for
+ * `TOKEN_REUSE_MS` and then fetched afresh.
+ */
+const TOKEN_REUSE_MS = 40_000;
+let ahead: {
+  key: string;
+  at: number;
+  value: Promise<VoiceStreamTokenResponse | null>;
+} | null = null;
+
+const tokenKey = (request: VoiceStreamTokenRequest): string =>
+  `${request.groupId ?? ''}|${request.locale}`;
+
+/** Start fetching a token now, for a mic press that is likely to follow. */
+export function prefetchStreamToken(request: VoiceStreamTokenRequest): void {
+  const key = tokenKey(request);
+  if (ahead && ahead.key === key && Date.now() - ahead.at < TOKEN_REUSE_MS) return;
+  ahead = { key, at: Date.now(), value: fetchStreamToken(request) };
+}
+
+/** A token for this press: the one fetched ahead if still fresh, else a new one. */
 export async function getStreamToken(
+  request: VoiceStreamTokenRequest,
+): Promise<VoiceStreamTokenResponse | null> {
+  const key = tokenKey(request);
+  if (ahead && ahead.key === key && Date.now() - ahead.at < TOKEN_REUSE_MS) {
+    const held = ahead;
+    // One use: the next press fetches its own (or the next prefetch does).
+    ahead = null;
+    const value = await held.value;
+    if (value) return value;
+  }
+  return fetchStreamToken(request);
+}
+
+async function fetchStreamToken(
   request: VoiceStreamTokenRequest,
 ): Promise<VoiceStreamTokenResponse | null> {
   try {

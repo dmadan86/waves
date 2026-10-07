@@ -37,7 +37,12 @@ import { exampleCountry, voiceExamples } from '@/lib/voiceExamples';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
-import { getStreamToken, startLiveTranscription, type LiveTranscription } from '@/lib/voiceStream';
+import {
+  getStreamToken,
+  prefetchStreamToken,
+  startLiveTranscription,
+  type LiveTranscription,
+} from '@/lib/voiceStream';
 import { VOICE_AGENT_MAX_CLIP_MS } from '@waves/core';
 
 const MIC_SIZE = 104;
@@ -828,6 +833,11 @@ export function VoiceCapture({
   useEffect(() => {
     finishStreamRef.current = finishStream;
   }, [finishStream]);
+
+  // Fetch the stream's token while the screen opens, not on the press.
+  useEffect(() => {
+    if (streamLive) prefetchStreamToken({ groupId, locale });
+  }, [streamLive, groupId, locale]);
 
   /** Try to open the stream. False means "use the on-device recogniser". */
   const beginStream = useCallback(async (): Promise<boolean> => {
