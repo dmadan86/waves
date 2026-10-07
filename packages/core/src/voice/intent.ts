@@ -25,16 +25,24 @@ import { normaliseDigits } from '../text/digits';
 import { normaliseSpokenAmounts } from '../text/spokenAmount';
 import {
   isMeWord,
+  nameKey,
   resolveSpokenGroup,
   resolveSpokenName,
   type GroupResolution,
+  type LearnedName,
+  type NameResolution,
+  type NameSpan,
   type VoiceGroupCandidate,
   type VoiceNameCandidate,
 } from './names';
 
 export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'full_on';
 
-export type PartyStatus = 'me' | 'resolved' | 'ambiguous' | 'unresolved';
+/**
+ * `resolved` is filled in; `suggested` is "Did you mean …?" (the suggestion is
+ * `candidates[0]`); `ambiguous` is "A or B?"; `unresolved` is nobody.
+ */
+export type PartyStatus = 'me' | 'resolved' | 'suggested' | 'ambiguous' | 'unresolved';
 
 export interface VoiceParty {
   readonly kind: 'me' | 'member';
@@ -42,10 +50,18 @@ export interface VoiceParty {
   readonly name: string;
   readonly memberId?: string;
   readonly status: PartyStatus;
-  /** Who it might be, when `ambiguous`. */
+  /** Who it might be, when `ambiguous`; the suggestion first, when `suggested`. */
   readonly candidates?: readonly VoiceNameCandidate[];
   /** Matched by sound rather than spelling ("rainy" for Renny). */
   readonly fuzzy?: boolean;
+  /** The words as heard, kept when `name` becomes the member's own name. */
+  readonly heard?: string;
+  /** How sure the sentence is that these words are a person. */
+  readonly span?: NameSpan;
+  /** The same words as the recogniser's other hypotheses heard them. */
+  readonly alternatives?: readonly string[];
+  /** Only another hypothesis had a person here: never filled in unasked. */
+  readonly alternativeOnly?: boolean;
 }
 
 export interface VoicePayer extends VoiceParty {
@@ -110,6 +126,26 @@ export interface VoiceIntentContext {
   /** The group the mic was opened inside, used when the sentence names none. */
   readonly currentGroupId?: string | null;
   readonly now?: Date;
+  /**
+   * The recogniser's other hypotheses for the same utterance, best first (its
+   * n-best list without the top one). Names are scored across all of them.
+   */
+  readonly alternatives?: readonly string[];
+  /** This user's confirmed corrections for the group being spoken into. */
+  readonly learned?: readonly LearnedName[];
+}
+
+/** What the reader settled by hand, per heard phrase ({@link nameKey}): member id. */
+export type NamePicks = Readonly<Record<string, string>>;
+
+export interface ResolvePeopleOptions {
+  readonly learned?: readonly LearnedName[];
+  readonly picks?: NamePicks;
+}
+
+/** A clear leader exists for the phrase, filled in or only suggested. */
+function leads(resolution: NameResolution): boolean {
+  return resolution.status === 'resolved' || resolution.status === 'suggested';
 }
 
 /* ───────────────────────────── vocabulary ───────────────────────────── */
@@ -324,6 +360,47 @@ const NOT_NAME = new Set([
 const EVERYONE_WORDS = new Set(['everyone', 'everybody', 'all', 'sab', 'sabhi', 'sabko', 'sabke']);
 
 const SEPARATORS = new Set(['and', 'aur', '&', ',', 'plus', '+']);
+
+/** Words that may follow a person's name and start the next part of the sentence. */
+const AFTER_PERSON = new Set([
+  'paid',
+  'pays',
+  'pay',
+  'split',
+  'equally',
+  'evenly',
+  'each',
+  'too',
+  'also',
+  'only',
+  'please',
+  'today',
+  'yesterday',
+  'tonight',
+  'kal',
+  'aaj',
+  'last',
+  'this',
+  'in',
+  'into',
+  'to',
+  'on',
+  'at',
+  'from',
+  'by',
+  'with',
+  'ko',
+  'ke',
+  'ka',
+  'ki',
+  'se',
+  'ne',
+  'mein',
+  'liye',
+  'owes',
+  'owe',
+  'rs',
+]);
 
 const PAY_VERBS = new Set([
   'paid',
@@ -554,8 +631,33 @@ const NEVER_PART_OF_A_NAME = new Set([
   'se',
 ]);
 
+/** Who a phrase means among the group being spoken into. */
+type NameFit = (phrase: string) => NameResolution;
+
 /** What a recogniser writes for "paid" after a name: "madhan p 500", "bilal pit 500". */
 const MISHEARD_PAID = new Set(['p', 'pid', 'pit', 'peed']);
+
+/** What a recogniser writes for "for" between an amount and a name: "8000 phil madden". */
+const MISHEARD_FOR = new Set([
+  'full',
+  'phil',
+  'fill',
+  'film',
+  'fil',
+  'fold',
+  'folds',
+  'ferry',
+  'ferri',
+  'fur',
+  'far',
+  'foe',
+  'fo',
+  'fore',
+  'four',
+]);
+
+/** "for" run into the name after an amount: "8000 fipria", "8000 ferranu". */
+const GLUED_FOR = /^(for|fer|fir|fur|far|fi|fe|fo|f)(?=[a-z]{3,}$)/;
 
 /**
  * Undo what a recogniser does to a name it doesn't know, when the group says
@@ -567,9 +669,9 @@ const MISHEARD_PAID = new Set(['p', 'pid', 'pit', 'peed']);
  * - "for" heard as "full" between an amount and a name ("8000 full renny");
  * - "paid" heard as "p" or "pit" between a name and an amount.
  */
-function repairMisheard(tokens: string[], members: readonly VoiceNameCandidate[]): string[] {
-  if (members.length === 0) return tokens;
-  const known = (word: string): boolean => resolveSpokenName(word, members).status !== 'unresolved';
+function repairMisheard(tokens: string[], fit: NameFit | null): string[] {
+  if (!fit) return tokens;
+  const known = (word: string): boolean => fit(word).status !== 'unresolved';
   const out: string[] = [];
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i] ?? '';
@@ -589,16 +691,24 @@ function repairMisheard(tokens: string[], members: readonly VoiceNameCandidate[]
       splittable(next) &&
       !known(token) &&
       !known(next) &&
-      resolveSpokenName(`${token} ${next}`, members).status === 'resolved'
+      leads(fit(`${token} ${next}`))
     ) {
       out.push(token + next);
       i += 1;
       continue;
     }
     const prev = out[out.length - 1];
-    if (token === 'full' && prev !== undefined && isNumber(prev) && next && known(next)) {
+    if (MISHEARD_FOR.has(token) && prev !== undefined && isNumber(prev) && next && known(next)) {
       out.push('for');
       continue;
+    }
+    const glued = GLUED_FOR.exec(token);
+    if (glued && prev !== undefined && isNumber(prev) && !known(token)) {
+      const rest = token.slice(glued[0].length);
+      if (leads(fit(rest))) {
+        out.push('for', rest);
+        continue;
+      }
     }
     if (
       MISHEARD_PAID.has(token) &&
@@ -621,13 +731,13 @@ function repairMisheard(tokens: string[], members: readonly VoiceNameCandidate[]
  * word after such a number is somebody in the group, read it as the round
  * amount and "for" again. A real 8004 before a name is far rarer than this.
  */
-function unglueFor(tokens: string[], members: readonly VoiceNameCandidate[]): string[] {
-  if (members.length === 0) return tokens;
+function unglueFor(tokens: string[], fit: NameFit | null): string[] {
+  if (!fit) return tokens;
   const out: string[] = [];
   tokens.forEach((token, i) => {
     const next = tokens[i + 1];
     const glued = /^[1-9]\d*4$/.test(token) && next !== undefined && /^\p{L}/u.test(next);
-    if (!glued || resolveSpokenName(next, members).status === 'unresolved') {
+    if (!glued || fit(next).status === 'unresolved') {
       out.push(token);
       return;
     }
@@ -663,6 +773,7 @@ type ListKind = 'with' | 'between' | 'for' | 'subject';
 interface RawName {
   readonly text: string;
   readonly everyone?: boolean;
+  readonly span?: NameSpan;
 }
 
 interface SharePair {
@@ -676,7 +787,19 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   const members = ctx.members ?? [];
   const groups = ctx.groups ?? [];
   const memberMode = members.length > 0;
-  const tok = repairMisheard(unglueFor(tokenise(prepare(transcript)), members), members);
+  const learned = ctx.learned ?? [];
+  const fitCache = new Map<string, NameResolution>();
+  const fit: NameFit | null = memberMode
+    ? (phrase) => {
+        let found = fitCache.get(phrase);
+        if (!found) {
+          found = resolveSpokenName(phrase, members, { learned });
+          fitCache.set(phrase, found);
+        }
+        return found;
+      }
+    : null;
+  const tok = repairMisheard(unglueFor(tokenise(prepare(transcript)), fit), fit);
   const n = tok.length;
   /** The token at `i`, or an empty string past either end. */
   const at = (i: number): string => tok[i] ?? '';
@@ -701,7 +824,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   /** Does this phrase point at somebody the group actually has? */
   const knownName = (phrase: string): boolean => {
     if (isMeWord(phrase)) return true;
-    return resolveSpokenName(phrase, members).status !== 'unresolved';
+    return fit !== null && fit(phrase).status !== 'unresolved';
   };
 
   // Lead-in fillers ("add expense", "hey") leave the sentence untouched.
@@ -1034,7 +1157,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
 
   /* ── people and how it splits ── */
 
-  const lists: { kind: ListKind; names: RawName[] }[] = [];
+  const lists: { kind: ListKind; names: RawName[]; span: NameSpan }[] = [];
   let everyone = false;
   let splitMode: VoiceSplitMode = 'equal';
   let fullOnNames: RawName[] | null = null;
@@ -1045,15 +1168,44 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     if (EVERYONE_WORDS.has(at(i))) return { text: at(i), end: i + 1 };
     if (memberMode && nameLike(i + 1) && !EVERYONE_WORDS.has(at(i + 1))) {
       const two = `${at(i)} ${at(i + 1)}`;
-      if (resolveSpokenName(two, members).status === 'resolved' && !isMeWord(at(i + 1)))
-        return { text: two, end: i + 2 };
+      if (fit && leads(fit(two)) && !isMeWord(at(i + 1))) return { text: two, end: i + 2 };
     }
     if (strict && !knownName(at(i))) return null;
     return { text: at(i), end: i + 1 };
   };
 
-  /** "arjun and meera and me" going forward; stops at the first thing that is not a name. */
-  const listAfter = (start: number, strict: boolean): { names: RawName[]; end: number } | null => {
+  /**
+   * What may follow a person in a weak slot: the end, a number or currency, a
+   * separator, a date word, a split word or a preposition that starts the next
+   * part ("for ravi in goa trip"). A second "for" ("for ravi for dinner") only
+   * after a name filled in outright, not one that merely sounds like somebody.
+   */
+  const endsPersonPhrase = (i: number, names: readonly RawName[]): boolean => {
+    const next = at(i);
+    if (i >= n || !isAlpha(next)) return true;
+    if (isMeWord(next) || EVERYONE_WORDS.has(next) || CURRENCY_WORDS.has(next)) return true;
+    if (AFTER_PERSON.has(next) || SEPARATORS.has(next)) return true;
+    if (next === 'for')
+      return names.every(
+        (name) =>
+          name.everyone === true ||
+          isMeWord(name.text) ||
+          (fit !== null && fit(name.text).status === 'resolved'),
+      );
+    return false;
+  };
+
+  /**
+   * "arjun and meera and me" going forward; stops at the first thing that is not a name.
+   * `weak` is a slot a description fits too ("for …", a bare "with …"): there
+   * the names must end the phrase, or the words are a description that merely
+   * sounds like somebody — "for rainy day taxi", "for a nice dinner".
+   */
+  const listAfter = (
+    start: number,
+    strict: boolean,
+    weak = false,
+  ): { names: RawName[]; end: number } | null => {
     const names: RawName[] = [];
     let i = start;
     for (;;) {
@@ -1080,6 +1232,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     // "for rose flowers" is a description, not a person: a weak list must not
     // run straight into another word that could be a name.
     if (strict && nameLike(i) && !isMeWord(at(i)) && !EVERYONE_WORDS.has(at(i))) return null;
+    if (weak && !endsPersonPhrase(i, names)) return null;
     return names.length > 0 ? { names, end: i } : null;
   };
 
@@ -1126,7 +1279,11 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       continue;
     const list = listAfter(c + 1, false);
     if (!list) continue;
-    lists.push({ kind: at(c) === 'with' ? 'with' : 'between', names: [...list.names] });
+    lists.push({
+      kind: at(c) === 'with' ? 'with' : 'between',
+      names: [...list.names],
+      span: 'strong',
+    });
     mark(s, s + 1);
     mark(c, list.end);
     break;
@@ -1139,7 +1296,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       if (isNumber(at(c + 1))) continue;
       const list = listAfter(c + 1, memberMode);
       if (!list) continue;
-      lists.push({ kind: 'between', names: [...list.names] });
+      lists.push({ kind: 'between', names: [...list.names], span: 'strong' });
       mark(c, list.end);
       break;
     }
@@ -1156,7 +1313,11 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       if (!(saath || beech || mein) || !free(k)) continue;
       const list = listBefore(k);
       if (!list) continue;
-      lists.push({ kind: saath ? 'with' : 'between', names: list.names.map((text) => ({ text })) });
+      lists.push({
+        kind: saath ? 'with' : 'between',
+        names: list.names.map((text) => ({ text })),
+        span: 'strong',
+      });
       mark(list.start, k + (mein ? 1 : 2));
       break;
     }
@@ -1166,9 +1327,9 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   if (lists.length === 0 && memberMode) {
     for (let f = 0; f < n; f += 1) {
       if (!free(f) || at(f) !== 'for') continue;
-      const list = listAfter(f + 1, true);
+      const list = listAfter(f + 1, true, true);
       if (!list) continue;
-      lists.push({ kind: 'for', names: [...list.names] });
+      lists.push({ kind: 'for', names: [...list.names], span: 'weak' });
       mark(f, list.end);
       break;
     }
@@ -1178,9 +1339,9 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   if (lists.length === 0 && memberMode) {
     for (let w = 0; w < n; w += 1) {
       if (!free(w) || at(w) !== 'with') continue;
-      const list = listAfter(w + 1, true);
+      const list = listAfter(w + 1, true, true);
       if (!list) continue;
-      lists.push({ kind: 'with', names: [...list.names] });
+      lists.push({ kind: 'with', names: [...list.names], span: 'weak' });
       mark(w, list.end);
       break;
     }
@@ -1197,7 +1358,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       const known = list.names.every((name) => knownName(name));
       if (memberMode ? !known : !(joined && list.start === 0)) continue;
       if (!memberMode && list.start !== 0) continue;
-      lists.push({ kind: 'subject', names: list.names.map((text) => ({ text })) });
+      lists.push({ kind: 'subject', names: list.names.map((text) => ({ text })), span: 'strong' });
       mark(list.start, s + 1);
       break;
     }
@@ -1597,15 +1758,18 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     // "i owe nothing" names nobody itself; whoever it was said for owes it.
     const spoken = lists[0]?.names.filter((name) => !name.everyone) ?? [];
     people = fullOnNames.length === 0 && spoken.length > 0 ? spoken : fullOnNames;
+    if (people === spoken) people = spoken.map((name) => ({ ...name, span: lists[0]?.span }));
     kind = 'for';
   } else if (pairs.length > 0) {
     splitMode = pairs.some((p) => p.percent) ? 'percent' : 'exact';
-    people = pairs.map((p) => ({ text: p.name }));
+    people = pairs.map((p) => ({ text: p.name, span: 'weak' }));
     kind = 'between';
   } else if (lists.length > 0) {
     const first = lists[0];
     kind = first?.kind;
-    people = first?.names.filter((name) => !name.everyone);
+    people = first?.names
+      .filter((name) => !name.everyone)
+      .map((name) => ({ ...name, span: first.span }));
   }
   if (bareShares) splitMode = 'percent';
 
@@ -1636,7 +1800,13 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       participants = ordered.map((name, index): VoiceParticipant => {
         const base: VoiceParticipant = isMeWord(name.text)
           ? { kind: 'me', name: 'me', status: 'me' }
-          : { kind: 'member', name: name.text, status: 'unresolved' };
+          : {
+              kind: 'member',
+              name: name.text,
+              status: 'unresolved',
+              heard: name.text,
+              span: name.span ?? 'strong',
+            };
         const pair = pairs.find((p) => keyOf(p.name) === keyOf(name.text));
         if (pair && splitMode === 'exact')
           return { ...base, exactMinor: toMinor(pair.value, currency) };
@@ -1670,6 +1840,8 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
               kind: 'member',
               name: payerName,
               status: 'unresolved',
+              heard: payerName,
+              span: 'strong',
               exactMinor: amountMinor - sum,
             },
       ];
@@ -1679,7 +1851,14 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
 
   let payer: VoicePayer = payerIsMe
     ? { kind: 'me', name: 'me', status: 'me', explicit: payerExplicit }
-    : { kind: 'member', name: payerName, status: 'unresolved', explicit: payerExplicit };
+    : {
+        kind: 'member',
+        name: payerName,
+        status: 'unresolved',
+        explicit: payerExplicit,
+        heard: payerName,
+        span: 'strong',
+      };
 
   // Group status
   let groupSource: VoiceIntent['groupSource'] = 'none';
@@ -1724,19 +1903,104 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     hasSocialDetail:
       (payerExplicit && !payerIsMe) || participants !== undefined || splitMode !== 'equal',
   };
-  if (memberMode) intent = resolveIntentPeople(intent, members);
+  if (ctx.alternatives && ctx.alternatives.length > 0) intent = withAlternatives(intent, ctx);
+  if (memberMode) intent = resolveIntentPeople(intent, members, { learned });
   payer = intent.payer;
   return intent;
+}
+
+/** The people slots of an intent that name somebody: the payer, then each participant. */
+function personSlots(intent: VoiceIntent): { role: 'payer' | 'participant'; heard: string }[] {
+  const slots: { role: 'payer' | 'participant'; heard: string }[] = [];
+  if (intent.payer.kind === 'member')
+    slots.push({ role: 'payer', heard: intent.payer.heard ?? '' });
+  for (const party of intent.participants ?? [])
+    if (party.kind === 'member') slots.push({ role: 'participant', heard: party.heard ?? '' });
+  return slots;
+}
+
+/** Hypotheses beyond the top one that are worth reading. */
+const MAX_ALTERNATIVES = 4;
+
+/**
+ * Read the recogniser's other hypotheses and hang what each heard in the same
+ * people slots onto the parties, so the names are scored across all of them.
+ *
+ * The slots are lined up by role and order (the payer with the payer, the
+ * second person named with the second). When the top hypothesis named nobody
+ * at all but another names somebody for the same amount ("8000 for a room" /
+ * "8000 for arun"), that one is read instead — but a person found only there is
+ * never filled in unasked.
+ */
+function withAlternatives(intent: VoiceIntent, ctx: VoiceIntentContext): VoiceIntent {
+  const seen = new Set([intent.transcript.trim().toLowerCase()]);
+  const others: VoiceIntent[] = [];
+  for (const text of ctx.alternatives ?? []) {
+    const key = text.trim().toLowerCase();
+    if (!key || seen.has(key) || others.length >= MAX_ALTERNATIVES) continue;
+    seen.add(key);
+    others.push(parseVoiceIntent(text, { ...ctx, alternatives: undefined }));
+  }
+  if (others.length === 0) return intent;
+
+  let frame = intent;
+  let pool = others;
+  let alternativeOnly = false;
+  if (personSlots(intent).length === 0) {
+    const richer = others.find(
+      (other) => personSlots(other).length > 0 && other.amountMinor === intent.amountMinor,
+    );
+    if (richer) {
+      frame = { ...richer, transcript: intent.transcript };
+      pool = [intent, ...others.filter((other) => other !== richer)];
+      alternativeOnly = true;
+    }
+  }
+  const payerHeard = pool
+    .filter((other) => other.payer.kind === 'member' && other.payer.explicit)
+    .map((other) => other.payer.heard ?? other.payer.name);
+  const participantHeard = pool.map((other) =>
+    (other.participants ?? []).filter((party) => party.kind === 'member'),
+  );
+  const enrich = <T extends VoiceParty>(party: T, alternatives: string[]): T => {
+    if (party.kind !== 'member') return party;
+    const own = nameKey(party.heard ?? party.name);
+    const distinct = [...new Set(alternatives.filter((heard) => nameKey(heard) !== own))];
+    return {
+      ...party,
+      ...(distinct.length > 0 ? { alternatives: distinct } : {}),
+      ...(alternativeOnly ? { alternativeOnly: true } : {}),
+    };
+  };
+  let ordinal = 0;
+  const participants = frame.participants?.map((party) => {
+    if (party.kind !== 'member') return party;
+    const index = ordinal;
+    ordinal += 1;
+    return enrich(
+      party,
+      participantHeard.flatMap((list) => {
+        const match = list[index];
+        return match ? [match.heard ?? match.name] : [];
+      }),
+    );
+  });
+  return {
+    ...frame,
+    payer: frame.payer.explicit ? enrich(frame.payer, payerHeard) : frame.payer,
+    ...(participants ? { participants } : {}),
+  };
 }
 
 /**
  * Match the payer's and participants' spoken names against a group's members.
  * Run again whenever the group changes — the same words mean different people in
- * different groups.
+ * different groups — or when the reader settles a name by hand (`picks`).
  */
 export function resolveIntentPeople(
   intent: VoiceIntent,
   members: readonly VoiceNameCandidate[],
+  options: ResolvePeopleOptions = {},
 ): VoiceIntent {
   const notes = [...intent.notes];
   const note = (code: string): void => {
@@ -1748,29 +2012,97 @@ export function resolveIntentPeople(
       const me = members.find((m) => m.isMe);
       return me ? { ...party, memberId: me.id } : party;
     }
-    const result = resolveSpokenName(party.name, members);
+    const heard = party.heard ?? party.name;
+    const picked = options.picks?.[nameKey(heard)];
+    const pickedMember = picked ? members.find((m) => m.id === picked) : undefined;
+    if (pickedMember) {
+      return {
+        ...party,
+        kind: pickedMember.isMe ? 'me' : 'member',
+        name: pickedMember.isMe ? 'me' : pickedMember.name,
+        memberId: pickedMember.id,
+        status: pickedMember.isMe ? 'me' : 'resolved',
+        heard,
+        fuzzy: false,
+        candidates: undefined,
+      };
+    }
+    let result = resolveSpokenName(heard, members, {
+      alternatives: party.alternatives,
+      learned: options.learned,
+      span: party.span,
+    });
+    // Found only in another hypothesis: offered, never filled in.
+    if (party.alternativeOnly && result.status === 'resolved') {
+      const id = result.id;
+      const member = members.find((m) => m.id === id);
+      if (member)
+        result = {
+          status: 'suggested',
+          id: member.id,
+          name: member.name,
+          score: result.score,
+          candidates: [member],
+        };
+    }
     if (result.status === 'me') {
       const me = members.find((m) => m.isMe);
-      return { ...party, kind: 'me', name: 'me', status: 'me', ...(me ? { memberId: me.id } : {}) };
+      return {
+        ...party,
+        kind: 'me',
+        name: 'me',
+        status: 'me',
+        heard,
+        ...(me ? { memberId: me.id } : {}),
+      };
     }
     if (result.status === 'resolved') {
-      if (result.fuzzy) note(`name_fuzzy:${party.name}->${result.name}`);
+      if (result.fuzzy) note(`name_fuzzy:${heard}->${result.name}`);
       return {
         ...party,
         kind: 'member',
         name: result.name,
         memberId: result.id,
         status: 'resolved',
+        heard,
         fuzzy: result.fuzzy,
         candidates: undefined,
       };
     }
-    if (result.status === 'ambiguous') {
-      note(`name_ambiguous:${party.name}`);
-      return { ...party, status: 'ambiguous', candidates: result.candidates, memberId: undefined };
+    if (result.status === 'suggested') {
+      note(`name_suggested:${heard}->${result.name}`);
+      return {
+        ...party,
+        kind: 'member',
+        name: heard,
+        status: 'suggested',
+        heard,
+        candidates: result.candidates,
+        memberId: undefined,
+      };
     }
-    note(`name_unresolved:${party.name}`);
-    return { ...party, status: 'unresolved', memberId: undefined, candidates: undefined };
+    if (result.status === 'ambiguous') {
+      note(`name_ambiguous:${heard}`);
+      return {
+        ...party,
+        kind: 'member',
+        name: heard,
+        status: 'ambiguous',
+        heard,
+        candidates: result.candidates,
+        memberId: undefined,
+      };
+    }
+    note(`name_unresolved:${heard}`);
+    return {
+      ...party,
+      kind: 'member',
+      name: heard,
+      status: 'unresolved',
+      heard,
+      memberId: undefined,
+      candidates: undefined,
+    };
   };
 
   const payer = resolve(intent.payer);
