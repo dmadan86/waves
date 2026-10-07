@@ -1,8 +1,15 @@
 <!doctype html>
-<html>
-  <body style="margin: 0; padding: 0; background: #f4f4f2">
-    <!-- Preview text: what the inbox list shows beside the subject. Hidden in
-         the mail itself by the zero height + hidden colour. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light only" />
+    <title>Waves verification code</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #ffffff">
+    <!-- Preview text: shown beside the subject in the inbox list. Hidden in the
+         mail itself. Code first, matching the subject. -->
     <div
       style="
         display: none;
@@ -14,138 +21,124 @@
         width: 0;
       "
     >
-      Your code is {{ .Token }}. Confirm the new address on your Waves account.
+      {{ .Token }} is your Waves verification code. It expires in 15 minutes.
     </div>
     <table
       role="presentation"
       width="100%"
       cellpadding="0"
       cellspacing="0"
-      style="background: #f4f4f2; padding: 32px 16px"
+      border="0"
+      style="background: #ffffff"
+      bgcolor="#ffffff"
     >
       <tr>
-        <td align="center">
+        <td align="center" style="padding: 40px 24px">
           <table
             role="presentation"
             width="100%"
             cellpadding="0"
             cellspacing="0"
-            style="max-width: 480px; background: #ffffff; border-radius: 16px"
+            border="0"
+            style="max-width: 600px"
           >
             <tr>
               <td
                 style="
-                  padding: 32px 32px 0;
                   font-family:
-                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-                    sans-serif;
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+                  color: #111827;
+                  text-align: left;
                 "
               >
-                <p
+                <!-- The app icon, hosted in the public `email-assets` bucket: Gmail strips
+                     inline SVG and data URIs, so a mail logo must be a plain https image. -->
+                <img
+                  src="https://ywojpnfyxxltvihqmcni.supabase.co/storage/v1/object/public/email-assets/waves-icon-192.png"
+                  width="64"
+                  height="64"
+                  alt="Waves"
                   style="
-                    margin: 0 0 28px;
-                    font-size: 15px;
-                    font-weight: 700;
-                    letter-spacing: -0.2px;
-                    color: #4f9a2e;
+                    display: block;
+                    width: 64px;
+                    height: 64px;
+                    border: 0;
+                    border-radius: 14px;
+                    margin: 0 0 32px;
                   "
-                >
-                  Waves
-                </p>
+                />
                 <h1
                   style="
-                    margin: 0 0 10px;
+                    margin: 0 0 12px;
                     font-size: 24px;
-                    line-height: 1.25;
+                    line-height: 1.3;
                     font-weight: 700;
-                    letter-spacing: -0.5px;
-                    color: #12100e;
+                    color: #111827;
                   "
                 >
-                  Confirm your new address
+                  Verification code
                 </h1>
-                <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #57534e">
-                  Type this into Waves to move your account to {{ .NewEmail }}.
+                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #374151">
+                  Enter this code in the Waves app to confirm your new email, {{ .NewEmail }}.
                 </p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 0 32px">
+                <p
+                  style="
+                    margin: 0 0 24px;
+                    font-size: 40px;
+                    line-height: 1.2;
+                    font-weight: 700;
+                    letter-spacing: 8px;
+                    color: #111827;
+                  "
+                >
+                  {{ .Token }}
+                </p>
+                <p style="margin: 0 0 40px; font-size: 16px; line-height: 1.6; color: #374151">
+                  This code expires in 15 minutes. To protect your account, don't share it with
+                  anyone.
+                </p>
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    font-weight: 700;
+                    color: #111827;
+                  "
+                >
+                  Didn't request this?
+                </p>
+                <p style="margin: 0 0 32px; font-size: 16px; line-height: 1.6; color: #374151">
+                  If you didn't try to change the email on your Waves account, you can safely ignore
+                  this email &mdash; no one can get in without this code.
+                </p>
                 <table
                   role="presentation"
                   width="100%"
                   cellpadding="0"
                   cellspacing="0"
-                  style="border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9"
+                  border="0"
+                  style="border-top: 1px dashed #d1d5db"
                 >
                   <tr>
                     <td
-                      align="center"
                       style="
-                        padding: 20px 12px;
-                        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                        font-size: 34px;
-                        line-height: 1.1;
-                        font-weight: 700;
-                        letter-spacing: 10px;
-                        text-indent: 10px;
-                        color: #12100e;
+                        padding-top: 24px;
+                        font-family:
+                          -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+                          sans-serif;
+                        font-size: 13px;
+                        line-height: 1.6;
+                        color: #6b7280;
                       "
                     >
-                      {{ .Token }}
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: #78716c">
-                  Expires in 15 minutes, and works once.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td
-                style="
-                  padding: 28px 32px 32px;
-                  font-family:
-                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-                    sans-serif;
-                "
-              >
-                <table
-                  role="presentation"
-                  width="100%"
-                  cellpadding="0"
-                  cellspacing="0"
-                  style="border-top: 1px solid #f0efed"
-                >
-                  <tr>
-                    <td style="padding-top: 20px">
-                      <p
-                        style="margin: 0 0 10px; font-size: 13px; line-height: 1.6; color: #57534e"
-                      >
-                        Did not ask to change your address? Ignore this &mdash; nothing moves
-                        without the code, and your current address keeps working.
-                      </p>
-                      <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #a8a29e">
-                        Waves will never ask you for this code &mdash; not by email, not on a call,
-                        not in a chat.
-                      </p>
+                      &copy; 2026 Waves &middot; wavs.co.in
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
           </table>
-          <p
-            style="
-              margin: 16px 0 0;
-              font-family:
-                -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              font-size: 12px;
-              color: #a8a29e;
-            "
-          >
-            Sent to {{ .Email }} &middot; Waves
-          </p>
         </td>
       </tr>
     </table>
