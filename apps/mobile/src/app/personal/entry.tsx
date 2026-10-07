@@ -73,6 +73,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
@@ -313,7 +314,7 @@ function EntryForm({
           style={{
             paddingHorizontal: theme.spacing.lg,
             marginTop: -theme.spacing.lg,
-            gap: theme.spacing.lg,
+            gap: theme.spacing.md,
           }}
         >
           {/* Which way the money went — the one question that has to be answered
@@ -667,10 +668,13 @@ function EntryHeader({
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  // The picture fills the header: its natural height at this width, or the room
-  // the title needs, whichever is taller — `cover` then crops the sides rather
-  // than ever stretching it.
-  const artHeight = Math.max(Math.round(width / ENTRY_ART_RATIO), insets.top + 230);
+  // One row (the back button and the title block) plus a little scene room
+  // under it; the picture is its natural height at this width or that, whichever
+  // is taller — `cover` crops the sides rather than ever stretching it.
+  const artHeight = Math.max(
+    Math.round(width / ENTRY_ART_RATIO),
+    insets.top + HEADER_ROW + SCENE_ROOM,
+  );
   return (
     <View style={{ minHeight: artHeight }}>
       <Image
@@ -699,56 +703,41 @@ function EntryHeader({
           height: artHeight * 0.28 + 1,
         }}
       />
-      <View
+      <Row
         style={{
-          paddingTop: insets.top + theme.spacing.sm,
+          paddingTop: insets.top + theme.spacing.xs,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.xxl,
+          paddingBottom: SCENE_ROOM,
+          alignItems: 'center',
+          gap: theme.spacing.md,
         }}
       >
-        <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <IconButton label={t.common.back} onPress={() => router.back()}>
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.xl}
-              color={inkOf(theme)}
-            />
-          </IconButton>
-          {onDelete ? (
-            <IconButton label={t.common.delete} onPress={onDelete}>
-              <Ionicons name="trash-outline" size={iconSize.md} color={theme.color.negative} />
-            </IconButton>
-          ) : null}
-        </Row>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={{
-            marginTop: theme.spacing.lg,
-            maxWidth: '72%',
-            fontSize: 34,
-            lineHeight: 40,
-            fontWeight: '800',
-            color: inkOf(theme),
-          }}
-        >
-          {title}
-        </Text>
-        {subtitle ? (
+        <TranslucentBackButton
+          dark={theme.scheme !== 'dark'}
+          label={t.common.back}
+          onPress={() => router.back()}
+        />
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text
-            style={{
-              marginTop: 4,
-              maxWidth: '64%',
-              fontSize: 17,
-              lineHeight: 23,
-              color: mutedOf(theme),
-            }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            style={{ fontSize: 19, lineHeight: 24, fontWeight: '800', color: inkOf(theme) }}
           >
-            {subtitle}
+            {title}
           </Text>
+          {subtitle ? (
+            <Text numberOfLines={1} style={{ fontSize: 13, lineHeight: 17, color: mutedOf(theme) }}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {onDelete ? (
+          <IconButton label={t.common.delete} onPress={onDelete}>
+            <Ionicons name="trash-outline" size={iconSize.md} color={theme.color.negative} />
+          </IconButton>
         ) : null}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -773,8 +762,8 @@ function KindToggle({
     <Row
       accessibilityRole="tablist"
       style={{
-        padding: 4,
-        borderRadius: 30,
+        padding: 3,
+        borderRadius: 24,
         backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
       }}
     >
@@ -790,8 +779,8 @@ function KindToggle({
             onPress={() => onChange(option.value)}
             style={({ pressed }) => ({
               flex: 1,
-              height: 50,
-              borderRadius: 26,
+              height: 34,
+              borderRadius: 20,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
@@ -804,11 +793,11 @@ function KindToggle({
                 in and down for money received. */}
             <Ionicons
               name={option.icon}
-              size={18}
+              size={16}
               color={ink}
               style={{ transform: [{ rotate: '45deg' }] }}
             />
-            <Text style={{ fontSize: 17, fontWeight: '600', color: ink }}>{option.label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: ink }}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -838,28 +827,29 @@ function AmountCard({
   return (
     <View
       style={{
-        gap: theme.spacing.md,
-        padding: theme.spacing.lg,
-        borderRadius: 24,
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: 20,
         backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F1F0FA',
       }}
     >
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
           }}
         >
-          <Text style={{ fontSize: 22, fontWeight: '700', color: accentOf(theme) }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: accentOf(theme) }}>
             {currencySymbol(currency as CurrencyCode)}
           </Text>
         </View>
-        <View style={{ width: 1.5, height: 44, backgroundColor: accentOf(theme), opacity: 0.6 }} />
+        <View style={{ width: 1.5, height: 28, backgroundColor: accentOf(theme), opacity: 0.6 }} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <AmountField
             currency={currency as CurrencyCode}
@@ -870,6 +860,7 @@ function AmountCard({
             }}
             showSymbol={false}
             align="start"
+            size="hero"
           />
         </View>
         <Pressable
@@ -879,9 +870,9 @@ function AmountCard({
           onPress={() => setCalculating((open) => !open)}
           hitSlop={4}
           style={({ pressed }) => ({
-            width: 46,
-            height: 46,
-            borderRadius: 23,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: calculating ? theme.color.brandSoft : theme.color.surface,
@@ -940,7 +931,7 @@ function QuickPicks({
   return (
     <View style={{ gap: theme.spacing.md }}>
       <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 19, fontWeight: '600', color: inkOf(theme) }}>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: inkOf(theme) }}>
           {income ? t.personal.entryScreen.source : t.personal.entryScreen.category}
         </Text>
         <Pressable
@@ -955,7 +946,7 @@ function QuickPicks({
             opacity: pressed ? 0.5 : 1,
           })}
         >
-          <Text style={{ fontSize: 15, color: mutedOf(theme) }}>
+          <Text style={{ fontSize: 13, color: mutedOf(theme) }}>
             {t.personal.entryScreen.viewAll}
           </Text>
           <Ionicons
@@ -996,7 +987,7 @@ function QuickPicks({
                 backgroundColor: theme.color.surfaceMuted,
               }}
             >
-              <Ionicons name="ellipsis-horizontal" size={22} color={inkOf(theme)} />
+              <Ionicons name="ellipsis-horizontal" size={20} color={inkOf(theme)} />
             </View>
           }
         />
@@ -1028,9 +1019,9 @@ function PickTile({
         flex: 1,
         minWidth: 0,
         alignItems: 'center',
-        gap: 6,
-        paddingVertical: 8,
-        borderRadius: 18,
+        gap: 4,
+        paddingVertical: 6,
+        borderRadius: 16,
         borderWidth: 1.5,
         borderColor: selected ? accentOf(theme) : 'transparent',
         backgroundColor: selected && theme.scheme !== 'dark' ? '#FFFFFF' : 'transparent',
@@ -1043,7 +1034,7 @@ function PickTile({
         adjustsFontSizeToFit
         minimumFontScale={0.8}
         style={{
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: selected ? '600' : '500',
           color: selected ? accentOf(theme) : inkOf(theme),
         }}
@@ -1072,7 +1063,7 @@ function SourceDisc({ id }: { id: string }) {
     >
       <Ionicons
         name={(source?.icon ?? 'cash-outline') as keyof typeof Ionicons.glyphMap}
-        size={22}
+        size={20}
         color={tint.ink}
       />
     </View>
@@ -1091,10 +1082,18 @@ function NoteCard({
 }) {
   const theme = useTheme();
   return (
-    <FormCard style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.lg }}>
-      <Ionicons name="document-text-outline" size={26} color={inkOf(theme)} />
+    <FormCard
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+      }}
+    >
+      <Ionicons name="document-text-outline" size={22} color={inkOf(theme)} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={{ fontSize: 17, fontWeight: '600', color: mutedOf(theme) }}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: mutedOf(theme) }}>
           {t.personal.entryScreen.whatFor}
         </Text>
         {/* The shared note field, so the note can be spoken as well as typed —
@@ -1248,7 +1247,11 @@ const QUICK_SOURCES: readonly string[] = [
 ];
 
 /** A quick pick's disc. */
-const PICK_DISC = 50;
+const PICK_DISC = 44;
+/** The header's one row (the 40pt back button plus its breathing room) and the
+ *  scene left showing under it, as on the Create-new-group header. */
+const HEADER_ROW = 44;
+const SCENE_ROOM = 40;
 /** Below this window width the quick row offers four picks rather than five. */
 const NARROW_PICKS = 375;
 
