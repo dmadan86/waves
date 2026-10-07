@@ -31,6 +31,12 @@ export interface VoiceAgentRequest {
   readonly locale: string;
   /** The caller's local date (YYYY-MM-DD), for "yesterday", "on Monday". */
   readonly today: string;
+  /** What the phone's own recogniser heard of the same clip — a second opinion
+   *  the model reconciles with the cloud transcript (numbers vs names). */
+  readonly deviceTranscript?: string;
+  /** An answer to the agent's last clarifying question: what was said first
+   *  and what was asked, so this clip is read as the reply. */
+  readonly followUp?: { readonly transcript: string; readonly question: string };
 }
 
 export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'shares';

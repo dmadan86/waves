@@ -71,6 +71,10 @@ export async function sendVoiceClip(input: {
   groupId: string | null;
   locale: string;
   today: string;
+  /** The phone's own transcript of the same clip — a second opinion. */
+  deviceTranscript?: string;
+  /** This clip answers the agent's last question. */
+  followUp?: { transcript: string; question: string } | null;
 }): Promise<VoiceAgentResult> {
   if (clipTooLong(input.clip)) return { kind: 'too-long' };
   let audioBase64: string;
@@ -87,5 +91,7 @@ export async function sendVoiceClip(input: {
     groupId: input.groupId,
     locale: input.locale,
     today: input.today,
+    ...(input.deviceTranscript?.trim() ? { deviceTranscript: input.deviceTranscript.trim() } : {}),
+    ...(input.followUp ? { followUp: input.followUp } : {}),
   });
 }

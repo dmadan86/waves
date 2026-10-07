@@ -1257,6 +1257,8 @@ export interface UiStrings {
     agentProblem: string;
     agentClarifyTitle: string;
     agentTryAgain: string;
+    /** After the assistant asks something: speak the answer. */
+    agentAnswer: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
     agentQuotaFallback: string;
@@ -5467,6 +5469,7 @@ const en: UiStrings = {
     agentProblem: "Couldn't match this to your people or groups.",
     agentClarifyTitle: "I didn't quite get that",
     agentTryAgain: 'Try again',
+    agentAnswer: 'Answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{left} of {limit} advanced commands left this month',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
@@ -9182,6 +9185,7 @@ const ta: UiStrings = {
     agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
     agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
     agentTryAgain: 'மீண்டும் முயல்',
+    agentAnswer: 'பதில் சொல்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
     agentQuotaFallback:
@@ -13016,6 +13020,7 @@ const hi: UiStrings = {
     agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
     agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
     agentTryAgain: 'फिर कोशिश करें',
+    agentAnswer: 'जवाब दें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
@@ -16792,6 +16797,7 @@ const ar: UiStrings = {
     agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
     agentClarifyTitle: 'لم أفهم تمامًا',
     agentTryAgain: 'حاول مرة أخرى',
+    agentAnswer: 'أجب',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
