@@ -22,7 +22,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { parseVoiceIntent, type VoiceParty } from '../src/voice/intent';
+import {
+  parseVoiceIntent,
+  type VoiceIntent,
+  type VoiceIntentContext,
+  type VoiceParty,
+} from '../src/voice/intent';
 import { isMeWord, type VoiceNameCandidate } from '../src/voice/names';
 
 import heardFixture from './fixtures/voice-names-heard.json';
@@ -181,15 +186,41 @@ function buildGroup(target: string, seed: number): VoiceNameCandidate[] {
   }));
 }
 
-type Outcome = 'correct' | 'wrong' | 'unresolved';
+/**
+ * What one case came to, by the tier the screen would show:
+ *
+ * - auto: the target was filled in without a question;
+ * - autoWrong: somebody else was filled in (the outcome that costs money);
+ * - suggest / suggestWrong: "Did you mean …?" offered the target / somebody else;
+ * - choose / chooseMiss: "A or B?" with / without the target among them;
+ * - unknown: nobody offered.
+ */
+type Outcome =
+  'auto' | 'autoWrong' | 'suggest' | 'suggestWrong' | 'choose' | 'chooseMiss' | 'unknown';
+const OUTCOMES: readonly Outcome[] = [
+  'auto',
+  'autoWrong',
+  'suggest',
+  'suggestWrong',
+  'choose',
+  'chooseMiss',
+  'unknown',
+];
 
-function judge(transcript: string, carrier: number, members: VoiceNameCandidate[]): Outcome {
-  const intent = parseVoiceIntent(transcript, {
-    members,
-    now: new Date('2026-10-01T12:00:00Z'),
-  });
+type Tally = Record<Outcome, number>;
+const emptyTally = (): Tally =>
+  Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Tally;
+
+const NOW = new Date('2026-10-01T12:00:00Z');
+
+/** The tier one parsed sentence reached for `target`. */
+function classify(
+  intent: VoiceIntent,
+  transcript: string,
+  carrier: number,
+  target: string,
+): Outcome {
   const parties: VoiceParty[] = [intent.payer, ...(intent.participants ?? [])];
-  const target = members[0]?.id;
   // "me" heard where the name was ("we paid 500" for Vijay) is a recogniser
   // loss, not a wrong guess; the speaker matched by sound is a wrong guess.
   const meWords = transcript
@@ -197,12 +228,21 @@ function judge(transcript: string, carrier: number, members: VoiceNameCandidate[
     .split(/[^\p{L}]+/u)
     .filter((word) => word && isMeWord(word)).length;
   const spokenMe = carrier === 1 ? meWords > 1 : meWords > 0;
-  let correct = false;
+  let auto = false;
   let wrong = false;
+  let suggest: 'right' | 'wrong' | null = null;
+  let choose: 'right' | 'miss' | null = null;
   for (const party of parties) {
-    if (party.status === 'resolved') {
-      if (party.memberId === target) correct = true;
+    const status = party.status as string;
+    if (status === 'resolved') {
+      if (party.memberId === target) auto = true;
       else wrong = true;
+    } else if (status === 'suggested') {
+      const right = party.candidates?.[0]?.id === target;
+      suggest = suggest === 'right' || right ? 'right' : 'wrong';
+    } else if (status === 'ambiguous') {
+      const right = (party.candidates ?? []).some((c) => c.id === target);
+      choose = choose === 'right' || right ? 'right' : 'miss';
     }
   }
   const payerIsMeByName = intent.payer.status === 'me' && intent.payer.explicit && !spokenMe;
@@ -210,30 +250,36 @@ function judge(transcript: string, carrier: number, members: VoiceNameCandidate[
     !spokenMe &&
     carrier !== 1 &&
     (intent.participants ?? []).some((party) => party.status === 'me');
-  if (payerIsMeByName || extraMe) wrong = true;
-  if (wrong) return 'wrong';
-  return correct ? 'correct' : 'unresolved';
+  if (wrong || payerIsMeByName || extraMe) return 'autoWrong';
+  if (auto) return 'auto';
+  if (suggest) return suggest === 'right' ? 'suggest' : 'suggestWrong';
+  if (choose) return choose === 'right' ? 'choose' : 'chooseMiss';
+  return 'unknown';
 }
 
-interface Tally {
-  correct: number;
-  wrong: number;
-  unresolved: number;
+function judge(
+  transcript: string,
+  carrier: number,
+  members: VoiceNameCandidate[],
+  extra: Partial<VoiceIntentContext> = {},
+): Outcome {
+  const intent = parseVoiceIntent(transcript, { members, now: NOW, ...extra });
+  return classify(intent, transcript, carrier, members[0]?.id ?? '');
 }
 
 function run(): { byEngine: Map<string, Tally>; total: Tally; wrongCases: string[] } {
   const byEngine = new Map<string, Tally>();
-  const total: Tally = { correct: 0, wrong: 0, unresolved: 0 };
+  const total = emptyTally();
   const wrongCases: string[] = [];
   HEARD.cases.forEach(([name, voice, carrier, engine, transcript], index) => {
     const members = buildGroup(name, index + 1);
     const outcome = judge(transcript, carrier, members);
     const engineName = HEARD.engines[engine] ?? String(engine);
-    const tally = byEngine.get(engineName) ?? { correct: 0, wrong: 0, unresolved: 0 };
+    const tally = byEngine.get(engineName) ?? emptyTally();
     tally[outcome] += 1;
     total[outcome] += 1;
     byEngine.set(engineName, tally);
-    if (outcome === 'wrong')
+    if (outcome === 'autoWrong')
       wrongCases.push(
         `${name} [${voice}, ${engineName}] "${transcript}" in {${members.map((m) => m.name).join(', ')}}`,
       );
@@ -241,40 +287,136 @@ function run(): { byEngine: Map<string, Tally>; total: Tally; wrongCases: string
   return { byEngine, total, wrongCases };
 }
 
+const count = (t: Tally): number => OUTCOMES.reduce((sum, outcome) => sum + t[outcome], 0);
+const pct = (part: number, whole: number): string => `${((100 * part) / whole).toFixed(2)}%`;
+
+/** One line of the report: every tier as a share of the cases. */
+function line(label: string, t: Tally): string {
+  const n = count(t);
+  return [
+    `${label.padEnd(24)} n=${String(n).padStart(5)}`,
+    `auto ${pct(t.auto, n)}`,
+    `auto-wrong ${pct(t.autoWrong, n)}`,
+    `suggest ${pct(t.suggest + t.suggestWrong, n)} (wrong ${t.suggestWrong})`,
+    `choose ${pct(t.choose + t.chooseMiss, n)} (miss ${t.chooseMiss})`,
+    `unknown ${pct(t.unknown, n)}`,
+  ].join('  ');
+}
+
 /**
  * Ratchets: raise the floor and lower the ceiling as the matcher improves.
  * Most of what is left wrong is the recogniser writing another member's real
  * name ("rakesh" for Rajeesh with a Rakesh in the group), which no matcher can
- * undo; most of what is left unresolved has no trace of the name left in it.
+ * undo; most of what is left unknown has no trace of the name left in it.
  */
-const WRONG_CEILING = 0.001;
-const CORRECT_FLOOR = 0.7;
-
-const pct = (part: number, whole: number): string => `${((100 * part) / whole).toFixed(2)}%`;
+const WRONG_CEILING = 0.0007;
+const AUTO_FLOOR = 0.63;
+/** Filled in or offered as the one suggestion. */
+const COVERAGE_FLOOR = 0.73;
 
 describe('spoken-name bench (real recogniser transcripts)', () => {
   const { byEngine, total, wrongCases } = run();
-  const count = total.correct + total.wrong + total.unresolved;
+  const n = count(total);
 
-  it('reports correct / wrong-person / unresolved by engine', () => {
-    const lines = [...byEngine].map(
-      ([engine, t]) =>
-        `${engine.padEnd(24)} n=${String(t.correct + t.wrong + t.unresolved).padStart(5)}  correct ${pct(t.correct, t.correct + t.wrong + t.unresolved)}  wrong ${pct(t.wrong, t.correct + t.wrong + t.unresolved)}  unresolved ${pct(t.unresolved, t.correct + t.wrong + t.unresolved)}`,
-    );
-    lines.push(
-      `${'all'.padEnd(24)} n=${String(count).padStart(5)}  correct ${pct(total.correct, count)}  wrong ${pct(total.wrong, count)}  unresolved ${pct(total.unresolved, count)}`,
-    );
+  it('reports each tier by engine', () => {
+    const lines = [...byEngine].map(([engine, t]) => line(engine, t));
+    lines.push(line('all', total));
     if (VERBOSE) lines.push(...wrongCases);
     console.log(lines.join('\n'));
-    expect(count).toBe(HEARD.cases.length);
+    expect(n).toBe(HEARD.cases.length);
   });
 
-  it('picks the wrong person almost never', () => {
-    expect(total.wrong / count).toBeLessThanOrEqual(WRONG_CEILING);
+  it('fills in the wrong person almost never', () => {
+    expect(total.autoWrong / n).toBeLessThanOrEqual(WRONG_CEILING);
   });
 
-  it('finds the person in most cases', () => {
-    expect(total.correct / count).toBeGreaterThanOrEqual(CORRECT_FLOOR);
+  it('fills in the right person in most cases', () => {
+    expect(total.auto / n).toBeGreaterThanOrEqual(AUTO_FLOOR);
+  });
+
+  it('fills in or suggests the right person in more', () => {
+    expect((total.auto + total.suggest) / n).toBeGreaterThanOrEqual(COVERAGE_FLOOR);
+  });
+});
+
+/**
+ * N-best, approximated: the fixtures hold one transcript per engine, so each
+ * utterance is read with its sibling engine's transcript as the alternative
+ * hypothesis (Apple en-IN with en-US, Deepgram en-IN with multi), the way the
+ * phone hands over its other hypotheses. Siblings are often identical, which is
+ * what the one-vote-per-sound-cluster rule is for.
+ */
+function runNBest(): { single: Tally; nbest: Tally } {
+  const single = emptyTally();
+  const nbest = emptyTally();
+  const sibling = new Map<string, string>();
+  HEARD.cases.forEach(([name, voice, carrier, engine, transcript]) =>
+    sibling.set(`${name}|${voice}|${carrier}|${engine}`, transcript),
+  );
+  HEARD.cases.forEach(([name, voice, carrier, engine, transcript], index) => {
+    const pair = engine % 2 === 0 ? engine + 1 : engine - 1;
+    const other = sibling.get(`${name}|${voice}|${carrier}|${pair}`);
+    if (other === undefined) return;
+    const members = buildGroup(name, index + 1);
+    single[judge(transcript, carrier, members)] += 1;
+    nbest[judge(transcript, carrier, members, { alternatives: [other] })] += 1;
+  });
+  return { single, nbest };
+}
+
+/**
+ * Learned corrections, replayed: what the recogniser made of a name in the
+ * first carrier sentence is confirmed by the user as the right person (once, or
+ * twice), then the other two sentences are read again in the same group.
+ */
+function runLearned(): { before: Tally; once: Tally; twice: Tally } {
+  const before = emptyTally();
+  const once = emptyTally();
+  const twice = emptyTally();
+  const heardFirst = new Map<string, string[]>();
+  HEARD.cases.forEach(([name, , carrier, engine, transcript], index) => {
+    if (carrier !== 0) return;
+    const members = buildGroup(name, index + 1);
+    const intent = parseVoiceIntent(transcript, { members, now: NOW });
+    const slot = [intent.payer, ...(intent.participants ?? [])].find(
+      (party) => party.kind === 'member' && party.status !== 'resolved' && party.heard,
+    );
+    const key = `${name}|${engine}`;
+    if (slot?.heard) heardFirst.set(key, [...(heardFirst.get(key) ?? []), slot.heard]);
+  });
+  HEARD.cases.forEach(([name, , carrier, engine, transcript], index) => {
+    if (carrier === 0) return;
+    const heard = heardFirst.get(`${name}|${engine}`);
+    if (heard === undefined) return;
+    const members = buildGroup(name, index + 1);
+    const memberId = members[0]?.id ?? '';
+    const learned = (count: number) => heard.map((phrase) => ({ heard: phrase, memberId, count }));
+    before[judge(transcript, carrier, members)] += 1;
+    once[judge(transcript, carrier, members, { learned: learned(1) })] += 1;
+    twice[judge(transcript, carrier, members, { learned: learned(2) })] += 1;
+  });
+  return { before, once, twice };
+}
+
+describe('spoken-name bench: more evidence than one transcript', () => {
+  it('reads the other hypotheses without filling in more wrong people', () => {
+    const { single, nbest } = runNBest();
+    console.log([line('one hypothesis', single), line('with alternative', nbest)].join('\n'));
+    expect(nbest.autoWrong).toBeLessThanOrEqual(single.autoWrong);
+    expect(nbest.auto + nbest.suggest).toBeGreaterThanOrEqual(single.auto + single.suggest);
+  });
+
+  it('learns a confirmed mishearing for the group, within bounds', () => {
+    const { before, once, twice } = runLearned();
+    console.log(
+      [
+        line('learned: none', before),
+        line('learned: once', once),
+        line('learned: twice', twice),
+      ].join('\n'),
+    );
+    expect(once.autoWrong).toBeLessThanOrEqual(before.autoWrong);
+    expect(twice.auto).toBeGreaterThan(before.auto);
   });
 });
 
@@ -399,7 +541,7 @@ function falsePeople(): { count: number; picks: string[] } {
       const target = NAMES[Math.floor(rand() * NAMES.length)]?.name ?? 'Ravi';
       const members = buildGroup(target, seed);
       const said = frame.replace('{s}', spend);
-      const intent = parseVoiceIntent(said, { members, now: new Date('2026-10-01T12:00:00Z') });
+      const intent = parseVoiceIntent(said, { members, now: NOW });
       const parties: VoiceParty[] = [intent.payer, ...(intent.participants ?? [])];
       count += 1;
       for (const party of parties)
@@ -416,5 +558,155 @@ describe('spoken-name bench: sentences that name nobody', () => {
     console.log(`no-name sentences n=${count}  people wrongly picked ${picks.length}`);
     if (picks.length > 0) console.log(picks.join('\n'));
     expect(picks).toEqual([]);
+  });
+});
+
+/**
+ * Everyday phrases that sound like somebody in the group — "bought a new phone"
+ * with an Anu, "rainy day taxi" with a Renny, "pooja items" with a Pooja, a shop
+ * named after a person ("Anand Bhavan", "Peter England"). Each is said in four
+ * frames, the last naming a real payer who must still be found ("rainy day taxi,
+ * paid by Ravi" is Ravi and only Ravi). The bait people are always in the group.
+ */
+const BAITS: readonly (readonly [string, readonly string[]])[] = [
+  ['bought a new phone', ['Anu']],
+  ['rainy day taxi', ['Renny']],
+  ['a run club fees', ['Arun']],
+  ['iron box', ['Arun']],
+  ['garlic bread', ['Karthik']],
+  ['gothic cafe', ['Karthik']],
+  ['cardiac checkup', ['Karthik']],
+  ['shiny new shoes', ['Shiny']],
+  ['sunny side breakfast', ['Sunil', 'Shiny']],
+  ['deep fried snacks', ['Deepa', 'Dileep']],
+  ['deep cleaning', ['Deepak', 'Deepa']],
+  ['tea and biscuits', ['Teja']],
+  ['rice and dal', ['Riya', 'Ravi']],
+  ['amul butter', ['Amal', 'Amit']],
+  ['a mat for yoga', ['Amit', 'Matthew']],
+  ['a mall trip', ['Amal']],
+  ['alley parking', ['Ali']],
+  ['bindi and bangles', ['Bindu']],
+  ['sindhi curry', ['Sindhu']],
+  ['jeera rice', ['Jeeva']],
+  ['radio repair', ['Radha']],
+  ['petrol for the bike', ['Biju']],
+  ['sim card recharge', ['Simran']],
+  ['manure for the garden', ['Manju', 'Manoj']],
+  ['honey and lemon', ['Hannah', 'Huda']],
+  ['a new charger', ['Anu', 'Anoop']],
+  ['a nice dinner', ['Aneesh']],
+  ['mega mart', ['Megha']],
+  ['sweets for diwali', ['Swati', 'Shweta']],
+  ['nick knacks', ['Nikhil']],
+  ['job interview travel', ['Jobin']],
+  ['ream of paper', ['Reem']],
+  ['sultana raisins', ['Sultan']],
+  ['salmon fillet', ['Salma']],
+  ['tariff charges', ['Tariq']],
+  ['mansion rent', ['Mansour']],
+  ['safe deposit locker', ['Saif']],
+  ['jasmine tea', ['Yasmin']],
+  ['jackfruit chips', ['Jack']],
+  ['remy martin', ['Renny']],
+  ['pooja items', ['Pooja']],
+  ['prasadam for the temple', ['Prasanna']],
+  ['usha fan repair', ['Usha']],
+  ['anand bhavan meals', ['Anand']],
+  ['saravana bhavan lunch', ['Saravanan']],
+  ['murugan idli shop', ['Murugan']],
+  ['peter england shirt', ['Peter']],
+  ['brooke bond tea', ['Brooke']],
+  ['marks and spencer', ['Mark']],
+  ['max fashion', ['Max']],
+  ['lakshmi vilas sweets', ['Lakshmi']],
+  ['hamper basket', ['Hamad']],
+  ['kebab platter', ['Kabir']],
+  ['dosa batter', ['Divya']],
+  ['vada pav', ['Vidya']],
+];
+
+/** Frames for a bait: the last names a real payer, `{x}`, who must be found. */
+const BAIT_FRAMES = [
+  '{p} 500',
+  'paid 500 for {p}',
+  '{p} 300 split with everyone',
+  '{p}, paid by {x}',
+];
+
+interface BaitResult {
+  count: number;
+  /** A person who was never said, filled in. */
+  autoInserted: string[];
+  /** A person who was never said, offered as "Did you mean" or "A or B". */
+  askedInserted: string[];
+  /** The real payer in the last frame, not filled in. */
+  missedPayer: string[];
+}
+
+function baitSentences(
+  extra: (members: VoiceNameCandidate[]) => Partial<VoiceIntentContext> = () => ({}),
+): BaitResult {
+  const result: BaitResult = { count: 0, autoInserted: [], askedInserted: [], missedPayer: [] };
+  BAITS.forEach(([phrase, baits], i) => {
+    BAIT_FRAMES.forEach((frame, j) => {
+      const rand = mulberry32(200_000 + i * 10 + j);
+      const names = [...baits];
+      const size = names.length + 2 + Math.floor(rand() * 4);
+      while (names.length < size) {
+        const name = NAMES[Math.floor(rand() * NAMES.length)]?.name ?? 'Ravi';
+        const looksLikeBait = baits.some((bait) => bait[0] === name[0]);
+        if (!names.includes(name) && !looksLikeBait) names.push(name);
+      }
+      // The speaker is the last; the payer of the last frame the one before.
+      const members: VoiceNameCandidate[] = names.map((name, k) => ({
+        id: `m${k}`,
+        name,
+        ...(k === names.length - 1 ? { isMe: true } : {}),
+      }));
+      const payer = members[members.length - 2] as VoiceNameCandidate;
+      const said = frame.replace('{p}', phrase).replace('{x}', payer.name.toLowerCase());
+      const intent = parseVoiceIntent(said, { members, now: NOW, ...extra(members) });
+      const parties: VoiceParty[] = [intent.payer, ...(intent.participants ?? [])];
+      const allowed = frame.includes('{x}') ? payer.id : null;
+      result.count += 1;
+      const where = `"${said}" in {${names.join(', ')}}`;
+      for (const party of parties) {
+        const status = party.status as string;
+        if (status === 'resolved' && party.memberId !== allowed)
+          result.autoInserted.push(`${where} -> ${party.name}`);
+        else if (party.status === 'me' && intent.payer.explicit)
+          result.autoInserted.push(`${where} -> me`);
+        else if (
+          (status === 'suggested' || status === 'ambiguous') &&
+          (party.candidates ?? []).some((c) => c.id !== allowed)
+        )
+          result.askedInserted.push(
+            `${where} -> ${status} ${party.candidates?.map((c) => c.name).join('/')}`,
+          );
+      }
+      if (allowed && !parties.some((party) => party.memberId === allowed))
+        result.missedPayer.push(where);
+    });
+  });
+  return result;
+}
+
+describe('spoken-name bench: everyday words that sound like somebody', () => {
+  const result = baitSentences();
+  it('fills in nobody who was not said', () => {
+    console.log(
+      [
+        `bait sentences n=${result.count}`,
+        `false insertions: auto ${pct(result.autoInserted.length, result.count)} (${result.autoInserted.length})`,
+        `asked ${pct(result.askedInserted.length, result.count)} (${result.askedInserted.length})`,
+        `real payer missed ${result.missedPayer.length}`,
+      ].join('  '),
+    );
+    if (VERBOSE)
+      console.log(
+        [...result.autoInserted, ...result.askedInserted, ...result.missedPayer].join('\n'),
+      );
+    expect(result.autoInserted).toEqual([]);
   });
 });

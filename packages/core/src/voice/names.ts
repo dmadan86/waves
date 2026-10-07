@@ -3,9 +3,20 @@
  *
  * Speech-to-text spells names the way they sound ("renny", "rainy" and "reni"
  * for Renny), so an exact comparison is not enough — and a guess that quietly
- * picks the wrong person is worse than a question. Every result therefore says
- * how sure it is: resolved (with a `fuzzy` flag when the spelling only sounds
- * alike), ambiguous (several fit equally — the caller asks), or unresolved.
+ * picks the wrong person is worse than a question. Every member gets a score
+ * from 0 to 1, and the result says how sure the best one is, in four tiers:
+ *
+ * - `resolved` (auto): a very good fit, clearly ahead of everybody else, heard
+ *   where a person is expected, with nobody in the group it is easily taken
+ *   for. Filled in without asking.
+ * - `suggested`: one person leads, but not by enough to fill in unasked — the
+ *   screen asks "Did you mean Renny?" and one tap confirms.
+ * - `ambiguous` (choose): two or three fit about as well — "Ravi or Rajiv?".
+ * - `unresolved`: nobody fits.
+ *
+ * Evidence beyond the one heard phrase can be given: the recogniser's other
+ * hypotheses for the same words, names this user confirmed for this group
+ * before, and how sure the sentence is that the words are a person at all.
  */
 
 export interface VoiceNameCandidate {
@@ -13,6 +24,31 @@ export interface VoiceNameCandidate {
   readonly name: string;
   /** This candidate is the person speaking ("Madan" said by Madan means "me"). */
   readonly isMe?: boolean;
+  /** Names the user confirmed this person also answers to ("Ravi" for Ravindra). */
+  readonly aliases?: readonly string[];
+}
+
+/** A heard phrase this user confirmed means a member of the group, `count` times. */
+export interface LearnedName {
+  readonly heard: string;
+  readonly memberId: string;
+  readonly count: number;
+}
+
+/**
+ * How sure the sentence is that a phrase is a person: `strong` where only a
+ * person can stand ("X paid", "paid by X", "split with X"), `weak` where a
+ * description could too ("500 for X", "dinner with X").
+ */
+export type NameSpan = 'strong' | 'weak';
+
+export interface NameEvidence {
+  /** The same words as other recogniser hypotheses heard them, best first. */
+  readonly alternatives?: readonly string[];
+  /** Corrections this user made in this group, never another group's. */
+  readonly learned?: readonly LearnedName[];
+  /** Absent means the caller already knows it is a person (a strong span). */
+  readonly span?: NameSpan;
 }
 
 export type NameResolution =
@@ -23,6 +59,16 @@ export type NameResolution =
       readonly name: string;
       /** Matched by sound or near-spelling, not letter for letter. */
       readonly fuzzy: boolean;
+      readonly score: number;
+    }
+  | {
+      /** "Did you mean …?": one person leads, but not enough to fill in unasked. */
+      readonly status: 'suggested';
+      readonly id: string;
+      readonly name: string;
+      readonly score: number;
+      /** The suggestion first; anybody else worth showing after. */
+      readonly candidates: readonly VoiceNameCandidate[];
     }
   | { readonly status: 'ambiguous'; readonly candidates: readonly VoiceNameCandidate[] }
   | { readonly status: 'unresolved' };
@@ -374,6 +420,13 @@ const NICKNAME = 0.78;
 /** A guess below this is no guess at all. */
 const ACCEPT = 0.6;
 /**
+ * Where the sentence says a person stands ("…paid", "split with …"), a weaker
+ * likeness down to this is still worth a "Did you mean …?" — "yurugen" for
+ * Murugan, "aerobine" for Aravind — but never filled in, and never enough to
+ * make a word a person in the first place.
+ */
+const SUGGEST_FLOOR = 0.5;
+/**
  * Close enough to stand in the way: a weaker likeness that can't be picked on
  * its own still stops a slightly better one from being picked over it.
  */
@@ -444,6 +497,116 @@ const NICKNAMES: Record<string, readonly string[]> = {
   seenu: ['srinivas'],
   chinnu: ['chaitanya'],
 };
+
+/**
+ * Spellings of one Arabic (and Gulf/South Asian Muslim) name that are the same
+ * name, not merely alike: "Mohammed", "Muhammad", "Mohamed" and "Mohd" are one
+ * person's name written by different hands or recognisers. Matched as the same
+ * sound, name by name (an English word like "said" is never listed) — vowels are not folded in general, so "Hassan" and
+ * "Hussein" (two names) stay apart.
+ */
+const ARABIC_VARIANTS: readonly (readonly string[])[] = [
+  [
+    'muhammad',
+    'mohammed',
+    'mohamed',
+    'mohammad',
+    'mohamad',
+    'muhammed',
+    'mohd',
+    'muhamad',
+    'mohamud',
+    'mehmet',
+  ],
+  ['ahmed', 'ahmad', 'ahmet', 'ahamed'],
+  ['mahmoud', 'mahmood', 'mahmud', 'mehmood'],
+  ['yusuf', 'yousef', 'youssef', 'yousuf', 'yusef', 'yousif', 'yousaf', 'yosef'],
+  ['hassan', 'hasan', 'hasaan'],
+  ['hussain', 'hussein', 'husain', 'husein', 'hossein', 'hussien', 'husayn'],
+  ['hasna', 'husna'],
+  ['khalid', 'khaled', 'khaleed', 'chalid'],
+  ['qasim', 'kasim', 'qassim', 'kassim', 'qasem', 'kassem', 'casim'],
+  ['jassim', 'jasim', 'jasem', 'jassem'],
+  ['omar', 'umar', 'omer'],
+  ['othman', 'osman', 'uthman', 'usman', 'osmaan'],
+  ['ali', 'aly'],
+  ['abdullah', 'abdulla', 'abdallah', 'abdalla'],
+  ['ibrahim', 'ebrahim', 'ibraheem', 'brahim'],
+  ['ismail', 'ismael', 'esmail', 'ismaeel'],
+  ['mustafa', 'mostafa', 'moustafa', 'mustapha', 'mostapha'],
+  ['hamza', 'hamzah', 'hamzeh'],
+  ['tariq', 'tarek', 'tareq', 'tarik'],
+  ['rashid', 'rasheed', 'rachid', 'rasheid'],
+  ['walid', 'waleed'],
+  ['majid', 'majed', 'maajid', 'majeed'],
+  ['hamid', 'hameed', 'hamed'],
+  ['saeed', 'saied', 'sayed', 'saeid', 'syed', 'sayyid'],
+  ['nasser', 'nasir', 'naser', 'nassir', 'nasr'],
+  ['salim', 'saleem', 'selim', 'salem'],
+  ['karim', 'kareem'],
+  ['amir', 'ameer', 'emir'],
+  ['faisal', 'faysal', 'faisel', 'feisal'],
+  ['jamal', 'gamal', 'jamaal'],
+  ['hisham', 'hesham'],
+  ['bilal', 'belal'],
+  ['zayed', 'zaid', 'zayd', 'zaied', 'zeyad', 'ziad', 'ziyad'],
+  ['sultan', 'soltan'],
+  ['mansour', 'mansoor', 'mansur'],
+  ['fatima', 'fatimah', 'fatma', 'fathima'],
+  ['aisha', 'ayesha', 'aysha', 'aishah', 'ayisha', 'aicha'],
+  ['khadija', 'khadijah', 'khadeeja', 'khadeejah'],
+  ['maryam', 'mariam', 'mariyam', 'meryem'],
+  ['noura', 'nora', 'nura', 'noora'],
+  ['nour', 'noor', 'nur'],
+  ['zainab', 'zaynab', 'zeinab', 'zenab'],
+  ['yasmin', 'yasmine', 'yasmeen', 'jasmin'],
+  ['layla', 'laila', 'leila', 'leyla', 'lailah'],
+  ['huda', 'hoda'],
+  ['hessa', 'hissa', 'hesa'],
+  ['reem', 'rheem'],
+  ['salma', 'selma', 'salmah'],
+  ['latifa', 'latefa', 'lateefa'],
+  [
+    'abdulrahman',
+    'abdurrahman',
+    'abdelrahman',
+    'abdalrahman',
+    'abdulrehman',
+    'abdurahman',
+    'abdelrahmane',
+  ],
+  ['abdulaziz', 'abdelaziz', 'abdalaziz'],
+  ['abdulkarim', 'abdelkarim', 'abdulkareem'],
+  ['abdulrahim', 'abdelrahim', 'abdurrahim'],
+];
+
+/** Every listed spelling → the first of its group. */
+const ARABIC_VARIANT_OF = new Map<string, string>(
+  ARABIC_VARIANTS.flatMap((group) => group.map((spelling) => [spelling, group[0] ?? spelling])),
+);
+
+/**
+ * The Arabic article said on the front of a name: "al Mansoori", "el-Sayed",
+ * "Almansoori". Only taken off when what is left is a name-length word, so
+ * "Ali", "Alex" and "Elango" are left alone.
+ */
+const ARABIC_ARTICLE = /^(?:al|el|ul)(?=[a-z]{5,}$)/;
+
+/** The name's spelling as one of its listed variants, or as itself. */
+export function arabicVariant(token: string): string {
+  return ARABIC_VARIANT_OF.get(token) ?? token;
+}
+
+/** Spoken the same as an Arabic name, by the variant list or the article alone. */
+function sameArabicName(heard: string, name: string): boolean {
+  if (heard === name) return true;
+  const a = ARABIC_VARIANT_OF.get(heard);
+  if (a !== undefined && a === ARABIC_VARIANT_OF.get(name)) return true;
+  const bareHeard = heard.replace(ARABIC_ARTICLE, '');
+  const bareName = name.replace(ARABIC_ARTICLE, '');
+  if ((bareHeard !== heard || bareName !== name) && bareHeard === bareName) return true;
+  return false;
+}
 
 /** Words a recogniser types for a name it didn't know ("rainy" for Renny): a match through one must sound the same. */
 const COMMON_WORDS = new Set([
@@ -794,6 +957,7 @@ function heardForms(token: string): string[] {
 export function nameSimilarity(heard: string, name: string): number {
   if (heard === name) return heard.length >= 2 ? EXACT : 0;
   if (heard.length < 2 || name.length < 2) return 0;
+  if (sameArabicName(heard, name)) return SAME_SOUND;
   const heardSound = soundKey(heard);
   if (
     heardSound === soundKey(name) &&
@@ -902,16 +1066,24 @@ function bestAgainst(heard: string, nameWords: readonly string[]): number {
   return best;
 }
 
+interface Fit {
+  readonly score: number;
+  /** The score came from heard words run together ("sun eel" for Sunil). */
+  readonly joined: boolean;
+}
+
 /**
- * How well the heard words fit one candidate's name, 0 to about 1.
+ * How well the heard words fit one name, 0 to about 1.
  *
  * Word by word, every heard word must find a partner (for one or two words) and
  * the score is their mean, nudged up for each extra word matched, so a full
  * name outranks a first name. The heard words run together are tried too, since
  * a recogniser splits a name it doesn't know into words it does: "sun eel" is
- * Sunil, "nick hill" is Nikhil, "tamil selvi" is Tamilselvi.
+ * Sunil, "nick hill" is Nikhil, "tamil selvi" is Tamilselvi. One heard word is
+ * also tried against a name of two words said as one ("abdelrahman" for Abdul
+ * Rahman).
  */
-function fitName(heard: readonly string[], nameWords: readonly string[], canJoin: boolean): number {
+function fitName(heard: readonly string[], nameWords: readonly string[], canJoin: boolean): Fit {
   let total = 0;
   let matched = 0;
   for (const token of heard) {
@@ -935,7 +1107,339 @@ function fitName(heard: readonly string[], nameWords: readonly string[], canJoin
     // Run-together words are never as sure as a name said whole.
     joined = Math.min(SAME_SOUND, bestAgainst(together, comparable));
   }
-  return Math.max(wordwise, joined);
+  let whole = 0;
+  if (heard.length === 1 && nameWords.length >= 2) {
+    const said = heard[0] ?? '';
+    const name = nameWords.join('');
+    if (Math.abs(name.length - said.length) <= 2)
+      whole = Math.min(SAME_SOUND, nameSimilarity(said, name));
+  }
+  const score = Math.max(wordwise, joined, whole);
+  return { score, joined: joined > wordwise && joined >= whole };
+}
+
+/** A confirmed alias said exactly scores just under the name itself, so a person actually called that is asked about. */
+const ALIAS = 0.97;
+/** What one confirmation of a heard phrase is worth, and each further one; never more than {@link LEARNED_CAP}. */
+const LEARNED_BASE = 0.8;
+const LEARNED_STEP = 0.04;
+const LEARNED_CAP = 0.92;
+/** What each confirmation adds to a name that already fits well, at most twice. */
+const LEARNED_NUDGE = 0.05;
+/**
+ * The bar for filling a name in unasked. Below it a clear leader is offered as
+ * "Did you mean …?" instead.
+ */
+const AUTO = 0.7;
+/** In a slot a description fits too ("500 for …"), a name must fit this well, said whole, to be filled in. */
+const WEAK_AUTO = 0.8;
+/**
+ * A look-alike of the leader (see {@link confusablePairs}) this close to the
+ * heard words makes a near match a suggestion, not a pick…
+ */
+const NEIGHBOUR = 0.6;
+/** …and this close, even a name said exactly ("Swetha" with a Shwetha one letter away). */
+const NEIGHBOUR_OF_CLEAR = 0.8;
+/** Two members whose names score this alike against each other are easily taken for each other… */
+const CONFUSABLE_AT = 0.5;
+/** …as are two whose sound keys are this close letter for letter (Ravi and Rajiv, Arun and Tarun). */
+const CONFUSABLE_SOUND = 0.8;
+/** Confirmations of a learned phrase before it fills a name in unasked. */
+const LEARNED_SURE = 2;
+
+/** One member's fit to the heard words. */
+interface MemberFit {
+  readonly item: VoiceNameCandidate;
+  readonly score: number;
+  readonly joined: boolean;
+  readonly via: 'name' | 'alias' | 'learned';
+  /** Confirmations behind a learned fit. */
+  readonly count: number;
+  /** The fit by name and alias alone, before anything learned. */
+  readonly raw: number;
+}
+
+/** A heard phrase as stored and compared: name words, lowercased, honorifics out. */
+export function nameKey(text: string): string {
+  return withoutHonorifics(nameTokens(text)).join(' ');
+}
+
+/** What a learned phrase confirmed `count` times is worth. */
+function learnedScore(count: number): number {
+  return Math.min(LEARNED_CAP, LEARNED_BASE + LEARNED_STEP * Math.max(1, count));
+}
+
+/**
+ * Every member's fit to one heard phrase, best first (only those worth
+ * considering). A learned phrase lifts its member, but never above somebody
+ * whose own name was clearly said: then the two tie, and the caller asks.
+ */
+function scorePhrase(
+  heard: string,
+  candidates: readonly VoiceNameCandidate[],
+  learned: readonly LearnedName[],
+): MemberFit[] {
+  const said = nameTokens(heard);
+  const tokens = withoutHonorifics(said);
+  if (tokens.length === 0) return [];
+  // "sun eel" and "a run" may be Sunil and Arun; "matt and you" is two people, never "mattyou".
+  const canJoin = said.length >= 2 && said.length <= 3 && !said.some((word) => JOINERS.has(word));
+  const fits: MemberFit[] = [];
+  for (const candidate of candidates) {
+    let best: Fit = { score: 0, joined: false };
+    let via: MemberFit['via'] = 'name';
+    const words = withoutHonorifics(nameTokens(candidate.name));
+    if (words.length > 0) {
+      const plain = fitName(tokens, words, false);
+      const join = canJoin ? fitName(said, words, true) : plain;
+      best = join.score > plain.score ? join : plain;
+    }
+    for (const alias of candidate.aliases ?? []) {
+      const aliasWords = withoutHonorifics(nameTokens(alias));
+      if (aliasWords.length === 0) continue;
+      const fit = fitName(tokens, aliasWords, false);
+      if (fit.score * ALIAS > best.score) {
+        best = { score: fit.score * ALIAS, joined: fit.joined };
+        via = 'alias';
+      }
+    }
+    fits.push({
+      item: candidate,
+      score: best.score,
+      joined: best.joined,
+      via,
+      count: 0,
+      raw: best.score,
+    });
+  }
+  if (learned.length > 0) {
+    const key = tokens.join(' ');
+    for (const entry of learned) {
+      if (nameKey(entry.heard) !== key) continue;
+      const index = fits.findIndex((fit) => fit.item.id === entry.memberId);
+      const own = fits[index];
+      if (!own) continue;
+      // Somebody else's name said clearly is never overridden: at most a tie.
+      const clearOther = Math.max(
+        0,
+        ...fits.filter((fit) => fit !== own && fit.score >= SAME_SOUND).map((fit) => fit.score),
+      );
+      // Lifted to what the confirmations are worth, or — when the name already
+      // fits better than that — nudged ahead of a look-alike it ties with.
+      let score = Math.max(
+        learnedScore(entry.count),
+        Math.min(EXACT, own.score + LEARNED_NUDGE * Math.min(2, entry.count)),
+      );
+      if (clearOther > 0) score = Math.min(score, clearOther);
+      if (score > own.score)
+        fits[index] = { ...own, score, joined: false, via: 'learned', count: entry.count };
+    }
+  }
+  return fits.filter((fit) => fit.score >= CONSIDER).sort((a, b) => b.score - a.score);
+}
+
+/** Every member's best fit, kept for the people a recogniser could have meant. */
+export function scoreSpokenName(
+  heard: string,
+  candidates: readonly VoiceNameCandidate[],
+  learned: readonly LearnedName[] = [],
+): readonly { readonly candidate: VoiceNameCandidate; readonly score: number }[] {
+  return scorePhrase(heard, candidates, learned).map((fit) => ({
+    candidate: fit.item,
+    score: fit.score,
+  }));
+}
+
+/** The words a person goes by: their first name and every confirmed alias. */
+function spokenForms(candidate: VoiceNameCandidate): string[] {
+  const first = withoutHonorifics(nameTokens(candidate.name))[0];
+  const aliases = (candidate.aliases ?? []).map((alias) => nameKey(alias).replace(/ /g, ''));
+  return [...new Set([...(first ? [first] : []), ...aliases])].filter(Boolean);
+}
+
+const confusableCache = new WeakMap<
+  readonly VoiceNameCandidate[],
+  ReadonlyMap<string, ReadonlySet<string>>
+>();
+
+/**
+ * Who in the group is easily taken for whom: for each member, the others whose
+ * first name (or alias) sounds or spells close to theirs — Ravi and Rajiv,
+ * Hassan and Hussein, Swetha and Shwetha. Worked out once per member list. A
+ * name heard near one of a pair is never filled in unasked while the other is
+ * close too.
+ */
+export function confusablePairs(
+  candidates: readonly VoiceNameCandidate[],
+): ReadonlyMap<string, ReadonlySet<string>> {
+  const cached = confusableCache.get(candidates);
+  if (cached) return cached;
+  const forms = candidates.map(spokenForms);
+  const pairs = new Map<string, Set<string>>();
+  const link = (a: string, b: string): void => {
+    pairs.set(a, (pairs.get(a) ?? new Set<string>()).add(b));
+  };
+  for (let i = 0; i < candidates.length; i += 1)
+    for (let j = i + 1; j < candidates.length; j += 1) {
+      const a = candidates[i];
+      const b = candidates[j];
+      if (!a || !b) continue;
+      const alike = (forms[i] ?? []).some((x) =>
+        (forms[j] ?? []).some(
+          (y) =>
+            Math.max(nameSimilarity(x, y), nameSimilarity(y, x)) >= CONFUSABLE_AT ||
+            jaroWinkler(soundKey(x), soundKey(y)) >= CONFUSABLE_SOUND ||
+            (x.length >= 3 && phoneticKey(x) === phoneticKey(y)),
+        ),
+      );
+      if (alike) {
+        link(a.id, b.id);
+        link(b.id, a.id);
+      }
+    }
+  confusableCache.set(candidates, pairs);
+  return pairs;
+}
+
+/**
+ * Members another member's alias would collide with: somebody whose own name
+ * sounds like it. "Ravi" as an alias for Ravindra collides with a Ravi in the
+ * group — the alias is not kept, and "ravi" stays a question.
+ */
+export function aliasCollisions(
+  alias: string,
+  memberId: string,
+  candidates: readonly VoiceNameCandidate[],
+): VoiceNameCandidate[] {
+  const said = nameKey(alias).replace(/ /g, '');
+  if (!said) return [];
+  return candidates.filter(
+    (candidate) =>
+      candidate.id !== memberId &&
+      withoutHonorifics(nameTokens(candidate.name)).some(
+        (word) => nameSimilarity(said, word) >= SAME_SOUND,
+      ),
+  );
+}
+
+/** One heard phrase is an everyday word, not anything a name looks like. */
+function everydayWord(tokens: readonly string[]): boolean {
+  return tokens.length === 1 && COMMON_WORDS.has(tokens[0] ?? '');
+}
+
+/**
+ * Who a spoken name means.
+ *
+ * "me", "I", "myself" and the Hinglish "main"/"mujhe" are the speaker; a name
+ * that matches the speaker's own member row is also the speaker. Anything else
+ * is scored against every member — by name, confirmed alias and learned
+ * correction — and across every hypothesis the recogniser offered for the same
+ * words: each member keeps its best evidence, but hypotheses that sound alike
+ * are one vote, so five near-copies of a mishearing never outvote one clear
+ * hearing. Two hypotheses that clearly name different people are a question.
+ *
+ * The best member is filled in only when it is a very good fit, clearly ahead,
+ * heard where a person belongs, backed by the top hypothesis, and has no
+ * look-alike in the group close behind; otherwise it is suggested. Two or three
+ * about as good are `ambiguous`: the caller asks, it never tosses a coin.
+ */
+export function resolveSpokenName(
+  heard: string,
+  candidates: readonly VoiceNameCandidate[],
+  evidence: NameEvidence = {},
+): NameResolution {
+  const said = nameTokens(heard);
+  const tokens = withoutHonorifics(said);
+  if (tokens.length === 0) return { status: 'unresolved' };
+  if (tokens.length === 1 && isMeWord(tokens[0] ?? '')) return { status: 'me' };
+  const learned = evidence.learned ?? [];
+
+  // Each distinct hypothesis once; sound-alike ones are one cluster, one vote.
+  const phrases: string[] = [];
+  const seenKeys = new Set<string>();
+  for (const phrase of [heard, ...(evidence.alternatives ?? [])]) {
+    const key = nameKey(phrase);
+    if (!key || seenKeys.has(key) || (key.split(' ').length === 1 && isMeWord(key))) continue;
+    seenKeys.add(key);
+    phrases.push(phrase);
+  }
+  const best = new Map<string, MemberFit>();
+  const primary = new Map<string, number>();
+  const clusters = new Map<string, MemberFit[][]>();
+  phrases.forEach((phrase, index) => {
+    const fits = scorePhrase(phrase, candidates, learned);
+    for (const fit of fits) {
+      if (index === 0) primary.set(fit.item.id, fit.score);
+      const held = best.get(fit.item.id);
+      if (!held || fit.score > held.score) best.set(fit.item.id, fit);
+    }
+    const cluster = phoneticKey(nameKey(phrase).replace(/ /g, ''));
+    clusters.set(cluster, [...(clusters.get(cluster) ?? []), fits]);
+  });
+  if (best.size === 0) return { status: 'unresolved' };
+
+  // Best first; between equals, the closer spelling of the first name leads the
+  // question the caller asks (Jaro-Winkler only orders — it never picks).
+  const spelled = tokens.join('');
+  const lead = (fit: MemberFit): number => jaroWinkler(spelled, nameTokens(fit.item.name)[0] ?? '');
+  const scored = [...best.values()].sort((a, b) => b.score - a.score || lead(b) - lead(a));
+  const top = scored[0];
+  // Only a caller that placed the words in a person's slot reaches below ACCEPT.
+  const floor = evidence.span === 'strong' ? SUGGEST_FLOOR : ACCEPT;
+  if (!top || top.score < floor) return { status: 'unresolved' };
+  const marginFor = (score: number): number => (score >= EXACT ? SURE_MARGIN : MARGIN);
+  const close = scored.filter((fit) => top.score - fit.score < marginFor(top.score));
+  if (close.length > 1) {
+    // The speaker and one other: still a question — never quietly "me".
+    return { status: 'ambiguous', candidates: close.slice(0, 3).map((fit) => fit.item) };
+  }
+
+  // Each cluster of hypotheses votes for the member it clearly names.
+  const votes = new Set<string>();
+  for (const members of clusters.values()) {
+    const merged = new Map<string, number>();
+    for (const fits of members)
+      for (const fit of fits)
+        merged.set(fit.item.id, Math.max(merged.get(fit.item.id) ?? 0, fit.score));
+    const ranked = [...merged.entries()].sort((a, b) => b[1] - a[1]);
+    const [first, second] = ranked;
+    if (first && first[1] >= ACCEPT && first[1] - (second?.[1] ?? 0) >= marginFor(first[1]))
+      votes.add(first[0]);
+  }
+  if (votes.size > 1) {
+    const voted = scored.filter((fit) => votes.has(fit.item.id));
+    return { status: 'ambiguous', candidates: voted.slice(0, 3).map((fit) => fit.item) };
+  }
+
+  const partners = confusablePairs(candidates).get(top.item.id);
+  const neighbourAt = top.score >= SAME_SOUND ? NEIGHBOUR_OF_CLEAR : NEIGHBOUR;
+  const neighbour = scored.some(
+    (fit) => fit !== top && fit.score >= neighbourAt && partners?.has(fit.item.id) === true,
+  );
+  const strong = (evidence.span ?? 'strong') === 'strong';
+  const clearSpan = strong || (top.score >= WEAK_AUTO && !top.joined && !everydayWord(tokens));
+  const backed = (primary.get(top.item.id) ?? 0) >= ACCEPT;
+  // One confirmation backs a name that fits on its own; it fills in alone from the second.
+  const confirmed = top.via !== 'learned' || top.count >= LEARNED_SURE || top.raw >= AUTO;
+  const auto = top.score >= AUTO && clearSpan && backed && confirmed && !neighbour;
+  if (auto) {
+    if (top.item.isMe) return { status: 'me' };
+    return {
+      status: 'resolved',
+      id: top.item.id,
+      name: top.item.name,
+      fuzzy: top.score < EXACT,
+      score: top.score,
+    };
+  }
+  const others = scored.filter((fit) => fit !== top && fit.score >= ACCEPT).slice(0, 2);
+  return {
+    status: 'suggested',
+    id: top.item.id,
+    name: top.item.name,
+    score: top.score,
+    candidates: [top.item, ...others.map((fit) => fit.item)],
+  };
 }
 
 /** Word-by-word tiers for group names. */
@@ -959,55 +1463,6 @@ function scoreAgainst(
   if (matched === 0) return null;
   if (requireAll && matched < heard.length) return null;
   return { score, worst };
-}
-
-/**
- * Who a spoken name means.
- *
- * "me", "I", "myself" and the Hinglish "main"/"mujhe" are the speaker; a name
- * that matches the speaker's own member row is also the speaker. Anything else
- * is scored against every candidate; the best wins only when it is good enough
- * and clearly ahead of the next. Two people who fit about as well — "harry"
- * with both Hari and Harry in the group, "rajesh" with Rajesh and Rajeesh — is
- * `ambiguous`: the caller asks, it never tosses a coin.
- */
-export function resolveSpokenName(
-  heard: string,
-  candidates: readonly VoiceNameCandidate[],
-): NameResolution {
-  const said = nameTokens(heard);
-  const tokens = withoutHonorifics(said);
-  // "sun eel" and "a run" may be Sunil and Arun; "matt and you" is two people, never "mattyou".
-  const canJoin = said.length >= 2 && said.length <= 3 && !said.some((word) => JOINERS.has(word));
-  if (tokens.length === 0) return { status: 'unresolved' };
-  if (tokens.length === 1 && isMeWord(tokens[0] ?? '')) return { status: 'me' };
-
-  const scored: { item: VoiceNameCandidate; score: number }[] = [];
-  for (const candidate of candidates) {
-    const words = withoutHonorifics(nameTokens(candidate.name));
-    if (words.length === 0) continue;
-    const score = Math.max(fitName(tokens, words, false), canJoin ? fitName(said, words, true) : 0);
-    if (score >= CONSIDER) scored.push({ item: candidate, score });
-  }
-  if (scored.length === 0) return { status: 'unresolved' };
-  // Best first; between equals, the closer spelling of the first name leads the
-  // question the caller asks (Jaro-Winkler only orders — it never picks).
-  const spelled = tokens.join('');
-  const lead = (entry: { item: VoiceNameCandidate }): number =>
-    jaroWinkler(spelled, nameTokens(entry.item.name)[0] ?? '');
-  scored.sort((a, b) => b.score - a.score || lead(b) - lead(a));
-
-  const top = scored[0];
-  if (!top || top.score < ACCEPT) return { status: 'unresolved' };
-  const margin = top.score >= EXACT ? SURE_MARGIN : MARGIN;
-  const close = scored.filter((entry) => top.score - entry.score < margin);
-  if (close.length > 1) {
-    // The speaker and one other: still a question — never quietly "me".
-    return { status: 'ambiguous', candidates: close.map((entry) => entry.item) };
-  }
-  const { item, score } = top;
-  if (item.isMe) return { status: 'me' };
-  return { status: 'resolved', id: item.id, name: item.name, fuzzy: score < EXACT };
 }
 
 export interface VoiceGroupCandidate {
