@@ -38,6 +38,42 @@ import {
 
 export const PRIMARY_MODEL = 'claude-haiku-4-5-20251001';
 export const ESCALATION_MODEL = 'claude-sonnet-5-5';
+export const DEEPSEEK_PRIMARY_MODEL = 'deepseek-flash';
+export const DEEPSEEK_ESCALATION_MODEL = 'deepseek-v4-pro';
+
+/** One model to ask, in the order the chain tries them. */
+export interface LlmStep {
+  readonly provider: 'anthropic' | 'deepseek';
+  readonly model: string;
+  readonly key: string;
+}
+
+/**
+ * Which models to ask, in order. `VOICE_LLM_PROVIDER` picks the lead
+ * (`deepseek` or `anthropic`); without it DeepSeek leads when its key is set.
+ * Each provider contributes its fast model then its stronger one, and the other
+ * provider (when its key is set) follows as the fallback. At most three asks —
+ * the person is waiting.
+ */
+export function llmChain(env: (name: string) => string | undefined): LlmStep[] {
+  const deepseek = env('DEEPSEEK_API_KEY');
+  const anthropic = env('ANTHROPIC_API_KEY');
+  const ds: LlmStep[] = deepseek
+    ? [
+        { provider: 'deepseek', model: DEEPSEEK_PRIMARY_MODEL, key: deepseek },
+        { provider: 'deepseek', model: DEEPSEEK_ESCALATION_MODEL, key: deepseek },
+      ]
+    : [];
+  const an: LlmStep[] = anthropic
+    ? [
+        { provider: 'anthropic', model: PRIMARY_MODEL, key: anthropic },
+        { provider: 'anthropic', model: ESCALATION_MODEL, key: anthropic },
+      ]
+    : [];
+  const lead = env('VOICE_LLM_PROVIDER') ?? (deepseek ? 'deepseek' : 'anthropic');
+  const ordered = lead === 'anthropic' ? [...an, ...ds] : [...ds, ...an];
+  return ordered.slice(0, 3);
+}
 
 /** ~12 MB of audio. A 60 s clip is a fraction of this in any accepted format. */
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
@@ -78,8 +114,8 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   if (flagError || enabled !== true) throw unavailable('Advanced voice is not available');
 
   const deepgramKey = deps.env('DEEPGRAM_API_KEY');
-  const anthropicKey = deps.env('ANTHROPIC_API_KEY');
-  if (!deepgramKey || !anthropicKey) throw unavailable('Advanced voice is not configured');
+  const chain = llmChain(deps.env);
+  if (!deepgramKey || chain.length === 0) throw unavailable('Advanced voice is not configured');
 
   await deps.rateLimit(profileId);
 
@@ -109,14 +145,25 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       throw new HttpError(422, VoiceAgentError.NothingHeard, 'Nothing was heard');
     }
 
-    let model = PRIMARY_MODEL;
-    let parsed = await ask(deps, anthropicKey, model, context, transcript);
-    let escalated = false;
-    if (!parsed.ok) {
-      escalated = true;
-      model = ESCALATION_MODEL;
-      parsed = await ask(deps, anthropicKey, model, context, transcript);
+    // Down the chain until an answer validates against the context. A provider
+    // that errors is skipped like one that answered badly; only when every step
+    // failed outright does the request fail (and the command is refunded).
+    let parsed: Parsed | null = null;
+    let model = chain[0].model;
+    let lastError: unknown = null;
+    for (const [index, step] of chain.entries()) {
+      try {
+        const attempt = await ask(deps, step, context, transcript);
+        model = step.model;
+        parsed = attempt;
+        if (attempt.ok) break;
+      } catch (error) {
+        lastError = error;
+        if (index === chain.length - 1 && !parsed) throw error;
+      }
     }
+    if (!parsed) throw lastError ?? new HttpError(502, 'VOICE_AGENT_FAILED', 'No answer');
+    const escalated = model !== chain[0].model;
 
     const response: VoiceAgentResponse = parsed.ok
       ? {
@@ -257,20 +304,32 @@ async function transcribe(
 
 async function ask(
   deps: Deps,
-  key: string,
-  model: string,
+  step: LlmStep,
   context: VoiceContext,
   transcript: string,
 ): Promise<Parsed> {
+  const calls =
+    step.provider === 'deepseek'
+      ? await askDeepSeek(deps, step, context, transcript)
+      : await askAnthropic(deps, step, context, transcript);
+  return parseToolCalls(calls, context);
+}
+
+async function askAnthropic(
+  deps: Deps,
+  step: LlmStep,
+  context: VoiceContext,
+  transcript: string,
+): Promise<ToolCall[]> {
   const response = await deps.fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'x-api-key': key,
+      'x-api-key': step.key,
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model,
+      model: step.model,
       max_tokens: 2000,
       system: systemPrompt(context),
       tools: TOOLS,
@@ -286,8 +345,62 @@ async function ask(
   const message = (await response.json()) as {
     content?: { type: string; name?: string; input?: unknown }[];
   };
-  const calls: ToolCall[] = (message.content ?? [])
+  return (message.content ?? [])
     .filter((block) => block.type === 'tool_use' && typeof block.name === 'string')
     .map((block) => ({ name: block.name as string, input: block.input }));
-  return parseToolCalls(calls, context);
+}
+
+/** The same tools in the OpenAI-style shape DeepSeek's API takes. */
+export const DEEPSEEK_TOOLS = TOOLS.map((tool) => ({
+  type: 'function' as const,
+  function: { name: tool.name, description: tool.description, parameters: tool.input_schema },
+}));
+
+async function askDeepSeek(
+  deps: Deps,
+  step: LlmStep,
+  context: VoiceContext,
+  transcript: string,
+): Promise<ToolCall[]> {
+  const request = (lowEffort: boolean) =>
+    deps.fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${step.key}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: step.model,
+        max_tokens: 2000,
+        // A short tool call, not an essay: light reasoning keeps it quick.
+        ...(lowEffort ? { reasoning_effort: 'low' } : {}),
+        tools: DEEPSEEK_TOOLS,
+        tool_choice: 'required',
+        messages: [
+          { role: 'system', content: systemPrompt(context) },
+          { role: 'user', content: transcript },
+        ],
+      }),
+    });
+  let response = await request(true);
+  // An API that does not know the effort knob says so with a 400; ask plainly.
+  if (response.status === 400) response = await request(false);
+  if (!response.ok) {
+    console.error('deepseek error', response.status);
+    throw new HttpError(502, 'VOICE_AGENT_FAILED', 'The assistant could not answer just now');
+  }
+  const completion = (await response.json()) as {
+    choices?: {
+      message?: { tool_calls?: { function?: { name?: string; arguments?: string } }[] };
+    }[];
+  };
+  const calls = completion.choices?.[0]?.message?.tool_calls ?? [];
+  return calls
+    .filter((call) => typeof call.function?.name === 'string')
+    .map((call) => {
+      let input: unknown = {};
+      try {
+        input = JSON.parse(call.function?.arguments ?? '{}');
+      } catch {
+        input = {};
+      }
+      return { name: call.function?.name as string, input };
+    });
 }

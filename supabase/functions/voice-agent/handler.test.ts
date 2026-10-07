@@ -5,7 +5,15 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { handleVoiceAgent, ESCALATION_MODEL, PRIMARY_MODEL, type Deps } from './handler.ts';
+import {
+  DEEPSEEK_ESCALATION_MODEL,
+  DEEPSEEK_PRIMARY_MODEL,
+  ESCALATION_MODEL,
+  handleVoiceAgent,
+  llmChain,
+  PRIMARY_MODEL,
+  type Deps,
+} from './handler.ts';
 
 const ME = 'profile-me';
 
@@ -203,5 +211,64 @@ describe('handleVoiceAgent', () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => new Response('no', { status: 500 }) });
     await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({ status: 502 });
     expect(rpc).toHaveBeenCalledWith('waves_voice_agent_refund', { p_profile: ME });
+  });
+});
+
+describe('LLM provider chain', () => {
+  const env = (e: Record<string, string>) => (n: string) => e[n];
+
+  it('leads with DeepSeek when its key is set, Claude after it', () => {
+    const chain = llmChain(env({ DEEPSEEK_API_KEY: 'ds', ANTHROPIC_API_KEY: 'an' }));
+    expect(chain.map((s) => s.model)).toEqual([
+      DEEPSEEK_PRIMARY_MODEL,
+      DEEPSEEK_ESCALATION_MODEL,
+      PRIMARY_MODEL,
+    ]);
+  });
+
+  it('lets VOICE_LLM_PROVIDER put Claude first, and works with one provider alone', () => {
+    const lead = llmChain(
+      env({ DEEPSEEK_API_KEY: 'ds', ANTHROPIC_API_KEY: 'an', VOICE_LLM_PROVIDER: 'anthropic' }),
+    );
+    expect(lead[0].model).toBe(PRIMARY_MODEL);
+    expect(llmChain(env({ DEEPSEEK_API_KEY: 'ds' })).map((s) => s.provider)).toEqual([
+      'deepseek',
+      'deepseek',
+    ]);
+    expect(llmChain(env({}))).toEqual([]);
+  });
+
+  it('reads DeepSeek tool calls and falls through to Claude when DeepSeek errors', async () => {
+    const urls: string[] = [];
+    const { deps } = makeDeps({
+      env: { DEEPSEEK_API_KEY: 'ds' },
+      fetchImpl: async (url) => {
+        urls.push(url);
+        if (url.includes('deepgram')) return deepgram('I paid 1200 for dinner with Anu');
+        if (url.includes('deepseek') && urls.filter((u) => u.includes('deepseek')).length === 1) {
+          return new Response('busy', { status: 503 });
+        }
+        if (url.includes('deepseek')) {
+          return new Response(
+            JSON.stringify({
+              choices: [
+                {
+                  message: {
+                    tool_calls: [
+                      { function: { name: 'add_expense', arguments: JSON.stringify(goodExpense) } },
+                    ],
+                  },
+                },
+              ],
+            }),
+          );
+        }
+        return claude({ name: 'add_expense', input: goodExpense });
+      },
+    });
+    const response = await handleVoiceAgent(request(), deps);
+    const body = (await response.json()) as { actions: { type: string }[] };
+    expect(body.actions.map((a) => a.type)).toEqual(['add_expense']);
+    expect(urls.filter((u) => u.includes('deepseek'))).toHaveLength(2);
   });
 });
