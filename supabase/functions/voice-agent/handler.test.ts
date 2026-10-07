@@ -217,11 +217,11 @@ describe('handleVoiceAgent', () => {
 describe('LLM provider chain', () => {
   const env = (e: Record<string, string>) => (n: string) => e[n];
 
-  it('leads with OpenRouter (Flash-Lite, then GPT-4.1 mini) when its key is set', () => {
+  it('leads with OpenRouter (Flash-Lite 3.5, then 3.1) when its key is set', () => {
     const chain = llmChain(env({ OPENROUTER_API_KEY: 'or', GEMINI_API_KEY: 'ge' }));
     expect(chain.map((s) => s.model)).toEqual([
       'google/gemini-3.5-flash-lite',
-      'openai/gpt-4.1-mini',
+      'google/gemini-3.1-flash-lite',
       'gemini-flash-lite-latest',
     ]);
     expect(

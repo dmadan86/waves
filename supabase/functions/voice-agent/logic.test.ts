@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  userMessage,
   buildContext,
   contextText,
   deepgramLanguage,
@@ -297,5 +298,26 @@ describe('parseToolCalls', () => {
     expect(parseToolCalls([], context()).ok).toBe(false);
     expect(parseToolCalls(call('delete_everything', {}), context()).ok).toBe(false);
     expect(parseToolCalls(call('add_expense', null), context()).ok).toBe(false);
+  });
+});
+
+describe('userMessage', () => {
+  it('passes one transcript through, and both when the phone heard something else', () => {
+    expect(userMessage({ cloud: 'Dinner 500' })).toBe('Dinner 500');
+    expect(userMessage({ cloud: 'Dinner 500', device: 'dinner 500' })).toBe('Dinner 500');
+    expect(userMessage({ cloud: 'Add thousand rupees for Renny', device: '8000 for any' })).toBe(
+      'cloud: Add thousand rupees for Renny\nphone: 8000 for any',
+    );
+  });
+
+  it('frames a follow-up as the answer to the earlier question', () => {
+    expect(
+      userMessage({
+        cloud: 'the Renny group',
+        followUp: { transcript: '8000 for Renny', question: 'Which group?' },
+      }),
+    ).toBe(
+      'Earlier command: 8000 for Renny\nYou asked: Which group?\nTheir answer:\nthe Renny group',
+    );
   });
 });

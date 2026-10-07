@@ -28,6 +28,7 @@ import {
   parseToolCalls,
   systemPrompt,
   TOOLS,
+  userMessage,
   type Parsed,
   type RawBalance,
   type RawGroup,
@@ -48,7 +49,7 @@ export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
  * commands on 7 Oct 2026: both 6/6, about 1.7 s median. Override with
  * `OPENROUTER_MODELS` (comma-separated) to try others without a deploy.
  */
-export const OPENROUTER_MODELS = ['google/gemini-3.5-flash-lite', 'openai/gpt-4.1-mini'];
+export const OPENROUTER_MODELS = ['google/gemini-3.5-flash-lite', 'google/gemini-3.1-flash-lite'];
 
 /** One model to ask, in the order the chain tries them. */
 export interface LlmStep {
@@ -185,12 +186,17 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     // Down the chain until an answer validates against the context. A provider
     // that errors is skipped like one that answered badly; only when every step
     // failed outright does the request fail (and the command is refunded).
+    const message = userMessage({
+      cloud: transcript,
+      device: body.deviceTranscript,
+      followUp: body.followUp,
+    });
     let parsed: Parsed | null = null;
     let model = chain[0].model;
     let lastError: unknown = null;
     for (const [index, step] of chain.entries()) {
       try {
-        const attempt = await ask(deps, step, context, transcript);
+        const attempt = await ask(deps, step, context, message);
         model = step.model;
         parsed = attempt;
         if (attempt.ok) break;
@@ -253,7 +259,10 @@ function parseBody(raw: unknown): VoiceAgentRequest {
     b.durationMs <= 0 ||
     typeof b.locale !== 'string' ||
     typeof b.today !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(b.today)
+    !/^\d{4}-\d{2}-\d{2}$/.test(b.today) ||
+    (b.deviceTranscript !== undefined && typeof b.deviceTranscript !== 'string') ||
+    (b.followUp !== undefined &&
+      (typeof b.followUp?.transcript !== 'string' || typeof b.followUp?.question !== 'string'))
   ) {
     throw new HttpError(400, 'BAD_REQUEST', 'Malformed voice request');
   }
