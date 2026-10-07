@@ -66,17 +66,18 @@ export function MapPreview({
   // Google image hands over to the map tiles for the rest of this preview.
   const [googleFailed, setGoogleFailed] = useState(false);
 
-  // Google Static Maps when a key is configured, else the tile grid. One
-  // composite image vs a mosaic of {z}/{x}/{y} tiles — see `googleStaticMapUrl`.
-  // On iOS the preview is a tiny non-interactive Apple map (free, no key) when
-  // the native module is in the binary; otherwise the tile grid. Google
-  // Static Maps is never called on iOS.
-  const appleMap = Platform.OS === 'ios' && nativeMaps !== null;
+  // The native map when the module is in the binary: a tiny non-interactive
+  // Apple map on iOS, and Google's lite-mode map on Android (the Maps SDK's
+  // own static bitmap — no Static Maps API call, which needs billing on the
+  // Cloud project and otherwise answers 403 and dropped us to OSM tiles).
+  // Without the module (an older binary an OTA reached): Google Static Maps
+  // when a key works, else the tile grid.
+  const nativeMap = nativeMaps !== null;
   const googleUrl =
-    width > 0 && !googleFailed && !appleMap && staticGoogleAllowed(Platform.OS)
+    width > 0 && !googleFailed && !nativeMap && staticGoogleAllowed(Platform.OS)
       ? googleStaticMapUrl(location, zoom, width, height)
       : null;
-  const tiles = width > 0 && !googleUrl && !appleMap ? tileGrid(location, zoom, width, height) : [];
+  const tiles = width > 0 && !googleUrl && !nativeMap ? tileGrid(location, zoom, width, height) : [];
 
   const body = (
     <View
@@ -88,7 +89,7 @@ export function MapPreview({
         backgroundColor: theme.color.bg,
       }}
     >
-      {appleMap && nativeMaps && width > 0 ? (
+      {nativeMap && nativeMaps && width > 0 ? (
         <nativeMaps.StaticMapSurface
           center={{ lat: location.lat, lng: location.lng }}
           zoom={zoom}
@@ -152,7 +153,7 @@ export function MapPreview({
       {/* Attribution — required by the tile licence (OSM data, map tiles).
           Not translated: it is a fixed credit, like a copyright line. Hidden for
           the Google image, which carries Google's own credit baked in. */}
-      {googleUrl || appleMap ? null : (
+      {googleUrl || nativeMap ? null : (
         <View
           pointerEvents="none"
           style={{
