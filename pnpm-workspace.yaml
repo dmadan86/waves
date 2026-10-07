@@ -102,6 +102,10 @@ overrides:
   # (@docusaurus/core -> webpack-dev-server/express, and tinypool directly).
   proxy-addr: ^2.0.8
   '@docusaurus/core>tinypool': ^2.1.2
+  # GHSA (critical, Oct 2026): shell-quote 1.8.4–1.10.x `quote()` lets a line
+  # terminator after a comment token inject a command. Docs site only
+  # (webpack-dev-server -> launch-editor).
+  shell-quote: ^1.11.0
 
 # Expo loads a package's config plugin from inside that package, and several of
 # them require `@expo/config-plugins` without declaring it — it is always
