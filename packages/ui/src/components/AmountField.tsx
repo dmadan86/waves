@@ -86,7 +86,7 @@ export function AmountField({
   // together, and a wrong pairing (44pt digits over a 24pt line) is the kind of
   // thing that reads as a clipped number on Android.
   const metrics = hero
-    ? { symbol: 20, digits: 30, line: 38, minWidth: 24 }
+    ? { symbol: 18, digits: 26, line: 32, minWidth: 24 }
     : compact
       ? { symbol: 18, digits: 18, line: 24, minWidth: 40 }
       : { symbol: 30, digits: 44, line: 50, minWidth: 28 };
@@ -187,7 +187,7 @@ export function AmountField({
               backgroundColor: wellFill,
               borderRadius: theme.radius.md,
               paddingHorizontal: theme.spacing.md,
-              paddingVertical: theme.spacing.xs,
+              paddingVertical: 2,
               borderBottomWidth: 2,
               borderBottomColor: focused ? ruleActive : ruleRest,
             }
