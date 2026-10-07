@@ -127,8 +127,14 @@ import {
 } from '@/lib/expenseEdit';
 import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEditor';
 import { clearDraft, syncEngine, useDraft, useRestoredDraft, useSync } from '@/sync';
-import { discardHeldReceipts, flushReceiptQueue, releaseHeldReceipts } from '@/lib/receiptQueue';
+import {
+  discardHeldReceipts,
+  enqueueReceipt,
+  flushReceiptQueue,
+  releaseHeldReceipts,
+} from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
+import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -296,6 +302,7 @@ export default function AddExpenseScreen() {
     focus,
     currency: handedCurrency,
     quick,
+    receipt: handedReceiptKey,
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
@@ -335,6 +342,8 @@ export default function AddExpenseScreen() {
      *  is an explicit choice to carry on with what was typed, and without a
      *  marker the amount is read as a stale draft and dropped. */
     quick?: string;
+    /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
+    receipt?: string;
     /** Event "Pay balance" (Vendors tab): the sub-event the vendor was tagged with. */
     subEventId?: string;
     /** Event "Pay balance": the vendor advance this payment settles. Once this
@@ -515,6 +524,24 @@ export default function AddExpenseScreen() {
   // The picked bill, held until the expense is saved. Uploading on save (not on
   // pick) means an add that is abandoned never leaves an orphaned object in R2.
   const [pendingReceipt, setPendingReceipt] = useState<PickedImage | null>(null);
+  // A photo Quick expense picked before "Advanced" (parked in
+  // `lib/receiptHandoff`): into this new expense's held receipts, the same place
+  // a photo added here goes — shown from the device at once, sent on save,
+  // discarded if the add is abandoned.
+  useEffect(() => {
+    const handed = peekHandedReceipt(handedReceiptKey);
+    dropHandedReceipt(handedReceiptKey);
+    if (!handed || expenseId) return;
+    void enqueueReceipt({
+      expenseId: targetExpenseId,
+      groupId,
+      visibility: 'group',
+      sourceUri: handed.uri,
+      contentType: handed.mimeType,
+      held: true,
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on arrival only
+  }, [handedReceiptKey]);
 
   // Where the spend happened (A43). Optional and opt-in: null until the person
   // taps "Add location" and grants the permission. Kept in the draft so a crash
