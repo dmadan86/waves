@@ -71,12 +71,14 @@ export function useVoiceNameMemory(viewerId: string | null | undefined): VoiceNa
  */
 export async function rememberNamePick(
   viewerId: string | null | undefined,
-  pick: NamePick,
+  pick: Omit<NamePick, 'now'> & { readonly now?: number },
 ): Promise<void> {
   if (!viewerId) return;
+  // Stamped here, off the render path, unless the caller gave a time.
+  const at = pick.now ?? Date.now();
   await load(viewerId);
   const base = current?.viewerId === viewerId ? current.memory : EMPTY_NAME_MEMORY;
-  const next = recordNamePick(base, pick);
+  const next = recordNamePick(base, { ...pick, now: at });
   if (next === base) return;
   publish(viewerId, next);
   try {

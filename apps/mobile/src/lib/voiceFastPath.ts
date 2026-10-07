@@ -16,17 +16,20 @@
 
 import {
   resolveIntentPeople,
+  type LearnedName,
   type VoiceIntent,
   type VoiceNameCandidate,
   type VoiceParty,
 } from '@waves/core';
 
 import {
+  amountIsUnambiguous,
   detectAddMember,
   detectBalanceQuery,
   detectMoneyIntent,
   isSafeVoiceAmount,
   matchMemberNames,
+  parseVoiceExpense,
   parseVoiceExpenses,
   type VoiceBalanceQuery,
   type VoiceGroupRef,
@@ -41,6 +44,12 @@ export interface LocalParse {
   money: VoiceMoneyIntent | null;
   balance: VoiceBalanceQuery | null;
   addMember: { names: string[] } | null;
+  /**
+   * Why the single-sentence reader refuses the sentence, when it does. A
+   * third-party payer ("Renny paid 1200 …") is flagged here and is never taken
+   * on the fast path.
+   */
+  refused: 'unsupported' | 'third-party-payer' | null;
 }
 
 /** A 1:1 contact, as the settle/remind/balance paths resolve a name against. */
@@ -58,6 +67,14 @@ export interface FastPathContext {
   /** Members of the groups whose members are loaded (at least the current one). */
   membersByGroup?: Readonly<Record<string, readonly VoiceNameCandidate[]>>;
   contacts?: readonly FastPathContact[];
+  /**
+   * The engine's other hypotheses for the sentence (n-best), best first — the
+   * same evidence the basic path reads names and amounts with, so the fast path
+   * sees the same "Did you mean" / "A or B" / "₹15 or ₹50?" questions it would.
+   */
+  alternatives?: readonly string[];
+  /** Name corrections this reader confirmed, per group id. */
+  learnedByGroup?: Readonly<Record<string, readonly LearnedName[]>>;
   now?: Date;
 }
 
@@ -77,10 +94,15 @@ export function parseLocally(transcript: string, context: FastPathContext): Loca
         : undefined,
       currentGroupId: context.currentGroupId,
       now: context.now,
+      alternatives: context.alternatives,
+      learned: context.currentGroupId
+        ? context.learnedByGroup?.[context.currentGroupId]
+        : undefined,
     }),
     money: detectMoneyIntent(transcript),
     balance: detectBalanceQuery(transcript),
     addMember: detectAddMember(transcript),
+    refused: parseVoiceExpense(transcript, context.groups).refused ?? null,
   };
 }
 
@@ -145,6 +167,15 @@ function moneyVerdict(local: LocalParse, context: FastPathContext): FastPathVerd
     return yes('remind');
   }
   if (open.length !== 1) return no('settle-no-single-balance');
+  // The engine's other hypotheses hear a different settle amount ("fifteen" /
+  // "fifty"): that is a question for the reader, not a guess.
+  if (
+    (context.alternatives ?? []).some((alternative) => {
+      const other = detectMoneyIntent(alternative);
+      return other?.kind === 'settle' && other.amount !== money.amount;
+    })
+  )
+    return no('amount-ambiguous');
   // The only expense-looking thing allowed is the settle's own spoken amount.
   const [item] = local.parse.items;
   if (local.parse.items.length > 1) return no('settle-with-expense');
@@ -172,9 +203,15 @@ function balanceVerdict(local: LocalParse, context: FastPathContext): FastPathVe
   return no('balance-group-unresolved');
 }
 
-/** Re-read a spoken party against the destination group's members. */
+/**
+ * Only the resolver's "auto" tier counts: a name it would merely suggest ("Did
+ * you mean Renny?"), one it would ask to choose between ("Ravi or Rajiv?"), or
+ * one only another hypothesis heard, is a question for the reader.
+ */
 function partyProblem(party: VoiceParty): string | null {
-  if (party.status === 'me' || party.status === 'resolved') return null;
+  if (party.status === 'me') return null;
+  if (party.status === 'resolved') return party.alternativeOnly ? 'name-alternative-only' : null;
+  if (party.status === 'suggested') return 'name-suggested';
   return party.status === 'ambiguous' ? 'name-ambiguous' : 'name-unresolved';
 }
 
@@ -183,6 +220,9 @@ function expenseVerdict(local: LocalParse, context: FastPathContext): FastPathVe
   if (parse.items.length !== 1) return no(parse.items.length === 0 ? 'no-expense' : 'many-items');
   const [item] = parse.items;
   if (!item || !isSafeVoiceAmount(item.amountMajor)) return no('bad-amount');
+  // "₹15 or ₹50?", "total or each?", "US or Australian dollars?" — a chooser the
+  // review would show is never skipped.
+  if (!amountIsUnambiguous(parse)) return no('amount-ambiguous');
   if (parse.group?.kind === 'create') return no('creates-group');
 
   // Solo spend: the destination is the private ledger, nobody to resolve.
@@ -225,6 +265,7 @@ function expenseVerdict(local: LocalParse, context: FastPathContext): FastPathVe
           notes: intent.notes.filter((note) => !note.startsWith('name_')),
         },
         members,
+        { learned: context.learnedByGroup?.[groupId] },
       )
     : intent;
   for (const party of [reread.payer, ...(reread.participants ?? [])]) {
@@ -262,6 +303,11 @@ export function explainLocalParse(local: LocalParse, context: FastPathContext): 
   // the parser's own refusals are never confident.
   if (local.addMember) return no('add-member');
   if (local.parse.group?.kind === 'create') return no('creates-group');
+  // "Renny paid 1200 …": the single-sentence reader refuses a third-party payer.
+  if (local.refused === 'third-party-payer') return no('third-party-payer');
+  // Any amount the review would ask about ("₹15 or ₹50?") — whatever the intent.
+  if (local.parse.items.length > 0 && !amountIsUnambiguous(local.parse))
+    return no('amount-ambiguous');
 
   const candidates: [string, FastPathVerdict][] = [];
   if (local.money) candidates.push(['money', moneyVerdict(local, context)]);

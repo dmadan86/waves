@@ -8,6 +8,7 @@ import {
   liveText,
   parseMessage,
   pcmLevel,
+  streamAlternatives,
 } from '@/lib/voiceStreamPure';
 
 const result = (transcript: string, isFinal: boolean): string =>
@@ -49,6 +50,35 @@ describe('Deepgram transcript assembly', () => {
     expect(applyMessage(state, result('', true)).finals).toEqual(['hello']);
     expect(parseMessage('[1]')).not.toBeNull();
     expect(parseMessage('{')).toBeNull();
+  });
+});
+
+const ranked = (transcripts: string[], isFinal: boolean): string =>
+  JSON.stringify({
+    type: 'Results',
+    is_final: isFinal,
+    channel: { alternatives: transcripts.map((transcript) => ({ transcript })) },
+  });
+
+describe('Deepgram alternatives', () => {
+  it('are empty when the stream sends one alternative per segment', () => {
+    let state = applyMessage(EMPTY_TRANSCRIPT, result('paid 500 to Ravi', true));
+    state = applyMessage(state, result('for tea', false));
+    expect(streamAlternatives(state)).toEqual([]);
+  });
+
+  it('turn channel.alternatives[1..] into whole-sentence hypotheses, best first', () => {
+    let state = applyMessage(EMPTY_TRANSCRIPT, ranked(['paid fifteen', 'paid fifty'], true));
+    state = applyMessage(state, ranked(['to Renny', 'to rainy', 'to Renny'], true));
+    expect(fullText(state)).toBe('paid fifteen to Renny');
+    expect(streamAlternatives(state)).toEqual(['paid fifty to Renny', 'paid fifteen to rainy']);
+  });
+
+  it('follow the interim tail and drop a spent one', () => {
+    let state = applyMessage(EMPTY_TRANSCRIPT, ranked(['paid 15', 'paid 50'], false));
+    expect(streamAlternatives(state)).toEqual(['paid 50']);
+    state = applyMessage(state, ranked(['paid 15 for tea'], true));
+    expect(streamAlternatives(state)).toEqual([]);
   });
 });
 

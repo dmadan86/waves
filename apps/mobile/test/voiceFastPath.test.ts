@@ -42,10 +42,6 @@ describe('localParseIsConfident: confident', () => {
     });
   });
 
-  it('a single expense where someone else paid', () => {
-    expect(confident('Anu paid 800 for the cab in Flatmates')).toBe(true);
-  });
-
   it('a single expense into the group the mic was opened in', () => {
     const ctx = { ...base, currentGroupId: 'g-flat' };
     expect(confident('I paid 450 for groceries', ctx)).toBe(true);
@@ -206,5 +202,120 @@ describe('localParseIsConfident: not confident', () => {
     expect(confident('dinner in Goa Trip')).toBe(false);
     expect(confident('   ')).toBe(false);
     expect(confident(`I paid 500 for ${'a very long dinner '.repeat(10)} in Goa Trip`)).toBe(false);
+  });
+});
+
+describe('localParseIsConfident: names must resolve at the auto tier', () => {
+  const crowd = [
+    { id: 'm-me', name: 'Madan', isMe: true },
+    { id: 'm-ravi', name: 'Ravi' },
+    { id: 'm-rajiv', name: 'Rajiv' },
+    { id: 'm-renny', name: 'Renny' },
+    { id: 'm-pradeep', name: 'Pradeep' },
+    { id: 'm-anu', name: 'Anu' },
+  ];
+  const ctx: FastPathContext = {
+    ...base,
+    currentGroupId: 'g-goa',
+    membersByGroup: { ...base.membersByGroup, 'g-goa': crowd },
+  };
+
+  it('takes a name resolved at the auto tier', () => {
+    expect(verdict('I paid 600 for dinner split with Renny', ctx)).toEqual({
+      confident: true,
+      reason: 'expense',
+    });
+  });
+
+  it('not a name the review would only suggest ("Did you mean …?")', () => {
+    // A correction confirmed once is a suggestion, not yet a fill-in.
+    const learnedOnce: FastPathContext = {
+      ...ctx,
+      learnedByGroup: { 'g-goa': [{ heard: 'pravi', memberId: 'm-pradeep', count: 1 }] },
+    };
+    expect(verdict('I paid 600 for dinner split with pravi', learnedOnce)).toEqual({
+      confident: false,
+      reason: 'name-suggested',
+    });
+    // A person only another hypothesis heard is a suggestion too.
+    expect(
+      verdict('I paid 8000 for a room', {
+        ...ctx,
+        alternatives: ['I paid eight thousand for renny'],
+      }),
+    ).toEqual({ confident: false, reason: 'name-suggested' });
+  });
+
+  it('not a name the review would ask to choose ("A or B?")', () => {
+    expect(verdict('I paid 600 for dinner split with Rahiv', ctx)).toEqual({
+      confident: false,
+      reason: 'name-ambiguous',
+    });
+    // The top transcript is clear, but the n-best hears somebody else.
+    expect(
+      verdict('I paid 600 for dinner split with Ravi', {
+        ...ctx,
+        alternatives: ['I paid 600 for dinner split with Rajiv'],
+      }),
+    ).toEqual({ confident: false, reason: 'name-ambiguous' });
+  });
+});
+
+describe('localParseIsConfident: amounts must be unambiguous', () => {
+  const ctx: FastPathContext = { ...base, currentGroupId: 'g-goa' };
+
+  it('takes a plain amount', () => {
+    expect(verdict('I paid 600 for dinner split with Ravi and Anu', ctx).confident).toBe(true);
+  });
+
+  it('not when the n-best disagrees on the number ("₹15 or ₹50?")', () => {
+    expect(
+      verdict('I paid fifteen rupees for tea', {
+        ...ctx,
+        alternatives: ['I paid fifty rupees for tea'],
+      }),
+    ).toEqual({ confident: false, reason: 'amount-ambiguous' });
+  });
+
+  it('not "one fifty" with no currency (150 or 1.50?)', () => {
+    expect(verdict('I paid one fifty for tea', ctx)).toEqual({
+      confident: false,
+      reason: 'amount-ambiguous',
+    });
+  });
+
+  it('not total-or-each, or a bare "dollars"', () => {
+    expect(verdict('I paid 500 each for dinner', ctx)).toEqual({
+      confident: false,
+      reason: 'amount-ambiguous',
+    });
+    expect(verdict('I paid 20 dollars for lunch', ctx)).toEqual({
+      confident: false,
+      reason: 'amount-ambiguous',
+    });
+  });
+
+  it('not a settle whose amount the n-best hears differently', () => {
+    expect(
+      confident('settle 200 with Ravi', { ...base, alternatives: ['settle 200 with Ravi.'] }),
+    ).toBe(true);
+    expect(
+      verdict('settle 15 with Ravi', { ...base, alternatives: ['settle 50 with Ravi'] }),
+    ).toEqual({ confident: false, reason: 'amount-ambiguous' });
+  });
+});
+
+describe('localParseIsConfident: a third-party payer refusal', () => {
+  it('is flagged and never confident', () => {
+    const local = parseLocally('Anu paid 800 for the cab in Flatmates', base);
+    expect(local.refused).toBe('third-party-payer');
+    expect(explainLocalParse(local, base)).toEqual({
+      confident: false,
+      reason: 'third-party-payer',
+    });
+  });
+
+  it('is not flagged when I paid', () => {
+    expect(parseLocally('I paid 800 for the cab in Flatmates', base).refused).toBe(null);
   });
 });
