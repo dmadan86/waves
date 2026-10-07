@@ -20,13 +20,13 @@
  * Deterministic: no randomness beyond a seeded generator, no network.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
 import { describe, expect, it } from 'vitest';
 
 import { parseVoiceIntent, type VoiceParty } from '../src/voice/intent';
 import { isMeWord, type VoiceNameCandidate } from '../src/voice/names';
+
+import heardFixture from './fixtures/voice-names-heard.json';
+import namesFixture from './fixtures/voice-names.json';
 
 interface NameRow {
   readonly name: string;
@@ -39,11 +39,14 @@ interface HeardFixture {
   readonly cases: readonly (readonly [string, string, number, number, string])[];
 }
 
-const fixture = (file: string): unknown =>
-  JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${file}`, import.meta.url)), 'utf8'));
+const NAMES = namesFixture as NameRow[];
+const HEARD = heardFixture as unknown as HeardFixture;
 
-const NAMES = fixture('voice-names.json') as NameRow[];
-const HEARD = fixture('voice-names-heard.json') as HeardFixture;
+/** VOICE_BENCH_VERBOSE=1 lists every wrong-person case. */
+const VERBOSE = Boolean(
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env
+    .VOICE_BENCH_VERBOSE,
+);
 
 const SURNAMES = [
   'Kumar',
@@ -219,7 +222,6 @@ interface Tally {
 }
 
 function run(): { byEngine: Map<string, Tally>; total: Tally; wrongCases: string[] } {
-  const dump: unknown[] = [];
   const byEngine = new Map<string, Tally>();
   const total: Tally = { correct: 0, wrong: 0, unresolved: 0 };
   const wrongCases: string[] = [];
@@ -231,18 +233,24 @@ function run(): { byEngine: Map<string, Tally>; total: Tally; wrongCases: string
     tally[outcome] += 1;
     total[outcome] += 1;
     byEngine.set(engineName, tally);
-    dump.push({ outcome, name, voice, engine: engineName, transcript, members: members.map((m) => m.name) });
     if (outcome === 'wrong')
       wrongCases.push(
         `${name} [${voice}, ${engineName}] "${transcript}" in {${members.map((m) => m.name).join(', ')}}`,
       );
   });
-  // VOICE_BENCH_DUMP=/path/out.json writes every case and its outcome, for digging into misses.
-  if (process.env.VOICE_BENCH_DUMP) writeFileSync(process.env.VOICE_BENCH_DUMP, JSON.stringify(dump));
   return { byEngine, total, wrongCases };
 }
 
-const pct = (part: number, whole: number): string => `${((100 * part) / whole).toFixed(1)}%`;
+/**
+ * Ratchets: raise the floor and lower the ceiling as the matcher improves.
+ * Most of what is left wrong is the recogniser writing another member's real
+ * name ("rakesh" for Rajeesh with a Rakesh in the group), which no matcher can
+ * undo; most of what is left unresolved has no trace of the name left in it.
+ */
+const WRONG_CEILING = 0.001;
+const CORRECT_FLOOR = 0.7;
+
+const pct = (part: number, whole: number): string => `${((100 * part) / whole).toFixed(2)}%`;
 
 describe('spoken-name bench (real recogniser transcripts)', () => {
   const { byEngine, total, wrongCases } = run();
@@ -256,7 +264,7 @@ describe('spoken-name bench (real recogniser transcripts)', () => {
     lines.push(
       `${'all'.padEnd(24)} n=${String(count).padStart(5)}  correct ${pct(total.correct, count)}  wrong ${pct(total.wrong, count)}  unresolved ${pct(total.unresolved, count)}`,
     );
-    if (process.env.VOICE_BENCH_VERBOSE) lines.push(...wrongCases);
+    if (VERBOSE) lines.push(...wrongCases);
     console.log(lines.join('\n'));
     expect(count).toBe(HEARD.cases.length);
   });
@@ -270,6 +278,143 @@ describe('spoken-name bench (real recogniser transcripts)', () => {
   });
 });
 
-/** Ratchets: raise the floor and lower the ceiling as the matcher improves. */
-const WRONG_CEILING = 1;
-const CORRECT_FLOOR = 0;
+/** What people spend on, in the words they use for it in India, the Gulf, the UK and Australia. */
+const SPENDS = [
+  'groceries from big bazaar',
+  'auto fare',
+  'chai and samosa',
+  'movie tickets at pvr',
+  'biryani from paradise',
+  'uber to the airport',
+  'petrol',
+  'electricity bill',
+  'wifi recharge',
+  'maid salary',
+  'milk and bread',
+  'netflix subscription',
+  'shawarma',
+  'karak chai',
+  'metro card',
+  'parking',
+  'toll',
+  'pharmacy',
+  'gym membership',
+  'dinner at nandos',
+  'fish and chips',
+  'pints at the pub',
+  'tesco shopping',
+  'sainsburys',
+  'woolies',
+  'aldi',
+  'bunnings',
+  'brunch',
+  'flat white',
+  'masala dosa',
+  'idli vada',
+  'vada pav',
+  'pani puri',
+  'rickshaw',
+  'ola cab',
+  'careem ride',
+  'talabat order',
+  'zomato order',
+  'swiggy',
+  'lulu hypermarket',
+  'carrefour',
+  'desert safari',
+  'visa fees',
+  'hotel booking',
+  'flight tickets',
+  'train tickets',
+  'bus pass',
+  'birthday cake',
+  'gift for mom',
+  'flowers',
+  'tailor',
+  'laundry',
+  'haircut',
+  'doctor visit',
+  'medicines',
+  'rent',
+  'deposit',
+  'furniture from ikea',
+  'amazon order',
+  'phone bill',
+  'gas cylinder',
+  'water can',
+  'vegetables',
+  'fruits',
+  'chicken',
+  'mutton',
+  'beer',
+  'wine',
+  'whisky',
+  'snacks',
+  'ice cream',
+  'coffee at starbucks',
+  'pizza hut',
+  'dominos',
+  'kfc',
+  'mcdonalds',
+  'subway',
+  'parotta and beef fry',
+  'onam sadya',
+  'toddy shop',
+  'temple donation',
+  'school fees',
+  'tuition',
+  'cricket kit',
+  'football boots',
+  'barbie and lego',
+  'cinema',
+  'bowling',
+  'karaoke',
+  'manicure',
+  'spa day',
+  'car wash',
+  'service charge',
+  'cover charge',
+  'tips',
+  'sunday roast',
+  'bottle shop',
+  'servo',
+  'maccas',
+  'arvo tea',
+];
+
+/** Sentences with no person in them: whatever the group, nobody may be picked. */
+function falsePeople(): { count: number; picks: string[] } {
+  const picks: string[] = [];
+  let count = 0;
+  const frames = [
+    '{s} 500',
+    'paid 500 for {s}',
+    'split 600 for {s} equally',
+    '{s} 300 split with everyone',
+  ];
+  SPENDS.forEach((spend, i) => {
+    frames.forEach((frame, j) => {
+      const seed = 100_000 + i * 10 + j;
+      const rand = mulberry32(seed);
+      const target = NAMES[Math.floor(rand() * NAMES.length)]?.name ?? 'Ravi';
+      const members = buildGroup(target, seed);
+      const said = frame.replace('{s}', spend);
+      const intent = parseVoiceIntent(said, { members, now: new Date('2026-10-01T12:00:00Z') });
+      const parties: VoiceParty[] = [intent.payer, ...(intent.participants ?? [])];
+      count += 1;
+      for (const party of parties)
+        if (party.status === 'resolved' || (party.status === 'me' && intent.payer.explicit))
+          picks.push(`"${said}" -> ${party.name} in {${members.map((m) => m.name).join(', ')}}`);
+    });
+  });
+  return { count, picks };
+}
+
+describe('spoken-name bench: sentences that name nobody', () => {
+  const { count, picks } = falsePeople();
+  it('picks nobody', () => {
+    console.log(`no-name sentences n=${count}  people wrongly picked ${picks.length}`);
+    if (picks.length > 0) console.log(picks.join('\n'));
+    expect(picks).toEqual([]);
+  });
+});
