@@ -28,6 +28,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { useBlockedUsers } from '@/data/blocked';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { displayName } from '@/data/types';
@@ -43,6 +44,7 @@ import {
   type VendorEntry,
   type VendorFilter,
 } from '@/lib/eventVendors';
+import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { router } from '@/lib/navigation';
 import { vendorCandidates } from '@/lib/vendorCandidates';
 import { useViewerId } from '@/lib/auth';
@@ -101,7 +103,7 @@ export function VendorsBody({
     );
   }, [candidates, today, filter, subEvent, query]);
   const subEventIds = useMemo(() => vendorSubEventIds(candidates), [candidates]);
-  const hasAny = candidates.some((c) => c.isDeposit);
+  const depositCount = candidates.filter((c) => c.isDeposit).length;
 
   const o = t.eventOrganizer;
 
@@ -152,44 +154,18 @@ export function VendorsBody({
         }}
         showsVerticalScrollIndicator={false}
       >
-        {!hasAny ? (
-          <View
-            style={{ alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xl }}
-          >
-            <View
-              accessible={false}
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Text style={{ fontSize: 44 }}>🏪</Text>
-              <Text style={{ position: 'absolute', top: 6, right: 8, fontSize: 18 }}>✨</Text>
-              <Text style={{ position: 'absolute', bottom: 8, left: 6, fontSize: 18 }}>🛍️</Text>
-            </View>
-            <Text variant="subheading" accessibilityRole="header">
-              {o.vendorsEmptyTitle}
-            </Text>
-            <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-              {o.vendorsEmptyBody}
-            </Text>
-            <Button
-              label={o.addVendor}
-              size="md"
-              icon={<Ionicons name="add" size={iconSize.md} color={theme.color.onButtonPrimary} />}
-              onPress={() =>
-                router.push({
-                  pathname: `/group/${groupId}/add-expense`,
-                  params: { deposit: '1', focus: 'description' },
-                })
-              }
-            />
-          </View>
+        {showEmptyAddCta(depositCount) ? (
+          <EmptyStateCta
+            title={o.vendorsEmptyTitle}
+            body={o.vendorsEmptyBody}
+            action={o.addVendor}
+            onAdd={() =>
+              router.push({
+                pathname: `/group/${groupId}/add-expense`,
+                params: { deposit: '1', focus: 'description' },
+              })
+            }
+          />
         ) : (
           <>
             <Card

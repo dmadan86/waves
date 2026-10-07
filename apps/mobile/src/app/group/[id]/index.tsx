@@ -3,7 +3,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import {
   AccessibilityInfo,
-  Image,
   InteractionManager,
   Pressable,
   RefreshControl,
@@ -76,7 +75,6 @@ import { convertedTotal } from '@/lib/expenseConversion';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router } from '@/lib/navigation';
-import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -90,6 +88,8 @@ import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { SettleBody } from '@/components/settle/SettleBody';
+import { showEmptyAddCta } from '@/lib/emptyAddCta';
+import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { VendorsBody } from '@/components/VendorsBody';
 import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
@@ -732,7 +732,6 @@ export default function GroupScreen() {
       return true;
     });
   }, [visibleExpenses, scope, activeMonth, query, myId, t]);
-  const filtersActive = scope !== 'all' || activeMonth !== null || query.trim() !== '';
   const expenseSections = useMemo(() => groupExpensesByMonth(filteredExpenses), [filteredExpenses]);
   // The month sections flattened into one recyclable list: a heading item per
   // month, then its expense rows. FlashList mounts only what is on screen, so a
@@ -1570,15 +1569,15 @@ export default function GroupScreen() {
               </View>
             }
             ListEmptyComponent={
-              tab === Tab.Expenses && filtersActive && visibleExpenses.length > 0 ? (
+              tab === Tab.Expenses && !showEmptyAddCta(visibleExpenses.length) ? (
                 <Text tone="muted" style={{ textAlign: 'center', paddingTop: theme.spacing.xl }}>
                   {t.group.noExpenseMatches}
                 </Text>
-              ) : tab === Tab.Expenses ? (
+              ) : tab === Tab.Expenses && showEmptyAddCta(visibleExpenses.length) ? (
                 // An empty list that only describes itself leaves the one thing to
                 // do on the screen to a floating button in the corner. The way out
                 // of an empty state belongs inside it.
-                <GroupEmptyExpenses
+                <EmptyStateCta
                   title={t.nothingYet}
                   body={t.nothingYetBody}
                   action={t.addExpense}
@@ -1596,90 +1595,6 @@ export default function GroupScreen() {
     </Screen>
   );
 }
-
-/**
- * A group with no expenses yet: a receipt and a plant, the fact in bold, what to
- * do about it, and the way to do it — inside the empty state rather than left
- * to a button somewhere else on the screen. Soft waves under it close the page.
- */
-function GroupEmptyExpenses({
-  title,
-  body,
-  action,
-  onAdd,
-}: {
-  title: string;
-  body: string;
-  action: string;
-  onAdd: () => void;
-}) {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const accent = dark ? theme.color.brand : SPEC_ACCENT;
-  return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
-      <Image
-        source={GROUP_EMPTY_ART}
-        resizeMode="contain"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{ width: EMPTY_ART_WIDTH, height: EMPTY_ART_WIDTH / EMPTY_ART_RATIO }}
-      />
-      <Text
-        style={{
-          fontSize: 26,
-          lineHeight: 32,
-          fontWeight: '800',
-          textAlign: 'center',
-          color: dark ? theme.color.text : SPEC_INK,
-        }}
-      >
-        {title}
-      </Text>
-      <Text
-        style={{
-          fontSize: 16,
-          lineHeight: 23,
-          textAlign: 'center',
-          maxWidth: 300,
-          color: dark ? theme.color.textMuted : SPEC_MUTED,
-        }}
-      >
-        {body}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={action}
-        onPress={onAdd}
-        style={({ pressed }) => ({
-          marginTop: theme.spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.sm,
-          height: 54,
-          paddingHorizontal: theme.spacing.xxl,
-          borderRadius: 27,
-          backgroundColor: accent,
-          shadowColor: accent,
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 4,
-          opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <Ionicons name="add" size={24} color="#FFFFFF" />
-        <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/** The empty state's picture: a receipt and a plant. Its shape (width over
- *  height, 1536 × 1024) and how wide it sits. */
-const GROUP_EMPTY_ART = require('../../../../assets/images/group-empty.webp') as number;
-const EMPTY_ART_RATIO = 1536 / 1024;
-const EMPTY_ART_WIDTH = 200;
 
 /**
  * Two soft waves across the foot of the screen, just above the tab bar — the

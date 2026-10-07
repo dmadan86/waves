@@ -46,7 +46,13 @@ import { isPhoneCountryError, normaliseContactPhone } from '@/lib/phone';
 import { type PickedContact } from '@/components/ContactPicker';
 import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
 import { GroupTagField } from '@/components/GroupTagField';
-import { normaliseGroupTag } from '@/lib/groupTypeTag';
+import { GROUP_TAG_MAX, normaliseGroupTag } from '@/lib/groupTypeTag';
+import {
+  addCustomTemplate,
+  loadCustomTemplates,
+  removeCustomTemplate,
+  saveCustomTemplates,
+} from '@/lib/customEventTemplates';
 import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
@@ -185,6 +191,20 @@ export default function NewGroupScreen() {
   // allowed to stay a plain Event with no template, same as it is allowed to
   // stay untyped.
   const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(null);
+  // "Other" with the person's own name for it ("Housewarming"). Saved on the
+  // group as its custom_tag; remembered on this device per account.
+  const [customTemplate, setCustomTemplate] = useState('');
+  const [savedTemplates, setSavedTemplates] = useState<string[]>([]);
+  useEffect(() => {
+    if (!viewerId) return;
+    let live = true;
+    void loadCustomTemplates(viewerId).then((list) => {
+      if (live) setSavedTemplates(list);
+    });
+    return () => {
+      live = false;
+    };
+  }, [viewerId]);
   // Which attribute row of the settings card is unfolded, if any — one at a
   // time, so the card stays a short list until you open the one you want.
   //
@@ -560,12 +580,27 @@ export default function NewGroupScreen() {
       // create as the description above — an ordinary member-writable field
       // (docs/event-organizer.md), not admin-gated, so a plain group.update is
       // enough; no new mutation kind earns its keep for one string.
-      if (type === GroupType.Event && eventTemplate) {
-        await mutate(MutationKind.GroupUpdate, groupId, { event_template: eventTemplate });
+      const ownTemplate =
+        type === GroupType.Event && (eventTemplate ?? 'other') === 'other'
+          ? normaliseGroupTag(customTemplate)
+          : null;
+      const templateToSave = eventTemplate ?? (ownTemplate ? 'other' : null);
+      if (type === GroupType.Event && templateToSave) {
+        await mutate(MutationKind.GroupUpdate, groupId, { event_template: templateToSave });
+      }
+      if (ownTemplate && viewerId) {
+        const next = addCustomTemplate(
+          savedTemplates,
+          ownTemplate,
+          Object.values(t.eventOrganizer.templateNames),
+        );
+        void saveCustomTemplates(viewerId, next);
       }
 
-      // The member's own tag, if typed — same ordered queue, same reason.
-      const tagToSave = normaliseGroupTag(customTag);
+      // The member's own tag, if typed — same ordered queue, same reason. The
+      // own template name rides in the same column when no tag was typed: it is
+      // the word every list and the group header already show for the kind.
+      const tagToSave = normaliseGroupTag(customTag) ?? ownTemplate;
       if (tagToSave) {
         await mutate(MutationKind.GroupUpdate, groupId, { custom_tag: tagToSave });
       }
@@ -1144,7 +1179,13 @@ export default function NewGroupScreen() {
                   <DetailRow
                     icon="sparkles-outline"
                     label={t.eventOrganizer.templateLabel}
-                    value={eventTemplate ? t.eventOrganizer.templateNames[eventTemplate] : t.add}
+                    value={
+                      eventTemplate === 'other' && normaliseGroupTag(customTemplate)
+                        ? (normaliseGroupTag(customTemplate) ?? '')
+                        : eventTemplate
+                          ? t.eventOrganizer.templateNames[eventTemplate]
+                          : t.add
+                    }
                     placeholder={!eventTemplate}
                     expanded={openAttr === 'eventTemplate'}
                     onPress={() =>
@@ -1163,6 +1204,89 @@ export default function NewGroupScreen() {
                           label: t.eventOrganizer.templateNames[template.id],
                         }))}
                       />
+                      {savedTemplates.length > 0 ? (
+                        <Row
+                          style={{
+                            flexWrap: 'wrap',
+                            gap: theme.spacing.xs,
+                            marginTop: theme.spacing.xs,
+                          }}
+                        >
+                          {savedTemplates.map((name) => {
+                            const on =
+                              eventTemplate === 'other' &&
+                              customTemplate.trim().toLocaleLowerCase() ===
+                                name.toLocaleLowerCase();
+                            return (
+                              <Row
+                                key={name}
+                                style={{
+                                  alignItems: 'center',
+                                  height: 36,
+                                  borderRadius: theme.radius.pill,
+                                  borderWidth: 1,
+                                  borderColor: on ? theme.color.brand : theme.color.border,
+                                  backgroundColor: on ? theme.color.brandSoft : 'transparent',
+                                }}
+                              >
+                                <Pressable
+                                  accessibilityRole="button"
+                                  accessibilityLabel={name}
+                                  onPress={() => {
+                                    setEventTemplate('other');
+                                    setCustomTemplate(name);
+                                  }}
+                                  style={{
+                                    paddingStart: theme.spacing.md,
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <Text variant="caption" numberOfLines={1}>
+                                    {name}
+                                  </Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`${t.eventOrganizer.customTemplateRemove}: ${name}`}
+                                  hitSlop={8}
+                                  onPress={() => {
+                                    const next = removeCustomTemplate(savedTemplates, name);
+                                    setSavedTemplates(next);
+                                    if (viewerId) void saveCustomTemplates(viewerId, next);
+                                  }}
+                                  style={{ paddingHorizontal: theme.spacing.sm }}
+                                >
+                                  <Ionicons
+                                    name="close"
+                                    size={iconSize.sm}
+                                    color={theme.color.textMuted}
+                                  />
+                                </Pressable>
+                              </Row>
+                            );
+                          })}
+                        </Row>
+                      ) : null}
+                      {(eventTemplate ?? 'other') === 'other' ? (
+                        <TextInput
+                          value={customTemplate}
+                          onChangeText={(v) => setCustomTemplate(v.slice(0, GROUP_TAG_MAX))}
+                          maxLength={GROUP_TAG_MAX}
+                          placeholder={t.eventOrganizer.customTemplatePlaceholder}
+                          placeholderTextColor={theme.color.textFaint}
+                          accessibilityLabel={t.eventOrganizer.customTemplatePlaceholder}
+                          returnKeyType="done"
+                          style={{
+                            marginTop: theme.spacing.xs,
+                            height: 40,
+                            paddingHorizontal: theme.spacing.md,
+                            borderRadius: theme.radius.pill,
+                            backgroundColor: theme.color.surfaceMuted ?? theme.color.brandSoft,
+                            color: theme.color.text,
+                            fontSize: 15,
+                          }}
+                        />
+                      ) : null}
                     </View>
                   ) : null}
                 </View>

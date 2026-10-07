@@ -214,11 +214,11 @@ export function PhoneLinkPrompt() {
       hitSlop={8}
       style={{
         alignSelf: 'center',
-        paddingVertical: theme.spacing.xs,
+        paddingVertical: theme.spacing.sm,
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <Text variant="subheading" tone="brand">
+      <Text variant="body" tone="muted" style={{ fontWeight: '600' }}>
         {label}
       </Text>
     </Pressable>
@@ -443,7 +443,8 @@ export function PhoneLinkPrompt() {
             </Text>
           ) : null}
 
-          <View style={{ gap: theme.spacing.xs }}>
+          {/* The primary action, then a clear gap, then the quiet text actions. */}
+          <View style={{ gap: theme.spacing.md }}>
             {stage === Stage.Ask ? (
               <Button
                 label={t.phonePrompt.add}
