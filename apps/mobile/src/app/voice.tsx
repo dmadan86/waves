@@ -106,7 +106,13 @@ import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
-import { CLOUD, local, type VoiceCloudConsent, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import {
+  CLOUD,
+  engineAfterAgentFailure,
+  local,
+  type VoiceCloudConsent,
+  type VoiceEngineInfo,
+} from '@/lib/voiceEnginePure';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
@@ -1122,8 +1128,9 @@ export default function VoiceScreen() {
     if (!heard) return;
     setAgentQuotaNote(reason === 'quota');
     if (reason === 'quota') setEngine(local('quota'));
-    // The call failed: if the phone is offline that is why, and the badge says so.
-    else void checkOnline().then((online) => online || setEngine(local('offline')));
+    // The call failed or timed out: offline when the phone says so, otherwise
+    // the cloud was unavailable — the badge says which, honestly.
+    else void checkOnline().then((online) => setEngine(engineAfterAgentFailure(reason, online)));
     runBasic(heard, heardAlternatives);
   };
 

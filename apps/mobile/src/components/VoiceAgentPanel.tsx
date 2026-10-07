@@ -37,6 +37,8 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
+import { agentFailureOf } from '@/lib/voiceAgentPure';
+import type { AgentFailure } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
   planVoiceAgentActions,
@@ -50,7 +52,7 @@ import {
 import { useToast } from '@/lib/toast';
 import { useSync } from '@/sync';
 
-export type AgentFallbackReason = 'quota' | 'other';
+export type AgentFallbackReason = AgentFailure;
 
 export interface VoiceAgentPanelProps {
   /** What the mic heard (streamed live) — sent to the agent, and what the fallback carries on with. */
@@ -157,7 +159,7 @@ export function VoiceAgentPanel({
     }).then((result) => {
       if (!live) return;
       if (result.kind === 'ok') setResponse(result);
-      else fallbackRef.current(result.kind === 'quota' ? 'quota' : 'other');
+      else fallbackRef.current(agentFailureOf(result));
     });
     return () => {
       live = false;

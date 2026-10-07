@@ -16,7 +16,8 @@ import {
 } from '@waves/core';
 
 import { backend } from '@/lib/backend';
-import { resultFromError, type VoiceAgentResult } from '@/lib/voiceAgentPure';
+import { resultFromError, withTimeout, type VoiceAgentResult } from '@/lib/voiceAgentPure';
+import { AGENT_CALL_TIMEOUT_MS } from '@/lib/voiceEnginePure';
 
 export { resultFromError };
 export type { VoiceAgentResult };
@@ -48,14 +49,31 @@ function isResponse(value: unknown): value is VoiceAgentResponse {
   );
 }
 
-export async function callVoiceAgent(request: VoiceAgentRequest): Promise<VoiceAgentResult> {
-  try {
-    const { data, error } = await backend.functions.invoke('voice-agent', { body: request });
-    if (error) return await readError(error);
-    return isResponse(data) ? { kind: 'ok', response: data } : { kind: 'error' };
-  } catch {
-    return { kind: 'error' };
-  }
+/**
+ * One agent call, never longer than {@link AGENT_CALL_TIMEOUT_MS}: past that the
+ * request is aborted and the answer is `timeout`, so the screen reads the
+ * sentence on the phone instead of sitting on "Understanding…".
+ */
+export function callVoiceAgent(request: VoiceAgentRequest): Promise<VoiceAgentResult> {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const call = async (): Promise<VoiceAgentResult> => {
+    try {
+      const { data, error } = await backend.functions.invoke('voice-agent', {
+        body: request,
+        ...(controller ? { signal: controller.signal } : {}),
+      });
+      if (error) return await readError(error);
+      return isResponse(data) ? { kind: 'ok', response: data } : { kind: 'error' };
+    } catch {
+      return { kind: 'error' };
+    }
+  };
+  return withTimeout<VoiceAgentResult>(
+    call(),
+    AGENT_CALL_TIMEOUT_MS,
+    () => ({ kind: 'timeout' }),
+    () => controller?.abort(),
+  );
 }
 
 /** Send what Deepgram heard (streamed live) to the agent. */
@@ -99,6 +117,8 @@ export async function meterVoiceCommand(input: {
         locale: input.locale,
         today: input.today,
       } satisfies VoiceAgentRequest,
+      // Fire-and-forget, but not forever.
+      timeout: AGENT_CALL_TIMEOUT_MS,
     });
     if (error) return (await readError(error)).kind;
     return data ? 'ok' : 'error';
