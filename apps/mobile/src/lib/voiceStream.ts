@@ -11,7 +11,10 @@
 
 import type { VoiceStreamTokenRequest, VoiceStreamTokenResponse } from '@waves/core';
 
+import * as Network from 'expo-network';
+
 import { backend } from '@/lib/backend';
+import { isOnline } from '@/lib/voiceEnginePure';
 import {
   applyMessage,
   base64ToBytes,
@@ -47,6 +50,15 @@ let ahead: {
 
 const tokenKey = (request: VoiceStreamTokenRequest): string =>
   `${request.groupId ?? ''}|${request.locale}`;
+
+/** Whether the phone has a connection right now. Unknown reads as online. */
+export async function checkOnline(): Promise<boolean> {
+  try {
+    return isOnline(await Network.getNetworkStateAsync());
+  } catch {
+    return true;
+  }
+}
 
 /** Start fetching a token now, for a mic press that is likely to follow. */
 export function prefetchStreamToken(request: VoiceStreamTokenRequest): void {

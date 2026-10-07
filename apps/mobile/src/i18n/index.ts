@@ -1261,6 +1261,12 @@ export interface UiStrings {
     agentAnswer: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
+    /** Engine badge on the voice screen. */
+    engineCloud: string;
+    engineOnDevice: string;
+    engineReasonFree: string;
+    engineReasonQuota: string;
+    engineReasonOffline: string;
     agentQuotaFallback: string;
     /** Card text (the next ones too): {placeholders} are filled in. */
     agentAdd: string;
@@ -5472,6 +5478,11 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    engineCloud: 'Cloud',
+    engineOnDevice: 'On-device',
+    engineReasonFree: 'Free plan',
+    engineReasonQuota: 'Monthly limit reached',
+    engineReasonOffline: 'Offline',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
     agentPaid: '{name} paid',
@@ -9188,6 +9199,11 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    engineCloud: 'கிளவுட்',
+    engineOnDevice: 'சாதனத்தில்',
+    engineReasonFree: 'இலவசத் திட்டம்',
+    engineReasonQuota: 'மாத வரம்பு முடிந்தது',
+    engineReasonOffline: 'இணைப்பு இல்லை',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
     agentAdd: '{amount} சேர்',
@@ -13023,6 +13039,11 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    engineCloud: 'क्लाउड',
+    engineOnDevice: 'ऑन-डिवाइस',
+    engineReasonFree: 'फ्री प्लान',
+    engineReasonQuota: 'मासिक सीमा पूरी',
+    engineReasonOffline: 'ऑफ़लाइन',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
     agentPaid: '{name} ने भुगतान किया',
@@ -16800,6 +16821,11 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    engineCloud: 'السحابة',
+    engineOnDevice: 'على الجهاز',
+    engineReasonFree: 'الخطة المجانية',
+    engineReasonQuota: 'بلغتَ الحد الشهري',
+    engineReasonOffline: 'غير متصل',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',
     agentPaid: 'دفع {name}',

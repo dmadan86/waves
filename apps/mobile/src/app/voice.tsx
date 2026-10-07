@@ -66,7 +66,7 @@ import {
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
-  useVoiceAgentEnabled,
+  useVoiceAgentStatus,
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
@@ -86,6 +86,9 @@ import {
   type PersonChoice,
 } from '@/components/DestinationPicker';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
+import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { checkOnline } from '@/lib/voiceStream';
+import { local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
@@ -348,7 +351,9 @@ export default function VoiceScreen() {
   // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
   // and the live transcript goes to the agent (phase 'agent') instead of straight
   // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
-  const agentOn = useVoiceAgentEnabled();
+  const { enabled: agentOn, ready: agentReady } = useVoiceAgentStatus();
+  // Which engine heard the last capture — shown on every step after it too.
+  const [engine, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
   // answer; cleared once that answer has been read.
   const [agentFollowUp, setAgentFollowUp] = useState<{
@@ -968,6 +973,9 @@ export default function VoiceScreen() {
     setAgentSession(null);
     if (!heard) return;
     setAgentQuotaNote(reason === 'quota');
+    if (reason === 'quota') setEngine(local('quota'));
+    // The call failed: if the phone is offline that is why, and the badge says so.
+    else void checkOnline().then((online) => online || setEngine(local('offline')));
     runBasic(heard);
   };
 
@@ -1741,7 +1749,14 @@ export default function VoiceScreen() {
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
         {agentQuotaNote && phase !== 'agent' ? (
-          <Callout tone="warning">{t.voice.agentQuotaFallback}</Callout>
+          <Text variant="caption" tone="muted">
+            {t.voice.agentQuotaFallback}
+          </Text>
+        ) : null}
+        {phase !== 'listening' ? (
+          <View style={{ alignItems: 'center' }}>
+            <VoiceEngineBadge info={engine} />
+          </View>
         ) : null}
 
         {phase === 'agent' && agentSession ? (
@@ -1989,7 +2004,9 @@ export default function VoiceScreen() {
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
-              streamLive={agentOn && micMode !== 'append'}
+              streamLive={agentOn}
+              agentReady={agentReady}
+              onEngine={setEngine}
               groupId={launchGroupId}
               hints={hints}
               groupNames={hints}
