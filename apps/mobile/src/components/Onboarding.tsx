@@ -25,6 +25,7 @@ import { directionalIcon, iconSize, isRtlLayout, Text, useTheme } from '@waves/u
 
 import { TourPager, type TourPagerHandle } from '@/components/TourPager';
 import { useStrings } from '@/i18n';
+import { usePromptSlot } from '@/lib/promptQueue';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 
 export interface IntroSlide {
@@ -73,6 +74,11 @@ const SLIDES: readonly IntroSlide[] = [
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const { t } = useStrings();
+  // The intro owns the screen: it takes the prompt queue's top slot while it is
+  // up, so no ask (phone number, push, campaign) opens over it. Leaving it also
+  // spends the launch's one prompt, so nothing pops up straight after either —
+  // except the required phone ask, which is essential.
+  usePromptSlot({ id: 'intro', priority: 1000, active: true });
   return <IntroCards slides={SLIDES} copy={t.onboarding} skipLabel={t.skip} onDone={onDone} />;
 }
 
