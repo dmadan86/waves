@@ -4,7 +4,7 @@ import SwiftUI
 // One-tap voice capture: opening the Speak screen starts recording at once —
 // no keyboard, no second tap on a dictation mic.
 //
-// Mono 16 kHz AAC in an .m4a, at most 30 s. Metering ends the take on its own
+// Mono 16 kHz AAC in an .m4a, at most 20 s. Metering ends the take on its own
 // after ~2 s of quiet once something has been said, so the usual use is: tap
 // Speak, say it, stop talking.
 
