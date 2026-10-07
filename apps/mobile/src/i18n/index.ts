@@ -1217,10 +1217,30 @@ export interface UiStrings {
     whoResets: string;
     /** Hint: a spoken name nobody matched. {name}. */
     whoUnknown: string;
+    /** Question: one member fits a heard name but not surely enough to fill in. {name}. */
+    didYouMean: string;
+    /** The one-tap confirm beside "Did you mean …?". */
+    didYouMeanYes: string;
+    /** Question: two or three members fit a heard name. {names} is a comma list, {last} the last. */
+    whichOf: string;
     /** Callout: the spoken group name fits several. */
     whichGroup: string;
     /** Callout: no group has that name. {name}. */
     noGroupNamed: string;
+    /** Chooser: a spoken amount heard two ways. {a} and {b} are formatted amounts. */
+    amountWhich: string;
+    /** Chooser: a share with nobody counted. {amount} appears twice. */
+    amountTotalOrEach: string;
+    /** Answer: the amount is the whole bill. {amount}. */
+    amountTotal: string;
+    /** Answer: the amount is each person's share. {amount}. */
+    amountEach: string;
+    /** Chooser: a bare "dollars" with no dollar group to settle it. */
+    whichDollars: string;
+    /** Answer: US dollars. */
+    usDollars: string;
+    /** Answer: Australian dollars. */
+    audDollars: string;
     /** Callout: a payer other than you needs a group. {name}. */
     needGroupForPayer: string;
     /** Callout: a split needs a group. */
@@ -1245,6 +1265,100 @@ export interface UiStrings {
     ansNoPerson: string;
     /** The button on the answer card that reopens the mic for another question. */
     askAgain: string;
+    /** Shown while the advanced voice agent reads the clip. */
+    agentUnderstanding: string;
+    agentHeard: string;
+    agentConfirm: string;
+    agentConfirmAll: string;
+    agentEdit: string;
+    agentDiscard: string;
+    agentDone: string;
+    agentCouldNotRun: string;
+    agentProblem: string;
+    agentClarifyTitle: string;
+    agentTryAgain: string;
+    /** After the assistant asks something: speak the answer. */
+    agentAnswer: string;
+    agentNothingToDo: string;
+    agentQuotaLeft: string;
+    /** Engine badge on the voice screen. */
+    engineCloud: string;
+    engineOnDevice: string;
+    engineReasonFree: string;
+    engineReasonQuota: string;
+    engineReasonOffline: string;
+    agentQuotaFallback: string;
+    /** Card text (the next ones too): {placeholders} are filled in. */
+    agentAdd: string;
+    agentPaid: string;
+    agentYou: string;
+    agentSplitEqual: string;
+    agentNotSplit: string;
+    agentSplitExact: string;
+    agentSplitPercent: string;
+    agentSplitShares: string;
+    agentJustYou: string;
+    agentSettle: string;
+    agentRemind: string;
+    agentCreateGroup: string;
+    agentWithPeople: string;
+    agentAddMember: string;
+    agentUnknownGroup: string;
+    agentUnknownPerson: string;
+  };
+  voiceRecorder: {
+    row: string;
+    rowHint: string;
+    title: string;
+    consentTitle: string;
+    consentBody: string;
+    consentNames: string;
+    consentAgree: string;
+    labelField: string;
+    labelPlaceholder: string;
+    backgroundField: string;
+    accentField: string;
+    bgEnglish: string;
+    bgTamil: string;
+    bgHindi: string;
+    bgArabic: string;
+    bgOther: string;
+    accentIndian: string;
+    accentSouthIndian: string;
+    accentNorthIndian: string;
+    accentGulf: string;
+    accentBritish: string;
+    accentAmerican: string;
+    accentOther: string;
+    startSession: string;
+    resumeSession: string;
+    newSession: string;
+    progress: string;
+    tapToRecord: string;
+    tapToStop: string;
+    listening: string;
+    saving: string;
+    next: string;
+    reRecord: string;
+    skip: string;
+    finish: string;
+    allDone: string;
+    shareRecordings: string;
+    deleteAll: string;
+    deleteTitle: string;
+    deleteBody: string;
+    deleteConfirm: string;
+    cancel: string;
+    sharing: string;
+    shareUnavailable: string;
+    shareFailed: string;
+    unavailable: string;
+    micDenied: string;
+    noSpeech: string;
+    onDeviceOn: string;
+    onDeviceOff: string;
+    saved: string;
+    traps: string;
   };
   /**
    * The on-device speech models, and the one screen that manages them.
@@ -5409,8 +5523,18 @@ const en: UiStrings = {
     whoSharesSection: 'Shared between',
     whoResets: 'Changing who shares splits it equally.',
     whoUnknown: 'Who is “{name}”? Pick them below.',
+    didYouMean: 'Did you mean {name}?',
+    didYouMeanYes: 'Yes',
+    whichOf: '{names} or {last}?',
     whichGroup: 'Which group did you mean?',
     noGroupNamed: 'No group called “{name}”. Choose one.',
+    amountWhich: 'Was that {a} or {b}?',
+    amountTotalOrEach: '{amount} total or {amount} each?',
+    amountTotal: '{amount} total',
+    amountEach: '{amount} each',
+    whichDollars: 'US or Australian dollars?',
+    usDollars: 'US dollars',
+    audDollars: 'Australian dollars',
     needGroupForPayer: 'Choose a group to record that {name} paid.',
     needGroupForSplit: 'Choose a group to apply this split.',
     splitInvalid: 'This split does not add up. Choose who shares to split it equally.',
@@ -5424,6 +5548,98 @@ const en: UiStrings = {
     ansGroupSettled: "You're all settled up in {group}",
     ansNoPerson: "Couldn't find {name}",
     askAgain: 'Ask again',
+    agentUnderstanding: 'Understanding…',
+    agentHeard: 'Heard',
+    agentConfirm: 'Confirm',
+    agentConfirmAll: 'Confirm all',
+    agentEdit: 'Edit',
+    agentDiscard: 'Discard',
+    agentDone: 'Done',
+    agentCouldNotRun: "Couldn't do that. Try again.",
+    agentProblem: "Couldn't match this to your people or groups.",
+    agentClarifyTitle: "I didn't quite get that",
+    agentTryAgain: 'Try again',
+    agentAnswer: 'Answer',
+    agentNothingToDo: 'Nothing to add from that. Try again.',
+    agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    engineCloud: 'Cloud',
+    engineOnDevice: 'On-device',
+    engineReasonFree: 'Free plan',
+    engineReasonQuota: 'Monthly limit reached',
+    engineReasonOffline: 'Offline',
+    agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
+    agentAdd: 'Add {amount}',
+    agentPaid: '{name} paid',
+    agentYou: 'You',
+    agentSplitEqual: 'split equally with {names}',
+    agentNotSplit: 'not split',
+    agentSplitExact: 'split by amounts: {parts}',
+    agentSplitPercent: 'split by percent: {parts}',
+    agentSplitShares: 'split by shares: {parts}',
+    agentJustYou: 'Just for you',
+    agentSettle: '{from} paid {to} {amount}',
+    agentRemind: 'Remind {name} to settle',
+    agentCreateGroup: 'Create group {name}',
+    agentWithPeople: 'with {names}',
+    agentAddMember: 'Add {name} to {group}',
+    agentUnknownGroup: 'Unknown group',
+    agentUnknownPerson: 'Unknown person',
+  },
+  voiceRecorder: {
+    row: 'Voice test recorder',
+    rowHint: 'Record test sentences to help improve recognition',
+    title: 'Voice test recorder',
+    consentTitle: 'Before you start',
+    consentBody:
+      'You will read about 40 short sentences aloud. Each one is saved as an audio file on this phone only. Nothing is uploaded: the recordings leave this phone only if you choose Share recordings at the end. They are used only to improve how well Waves recognises names and amounts.',
+    consentNames:
+      'Some sentences use the names of people in your own groups, so the recordings and the list of sentences will contain those names. Share them only with the team running the test.',
+    consentAgree: 'I understand, continue',
+    labelField: 'Speaker label',
+    labelPlaceholder: 'e.g. Madan · Tamil · Bangalore',
+    backgroundField: 'Language background (optional)',
+    accentField: 'Accent (optional)',
+    bgEnglish: 'English',
+    bgTamil: 'Tamil',
+    bgHindi: 'Hindi',
+    bgArabic: 'Arabic',
+    bgOther: 'Other',
+    accentIndian: 'Indian',
+    accentSouthIndian: 'South Indian',
+    accentNorthIndian: 'North Indian',
+    accentGulf: 'Gulf',
+    accentBritish: 'British',
+    accentAmerican: 'American',
+    accentOther: 'Other',
+    startSession: 'Start recording',
+    resumeSession: 'Continue session',
+    newSession: 'Start a new session',
+    progress: '{n} / {total}',
+    tapToRecord: 'Tap to record',
+    tapToStop: 'Tap to stop',
+    listening: 'Listening. Stops after 2 seconds of silence.',
+    saving: 'Saving…',
+    next: 'Next',
+    reRecord: 'Re-record',
+    skip: 'Skip',
+    finish: 'Finish',
+    allDone: 'All done. Thank you!',
+    shareRecordings: 'Share recordings',
+    deleteAll: 'Delete all recordings',
+    deleteTitle: 'Delete all recordings?',
+    deleteBody: 'Every recording on this phone is removed. This cannot be undone.',
+    deleteConfirm: 'Delete',
+    cancel: 'Cancel',
+    sharing: 'Preparing…',
+    shareUnavailable: 'Sharing is not available on this phone.',
+    shareFailed: 'Could not share the recordings.',
+    unavailable: 'This build cannot record audio.',
+    micDenied: 'Microphone access is needed to record.',
+    noSpeech: 'Nothing heard. Try again.',
+    onDeviceOn: "This phone's own recogniser also transcribes each take, on the phone.",
+    onDeviceOff: 'This phone cannot transcribe saved audio, so only the audio is kept.',
+    saved: 'Saved',
+    traps: 'Read the sentence exactly as written.',
   },
   offlineVoice: {
     row: 'Offline voice',
@@ -9093,8 +9309,18 @@ const ta: UiStrings = {
     whoSharesSection: 'பகிர்பவர்கள்',
     whoResets: 'பகிர்பவர்களை மாற்றினால் சமமாகப் பிரிக்கப்படும்.',
     whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
+    didYouMean: '{name} என்று சொன்னீர்களா?',
+    didYouMeanYes: 'ஆம்',
+    whichOf: '{names} அல்லது {last}?',
     whichGroup: 'எந்தக் குழு என்று சொன்னீர்கள்?',
     noGroupNamed: '“{name}” என்ற குழு இல்லை. ஒன்றைத் தேர்ந்தெடுக்கவும்.',
+    amountWhich: 'அது {a}-ஆ, {b}-ஆ?',
+    amountTotalOrEach: 'மொத்தம் {amount} ஆ, ஒவ்வொருவருக்கும் {amount} ஆ?',
+    amountTotal: 'மொத்தம் {amount}',
+    amountEach: 'ஒவ்வொருவருக்கும் {amount}',
+    whichDollars: 'அமெரிக்க டாலரா, ஆஸ்திரேலிய டாலரா?',
+    usDollars: 'அமெரிக்க டாலர்',
+    audDollars: 'ஆஸ்திரேலிய டாலர்',
     needGroupForPayer: '{name} செலுத்தியதைப் பதிவு செய்ய ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
     needGroupForSplit: 'இந்தப் பிரிப்பைப் பயன்படுத்த ஒரு குழுவைத் தேர்ந்தெடுக்கவும்.',
     splitInvalid:
@@ -9109,6 +9335,99 @@ const ta: UiStrings = {
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
     ansNoPerson: '{name} கிடைக்கவில்லை',
     askAgain: 'மீண்டும் கேள்',
+    agentUnderstanding: 'புரிந்துகொள்கிறது…',
+    agentHeard: 'கேட்டது',
+    agentConfirm: 'உறுதிப்படுத்து',
+    agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
+    agentEdit: 'திருத்து',
+    agentDiscard: 'நீக்கு',
+    agentDone: 'முடிந்தது',
+    agentCouldNotRun: 'இதைச் செய்ய முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
+    agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
+    agentTryAgain: 'மீண்டும் முயல்',
+    agentAnswer: 'பதில் சொல்',
+    agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
+    agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    engineCloud: 'கிளவுட்',
+    engineOnDevice: 'சாதனத்தில்',
+    engineReasonFree: 'இலவசத் திட்டம்',
+    engineReasonQuota: 'மாத வரம்பு முடிந்தது',
+    engineReasonOffline: 'இணைப்பு இல்லை',
+    agentQuotaFallback:
+      'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
+    agentAdd: '{amount} சேர்',
+    agentPaid: '{name} செலுத்தினார்',
+    agentYou: 'நீங்கள்',
+    agentSplitEqual: '{names} உடன் சமமாகப் பிரி',
+    agentNotSplit: 'பிரிக்கப்படவில்லை',
+    agentSplitExact: 'தொகைப்படி பிரி: {parts}',
+    agentSplitPercent: 'சதவீதப்படி பிரி: {parts}',
+    agentSplitShares: 'பங்குகளின்படி பிரி: {parts}',
+    agentJustYou: 'உங்களுக்கு மட்டும்',
+    agentSettle: '{from} {to}-க்கு {amount} செலுத்தினார்',
+    agentRemind: '{name}-க்கு நினைவூட்டு',
+    agentCreateGroup: '{name} குழுவை உருவாக்கு',
+    agentWithPeople: '{names} உடன்',
+    agentAddMember: '{name}-ஐ {group}-ல் சேர்',
+    agentUnknownGroup: 'தெரியாத குழு',
+    agentUnknownPerson: 'தெரியாத நபர்',
+  },
+  voiceRecorder: {
+    row: 'குரல் சோதனை பதிவு',
+    rowHint: 'அங்கீகாரத்தை மேம்படுத்த சோதனை வாக்கியங்களைப் பதிவு செய்யுங்கள்',
+    title: 'குரல் சோதனை பதிவு',
+    consentTitle: 'தொடங்குவதற்கு முன்',
+    consentBody:
+      'சுமார் 40 சிறு வாக்கியங்களை உரக்கப் படிப்பீர்கள். ஒவ்வொன்றும் இந்த ஃபோனில் மட்டுமே ஆடியோ கோப்பாகச் சேமிக்கப்படும். எதுவும் பதிவேற்றப்படாது: இறுதியில் "பதிவுகளைப் பகிர்" என்பதைத் தேர்ந்தால் மட்டுமே பதிவுகள் ஃபோனை விட்டு வெளியே செல்லும். பெயர்களையும் தொகைகளையும் Waves நன்கு புரிந்துகொள்ள மட்டுமே இவை பயன்படுத்தப்படும்.',
+    consentNames:
+      'சில வாக்கியங்கள் உங்கள் குழுக்களில் உள்ளவர்களின் பெயர்களைப் பயன்படுத்தும்; எனவே பதிவுகளிலும் வாக்கியப் பட்டியலிலும் அந்தப் பெயர்கள் இருக்கும். சோதனையை நடத்தும் குழுவிடம் மட்டுமே பகிருங்கள்.',
+    consentAgree: 'புரிந்தது, தொடர்க',
+    labelField: 'பேசுபவர் குறிப்பு',
+    labelPlaceholder: 'எ.கா. Madan · Tamil · Bangalore',
+    backgroundField: 'மொழிப் பின்னணி (விருப்பம்)',
+    accentField: 'உச்சரிப்பு (விருப்பம்)',
+    bgEnglish: 'ஆங்கிலம்',
+    bgTamil: 'தமிழ்',
+    bgHindi: 'இந்தி',
+    bgArabic: 'அரபி',
+    bgOther: 'மற்றவை',
+    accentIndian: 'இந்திய',
+    accentSouthIndian: 'தென்னிந்திய',
+    accentNorthIndian: 'வட இந்திய',
+    accentGulf: 'வளைகுடா',
+    accentBritish: 'பிரிட்டிஷ்',
+    accentAmerican: 'அமெரிக்க',
+    accentOther: 'மற்றவை',
+    startSession: 'பதிவைத் தொடங்கு',
+    resumeSession: 'அமர்வைத் தொடர்',
+    newSession: 'புதிய அமர்வைத் தொடங்கு',
+    progress: '{n} / {total}',
+    tapToRecord: 'பதிவு செய்ய தட்டவும்',
+    tapToStop: 'நிறுத்த தட்டவும்',
+    listening: 'கேட்கிறது. 2 விநாடி அமைதிக்குப் பின் நின்றுவிடும்.',
+    saving: 'சேமிக்கிறது…',
+    next: 'அடுத்து',
+    reRecord: 'மீண்டும் பதிவு',
+    skip: 'தவிர்',
+    finish: 'முடி',
+    allDone: 'முடிந்தது. நன்றி!',
+    shareRecordings: 'பதிவுகளைப் பகிர்',
+    deleteAll: 'அனைத்துப் பதிவுகளையும் நீக்கு',
+    deleteTitle: 'அனைத்துப் பதிவுகளையும் நீக்கவா?',
+    deleteBody: 'இந்த ஃபோனில் உள்ள ஒவ்வொரு பதிவும் நீக்கப்படும். இதை மீட்க முடியாது.',
+    deleteConfirm: 'நீக்கு',
+    cancel: 'ரத்து',
+    sharing: 'தயாராகிறது…',
+    shareUnavailable: 'இந்த ஃபோனில் பகிர்வு கிடைக்கவில்லை.',
+    shareFailed: 'பதிவுகளைப் பகிர முடியவில்லை.',
+    unavailable: 'இந்த பதிப்பால் ஆடியோவைப் பதிவு செய்ய முடியாது.',
+    micDenied: 'பதிவு செய்ய மைக்ரோஃபோன் அனுமதி தேவை.',
+    noSpeech: 'எதுவும் கேட்கவில்லை. மீண்டும் முயலவும்.',
+    onDeviceOn: 'ஃபோனின் சொந்த அங்கீகாரியும் ஒவ்வொரு பதிவையும் ஃபோனிலேயே எழுத்தாக்கும்.',
+    onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
+    saved: 'சேமிக்கப்பட்டது',
+    traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   offlineVoice: {
     row: 'ஆஃப்லைன் குரல்',
@@ -12897,8 +13216,18 @@ const hi: UiStrings = {
     whoSharesSection: 'इनके बीच बँटेगा',
     whoResets: 'लोग बदलने पर बराबर बँटवारा हो जाएगा।',
     whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
+    didYouMean: 'क्या आपका मतलब {name} था?',
+    didYouMeanYes: 'हाँ',
+    whichOf: '{names} या {last}?',
     whichGroup: 'आपका मतलब कौन सा ग्रुप था?',
     noGroupNamed: '“{name}” नाम का कोई ग्रुप नहीं है। एक चुनें।',
+    amountWhich: 'वह {a} था या {b}?',
+    amountTotalOrEach: 'कुल {amount} या हर व्यक्ति {amount}?',
+    amountTotal: 'कुल {amount}',
+    amountEach: 'हर व्यक्ति {amount}',
+    whichDollars: 'अमेरिकी डॉलर या ऑस्ट्रेलियाई डॉलर?',
+    usDollars: 'अमेरिकी डॉलर',
+    audDollars: 'ऑस्ट्रेलियाई डॉलर',
     needGroupForPayer: '{name} ने भुगतान किया, यह दर्ज करने के लिए एक ग्रुप चुनें।',
     needGroupForSplit: 'यह बँटवारा लागू करने के लिए एक ग्रुप चुनें।',
     splitInvalid: 'यह बँटवारा कुल रकम से मेल नहीं खाता। बाँटने वाले चुनें, बराबर बँट जाएगा।',
@@ -12912,6 +13241,98 @@ const hi: UiStrings = {
     ansGroupSettled: '{group} में सब हिसाब बराबर है',
     ansNoPerson: '{name} नहीं मिला',
     askAgain: 'फिर पूछें',
+    agentUnderstanding: 'समझा जा रहा है…',
+    agentHeard: 'सुना',
+    agentConfirm: 'पुष्टि करें',
+    agentConfirmAll: 'सभी की पुष्टि करें',
+    agentEdit: 'बदलें',
+    agentDiscard: 'हटाएँ',
+    agentDone: 'हो गया',
+    agentCouldNotRun: 'यह नहीं हो सका। फिर कोशिश करें।',
+    agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
+    agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
+    agentTryAgain: 'फिर कोशिश करें',
+    agentAnswer: 'जवाब दें',
+    agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
+    agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    engineCloud: 'क्लाउड',
+    engineOnDevice: 'ऑन-डिवाइस',
+    engineReasonFree: 'फ्री प्लान',
+    engineReasonQuota: 'मासिक सीमा पूरी',
+    engineReasonOffline: 'ऑफ़लाइन',
+    agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
+    agentAdd: '{amount} जोड़ें',
+    agentPaid: '{name} ने भुगतान किया',
+    agentYou: 'आप',
+    agentSplitEqual: '{names} के साथ बराबर बाँटें',
+    agentNotSplit: 'बाँटा नहीं गया',
+    agentSplitExact: 'रकम के अनुसार बाँटें: {parts}',
+    agentSplitPercent: 'प्रतिशत के अनुसार बाँटें: {parts}',
+    agentSplitShares: 'हिस्सों के अनुसार बाँटें: {parts}',
+    agentJustYou: 'सिर्फ आपके लिए',
+    agentSettle: '{from} ने {to} को {amount} दिए',
+    agentRemind: '{name} को याद दिलाएँ',
+    agentCreateGroup: 'ग्रुप {name} बनाएँ',
+    agentWithPeople: '{names} के साथ',
+    agentAddMember: '{name} को {group} में जोड़ें',
+    agentUnknownGroup: 'अज्ञात ग्रुप',
+    agentUnknownPerson: 'अज्ञात व्यक्ति',
+  },
+  voiceRecorder: {
+    row: 'वॉइस टेस्ट रिकॉर्डर',
+    rowHint: 'पहचान बेहतर करने के लिए टेस्ट वाक्य रिकॉर्ड करें',
+    title: 'वॉइस टेस्ट रिकॉर्डर',
+    consentTitle: 'शुरू करने से पहले',
+    consentBody:
+      'आप लगभग 40 छोटे वाक्य ज़ोर से पढ़ेंगे। हर एक इसी फ़ोन पर ऑडियो फ़ाइल के रूप में सेव होता है। कुछ भी अपलोड नहीं होता: रिकॉर्डिंग तभी फ़ोन से बाहर जाती है जब आप अंत में "रिकॉर्डिंग शेयर करें" चुनते हैं। इनका उपयोग सिर्फ़ इसलिए होता है कि Waves नाम और रकम बेहतर पहचाने।',
+    consentNames:
+      'कुछ वाक्यों में आपके अपने ग्रुप के लोगों के नाम होते हैं, इसलिए रिकॉर्डिंग और वाक्यों की सूची में वे नाम होंगे। इन्हें सिर्फ़ टेस्ट चलाने वाली टीम के साथ शेयर करें।',
+    consentAgree: 'समझ गया, आगे बढ़ें',
+    labelField: 'बोलने वाले का लेबल',
+    labelPlaceholder: 'जैसे Madan · Tamil · Bangalore',
+    backgroundField: 'भाषा की पृष्ठभूमि (वैकल्पिक)',
+    accentField: 'लहजा (वैकल्पिक)',
+    bgEnglish: 'अंग्रेज़ी',
+    bgTamil: 'तमिल',
+    bgHindi: 'हिन्दी',
+    bgArabic: 'अरबी',
+    bgOther: 'अन्य',
+    accentIndian: 'भारतीय',
+    accentSouthIndian: 'दक्षिण भारतीय',
+    accentNorthIndian: 'उत्तर भारतीय',
+    accentGulf: 'खाड़ी',
+    accentBritish: 'ब्रिटिश',
+    accentAmerican: 'अमेरिकी',
+    accentOther: 'अन्य',
+    startSession: 'रिकॉर्डिंग शुरू करें',
+    resumeSession: 'सत्र जारी रखें',
+    newSession: 'नया सत्र शुरू करें',
+    progress: '{n} / {total}',
+    tapToRecord: 'रिकॉर्ड करने के लिए टैप करें',
+    tapToStop: 'रोकने के लिए टैप करें',
+    listening: 'सुन रहा है। 2 सेकंड की चुप्पी पर रुक जाएगा।',
+    saving: 'सेव हो रहा है…',
+    next: 'आगे',
+    reRecord: 'फिर से रिकॉर्ड करें',
+    skip: 'छोड़ें',
+    finish: 'पूरा करें',
+    allDone: 'हो गया। धन्यवाद!',
+    shareRecordings: 'रिकॉर्डिंग शेयर करें',
+    deleteAll: 'सभी रिकॉर्डिंग हटाएं',
+    deleteTitle: 'सभी रिकॉर्डिंग हटाएं?',
+    deleteBody: 'इस फ़ोन की हर रिकॉर्डिंग हट जाएगी। इसे वापस नहीं लाया जा सकता।',
+    deleteConfirm: 'हटाएं',
+    cancel: 'रद्द करें',
+    sharing: 'तैयार हो रहा है…',
+    shareUnavailable: 'इस फ़ोन पर शेयरिंग उपलब्ध नहीं है।',
+    shareFailed: 'रिकॉर्डिंग शेयर नहीं हो सकीं।',
+    unavailable: 'यह बिल्ड ऑडियो रिकॉर्ड नहीं कर सकता।',
+    micDenied: 'रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति चाहिए।',
+    noSpeech: 'कुछ सुनाई नहीं दिया। फिर कोशिश करें।',
+    onDeviceOn: 'फ़ोन का अपना रिकॉग्नाइज़र भी हर टेक को फ़ोन पर ही टेक्स्ट में बदलता है।',
+    onDeviceOff: 'यह फ़ोन सेव ऑडियो को टेक्स्ट में नहीं बदल सकता, इसलिए सिर्फ़ ऑडियो रखा जाता है।',
+    saved: 'सेव हुआ',
+    traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   offlineVoice: {
     row: 'ऑफ़लाइन आवाज़',
@@ -16643,8 +17064,18 @@ const ar: UiStrings = {
     whoSharesSection: 'مقسوم بين',
     whoResets: 'تغيير المشاركين يقسم المبلغ بالتساوي.',
     whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
+    didYouMean: 'هل تقصد {name}؟',
+    didYouMeanYes: 'نعم',
+    whichOf: '{names} أو {last}؟',
     whichGroup: 'أي مجموعة تقصد؟',
     noGroupNamed: 'لا توجد مجموعة باسم “{name}”. اختر واحدة.',
+    amountWhich: 'هل قلت {a} أم {b}؟',
+    amountTotalOrEach: '{amount} إجمالًا أم {amount} لكل شخص؟',
+    amountTotal: '{amount} إجمالًا',
+    amountEach: '{amount} لكل شخص',
+    whichDollars: 'دولار أمريكي أم أسترالي؟',
+    usDollars: 'دولار أمريكي',
+    audDollars: 'دولار أسترالي',
     needGroupForPayer: 'اختر مجموعة لتسجيل أن {name} دفع.',
     needGroupForSplit: 'اختر مجموعة لتطبيق هذا التقسيم.',
     splitInvalid: 'هذا التقسيم لا يطابق الإجمالي. اختر المشاركين ليُقسَّم بالتساوي.',
@@ -16658,6 +17089,98 @@ const ar: UiStrings = {
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
     ansNoPerson: 'تعذر العثور على {name}',
     askAgain: 'اسأل مرة أخرى',
+    agentUnderstanding: 'جارٍ الفهم…',
+    agentHeard: 'سمعتُ',
+    agentConfirm: 'تأكيد',
+    agentConfirmAll: 'تأكيد الكل',
+    agentEdit: 'تعديل',
+    agentDiscard: 'تجاهل',
+    agentDone: 'تم',
+    agentCouldNotRun: 'تعذّر تنفيذ ذلك. حاول مرة أخرى.',
+    agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
+    agentClarifyTitle: 'لم أفهم تمامًا',
+    agentTryAgain: 'حاول مرة أخرى',
+    agentAnswer: 'أجب',
+    agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
+    agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    engineCloud: 'السحابة',
+    engineOnDevice: 'على الجهاز',
+    engineReasonFree: 'الخطة المجانية',
+    engineReasonQuota: 'بلغتَ الحد الشهري',
+    engineReasonOffline: 'غير متصل',
+    agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
+    agentAdd: 'أضف {amount}',
+    agentPaid: 'دفع {name}',
+    agentYou: 'أنت',
+    agentSplitEqual: 'تقسيم بالتساوي مع {names}',
+    agentNotSplit: 'بدون تقسيم',
+    agentSplitExact: 'تقسيم بالمبالغ: {parts}',
+    agentSplitPercent: 'تقسيم بالنسبة: {parts}',
+    agentSplitShares: 'تقسيم بالحصص: {parts}',
+    agentJustYou: 'لك وحدك',
+    agentSettle: 'دفع {from} إلى {to} مبلغ {amount}',
+    agentRemind: 'ذكّر {name} بالتسوية',
+    agentCreateGroup: 'أنشئ مجموعة {name}',
+    agentWithPeople: 'مع {names}',
+    agentAddMember: 'أضف {name} إلى {group}',
+    agentUnknownGroup: 'مجموعة غير معروفة',
+    agentUnknownPerson: 'شخص غير معروف',
+  },
+  voiceRecorder: {
+    row: 'مسجّل اختبار الصوت',
+    rowHint: 'سجّل جملًا تجريبية لتحسين التعرّف',
+    title: 'مسجّل اختبار الصوت',
+    consentTitle: 'قبل أن تبدأ',
+    consentBody:
+      'ستقرأ بصوت عالٍ نحو 40 جملة قصيرة. تُحفظ كل جملة كملف صوتي على هذا الهاتف فقط. لا يُرفع شيء: لا تغادر التسجيلات هذا الهاتف إلا إذا اخترت «مشاركة التسجيلات» في النهاية. وتُستخدم فقط لتحسين تعرّف Waves على الأسماء والمبالغ.',
+    consentNames:
+      'تستخدم بعض الجمل أسماء أشخاص من مجموعاتك أنت، لذا ستحتوي التسجيلات وقائمة الجمل على تلك الأسماء. شاركها فقط مع الفريق الذي يُجري الاختبار.',
+    consentAgree: 'فهمت، تابع',
+    labelField: 'تسمية المتحدث',
+    labelPlaceholder: 'مثال: Madan · Tamil · Bangalore',
+    backgroundField: 'الخلفية اللغوية (اختياري)',
+    accentField: 'اللهجة (اختياري)',
+    bgEnglish: 'الإنجليزية',
+    bgTamil: 'التاميلية',
+    bgHindi: 'الهندية',
+    bgArabic: 'العربية',
+    bgOther: 'أخرى',
+    accentIndian: 'هندية',
+    accentSouthIndian: 'جنوب هندية',
+    accentNorthIndian: 'شمال هندية',
+    accentGulf: 'خليجية',
+    accentBritish: 'بريطانية',
+    accentAmerican: 'أمريكية',
+    accentOther: 'أخرى',
+    startSession: 'ابدأ التسجيل',
+    resumeSession: 'تابع الجلسة',
+    newSession: 'ابدأ جلسة جديدة',
+    progress: '{n} / {total}',
+    tapToRecord: 'اضغط للتسجيل',
+    tapToStop: 'اضغط للإيقاف',
+    listening: 'يستمع. يتوقف بعد ثانيتين من الصمت.',
+    saving: 'جارٍ الحفظ…',
+    next: 'التالي',
+    reRecord: 'إعادة التسجيل',
+    skip: 'تخطَّ',
+    finish: 'إنهاء',
+    allDone: 'انتهينا. شكرًا لك!',
+    shareRecordings: 'مشاركة التسجيلات',
+    deleteAll: 'حذف كل التسجيلات',
+    deleteTitle: 'حذف كل التسجيلات؟',
+    deleteBody: 'ستُحذف كل التسجيلات على هذا الهاتف ولا يمكن التراجع.',
+    deleteConfirm: 'حذف',
+    cancel: 'إلغاء',
+    sharing: 'جارٍ التحضير…',
+    shareUnavailable: 'المشاركة غير متاحة على هذا الهاتف.',
+    shareFailed: 'تعذّرت مشاركة التسجيلات.',
+    unavailable: 'لا يستطيع هذا الإصدار تسجيل الصوت.',
+    micDenied: 'مطلوب إذن الميكروفون للتسجيل.',
+    noSpeech: 'لم يُسمع شيء. حاول مرة أخرى.',
+    onDeviceOn: 'يقوم معرّف الكلام في الهاتف أيضًا بتفريغ كل تسجيل على الهاتف نفسه.',
+    onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
+    saved: 'تم الحفظ',
+    traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   offlineVoice: {
     row: 'الصوت دون اتصال',

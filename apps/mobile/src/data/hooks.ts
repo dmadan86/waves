@@ -206,6 +206,23 @@ export function useGroups(): LocalRead<GroupRow[]> {
   return useLocalRead(groups);
 }
 
+/**
+ * Every open group's members, most recent group first — the people a spoken
+ * sentence may name when the mic was not opened inside one group. Read from
+ * the mirror only; the voice screen biases the recogniser towards these names.
+ */
+export function useAllGroupMembers(): readonly MemberRow[] {
+  const { mirror, queue } = useSync();
+  return useMemo(() => {
+    const members: MemberRow[] = [];
+    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[])
+      members.push(
+        ...(materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]),
+      );
+    return members;
+  }, [mirror, queue]);
+}
+
 // ────────────────────────────────────────────────────── group pins ──
 //
 // A pin rides its own personal scope (`groupPinsScope`), independent of the
@@ -2854,6 +2871,31 @@ export function useOpenReceipts(groupId: string) {
  * (`pickVoiceMode`). A minute of staleness is harmless — the server re-meters on
  * every real STT call.
  */
+/**
+ * Is Pro advanced voice on for this person? The server answers (allowlist, then
+ * the `voice_agent` flag's rollout), since testers are allowlisted while the
+ * plain flag stays off. Unknown or failed reads as off — the basic voice path.
+ */
+export function useVoiceAgentEnabled(): boolean {
+  return useVoiceAgentStatus().enabled;
+}
+
+/** `enabled` plus whether the answer is known yet (a pending read is not "off"). */
+export function useVoiceAgentStatus(): { enabled: boolean; ready: boolean } {
+  const { profile } = useAuth();
+  const query = useQuery({
+    queryKey: ['voiceAgentEnabled', profile?.id ?? null],
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await backend.rpc('waves_my_voice_agent_enabled');
+      if (error) throw new Error(error.message);
+      return data === true;
+    },
+    enabled: !!profile?.id,
+    staleTime: 10 * 60_000,
+  });
+  return { enabled: query.data === true, ready: !profile?.id || !query.isPending };
+}
+
 export function useVoiceAccess() {
   // Key on the signed-in profile: waves_my_voice_access resolves the caller from
   // the JWT, and the QueryClient is persisted across sign-outs, so a bare

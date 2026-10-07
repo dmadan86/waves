@@ -16,13 +16,25 @@
 
 import {
   CATEGORIES,
+  findAmbiguousPriceIdioms,
+  foldSpokenAmountWords,
   isCurrencyCode,
+  isVoiceAmountClear,
+  majorToMinor,
+  maskNonMoneyNumbers,
+  maskRestatedShares,
+  minorToDecimal,
   minorUnitScale,
   namesSoundAlike,
   normaliseDigits,
   normaliseSpokenAmounts,
   parseVoiceIntent,
+  readVoiceAmounts,
+  resolveSpokenDollar,
+  spokenNumberValue,
+  unmaskDigits,
   type CategoryId,
+  type VoiceAmountReading,
   type VoiceIntent,
   type VoiceIntentContext,
 } from '@waves/core';
@@ -43,7 +55,9 @@ const UNSUPPORTED_EXPENSE_CLAUSE =
 
 const SPOKEN_NEGATIVE_AMOUNT =
   /\b(?:minus|negative)\s+(?=(?:\d|zero\b|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fourty\b|fifty\b|sixty\b|seventy\b|eighty\b|ninety\b|hundred\b|thousand\b|lakh\b|lakhs\b|crore\b|crores\b))/i;
-const THIRD_PARTY_PAYER_INTENT = /\b(?!(?:i|we|you)\b)[\p{L}][\p{L}'’.-]*\s+paid\b/iu;
+// "we each paid" and "both paid" are the speaker's own party, not someone else.
+const THIRD_PARTY_PAYER_INTENT =
+  /\b(?!(?:i|we|you|each|both|all|everyone|everybody)\b)[\p{L}][\p{L}'’.-]*\s+paid\b/iu;
 
 /**
  * "Ravi paid" is only safe to read when the payer is carried through to the
@@ -96,6 +110,8 @@ export function isSafeVoiceAmount(amountMajor: number): boolean {
 export interface VoiceGroupRef {
   id: string;
   name: string | null;
+  /** The group's currency, so a bare "dollars" can take it when it is a dollar. */
+  currency?: string | null;
 }
 
 /**
@@ -106,8 +122,8 @@ export interface VoiceGroupRef {
  * every existing INR/USD case identical.
  */
 export function toVoiceMinorUnits(amountMajor: number, currency: string | null): bigint {
-  const scale = currency && isCurrencyCode(currency) ? Number(minorUnitScale(currency)) : 100;
-  return BigInt(Math.round(amountMajor * scale));
+  // Through the number's decimal spelling, never a float multiply: 20.05 is 2005.
+  return majorToMinor(amountMajor, currency && isCurrencyCode(currency) ? currency : null);
 }
 
 export interface ParsedVoiceExpense {
@@ -133,6 +149,15 @@ export interface ParsedVoiceExpense {
    * kept mainly so the count is never mistaken for the amount.
    */
   splitCount: number | null;
+  /**
+   * What the amount is and whether it needs asking — the per-person share of an
+   * "each", a "one fifty" that could be 1.50, a bare "dollars". Null when no
+   * amount was heard. Present even when the sentence is refused for booking
+   * (see `refused`), so a confirm screen can still show what was said.
+   */
+  amount: VoiceAmountReading | null;
+  /** Why the sentence is not booked as the speaker's own expense, if it is not. */
+  refused?: 'unsupported' | 'third-party-payer';
 }
 
 /**
@@ -184,6 +209,12 @@ const CURRENCY_SIGNALS: readonly (readonly [RegExp, string])[] = [
   // Symbols — unambiguous, so they lead.
   [/R\$/i, 'BRL'],
   [/₹/, 'INR'],
+  // A prefixed dollar sign names its dollar; only the bare "$" is left to resolve.
+  [/\b(?:a|au)\$/i, 'AUD'],
+  [/\bc\$/i, 'CAD'],
+  [/\bs\$/i, 'SGD'],
+  [/\bnz\$/i, 'NZD'],
+  [/\bhk\$/i, 'HKD'],
   [/\$/, 'USD'],
   [/€/, 'EUR'],
   [/£/, 'GBP'],
@@ -200,7 +231,8 @@ const CURRENCY_SIGNALS: readonly (readonly [RegExp, string])[] = [
   [/\bnepali\s+rupees?\b|\bnpr\b/i, 'NPR'],
   [/\bpakistani\s+rupees?\b|\bpkr\b/i, 'PKR'],
   [/\bcanadian\s+dollars?\b|\bcad\b/i, 'CAD'],
-  [/\baustralian\s+dollars?\b|\baud\b/i, 'AUD'],
+  [/\b(?:australian|aussie)\s+dollars?\b|\baud\b/i, 'AUD'],
+  [/\b(?:us|u\.s\.?|american)\s+dollars?\b/i, 'USD'],
   [/\bsingapore(?:an)?\s+dollars?\b|\bsgd\b/i, 'SGD'],
   [/\bnew\s+zealand\s+dollars?\b|\bnzd\b/i, 'NZD'],
   [/\bhong\s+kong\s+dollars?\b|\bhkd\b/i, 'HKD'],
@@ -243,6 +275,8 @@ const CURRENCY_SIGNALS: readonly (readonly [RegExp, string])[] = [
  */
 const CURRENCY_WORD_ALT = [
   'sri[\\s-]?lankan\\s+rupees?',
+  'american\\s+dollars?',
+  'aussie\\s+dollars?',
   'nepali\\s+rupees?',
   'pakistani\\s+rupees?',
   'canadian\\s+dollars?',
@@ -722,6 +756,27 @@ export function parseVoiceExpense(
   groups: readonly VoiceGroupRef[],
 ): ParsedVoiceExpense {
   if (isUnsupportedVoiceExpenseIntent(transcript)) {
+    // "Renny paid 1200 …" is refused here on purpose: this reader has nowhere to
+    // keep who paid, so booking it would make it the speaker's own. The amount
+    // is still read, so a screen that can show the payer can confirm it.
+    const thirdParty =
+      !UNSUPPORTED_GLOBAL_EXPENSE_INTENT.test(transcript) &&
+      !UNSUPPORTED_EXPENSE_CLAUSE.test(transcript) &&
+      !SPOKEN_NEGATIVE_AMOUNT.test(transcript) &&
+      THIRD_PARTY_PAYER_INTENT.test(transcript);
+    let amount: VoiceAmountReading | null = null;
+    if (thirdParty) {
+      const heard = maskNonMoneyNumbers(normalizeTranscript(transcript));
+      const major = extractAmount(heard);
+      const currency = detectCurrency(heard);
+      if (major !== null) {
+        amount = readVoiceAmounts(unmaskDigits(heard), {
+          currency,
+          spokenCurrency: currency,
+          chosenMinor: toVoiceMinorUnits(major, currency),
+        });
+      }
+    }
     return {
       amountMinor: null,
       amountMajor: null,
@@ -729,6 +784,8 @@ export function parseVoiceExpense(
       note: '',
       groupId: null,
       splitCount: null,
+      amount,
+      refused: thirdParty ? 'third-party-payer' : 'unsupported',
     };
   }
 
@@ -736,15 +793,35 @@ export function parseVoiceExpense(
   // "plus"-joined run of amounts is summed into one before that. Common Hindi,
   // Tamil and Arabic amount/currency words are folded into the same vocabulary
   // before this step, so the deterministic path works offline in the app locales.
-  const said = stripAssignmentLeadIn(
-    normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript))),
-  );
+  // Dates, times, labels and quantities are then hidden from the amount readers.
+  const said = maskNonMoneyNumbers(stripAssignmentLeadIn(normalizeTranscript(transcript)));
   const tokens = tokenize(said);
-  const amountMajor = extractAmount(said);
-  const currency = detectCurrency(said);
-  const amountMinor = amountMajor === null ? null : toVoiceMinorUnits(amountMajor, currency);
+  const spokenMajor = extractAmount(said);
+  const spokenCurrency = detectCurrency(said);
+  const dollar = spokenCurrency === 'USD' ? resolveSpokenDollar(said, null) : null;
+  const currency = dollar?.currency ?? spokenCurrency;
   const groupId = matchGroup(tokens, groups);
   const matchedName = groupId ? (groups.find((group) => group.id === groupId)?.name ?? null) : null;
+  const splitCount = extractSplitCount(said);
+
+  let amountMajor = spokenMajor;
+  let amountMinor = spokenMajor === null ? null : toVoiceMinorUnits(spokenMajor, currency);
+  let amount: VoiceAmountReading | null = null;
+  if (amountMinor !== null) {
+    amount = readVoiceAmounts(unmaskDigits(said), {
+      currency,
+      spokenCurrency: currency,
+      count: splitCount,
+      chosenMinor: amountMinor,
+      idioms: findAmbiguousPriceIdioms(preNormalizeVoiceInput(transcript)),
+      currencyOptions: dollar?.options ?? [],
+    });
+    // "500 each for 3 people": the share times the people is the bill.
+    if (amount.role === 'each' && amount.totalMinor !== null) {
+      amountMinor = amount.totalMinor;
+      amountMajor = Number(minorToDecimal(amount.totalMinor, currency));
+    }
+  }
 
   return {
     amountMinor,
@@ -752,7 +829,8 @@ export function parseVoiceExpense(
     currency,
     note: buildNote(said, matchedName),
     groupId,
-    splitCount: extractSplitCount(said),
+    splitCount,
+    amount,
   };
 }
 
@@ -915,19 +993,28 @@ export function parseVoiceExpenseDate(text: string, now: Date = new Date()): str
 }
 
 function stripDatePhrases(text: string): string {
+  // A date's digits may already be masked (see maskNonMoneyNumbers), so the
+  // day phrases read both forms.
+  const digit = '[0-9\\uE000-\\uE009]';
   return text
-    .replace(/\b(?:on\s+)?\d{4}-\d{1,2}-\d{1,2}\b/gi, ' ')
+    .replace(new RegExp(`(?:\\bon\\s+)?${digit}{4}-${digit}{1,2}-${digit}{1,2}`, 'gi'), ' ')
     .replace(/\bday\s+before\s+yesterday\b/gi, ' ')
     .replace(/\b(?:today|yesterday|tomorrow)\b/gi, ' ')
     .replace(
       new RegExp(
-        `\\b(?:\\d{1,2}|${Object.keys(DAY_COUNT_WORDS).join('|')})\\s+days?\\s+ago\\b`,
+        `(?:\\b|(?<=\\s|^))(?:${digit}{1,2}|${Object.keys(DAY_COUNT_WORDS).join('|')})\\s+days?\\s+ago\\b`,
         'gi',
       ),
       ' ',
     )
     .replace(new RegExp(`\\b(?:last|on|this\\s+past)\\s+(?:${WEEKDAYS.join('|')})\\b`, 'gi'), ' ')
-    .replace(/\b(?:on\s+)?(?:the\s+)?\d{1,2}(?:st|nd|rd|th)\b/gi, ' ')
+    .replace(
+      new RegExp(
+        `(?:\\bon\\s+)?(?:\\bthe\\s+)?(?<![\\p{L}\\p{N}])${digit}{1,2}(?:st|nd|rd|th)\\b`,
+        'giu',
+      ),
+      ' ',
+    )
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 }
@@ -1035,6 +1122,22 @@ export interface VoiceParseResult {
    * paid, split equally" was said, which is when the review must show it.
    */
   intent: VoiceIntent | null;
+  /**
+   * The amount of a single expense — what it stands for ("500 each" with three
+   * people is 1500) and whether it has to be asked about before saving: a
+   * "one fifty" that could be 1.50, recogniser alternatives that disagree, a
+   * share with nobody counted, a bare "dollars". Null when nothing was heard or
+   * the batch has several expenses with nothing to ask.
+   */
+  amount: VoiceAmountReading | null;
+}
+
+/**
+ * True when the spoken amount needs no question: one expense, one reading of
+ * it, one currency. The fast path may only skip the review when this holds.
+ */
+export function amountIsUnambiguous(result: VoiceParseResult): boolean {
+  return result.items.length === 1 && isVoiceAmountClear(result.amount);
 }
 
 /**
@@ -1078,6 +1181,8 @@ export function voiceAutoAction(result: VoiceParseResult): VoiceAutoAction | nul
     result.group?.kind === 'existing' &&
     !result.personal &&
     result.items.length === 1 &&
+    // A number that could be read two ways is a question, never a write.
+    amountIsUnambiguous(result) &&
     !hasSplitInstructions &&
     !hasNonDefaultExpenseFields &&
     item &&
@@ -1141,7 +1246,7 @@ function cleanInviteName(name: string): string {
 }
 
 export function detectMoneyIntent(transcript: string): VoiceMoneyIntent | null {
-  const norm = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
+  const norm = normalizeTranscript(transcript);
 
   const remind = norm.match(REMIND_VERB);
   if (remind && remind.index !== undefined) {
@@ -1183,7 +1288,7 @@ export function detectMoneyIntent(transcript: string): VoiceMoneyIntent | null {
  * nothing resolves.
  */
 export function detectAddMember(transcript: string): { names: string[] } | null {
-  const norm = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
+  const norm = normalizeTranscript(transcript);
   if (extractAmount(norm) !== null) return null;
 
   const match = norm.match(/\b(?:add|include|put|invite)\s+(.+?)\s+(?:to|into|in)\b\s+(.+)$/iu);
@@ -1227,7 +1332,7 @@ const QUERY_PERSON_FRAMES: readonly RegExp[] = [
 const QUERY_NON_PERSON = /\b(?:overall|in total|total|everyone|everybody|anyone|anybody|all)\b/giu;
 
 export function detectBalanceQuery(transcript: string): VoiceBalanceQuery | null {
-  const norm = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
+  const norm = normalizeTranscript(transcript);
 
   for (const frame of QUERY_PERSON_FRAMES) {
     const match = norm.match(frame);
@@ -1398,13 +1503,28 @@ function normalizeLocalizedVoiceWords(text: string): string {
     .join('');
 }
 
+/**
+ * Everything before the price idiom: native digits, localized words, then the
+ * spoken-amount folds the core owns — Hindi/Tamil/Arabic number words in Latin
+ * letters ("do hazaar", "rendu aayiram", "khamsa mia"), Hindi fractions ("dedh
+ * sau") and a self-correction ("fifteen sorry fifty").
+ */
+function preNormalizeVoiceInput(text: string): string {
+  return foldSpokenAmountWords(
+    normalizeLocalizedVoiceWords(normalizeCurrencyPrefixes(normalizeDigits(text))),
+  );
+}
+
 function normalizeVoiceInput(text: string): string {
   // The price idiom ("three fifty", "three 50", "3 50" = 350) and "2k" shorthand
   // are folded here, before the number-word reader sums "three fifty" into 53 or
   // the amount patterns see "3" and "50" as two expenses.
-  return normaliseSpokenAmounts(
-    normalizeLocalizedVoiceWords(normalizeCurrencyPrefixes(normalizeDigits(text))),
-  );
+  return normaliseSpokenAmounts(preNormalizeVoiceInput(text));
+}
+
+/** The whole spoken-number pipeline: a transcript to the digits every reader sees. */
+function normalizeTranscript(text: string): string {
+  return normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(text)));
 }
 
 /** Words for numbers, and the Indian/Western multipliers that scale them. */
@@ -1540,6 +1660,12 @@ const SPLIT_AFTER_WORD = /^(?:people|persons?|ppl|ways?|folks?|heads?)\b/i;
 /** A minor-unit word ("fifty paise", "ninety nine cents") — the number before it is money. */
 const MINOR_UNIT_AFTER = /^(?:paise|paisa|cents?|pence|fils)\b/i;
 
+/** The word before a number that says it is what was paid: "paid fifty", "cost twenty". */
+const MONEY_VERB_BEFORE = /^(?:paid|spent|spend|cost|costs|charged|worth)$/i;
+
+/** Nothing but filler around a run: "fifty", "uh, fifty." — the number is the whole message. */
+const ONLY_FILLER = /^[\s\p{P}\p{S}]*(?:(?:um+|uh+|er+|hmm+|ok|okay|so)[\s\p{P}\p{S}]*)*$/iu;
+
 /**
  * Fold a spoken minor amount into the major one: "100 rupees 50 paise" →
  * "100.50 rupees", "20 dollars 99 cents" → "20.99 dollars". Runs after the
@@ -1557,11 +1683,24 @@ function foldMinorUnits(text: string): string {
     `(\\d[\\d,]*)\\s+(${CURRENCY_WORD_ALT})\\s+(?:and\\s+)?(\\d{1,2})\\s+${minorWord}\\b`,
     'gi',
   );
-  return text.replace(
-    pattern,
-    (_match, major: string, currency: string, minor: string) =>
-      `${major.replace(/,/g, '')}.${minor.padStart(2, '0')} ${currency}`,
+  // "3 pounds 60", "12 dollars 50": the pence or cents said with no word for
+  // them. Only for the currencies spoken that way, and only when nothing after
+  // it makes the second number a price of its own.
+  const unnamedMinor = new RegExp(
+    `(\\d[\\d,]*)\\s+((?:(?:us|australian|canadian)\\s+)?(?:pounds?|quid|dollars?|bucks?|euros?))\\s+(?:and\\s+)?(\\d{2})(?![\\d.,])(?!\\s*(?:${CURRENCY_WORD_ALT}|${minorWord})\\b)`,
+    'gi',
   );
+  return text
+    .replace(
+      pattern,
+      (_match, major: string, currency: string, minor: string) =>
+        `${major.replace(/,/g, '')}.${minor.padStart(2, '0')} ${currency}`,
+    )
+    .replace(
+      unnamedMinor,
+      (_match, major: string, currency: string, minor: string) =>
+        `${major.replace(/,/g, '')}.${minor} ${currency}`,
+    );
 }
 
 /**
@@ -1599,6 +1738,13 @@ function foldBareMinorUnits(text: string): string {
  * that is how people speak the part after a decimal.
  */
 function spokenRunToNumber(run: string): number | null {
+  // A spoken decimal is read exactly by the core ("twenty point zero five" is
+  // 20.05, "one point five lakh" 150000); the loop below is the fallback for the
+  // spoken zeros it does not know.
+  if (HAS_DECIMAL.test(run)) {
+    const exact = spokenNumberValue(run);
+    if (exact !== null) return Number(exact);
+  }
   let total = 0;
   let current = 0;
   let seen = false;
@@ -1756,7 +1902,22 @@ export function normalizeSpokenNumbers(text: string): string {
     const prevIsCurrency = CURRENCY_TOKEN.test(prevWord);
     const nextIsMinor = MINOR_UNIT_AFTER.test(after);
     const splitContext = SPLIT_BEFORE_WORD.test(prevWord) || SPLIT_AFTER_WORD.test(after);
-    if (!hasMultiplier && !nextIsCurrency && !prevIsCurrency && !splitContext && !nextIsMinor) {
+    // Further signs a bare number is the amount: a spoken decimal with a whole
+    // part ("twenty point zero five"), a paying verb before it ("paid fifty"),
+    // or nothing else said at all ("fifty").
+    const wholeDecimal = hasDecimal && !/^\s*(?:point|dot|decimal)\b/i.test(run);
+    const paidBefore = MONEY_VERB_BEFORE.test(prevWord);
+    const alone = ONLY_FILLER.test(before) && ONLY_FILLER.test(after);
+    if (
+      !hasMultiplier &&
+      !nextIsCurrency &&
+      !prevIsCurrency &&
+      !splitContext &&
+      !nextIsMinor &&
+      !wholeDecimal &&
+      !paidBefore &&
+      !alone
+    ) {
       return run;
     }
     // A money-adjacent run of only single digits ("two oh five", "two not five")
@@ -2059,10 +2220,29 @@ function segmentExpenses(text: string): string[] {
  * "5 rupees snacks, 10 tea" makes both INR. When exactly one expense and no new
  * group are found, the named existing group (if any) is attached.
  */
+export interface VoiceParseContext extends Pick<
+  VoiceIntentContext,
+  'members' | 'currentGroupId' | 'now' | 'learned'
+> {
+  /**
+   * The recogniser's other readings of the same speech (n-best), best first,
+   * without the primary transcript. When they disagree with it on the amount
+   * ("fifteen" / "fifty"), the result asks instead of picking; a name is
+   * scored across all of them too.
+   */
+  readonly alternatives?: readonly string[];
+}
+
+/** At most this many alternatives are read; the recogniser's tail is noise. */
+const MAX_ALTERNATIVES = 4;
+
+/** "3 days ago" stays readable for the date reader; every other date is hidden. */
+const keepDaysAgo = (_span: unknown, after: string): boolean => /^\s*days?\s+ago\b/i.test(after);
+
 export function parseVoiceExpenses(
   transcript: string,
   groups: readonly VoiceGroupRef[],
-  context: Pick<VoiceIntentContext, 'members' | 'currentGroupId' | 'now'> = {},
+  context: VoiceParseContext = {},
 ): VoiceParseResult {
   if (UNSUPPORTED_GLOBAL_EXPENSE_INTENT.test(transcript))
     return {
@@ -2073,9 +2253,15 @@ export function parseVoiceExpenses(
       expenseDate: null,
       personal: false,
       intent: null,
+      amount: null,
     };
 
-  const normalized = normalizeSpokenNumbers(collapseAdditionRuns(normalizeVoiceInput(transcript)));
+  // The date is read before the non-money numbers are hidden; everything after
+  // reads the masked sentence, so "on the 5th" or "at 7" is never an amount.
+  const normalize = (text: string): string =>
+    maskNonMoneyNumbers(normalizeTranscript(text), keepDaysAgo);
+  const unmasked = normalizeTranscript(transcript);
+  const normalized = maskNonMoneyNumbers(unmasked, keepDaysAgo);
   const created = detectCreateGroup(normalized);
 
   // Who paid, which group, how it splits. When the sentence says any of that
@@ -2090,6 +2276,10 @@ export function parseVoiceExpenses(
         members: context.members,
         currentGroupId: context.currentGroupId,
         now: context.now,
+        // The recogniser's other hypotheses, read the same way, so a name is
+        // scored across all of them.
+        alternatives: context.alternatives?.map(normalize),
+        learned: context.learned,
       });
   // Money handed over ("Madan gave me 400") is not an expense at all. A
   // repayment ("paid me back") is already refused clause by clause below, so a
@@ -2104,13 +2294,14 @@ export function parseVoiceExpenses(
       expenseDate: null,
       personal: false,
       intent,
+      amount: null,
     };
   const readIntent =
     intent !== null && !transfer && (intent.hasSocialDetail || intent.groupHint !== undefined);
   const sentence = readIntent ? intent.remainder : normalized;
 
   const expenseDate =
-    parseVoiceExpenseDate(normalized) ?? (readIntent ? (intent.date ?? null) : null);
+    parseVoiceExpenseDate(unmasked) ?? (readIntent ? (intent.date ?? null) : null);
   const category = parseVoiceCategory(sentence);
   // Strip the routing lead-in ("assign to group …", "put it in …") after any
   // create-group clause is lifted, so the destination name and the notes are
@@ -2163,7 +2354,27 @@ export function parseVoiceExpenses(
   const personal = group === null && isSelfOnlyVoiceIntent(body);
   const workBody = personal ? stripSelfOnlyPhrase(body) : body;
 
-  const segments = segmentExpenses(workBody);
+  // The currency of the group this lands in — named, or the one the mic was
+  // opened in — so a bare "dollars" in an Australian group is AUD.
+  const groupCurrencyOf = (id: string | null | undefined): string | null =>
+    (id ? groups.find((candidate) => candidate.id === id)?.currency : null) ?? null;
+  const groupCurrency =
+    group?.kind === 'existing'
+      ? groupCurrencyOf(group.groupId)
+      : group === null && !personal
+        ? groupCurrencyOf(context.currentGroupId)
+        : null;
+  let currencyOptions: readonly string[] = [];
+  const currencyOf = (segment: string): string | null => {
+    const spoken = detectCurrency(segment);
+    if (spoken !== 'USD') return spoken;
+    const dollar = resolveSpokenDollar(segment, groupCurrency);
+    if (!dollar) return spoken;
+    if (dollar.options.length > 0) currencyOptions = dollar.options;
+    return dollar.currency;
+  };
+
+  const segments = segmentExpenses(maskRestatedShares(workBody));
   const items: VoiceExpenseItem[] = [];
   let carriedCurrency: string | null = null;
 
@@ -2171,7 +2382,7 @@ export function parseVoiceExpenses(
     if (isUnsupportedVoiceExpenseClause(segment, readIntent)) continue;
     const amountMajor = extractAmount(segment);
     if (amountMajor === null) continue;
-    const currency: string | null = detectCurrency(segment) ?? carriedCurrency;
+    const currency: string | null = currencyOf(segment) ?? carriedCurrency;
     if (currency) carriedCurrency = currency;
     const itemCategory = parseVoiceCategory(segment) ?? category;
     items.push({
@@ -2185,13 +2396,24 @@ export function parseVoiceExpenses(
 
   // Nothing segmented out but there is still a single amount — treat the whole
   // sentence as one expense, matching the single-expense parser's reach.
-  if (items.length === 0 && !isUnsupportedVoiceExpenseClause(workBody, readIntent)) {
+  // Only when a written number is still there: the body is already normalised,
+  // and re-reading what is left of it ("one" once "the 3rd" is stripped) must not
+  // mint an amount the sentence never had.
+  if (
+    items.length === 0 &&
+    /\d/.test(workBody) &&
+    !isUnsupportedVoiceExpenseClause(workBody, readIntent)
+  ) {
     const one = parseVoiceExpense(workBody, groups);
     if (one.amountMinor !== null && one.amountMajor !== null) {
+      // Read the spoken amount, not the single reader's own "each" total: the
+      // count below is applied once, here.
+      const major = one.amount?.eachMinor != null ? extractAmount(workBody) : one.amountMajor;
+      const currency = currencyOf(workBody) ?? one.currency;
       items.push({
-        amountMinor: one.amountMinor,
-        amountMajor: one.amountMajor,
-        currency: one.currency,
+        amountMinor: toVoiceMinorUnits(major ?? one.amountMajor, currency),
+        amountMajor: major ?? one.amountMajor,
+        currency,
         note: finalizeNote(one.note),
         category,
       });
@@ -2216,15 +2438,59 @@ export function parseVoiceExpenses(
   // The people are in the intent when it read them; the old "split with …" clause
   // is only for sentences it left alone.
   const peopleText = personal || readIntent ? '' : stripCategoryPhrase(workBody).trim();
+  const splitCount = personal
+    ? null
+    : (extractSplitCount(workBody) ?? (readIntent ? (intent.splitCount ?? null) : null));
+
+  // What the amount stands for, and whether it needs asking.
+  let amount: VoiceAmountReading | null = null;
+  let readItems = finalItems;
+  if (finalItems.length === 1) {
+    const [item] = finalItems;
+    // The people named in the split count too: "500 each, me Priya and Sunil".
+    const named = readIntent && intent.participants ? intent.participants.length : 0;
+    const alternativeMinors = (context.alternatives ?? [])
+      .slice(0, MAX_ALTERNATIVES)
+      .filter((alternative) => alternative.trim() && alternative.trim() !== transcript.trim())
+      .map((alternative) => {
+        const other = parseVoiceExpenses(alternative, groups, { ...context, alternatives: [] });
+        const [only] = other.items;
+        if (other.items.length !== 1 || only.currency !== item.currency) return null;
+        return other.amount?.eachMinor ?? only.amountMinor;
+      });
+    amount = readVoiceAmounts(unmaskDigits(workBody), {
+      currency: item.currency,
+      spokenCurrency: item.currency && currencyOptions.length === 0 ? item.currency : null,
+      groupCurrency,
+      count: splitCount ?? (named > 1 ? named : null),
+      chosenMinor: item.amountMinor,
+      idioms: findAmbiguousPriceIdioms(preNormalizeVoiceInput(transcript)),
+      alternativeMinors,
+      currencyOptions,
+    });
+    // "500 each for 3 people" is a 1500 bill; the share stays on `amount`.
+    if (amount.role === 'each' && amount.totalMinor !== null) {
+      const totalMinor = amount.totalMinor;
+      readItems = [
+        {
+          ...item,
+          amountMinor: totalMinor,
+          amountMajor: Number(minorToDecimal(totalMinor, item.currency)),
+        },
+      ];
+    }
+  } else if (finalItems.length > 1 && currencyOptions.length > 1) {
+    amount = readVoiceAmounts('', { currencyOptions });
+  }
+
   return {
-    items: finalItems,
+    items: readItems,
     group,
-    splitCount: personal
-      ? null
-      : (extractSplitCount(workBody) ?? (readIntent ? (intent.splitCount ?? null) : null)),
+    splitCount,
     peopleText: peopleText || null,
     expenseDate,
     personal,
     intent: personal ? null : intent,
+    amount,
   };
 }
