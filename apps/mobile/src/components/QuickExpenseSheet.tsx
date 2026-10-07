@@ -84,6 +84,7 @@ import { usePersonalOffered } from '@/lib/guestGuard';
 import type { PickedImage } from '@/lib/image';
 import { captureLocationIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
+import { handOffReceipt } from '@/lib/receiptHandoff';
 import { useQuickReceipt } from '@/lib/quickReceipt';
 import { useToast } from '@/lib/toast';
 import { tripRateFor } from '@/lib/tripRates';
@@ -269,8 +270,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
       if (id) take(byId.get(id));
     }
     for (const group of rows) take(group);
+    // A group picked from the full list ("more") leads the row, ticked, so the
+    // choice is visible when the picker closes rather than hidden off the end.
+    const picked = chosenId && chosenId !== 'personal' ? byId.get(chosenId) : undefined;
+    if (picked && !seen.has(picked.id)) return [picked, ...out.slice(0, CHIPS - 1)];
     return out;
-  }, [recents.keys, byId, rows]);
+  }, [recents.keys, byId, rows, chosenId]);
 
   const personalOffered = usePersonalOffered();
   const personalPicked = chosenId === 'personal';
@@ -300,6 +305,9 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     const typed = note.trim();
     const carriedCategory = category;
     const carriedMeta = categoryMeta;
+    // The photo too: parked under a key (it is too big for a route param) and
+    // taken back out by the screen that opens. "Just me" has nowhere for one.
+    const receiptKey = receipt && !personalPicked ? handOffReceipt(receipt) : undefined;
     closeAndReset();
     if (chosen) {
       router.push({
@@ -314,6 +322,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
           // Says where this came from, which is what lets the form seed the
           // amount rather than read it as a stale draft and drop it.
           quick: '1',
+          ...(receiptKey ? { receipt: receiptKey } : {}),
         },
       });
       return;
@@ -338,6 +347,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
         ...(typed ? { desc: typed } : {}),
         ...(carriedCategory ? { category: carriedCategory } : {}),
         ...(carriedMeta ? { categoryMeta: JSON.stringify(carriedMeta) } : {}),
+        ...(receiptKey ? { receipt: receiptKey } : {}),
       },
     });
   };
