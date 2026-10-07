@@ -99,6 +99,7 @@ describe('chaos flags', () => {
     expect(upstreamOf('https://openrouter.ai/api/v1/chat/completions')).toBe('llm');
     expect(upstreamOf('https://generativelanguage.googleapis.com/v1beta/x')).toBe('llm');
     expect(upstreamOf('https://evil.example/openrouter.ai')).toBe('other');
+    expect(upstreamOf('https://evildeepgram.com/v1/listen')).toBe('other');
     expect(upstreamOf('not a url')).toBe('other');
   });
 

@@ -83,11 +83,11 @@ export type Upstream = 'deepgram' | 'llm' | 'other';
 export function upstreamOf(url: string): Upstream {
   let host = '';
   try {
-    host = new URL(url).host;
+    host = new URL(url).hostname;
   } catch {
     return 'other';
   }
-  if (host.endsWith('deepgram.com')) return 'deepgram';
+  if (host === 'deepgram.com' || host.endsWith('.deepgram.com')) return 'deepgram';
   if (
     host === 'openrouter.ai' ||
     host === 'generativelanguage.googleapis.com' ||
