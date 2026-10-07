@@ -58,6 +58,13 @@ import { VOICE_AGENT_MAX_CLIP_MS } from '@waves/core';
 
 const MIC_SIZE = 104;
 
+/**
+ * Hypotheses to ask the recogniser for. iOS hands back its `transcriptions`;
+ * Android its RESULTS_RECOGNITION list (EXTRA_MAX_RESULTS), which on-device
+ * engines fill on Android 14+ and many network engines always did.
+ */
+const MAX_ALTERNATIVES = 5;
+
 // Hand the shared arbiter the real recogniser. Safe at module scope: this file
 // is only ever loaded through `VoiceMicPanel`'s guarded require, so reaching it
 // at all means the native module imported cleanly.
@@ -430,13 +437,23 @@ function Waveform({ active, level }: { active: boolean; level: SharedValue<numbe
   );
 }
 
+/** What the capture knows about a finished sentence besides its text. */
+export interface VoiceDoneInfo {
+  /** True when it came from the live Deepgram stream, not the on-device recogniser. */
+  readonly streamed: boolean;
+  /** The engine's other hypotheses for it, best first (empty when it gave one). */
+  readonly alternatives: readonly string[];
+}
+
 export interface VoiceCaptureProps {
   /**
-   * Called with the final sentence once the speaker stops. `streamed` is true
-   * when it came from the live Deepgram stream (advanced voice) rather than the
-   * on-device recogniser.
+   * Called with the final sentence once the speaker stops. `info.streamed` is
+   * true when it came from the live Deepgram stream (advanced voice) rather
+   * than the on-device recogniser; `info.alternatives` are the engine's other
+   * hypotheses for it (its n-best list without the top one, best first — empty
+   * when the engine gave only one).
    */
-  onDone: (transcript: string, streamed?: boolean) => void;
+  onDone: (transcript: string, info: VoiceDoneInfo) => void;
   /**
    * Stream the mic to Deepgram for the advanced voice agent (Pro). If the token
    * or the stream cannot be had, the capture quietly uses the on-device
@@ -452,7 +469,11 @@ export interface VoiceCaptureProps {
   onEngine?: (info: VoiceEngineInfo) => void;
   /** The group the mic was opened from — a hint for the stream's name keyterms. */
   groupId?: string | null;
-  /** Names to bias the recogniser towards — group and member names. */
+  /**
+   * Words to bias the recogniser towards — the people the sentence may name.
+   * Android passes them as EXTRA_BIASING_STRINGS (API 33+), iOS as the
+   * request's contextualStrings; the live stream sends them as keyterms.
+   */
   hints?: readonly string[];
   /** The reader's own group names, for the "Try saying…" card's group example.
    *  Separate from `hints`, which may carry any word worth biasing towards. */
@@ -624,6 +645,8 @@ export function VoiceCapture({
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
   const latest = useRef('');
+  // The recogniser's other hypotheses for `latest`, best first.
+  const latestAlternatives = useRef<string[]>([]);
   // The live Deepgram stream, while one is open (advanced voice).
   const stream = useRef<LiveTranscription | null>(null);
   // The silence timer that ends a streamed sentence the way the recogniser's own
@@ -750,6 +773,10 @@ export function VoiceCapture({
     gotResult.current = true;
     const transcript = event.results[0]?.transcript ?? '';
     latest.current = transcript;
+    latestAlternatives.current = event.results
+      .slice(1, MAX_ALTERNATIVES)
+      .map((result) => result.transcript.trim())
+      .filter((text) => text && text !== transcript.trim());
     setLive(transcript);
   });
 
@@ -838,7 +865,7 @@ export function VoiceCapture({
     setListening(false);
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
-    if (said) onDone(said);
+    if (said) onDone(said, { streamed: false, alternatives: latestAlternatives.current });
     // Heard nothing usable — surface the same calm recovery a parsed miss shows,
     // rather than silently dropping back to the opening prompt as if nothing had
     // been tried, and record why so a silent-mic device can be diagnosed.
@@ -868,7 +895,7 @@ export function VoiceCapture({
     speechMic.release(session);
     if (said) {
       latest.current = said;
-      onDone(said, true);
+      onDone(said, { streamed: true, alternatives: live.alternatives() });
     } else setEmptyMiss(true);
   }, [clearStreamTimers, level, onDone, session]);
   const finishStreamRef = useRef(finishStream);
@@ -913,13 +940,14 @@ export function VoiceCapture({
       onError: () => {
         // The stream died mid-sentence: keep what was heard, if anything.
         const said = latest.current.trim();
+        const alternatives = stream.current?.alternatives() ?? [];
         stream.current = null;
         starting.current = false;
         clearStreamTimers();
         setListening(false);
         level.set(withTiming(0, { duration: 150 }));
         speechMic.release(session);
-        if (said) onDone(said, true);
+        if (said) onDone(said, { streamed: true, alternatives });
         else {
           setError(t.misc.dictationFailed);
           setErrorInSettings(false);
@@ -974,6 +1002,7 @@ export function VoiceCapture({
       setEmptyMiss(false);
       onListen?.();
       latest.current = '';
+      latestAlternatives.current = [];
       setLive('');
       level.set(0);
       gotResult.current = false;
@@ -1068,7 +1097,9 @@ export function VoiceCapture({
           // else en-IN), so there is one locale to get right and no chip to miss.
           lang: englishSpeechLocale(locale),
           interimResults: true,
-          maxAlternatives: 1,
+          // The n-best list: names are scored across every hypothesis, so an
+          // engine that heard "rainy" first and "Renny" second still finds her.
+          maxAlternatives: MAX_ALTERNATIVES,
           // One sentence, then it settles — the same shape a note dictation uses.
           continuous: false,
           requiresOnDeviceRecognition: onDevice,
@@ -1158,7 +1189,7 @@ export function VoiceCapture({
             setListening(false);
             level.set(withTiming(0, { duration: 150 }));
             const said = latest.current.trim();
-            if (said) onDone(said);
+            if (said) onDone(said, { streamed: false, alternatives: latestAlternatives.current });
             else setEmptyMiss(true);
             speechMic.release(session);
           }, HARD_STOP_MS);

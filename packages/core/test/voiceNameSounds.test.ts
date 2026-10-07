@@ -110,7 +110,10 @@ describe('sentences a recogniser mangled around a name', () => {
   });
 
   it('joins a split name back together', () => {
-    expect(parse('8000 for d pack').participants?.map((p) => p.memberId)).toEqual(['deepak']);
+    // Run together in a slot a description fits too: offered, not filled in.
+    const forDeepak = parse('8000 for d pack').participants?.[0];
+    expect(forDeepak).toMatchObject({ status: 'suggested', heard: 'dpack' });
+    expect(forDeepak?.candidates?.[0]?.id).toBe('deepak');
     expect(parse('job in paid 500').payer).toMatchObject({ memberId: 'jobin' });
   });
 

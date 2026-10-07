@@ -9,9 +9,24 @@ export interface TranscriptState {
   readonly finals: readonly string[];
   /** The current not-yet-final segment (replaced by every interim result). */
   readonly interim: string;
+  /**
+   * Deepgram's other hypotheses for each final segment (`channel.alternatives[1..]`),
+   * parallel to `finals`. Empty arrays when the stream sent only one.
+   */
+  readonly finalAlts?: readonly (readonly string[])[];
+  /** The other hypotheses for the interim segment. */
+  readonly interimAlts?: readonly string[];
 }
 
-export const EMPTY_TRANSCRIPT: TranscriptState = { finals: [], interim: '' };
+export const EMPTY_TRANSCRIPT: TranscriptState = {
+  finals: [],
+  interim: '',
+  finalAlts: [],
+  interimAlts: [],
+};
+
+/** The most whole-sentence alternatives handed on. */
+const MAX_STREAM_ALTERNATIVES = 5;
 
 interface ResultsMessage {
   type?: unknown;
@@ -38,11 +53,55 @@ export function applyMessage(state: TranscriptState, message: unknown): Transcri
   if (!Array.isArray(alternatives)) return state;
   const raw = alternatives[0]?.transcript;
   const text = typeof raw === 'string' ? raw.trim() : '';
+  const others = segmentAlternatives(alternatives, text);
+  const finalAlts = state.finalAlts ?? state.finals.map(() => []);
   if (parsed.is_final === true) {
     // An empty final just closes the segment — its interim is spent.
-    return { finals: text ? [...state.finals, text] : state.finals, interim: '' };
+    return text
+      ? {
+          finals: [...state.finals, text],
+          interim: '',
+          finalAlts: [...finalAlts, others],
+          interimAlts: [],
+        }
+      : { finals: state.finals, interim: '', finalAlts, interimAlts: [] };
   }
-  return { finals: state.finals, interim: text };
+  return { finals: state.finals, interim: text, finalAlts, interimAlts: others };
+}
+
+/** A segment's other hypotheses: alternatives[1..], trimmed, non-empty, unlike the top one. */
+function segmentAlternatives(alternatives: unknown[], top: string): string[] {
+  const out: string[] = [];
+  for (const entry of alternatives.slice(1)) {
+    const raw = (entry as { transcript?: unknown } | null)?.transcript;
+    const text = typeof raw === 'string' ? raw.trim() : '';
+    if (text && text !== top && !out.includes(text)) out.push(text);
+  }
+  return out;
+}
+
+/**
+ * Whole-sentence alternatives for the streamed transcript, best first: the
+ * full text with one segment swapped for one of its other hypotheses. Empty
+ * when Deepgram returned a single alternative per segment (its default).
+ */
+export function streamAlternatives(state: TranscriptState): string[] {
+  const segments = [...state.finals, state.interim];
+  const alts = [...(state.finalAlts ?? state.finals.map(() => [])), state.interimAlts ?? []];
+  const top = fullText(state);
+  const out: string[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    for (const alt of alts[i] ?? []) {
+      const sentence = segments
+        .map((segment, j) => (j === i ? alt : segment))
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      if (sentence && sentence !== top && !out.includes(sentence)) out.push(sentence);
+      if (out.length >= MAX_STREAM_ALTERNATIVES) return out;
+    }
+  }
+  return out;
 }
 
 /** What the captions show while speaking: finals plus the live tail. */

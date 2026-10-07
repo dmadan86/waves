@@ -31,18 +31,22 @@ import {
   encodeTxn,
   guessCategory,
   minorUnitScale,
+  nameKey,
   peopleSignatureKey,
   resolveIntentPeople,
   type ExpenseLocation,
+  type LearnedName,
   type SplitParams,
   type VoiceIntent,
   type VoiceNameCandidate,
+  type VoiceParty,
   type VoiceSplitPlan,
 } from '@waves/core';
 import {
   Button,
   Callout,
   Card,
+  Chip,
   Divider,
   IconButton,
   iconSize,
@@ -56,6 +60,7 @@ import {
 
 import {
   useAddGhostMember,
+  useAllGroupMembers,
   useCreateCapture,
   useCreateGroup,
   useGroup,
@@ -85,6 +90,7 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
+import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { checkOnline } from '@/lib/voiceStream';
@@ -115,6 +121,8 @@ import {
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
 import { logVoiceAttempt } from '@/lib/voiceLog';
+import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
+import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { VoiceFooterScene } from '@/components/VoiceFooterScene';
 
 /** One editable line on the review screen. */
@@ -206,6 +214,8 @@ function toMinor(amount: string, currency: string): bigint | null {
 interface WhoEdit {
   payerId?: string;
   participantIds?: string[];
+  /** A heard name settled with one tap ("Did you mean Renny?" → yes): its {@link nameKey} → member id. */
+  picks?: Record<string, string>;
 }
 
 /** A group's members as the voice parser matches names against them. */
@@ -238,8 +248,9 @@ function planWho(
   edit: WhoEdit | null,
   amountMinor: bigint | null,
   draftCount: number,
+  learned: readonly LearnedName[],
 ): WhoView {
-  const resolved = resolveIntentPeople(intent, members);
+  const resolved = resolveIntentPeople(intent, members, { learned, picks: edit?.picks });
   const plan = buildVoiceSplit(resolved, {
     memberIds: members.map((member) => member.id),
     meMemberId: members.find((member) => member.isMe)?.id ?? null,
@@ -265,7 +276,14 @@ function planWho(
     );
     if (participantIds.length === 0) problems.push({ code: 'no_participants' });
   }
-  return { intent: resolved, payerId, participantIds, params, problems, edited: edit !== null };
+  return {
+    intent: resolved,
+    payerId,
+    participantIds,
+    params,
+    problems,
+    edited: edit?.payerId !== undefined || edit?.participantIds !== undefined,
+  };
 }
 
 export default function VoiceScreen() {
@@ -361,7 +379,10 @@ export default function VoiceScreen() {
     transcript: string;
     question: string;
   } | null>(null);
-  const [agentSession, setAgentSession] = useState<{ transcript: string } | null>(null);
+  const [agentSession, setAgentSession] = useState<{
+    transcript: string;
+    alternatives: readonly string[];
+  } | null>(null);
   // The agent's allowance was spent, so the basic path took over — said once.
   const [agentQuotaNote, setAgentQuotaNote] = useState(false);
   // The answer shown in the 'answer' phase. `text` is a ready line (a person
@@ -481,7 +502,11 @@ export default function VoiceScreen() {
 
   const groupRows = useMemo(() => groups.data ?? [], [groups.data]);
   const groupRefs: VoiceGroupRef[] = groupRows.map((group) => ({ id: group.id, name: group.name }));
-  const hints = groupRows.map((group) => group.name ?? '').filter(Boolean);
+  // The reader's own group names, for the "Try saying…" example card.
+  const groupNames = groupRows.map((group) => group.name ?? '').filter(Boolean);
+  // Names this reader confirmed on earlier reviews, per group, on this phone.
+  const nameMemory = useVoiceNameMemory(viewerId);
+  const everyMember = useAllGroupMembers();
 
   // Members and currency of the chosen group, read from the local mirror. Empty
   // id (the unassigned/create cases) reads nothing, which is what we want. A
@@ -495,9 +520,29 @@ export default function VoiceScreen() {
   // from a description ("for Arjun" vs "for dinner") while the sentence is read.
   const launchGroup = useGroup(launchGroupId ?? '');
   const launchMembers = useMemo(
-    () => (launchGroupId ? toCandidates(launchGroup.members.data, viewerId) : undefined),
-    [launchGroupId, launchGroup.members.data, viewerId],
+    () =>
+      launchGroupId
+        ? withAliases(toCandidates(launchGroup.members.data, viewerId), nameMemory, launchGroupId)
+        : undefined,
+    [launchGroupId, launchGroup.members.data, viewerId, nameMemory],
   );
+  // What the recogniser is told to listen for: the people this sentence may
+  // name — the launch group's, else everybody across the reader's groups —
+  // by display name, first name and confirmed alias (capped in voiceNameHints).
+  const hints = useMemo(() => {
+    if (launchMembers) return voiceNameHints(launchMembers);
+    const aliased = groupRows.flatMap((group) =>
+      withAliases(
+        toCandidates(
+          everyMember.filter((member) => member.group_id === group.id),
+          viewerId,
+        ),
+        nameMemory,
+        group.id,
+      ),
+    );
+    return voiceNameHints(aliased);
+  }, [launchMembers, groupRows, everyMember, viewerId, nameMemory]);
   // Only the group destinations carry a group id to write into; unassigned and
   // "just me" have none, so the write hook reads the empty id and stays inert.
   const writeGroupId =
@@ -719,10 +764,12 @@ export default function VoiceScreen() {
   // The heard batch, read by the pure heuristic — amounts, currencies, a named
   // group, several expenses in a breath, a spoken new group, "just for me".
   const interpret = useCallback(
-    async (transcript: string): Promise<VoiceParseResult> => {
+    async (transcript: string, alternatives: readonly string[]): Promise<VoiceParseResult> => {
       const final = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
         currentGroupId: launchGroupId,
+        alternatives,
+        learned: learnedForGroup(nameMemory, launchGroupId),
       });
       // Report what was heard when nothing usable came back, so the parser can be
       // improved against a real miss. Best-effort: the lib decides whether to send
@@ -735,7 +782,7 @@ export default function VoiceScreen() {
       });
       return final;
     },
-    [groupRefs, locale, launchMembers, launchGroupId],
+    [groupRefs, locale, launchMembers, launchGroupId, nameMemory],
   );
 
   // Drafts minted from heard expenses — the shared shape for the opening batch
@@ -974,7 +1021,10 @@ export default function VoiceScreen() {
     };
   };
 
-  const handleTranscript = (transcript: string, streamed?: boolean): void => {
+  const handleTranscript = (
+    transcript: string,
+    { streamed = false, alternatives = [] }: Partial<VoiceDoneInfo> = {},
+  ): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -994,31 +1044,32 @@ export default function VoiceScreen() {
       if (localParseIsConfident(heardLocally, fastContext)) {
         if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
         setEngine(CLOUD);
-        runBasic(transcript);
+        runBasic(transcript, alternatives);
         return;
       }
       if (__DEV__) console.log('[voice] path: agent');
-      setAgentSession({ transcript });
+      setAgentSession({ transcript, alternatives });
       setPhase('agent');
       return;
     }
-    runBasic(transcript);
+    runBasic(transcript, alternatives);
   };
 
   // The agent could not help (quota, offline, unavailable, a bad reply): carry
   // on with the same transcript on the basic parser, as if the flag were off.
   const agentFellBack = (reason: AgentFallbackReason): void => {
     const heard = agentSession?.transcript;
+    const heardAlternatives = agentSession?.alternatives ?? [];
     setAgentSession(null);
     if (!heard) return;
     setAgentQuotaNote(reason === 'quota');
     if (reason === 'quota') setEngine(local('quota'));
     // The call failed: if the phone is offline that is why, and the badge says so.
     else void checkOnline().then((online) => online || setEngine(local('offline')));
-    runBasic(heard);
+    runBasic(heard, heardAlternatives);
   };
 
-  const runBasic = (transcript: string): void => {
+  const runBasic = (transcript: string, alternatives: readonly string[] = []): void => {
     const mode = micMode;
     // A settle/remind/add-member command, or a read-only balance question, only
     // makes sense as a fresh utterance, never as an expense appended to a batch.
@@ -1032,7 +1083,7 @@ export default function VoiceScreen() {
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
-      const parsed = await interpret(transcript);
+      const parsed = await interpret(transcript, alternatives);
       // Dropped if the reader has since backed out of 'thinking' (which bumps the
       // token), or a newer capture superseded this one — a late append must not
       // land on the review they returned to.
@@ -1329,8 +1380,12 @@ export default function VoiceScreen() {
   // spoken intent read against them, with the reader's corrections on top. Only
   // for an existing group — a new one has nobody to name yet.
   const targetMembers = useMemo(
-    () => toCandidates(target.members.data, viewerId),
-    [target.members.data, viewerId],
+    () => withAliases(toCandidates(target.members.data, viewerId), nameMemory, targetGroupId),
+    [target.members.data, viewerId, nameMemory, targetGroupId],
+  );
+  const targetLearned = useMemo(
+    () => learnedForGroup(nameMemory, targetGroupId),
+    [nameMemory, targetGroupId],
   );
   const who: WhoView | null = (() => {
     // A plain "I paid, split equally" keeps the way it has always been written;
@@ -1347,8 +1402,51 @@ export default function VoiceScreen() {
       whoEdit,
       first ? toMinor(first.amount, firstCurrency) : null,
       drafts.length,
+      targetLearned,
     );
   })();
+
+  // The reader settled a heard name: "Did you mean Renny?" → yes, a tap on one
+  // of "Ravi or Rajiv?", or a pick in the sheet. It counts for this review at
+  // once and is remembered for this group, so the same words find the same
+  // person next time.
+  const rememberPick = (heard: string | undefined, memberId: string): void => {
+    if (!heard || !targetGroupId) return;
+    void rememberNamePick(viewerId, {
+      heard,
+      memberId,
+      groupId: targetGroupId,
+      members: targetMembers,
+      now: Date.now(),
+    });
+  };
+  const pickName = (party: VoiceParty, memberId: string): void => {
+    const heard = party.heard ?? party.name;
+    setWhoEdit((current) => ({
+      ...current,
+      picks: { ...current?.picks, [nameKey(heard)]: memberId },
+    }));
+    rememberPick(heard, memberId);
+  };
+  // A change made in the sheet is a correction of what was heard, when it is
+  // clear which heard name it answers: the named payer, or the one person in
+  // the split still in question.
+  const editWho = (next: WhoEdit): void => {
+    setWhoEdit((current) => ({ ...current, ...next }));
+    if (!who) return;
+    const { payer, participants } = who.intent;
+    if (next.payerId && payer.kind === 'member' && payer.explicit)
+      rememberPick(payer.heard, next.payerId);
+    if (next.participantIds) {
+      const added = next.participantIds.filter((id) => !who.participantIds.includes(id));
+      const open = (participants ?? []).filter(
+        (party) => party.kind === 'member' && party.status !== 'resolved',
+      );
+      const only = open[0];
+      if (added.length === 1 && open.length === 1 && only && added[0])
+        rememberPick(only.heard, added[0]);
+    }
+  };
   // Someone other than me paid: nowhere but a group can keep that.
   const payerElsewhere = intent?.payer.explicit === true && intent.payer.kind === 'member';
   const groupPending =
@@ -1969,6 +2067,7 @@ export default function VoiceScreen() {
                 members={targetMembers}
                 currency={destCurrency ?? dc}
                 onOpen={() => setWhoOpen(true)}
+                onPick={pickName}
                 t={t}
                 theme={theme}
               />
@@ -2048,7 +2147,7 @@ export default function VoiceScreen() {
               onEngine={setEngine}
               groupId={launchGroupId}
               hints={hints}
-              groupNames={hints}
+              groupNames={groupNames}
               missed={noAmount}
               autoStart={!noAmount}
               endSignal={hold.ended}
@@ -2200,7 +2299,7 @@ export default function VoiceScreen() {
           <WhoSheet
             who={who}
             members={targetMembers}
-            onChange={(next) => setWhoEdit((current) => ({ ...current, ...next }))}
+            onChange={editWho}
             onClose={() => setWhoOpen(false)}
             t={t}
             theme={theme}
@@ -2298,6 +2397,7 @@ function WhoCard({
   members,
   currency,
   onOpen,
+  onPick,
   t,
   theme,
 }: {
@@ -2305,6 +2405,8 @@ function WhoCard({
   members: readonly VoiceNameCandidate[];
   currency: string;
   onOpen: () => void;
+  /** A one-tap answer to "Did you mean …?" or "A or B?". */
+  onPick: (party: VoiceParty, memberId: string) => void;
   t: Strings;
   theme: ThemeT;
 }) {
@@ -2318,7 +2420,11 @@ function WhoCard({
   );
   const { payer } = who.intent;
   const payerName = who.payerId ? whoName(members, who.payerId, t) : '';
-  const heard = payer.explicit && payer.fuzzy && !payerOpen ? payer.name : null;
+  // People in the split still in question, each asked on its own line.
+  const asked = (who.intent.participants ?? []).filter(
+    (party) => party.status === 'suggested' || party.status === 'ambiguous',
+  );
+  const heard = payer.explicit && payer.fuzzy && !payerOpen ? (payer.heard ?? payer.name) : null;
   const rowStyle = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -2364,6 +2470,9 @@ function WhoCard({
           {t.voice.change}
         </Text>
       </Pressable>
+      {payerOpen ? (
+        <NameQuestion party={payer} members={members} onPick={onPick} t={t} theme={theme} />
+      ) : null}
       <Divider />
       <Pressable
         onPress={onOpen}
@@ -2382,7 +2491,9 @@ function WhoCard({
             <Text tone="faint"> · </Text>
             <Text style={{ fontWeight: '600' }}>{describeSplit(who, members, currency, t)}</Text>
           </Text>
-          {peopleOpen && peopleOpen.code === 'participant_unresolved' ? (
+          {peopleOpen &&
+          peopleOpen.code === 'participant_unresolved' &&
+          !asked.some((party) => party.name === peopleOpen.name) ? (
             <Text variant="micro" style={{ color: warn }}>
               {t.voice.whoUnknown.replace('{name}', peopleOpen.name)}
             </Text>
@@ -2396,7 +2507,93 @@ function WhoCard({
           {t.voice.change}
         </Text>
       </Pressable>
+      {asked.map((party, index) => (
+        <NameQuestion
+          key={`${party.heard ?? party.name}-${index}`}
+          party={party}
+          members={members}
+          onPick={onPick}
+          t={t}
+          theme={theme}
+        />
+      ))}
     </Card>
+  );
+}
+
+/**
+ * A heard name the review could not fill in on its own, asked in one compact
+ * line: "Did you mean Renny?" with a Yes, or "Ravi or Rajiv?" with a pill for
+ * each. One tap settles it (and is remembered for this group); anything else is
+ * a tap on the row above, which opens the full list.
+ */
+function NameQuestion({
+  party,
+  members,
+  onPick,
+  t,
+  theme,
+}: {
+  party: VoiceParty;
+  members: readonly VoiceNameCandidate[];
+  onPick: (party: VoiceParty, memberId: string) => void;
+  t: Strings;
+  theme: ThemeT;
+}) {
+  const candidates = (party.candidates ?? []).filter((candidate) =>
+    members.some((member) => member.id === candidate.id),
+  );
+  const label = (candidate: VoiceNameCandidate): string =>
+    candidate.isMe ? t.voice.youLabel : candidate.name;
+  const first = candidates[0];
+  if (!first || (party.status !== 'suggested' && party.status !== 'ambiguous')) return null;
+  const rowStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  };
+  if (party.status === 'suggested') {
+    return (
+      <View style={rowStyle}>
+        <Text variant="caption" numberOfLines={1} style={{ flex: 1, color: theme.color.warning }}>
+          {t.voice.didYouMean.replace('{name}', label(first))}
+        </Text>
+        <Chip
+          label={t.voice.didYouMeanYes}
+          selected
+          variant="brand"
+          onPress={() => onPick(party, first.id)}
+        />
+      </View>
+    );
+  }
+  if (candidates.length < 2) return null;
+  const names = candidates.map(label);
+  const question = t.voice.whichOf
+    .replace('{names}', names.slice(0, -1).join(', '))
+    .replace('{last}', names[names.length - 1] ?? '');
+  return (
+    <View style={rowStyle}>
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        style={{ flexBasis: '100%', color: theme.color.warning }}
+      >
+        {question}
+      </Text>
+      {candidates.map((candidate) => (
+        <Chip
+          key={candidate.id}
+          label={label(candidate)}
+          selected
+          variant="brand"
+          onPress={() => onPick(party, candidate.id)}
+        />
+      ))}
+    </View>
   );
 }
 

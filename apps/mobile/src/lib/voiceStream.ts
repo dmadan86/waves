@@ -22,6 +22,7 @@ import {
   fullText,
   liveText,
   pcmLevel,
+  streamAlternatives,
   type TranscriptState,
 } from '@/lib/voiceStreamPure';
 
@@ -114,6 +115,11 @@ export interface LiveTranscription {
   stop: () => Promise<string>;
   /** Drop everything without a transcript. */
   cancel: () => void;
+  /**
+   * The stream's other whole-sentence hypotheses so far (from Deepgram's
+   * `channel.alternatives[1..]`), best first — empty when it sent only one.
+   */
+  alternatives: () => string[];
 }
 
 interface AudioModule {
@@ -333,6 +339,7 @@ export async function startLiveTranscription(
       }
       return fullText(state);
     },
+    alternatives: () => streamAlternatives(state),
     cancel: () => {
       if (active === handle) active = null;
       if (finished) return;

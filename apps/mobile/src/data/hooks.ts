@@ -206,6 +206,23 @@ export function useGroups(): LocalRead<GroupRow[]> {
   return useLocalRead(groups);
 }
 
+/**
+ * Every open group's members, most recent group first — the people a spoken
+ * sentence may name when the mic was not opened inside one group. Read from
+ * the mirror only; the voice screen biases the recogniser towards these names.
+ */
+export function useAllGroupMembers(): readonly MemberRow[] {
+  const { mirror, queue } = useSync();
+  return useMemo(() => {
+    const members: MemberRow[] = [];
+    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[])
+      members.push(
+        ...(materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]),
+      );
+    return members;
+  }, [mirror, queue]);
+}
+
 // ────────────────────────────────────────────────────── group pins ──
 //
 // A pin rides its own personal scope (`groupPinsScope`), independent of the
