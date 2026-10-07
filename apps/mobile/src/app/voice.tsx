@@ -350,6 +350,12 @@ export default function VoiceScreen() {
   // the clip goes to the agent (phase 'agent') instead of straight to the on-device
   // parser. Off, none of this runs and the screen behaves as it always has.
   const agentOn = useVoiceAgentEnabled();
+  // The agent's open question and what prompted it, while the next clip is its
+  // answer; cleared once that answer has been read.
+  const [agentFollowUp, setAgentFollowUp] = useState<{
+    transcript: string;
+    question: string;
+  } | null>(null);
   const [agentSession, setAgentSession] = useState<{
     clip: VoiceClip;
     transcript: string;
@@ -1749,7 +1755,9 @@ export default function VoiceScreen() {
             groupId={launchGroupId}
             today={today()}
             onFallback={agentFellBack}
-            onRetry={() => {
+            followUp={agentFollowUp}
+            onRetry={(followUp) => {
+              setAgentFollowUp(followUp ?? null);
               setAgentSession(null);
               setAttempt((current) => current + 1);
               setPhase('listening');

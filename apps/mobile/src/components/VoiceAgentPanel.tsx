@@ -61,8 +61,11 @@ export interface VoiceAgentPanelProps {
   today: string;
   /** The agent could not help; run the basic on-device path instead. */
   onFallback: (reason: AgentFallbackReason) => void;
-  /** Open the mic again (a clarification, or nothing to do). */
-  onRetry: () => void;
+  /** Open the mic again. After a clarifying question, `followUp` carries what
+   *  was said and asked, so the next clip is read as the answer. */
+  onRetry: (followUp?: { transcript: string; question: string }) => void;
+  /** This clip answers the agent's earlier question. */
+  followUp?: { transcript: string; question: string } | null;
   /** Everything is confirmed or discarded. */
   onClose: () => void;
 }
@@ -124,6 +127,7 @@ export function VoiceAgentPanel({
   today,
   onFallback,
   onRetry,
+  followUp,
   onClose,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
@@ -144,7 +148,14 @@ export function VoiceAgentPanel({
     if (asked.current) return;
     asked.current = true;
     let live = true;
-    void sendVoiceClip({ clip, groupId, locale, today }).then((result) => {
+    void sendVoiceClip({
+      clip,
+      groupId,
+      locale,
+      today,
+      deviceTranscript: localTranscript,
+      followUp,
+    }).then((result) => {
       if (!live) return;
       if (result.kind === 'ok') setResponse(result);
       else fallbackRef.current(result.kind === 'quota' ? 'quota' : 'other');
@@ -208,7 +219,25 @@ export function VoiceAgentPanel({
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="subheading">{t.voice.agentClarifyTitle}</Text>
             <Text tone="muted">{plan.clarify ?? t.voice.agentNothingToDo}</Text>
-            <Button label={t.voice.agentTryAgain} variant="secondary" onPress={onRetry} />
+            <Button
+              label={plan.clarify ? t.voice.agentAnswer : t.voice.agentTryAgain}
+              variant="secondary"
+              onPress={() =>
+                onRetry(
+                  plan.clarify
+                    ? {
+                        // Both hearings of the first clip, so the reply is read
+                        // against the number and the name, whichever got which.
+                        transcript:
+                          localTranscript && localTranscript !== plan.transcript
+                            ? `${plan.transcript} (phone heard: ${localTranscript})`
+                            : plan.transcript,
+                        question: plan.clarify,
+                      }
+                    : undefined,
+                )
+              }
+            />
           </View>
         </Card>
       ) : null}
