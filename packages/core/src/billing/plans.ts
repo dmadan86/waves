@@ -24,9 +24,26 @@
 
 import type { CurrencyCode } from '../money/currency';
 
+/**
+ * Free, Plus (the paid features without advanced voice) and Pro (everything,
+ * including the advanced voice agent). Pro is a superset of Plus: anything a
+ * Plus row unlocks, a Pro row unlocks too — ask `isPaidTier`, never
+ * `tier === PlanTier.Plus`, for "has this person paid".
+ */
 export enum PlanTier {
   Free = 'free',
   Plus = 'plus',
+  Pro = 'pro',
+}
+
+/** Plus and Pro are both paid; only Pro carries the advanced voice allowance. */
+export function isPaidTier(tier: PlanTier): boolean {
+  return tier === PlanTier.Plus || tier === PlanTier.Pro;
+}
+
+/** How the tiers order, for "is this an upgrade". */
+export function tierRank(tier: PlanTier): number {
+  return tier === PlanTier.Pro ? 2 : tier === PlanTier.Plus ? 1 : 0;
 }
 
 export enum BillingPeriod {
@@ -168,7 +185,14 @@ export function readEntitlement(value: unknown): Entitlement {
   if (typeof value !== 'object' || value === null) return FREE_ENTITLEMENT;
   const row = value as Record<string, unknown>;
 
-  const tier = row.tier === 'plus' ? PlanTier.Plus : PlanTier.Free;
+  // `tier` is 'plus' for any paid row (older servers and the device-cap SQL read
+  // it as "paid"); `plan` says which paid tier. Either naming 'pro' means Pro.
+  const tier =
+    row.plan === 'pro' || row.tier === 'pro'
+      ? PlanTier.Pro
+      : row.tier === 'plus' || row.plan === 'plus'
+        ? PlanTier.Plus
+        : PlanTier.Free;
   const source =
     row.source === 'subscription' || row.source === 'lifetime' || row.source === 'trip_pass'
       ? row.source
@@ -184,7 +208,7 @@ export function readEntitlement(value: unknown): Entitlement {
     scanLimit:
       Number.isFinite(limit) && limit > 0
         ? Math.floor(limit)
-        : tier === PlanTier.Plus
+        : isPaidTier(tier)
           ? PLUS_MONTHLY_SCANS
           : FREE_MONTHLY_SCANS,
   };

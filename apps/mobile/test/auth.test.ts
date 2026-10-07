@@ -170,6 +170,7 @@ vi.mock('@/lib/push', () => ({
   revokePushToken: spies.revokePushToken,
 }));
 vi.mock('@/sync/retention', () => ({ markDeliberateSignOut: spies.markDeliberateSignOut }));
+vi.mock('@/lib/purchases', () => ({ syncPurchasesUser: () => Promise.resolve() }));
 
 const { AuthProvider, IdentityTakenError, useAuth, useViewerId } = await import('../src/lib/auth');
 

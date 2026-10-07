@@ -1,219 +1,140 @@
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
- * Wired to the store: `expo-iap`'s `useIAP()` fetches the real, localized
- * prices for `waves_pro_monthly` and `waves_pro_yearly` the moment it
- * connects, and Subscribe / Restore go through the platform's own purchase
- * sheet. The regional price table in `@/lib/pricing` is shown only when the
- * store has not answered yet (no connection — a dev build, a simulator, a
- * network blip) — marked "approximate" on screen, and never the number an
- * actual purchase charges.
+ * Plus (the paid features without the advanced AI voice) and Pro (everything),
+ * sold through RevenueCat. The cards come from RevenueCat's current offering
+ * ('default'), so every price on screen is the store's own localized string —
+ * nothing here is hardcoded. A monthly/yearly switch appears only once the
+ * offering sells yearly plans.
  *
- * NOTE — still behind the `paywall` route flag and still not reconciled with
- * `settings/upgrade`, which says there is nothing to buy. That reconciliation
- * (point upgrade here, or keep this behind the flag indefinitely) is a
- * product decision for whoever owns it, not something this change makes.
- *
- * Receipts are not verified server-side yet. `useEntitlement`'s doc comment
- * and docs/pricing.md both say so — nothing here, or anywhere downstream,
- * should treat a purchase on this screen as proof of anything
- * security-sensitive until that lands.
+ * Reachable only behind the `paywall` flag AND on a build with a RevenueCat key
+ * (see `_layout.tsx`). What a purchase unlocks is decided by the server, from
+ * `subscriptions`, which RevenueCat's webhook writes; the "current plan" shown
+ * here is RevenueCat's CustomerInfo, for display only.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ErrorCode, getUserFriendlyErrorMessage, isUserCancelledError, useIAP } from 'expo-iap';
 import { Pressable, ScrollView, View } from 'react-native';
+import type { PurchasesOffering } from 'react-native-purchases';
 
+import {
+  isPaidTier,
+  PlanTier,
+  PLUS_DEVICE_LIMIT,
+  PLUS_MONTHLY_SCANS,
+  VOICE_AGENT_PRO_MONTHLY,
+} from '@waves/core';
 import { Button, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
-import { deviceCountry, fill, useStrings } from '@/i18n';
+import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import {
-  entitlementFromActiveSubscriptions,
-  fallbackPriceFor,
-  formatApproxMoney,
-  freeMonthsForYearly,
-  monthlyEquivalent,
-  MONTHLY_PRODUCT_ID,
-  PRO_PRODUCT_IDS,
-  YEARLY_PRODUCT_ID,
-  YEARLY_TRIAL_DAYS,
-  type ProPlanId,
+  periodsInOffering,
+  planCardsFromOffering,
+  yearlySavingsPercent,
+  type PaidTier,
+  type PlanCardModel,
+  type PlanPeriod,
 } from '@/lib/pricing';
+import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
+import { useEntitlement } from '@/lib/useEntitlement';
 
-const SUBSCRIPTION_SKUS = [MONTHLY_PRODUCT_ID, YEARLY_PRODUCT_ID];
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; offering: PurchasesOffering | null };
 
-/** One plan's price, however it was sourced. Only ever used for display and
- *  for the savings/per-month math below — the purchase itself always goes
- *  through the store by product id, never by this number. */
-interface PlanPrice {
-  display: string;
-  amount: number;
-  fromStore: boolean;
+function planName(t: UiStrings, tier: PlanTier): string {
+  return tier === PlanTier.Pro ? t.paywall.proTitle : t.paywall.plusTitle;
 }
 
 export default function PaywallScreen() {
   const theme = useTheme();
-  const { t, locale } = useStrings();
+  const { t } = useStrings();
   const toast = useToast();
-  const [selected, setSelected] = useState<ProPlanId>('yearly');
-  const [purchasing, setPurchasing] = useState<ProPlanId | null>(null);
+  const entitlement = useEntitlement();
+  const [load, setLoad] = useState<LoadState>({ status: 'loading' });
+  const [attempt, setAttempt] = useState(0);
+  const [period, setPeriod] = useState<PlanPeriod>('monthly');
+  const [selected, setSelected] = useState<PaidTier>(PlanTier.Pro);
+  const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  const {
-    connected,
-    subscriptions,
-    activeSubscriptions,
-    fetchProducts,
-    requestPurchase,
-    restorePurchases,
-    finishTransaction,
-    hasActiveSubscriptions,
-  } = useIAP({
-    // The outcome of a purchase arrives here, not through `requestPurchase`'s
-    // return value — expo-iap dispatches that call and settles the actual
-    // result (success, store-side failure, or a closed sheet) through these
-    // listeners instead. Finishing the transaction, and clearing `purchasing`,
-    // both wait for whichever of these actually fires.
-    onPurchaseSuccess: (purchase) => {
-      // No backend to verify the receipt against yet (see the file doc
-      // comment), so the purchase is finished as soon as the store confirms
-      // it, rather than left in the queue waiting on a check that does not
-      // exist. Revisit once server-side verification lands.
-      void finishTransaction({ purchase, isConsumable: false })
-        .then(() => router.back())
-        .finally(() => setPurchasing(null));
-    },
-    onPurchaseError: (error) => {
-      setPurchasing(null);
-      if (isUserCancelledError(error)) {
-        // A closed purchase sheet is not a failure worth a message.
-      } else if (error.code === ErrorCode.Pending) {
-        toast.show(t.paywall.purchasePending, 'info');
-      } else {
-        toast.show(getUserFriendlyErrorMessage(error) || t.paywall.genericError, 'negative');
-      }
-    },
-  });
-
   useEffect(() => {
-    if (!connected) return;
-    void fetchProducts({ skus: SUBSCRIPTION_SKUS, type: 'subs' });
-  }, [connected, fetchProducts]);
+    let active = true;
+    loadOffering()
+      .then((offering) => active && setLoad({ status: 'ready', offering }))
+      .catch(() => active && setLoad({ status: 'error' }));
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
 
-  const country = useMemo(() => deviceCountry(), []);
-  const fallback = useMemo(() => fallbackPriceFor(country), [country]);
+  const offering = load.status === 'ready' ? load.offering : null;
+  const periods = useMemo(() => periodsInOffering(offering), [offering]);
+  const cards = useMemo(() => planCardsFromOffering(offering, period), [offering, period]);
+  const savings = useMemo(() => {
+    const monthly = planCardsFromOffering(offering, 'monthly');
+    const yearly = planCardsFromOffering(offering, 'yearly');
+    const best = Math.max(
+      0,
+      ...yearly.map((card) => {
+        const match = monthly.find((m) => m.tier === card.tier);
+        return match ? yearlySavingsPercent(match.price, card.price) : 0;
+      }),
+    );
+    return best;
+  }, [offering]);
 
-  const priceFor = useCallback(
-    (plan: ProPlanId): PlanPrice => {
-      const productId = PRO_PRODUCT_IDS[plan];
-      const product = subscriptions.find((sub) => sub.id === productId);
-      if (product?.price != null) {
-        return { display: product.displayPrice, amount: product.price, fromStore: true };
+  const current = entitlement.tier;
+  const chosen = cards.find((card) => card.tier === selected) ?? cards[cards.length - 1];
+  const chosenIsCurrent = chosen ? chosen.tier === current : false;
+
+  const buy = useCallback(async () => {
+    if (!chosen || purchasing || chosenIsCurrent || !offering) return;
+    const pkg = offering.availablePackages.find((p) => p.identifier === chosen.packageId);
+    if (!pkg) return;
+    setPurchasing(true);
+    try {
+      const outcome = await purchase(pkg);
+      if (outcome === 'purchased') {
+        toast.show(fill(t.paywall.purchased, { plan: planName(t, chosen.tier) }), 'positive');
+        router.back();
+      } else if (outcome === 'pending') {
+        toast.show(t.paywall.purchasePending, 'info');
       }
-      const amount = plan === 'monthly' ? fallback.monthly : fallback.yearly;
-      return {
-        display: formatApproxMoney(amount, fallback.currency, locale),
-        amount,
-        fromStore: false,
-      };
-    },
-    [subscriptions, fallback, locale],
-  );
+    } catch {
+      toast.show(t.paywall.genericError, 'negative');
+    } finally {
+      setPurchasing(false);
+    }
+  }, [chosen, purchasing, chosenIsCurrent, offering, toast, t]);
 
-  const monthlyPrice = priceFor('monthly');
-  const yearlyPrice = priceFor('yearly');
-  const bothFromStore = monthlyPrice.fromStore && yearlyPrice.fromStore;
-
-  // The "2 months free" / per-month maths only mean something when both
-  // numbers are in the same currency. When the store has only answered for
-  // one plan, compare the fallback pair instead of two different storefronts'
-  // numbers against each other.
-  const comparison = bothFromStore
-    ? { monthly: monthlyPrice.amount, yearly: yearlyPrice.amount }
-    : { monthly: fallback.monthly, yearly: fallback.yearly };
-  const freeMonths = freeMonthsForYearly(comparison.monthly, comparison.yearly);
-  // `comparison.yearly`, not `yearlyPrice.amount`: the latter is in the
-  // store's own currency even when `bothFromStore` is false (the store
-  // answered for yearly but not monthly), which would pair a store amount
-  // with the fallback currency label below and show the wrong number.
-  const perMonthDisplay = formatApproxMoney(
-    monthlyEquivalent(comparison.yearly),
-    bothFromStore
-      ? (subscriptions.find((sub) => sub.id === YEARLY_PRODUCT_ID)?.currency ?? fallback.currency)
-      : fallback.currency,
-    locale,
-  );
-
-  const entitlement = useMemo(
-    () => entitlementFromActiveSubscriptions(activeSubscriptions),
-    [activeSubscriptions],
-  );
-
-  const buy = useCallback(
-    async (plan: ProPlanId) => {
-      if (entitlement.isPro || purchasing) return;
-      const productId = PRO_PRODUCT_IDS[plan];
-      setPurchasing(plan);
-      try {
-        const androidOffer = subscriptions.find(
-          (sub) => sub.id === productId && sub.platform === 'android',
-        )?.subscriptionOffers?.[0];
-        // Only dispatches the request — expo-iap settles the outcome through
-        // `onPurchaseSuccess` / `onPurchaseError` above, not this call's
-        // return value. `purchasing` therefore stays set past this `await`;
-        // the two listeners are what clear it.
-        await requestPurchase({
-          type: 'subs',
-          request: {
-            apple: { sku: productId },
-            google: {
-              skus: [productId],
-              subscriptionOffers: androidOffer?.offerTokenAndroid
-                ? [{ sku: productId, offerToken: androidOffer.offerTokenAndroid }]
-                : undefined,
-            },
-          },
-        });
-      } catch (error) {
-        // A synchronous rejection from the store itself (not prepared, bad
-        // request) — the listeners above never fire for this, so clear
-        // `purchasing` and report it here.
-        setPurchasing(null);
-        if (!isUserCancelledError(error)) {
-          const purchaseError = error as { code?: ErrorCode; message?: string };
-          toast.show(
-            getUserFriendlyErrorMessage(purchaseError) || t.paywall.genericError,
-            'negative',
-          );
-        }
-      }
-    },
-    [entitlement.isPro, purchasing, requestPurchase, subscriptions, toast, t],
-  );
-
-  const restore = useCallback(async () => {
+  const onRestore = useCallback(async () => {
     setRestoring(true);
     try {
-      await restorePurchases();
-      const owns = await hasActiveSubscriptions(SUBSCRIPTION_SKUS);
+      const tier = await restore();
+      const found = isPaidTier(tier);
       toast.show(
-        owns ? t.paywall.restoredSuccess : t.paywall.restoredNothing,
-        owns ? 'positive' : 'info',
+        found ? t.paywall.restoredSuccess : t.paywall.restoredNothing,
+        found ? 'positive' : 'info',
       );
     } catch {
       toast.show(t.paywall.genericError, 'negative');
     } finally {
       setRestoring(false);
     }
-  }, [restorePurchases, hasActiveSubscriptions, toast, t]);
+  }, [toast, t]);
 
-  const trialLine =
-    selected === 'yearly'
-      ? fill(t.paywall.trialLine, { days: YEARLY_TRIAL_DAYS, price: yearlyPrice.display })
-      : fill(t.paywall.noTrialLine, { price: monthlyPrice.display });
+  const cta = !chosen
+    ? fill(t.paywall.subscribe, { plan: t.paywall.proTitle })
+    : chosenIsCurrent
+      ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
+      : purchasing
+        ? t.paywall.subscribing
+        : fill(t.paywall.subscribe, { plan: planName(t, chosen.tier) });
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -238,54 +159,62 @@ export default function PaywallScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.md,
-          paddingBottom: theme.spacing.xl,
-          gap: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {entitlement.isPro ? (
-          <View
-            style={{
-              backgroundColor: theme.color.brandSoft,
-              borderRadius: theme.radius.md,
-              padding: theme.spacing.md,
+        {periods.length > 1 ? (
+          <PeriodSwitch
+            period={period}
+            onChange={setPeriod}
+            labels={{
+              monthly: t.paywall.monthlyTab,
+              yearly: t.paywall.yearlyTab,
+              save: savings > 0 ? fill(t.paywall.yearlySave, { percent: savings }) : null,
             }}
-          >
-            <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-              {t.paywall.alreadySubscribed}
-            </Text>
-          </View>
+          />
         ) : null}
 
-        <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.md }}>
-          <PlanCard
-            active={selected === 'yearly'}
-            badge={fill(t.paywall.yearlyBadge, { months: freeMonths })}
-            title={t.paywall.yearlyTitle}
-            price={yearlyPrice.display}
-            cadence={t.paywall.perYear}
-            note={fill(t.paywall.perMonthEquivalent, { price: perMonthDisplay })}
-            onPress={() => setSelected('yearly')}
-          />
-          <PlanCard
-            active={selected === 'monthly'}
-            title={t.paywall.monthlyTitle}
-            price={monthlyPrice.display}
-            cadence={t.paywall.perMonth}
-            note={t.paywall.monthlySubtitle}
-            onPress={() => setSelected('monthly')}
-          />
-        </View>
-
-        {!bothFromStore ? (
+        {load.status === 'loading' ? (
           <Text variant="caption" tone="muted" align="center">
-            {t.paywall.approxNote}
+            {t.paywall.loading}
           </Text>
-        ) : null}
+        ) : load.status === 'error' || cards.length === 0 ? (
+          <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <Text variant="caption" tone="muted" align="center">
+              {t.paywall.unavailable}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setLoad({ status: 'loading' });
+                setAttempt((n) => n + 1);
+              }}
+              hitSlop={8}
+            >
+              <Text tone="brand" style={{ fontWeight: '700' }}>
+                {t.paywall.retry}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }}>
+            {cards.map((card) => (
+              <PlanCard
+                key={card.packageId}
+                card={card}
+                active={chosen?.packageId === card.packageId}
+                current={card.tier === current}
+                onPress={() => setSelected(card.tier)}
+              />
+            ))}
+          </View>
+        )}
 
         <Text variant="caption" tone="muted" align="center">
-          {trialLine}
+          {t.paywall.renewNote}
         </Text>
       </ScrollView>
 
@@ -294,22 +223,16 @@ export default function PaywallScreen() {
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.md,
-          gap: theme.spacing.md,
+          gap: theme.spacing.sm,
         }}
       >
         <Button
-          label={
-            entitlement.isPro
-              ? t.paywall.alreadySubscribed
-              : purchasing
-                ? t.paywall.subscribing
-                : t.paywall.subscribe
-          }
+          label={cta}
           variant="brand"
           size="lg"
           fullWidth
-          disabled={entitlement.isPro || purchasing !== null}
-          onPress={() => void buy(selected)}
+          disabled={!chosen || chosenIsCurrent || purchasing}
+          onPress={() => void buy()}
         />
 
         <Pressable
@@ -317,7 +240,7 @@ export default function PaywallScreen() {
           accessibilityLabel={restoring ? t.paywall.restoring : t.paywall.restore}
           accessibilityState={{ disabled: restoring }}
           disabled={restoring}
-          onPress={() => void restore()}
+          onPress={() => void onRestore()}
           hitSlop={8}
           style={{ alignSelf: 'center' }}
         >
@@ -353,46 +276,116 @@ export default function PaywallScreen() {
   );
 }
 
-/** One plan, in the brand's purple rather than the old gold placeholder. */
+/** Monthly | Yearly, shown only once the offering sells both. */
+function PeriodSwitch({
+  period,
+  onChange,
+  labels,
+}: {
+  period: PlanPeriod;
+  onChange: (period: PlanPeriod) => void;
+  labels: { monthly: string; yearly: string; save: string | null };
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityRole="tablist"
+      style={{
+        flexDirection: 'row',
+        alignSelf: 'center',
+        backgroundColor: theme.color.surfaceMuted,
+        borderRadius: theme.radius.pill,
+        padding: 3,
+      }}
+    >
+      {(['monthly', 'yearly'] as const).map((value) => {
+        const active = period === value;
+        return (
+          <Pressable
+            key={value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => onChange(value)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: 6,
+              borderRadius: theme.radius.pill,
+              backgroundColor: active ? theme.color.surface : 'transparent',
+            }}
+          >
+            <Text variant="caption" style={{ fontWeight: active ? '700' : '500' }}>
+              {value === 'monthly' ? labels.monthly : labels.yearly}
+            </Text>
+            {value === 'yearly' && labels.save ? (
+              <Text variant="micro" tone="brand" style={{ fontWeight: '800' }}>
+                {labels.save}
+              </Text>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** One plan, in the brand's purple. */
 function PlanCard({
+  card,
   active,
-  badge,
-  title,
-  price,
-  cadence,
-  note,
+  current,
   onPress,
 }: {
+  card: PlanCardModel;
   active: boolean;
-  badge?: string;
-  title: string;
-  price: string;
-  cadence: string;
-  note: string;
+  current: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useStrings();
+  const pro = card.tier === PlanTier.Pro;
+  const title = pro ? t.paywall.proTitle : t.paywall.plusTitle;
+  const tagline = pro ? t.paywall.proTagline : t.paywall.plusTagline;
+  const cadence = card.period === 'yearly' ? t.paywall.perYear : t.paywall.perMonth;
+  const badge = current ? t.paywall.currentPlan : pro ? t.paywall.proBadge : null;
+  const features = pro
+    ? [
+        t.paywall.featureEverythingPlus,
+        fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }),
+      ]
+    : [
+        fill(t.paywall.featureScans, { scans: PLUS_MONTHLY_SCANS }),
+        fill(t.paywall.featureDevices, { devices: PLUS_DEVICE_LIMIT }),
+        t.paywall.featureTransfers,
+      ];
+
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={`${badge ? `${badge}, ` : ''}${title}, ${price} ${cadence}. ${note}`}
+      accessibilityLabel={`${title}, ${card.priceString} ${cadence}. ${tagline}. ${features.join('. ')}`}
       onPress={onPress}
       style={({ pressed }) => ({
         backgroundColor: active ? theme.color.brandSoft : theme.color.surface,
         borderRadius: theme.radius.lg,
-        padding: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
         borderWidth: 2,
         borderColor: active ? theme.color.brand : theme.color.border,
         opacity: pressed ? 0.95 : 1,
-        gap: theme.spacing.xs,
+        gap: 6,
       })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        <Text variant="subheading" style={{ fontWeight: '800' }}>
+          {title}
+        </Text>
         {badge ? (
           <View
             style={{
-              backgroundColor: theme.color.brand,
+              backgroundColor: current ? theme.color.positive : theme.color.brand,
               borderRadius: theme.radius.pill,
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: 2,
@@ -403,9 +396,15 @@ function PlanCard({
             </Text>
           </View>
         ) : null}
-        <Text variant="subheading" style={{ fontWeight: '800', flex: 1 }}>
-          {title}
-        </Text>
+        <View style={{ flex: 1 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.color.text }}>
+            {card.priceString}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {cadence}
+          </Text>
+        </View>
         <View
           style={{
             width: 22,
@@ -422,16 +421,20 @@ function PlanCard({
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.xs }}>
-        <Text style={{ fontSize: 26, fontWeight: '800', color: theme.color.text }}>{price}</Text>
-        <Text variant="caption" tone="muted">
-          {cadence}
-        </Text>
-      </View>
-
       <Text variant="caption" tone="muted">
-        {note}
+        {tagline}
       </Text>
+
+      <View style={{ gap: 2 }}>
+        {features.map((feature) => (
+          <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="checkmark-circle" size={14} color={theme.color.brand} />
+            <Text variant="caption" style={{ flex: 1 }}>
+              {feature}
+            </Text>
+          </View>
+        ))}
+      </View>
     </Pressable>
   );
 }

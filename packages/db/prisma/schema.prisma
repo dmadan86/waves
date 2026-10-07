@@ -1511,12 +1511,31 @@ model Subscription {
   countryCode      String?   @map("country_code") @db.Char(2)
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  /// When the store event behind this row's state happened (RevenueCat's
+  /// event_timestamp_ms). An older event delivered late cannot overwrite it.
+  storeEventAt     DateTime? @map("store_event_at") @db.Timestamptz(6)
 
   profile          Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
   promoRedemptions PromoRedemption[]
 
   @@index([profileId, status], map: "subscriptions_profile_idx")
   @@map("subscriptions")
+  @@schema("public")
+}
+
+/// One RevenueCat webhook event, by its id: the webhook's idempotency ledger.
+/// Written only by `waves_revenuecat_apply`, in the same transaction as the
+/// `subscriptions` change it caused. Service role only (RLS on, no policies).
+model RevenuecatEvent {
+  id         String    @id
+  type       String
+  appUserId  String?   @map("app_user_id")
+  /// applied | ignored | stale | unknown_profile
+  outcome    String    @default("applied")
+  eventAt    DateTime? @map("event_at") @db.Timestamptz(6)
+  receivedAt DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  @@map("revenuecat_events")
   @@schema("public")
 }
 

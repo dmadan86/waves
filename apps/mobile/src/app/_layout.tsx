@@ -73,6 +73,7 @@ import { AppStatusProvider } from '@/lib/appStatus';
 import { StoreUpdateProvider } from '@/lib/storeUpdate';
 import { initClarity } from '@/lib/clarity';
 import { initObservability, withObservability } from '@/lib/observability';
+import { purchasesAvailable } from '@/lib/purchases';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -516,10 +517,12 @@ function AuthGate() {
   // is not toured twice back-to-back (the intro, then the coach-marks). The
   // coach tour stays available on demand from the Home overflow menu.
   const tour = useTour();
-  // The paywall is an unwired placeholder (no store products, no purchase
-  // handling), so its route is registered only where a flag turns it on —
-  // otherwise a deep link cannot reach a screen that would only mislead.
-  const paywallEnabled = useFlagEnabled('paywall');
+  // The paywall sells Plus and Pro through RevenueCat. Its route exists only
+  // where the `paywall` flag turns it on AND the build carries a RevenueCat
+  // key — a build with no key has nothing to sell, so a deep link cannot reach
+  // a screen that could only fail.
+  const paywallFlag = useFlagEnabled('paywall');
+  const paywallEnabled = paywallFlag && purchasesAvailable();
 
   // Every forward screen slides in from the leading edge — one consistent
   // motion across the whole app (right in LTR, left in RTL). The only screens
