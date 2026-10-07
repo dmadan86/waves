@@ -101,6 +101,11 @@ export function TipSheet() {
   // The tallest tip, measured off its own content: a native pager needs a
   // height up front, and the tips are not all the same length.
   const [pageHeight, setPageHeight] = useState(0);
+  // Every tip's height, measured off-screen before the pager mounts. The pager
+  // is then given the tallest once and never resized: on Android, changing a
+  // ViewPager2's height mid-swipe re-lays it out and drops it back on the first
+  // page — the deck that jumped, skipped a tip and fought the finger.
+  const measured = useRef(new Map<string, number>());
   const last = page >= tips.length - 1;
   /** Turn to a tip by tapping, the same place a swipe would land. */
   const goTo = (index: number) => {
@@ -151,28 +156,45 @@ export function TipSheet() {
             onStartShouldSetResponder={() => true}
             onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}
           >
-            {pageWidth > 0 ? (
+            {pageWidth > 0 && pageHeight === 0 ? (
+              // The measuring pass: every tip laid out at the page width,
+              // invisible and untouchable, once.
+              <View
+                pointerEvents="none"
+                importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden
+                style={{ position: 'absolute', opacity: 0, width: pageWidth }}
+              >
+                {tips.map((entry) => (
+                  <View
+                    key={entry.id}
+                    onLayout={(event) => {
+                      measured.current.set(entry.id, Math.ceil(event.nativeEvent.layout.height));
+                      if (measured.current.size === tips.length) {
+                        setPageHeight(Math.max(1, ...measured.current.values()));
+                      }
+                    }}
+                  >
+                    <TipPage tip={entry} width={pageWidth} label={t.tips.label} />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {pageWidth > 0 && pageHeight > 0 ? (
               // The platform's own pager (ViewPager2 / UIPageViewController),
               // not a horizontal ScrollView: inside the sheet's Modal and its
               // Pressable card a JS-side scroll had to win the gesture first,
               // and a swipe that started a little diagonal never turned the tip.
               <PagerView
                 ref={pager}
-                style={{ width: pageWidth, height: Math.max(pageHeight, 1) }}
+                style={{ width: pageWidth, height: pageHeight }}
                 initialPage={0}
                 overdrag={false}
                 onPageSelected={(event) => setPage(event.nativeEvent.position)}
               >
                 {tips.map((entry) => (
                   <View key={entry.id} collapsable={false}>
-                    <View
-                      onLayout={(event) => {
-                        const h = Math.ceil(event.nativeEvent.layout.height);
-                        setPageHeight((current) => (h > current ? h : current));
-                      }}
-                    >
-                      <TipPage tip={entry} width={pageWidth} label={t.tips.label} />
-                    </View>
+                    <TipPage tip={entry} width={pageWidth} label={t.tips.label} />
                   </View>
                 ))}
               </PagerView>
