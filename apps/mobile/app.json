@@ -143,6 +143,18 @@
         }
       ],
       [
+        "@siteed/audio-studio",
+        {
+          "enablePhoneStateHandling": false,
+          "enableNotifications": false,
+          "enableBackgroundAudio": false,
+          "enableDeviceDetection": false,
+          "iosConfig": {
+            "microphoneUsageDescription": "Waves uses the microphone only while you hold the mic button, to write down what you say."
+          }
+        }
+      ],
+      [
         "react-native-document-scanner-plugin",
         {
           "cameraPermission": "Waves uses the camera to scan a bill, so the total and the items come out filled in instead of typed. The photograph stays on this phone whenever it can be read here."

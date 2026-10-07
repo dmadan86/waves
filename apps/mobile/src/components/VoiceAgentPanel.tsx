@@ -1,12 +1,12 @@
 /**
- * The advanced voice flow (Pro, behind the `voice_agent` flag): the clip the mic
- * just recorded goes to the `voice-agent` function, and what comes back is shown
+ * The advanced voice flow (Pro, behind the `voice_agent` flag): the sentence the mic
+ * just streamed goes to the `voice-agent` function, and what comes back is shown
  * as one confirmation card per proposed action — nothing is written until a
  * person taps Confirm. Each confirmed action runs through the same hooks the rest
  * of the app writes with, so the offline queue and sync behave as everywhere else.
  *
  * If the agent cannot be reached or the allowance is spent, the panel hands the
- * on-device transcript back to the screen (`onFallback`), which carries on with
+ * transcript back to the screen (`onFallback`), which carries on with
  * the basic path exactly as it does without the flag.
  */
 
@@ -35,8 +35,7 @@ import { GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
-import { sendVoiceClip } from '@/lib/voiceAgent';
-import type { VoiceClip } from '@/lib/voiceAgentPure';
+import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import {
   expenseWriteFromAction,
   planVoiceAgentActions,
@@ -53,9 +52,8 @@ import { useSync } from '@/sync';
 export type AgentFallbackReason = 'quota' | 'other';
 
 export interface VoiceAgentPanelProps {
-  clip: VoiceClip;
-  /** The on-device sentence for the same audio — what the fallback carries on with. */
-  localTranscript: string;
+  /** What the mic heard (streamed live) — sent to the agent, and what the fallback carries on with. */
+  transcript: string;
   /** The group the mic was opened from, if any. */
   groupId: string | null;
   today: string;
@@ -121,8 +119,7 @@ function useAgentLocalData(viewerId: string | null): AgentLocalData {
 const GROUP_TYPES: readonly string[] = Object.values(GroupType);
 
 export function VoiceAgentPanel({
-  clip,
-  localTranscript,
+  transcript,
   groupId,
   today,
   onFallback,
@@ -136,7 +133,9 @@ export function VoiceAgentPanel({
   const local = useAgentLocalData(viewerId);
   const text = useMemo(() => agentText(t), [t]);
 
-  const [response, setResponse] = useState<Awaited<ReturnType<typeof sendVoiceClip>> | null>(null);
+  const [response, setResponse] = useState<Awaited<ReturnType<typeof sendVoiceTranscript>> | null>(
+    null,
+  );
   const asked = useRef(false);
   // Latest callbacks, so the one call below never re-fires on a new closure.
   const fallbackRef = useRef(onFallback);
@@ -148,12 +147,11 @@ export function VoiceAgentPanel({
     if (asked.current) return;
     asked.current = true;
     let live = true;
-    void sendVoiceClip({
-      clip,
+    void sendVoiceTranscript({
+      transcript,
       groupId,
       locale,
       today,
-      deviceTranscript: localTranscript,
       followUp,
     }).then((result) => {
       if (!live) return;
@@ -163,7 +161,7 @@ export function VoiceAgentPanel({
     return () => {
       live = false;
     };
-    // The clip, group and locale are fixed for this panel's life.
+    // The sentence, group and locale are fixed for this panel's life.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -205,7 +203,7 @@ export function VoiceAgentPanel({
   return (
     <View style={{ gap: theme.spacing.md }}>
       <Text variant="caption" tone="muted">
-        {t.voice.agentHeard}: “{plan.transcript || localTranscript}”
+        {t.voice.agentHeard}: “{plan.transcript || transcript}”
       </Text>
 
       {plan.answer ? (
@@ -226,12 +224,7 @@ export function VoiceAgentPanel({
                 onRetry(
                   plan.clarify
                     ? {
-                        // Both hearings of the first clip, so the reply is read
-                        // against the number and the name, whichever got which.
-                        transcript:
-                          localTranscript && localTranscript !== plan.transcript
-                            ? `${plan.transcript} (phone heard: ${localTranscript})`
-                            : plan.transcript,
+                        transcript: plan.transcript || transcript,
                         question: plan.clarify,
                       }
                     : undefined,

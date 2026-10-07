@@ -87,7 +87,6 @@ import {
 } from '@/components/DestinationPicker';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
-import type { VoiceClip } from '@/lib/voiceAgentPure';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
 import {
@@ -346,9 +345,9 @@ export default function VoiceScreen() {
   const [phase, setPhase] = useState<
     'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent'
   >(widgetHeard ? 'thinking' : 'listening');
-  // Pro advanced voice (flag `voice_agent`): when on, the mic keeps its audio and
-  // the clip goes to the agent (phase 'agent') instead of straight to the on-device
-  // parser. Off, none of this runs and the screen behaves as it always has.
+  // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
+  // and the live transcript goes to the agent (phase 'agent') instead of straight
+  // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
   const agentOn = useVoiceAgentEnabled();
   // The agent's open question and what prompted it, while the next clip is its
   // answer; cleared once that answer has been read.
@@ -356,10 +355,7 @@ export default function VoiceScreen() {
     transcript: string;
     question: string;
   } | null>(null);
-  const [agentSession, setAgentSession] = useState<{
-    clip: VoiceClip;
-    transcript: string;
-  } | null>(null);
+  const [agentSession, setAgentSession] = useState<{ transcript: string } | null>(null);
   // The agent's allowance was spent, so the basic path took over — said once.
   const [agentQuotaNote, setAgentQuotaNote] = useState(false);
   // The answer shown in the 'answer' phase. `text` is a ready line (a person
@@ -946,7 +942,7 @@ export default function VoiceScreen() {
     return true;
   };
 
-  const handleTranscript = (transcript: string, clip?: VoiceClip): void => {
+  const handleTranscript = (transcript: string, streamed?: boolean): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -954,11 +950,11 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
-    // A fresh opening capture with a clip goes to the advanced agent; "add
-    // another", a link-supplied sentence, or a device that could not record
-    // stay on the basic path.
-    if (agentOn && clip && micMode !== 'append' && !heardFromLink.current) {
-      setAgentSession({ clip, transcript });
+    // A fresh opening capture that was streamed goes to the advanced agent; "add
+    // another", a link-supplied sentence, or a capture that fell back to the
+    // on-device recogniser stay on the basic path.
+    if (agentOn && streamed && micMode !== 'append' && !heardFromLink.current) {
+      setAgentSession({ transcript });
       setPhase('agent');
       return;
     }
@@ -966,7 +962,7 @@ export default function VoiceScreen() {
   };
 
   // The agent could not help (quota, offline, unavailable, a bad reply): carry
-  // on with the on-device transcript of the same audio, as if the flag were off.
+  // on with the same transcript on the basic parser, as if the flag were off.
   const agentFellBack = (reason: AgentFallbackReason): void => {
     const heard = agentSession?.transcript;
     setAgentSession(null);
@@ -1750,8 +1746,7 @@ export default function VoiceScreen() {
 
         {phase === 'agent' && agentSession ? (
           <VoiceAgentPanel
-            clip={agentSession.clip}
-            localTranscript={agentSession.transcript}
+            transcript={agentSession.transcript}
             groupId={launchGroupId}
             today={today()}
             onFallback={agentFellBack}
@@ -1994,7 +1989,8 @@ export default function VoiceScreen() {
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
-              captureAudio={agentOn}
+              streamLive={agentOn && micMode !== 'append'}
+              groupId={launchGroupId}
               hints={hints}
               groupNames={hints}
               missed={noAmount}
