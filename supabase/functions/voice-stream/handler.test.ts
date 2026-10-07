@@ -185,7 +185,12 @@ async function started(over: Parameters<typeof makeDeps>[0] = {}, connect = true
   const client = new FakeSocket();
   const done = runRelay(client, session, made.deps);
   client.open();
+  // Wait for the gate to finish and Deepgram to be dialled — however many
+  // turns that takes on a slow CI box — rather than a fixed number of turns.
   await settle();
+  for (let i = 0; i < 2000 && made.upstreams.length === 0 && !client.closed; i++) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
   const upstream = made.upstreams[0];
   if (connect && upstream) upstream.open();
   return { ...made, client, upstream, done };

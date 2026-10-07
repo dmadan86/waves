@@ -385,3 +385,43 @@ describe('meter-only (instant on-phone path)', () => {
     expect(rpc).toHaveBeenCalledWith('waves_voice_agent_quota', expect.anything());
   });
 });
+
+describe('OpenRouter privacy', () => {
+  it('asks OpenRouter for providers that do not collect data', async () => {
+    const bodies: string[] = [];
+    const { deps } = makeDeps({
+      env: { DEEPGRAM_API_KEY: '', OPENROUTER_API_KEY: 'or' },
+      fetchImpl: async (url, init) => {
+        if (url.includes('openrouter')) bodies.push(String(init.body));
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  tool_calls: [
+                    { function: { name: 'add_expense', arguments: JSON.stringify(goodExpense) } },
+                  ],
+                },
+              },
+            ],
+          }),
+        );
+      },
+    });
+    await handleVoiceAgent(
+      new Request('https://x/voice-agent', {
+        method: 'POST',
+        body: JSON.stringify({
+          schemaVersion: 1,
+          transcript: 'dinner 1200 with Anu',
+          locale: 'en',
+          today: '2026-10-07',
+          groupId: 'g1',
+        }),
+      }),
+      deps,
+    );
+    expect(bodies.length).toBeGreaterThan(0);
+    expect(JSON.parse(bodies[0]).provider).toEqual({ data_collection: 'deny' });
+  });
+});

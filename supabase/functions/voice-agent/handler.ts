@@ -640,6 +640,10 @@ async function askDeepSeek(
               ? { reasoning: { effort: 'low' } }
               : { reasoning_effort: 'low' }
             : {}),
+          // OpenRouter: only route to providers that neither store nor train on
+          // the prompt — it carries people's names and money. What the consent
+          // sheet tells them depends on this.
+          ...(step.provider === 'openrouter' ? { provider: { data_collection: 'deny' } } : {}),
           tools: DEEPSEEK_TOOLS,
           tool_choice: 'required',
           messages: [

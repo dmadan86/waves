@@ -102,9 +102,17 @@ import {
 import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
+import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
-import { CLOUD, engineAfterAgentFailure, local, type VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import {
+  CLOUD,
+  engineAfterAgentFailure,
+  local,
+  type VoiceCloudConsent,
+  type VoiceEngineInfo,
+} from '@/lib/voiceEnginePure';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
@@ -388,7 +396,22 @@ export default function VoiceScreen() {
   // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
   // and the live transcript goes to the agent (phase 'agent') instead of straight
   // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
-  const { enabled: agentOn, ready: agentReady } = useVoiceAgentStatus();
+  const { enabled: agentServerOn, ready: agentStatusReady } = useVoiceAgentStatus();
+  // Nothing streams until the person has agreed to send their voice to the
+  // third-party AI (Apple 5.1.2(i)): the sheet below asks once, and "Not now"
+  // keeps this visit on the on-device voice.
+  const voiceConsent = useVoiceConsent(viewerId);
+  const [consentDeclined, setConsentDeclined] = useState(false);
+  const cloudConsent: VoiceCloudConsent =
+    voiceConsent.state === 'granted'
+      ? 'granted'
+      : voiceConsent.state === 'revoked'
+        ? 'revoked'
+        : 'pending';
+  const agentOn = agentServerOn && cloudConsent === 'granted';
+  const agentReady = agentStatusReady && voiceConsent.ready;
+  const consentSheetOpen =
+    agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
   // Which engine heard the last capture — shown on every step after it too.
   const [engine, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
@@ -2259,6 +2282,7 @@ export default function VoiceScreen() {
               onDone={handleTranscript}
               streamLive={agentOn}
               agentReady={agentReady}
+              cloudConsent={agentServerOn ? cloudConsent : 'granted'}
               onEngine={setEngine}
               groupId={launchGroupId}
               hints={hints}
@@ -2344,6 +2368,12 @@ export default function VoiceScreen() {
           Sheet, so it presents, dims and dismisses exactly like every other
           sheet, and its scrim is a modal window that covers the system bars
           rather than a layer inside this screen. */}
+      <VoiceConsentSheet
+        visible={consentSheetOpen}
+        onAllow={voiceConsent.allow}
+        onNotNow={() => setConsentDeclined(true)}
+      />
+
       <Sheet
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}

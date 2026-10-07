@@ -10,9 +10,15 @@ export type VoiceEngine = 'cloud' | 'on-device';
  * Why the phone's own recogniser/parser is in use. `cloud-down`: the phone is
  * online but the cloud side (relay, Deepgram, the agent or its models) failed
  * or timed out — distinct from `offline`, which only the phone's own network
- * state may claim.
+ * state may claim. `off`: cloud voice switched off / not consented.
  */
-export type VoiceEngineReason = 'free' | 'quota' | 'offline' | 'cloud-down';
+export type VoiceEngineReason = 'free' | 'quota' | 'offline' | 'cloud-down' | 'off';
+
+/**
+ * The person's say over sending voice to third-party AI: `granted`, `revoked`
+ * (turned off in Settings) or `pending` (not decided yet, or "Not now").
+ */
+export type VoiceCloudConsent = 'granted' | 'revoked' | 'pending';
 
 export interface VoiceEngineInfo {
   engine: VoiceEngine;
@@ -49,6 +55,8 @@ export interface EngineInputs {
   /** The user has advanced voice (flag / tier). */
   enabled: boolean;
   online: boolean;
+  /** Consent to cloud voice; absent means granted. */
+  consent?: VoiceCloudConsent;
   /** The agent said the monthly allowance is spent. */
   quotaReached?: boolean;
   /** Did the live stream open? null: not tried yet. */
@@ -60,6 +68,10 @@ export interface EngineInputs {
 /** The engine in use, and the reason when it is the on-device one. */
 export function resolveEngine(input: EngineInputs): VoiceEngineInfo {
   if (!input.enabled) return local('free');
+  // No consent, no transmission. Only a switch-off in Settings is named; a
+  // sheet answered "Not now" is nothing to explain.
+  if (input.consent === 'revoked') return local('off');
+  if (input.consent === 'pending') return local(null);
   if (input.quotaReached) return local('quota');
   if (!input.online) return local('offline');
   if (input.streamOk === false) {
@@ -97,6 +109,7 @@ export interface MicStartInputs {
   online: boolean;
   /** A finger is on the bar's mic (push-to-talk) as the mic opens. */
   held: boolean;
+  consent?: VoiceCloudConsent;
   streamAvailable?: boolean;
 }
 
@@ -119,6 +132,7 @@ export function planMicStart(input: MicStartInputs): MicStartPlan {
   const info = resolveEngine({
     enabled: input.enabled,
     online: input.online,
+    consent: input.consent,
     streamAvailable: input.streamAvailable,
     streamOk: input.streamAvailable === false ? false : null,
   });

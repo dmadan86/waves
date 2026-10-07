@@ -55,6 +55,7 @@ import {
   resolveEngine,
   STREAM_MAX_SESSION_MS,
   type MicStartPlan,
+  type VoiceCloudConsent,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
@@ -477,6 +478,12 @@ export interface VoiceCaptureProps {
    * mic waits briefly for it rather than starting on the on-device engine.
    */
   agentReady?: boolean;
+  /**
+   * The person's consent to cloud voice, when advanced voice is on for them but
+   * they have not agreed (or switched it off): the mic then stays on-device and
+   * the badge says why. Omit when advanced voice is not on for them at all.
+   */
+  cloudConsent?: VoiceCloudConsent;
   /** Told which engine is in use (and why, when it is the on-device one). */
   onEngine?: (info: VoiceEngineInfo) => void;
   /** The group the mic was opened from — a hint for the stream's name keyterms. */
@@ -605,6 +612,7 @@ export function VoiceCapture({
   onEndConsumed,
   streamLive = false,
   agentReady = true,
+  cloudConsent = 'granted',
   onEngine,
   groupId = null,
 }: VoiceCaptureProps) {
@@ -623,10 +631,12 @@ export function VoiceCapture({
   // on the on-device engine before the flag had loaded.
   const streamLiveRef = useRef(streamLive);
   const agentReadyRef = useRef(agentReady);
+  const cloudConsentRef = useRef(cloudConsent);
   const onEngineRef = useRef(onEngine);
   useEffect(() => {
     streamLiveRef.current = streamLive;
     agentReadyRef.current = agentReady;
+    cloudConsentRef.current = cloudConsent;
     onEngineRef.current = onEngine;
   });
   const reportEngine = useCallback((info: VoiceEngineInfo): void => {
@@ -1109,7 +1119,9 @@ export function VoiceCapture({
         return give();
       }
       const plan = planMicStart({
-        enabled: streamLiveRef.current,
+        // Advanced voice is on for them when they could stream or only lack consent.
+        enabled: streamLiveRef.current || cloudConsentRef.current !== 'granted',
+        consent: cloudConsentRef.current,
         online,
         held: pushToTalk.getSnapshot().holding,
         streamAvailable: streamingAvailable(),
