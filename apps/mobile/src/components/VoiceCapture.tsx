@@ -39,9 +39,8 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 import {
   checkOnline,
-  getStreamToken,
+  getStreamSession,
   attachStream,
-  prefetchStreamToken,
   startCapture,
   streamingAvailable,
   type LiveTranscription,
@@ -56,6 +55,7 @@ import {
   resolveEngine,
   STREAM_MAX_SESSION_MS,
   type MicStartPlan,
+  type VoiceCloudConsent,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
@@ -478,6 +478,12 @@ export interface VoiceCaptureProps {
    * mic waits briefly for it rather than starting on the on-device engine.
    */
   agentReady?: boolean;
+  /**
+   * The person's consent to cloud voice, when advanced voice is on for them but
+   * they have not agreed (or switched it off): the mic then stays on-device and
+   * the badge says why. Omit when advanced voice is not on for them at all.
+   */
+  cloudConsent?: VoiceCloudConsent;
   /** Told which engine is in use (and why, when it is the on-device one). */
   onEngine?: (info: VoiceEngineInfo) => void;
   /** The group the mic was opened from — a hint for the stream's name keyterms. */
@@ -606,6 +612,7 @@ export function VoiceCapture({
   onEndConsumed,
   streamLive = false,
   agentReady = true,
+  cloudConsent = 'granted',
   onEngine,
   groupId = null,
 }: VoiceCaptureProps) {
@@ -624,10 +631,12 @@ export function VoiceCapture({
   // on the on-device engine before the flag had loaded.
   const streamLiveRef = useRef(streamLive);
   const agentReadyRef = useRef(agentReady);
+  const cloudConsentRef = useRef(cloudConsent);
   const onEngineRef = useRef(onEngine);
   useEffect(() => {
     streamLiveRef.current = streamLive;
     agentReadyRef.current = agentReady;
+    cloudConsentRef.current = cloudConsent;
     onEngineRef.current = onEngine;
   });
   const reportEngine = useCallback((info: VoiceEngineInfo): void => {
@@ -935,31 +944,17 @@ export function VoiceCapture({
     finishStreamRef.current = finishStream;
   }, [finishStream]);
 
-  // Fetch the stream's token while the screen opens, not on the press.
-  useEffect(() => {
-    if (!streamLive) return;
-    let alive = true;
-    // Offline: skip the round trip, the start goes straight to on-device.
-    void checkOnline().then((online) => {
-      if (alive && online) prefetchStreamToken({ groupId, locale });
-    });
-    return () => {
-      alive = false;
-    };
-  }, [streamLive, groupId, locale]);
-
   /**
    * Attach the stream to the capture already recording. Anything but
    * 'streaming' means "use the on-device recogniser" (the caller discards the
-   * capture); 'quota' (the token answered 402) also names why.
+   * capture); 'quota' (the relay answered 402) also names why.
    */
   const beginStream = useCallback(
     async (mic: MicCapture): Promise<'streaming' | 'quota' | 'failed'> => {
-      const got = await getStreamToken({ groupId, locale });
+      const got = await getStreamSession({ groupId, locale });
       if (!mounted.current) return 'failed';
       if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
-      const token = got.token;
-      // An ending that came while the token was in flight is applied here.
+      // An ending that came while the session was being read is applied here.
       if (pendingEnd.current === 'cancel') return 'failed';
       const armSilence = (ms: number): void => {
         if (streamSilence.current) clearTimeout(streamSilence.current);
@@ -971,7 +966,7 @@ export function VoiceCapture({
         const { silenceMs } = endRules.current;
         if (text.trim() && silenceMs !== null) armSilence(silenceMs);
       };
-      const live = await attachStream(mic, token, {
+      const attached = await attachStream(mic, got.session, {
         onInterim: hear,
         onFinal: hear,
         onError: () => {
@@ -991,7 +986,8 @@ export function VoiceCapture({
           }
         },
       });
-      if (!live) return 'failed';
+      if (attached.kind !== 'ok') return attached.kind === 'quota' ? 'quota' : 'failed';
+      const live = attached.live;
       if (!mounted.current) {
         live.cancel();
         return 'failed';
@@ -1104,7 +1100,7 @@ export function VoiceCapture({
         if (capture.current && streamLiveRef.current) setListening(true);
       }
 
-      // Advanced voice: stream to Deepgram. A token we cannot get (offline, 503,
+      // Advanced voice: stream to Deepgram via the relay. A refusal (offline, 503,
       // 429) or a stream that will not open drops straight to the on-device
       // recogniser below, unchanged.
       // Tap, hold, retry and auto-start all come through here, so none of them
@@ -1123,7 +1119,9 @@ export function VoiceCapture({
         return give();
       }
       const plan = planMicStart({
-        enabled: streamLiveRef.current,
+        // Advanced voice is on for them when they could stream or only lack consent.
+        enabled: streamLiveRef.current || cloudConsentRef.current !== 'granted',
+        consent: cloudConsentRef.current,
         online,
         held: pushToTalk.getSnapshot().holding,
         streamAvailable: streamingAvailable(),
@@ -1135,8 +1133,8 @@ export function VoiceCapture({
           reportEngine(CLOUD);
           return;
         }
-        // The token, the socket or the mic would not open: carry on locally.
-        // A 402 on the token is the month's allowance, not the connection.
+        // The relay, the socket or the mic would not open: carry on locally.
+        // A 402 from the relay is the month's allowance, not the connection.
         reportEngine(
           resolveEngine({
             enabled: true,

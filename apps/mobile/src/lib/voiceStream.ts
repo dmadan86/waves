@@ -1,68 +1,70 @@
 /**
  * Live transcription for the advanced voice (Pro): the mic streams raw 16 kHz
- * mono PCM straight to Deepgram over a WebSocket, and interim words come back
- * while the person is still speaking. Only the final text goes on to the
- * `voice-agent` function. A short-lived token (from `voice-stream-token`) is the
- * socket's credential, so no long-lived key ever reaches the phone.
+ * mono PCM over a WebSocket to the `voice-stream` relay, which forwards it to
+ * Deepgram, and interim words come back while the person is still speaking.
+ * Only the final text goes on to the `voice-agent` function. The socket is
+ * authenticated with the signed-in user's own access token; the Deepgram key
+ * stays on the server, and so does the session cap (20 s of audio, 25 s of wall
+ * time, 5 s idle) — the relay closes the stream itself, whatever this client
+ * does. The caps below are kept too, so a normal session ends here first.
+ *
+ * Builds before the relay fetched a 60 s Deepgram token from
+ * `voice-stream-token` and opened Deepgram directly; that function stays
+ * deployed for them, unused by this code.
  *
  * The mic starts on the press ({@link startCapture}) and buffers; the socket is
- * attached once the entitlement and token are in ({@link attachStream}), and the
- * buffered start of the sentence goes first — so the first words are not lost
- * to the round trips. A fallback to on-device discards the capture.
+ * attached once the entitlement is in ({@link attachStream}), and the buffered
+ * start of the sentence goes first — so the first words are not lost to the
+ * round trips. A fallback to on-device discards the capture.
  *
  * Every failure here is a typed "no" the caller answers with the on-device
  * recogniser — this module never throws into the UI.
  */
 
-import type { VoiceStreamTokenRequest, VoiceStreamTokenResponse } from '@waves/core';
+import type { VoiceStreamTokenRequest } from '@waves/core';
 
 import * as Network from 'expo-network';
 
-import { backend } from '@/lib/backend';
+import { backend, functionsUrl } from '@/lib/backend';
 import { isOnline, STREAM_MAX_SESSION_MS } from '@/lib/voiceEnginePure';
 import {
   applyMessage,
   base64ToBytes,
   EMPTY_TRANSCRIPT,
   fullText,
+  isRelayReady,
   liveText,
   pcmLevel,
+  relayCloseFailure,
+  relayProtocols,
+  relayStreamUrl,
   streamAlternatives,
   createPcmBuffer,
   PCM_BYTES_PER_SECOND,
-  streamTokenFailure,
   type PcmBuffer,
   type StreamTokenFailure,
   type TranscriptState,
 } from '@/lib/voiceStreamPure';
 
-/** A token for the stream, or why there is none (`quota`: the month is spent). */
-export type StreamTokenResult =
-  { kind: 'ok'; token: VoiceStreamTokenResponse } | { kind: StreamTokenFailure };
+/** Where to open the relay socket and with which subprotocols (one carries the JWT). */
+export interface StreamSession {
+  readonly url: string;
+  readonly protocols: string[];
+}
+
+/** A session for the stream, or why there is none. */
+export type StreamSessionResult =
+  { kind: 'ok'; session: StreamSession } | { kind: StreamTokenFailure };
 
 /** How long stop() waits for Deepgram's last results after CloseStream. */
 const FLUSH_TIMEOUT_MS = 1500;
-/** How long the socket may take to open before the stream is given up on. */
-const OPEN_TIMEOUT_MS = 4000;
+/**
+ * How long the relay may take to say Ready: its auth and budget checks plus
+ * its own connect to Deepgram (which it gives 4 s).
+ */
+const OPEN_TIMEOUT_MS = 6000;
 /** Send a KeepAlive when no audio has gone out for this long. */
 const KEEPALIVE_AFTER_MS = 4000;
-
-/**
- * A token fetched ahead — when the voice screen opens — so pressing the mic
- * starts listening at once instead of after a server round trip (otherwise the
- * first words of a sentence spoken straight away would fall into that gap). A
- * token only has to be valid when the socket opens; one is reused for
- * `TOKEN_REUSE_MS` and then fetched afresh.
- */
-const TOKEN_REUSE_MS = 40_000;
-let ahead: {
-  key: string;
-  at: number;
-  value: Promise<StreamTokenResult>;
-} | null = null;
-
-const tokenKey = (request: VoiceStreamTokenRequest): string =>
-  `${request.groupId ?? ''}|${request.locale}`;
 
 /** Whether the phone has a connection right now. Unknown reads as online. */
 export async function checkOnline(): Promise<boolean> {
@@ -73,49 +75,24 @@ export async function checkOnline(): Promise<boolean> {
   }
 }
 
-/** Start fetching a token now, for a mic press that is likely to follow. */
-export function prefetchStreamToken(request: VoiceStreamTokenRequest): void {
-  const key = tokenKey(request);
-  if (ahead && ahead.key === key && Date.now() - ahead.at < TOKEN_REUSE_MS) return;
-  ahead = { key, at: Date.now(), value: fetchStreamToken(request) };
-}
-
 /**
- * A token for this press: the one fetched ahead if still fresh, else a new one.
- * A prefetch that hit the monthly limit is the answer too (no second round trip
- * to hear the same 402); any other prefetch failure is retried once here.
+ * The relay URL and credentials for this press. The access token comes from the
+ * stored session (refreshed by the client when it has expired); no round trip
+ * to a function. Whether the stream is allowed — flag, monthly limit, stream
+ * budget — is the relay's answer when the socket opens ({@link attachStream}).
  */
-export async function getStreamToken(request: VoiceStreamTokenRequest): Promise<StreamTokenResult> {
-  const key = tokenKey(request);
-  if (ahead && ahead.key === key && Date.now() - ahead.at < TOKEN_REUSE_MS) {
-    const held = ahead;
-    // One use: the next press fetches its own (or the next prefetch does).
-    ahead = null;
-    const value = await held.value;
-    if (value.kind !== 'error') return value;
-  }
-  return fetchStreamToken(request);
-}
-
-/** The HTTP status behind a `functions.invoke` error, the way voiceAgent reads it. */
-function errorStatus(error: unknown): number | null {
-  const response = (error as { context?: unknown } | null)?.context;
-  if (typeof Response !== 'undefined' && response instanceof Response) return response.status;
-  const status = (response as { status?: unknown } | null | undefined)?.status;
-  return typeof status === 'number' ? status : null;
-}
-
-async function fetchStreamToken(request: VoiceStreamTokenRequest): Promise<StreamTokenResult> {
+export async function getStreamSession(
+  request: VoiceStreamTokenRequest,
+): Promise<StreamSessionResult> {
+  if (!functionsUrl) return { kind: 'error' };
   try {
-    const { data, error } = await backend.functions.invoke('voice-stream-token', {
-      body: request,
-    });
-    if (error) return { kind: streamTokenFailure(errorStatus(error)) };
-    const value = data as Partial<VoiceStreamTokenResponse> | null;
-    if (!value || typeof value.token !== 'string' || typeof value.url !== 'string') {
-      return { kind: 'error' };
-    }
-    return { kind: 'ok', token: value as VoiceStreamTokenResponse };
+    const { data } = await backend.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return { kind: 'error' };
+    return {
+      kind: 'ok',
+      session: { url: relayStreamUrl(functionsUrl, request), protocols: relayProtocols(token) },
+    };
   } catch {
     return { kind: 'error' };
   }
@@ -278,26 +255,29 @@ export async function startCapture(handlers: CaptureHandlers = {}): Promise<MicC
   return capture;
 }
 
+/** The live stream, or why it would not start (`quota`: the relay answered 402). */
+export type AttachResult = { kind: 'ok'; live: LiveTranscription } | { kind: StreamTokenFailure };
+
 /**
- * Open the socket for a running capture: everything heard since the press goes
- * first, in order, then the mic streams live. Resolves once the socket is open,
- * or null if it would not open — the capture is then still the caller's, to
- * discard before the on-device recogniser starts.
+ * Open the relay socket for a running capture: everything heard since the press
+ * goes first, in order, then the mic streams live. Resolves once the relay says
+ * Deepgram is connected, or with why not — the capture is then still the
+ * caller's, to discard before the on-device recogniser starts.
  */
 export async function attachStream(
   mic: MicCapture,
-  session: Pick<VoiceStreamTokenResponse, 'token' | 'url'>,
+  session: StreamSession,
   handlers: LiveTranscriptionHandlers,
-): Promise<LiveTranscription | null> {
+): Promise<AttachResult> {
   const capture = mic as CaptureInternals;
-  if (!capture.isLive()) return null;
+  if (!capture.isLive()) return { kind: 'error' };
 
   let state: TranscriptState = EMPTY_TRANSCRIPT;
   let socket: WebSocket;
   try {
-    socket = new WebSocket(session.url, ['bearer', session.token]);
+    socket = new WebSocket(session.url, session.protocols);
   } catch {
-    return null;
+    return { kind: 'error' };
   }
   socket.binaryType = 'arraybuffer';
 
@@ -318,21 +298,27 @@ export async function attachStream(
   };
 
   let ready = false;
-  let settleOpen: (ok: boolean) => void = () => {};
-  const opened = new Promise<boolean>((resolve) => {
-    const timer = setTimeout(() => resolve(false), OPEN_TIMEOUT_MS);
-    settleOpen = (ok) => {
+  let settleOpen: (result: 'ready' | StreamTokenFailure) => void = () => {};
+  const opened = new Promise<'ready' | StreamTokenFailure>((resolve) => {
+    const timer = setTimeout(() => resolve('error'), OPEN_TIMEOUT_MS);
+    settleOpen = (result) => {
       clearTimeout(timer);
-      resolve(ok);
+      resolve(result);
     };
     socket.onopen = () => {
       isOpen = true;
       lastSent = Date.now();
-      resolve(true);
+      // The buffered start of the sentence goes now, in order, then live: the
+      // relay holds it while it checks the caller and connects to Deepgram.
+      capture.buffer.attach(send);
     };
   });
 
   socket.onmessage = (event: { data: unknown }) => {
+    if (!ready && isRelayReady(event.data)) {
+      settleOpen('ready');
+      return;
+    }
     const before = state.finals.length;
     state = applyMessage(state, event.data);
     if (state.finals.length > before) handlers.onFinal(fullText({ ...state, interim: '' }));
@@ -341,10 +327,11 @@ export async function attachStream(
 
   // A socket error always ends in a close; that handler does the reporting.
   socket.onerror = () => {};
-  socket.onclose = () => {
+  socket.onclose = (event: { code?: number }) => {
     closed = true;
     isOpen = false;
-    settleOpen(false);
+    // Closed before Ready: a refusal (4000 + status) or a failed connection.
+    settleOpen(relayCloseFailure(event?.code));
     onClosed?.();
     // Closing on its own, once running and before stop() or cancel(), is a
     // failure to report. (Failing to open is reported by the null result.)
@@ -377,14 +364,14 @@ export async function attachStream(
     }
   };
 
-  if (!(await opened) || closed) {
+  const outcome = await opened;
+  if (outcome !== 'ready' || closed) {
     // The capture stays the caller's; only the socket is ours to close.
     clearInterval(keepAlive);
+    isOpen = false;
     closeSocket();
-    return null;
+    return { kind: outcome === 'ready' ? 'error' : outcome };
   }
-  // The buffered start of the sentence first, in order, then live.
-  capture.buffer.attach(send);
   ready = true;
 
   const handle: LiveTranscription = {
@@ -422,5 +409,5 @@ export async function attachStream(
     },
   };
   active = handle;
-  return handle;
+  return { kind: 'ok', live: handle };
 }

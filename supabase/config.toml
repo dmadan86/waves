@@ -390,5 +390,12 @@ verify_jwt = false
 [functions.revenuecat-webhook]
 verify_jwt = false
 
+# `voice-stream` is the live-transcription relay: a WebSocket. Browsers and
+# React Native cannot set an Authorization header on the upgrade, so the app
+# sends its access token as a `jwt-<token>` subprotocol and the function checks
+# it itself (auth.getUser) before opening anything that costs money.
+[functions.voice-stream]
+verify_jwt = false
+
 [analytics]
 enabled = false
