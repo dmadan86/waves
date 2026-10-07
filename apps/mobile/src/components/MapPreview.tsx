@@ -77,7 +77,8 @@ export function MapPreview({
     width > 0 && !googleFailed && !nativeMap && staticGoogleAllowed(Platform.OS)
       ? googleStaticMapUrl(location, zoom, width, height)
       : null;
-  const tiles = width > 0 && !googleUrl && !nativeMap ? tileGrid(location, zoom, width, height) : [];
+  const tiles =
+    width > 0 && !googleUrl && !nativeMap ? tileGrid(location, zoom, width, height) : [];
 
   const body = (
     <View
