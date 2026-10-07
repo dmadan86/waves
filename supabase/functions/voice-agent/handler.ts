@@ -175,7 +175,10 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   // Quota before any provider spend; refunded if the providers then fail. The
   // caller's groups load alongside it — both are reads the person is waiting
   // on, and a refused quota simply never uses the context.
-  const contextLoad = loadContext(deps.caller, profileId, body);
+  const meterOnly = body.meterOnly === true && Boolean(spoken);
+  const contextLoad = meterOnly
+    ? Promise.resolve(null as unknown as VoiceContext)
+    : loadContext(deps.caller, profileId, body);
   contextLoad.catch(() => undefined);
   const { data: quotaData, error: quotaError } = await deps.service.rpc('waves_voice_agent_quota', {
     p_profile: profileId,
@@ -186,6 +189,15 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   const quota = quotaData as Quota;
   if (!quota.allowed) {
     throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
+  }
+  if (meterOnly) {
+    const metered: VoiceAgentResponse = {
+      schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
+      transcript: spoken,
+      actions: [],
+      quota: { used: quota.used, limit: quota.limit, tier: quota.tier },
+    };
+    return json(metered);
   }
 
   try {

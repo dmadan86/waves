@@ -15,6 +15,8 @@
 
 import { HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
 import {
+  VOICE_AGENT_FREE_MONTHLY,
+  VOICE_AGENT_PRO_MONTHLY,
   VoiceAgentError,
   type VoiceStreamTokenRequest,
   type VoiceStreamTokenResponse,
@@ -52,6 +54,16 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
   if (!key) throw unavailable('Advanced voice is not configured');
   await deps.rateLimit(profileId);
 
+  // No live stream once this month's allowance is spent: the stream is a cost
+  // too (Deepgram bills the minutes), not only the model call. The app hears a
+  // 402 and listens on the phone instead. A peek, not a reservation — the
+  // command is counted when the words are used (voice-agent, or its meter call
+  // for the instant on-phone path).
+  const remaining = await remainingCommands(deps.service, profileId, new Date());
+  if (remaining <= 0) {
+    throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
+  }
+
   // The caller's names (for keyterms) and the minted token, together.
   const contextLoad = loadContext(deps.caller, profileId, {
     schemaVersion: 1,
@@ -84,4 +96,39 @@ export async function handleVoiceStreamToken(request: Request, deps: Deps): Prom
     encoding: 'linear16',
   };
   return json(body);
+}
+
+/**
+ * Commands left this calendar month (UTC), read the way waves_voice_agent_quota
+ * counts them: an active, unexpired 'pro' subscription gets the Pro allowance,
+ * everyone else the free one.
+ */
+export async function remainingCommands(
+  service: SupabaseClient,
+  profileId: string,
+  now: Date,
+): Promise<number> {
+  const month = now.toISOString().slice(0, 7);
+  const [subs, usage] = await Promise.all([
+    service
+      .from('subscriptions')
+      .select('tier, status, current_period_end')
+      .eq('profile_id', profileId)
+      .eq('status', 'active'),
+    service
+      .from('voice_agent_usage')
+      .select('count')
+      .eq('profile_id', profileId)
+      .eq('month', month)
+      .maybeSingle(),
+  ]);
+  const rows = (subs.data ?? []) as { tier: string; current_period_end: string | null }[];
+  const pro = rows.some(
+    (row) =>
+      row.tier === 'pro' &&
+      (row.current_period_end === null || new Date(row.current_period_end) > now),
+  );
+  const limit = pro ? VOICE_AGENT_PRO_MONTHLY : VOICE_AGENT_FREE_MONTHLY;
+  const used = Number((usage.data as { count?: number } | null)?.count ?? 0);
+  return limit - used;
 }

@@ -344,3 +344,27 @@ describe('context cache', () => {
     expect(afterTwo).toBeGreaterThan(0);
   });
 });
+
+describe('meter-only (instant on-phone path)', () => {
+  it('counts a command and calls no provider', async () => {
+    const { deps, fetchMock, rpc } = makeDeps({});
+    const response = await handleVoiceAgent(
+      new Request('https://x/voice-agent', {
+        method: 'POST',
+        body: JSON.stringify({
+          schemaVersion: 1,
+          transcript: 'I paid 1200 for dinner',
+          meterOnly: true,
+          locale: 'en',
+          today: '2026-10-07',
+        }),
+      }),
+      deps,
+    );
+    const body = (await response.json()) as { actions: unknown[]; quota: { used: number } };
+    expect(body.actions).toEqual([]);
+    expect(body.quota.used).toBe(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith('waves_voice_agent_quota', expect.anything());
+  });
+});

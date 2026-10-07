@@ -40,6 +40,12 @@ export interface VoiceAgentRequest {
   /** An answer to the agent's last clarifying question: what was said first
    *  and what was asked, so this clip is read as the reply. */
   readonly followUp?: { readonly transcript: string; readonly question: string };
+  /**
+   * Count this command against the allowance and do nothing else — the app's
+   * instant on-phone path, which used the live stream (a cost) but needed no
+   * model. Answers with no actions, just the quota.
+   */
+  readonly meterOnly?: boolean;
 }
 
 /** `voice-stream-token` request: where the mic was opened and the UI locale. */

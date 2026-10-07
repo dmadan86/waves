@@ -20,7 +20,13 @@ function table(rows: unknown[]) {
   return q;
 }
 
-function makeDeps(over: { enabled?: boolean; env?: Record<string, string>; grant?: Response }) {
+function makeDeps(over: {
+  enabled?: boolean;
+  env?: Record<string, string>;
+  grant?: Response;
+  used?: number;
+  pro?: boolean;
+}) {
   const tables: Record<string, unknown[]> = {
     groups: [{ id: 'g1', name: 'Goa', type: 'trip', default_currency: 'INR' }],
     group_members: [
@@ -45,7 +51,26 @@ function makeDeps(over: { enabled?: boolean; env?: Record<string, string>; grant
       auth: { getUser: async () => ({ data: { user: { id: ME } }, error: null }) },
       from: (t: string) => table(tables[t] ?? []),
     } as never,
-    service: { rpc: async () => ({ data: over.enabled ?? true, error: null }) } as never,
+    service: {
+      rpc: async () => ({ data: over.enabled ?? true, error: null }),
+      from: (t: string) => {
+        const rows =
+          t === 'subscriptions'
+            ? over.pro
+              ? [{ tier: 'pro', status: 'active', current_period_end: null }]
+              : []
+            : [];
+        const q: Record<string, unknown> = {};
+        const chain = () => q;
+        for (const m of ['select', 'eq']) q[m] = chain;
+        q.maybeSingle = async () => ({
+          data: t === 'voice_agent_usage' ? { count: over.used ?? 0 } : null,
+          error: null,
+        });
+        q.then = (resolve: (v: unknown) => unknown) => resolve({ data: rows, error: null });
+        return q;
+      },
+    } as never,
     fetch: fetchMock as unknown as typeof fetch,
     rateLimit: async () => undefined,
   };
@@ -63,6 +88,17 @@ describe('handleVoiceStreamToken', () => {
     const { deps, fetchMock } = makeDeps({ enabled: false });
     await expect(handleVoiceStreamToken(request(), deps)).rejects.toMatchObject({ status: 503 });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('402s once the month is spent, before minting anything (free and Pro limits)', async () => {
+    const free = makeDeps({ used: 10 });
+    await expect(handleVoiceStreamToken(request(), free.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_AGENT_QUOTA',
+    });
+    expect(free.fetchMock).not.toHaveBeenCalled();
+    const pro = makeDeps({ used: 10, pro: true });
+    await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
   });
 
   it('503s when the key cannot mint tokens', async () => {
