@@ -206,6 +206,8 @@ model Profile {
   ghostMerges         GhostMerge[]
   storageObjects      StorageObject[]
   voiceSttUsage       VoiceSttUsage[]
+  voiceAgentUsage     VoiceAgentUsage[]
+  voiceAgentAllowlist VoiceAgentAllowlist?
   voiceAttempts       VoiceAttempt[]
   apiApps             ApiApp[]
   apiTokens           ApiToken[]
@@ -259,7 +261,7 @@ model Group {
   /// A member-typed short label ("Office offsite") shown in place of the
   /// automatic type tag. NULL when unset. <= 24 chars, trimmed, non-empty (CHECK
   /// `groups_custom_tag_shape`). Ordinary member-writable, like `eventTemplate`.
-  customTag       String?   @map("custom_tag")
+  customTag String? @map("custom_tag")
 
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
@@ -2036,6 +2038,39 @@ model VoiceSttUsage {
 
   @@id([profileId, period])
   @@map("voice_stt_usage")
+  @@schema("public")
+}
+
+/// Per-person monthly count of Pro advanced-voice commands (`voice-agent`).
+/// Reserved atomically by `waves_voice_agent_quota`, refunded on provider
+/// failure by `waves_voice_agent_refund`; a person may read their own row.
+model VoiceAgentUsage {
+  profileId   String   @map("profile_id") @db.Uuid
+  /// 'YYYY-MM' (UTC); a new month is a new key.
+  month       String
+  count       Int      @default(0)
+  /// Live-stream tokens minted this month (`waves_voice_stream_mint`); its own
+  /// budget, because a mint that never becomes a command still costs minutes.
+  streamMints Int      @default(0) @map("stream_mints")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, month])
+  @@map("voice_agent_usage")
+  @@schema("public")
+}
+
+/// People the `voice_agent` flag is on for regardless of the flag's own
+/// `enabled`/`rolloutPercent` (see `waves_voice_agent_enabled`). Service role only.
+model VoiceAgentAllowlist {
+  profileId String   @id @map("profile_id") @db.Uuid
+  note      String   @default("")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("voice_agent_allowlist")
   @@schema("public")
 }
 

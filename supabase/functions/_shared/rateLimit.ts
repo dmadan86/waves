@@ -53,6 +53,13 @@ export const LIMITS = {
    */
   'receipt-parse': { limit: 10, windowSeconds: 60 },
   /**
+   * Pro advanced voice: each call is a speech-to-text request plus a model call.
+   * The monthly quota (`waves_voice_agent_quota`) is the billing gate; this stops
+   * a stuck retry loop spending a month of commands in seconds.
+   */
+  'voice-agent': { limit: 10, windowSeconds: 60 },
+  'voice-stream-token': { limit: 12, windowSeconds: 60 },
+  /**
    * Erasing an account: rare, idempotent, and a caller only ever does it to
    * their own. The cap is a fuse on the admin API behind it, so a stuck
    * recovery retry backs off rather than hammering `deleteUser` all hour.
