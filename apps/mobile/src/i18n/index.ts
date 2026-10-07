@@ -373,6 +373,9 @@ export interface UiStrings {
    *  the per-sub-event budget and vendor-deposit tracking on an Event group. */
   eventOrganizer: {
     templateLabel: string;
+    /** Placeholder of the own-template name field, and the label for removing a remembered one. */
+    customTemplatePlaceholder: string;
+    customTemplateRemove: string;
     templateNames: Record<EventTemplateId, string>;
     /** The short event-kind word on a group's type tag. */
     tagNames: Record<EventTemplateId, string>;
@@ -4839,6 +4842,8 @@ const en: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'Event template',
+    customTemplatePlaceholder: 'e.g. Housewarming',
+    customTemplateRemove: 'Remove',
     eventDatesTitle: 'Event dates',
     aboutEventDates: 'About event dates',
     eventDatesBody:
@@ -8620,6 +8625,8 @@ const ta: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'நிகழ்வு வார்ப்புரு',
+    customTemplatePlaceholder: 'எ.கா. புதுமனை புகுவிழா',
+    customTemplateRemove: 'நீக்கு',
     eventDatesTitle: 'நிகழ்வு தேதிகள்',
     aboutEventDates: 'நிகழ்வு தேதிகள் பற்றி',
     eventDatesBody:
@@ -12550,6 +12557,8 @@ const hi: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'इवेंट टेम्पलेट',
+    customTemplatePlaceholder: 'जैसे गृह प्रवेश',
+    customTemplateRemove: 'हटाएँ',
     eventDatesTitle: 'आयोजन की तारीखें',
     aboutEventDates: 'आयोजन की तारीखों के बारे में',
     eventDatesBody:
@@ -16354,6 +16363,8 @@ const ar: UiStrings = {
   },
   eventOrganizer: {
     templateLabel: 'قالب المناسبة',
+    customTemplatePlaceholder: 'مثال: حفل افتتاح المنزل',
+    customTemplateRemove: 'إزالة',
     eventDatesTitle: 'تواريخ المناسبة',
     aboutEventDates: 'حول تواريخ المناسبة',
     eventDatesBody:
