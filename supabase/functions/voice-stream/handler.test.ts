@@ -313,8 +313,9 @@ describe('runRelay: the gate', () => {
   it('sends a refusal that lands before the client socket opened once it opens', async () => {
     const made = makeDeps({ authFails: true });
     const client = new FakeSocket();
-    void runRelay(client, session, made.deps);
-    await settle();
+    let refused = false;
+    void runRelay(client, session, made.deps).then(() => (refused = true));
+    await until(() => refused);
     expect(client.closed).toBeNull();
     client.open();
     expect(client.texts[0]).toMatchObject({ type: 'Error', status: 401 });
@@ -347,6 +348,7 @@ describe('runRelay: piping', () => {
     client.receive(new Uint8Array(CHUNK).fill(1).buffer);
     client.receive(new Uint8Array(CHUNK).fill(2).buffer);
     await settle();
+    await until(() => made.upstreams.length > 0);
     const upstream = made.upstreams[0]!;
     upstream.open();
     expect(client.texts[0]).toMatchObject({ type: 'Ready' });
@@ -391,6 +393,7 @@ describe('runRelay: piping', () => {
     client.receive(audio());
     client.receive(JSON.stringify({ type: 'CloseStream' }));
     await settle();
+    await until(() => made.upstreams.length > 0);
     const upstream = made.upstreams[0]!;
     upstream.open();
     expect(upstream.audioBytes).toBe(CHUNK);
