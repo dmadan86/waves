@@ -2045,14 +2045,17 @@ model VoiceSttUsage {
 /// Reserved atomically by `waves_voice_agent_quota`, refunded on provider
 /// failure by `waves_voice_agent_refund`; a person may read their own row.
 model VoiceAgentUsage {
-  profileId   String   @map("profile_id") @db.Uuid
+  profileId     String   @map("profile_id") @db.Uuid
   /// 'YYYY-MM' (UTC); a new month is a new key.
-  month       String
-  count       Int      @default(0)
+  month         String
+  count         Int      @default(0)
   /// Live-stream tokens minted this month (`waves_voice_stream_mint`); its own
   /// budget, because a mint that never becomes a command still costs minutes.
-  streamMints Int      @default(0) @map("stream_mints")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  streamMints   Int      @default(0) @map("stream_mints")
+  /// Seconds of audio streamed through the `voice-stream` relay this month
+  /// (`waves_voice_stream_seconds`): the measured, billed quantity.
+  streamSeconds Decimal  @default(0) @map("stream_seconds") @db.Decimal(10, 2)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
