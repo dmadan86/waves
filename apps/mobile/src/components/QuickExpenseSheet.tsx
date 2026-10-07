@@ -270,8 +270,12 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
       if (id) take(byId.get(id));
     }
     for (const group of rows) take(group);
+    // A group picked from the full list ("more") leads the row, ticked, so the
+    // choice is visible when the picker closes rather than hidden off the end.
+    const picked = chosenId && chosenId !== 'personal' ? byId.get(chosenId) : undefined;
+    if (picked && !seen.has(picked.id)) return [picked, ...out.slice(0, CHIPS - 1)];
     return out;
-  }, [recents.keys, byId, rows]);
+  }, [recents.keys, byId, rows, chosenId]);
 
   const personalOffered = usePersonalOffered();
   const personalPicked = chosenId === 'personal';
