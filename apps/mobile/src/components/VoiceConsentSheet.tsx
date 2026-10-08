@@ -7,12 +7,20 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
-import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, directionalIcon, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
+import { InfoRowsCard } from '@/components/InfoRowsCard';
+import type { InfoRow } from '@/components/InfoRowsCard';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+
+const CONSENT_ART = require('../../assets/images/voice-consent-art.webp') as number;
+// The art is 325x276; fixed sizes because a percentage width with an aspect
+// ratio renders zoomed and cropped on Android.
+const ART_W = 140;
+const ART_H = 119;
 
 export function VoiceConsentSheet({
   visible,
@@ -30,44 +38,85 @@ export function VoiceConsentSheet({
     onNotNow();
     router.push('/settings/privacy');
   };
+  const c = t.voiceConsent;
+  const rows: readonly InfoRow[] = [
+    { icon: 'pulse', tint: 'sky', title: c.step1Title, body: c.step1Body },
+    { icon: 'document-text', tint: 'lilac', title: c.step2Title, body: c.step2Body },
+    { icon: 'shield-checkmark', tint: 'mint', title: c.step3Title, body: c.step3Body },
+  ];
   return (
-    <Sheet visible={visible} onClose={onNotNow} closeLabel={t.common.close}>
-      <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.sm, alignItems: 'center' }}>
+    <Sheet visible={visible} onClose={onNotNow} closeLabel={t.common.close} padded={false}>
+      <View style={{ minHeight: ART_H, justifyContent: 'center' }}>
+        {/* Bleeds to the sheet's top-end corner; start-aligned text sits over its soft fade. */}
+        <Image
+          source={CONSENT_ART}
+          accessibilityIgnoresInvertColors
+          importantForAccessibility="no"
+          resizeMode="contain"
+          style={{
+            position: 'absolute',
+            top: 0,
+            end: 0,
+            width: ART_W,
+            height: ART_H,
+            opacity: theme.scheme === 'dark' ? 0.55 : 1,
+          }}
+        />
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.brandSoft,
-            alignItems: 'center',
-            justifyContent: 'center',
+            paddingHorizontal: theme.spacing.lg,
+            paddingEnd: ART_W - theme.spacing.xs,
+            gap: theme.spacing.xs,
           }}
         >
-          <Ionicons name="mic-outline" size={iconSize.md} color={theme.color.brand} />
+          <Text variant="title" accessibilityRole="header">
+            {c.title}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {c.subtitle}
+          </Text>
         </View>
-        <Text variant="title" style={{ flex: 1 }}>
-          {t.voiceConsent.title}
-        </Text>
-      </Row>
-      <Text variant="body" tone="muted">
-        {t.voiceConsent.body}
-      </Text>
-      <Text
-        variant="caption"
-        accessibilityRole="link"
-        onPress={learnMore}
-        style={{
-          color: theme.color.brand,
-          textDecorationLine: 'underline',
-          marginTop: theme.spacing.sm,
-          alignSelf: 'flex-start',
-        }}
-      >
-        {t.voiceConsent.learnMore}
-      </Text>
-      <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
-        <Button label={t.voiceConsent.allow} fullWidth onPress={onAllow} />
-        <Button label={t.voiceConsent.notNow} variant="secondary" fullWidth onPress={onNotNow} />
+      </View>
+      <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.sm }}>
+        <InfoRowsCard rows={rows} connected />
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={c.learnMore}
+          onPress={learnMore}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            backgroundColor: theme.color.brandSoft,
+            borderRadius: theme.radius.pill,
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+          }}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={iconSize.md}
+            color={theme.color.brand}
+          />
+          <Text variant="caption" style={{ flex: 1, color: theme.color.brand }} numberOfLines={2}>
+            {c.learnMore}
+          </Text>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={theme.color.brand}
+          />
+        </Pressable>
+        <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
+          <Button
+            label={c.allow}
+            variant="brand"
+            fullWidth
+            onPress={onAllow}
+            icon={<Ionicons name="mic" size={iconSize.md} color={theme.color.onBrand} />}
+          />
+          <Button label={c.notNow} variant="secondary" fullWidth onPress={onNotNow} />
+        </View>
       </View>
     </Sheet>
   );

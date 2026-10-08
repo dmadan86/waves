@@ -17,7 +17,20 @@ export interface InfoRow {
   readonly body: string;
 }
 
-export function InfoRowsCard({ rows }: { readonly rows: readonly InfoRow[] }) {
+const DISC = 36;
+const DOTS = 3;
+
+/**
+ * `connected` joins the discs with a dotted vertical line and top-aligns each
+ * row (for multi-line bodies, e.g. the voice consent steps).
+ */
+export function InfoRowsCard({
+  rows,
+  connected = false,
+}: {
+  readonly rows: readonly InfoRow[];
+  readonly connected?: boolean;
+}) {
   const theme = useTheme();
   return (
     <View
@@ -30,19 +43,23 @@ export function InfoRowsCard({ rows }: { readonly rows: readonly InfoRow[] }) {
         gap: theme.spacing.md,
       }}
     >
-      {rows.map((row) => {
+      {rows.map((row, index) => {
         const tint = theme.tint[row.tint];
         return (
           <View
             key={row.title}
             accessible
             accessibilityLabel={`${row.title}. ${row.body}`}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+            style={{
+              flexDirection: 'row',
+              alignItems: connected ? 'flex-start' : 'center',
+              gap: theme.spacing.md,
+            }}
           >
             <View
               style={{
-                width: 36,
-                height: 36,
+                width: DISC,
+                height: DISC,
                 borderRadius: theme.radius.pill,
                 backgroundColor: tint.bg,
                 alignItems: 'center',
@@ -50,6 +67,32 @@ export function InfoRowsCard({ rows }: { readonly rows: readonly InfoRow[] }) {
               }}
             >
               <Ionicons name={row.icon} size={iconSize.lg} color={tint.ink} />
+              {connected && index < rows.length - 1 ? (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: DISC + 2,
+                    left: DISC / 2 - 1.5,
+                    width: 3,
+                    height: theme.spacing.md + 8,
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  {Array.from({ length: DOTS }, (_, d) => (
+                    <View
+                      key={d}
+                      style={{
+                        width: 3,
+                        height: 3,
+                        borderRadius: 1.5,
+                        backgroundColor: tint.inkMuted,
+                        opacity: 0.45,
+                      }}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text variant="subheading">{row.title}</Text>
