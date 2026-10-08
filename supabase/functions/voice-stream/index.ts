@@ -26,7 +26,18 @@ Deno.serve(async (request) => {
       callerFor: asCallerFromToken,
       rateLimit: (profileId) => enforceRateLimit(service, request, 'voice-stream', profileId),
       upgrade: (req, protocol) => {
-        const { socket, response } = Deno.upgradeWebSocket(req, protocol ? { protocol } : {});
+        // The edge runtime refuses `{ protocol }` ("not in the request's protocol
+        // list") even when the client offered it, failing every upgrade with a
+        // 502. Upgrade without it and echo the protocol ourselves; the app's
+        // sockets (OkHttp, SocketRocket) accept the 101 either way.
+        const { socket, response } = Deno.upgradeWebSocket(req);
+        if (protocol) {
+          try {
+            response.headers.set('sec-websocket-protocol', protocol);
+          } catch {
+            // Immutable headers: nothing to echo, and nothing the app needs.
+          }
+        }
         return { socket: socket as unknown as RelaySocket, response };
       },
       // Deepgram's documented browser form: the key as the 'token' subprotocol.
