@@ -1307,6 +1307,15 @@ export interface UiStrings {
     confirmPersonMissing: string;
     confirmPickGroup: string;
     confirmNeedAmount: string;
+    confirmHeardNow: string;
+    confirmDescription: string;
+    confirmCategory: string;
+    confirmDate: string;
+    confirmNoteLabel: string;
+    confirmNoteHint: string;
+    confirmWith: string;
+    confirmToday: string;
+    confirmYesterday: string;
     /** Engine badge on the voice screen. */
     engineCloud: string;
     engineOnDevice: string;
@@ -5658,6 +5667,15 @@ const en: UiStrings = {
     confirmPersonMissing: "{name} isn't in this group",
     confirmPickGroup: 'Pick a group to add this to',
     confirmNeedAmount: 'Enter an amount',
+    confirmHeardNow: 'Heard just now',
+    confirmDescription: 'Description',
+    confirmCategory: 'Category',
+    confirmDate: 'Date',
+    confirmNoteLabel: 'Note',
+    confirmNoteHint: 'Add a note (optional)',
+    confirmWith: 'With',
+    confirmToday: 'Today',
+    confirmYesterday: 'Yesterday',
     engineCloud: 'Cloud',
     engineOnDevice: 'On-device',
     engineReasonFree: 'Free plan',
@@ -9517,6 +9535,15 @@ const ta: UiStrings = {
     confirmPersonMissing: '{name} இந்த குழுவில் இல்லை',
     confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
     confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
+    confirmHeardNow: 'இப்போது கேட்டது',
+    confirmDescription: 'விவரம்',
+    confirmCategory: 'வகை',
+    confirmDate: 'தேதி',
+    confirmNoteLabel: 'குறிப்பு',
+    confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    confirmWith: 'உடன்',
+    confirmToday: 'இன்று',
+    confirmYesterday: 'நேற்று',
     engineCloud: 'கிளவுட்',
     engineOnDevice: 'சாதனத்தில்',
     engineReasonFree: 'இலவசத் திட்டம்',
@@ -13495,6 +13522,15 @@ const hi: UiStrings = {
     confirmPersonMissing: '{name} इस ग्रुप में नहीं है',
     confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
     confirmNeedAmount: 'राशि डालें',
+    confirmHeardNow: 'अभी सुना',
+    confirmDescription: 'विवरण',
+    confirmCategory: 'श्रेणी',
+    confirmDate: 'तारीख',
+    confirmNoteLabel: 'नोट',
+    confirmNoteHint: 'नोट जोड़ें (वैकल्पिक)',
+    confirmWith: 'साथ में',
+    confirmToday: 'आज',
+    confirmYesterday: 'कल',
     engineCloud: 'क्लाउड',
     engineOnDevice: 'ऑन-डिवाइस',
     engineReasonFree: 'फ्री प्लान',
@@ -17414,6 +17450,15 @@ const ar: UiStrings = {
     confirmPersonMissing: '{name} ليس في هذه المجموعة',
     confirmPickGroup: 'اختر مجموعة لإضافته إليها',
     confirmNeedAmount: 'أدخل مبلغًا',
+    confirmHeardNow: 'سُمع للتو',
+    confirmDescription: 'الوصف',
+    confirmCategory: 'الفئة',
+    confirmDate: 'التاريخ',
+    confirmNoteLabel: 'ملاحظة',
+    confirmNoteHint: 'أضف ملاحظة (اختياري)',
+    confirmWith: 'مع',
+    confirmToday: 'اليوم',
+    confirmYesterday: 'أمس',
     engineCloud: 'السحابة',
     engineOnDevice: 'على الجهاز',
     engineReasonFree: 'الخطة المجانية',
