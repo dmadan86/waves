@@ -39,6 +39,7 @@ import type { AgentLocalData, AgentLocalGroup } from '@/lib/voiceAgentPlan';
 import {
   initialFields,
   matchMember,
+  namesIn,
   resolveConfirm,
   type ConfirmableAction,
   type ConfirmFields,
@@ -60,6 +61,8 @@ export interface VoiceConfirmCardProps {
   /** Edit pressed: the full form has been opened with the current state. */
   onEdited: () => void;
   onDiscard: () => void;
+  /** Speak it again, in place. */
+  onRetry: () => void;
 }
 
 /** YYYY-MM-DD for a local calendar day. */
@@ -95,6 +98,7 @@ export function VoiceConfirmCard({
   onAdd,
   onEdited,
   onDiscard,
+  onRetry,
 }: VoiceConfirmCardProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -192,14 +196,16 @@ export function VoiceConfirmCard({
 
   const edit = (): void => {
     onEdited();
-    if (resolution.ok && resolution.action.type === 'add_personal') {
+    // The form follows the destination on screen, whatever the amount reads.
+    if (fields.personal) {
+      const ready = resolution.ok ? resolution.action : null;
       router.push({
         pathname: '/personal/entry',
         params: {
           kind: 'expense',
-          amount: resolution.action.amountMinor,
-          currency: resolution.action.currency,
-          note: resolution.action.description,
+          ...(ready ? { amount: ready.amountMinor } : {}),
+          currency: action.currency,
+          note: ready?.description ?? fields.description,
         },
       });
       return;
@@ -207,11 +213,11 @@ export function VoiceConfirmCard({
     const proposal =
       resolution.ok && resolution.action.type === 'add_expense'
         ? resolution.action
-        : action.type === 'add_expense'
-          ? { ...action, groupId: fields.groupId ?? action.groupId }
+        : action.type === 'add_expense' && fields.groupId
+          ? { ...action, groupId: fields.groupId }
           : null;
     if (!proposal) {
-      router.push({ pathname: '/personal/entry', params: { kind: 'expense' } });
+      setPickerOpen(true);
       return;
     }
     router.push({
@@ -236,24 +242,60 @@ export function VoiceConfirmCard({
 
   // A group expense: who it was for, picked from the group's own people.
   const others = group ? group.members.filter((member) => !member.isViewer) : [];
-  const named = fields.personText
-    .split(/,|&|\band\b|\+/i)
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const named = namesIn(fields.personText);
   const chosen = group
     ? named
         .map((name) => matchMember(group, name, youLabel))
         .filter((member): member is NonNullable<typeof member> => !!member)
     : [];
-  const togglePerson = (name: string): void => {
-    const has = named.some((entry) => entry.toLowerCase() === name.toLowerCase());
-    const next = has
-      ? named.filter((entry) => entry.toLowerCase() !== name.toLowerCase())
-      : [...named, name];
+  // By member, not by spelling: "renny" ticks Renny Joseph, and unticking him
+  // removes "renny" rather than adding a second entry.
+  const togglePerson = (memberId: string, memberName: string): void => {
+    if (!group) return;
+    const isThem = (entry: string) => matchMember(group, entry, youLabel)?.id === memberId;
+    const next = named.some(isThem)
+      ? named.filter((entry) => !isThem(entry))
+      : [...named, memberName];
     patch({ personText: next.join(', ') });
   };
   const categoryIcon = (categoryEntry?.icon ??
     'pricetag-outline') as keyof typeof Ionicons.glyphMap;
+
+  // The allowance and the engine that heard it, then speaking it again.
+  const footer = (
+    <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <Row gap={theme.spacing.xs}>
+        <Text variant="caption" tone="muted">
+          {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+        </Text>
+        <Ionicons
+          name="information-circle-outline"
+          size={iconSize.base}
+          color={theme.color.textMuted}
+          accessibilityLabel={t.voice.confirmQuotaInfo}
+        />
+      </Row>
+      <VoiceEngineBadge info={engine} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.voice.agentTryAgain}
+        disabled={busy}
+        onPress={onRetry}
+        hitSlop={8}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+          opacity: pressed || busy ? 0.6 : 1,
+        })}
+      >
+        <Ionicons name="mic-outline" size={iconSize.base} color={brand} />
+        <Text variant="caption" style={{ color: brand, fontWeight: '700' }}>
+          {t.voice.agentTryAgain}
+        </Text>
+      </Pressable>
+    </View>
+  );
 
   const groupLayout = (
     <>
@@ -436,6 +478,7 @@ export function VoiceConfirmCard({
           onPress={onDiscard}
         />
       </Row>
+      {footer}
     </>
   );
 
@@ -551,18 +594,6 @@ export function VoiceConfirmCard({
               />
             </FieldRow>
 
-            {fields.personal ? null : (
-              <FieldRow icon="person-outline" label={t.voice.confirmWith}>
-                <InputBox
-                  value={fields.personText}
-                  placeholder={t.voice.confirmJustMe}
-                  label={t.voice.confirmWith}
-                  invalid={reason === 'person'}
-                  onChange={(personText) => patch({ personText })}
-                />
-              </FieldRow>
-            )}
-
             <FieldRow icon="grid-outline" label={t.voice.confirmCategory}>
               <ChoiceBox
                 label={t.voice.confirmCategory}
@@ -625,24 +656,7 @@ export function VoiceConfirmCard({
             </Row>
           </View>
 
-          {/* The allowance, then the engine that heard it. */}
-          <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Row gap={theme.spacing.xs}>
-              <Text variant="caption" tone="muted">
-                {fill(t.voice.agentQuotaLeft, {
-                  left: String(quota.left),
-                  limit: String(quota.limit),
-                })}
-              </Text>
-              <Ionicons
-                name="information-circle-outline"
-                size={iconSize.base}
-                color={theme.color.textMuted}
-                accessibilityLabel={t.voice.confirmQuotaInfo}
-              />
-            </Row>
-            <VoiceEngineBadge info={engine} />
-          </View>
+          {footer}
         </>
       ) : (
         groupLayout
@@ -655,6 +669,15 @@ export function VoiceConfirmCard({
         title={t.voice.confirmPaidFor}
       >
         <View style={{ gap: theme.spacing.xs }}>
+          {/* The names as they stand, editable: the only way to clear one that
+              is not in this group (or "You"), which the checklist cannot show. */}
+          <InputBox
+            value={fields.personText}
+            placeholder={t.voice.confirmJustMe}
+            label={t.voice.confirmPaidFor}
+            invalid={reason === 'person'}
+            onChange={(personText) => patch({ personText })}
+          />
           {others.map((member) => {
             const on = chosen.some((entry) => entry.id === member.id);
             return (
@@ -662,7 +685,7 @@ export function VoiceConfirmCard({
                 key={member.id}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: on }}
-                onPress={() => togglePerson(member.name)}
+                onPress={() => togglePerson(member.id, member.name)}
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -727,7 +750,7 @@ export function VoiceConfirmCard({
         <CategorySheet
           value={fields.category}
           onChange={(key) => {
-            patch({ category: key });
+            patch({ category: key === fields.category ? null : key });
             setCategoryOpen(false);
           }}
           onClose={() => setCategoryOpen(false)}

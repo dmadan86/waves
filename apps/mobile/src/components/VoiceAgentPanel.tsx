@@ -14,13 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { View } from 'react-native';
 
-import {
-  encodeTxn,
-  guessCategory,
-  materialiseGroups,
-  materialiseMembers,
-  type VoiceAgentAction,
-} from '@waves/core';
+import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
@@ -46,6 +40,7 @@ import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
+  personalWriteFromAction,
   planVoiceAgentActions,
   quotaLeft,
   type AgentCard,
@@ -244,6 +239,7 @@ export function VoiceAgentPanel({
           setCardStatus(only.key, 'discarded');
           onClose();
         }}
+        onRetry={() => onRetry()}
         onAdded={() => {
           setCardStatus(only.key, 'done');
           toast.show(t.voice.agentDone);
@@ -342,6 +338,7 @@ function ConfirmExpense({
   onEdited,
   onDiscard,
   onAdded,
+  onRetry,
 }: {
   action: ConfirmableAction;
   transcript: string;
@@ -352,6 +349,7 @@ function ConfirmExpense({
   onEdited: () => void;
   onDiscard: () => void;
   onAdded: () => void;
+  onRetry: () => void;
 }) {
   // Minted once, so a retry after a failure reuses the id and appends no duplicate.
   const [expenseId] = useState(() => randomUUID());
@@ -366,21 +364,7 @@ function ConfirmExpense({
     setFailed(false);
     try {
       if (resolved.type === 'add_personal') {
-        const description = resolved.description.trim();
-        await upsertPersonal.mutateAsync({
-          recordId: expenseId,
-          recordKind: 'txn',
-          data: encodeTxn({
-            kind: 'expense',
-            amount: BigInt(resolved.amountMinor),
-            currency: resolved.currency,
-            category: resolved.category ?? guessCategory(description),
-            note: description,
-            date: resolved.date ?? today,
-            loanId: null,
-            recurringId: null,
-          }),
-        });
+        await upsertPersonal.mutateAsync(personalWriteFromAction(resolved, expenseId, today));
       } else {
         const group = local.groups.find((candidate) => candidate.id === resolved.groupId);
         const write = expenseWriteFromAction(resolved, group, expenseId, today);
@@ -407,6 +391,7 @@ function ConfirmExpense({
       onAdd={(resolved) => void add(resolved)}
       onEdited={onEdited}
       onDiscard={onDiscard}
+      onRetry={onRetry}
     />
   );
 }
@@ -458,21 +443,7 @@ function AgentActionCard({
           break;
         }
         case 'add_personal': {
-          const description = action.description.trim();
-          await upsertPersonal.mutateAsync({
-            recordId: expenseId,
-            recordKind: 'txn',
-            data: encodeTxn({
-              kind: 'expense',
-              amount: BigInt(action.amountMinor),
-              currency: action.currency,
-              category: action.category ?? guessCategory(description),
-              note: description,
-              date: action.date ?? today,
-              loanId: null,
-              recurringId: null,
-            }),
-          });
+          await upsertPersonal.mutateAsync(personalWriteFromAction(action, expenseId, today));
           break;
         }
         case 'record_settlement':

@@ -1314,7 +1314,6 @@ export interface UiStrings {
     confirmDate: string;
     confirmNoteLabel: string;
     confirmNoteHint: string;
-    confirmWith: string;
     confirmToday: string;
     confirmYesterday: string;
     /** Engine badge on the voice screen. */
@@ -5675,7 +5674,6 @@ const en: UiStrings = {
     confirmDate: 'Date',
     confirmNoteLabel: 'Note',
     confirmNoteHint: 'Add a note (optional)',
-    confirmWith: 'With',
     confirmToday: 'Today',
     confirmYesterday: 'Yesterday',
     engineCloud: 'Cloud',
@@ -9544,7 +9542,6 @@ const ta: UiStrings = {
     confirmDate: 'தேதி',
     confirmNoteLabel: 'குறிப்பு',
     confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
-    confirmWith: 'உடன்',
     confirmToday: 'இன்று',
     confirmYesterday: 'நேற்று',
     engineCloud: 'கிளவுட்',
@@ -13532,7 +13529,6 @@ const hi: UiStrings = {
     confirmDate: 'तारीख',
     confirmNoteLabel: 'नोट',
     confirmNoteHint: 'नोट जोड़ें (वैकल्पिक)',
-    confirmWith: 'साथ में',
     confirmToday: 'आज',
     confirmYesterday: 'कल',
     engineCloud: 'क्लाउड',
@@ -17461,7 +17457,6 @@ const ar: UiStrings = {
     confirmDate: 'التاريخ',
     confirmNoteLabel: 'ملاحظة',
     confirmNoteHint: 'أضف ملاحظة (اختياري)',
-    confirmWith: 'مع',
     confirmToday: 'اليوم',
     confirmYesterday: 'أمس',
     engineCloud: 'السحابة',

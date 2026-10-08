@@ -46,7 +46,8 @@ function norm(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 }
 
-function namesIn(text: string): string[] {
+/** The names in a typed list: "Renny, Anu and Bo" → three. */
+export function namesIn(text: string): string[] {
   return text
     .split(/,|&|\band\b|\+/i)
     .map((part) => part.trim())
