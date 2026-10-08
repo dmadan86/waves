@@ -3004,6 +3004,7 @@ export interface UiStrings {
     findTitle: string;
     findHint: string;
     findPlaceholder: string;
+    findExamples: string;
     findAction: string;
     findNoMatch: string;
     /** Deliberately covers "nobody uses that" and "they opted out" in one
@@ -6982,6 +6983,7 @@ const en: UiStrings = {
     findTitle: 'Find someone',
     findHint: 'Type the exact email address or phone number they use on Waves.',
     findPlaceholder: 'Email or phone',
+    findExamples: 'For example:',
     findAction: 'Search',
     findNoMatch: 'No match',
     findNoMatchBody: 'Nobody uses that, or they have chosen not to be found by it.',
@@ -10893,6 +10895,7 @@ const ta: UiStrings = {
     findHint:
       'அவர் Waves-இல் பயன்படுத்தும் மின்னஞ்சல் முகவரியையோ தொலைபேசி எண்ணையோ அப்படியே தட்டச்சு செய்யுங்கள்.',
     findPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி',
+    findExamples: 'எடுத்துக்காட்டு:',
     findAction: 'தேடு',
     findNoMatch: 'பொருத்தம் இல்லை',
     findNoMatchBody:
@@ -14808,6 +14811,7 @@ const hi: UiStrings = {
     findTitle: 'किसी को खोजें',
     findHint: 'वही ईमेल पता या फ़ोन नंबर लिखें जो वे Waves पर इस्तेमाल करते हैं।',
     findPlaceholder: 'ईमेल या फ़ोन',
+    findExamples: 'उदाहरण:',
     findAction: 'खोजें',
     findNoMatch: 'कोई मेल नहीं',
     findNoMatchBody: 'इसे कोई इस्तेमाल नहीं करता, या उन्होंने इससे खोजे जाने से मना किया है।',
@@ -18856,6 +18860,7 @@ const ar: UiStrings = {
     findTitle: 'ابحث عن شخص',
     findHint: 'اكتب بالضبط البريد الإلكتروني أو رقم الهاتف الذي يستخدمه على Waves.',
     findPlaceholder: 'بريد إلكتروني أو هاتف',
+    findExamples: 'مثال:',
     findAction: 'بحث',
     findNoMatch: 'لا يوجد تطابق',
     findNoMatchBody: 'لا أحد يستخدم ذلك، أو أنه اختار ألا يُعثر عليه بهذه الطريقة.',
