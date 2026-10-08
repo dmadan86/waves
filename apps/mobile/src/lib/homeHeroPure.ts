@@ -151,17 +151,25 @@ export function msUntilNextBoundary(now: Date): number {
   return Math.max(1000, next.getTime() - now.getTime());
 }
 
-/** The Background picker's old scene names, mapped to the new photographs.
- *  Winter has no counterpart, so it falls back to the clock. */
+/** Every photograph, in the Background picker's order. */
+export const HOME_HEROES: readonly HomeHero[] = [
+  'morning',
+  'late-morning',
+  'afternoon',
+  'evening',
+  'sunset',
+  'night',
+  'rainy',
+  'autumn',
+  'spring',
+];
+
+/**
+ * A stored or build-time pick, read as a photograph. The old picker saved
+ * `morning | afternoon | sunset | evening | night`, which are photographs of the
+ * same name, so existing picks carry over; `winter` (which has no photograph)
+ * and anything unknown become null, meaning Automatic.
+ */
 export function heroForPickedScene(scene: string | null | undefined): HomeHero | null {
-  switch (scene) {
-    case 'morning':
-    case 'afternoon':
-    case 'sunset':
-    case 'evening':
-    case 'night':
-      return scene;
-    default:
-      return null;
-  }
+  return scene && (HOME_HEROES as readonly string[]).includes(scene) ? (scene as HomeHero) : null;
 }

@@ -7,8 +7,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
-import { ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 
 import {
   Card,
@@ -23,21 +22,11 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { SCENE_PHOTOS } from '@/components/home/PersonalHeroBackground';
+import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { useStrings } from '@/i18n';
 import { useHeroScenePreference } from '@/lib/heroScenePreference';
 import { router } from '@/lib/navigation';
-import { Scene } from '@/lib/scene';
-
-/** The picker's order: the day as it runs, then the season. */
-const ORDER: readonly Scene[] = [
-  Scene.Morning,
-  Scene.Afternoon,
-  Scene.Sunset,
-  Scene.Evening,
-  Scene.Night,
-  Scene.Winter,
-];
+import { HOME_HEROES, type HomeHero } from '@/lib/homeHeroPure';
 
 export default function SceneSettingsScreen() {
   const theme = useTheme();
@@ -49,10 +38,10 @@ export default function SceneSettingsScreen() {
     key: string;
     title: string;
     subtitle: string;
-    value: Scene | null;
+    value: HomeHero | null;
   }[] = [
     { key: 'auto', title: t.heroScene.auto, subtitle: t.heroScene.autoHint, value: null },
-    ...ORDER.map((scene) => ({
+    ...HOME_HEROES.map((scene) => ({
       key: scene,
       title: t.heroScene.names[scene],
       subtitle: t.heroScene.hints[scene],
@@ -104,8 +93,8 @@ export default function SceneSettingsScreen() {
                   leading={
                     row.value ? (
                       <Image
-                        source={SCENE_PHOTOS[row.value]}
-                        contentFit="cover"
+                        source={HOME_HERO_PHOTOS[row.value]}
+                        resizeMode="cover"
                         accessibilityElementsHidden
                         style={{ width: 56, height: 40, borderRadius: theme.radius.sm }}
                       />

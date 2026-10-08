@@ -32,10 +32,10 @@ export const HOME_HERO_PHOTOS: Readonly<Record<HomeHero, number>> = {
   spring: require('../../../assets/images/home-hero/spring.webp') as number,
 };
 
-/** The scrim's stops, top to bottom: 34% down to nothing by the greeting's foot. */
+/** The scrim's stops, top to bottom: 46% down to nothing by the greeting's foot. */
 export const HERO_SCRIM_COLORS = [
-  'rgba(8, 12, 32, 0.34)',
-  'rgba(8, 12, 32, 0.16)',
+  'rgba(8, 12, 32, 0.46)',
+  'rgba(8, 12, 32, 0.2)',
   'rgba(8, 12, 32, 0)',
 ] as const;
 export const HERO_SCRIM_LOCATIONS = [0, 0.6, 1] as const;

@@ -8,6 +8,8 @@
  * rule is tested without a clock.
  */
 
+import type { HomeHero } from '@/lib/homeHeroPure';
+
 export enum Scene {
   Morning = 'morning',
   Afternoon = 'afternoon',
@@ -129,6 +131,33 @@ export const HERO_THEMES: Readonly<Record<Scene, HeroTheme>> = {
  * without waiting for it. Set `EXPO_PUBLIC_HERO_SCENE` to a scene's name
  * (`sunset`, `winter`, …) at build time; anything else is ignored.
  */
+/**
+ * The painted scene the other screens (Me, Groups, New group, ...) wear for a
+ * photograph picked on the Background screen. They have no photographs, so
+ * each pick lands on the nearest palette: late morning and the seasons on the
+ * bright afternoon sky, rain on the dusky evening one.
+ */
+export function sceneForHero(hero: HomeHero | null): Scene | null {
+  switch (hero) {
+    case null:
+      return null;
+    case 'morning':
+      return Scene.Morning;
+    case 'late-morning':
+    case 'afternoon':
+    case 'autumn':
+    case 'spring':
+      return Scene.Afternoon;
+    case 'evening':
+    case 'rainy':
+      return Scene.Evening;
+    case 'sunset':
+      return Scene.Sunset;
+    case 'night':
+      return Scene.Night;
+  }
+}
+
 export const SCENE_OVERRIDE: Scene | null = parseScene(process.env.EXPO_PUBLIC_HERO_SCENE);
 
 export function parseScene(value: string | undefined): Scene | null {
