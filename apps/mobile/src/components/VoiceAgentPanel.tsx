@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   encodeTxn,
@@ -24,6 +24,7 @@ import {
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
+import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
 import { nudgeToSettle } from '@/data/api';
@@ -200,9 +201,12 @@ export function VoiceAgentPanel({
 
   if (!plan) {
     return (
-      <View style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}>
-        <ActivityIndicator color={theme.color.brand} />
-        <Text tone="muted">{t.voice.agentUnderstanding}</Text>
+      <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.xxl }}>
+        <VoiceMicOrb working />
+        <Text variant="heading" style={{ marginTop: theme.spacing.lg }}>
+          {t.voice.agentUnderstanding}
+        </Text>
+        <Text tone="muted">{t.voice.agentUnderstandingHint}</Text>
       </View>
     );
   }

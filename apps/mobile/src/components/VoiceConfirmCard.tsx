@@ -24,6 +24,7 @@ import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
+import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { useGroups, useHomeSummary } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
@@ -151,6 +152,9 @@ export function VoiceConfirmCard({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
+      <View style={{ alignItems: 'center' }}>
+        <VoiceMicOrb size={112} />
+      </View>
       {/* What was heard. */}
       <Card
         padded={false}
@@ -199,7 +203,7 @@ export function VoiceConfirmCard({
             <Text variant="subheading" numberOfLines={1}>
               {t.voice.confirmUnderstood}
             </Text>
-            <Text variant="micro" tone="muted" numberOfLines={1}>
+            <Text variant="micro" tone="muted" numberOfLines={2}>
               {t.voice.confirmEditHint}
             </Text>
           </View>
@@ -287,6 +291,7 @@ export function VoiceConfirmCard({
               key={group.id}
               group={group}
               selected={group.id === fields.groupId}
+              title={tileTitle(group, youLabel)}
               membersLabel={plural(locale, group.members.length, t.memberCount)}
               onPress={() => patch({ groupId: group.id })}
             />
@@ -322,7 +327,7 @@ export function VoiceConfirmCard({
               <Ionicons name="people" size={iconSize.lg} color={brand} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text variant="caption" style={{ fontWeight: '700' }} numberOfLines={1}>
+              <Text variant="caption" style={{ fontWeight: '700' }} numberOfLines={2}>
                 {t.voice.confirmOtherGroup}
               </Text>
               <Text variant="micro" tone="muted" numberOfLines={2}>
@@ -459,6 +464,9 @@ function FieldTile({
   onChange: (text: string) => void;
 }) {
   const theme = useTheme();
+  // Android leaves a single-line input scrolled to its cursor, the end, so a
+  // long name read "ıny Benita". Away from the keyboard, show it from the start.
+  const [focused, setFocused] = useState(false);
   return (
     <View
       style={{
@@ -496,6 +504,9 @@ function FieldTile({
             placeholder={placeholder}
             placeholderTextColor={theme.color.textFaint}
             keyboardType={keyboardType}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            selection={focused ? undefined : { start: 0, end: 0 }}
             style={{
               flex: 1,
               minWidth: 0,
@@ -521,13 +532,28 @@ function ClearButton({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
+/**
+ * A group with no name is named by its people, as `groupLabel` does elsewhere —
+ * a tile reading only "2 members" gives nothing to recognise it by.
+ */
+function tileTitle(group: AgentLocalGroup, youLabel: string): string {
+  const named = group.name.trim();
+  if (named) return named;
+  const others = group.members.filter((member) => !member.isViewer).map((member) => member.name);
+  if (others.length === 0) return youLabel;
+  if (others.length <= 2) return others.join(', ');
+  return `${others[0]}, ${others[1]} +${others.length - 2}`;
+}
+
 function GroupTile({
   group,
+  title,
   selected,
   membersLabel,
   onPress,
 }: {
   group: AgentLocalGroup;
+  title: string;
   selected: boolean;
   membersLabel: string;
   onPress: () => void;
@@ -538,7 +564,7 @@ function GroupTile({
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${group.name}, ${membersLabel}`}
+      accessibilityLabel={`${title}, ${membersLabel}`}
       onPress={onPress}
       style={({ pressed }) => ({
         width: '48.5%',
@@ -556,7 +582,7 @@ function GroupTile({
       <GroupPhoto photoPath={group.photoPath} emoji={group.coverEmoji} size={36} />
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         <Text variant="caption" style={{ fontWeight: '700' }} numberOfLines={1}>
-          {group.name}
+          {title}
         </Text>
         <Text variant="micro" tone="muted" numberOfLines={1}>
           {membersLabel}
@@ -570,13 +596,13 @@ function GroupTile({
             <View
               key={member.id}
               style={{
-                marginStart: index === 0 ? 0 : -6,
-                borderRadius: 10,
+                marginStart: index === 0 ? 0 : -5,
+                borderRadius: 11,
                 borderWidth: 1.5,
                 borderColor: selected ? theme.color.brandSoft : theme.color.surface,
               }}
             >
-              <ProfileAvatar name={member.name} avatarUrl={member.avatarUrl} size={17} />
+              <ProfileAvatar name={member.name} avatarUrl={member.avatarUrl} size={19} />
             </View>
           ))}
         </View>
@@ -679,37 +705,46 @@ function CategoryChips({
   });
 
   return (
-    <Row gap={theme.spacing.xs} accessibilityRole="radiogroup">
-      {shown.map((entry) => {
-        const selected = entry.key === value;
-        return (
-          <Pressable
-            key={entry.key}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected }}
-            accessibilityLabel={entry.label}
-            onPress={() => onChange(selected ? null : entry.key)}
-            style={[chip(selected), { flexShrink: 1, minWidth: 0 }]}
-          >
-            <Ionicons
-              name={entry.icon as keyof typeof Ionicons.glyphMap}
-              size={iconSize.base}
-              color={selected ? theme.color.brand : theme.color.textMuted}
-            />
-            <Text
-              variant="micro"
-              numberOfLines={1}
-              style={{
-                flexShrink: 1,
-                color: selected ? theme.color.brand : theme.color.text,
-                fontWeight: selected ? '700' : '600',
-              }}
+    <Row gap={theme.spacing.xs}>
+      {/* Chips keep their full labels and scroll sideways; squeezed into the
+          row they read "Groc…", "Tr…", "…" — nothing a person can pick from. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ gap: theme.spacing.xs }}
+        accessibilityRole="radiogroup"
+      >
+        {shown.map((entry) => {
+          const selected = entry.key === value;
+          return (
+            <Pressable
+              key={entry.key}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={entry.label}
+              onPress={() => onChange(selected ? null : entry.key)}
+              style={chip(selected)}
             >
-              {entry.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Ionicons
+                name={entry.icon as keyof typeof Ionicons.glyphMap}
+                size={iconSize.base}
+                color={selected ? theme.color.brand : theme.color.textMuted}
+              />
+              <Text
+                variant="micro"
+                numberOfLines={1}
+                style={{
+                  color: selected ? theme.color.brand : theme.color.text,
+                  fontWeight: selected ? '700' : '600',
+                }}
+              >
+                {entry.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.quickExpense.moreCategories}

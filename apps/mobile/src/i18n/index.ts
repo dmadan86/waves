@@ -1272,6 +1272,8 @@ export interface UiStrings {
     askAgain: string;
     /** Shown while the advanced voice agent reads the clip. */
     agentUnderstanding: string;
+    /** Under "Understanding…", while the words are being worked out. */
+    agentUnderstandingHint: string;
     agentHeard: string;
     agentConfirm: string;
     agentConfirmAll: string;
@@ -5623,6 +5625,7 @@ const en: UiStrings = {
     ansNoPerson: "Couldn't find {name}",
     askAgain: 'Ask again',
     agentUnderstanding: 'Understanding…',
+    agentUnderstandingHint: 'Just a moment, I’m listening.',
     agentHeard: 'Heard',
     agentConfirm: 'Confirm',
     agentConfirmAll: 'Confirm all',
@@ -9481,6 +9484,7 @@ const ta: UiStrings = {
     ansNoPerson: '{name} கிடைக்கவில்லை',
     askAgain: 'மீண்டும் கேள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
+    agentUnderstandingHint: 'ஒரு நொடி, கேட்டுக்கொண்டிருக்கிறேன்.',
     agentHeard: 'கேட்டது',
     agentConfirm: 'உறுதிப்படுத்து',
     agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
@@ -13458,6 +13462,7 @@ const hi: UiStrings = {
     ansNoPerson: '{name} नहीं मिला',
     askAgain: 'फिर पूछें',
     agentUnderstanding: 'समझा जा रहा है…',
+    agentUnderstandingHint: 'बस एक पल, मैं सुन रहा हूँ।',
     agentHeard: 'सुना',
     agentConfirm: 'पुष्टि करें',
     agentConfirmAll: 'सभी की पुष्टि करें',
@@ -17376,6 +17381,7 @@ const ar: UiStrings = {
     ansNoPerson: 'تعذر العثور على {name}',
     askAgain: 'اسأل مرة أخرى',
     agentUnderstanding: 'جارٍ الفهم…',
+    agentUnderstandingHint: 'لحظة واحدة، أنا أستمع.',
     agentHeard: 'سمعتُ',
     agentConfirm: 'تأكيد',
     agentConfirmAll: 'تأكيد الكل',
