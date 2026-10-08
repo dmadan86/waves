@@ -1,11 +1,13 @@
 /**
- * The advanced voice flow's confirmation for one proposed expense: what was
- * heard, what the agent understood as four fields a person can fix in place
- * (amount, who it was for, which group, a note and category), and Add.
+ * The advanced voice flow's confirmation for one proposed expense — a group
+ * expense or one just for you. What was heard, then one card: the category's
+ * badge, the amount, where it goes (the "Just for you" pill opens the picker),
+ * and four rows a person can fix in place (description, category, date, note).
+ * Confirm writes it; Edit hands the current state to the full form; Discard
+ * drops it.
  *
- * Nothing is written until Add. The proposal stays the source of truth — see
- * `voiceConfirmPure` for how an edit turns back into one — and "Edit all" hands
- * the current state to the full form, payer and split included.
+ * Nothing is written until Confirm. The proposal stays the source of truth — see
+ * `voiceConfirmPure` for how an edit turns back into one.
  *
  * The recording is not kept (the sentence streams to the recogniser and is
  * discarded), so there is no play button: showing one would be a fake.
@@ -14,50 +16,74 @@
 import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { currencySymbol, resolveCategory, sanitiseMinorInput } from '@waves/core';
-import { Button, Card, directionalIcon, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
-import { CategoryChoices, useLabelledCategoryCatalog } from '@/components/Category';
+import { CategoryBadge, CategorySheet, useLabelledCategoryCatalog } from '@/components/Category';
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
-import { useGroups, useHomeSummary } from '@/data/hooks';
+import { useGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
-import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import type { AgentLocalData, AgentLocalGroup } from '@/lib/voiceAgentPlan';
 import {
   initialFields,
-  orderGroupTiles,
+  matchMember,
+  namesIn,
   resolveConfirm,
-  type AddExpenseAction,
+  type ConfirmableAction,
   type ConfirmFields,
 } from '@/lib/voiceConfirmPure';
 import type { VoiceEngineInfo } from '@/lib/voiceEnginePure';
 
-/** Categories given their own chip before "More". */
-const CHIPS = 4;
-const AVATARS = 4;
-
 export interface VoiceConfirmCardProps {
-  action: AddExpenseAction;
+  action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
   quota: { left: number; limit: number };
   engine: VoiceEngineInfo | null;
   busy: boolean;
   failed: boolean;
-  /** The group the fields name now (null until one is picked). */
+  /** The group the fields name now (null while it is just for you). */
   onGroupChange: (groupId: string | null) => void;
-  /** Add pressed with a fully resolved proposal. */
-  onAdd: (action: AddExpenseAction) => void;
-  /** Edit all pressed: the full form has been opened with the current state. */
+  /** Confirm pressed with a fully resolved proposal. */
+  onAdd: (action: ConfirmableAction) => void;
+  /** Edit pressed: the full form has been opened with the current state. */
   onEdited: () => void;
+  onDiscard: () => void;
+  /** Speak it again, in place. */
   onRetry: () => void;
+}
+
+/** YYYY-MM-DD for a local calendar day. */
+function isoDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function dayFromIso(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+/** A group with no name is named by its people, as `groupLabel` does elsewhere. */
+function groupTitle(group: AgentLocalGroup, youLabel: string): string {
+  const named = group.name.trim();
+  if (named) return named;
+  const others = group.members.filter((member) => !member.isViewer).map((member) => member.name);
+  if (others.length === 0) return youLabel;
+  if (others.length <= 2) return others.join(', ');
+  return `${others[0]}, ${others[1]} +${others.length - 2}`;
 }
 
 export function VoiceConfirmCard({
@@ -71,13 +97,13 @@ export function VoiceConfirmCard({
   onGroupChange,
   onAdd,
   onEdited,
+  onDiscard,
   onRetry,
 }: VoiceConfirmCardProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const viewerId = useViewerId();
   const groupRows = useGroups();
-  const summary = useHomeSummary(viewerId);
+  const { visible: catalog } = useLabelledCategoryCatalog();
   const youLabel = t.voice.agentYou;
 
   const initial = useMemo(() => initialFields(action, local, youLabel), [action, local, youLabel]);
@@ -85,27 +111,20 @@ export function VoiceConfirmCard({
   const patch = (next: Partial<ConfirmFields>): void =>
     setFields((current) => ({ ...current, ...next }));
   useEffect(() => {
-    onGroupChange(fields.groupId);
-  }, [fields.groupId, onGroupChange]);
+    onGroupChange(fields.personal ? null : fields.groupId);
+  }, [fields.personal, fields.groupId, onGroupChange]);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [iosDateOpen, setIosDateOpen] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
 
   const resolution = useMemo(
     () => resolveConfirm(action, initial, fields, local, youLabel, t.voice.anExpense),
     [action, initial, fields, local, youLabel, t.voice.anExpense],
   );
 
-  const tiles = useMemo(
-    () =>
-      orderGroupTiles(local.groups, initial.groupId, fields.groupId, (id) =>
-        summary.lastActivityFor(id),
-      ),
-    [local.groups, initial.groupId, fields.groupId, summary],
-  );
-
-  const brandSoft = theme.color.brandSoft;
   const brand = theme.color.brand;
-  const line = theme.color.border;
+  const brandSoft = theme.color.brandSoft;
   const reason = resolution.ok ? null : resolution.reason;
   const problemText =
     reason === 'person'
@@ -122,230 +141,326 @@ export function VoiceConfirmCard({
               ? t.voice.agentCouldNotRun
               : null;
 
-  const editAll = (): void => {
-    const edited: AddExpenseAction = resolution.ok
-      ? resolution.action
-      : { ...action, groupId: fields.groupId ?? action.groupId };
+  const group = fields.personal
+    ? undefined
+    : local.groups.find((candidate) => candidate.id === fields.groupId);
+  const destinationLabel = fields.personal
+    ? t.voice.agentJustYou
+    : group
+      ? groupTitle(group, youLabel)
+      : t.voice.confirmWhichGroup;
+
+  // The date row: today unless the proposal or the person said otherwise.
+  // Read once: the screen lives for a minute, not across midnight.
+  const [{ todayIso, yesterdayIso }] = useState(() => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    return { todayIso: isoDay(now), yesterdayIso: isoDay(yesterday) };
+  });
+  const dateIso = fields.date ?? todayIso;
+  const dayWord =
+    dateIso === todayIso
+      ? t.voice.confirmToday
+      : dateIso === yesterdayIso
+        ? t.voice.confirmYesterday
+        : null;
+  const dateText = dayFromIso(dateIso).toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const dateLabel = dayWord ? `${dayWord}, ${dateText}` : dateText;
+  const applyDate = (event: DateTimePickerEvent, picked?: Date): void => {
+    if (Platform.OS === 'ios') setIosDateOpen(false);
+    if (event.type === 'dismissed' || !picked) return;
+    patch({ date: isoDay(picked) });
+  };
+  const openDate = (): void => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dayFromIso(dateIso),
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: applyDate,
+      });
+    } else {
+      setIosDateOpen(true);
+    }
+  };
+
+  const categoryEntry = fields.category
+    ? (catalog.find((entry) => entry.key === fields.category) ??
+      resolveCategory(fields.category, null))
+    : null;
+
+  const edit = (): void => {
     onEdited();
+    // The form follows the destination on screen, whatever the amount reads.
+    if (fields.personal) {
+      const ready = resolution.ok ? resolution.action : null;
+      router.push({
+        pathname: '/personal/entry',
+        params: {
+          kind: 'expense',
+          ...(ready ? { amount: ready.amountMinor } : {}),
+          currency: action.currency,
+          note: ready?.description ?? fields.description,
+        },
+      });
+      return;
+    }
+    const proposal =
+      resolution.ok && resolution.action.type === 'add_expense'
+        ? resolution.action
+        : action.type === 'add_expense' && fields.groupId
+          ? { ...action, groupId: fields.groupId }
+          : null;
+    if (!proposal) {
+      setPickerOpen(true);
+      return;
+    }
     router.push({
       pathname: '/group/[id]/add-expense',
       params: {
-        id: edited.groupId,
-        amount: edited.amountMinor,
-        currency: edited.currency,
-        description: edited.description,
-        ...(edited.category ? { category: edited.category } : {}),
-        ...(edited.date ? { expenseDate: edited.date } : {}),
+        id: proposal.groupId,
+        amount: proposal.amountMinor,
+        currency: proposal.currency,
+        description: proposal.description,
+        ...(proposal.category ? { category: proposal.category } : {}),
+        ...(proposal.date ? { expenseDate: proposal.date } : {}),
         // Who paid and how it was split, so editing never quietly resets the
         // proposal to "I paid, split with everyone".
         ...encodeAgentSplitParams({
-          paidByMemberId: edited.paidByMemberId,
-          split: edited.split,
+          paidByMemberId: proposal.paidByMemberId,
+          split: proposal.split,
         }),
         quick: '1',
       },
     });
   };
 
-  const symbol = currencySymbol(action.currency);
+  // A group expense: who it was for, picked from the group's own people.
+  const others = group ? group.members.filter((member) => !member.isViewer) : [];
+  const named = namesIn(fields.personText);
+  const chosen = group
+    ? named
+        .map((name) => matchMember(group, name, youLabel))
+        .filter((member): member is NonNullable<typeof member> => !!member)
+    : [];
+  // By member, not by spelling: "renny" ticks Renny Joseph, and unticking him
+  // removes "renny" rather than adding a second entry.
+  const togglePerson = (memberId: string, memberName: string): void => {
+    if (!group) return;
+    const isThem = (entry: string) => matchMember(group, entry, youLabel)?.id === memberId;
+    const next = named.some(isThem)
+      ? named.filter((entry) => !isThem(entry))
+      : [...named, memberName];
+    patch({ personText: next.join(', ') });
+  };
+  const categoryIcon = (categoryEntry?.icon ??
+    'pricetag-outline') as keyof typeof Ionicons.glyphMap;
 
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
+  // The allowance and the engine that heard it, then speaking it again.
+  const allowance = (
+    <Row gap={theme.spacing.xs} style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+      <Text variant="caption" tone="muted">
+        {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+      </Text>
+      <VoiceEngineBadge info={engine} />
+    </Row>
+  );
+  const footer = (
+    <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <Row gap={theme.spacing.xs}>
+        <Text variant="caption" tone="muted">
+          {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+        </Text>
+        <Ionicons
+          name="information-circle-outline"
+          size={iconSize.base}
+          color={theme.color.textMuted}
+          accessibilityLabel={t.voice.confirmQuotaInfo}
+        />
+      </Row>
+      <VoiceEngineBadge info={engine} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.voice.agentTryAgain}
+        disabled={busy}
+        onPress={onRetry}
+        hitSlop={8}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.xs,
+          opacity: pressed || busy ? 0.6 : 1,
+        })}
+      >
+        <Ionicons name="mic-outline" size={iconSize.base} color={brand} />
+        <Text variant="caption" style={{ color: brand, fontWeight: '700' }}>
+          {t.voice.agentTryAgain}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
+  const groupLayout = (
+    <>
+      <View style={{ alignItems: 'center' }}>
+        <VoiceMicOrb size={64} bare />
+      </View>
+
       {/* What was heard. */}
-      <Card
-        padded={false}
+      <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          borderRadius: theme.radius.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.md,
+          borderRadius: theme.radius.xl,
+          backgroundColor: brandSoft,
         }}
       >
         <Ionicons name="pulse" size={iconSize.xl} color={brand} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="micro" tone="muted">
+          <Text variant="caption" tone="muted">
             {t.voice.agentHeard}:
           </Text>
-          <Text variant="caption" style={{ fontWeight: '600' }} numberOfLines={2}>
+          <Text variant="body" style={{ fontWeight: '600' }} numberOfLines={3}>
             “{transcript}”
           </Text>
         </View>
-      </Card>
+      </View>
 
-      <Card
-        padded={false}
+      <View
         style={{
-          padding: theme.spacing.md,
-          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.md,
           borderRadius: theme.radius.xl,
+          backgroundColor: theme.color.surface,
         }}
       >
-        <Row gap={theme.spacing.md}>
+        <Row gap={theme.spacing.md} style={{ paddingBottom: theme.spacing.sm }}>
           <View
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
+              width: 56,
+              height: 56,
+              borderRadius: 28,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: brandSoft,
             }}
           >
-            <Ionicons name="sparkles" size={iconSize.md} color={brand} />
+            <Ionicons name={categoryIcon} size={iconSize.xl} color={brand} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="subheading" numberOfLines={1}>
-              {t.voice.confirmUnderstood}
-            </Text>
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {t.voice.confirmEditHint}
+            <Row gap={2}>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: theme.color.text }}>
+                {currencySymbol(action.currency)}
+              </Text>
+              <TextInput
+                accessibilityLabel={t.voice.confirmAmount}
+                value={fields.amountText}
+                onChangeText={(text) =>
+                  patch({ amountText: sanitiseMinorInput(text, action.currency) })
+                }
+                keyboardType="decimal-pad"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: 0,
+                  fontSize: 28,
+                  fontWeight: '800',
+                  color: reason === 'amount' ? theme.color.negative : theme.color.text,
+                }}
+              />
+            </Row>
+            <Text tone="muted" numberOfLines={1}>
+              {fields.description || categoryEntry?.label || t.voice.anExpense}
             </Text>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t.voice.confirmEditAll}
-            onPress={editAll}
+            accessibilityLabel={t.voice.agentEdit}
             disabled={busy}
+            onPress={edit}
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.spacing.xs,
               paddingHorizontal: theme.spacing.md,
-              height: 32,
+              height: 40,
               borderRadius: theme.radius.pill,
               backgroundColor: brandSoft,
               opacity: pressed || busy ? 0.6 : 1,
             })}
           >
-            <Ionicons name="create-outline" size={iconSize.base} color={brand} />
-            <Text variant="caption" style={{ color: brand, fontWeight: '700' }}>
-              {t.voice.confirmEditAll}
-            </Text>
+            <Ionicons name="pencil-outline" size={iconSize.base} color={brand} />
+            <Text style={{ color: brand, fontWeight: '700' }}>{t.voice.agentEdit}</Text>
           </Pressable>
         </Row>
 
-        {/* Amount and who it was for — editable in place. */}
-        <Row gap={theme.spacing.sm} style={{ alignItems: 'stretch' }}>
-          <FieldTile
-            label={t.voice.confirmAmount}
-            clearLabel={t.voice.confirmClear}
-            invalid={reason === 'amount'}
-            icon={<Text style={{ color: brand, fontSize: 18, fontWeight: '700' }}>{symbol}</Text>}
-            iconBackground={brandSoft}
-            value={fields.amountText}
-            keyboardType="decimal-pad"
-            onChange={(text) => patch({ amountText: sanitiseMinorInput(text, action.currency) })}
-          />
-          <FieldTile
+        <LineRow icon="person-outline" label={t.voice.confirmPaidFor}>
+          <ChoiceBox
             label={t.voice.confirmPaidFor}
-            clearLabel={t.voice.confirmClear}
             invalid={reason === 'person'}
-            icon={
-              <Ionicons name="person-outline" size={iconSize.lg} color={theme.color.negative} />
+            leading={
+              chosen[0] ? (
+                <ProfileAvatar name={chosen[0].name} avatarUrl={chosen[0].avatarUrl} size={28} />
+              ) : null
             }
-            iconBackground={theme.color.negativeSoft}
-            value={fields.personText}
-            placeholder={t.voice.confirmJustMe}
-            onChange={(text) => patch({ personText: text })}
+            text={fields.personText || t.voice.confirmJustMe}
+            chevron="chevron-forward"
+            onPress={() => setPeopleOpen(true)}
           />
-        </Row>
-
-        <Row style={{ justifyContent: 'space-between', gap: theme.spacing.sm }}>
-          <Text variant="subheading" style={{ flexShrink: 1 }} numberOfLines={1}>
-            {t.voice.confirmWhichGroup}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.voice.confirmNewGroup}
-            onPress={() => router.push('/new-group')}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 2,
-              paddingHorizontal: theme.spacing.sm,
-              height: 30,
-              borderRadius: theme.radius.pill,
-              backgroundColor: brandSoft,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons name="add" size={iconSize.md} color={brand} />
-            <Text variant="micro" style={{ color: brand, fontWeight: '700' }} numberOfLines={1}>
-              {t.voice.confirmNewGroup}
-            </Text>
-          </Pressable>
-        </Row>
-
-        <View
-          accessibilityRole="radiogroup"
-          style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
-        >
-          {tiles.map((group) => (
-            <GroupTile
-              key={group.id}
-              group={group}
-              selected={group.id === fields.groupId}
-              membersLabel={plural(locale, group.members.length, t.memberCount)}
-              onPress={() => patch({ groupId: group.id })}
-            />
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${t.voice.confirmOtherGroup}, ${t.voice.confirmChooseAll}`}
+        </LineRow>
+        <Divider />
+        <LineRow icon="people-outline" label={t.voice.confirmGroupLabel}>
+          <ChoiceBox
+            label={t.voice.confirmGroupLabel}
+            invalid={reason === 'group'}
+            leading={
+              group ? (
+                <GroupPhoto photoPath={group.photoPath} emoji={group.coverEmoji} size={28} />
+              ) : null
+            }
+            text={destinationLabel}
+            subtext={group ? plural(locale, group.members.length, t.memberCount) : undefined}
+            chevron="chevron-forward"
             onPress={() => setPickerOpen(true)}
-            style={({ pressed }) => ({
-              width: '48.5%',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-              padding: theme.spacing.sm,
-              minHeight: 58,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderStyle: 'dashed',
-              borderColor: line,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: brandSoft,
-              }}
-            >
-              <Ionicons name="people" size={iconSize.lg} color={brand} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text variant="caption" style={{ fontWeight: '700' }} numberOfLines={1}>
-                {t.voice.confirmOtherGroup}
-              </Text>
-              <Text variant="micro" tone="muted" numberOfLines={2}>
-                {t.voice.confirmChooseAll}
-              </Text>
-            </View>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.md}
-              color={theme.color.textMuted}
-            />
-          </Pressable>
-        </View>
-
-        <NoteField
-          value={fields.note}
-          label={t.voice.confirmNote}
-          placeholder={t.voice.confirmNotePlaceholder}
-          clearLabel={t.voice.confirmClear}
-          onChange={(note) => patch({ note })}
-        />
-        <CategoryChips value={fields.category} onChange={(category) => patch({ category })} />
-      </Card>
+          />
+        </LineRow>
+        <Divider />
+        <LineRow icon="pricetag-outline" label={t.voice.confirmCategory}>
+          <ChoiceBox
+            label={t.voice.confirmCategory}
+            leading={<Ionicons name={categoryIcon} size={iconSize.lg} color={brand} />}
+            text={categoryEntry?.label ?? t.whatFor}
+            chevron="chevron-forward"
+            onPress={() => setCategoryOpen(true)}
+          />
+        </LineRow>
+        <Divider />
+        <LineRow icon="calendar-outline" label={t.voice.confirmDate}>
+          <ChoiceBox
+            label={t.voice.confirmDate}
+            text={dateLabel}
+            chevron="chevron-forward"
+            onPress={openDate}
+          />
+        </LineRow>
+        <Divider />
+        <LineRow icon="reader-outline" label={t.voice.confirmNoteLabel}>
+          <InputBox
+            value={fields.note}
+            placeholder={t.voice.confirmNoteHint}
+            label={t.voice.confirmNoteLabel}
+            onChange={(note) => patch({ note })}
+          />
+        </LineRow>
+      </View>
 
       {problemText ? (
         <Text variant="caption" tone="negative" accessibilityLiveRegion="polite">
@@ -353,53 +468,262 @@ export function VoiceConfirmCard({
         </Text>
       ) : null}
 
+      <Button
+        label={t.voice.confirmAdd}
+        variant="brand"
+        fullWidth
+        disabled={!resolution.ok || busy}
+        onPress={() => {
+          if (resolution.ok) onAdd(resolution.action);
+        }}
+        icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
+      />
+      {/* Discard and Try again share a row, and the allowance one line, so
+          the whole confirmation fits a phone without scrolling. */}
       <Row gap={theme.spacing.sm}>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t.voice.agentTryAgain}
-            variant="secondary"
-            fullWidth
-            disabled={busy}
-            onPress={onRetry}
-            icon={<Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t.voice.confirmAdd}
-            variant="brand"
-            fullWidth
-            disabled={!resolution.ok || busy}
-            onPress={() => {
-              if (resolution.ok) onAdd(resolution.action);
-            }}
-            icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
-          />
-        </View>
+        <PillButton
+          label={t.voice.agentDiscard}
+          icon="trash-outline"
+          disabled={busy}
+          onPress={onDiscard}
+        />
+        <PillButton
+          label={t.voice.agentTryAgain}
+          icon="mic-outline"
+          disabled={busy}
+          onPress={onRetry}
+        />
       </Row>
+      {allowance}
+    </>
+  );
 
-      {/* The allowance, with the engine's own pill behind the (i). */}
-      <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-        <Row gap={theme.spacing.xs}>
-          <MaterialCommunityIcons name="crown" size={iconSize.md} color={brand} />
-          <Text variant="micro" tone="muted">
-            {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.voice.confirmQuotaInfo}
-            hitSlop={10}
-            onPress={() => setInfoOpen((open) => !open)}
+  return (
+    <View style={{ gap: theme.spacing.md }}>
+      {fields.personal ? (
+        <>
+          {/* What was heard. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              paddingHorizontal: theme.spacing.lg,
+              paddingVertical: theme.spacing.md,
+              borderRadius: theme.radius.xl,
+              backgroundColor: brandSoft,
+            }}
           >
-            <Ionicons
-              name="information-circle-outline"
-              size={iconSize.base}
-              color={theme.color.textMuted}
-            />
-          </Pressable>
-        </Row>
-        {infoOpen ? <VoiceEngineBadge info={engine} /> : null}
-      </View>
+            <MaterialCommunityIcons name="waveform" size={iconSize.xl} color={brand} />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text variant="body" style={{ fontWeight: '600' }} numberOfLines={2}>
+                “{transcript}”
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t.voice.confirmHeardNow}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={{
+              padding: theme.spacing.lg,
+              gap: theme.spacing.md,
+              borderRadius: theme.radius.xl,
+              backgroundColor: theme.color.surface,
+            }}
+          >
+            {/* The amount, under the category's badge, and where it goes. */}
+            <Row gap={theme.spacing.md}>
+              <CategoryBadge
+                category={fields.category}
+                description={fields.description}
+                size={52}
+              />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="caption" tone="muted">
+                  {t.voice.confirmAdd}
+                </Text>
+                <Row gap={2}>
+                  <Text style={{ fontSize: 26, fontWeight: '800', color: theme.color.text }}>
+                    {currencySymbol(action.currency)}
+                  </Text>
+                  <TextInput
+                    accessibilityLabel={t.voice.confirmAmount}
+                    value={fields.amountText}
+                    onChangeText={(text) =>
+                      patch({ amountText: sanitiseMinorInput(text, action.currency) })
+                    }
+                    keyboardType="decimal-pad"
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: 0,
+                      fontSize: 26,
+                      fontWeight: '800',
+                      color: reason === 'amount' ? theme.color.negative : theme.color.text,
+                    }}
+                  />
+                </Row>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t.voice.confirmWhichGroup} ${destinationLabel}`}
+                onPress={() => setPickerOpen(true)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  maxWidth: '46%',
+                  paddingHorizontal: theme.spacing.md,
+                  height: 38,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: brandSoft,
+                  borderWidth: reason === 'group' ? 1.5 : 0,
+                  borderColor: theme.color.negative,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons
+                  name={fields.personal ? 'person-add-outline' : 'people-outline'}
+                  size={iconSize.base}
+                  color={brand}
+                />
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ flexShrink: 1, color: brand, fontWeight: '600' }}
+                >
+                  {destinationLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={iconSize.sm} color={brand} />
+              </Pressable>
+            </Row>
+
+            <FieldRow icon="pricetag-outline" label={t.voice.confirmDescription}>
+              <InputBox
+                value={fields.description}
+                placeholder={t.voice.confirmNotePlaceholder}
+                label={t.voice.confirmDescription}
+                trailing="create-outline"
+                onChange={(description) => patch({ description })}
+              />
+            </FieldRow>
+
+            <FieldRow icon="grid-outline" label={t.voice.confirmCategory}>
+              <ChoiceBox
+                label={t.voice.confirmCategory}
+                leading={
+                  categoryEntry ? (
+                    <Ionicons
+                      name={categoryEntry.icon as keyof typeof Ionicons.glyphMap}
+                      size={iconSize.lg}
+                      color={theme.color.text}
+                    />
+                  ) : null
+                }
+                text={categoryEntry?.label ?? t.whatFor}
+                onPress={() => setCategoryOpen(true)}
+              />
+            </FieldRow>
+
+            <FieldRow icon="calendar-outline" label={t.voice.confirmDate}>
+              <ChoiceBox label={t.voice.confirmDate} text={dateLabel} onPress={openDate} />
+            </FieldRow>
+
+            <FieldRow icon="reader-outline" label={t.voice.confirmNoteLabel}>
+              <InputBox
+                value={fields.note}
+                placeholder={t.voice.confirmNoteHint}
+                label={t.voice.confirmNoteLabel}
+                onChange={(note) => patch({ note })}
+              />
+            </FieldRow>
+
+            {problemText ? (
+              <Text variant="caption" tone="negative" accessibilityLiveRegion="polite">
+                {problemText}
+              </Text>
+            ) : null}
+
+            <Row gap={theme.spacing.sm} style={{ marginTop: theme.spacing.xs }}>
+              <PillButton
+                label={t.voice.agentConfirm}
+                icon="checkmark"
+                primary
+                grow={1.4}
+                disabled={!resolution.ok || busy}
+                onPress={() => {
+                  if (resolution.ok) onAdd(resolution.action);
+                }}
+              />
+              <PillButton
+                label={t.voice.agentEdit}
+                icon="pencil-outline"
+                disabled={busy}
+                onPress={edit}
+              />
+              <PillButton
+                label={t.voice.agentDiscard}
+                icon="trash-outline"
+                disabled={busy}
+                onPress={onDiscard}
+              />
+            </Row>
+          </View>
+
+          {footer}
+        </>
+      ) : (
+        groupLayout
+      )}
+
+      <Sheet
+        visible={peopleOpen}
+        onClose={() => setPeopleOpen(false)}
+        closeLabel={t.common.close}
+        title={t.voice.confirmPaidFor}
+      >
+        <View style={{ gap: theme.spacing.xs }}>
+          {/* The names as they stand, editable: the only way to clear one that
+              is not in this group (or "You"), which the checklist cannot show. */}
+          <InputBox
+            value={fields.personText}
+            placeholder={t.voice.confirmJustMe}
+            label={t.voice.confirmPaidFor}
+            invalid={reason === 'person'}
+            onChange={(personText) => patch({ personText })}
+          />
+          {others.map((member) => {
+            const on = chosen.some((entry) => entry.id === member.id);
+            return (
+              <Pressable
+                key={member.id}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: on }}
+                onPress={() => togglePerson(member.id, member.name)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <ProfileAvatar name={member.name} avatarUrl={member.avatarUrl} size={36} />
+                <Text style={{ flex: 1 }} numberOfLines={1}>
+                  {member.name}
+                </Text>
+                <Ionicons
+                  name={on ? 'checkbox' : 'square-outline'}
+                  size={iconSize.xl}
+                  color={on ? brand : theme.color.textFaint}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+      </Sheet>
 
       <Sheet
         visible={pickerOpen}
@@ -415,320 +739,253 @@ export function VoiceConfirmCard({
           <DestinationPicker
             key={pickerOpen ? 'open' : 'closed'}
             selection={
-              fields.groupId ? { kind: 'existing', groupId: fields.groupId } : { kind: 'none' }
+              fields.personal
+                ? { kind: 'me' }
+                : fields.groupId
+                  ? { kind: 'existing', groupId: fields.groupId }
+                  : { kind: 'none' }
             }
             eyebrow={t.voice.confirmWhichGroup}
-            pinned={[]}
+            pinned={['me']}
             people={[]}
-            groups={(groupRows.data ?? []).filter((group) =>
-              local.groups.some((candidate) => candidate.id === group.id),
+            groups={(groupRows.data ?? []).filter((row) =>
+              local.groups.some((candidate) => candidate.id === row.id),
             )}
             t={t}
             onChoose={(choice) => {
-              if (choice.kind === 'existing') patch({ groupId: choice.groupId });
+              if (choice.kind === 'me') patch({ personal: true });
+              if (choice.kind === 'existing') patch({ personal: false, groupId: choice.groupId });
               setPickerOpen(false);
             }}
             onResolvePeople={() => setPickerOpen(false)}
           />
         </ScrollView>
       </Sheet>
-    </View>
-  );
-}
 
-/** A labelled input tile with a round icon and a clear button. */
-function FieldTile({
-  label,
-  icon,
-  iconBackground,
-  value,
-  placeholder,
-  keyboardType,
-  invalid,
-  clearLabel,
-  onChange,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  iconBackground: string;
-  value: string;
-  placeholder?: string;
-  keyboardType?: 'decimal-pad';
-  invalid: boolean;
-  clearLabel: string;
-  onChange: (text: string) => void;
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        padding: theme.spacing.sm,
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: invalid ? theme.color.negative : theme.color.border,
-      }}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: iconBackground,
-        }}
-      >
-        {icon}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="micro" tone="muted">
-          {label}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-          <TextInput
-            accessibilityLabel={label}
-            value={value}
-            onChangeText={onChange}
-            placeholder={placeholder}
-            placeholderTextColor={theme.color.textFaint}
-            keyboardType={keyboardType}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: 0,
-              fontSize: 16,
-              fontWeight: '700',
-              color: theme.color.text,
-            }}
-          />
-          {value ? <ClearButton label={clearLabel} onPress={() => onChange('')} /> : null}
-        </View>
-      </View>
-    </View>
-  );
-}
+      {categoryOpen ? (
+        <CategorySheet
+          value={fields.category}
+          onChange={(key) => {
+            patch({ category: key === fields.category ? null : key });
+            setCategoryOpen(false);
+          }}
+          onClose={() => setCategoryOpen(false)}
+        />
+      ) : null}
 
-function ClearButton({ label, onPress }: { label: string; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={10} onPress={onPress}>
-      <Ionicons name="close-circle" size={iconSize.lg} color={theme.color.textMuted} />
-    </Pressable>
-  );
-}
-
-function GroupTile({
-  group,
-  selected,
-  membersLabel,
-  onPress,
-}: {
-  group: AgentLocalGroup;
-  selected: boolean;
-  membersLabel: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const shown = group.members.slice(0, AVATARS);
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${group.name}, ${membersLabel}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        width: '48.5%',
-        flexDirection: 'row',
-        gap: theme.spacing.sm,
-        padding: theme.spacing.sm,
-        minHeight: 58,
-        borderRadius: theme.radius.md,
-        borderWidth: selected ? 1.5 : 1,
-        borderColor: selected ? theme.color.brand : theme.color.border,
-        backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-        opacity: pressed ? 0.8 : 1,
-      })}
-    >
-      <GroupPhoto photoPath={group.photoPath} emoji={group.coverEmoji} size={36} />
-      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text variant="caption" style={{ fontWeight: '700' }} numberOfLines={1}>
-          {group.name}
-        </Text>
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {membersLabel}
-        </Text>
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ flexDirection: 'row', marginTop: 2 }}
+      {Platform.OS === 'ios' && iosDateOpen ? (
+        <Sheet
+          visible
+          onClose={() => setIosDateOpen(false)}
+          closeLabel={t.common.close}
+          title={t.voice.confirmDate}
         >
-          {shown.map((member, index) => (
-            <View
-              key={member.id}
-              style={{
-                marginStart: index === 0 ? 0 : -6,
-                borderRadius: 10,
-                borderWidth: 1.5,
-                borderColor: selected ? theme.color.brandSoft : theme.color.surface,
-              }}
-            >
-              <ProfileAvatar name={member.name} avatarUrl={member.avatarUrl} size={17} />
-            </View>
-          ))}
-        </View>
-      </View>
-      <Ionicons
-        name={selected ? 'radio-button-on' : 'radio-button-off'}
-        size={iconSize.lg}
-        color={selected ? theme.color.brand : theme.color.textFaint}
-      />
-    </Pressable>
+          <DateTimePicker
+            value={dayFromIso(dateIso)}
+            mode="date"
+            display="inline"
+            maximumDate={new Date()}
+            onChange={applyDate}
+          />
+        </Sheet>
+      ) : null}
+    </View>
   );
 }
 
-function NoteField({
-  value,
+/** One labelled row: an outline icon, the label, then its control. */
+function FieldRow({
+  icon,
   label,
-  placeholder,
-  clearLabel,
-  onChange,
+  children,
 }: {
-  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  placeholder: string;
-  clearLabel: string;
-  onChange: (text: string) => void;
+  children: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
     <Row gap={theme.spacing.sm}>
-      <Ionicons name="document-text-outline" size={iconSize.xl} color={theme.color.brand} />
-      <Text variant="micro" tone="muted" style={{ width: 62 }} numberOfLines={2}>
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.textMuted} />
+      <Text variant="caption" tone="muted" numberOfLines={1} style={{ width: 92 }}>
         {label}
       </Text>
-      <View
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.xs,
-          paddingHorizontal: theme.spacing.md,
-          height: 38,
-          borderRadius: theme.radius.pill,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-        }}
-      >
-        <TextInput
-          accessibilityLabel={label}
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor={theme.color.textFaint}
-          returnKeyType="done"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: 0,
-            fontSize: 14,
-            color: theme.color.text,
-          }}
-        />
-        {value ? <ClearButton label={clearLabel} onPress={() => onChange('')} /> : null}
-      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
     </Row>
   );
 }
 
-/** The catalog's first few categories as chips, "More" for the rest. */
-function CategoryChips({
-  value,
-  onChange,
-}: {
-  value: string | null;
-  onChange: (key: string | null) => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const { visible } = useLabelledCategoryCatalog();
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  const chosen = value
-    ? (visible.find((entry) => entry.key === value) ?? resolveCategory(value, null))
-    : null;
-  const shown: { key: string; label: string; icon: string }[] = visible.slice(0, CHIPS);
-  if (chosen && !shown.some((entry) => entry.key === chosen.key)) {
-    shown[shown.length - 1] = chosen;
-  }
-
-  const chip = (selected: boolean) => ({
+function boxStyle(theme: ReturnType<typeof useTheme>, invalid = false) {
+  return {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 4,
-    height: 34,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.pill,
-    borderWidth: selected ? 1.5 : 1,
-    borderColor: selected ? theme.color.brand : theme.color.border,
-    backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-  });
+    gap: theme.spacing.sm,
+    height: 46,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.color.surfaceMuted,
+    borderWidth: invalid ? 1.5 : 0,
+    borderColor: theme.color.negative,
+  };
+}
 
+function InputBox({
+  value,
+  placeholder,
+  label,
+  trailing,
+  invalid = false,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  label: string;
+  trailing?: keyof typeof Ionicons.glyphMap;
+  invalid?: boolean;
+  onChange: (text: string) => void;
+}) {
+  const theme = useTheme();
+  // Android leaves a single-line input scrolled to its cursor, the end, so a
+  // long value read from its last letters. Away from the keyboard, show the start.
+  const [focused, setFocused] = useState(false);
   return (
-    <Row gap={theme.spacing.xs} accessibilityRole="radiogroup">
-      {shown.map((entry) => {
-        const selected = entry.key === value;
-        return (
-          <Pressable
-            key={entry.key}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected }}
-            accessibilityLabel={entry.label}
-            onPress={() => onChange(selected ? null : entry.key)}
-            style={[chip(selected), { flexShrink: 1, minWidth: 0 }]}
-          >
-            <Ionicons
-              name={entry.icon as keyof typeof Ionicons.glyphMap}
-              size={iconSize.base}
-              color={selected ? theme.color.brand : theme.color.textMuted}
-            />
-            <Text
-              variant="micro"
-              numberOfLines={1}
-              style={{
-                flexShrink: 1,
-                color: selected ? theme.color.brand : theme.color.text,
-                fontWeight: selected ? '700' : '600',
-              }}
-            >
-              {entry.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.quickExpense.moreCategories}
-        onPress={() => setSheetOpen(true)}
-        style={[chip(false), { width: 38, paddingHorizontal: 0 }]}
-      >
-        <Ionicons name="ellipsis-horizontal" size={iconSize.base} color={theme.color.textMuted} />
-      </Pressable>
-      {sheetOpen ? (
-        <Sheet visible onClose={() => setSheetOpen(false)} title={t.whatFor}>
-          <CategoryChoices
-            value={value}
-            onChange={(key) => {
-              onChange(key === value ? null : key);
-              setSheetOpen(false);
-            }}
-          />
-        </Sheet>
-      ) : null}
+    <View style={boxStyle(theme, invalid)}>
+      <TextInput
+        accessibilityLabel={label}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={theme.color.textFaint}
+        returnKeyType="done"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        selection={focused ? undefined : { start: 0, end: 0 }}
+        style={{ flex: 1, minWidth: 0, padding: 0, fontSize: 15, color: theme.color.text }}
+      />
+      {trailing ? <Ionicons name={trailing} size={iconSize.lg} color={theme.color.brand} /> : null}
+    </View>
+  );
+}
+
+function ChoiceBox({
+  label,
+  text,
+  subtext,
+  leading,
+  chevron = 'chevron-down',
+  invalid = false,
+  onPress,
+}: {
+  label: string;
+  text: string;
+  subtext?: string;
+  leading?: React.ReactNode;
+  chevron?: 'chevron-down' | 'chevron-forward';
+  invalid?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${text}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        boxStyle(theme, invalid),
+        subtext ? { height: 54 } : null,
+        { opacity: pressed ? 0.7 : 1 },
+      ]}
+    >
+      {leading}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 15, fontWeight: subtext ? '600' : '400', color: theme.color.text }}
+        >
+          {text}
+        </Text>
+        {subtext ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {subtext}
+          </Text>
+        ) : null}
+      </View>
+      <Ionicons name={chevron} size={iconSize.base} color={theme.color.textMuted} />
+    </Pressable>
+  );
+}
+
+/** A row of the group card: icon and label on the left, the control filling the rest. */
+function LineRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Row gap={theme.spacing.sm} style={{ paddingVertical: theme.spacing.xs }}>
+      <Ionicons name={icon} size={iconSize.xl} color={theme.color.text} />
+      <Text tone="muted" numberOfLines={1} style={{ width: 84 }}>
+        {label}
+      </Text>
+      <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
     </Row>
+  );
+}
+
+function PillButton({
+  label,
+  icon,
+  primary = false,
+  grow = 1,
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  primary?: boolean;
+  grow?: number;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const ink = primary ? theme.color.onButtonPrimary : theme.color.brand;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexGrow: grow,
+        flexBasis: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing.xs,
+        height: 50,
+        paddingHorizontal: theme.spacing.sm,
+        borderRadius: theme.radius.pill,
+        backgroundColor: primary
+          ? pressed
+            ? theme.color.buttonPrimaryPressed
+            : theme.color.buttonPrimary
+          : theme.color.brandSoft,
+        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={ink} />
+      <Text
+        numberOfLines={1}
+        style={{ color: ink, fontWeight: '700', fontSize: 15, flexShrink: 1 }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
