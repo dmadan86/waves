@@ -262,6 +262,14 @@ export function VoiceConfirmCard({
     'pricetag-outline') as keyof typeof Ionicons.glyphMap;
 
   // The allowance and the engine that heard it, then speaking it again.
+  const allowance = (
+    <Row gap={theme.spacing.xs} style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+      <Text variant="caption" tone="muted">
+        {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+      </Text>
+      <VoiceEngineBadge info={engine} />
+    </Row>
+  );
   const footer = (
     <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
       <Row gap={theme.spacing.xs}>
@@ -300,7 +308,7 @@ export function VoiceConfirmCard({
   const groupLayout = (
     <>
       <View style={{ alignItems: 'center' }}>
-        <VoiceMicOrb size={150} />
+        <VoiceMicOrb size={64} bare />
       </View>
 
       {/* What was heard. */}
@@ -470,15 +478,23 @@ export function VoiceConfirmCard({
         }}
         icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
       />
-      <Row>
+      {/* Discard and Try again share a row, and the allowance one line, so
+          the whole confirmation fits a phone without scrolling. */}
+      <Row gap={theme.spacing.sm}>
         <PillButton
           label={t.voice.agentDiscard}
           icon="trash-outline"
           disabled={busy}
           onPress={onDiscard}
         />
+        <PillButton
+          label={t.voice.agentTryAgain}
+          icon="mic-outline"
+          disabled={busy}
+          onPress={onRetry}
+        />
       </Row>
-      {footer}
+      {allowance}
     </>
   );
 
@@ -911,7 +927,7 @@ function LineRow({
 }) {
   const theme = useTheme();
   return (
-    <Row gap={theme.spacing.sm} style={{ paddingVertical: theme.spacing.sm }}>
+    <Row gap={theme.spacing.sm} style={{ paddingVertical: theme.spacing.xs }}>
       <Ionicons name={icon} size={iconSize.xl} color={theme.color.text} />
       <Text tone="muted" numberOfLines={1} style={{ width: 84 }}>
         {label}

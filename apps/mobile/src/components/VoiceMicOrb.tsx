@@ -25,14 +25,23 @@ import { useTheme } from '@waves/ui';
 /** One turn of the lit arc. */
 const TURN_MS = 1100;
 
-export function VoiceMicOrb({ size = 220, working = false }: { size?: number; working?: boolean }) {
+export function VoiceMicOrb({
+  size = 220,
+  working = false,
+  bare = false,
+}: {
+  size?: number;
+  working?: boolean;
+  /** Just the disc, `size` across — no halos or ring — where height is short. */
+  bare?: boolean;
+}) {
   const theme = useTheme();
   const brand = theme.color.brand;
 
   // Proportions read off the design: halo, ring, inner halo, disc.
   const ring = size * 0.82;
   const inner = size * 0.55;
-  const disc = size * 0.41;
+  const disc = bare ? size : size * 0.41;
   const stroke = Math.max(2, size * 0.022);
   const radius = (ring - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -62,27 +71,31 @@ export function VoiceMicOrb({ size = 220, working = false }: { size?: number; wo
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
-      <View
-        style={{
-          ...centred,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: theme.color.brandSoft,
-          opacity: 0.45,
-        }}
-      />
-      <Svg width={ring} height={ring} style={{ position: 'absolute' }}>
-        <Circle
-          cx={ring / 2}
-          cy={ring / 2}
-          r={radius}
-          stroke={theme.color.brandSoft}
-          strokeWidth={stroke}
-          fill={theme.color.bg}
+      {bare ? null : (
+        <View
+          style={{
+            ...centred,
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: theme.color.brandSoft,
+            opacity: 0.45,
+          }}
         />
-      </Svg>
-      {working ? (
+      )}
+      {bare ? null : (
+        <Svg width={ring} height={ring} style={{ position: 'absolute' }}>
+          <Circle
+            cx={ring / 2}
+            cy={ring / 2}
+            r={radius}
+            stroke={theme.color.brandSoft}
+            strokeWidth={stroke}
+            fill={theme.color.bg}
+          />
+        </Svg>
+      )}
+      {working && !bare ? (
         <Animated.View style={[{ position: 'absolute', width: ring, height: ring }, spin]}>
           <Svg width={ring} height={ring}>
             <Circle
@@ -100,15 +113,17 @@ export function VoiceMicOrb({ size = 220, working = false }: { size?: number; wo
           </Svg>
         </Animated.View>
       ) : null}
-      <View
-        style={{
-          ...centred,
-          width: inner,
-          height: inner,
-          borderRadius: inner / 2,
-          backgroundColor: theme.color.brandSoft,
-        }}
-      />
+      {bare ? null : (
+        <View
+          style={{
+            ...centred,
+            width: inner,
+            height: inner,
+            borderRadius: inner / 2,
+            backgroundColor: theme.color.brandSoft,
+          }}
+        />
+      )}
       <View
         style={{
           backgroundColor: brand,
