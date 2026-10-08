@@ -961,10 +961,14 @@ export function VoiceCapture({
         streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
       };
       const hear = (text: string): void => {
+        // Deepgram keeps sending the finished sentence while the room is quiet;
+        // only new words restart the silence clock, or it never runs out and
+        // every take lasts until the 20 s cap.
+        const changed = text.trim() !== latest.current.trim();
         latest.current = text;
         setLive(text);
         const { silenceMs } = endRules.current;
-        if (text.trim() && silenceMs !== null) armSilence(silenceMs);
+        if (changed && text.trim() && silenceMs !== null) armSilence(silenceMs);
       };
       const attached = await attachStream(mic, got.session, {
         onInterim: hear,
