@@ -1308,6 +1308,7 @@ export interface UiStrings {
     confirmPickGroup: string;
     confirmNeedAmount: string;
     confirmHeardNow: string;
+    confirmGroupLabel: string;
     confirmDescription: string;
     confirmCategory: string;
     confirmDate: string;
@@ -5668,6 +5669,7 @@ const en: UiStrings = {
     confirmPickGroup: 'Pick a group to add this to',
     confirmNeedAmount: 'Enter an amount',
     confirmHeardNow: 'Heard just now',
+    confirmGroupLabel: 'Group',
     confirmDescription: 'Description',
     confirmCategory: 'Category',
     confirmDate: 'Date',
@@ -9536,6 +9538,7 @@ const ta: UiStrings = {
     confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
     confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
     confirmHeardNow: 'இப்போது கேட்டது',
+    confirmGroupLabel: 'குழு',
     confirmDescription: 'விவரம்',
     confirmCategory: 'வகை',
     confirmDate: 'தேதி',
@@ -13523,6 +13526,7 @@ const hi: UiStrings = {
     confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
     confirmNeedAmount: 'राशि डालें',
     confirmHeardNow: 'अभी सुना',
+    confirmGroupLabel: 'ग्रुप',
     confirmDescription: 'विवरण',
     confirmCategory: 'श्रेणी',
     confirmDate: 'तारीख',
@@ -17451,6 +17455,7 @@ const ar: UiStrings = {
     confirmPickGroup: 'اختر مجموعة لإضافته إليها',
     confirmNeedAmount: 'أدخل مبلغًا',
     confirmHeardNow: 'سُمع للتو',
+    confirmGroupLabel: 'المجموعة',
     confirmDescription: 'الوصف',
     confirmCategory: 'الفئة',
     confirmDate: 'التاريخ',
