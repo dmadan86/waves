@@ -42,6 +42,8 @@ import {
   type EventTemplateId,
 } from '@waves/core';
 
+import type { HomeHero } from '@/lib/homeHeroPure';
+
 export enum Language {
   En = 'en',
   Ta = 'ta',
@@ -812,8 +814,8 @@ export interface UiStrings {
     auto: string;
     autoHint: string;
     footnote: string;
-    names: Record<'morning' | 'afternoon' | 'evening' | 'sunset' | 'night' | 'winter', string>;
-    hints: Record<'morning' | 'afternoon' | 'evening' | 'sunset' | 'night' | 'winter', string>;
+    names: Record<HomeHero, string>;
+    hints: Record<HomeHero, string>;
   };
   /** Which networks sync may use, and what the banner says while it waits. */
   sync: {
@@ -5267,7 +5269,10 @@ const en: UiStrings = {
       evening: 'Evening',
       sunset: 'Sunset',
       night: 'Night',
-      winter: 'Winter',
+      'late-morning': 'Late morning',
+      rainy: 'Rainy',
+      autumn: 'Autumn',
+      spring: 'Spring',
     },
     hints: {
       morning: 'Fresh and calm start',
@@ -5275,7 +5280,10 @@ const en: UiStrings = {
       evening: 'Warm and relaxing',
       sunset: 'Vibrant and peaceful',
       night: 'Calm and focused',
-      winter: 'Crisp and serene',
+      'late-morning': 'Bright and clear',
+      rainy: 'Monsoon calm',
+      autumn: 'Golden leaves',
+      spring: 'Blossom season',
     },
   },
   sync: {
@@ -9106,7 +9114,10 @@ const ta: UiStrings = {
       evening: 'மாலை',
       sunset: 'சூரிய அஸ்தமனம்',
       night: 'இரவு',
-      winter: 'குளிர்காலம்',
+      'late-morning': 'முற்பகல்',
+      rainy: 'மழை',
+      autumn: 'இலையுதிர் காலம்',
+      spring: 'வசந்தம்',
     },
     hints: {
       morning: 'புத்துணர்வான அமைதியான தொடக்கம்',
@@ -9114,7 +9125,10 @@ const ta: UiStrings = {
       evening: 'இதமும் ஓய்வும்',
       sunset: 'துடிப்பும் அமைதியும்',
       night: 'அமைதியும் கவனமும்',
-      winter: 'தெளிவும் நிம்மதியும்',
+      'late-morning': 'தெளிவும் பிரகாசமும்',
+      rainy: 'பருவமழையின் அமைதி',
+      autumn: 'பொன்னிற இலைகள்',
+      spring: 'பூக்கும் காலம்',
     },
   },
   sync: {
@@ -13085,7 +13099,10 @@ const hi: UiStrings = {
       evening: 'शाम',
       sunset: 'सूर्यास्त',
       night: 'रात',
-      winter: 'सर्दी',
+      'late-morning': 'पूर्वाह्न',
+      rainy: 'बारिश',
+      autumn: 'पतझड़',
+      spring: 'वसंत',
     },
     hints: {
       morning: 'ताज़ी और शांत शुरुआत',
@@ -13093,7 +13110,10 @@ const hi: UiStrings = {
       evening: 'गर्म और सुकून भरी',
       sunset: 'जीवंत और शांत',
       night: 'शांत और एकाग्र',
-      winter: 'साफ़ और निर्मल',
+      'late-morning': 'साफ़ और उजला',
+      rainy: 'मानसून की शांति',
+      autumn: 'सुनहरे पत्ते',
+      spring: 'खिलने का मौसम',
     },
   },
   sync: {
@@ -16947,7 +16967,10 @@ const ar: UiStrings = {
       evening: 'المساء',
       sunset: 'الغروب',
       night: 'الليل',
-      winter: 'الشتاء',
+      'late-morning': 'منتصف الصباح',
+      rainy: 'ممطر',
+      autumn: 'الخريف',
+      spring: 'الربيع',
     },
     hints: {
       morning: 'بداية منعشة وهادئة',
@@ -16955,7 +16978,10 @@ const ar: UiStrings = {
       evening: 'دافئ ومريح',
       sunset: 'نابض بالحياة وهادئ',
       night: 'هادئ ومركّز',
-      winter: 'صافٍ وساكن',
+      'late-morning': 'صافٍ ومشرق',
+      rainy: 'هدوء الأمطار الموسمية',
+      autumn: 'أوراق ذهبية',
+      spring: 'موسم الأزهار',
     },
   },
   sync: {
