@@ -78,6 +78,15 @@ const RELEASE_BUILD_TYPE_PATCHED = `        release {
             signingConfig wavesHasUploadKey ? signingConfigs.release : signingConfigs.debug`;
 
 /**
+ * Newer Expo templates write the assignment form (\`signingConfig = signingConfigs.debug\`).
+ * Same block, one character different; both are accepted.
+ */
+const RELEASE_BUILD_TYPE_ASSIGN = RELEASE_BUILD_TYPE.replace(
+  'signingConfig signingConfigs',
+  'signingConfig = signingConfigs',
+);
+
+/**
  * Declared after the debug config rather than inside the same brace, so the
  * `debug { … }` block Expo writes is left exactly as it is — this plugin has to
  * survive Expo rewording it.
@@ -143,12 +152,15 @@ function patchBuildGradle(contents) {
   if (!contents.includes(PROJECT_ANCHOR)) {
     throw new Error('withReleaseSigning: could not find the android block in build.gradle');
   }
-  if (!contents.includes(RELEASE_BUILD_TYPE)) {
+  const releaseAnchor = contents.includes(RELEASE_BUILD_TYPE_ASSIGN)
+    ? RELEASE_BUILD_TYPE_ASSIGN
+    : RELEASE_BUILD_TYPE;
+  if (!contents.includes(releaseAnchor)) {
     throw new Error('withReleaseSigning: could not find the release buildType in build.gradle');
   }
 
   let next = contents.replace(PROJECT_ANCHOR, PROJECT_PROPERTIES);
-  next = next.replace(RELEASE_BUILD_TYPE, RELEASE_BUILD_TYPE_PATCHED);
+  next = next.replace(releaseAnchor, RELEASE_BUILD_TYPE_PATCHED);
 
   // The upload config goes after the debug one closes. `signingConfigs` holds
   // only `debug` at this point, so the first `}` at that indent ends it.

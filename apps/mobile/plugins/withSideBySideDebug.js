@@ -62,6 +62,12 @@ const DEBUG_BUILD_TYPE_PATCHED = `        debug {
             versionNameSuffix '-debug'
             signingConfig signingConfigs.debug`;
 
+/** Newer Expo templates write `signingConfig = signingConfigs.debug`; accept both. */
+const DEBUG_BUILD_TYPE_ASSIGN = DEBUG_BUILD_TYPE.replace(
+  'signingConfig signingConfigs',
+  'signingConfig = signingConfigs',
+);
+
 /**
  * The same resolution `app.config.ts` uses for `android.googleServicesFile`: the
  * EAS file secret first, the developer's local copy second, nothing if this
@@ -81,10 +87,13 @@ module.exports = function withSideBySideDebug(config) {
     const contents = gradleConfig.modResults.contents;
     if (contents.includes(MARKER)) return gradleConfig;
 
-    if (!contents.includes(DEBUG_BUILD_TYPE)) {
+    const anchor = contents.includes(DEBUG_BUILD_TYPE_ASSIGN)
+      ? DEBUG_BUILD_TYPE_ASSIGN
+      : DEBUG_BUILD_TYPE;
+    if (!contents.includes(anchor)) {
       throw new Error('withSideBySideDebug: could not find the debug buildType in build.gradle');
     }
-    gradleConfig.modResults.contents = contents.replace(DEBUG_BUILD_TYPE, DEBUG_BUILD_TYPE_PATCHED);
+    gradleConfig.modResults.contents = contents.replace(anchor, DEBUG_BUILD_TYPE_PATCHED);
     return gradleConfig;
   });
 
