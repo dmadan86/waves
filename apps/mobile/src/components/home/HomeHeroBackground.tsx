@@ -15,7 +15,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, useWindowDimensions, View } from 'react-native';
 
 import type { HomeHero } from '@/lib/homeHeroPure';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -74,38 +74,51 @@ export function HomeHeroBackground({
   const scale = Math.max(width / PHOTO_W, photoH / PHOTO_H);
   const renderedW = PHOTO_W * scale;
   const renderedH = PHOTO_H * scale;
+  // Flat, like FriendsHeroBackground: the photo and its two shades are direct
+  // siblings at explicit sizes. Nested clipping views left the bundled photo
+  // undrawn inside the blur target on Android.
   return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={[StyleSheet.absoluteFill, { height, overflow: 'hidden' }]}
-    >
-      <View style={{ height: photoH, overflow: 'hidden' }}>
-        <Image
-          key={hero}
-          source={HOME_HERO_PHOTOS[hero]}
-          fadeDuration={reduceMotion ? 0 : 300}
-          accessibilityIgnoresInvertColors
+    <>
+      <Image
+        key={hero}
+        source={HOME_HERO_PHOTOS[hero]}
+        fadeDuration={reduceMotion ? 0 : 300}
+        accessibilityIgnoresInvertColors
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={{
+          position: 'absolute',
+          width: renderedW,
+          height: renderedH,
+          left: (width - renderedW) / 2,
+          top: photoH - renderedH,
+        }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={HERO_SCRIM_COLORS}
+        locations={HERO_SCRIM_LOCATIONS}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: scrimHeight }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[`${pageColor}00`, `${pageColor}B3`, pageColor]}
+        locations={[HERO_FADE_FROM, HERO_FADE_FROM + (1 - HERO_FADE_FROM) * 0.55, 1]}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: photoH }}
+      />
+      {height > photoH ? (
+        <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
-            width: renderedW,
-            height: renderedH,
-            left: (width - renderedW) / 2,
-            top: photoH - renderedH,
+            left: 0,
+            right: 0,
+            top: photoH,
+            height: height - photoH,
+            backgroundColor: pageColor,
           }}
         />
-        <LinearGradient
-          colors={HERO_SCRIM_COLORS}
-          locations={HERO_SCRIM_LOCATIONS}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: scrimHeight }}
-        />
-        <LinearGradient
-          colors={[`${pageColor}00`, `${pageColor}B3`, pageColor]}
-          locations={[HERO_FADE_FROM, HERO_FADE_FROM + (1 - HERO_FADE_FROM) * 0.55, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
-    </View>
+      ) : null}
+    </>
   );
 }
