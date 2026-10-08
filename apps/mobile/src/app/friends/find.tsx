@@ -17,9 +17,19 @@
  * found the right Priya before adding her to a trip.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   Badge,
@@ -36,10 +46,35 @@ import {
 } from '@waves/ui';
 
 import { findPerson, type FoundPerson } from '@/data/api';
+import { FindSomeoneFooter } from '@/components/FindSomeoneFooter';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
+
+const ART = require('../../../assets/images/find-someone-art.webp') as number;
+/** The art's width over its height (849 × 392). */
+const ART_RATIO = 849 / 392;
+
+/** True while the on-screen keyboard is up (the scenic footer steps aside). */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setOpen(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setOpen(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return open;
+}
 
 /** What the box holds decides which channel is searched — no second control. */
 function channelFor(query: string): 'email' | 'phone' | null {
@@ -61,6 +96,11 @@ export default function FindPersonScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t } = useStrings();
+  const { width } = useWindowDimensions();
+  const keyboardOpen = useKeyboardOpen();
+  const dark = theme.scheme === 'dark';
+  // Compact: the art never grows past 190 dp, however wide the screen.
+  const artHeight = Math.min(width / ART_RATIO, 190);
 
   const [query, setQuery] = useState('');
   const [outcome, setOutcome] = useState<Outcome>({ state: 'idle' });
@@ -106,120 +146,194 @@ export default function FindPersonScreen() {
         <View style={{ width: 44 }} />
       </Row>
 
+      {keyboardOpen ? null : <FindSomeoneFooter />}
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text tone="muted">{t.person.findHint}</Text>
+        <Text tone="muted" style={{ paddingHorizontal: theme.spacing.xl }}>
+          {t.person.findHint}
+        </Text>
 
-        <Card>
-          <TextInput
-            value={query}
-            onChangeText={(next) => {
-              setQuery(next);
-              // A stale result under a changed box reads as the answer to the
-              // new query. Clear it the moment the question changes.
-              if (outcome.state !== 'idle') setOutcome({ state: 'idle' });
-            }}
-            accessibilityLabel={t.person.findPlaceholder}
-            placeholder={t.person.findPlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            inputMode="email"
-            returnKeyType="search"
-            onSubmitEditing={search}
-            autoFocus
-            // An address or a number is Latin text whatever the interface
-            // language is, so the box stays left-to-right even in Arabic.
-            style={{
-              fontSize: 18,
-              color: theme.color.text,
-              paddingVertical: theme.spacing.xs,
-              writingDirection: 'ltr',
-              textAlign: 'left',
-            }}
+        {/* Decorative: the two friends. The search card overlaps its foot. */}
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ height: artHeight, marginTop: theme.spacing.xs, alignItems: 'center' }}
+        >
+          <Image
+            source={ART}
+            resizeMode="cover"
+            style={{ width: artHeight * ART_RATIO, height: artHeight, opacity: dark ? 0.55 : 1 }}
           />
-        </Card>
+        </View>
 
-        <Button
-          label={t.person.findAction}
-          onPress={search}
-          disabled={!channel || outcome.state === 'searching'}
-          fullWidth
-        />
-
-        {outcome.state === 'searching' ? <ActivityIndicator color={theme.color.brand} /> : null}
-
-        {outcome.state === 'none' ? (
-          <Card style={{ gap: theme.spacing.xs }}>
-            <Text variant="subheading">{t.person.findNoMatch}</Text>
-            <Text tone="muted">{t.person.findNoMatchBody}</Text>
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.xl,
+            marginTop: -theme.spacing.sm,
+            gap: theme.spacing.lg,
+          }}
+        >
+          <Card style={{ paddingVertical: theme.spacing.md, borderRadius: theme.radius.lg }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
+              </View>
+              <TextInput
+                value={query}
+                onChangeText={(next) => {
+                  setQuery(next);
+                  // A stale result under a changed box reads as the answer to the
+                  // new query. Clear it the moment the question changes.
+                  if (outcome.state !== 'idle') setOutcome({ state: 'idle' });
+                }}
+                accessibilityLabel={t.person.findPlaceholder}
+                placeholder={t.person.findPlaceholder}
+                placeholderTextColor={theme.color.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                inputMode="email"
+                returnKeyType="search"
+                onSubmitEditing={search}
+                autoFocus
+                // An address or a number is Latin text whatever the interface
+                // language is, so the box stays left-to-right even in Arabic.
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  color: theme.color.text,
+                  paddingVertical: theme.spacing.xs,
+                  writingDirection: 'ltr',
+                  textAlign: 'left',
+                }}
+              />
+            </Row>
           </Card>
-        ) : null}
 
-        {outcome.state === 'error' ? (
-          <Card>
-            <Text tone="muted">{outcome.message}</Text>
-          </Card>
-        ) : null}
+          {/* Display-only: a tap must never put a made-up address in the box,
+              where one press of Search would spend a lookup on it. */}
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="caption" tone="muted">
+              {t.person.findExamples}
+            </Text>
+            <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+              {(
+                [
+                  ['mail', 'name@example.com'],
+                  ['call', '+91 98765 43210'],
+                ] as const
+              ).map(([icon, example]) => (
+                <Row
+                  key={icon}
+                  accessible
+                  accessibilityLabel={example}
+                  style={{
+                    alignItems: 'center',
+                    gap: theme.spacing.sm,
+                    paddingVertical: theme.spacing.xs,
+                    paddingHorizontal: theme.spacing.md,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.brandSoft,
+                  }}
+                >
+                  <Ionicons name={icon} size={iconSize.sm} color={theme.color.brand} />
+                  <Text variant="caption" tone="muted" style={{ writingDirection: 'ltr' }}>
+                    {example}
+                  </Text>
+                </Row>
+              ))}
+            </Row>
+          </View>
 
-        {outcome.state === 'found' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={outcome.person.display_name}
-            onPress={() =>
-              router.push({
-                pathname: '/friends/person/[key]',
-                params: { key: outcome.person.profile_id, name: outcome.person.display_name },
-              })
-            }
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            <Card>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <ProfileAvatar
-                  name={outcome.person.display_name}
-                  avatarUrl={outcome.person.avatar_url}
-                  size={48}
-                />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text variant="subheading" numberOfLines={1}>
-                    {outcome.person.display_name}
-                  </Text>
-                  {/* What you typed, given back. It reveals nothing and it is
-                      the only way to be sure this is the right person. */}
-                  <Text
-                    variant="caption"
-                    tone="muted"
-                    numberOfLines={1}
-                    style={{ writingDirection: 'ltr' }}
-                  >
-                    {outcome.typed}
-                  </Text>
-                  {outcome.person.already_shared ? (
-                    <Row>
-                      <Badge label={t.person.alreadyShared} tone="brand" />
-                    </Row>
-                  ) : null}
-                </View>
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.md}
-                  color={theme.color.textFaint}
-                />
-              </Row>
+          <Button
+            label={t.person.findAction}
+            onPress={search}
+            disabled={!channel || outcome.state === 'searching'}
+            fullWidth
+          />
+
+          {outcome.state === 'searching' ? <ActivityIndicator color={theme.color.brand} /> : null}
+
+          {outcome.state === 'none' ? (
+            <Card style={{ gap: theme.spacing.xs }}>
+              <Text variant="subheading">{t.person.findNoMatch}</Text>
+              <Text tone="muted">{t.person.findNoMatchBody}</Text>
             </Card>
-          </Pressable>
-        ) : null}
+          ) : null}
+
+          {outcome.state === 'error' ? (
+            <Card>
+              <Text tone="muted">{outcome.message}</Text>
+            </Card>
+          ) : null}
+
+          {outcome.state === 'found' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={outcome.person.display_name}
+              onPress={() =>
+                router.push({
+                  pathname: '/friends/person/[key]',
+                  params: { key: outcome.person.profile_id, name: outcome.person.display_name },
+                })
+              }
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <Card>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <ProfileAvatar
+                    name={outcome.person.display_name}
+                    avatarUrl={outcome.person.avatar_url}
+                    size={48}
+                  />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text variant="subheading" numberOfLines={1}>
+                      {outcome.person.display_name}
+                    </Text>
+                    {/* What you typed, given back. It reveals nothing and it is
+                      the only way to be sure this is the right person. */}
+                    <Text
+                      variant="caption"
+                      tone="muted"
+                      numberOfLines={1}
+                      style={{ writingDirection: 'ltr' }}
+                    >
+                      {outcome.typed}
+                    </Text>
+                    {outcome.person.already_shared ? (
+                      <Row>
+                        <Badge label={t.person.alreadyShared} tone="brand" />
+                      </Row>
+                    ) : null}
+                  </View>
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.md}
+                    color={theme.color.textFaint}
+                  />
+                </Row>
+              </Card>
+            </Pressable>
+          ) : null}
+        </View>
       </ScrollView>
     </Screen>
   );
