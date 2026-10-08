@@ -14,9 +14,8 @@
  * when the person has asked for reduced motion.
  */
 
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { HomeHero } from '@/lib/homeHeroPure';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -41,6 +40,10 @@ export const HERO_SCRIM_COLORS = [
 ] as const;
 export const HERO_SCRIM_LOCATIONS = [0, 0.6, 1] as const;
 
+/** Every photograph's size (they share one 2.25:1 frame). */
+const PHOTO_W = 1440;
+const PHOTO_H = 640;
+
 /** Where the page fade begins, as a share of the photo's height. */
 export const HERO_FADE_FROM = 0.55;
 
@@ -62,8 +65,15 @@ export function HomeHeroBackground({
   pageColor: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const { width } = useWindowDimensions();
   if (height <= 0) return null;
   const photoH = Math.min(photoHeight, height);
+  // `cover` by hand, anchored to the bottom and centred across: the same
+  // explicit-size react-native Image the Friends and Review heroes use, which
+  // renders bundled photos in release builds (expo-image left this blank).
+  const scale = Math.max(width / PHOTO_W, photoH / PHOTO_H);
+  const renderedW = PHOTO_W * scale;
+  const renderedH = PHOTO_H * scale;
   return (
     <View
       pointerEvents="none"
@@ -73,11 +83,17 @@ export function HomeHeroBackground({
     >
       <View style={{ height: photoH, overflow: 'hidden' }}>
         <Image
+          key={hero}
           source={HOME_HERO_PHOTOS[hero]}
-          contentFit="cover"
-          contentPosition="bottom"
-          transition={reduceMotion ? 0 : 350}
-          style={StyleSheet.absoluteFill}
+          fadeDuration={reduceMotion ? 0 : 300}
+          accessibilityIgnoresInvertColors
+          style={{
+            position: 'absolute',
+            width: renderedW,
+            height: renderedH,
+            left: (width - renderedW) / 2,
+            top: photoH - renderedH,
+          }}
         />
         <LinearGradient
           colors={HERO_SCRIM_COLORS}
