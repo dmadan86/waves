@@ -4,6 +4,10 @@
  * the device and shared by every hero through one small store, so changing it
  * on the picker turns both heroes at once.
  *
+ * The pick is one of Home's nine photographs (`HomeHero`); the painted heroes on
+ * the other screens wear the nearest scene (`sceneForHero`). Picks saved by the
+ * old six-scene picker still read: winter, which is gone, becomes Automatic.
+ *
  * Null means "automatic". The build-time `EXPO_PUBLIC_HERO_SCENE` override sits
  * under the person's own choice and over the clock — for testing a scene on a
  * device without waiting for it.
@@ -12,11 +16,12 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { parseScene, SCENE_OVERRIDE, sceneFor, type Scene } from '@/lib/scene';
+import { heroForPickedScene, type HomeHero } from '@/lib/homeHeroPure';
+import { SCENE_OVERRIDE, sceneFor, sceneForHero, type Scene } from '@/lib/scene';
 
 const KEY = 'waves.hero_scene';
 
-let preference: Scene | null = null;
+let preference: HomeHero | null = null;
 // Set once the person picks on this run: the stored answer, still being read,
 // must not then land on top of the choice they have just made.
 let pickedThisRun = false;
@@ -26,7 +31,7 @@ const listeners = new Set<() => void>();
 // also what they do for everyone who has never picked.
 void AsyncStorage.getItem(KEY)
   .then((stored) => {
-    const parsed = parseScene(stored ?? undefined);
+    const parsed = heroForPickedScene(stored);
     if (!pickedThisRun && parsed && parsed !== preference) {
       preference = parsed;
       listeners.forEach((listener) => listener());
@@ -41,14 +46,14 @@ function subscribe(listener: () => void): () => void {
 
 /** The person's pick, or null for automatic, and the way to change it. */
 export function useHeroScenePreference(): {
-  preference: Scene | null;
-  setPreference: (next: Scene | null) => void;
+  preference: HomeHero | null;
+  setPreference: (next: HomeHero | null) => void;
 } {
   const current = useSyncExternalStore(subscribe, () => preference);
   return { preference: current, setPreference: setHeroScenePreference };
 }
 
-export function setHeroScenePreference(next: Scene | null): void {
+export function setHeroScenePreference(next: HomeHero | null): void {
   pickedThisRun = true;
   preference = next;
   listeners.forEach((listener) => listener());
@@ -71,5 +76,5 @@ export function useHeroScene(): Scene {
     );
     return () => clearInterval(timer);
   }, []);
-  return picked ?? clock;
+  return sceneForHero(picked) ?? clock;
 }

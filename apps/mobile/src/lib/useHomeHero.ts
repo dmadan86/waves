@@ -1,7 +1,6 @@
 /**
  * The scenic photograph Home's header wears right now. The person's pick on the
- * Background screen wins (its five day scenes map onto the new photographs;
- * winter has none and follows the clock), then the build override, then the
+ * Background screen wins (any of the nine photographs), then the build override, then the
  * clock and the device region (`homeHeroPure`). Recomputed when the time slot
  * ends and whenever the app returns to the foreground.
  */

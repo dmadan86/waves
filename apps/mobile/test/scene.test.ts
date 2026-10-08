@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseScene, Scene, sceneFor } from '@/lib/scene';
+import { HOME_HEROES } from '@/lib/homeHeroPure';
+import { parseScene, Scene, sceneFor, sceneForHero } from '@/lib/scene';
 
 const at = (month: number, hour: number, minute = 0) => new Date(2026, month, 15, hour, minute);
 
@@ -48,5 +49,27 @@ describe('sceneFor', () => {
     expect(parseScene('winter')).toBe(Scene.Winter);
     expect(parseScene('noon')).toBeNull();
     expect(parseScene(undefined)).toBeNull();
+  });
+});
+
+describe('sceneForHero', () => {
+  it('keeps Automatic automatic', () => {
+    expect(sceneForHero(null)).toBeNull();
+  });
+
+  it('maps each photograph to the nearest painted scene', () => {
+    expect(sceneForHero('morning')).toBe(Scene.Morning);
+    expect(sceneForHero('late-morning')).toBe(Scene.Afternoon);
+    expect(sceneForHero('afternoon')).toBe(Scene.Afternoon);
+    expect(sceneForHero('evening')).toBe(Scene.Evening);
+    expect(sceneForHero('sunset')).toBe(Scene.Sunset);
+    expect(sceneForHero('night')).toBe(Scene.Night);
+    expect(sceneForHero('rainy')).toBe(Scene.Evening);
+    expect(sceneForHero('autumn')).toBe(Scene.Afternoon);
+    expect(sceneForHero('spring')).toBe(Scene.Afternoon);
+  });
+
+  it('never returns winter', () => {
+    for (const hero of HOME_HEROES) expect(sceneForHero(hero)).not.toBe(Scene.Winter);
   });
 });

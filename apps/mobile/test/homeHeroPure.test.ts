@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  HOME_HEROES,
   heroForPickedScene,
   hemisphereForRegion,
   msUntilNextBoundary,
@@ -109,9 +110,22 @@ describe('msUntilNextBoundary', () => {
 });
 
 describe('heroForPickedScene', () => {
-  it('maps picker scenes, winter and null to the clock', () => {
-    expect(heroForPickedScene('sunset')).toBe('sunset');
+  it('reads every photograph as itself, so a picked one wins over the clock', () => {
+    for (const hero of HOME_HEROES) expect(heroForPickedScene(hero)).toBe(hero);
+    expect(HOME_HEROES).toHaveLength(9);
+    expect(heroForPickedScene('rainy')).toBe('rainy');
+    expect(heroForPickedScene('autumn')).toBe('autumn');
+    expect(heroForPickedScene('spring')).toBe('spring');
+  });
+
+  it('migrates the legacy picks: the five day scenes carry over, winter and unknowns go Automatic', () => {
+    for (const legacy of ['morning', 'afternoon', 'sunset', 'evening', 'night']) {
+      expect(heroForPickedScene(legacy)).toBe(legacy);
+    }
     expect(heroForPickedScene('winter')).toBeNull();
+    expect(heroForPickedScene('blizzard')).toBeNull();
+    expect(heroForPickedScene('')).toBeNull();
     expect(heroForPickedScene(null)).toBeNull();
+    expect(heroForPickedScene(undefined)).toBeNull();
   });
 });
