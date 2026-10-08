@@ -4,15 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
-import {
-  Animated,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Animated, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import { dayNumber, type GuestGate } from '@waves/core';
 import {
@@ -43,7 +35,6 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
-import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
@@ -53,14 +44,14 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { useHeroScene } from '@/lib/heroScenePreference';
+import { useHomeHero } from '@/lib/useHomeHero';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
 import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
-import { HeroScene } from '@/components/home/HeroScene';
+import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
@@ -358,24 +349,21 @@ export default function HomeScreen() {
   // in render) so the "New" window is stable across this screen's renders and
   // the React Compiler stays happy — a bare Date.now() in render trips its lint.
   const [nowMs] = useState(() => Date.now());
-  // Which scene the hero wears: the clock's, or the one picked on the
-  // Background screen.
-  const scene = useHeroScene();
+  // Which photograph the hero wears: the clock's (and region's), or the one
+  // picked on the Background screen.
+  const hero = useHomeHero();
   // The hero's geometry, measured: the scene runs from the top of the screen
   // down to the lower part of the balance card, and needs to know where the
   // greeting row ends and where the card begins to place its layers.
-  const { width: windowWidth } = useWindowDimensions();
   const sceneRef = useRef<View>(null);
   const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
   const [greetingHeight, setGreetingHeight] = useState(46);
   const [cardHeight, setCardHeight] = useState(280);
   const cardTop = headerHeight - HERO_OVERLAP;
   const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
-  // The scene runs up under the status bar, so the clock and battery go white
-  // while Home is the screen in front (and back to the theme's when it is not).
-  // The greeting's ink follows the sky: dark on a pale scene, white on a deep
-  // one — and the status bar's clock and icons with it.
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  // The photograph runs up under the status bar behind a dark scrim, so the
+  // clock, battery and greeting are white on every scene.
+  const darkInk = false;
   const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
   useHeroStatusBar(darkInk ? 'dark' : 'light');
 
@@ -423,7 +411,7 @@ export default function HomeScreen() {
       {/* Static: the scene, the greeting and the balance card stay put; only
           the groups list below scrolls. */}
       <View style={{ flex: 1 }}>
-        {/* The scene, in layers (`HeroScene`): from under the status bar down
+        {/* The scenic photo (`HomeHeroBackground`): from under the status bar down
             to the lower part of the balance card, where it fades into the
             page — the groups below sit on the plain page, not on scenery. It
             is wrapped as the glass card's blur target (Android needs one). */}
@@ -432,16 +420,12 @@ export default function HomeScreen() {
           pointerEvents="none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
         >
-          <HeroScene
-            scene={scene}
-            width={windowWidth}
+          <HomeHeroBackground
+            hero={hero}
             height={sceneHeight}
-            horizon={cardTop}
-            headerBottom={insets.top + theme.spacing.sm + greetingHeight}
+            photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
+            scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
             pageColor={theme.color.bg}
-            // The scene shows whole: no darkening box across the top. The
-            // greeting's ink already follows the scene (light or dark).
-            shade={false}
           />
         </BlurTargetView>
 
