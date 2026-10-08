@@ -12,7 +12,9 @@
 
 import {
   computeShares,
+  encodeTxn,
   format,
+  guessCategory,
   money,
   type SplitParams,
   type VoiceAgentAction,
@@ -246,6 +248,33 @@ export interface AgentExpenseWrite {
   participants: string[];
   payers: Record<string, bigint>;
   expectedShares: Record<string, bigint>;
+}
+
+/**
+ * The personal-ledger record for an expense just for you — the one encoding both
+ * the confirmation screen and the card list's Confirm write, so the two cannot
+ * drift. `recordId` is minted by the caller once per card, as for a group expense.
+ */
+export function personalWriteFromAction(
+  action: Extract<VoiceAgentAction, { type: 'add_personal' }>,
+  recordId: string,
+  today: string,
+): { recordId: string; recordKind: 'txn'; data: Record<string, unknown> } {
+  const description = action.description.trim();
+  return {
+    recordId,
+    recordKind: 'txn',
+    data: encodeTxn({
+      kind: 'expense',
+      amount: BigInt(action.amountMinor),
+      currency: action.currency,
+      category: action.category ?? guessCategory(description),
+      note: description,
+      date: action.date ?? today,
+      loanId: null,
+      recurringId: null,
+    }),
+  };
 }
 
 /**

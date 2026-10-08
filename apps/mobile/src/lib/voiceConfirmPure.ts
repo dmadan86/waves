@@ -3,12 +3,12 @@
  * show for a proposed expense, how an edit to them turns back into a proposal,
  * and which groups are offered as tiles.
  *
- * The proposal stays the source of truth. The screen shows four things a person
- * can change in place — amount, who it was paid for, the group, and a note and
- * category — and everything else (payer, split mode, date) rides along from the
- * proposal untouched. Only a change that makes the old split meaningless (a
- * different group, a different person, a new amount on an exact split) rebuilds
- * it, and then to the one split that is always right: equal.
+ * One screen confirms both a group expense and a personal one ("Just for you"):
+ * the destination is a field like any other, and moving between the two turns
+ * the proposal into the other kind. The proposal stays the source of truth —
+ * payer and split ride along untouched until a change makes them meaningless (a
+ * different group, a different person, a new amount on an exact split), and
+ * then they are rebuilt to the one split that is always right: equal.
  */
 
 import { formatMinorInput, parseMinorInput, type VoiceAgentAction } from '@waves/core';
@@ -16,14 +16,26 @@ import { formatMinorInput, parseMinorInput, type VoiceAgentAction } from '@waves
 import type { AgentLocalData, AgentLocalGroup, AgentLocalMember } from '@/lib/voiceAgentPlan';
 
 export type AddExpenseAction = Extract<VoiceAgentAction, { type: 'add_expense' }>;
+export type AddPersonalAction = Extract<VoiceAgentAction, { type: 'add_personal' }>;
+/** What the confirmation screen can write: an expense in a group, or one just for you. */
+export type ConfirmableAction = AddExpenseAction | AddPersonalAction;
 
-/** What the editable fields hold. All plain strings, so the inputs bind to them directly. */
+/** What the editable fields hold. Plain strings, so the inputs bind to them directly. */
 export interface ConfirmFields {
+  /** Just for you: a personal record, no group. */
+  personal: boolean;
+  /** The group, when not personal; null until one is picked. */
   groupId: string | null;
   amountText: string;
+  /** Who else it was for, in the group — names as typed. */
   personText: string;
+  /** What it was. */
+  description: string;
+  /** Anything more, optional; written after the description. */
   note: string;
   category: string | null;
+  /** YYYY-MM-DD, or null for the proposal's own (today, unless it said). */
+  date: string | null;
 }
 
 /** How many group tiles precede "Other group". */
@@ -34,7 +46,8 @@ function norm(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 }
 
-function namesIn(text: string): string[] {
+/** The names in a typed list: "Renny, Anu and Bo" → three. */
+export function namesIn(text: string): string[] {
   return text
     .split(/,|&|\band\b|\+/i)
     .map((part) => part.trim())
@@ -43,25 +56,34 @@ function namesIn(text: string): string[] {
 
 /** The fields as the proposal first states them. */
 export function initialFields(
-  action: AddExpenseAction,
+  action: ConfirmableAction,
   local: AgentLocalData,
   youLabel: string,
 ): ConfirmFields {
+  let amountText = action.amountMinor;
+  if (/^\d+$/.test(action.amountMinor)) {
+    amountText = formatMinorInput(BigInt(action.amountMinor), action.currency).replace(/\.0+$/, '');
+  }
+  const common = {
+    amountText,
+    description: action.description,
+    note: '',
+    category: action.category ?? null,
+    date: action.date ?? null,
+  };
+  if (action.type === 'add_personal') {
+    return { ...common, personal: true, groupId: null, personText: '' };
+  }
   const group = local.groups.find((candidate) => candidate.id === action.groupId);
   const others = action.split.shares
     .map((share) => group?.members.find((member) => member.id === share.memberId))
     .filter((member): member is AgentLocalMember => !!member && member.id !== action.paidByMemberId)
     .map((member) => (member.isViewer ? youLabel : member.name));
-  let amountText = action.amountMinor;
-  if (/^\d+$/.test(action.amountMinor)) {
-    amountText = formatMinorInput(BigInt(action.amountMinor), action.currency).replace(/\.0+$/, '');
-  }
   return {
+    ...common,
+    personal: false,
     groupId: group ? group.id : null,
-    amountText,
     personText: others.join(', '),
-    note: action.description,
-    category: action.category ?? null,
   };
 }
 
@@ -89,7 +111,7 @@ export function matchMember(
 }
 
 export type ConfirmResolution =
-  | { ok: true; action: AddExpenseAction }
+  | { ok: true; action: ConfirmableAction }
   | { ok: false; reason: 'group' | 'amount' | 'payer' | 'person'; name?: string };
 
 /**
@@ -98,16 +120,13 @@ export type ConfirmResolution =
  * proposal's own payer and split exactly as the agent returned them.
  */
 export function resolveConfirm(
-  original: AddExpenseAction,
+  original: ConfirmableAction,
   initial: ConfirmFields,
   fields: ConfirmFields,
   local: AgentLocalData,
   youLabel: string,
   fallbackNote: string,
 ): ConfirmResolution {
-  const group = local.groups.find((candidate) => candidate.id === fields.groupId);
-  if (!group) return { ok: false, reason: 'group' };
-
   const amountMinor =
     fields.amountText === initial.amountText
       ? original.amountMinor
@@ -116,14 +135,31 @@ export function resolveConfirm(
     return { ok: false, reason: 'amount' };
   }
 
-  const sameGroup = group.id === original.groupId;
+  const description =
+    [fields.description.trim(), fields.note.trim()].filter(Boolean).join(' — ') || fallbackNote;
+  const date = fields.date ?? original.date;
+  const common = {
+    amountMinor,
+    currency: original.currency,
+    description,
+    ...(fields.category ? { category: fields.category } : {}),
+    ...(date ? { date } : {}),
+  };
+
+  if (fields.personal) return { ok: true, action: { type: 'add_personal', ...common } };
+
+  const group = local.groups.find((candidate) => candidate.id === fields.groupId);
+  if (!group) return { ok: false, reason: 'group' };
+
+  const proposed = original.type === 'add_expense' ? original : null;
+  const sameGroup = proposed !== null && group.id === proposed.groupId;
   const samePeople = norm(fields.personText) === norm(initial.personText);
-  let paidByMemberId = original.paidByMemberId;
-  let split = original.split;
+  let paidByMemberId = proposed?.paidByMemberId ?? '';
+  let split: AddExpenseAction['split'] = proposed?.split ?? { mode: 'equal', shares: [] };
 
   if (!sameGroup || !samePeople) {
     const payer = sameGroup
-      ? group.members.find((member) => member.id === original.paidByMemberId)
+      ? group.members.find((member) => member.id === paidByMemberId)
       : group.members.find((member) => member.isViewer);
     if (!payer) return { ok: false, reason: 'payer' };
     paidByMemberId = payer.id;
@@ -134,22 +170,21 @@ export function resolveConfirm(
       if (!ids.includes(member.id)) ids.push(member.id);
     }
     split = { mode: 'equal', shares: ids.map((memberId) => ({ memberId })) };
-  } else if (amountMinor !== original.amountMinor && original.split.mode === 'exact') {
+  } else if (amountMinor !== original.amountMinor && split.mode === 'exact') {
     split = {
       mode: 'equal',
-      shares: original.split.shares.map((share) => ({ memberId: share.memberId })),
+      shares: split.shares.map((share) => ({ memberId: share.memberId })),
     };
   }
 
-  const note = fields.note.trim();
   return {
     ok: true,
     action: {
-      ...original,
-      groupId: group.id,
-      amountMinor,
-      description: note || fallbackNote,
+      ...(proposed ?? {}),
+      type: 'add_expense',
+      ...common,
       category: fields.category ?? undefined,
+      groupId: group.id,
       paidByMemberId,
       split,
     },

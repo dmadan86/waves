@@ -1272,6 +1272,8 @@ export interface UiStrings {
     askAgain: string;
     /** Shown while the advanced voice agent reads the clip. */
     agentUnderstanding: string;
+    /** Under "Understanding…", while the words are being worked out. */
+    agentUnderstandingHint: string;
     agentHeard: string;
     agentConfirm: string;
     agentConfirmAll: string;
@@ -1305,6 +1307,15 @@ export interface UiStrings {
     confirmPersonMissing: string;
     confirmPickGroup: string;
     confirmNeedAmount: string;
+    confirmHeardNow: string;
+    confirmGroupLabel: string;
+    confirmDescription: string;
+    confirmCategory: string;
+    confirmDate: string;
+    confirmNoteLabel: string;
+    confirmNoteHint: string;
+    confirmToday: string;
+    confirmYesterday: string;
     /** Engine badge on the voice screen. */
     engineCloud: string;
     engineOnDevice: string;
@@ -5623,6 +5634,7 @@ const en: UiStrings = {
     ansNoPerson: "Couldn't find {name}",
     askAgain: 'Ask again',
     agentUnderstanding: 'Understanding…',
+    agentUnderstandingHint: 'Just a moment, I’m listening.',
     agentHeard: 'Heard',
     agentConfirm: 'Confirm',
     agentConfirmAll: 'Confirm all',
@@ -5655,6 +5667,15 @@ const en: UiStrings = {
     confirmPersonMissing: "{name} isn't in this group",
     confirmPickGroup: 'Pick a group to add this to',
     confirmNeedAmount: 'Enter an amount',
+    confirmHeardNow: 'Heard just now',
+    confirmGroupLabel: 'Group',
+    confirmDescription: 'Description',
+    confirmCategory: 'Category',
+    confirmDate: 'Date',
+    confirmNoteLabel: 'Note',
+    confirmNoteHint: 'Add a note (optional)',
+    confirmToday: 'Today',
+    confirmYesterday: 'Yesterday',
     engineCloud: 'Cloud',
     engineOnDevice: 'On-device',
     engineReasonFree: 'Free plan',
@@ -9481,6 +9502,7 @@ const ta: UiStrings = {
     ansNoPerson: '{name} கிடைக்கவில்லை',
     askAgain: 'மீண்டும் கேள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
+    agentUnderstandingHint: 'ஒரு நொடி, கேட்டுக்கொண்டிருக்கிறேன்.',
     agentHeard: 'கேட்டது',
     agentConfirm: 'உறுதிப்படுத்து',
     agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
@@ -9513,6 +9535,15 @@ const ta: UiStrings = {
     confirmPersonMissing: '{name} இந்த குழுவில் இல்லை',
     confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
     confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
+    confirmHeardNow: 'இப்போது கேட்டது',
+    confirmGroupLabel: 'குழு',
+    confirmDescription: 'விவரம்',
+    confirmCategory: 'வகை',
+    confirmDate: 'தேதி',
+    confirmNoteLabel: 'குறிப்பு',
+    confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    confirmToday: 'இன்று',
+    confirmYesterday: 'நேற்று',
     engineCloud: 'கிளவுட்',
     engineOnDevice: 'சாதனத்தில்',
     engineReasonFree: 'இலவசத் திட்டம்',
@@ -13458,6 +13489,7 @@ const hi: UiStrings = {
     ansNoPerson: '{name} नहीं मिला',
     askAgain: 'फिर पूछें',
     agentUnderstanding: 'समझा जा रहा है…',
+    agentUnderstandingHint: 'बस एक पल, मैं सुन रहा हूँ।',
     agentHeard: 'सुना',
     agentConfirm: 'पुष्टि करें',
     agentConfirmAll: 'सभी की पुष्टि करें',
@@ -13490,6 +13522,15 @@ const hi: UiStrings = {
     confirmPersonMissing: '{name} इस ग्रुप में नहीं है',
     confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
     confirmNeedAmount: 'राशि डालें',
+    confirmHeardNow: 'अभी सुना',
+    confirmGroupLabel: 'ग्रुप',
+    confirmDescription: 'विवरण',
+    confirmCategory: 'श्रेणी',
+    confirmDate: 'तारीख',
+    confirmNoteLabel: 'नोट',
+    confirmNoteHint: 'नोट जोड़ें (वैकल्पिक)',
+    confirmToday: 'आज',
+    confirmYesterday: 'कल',
     engineCloud: 'क्लाउड',
     engineOnDevice: 'ऑन-डिवाइस',
     engineReasonFree: 'फ्री प्लान',
@@ -17376,6 +17417,7 @@ const ar: UiStrings = {
     ansNoPerson: 'تعذر العثور على {name}',
     askAgain: 'اسأل مرة أخرى',
     agentUnderstanding: 'جارٍ الفهم…',
+    agentUnderstandingHint: 'لحظة واحدة، أنا أستمع.',
     agentHeard: 'سمعتُ',
     agentConfirm: 'تأكيد',
     agentConfirmAll: 'تأكيد الكل',
@@ -17408,6 +17450,15 @@ const ar: UiStrings = {
     confirmPersonMissing: '{name} ليس في هذه المجموعة',
     confirmPickGroup: 'اختر مجموعة لإضافته إليها',
     confirmNeedAmount: 'أدخل مبلغًا',
+    confirmHeardNow: 'سُمع للتو',
+    confirmGroupLabel: 'المجموعة',
+    confirmDescription: 'الوصف',
+    confirmCategory: 'الفئة',
+    confirmDate: 'التاريخ',
+    confirmNoteLabel: 'ملاحظة',
+    confirmNoteHint: 'أضف ملاحظة (اختياري)',
+    confirmToday: 'اليوم',
+    confirmYesterday: 'أمس',
     engineCloud: 'السحابة',
     engineOnDevice: 'على الجهاز',
     engineReasonFree: 'الخطة المجانية',

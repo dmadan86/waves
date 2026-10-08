@@ -99,8 +99,18 @@ export function Avatar({
       ) : mark ? (
         mark(resolved.ink)
       ) : (
-        <Text variant={size >= 44 ? 'subheading' : 'caption'} style={{ color: resolved.ink }}>
-          {emoji ?? initialsOf(name)}
+        <Text
+          variant={size >= 44 ? 'subheading' : 'caption'}
+          numberOfLines={1}
+          // A fixed caption size overflows a small circle — "RE" spilled out of
+          // a 17px chip into its neighbour — so below 30 the type scales with
+          // the circle, and under 24 one letter is all that fits legibly.
+          style={[
+            { color: resolved.ink },
+            size < 30 ? { fontSize: Math.max(8, Math.round(size * 0.42)), lineHeight: size } : null,
+          ]}
+        >
+          {emoji ?? (size < 24 ? initialsOf(name).slice(0, 1) : initialsOf(name))}
         </Text>
       )}
     </View>

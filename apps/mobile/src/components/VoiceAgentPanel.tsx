@@ -12,18 +12,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
-import {
-  encodeTxn,
-  guessCategory,
-  materialiseGroups,
-  materialiseMembers,
-  type VoiceAgentAction,
-} from '@waves/core';
+import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
+import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
 import { nudgeToSettle } from '@/data/api';
@@ -41,10 +36,11 @@ import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
-import type { AddExpenseAction } from '@/lib/voiceConfirmPure';
+import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
+  personalWriteFromAction,
   planVoiceAgentActions,
   quotaLeft,
   type AgentCard,
@@ -200,9 +196,12 @@ export function VoiceAgentPanel({
 
   if (!plan) {
     return (
-      <View style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}>
-        <ActivityIndicator color={theme.color.brand} />
-        <Text tone="muted">{t.voice.agentUnderstanding}</Text>
+      <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.xxl }}>
+        <VoiceMicOrb working />
+        <Text variant="heading" style={{ marginTop: theme.spacing.lg }}>
+          {t.voice.agentUnderstanding}
+        </Text>
+        <Text tone="muted">{t.voice.agentUnderstandingHint}</Text>
       </View>
     );
   }
@@ -217,7 +216,12 @@ export function VoiceAgentPanel({
   // fields editable in place. Anything more (several actions, a settle-up, an
   // answer or a question) keeps the card list below.
   const only = plan.cards.length === 1 ? plan.cards[0] : undefined;
-  if (only && only.action.type === 'add_expense' && !plan.answer && !plan.clarify) {
+  if (
+    only &&
+    (only.action.type === 'add_expense' || only.action.type === 'add_personal') &&
+    !plan.answer &&
+    !plan.clarify
+  ) {
     return statusOf(only.key) === 'discarded' ? (
       <View style={{ gap: theme.spacing.md }}>
         <Button label={t.voice.agentDone} onPress={onClose} />
@@ -231,12 +235,16 @@ export function VoiceAgentPanel({
         quota={quota}
         engine={engine}
         onEdited={() => setCardStatus(only.key, 'discarded')}
+        onDiscard={() => {
+          setCardStatus(only.key, 'discarded');
+          onClose();
+        }}
+        onRetry={() => onRetry()}
         onAdded={() => {
           setCardStatus(only.key, 'done');
           toast.show(t.voice.agentDone);
           onClose();
         }}
-        onRetry={() => onRetry()}
       />
     );
   }
@@ -328,37 +336,41 @@ function ConfirmExpense({
   quota,
   engine,
   onEdited,
+  onDiscard,
   onAdded,
   onRetry,
 }: {
-  action: AddExpenseAction;
+  action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
   today: string;
   quota: { left: number; limit: number };
   engine: VoiceEngineInfo | null;
   onEdited: () => void;
+  onDiscard: () => void;
   onAdded: () => void;
   onRetry: () => void;
 }) {
   // Minted once, so a retry after a failure reuses the id and appends no duplicate.
   const [expenseId] = useState(() => randomUUID());
-  const [groupId, setGroupId] = useState(action.groupId);
+  const [groupId, setGroupId] = useState(action.type === 'add_expense' ? action.groupId : '');
   const writeExpense = useWriteExpense(groupId);
+  const upsertPersonal = useUpsertPersonalRecord();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const add = async (resolved: AddExpenseAction): Promise<void> => {
-    const group = local.groups.find((candidate) => candidate.id === resolved.groupId);
-    const write = expenseWriteFromAction(resolved, group, expenseId, today);
-    if (!write) {
-      setFailed(true);
-      return;
-    }
+  const add = async (resolved: ConfirmableAction): Promise<void> => {
     setBusy(true);
     setFailed(false);
     try {
-      await writeExpense.mutateAsync(write);
+      if (resolved.type === 'add_personal') {
+        await upsertPersonal.mutateAsync(personalWriteFromAction(resolved, expenseId, today));
+      } else {
+        const group = local.groups.find((candidate) => candidate.id === resolved.groupId);
+        const write = expenseWriteFromAction(resolved, group, expenseId, today);
+        if (!write) throw new Error('expense does not hold together');
+        await writeExpense.mutateAsync(write);
+      }
       onAdded();
     } catch {
       setFailed(true);
@@ -375,9 +387,10 @@ function ConfirmExpense({
       engine={engine}
       busy={busy}
       failed={failed}
-      onGroupChange={(next) => setGroupId(next ?? action.groupId)}
+      onGroupChange={(next) => setGroupId(next ?? '')}
       onAdd={(resolved) => void add(resolved)}
       onEdited={onEdited}
+      onDiscard={onDiscard}
       onRetry={onRetry}
     />
   );
@@ -430,21 +443,7 @@ function AgentActionCard({
           break;
         }
         case 'add_personal': {
-          const description = action.description.trim();
-          await upsertPersonal.mutateAsync({
-            recordId: expenseId,
-            recordKind: 'txn',
-            data: encodeTxn({
-              kind: 'expense',
-              amount: BigInt(action.amountMinor),
-              currency: action.currency,
-              category: action.category ?? guessCategory(description),
-              note: description,
-              date: action.date ?? today,
-              loanId: null,
-              recurringId: null,
-            }),
-          });
+          await upsertPersonal.mutateAsync(personalWriteFromAction(action, expenseId, today));
           break;
         }
         case 'record_settlement':
