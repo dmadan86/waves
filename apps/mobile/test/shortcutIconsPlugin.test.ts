@@ -73,6 +73,19 @@ describe('withShortcutIcons — emitted native sources', () => {
     }
   });
 
+  it('keeps every icon through release resource shrinking', () => {
+    // The icons are looked up by name at runtime, so without a tools:keep the
+    // shrinker deletes them and the long-press menu loses its icons.
+    const keep = readFileSync(
+      join(root, 'android/app/src/main/res/raw/waves_shortcut_icons_keep.xml'),
+      'utf8',
+    );
+    for (const name of Object.keys(GLYPHS)) {
+      expect(keep).toContain(`@drawable/${name}`);
+    }
+    expect(keep).toContain('xmlns:tools="http://schemas.android.com/tools"');
+  });
+
   it('is idempotent — prebuild can run twice over the same tree', () => {
     writeNativeSources(root);
     for (const name of Object.keys(GLYPHS)) {
