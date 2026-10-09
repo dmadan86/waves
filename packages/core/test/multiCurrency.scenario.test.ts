@@ -22,6 +22,7 @@ import {
   computePairwiseBalances,
   netFromPairwise,
 } from '../src/balances/balances.js';
+import { convertedCurrencies, toSettleExpense, toSettleExpenses } from '../src/balances/convert.js';
 import { SettlementStatus } from '../src/balances/types.js';
 import type { ExpenseSnapshot, NetBalances, SettlementSnapshot } from '../src/balances/types.js';
 import { computeShares, sumShares } from '../src/split/computeShares.js';
@@ -313,5 +314,126 @@ describe('multi-user × multi-expense × multi-currency scenario', () => {
 
     // Ordered by magnitude: INR (2300) leads, then USD (115), then EUR (40).
     expect(totals.map((t) => t.currency)).toEqual(['INR', 'USD', 'EUR']);
+  });
+});
+
+// ── An INR group that settles in its own currency (ADR-003 amendment) ────────
+//
+// A Vietnam trip, kept in rupees. Rate recorded on the bill: 1 ₫ = ₹0.0034,
+// stored as 34/10000. VND has no minor unit and INR has two, so one ₫ is
+// 34·100 / 10000 = 0.34 paise.
+//
+// V1 dinner ₫1,234,567, A paid, exact A 411,523 / R 411,522 / M 411,522.
+//    Total: 1,234,567 × 0.34 = 419,752.78 paise → rounded once → 419,753.
+//    Payers: A's quota 419,752.78 → floor 419,752, one unit left → A 419,753.
+//    Shares: A 411,523 × 0.34 = 139,917.82
+//            R 411,522 × 0.34 = 139,917.48
+//            M 411,522 × 0.34 = 139,917.48
+//      floors 139,917 × 3 = 419,751; 419,753 − 419,751 = 2 units to hand out.
+//      Largest remainder first: A (.82). R and M tie at .48 → smaller id wins,
+//      and 'meera' < 'ravi', so M.  → A 139,918  R 139,917  M 139,918 (Σ 419,753)
+//    Net: A +419,753 − 139,918 = +279,835   R −139,917   M −139,918   (Σ 0)
+// I1 snacks ₹900, R paid, equal A/R/M → 30,000 paise each.
+//    A −30,000  R +60,000  M −30,000
+// V2 boat ₫300,000, M paid, exact 100,000 each — NO rate recorded, so it stays
+//    in ₫: M +200,000  A −100,000  R −100,000.
+//
+// INR: A +249,835  R −79,917  M −169,918   (Σ 0)
+// VND: A −100,000  R −100,000  M +200,000  (Σ 0)
+describe('an INR group settling a ₫ trip in rupees', () => {
+  const VND_TO_INR = {
+    num: '34',
+    den: '10000',
+    from: 'VND',
+    to: 'INR',
+    ts: '2026-10-01T00:00:00.000Z',
+    source: 'manual',
+  };
+  const dinner: ExpenseSnapshot = {
+    ...expense({
+      id: 'vnd-dinner',
+      currency: 'VND',
+      amount: 1_234_567n,
+      payers: { [A]: 1_234_567n },
+      params: { kind: 'exact', amounts: { [A]: 411_523n, [R]: 411_522n, [M]: 411_522n } },
+      participants: [A, R, M],
+    }),
+    fx: VND_TO_INR,
+  };
+  const snacks = expense({
+    id: 'inr-snacks',
+    currency: 'INR',
+    amount: 90_000n,
+    payers: { [R]: 90_000n },
+    params: { kind: 'exact', amounts: { [A]: 30_000n, [R]: 30_000n, [M]: 30_000n } },
+    participants: [A, R, M],
+  });
+  const boat = expense({
+    id: 'vnd-boat',
+    currency: 'VND',
+    amount: 300_000n,
+    payers: { [M]: 300_000n },
+    params: { kind: 'exact', amounts: { [A]: 100_000n, [R]: 100_000n, [M]: 100_000n } },
+    participants: [A, R, M],
+  });
+  const ledger = [dinner, snacks, boat];
+
+  it('converts the dinner at its own rate, apportioned to the paisa', () => {
+    const settled = toSettleExpense(dinner);
+    expect(settled.currency).toBe('INR');
+    expect(settled.amount).toBe(419_753n);
+    expect(settled.payers).toEqual({ [A]: 419_753n });
+    expect(settled.shares).toEqual({ [A]: 139_918n, [R]: 139_917n, [M]: 139_918n });
+    expect(settled.convertedFrom).toEqual({ currency: 'VND', amount: 1_234_567n });
+  });
+
+  it('nets the converted dinner with the rupee bill; the rate-less boat stays in ₫', () => {
+    const net = computeNetBalances(toSettleExpenses(ledger, true), []);
+    expect(snapshot(net, 'INR')).toEqual({ [A]: 249_835n, [R]: -79_917n, [M]: -169_918n, [D]: 0n });
+    expect(snapshot(net, 'VND')).toEqual({
+      [A]: -100_000n,
+      [R]: -100_000n,
+      [M]: 200_000n,
+      [D]: 0n,
+    });
+    expect(balanceSums(net).get('INR')).toBe(0n);
+    expect(balanceSums(net).get('VND')).toBe(0n);
+    expect(convertedCurrencies(toSettleExpenses(ledger, true))).toEqual(['VND']);
+  });
+
+  it('pays the rupee debt down with a rupee settlement', () => {
+    // R pays A ₹799.17: R is square in rupees; A is still owed M's share.
+    const paid: SettlementSnapshot = {
+      id: 'r-pays-a',
+      from: R,
+      to: A,
+      currency: 'INR',
+      amount: 79_917n,
+      status: SettlementStatus.Confirmed,
+      at: '2026-10-03T00:00:00Z',
+    };
+    const settled = toSettleExpenses(ledger, true);
+    const net = computeNetBalances(settled, [paid]);
+    expect(snapshot(net, 'INR')).toEqual({ [A]: 169_918n, [R]: 0n, [M]: -169_918n, [D]: 0n });
+
+    // Pairwise, per bill then netted: dinner R→A 139,917, M→A 139,918; snacks
+    // A→R 30,000 and M→R 30,000; R's settlement takes 79,917 off R→A.
+    const edges = computePairwiseBalances(settled, [paid]).filter((e) => e.currency === 'INR');
+    expect(edges.map((e) => `${e.from}->${e.to}:${e.amount}`).sort()).toEqual(
+      [`${M}->${A}:139918`, `${M}->${R}:30000`, `${R}->${A}:30000`].sort(),
+    );
+    expect(snapshot(netFromPairwise(edges), 'INR')).toEqual(snapshot(net, 'INR'));
+  });
+
+  it('changes nothing for a group that has not opted in', () => {
+    const net = computeNetBalances(toSettleExpenses(ledger, false), []);
+    // Dinner stays in ₫: A +1,234,567 − 411,523 − 100,000 = +723,044 …
+    expect(snapshot(net, 'VND')).toEqual({
+      [A]: 723_044n,
+      [R]: -511_522n,
+      [M]: -211_522n,
+      [D]: 0n,
+    });
+    expect(snapshot(net, 'INR')).toEqual({ [A]: -30_000n, [R]: 60_000n, [M]: -30_000n, [D]: 0n });
   });
 });

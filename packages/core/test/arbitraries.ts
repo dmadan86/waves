@@ -80,3 +80,64 @@ export const exactSplit = (
       });
       return { amounts, total };
     });
+
+/**
+ * A stored rate (`expense_versions.fx`) converting `from` into one of the group
+ * currencies Waves settles in. Rationals span many orders of magnitude on both
+ * sides, so the conversion is exercised from ₫ (exponent 0) through ₹/$ (2) to
+ * the three-decimal dinars, in both directions.
+ */
+export const FX_FROM = ['VND', 'USD', 'JPY', 'KWD', 'EUR', 'INR'] as const;
+export const FX_TO = ['INR', 'USD', 'JPY', 'BHD'] as const;
+
+export interface FxRecordDraw {
+  num: string;
+  den: string;
+  from: string;
+  to: string;
+  ts: string;
+  source: string;
+}
+
+export const fxRecords = (from: string): fc.Arbitrary<FxRecordDraw> =>
+  fc
+    .record({
+      to: fc.constantFrom(...FX_TO.filter((code) => code !== from)),
+      num: fc.bigInt({ min: 1n, max: 10_000_000n }),
+      den: fc.bigInt({ min: 1n, max: 10_000_000n }),
+    })
+    .map(({ to, num, den }) => ({
+      num: num.toString(),
+      den: den.toString(),
+      from,
+      to,
+      ts: '2026-10-01T00:00:00.000Z',
+      source: 'manual',
+    }));
+
+/**
+ * Stored `fx` values that are NOT a usable rate for a bill in `currency`: the
+ * bill must stay in its own currency on every one of them.
+ */
+export const unusableFx = (currency: string): fc.Arbitrary<unknown> =>
+  fc.constantFrom<unknown>(
+    null,
+    undefined,
+    'not an object',
+    [],
+    {
+      num: '1',
+      den: '2',
+      from: currency === 'EUR' ? 'USD' : 'EUR',
+      to: 'INR',
+      ts: 't',
+      source: 's',
+    },
+    { num: '1', den: '2', from: currency, to: currency, ts: 't', source: 's' },
+    { num: 3, den: '2', from: currency, to: 'XTS', ts: 't', source: 's' },
+    { num: '0', den: '2', from: currency, to: 'XTS', ts: 't', source: 's' },
+    { num: '1', den: '-2', from: currency, to: 'XTS', ts: 't', source: 's' },
+    { num: '1.5', den: '2', from: currency, to: 'XTS', ts: 't', source: 's' },
+    { num: '1', den: '2', from: currency, to: 'inr', ts: 't', source: 's' },
+    { num: '1', den: '2', from: currency, ts: 't', source: 's' },
+  );
