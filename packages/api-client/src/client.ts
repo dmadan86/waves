@@ -73,7 +73,8 @@ const PROFILE_COLUMNS =
   'country_code, address, default_currency, locale, notification_prefs';
 
 const GROUP_ROW_COLUMNS = `
-  id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
+  id, name, type, country_code, default_currency, simplify_debts, convert_to_group_currency,
+  cover_emoji, photo_path,
   start_date, end_date, time_zone, budget_minor, budget_currency,
   archived_at, created_at, updated_seq
 `;
@@ -105,7 +106,7 @@ const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, category_meta, expense_date, currency, amount,
-    split_type, split_params, location, receipt_id, receipt_share_url,
+    split_type, split_params, location, receipt_id, receipt_share_url, fx,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -443,7 +444,9 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       const rows = await read<Group>(
         supabase
           .from('groups')
-          .select('id, name, type, cover_emoji, default_currency, simplify_debts')
+          .select(
+            'id, name, type, cover_emoji, default_currency, simplify_debts, convert_to_group_currency',
+          )
           .eq('id', groupId)
           // Null for a deleted group rather than a row that opens: RLS still
           // returns it to a member, because the tombstone has to reach every

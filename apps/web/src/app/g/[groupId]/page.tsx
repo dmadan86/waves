@@ -213,7 +213,12 @@ function GroupDetail({
   }
 
   const currency = group.default_currency;
-  const ledger = computeLedger(expenses, settlements, currency);
+  const ledger = computeLedger(
+    expenses,
+    settlements,
+    currency,
+    group.convert_to_group_currency === true,
+  );
   const byId = new Map(members.map((member) => [member.id, member]));
   /**
    * A member's name for a sentence about them.

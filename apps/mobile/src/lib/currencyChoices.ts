@@ -30,10 +30,17 @@ export const COMMON_CURRENCIES = [
  * it while any rate is pinned would silently reinterpret every stored numerator
  * and denominator as a rate into a different currency. That is the same class of
  * ledger lie as changing it after expenses exist, so the row becomes read-only
- * once either facts or rates depend on it.
+ * once either facts or rates depend on it. A recorded settlement counts too: the
+ * server freezes the currency on any of the three (`waves_guard_group_columns`,
+ * CURRENCY_LOCKED), and this mirrors it so the control never offers a change the
+ * server will refuse.
  */
-export function settlementCurrencyLocked(expenseCount: number, tripRateCount: number): boolean {
-  return expenseCount > 0 || tripRateCount > 0;
+export function settlementCurrencyLocked(
+  expenseCount: number,
+  tripRateCount: number,
+  settlementCount = 0,
+): boolean {
+  return expenseCount > 0 || tripRateCount > 0 || settlementCount > 0;
 }
 
 /** Only an admin can pick the settlement currency, and only before anything
@@ -42,6 +49,7 @@ export function canEditSettlementCurrency(
   isAdmin: boolean,
   expenseCount: number,
   tripRateCount: number,
+  settlementCount = 0,
 ): boolean {
-  return isAdmin && !settlementCurrencyLocked(expenseCount, tripRateCount);
+  return isAdmin && !settlementCurrencyLocked(expenseCount, tripRateCount, settlementCount);
 }

@@ -45,7 +45,7 @@ import { useBlockedUsers } from '@/data/blocked';
 import { useBottomClearance } from '@/lib/clearance';
 import {
   memberLookup,
-  toSnapshot,
+  toLedgerSnapshots,
   useGroup,
   useGroupLedger,
   useRecordSettlement,
@@ -67,6 +67,8 @@ import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
+import { convertedCaption, isRatelessTransfer } from '@/lib/settleCurrency';
+import { useAddRate } from '@/lib/useAddRate';
 import {
   settleHero,
   splitSettlePlan,
@@ -130,14 +132,23 @@ export function SettleBody({
   const fmt = (value: bigint, code: string = currency): string =>
     format(money(value, code as CurrencyCode), { locale });
 
+  const converts = ledger.convertsToGroupCurrency;
+  /** A debt from a bill with no rate yet, in a group that settles in its own
+   *  currency: not payable here (the server takes only the group currency), so
+   *  the row offers to add the rate instead. */
+  const rateless = (transfer: PlanTransfer): boolean =>
+    isRatelessTransfer(transfer, currency, converts);
+  const addRate = useAddRate(groupId);
+
   /**
    * What the payer still owes the payee, expense by expense — the payment is
-   * applied against these oldest-first (ADR-007).
+   * applied against these oldest-first (ADR-007). Read off the bills as the
+   * balances count them (a converted ₫ bill in the group's currency) and only in
+   * the settlement's own currency, so an allocation never mixes units.
    */
-  const receivablesFor = (fromId: string, toId: string): Receivable[] =>
-    expenses.rows
-      .map(toSnapshot)
-      .filter((snapshot): snapshot is NonNullable<typeof snapshot> => snapshot !== null)
+  const receivablesFor = (fromId: string, toId: string, code: string): Receivable[] =>
+    toLedgerSnapshots(expenses.rows, group.data)
+      .filter((snapshot) => !snapshot.deletedAt && snapshot.currency === code)
       .map((snapshot) => {
         const owes = BigInt(snapshot.shares[fromId] ?? 0n);
         const paidByOther = BigInt(snapshot.payers[toId] ?? 0n);
@@ -151,8 +162,11 @@ export function SettleBody({
     // A settlement is a write; an expired guest is read-only (ADR-006 addendum).
     if (guard.blockWrite()) return;
     if (transfer.amount <= 0n) return;
+    // Never record a rate-less debt: the server refuses anything but the group
+    // currency in a converting group. The rows never offer it; this is the floor.
+    if (rateless(transfer)) return;
     setError(null);
-    const receivables = receivablesFor(transfer.from, transfer.to);
+    const receivables = receivablesFor(transfer.from, transfer.to, transfer.currency);
     const allocation =
       receivables.length > 0
         ? allocateSettlement({ amount: transfer.amount }, receivables)
@@ -267,6 +281,7 @@ export function SettleBody({
   }
 
   const hero = settleHero(split, summary, currency);
+  const heroCaption = convertedCaption(ledger.convertedFrom, locale, t.fx.convertedCaption);
 
   const history = (settlements.data ?? [])
     .filter((row) => row.status !== SettlementStatus.Cancelled)
@@ -313,7 +328,9 @@ export function SettleBody({
         }}
         showsVerticalScrollIndicator={false}
       >
-        {showSummary ? <SummaryCard hero={hero} currency={currency} locale={locale} /> : null}
+        {showSummary ? (
+          <SummaryCard hero={hero} currency={currency} locale={locale} caption={heroCaption} />
+        ) : null}
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
 
@@ -324,6 +341,26 @@ export function SettleBody({
               const person = personFor(transfer.from);
               const name = nameOf(transfer.from);
               const joined = Boolean(person && !isGhost(person));
+              if (rateless(transfer)) {
+                return (
+                  <RatelessTile
+                    key={`${transfer.from}-${transfer.currency}`}
+                    name={name}
+                    member={person}
+                    ghost={ghostFor(person)}
+                    amount={transfer.amount}
+                    currency={transfer.currency}
+                    direction={BalanceDirection.OwedToYou}
+                    locale={locale}
+                    onAddRate={() =>
+                      void addRate({
+                        currency: transfer.currency,
+                        parties: [transfer.from, transfer.to],
+                      })
+                    }
+                  />
+                );
+              }
               return (
                 <PersonTile
                   key={`${transfer.from}-${transfer.currency}`}
@@ -374,6 +411,26 @@ export function SettleBody({
               const person = personFor(transfer.to);
               const name = nameOf(transfer.to);
               const amountText = fmt(transfer.amount, transfer.currency);
+              if (rateless(transfer)) {
+                return (
+                  <RatelessTile
+                    key={`${transfer.to}-${transfer.currency}`}
+                    name={name}
+                    member={person}
+                    ghost={ghostFor(person)}
+                    amount={transfer.amount}
+                    currency={transfer.currency}
+                    direction={BalanceDirection.YouOwe}
+                    locale={locale}
+                    onAddRate={() =>
+                      void addRate({
+                        currency: transfer.currency,
+                        parties: [transfer.from, transfer.to],
+                      })
+                    }
+                  />
+                );
+              }
               return (
                 <PersonTile
                   key={`${transfer.to}-${transfer.currency}`}
@@ -796,6 +853,70 @@ function PersonTile({
 }
 
 /**
+ * A debt from a bill that has no rate yet, in a group that settles in its own
+ * currency. It still shows (the debt is real, in the bill's own currency), but
+ * it cannot be paid, marked or reminded about until the bill has a rate — then
+ * it joins the group-currency total above. The one action is to add that rate.
+ */
+function RatelessTile({
+  name,
+  member,
+  ghost,
+  amount,
+  currency,
+  direction,
+  locale,
+  onAddRate,
+}: {
+  name: string;
+  member?: MemberRow;
+  ghost: boolean;
+  amount: bigint;
+  currency: string;
+  direction: BalanceDirection;
+  locale: string;
+  onAddRate: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <Tile>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <View
+          accessible
+          accessibilityLabel={`${name}. ${t.fx.noRateYet}`}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+        >
+          <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
+          <View style={{ flex: 1 }}>
+            <Text variant="subheading" numberOfLines={1}>
+              {name}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {t.fx.noRateYet}
+            </Text>
+          </View>
+          <MoneyText
+            amount={amount}
+            currency={currency as CurrencyCode}
+            locale={locale}
+            mode="balance"
+            direction={direction}
+          />
+        </View>
+        <Button
+          label={t.fx.addRateAction}
+          size="sm"
+          variant="secondary"
+          accessibilityLabel={`${name}. ${t.fx.noRateYet}. ${t.fx.addRateAction}`}
+          onPress={onAddRate}
+        />
+      </Row>
+    </Tile>
+  );
+}
+
+/**
  * A payment between two members: who, an arrow, whom, and the amount with its
  * date beneath when the payment has one (a recorded payment does; a planned
  * transfer is computed and has none).
@@ -906,10 +1027,13 @@ function SummaryCard({
   hero,
   currency,
   locale,
+  caption,
 }: {
   hero: SettleHero;
   currency: string;
   locale: string;
+  /** "Includes ₫ bills at their recorded rates", when any bill was converted. */
+  caption: string | null;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -961,6 +1085,11 @@ function SummaryCard({
           <Text variant="caption" tone="muted">
             {plural(locale, hero.count, t.misc.settlePaymentsCount)}
           </Text>
+          {caption ? (
+            <Text variant="micro" tone="muted" numberOfLines={2} style={{ maxWidth: '60%' }}>
+              {caption}
+            </Text>
+          ) : null}
         </View>
       )}
     </LinearGradient>

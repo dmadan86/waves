@@ -6,7 +6,7 @@
  * columns nobody renders is asking RLS to prove more than it has to.
  */
 
-import type { CategoryMeta, ExpenseLocation, SplitParams } from '@waves/core';
+import type { CategoryMeta, ExpenseLocation, FxRecord, SplitParams } from '@waves/core';
 import type { GroupType } from './rows';
 
 export type MemberId = string;
@@ -17,6 +17,9 @@ export interface Group {
   cover_emoji: string | null;
   default_currency: string;
   simplify_debts: boolean;
+  /** Foreign bills with a stored rate count in `default_currency` (ADR-003
+   *  amendment). Optional: absent from a read that did not select it. */
+  convert_to_group_currency?: boolean;
   /**
    * What kind of group this is — read, not decoration: it decides which of the
    * trip screens a group leads to. Optional because the guest link's own read
@@ -66,6 +69,9 @@ export interface ExpenseVersion {
    * and not signed by us — it is shown as a link out, never loaded as an image.
    */
   receipt_share_url?: string | null;
+  /** The rate stored on this version (`expense_versions.fx`), or null. Balances
+   *  in a converting group count the bill in the group currency at this rate. */
+  fx?: FxRecord | null;
   payers: { member_id: MemberId; amount: string }[];
   shares: { member_id: MemberId; amount: string }[];
 }

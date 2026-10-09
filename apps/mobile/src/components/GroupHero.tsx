@@ -43,6 +43,7 @@ import { HERO_THEMES } from '@/lib/scene';
 import { useBlockedUsers } from '@/data/blocked';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
+import { convertedCaption } from '@/lib/settleCurrency';
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useDialog } from '@/lib/dialog';
 
@@ -94,6 +95,7 @@ export function GroupHero({
   profileId,
   currency,
   myBalance,
+  convertedFrom = [],
   pending,
   pendingForMe,
   heroGradient,
@@ -106,6 +108,10 @@ export function GroupHero({
   profileId: string | null;
   currency: string;
   myBalance: bigint;
+  /** Currencies of bills counted in `currency` at their recorded rates
+   *  (ADR-003 amendment); named under the figure so a converted ₫ bill is
+   *  never mistaken for a rupee one. */
+  convertedFrom?: readonly string[];
   pending: bigint;
   pendingForMe: readonly SettlementRow[];
   heroGradient: readonly string[];
@@ -121,6 +127,7 @@ export function GroupHero({
       ? formatShortDateRange(group.start_date, group.end_date, locale)
       : null;
   const typeTag = useGroupTypeTag(group.type, group.event_template, group.custom_tag);
+  const convertedNote = convertedCaption(convertedFrom, locale, t.fx.convertedCaption);
   const { confirm } = useDialog();
   const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
@@ -371,6 +378,14 @@ export function GroupHero({
                 minimumFontScale={0.6}
                 style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
               />
+              {myBalance !== 0n && convertedNote ? (
+                <Text
+                  numberOfLines={1}
+                  style={{ color: ink, fontSize: 12, lineHeight: 16, opacity: 0.75 }}
+                >
+                  {convertedNote}
+                </Text>
+              ) : null}
             </View>
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>

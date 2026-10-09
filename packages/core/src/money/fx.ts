@@ -46,18 +46,26 @@ export function convert(amount: Money, rate: FxRate): Money {
       `Rate converts ${rate.from}→${rate.to}, but amount is ${amount.currency}`,
     );
   }
-  const fromExponent = minorUnitExponent(rate.from);
-  const toExponent = minorUnitExponent(rate.to);
+  const scaled = minorUnitRate(rate);
+  return money(divideRoundHalfAwayFromZero(amount.minor * scaled.num, scaled.den), rate.to);
+}
 
-  // minor_to = minor_from * num * 10^(to_exp) / (den * 10^(from_exp))
-  const exponentDelta = toExponent - fromExponent;
+/**
+ * The rate restated per MINOR unit: 1 minor unit of `from` = num/den minor
+ * units of `to`. The one place the exponent difference is applied, shared by
+ * `convert` and by the group-currency apportionment (balances/convert.ts).
+ *
+ *   num = rate.num · 10^max(Δ, 0),  den = rate.den · 10^max(−Δ, 0),
+ *   Δ = exponent(to) − exponent(from)
+ */
+export function minorUnitRate(rate: Pick<FxRate, 'num' | 'den' | 'from' | 'to'>): {
+  num: bigint;
+  den: bigint;
+} {
+  const exponentDelta = minorUnitExponent(rate.to) - minorUnitExponent(rate.from);
   const scaleUp = exponentDelta > 0 ? 10n ** BigInt(exponentDelta) : 1n;
   const scaleDown = exponentDelta < 0 ? 10n ** BigInt(-exponentDelta) : 1n;
-
-  const numerator = amount.minor * rate.num * scaleUp;
-  const denominator = rate.den * scaleDown;
-
-  return money(divideRoundHalfAwayFromZero(numerator, denominator), rate.to);
+  return { num: rate.num * scaleUp, den: rate.den * scaleDown };
 }
 
 export function invertRate(rate: FxRate): FxRate {

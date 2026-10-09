@@ -33,6 +33,7 @@ import {
   railById,
   railsFor,
   toMajorString,
+  usableFx,
   type CurrencyCode,
 } from '@waves/core';
 
@@ -208,8 +209,14 @@ function GroupSettle({
   const myMemberId = members.find((member) => member.profile_id === profileId)?.id ?? null;
 
   const ledger = useMemo(
-    () => computeLedger(expenses, settlements, group.default_currency),
-    [expenses, settlements, group.default_currency],
+    () =>
+      computeLedger(
+        expenses,
+        settlements,
+        group.default_currency,
+        group.convert_to_group_currency === true,
+      ),
+    [expenses, settlements, group.default_currency, group.convert_to_group_currency],
   );
 
   if (loading) {
@@ -222,6 +229,48 @@ function GroupSettle({
 
   const iOwe = ledger.transfers.filter((transfer) => transfer.from === myMemberId);
   const owesMe = ledger.transfers.filter((transfer) => transfer.to === myMemberId);
+
+  // A group that settles in its own currency (ADR-003 amendment) takes only that
+  // currency: the server refuses anything else. A debt still in another currency
+  // comes from a bill with no rate yet — shown, never offered for settling or a
+  // pay link, with the bill one click away.
+  const converts = group.convert_to_group_currency === true;
+  const groupCurrency = group.default_currency;
+  const rateless = (transfer: { currency: string }): boolean =>
+    converts && transfer.currency !== groupCurrency;
+  /** The bill behind a rate-less debt: one in its currency with no usable rate,
+   *  preferring one both people are on. */
+  const ratelessBill = (transfer: { from: string; to: string; currency: string }) => {
+    const missing = expenses.filter((expense) => {
+      const version = expense.currentVersion;
+      return (
+        !expense.deleted_at &&
+        version !== null &&
+        version !== undefined &&
+        version.currency === transfer.currency &&
+        usableFx(version.fx ?? null, version.currency, groupCurrency) === null
+      );
+    });
+    const onIt = (expense: Expense): boolean =>
+      [transfer.from, transfer.to].every(
+        (member) =>
+          (expense.currentVersion?.payers ?? []).some((row) => row.member_id === member) ||
+          (expense.currentVersion?.shares ?? []).some((row) => row.member_id === member),
+      );
+    return missing.find(onIt) ?? missing[0] ?? null;
+  };
+  const noRateNote = (transfer: { from: string; to: string; currency: string }) => {
+    const bill = ratelessBill(transfer);
+    return (
+      <span className="faint" style={{ marginInlineStart: 10 }}>
+        {t.settle.noRateYet}
+        {' · '}
+        <a href={bill ? `/g/${group.id}/expense/${bill.id}` : `/g/${group.id}`}>
+          {t.settle.openBill}
+        </a>
+      </span>
+    );
+  };
   // Everything still answerable, not just what is waiting to be confirmed: a
   // settlement that confirmed itself is one nobody actively agreed to, and its
   // payee may still say it never arrived.
@@ -321,24 +370,35 @@ function GroupSettle({
           <div className="list">
             {iOwe.map((transfer) => {
               const payee = byId.get(transfer.to);
-              const open = openSettle === transfer.to;
+              const rowKey = `${transfer.to}-${transfer.currency}`;
+              const noRate = rateless(transfer);
+              const open = !noRate && openSettle === rowKey;
               return (
-                <div key={transfer.to}>
+                <div key={rowKey}>
                   <div className="item" style={{ cursor: 'default' }}>
                     <span className="grow">
                       <span className="title">{payee ? memberName(payee) : t.settle.title}</span>
+                      {noRate ? (
+                        <span className="faint" style={{ display: 'block' }}>
+                          {t.settle.noRateHint.replace('{currency}', groupCurrency)}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="amount neg">
                       {money(transfer.amount, transfer.currency, locale)}
                     </span>
-                    <button
-                      type="button"
-                      className="btn"
-                      style={{ marginInlineStart: 10 }}
-                      onClick={() => setOpenSettle(open ? null : transfer.to)}
-                    >
-                      {t.settle.settleUp}
-                    </button>
+                    {noRate ? (
+                      noRateNote(transfer)
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{ marginInlineStart: 10 }}
+                        onClick={() => setOpenSettle(open ? null : rowKey)}
+                      >
+                        {t.settle.settleUp}
+                      </button>
+                    )}
                   </div>
                   {open && myMemberId && payee ? (
                     <SettleForm
@@ -371,22 +431,30 @@ function GroupSettle({
               const payer = byId.get(transfer.from);
               const isNudged = nudged.has(transfer.from);
               return (
-                <div key={transfer.from} className="item" style={{ cursor: 'default' }}>
+                <div
+                  key={`${transfer.from}-${transfer.currency}`}
+                  className="item"
+                  style={{ cursor: 'default' }}
+                >
                   <span className="grow">
                     <span className="title">{payer ? memberName(payer) : t.settle.title}</span>
                   </span>
                   <span className="amount pos">
                     {money(transfer.amount, transfer.currency, locale)}
                   </span>
-                  <button
-                    type="button"
-                    className="btn soft"
-                    style={{ marginInlineStart: 10 }}
-                    disabled={isNudged || busy === transfer.from}
-                    onClick={() => void nudge(transfer.from, transfer.currency)}
-                  >
-                    {isNudged ? t.settle.nudged : t.settle.nudge}
-                  </button>
+                  {rateless(transfer) ? (
+                    noRateNote(transfer)
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn soft"
+                      style={{ marginInlineStart: 10 }}
+                      disabled={isNudged || busy === transfer.from}
+                      onClick={() => void nudge(transfer.from, transfer.currency)}
+                    >
+                      {isNudged ? t.settle.nudged : t.settle.nudge}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -509,8 +577,12 @@ function SettleForm({
   const railInfo = railById(rail);
   const needsHandle = railInfo ? railInfo.handle !== 'none' : false;
 
+  // A converting group takes only its own currency (the server refuses the
+  // rest). The list never opens this form for such a debt; this is the floor.
+  const blocked = group.convert_to_group_currency === true && currency !== group.default_currency;
+
   const payLink =
-    handle && needsHandle
+    handle && needsHandle && !blocked
       ? buildPaymentUri(
           {
             railId: rail,
@@ -525,6 +597,7 @@ function SettleForm({
       : null;
 
   async function record() {
+    if (blocked) return;
     setSaving(true);
     setError(null);
     try {
