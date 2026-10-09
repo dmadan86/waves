@@ -71,7 +71,7 @@ import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
 import { showDate, showTime } from '@/lib/expenseDay';
 import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
-import { showsVendorTools } from '@/lib/eventOrganizer';
+import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -327,8 +327,15 @@ export default function ExpenseDetailScreen() {
   });
   // Facts recorded on an expense stay visible whatever the group is now, but
   // the link to the plan (budgets, vendor balances) is a vendor tool.
-  const openPlan = showsVendorTools(group.data?.type)
-    ? () => router.push(`/group/${groupId}/plan`)
+  const goPlan = (): void => router.push(`/group/${groupId}/plan`);
+  const openPlan = showsVendorTools(group.data?.type) ? goPlan : undefined;
+  // The plan's Upcoming payments card also shows for any group with an open
+  // deposit, so an open deposit here can always tap through to it.
+  const openDepositPlan = showsUpcomingPayments(
+    group.data?.type,
+    eventFacts.isDeposit && eventFacts.balanceDueMinor !== null ? 1 : 0,
+  )
+    ? goPlan
     : undefined;
   // The typed note. It also names the expense in the hero, but that heading is
   // clamped to a single line while the field is multiline — so a long or
@@ -710,8 +717,8 @@ export default function ExpenseDetailScreen() {
                 group / category / split details. A tap opens the plan. */}
             {eventFacts.isDeposit ? (
               <Pressable
-                onPress={openPlan}
-                accessibilityRole={openPlan ? 'button' : 'text'}
+                onPress={openDepositPlan}
+                accessibilityRole={openDepositPlan ? 'button' : 'text'}
                 accessibilityLabel={`${t.eventOrganizer.advancePaid}, ${format(
                   money(BigInt(version.amount), currency),
                   { locale },

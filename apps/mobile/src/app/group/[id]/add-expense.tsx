@@ -61,7 +61,7 @@ import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethod
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
-import { showsDepositRow, showsVendorTools } from '@/lib/eventOrganizer';
+import { showsDepositRow, showsSubEventRow, showsVendorTools } from '@/lib/eventOrganizer';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
@@ -962,9 +962,16 @@ export default function AddExpenseScreen() {
   // group, for an Event made before templates shipped, and for 'other'.
   // Gated on the type too: a group re-typed away from Event keeps its template,
   // and its sub-event picker must not follow.
-  const eventSubEvents = showsVendorTools(group.data?.type)
-    ? subEventsForTemplate(group.data?.event_template)
-    : [];
+  // The row also shows for an existing expense already tagged, so it can be
+  // cleared; a NEW expense handed a sub-event in a non-Event group drops it.
+  const originalSubEventId = editing?.currentVersion?.sub_event_id ?? null;
+  const originalIsDeposit = editing?.currentVersion?.is_deposit === true;
+  const subEventRowShown = showsSubEventRow(group.data?.type, originalSubEventId);
+  const effectiveSubEventId =
+    showsVendorTools(group.data?.type) || originalSubEventId ? subEventId : null;
+  // A deposit flag handed in (or left on) where the row is hidden is dropped.
+  const effectiveIsDeposit = isDeposit && showsDepositRow(group.data?.type, originalIsDeposit);
+  const eventSubEvents = subEventRowShown ? subEventsForTemplate(group.data?.event_template) : [];
   // Collapsed like the split/payer rows beside it — closed until tapped,
   // since there is no equivalent of `manyPayers` to auto-open it on.
   const [showSubEventSection, setShowSubEventSection] = useState(false);
@@ -1298,7 +1305,7 @@ export default function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
-    if (isDeposit && !description.trim() && !namePrompted) {
+    if (effectiveIsDeposit && !description.trim() && !namePrompted) {
       setNamePrompted(true);
       return;
     }
@@ -1348,10 +1355,10 @@ export default function AddExpenseScreen() {
             payers,
             paymentMethod,
             location,
-            subEventId,
-            isDeposit,
-            balanceDueMinor,
-            balanceDueDate,
+            subEventId: effectiveSubEventId,
+            isDeposit: effectiveIsDeposit,
+            balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
+            balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
           },
           editing: editing?.currentVersion,
         }),
@@ -1904,7 +1911,7 @@ export default function AddExpenseScreen() {
                   Only on an Event group: a deposit means nothing on a personal
                   or one-on-one expense. An expense already marked as one keeps
                   the row, so it can still be turned off. */}
-              {showsDepositRow(group.data?.type, isDeposit) ? (
+              {showsDepositRow(group.data?.type, originalIsDeposit) ? (
                 <View>
                   <DetailRow
                     icon="pricetag-outline"
@@ -1962,7 +1969,7 @@ export default function AddExpenseScreen() {
               label until tapped. Only on an Event group whose template
               suggests any; a plain Trip/Home/Couple/Friends/Other group, or
               an Event with no template, never grows this row. */}
-              {eventSubEvents.length > 0 ? (
+              {subEventRowShown ? (
                 <View>
                   <DetailRow
                     icon="sparkles-outline"

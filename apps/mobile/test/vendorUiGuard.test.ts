@@ -1,8 +1,8 @@
 /**
  * Vendor tools (docs/event-organizer.md) belong to Event groups only. Rather
  * than have someone check every screen by hand, this scans the source: any
- * .tsx file that renders vendor UI must ask `showsVendorTools` /
- * `showsDepositRow` (src/lib/eventOrganizer.ts), unless it is on the allowlist
+ * .ts/.tsx file that renders vendor UI must ask `showsVendorTools` /
+ * `showsDepositRow` / `showsSubEventRow` / `showsUpcomingPayments` (src/lib/eventOrganizer.ts), unless it is on the allowlist
  * below because it can only be reached from a gated parent.
  *
  * Source-reading, like the other screen tests: these files pull in React
@@ -29,7 +29,7 @@ const MARKERS: readonly RegExp[] = [
   /tab:\s*'vendors'/,
 ];
 
-const GATES = /\bshows(VendorTools|DepositRow)\b/;
+const GATES = /\bshows(VendorTools|DepositRow|SubEventRow|UpcomingPayments)\b/;
 
 /** Files that render vendor UI but are only mounted by a screen that is gated. */
 const ALLOWLIST: Record<string, string> = {
@@ -43,18 +43,24 @@ const ALLOWLIST: Record<string, string> = {
     'Creating a group: every Event control renders only once the Event type is picked.',
   'components/TripDates.tsx':
     'Shared dates card; the Event wording is chosen by the forEvent prop from new-group.',
+  'i18n/index.ts': 'String tables only; renders nothing. Screens that show the copy are scanned.',
+  'lib/eventDetailFacts.ts': 'Pure facts of saved data; the detail screen decides what to draw.',
+  'lib/eventVendors.ts': 'Pure vendor list logic; mounted only by gated screens.',
+  'lib/expenseEdit.ts': 'Seeds and builds the saved payload; the form screen is gated.',
+  'lib/upcomingPayments.ts': 'Pure ordering of open deposits; used by the gated card.',
+  'lib/vendorCandidates.ts': 'Pure row mapping; callers gate (plan, Vendors tab).',
   'components/GroupTypeTag.tsx': 'Names the group type itself (the Event tag); not a vendor tool.',
 };
 
-function tsxFiles(dir: string): string[] {
+function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return tsxFiles(path);
-    return entry.name.endsWith('.tsx') ? [path] : [];
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.tsx?$/.test(entry.name) && !entry.name.endsWith('.d.ts') ? [path] : [];
   });
 }
 
-const files = tsxFiles(SRC).map((path) => ({
+const files = sourceFiles(SRC).map((path) => ({
   rel: relative(SRC, path).split('\\').join('/'),
   text: readFileSync(path, 'utf8'),
 }));
