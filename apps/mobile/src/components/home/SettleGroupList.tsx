@@ -1,8 +1,8 @@
 /**
  * Settle up from the dashboard and Friends. Settling happens inside a group —
  * that is where the debts are — so it first asks which one: the groups where
- * you owe or are owed, each opening that group's settle screen. A search field
- * and type chips narrow the list; a sort sheet reorders it. A person square
+ * you owe or are owed, each opening that group's settle screen. Type chips
+ * narrow the list. A person square
  * everywhere is told so rather than shown an empty list.
  *
  * The body of the `/settle-up` screen, under its header.
@@ -10,9 +10,9 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { FlatList, Modal, Pressable, TextInput, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 
-import { ChipRow, directionalIcon, iconSize, MODAL_ORIENTATIONS, Text, useTheme } from '@waves/ui';
+import { ChipRow, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SplitMoney } from '@/components/SplitMoney';
@@ -21,12 +21,7 @@ import { GroupType } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
-import {
-  arrangeSettleCandidates,
-  SETTLE_SORTS,
-  type SettleChip,
-  type SettleSort,
-} from '@/lib/settlePicker';
+import { arrangeSettleCandidates, type SettleChip } from '@/lib/settlePicker';
 
 export interface SettleCandidate {
   id: string;
@@ -46,7 +41,6 @@ export interface SettleCandidate {
 /** The disc a group's picture sits in. */
 const DISC = 48;
 const ROW_HEIGHT = 74;
-const CONTROL = 48;
 
 const chipIcon = (name: keyof typeof Ionicons.glyphMap) =>
   function ChipIcon(color: string) {
@@ -61,15 +55,12 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
-  const [query, setQuery] = useState('');
   const [chip, setChip] = useState<SettleChip>('all');
-  const [sort, setSort] = useState<SettleSort>('balance');
-  const [sortOpen, setSortOpen] = useState(false);
   const d = t.homeDash;
 
   const visible = useMemo(
-    () => arrangeSettleCandidates(groups, { query, chip, sort, locale }),
-    [groups, query, chip, sort, locale],
+    () => arrangeSettleCandidates(groups, { query: '', chip, sort: 'balance', locale }),
+    [groups, chip, locale],
   );
 
   const tintFor = (type: GroupType) => {
@@ -87,9 +78,6 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
         return theme.tint.peach;
     }
   };
-
-  const sortLabel = (s: SettleSort) =>
-    s === 'balance' ? d.settleSortBalance : s === 'recent' ? d.settleSortRecent : d.settleSortName;
 
   const chipOptions: readonly {
     value: SettleChip;
@@ -193,64 +181,9 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
 
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingHorizontal: theme.spacing.xl,
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            height: CONTROL,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.lg,
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-          }}
-        >
-          <Ionicons name="search" size={iconSize.md} color={theme.color.textFaint} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={d.settleSearch}
-            placeholderTextColor={theme.color.textFaint}
-            accessibilityLabel={d.settleSearch}
-            autoCorrect={false}
-            returnKeyType="search"
-            style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 0 }}
-          />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={d.settleSortTitle}
-          onPress={() => setSortOpen(true)}
-          style={({ pressed }) => ({
-            width: CONTROL,
-            height: CONTROL,
-            borderRadius: theme.radius.lg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Ionicons
-            name="options-outline"
-            size={iconSize.md}
-            color={sort === 'balance' ? theme.color.text : theme.color.brand}
-          />
-        </Pressable>
-      </View>
-      <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      {/* Chips only: search and a sort sheet were cut as clutter on a list
+          this short — biggest balance first is the order people want. */}
+      <View style={{ paddingHorizontal: theme.spacing.xl }}>
         <ChipRow options={chipOptions} value={chip} onChange={setChip} variant="brand" />
       </View>
       <FlatList
@@ -268,58 +201,6 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           paddingBottom: clearance,
         }}
       />
-      <Modal
-        visible={sortOpen}
-        transparent
-        supportedOrientations={MODAL_ORIENTATIONS}
-        animationType="fade"
-        onRequestClose={() => setSortOpen(false)}
-      >
-        <Pressable
-          accessibilityLabel={t.common.back}
-          onPress={() => setSortOpen(false)}
-          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 12, 28, 0.4)' }}
-        >
-          <Pressable
-            // Swallows taps so only the scrim closes the sheet.
-            onPress={() => {}}
-            style={{
-              backgroundColor: theme.color.surface,
-              borderTopStartRadius: theme.radius.xl,
-              borderTopEndRadius: theme.radius.xl,
-              padding: theme.spacing.xl,
-              paddingBottom: clearance,
-              gap: theme.spacing.xs,
-            }}
-          >
-            <Text variant="heading" style={{ marginBottom: theme.spacing.sm }}>
-              {d.settleSortTitle}
-            </Text>
-            {SETTLE_SORTS.map((option) => (
-              <Pressable
-                key={option}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sort === option }}
-                onPress={() => {
-                  setSort(option);
-                  setSortOpen(false);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  height: 48,
-                }}
-              >
-                <Text style={{ fontSize: 16, color: theme.color.text }}>{sortLabel(option)}</Text>
-                {sort === option ? (
-                  <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
-                ) : null}
-              </Pressable>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
