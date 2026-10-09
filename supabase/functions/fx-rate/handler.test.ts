@@ -67,7 +67,9 @@ function deps(over: Partial<FxRateDeps> & { store?: () => FxStore } = {}) {
   } satisfies FxRateDeps;
 }
 
-const get = (query: string) => new Request(`https://edge.test/fx-rate?${query}`);
+// Every request opts in to a stale fallback, as the current app does; the one
+// test that does not says so.
+const get = (query: string) => new Request(`https://edge.test/fx-rate?${query}&stale=1`);
 
 async function call(query: string, d: FxRateDeps) {
   const response = await handleFxRate(get(query), d);
@@ -233,6 +235,22 @@ describe('every provider down', () => {
     });
     const { body } = await call('from=VND&to=INR&date=2026-09-20', deps({ store: () => store }));
     expect(body).toMatchObject({ stale: true, day: '2026-09-01' });
+  });
+
+  it('offers no stale rate to a client that did not ask (an older build would apply it)', async () => {
+    const store = memoryStore({
+      'VND:INR:2026-10-05': {
+        day: '2026-10-05',
+        num: '33647',
+        den: '10000000',
+        source: 'currency-api',
+      },
+    });
+    const response = await handleFxRate(
+      new Request('https://edge.test/fx-rate?from=VND&to=INR'),
+      deps({ store: () => store }),
+    );
+    expect(response.status).toBe(502);
   });
 
   it('with nothing cached, says the exchange could not be reached (502)', async () => {

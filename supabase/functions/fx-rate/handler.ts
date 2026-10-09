@@ -140,6 +140,9 @@ export async function handleFxRate(request: Request, deps: FxRateDeps): Promise<
         throw new HttpError(400, 'BAD_DATE', 'There is no published rate for a future day');
       }
     }
+    // Whether this client can be offered an older rate when every provider is
+    // down: it shows it as such and applies it only when the person says so.
+    const offersStale = url.searchParams.get('stale') === '1';
     // The day a rate must be *for* to be cached: the asked-for one, or today.
     const wantDay = date || today;
 
@@ -189,11 +192,14 @@ export async function handleFxRate(request: Request, deps: FxRateDeps): Promise<
       return remember(body(from, to, rate), date && exact ? DATED_TTL_MS : SHORT_TTL_MS);
     }
 
-    // 4. Every provider failed. The last rate we saw, plainly marked as old.
+    // 4. Every provider failed. The last rate we saw, plainly marked as old —
+    // but only to a client that asked (`stale=1`) and so knows to ask the
+    // person first. An older build would put it on the bill as if fresh.
     // Never kept in memory: the next request should try upstream again.
-    const fallback = result.unsupported
-      ? null
-      : await quietly(() => store.latest(from, to, wantDay), 'latest');
+    const fallback =
+      result.unsupported || !offersStale
+        ? null
+        : await quietly(() => store.latest(from, to, wantDay), 'latest');
     if (fallback) {
       console.warn(JSON.stringify({ event: 'fx_stale', from, to, day: fallback.day }));
       return json({ ...body(from, to, fallback), stale: true, day: fallback.day } satisfies FxBody);

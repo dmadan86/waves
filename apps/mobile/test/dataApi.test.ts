@@ -1094,7 +1094,7 @@ describe('edge-function wrappers', () => {
     h.invoke.mockResolvedValue(ok(rate));
 
     expect(await api.fetchFxRate('EUR', 'I&R')).toEqual(rate);
-    expect(h.invoke).toHaveBeenCalledWith('fx-rate?from=EUR&to=I%26R', { method: 'GET' });
+    expect(h.invoke).toHaveBeenCalledWith('fx-rate?from=EUR&to=I%26R&stale=1', { method: 'GET' });
   });
 
   it('fetchFxRate throws a stale reply instead of returning it, with the record stripped', async () => {

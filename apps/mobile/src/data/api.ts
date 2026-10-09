@@ -1380,7 +1380,9 @@ export async function fetchFxRate(
 ): Promise<FxRecord> {
   const day = date ? `&date=${encodeURIComponent(date)}` : '';
   const { data, error } = await backend.functions.invoke(
-    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}`,
+    // `stale=1`: this build can be offered an older rate when every source is
+    // down, because it never applies one without asking (see below).
+    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}&stale=1`,
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
