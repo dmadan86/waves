@@ -3280,6 +3280,12 @@ export interface UiStrings {
     settleMarkPaidTitle: string;
     settleMarkPaidBody: string;
     settleMarkPaidConfirm: string;
+    settleConfirmReceivedBody: string;
+    settleConfirmPaidTitle: string;
+    settleConfirmPaidBody: string;
+    settleConfirmPaidYou: string;
+    settleConfirmYouPaid: string;
+    settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
     settleMarkPaidA11y: string;
@@ -7283,6 +7289,14 @@ const en: UiStrings = {
     settleMarkPaidBody:
       'This records your payment in the group and updates the balances. Only if you already paid them.',
     settleMarkPaidConfirm: 'Yes, I paid',
+    settleConfirmReceivedBody:
+      "This will record their payment in the group and update everyone's balances.",
+    settleConfirmPaidTitle: 'Paid {name} {amount}?',
+    settleConfirmPaidBody:
+      "This will record your payment in the group and update everyone's balances.",
+    settleConfirmPaidYou: 'Paid you',
+    settleConfirmYouPaid: 'You paid',
+    settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
@@ -11274,6 +11288,14 @@ const ta: UiStrings = {
     settleMarkPaidBody:
       'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும். நீங்கள் ஏற்கெனவே செலுத்தியிருந்தால் மட்டும்.',
     settleMarkPaidConfirm: 'ஆம், செலுத்தினேன்',
+    settleConfirmReceivedBody:
+      'இது குழுவில் அவர்களின் கட்டணத்தைப் பதிவு செய்து, அனைவரின் இருப்புகளையும் புதுப்பிக்கும்.',
+    settleConfirmPaidTitle: '{name}க்கு {amount} செலுத்தினீர்களா?',
+    settleConfirmPaidBody:
+      'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, அனைவரின் இருப்புகளையும் புதுப்பிக்கும்.',
+    settleConfirmPaidYou: 'உங்களுக்குச் செலுத்தினார்',
+    settleConfirmYouPaid: 'நீங்கள் செலுத்தினீர்கள்',
+    settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
@@ -15255,6 +15277,12 @@ const hi: UiStrings = {
     settleMarkPaidBody:
       'इससे ग्रुप में आपका भुगतान दर्ज होगा और बैलेंस अपडेट होंगे। केवल तभी जब आप उन्हें पहले ही चुका चुके हों।',
     settleMarkPaidConfirm: 'हाँ, मैंने चुकाया',
+    settleConfirmReceivedBody: 'इससे ग्रुप में उनका भुगतान दर्ज होगा और सबके बैलेंस अपडेट होंगे।',
+    settleConfirmPaidTitle: '{name} को {amount} चुकाए?',
+    settleConfirmPaidBody: 'इससे ग्रुप में आपका भुगतान दर्ज होगा और सबके बैलेंस अपडेट होंगे।',
+    settleConfirmPaidYou: 'आपको चुकाया',
+    settleConfirmYouPaid: 'आपने चुकाया',
+    settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
@@ -19395,6 +19423,12 @@ const ar: UiStrings = {
     settleMarkPaidBody:
       'سيُسجَّل دفعك في المجموعة وتُحدَّث الأرصدة. فقط إذا كنت قد دفعت لهم بالفعل.',
     settleMarkPaidConfirm: 'نعم، دفعت',
+    settleConfirmReceivedBody: 'سيُسجَّل دفعهم في المجموعة وتُحدَّث أرصدة الجميع.',
+    settleConfirmPaidTitle: 'هل دفعت {amount} إلى {name}؟',
+    settleConfirmPaidBody: 'سيُسجَّل دفعك في المجموعة وتُحدَّث أرصدة الجميع.',
+    settleConfirmPaidYou: 'دفع لك',
+    settleConfirmYouPaid: 'دفعت',
+    settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
