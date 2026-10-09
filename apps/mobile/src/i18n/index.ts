@@ -781,12 +781,6 @@ export interface UiStrings {
       other: string;
     };
   };
-  /** The three app-icon shortcuts, read on a long-press of the Waves icon. */
-  shortcut: {
-    add: string;
-    scan: string;
-    voice: string;
-  };
   recent: {
     title: string;
     intro: string;
@@ -5314,11 +5308,6 @@ const en: UiStrings = {
       other: 'Other',
     },
   },
-  shortcut: {
-    add: 'Add an expense',
-    scan: 'Scan a receipt',
-    voice: 'Speak an expense',
-  },
   recent: {
     title: 'Recent on your watch',
     intro: 'How many recent expenses your paired watch shows at a glance.',
@@ -9224,11 +9213,6 @@ const ta: UiStrings = {
       bank: 'வங்கி பரிமாற்றம்',
       other: 'மற்றது',
     },
-  },
-  shortcut: {
-    add: 'செலவைச் சேர்',
-    scan: 'ரசீதை ஸ்கேன் செய்',
-    voice: 'செலவைப் பேசு',
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -13281,11 +13265,6 @@ const hi: UiStrings = {
       other: 'अन्य',
     },
   },
-  shortcut: {
-    add: 'खर्च जोड़ें',
-    scan: 'रसीद स्कैन करें',
-    voice: 'खर्च बोलें',
-  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -17214,11 +17193,6 @@ const ar: UiStrings = {
       bank: 'تحويل بنكي',
       other: 'أخرى',
     },
-  },
-  shortcut: {
-    add: 'أضف مصروفًا',
-    scan: 'مسح إيصال',
-    voice: 'انطق مصروفًا',
   },
   recent: {
     title: 'الأحدث على ساعتك',
