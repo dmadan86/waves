@@ -20,8 +20,8 @@ import {
   Gradient,
   Row,
   Screen,
-  SectionHeader,
   SegmentedTabs,
+  SectionHeader,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -31,12 +31,14 @@ import {
   convertWithRecord,
   copyFor,
   format,
+  guessIcon,
   money,
   moneyAccessibilityLabel,
+  resolveCategory,
   subEventsForTemplate,
 } from '@waves/core';
 
-import { CategoryBadge, CategoryRow } from '@/components/Category';
+import { builtinCategoryLabel, CategoryRow } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
@@ -81,6 +83,46 @@ function splitLabels(t: UiStrings): Record<string, string> {
     adjustment: t.expense.withAdjustments,
     itemized: t.expense.itemized,
   };
+}
+
+/** White-on-wash glass for the hero's controls and chips: the same
+ *  white-with-alpha the hero's chips already used, so they read as one family. */
+const HERO_GLASS = 'rgba(255, 255, 255, 0.18)';
+/** Fainter still, for the decorative blob. */
+const HERO_GLASS_SOFT = 'rgba(255, 255, 255, 0.08)';
+
+/** A round translucent control on the hero. 36pt is the compact size: three of
+ *  them, a back button and a title disc share one row on a phone, and `hitSlop`
+ *  keeps the touch target generous. */
+function HeroButton({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  onPress: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: HERO_GLASS,
+        opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
+    </Pressable>
+  );
 }
 
 /** A member's avatar showing their real picture when they have one. The signing
@@ -334,11 +376,25 @@ export default function ExpenseDetailScreen() {
   // Roughly one line of the hero heading on a phone; past this the clamp bites.
   const HERO_TITLE_CLAMP = 30;
   const showNote = note !== '' && (note.includes('\n') || note.length > HERO_TITLE_CLAMP);
-  // The hero is the dashboard/group panel: one saturated wash running edge to
-  // edge under the status bar, white controls and amount on it. The expense
-  // amount is a total that belongs to nobody — it is not owed or owned — so the
-  // wash is the neutral brand indigo, never a money verdict. The category keeps
-  // its own colour as the badge chip on the wash.
+  // The hero's category, said twice: the glyph in the white disc (refined by what
+  // was typed, as the list badge does) and the plain category icon + name on the
+  // chip beside the title.
+  const heroCategory = resolveCategory(version.category, version.category_meta);
+  const heroGlyph = heroCategory.custom
+    ? heroCategory.icon
+    : (guessIcon(version.description) ?? heroCategory.icon);
+  // A built-in's name comes from the string table (the catalog's own label is
+  // English); a custom tag carries its own.
+  const heroLabel = builtinCategoryLabel(t, heroCategory);
+  // Year included, unlike the list rows: this is the one place the bill's own date
+  // is stated outright. UTC, because the ledger stores a plain day with no zone.
+  const heroDate = new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(version.expense_date));
 
   const confirmDelete = async (): Promise<void> => {
     const ok = await confirm({
@@ -407,50 +463,49 @@ export default function ExpenseDetailScreen() {
       {/* The hero runs dark under the status bar, so its icons must be light —
           overriding the app's theme-driven default for this route. */}
       <StatusBar style="light" />
-      {/* The expense hero, built like the group and dashboard panels: one
-          saturated wash edge to edge and up under the status bar, carrying the
-          back/edit controls, the category badge, the amount and its "paid by"
-          line — all in white. Neutral brand indigo, never a money colour: the
-          amount is a total that is nobody's balance. A fixed header: it sits as a
-          sibling before the scroll so only the body below it scrolls, then re-pads
-          and rounds only its bottom corners. */}
+      {/* The expense hero: one saturated wash edge to edge and up under the status
+          bar, white controls and amount on it. Neutral brand indigo, never a money
+          colour: the amount is a total that is nobody's balance. A fixed header —
+          it sits as a sibling before the scroll so only the body below it scrolls
+          — with only its bottom corners rounded. */}
       <Gradient
         radius={0}
         colors={theme.gradient.brand}
         style={{
-          paddingTop: insets.top + theme.spacing.md,
+          // Compact: a tight top, a short foot and small gaps, so the hero is a
+          // header over the page rather than half of it.
+          paddingTop: insets.top + theme.spacing.sm,
           paddingHorizontal: theme.spacing.xl,
-          // Match the dashboard/group hero height: lg bottom padding, not xl.
-          paddingBottom: theme.spacing.lg,
+          paddingBottom: theme.spacing.md,
           borderBottomLeftRadius: theme.radius.xxl,
           borderBottomRightRadius: theme.radius.xxl,
-          gap: theme.spacing.lg,
+          gap: theme.spacing.sm,
+          overflow: 'hidden',
         }}
       >
-        {/* A slim header bar, like the Friends hero: back and overflow on the
-              ends, and the bill's identity held compactly between them — the
-              category badge, the description as a one-line heading, the amount
-              beneath it — instead of the tall stacked block, big display amount
-              and receipt pill this hero used to be. Adding a receipt moved back
-              into the receipts section's own tile below. */}
-        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          {/* Back and overflow match the dashboard/group hero: a chip-less xxl
-                white glyph, not the smaller boxed IconButton. */}
-          <Pressable
-            onPress={goBack}
-            accessibilityRole="button"
-            accessibilityLabel={t.common.back}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-          >
-            <Ionicons
-              name={directionalIcon('chevron-back')}
-              size={iconSize.xxl}
-              color={theme.color.onBrand}
-            />
-          </Pressable>
-          {/* The badge is the bill's kind; on a bill that can be changed in
-                place, a tap on it changes the kind. */}
+        {/* A soft lighter blob bleeding off the top end: depth on the flat wash
+            without art. Decorative, so it is hidden from screen readers. */}
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            position: 'absolute',
+            top: -60,
+            end: -70,
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: HERO_GLASS_SOFT,
+          }}
+        />
+        {/* Back, the bill's identity, then the actions — one row, as the design
+            has it. The glass buttons are round and translucent so they sit on the
+            wash without a second colour. */}
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <HeroButton icon={directionalIcon('arrow-back')} label={t.common.back} onPress={goBack} />
+          {/* The disc is the bill's kind; on a bill that can be changed in
+              place, a tap on it changes the kind. */}
           <Pressable
             onPress={changeOn('category')}
             disabled={!inlineEditable}
@@ -459,16 +514,23 @@ export default function ExpenseDetailScreen() {
             accessibilityLabel={t.whatFor}
             accessibilityHint={t.expense.detailTapHint}
             hitSlop={6}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.onBrand,
+              opacity: pressed ? 0.6 : 1,
+            })}
           >
-            <CategoryBadge
-              category={version.category}
-              meta={version.category_meta}
-              description={version.description}
-              size={40}
+            <Ionicons
+              name={heroGlyph as keyof typeof Ionicons.glyphMap}
+              size={iconSize.xl}
+              color={theme.color.brand}
             />
           </Pressable>
-          <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 2, alignItems: 'flex-start' }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               {/* The description is the heading; a tap on it opens the note in a
                   small sheet — type it, or speak it with the mic. */}
@@ -478,7 +540,7 @@ export default function ExpenseDetailScreen() {
                 accessible={inlineEditable}
                 accessibilityRole="button"
                 accessibilityHint={t.expense.detailTapHint}
-                style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+                style={({ pressed }) => ({ flexShrink: 1, opacity: pressed ? 0.6 : 1 })}
               >
                 <Text variant="subheading" tone="onBrand" numberOfLines={1}>
                   {expenseTitle(version.description, version.category, t, version.category_meta)}
@@ -486,91 +548,8 @@ export default function ExpenseDetailScreen() {
               </Pressable>
               {deleted ? <Badge label={t.expense.deleted} tone="negative" /> : null}
             </Row>
-            {/* The amount kept in the hero, but at heading — not display — scale:
-                  still the prominent number, no longer the reason the panel is
-                  tall. Neutral white, never a money colour — it is a total, not a
-                  balance. On a live bill the number is the door to editing it:
-                  tapping it opens the editor with the amount already focused, the
-                  one-tap path for the change a bill is most often reopened for.
-                  A deleted bill cannot be edited, so there it is plain text. */}
-            {/* A bill you have no stake in — not a payer, no share — says so in a
-                small tag beside its total, the way Splitwise marks "not
-                involved", rather than a banner that took a third of the screen
-                on every visit. The tag is the whole message; its spoken label
-                carries the sentence the banner used to. */}
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-              {deleted ? (
-                <MoneyText
-                  amount={BigInt(version.amount)}
-                  currency={currency}
-                  locale={locale}
-                  variant="title"
-                  style={{ color: theme.color.onBrand }}
-                />
-              ) : (
-                <Pressable
-                  // The amount pop-up where one fits the bill (see `amountInline`);
-                  // otherwise the editor, focused on the amount.
-                  onPress={
-                    amountInline ? () => setEditingField('amount') : () => openEditor('amount')
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
-                  accessibilityHint={amountInline ? t.expense.detailTapHint : undefined}
-                  hitSlop={8}
-                  style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
-                >
-                  <MoneyText
-                    amount={BigInt(version.amount)}
-                    currency={currency}
-                    locale={locale}
-                    variant="title"
-                    style={{ color: theme.color.onBrand }}
-                  />
-                </Pressable>
-              )}
-              {notInvolved ? (
-                <View
-                  accessible
-                  accessibilityLabel={`${t.expense.notInvolvedTitle}. ${t.expense.notInvolvedBody}`}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                    paddingHorizontal: theme.spacing.sm,
-                    paddingVertical: 2,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                  }}
-                >
-                  <Ionicons name="eye-outline" size={iconSize.sm} color={theme.color.onBrand} />
-                  <Text variant="micro" tone="onBrand" style={{ fontWeight: '600' }}>
-                    {t.expense.notInvolvedChip}
-                  </Text>
-                </View>
-              ) : null}
-            </Row>
-            {/* Paid in another currency: the amount above stays the main figure,
-                with what it came to in the group's money and the rate, small. */}
-            {version.fx && convertedHome ? (
-              <View style={{ gap: 2 }}>
-                <Text variant="caption" style={{ color: theme.color.onBrand }}>
-                  {`= ${format(convertedHome, { locale })}`}
-                </Text>
-                <Text variant="micro" tone="onBrand" style={{ opacity: 0.8 }}>
-                  {rateAt(version.fx, t.fx.viewAt)}
-                </Text>
-              </View>
-            ) : null}
-            {/* The group this bill belongs to, as a small chip under the amount;
-                a tap opens the group. */}
-            <Pressable
-              onPress={() => router.push(`/group/${groupId}`)}
-              accessibilityRole="button"
-              accessibilityLabel={groupLabel(group.data, members.data ?? [], viewerId)}
-              hitSlop={6}
-              style={({ pressed }) => ({
-                alignSelf: 'flex-start',
+            <View
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
@@ -578,64 +557,155 @@ export default function ExpenseDetailScreen() {
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: 2,
                 borderRadius: theme.radius.pill,
-                backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                opacity: pressed ? 0.6 : 1,
-              })}
+                backgroundColor: HERO_GLASS,
+              }}
             >
-              {group.data?.cover_emoji ? (
-                <Text variant="micro">{group.data.cover_emoji}</Text>
-              ) : (
-                <Ionicons name="people-outline" size={iconSize.sm} color={theme.color.onBrand} />
-              )}
+              <Ionicons
+                name={heroCategory.icon as keyof typeof Ionicons.glyphMap}
+                size={iconSize.sm}
+                color={theme.color.onBrand}
+              />
               <Text
                 variant="micro"
                 tone="onBrand"
                 numberOfLines={1}
                 style={{ fontWeight: '600', flexShrink: 1 }}
               >
-                {groupLabel(group.data, members.data ?? [], viewerId)}
+                {heroLabel}
               </Text>
-            </Pressable>
+            </View>
           </View>
-          {/* Edit, in the open. It was the first item of the three-dot menu, which
-                made the one action a bill is reopened for something you had to
-                remember was hidden there. A pencil on the wash costs one glyph
-                and answers "how do I change this" without a tap. Gone on a
-                deleted bill: there is nothing to edit until it is restored. */}
-          <Pressable
+          {/* The three controls the screen already had, as glass buttons: the
+              timeline entry, Edit (gone on a deleted bill — nothing to edit until
+              it is restored), and the three-dot menu for Delete / Restore. */}
+          <HeroButton
+            icon="git-commit-outline"
+            label={`${t.timeline.entryRow}: ${t.timeline.entryRowValue}`}
             onPress={() =>
               router.push({ pathname: '/timeline', params: { focus: expenseId ?? '' } })
             }
-            accessibilityRole="button"
-            accessibilityLabel={`${t.timeline.entryRow}: ${t.timeline.entryRowValue}`}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-          >
-            <Ionicons name="git-commit-outline" size={iconSize.xxl} color={theme.color.onBrand} />
-          </Pressable>
+          />
           {deleted ? null : (
+            <HeroButton icon="create-outline" label={t.common.edit} onPress={() => openEditor()} />
+          )}
+          <HeroButton
+            icon="ellipsis-vertical"
+            label={t.group.more}
+            onPress={() => setMenuOpen(true)}
+          />
+        </Row>
+
+        {/* The amount, the figure the page is about. On a live bill it is the door
+            to editing it: a tap opens the editor with the amount already focused,
+            the one-tap path for the change a bill is most often reopened for. A
+            deleted bill cannot be edited, so there it is plain text. A bill you
+            have no stake in — not a payer, no share — says so in a small tag
+            beside its total; its spoken label carries the whole sentence. */}
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+          {deleted ? (
+            <MoneyText
+              amount={BigInt(version.amount)}
+              currency={currency}
+              locale={locale}
+              variant="display"
+              style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
+            />
+          ) : (
             <Pressable
-              onPress={() => openEditor()}
+              // The amount pop-up where one fits the bill (see `amountInline`);
+              // otherwise the editor, focused on the amount.
+              onPress={amountInline ? () => setEditingField('amount') : () => openEditor('amount')}
               accessibilityRole="button"
-              accessibilityLabel={t.common.edit}
-              hitSlop={10}
-              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
+              accessibilityHint={amountInline ? t.expense.detailTapHint : undefined}
+              hitSlop={8}
+              style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
             >
-              <Ionicons name="create-outline" size={iconSize.xxl} color={theme.color.onBrand} />
+              <MoneyText
+                amount={BigInt(version.amount)}
+                currency={currency}
+                locale={locale}
+                variant="display"
+                style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
+              />
             </Pressable>
           )}
-          {/* Everything else this bill can have done to it — Delete, or Restore
-                once it is gone — behind the same trailing three-dot control the
-                group and dashboard headers carry. */}
+          {notInvolved ? (
+            <View
+              accessible
+              accessibilityLabel={`${t.expense.notInvolvedTitle}. ${t.expense.notInvolvedBody}`}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: 2,
+                borderRadius: theme.radius.pill,
+                backgroundColor: HERO_GLASS,
+              }}
+            >
+              <Ionicons name="eye-outline" size={iconSize.sm} color={theme.color.onBrand} />
+              <Text variant="micro" tone="onBrand" style={{ fontWeight: '600' }}>
+                {t.expense.notInvolvedChip}
+              </Text>
+            </View>
+          ) : null}
+        </Row>
+        {/* Paid in another currency: the amount above stays the main figure,
+            with what it came to in the group's money and the rate, small. */}
+        {version.fx && convertedHome ? (
+          <View style={{ gap: 2 }}>
+            <Text variant="caption" style={{ color: theme.color.onBrand }}>
+              {`= ${format(convertedHome, { locale })}`}
+            </Text>
+            <Text variant="micro" tone="onBrand" style={{ opacity: 0.8 }}>
+              {rateAt(version.fx, t.fx.viewAt)}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* The group this bill belongs to on the start, its date on the end; a
+            tap on the group opens it. */}
+        <Row
+          style={{ alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.md }}
+        >
           <Pressable
-            onPress={() => setMenuOpen(true)}
+            onPress={() => router.push(`/group/${groupId}`)}
             accessibilityRole="button"
-            accessibilityLabel={t.group.more}
-            hitSlop={10}
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            accessibilityLabel={groupLabel(group.data, members.data ?? [], viewerId)}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              flexShrink: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 2,
+              borderRadius: theme.radius.pill,
+              backgroundColor: HERO_GLASS,
+              opacity: pressed ? 0.6 : 1,
+            })}
           >
-            <Ionicons name="ellipsis-vertical" size={iconSize.xxl} color={theme.color.onBrand} />
+            {group.data?.cover_emoji ? (
+              <Text variant="caption">{group.data.cover_emoji}</Text>
+            ) : (
+              <Ionicons name="people-outline" size={iconSize.sm} color={theme.color.onBrand} />
+            )}
+            <Text
+              variant="caption"
+              tone="onBrand"
+              numberOfLines={1}
+              style={{ fontWeight: '600', flexShrink: 1 }}
+            >
+              {groupLabel(group.data, members.data ?? [], viewerId)}
+            </Text>
           </Pressable>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.onBrand} />
+            <Text variant="caption" tone="onBrand" style={{ fontWeight: '600' }}>
+              {heroDate}
+            </Text>
+          </Row>
         </Row>
       </Gradient>
 
@@ -695,6 +765,7 @@ export default function ExpenseDetailScreen() {
             imageEvents={imageEvents.data ?? []}
             nameOf={nameOf}
             myMemberId={myMemberId}
+            groupName={groupLabel(group.data, members.data ?? [], viewerId)}
             t={t}
             locale={locale}
           />
@@ -932,6 +1003,7 @@ export default function ExpenseDetailScreen() {
                       <View key={payer.member_id}>
                         <ListRow
                           title={nameOf(payer.member_id)}
+                          quiet
                           onPress={payerHref ? () => router.push(payerHref) : undefined}
                           accessibilityLabel={t.expense.paidByNameAmount
                             .replace('{name}', nameOf(payer.member_id))
@@ -1039,6 +1111,7 @@ export default function ExpenseDetailScreen() {
                     <View key={row.memberId}>
                       <ListRow
                         title={nameOf(row.memberId)}
+                        quiet
                         onPress={openMember}
                         accessibilityLabel={rowLabel}
                         subtitle={subtitle}

@@ -33,6 +33,12 @@ export interface ListRowProps {
    * real choices. A row that navigates must leave this off.
    */
   repeatable?: boolean;
+  /**
+   * A quieter title: body size at semibold instead of the bold subheading. For
+   * a list of people under a heading that already says what they are, where a
+   * column of big bold names outshouts the amounts beside them.
+   */
+  quiet?: boolean;
 }
 
 export function ListRow({
@@ -47,6 +53,7 @@ export function ListRow({
   accessibilityState,
   destructive = false,
   repeatable = false,
+  quiet = false,
 }: ListRowProps) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
@@ -67,7 +74,12 @@ export function ListRow({
     >
       {leading}
       <View style={{ flex: 1 }}>
-        <Text variant="subheading" tone={destructive ? 'negative' : undefined} numberOfLines={1}>
+        <Text
+          variant={quiet ? 'body' : 'subheading'}
+          tone={destructive ? 'negative' : undefined}
+          numberOfLines={1}
+          style={quiet ? { fontWeight: '600' } : undefined}
+        >
           {title}
         </Text>
         {subtitleContent || subtitle ? (
