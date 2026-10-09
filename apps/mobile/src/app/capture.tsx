@@ -446,7 +446,10 @@ export default function CaptureScreen() {
   );
   // On an edit the category is already the draft's own — treat it as chosen so
   // the description guesser below does not move it out from under the person.
-  const [categoryChosen, setCategoryChosen] = useState(() => isEditing);
+  // The same goes for one carried in from elsewhere (a home-screen widget's
+  // Food / Travel / Shopping chip, or the quick-expense sheet): somebody picked
+  // it, so typing a note must not guess it away.
+  const [categoryChosen, setCategoryChosen] = useState(() => isEditing || Boolean(categoryParam));
   // The create-tag sheet, opened from the "＋ New tag" row in the category
   // sheet.
   const [editingTag, setEditingTag] = useState(false);
