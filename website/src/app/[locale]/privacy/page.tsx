@@ -6,7 +6,7 @@ import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
 
-const UPDATED = '10 September 2026';
+const UPDATED = '9 October 2026';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -57,6 +57,7 @@ const sections: LegalSection[] = [
     body: [
       'We use a small number of infrastructure providers, each for one job: managed database, authentication and file storage; object storage for shared images; email delivery for invitations and receipts of settlement; Apple and Google push services for notifications; and an error-reporting service for crashes. Product analytics, if enabled, is opt-in and can be turned off in the app at any time.',
       'These providers process data on our instructions and are not permitted to use it for their own purposes.',
+      'Exchange rates for bills in a foreign currency come from public rate services: the European Central Bank reference rates (through Frankfurter), the open-source currency-api, and ExchangeRate-API (Rates By Exchange Rate API, exchangerate-api.com). A rate lookup is made by our server and sends only the two currency codes and, for a past bill, its date — never your name, your amounts or anything else about you or your groups. We keep the rates we fetch, by day, so the same lookup does not have to be made again.',
     ],
   },
   {
