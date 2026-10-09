@@ -288,6 +288,33 @@ export interface UiStrings {
   /** Drafts waiting against a group — caught, not yet an expense. */
   draftCount: PluralForms;
   notJoinedYet: string;
+  /** Reminding someone who is not on Waves (no account, so no push). */
+  ghostRemind: {
+    /** Status when we have their phone: the reminder goes by WhatsApp. */
+    statusWhatsApp: string;
+    remindWhatsApp: string;
+    remindEmail: string;
+    /** {name} {amount} {group} {link} */
+    message: string;
+    /** No join link could be made: the same, without it. {name} {amount} {group} */
+    messageNoLink: string;
+    /** {group} */
+    emailSubject: string;
+    /** Joins the last of several amounts: "€25 and ₹2,952". */
+    and: string;
+    /** Between the others: "a, b and c". */
+    comma: string;
+    /** {name} */
+    infoA11y: string;
+    explainTitle: string;
+    /** {name} */
+    explainLead: string;
+    explainWhatsApp: string;
+    explainEmail: string;
+    explainShare: string;
+  };
+  /** Which amount a row's tap or Pay is about, when a person has several. */
+  settlePickAmount: string;
   scansLeft: string;
   simplifyOn: string;
   simplifyOff: string;
@@ -3294,14 +3321,12 @@ export interface UiStrings {
     settleBetweenOthersSub: string;
     settleOweYouTitle: string;
     settleYouOweTitle: string;
-    settleClearBalanceSub: string;
     settleStatusPending: string;
     settleTapReceived: string;
     settleTapPaid: string;
     settlePendingTitle: string;
     settlePendingBody: string;
     settleFilterAll: string;
-    settleNoHistorySub: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -4898,7 +4923,29 @@ const en: UiStrings = {
   members: 'Members',
   memberCount: { one: '{n} member', other: '{n} members' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'not joined yet',
+  notJoinedYet: 'Not on Waves yet',
+  ghostRemind: {
+    statusWhatsApp: 'Not on Waves · reminders go by WhatsApp',
+    remindWhatsApp: 'Remind on WhatsApp',
+    remindEmail: 'Remind by email',
+    message:
+      'Hi {name}, a reminder: you owe {amount} in {group} on Waves. Join to see the details and settle up: {link}',
+    messageNoLink: 'Hi {name}, a reminder: you owe {amount} in {group} on Waves.',
+    emailSubject: 'A reminder from {group} on Waves',
+    and: 'and',
+    comma: ', ',
+    infoA11y: 'Why {name} cannot get app reminders',
+    explainTitle: 'Not on Waves yet',
+    explainLead:
+      "{name} was added by name and doesn't use Waves yet, so they can't get app notifications.",
+    explainWhatsApp:
+      'Remind them on WhatsApp — the message includes a link to join and see what they owe.',
+    explainEmail:
+      'Remind them by email — the message includes a link to join and see what they owe.',
+    explainShare:
+      'Send them a reminder from any app — the message includes a link to join and see what they owe.',
+  },
+  settlePickAmount: 'Which amount?',
   scansLeft: 'scans left',
   simplifyOn: 'Simplify on',
   simplifyOff: 'Simplify off',
@@ -7295,8 +7342,8 @@ const en: UiStrings = {
     settlePayA11y: 'Pay {name} {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
     settleReceivedHint: 'Marks it as received',
-    settleSeeAll: 'See all balances',
-    settleHideAll: 'Hide balances',
+    settleSeeAll: 'See all',
+    settleHideAll: 'Show less',
     settleBetweenOthers: 'Between others',
     settleHistory: 'History',
     settleHistoryPaid: '{from} paid {to}',
@@ -7305,14 +7352,12 @@ const en: UiStrings = {
     settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
     settleOweYouTitle: 'People who owe you',
     settleYouOweTitle: 'People you owe',
-    settleClearBalanceSub: 'Settle these to clear your balance',
     settleStatusPending: 'pending',
-    settleTapReceived: 'Tap to mark as received',
-    settleTapPaid: 'Tap to mark as paid',
+    settleTapReceived: 'Tap to mark received',
+    settleTapPaid: 'Tap to mark paid',
     settlePendingTitle: 'Payment pending',
     settlePendingBody: 'This payment is already marked and waiting to be confirmed.',
     settleFilterAll: 'All',
-    settleNoHistorySub: 'Once you mark payments as done, they’ll appear here.',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -8805,7 +8850,30 @@ const ta: UiStrings = {
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'இன்னும் சேரவில்லை',
+  notJoinedYet: 'இன்னும் Waves-ல் இல்லை',
+  ghostRemind: {
+    statusWhatsApp: 'Waves-ல் இல்லை · நினைவூட்டல் WhatsApp-ல்',
+    remindWhatsApp: 'WhatsApp-ல் நினைவூட்டு',
+    remindEmail: 'மின்னஞ்சலில் நினைவூட்டு',
+    message:
+      'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும். விவரங்களைப் பார்த்துச் செலுத்த சேரவும்: {link}',
+    messageNoLink:
+      'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும்.',
+    emailSubject: 'Waves-ல் {group} குழுவிலிருந்து ஒரு நினைவூட்டல்',
+    and: 'மற்றும்',
+    comma: ', ',
+    infoA11y: '{name}க்கு ஏன் செயலி நினைவூட்டல் வராது',
+    explainTitle: 'இன்னும் Waves-ல் இல்லை',
+    explainLead:
+      '{name} பெயரால் சேர்க்கப்பட்டவர், இன்னும் Waves பயன்படுத்தவில்லை; அதனால் அவருக்குச் செயலி அறிவிப்புகள் வராது.',
+    explainWhatsApp:
+      'WhatsApp-ல் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+    explainEmail:
+      'மின்னஞ்சலில் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+    explainShare:
+      'எந்தச் செயலியிலிருந்தும் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+  },
+  settlePickAmount: 'எந்தத் தொகை?',
   scansLeft: 'ஸ்கேன் மீதம்',
   simplifyOn: 'எளிமையாக்கல் இயக்கத்தில்',
   simplifyOff: 'எளிமையாக்கல் நிறுத்தத்தில்',
@@ -11291,8 +11359,8 @@ const ta: UiStrings = {
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
     settleReceivedHint: 'கிடைத்ததாகக் குறிக்கும்',
-    settleSeeAll: 'எல்லா இருப்புகளையும் காண்க',
-    settleHideAll: 'இருப்புகளை மறை',
+    settleSeeAll: 'அனைத்தும் காண்க',
+    settleHideAll: 'குறைவாகக் காட்டு',
     settleBetweenOthers: 'மற்றவர்களுக்கிடையே',
     settleHistory: 'வரலாறு',
     settleHistoryPaid: '{from} → {to} செலுத்தினார்',
@@ -11302,15 +11370,13 @@ const ta: UiStrings = {
       'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
     settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
     settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
-    settleClearBalanceSub: 'உங்கள் இருப்பைத் தீர்க்க இவற்றை முடிக்கவும்',
     settleStatusPending: 'நிலுவையில்',
-    settleTapReceived: 'கிடைத்ததாகக் குறிக்கத் தட்டவும்',
-    settleTapPaid: 'செலுத்தியதாகக் குறிக்கத் தட்டவும்',
+    settleTapReceived: 'தட்டி: பெற்றது',
+    settleTapPaid: 'தட்டி: செலுத்தியது',
     settlePendingTitle: 'கட்டணம் நிலுவையில்',
     settlePendingBody:
       'இந்தக் கட்டணம் ஏற்கெனவே குறிக்கப்பட்டு உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது.',
     settleFilterAll: 'அனைத்தும்',
-    settleNoHistorySub: 'கட்டணங்களை முடிந்ததாகக் குறித்ததும் அவை இங்கே தோன்றும்.',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -12866,7 +12932,27 @@ const hi: UiStrings = {
   members: 'सदस्य',
   memberCount: { one: '{n} सदस्य', other: '{n} सदस्य' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'अभी शामिल नहीं हुए',
+  notJoinedYet: 'अभी Waves पर नहीं',
+  ghostRemind: {
+    statusWhatsApp: 'Waves पर नहीं · रिमाइंडर WhatsApp से जाएगा',
+    remindWhatsApp: 'WhatsApp पर याद दिलाएँ',
+    remindEmail: 'ईमेल से याद दिलाएँ',
+    message:
+      'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं। विवरण देखने और चुकाने के लिए जुड़ें: {link}',
+    messageNoLink: 'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं।',
+    emailSubject: 'Waves पर {group} से एक रिमाइंडर',
+    and: 'और',
+    comma: ', ',
+    infoA11y: '{name} को ऐप रिमाइंडर क्यों नहीं मिल सकते',
+    explainTitle: 'अभी Waves पर नहीं',
+    explainLead:
+      '{name} को नाम से जोड़ा गया था और वे अभी Waves इस्तेमाल नहीं करते, इसलिए उन्हें ऐप सूचनाएँ नहीं मिल सकतीं।',
+    explainWhatsApp:
+      'उन्हें WhatsApp पर याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+    explainEmail: 'उन्हें ईमेल से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+    explainShare: 'किसी भी ऐप से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+  },
+  settlePickAmount: 'कौन-सी रकम?',
   scansLeft: 'स्कैन बाकी',
   simplifyOn: 'आसान करना चालू',
   simplifyOff: 'आसान करना बंद',
@@ -15277,8 +15363,8 @@ const hi: UiStrings = {
     settlePayA11y: '{name} को {amount} चुकाएँ',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
     settleReceivedHint: 'इसे मिला हुआ दर्ज करता है',
-    settleSeeAll: 'सभी बैलेंस देखें',
-    settleHideAll: 'बैलेंस छिपाएँ',
+    settleSeeAll: 'सभी देखें',
+    settleHideAll: 'कम दिखाएँ',
     settleBetweenOthers: 'दूसरों के बीच',
     settleHistory: 'इतिहास',
     settleHistoryPaid: '{from} ने {to} को चुकाया',
@@ -15287,14 +15373,12 @@ const hi: UiStrings = {
     settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
     settleOweYouTitle: 'जिनसे आपको लेना है',
     settleYouOweTitle: 'जिन्हें आपको चुकाना है',
-    settleClearBalanceSub: 'अपना बैलेंस साफ़ करने के लिए इन्हें निपटाएँ',
     settleStatusPending: 'लंबित',
-    settleTapReceived: 'मिला हुआ मानने के लिए टैप करें',
-    settleTapPaid: 'चुकाया हुआ मानने के लिए टैप करें',
+    settleTapReceived: 'टैप करें: मिला',
+    settleTapPaid: 'टैप करें: चुकाया',
     settlePendingTitle: 'भुगतान लंबित है',
     settlePendingBody: 'यह भुगतान पहले ही दर्ज हो चुका है और पुष्टि की प्रतीक्षा में है।',
     settleFilterAll: 'सभी',
-    settleNoHistorySub: 'भुगतान पूरे चिह्नित करने पर वे यहाँ दिखेंगे।',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -16795,7 +16879,25 @@ const ar: UiStrings = {
     other: '{n} عضو',
   },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'لم ينضم بعد',
+  notJoinedYet: 'ليس على Waves بعد',
+  ghostRemind: {
+    statusWhatsApp: 'ليس على Waves · التذكير عبر واتساب',
+    remindWhatsApp: 'ذكّر عبر واتساب',
+    remindEmail: 'ذكّر بالبريد',
+    message:
+      'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves. انضم لترى التفاصيل وتسدّد: {link}',
+    messageNoLink: 'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves.',
+    emailSubject: 'تذكير من {group} على Waves',
+    and: 'و',
+    comma: '، ',
+    infoA11y: 'لماذا لا تصل تذكيرات التطبيق إلى {name}',
+    explainTitle: 'ليس على Waves بعد',
+    explainLead: 'أُضيف {name} بالاسم ولا يستخدم Waves بعد، لذا لا تصله إشعارات التطبيق.',
+    explainWhatsApp: 'ذكّره عبر واتساب — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+    explainEmail: 'ذكّره بالبريد — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+    explainShare: 'ذكّره من أي تطبيق — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+  },
+  settlePickAmount: 'أي مبلغ؟',
   scansLeft: 'عمليات مسح متبقية',
   simplifyOn: 'التبسيط مفعّل',
   simplifyOff: 'التبسيط متوقف',
@@ -19422,8 +19524,8 @@ const ar: UiStrings = {
     settlePayA11y: 'ادفع {amount} إلى {name}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
     settleReceivedHint: 'يحدده كمستلم',
-    settleSeeAll: 'عرض كل الأرصدة',
-    settleHideAll: 'إخفاء الأرصدة',
+    settleSeeAll: 'عرض الكل',
+    settleHideAll: 'عرض أقل',
     settleBetweenOthers: 'بين الآخرين',
     settleHistory: 'السجل',
     settleHistoryPaid: '{from} دفع إلى {to}',
@@ -19439,14 +19541,12 @@ const ar: UiStrings = {
     settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
     settleOweYouTitle: 'من يدينون لك',
     settleYouOweTitle: 'من تدين لهم',
-    settleClearBalanceSub: 'سوِّ هذه لتصفية رصيدك',
     settleStatusPending: 'قيد الانتظار',
-    settleTapReceived: 'اضغط لتحديده كمستلم',
-    settleTapPaid: 'اضغط لتحديده كمدفوع',
+    settleTapReceived: 'اضغط: تم الاستلام',
+    settleTapPaid: 'اضغط: تم الدفع',
     settlePendingTitle: 'الدفع قيد الانتظار',
     settlePendingBody: 'تم تحديد هذا الدفع بالفعل وهو بانتظار التأكيد.',
     settleFilterAll: 'الكل',
-    settleNoHistorySub: 'عندما تضع علامة تمّ على المدفوعات ستظهر هنا.',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',
