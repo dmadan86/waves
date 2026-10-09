@@ -1,15 +1,18 @@
 /**
- * Settle up from the dashboard. Settling happens inside a group — that is where
- * the debts are — so the quick action first asks which one: the groups where
+ * Settle up from the dashboard and Friends. Settling happens inside a group —
+ * that is where the debts are — so it first asks which one: the groups where
  * you owe or are owed, largest balance first, each opening that group's settle
  * screen. A person square everywhere is told so rather than shown an empty list.
+ *
+ * The list body of the `/settle-up` screen. It used to sit in a bottom sheet;
+ * a screen of its own gives a long list the whole height and a real back.
  */
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
@@ -25,41 +28,17 @@ export interface SettleCandidate {
   currency: string;
 }
 
-export function SettlePickerSheet({
-  visible,
-  onClose,
-  groups,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  groups: readonly SettleCandidate[];
-}) {
+export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[] }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  // Re-seeds to empty on every open (`onClosed`, below) rather than carrying a
-  // typed filter from the last time this sheet was up.
   const [query, setQuery] = useState('');
   const open = (id: string) => {
-    onClose();
     router.push(`/group/${id}/settle`);
   };
   const showSearch = groups.length > SETTLE_SEARCH_THRESHOLD;
   const visibleGroups = showSearch ? filterSettleCandidates(groups, query) : groups;
   return (
-    <Sheet
-      visible={visible}
-      onClose={onClose}
-      onClosed={() => setQuery('')}
-      closeLabel={t.common.close}
-      title={t.homeDash.settleTitle}
-      // A ceiling, the same share of the screen every other tall sheet in the
-      // app caps at (the voice review's destination picker, the SMS review
-      // sheets) — see `Overlay`'s `resolveSheetHeight`, which turns this into
-      // points of the real window height and leaves the safe-area foot to the
-      // sheet's own padding. The title above stays put; only the list below
-      // scrolls, so a long one never pushes the sheet's own top off-screen.
-      style={{ maxHeight: '80%' }}
-    >
+    <View style={{ flex: 1 }}>
       {groups.length === 0 ? (
         <Text
           variant="body"
@@ -172,7 +151,7 @@ export function SettlePickerSheet({
           </ScrollView>
         </View>
       )}
-    </Sheet>
+    </View>
   );
 }
 

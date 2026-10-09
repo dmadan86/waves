@@ -55,8 +55,7 @@ import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
 import { useBlockedUsers } from '@/data/blocked';
 import { defaultMergeName } from '@/data/mergePeople';
-import { useGroups, useHomeSummary, useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
-import { groupLabel } from '@/data/types';
+import { useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import {
   commonOnlyGroupId,
@@ -74,7 +73,6 @@ import { BalanceSide } from '@/components/home/BalanceSide';
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
-import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { SortMenu } from '@/components/SortMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
@@ -283,27 +281,6 @@ export default function FriendsScreen() {
   // Settle up from Friends asks which group first, the same picker Home's own
   // quick action opens — settling happens inside a group, never here, so there
   // is no second flow to keep in step with the dashboard's.
-  const groups = useGroups();
-  const homeSummary = useHomeSummary(profile?.id ?? null);
-  const [settleOpen, setSettleOpen] = useState(false);
-  const settleCandidates: SettleCandidate[] = useMemo(
-    () =>
-      groups.data
-        .map((group) => ({
-          id: group.id,
-          title: groupLabel(group, homeSummary.membersFor(group.id), profile?.id ?? null),
-          coverEmoji: group.cover_emoji,
-          balance: homeSummary.balanceFor(group.id),
-          currency: group.default_currency,
-        }))
-        .filter((group) => group.balance !== 0n)
-        .sort((a, b) => {
-          const size = (x: bigint) => (x < 0n ? -x : x);
-          const d = size(b.balance) - size(a.balance);
-          return d > 0n ? 1 : d < 0n ? -1 : 0;
-        }),
-    [groups.data, homeSummary, profile?.id],
-  );
 
   // Which guests look like the same person seen twice — the only thing merge is
   // for. Surfaced as a slim strip that points at the actual duplicates (and
@@ -478,7 +455,7 @@ export default function FriendsScreen() {
           setAddAnchor(anchor);
           setAddOpen(true);
         }}
-        onSettleUp={() => setSettleOpen(true)}
+        onSettleUp={() => router.push('/settle-up')}
         duplicateCount={duplicates.count >= 2 && !selectMode ? duplicates.count : 0}
         onDuplicates={openDuplicates}
         selectMode={selectMode}
@@ -504,12 +481,6 @@ export default function FriendsScreen() {
         activeKey={sortKey}
         activeIndicator={sortDir === SortDir.Asc ? 'arrow-up' : 'arrow-down'}
         onPick={pickSort}
-      />
-
-      <SettlePickerSheet
-        visible={settleOpen}
-        onClose={() => setSettleOpen(false)}
-        groups={settleCandidates}
       />
 
       {/* Only this scrolls — the list, beneath the fixed scene, card and the
