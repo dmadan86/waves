@@ -55,6 +55,7 @@ import {
 } from '@/lib/customEventTemplates';
 import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { CurrencyRate } from '@/components/CurrencyRate';
+import { RateAttribution } from '@/components/RateAttribution';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { fetchFxRate } from '@/data/api';
 import { type TripRateRow, tripCurrencyValue, tripRateFor } from '@/lib/tripRates';
@@ -1149,6 +1150,14 @@ export default function NewGroupScreen() {
                     placeholder={!tripCur}
                     onPress={() => setPickingTripCur(true)}
                   />
+                  {/* The row shows the pinned rate; one fetched from
+                      ExchangeRate-API carries their credit here too. */}
+                  {tripCur ? (
+                    <RateAttribution
+                      fx={liveRates.find((row) => row.from === tripCur)}
+                      tone="faint"
+                    />
+                  ) : null}
                   {pickingTripCur ? (
                     <CurrencySheet
                       value={tripCur ?? currency}
