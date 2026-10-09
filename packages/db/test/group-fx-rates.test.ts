@@ -125,3 +125,33 @@ describe('the column cannot be written around the RPC', () => {
     expect(message).toContain('FORBIDDEN_COLUMN');
   });
 });
+
+describe('an automatic pin only fills an empty slot', () => {
+  const pin = (profile: number, from: string, num: number): Promise<boolean> =>
+    as(group.profileIds[profile] as string, async () => {
+      const { rows } = await client.query(
+        `SELECT waves_pin_group_fx_rate_if_absent($1, $2, $3, 1, 'ecb') AS pinned`,
+        [group.groupId, from, num],
+      );
+      return rows[0].pinned as boolean;
+    });
+
+  it('writes when the currency has no entry', async () => {
+    expect(await pin(0, 'VND', 300)).toBe(true);
+    expect((await fxRates()).VND).toMatchObject({ num: '300', den: '1', source: 'ecb' });
+  });
+
+  it('never overwrites a rate another admin pinned', async () => {
+    await as(group.profileIds[0] as string, () =>
+      client.query(`SELECT waves_set_group_fx_rate($1, 'VND', 312, 1, 'manual')`, [group.groupId]),
+    );
+    expect(await pin(0, 'VND', 999)).toBe(false);
+    expect((await fxRates()).VND).toMatchObject({ num: '312', source: 'manual' });
+  });
+
+  it('is admin-only and refuses the settle currency and a bad ratio', async () => {
+    expect(await expectDenied(pin(1, 'VND', 300))).toContain('NOT_AN_ADMIN');
+    expect(await expectDenied(pin(0, 'INR', 1))).toContain('SAME_CURRENCY');
+    expect(await expectDenied(pin(0, 'VND', 0))).toContain('INVALID_RATE');
+  });
+});

@@ -686,6 +686,17 @@ export class SyncSession {
         // Admin-gated inside the RPC, like the budgets; a null ratio clears that
         // currency's entry. The rate is passed as the two integers the client
         // computed — never a decimal (ADR-003).
+        if (mutation.payload.ifAbsent === true) {
+          // An automatic pin: written only if no admin has pinned this currency,
+          // so a queued one replayed late never overwrites a deliberate rate.
+          return await this.rpcAsCaller('waves_pin_group_fx_rate_if_absent', {
+            p_group_id: mutation.groupId,
+            p_from: requireString(mutation.payload.from, 'from'),
+            p_num: nullableString(mutation.payload.num, 'num'),
+            p_den: nullableString(mutation.payload.den, 'den'),
+            p_source: optionalText(mutation.payload.source, 'source') ?? 'ecb',
+          });
+        }
         return await this.rpcAsCaller('waves_set_group_fx_rate', {
           p_group_id: mutation.groupId,
           p_from: requireString(mutation.payload.from, 'from'),

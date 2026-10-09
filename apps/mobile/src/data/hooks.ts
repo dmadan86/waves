@@ -2350,12 +2350,15 @@ export function useSetGroupFxRate(groupId: string) {
       num: bigint | null;
       den: bigint | null;
       source?: string;
+      /** Pin only if absent (an automatic pin); the server never overwrites. */
+      ifAbsent?: boolean;
     }) =>
       mutate(MutationKind.GroupFxRateSet, groupId, {
         from: input.from,
         num: input.num === null ? null : input.num.toString(),
         den: input.den === null ? null : input.den.toString(),
         source: input.source ?? 'manual',
+        ...(input.ifAbsent ? { ifAbsent: true } : {}),
       }),
   });
 }

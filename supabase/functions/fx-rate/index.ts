@@ -29,7 +29,11 @@ import { enforceRateLimit } from '../_shared/rateLimit.ts';
 
 /** ECB publishes once a working day, so a short cache is free accuracy-wise. */
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const cache = new Map<string, { at: number; body: unknown }>();
+/** A dated rate that really is that day's never changes. */
+const DATED_TTL_MS = 24 * CACHE_TTL_MS;
+/** Anything that might still be revised or republished: short, like the latest. */
+const SHORT_TTL_MS = 15 * 60 * 1000;
+const cache = new Map<string, { at: number; ttl: number; body: unknown }>();
 
 /**
  * "91.2534" becomes 912534/10000 — exactly, with no intermediate double.
@@ -68,9 +72,24 @@ serveWithCors(async (request) => {
     const { data: user } = await caller.auth.getUser();
     if (!user?.user) throw new HttpError(401, 'UNAUTHENTICATED', 'Sign in first');
 
-    const key = `${from}:${to}`;
+    // Optional day, for a bill dated in the past: the ECB publishes a reference
+    // rate per working day, so the rate a late entry is converted at can be the
+    // one for the day it was paid rather than the day it was typed in. Omitted
+    // means the latest. Frankfurter answers a weekend or holiday with the
+    // previous working day's rate, and the body's `ts` says which day that was.
+    const date = url.searchParams.get('date') ?? '';
+    if (date) {
+      const real = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date));
+      if (!real) throw new HttpError(400, 'BAD_DATE', 'Pass the date as YYYY-MM-DD');
+      if (date > new Date().toISOString().slice(0, 10)) {
+        throw new HttpError(400, 'BAD_DATE', 'There is no published rate for a future day');
+      }
+    }
+
+    const key = `${from}:${to}:${date}`;
     const hit = cache.get(key);
-    if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    // Each entry carries the lifetime it was stored with (see below).
+    if (hit && Date.now() - hit.at < hit.ttl) {
       // Deliberately before the limiter. A cache hit costs nothing and reaches
       // no upstream, and counting it would spend somebody's allowance on the
       // one path this function is proud of.
@@ -83,7 +102,7 @@ serveWithCors(async (request) => {
     await enforceRateLimit(asService(), request, 'fx-rate', user.user.id);
 
     const response = await fetch(
-      `https://api.frankfurter.dev/v1/latest?base=${from}&symbols=${to}`,
+      `https://api.frankfurter.dev/v1/${date || 'latest'}?base=${from}&symbols=${to}`,
     );
     if (!response.ok) {
       throw new HttpError(
@@ -117,7 +136,12 @@ serveWithCors(async (request) => {
       source: 'ecb',
     };
 
-    cache.set(key, { at: Date.now(), body });
+    // Long only for a rate that is really that day's: Frankfurter answers a
+    // weekend or holiday with the previous working day's rate, and a day it has
+    // not published yet with an older one, which may be replaced once the real
+    // rate lands. Those, like the latest, are cached briefly.
+    const ttl = date && payload.date === date ? DATED_TTL_MS : SHORT_TTL_MS;
+    cache.set(key, { at: Date.now(), ttl, body });
     return json(body);
   } catch (error) {
     return errorResponse(error, { fn: 'fx-rate' });
