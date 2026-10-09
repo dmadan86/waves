@@ -13,8 +13,18 @@
 
 import { type FxRate, type FxRecord, toFxRecord } from '@waves/core';
 
-import type { ExpenseRow, ExpenseVersionRow } from '../data/types';
+import { isViewer, type ExpenseRow, type ExpenseVersionRow, type MemberRow } from '../data/types';
 import { canEditInline } from './expenseEdit';
+
+/**
+ * Today as the person sees it: the LOCAL calendar day, as YYYY-MM-DD. The date
+ * picker works in local days, so comparing it with a UTC "today" calls
+ * yesterday's bill today's (or the reverse) for hours either side of midnight.
+ */
+export function localToday(now: Date = new Date()): string {
+  const two = (n: number): string => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
+}
 
 /** A bill needs a rate when it is paid in another currency and has none. */
 export function needsRate(input: {
@@ -52,26 +62,64 @@ export function shouldAutoFetch(input: {
 }
 
 /**
- * Whether a rate just fetched should become the trip's pinned rate.
+ * Whether saving a bill should pin the rate it carries for the trip.
  *
- * Only an admin can write `fx_rates` (the RPC refuses anyone else), only the
- * first rate for a currency is pinned — an existing row is something somebody
- * chose and is never overwritten — and only a rate for today: pinning the rate
- * of a bill dated three weeks ago would hand every later bill a stale number.
+ * Decided at SAVE, never when a rate is merely fetched: opening the form and
+ * picking a currency must not write to the group. Only an admin can write
+ * `fx_rates`; only when the bill is saved with the very rate the form fetched
+ * on its own (not one typed or derived since), only a rate for today (pinning
+ * the rate of a bill dated three weeks ago would hand every later bill a stale
+ * number), and only for a currency with no pin yet. The write itself is
+ * "insert only if absent" on the server, so a stale view cannot overwrite an
+ * admin's deliberate rate.
  */
-export function shouldPinFetched(input: {
+export function shouldPinOnSave(input: {
   isAdmin: boolean;
   pinnedCurrencies: readonly string[];
   currency: string;
   groupCurrency: string;
-  forDate: string | null;
-}): boolean {
-  return (
-    input.isAdmin &&
-    input.forDate === null &&
-    input.currency !== input.groupCurrency &&
-    !input.pinnedCurrencies.includes(input.currency)
+  fx: FxRecord | null;
+  fetched: { record: FxRecord; forDate: string | null } | null;
+}): FxRecord | null {
+  const { fx, fetched } = input;
+  if (!input.isAdmin || !fx || !fetched || fetched.forDate !== null) return null;
+  if (input.currency === input.groupCurrency || input.pinnedCurrencies.includes(input.currency)) {
+    return null;
+  }
+  const r = fetched.record;
+  const same =
+    fx.from === r.from &&
+    fx.to === r.to &&
+    fx.num === r.num &&
+    fx.den === r.den &&
+    fx.ts === r.ts &&
+    fx.source === r.source;
+  return same && fx.from === input.currency && fx.to === input.groupCurrency ? fx : null;
+}
+
+/**
+ * Whether this person may save a new version of a bill: its author or one of
+ * its payers (the server's rule). `myMemberId` must already exclude a member
+ * who has left; `activeMemberId` does that.
+ */
+export function canRewrite(
+  version: Pick<ExpenseVersionRow, 'author_member_id' | 'payers'> | null | undefined,
+  myMemberId: string | null,
+): boolean {
+  return Boolean(
+    myMemberId &&
+    version &&
+    (version.author_member_id === myMemberId ||
+      version.payers.some((payer) => payer.member_id === myMemberId)),
   );
+}
+
+/** The viewer's member id in the group, or null if they have left (or never were in it). */
+export function activeMemberId(
+  members: readonly Pick<MemberRow, 'id' | 'profile_id' | 'left_at'>[],
+  viewerId: string | null | undefined,
+): string | null {
+  return members.find((m) => isViewer(m, viewerId) && m.left_at === null)?.id ?? null;
 }
 
 /**
@@ -94,10 +142,7 @@ export function selectBackfill(
     if (row.deleted_at || !version) return false;
     if (!needsRate({ currency: version.currency, groupCurrency, fx: version.fx })) return false;
     if (!canEditInline(version.split_type)) return false;
-    return (
-      version.author_member_id === myMemberId ||
-      version.payers.some((payer) => payer.member_id === myMemberId)
-    );
+    return canRewrite(version, myMemberId);
   });
 }
 

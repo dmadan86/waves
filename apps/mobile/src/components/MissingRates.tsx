@@ -13,7 +13,7 @@
  * running it again later picks up exactly those.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import type { FxRecord } from '@waves/core';
@@ -22,16 +22,16 @@ import { Button, Callout, Text, useTheme } from '@waves/ui';
 
 import { fetchFxRate } from '@/data/api';
 import { useGroup, useGroupFxRates } from '@/data/hooks';
-import { isViewer } from '@/data/types';
 import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { editStateFromVersion, expenseWritePayload } from '@/lib/expenseEdit';
-import { todayIso } from '@/lib/expenseForm';
 import {
+  activeMemberId,
   backfillRateFor,
   countMissing,
   fetchKey,
+  localToday,
   needsRate,
   rateDateFor,
   selectBackfill,
@@ -59,6 +59,7 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
 
   // The run is a long async loop; reading these through refs means each bill is
   // judged against the mirror as it is *now*, not as it was when Run was tapped.
+  const runningRef = useRef(false);
   const rowsRef = useRef(expenses.rows);
   const pinnedRef = useRef(pinnedRates.data);
   useEffect(() => {
@@ -67,12 +68,18 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
   }, [expenses.rows, pinnedRates.data]);
 
   const groupCurrency = group.data?.default_currency ?? null;
-  const myMemberId =
-    (members.data ?? []).find((m) => isViewer(m, viewerId) && m.left_at === null)?.id ?? null;
+  const myMemberId = activeMemberId(members.data ?? [], viewerId);
+  // Scans of every bill in the group: only redone when the bills or the
+  // currency change, not on each progress tick of a run.
+  const candidates = useMemo(
+    () => (groupCurrency ? selectBackfill(expenses.rows, groupCurrency, myMemberId) : []),
+    [expenses.rows, groupCurrency, myMemberId],
+  );
+  const missing = useMemo(
+    () => (groupCurrency ? countMissing(expenses.rows, groupCurrency) : 0),
+    [expenses.rows, groupCurrency],
+  );
   if (!groupCurrency) return null;
-
-  const candidates = selectBackfill(expenses.rows, groupCurrency, myMemberId);
-  const missing = countMissing(expenses.rows, groupCurrency);
   const running = progress?.running ?? false;
 
   // Nothing to offer: no bill lacks a rate, or none of them is this person's to
@@ -80,7 +87,10 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
   if (!progress && candidates.length === 0) return null;
 
   const run = async (): Promise<void> => {
-    if (running || guard.blockWrite()) return;
+    // A ref, not `running`: that is the render's copy and a second tap in the
+    // same frame still sees false.
+    if (runningRef.current || guard.blockWrite()) return;
+    runningRef.current = true;
     const targets = selectBackfill(rowsRef.current, groupCurrency, myMemberId);
     const state: Progress = {
       done: 0,
@@ -101,51 +111,55 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
       }
       return pending;
     };
-    for (const target of targets) {
-      // Looked at again: it may have been given a rate, edited or deleted since.
-      const latest = rowsRef.current.find((row) => row.id === target.id);
-      const version = latest?.currentVersion;
-      if (
-        !latest ||
-        latest.deleted_at ||
-        !version ||
-        !needsRate({ currency: version.currency, groupCurrency, fx: version.fx })
-      ) {
+    try {
+      for (const target of targets) {
+        // Looked at again: it may have been given a rate, edited or deleted since.
+        const latest = rowsRef.current.find((row) => row.id === target.id);
+        const version = latest?.currentVersion;
+        if (
+          !latest ||
+          latest.deleted_at ||
+          !version ||
+          !needsRate({ currency: version.currency, groupCurrency, fx: version.fx })
+        ) {
+          state.done += 1;
+          setProgress({ ...state });
+          continue;
+        }
+        const pinned = tripRateFor(pinnedRef.current, version.currency, groupCurrency);
+        const record = backfillRateFor(
+          version,
+          groupCurrency,
+          pinned,
+          pinned
+            ? null
+            : await lookup(version.currency, rateDateFor(version.expense_date, localToday())),
+        );
+        if (!record) {
+          state.failed += 1;
+        } else {
+          try {
+            await mutate(
+              MutationKind.ExpenseUpdate,
+              groupId,
+              expenseWritePayload({
+                expenseId: target.id,
+                state: { ...editStateFromVersion(version, myMemberId), fx: record },
+                editing: version,
+              }),
+            );
+            state.updated += 1;
+          } catch {
+            state.failed += 1;
+          }
+        }
         state.done += 1;
         setProgress({ ...state });
-        continue;
       }
-      const pinned = tripRateFor(pinnedRef.current, version.currency, groupCurrency);
-      const record = backfillRateFor(
-        version,
-        groupCurrency,
-        pinned,
-        pinned
-          ? null
-          : await lookup(version.currency, rateDateFor(version.expense_date, todayIso())),
-      );
-      if (!record) {
-        state.failed += 1;
-      } else {
-        try {
-          await mutate(
-            MutationKind.ExpenseUpdate,
-            groupId,
-            expenseWritePayload({
-              expenseId: target.id,
-              state: { ...editStateFromVersion(version, myMemberId), fx: record },
-              editing: version,
-            }),
-          );
-          state.updated += 1;
-        } catch {
-          state.failed += 1;
-        }
-      }
-      state.done += 1;
-      setProgress({ ...state });
+    } finally {
+      runningRef.current = false;
+      setProgress({ ...state, running: false });
     }
-    setProgress({ ...state, running: false });
   };
 
   const finished = progress && !progress.running ? progress : null;

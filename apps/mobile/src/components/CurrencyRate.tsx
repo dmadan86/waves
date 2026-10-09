@@ -53,8 +53,7 @@ import {
 } from '@/lib/fxLine';
 
 import { fetchFxRate } from '@/data/api';
-import { todayIso } from '@/lib/expenseForm';
-import { rateDateFor, shouldAutoFetch } from '@/lib/fxAutoRate';
+import { localToday, rateDateFor, shouldAutoFetch } from '@/lib/fxAutoRate';
 
 enum Method {
   Charged = 'charged',
@@ -158,9 +157,23 @@ export function CurrencyRate({
   // is retried by the Retry button or a change, not in a loop.
   const triedKey = useRef<string | null>(null);
 
+  // What a fetch reply checks before it may land: the rate on the bill and the
+  // group's pin as they are *now*, not as they were when the fetch started.
+  const fxRef = useRef(fx);
+  const pinnedRef = useRef<FxRate | null>(null);
+
   const foreign = currency !== groupCurrency;
 
+  // A rate the person sets (typed, or derived from the charged amount) outranks
+  // any automatic fetch still in flight: invalidate it so its reply is dropped
+  // rather than overwriting what was just entered.
+  const invalidateFetch = (): void => {
+    requestId.current += 1;
+    setBusy(false);
+  };
+
   const applyCharged = (text: string): void => {
+    invalidateFetch();
     setChargedText(text);
     setError(null);
     if (!text.trim() || amount === 0n) {
@@ -182,6 +195,7 @@ export function CurrencyRate({
   useEffect(() => {
     if (method !== Method.Charged) return;
     if (!chargedText.trim() || amount === 0n) return;
+    requestId.current += 1;
     try {
       const charged = money(parseMinor(chargedText, groupCurrency), groupCurrency);
       onFxChange(toFxRecord(rateFromAmounts(money(amount, currency), charged)));
@@ -207,6 +221,7 @@ export function CurrencyRate({
   }
 
   const applyTyped = (text: string): void => {
+    invalidateFetch();
     setRateText(text);
     setError(null);
     if (!text.trim()) {
@@ -233,7 +248,14 @@ export function CurrencyRate({
     try {
       const record = await fetchFxRate(currency, groupCurrency, date ?? undefined);
       if (!current()) return;
-      if (auto) autoRecord.current = record;
+      if (auto) {
+        // An automatic reply never replaces a rate that arrived meanwhile: a
+        // pin that now applies (the group's choice beats a fetch), or anything
+        // on the bill that is not the automatic rate this request started from.
+        if (pinnedRef.current !== null) return;
+        if (fxRef.current !== null && fxRef.current !== autoRecord.current) return;
+        autoRecord.current = record;
+      }
       onFxChange(record);
       onFetched?.(record, date);
       setNow(Date.now());
@@ -259,11 +281,22 @@ export function CurrencyRate({
   const pinned =
     tripRate && tripRate.from === currency && tripRate.to === groupCurrency ? tripRate : null;
 
+  useEffect(() => {
+    fxRef.current = fx;
+    pinnedRef.current = foreign ? pinned : null;
+  }, [fx, pinned, foreign]);
+
   // Put the pinned rate on the bill the moment it becomes a foreign one, unless
   // a rate is already there — an edit reopening on its stored rate, or one the
-  // person has just typed, is never overwritten by the group's.
+  // person has just typed, is never overwritten by the group's. The exception is
+  // a rate this component fetched itself: the pin wins over that, including
+  // after a date change, and any fetch still in flight is dropped.
   useEffect(() => {
-    if (!foreign || !pinned || fx) return;
+    if (!foreign || !pinned) return;
+    if (fx && fx !== autoRecord.current) return;
+    autoRecord.current = null;
+    requestId.current += 1;
+    setBusy(false);
     onFxChange(toFxRecord(pinned));
     // `onFxChange` is a setter from the screen and stable in practice; keying on
     // it would re-run this on every parent render.
@@ -274,7 +307,7 @@ export function CurrencyRate({
   // one; otherwise a foreign bill with none fetches the rate for its own day.
   // A rate this effect fetched earlier is replaced when the day changes, but a
   // typed or charged one never is.
-  const wantDate = rateDateFor(expenseDate, todayIso());
+  const wantDate = rateDateFor(expenseDate, localToday());
   useEffect(() => {
     if (sheet || !autoFetch || !foreign) return;
     const mine = fx !== null && fx === autoRecord.current;
@@ -283,7 +316,8 @@ export function CurrencyRate({
         currency,
         groupCurrency,
         fx: mine ? null : fx,
-        pinned: mine ? null : pinned,
+        // The pin wins on a date change too: with one, nothing is fetched.
+        pinned,
       })
     )
       return;

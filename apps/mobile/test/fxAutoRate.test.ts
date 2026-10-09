@@ -15,7 +15,10 @@ import {
   rateDateFor,
   selectBackfill,
   shouldAutoFetch,
-  shouldPinFetched,
+  shouldPinOnSave,
+  localToday,
+  canRewrite,
+  activeMemberId,
 } from '../src/lib/fxAutoRate';
 
 const ME = 'member-me';
@@ -102,23 +105,57 @@ describe('rateDateFor', () => {
   });
 });
 
-describe('shouldPinFetched', () => {
+describe('shouldPinOnSave', () => {
   const base = {
     isAdmin: true,
     pinnedCurrencies: [] as string[],
     currency: 'VND',
     groupCurrency: 'INR',
-    forDate: null,
+    fx: VND_FX,
+    fetched: { record: VND_FX, forDate: null as string | null },
   };
-  it('pins the first rate captured for a currency', () => {
-    expect(shouldPinFetched(base)).toBe(true);
+  it('pins the auto-fetched rate the bill is saved with', () => {
+    expect(shouldPinOnSave(base)).toEqual(VND_FX);
   });
-  it('never overwrites a rate that is already pinned', () => {
-    expect(shouldPinFetched({ ...base, pinnedCurrencies: ['VND'] })).toBe(false);
+  it('never pins over an existing pin', () => {
+    expect(shouldPinOnSave({ ...base, pinnedCurrencies: ['VND'] })).toBeNull();
   });
   it('leaves it to an admin, and to rates for today', () => {
-    expect(shouldPinFetched({ ...base, isAdmin: false })).toBe(false);
-    expect(shouldPinFetched({ ...base, forDate: '2026-09-01' })).toBe(false);
+    expect(shouldPinOnSave({ ...base, isAdmin: false })).toBeNull();
+    expect(
+      shouldPinOnSave({ ...base, fetched: { record: VND_FX, forDate: '2026-09-01' } }),
+    ).toBeNull();
+  });
+  it('does not pin a rate that was typed or replaced after the fetch', () => {
+    expect(shouldPinOnSave({ ...base, fx: { ...VND_FX, num: '999' } })).toBeNull();
+    expect(shouldPinOnSave({ ...base, fx: null })).toBeNull();
+    expect(shouldPinOnSave({ ...base, fetched: null })).toBeNull();
+  });
+});
+
+describe('localToday', () => {
+  it('is the local calendar day, not the UTC one', () => {
+    expect(localToday(new Date(2026, 9, 9, 0, 30))).toBe('2026-10-09');
+    expect(localToday(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+  });
+});
+
+describe('canRewrite and activeMemberId', () => {
+  const version = { author_member_id: 'm1', payers: [{ member_id: 'm2' }] } as never;
+  it('allows the author and a payer only', () => {
+    expect(canRewrite(version, 'm1')).toBe(true);
+    expect(canRewrite(version, 'm2')).toBe(true);
+    expect(canRewrite(version, 'm3')).toBe(false);
+    expect(canRewrite(version, null)).toBe(false);
+    expect(canRewrite(null, 'm1')).toBe(false);
+  });
+  it('ignores a member who has left', () => {
+    const members = [
+      { id: 'm1', profile_id: 'p1', left_at: '2026-10-01T00:00:00Z' },
+      { id: 'm9', profile_id: 'p9', left_at: null },
+    ];
+    expect(activeMemberId(members, 'p1')).toBeNull();
+    expect(activeMemberId(members, 'p9')).toBe('m9');
   });
 });
 

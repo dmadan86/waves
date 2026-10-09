@@ -356,6 +356,11 @@ export interface GroupFxRateSetPayload {
   readonly num: string | null;
   readonly den: string | null;
   readonly source?: string;
+  /**
+   * Pin only if the currency has no entry yet (an automatic pin from a saved
+   * bill). Absent or false is a deliberate pin that overwrites.
+   */
+  readonly ifAbsent?: boolean;
 }
 
 /**

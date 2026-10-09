@@ -80,7 +80,7 @@ import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { tripRateFor } from '@/lib/tripRates';
-import { shouldPinFetched } from '@/lib/fxAutoRate';
+import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
@@ -596,7 +596,7 @@ export default function AddExpenseScreen() {
   const queryClient = useQueryClient();
 
   const myMemberId = useMemo(
-    () => (members.data ?? []).find((member) => isViewer(member, viewerId))?.id ?? null,
+    () => activeMemberId(members.data ?? [], viewerId),
     [members.data, viewerId],
   );
 
@@ -901,31 +901,12 @@ export default function AddExpenseScreen() {
    */
   const tripRate = tripRateFor(groupFxRates.data ?? [], currency, groupCurrency);
 
-  // The first rate fetched for a currency becomes the trip's rate, so the next
-  // bill in it opens already converted instead of fetching again. Admin-only
-  // because the RPC is, and never over a rate somebody pinned: only a currency
-  // with no row is pinned. The write is queued, so it works offline too.
-  const iAmAdmin = (members.data ?? []).some(
-    (member) => isViewer(member, viewerId) && member.role === 'admin',
-  );
-  const pinFetchedRate = (record: FxRecord, forDate: string | null): void => {
-    if (
-      !shouldPinFetched({
-        isAdmin: iAmAdmin,
-        pinnedCurrencies: (groupFxRates.data ?? []).map((row) => row.from),
-        currency,
-        groupCurrency,
-        forDate,
-      })
-    ) {
-      return;
-    }
-    setGroupFxRate.mutate({
-      from: record.from,
-      num: BigInt(record.num),
-      den: BigInt(record.den),
-      source: record.source,
-    });
+  // The rate the form fetched on its own, and the day it was asked for. Not
+  // acted on here: a pin is a write to the whole group, so it waits for SAVE
+  // (see `pinAfterSave`), and opening the form never causes one.
+  const fetchedRate = useRef<{ record: FxRecord; forDate: string | null } | null>(null);
+  const noteFetchedRate = (record: FxRecord, forDate: string | null): void => {
+    fetchedRate.current = { record, forDate };
   };
 
   // ───────────────────────────────────────────────────────── who paid ──
@@ -1129,14 +1110,33 @@ export default function AddExpenseScreen() {
   // not a party may still remove the legacy group-visible bill — the same split
   // of powers the expense screen applies.
   const editingVersion = editing?.currentVersion;
-  const isExpenseParty = Boolean(
-    myMemberId &&
-    editingVersion &&
-    (editingVersion.author_member_id === myMemberId ||
-      editingVersion.payers.some((row) => row.member_id === myMemberId)),
-  );
+  const isExpenseParty = canRewrite(editingVersion, myMemberId);
   const iAmGroupAdmin =
-    (members.data ?? []).find((row) => isViewer(row, viewerId))?.role === 'admin';
+    (members.data ?? []).find((row) => isViewer(row, viewerId) && row.left_at === null)?.role ===
+    'admin';
+
+  // The first auto-fetched rate saved for a currency becomes the trip's rate, so
+  // the next bill in it opens already converted. Admin-only because the RPC is,
+  // and insert-only-if-absent on the server, so a queued pin replayed late can
+  // never overwrite a rate another admin chose. Queued, so it works offline.
+  const pinAfterSave = (): void => {
+    const record = shouldPinOnSave({
+      isAdmin: iAmGroupAdmin,
+      pinnedCurrencies: (groupFxRates.data ?? []).map((row) => row.from),
+      currency,
+      groupCurrency,
+      fx,
+      fetched: fetchedRate.current,
+    });
+    if (!record) return;
+    setGroupFxRate.mutate({
+      from: record.from,
+      num: BigInt(record.num),
+      den: BigInt(record.den),
+      source: record.source,
+      ifAbsent: true,
+    });
+  };
 
   /** A figure typed against one payer. Typing locks it; the others absorb. */
   const setPaidEntry = (memberId: MemberId, text: string): void => {
@@ -1388,11 +1388,7 @@ export default function AddExpenseScreen() {
         const advanceVersion = advance?.currentVersion;
         // Only the advance's author or a payer may edit it (same rule as the
         // editor); anybody else's payment still saves, the balance stays.
-        const mayEdit =
-          advanceVersion !== null &&
-          advanceVersion !== undefined &&
-          (advanceVersion.author_member_id === myMemberId ||
-            advanceVersion.payers.some((row) => row.member_id === myMemberId));
+        const mayEdit = canRewrite(advanceVersion, myMemberId);
         if (advance && advanceVersion && mayEdit && !advance.deleted_at) {
           await mutate(
             MutationKind.ExpenseUpdate,
@@ -1405,6 +1401,7 @@ export default function AddExpenseScreen() {
           );
         }
       }
+      pinAfterSave();
       await clearDraft(draftKey);
       // The receipts held for a new expense can go now (see sendHeldReceipts).
       if (!expenseId) {
@@ -2375,7 +2372,7 @@ export default function AddExpenseScreen() {
             tripRate={tripRate}
             expenseDate={expenseDate}
             autoFetch
-            onFetched={pinFetchedRate}
+            onFetched={noteFetchedRate}
           />
         </ScrollView>
 
