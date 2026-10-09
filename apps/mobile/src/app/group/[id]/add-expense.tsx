@@ -61,6 +61,7 @@ import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethod
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
+import { showsDepositRow, showsVendorTools } from '@/lib/eventOrganizer';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { DescriptionField } from '@/components/expense/DescriptionField';
@@ -959,7 +960,11 @@ export default function AddExpenseScreen() {
   // Event organizer (docs/event-organizer.md): the fixed sub-event list this
   // group's template suggests — empty for a Trip/Home/Couple/Friends/Other
   // group, for an Event made before templates shipped, and for 'other'.
-  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
+  // Gated on the type too: a group re-typed away from Event keeps its template,
+  // and its sub-event picker must not follow.
+  const eventSubEvents = showsVendorTools(group.data?.type)
+    ? subEventsForTemplate(group.data?.event_template)
+    : [];
   // Collapsed like the split/payer rows beside it — closed until tapped,
   // since there is no equivalent of `manyPayers` to auto-open it on.
   const [showSubEventSection, setShowSubEventSection] = useState(false);
@@ -1899,7 +1904,7 @@ export default function AddExpenseScreen() {
                   Only on an Event group: a deposit means nothing on a personal
                   or one-on-one expense. An expense already marked as one keeps
                   the row, so it can still be turned off. */}
-              {group.data?.type === 'event' || isDeposit ? (
+              {showsDepositRow(group.data?.type, isDeposit) ? (
                 <View>
                   <DetailRow
                     icon="pricetag-outline"

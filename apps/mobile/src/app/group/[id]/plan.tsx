@@ -72,6 +72,7 @@ import { SubEventBudgets } from '@/components/SubEventBudgets';
 import { UpcomingPayments } from '@/components/UpcomingPayments';
 import { type VendorCandidate } from '@/lib/eventVendors';
 import { vendorCandidates } from '@/lib/vendorCandidates';
+import { showsVendorTools } from '@/lib/eventOrganizer';
 import { EventPlanHeader, EventPlanSummary, type PlanScope } from '@/components/EventPlanSummary';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -334,8 +335,9 @@ export default function PlanScreen() {
   // Event organizer (docs/event-organizer.md): the fixed sub-event list this
   // Event's template suggests — empty for a group with no template, which is
   // what hides the "Event budget" card below.
-  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
-  const isEvent = group.data?.type === 'event';
+  const isEvent = showsVendorTools(group.data?.type);
+  // Gated on the type too: a group re-typed away from Event keeps its template.
+  const eventSubEvents = isEvent ? subEventsForTemplate(group.data?.event_template) : [];
   const subEventLabel = (id: string): string =>
     `${eventSubEvents.find((s) => s.id === id)?.emoji ?? ''} ${t.eventSubEvents[id] ?? id}`.trim();
   const depositCandidates: VendorCandidate[] = vendorCandidates(expenses.rows, {
@@ -748,25 +750,24 @@ export default function PlanScreen() {
           />
         ) : null}
 
-        {/* Vendor deposits still owing a balance — on any group, not only an
-            Event: a trip's hotel deposit is the same shape. Hidden by
-            `UpcomingPayments` itself when there are none. */}
-        <UpcomingPayments
-          groupId={groupId}
-          candidates={depositCandidates}
-          today={today}
-          subEventLabel={subEventLabel}
-          showEmpty={isEvent}
-          onViewAll={
-            isEvent
-              ? () =>
-                  router.push({
-                    pathname: `/group/${groupId}`,
-                    params: { tab: 'vendors', vendorFilter: 'due' },
-                  })
-              : undefined
-          }
-        />
+        {/* Vendor deposits still owing a balance. Event groups only: vendor
+            tools are an Event feature, and a deposit left on a non-Event
+            expense is history, not something to chase from the plan. */}
+        {isEvent ? (
+          <UpcomingPayments
+            groupId={groupId}
+            candidates={depositCandidates}
+            today={today}
+            subEventLabel={subEventLabel}
+            showEmpty
+            onViewAll={() =>
+              router.push({
+                pathname: `/group/${groupId}`,
+                params: { tab: 'vendors', vendorFilter: 'due' },
+              })
+            }
+          />
+        ) : null}
 
         {isTrip && forecasts.length > 0 ? (
           <Card style={{ gap: theme.spacing.sm }}>
