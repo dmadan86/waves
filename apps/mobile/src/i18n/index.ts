@@ -1992,6 +1992,19 @@ export interface UiStrings {
     reports: string;
     settleTitle: string;
     settleEmpty: string;
+    settleSubtitle: string;
+    settleSearch: string;
+    settleSortTitle: string;
+    settleSortBalance: string;
+    settleSortRecent: string;
+    settleSortName: string;
+    settleChipAll: string;
+    settleChipYours: string;
+    settleChipTrips: string;
+    settleChipFamily: string;
+    settleChipFriends: string;
+    /** "{members} · Last activity {when}" under a group's name. */
+    settleMeta: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
   };
@@ -6326,7 +6339,19 @@ const en: UiStrings = {
     addExpense: 'Add expense',
     reports: 'Reports',
     settleTitle: 'Settle up in',
-    settleEmpty: 'You are square in every group.',
+    settleEmpty: "You're square everywhere",
+    settleSubtitle: 'Pick a group to view balances and settle up.',
+    settleSearch: 'Search groups…',
+    settleSortTitle: 'Sort by',
+    settleSortBalance: 'Biggest balance',
+    settleSortRecent: 'Recent activity',
+    settleSortName: 'Name',
+    settleChipAll: 'All',
+    settleChipYours: 'Your groups',
+    settleChipTrips: 'Trips',
+    settleChipFamily: 'Family',
+    settleChipFriends: 'Friends',
+    settleMeta: '{members} · Last activity {when}',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
@@ -10266,6 +10291,18 @@ const ta: UiStrings = {
     reports: 'அறிக்கைகள்',
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
+    settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
+    settleSearch: 'குழுக்களைத் தேடு…',
+    settleSortTitle: 'வரிசைப்படுத்து',
+    settleSortBalance: 'பெரிய இருப்பு',
+    settleSortRecent: 'சமீபத்திய செயல்பாடு',
+    settleSortName: 'பெயர்',
+    settleChipAll: 'அனைத்தும்',
+    settleChipYours: 'உங்கள் குழுக்கள்',
+    settleChipTrips: 'பயணங்கள்',
+    settleChipFamily: 'குடும்பம்',
+    settleChipFriends: 'நண்பர்கள்',
+    settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
@@ -14293,6 +14330,18 @@ const hi: UiStrings = {
     reports: 'रिपोर्ट',
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
+    settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
+    settleSearch: 'समूह खोजें…',
+    settleSortTitle: 'इसके अनुसार क्रमबद्ध करें',
+    settleSortBalance: 'सबसे बड़ा बैलेंस',
+    settleSortRecent: 'हाल की गतिविधि',
+    settleSortName: 'नाम',
+    settleChipAll: 'सभी',
+    settleChipYours: 'आपके समूह',
+    settleChipTrips: 'यात्राएँ',
+    settleChipFamily: 'परिवार',
+    settleChipFriends: 'दोस्त',
+    settleMeta: '{members} · आखिरी गतिविधि {when}',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
@@ -18295,6 +18344,18 @@ const ar: UiStrings = {
     reports: 'التقارير',
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
+    settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
+    settleSearch: 'ابحث عن المجموعات…',
+    settleSortTitle: 'ترتيب حسب',
+    settleSortBalance: 'أكبر رصيد',
+    settleSortRecent: 'النشاط الأخير',
+    settleSortName: 'الاسم',
+    settleChipAll: 'الكل',
+    settleChipYours: 'مجموعاتك',
+    settleChipTrips: 'الرحلات',
+    settleChipFamily: 'العائلة',
+    settleChipFriends: 'الأصدقاء',
+    settleMeta: '{members} · آخر نشاط {when}',
     acrossGroups: {
       zero: 'في {n} مجموعة',
       one: 'في مجموعة واحدة',

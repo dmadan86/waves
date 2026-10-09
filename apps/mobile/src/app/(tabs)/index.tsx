@@ -57,7 +57,6 @@ import { measureAnchor } from '@/lib/measureAnchor';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
-import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -373,23 +372,7 @@ export default function HomeScreen() {
   const activitySeenAt = useActivitySeenAt();
   const unseenActivity = hasUnseenActivity(newestFromOthers, activitySeenAt);
 
-  // Settle up from Home asks which group first; these are the ones with money
-  // outstanding either way, largest first.
-  const [settleOpen, setSettleOpen] = useState(false);
-  const settleCandidates: SettleCandidate[] = list
-    .map((group) => ({
-      id: group.id,
-      title: groupLabel(group, summary.membersFor(group.id), viewerId),
-      coverEmoji: group.cover_emoji,
-      balance: summary.balanceFor(group.id),
-      currency: group.default_currency,
-    }))
-    .filter((group) => group.balance !== 0n)
-    .sort((a, b) => {
-      const size = (x: bigint) => (x < 0n ? -x : x);
-      const d = size(b.balance) - size(a.balance);
-      return d > 0n ? 1 : d < 0n ? -1 : 0;
-    });
+  // Settle up opens its own screen (`/settle-up`), which works out the groups.
   // How many groups each side of the balance card comes from — in the
   // headline's currency, the one those sides are totalled in.
   const inHeadline = list.filter(
@@ -545,7 +528,7 @@ export default function HomeScreen() {
                     onAddExpense={() => setQuickExpenseOpen(true)}
                     onAddExpenseLong={() => setQuickAddOpen(true)}
                     onReports={openReports}
-                    onSettleUp={() => setSettleOpen(true)}
+                    onSettleUp={() => router.push('/settle-up')}
                     onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}
                   />
@@ -754,11 +737,6 @@ export default function HomeScreen() {
         anchor={newGroupAnchor}
         onClose={() => setNewGroupOpen(false)}
         onCreate={openNewGroup}
-      />
-      <SettlePickerSheet
-        visible={settleOpen}
-        onClose={() => setSettleOpen(false)}
-        groups={settleCandidates}
       />
 
       {/* Signed in on a phone that holds no personal ledger — a new handset, a
