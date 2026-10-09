@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, TextInput, View } from 'react-native';
 
 import {
   convert,
@@ -53,6 +53,8 @@ import {
 } from '@/lib/fxLine';
 
 import { fetchFxRate } from '@/data/api';
+import { todayIso } from '@/lib/expenseForm';
+import { rateDateFor, shouldAutoFetch } from '@/lib/fxAutoRate';
 
 enum Method {
   Charged = 'charged',
@@ -83,6 +85,24 @@ export interface CurrencyRateProps {
    */
   tripRate?: FxRate | null;
   /**
+   * The day the bill is filed under (YYYY-MM-DD). With `autoFetch`, a bill dated
+   * in the past is converted at the rate of that day rather than today's.
+   */
+  expenseDate?: string;
+  /**
+   * Fetch a rate on its own as soon as a foreign bill has none and the group has
+   * not pinned one, instead of waiting to be asked. A failed fetch (offline)
+   * leaves the "rate not set" line with a Retry; saving is never held up either
+   * way. Off for the create-group sheet, which has its own rate flow.
+   */
+  autoFetch?: boolean;
+  /**
+   * A rate was just fetched (automatically or by tap). `forDate` is the day it
+   * was asked for, or null for the latest — the caller decides whether to pin
+   * it for the trip.
+   */
+  onFetched?: (record: FxRecord, forDate: string | null) => void;
+  /**
    * Controlled, sheet-only use (the create-group screen): no summary line, the
    * sheet is shown while `visible`. Nothing is hidden for a same-currency pair
    * — the caller decides whether to ask at all.
@@ -97,6 +117,9 @@ export function CurrencyRate({
   fx,
   onFxChange,
   tripRate = null,
+  expenseDate,
+  autoFetch = false,
+  onFetched,
   sheet,
 }: CurrencyRateProps): React.JSX.Element | null {
   const theme = useTheme();
@@ -106,6 +129,8 @@ export function CurrencyRate({
   const [rateText, setRateText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The last automatic fetch failed, so the rate line offers a Retry.
+  const [autoFailed, setAutoFailed] = useState(false);
 
   // Whether the rate sheet is open.
   const [openState, setOpen] = useState(false);
@@ -122,6 +147,16 @@ export function CurrencyRate({
   useEffect(() => {
     latestPair.current = `${currency}|${groupCurrency}`;
   }, [currency, groupCurrency]);
+
+  // Only the newest request may land: a quick date change fires a second fetch
+  // and the first one's slower reply must not overwrite it.
+  const requestId = useRef(0);
+  // The record the automatic fetch put on the bill, so a later date change can
+  // tell it apart from a rate somebody typed (which it must never replace).
+  const autoRecord = useRef<FxRecord | null>(null);
+  // The pair, date and currency the automatic fetch last ran for, so a failure
+  // is retried by the Retry button or a change, not in a loop.
+  const triedKey = useRef<string | null>(null);
 
   const foreign = currency !== groupCurrency;
 
@@ -186,28 +221,35 @@ export function CurrencyRate({
     }
   };
 
-  const fetchToday = async (): Promise<void> => {
+  const fetchRate = async (date: string | null, auto: boolean): Promise<void> => {
     // The pair this request is for; a change away from it before the response
     // lands makes the response stale, and stale rates must not be applied.
     const pair = `${currency}|${groupCurrency}`;
+    const id = ++requestId.current;
+    const current = (): boolean => latestPair.current === pair && requestId.current === id;
     setError(null);
+    setAutoFailed(false);
     setBusy(true);
     try {
-      const record = await fetchFxRate(currency, groupCurrency);
-      if (latestPair.current !== pair) return;
+      const record = await fetchFxRate(currency, groupCurrency, date ?? undefined);
+      if (!current()) return;
+      if (auto) autoRecord.current = record;
       onFxChange(record);
+      onFetched?.(record, date);
       setNow(Date.now());
       setRateText(rateToDecimal(fromFxRecord(record), 4));
     } catch (caught) {
-      if (latestPair.current !== pair) return;
+      if (!current()) return;
       // Not a blocker: typing a rate works offline and is often more accurate.
+      if (auto) setAutoFailed(true);
       setError(
         `${friendlyError(caught, t.misc.rateFetchFailed, 'currencyRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
       );
     } finally {
-      if (latestPair.current === pair) setBusy(false);
+      if (current()) setBusy(false);
     }
   };
+  const fetchToday = (): Promise<void> => fetchRate(null, false);
 
   const converted = fx && amount > 0n ? convertWithRecord(money(amount, currency), fx) : null;
 
@@ -227,6 +269,32 @@ export function CurrencyRate({
     // it would re-run this on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreign, pinned, fx]);
+
+  // Get a rate without being asked. The pinned rate above wins when there is
+  // one; otherwise a foreign bill with none fetches the rate for its own day.
+  // A rate this effect fetched earlier is replaced when the day changes, but a
+  // typed or charged one never is.
+  const wantDate = rateDateFor(expenseDate, todayIso());
+  useEffect(() => {
+    if (sheet || !autoFetch || !foreign) return;
+    const mine = fx !== null && fx === autoRecord.current;
+    if (
+      !shouldAutoFetch({
+        currency,
+        groupCurrency,
+        fx: mine ? null : fx,
+        pinned: mine ? null : pinned,
+      })
+    )
+      return;
+    const key = `${currency}|${groupCurrency}|${wantDate ?? ''}`;
+    if (triedKey.current === key) return;
+    triedKey.current = key;
+    void fetchRate(wantDate, true);
+    // `fetchRate` is recreated each render; the key above is what decides
+    // whether this runs again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet, autoFetch, foreign, fx, pinned, currency, groupCurrency, wantDate]);
 
   const onTripRate = Boolean(pinned && fx && sameRate(fromFxRecord(fx), pinned));
 
@@ -293,6 +361,13 @@ export function CurrencyRate({
             <Text variant="body" numberOfLines={1}>
               {t.fx.inGroupMoney.replace('{amount}', format(converted))}
             </Text>
+          ) : busy && !fx ? (
+            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+              <ActivityIndicator size="small" color={theme.color.textMuted} />
+              <Text variant="body" tone="muted" numberOfLines={1}>
+                {t.fx.fetchingRate}
+              </Text>
+            </Row>
           ) : (
             <Text variant="body" tone="muted" numberOfLines={1}>
               {t.fx.rateNotSet}
@@ -305,6 +380,23 @@ export function CurrencyRate({
           ) : null}
         </Pressable>
       )}
+
+      {!sheet && autoFailed && !fx && !busy ? (
+        // The fetch failed (most likely offline). Saving still works; this is
+        // the way back to the rate without opening the sheet.
+        <Pressable
+          onPress={() => {
+            triedKey.current = `${currency}|${groupCurrency}|${wantDate ?? ''}`;
+            void fetchRate(wantDate, true);
+          }}
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+            {t.fx.retryRate}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Sheet visible={open} onClose={closeSheet}>
         <View style={{ gap: theme.spacing.md }}>

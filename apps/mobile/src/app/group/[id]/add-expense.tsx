@@ -80,8 +80,9 @@ import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { tripRateFor } from '@/lib/tripRates';
+import { shouldPinFetched } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
-import { useAssignCapture, useGroup, useGroupFxRates } from '@/data/hooks';
+import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
@@ -379,6 +380,7 @@ export default function AddExpenseScreen() {
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
+  const setGroupFxRate = useSetGroupFxRate(groupId);
   const { mutate } = useSync();
   const assignCapture = useAssignCapture();
   const guard = useGuestGuard();
@@ -898,6 +900,33 @@ export default function AddExpenseScreen() {
    * taps it.
    */
   const tripRate = tripRateFor(groupFxRates.data ?? [], currency, groupCurrency);
+
+  // The first rate fetched for a currency becomes the trip's rate, so the next
+  // bill in it opens already converted instead of fetching again. Admin-only
+  // because the RPC is, and never over a rate somebody pinned: only a currency
+  // with no row is pinned. The write is queued, so it works offline too.
+  const iAmAdmin = (members.data ?? []).some(
+    (member) => isViewer(member, viewerId) && member.role === 'admin',
+  );
+  const pinFetchedRate = (record: FxRecord, forDate: string | null): void => {
+    if (
+      !shouldPinFetched({
+        isAdmin: iAmAdmin,
+        pinnedCurrencies: (groupFxRates.data ?? []).map((row) => row.from),
+        currency,
+        groupCurrency,
+        forDate,
+      })
+    ) {
+      return;
+    }
+    setGroupFxRate.mutate({
+      from: record.from,
+      num: BigInt(record.num),
+      den: BigInt(record.den),
+      source: record.source,
+    });
+  };
 
   // ───────────────────────────────────────────────────────── who paid ──
   //
@@ -2344,6 +2373,9 @@ export default function AddExpenseScreen() {
             fx={fx}
             onFxChange={setFx}
             tripRate={tripRate}
+            expenseDate={expenseDate}
+            autoFetch
+            onFetched={pinFetchedRate}
           />
         </ScrollView>
 

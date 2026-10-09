@@ -1351,9 +1351,19 @@ export async function scanReceiptText(input: {
  * transaction it is the more accurate answer anyway, because the bank's rate
  * includes a markup no reference rate will ever match.
  */
-export async function fetchFxRate(from: string, to: string): Promise<FxRecord> {
+export async function fetchFxRate(
+  from: string,
+  to: string,
+  /**
+   * The day (YYYY-MM-DD) the bill was paid, for a rate as of then. Omitted
+   * means the latest. A function deployed before `date` existed ignores it and
+   * answers with the latest, which the record's own `ts` makes visible.
+   */
+  date?: string,
+): Promise<FxRecord> {
+  const day = date ? `&date=${encodeURIComponent(date)}` : '';
   const { data, error } = await backend.functions.invoke(
-    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}`,
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
