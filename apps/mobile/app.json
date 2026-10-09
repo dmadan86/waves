@@ -32,7 +32,7 @@
     "android": {
       "package": "app.waves.mobile",
       "allowBackup": false,
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
