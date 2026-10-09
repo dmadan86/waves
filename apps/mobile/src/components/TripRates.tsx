@@ -43,6 +43,9 @@ import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { rateAttribution } from '@/lib/fxLine';
+import { StaleFxRateError } from '@/lib/fxStale';
+import { RateAttribution } from '@/components/RateAttribution';
 import {
   currencyMark,
   currencyName,
@@ -264,6 +267,9 @@ export function TripRatesCard({
           );
         })
       )}
+      {/* A pinned rate fetched from ExchangeRate-API is still their rate:
+          credited once under the list, wherever it is shown. */}
+      <RateAttribution fx={rows.find((row) => rateAttribution(row))} tone="faint" />
 
       {canEdit ? (
         <ListRow
@@ -444,8 +450,12 @@ function TripRateSheet({
       setHomeFirst(readable);
       setText(shownText(fetched, readable));
     } catch (caught) {
+      // Only an older rate was on offer. A rate pinned for the whole trip is
+      // not the place for one; typing today's rate is.
       setError(
-        `${friendlyError(caught, t.misc.rateFetchFailed, 'tripRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
+        caught instanceof StaleFxRateError
+          ? `${t.misc.rateFetchFailed}${t.misc.rateFetchFailedSuffix}`
+          : `${friendlyError(caught, t.misc.rateFetchFailed, 'tripRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
       );
     } finally {
       setBusy(false);
@@ -632,6 +642,8 @@ function TripRateSheet({
           {exact && exact.source !== 'manual' ? t.fx.todaysRate : t.fx.removeConfirm}
         </Text>
       )}
+      {/* ExchangeRate-API's terms: credit them, linked, wherever their rate shows. */}
+      {!error ? <RateAttribution fx={exact} tone="faint" /> : null}
 
       <Button
         label={t.common.save}

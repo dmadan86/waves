@@ -1,149 +1,33 @@
 /**
- * fx-rate — today's mid-market rate, as an exact rational (ADR-003).
+ * fx-rate entrypoint — the thin `Deno.serve` shell.
  *
- * Two things this deliberately is not:
- *
- * It is not the only way to get a rate into an expense. Typing one, or deriving
- * it from a card statement, works offline and is often *more* accurate — a bank
- * charges its own rate with its own markup, and a mid-market number will never
- * match anybody's statement. This endpoint is the convenience, not the truth.
- *
- * It is not a float. The upstream publishes decimals; we turn them into num/den
- * at the boundary and never let a double past it, because the rate stored on an
- * expense has to reproduce the same minor units a year from now.
- *
- * Rates come from the ECB via Frankfurter, which needs no key and publishes
- * daily reference rates. It is behind auth anyway so this cannot be used as an
- * open currency proxy on somebody else's bill.
+ * The handling lives in `handler.ts` (lookup order, the daily cache, the stale
+ * fallback) and `providers.ts` (the provider chain and the exact-fraction
+ * conversion), both over injected boundaries so they are tested on Node.
  */
 
-import {
-  asCaller,
-  asService,
-  serveWithCors,
-  errorResponse,
-  HttpError,
-  json,
-} from '../_shared/auth.ts';
+import { asCaller, asService, serveWithCors } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
-
-/** ECB publishes once a working day, so a short cache is free accuracy-wise. */
-const CACHE_TTL_MS = 60 * 60 * 1000;
-/** A dated rate that really is that day's never changes. */
-const DATED_TTL_MS = 24 * CACHE_TTL_MS;
-/** Anything that might still be revised or republished: short, like the latest. */
-const SHORT_TTL_MS = 15 * 60 * 1000;
-const cache = new Map<string, { at: number; ttl: number; body: unknown }>();
+import { handleFxRate, supabaseFxStore } from './handler.ts';
 
 /**
- * "91.2534" becomes 912534/10000 — exactly, with no intermediate double.
- * The upstream sends JSON numbers, so the value is re-serialised rather than
- * read as a float: `String(91.2534)` is lossless for anything ECB publishes,
- * and parsing the digits is what keeps the rational exact.
+ * One service client per isolate, built on first use rather than per request
+ * (or at import, where a missing secret would take the whole function down).
+ * The handler builds the store inside its cache guard, so a throw here is a
+ * cache miss.
  */
-function toRational(value: number): { num: string; den: string } {
-  const text = String(value);
-  if (!/^\d+(\.\d+)?$/.test(text)) {
-    throw new HttpError(502, 'BAD_RATE', `Upstream sent "${text}", which is not a rate`);
-  }
-  const [whole = '0', fraction = ''] = text.split('.');
-  return {
-    num: BigInt(whole + fraction).toString(),
-    den: (10n ** BigInt(fraction.length)).toString(),
-  };
-}
+let service: ReturnType<typeof asService> | null = null;
+const serviceClient = (): ReturnType<typeof asService> => (service ??= asService());
 
-serveWithCors(async (request) => {
-  try {
-    const url = new URL(request.url);
-    const from = (url.searchParams.get('from') ?? '').toUpperCase();
-    const to = (url.searchParams.get('to') ?? '').toUpperCase();
-
-    if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to)) {
-      throw new HttpError(400, 'BAD_CURRENCY', 'Pass two ISO-4217 codes, e.g. ?from=EUR&to=INR');
-    }
-    if (from === to) {
-      throw new HttpError(400, 'SAME_CURRENCY', 'Those are the same currency');
-    }
-
-    // Signed in, so this is not an open proxy. No membership check: a rate is
-    // not group data, and asking for one reveals nothing about any ledger.
-    const caller = asCaller(request);
-    const { data: user } = await caller.auth.getUser();
-    if (!user?.user) throw new HttpError(401, 'UNAUTHENTICATED', 'Sign in first');
-
-    // Optional day, for a bill dated in the past: the ECB publishes a reference
-    // rate per working day, so the rate a late entry is converted at can be the
-    // one for the day it was paid rather than the day it was typed in. Omitted
-    // means the latest. Frankfurter answers a weekend or holiday with the
-    // previous working day's rate, and the body's `ts` says which day that was.
-    const date = url.searchParams.get('date') ?? '';
-    if (date) {
-      const real = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date));
-      if (!real) throw new HttpError(400, 'BAD_DATE', 'Pass the date as YYYY-MM-DD');
-      if (date > new Date().toISOString().slice(0, 10)) {
-        throw new HttpError(400, 'BAD_DATE', 'There is no published rate for a future day');
-      }
-    }
-
-    const key = `${from}:${to}:${date}`;
-    const hit = cache.get(key);
-    // Each entry carries the lifetime it was stored with (see below).
-    if (hit && Date.now() - hit.at < hit.ttl) {
-      // Deliberately before the limiter. A cache hit costs nothing and reaches
-      // no upstream, and counting it would spend somebody's allowance on the
-      // one path this function is proud of.
-      return json(hit.body);
-    }
-
-    // Only the calls that leave the building. The cache is per-isolate, so a
-    // cold isolate misses and this is what stops a script turning every miss
-    // into an upstream request.
-    await enforceRateLimit(asService(), request, 'fx-rate', user.user.id);
-
-    const response = await fetch(
-      `https://api.frankfurter.dev/v1/${date || 'latest'}?base=${from}&symbols=${to}`,
-    );
-    if (!response.ok) {
-      throw new HttpError(
-        502,
-        'RATE_UNAVAILABLE',
-        'Could not reach the exchange just now — you can type the rate instead',
-      );
-    }
-
-    const payload = (await response.json()) as { date?: string; rates?: Record<string, number> };
-    const value = payload.rates?.[to];
-    if (typeof value !== 'number') {
-      throw new HttpError(
-        404,
-        'RATE_UNAVAILABLE',
-        `No published rate for ${from} to ${to} — you can type one instead`,
-      );
-    }
-
-    const { num, den } = toRational(value);
-    const body = {
-      // Exactly the shape stored in `expense_versions.fx`, so the client can
-      // hand it straight back on the write with nothing in between to get wrong.
-      num,
-      den,
-      from,
-      to,
-      // The rate's own date, not now(): ECB reference rates are for a day, and
-      // saying otherwise would misreport when the number was true.
-      ts: payload.date ? `${payload.date}T00:00:00.000Z` : new Date().toISOString(),
-      source: 'ecb',
-    };
-
-    // Long only for a rate that is really that day's: Frankfurter answers a
-    // weekend or holiday with the previous working day's rate, and a day it has
-    // not published yet with an older one, which may be replaced once the real
-    // rate lands. Those, like the latest, are cached briefly.
-    const ttl = date && payload.date === date ? DATED_TTL_MS : SHORT_TTL_MS;
-    cache.set(key, { at: Date.now(), ttl, body });
-    return json(body);
-  } catch (error) {
-    return errorResponse(error, { fn: 'fx-rate' });
-  }
-});
+serveWithCors((request) =>
+  handleFxRate(request, {
+    callerId: async (incoming) => {
+      const { data } = await asCaller(incoming).auth.getUser();
+      return data?.user?.id ?? null;
+    },
+    rateLimit: (incoming, userId) => enforceRateLimit(serviceClient(), incoming, 'fx-rate', userId),
+    // `fx_daily_rates` is service-role only: RLS on, no client grants.
+    store: () => supabaseFxStore(serviceClient()),
+    fetchFn: fetch,
+  }),
+);
