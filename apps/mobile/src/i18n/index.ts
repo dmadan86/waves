@@ -3272,7 +3272,6 @@ export interface UiStrings {
     settleOwesYou: string;
     settleYouOweHeading: string;
     settlePay: string;
-    settleMarkPaid: string;
     settleReceivedTitle: string;
     settleReceivedBody: string;
     settleReceivedConfirm: string;
@@ -3290,9 +3289,17 @@ export interface UiStrings {
     settleHistoryPaid: string;
     settleNoHistory: string;
     settlePaymentsCount: PluralForms;
-    settleYourPayments: string;
-    settleYourPaymentsSub: string;
     settleBetweenOthersSub: string;
+    settleOweYouTitle: string;
+    settleYouOweTitle: string;
+    settleClearBalanceSub: string;
+    settleStatusPending: string;
+    settleTapReceived: string;
+    settleTapPaid: string;
+    settlePendingTitle: string;
+    settlePendingBody: string;
+    settleFilterAll: string;
+    settleNoHistorySub: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -7230,12 +7237,12 @@ const en: UiStrings = {
     settleOwesYou: 'Owes you',
     settleYouOweHeading: 'You owe',
     settlePay: 'Pay',
-    settleMarkPaid: 'Mark as paid',
     settleReceivedTitle: 'Got {amount} from {name}?',
-    settleReceivedBody: 'This records the payment in the group.',
+    settleReceivedBody: 'This records their payment in the group and updates the balances.',
     settleReceivedConfirm: 'Yes, received',
     settleMarkPaidTitle: 'Mark {amount} to {name} as paid?',
-    settleMarkPaidBody: 'Only if you already paid them.',
+    settleMarkPaidBody:
+      'This records your payment in the group and updates the balances. Only if you already paid them.',
     settleMarkPaidConfirm: 'Yes, I paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
@@ -7248,9 +7255,17 @@ const en: UiStrings = {
     settleHistoryPaid: '{from} paid {to}',
     settleNoHistory: 'No payments yet',
     settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
-    settleYourPayments: 'Your payments',
-    settleYourPaymentsSub: 'Settle with your friends',
-    settleBetweenOthersSub: 'These don’t affect your balance',
+    settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
+    settleOweYouTitle: 'People who owe you',
+    settleYouOweTitle: 'People you owe',
+    settleClearBalanceSub: 'Settle these to clear your balance',
+    settleStatusPending: 'pending',
+    settleTapReceived: 'Tap to mark as received',
+    settleTapPaid: 'Tap to mark as paid',
+    settlePendingTitle: 'Payment pending',
+    settlePendingBody: 'This payment is already marked and waiting to be confirmed.',
+    settleFilterAll: 'All',
+    settleNoHistorySub: 'Once you mark payments as done, they’ll appear here.',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -11182,12 +11197,13 @@ const ta: UiStrings = {
     settleOwesYou: 'உங்களுக்குத் தர வேண்டியவர்கள்',
     settleYouOweHeading: 'நீங்கள் தர வேண்டியவர்கள்',
     settlePay: 'செலுத்து',
-    settleMarkPaid: 'செலுத்தியதாகக் குறி',
     settleReceivedTitle: '{name} இடமிருந்து {amount} கிடைத்ததா?',
-    settleReceivedBody: 'இது குழுவில் பணம் செலுத்தப்பட்டதாகப் பதிவு செய்யும்.',
+    settleReceivedBody:
+      'இது குழுவில் அவர்களின் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும்.',
     settleReceivedConfirm: 'ஆம், கிடைத்தது',
     settleMarkPaidTitle: '{name}க்கு {amount} செலுத்தியதாகக் குறிக்கவா?',
-    settleMarkPaidBody: 'நீங்கள் ஏற்கெனவே செலுத்தியிருந்தால் மட்டும்.',
+    settleMarkPaidBody:
+      'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும். நீங்கள் ஏற்கெனவே செலுத்தியிருந்தால் மட்டும்.',
     settleMarkPaidConfirm: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
@@ -11200,9 +11216,19 @@ const ta: UiStrings = {
     settleHistoryPaid: '{from} → {to} செலுத்தினார்',
     settleNoHistory: 'இன்னும் கட்டணங்கள் இல்லை',
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
-    settleYourPayments: 'உங்கள் கட்டணங்கள்',
-    settleYourPaymentsSub: 'நண்பர்களுடன் கணக்கை தீர்க்கவும்',
-    settleBetweenOthersSub: 'இவை உங்கள் இருப்பைப் பாதிக்காது',
+    settleBetweenOthersSub:
+      'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
+    settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
+    settleClearBalanceSub: 'உங்கள் இருப்பைத் தீர்க்க இவற்றை முடிக்கவும்',
+    settleStatusPending: 'நிலுவையில்',
+    settleTapReceived: 'கிடைத்ததாகக் குறிக்கத் தட்டவும்',
+    settleTapPaid: 'செலுத்தியதாகக் குறிக்கத் தட்டவும்',
+    settlePendingTitle: 'கட்டணம் நிலுவையில்',
+    settlePendingBody:
+      'இந்தக் கட்டணம் ஏற்கெனவே குறிக்கப்பட்டு உறுதிப்படுத்தலுக்காகக் காத்திருக்கிறது.',
+    settleFilterAll: 'அனைத்தும்',
+    settleNoHistorySub: 'கட்டணங்களை முடிந்ததாகக் குறித்ததும் அவை இங்கே தோன்றும்.',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -15121,12 +15147,12 @@ const hi: UiStrings = {
     settleOwesYou: 'आपको देने हैं',
     settleYouOweHeading: 'आपको देना है',
     settlePay: 'चुकाएँ',
-    settleMarkPaid: 'चुकाया हुआ मानें',
     settleReceivedTitle: '{name} से {amount} मिले?',
-    settleReceivedBody: 'इससे ग्रुप में भुगतान दर्ज हो जाएगा।',
+    settleReceivedBody: 'इससे ग्रुप में उनका भुगतान दर्ज होगा और बैलेंस अपडेट होंगे।',
     settleReceivedConfirm: 'हाँ, मिल गए',
     settleMarkPaidTitle: '{name} को {amount} चुकाया हुआ मानें?',
-    settleMarkPaidBody: 'केवल तभी जब आप उन्हें पहले ही चुका चुके हों।',
+    settleMarkPaidBody:
+      'इससे ग्रुप में आपका भुगतान दर्ज होगा और बैलेंस अपडेट होंगे। केवल तभी जब आप उन्हें पहले ही चुका चुके हों।',
     settleMarkPaidConfirm: 'हाँ, मैंने चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
@@ -15139,9 +15165,17 @@ const hi: UiStrings = {
     settleHistoryPaid: '{from} ने {to} को चुकाया',
     settleNoHistory: 'अभी कोई भुगतान नहीं',
     settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
-    settleYourPayments: 'आपके भुगतान',
-    settleYourPaymentsSub: 'दोस्तों के साथ हिसाब चुकाएँ',
-    settleBetweenOthersSub: 'ये आपके बैलेंस पर असर नहीं डालते',
+    settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
+    settleOweYouTitle: 'जिनसे आपको लेना है',
+    settleYouOweTitle: 'जिन्हें आपको चुकाना है',
+    settleClearBalanceSub: 'अपना बैलेंस साफ़ करने के लिए इन्हें निपटाएँ',
+    settleStatusPending: 'लंबित',
+    settleTapReceived: 'मिला हुआ मानने के लिए टैप करें',
+    settleTapPaid: 'चुकाया हुआ मानने के लिए टैप करें',
+    settlePendingTitle: 'भुगतान लंबित है',
+    settlePendingBody: 'यह भुगतान पहले ही दर्ज हो चुका है और पुष्टि की प्रतीक्षा में है।',
+    settleFilterAll: 'सभी',
+    settleNoHistorySub: 'भुगतान पूरे चिह्नित करने पर वे यहाँ दिखेंगे।',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -19223,12 +19257,12 @@ const ar: UiStrings = {
     settleOwesYou: 'مدينون لك',
     settleYouOweHeading: 'أنت مدين لـ',
     settlePay: 'ادفع',
-    settleMarkPaid: 'تحديد كمدفوع',
     settleReceivedTitle: 'هل استلمت {amount} من {name}؟',
-    settleReceivedBody: 'سيُسجَّل هذا الدفع في المجموعة.',
+    settleReceivedBody: 'سيُسجَّل دفعهم في المجموعة وتُحدَّث الأرصدة.',
     settleReceivedConfirm: 'نعم، استلمت',
     settleMarkPaidTitle: 'تحديد {amount} إلى {name} كمدفوع؟',
-    settleMarkPaidBody: 'فقط إذا كنت قد دفعت لهم بالفعل.',
+    settleMarkPaidBody:
+      'سيُسجَّل دفعك في المجموعة وتُحدَّث الأرصدة. فقط إذا كنت قد دفعت لهم بالفعل.',
     settleMarkPaidConfirm: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
@@ -19248,9 +19282,17 @@ const ar: UiStrings = {
       many: 'عبر {n} دفعة',
       other: 'عبر {n} دفعة',
     },
-    settleYourPayments: 'مدفوعاتك',
-    settleYourPaymentsSub: 'سوِّ حسابك مع أصدقائك',
-    settleBetweenOthersSub: 'هذه لا تؤثر على رصيدك',
+    settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
+    settleOweYouTitle: 'من يدينون لك',
+    settleYouOweTitle: 'من تدين لهم',
+    settleClearBalanceSub: 'سوِّ هذه لتصفية رصيدك',
+    settleStatusPending: 'قيد الانتظار',
+    settleTapReceived: 'اضغط لتحديده كمستلم',
+    settleTapPaid: 'اضغط لتحديده كمدفوع',
+    settlePendingTitle: 'الدفع قيد الانتظار',
+    settlePendingBody: 'تم تحديد هذا الدفع بالفعل وهو بانتظار التأكيد.',
+    settleFilterAll: 'الكل',
+    settleNoHistorySub: 'عندما تضع علامة تمّ على المدفوعات ستظهر هنا.',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',
