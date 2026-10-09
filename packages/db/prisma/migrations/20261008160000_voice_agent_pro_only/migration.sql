@@ -12,7 +12,8 @@
 --      no session to ask with.
 --   2. allowlisted -> on (testers and promo grants, flag or no flag).
 --   3. flag off -> off: the kill switch still wins over a subscription.
---   4. no active, unexpired 'pro' subscription (any store, promo included) -> off.
+--   4. no active-or-grace, unexpired 'pro' subscription (any store, promo
+--      included; same rule as waves_my_plan / waves_profile_is_paid) -> off.
 --      Plus does not include cloud voice.
 --   5. otherwise the flag's rollout percentage, as before.
 --
@@ -40,7 +41,7 @@ BEGIN
     SELECT 1
       FROM public.subscriptions s
      WHERE s.profile_id = p_profile
-       AND s.status = 'active'
+       AND s.status IN ('active', 'grace')
        AND s.tier = 'pro'
        AND (s.current_period_end IS NULL OR s.current_period_end > now())
   ) THEN

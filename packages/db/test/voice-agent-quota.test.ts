@@ -164,16 +164,28 @@ describe('waves_voice_agent_enabled', () => {
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
     await subscribe(a, 'pro', 'play', `now() - interval '1 day'`);
-    await client
-      .query(
-        `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store)
-       VALUES ($1, 'pro', 'monthly', 'cancelled', now() + interval '30 days', 'play')`,
-        [a],
-      )
-      .catch(() => undefined);
+    await client.query(
+      `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store)
+       VALUES ($1, 'pro', 'monthly', 'cancelled', now() + interval '30 days', 'appstore')`,
+      [a],
+    );
     expect(await enabled(a)).toBe(false);
     await subscribe(b, 'pro', 'promo', 'NULL');
     expect(await enabled(b)).toBe(true);
+  });
+
+  it('counts a Pro in grace, but not past its expiry', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    await subscribe(b, 'pro');
+    await client.query(`UPDATE subscriptions SET status = 'grace' WHERE profile_id = $1`, [b]);
+    expect(await enabled(b)).toBe(true);
+    await client.query(
+      `UPDATE subscriptions SET current_period_end = now() - interval '1 day' WHERE profile_id = $1`,
+      [b],
+    );
+    expect(await enabled(b)).toBe(false);
   });
 
   it('keeps the kill switch above a subscription', async () => {
