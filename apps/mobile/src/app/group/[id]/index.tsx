@@ -467,6 +467,8 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
               <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 12 }}>
                 {[
                   paidLineWithRate,
+                  // "Paid to", only when set: "You paid ₹1,000 · to Car rental".
+                  version?.payee ? fill(t.expense.payee.to, { payee: version.payee }) : null,
                   expense.deleted_at ? t.expense.deleted : null,
                   (version?.version_no ?? 1) > 1
                     ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
@@ -755,7 +757,10 @@ export default function GroupScreen() {
           t,
           version?.category_meta,
         );
-        const byText = `${title} ${version?.description ?? ''}`.toLowerCase().includes(needle);
+        // "Paid to" counts too: "landlord" finds every rent bill.
+        const byText = `${title} ${version?.description ?? ''} ${version?.payee ?? ''}`
+          .toLowerCase()
+          .includes(needle);
         // A number searches amounts too: "500" finds the ₹500.00 bill.
         if (!byText && !(version && amountMatches(needle, version.amount))) return false;
       }

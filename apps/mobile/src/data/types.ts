@@ -196,6 +196,9 @@ export interface ExpenseVersionRow {
   balance_due_date?: string | null;
   /** The time of day the person chose (ISO instant); null on an older expense. */
   occurred_at?: string | null;
+  /** "Paid to": who outside the group the money went to; null when unset.
+   *  Optional because a row mirrored before it existed does not carry it. */
+  payee?: string | null;
 }
 
 export interface ExpenseRow {

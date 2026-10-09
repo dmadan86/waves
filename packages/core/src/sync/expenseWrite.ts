@@ -27,6 +27,7 @@
  */
 
 import { normaliseTint, type CategoryMeta } from '../category/catalog';
+import { payeeArgument } from '../expense/payee';
 import type { FxRecord } from '../money/fx';
 import type { SplitParams } from '../split/types';
 import { serialiseSplitParams } from '../split/wire';
@@ -128,6 +129,9 @@ export interface ExpenseWriteBodyInput {
   /** The time of day the person chose (ISO instant, UTC); null/absent keeps
    *  whatever the server already has, or none on a new expense. */
   readonly occurredAt?: string | null;
+  /** "Paid to": who outside the group the money went to (a landlord, a
+   *  rental firm). Null/absent keeps what the server already has; '' clears. */
+  readonly payee?: string | null;
   /** Idempotency key: a retry after a flaky network must not double-post. */
   readonly clientMutationId: string;
 }
@@ -158,6 +162,7 @@ export interface ExpenseWriteBody {
   readonly balanceDueMinor: string | null;
   readonly balanceDueDate: string | null;
   readonly occurredAt: string | null;
+  readonly payee: string | null;
   readonly clientMutationId: string;
 }
 
@@ -199,6 +204,7 @@ export function buildExpenseWriteBody(input: ExpenseWriteBodyInput): ExpenseWrit
     balanceDueMinor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
     balanceDueDate: input.balanceDueDate ?? null,
     occurredAt: input.occurredAt ?? null,
+    payee: input.payee ?? null,
     clientMutationId: input.clientMutationId,
   };
 }
@@ -249,6 +255,9 @@ export interface ApplyExpenseArgsInput {
   /** The time of day the person chose (ISO instant, UTC); null/absent keeps
    *  whatever the server already has, or none on a new expense. */
   readonly occurredAt?: string | null;
+  /** "Paid to": who outside the group the money went to (a landlord, a
+   *  rental firm). Null/absent keeps what the server already has; '' clears. */
+  readonly payee?: string | null;
 }
 
 /** The named arguments passed to `waves_apply_expense`. `p_source` is left to
@@ -280,6 +289,7 @@ export interface ApplyExpenseRpcArgs {
   readonly p_balance_due_minor: string | null;
   readonly p_balance_due_date: string | null;
   readonly p_occurred_at: string | null;
+  readonly p_payee: string | null;
 }
 
 /** A client-supplied time of day as a canonical UTC ISO instant, or null when
@@ -327,5 +337,6 @@ export function buildApplyExpenseArgs(input: ApplyExpenseArgsInput): ApplyExpens
     p_balance_due_minor: input.balanceDueMinor == null ? null : input.balanceDueMinor.toString(),
     p_balance_due_date: input.balanceDueDate ?? null,
     p_occurred_at: normaliseOccurredAt(input.occurredAt),
+    p_payee: payeeArgument(input.payee),
   };
 }

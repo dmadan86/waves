@@ -594,6 +594,8 @@ export interface WriteExpenseInput {
   /** Our local computation, sent so the server can contradict us if we differ. */
   expectedShares?: Record<string, bigint>;
   notes?: string | null;
+  /** "Paid to". Leave it out to keep what the expense already has; '' clears. */
+  payee?: string | null;
   /** How the money moved: cash | credit | debit | forex. Optional. */
   paymentMethod?: PaymentMethod | null;
   /** Denormalised custom-tag display (extends TDR §8); null for a built-in. */
@@ -650,6 +652,7 @@ export async function writeExpense(input: WriteExpenseInput): Promise<WriteExpen
       payers: input.payers,
       expectedShares: input.expectedShares,
       notes: input.notes ?? null,
+      payee: input.payee,
       paymentMethod: input.paymentMethod ?? null,
       categoryMeta: input.categoryMeta ?? null,
       location: input.location ?? null,
@@ -734,6 +737,8 @@ export interface ExpenseVersionAudit {
   // The columns the diff reads beyond the headline fields. Without them an edit
   // that touched only a note or a time of day looked like "nothing changed".
   notes: string | null;
+  /** "Paid to"; null when unset. */
+  payee: string | null;
   payment_method: string | null;
   /** Time of day, a UTC instant. Null on rows from before it was editable. */
   occurred_at: string | null;
@@ -756,7 +761,7 @@ export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVe
       .select(
         'id, version_no, description, amount, currency, created_at, author_member_id, split_type, ' +
           'category, category_meta, expense_date, location, ' +
-          'notes, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
+          'notes, payee, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
           'balance_due_date, sub_event_id, split_params, ' +
           'payers:expense_payers ( member_id, amount ), ' +
           'shares:expense_shares ( member_id, amount )',
