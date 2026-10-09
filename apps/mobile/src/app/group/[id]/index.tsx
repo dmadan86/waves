@@ -45,6 +45,7 @@ import { myStake } from '@/data/activity';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
+import { MissingRatesCard } from '@/components/MissingRates';
 import { personKeyOf } from '@/data/peopleBalances';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
@@ -61,7 +62,6 @@ import { useBlockedUsers } from '@/data/blocked';
 import {
   displayName,
   groupLabel,
-  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -72,6 +72,7 @@ import {
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
+import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router } from '@/lib/navigation';
@@ -829,7 +830,7 @@ export default function GroupScreen() {
   }
 
   const groupData = group.data;
-  const isEvent = groupData.type === GroupType.Event;
+  const isEvent = showsVendorTools(groupData.type);
   // The Vendors tab is Event-only; a stale selection on a group that is not one
   // falls back to Expenses rather than an empty body.
   const activeTab = tab === Tab.Vendors && !isEvent ? Tab.Expenses : tab;
@@ -1250,6 +1251,13 @@ export default function GroupScreen() {
               onQuery={setQuery}
             />
           ) : null}
+          {activeTab === Tab.Balances ? (
+            // Foreign bills saved without a rate hide their conversion; this
+            // only appears while there are some, with the fix one tap away.
+            <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.sm }}>
+              <MissingRatesCard groupId={groupId} />
+            </View>
+          ) : null}
         </View>
 
         {/* The header menu and the month menu live at the screen's root,
@@ -1308,7 +1316,11 @@ export default function GroupScreen() {
           // Settling up, as a face of the group rather than a button on its
           // hero: the same flow as the Settle up screen. Recorded, it shows
           // the balances that just moved.
-          <SettleBody groupId={groupId} onRecorded={() => setTab(Tab.Balances)} />
+          <SettleBody
+            groupId={groupId}
+            showSummary={false}
+            onRecorded={() => setTab(Tab.Balances)}
+          />
         ) : tab === Tab.Timeline || tab === Tab.Map ? (
           // This group's own timeline and map: the Timeline screen's list and
           // map, held to this group, each on its own tab rather than behind a

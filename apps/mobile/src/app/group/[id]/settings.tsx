@@ -46,6 +46,7 @@ import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { GroupTagField } from '@/components/GroupTagField';
 import { TripDates } from '@/components/TripDates';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
+import { MissingRatesCard } from '@/components/MissingRates';
 import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
 import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
@@ -849,6 +850,7 @@ export default function GroupSettingsScreen() {
           />
         </View>
         <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
+        <MissingRatesCard groupId={groupId} />
 
         {/* Trip dates and their nudges only mean anything on a trip, so the
             section appears only for that type and disappears the moment the

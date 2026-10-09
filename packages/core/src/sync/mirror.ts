@@ -713,9 +713,12 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
           num: string | null;
           den: string | null;
           source?: string;
+          ifAbsent?: boolean;
         };
         const map = { ...(existing.fx_rates ?? {}) };
-        if (payload.num === null || payload.den === null) {
+        if (payload.ifAbsent && map[payload.from]) {
+          // Insert-only: an existing pin stands.
+        } else if (payload.num === null || payload.den === null) {
           delete map[payload.from];
         } else {
           map[payload.from] = {

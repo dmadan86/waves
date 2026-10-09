@@ -730,6 +730,20 @@ export interface ExpenseVersionAudit {
   location: ExpenseLocation | null;
   payers: { member_id: string; amount: string }[];
   shares: { member_id: string; amount: string }[];
+  // The columns the diff reads beyond the headline fields. Without them an edit
+  // that touched only a note or a time of day looked like "nothing changed".
+  notes: string | null;
+  payment_method: string | null;
+  /** Time of day, a UTC instant. Null on rows from before it was editable. */
+  occurred_at: string | null;
+  receipt_id: string | null;
+  is_deposit: boolean;
+  /** Minor units; a number or string depending on size, read through BigInt. */
+  balance_due_minor: string | number | null;
+  balance_due_date: string | null;
+  sub_event_id: string | null;
+  /** Weights / percents / items; only compared, never shown. */
+  split_params: unknown;
 }
 
 export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVersionAudit[]> {
@@ -741,6 +755,8 @@ export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVe
       .select(
         'id, version_no, description, amount, currency, created_at, author_member_id, split_type, ' +
           'category, category_meta, expense_date, location, ' +
+          'notes, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
+          'balance_due_date, sub_event_id, split_params, ' +
           'payers:expense_payers ( member_id, amount ), ' +
           'shares:expense_shares ( member_id, amount )',
       )
@@ -1389,9 +1405,19 @@ export async function scanReceiptText(input: {
  * transaction it is the more accurate answer anyway, because the bank's rate
  * includes a markup no reference rate will ever match.
  */
-export async function fetchFxRate(from: string, to: string): Promise<FxRecord> {
+export async function fetchFxRate(
+  from: string,
+  to: string,
+  /**
+   * The day (YYYY-MM-DD) the bill was paid, for a rate as of then. Omitted
+   * means the latest. A function deployed before `date` existed ignores it and
+   * answers with the latest, which the record's own `ts` makes visible.
+   */
+  date?: string,
+): Promise<FxRecord> {
+  const day = date ? `&date=${encodeURIComponent(date)}` : '';
   const { data, error } = await backend.functions.invoke(
-    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}`,
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
