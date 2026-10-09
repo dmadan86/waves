@@ -4466,6 +4466,14 @@ export interface UiStrings {
     fetchingRate: string;
     /** The link after a failed fetch, and the retry button after a partial backfill. */
     retryRate: string;
+    /** Only a rate from another day was on offer; it is from {date}. */
+    staleRateFrom: string;
+    /** Puts that older rate on the bill. */
+    staleRateUse: string;
+    /** A backfill skipped {n} bills that could only get a rate from another day (earliest {date}). */
+    missingRatesStale: string;
+    /** Runs the backfill again, accepting rates from other days. */
+    missingRatesUseStale: string;
     /** "Add missing rates" banner. {n} is the number of bills without a rate. */
     missingRatesBody: string;
     missingRatesAction: string;
@@ -8383,6 +8391,11 @@ const en: UiStrings = {
     useTodaysRate: 'Use today’s rate',
     fetchingRate: 'Getting the rate…',
     retryRate: 'Retry',
+    staleRateFrom: 'Rate from {date}',
+    staleRateUse: 'Use',
+    missingRatesStale:
+      '{n} bills could only get a rate from another day ({date}). Use it, or try again later.',
+    missingRatesUseStale: 'Use rates from other days',
     missingRatesBody:
       'Bills in other currencies without a rate: {n}. Their converted amounts stay hidden until a rate is added.',
     missingRatesAction: 'Add missing rates',
@@ -12446,6 +12459,11 @@ const ta: UiStrings = {
     useTodaysRate: 'இன்றைய விகிதத்தைப் பயன்படுத்து',
     fetchingRate: 'விகிதம் பெறுகிறது…',
     retryRate: 'மீண்டும் முயல்',
+    staleRateFrom: '{date} அன்றைய விகிதம்',
+    staleRateUse: 'பயன்படுத்து',
+    missingRatesStale:
+      '{n} பில்களுக்கு வேறொரு நாளின் விகிதம் ({date}) மட்டுமே கிடைத்தது. அதைப் பயன்படுத்தலாம், அல்லது பிறகு முயலலாம்.',
+    missingRatesUseStale: 'வேறு நாட்களின் விகிதங்களைப் பயன்படுத்து',
     missingRatesBody:
       'விகிதம் இல்லாத பிற நாணயப் பில்கள்: {n}. விகிதம் சேர்க்கும் வரை மாற்றப்பட்ட தொகைகள் மறைந்திருக்கும்.',
     missingRatesAction: 'விடுபட்ட விகிதங்களைச் சேர்',
@@ -16359,6 +16377,11 @@ const hi: UiStrings = {
     useTodaysRate: 'आज की दर लें',
     fetchingRate: 'दर ला रहे हैं…',
     retryRate: 'फिर कोशिश करें',
+    staleRateFrom: '{date} की दर',
+    staleRateUse: 'इस्तेमाल करें',
+    missingRatesStale:
+      '{n} बिलों के लिए सिर्फ़ किसी और दिन की दर ({date}) मिली। इसे इस्तेमाल करें, या बाद में फिर कोशिश करें।',
+    missingRatesUseStale: 'दूसरे दिनों की दरें इस्तेमाल करें',
     missingRatesBody:
       'दूसरी मुद्रा के जिन बिलों में दर नहीं है: {n}। दर जोड़ने तक उनकी बदली हुई रकम छिपी रहेगी।',
     missingRatesAction: 'छूटी हुई दरें जोड़ें',
@@ -20804,6 +20827,11 @@ const ar: UiStrings = {
     useTodaysRate: 'استخدم سعر اليوم',
     fetchingRate: 'جارٍ جلب السعر…',
     retryRate: 'إعادة المحاولة',
+    staleRateFrom: 'سعر من {date}',
+    staleRateUse: 'استخدام',
+    missingRatesStale:
+      'لم يتوفر لـ {n} فواتير سوى سعر من يوم آخر ({date}). استخدمه أو حاول لاحقًا.',
+    missingRatesUseStale: 'استخدام أسعار من أيام أخرى',
     missingRatesBody:
       'فواتير بعملات أخرى بلا سعر صرف: {n}. تبقى مبالغها المحوّلة مخفية حتى يُضاف سعر.',
     missingRatesAction: 'إضافة الأسعار الناقصة',

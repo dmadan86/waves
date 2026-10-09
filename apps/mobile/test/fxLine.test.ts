@@ -5,6 +5,7 @@ import { fxRate, toFxRecord } from '@waves/core';
 import {
   minorToPlain,
   rateAt,
+  rateAttribution,
   rateNote,
   rateOrigin,
   rateParts,
@@ -36,6 +37,27 @@ describe('rateOrigin', () => {
     expect(rateOrigin(record('manual'))).toBe('yours');
     expect(rateOrigin(record('implied'))).toBe('yours');
     expect(rateOrigin(record('ecb'), true)).toBe('trip');
+  });
+
+  it('counts the fallback providers as market rates, not the person’s own', () => {
+    const day = Date.parse('2026-01-01T12:00:00.000Z');
+    expect(rateOrigin(record('currency-api'), false, day)).toBe('today');
+    expect(rateOrigin(record('exchangerate-api'), false, day)).toBe('today');
+    expect(rateOrigin(record('currency-api'), false, Date.parse('2026-01-05T12:00:00Z'))).toBe(
+      'market',
+    );
+  });
+});
+
+describe('rateAttribution', () => {
+  it('credits ExchangeRate-API, linked, and nobody else', () => {
+    expect(rateAttribution(record('exchangerate-api'))).toEqual({
+      text: 'Rates By Exchange Rate API',
+      url: 'https://www.exchangerate-api.com',
+    });
+    expect(rateAttribution(record('ecb'))).toBeNull();
+    expect(rateAttribution(record('currency-api'))).toBeNull();
+    expect(rateAttribution(null)).toBeNull();
   });
 });
 

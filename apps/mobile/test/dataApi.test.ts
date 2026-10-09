@@ -84,6 +84,7 @@ vi.mock('@/lib/backend', () => {
 
 const api = await import('@/data/api');
 const { STRINGS_BY_LANGUAGE } = await import('@/i18n');
+const { StaleFxRateError } = await import('@/lib/fxStale');
 const en = STRINGS_BY_LANGUAGE.en;
 
 /** The single `from()` chain the call under test made. */
@@ -1093,7 +1094,50 @@ describe('edge-function wrappers', () => {
     h.invoke.mockResolvedValue(ok(rate));
 
     expect(await api.fetchFxRate('EUR', 'I&R')).toEqual(rate);
-    expect(h.invoke).toHaveBeenCalledWith('fx-rate?from=EUR&to=I%26R', { method: 'GET' });
+    expect(h.invoke).toHaveBeenCalledWith('fx-rate?from=EUR&to=I%26R&stale=1', { method: 'GET' });
+  });
+
+  it('fetchFxRate throws a stale reply instead of returning it, with the record stripped', async () => {
+    h.invoke.mockResolvedValue(
+      ok({
+        num: '33647',
+        den: '10000000',
+        from: 'VND',
+        to: 'INR',
+        ts: '2026-10-05T00:00:00.000Z',
+        source: 'currency-api',
+        stale: true,
+        day: '2026-10-05',
+      }),
+    );
+    const caught = await api.fetchFxRate('VND', 'INR').catch((error: unknown) => error);
+    expect(caught).toBeInstanceOf(StaleFxRateError);
+    expect((caught as InstanceType<typeof StaleFxRateError>).day).toBe('2026-10-05');
+    expect((caught as InstanceType<typeof StaleFxRateError>).record).toEqual({
+      num: '33647',
+      den: '10000000',
+      from: 'VND',
+      to: 'INR',
+      ts: '2026-10-05T00:00:00.000Z',
+      source: 'currency-api',
+    });
+  });
+
+  it('fetchFxRate refuses a stale reply with no usable day: an error, never "Rate from "', async () => {
+    h.invoke.mockResolvedValue(
+      ok({
+        num: '33647',
+        den: '10000000',
+        from: 'VND',
+        to: 'INR',
+        ts: '2026-10-05T00:00:00.000Z',
+        source: 'currency-api',
+        stale: true,
+      }),
+    );
+    const caught = await api.fetchFxRate('VND', 'INR').catch((error: unknown) => error);
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught).not.toBeInstanceOf(StaleFxRateError);
   });
 
   it('deleteMyAccount sends the reason and reads a missing answer as {}', async () => {

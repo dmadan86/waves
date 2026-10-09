@@ -21,6 +21,26 @@ function sameDay(a: Date, b: Date): boolean {
 }
 
 /**
+ * The sources `fx-rate` fetches market rates from (ECB first, then the
+ * fallbacks). Anything else — "manual", "implied" — was set by a person.
+ */
+export const MARKET_SOURCES: readonly string[] = ['ecb', 'currency-api', 'exchangerate-api'];
+
+/**
+ * The credit a source's terms require wherever its rate is shown, or null.
+ * ExchangeRate-API's open access asks for exactly this text, linking to them;
+ * it stays in English in every language because it is their name.
+ */
+export function rateAttribution(fx: Pick<FxRecord, 'source'> | null | undefined): {
+  text: string;
+  url: string;
+} | null {
+  return fx?.source === 'exchangerate-api'
+    ? { text: 'Rates By Exchange Rate API', url: 'https://www.exchangerate-api.com' }
+    : null;
+}
+
+/**
  * Where a rate came from, in the ways a person would say it.
  * A market rate is "today's" only if it is dated today; an older one is the
  * market rate of its day. A pinned trip rate is the trip's; anything typed or
@@ -28,7 +48,7 @@ function sameDay(a: Date, b: Date): boolean {
  */
 export function rateOrigin(fx: FxRecord, onTripRate = false, now: number = Date.now()): RateOrigin {
   if (onTripRate) return 'trip';
-  if (fx.source !== 'ecb') return 'yours';
+  if (!MARKET_SOURCES.includes(fx.source)) return 'yours';
   const when = new Date(fx.ts);
   return Number.isNaN(when.getTime()) || sameDay(when, new Date(now)) ? 'today' : 'market';
 }

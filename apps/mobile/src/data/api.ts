@@ -34,6 +34,7 @@ import { activeStrings } from '@/i18n';
 import type { DeviceIdentity } from '@/lib/device';
 import { normaliseContactPhone } from '@/lib/phone';
 import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
+import { readFxReply, StaleFxRateError } from '@/lib/fxStale';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
 import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
@@ -1417,11 +1418,20 @@ export async function fetchFxRate(
 ): Promise<FxRecord> {
   const day = date ? `&date=${encodeURIComponent(date)}` : '';
   const { data, error } = await backend.functions.invoke(
-    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}`,
+    // `stale=1`: this build can be offered an older rate when every source is
+    // down, because it never applies one without asking (see below).
+    `fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${day}&stale=1`,
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
-  return data as FxRecord;
+  // A rate from another day (every provider down, or only a latest-only
+  // source for a past bill). Thrown, not returned, so it can never land on a
+  // bill unasked: the screens that offer "Rate from {date}" with Use and
+  // Retry catch it. One that does not say its day is no rate at all.
+  const reply = readFxReply(data);
+  if (reply.kind === 'invalid') throw new Error(activeStrings().misc.rateFetchFailed);
+  if (reply.kind === 'stale') throw new StaleFxRateError(reply.record, reply.day);
+  return reply.record;
 }
 
 // ────────────────────────────────────── people you owe / who owe you ──
