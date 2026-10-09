@@ -505,18 +505,22 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
         {/* Tapping the row opens it; the pencil goes straight to editing. A
             deleted expense has nothing to edit, so it keeps the space empty. */}
         {expense.deleted_at ? (
-          <View style={{ width: 14 + theme.spacing.xs + theme.spacing.sm }} />
+          <View style={{ width: 14 - 2 + theme.spacing.sm }} />
         ) : (
           <Pressable
             onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
             accessibilityRole="button"
             accessibilityLabel={t.common.edit}
-            hitSlop={{ top: 8, bottom: 8 }}
+            // The tap target reaches back over the gap instead of the gap being
+            // padding: the glyph sits right against the amount, the finger
+            // still gets a full-size target.
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             // The right inset matches the badge's left one, so the row reads even.
             // Tight to the amount: the pencil is a small affordance, and the
             // width it held was taken from the name in the middle.
             style={({ pressed }) => ({
-              paddingStart: theme.spacing.xs,
+              paddingStart: 0,
+              marginStart: -2,
               paddingEnd: theme.spacing.sm,
               alignSelf: 'stretch',
               alignItems: 'center',
