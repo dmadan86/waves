@@ -107,12 +107,6 @@ export function TipSheet() {
   // page — the deck that jumped, skipped a tip and fought the finger.
   const measured = useRef(new Map<string, number>());
   const last = page >= tips.length - 1;
-  /** Turn to a tip by tapping, the same place a swipe would land. */
-  const goTo = (index: number) => {
-    const next = Math.max(0, Math.min(index, tips.length - 1));
-    setPage(next);
-    pager.current?.setPage(next);
-  };
   // Android turns the deck from the swipe here, in JS. Inside the sheet's
   // Modal the native ViewPager2 never sees the drag on Android (three fixes to
   // the native side, #1064, #1143, #1175, did not hold), while Next and the
@@ -120,6 +114,14 @@ export function TipSheet() {
   // the pager's own scrolling is off there so the two never both turn it. iOS
   // keeps the native swipe, which works.
   const jsSwipe = Platform.OS === 'android';
+  /** Turn to a tip by tapping, the same place a swipe would land. */
+  const goTo = (index: number) => {
+    const next = Math.max(0, Math.min(index, tips.length - 1));
+    setPage(next);
+    // On Android the effect below drives the pager from `page`; setting it here
+    // too would call setPage twice.
+    if (!jsSwipe) pager.current?.setPage(next);
+  };
   const count = tips.length;
   const swipe = useMemo(
     () =>
@@ -129,7 +131,11 @@ export function TipSheet() {
           Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderTerminationRequest: () => false,
         onPanResponderRelease: (_event, gesture) => {
-          const flung = Math.abs(gesture.dx) > 40 || Math.abs(gesture.vx) > 0.3;
+          // A fast flick counts only with a real sideways travel, so a tap with
+          // a little drift is not a swipe; a slower, deliberate swipe turns the
+          // page past 24px.
+          const travel = Math.abs(gesture.dx);
+          const flung = travel > 24 || (travel >= 10 && Math.abs(gesture.vx) > 0.3);
           if (!flung || Math.abs(gesture.dx) < Math.abs(gesture.dy)) return;
           // Leftward is "next" in a left-to-right layout, and the reverse in RTL.
           const forward = I18nManager.isRTL ? gesture.dx > 0 : gesture.dx < 0;
@@ -138,10 +144,19 @@ export function TipSheet() {
       }),
     [count],
   );
-  // A swipe moves `page`; the pager follows (a no-op when it is already there).
+  // On Android `page` is driven only by JS (swipe, dots, Next, TalkBack); the
+  // pager follows (a no-op when it is already there). `pageHeight` is a
+  // dependency so a page changed during the measuring pass is applied once the
+  // pager mounts.
   useEffect(() => {
     if (jsSwipe) pager.current?.setPage(page);
-  }, [jsSwipe, page]);
+  }, [jsSwipe, page, pageHeight]);
+  /** TalkBack's scroll actions, which a pager with scrolling off no longer offers. */
+  const onAccessibilityAction = (event: { nativeEvent: { actionName: string } }) => {
+    const name = event.nativeEvent.actionName;
+    if (name === 'increment') goTo(page + 1);
+    else if (name === 'decrement') goTo(page - 1);
+  };
   // Where "Show me" goes, held until the sheet has left the screen. The scan
   // tip opens the native scanner on arrival, and on iOS a camera presented while
   // this sheet's Modal is still dismissing is dropped — the capture screen then
@@ -178,11 +193,22 @@ export function TipSheet() {
         <View style={{ gap: theme.spacing.md }}>
           {/* The pager, with the close riding its top corner. */}
           {/* Claims the touch itself. The sheet card is a Pressable (so a tap
-              inside never reaches the scrim), and on Android a touchable around
-              a horizontal ScrollView can take the gesture first — the deck once
-              showed five dots and would not turn. */}
+              inside never reaches the scrim), and a touchable around the pager
+              can take the gesture first — the deck once showed five dots and
+              would not turn. Platform split: iOS leaves the swipe to the native
+              pager. Android reads it here with a PanResponder (the native
+              ViewPager2 never gets the drag inside the Modal) and, with the
+              pager's scrolling off, offers TalkBack increment/decrement actions
+              in its place. */}
           <View
-            {...(jsSwipe ? swipe.panHandlers : { onStartShouldSetResponder: () => true })}
+            {...(jsSwipe
+              ? {
+                  ...swipe.panHandlers,
+                  accessibilityRole: 'adjustable' as const,
+                  accessibilityActions: [{ name: 'increment' }, { name: 'decrement' }],
+                  onAccessibilityAction,
+                }
+              : { onStartShouldSetResponder: () => true })}
             onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}
           >
             {pageWidth > 0 && pageHeight === 0 ? (
@@ -211,16 +237,20 @@ export function TipSheet() {
             ) : null}
             {pageWidth > 0 && pageHeight > 0 ? (
               // The platform's own pager (ViewPager2 / UIPageViewController),
-              // not a horizontal ScrollView: inside the sheet's Modal and its
-              // Pressable card a JS-side scroll had to win the gesture first,
-              // and a swipe that started a little diagonal never turned the tip.
+              // not a horizontal ScrollView. iOS swipes it natively. On Android
+              // its scrolling is off (the Modal swallows the drag) and the
+              // PanResponder above turns it through `setPage`, so `page` comes
+              // from JS alone there and `onPageSelected` is ignored. It mounts
+              // on the current page, which may have moved while measuring.
               <PagerView
                 ref={pager}
                 style={{ width: pageWidth, height: pageHeight }}
-                initialPage={0}
+                initialPage={page}
                 overdrag={false}
                 scrollEnabled={!jsSwipe}
-                onPageSelected={(event) => setPage(event.nativeEvent.position)}
+                onPageSelected={(event) => {
+                  if (!jsSwipe) setPage(event.nativeEvent.position);
+                }}
               >
                 {tips.map((entry) => (
                   <View key={entry.id} collapsable={false}>
