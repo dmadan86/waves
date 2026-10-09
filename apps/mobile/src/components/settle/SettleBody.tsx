@@ -60,6 +60,7 @@ import {
 } from '@/data/types';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { fill, plural, useStrings } from '@/i18n';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
@@ -97,7 +98,7 @@ export function SettleBody({
   // system bar alone on the standalone Settle up screen.
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
+  const { confirm, notify } = useDialog();
   const { profile } = useAuth();
   const { blockedIds } = useBlockedUsers();
 
@@ -187,6 +188,11 @@ export function SettleBody({
     if (yes) void record(transfer, defaultRailFor(country));
   };
 
+  /** A payment already marked and waiting on the other side: say so, record nothing. */
+  const explainPending = async (): Promise<void> => {
+    await notify({ title: t.misc.settlePendingTitle, body: t.misc.settlePendingBody });
+  };
+
   /** I already paid, outside the app. */
   const markPaid = async (transfer: PlanTransfer): Promise<void> => {
     const yes = await confirm({
@@ -273,16 +279,21 @@ export function SettleBody({
   const pendingPairs = new Set(
     (settlements.data ?? [])
       .filter((row) => row.status === SettlementStatus.Initiated)
-      .map((row) => `${row.from_member_id}>${row.to_member_id}`),
+      .map((row) => `${row.from_member_id}>${row.to_member_id}>${row.currency}`),
   );
+  const isPending = (transfer: PlanTransfer): boolean =>
+    pendingPairs.has(`${transfer.from}>${transfer.to}>${transfer.currency}`);
 
   // Members on either end of a payment between others: what the filter offers.
   const otherMembers = Array.from(
     new Set(split.others.flatMap((transfer) => [transfer.from, transfer.to])),
   );
-  const shownOthers = filterMember
+  // A member who has dropped out of the list (their debts settled) cannot
+  // stay selected, or the list would be empty with no way to see why.
+  const activeFilter = filterMember && otherMembers.includes(filterMember) ? filterMember : null;
+  const shownOthers = activeFilter
     ? split.others.filter(
-        (transfer) => transfer.from === filterMember || transfer.to === filterMember,
+        (transfer) => transfer.from === activeFilter || transfer.to === activeFilter,
       )
     : split.others;
 
@@ -322,17 +333,20 @@ export function SettleBody({
                   status={
                     !joined
                       ? t.notJoinedYet
-                      : pendingPairs.has(`${transfer.from}>${transfer.to}`)
+                      : isPending(transfer)
                         ? t.misc.settleStatusPending
                         : null
                   }
+                  hint={t.misc.settleTapReceived}
                   amount={transfer.amount}
                   currency={transfer.currency}
                   direction={BalanceDirection.OwedToYou}
                   locale={locale}
                   // The row has always been the way to say "they paid me".
                   accessibilityLabel={`${name}. ${t.misc.settleReceivedHint}`}
-                  onPress={() => void markReceived(transfer)}
+                  onPress={() =>
+                    void (isPending(transfer) ? explainPending() : markReceived(transfer))
+                  }
                   disabled={recordSettlement.isPending}
                   action={
                     joined ? (
@@ -369,10 +383,11 @@ export function SettleBody({
                   status={
                     !person || isGhost(person)
                       ? t.notJoinedYet
-                      : pendingPairs.has(`${transfer.from}>${transfer.to}`)
+                      : isPending(transfer)
                         ? t.misc.settleStatusPending
                         : null
                   }
+                  hint={t.misc.settleTapPaid}
                   amount={transfer.amount}
                   currency={transfer.currency}
                   direction={BalanceDirection.YouOwe}
@@ -380,7 +395,7 @@ export function SettleBody({
                   // Already paid outside the app: the row records it, the
                   // button hands off to their payment app.
                   accessibilityLabel={fill(t.misc.settleMarkPaidA11y, { name, amount: amountText })}
-                  onPress={() => void markPaid(transfer)}
+                  onPress={() => void (isPending(transfer) ? explainPending() : markPaid(transfer))}
                   disabled={recordSettlement.isPending}
                   action={
                     <Button
@@ -409,7 +424,7 @@ export function SettleBody({
                 />
               </View>
               <FilterPill
-                label={filterMember ? nameOf(filterMember) : t.misc.settleFilterAll}
+                label={activeFilter ? nameOf(activeFilter) : t.misc.settleFilterAll}
                 onPress={() => setFilterOpen((open) => !open)}
                 open={filterOpen}
               />
@@ -420,7 +435,7 @@ export function SettleBody({
                   <FilterChip
                     key={id ?? 'all'}
                     label={id ? nameOf(id) : t.misc.settleFilterAll}
-                    selected={id === filterMember}
+                    selected={id === activeFilter}
                     onPress={() => {
                       setFilterMember(id);
                       setFilterOpen(false);
@@ -483,17 +498,13 @@ export function SettleBody({
                   importantForAccessibility="no"
                 />
               ) : null}
-              <Ionicons
-                name={
-                  historyExpandable
-                    ? showAllHistory
-                      ? 'chevron-up'
-                      : 'chevron-down'
-                    : directionalIcon('chevron-forward')
-                }
-                size={iconSize.md}
-                color={theme.color.textMuted}
-              />
+              {historyExpandable ? (
+                <Ionicons
+                  name={showAllHistory ? 'chevron-up' : 'chevron-down'}
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              ) : null}
             </Row>
           </Pressable>
           {shownHistory.map((row) => (
@@ -509,6 +520,7 @@ export function SettleBody({
               currency={row.currency}
               locale={locale}
               date={row.initiated_at}
+              past
             />
           ))}
         </Card>
@@ -581,8 +593,9 @@ function Card({ children }: { children: ReactNode }) {
 }
 
 function CardHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  const theme = useTheme();
   return (
-    <View style={{ paddingBottom: 8 }}>
+    <View style={{ paddingBottom: theme.spacing.sm }}>
       <Text variant="heading" accessibilityRole="header">
         {title}
       </Text>
@@ -712,6 +725,7 @@ function PersonTile({
   member,
   ghost,
   status,
+  hint,
   amount,
   currency,
   direction,
@@ -725,6 +739,8 @@ function PersonTile({
   member?: MemberRow;
   ghost: boolean;
   status: string | null;
+  /** Shown in the status line when there is no status: what a tap does. */
+  hint: string;
   amount: bigint;
   currency: string;
   direction: BalanceDirection;
@@ -735,26 +751,32 @@ function PersonTile({
   accessibilityLabel: string;
 }) {
   const theme = useTheme();
+  // The tappable part and the action are siblings: nesting a button inside a
+  // button hides the inner one from a screen reader.
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <Tile>
-        <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+    <Tile>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          disabled={disabled}
+          onPress={onPress}
+          style={({ pressed }) => ({
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
           <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
           <View style={{ flex: 1 }}>
             <Text variant="subheading" numberOfLines={1}>
               {name}
             </Text>
-            {status ? (
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {status}
-              </Text>
-            ) : null}
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {status ?? hint}
+            </Text>
           </View>
           <MoneyText
             amount={amount}
@@ -766,10 +788,10 @@ function PersonTile({
             // money I owe keeps the red the rest of the app reads as "out".
             tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
           />
-          {action}
-        </Row>
-      </Tile>
-    </Pressable>
+        </Pressable>
+        {action}
+      </Row>
+    </Tile>
   );
 }
 
@@ -789,6 +811,7 @@ function OtherTile({
   currency,
   locale,
   date,
+  past = false,
 }: {
   fromName: string;
   toName: string;
@@ -800,14 +823,26 @@ function OtherTile({
   currency: string;
   locale: string;
   date?: string;
+  /** A recorded payment (history) reads in the past tense: "paid", not "pays". */
+  past?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const dateText = date
+    ? dateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(
+        new Date(date),
+      )
+    : null;
+  const who = fill(past ? t.misc.settleHistoryPaid : t.simplifyPaysWhom, {
+    from: fromName,
+    to: toName,
+  });
+  const amountText = format(money(amount, currency as CurrencyCode), { locale });
   return (
     <Tile>
       <Row
         accessible
-        accessibilityLabel={fill(t.simplifyPaysWhom, { from: fromName, to: toName })}
+        accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
         style={{ gap: theme.spacing.md, alignItems: 'center' }}
       >
         {/* The pair, overlapped, and the names stacked beside them: the payer
@@ -851,13 +886,9 @@ function OtherTile({
             variant="body"
             mode="plain"
           />
-          {date ? (
+          {dateText ? (
             <Text variant="micro" tone="muted">
-              {new Date(date).toLocaleDateString(locale, {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
+              {dateText}
             </Text>
           ) : null}
         </View>
