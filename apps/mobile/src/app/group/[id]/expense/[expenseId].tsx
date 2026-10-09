@@ -1006,6 +1006,7 @@ export default function ExpenseDetailScreen() {
                       <View key={payer.member_id}>
                         <ListRow
                           title={nameOf(payer.member_id)}
+                          quiet
                           onPress={payerHref ? () => router.push(payerHref) : undefined}
                           accessibilityLabel={t.expense.paidByNameAmount
                             .replace('{name}', nameOf(payer.member_id))
@@ -1113,6 +1114,7 @@ export default function ExpenseDetailScreen() {
                     <View key={row.memberId}>
                       <ListRow
                         title={nameOf(row.memberId)}
+                        quiet
                         onPress={openMember}
                         accessibilityLabel={rowLabel}
                         subtitle={subtitle}
