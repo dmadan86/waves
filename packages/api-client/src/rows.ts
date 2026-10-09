@@ -28,6 +28,9 @@ export interface GroupRow {
   country_code: string | null;
   default_currency: string;
   simplify_debts: boolean;
+  /** Foreign bills with a stored rate count in `default_currency` (ADR-003
+   *  amendment). Optional: absent from a read that did not select it. */
+  convert_to_group_currency?: boolean;
   cover_emoji: string | null;
   photo_path: string | null;
   /** Member-typed short tag; null when unset. Optional: narrow selects omit it. */

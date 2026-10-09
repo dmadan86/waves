@@ -146,7 +146,12 @@ function MemberDetail({
   }
 
   const currency = group.default_currency ?? 'INR';
-  const ledger = computeLedger(expenses, settlements, currency);
+  const ledger = computeLedger(
+    expenses,
+    settlements,
+    currency,
+    group.convert_to_group_currency === true,
+  );
   const balance = ledger.balances.get(memberId) ?? 0n;
   const isMe = member.profile_id === myProfileId;
 

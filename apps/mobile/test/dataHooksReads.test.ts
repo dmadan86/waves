@@ -431,7 +431,13 @@ describe('useHomeSummary', () => {
     // +600 (Feb) − 300 (Jan); the unconfirmed settlement does not count yet.
     expect(home.balanceFor('g-1')).toBe(300n);
     expect(home.balanceFor('g-other')).toBe(0n);
-    expect(home.totals).toEqual([{ currency: 'INR', net: 300n, owed: 300n, owing: 0n }]);
+    // Every bucket I hold counts in the headline, not only the group currency's:
+    // the USD bill (no rate, a group that has not opted in) leaves me owing $5.
+    // It used to be dropped, which read as "you are owed ₹3" and nothing else.
+    expect(home.totals).toEqual([
+      { currency: 'USD', net: -500n, owed: 0n, owing: 500n },
+      { currency: 'INR', net: 300n, owed: 300n, owing: 0n },
+    ]);
   });
 
   it('adds up my own share of this month, per currency, biggest first', () => {
@@ -670,7 +676,51 @@ describe('snapshots', () => {
       shares: { a: 400n, b: 500n },
       date: '2026-02-01',
       deletedAt: null,
+      fx: null,
     });
+  });
+
+  it('toLedgerSnapshots counts a rated foreign bill in the group currency only when it converts', () => {
+    const row = expenseRow('e', 'g', {
+      amount: 1_234_567n,
+      payer: 'a',
+      shares: { a: 411_523n, b: 411_522n, c: 411_522n },
+      currency: 'VND',
+    }) as { currentVersion: { fx?: unknown } };
+    row.currentVersion.fx = {
+      num: '34',
+      den: '10000',
+      from: 'VND',
+      to: 'INR',
+      ts: '2026-10-01T00:00:00.000Z',
+      source: 'manual',
+    };
+    const [converted] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'INR',
+      convert_to_group_currency: true,
+    });
+    expect(converted?.currency).toBe('INR');
+    expect(converted?.amount).toBe(419_753n);
+    // b and c tie on remainder; the smaller id ('b') takes the extra paisa.
+    expect(converted?.shares).toEqual({ a: 139_918n, b: 139_918n, c: 139_917n });
+
+    const [kept] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'INR',
+      convert_to_group_currency: false,
+    });
+    expect(kept?.currency).toBe('VND');
+    expect(kept?.amount).toBe(1_234_567n);
+    // A row mirrored before the column existed reads as "not opted in".
+    expect(hooks.toLedgerSnapshots([row as never], { default_currency: 'INR' })[0]?.currency).toBe(
+      'VND',
+    );
+    // A rate into some other currency than the group's is not a rate for it.
+    const [elsewhere] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'USD',
+      convert_to_group_currency: true,
+    });
+    expect(elsewhere?.currency).toBe('VND');
+    expect(elsewhere?.amount).toBe(1_234_567n);
   });
 
   it('toSnapshot drops a row with no version, or an amount that is not an integer', () => {

@@ -11,7 +11,7 @@
  * Nothing here fetches or writes; the callers do, and these only decide.
  */
 
-import { type FxRate, type FxRecord, toFxRecord } from '@waves/core';
+import { type FxRate, type FxRecord, toFxRecord, usableFx } from '@waves/core';
 
 import { isViewer, type ExpenseRow, type ExpenseVersionRow, type MemberRow } from '../data/types';
 import { canEditInline } from './expenseEdit';
@@ -26,13 +26,20 @@ export function localToday(now: Date = new Date()): string {
   return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
 }
 
-/** A bill needs a rate when it is paid in another currency and has none. */
+/**
+ * A bill needs a rate when it is paid in another currency and has none that
+ * converts it into the group's: no `fx` at all, or one the balances would not
+ * use (into some other currency, or malformed). The same test core's
+ * `usableFx` applies when a group settles in its own currency, so a bill this
+ * calls fine is a bill that converts.
+ */
 export function needsRate(input: {
   currency: string;
   groupCurrency: string;
   fx: FxRecord | null | undefined;
 }): boolean {
-  return input.currency !== input.groupCurrency && !input.fx;
+  if (input.currency === input.groupCurrency) return false;
+  return usableFx(input.fx ?? null, input.currency, input.groupCurrency) === null;
 }
 
 /**

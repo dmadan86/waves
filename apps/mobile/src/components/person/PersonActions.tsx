@@ -12,6 +12,11 @@
  *   Settle tab does it) and Mark as paid (records the settlement directly);
  * - both          -> Settle up, which opens that group's settle screen.
  *
+ * A debt in a currency other than the group's, in a group that settles in its
+ * own currency (ADR-003 amendment), comes from a bill with no rate yet. It is
+ * never paid, marked or reminded about from here — the server would refuse the
+ * settlement — so the row says "No rate yet" and offers to add one instead.
+ *
  * Nothing here moves money (ADR-007): Pay opens their payment app, then asks
  * whether it went through before anything is recorded.
  */
@@ -32,6 +37,8 @@ import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
 import { findPersonMember, type ActionTarget } from '@/lib/personActions';
+import { isRatelessTransfer } from '@/lib/settleCurrency';
+import { useAddRate } from '@/lib/useAddRate';
 
 export function PersonActions({
   personKey,
@@ -52,22 +59,31 @@ export function PersonActions({
   const { confirm, notify } = useDialog();
   const { profile } = useAuth();
   const guard = useGuestGuard();
-  const { members } = useGroup(target.groupId);
+  const { group, members } = useGroup(target.groupId);
   const ledger = useGroupLedger(target.groupId, profile?.id ?? null);
   const recordSettlement = useRecordSettlement(target.groupId);
+  const addRate = useAddRate(target.groupId);
   const [busy, setBusy] = useState(false);
 
   const member = findPersonMember(members.data ?? [], personKey);
   const myMemberId = ledger.myMemberId;
   const payable = member ? payableAt(member) : null;
   const nudge = useNudge({ groupId: target.groupId, memberId: member?.id ?? '', currency });
+  // Until the group has loaded, whether it converts is unknown: hold every
+  // money action rather than guess. Once loaded, a debt outside the group
+  // currency in a converting group is rate-less and only offers "Add rate".
+  const groupCurrency = group.data?.default_currency ?? null;
+  const rateless =
+    groupCurrency !== null &&
+    isRatelessTransfer({ currency }, groupCurrency, ledger.convertsToGroupCurrency);
+  const actionable = groupCurrency !== null && !rateless;
   // A guest has no account to notify, so a reminder to one would only fail.
-  const canRemind = owed && Boolean(member) && Boolean(member?.profile_id);
-  const canPay = !owed && Boolean(member) && Boolean(myMemberId);
+  const canRemind = actionable && owed && Boolean(member) && Boolean(member?.profile_id);
+  const canPay = actionable && !owed && Boolean(member) && Boolean(myMemberId);
 
   const record = async (): Promise<void> => {
     if (guard.blockWrite()) return;
-    if (!member || !myMemberId || busy) return;
+    if (!member || !myMemberId || busy || !actionable) return;
     setBusy(true);
     try {
       await recordSettlement.mutateAsync({
@@ -140,7 +156,26 @@ export function PersonActions({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
+      {rateless ? (
+        <Text variant="caption" tone="muted">
+          {t.fx.noRateYet}
+        </Text>
+      ) : null}
       <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
+        {rateless && member && myMemberId ? (
+          <Button
+            size="sm"
+            variant="brand"
+            label={t.fx.addRateAction}
+            accessibilityLabel={`${name}. ${t.fx.noRateYet}. ${t.fx.addRateAction}`}
+            onPress={() =>
+              void addRate({
+                currency,
+                parties: owed ? [member.id, myMemberId] : [myMemberId, member.id],
+              })
+            }
+          />
+        ) : null}
         {canRemind && !nudge.outcome ? (
           <Button
             size="sm"

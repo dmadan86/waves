@@ -62,6 +62,13 @@ describe('needsRate', () => {
     expect(needsRate({ currency: 'VND', groupCurrency: 'INR', fx: VND_FX })).toBe(false);
     expect(needsRate({ currency: 'INR', groupCurrency: 'INR', fx: null })).toBe(false);
   });
+  it('is true for a rate the balances would not use: into another currency, or the wrong way', () => {
+    const intoUsd = toFxRecord(rateFromDecimal('0.00004', 'VND', 'USD', { source: 'ecb' }));
+    expect(needsRate({ currency: 'VND', groupCurrency: 'INR', fx: intoUsd })).toBe(true);
+    expect(needsRate({ currency: 'VND', groupCurrency: 'USD', fx: VND_FX })).toBe(true);
+    const thb = toFxRecord(rateFromDecimal('2.5', 'THB', 'INR', { source: 'ecb' }));
+    expect(needsRate({ currency: 'VND', groupCurrency: 'INR', fx: thb })).toBe(true);
+  });
 });
 
 describe('the pinned rate beats fetching', () => {

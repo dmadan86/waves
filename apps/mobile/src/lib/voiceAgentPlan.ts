@@ -34,6 +34,9 @@ export interface AgentLocalGroup {
   name: string;
   currency: string;
   members: readonly AgentLocalMember[];
+  /** The group settles in its own currency (ADR-003 amendment): a debt in any
+   *  other currency is a bill with no rate yet, never something to settle. */
+  convertsToGroupCurrency?: boolean;
   /** What the group's tile in the confirmation screen wears. */
   photoPath?: string | null;
   coverEmoji?: string | null;
@@ -61,6 +64,18 @@ export interface VoiceAgentText {
   addMember: string; // 'Add {name} to {group}'
   unknownGroup: string;
   unknownPerson: string;
+  /** On a settle or reminder in a currency the group does not settle in. */
+  noRateYet: string;
+}
+
+/**
+ * A settle or a reminder in a currency its group does not settle in, in a group
+ * that settles in its own: the debt comes from a bill with no rate yet, and the
+ * server refuses to record it. Such a card is a problem — never run. The same
+ * rule as `isRatelessTransfer` (lib/settleCurrency).
+ */
+function ratelessIn(group: AgentLocalGroup | undefined, currency: string): boolean {
+  return Boolean(group?.convertsToGroupCurrency && currency !== group.currency);
 }
 
 export type AgentCardKind = VoiceAgentAction['type'];
@@ -150,6 +165,7 @@ export function planVoiceAgentActions(
         const from = group?.members.find((member) => member.id === action.fromMemberId);
         const to = group?.members.find((member) => member.id === action.toMemberId);
         const minor = parseMinor(action.amountMinor);
+        const noRate = ratelessIn(group, action.currency);
         card(
           [
             fill(text.settle, {
@@ -158,20 +174,28 @@ export function planVoiceAgentActions(
               amount: minor === null ? action.amountMinor : formatMinor(minor, action.currency),
             }),
             group?.name ?? text.unknownGroup,
+            ...(noRate ? [text.noRateYet] : []),
           ],
-          !group || !from || !to || minor === null || action.fromMemberId === action.toMemberId,
+          !group ||
+            !from ||
+            !to ||
+            minor === null ||
+            action.fromMemberId === action.toMemberId ||
+            noRate,
         );
         return;
       }
       case 'nudge': {
         const group = groups.get(action.groupId);
         const to = group?.members.find((member) => member.id === action.toMemberId);
+        const noRate = ratelessIn(group, action.currency);
         card(
           [
             fill(text.remind, { name: to ? memberName(to, text) : text.unknownPerson }),
             group?.name ?? text.unknownGroup,
+            ...(noRate ? [text.noRateYet] : []),
           ],
-          !group || !to,
+          !group || !to || noRate,
         );
         return;
       }

@@ -57,6 +57,11 @@ describe('settlement currency safety', () => {
     expect(settlementCurrencyLocked(0, 1)).toBe(true);
     expect(canEditSettlementCurrency(true, 0, 1)).toBe(false);
   });
+
+  it('locks once a settlement exists, as the server does (CURRENCY_LOCKED)', () => {
+    expect(settlementCurrencyLocked(0, 0, 1)).toBe(true);
+    expect(canEditSettlementCurrency(true, 0, 0, 1)).toBe(false);
+  });
 });
 
 describe('the rate a group has pinned', () => {

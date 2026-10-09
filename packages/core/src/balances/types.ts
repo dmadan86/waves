@@ -1,4 +1,5 @@
 import type { CurrencyCode } from '../money/currency';
+import type { FxRecord } from '../money/fx';
 import type { MemberId } from '../split/types';
 
 /** The current version of an expense, flattened to what balances need. */
@@ -15,6 +16,18 @@ export interface ExpenseSnapshot {
   readonly date: string;
   /** Soft-deleted expenses (ADR-004) do not affect balances. */
   readonly deletedAt?: string | null;
+  /**
+   * The rate stored on this version (`expense_versions.fx`), as it came off the
+   * wire. Only read by `toSettleExpense`, which validates it; balances never
+   * look at it directly.
+   */
+  readonly fx?: FxRecord | null;
+  /**
+   * Set on a snapshot `toSettleExpense` produced: the currency and total the bill
+   * was actually paid in, before it was counted in the group's currency. Absent
+   * on a bill that was not converted.
+   */
+  readonly convertedFrom?: { readonly currency: CurrencyCode; readonly amount: bigint };
 }
 
 export enum SettlementStatus {
