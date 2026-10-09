@@ -126,6 +126,7 @@ import {
 } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
+import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { useToast } from '@/lib/toast';
 import {
   detectAddMember,
@@ -336,6 +337,18 @@ export default function VoiceScreen() {
   // note on the landings in `save` below.
   const toast = useToast();
   const groups = useGroups();
+  /** A debt in a currency its group does not settle in, in a group that settles
+   *  in its own currency: a bill with no rate yet, not something to pay. An
+   *  unknown group answers true — hold back rather than guess. */
+  const ratelessDebt = (groupId: string | null, currency: string): boolean => {
+    const group = groupId ? (groups.data ?? []).find((row) => row.id === groupId) : undefined;
+    if (!group) return true;
+    return isRatelessTransfer(
+      { currency },
+      group.default_currency,
+      group.convert_to_group_currency === true,
+    );
+  };
   // Opened from a group's own screens (the raised mic passes its id), so a
   // spoken expense lands in that group by default rather than the unassigned
   // inbox. The reader can still switch the destination on the review; and a
@@ -889,6 +902,11 @@ export default function VoiceScreen() {
   const tryMoneyIntent = (transcript: string): boolean => {
     const intent = detectMoneyIntent(transcript);
     if (!intent) return false;
+    // A debt in a currency the group does not settle in comes from a bill with
+    // no rate yet (ADR-003 amendment): it cannot be settled or reminded about,
+    // so it is never a candidate here — the Settle up screen offers its rate.
+    const payable = (row: { only_group_id: string | null; currency: string }): boolean =>
+      !ratelessDebt(row.only_group_id, row.currency);
 
     // Only true 1:1 contacts can be settled or reminded — the same rows the
     // People picker offers. A name must match exactly one of them.
@@ -907,7 +925,9 @@ export default function VoiceScreen() {
     if (intent.kind === 'remind') {
       // A nudge only means something when they owe me — in exactly one currency,
       // so there is one unambiguous debt to point at.
-      const owing = personRows.filter((row) => BigInt(row.net) > 0n && row.only_group_id);
+      const owing = personRows.filter(
+        (row) => BigInt(row.net) > 0n && row.only_group_id && payable(row),
+      );
       if (owing.length !== 1) return false;
       const row = owing[0];
       setRequested(null);
@@ -926,7 +946,9 @@ export default function VoiceScreen() {
     }
 
     // Settle: one non-zero balance to clear (either direction), one currency.
-    const owed = personRows.filter((row) => BigInt(row.net) !== 0n && row.only_group_id);
+    const owed = personRows.filter(
+      (row) => BigInt(row.net) !== 0n && row.only_group_id && payable(row),
+    );
     if (owed.length !== 1) return false;
     const row = owed[0];
     const net = BigInt(row.net);
@@ -1603,6 +1625,8 @@ export default function VoiceScreen() {
         const members = target.members.data ?? [];
         const myMemberId = members.find((member) => isViewer(member, viewerId))?.id;
         if (!myMemberId) throw new Error('no member to settle as');
+        // The floor under `tryMoneyIntent`: never record a rate-less debt.
+        if (ratelessDebt(dest.groupId, dest.currency)) throw new Error('no rate yet');
         await recordSettlement.mutateAsync({
           groupId: dest.groupId,
           fromMemberId: dest.iPay ? myMemberId : dest.toMemberId,

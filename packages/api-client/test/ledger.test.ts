@@ -128,6 +128,37 @@ describe('what a guest sees', () => {
     expect(ledger.transfers.some((transfer) => transfer.currency === 'EUR')).toBe(true);
   });
 
+  it('counts a rated foreign bill in the group currency when the group converts', () => {
+    // €40 at ₹90.25 = ₹3,610. Ravi paid it all, half each: Asha owes him ₹1,805,
+    // which nets against the ₹225 she is owed for dinner.
+    const euro = expense(
+      {
+        currency: 'EUR',
+        amount: '4000',
+        payers: [{ member_id: 'ravi', amount: '4000' }],
+        shares: [
+          { member_id: 'asha', amount: '2000' },
+          { member_id: 'ravi', amount: '2000' },
+        ],
+        fx: {
+          num: '9025',
+          den: '100',
+          from: 'EUR',
+          to: 'INR',
+          ts: '2026-08-04T00:00:00.000Z',
+          source: 'manual',
+        },
+      },
+      'e-eur',
+    );
+    const converted = computeLedger([expense(), euro], [], 'INR', true);
+    expect(converted.balances.get('asha')).toBe(22500n - 180500n);
+    expect(converted.transfers.every((transfer) => transfer.currency === 'INR')).toBe(true);
+
+    // The same rows in a group that has not opted in keep the euros apart.
+    expect(computeLedger([expense(), euro], [], 'INR').balances.get('asha')).toBe(22500n);
+  });
+
   it('has nothing to show a browser that is not a member', () => {
     // RLS returns no rows rather than an error; that must read as "settled up
     // with nobody", not as a crash.

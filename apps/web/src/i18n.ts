@@ -844,6 +844,11 @@ export interface WebStrings {
     withdrawConfirm: string;
     nudge: string;
     nudged: string;
+    /** A debt from a bill with no rate yet, in a group that settles in its own
+     *  currency: not payable until the bill has one (ADR-003 amendment). */
+    noRateYet: string;
+    noRateHint: string;
+    openBill: string;
     loading: string;
   };
   /** What a backend failure is allowed to say. The real message goes to Sentry
@@ -1891,6 +1896,9 @@ const en: WebStrings = {
     withdrawConfirm: 'Withdraw this payment?',
     nudge: 'Nudge',
     nudged: 'Nudged',
+    noRateYet: 'No rate yet',
+    noRateHint: 'Add this bill’s rate in the Waves app, then settle it in {currency}.',
+    openBill: 'Open bill',
     loading: 'Loading…',
   },
   groups: {
@@ -2920,6 +2928,10 @@ const ta: WebStrings = {
     withdrawConfirm: 'இந்தக் கொடுப்பனவைத் திரும்பப் பெறவா?',
     nudge: 'நினைவூட்டு',
     nudged: 'நினைவூட்டப்பட்டது',
+    noRateYet: 'இன்னும் விகிதம் இல்லை',
+    noRateHint:
+      'Waves செயலியில் இந்த பில்லுக்கு விகிதம் சேர்த்து, பிறகு {currency}-இல் கணக்கை முடிக்கவும்.',
+    openBill: 'பில்லைத் திற',
     loading: 'ஏற்றுகிறது…',
   },
   groups: {
@@ -3939,6 +3951,9 @@ const hi: WebStrings = {
     withdrawConfirm: 'यह भुगतान वापस लें?',
     nudge: 'याद दिलाएँ',
     nudged: 'याद दिला दिया',
+    noRateYet: 'अभी दर नहीं',
+    noRateHint: 'Waves ऐप में इस बिल की दर जोड़ें, फिर {currency} में हिसाब करें।',
+    openBill: 'बिल खोलें',
     loading: 'लोड हो रहा है…',
   },
   groups: {
@@ -4997,6 +5012,9 @@ const ar: WebStrings = {
     withdrawConfirm: 'سحب هذه الدفعة؟',
     nudge: 'تذكير',
     nudged: 'تم التذكير',
+    noRateYet: 'لا يوجد سعر بعد',
+    noRateHint: 'أضف سعر هذه الفاتورة في تطبيق Waves، ثم سوِّها بـ {currency}.',
+    openBill: 'افتح الفاتورة',
     loading: 'جارٍ التحميل…',
   },
   groups: {

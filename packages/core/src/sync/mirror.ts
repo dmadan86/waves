@@ -385,6 +385,9 @@ export function toExpenseSnapshot(expense: MirrorExpense): ExpenseSnapshot | nul
       ),
       date: version.expense_date,
       deletedAt: expense.deleted_at,
+      // Unvalidated on purpose: `toSettleExpense` decides whether it is a usable
+      // rate, by the same rule Postgres applies.
+      fx: (version.fx ?? null) as ExpenseSnapshot['fx'],
     };
   } catch {
     return null;
@@ -602,6 +605,10 @@ export interface MirrorGroup extends MirrorRow {
     string,
     { num: string; den: string; ts: string; source: string }
   > | null;
+  /** Whether a foreign bill with a stored rate counts in `default_currency`
+   *  (ADR-003 amendment). Absent on a row mirrored before the column existed,
+   *  which is exactly a group that has not opted in. */
+  readonly convert_to_group_currency?: boolean;
   readonly pending?: boolean;
 }
 
@@ -629,6 +636,9 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
         cover_emoji: payload.emoji ?? null,
         simplify_debts: payload.simplify !== false,
         country_code: payload.country ?? null,
+        // `waves_create_group` opts every new group in; the overlay says the
+        // same so an offline group's balances do not change when it syncs.
+        convert_to_group_currency: true,
         created_at: mutation.clientCreatedAt,
         archived_at: null,
         deleted_at: null,

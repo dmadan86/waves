@@ -56,6 +56,13 @@ const EXPONENTS: Readonly<Record<string, number>> = Object.freeze({
 
 export const DEFAULT_MINOR_UNIT_EXPONENT = 2;
 
+/**
+ * The table above, read-only. Postgres keeps its own copy
+ * (`waves_currency_exponent`, used when a group settles a foreign bill in its
+ * own currency), and the DB suite checks every entry here against it.
+ */
+export const KNOWN_MINOR_UNIT_EXPONENTS: Readonly<Record<string, number>> = EXPONENTS;
+
 const CURRENCY_RE = /^[A-Z]{3}$/;
 
 export function isCurrencyCode(value: string): boolean {

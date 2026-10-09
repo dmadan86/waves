@@ -94,6 +94,7 @@ function agentText(t: UiStrings): VoiceAgentText {
     addMember: v.agentAddMember,
     unknownGroup: v.agentUnknownGroup,
     unknownPerson: v.agentUnknownPerson,
+    noRateYet: t.fx.noRateYet,
   };
 }
 
@@ -110,6 +111,7 @@ function useAgentLocalData(viewerId: string | null): AgentLocalData {
         id: group.id,
         name: group.name?.trim() || '',
         currency: group.default_currency,
+        convertsToGroupCurrency: group.convert_to_group_currency === true,
         photoPath: group.photo_path,
         coverEmoji: group.cover_emoji,
         members: members.map((member) => ({
@@ -447,6 +449,10 @@ function AgentActionCard({
           break;
         }
         case 'record_settlement':
+          // The plan marks a rate-less settle as a problem; this is the floor.
+          if (group?.convertsToGroupCurrency && action.currency !== group.currency) {
+            throw new Error('no rate yet');
+          }
           await recordSettlement.mutateAsync({
             groupId: action.groupId,
             fromMemberId: action.fromMemberId,
