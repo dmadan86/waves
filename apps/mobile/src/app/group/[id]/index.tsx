@@ -1315,7 +1315,11 @@ export default function GroupScreen() {
           // Settling up, as a face of the group rather than a button on its
           // hero: the same flow as the Settle up screen. Recorded, it shows
           // the balances that just moved.
-          <SettleBody groupId={groupId} onRecorded={() => setTab(Tab.Balances)} />
+          <SettleBody
+            groupId={groupId}
+            showSummary={false}
+            onRecorded={() => setTab(Tab.Balances)}
+          />
         ) : tab === Tab.Timeline || tab === Tab.Map ? (
           // This group's own timeline and map: the Timeline screen's list and
           // map, held to this group, each on its own tab rather than behind a
