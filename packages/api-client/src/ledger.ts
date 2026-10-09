@@ -16,6 +16,7 @@
 import {
   computeNetBalances,
   simplify,
+  toSettleExpenses,
   type CurrencyCode,
   type ExpenseSnapshot,
   type MemberId,
@@ -43,6 +44,7 @@ export function toExpenseSnapshot(expense: Expense): ExpenseSnapshot | null {
     shares: Object.fromEntries(version.shares.map((row) => [row.member_id, BigInt(row.amount)])),
     date: version.expense_date,
     deletedAt: expense.deleted_at,
+    fx: version.fx ?? null,
   };
 }
 
@@ -66,10 +68,16 @@ export function computeLedger(
   expenses: readonly Expense[],
   settlements: readonly Settlement[],
   currency: string,
+  /** The group's `convert_to_group_currency`: count foreign bills with a stored
+   *  rate in `currency` (ADR-003 amendment), as the server does. */
+  convertToGroupCurrency = false,
 ): GroupLedger {
-  const snapshots = expenses
-    .map(toExpenseSnapshot)
-    .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+  const snapshots = toSettleExpenses(
+    expenses
+      .map(toExpenseSnapshot)
+      .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null),
+    convertToGroupCurrency,
+  );
 
   const balances = computeNetBalances(snapshots, settlements.map(toSettlementSnapshot));
 

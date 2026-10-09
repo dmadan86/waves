@@ -86,6 +86,11 @@ export interface GroupRow {
   /** A member-typed short tag shown instead of the automatic type tag (<= 24
    *  chars, trimmed), or null. Optional for the same reason `event_template` is. */
   custom_tag?: string | null;
+  /** Whether a foreign bill with a stored rate counts in `default_currency`
+   *  (ADR-003 amendment). Set only through `waves_set_group_convert`; new groups
+   *  start true. Absent on a row mirrored before the column existed — which is
+   *  exactly a group that has not opted in, so `undefined` reads as false. */
+  convert_to_group_currency?: boolean;
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;
   /**

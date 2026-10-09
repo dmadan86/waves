@@ -17,6 +17,7 @@ import {
   simplify,
   SyncTable,
   toExpenseSnapshot,
+  toSettleExpenses,
   type ExpenseSnapshot,
   type MemberId,
   type MirrorExpense,
@@ -98,9 +99,12 @@ export function useOfflineLedger(groupId: string, myProfileId: string | null): O
   return useMemo(() => {
     const currency = local.group?.default_currency ?? 'INR';
 
-    const snapshots = liveExpenses(local.expenses)
-      .map(toExpenseSnapshot)
-      .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+    const snapshots = toSettleExpenses(
+      liveExpenses(local.expenses)
+        .map(toExpenseSnapshot)
+        .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null),
+      local.group?.convert_to_group_currency === true,
+    );
 
     const settlementSnapshots: SettlementSnapshot[] = local.settlements.map((row) => ({
       id: row.id,

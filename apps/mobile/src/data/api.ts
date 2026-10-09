@@ -248,6 +248,44 @@ export async function canUploadGroupPhoto(groupId: string | null): Promise<boole
   return data === true;
 }
 
+/** Per foreign currency: live bills still without a rate into the group
+ *  currency, and settlements recorded in that currency (ADR-003 amendment). */
+export interface CurrencyReadinessRow {
+  currency: string;
+  missing_rates: number;
+  foreign_settlements: number;
+}
+
+/**
+ * What stands between a group and settling in its own currency. Empty means
+ * ready. Answered by the server because a bill's rate has to be the one the
+ * server will convert with, not the one this device happens to hold.
+ */
+export async function fetchGroupCurrencyReadiness(
+  groupId: string,
+): Promise<CurrencyReadinessRow[]> {
+  if (isDemoGroupId(groupId)) return [];
+  const { data, error } = await backend.rpc('waves_group_currency_readiness', {
+    p_group_id: groupId,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as CurrencyReadinessRow[]).map((row) => ({
+    currency: String(row.currency).trim(),
+    missing_rates: Number(row.missing_rates),
+    foreign_settlements: Number(row.foreign_settlements),
+  }));
+}
+
+/** Turn settling in the group currency on or off. Admin-only; refused with
+ *  NOT_READY until the group is ready, and CONVERT_LOCKED off once settled. */
+export async function setGroupConvert(groupId: string, on: boolean): Promise<void> {
+  const { error } = await backend.rpc('waves_set_group_convert', {
+    p_group_id: groupId,
+    p_on: on,
+  });
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Whether this group may take one more receipt.
  *

@@ -46,6 +46,7 @@ import { InfoDisclosure } from '@/components/InfoDisclosure';
 import { GroupTagField } from '@/components/GroupTagField';
 import { TripDates } from '@/components/TripDates';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
+import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
 import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
@@ -79,6 +80,7 @@ import {
   isGhost,
   isViewer,
   payableAt,
+  SettlementStatus,
 } from '@/data/types';
 
 // Same chip icons the create screen wears, so changing a group's kind looks
@@ -166,7 +168,7 @@ export default function GroupSettingsScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
   const removeDemo = useRemoveDemo();
@@ -475,7 +477,12 @@ export default function GroupSettingsScreen() {
     // group no longer settles in.
     expenses.rows.length,
     tripRates.data?.length ?? 0,
+    // The server freezes the currency on a recorded settlement too.
+    (settlements.data ?? []).length,
   );
+  const liveSettlementCount = (settlements.data ?? []).filter(
+    (row) => row.status !== SettlementStatus.Cancelled,
+  ).length;
 
   const leave = async (): Promise<void> => {
     // A refusal, not a failure — it explains why the tap did nothing, so it
@@ -829,6 +836,16 @@ export default function GroupSettingsScreen() {
                 { onSuccess: () => setStatus(t.account.saved) },
               )
             }
+          />
+          {/* Whether foreign bills count in this currency at their own saved
+              rates (ADR-003 amendment). On for new groups; an existing group
+              opts in once every foreign bill has a rate. */}
+          <SettleInCurrencyRow
+            groupId={groupId}
+            currency={currency}
+            on={group.data.convert_to_group_currency === true}
+            isAdmin={isAdmin}
+            settlementCount={liveSettlementCount}
           />
         </View>
         <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />

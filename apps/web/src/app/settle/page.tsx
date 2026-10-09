@@ -208,8 +208,14 @@ function GroupSettle({
   const myMemberId = members.find((member) => member.profile_id === profileId)?.id ?? null;
 
   const ledger = useMemo(
-    () => computeLedger(expenses, settlements, group.default_currency),
-    [expenses, settlements, group.default_currency],
+    () =>
+      computeLedger(
+        expenses,
+        settlements,
+        group.default_currency,
+        group.convert_to_group_currency === true,
+      ),
+    [expenses, settlements, group.default_currency, group.convert_to_group_currency],
   );
 
   if (loading) {

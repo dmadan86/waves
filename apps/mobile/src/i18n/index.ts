@@ -4370,6 +4370,21 @@ export interface UiStrings {
    *  set once for the trip, overridable on a single bill (ADR-003, extended). */
   fx: {
     section: string;
+    /** "Settle in {currency}": the switch that counts foreign bills in the
+     *  group currency at each bill's own rate (ADR-003 amendment). */
+    convertTitle: string;
+    convertBody: string;
+    /** {count} bills in {currency} have no rate yet. */
+    convertNeedsRates: string;
+    /** A settlement already recorded in {currency}. */
+    convertForeignSettlements: string;
+    convertAdminOnly: string;
+    convertLocked: string;
+    /** Under a converted balance: "Includes {currencies} bills at their recorded rates". */
+    convertedCaption: string;
+    /** On a debt from a bill with no rate, in a group that converts. */
+    noRateYet: string;
+    addRateAction: string;
     settlesIn: string;
     settlesInHint: string;
     settlesInLocked: string;
@@ -8241,6 +8256,17 @@ const en: UiStrings = {
   },
   fx: {
     section: 'Currency',
+    convertTitle: 'Settle in {currency}',
+    convertBody:
+      'Bills paid in other currencies count in {currency}, at the rate saved on each bill.',
+    convertNeedsRates: '{count} {currency} bill(s) need a rate first.',
+    convertForeignSettlements:
+      'Someone already settled in {currency}, so this group keeps each currency separate.',
+    convertAdminOnly: 'Only an admin can change this.',
+    convertLocked: 'Stays on — payments already count in {currency}.',
+    convertedCaption: 'Includes {currencies} bills at their recorded rates',
+    noRateYet: 'No rate yet',
+    addRateAction: 'Add rate',
     settlesIn: 'Settles in',
     settlesInHint: 'Every balance is counted in this currency.',
     settlesInLocked: 'Locked — this group already has entries.',
@@ -12250,6 +12276,18 @@ const ta: UiStrings = {
   },
   fx: {
     section: 'நாணயம்',
+    convertTitle: '{currency}-இல் கணக்கை முடி',
+    convertBody:
+      'பிற நாணயங்களில் செலுத்திய பில்கள், ஒவ்வொரு பில்லிலும் சேமித்த விகிதத்தில் {currency}-இல் கணக்கிடப்படும்.',
+    convertNeedsRates: '{count} {currency} பில்(கள்)-க்கு முதலில் விகிதம் தேவை.',
+    convertForeignSettlements:
+      'ஏற்கனவே ஒருவர் {currency}-இல் செலுத்தியுள்ளார், அதனால் இந்தக் குழு ஒவ்வொரு நாணயத்தையும் தனியாக வைக்கும்.',
+    convertAdminOnly: 'நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
+    convertLocked:
+      'இயக்கத்தில் இருக்கும் — செலுத்தல்கள் ஏற்கனவே {currency}-இல் கணக்கிடப்படுகின்றன.',
+    convertedCaption: '{currencies} பில்கள் அவற்றின் பதிவு செய்த விகிதத்தில் சேர்க்கப்பட்டுள்ளன',
+    noRateYet: 'இன்னும் விகிதம் இல்லை',
+    addRateAction: 'விகிதம் சேர்',
     settlesIn: 'கணக்கு இந்த நாணயத்தில்',
     settlesInHint: 'இந்தக் குழுவின் எல்லா இருப்புகளும் இந்த நாணயத்தில் கணக்கிடப்படும்.',
     settlesInLocked: 'பூட்டப்பட்டது — ஏற்கெனவே பதிவுகள் உள்ளன.',
@@ -16113,6 +16151,17 @@ const hi: UiStrings = {
   },
   fx: {
     section: 'मुद्रा',
+    convertTitle: '{currency} में हिसाब करें',
+    convertBody:
+      'दूसरी मुद्राओं में चुकाए गए बिल, हर बिल पर सहेजी गई दर से {currency} में गिने जाते हैं।',
+    convertNeedsRates: 'पहले {count} {currency} बिल के लिए दर चाहिए।',
+    convertForeignSettlements:
+      'किसी ने पहले ही {currency} में भुगतान किया है, इसलिए यह ग्रुप हर मुद्रा अलग रखता है।',
+    convertAdminOnly: 'इसे सिर्फ़ एडमिन बदल सकते हैं।',
+    convertLocked: 'चालू रहेगा — भुगतान पहले से {currency} में गिने जा रहे हैं।',
+    convertedCaption: '{currencies} बिल उनकी दर्ज दर पर शामिल हैं',
+    noRateYet: 'अभी दर नहीं',
+    addRateAction: 'दर जोड़ें',
     settlesIn: 'हिसाब इस मुद्रा में',
     settlesInHint: 'इस समूह का हर बैलेंस इसी मुद्रा में गिना जाता है।',
     settlesInLocked: 'बंद — इस समूह में पहले से एंट्री हैं।',
@@ -20506,6 +20555,16 @@ const ar: UiStrings = {
   },
   fx: {
     section: 'العملة',
+    convertTitle: 'التسوية بـ {currency}',
+    convertBody: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}، بالسعر المحفوظ في كل فاتورة.',
+    convertNeedsRates: 'تحتاج {count} فاتورة بـ {currency} إلى سعر أولًا.',
+    convertForeignSettlements:
+      'سدّد أحدهم بالفعل بـ {currency}، لذا تُبقي هذه المجموعة كل عملة منفصلة.',
+    convertAdminOnly: 'يمكن للمشرف فقط تغيير هذا.',
+    convertLocked: 'يبقى مفعّلًا — المدفوعات تُحتسب بالفعل بـ {currency}.',
+    convertedCaption: 'يشمل فواتير {currencies} بأسعارها المسجّلة',
+    noRateYet: 'لا يوجد سعر بعد',
+    addRateAction: 'أضف سعرًا',
     settlesIn: 'التسوية بـ',
     settlesInHint: 'كل رصيد في هذه المجموعة يُحسب بهذه العملة.',
     settlesInLocked: 'مقفل — في المجموعة قيود بالفعل.',

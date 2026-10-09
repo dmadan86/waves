@@ -1134,6 +1134,7 @@ export default function GroupScreen() {
           profileId={viewerId}
           currency={currency}
           myBalance={ledger.myBalance}
+          convertedFrom={ledger.convertedFrom}
           pending={ledger.pending}
           pendingForMe={pendingForMe}
           heroGradient={heroGradient}
