@@ -54,7 +54,7 @@ import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core'
 import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
 import { useBlockedUsers } from '@/data/blocked';
-import { defaultMergeName } from '@/data/mergePeople';
+import { defaultMergeName, duplicateNameKey } from '@/data/mergePeople';
 import { useGroups, useHomeSummary, useKnownPeopleCount, usePeopleBalances } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { useAuth } from '@/lib/auth';
@@ -238,7 +238,7 @@ function findDuplicates(rows: PersonBalanceRow[]): DuplicateInfo {
   const byName = new Map<string, { keys: Set<string>; display: string }>();
   for (const row of rows) {
     if (!row.is_ghost) continue;
-    const norm = row.display_name.trim().toLowerCase();
+    const norm = duplicateNameKey(row.display_name);
     if (!norm) continue;
     let bucket = byName.get(norm);
     if (!bucket) {

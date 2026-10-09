@@ -2024,8 +2024,6 @@ export interface UiStrings {
     nameSuggested: string;
     /** Spoken label for the tick beside a guest we hold contact details for. */
     hasContact: string;
-    /** Says the ticked people were suggested by a shared number, not chosen. */
-    suggestedPicks: string;
     /** Row line for a guest whose membership is still only in the local queue. */
     pendingTag: string;
     /** Why the merge is held while one of the picked people has not synced. */
@@ -2064,14 +2062,10 @@ export interface UiStrings {
     heroCaption: string;
     /** Header over the list of people currently in the merge. `{n}` is the count. */
     peopleHeader: PluralForms;
-    /** Hint shown in place of the list until two people are picked. */
-    needTwo: string;
     /** Button that assigns the merged person a real contact (names the merge). */
     addPerson: string;
     /** That button's label once a contact is linked. `{name}` is the contact. */
     assignedTo: string;
-    /** Title of that add sheet. */
-    addGuestTitle: string;
     /** Empty state of the add sheet when every mergeable guest is already in. */
     noMoreGuests: string;
     /** Contextual card on Friends when duplicate guests exist, inviting a merge. */
@@ -2079,28 +2073,42 @@ export interface UiStrings {
     /** Slim strip on Friends naming how many likely-duplicate guests were spotted
      *  (same name across groups). `{n}` is the count. */
     duplicates: PluralForms;
-    /** Card 1's title on the compact merge screen: picking the surviving name. */
-    step1Title: string;
-    /** Card 1's caption, under {@link step1Title}. */
-    step1Subtitle: string;
-    /** Card 2's caption, under the {@link peopleToMergeHeader} count. */
-    step2Subtitle: string;
-    /** Card 2's header, e.g. "People to merge (3)". `{n}` is the count. */
-    peopleToMergeHeader: PluralForms;
-    /** Card 3's title: optionally picking up another duplicate before merging. */
-    step3Title: string;
-    /** Card 3's caption, under {@link step3Title}. */
-    step3Subtitle: string;
-    /** The pill beside {@link step3Title} saying this step may be skipped. */
-    optional: string;
-    /** Card 3 tile: a search over the mergeable roster itself, by name or number. */
-    searchInWaves: string;
-    /** Caption under {@link searchInWaves}. */
-    searchInWavesHint: string;
-    /** Caption under the "from contacts" tile (the {@link addPerson} flow). */
-    fromContactsHint: string;
     /** The pinned footer button, e.g. "Merge 3 people". `{n}` is the live count. */
     mergeCount: PluralForms;
+    /** Section label over the suggested duplicate sets. */
+    likelyDuplicates: string;
+    /** Section label over the hand-picked roster, under the suggestions. */
+    pickYourself: string;
+    /** Reason line: the sets share a name. */
+    reasonSameName: string;
+    /** Reason line: the sets share a number. `{phone}` is that number. */
+    reasonSamePhone: string;
+    /** Reason line: the sets share an email. `{email}` is that address. */
+    reasonSameEmail: string;
+    /** Joins the signal and the reach: `{signal}` then `{groups}`. */
+    reasonJoin: string;
+    /** How many groups somebody (or a set) turns up in. `{n}` is the count. */
+    groupCount: PluralForms;
+    /** Spoken label of a suggestion's Merge pill. `{people}` is their names. */
+    mergeSetLabel: string;
+    /** The selection bar's count, e.g. "2 picked". */
+    picked: PluralForms;
+    /** The selection bar while only one person is picked. */
+    pickTwo: string;
+    /** Spoken label of the search icon that opens the roster filter. */
+    searchLabel: string;
+    /** Placeholder in that filter. */
+    searchPlaceholder: string;
+    /** The roster filter matched nobody. */
+    noMatches: string;
+    /** Title of the confirm sheet: which name the merged person keeps. */
+    keepWhichTitle: string;
+    /** Caption under {@link keepWhichTitle}. */
+    keepWhichBody: string;
+    /** Label over the free-text name field in that sheet. */
+    otherName: string;
+    /** The hand-pick section's label when there are no suggestions above it. */
+    pickPeople: string;
   };
   /** Group photos are a paid feature; the cover emoji stays free for everyone. */
   /**
@@ -6346,15 +6354,12 @@ const en: UiStrings = {
   mergePeople: {
     entry: 'Merge people',
     title: 'Merge people',
-    subtitle:
-      'Combine duplicate contacts so all their expenses and groups appear under one person.',
+    subtitle: 'Same person added twice? Combine them.',
     empty: 'No guests to merge — only people without a Waves account can be merged.',
     nameLabel: 'Name for the merged person',
     namePlaceholder: 'e.g. Alex',
     nameSuggested: 'Suggested from the person you have details for. Tap to change.',
     hasContact: 'You have their contact details',
-    suggestedPicks:
-      'These share a phone number or email, so they’re probably one person. Remove anyone who isn’t.',
     pendingTag: 'Waiting to sync',
     pendingBlocked:
       'Someone in this merge hasn’t reached the server yet. You can merge them once this device is back online.',
@@ -6381,25 +6386,30 @@ const en: UiStrings = {
     inviteShare: 'Share',
     heroCaption: 'They’ll appear as one person on Friends.',
     peopleHeader: { one: '{n} person to merge', other: '{n} people to merge' },
-    needTwo: 'Add at least two people to merge them into one.',
     addPerson: 'Assign to a contact',
     assignedTo: 'Assigned to {name}',
-    addGuestTitle: 'Suggested from your contacts',
     noMoreGuests:
       'Everyone you can merge is already added. Add someone from your contacts instead.',
     hint: 'Seeing the same guest in more than one group? Merge the duplicates into one person.',
     duplicates: { one: '{n} possible duplicate', other: '{n} possible duplicates' },
-    step1Title: 'Choose the final name',
-    step1Subtitle: 'This will be the name after merging.',
-    step2Subtitle: 'All their expenses and groups will be combined.',
-    peopleToMergeHeader: { one: 'Person to merge ({n})', other: 'People to merge ({n})' },
-    step3Title: 'Add another person',
-    step3Subtitle: 'Find more duplicates from your contacts or search.',
-    optional: 'Optional',
-    searchInWaves: 'Search in Waves',
-    searchInWavesHint: 'Find existing people',
-    fromContactsHint: 'Add from your contacts',
     mergeCount: { one: 'Merge {n} person', other: 'Merge {n} people' },
+    likelyDuplicates: 'Likely duplicates',
+    pickYourself: 'Or pick yourself',
+    reasonSameName: 'Same name',
+    reasonSamePhone: 'Same phone {phone}',
+    reasonSameEmail: 'Same email {email}',
+    reasonJoin: '{signal} · {groups}',
+    groupCount: { one: '{n} group', other: '{n} groups' },
+    mergeSetLabel: 'Merge {people}',
+    picked: { one: '{n} picked', other: '{n} picked' },
+    pickTwo: 'Pick 2 or more',
+    searchLabel: 'Search people',
+    searchPlaceholder: 'Name, phone or email',
+    noMatches: 'No one matches that search.',
+    keepWhichTitle: 'Keep which name?',
+    keepWhichBody: 'Everyone picked becomes one person with this name.',
+    otherName: 'Or type a name',
+    pickPeople: 'Pick who to merge',
   },
   groupMarks: {
     beach: 'Beach',
@@ -10285,15 +10295,12 @@ const ta: UiStrings = {
   mergePeople: {
     entry: 'நபர்களை இணை',
     title: 'நபர்களை இணை',
-    subtitle:
-      'நகல் தொடர்புகளை இணைக்கவும், அவர்களின் எல்லா செலவுகளும் குழுக்களும் ஒரே நபரின் கீழ் தோன்றும்.',
+    subtitle: 'ஒரே நபர் இருமுறை சேர்க்கப்பட்டாரா? இணைத்துவிடுங்கள்.',
     empty: 'இணைக்க விருந்தினர்கள் இல்லை — Waves கணக்கு இல்லாதவர்களை மட்டுமே இணைக்க முடியும்.',
     nameLabel: 'இணைந்த நபருக்கான பெயர்',
     namePlaceholder: 'எ.கா. அலெக்ஸ்',
     nameSuggested: 'உங்களிடம் விவரங்கள் உள்ள நபரிடமிருந்து பரிந்துரைக்கப்பட்டது. மாற்ற தட்டவும்.',
     hasContact: 'உங்களிடம் அவர்களின் தொடர்பு விவரங்கள் உள்ளன',
-    suggestedPicks:
-      'இவர்கள் ஒரே தொலைபேசி எண் அல்லது மின்னஞ்சலைப் பகிர்கிறார்கள், எனவே இவர்கள் ஒரே நபராக இருக்கலாம். ஒரே நபர் இல்லாதவர்களை நீக்கவும்.',
     pendingTag: 'ஒத்திசைவுக்குக் காத்திருக்கிறது',
     pendingBlocked:
       'இந்த இணைப்பில் உள்ள ஒருவர் இன்னும் சேவையகத்தை அடையவில்லை. இந்தச் சாதனம் மீண்டும் ஆன்லைனுக்கு வந்ததும் அவர்களை இணைக்கலாம்.',
@@ -10324,28 +10331,30 @@ const ta: UiStrings = {
     inviteShare: 'பகிர்',
     heroCaption: 'நண்பர்கள் பட்டியலில் அவர்கள் ஒரே நபராகத் தோன்றுவார்கள்.',
     peopleHeader: { one: 'இணைக்க {n} நபர்', other: 'இணைக்க {n} நபர்கள்' },
-    needTwo: 'ஒரே நபராக இணைக்க குறைந்தது இரண்டு நபர்களைச் சேர்க்கவும்.',
     addPerson: 'தொடர்பிற்கு ஒதுக்கு',
     assignedTo: '{name} உடன் இணைக்கப்பட்டது',
-    addGuestTitle: 'உங்கள் தொடர்புகளிலிருந்து பரிந்துரைக்கப்பட்டவை',
     noMoreGuests:
       'இணைக்கக்கூடிய அனைவரும் ஏற்கனவே சேர்க்கப்பட்டுள்ளனர். பதிலாக உங்கள் தொடர்புகளிலிருந்து ஒருவரைச் சேர்க்கவும்.',
     hint: 'ஒரே விருந்தினர் ஒன்றுக்கு மேற்பட்ட குழுக்களில் தெரிகிறாரா? நகல்களை ஒரே நபராக இணைக்கவும்.',
     duplicates: { one: '{n} சாத்தியமான நகல்', other: '{n} சாத்தியமான நகல்கள்' },
-    step1Title: 'இறுதிப் பெயரைத் தேர்ந்தெடுக்கவும்',
-    step1Subtitle: 'இணைத்த பிறகு இதுவே பெயராக இருக்கும்.',
-    step2Subtitle: 'அவர்களின் அனைத்து செலவுகளும் குழுக்களும் இணைக்கப்படும்.',
-    peopleToMergeHeader: {
-      one: 'இணைக்க வேண்டிய நபர் ({n})',
-      other: 'இணைக்க வேண்டிய நபர்கள் ({n})',
-    },
-    step3Title: 'மற்றொரு நபரைச் சேர்க்கவும்',
-    step3Subtitle: 'உங்கள் தொடர்புகளில் இருந்து மேலும் நகல்களைக் கண்டறியவும் அல்லது தேடவும்.',
-    optional: 'விருப்பத்தேர்வு',
-    searchInWaves: 'Waves இல் தேடு',
-    searchInWavesHint: 'இருக்கும் நபர்களைக் கண்டறியவும்',
-    fromContactsHint: 'உங்கள் தொடர்புகளிலிருந்து சேர்க்கவும்',
     mergeCount: { one: '{n} நபரை இணை', other: '{n} நபர்களை இணை' },
+    likelyDuplicates: 'நகல்களாக இருக்கலாம்',
+    pickYourself: 'அல்லது நீங்களே தேர்ந்தெடுங்கள்',
+    reasonSameName: 'ஒரே பெயர்',
+    reasonSamePhone: 'ஒரே எண் {phone}',
+    reasonSameEmail: 'ஒரே மின்னஞ்சல் {email}',
+    reasonJoin: '{signal} · {groups}',
+    groupCount: { one: '{n} குழு', other: '{n} குழுக்கள்' },
+    mergeSetLabel: '{people} ஐ இணை',
+    picked: { one: '{n} தேர்வு', other: '{n} தேர்வுகள்' },
+    pickTwo: '2 அல்லது அதற்கு மேல் தேர்ந்தெடுங்கள்',
+    searchLabel: 'நபர்களைத் தேடு',
+    searchPlaceholder: 'பெயர், எண் அல்லது மின்னஞ்சல்',
+    noMatches: 'இந்தத் தேடலுக்குப் பொருந்தும் யாரும் இல்லை.',
+    keepWhichTitle: 'எந்தப் பெயரை வைக்க வேண்டும்?',
+    keepWhichBody: 'தேர்ந்தெடுத்த அனைவரும் இந்தப் பெயரில் ஒரே நபராவார்கள்.',
+    otherName: 'அல்லது ஒரு பெயரை உள்ளிடுங்கள்',
+    pickPeople: 'இணைக்க வேண்டியவர்களைத் தேர்ந்தெடுங்கள்',
   },
   groupMarks: {
     beach: 'கடற்கரை',
@@ -14312,15 +14321,13 @@ const hi: UiStrings = {
   mergePeople: {
     entry: 'लोगों को मर्ज करें',
     title: 'लोगों को मर्ज करें',
-    subtitle: 'डुप्लिकेट संपर्कों को मिलाएँ ताकि उनके सभी खर्च और समूह एक ही व्यक्ति के तहत दिखें.',
+    subtitle: 'एक ही व्यक्ति दो बार जुड़ गया? उन्हें मिला दें.',
     empty:
       'मर्ज करने के लिए कोई मेहमान नहीं — केवल बिना Waves खाते वाले लोग ही मर्ज किए जा सकते हैं.',
     nameLabel: 'मर्ज किए गए व्यक्ति का नाम',
     namePlaceholder: 'जैसे एलेक्स',
     nameSuggested: 'जिस व्यक्ति के विवरण आपके पास हैं, उससे सुझाया गया. बदलने के लिए टैप करें.',
     hasContact: 'आपके पास उनके संपर्क विवरण हैं',
-    suggestedPicks:
-      'इनका फ़ोन नंबर या ईमेल एक ही है, इसलिए ये शायद एक ही व्यक्ति हैं. जो न हो उसे हटा दें.',
     pendingTag: 'सिंक होना बाकी है',
     pendingBlocked:
       'इस मर्ज में शामिल कोई व्यक्ति अभी सर्वर तक नहीं पहुँचा है. यह डिवाइस दोबारा ऑनलाइन होने पर आप उन्हें मर्ज कर सकते हैं.',
@@ -14349,28 +14356,30 @@ const hi: UiStrings = {
     inviteShare: 'शेयर करें',
     heroCaption: 'वे Friends सूची में एक ही व्यक्ति के रूप में दिखेंगे.',
     peopleHeader: { one: 'मर्ज करने के लिए {n} व्यक्ति', other: 'मर्ज करने के लिए {n} लोग' },
-    needTwo: 'एक व्यक्ति में मर्ज करने के लिए कम से कम दो लोगों को जोड़ें.',
     addPerson: 'संपर्क से लिंक करें',
     assignedTo: '{name} से लिंक किया गया',
-    addGuestTitle: 'आपके संपर्कों से सुझाए गए',
     noMoreGuests:
       'जिन्हें आप मर्ज कर सकते हैं वे सभी पहले से जुड़े हैं. इसके बजाय अपने संपर्कों से किसी को जोड़ें.',
     hint: 'एक ही मेहमान कई समूहों में दिख रहा है? डुप्लिकेट को एक व्यक्ति में मर्ज करें.',
     duplicates: { one: '{n} संभावित डुप्लिकेट', other: '{n} संभावित डुप्लिकेट' },
-    step1Title: 'अंतिम नाम चुनें',
-    step1Subtitle: 'मर्ज करने के बाद यही नाम रहेगा.',
-    step2Subtitle: 'उनके सभी खर्च और समूह एक साथ जोड़ दिए जाएँगे.',
-    peopleToMergeHeader: {
-      one: 'मर्ज करने के लिए व्यक्ति ({n})',
-      other: 'मर्ज करने के लिए लोग ({n})',
-    },
-    step3Title: 'एक और व्यक्ति जोड़ें',
-    step3Subtitle: 'अपने संपर्कों से और डुप्लिकेट ढूँढें या खोजें.',
-    optional: 'वैकल्पिक',
-    searchInWaves: 'Waves में खोजें',
-    searchInWavesHint: 'मौजूदा लोगों को खोजें',
-    fromContactsHint: 'अपने संपर्कों से जोड़ें',
     mergeCount: { one: '{n} व्यक्ति मर्ज करें', other: '{n} लोग मर्ज करें' },
+    likelyDuplicates: 'संभावित डुप्लिकेट',
+    pickYourself: 'या ख़ुद चुनें',
+    reasonSameName: 'एक ही नाम',
+    reasonSamePhone: 'एक ही नंबर {phone}',
+    reasonSameEmail: 'एक ही ईमेल {email}',
+    reasonJoin: '{signal} · {groups}',
+    groupCount: { one: '{n} समूह', other: '{n} समूह' },
+    mergeSetLabel: '{people} को मर्ज करें',
+    picked: { one: '{n} चुना गया', other: '{n} चुने गए' },
+    pickTwo: '2 या ज़्यादा चुनें',
+    searchLabel: 'लोग खोजें',
+    searchPlaceholder: 'नाम, नंबर या ईमेल',
+    noMatches: 'इस खोज से कोई मेल नहीं खाता.',
+    keepWhichTitle: 'कौन सा नाम रखें?',
+    keepWhichBody: 'चुने गए सभी लोग इस नाम से एक व्यक्ति बन जाएँगे.',
+    otherName: 'या कोई नाम लिखें',
+    pickPeople: 'मर्ज करने के लिए लोग चुनें',
   },
   groupMarks: {
     beach: 'समुद्र तट',
@@ -18321,14 +18330,12 @@ const ar: UiStrings = {
   mergePeople: {
     entry: 'دمج الأشخاص',
     title: 'دمج الأشخاص',
-    subtitle: 'ادمج جهات الاتصال المكرَّرة بحيث تظهر جميع نفقاتهم ومجموعاتهم تحت شخص واحد.',
+    subtitle: 'أُضيف الشخص نفسه مرتين؟ ادمجهما.',
     empty: 'لا يوجد ضيوف للدمج — يمكن دمج من ليس لديهم حساب Waves فقط.',
     nameLabel: 'اسم الشخص المدمج',
     namePlaceholder: 'مثال: أليكس',
     nameSuggested: 'مقترح من الشخص الذي لديك بياناته. انقر لتغييره.',
     hasContact: 'لديك بيانات الاتصال الخاصة به',
-    suggestedPicks:
-      'يشترك هؤلاء في رقم هاتف أو بريد إلكتروني، لذا من المرجّح أنهم شخص واحد. أزِل من ليس منهم.',
     pendingTag: 'في انتظار المزامنة',
     pendingBlocked:
       'أحد المشمولين في هذا الدمج لم يصل إلى الخادم بعد. يمكنك دمجهم بمجرد عودة هذا الجهاز إلى الاتصال.',
@@ -18360,10 +18367,8 @@ const ar: UiStrings = {
     inviteShare: 'مشاركة',
     heroCaption: 'سيظهرون كشخص واحد في قائمة الأصدقاء.',
     peopleHeader: { one: 'شخص واحد للدمج', other: '{n} أشخاص للدمج' },
-    needTwo: 'أضف شخصين على الأقل لدمجهما في شخص واحد.',
     addPerson: 'ربطه بجهة اتصال',
     assignedTo: 'مرتبط بـ {name}',
-    addGuestTitle: 'مقترح من جهات اتصالك',
     noMoreGuests: 'كل من يمكنك دمجهم مُضافون بالفعل. أضِف شخصًا من جهات اتصالك بدلاً من ذلك.',
     hint: 'هل ترى نفس الضيف في أكثر من مجموعة؟ ادمج المكرَّرين في شخص واحد.',
     duplicates: {
@@ -18374,23 +18379,6 @@ const ar: UiStrings = {
       many: '{n} مكرَّرًا محتملًا',
       other: '{n} مكرَّر محتمل',
     },
-    step1Title: 'اختر الاسم النهائي',
-    step1Subtitle: 'سيكون هذا هو الاسم بعد الدمج.',
-    step2Subtitle: 'ستُجمع جميع نفقاتهم ومجموعاتهم معًا.',
-    peopleToMergeHeader: {
-      zero: 'لا أشخاص للدمج',
-      one: 'شخص واحد للدمج',
-      two: 'شخصان للدمج',
-      few: '{n} أشخاص للدمج',
-      many: '{n} شخصًا للدمج',
-      other: '{n} شخص للدمج',
-    },
-    step3Title: 'إضافة شخص آخر',
-    step3Subtitle: 'ابحث عن مزيد من المكرَّرين من جهات اتصالك أو عبر البحث.',
-    optional: 'اختياري',
-    searchInWaves: 'البحث في Waves',
-    searchInWavesHint: 'العثور على أشخاص موجودين',
-    fromContactsHint: 'أضف من جهات اتصالك',
     mergeCount: {
       zero: 'دمج لا أحد',
       one: 'دمج شخص واحد',
@@ -18399,6 +18387,37 @@ const ar: UiStrings = {
       many: 'دمج {n} شخصًا',
       other: 'دمج {n} شخص',
     },
+    likelyDuplicates: 'تكرارات محتملة',
+    pickYourself: 'أو اختر بنفسك',
+    reasonSameName: 'الاسم نفسه',
+    reasonSamePhone: 'الرقم نفسه {phone}',
+    reasonSameEmail: 'البريد نفسه {email}',
+    reasonJoin: '{signal} · {groups}',
+    groupCount: {
+      zero: '{n} مجموعة',
+      one: 'مجموعة واحدة',
+      two: 'مجموعتان',
+      few: '{n} مجموعات',
+      many: '{n} مجموعة',
+      other: '{n} مجموعة',
+    },
+    mergeSetLabel: 'دمج {people}',
+    picked: {
+      zero: 'لم يُختر أحد',
+      one: 'تم اختيار واحد',
+      two: 'تم اختيار اثنين',
+      few: 'تم اختيار {n}',
+      many: 'تم اختيار {n}',
+      other: 'تم اختيار {n}',
+    },
+    pickTwo: 'اختر شخصين أو أكثر',
+    searchLabel: 'ابحث عن أشخاص',
+    searchPlaceholder: 'الاسم أو الرقم أو البريد',
+    noMatches: 'لا أحد يطابق هذا البحث.',
+    keepWhichTitle: 'أي اسم تريد الإبقاء عليه؟',
+    keepWhichBody: 'يصبح كل من اخترتهم شخصًا واحدًا بهذا الاسم.',
+    otherName: 'أو اكتب اسمًا',
+    pickPeople: 'اختر من تريد دمجهم',
   },
   groupMarks: {
     beach: 'الشاطئ',

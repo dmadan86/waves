@@ -13,7 +13,7 @@
  * are most likely to be merging *into* — so the balance list, which drops
  * anybody square with you, is the wrong roster to pick from.
  */
-import { sameAddress } from '@/lib/contactMatch';
+import { fold, sameAddress } from '@/lib/contactMatch';
 
 import type { PersonBalanceRow } from './api';
 import { isGhost } from './types';
@@ -235,6 +235,125 @@ export function suggestMergeCluster(candidates: readonly MergeCandidate[]): Merg
     if (partners.length > 0) return [seed, ...partners];
   }
   return [];
+}
+
+/**
+ * The key two guests' names are compared on when looking for duplicates:
+ * trimmed and case-folded, nothing cleverer.
+ *
+ * Shared with the Friends tab's own duplicate strip (`findDuplicates` there),
+ * so the two screens agree about who is "the same name": a strip saying "2
+ * possible duplicates" beside a merge screen that suggests none would each be
+ * calling the other wrong.
+ */
+export function duplicateNameKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** Why a set of guests was suggested as one person: the signal that matched. */
+export type DuplicateSignal =
+  | { readonly kind: 'phone'; readonly phone: string }
+  | { readonly kind: 'email'; readonly email: string }
+  | { readonly kind: 'name' };
+
+/** One "likely duplicates" row on the merge screen. */
+export interface DuplicateSet {
+  /** Stable across renders: the members' person keys, joined. */
+  readonly key: string;
+  /** Two or more distinct, pickable people, in roster order. */
+  readonly people: readonly MergeCandidate[];
+  readonly signal: DuplicateSignal;
+  /** Distinct groups the set spans between them, for the reason line. */
+  readonly groupCount: number;
+}
+
+/**
+ * Every likely-duplicate set on the roster, strongest evidence first.
+ *
+ * Address matches come first, found with {@link suggestMergeCluster} itself,
+ * run again over whoever is left after each set. A shared number or email is
+ * the best evidence a guest can carry, and reusing the one star rule (rather
+ * than a second, subtly different closure) keeps the reason a set is offered
+ * the reason it always was. Name matches follow, keyed exactly as the Friends
+ * tab keys them (see {@link duplicateNameKey}). A shared name is weaker, since
+ * two different Ravis are common, which is why it ranks below an address and
+ * why the screen says "same name" out loud for the person to judge.
+ *
+ * Each person lands in at most one set, so one tap on a suggestion can never
+ * sweep somebody in twice. Nobody still waiting to sync is offered: they cannot
+ * be picked, and a suggestion that fails on tap is worse than none. Nothing here
+ * merges anything; every set still goes through the screen's confirm.
+ */
+export function findDuplicateSets(candidates: readonly MergeCandidate[]): DuplicateSet[] {
+  const sets: DuplicateSet[] = [];
+  let pool = candidates.filter((row) => !row.pending);
+
+  for (;;) {
+    const cluster = suggestMergeCluster(pool);
+    const seed = cluster[0];
+    if (!seed || cluster.length < 2) break;
+    // Say which address matched: the email when a partner shares it, else the
+    // number (the star is built on the seed, so the seed's own value is it).
+    const seedEmail = seed.email ? fold(seed.email) : '';
+    const byEmail =
+      seedEmail !== '' &&
+      cluster.some((other) => other !== seed && other.email && fold(other.email) === seedEmail);
+    sets.push(
+      toDuplicateSet(
+        cluster,
+        byEmail && seed.email
+          ? { kind: 'email', email: seed.email }
+          : { kind: 'phone', phone: seed.phone ?? '' },
+      ),
+    );
+    const taken = new Set(cluster.map((row) => row.person_key));
+    pool = pool.filter((row) => !taken.has(row.person_key));
+  }
+
+  const byName = new Map<string, MergeCandidate[]>();
+  for (const row of pool) {
+    const key = duplicateNameKey(row.display_name);
+    if (!key) continue;
+    const bucket = byName.get(key);
+    if (bucket) bucket.push(row);
+    else byName.set(key, [row]);
+  }
+  for (const bucket of byName.values()) {
+    if (bucket.length >= 2) sets.push(toDuplicateSet(bucket, { kind: 'name' }));
+  }
+  return sets;
+}
+
+function toDuplicateSet(people: readonly MergeCandidate[], signal: DuplicateSignal): DuplicateSet {
+  return {
+    key: people.map((row) => row.person_key).join('|'),
+    people,
+    signal,
+    groupCount: new Set(people.flatMap((row) => [...row.group_ids])).size,
+  };
+}
+
+/**
+ * The distinct names among the picked people, for the confirm step's "Keep
+ * which name?" choice, the suggested one ({@link defaultMergeName}) first.
+ *
+ * The merge RPC keeps a *name*, not a surviving row: every membership is folded
+ * under one new person carrying whatever name it is handed. So "which one do I
+ * keep" is exactly "which of these names", and offering the names (deduped
+ * case-insensitively, first spelling wins) is the whole of that choice.
+ */
+export function keepNameOptions(rows: readonly NamedPerson[]): string[] {
+  const suggested = defaultMergeName(rows);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of [suggested, ...rows.map((row) => row.display_name)]) {
+    const trimmed = name?.trim() ?? '';
+    const key = duplicateNameKey(trimmed);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
 }
 
 /** What a picked device contact's name resolves to on the mergeable roster. */

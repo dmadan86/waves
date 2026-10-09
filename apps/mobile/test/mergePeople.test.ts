@@ -5,8 +5,11 @@ import {
   canMerge,
   contactNameMatch,
   defaultMergeName,
+  duplicateNameKey,
+  findDuplicateSets,
   hasContact,
   isMergeable,
+  keepNameOptions,
   memberIdsForMerge,
   mergeErrorMessage,
   suggestMergeCluster,
@@ -539,5 +542,115 @@ describe('mergeErrorMessage', () => {
   it('handles a non-Error thrown value', () => {
     expect(mergeErrorMessage('boom', t)).toBe('something went wrong');
     expect(mergeErrorMessage(null, t)).toBe('something went wrong');
+  });
+});
+
+describe('duplicateNameKey', () => {
+  it('trims and case-folds, the same key the Friends duplicate strip uses', () => {
+    expect(duplicateNameKey('  Renny ')).toBe('renny');
+    expect(duplicateNameKey('RENNY')).toBe(duplicateNameKey('renny'));
+    expect(duplicateNameKey('   ')).toBe('');
+  });
+});
+
+describe('findDuplicateSets', () => {
+  it('suggests two guests sharing a name, with the groups they span between them', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Renny', group_ids: ['g1'] }),
+      candidate({ person_key: 'b', display_name: 'renny ', group_ids: ['g2'] }),
+      candidate({ person_key: 'c', display_name: 'Hethu', group_ids: ['g1'] }),
+    ]);
+    expect(sets).toHaveLength(1);
+    expect(sets[0]?.people.map((p) => p.person_key)).toEqual(['a', 'b']);
+    expect(sets[0]?.signal).toEqual({ kind: 'name' });
+    expect(sets[0]?.groupCount).toBe(2);
+    expect(sets[0]?.key).toBe('a|b');
+  });
+
+  it('counts a group two of them share once', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Renny', group_ids: ['g1', 'g2'] }),
+      candidate({ person_key: 'b', display_name: 'Renny', group_ids: ['g2'] }),
+    ]);
+    expect(sets[0]?.groupCount).toBe(2);
+  });
+
+  it('suggests a shared number even when the names differ, and says it was the number', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Abhish', phone: '+919713812345' }),
+      candidate({ person_key: 'b', display_name: 'Abhish V', phone: '09713812345' }),
+    ]);
+    expect(sets).toHaveLength(1);
+    expect(sets[0]?.signal).toEqual({ kind: 'phone', phone: '+919713812345' });
+  });
+
+  it('names the email when that is what they share', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Chloé', email: 'Chloe@Example.com' }),
+      candidate({ person_key: 'b', display_name: 'C', email: 'chloe@example.com' }),
+    ]);
+    expect(sets[0]?.signal).toEqual({ kind: 'email', email: 'Chloe@Example.com' });
+  });
+
+  it('ranks address matches above name matches, and puts nobody in two sets', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'n1', display_name: 'Ravi' }),
+      candidate({ person_key: 'n2', display_name: 'Ravi' }),
+      candidate({ person_key: 'p1', display_name: 'Ravi', phone: '+919876543210' }),
+      candidate({ person_key: 'p2', display_name: 'R K', phone: '9876543210' }),
+    ]);
+    expect(sets.map((set) => set.signal.kind)).toEqual(['phone', 'name']);
+    expect(sets[0]?.people.map((p) => p.person_key)).toEqual(['p1', 'p2']);
+    // p1 is a "Ravi" too, but it is already in the stronger set.
+    expect(sets[1]?.people.map((p) => p.person_key)).toEqual(['n1', 'n2']);
+  });
+
+  it('finds every address set, not only the first', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'A', phone: '+911111111111' }),
+      candidate({ person_key: 'b', display_name: 'B', phone: '+911111111111' }),
+      candidate({ person_key: 'c', display_name: 'C', phone: '+912222222222' }),
+      candidate({ person_key: 'd', display_name: 'D', phone: '+912222222222' }),
+    ]);
+    expect(sets.map((set) => set.key)).toEqual(['a|b', 'c|d']);
+  });
+
+  it('leaves out anybody still waiting to sync', () => {
+    expect(
+      findDuplicateSets([
+        candidate({ person_key: 'a', display_name: 'Renny' }),
+        candidate({ person_key: 'b', display_name: 'Renny', pending: true }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('suggests nothing when nobody matches, and ignores blank names', () => {
+    expect(
+      findDuplicateSets([
+        candidate({ person_key: 'a', display_name: 'Anandh' }),
+        candidate({ person_key: 'b', display_name: 'Gayathri' }),
+        candidate({ person_key: 'c', display_name: ' ' }),
+        candidate({ person_key: 'd', display_name: '' }),
+      ]),
+    ).toEqual([]);
+  });
+});
+
+describe('keepNameOptions', () => {
+  it('offers each distinct name once, the suggested one first', () => {
+    expect(
+      keepNameOptions([
+        row({ person_key: 'a', display_name: 'person1' }),
+        row({ person_key: 'b', display_name: 'Abhish V', phone: '+919713812345' }),
+        row({ person_key: 'c', display_name: 'PERSON1' }),
+      ]),
+    ).toEqual(['Abhish V', 'person1']);
+  });
+
+  it('drops blank names and offers nothing for nobody', () => {
+    expect(keepNameOptions([row({ display_name: '  ' }), row({ display_name: 'Renny ' })])).toEqual(
+      ['Renny'],
+    );
+    expect(keepNameOptions([])).toEqual([]);
   });
 });
