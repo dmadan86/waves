@@ -918,6 +918,17 @@ export default function ExpenseDetailScreen() {
                   onPress={changeOn('split')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
+                {/* "Paid to": who outside the group the money went to. Only
+                    drawn when set; a tap opens the editor, where it is changed. */}
+                {version.payee ? (
+                  <DetailRow
+                    icon="send-outline"
+                    label={t.expense.payee.label}
+                    value={version.payee}
+                    onPress={inlineEditable ? () => openEditor() : undefined}
+                    accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
+                  />
+                ) : null}
                 {/* Event organizer: the sub-event this bill belongs to, and the
                     vendor advance. Only drawn when set; a tap opens the plan,
                     where the budget and upcoming vendor balances live. */}

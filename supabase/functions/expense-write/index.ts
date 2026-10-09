@@ -80,6 +80,8 @@ interface ExpenseWriteRequest {
   balanceDueDate?: string | null;
   /** The time of day the person chose (ISO instant); omitted keeps the stored one. */
   occurredAt?: string | null;
+  /** "Paid to"; omitted keeps the stored one, '' clears it. */
+  payee?: string | null;
   /**
    * The rate used, when the expense is not in the group's currency (ADR-003).
    * Stored as an exact rational so the conversion can be reproduced a year
@@ -222,6 +224,7 @@ serveWithCors(async (request) => {
           body.balanceDueMinor == null ? null : parseMinor(body.balanceDueMinor, 'balanceDueMinor'),
         balanceDueDate: body.balanceDueDate ?? null,
         occurredAt: body.occurredAt ?? null,
+        payee: typeof body.payee === 'string' ? body.payee : null,
       }),
     );
 

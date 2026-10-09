@@ -112,6 +112,7 @@ function editorPayloadBeforeExtraction(
     categoryMeta: state.categoryMeta,
     expenseDate: state.expenseDate,
     occurredAt: state.occurredAt,
+    payee: state.payee ?? '',
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,
@@ -142,6 +143,28 @@ describe('occurredAt', () => {
     expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).occurredAt).toBe(
       '2026-09-01T14:30:00.000Z',
     );
+  });
+});
+
+describe('payee ("Paid to")', () => {
+  it('is carried from the saved version into the write', () => {
+    const saved = { ...version(), payee: 'Landlord' };
+    const state = editStateFromVersion(saved, 'm-z');
+    expect(state.payee).toBe('Landlord');
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).payee).toBe('Landlord');
+  });
+
+  it("is always sent, as '' when there is none, so clearing it reaches the server", () => {
+    const saved = { ...version(), payee: 'Landlord' };
+    const state = { ...editStateFromVersion(saved, 'm-z'), payee: null };
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).payee).toBe('');
+    // A version mirrored before the field existed opens with none.
+    expect(editStateFromVersion(version(), 'm-z').payee).toBeNull();
+  });
+
+  it('is written trimmed', () => {
+    const state = { ...editStateFromVersion(version(), 'm-z'), payee: '  Car   rental ' };
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: null }).payee).toBe('Car rental');
   });
 });
 

@@ -49,6 +49,13 @@ describe('serialiseExpense', () => {
     expect(out.receiptShareUrl).toBeNull();
   });
 
+  it('carries "Paid to" through the queue, and leaves it out when the caller did not say', () => {
+    expect(serialiseExpense({ ...base, payee: 'Landlord' }).payee).toBe('Landlord');
+    expect(serialiseExpense({ ...base, payee: '' }).payee).toBe('');
+    // Absent survives JSON as absent, so the server keeps the stored payee.
+    expect('payee' in JSON.parse(JSON.stringify(serialiseExpense(base)))).toBe(false);
+  });
+
   it('serialises money as decimal strings, never bigint or float', () => {
     const out = serialiseExpense({
       ...base,

@@ -3256,6 +3256,25 @@ export interface UiStrings {
       depositOwingOn: string;
       subEvent: string;
       splitDetails: string;
+      /** "Paid to" — who outside the group the money went to. */
+      payee: string;
+    };
+    /**
+     * "Paid to": who outside the group the money went to (a landlord, a rental
+     * firm, a maid). Free text on the expense, never part of the split.
+     */
+    payee: {
+      label: string;
+      /** One line under the sheet title. */
+      hint: string;
+      placeholder: string;
+      /** The row's faint value while none is set. */
+      add: string;
+      clear: string;
+      /** Heading over the payees this group used before. */
+      used: string;
+      /** The tail of a ledger row's subtitle: "You paid ₹1,000 · to {payee}". */
+      to: string;
     };
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
@@ -7267,6 +7286,16 @@ const en: UiStrings = {
       depositOwingOn: '{amount} due {date}',
       subEvent: 'Event part',
       splitDetails: 'Split details updated',
+      payee: 'Paid to',
+    },
+    payee: {
+      label: 'Paid to',
+      hint: 'Someone outside the group, like a landlord, a shop or a driver.',
+      placeholder: 'e.g. Landlord',
+      add: 'Add',
+      clear: 'Clear',
+      used: 'Used before',
+      to: 'to {payee}',
     },
   },
   misc: {
@@ -11260,6 +11289,16 @@ const ta: UiStrings = {
       depositOwingOn: '{amount} நிலுவை {date} வரை',
       subEvent: 'நிகழ்வின் பகுதி',
       splitDetails: 'பிரிப்பு விவரங்கள் புதுப்பிக்கப்பட்டன',
+      payee: 'பணம் பெற்றவர்',
+    },
+    payee: {
+      label: 'பணம் பெற்றவர்',
+      hint: 'குழுவுக்கு வெளியே உள்ளவர்: வீட்டு உரிமையாளர், கடை, ஓட்டுநர் போல.',
+      placeholder: 'எ.கா. வீட்டு உரிமையாளர்',
+      add: 'சேர்',
+      clear: 'அழி',
+      used: 'முன்பு பயன்படுத்தியவை',
+      to: '{payee}-க்கு',
     },
   },
   misc: {
@@ -15247,6 +15286,16 @@ const hi: UiStrings = {
       depositOwingOn: '{amount} बाकी, {date} तक',
       subEvent: 'आयोजन का हिस्सा',
       splitDetails: 'बँटवारे का विवरण अपडेट हुआ',
+      payee: 'किसको भुगतान',
+    },
+    payee: {
+      label: 'किसको भुगतान',
+      hint: 'ग्रुप से बाहर का कोई, जैसे मकान मालिक, दुकान या ड्राइवर।',
+      placeholder: 'जैसे मकान मालिक',
+      add: 'जोड़ें',
+      clear: 'हटाएँ',
+      used: 'पहले इस्तेमाल किए',
+      to: '{payee} को',
     },
   },
   misc: {
@@ -19394,6 +19443,16 @@ const ar: UiStrings = {
       depositOwingOn: 'المتبقي {amount} حتى {date}',
       subEvent: 'جزء من الفعالية',
       splitDetails: 'تم تحديث تفاصيل التقسيم',
+      payee: 'المدفوع له',
+    },
+    payee: {
+      label: 'المدفوع له',
+      hint: 'شخص من خارج المجموعة، مثل المالك أو متجر أو سائق.',
+      placeholder: 'مثلًا: المالك',
+      add: 'إضافة',
+      clear: 'مسح',
+      used: 'مستخدم من قبل',
+      to: 'إلى {payee}',
     },
   },
   misc: {
