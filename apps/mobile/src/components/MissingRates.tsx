@@ -12,10 +12,11 @@
  * A bill whose rate cannot be fetched (offline) is left alone and counted, so
  * running it again later picks up exactly those.
  *
- * When every rate source is down the server can still offer the last rate it
- * had, for an older day. Those bills are skipped too, and the result says so
- * ("could only get an older rate, from {date}") with a separate "Use older
- * rates" — an old rate goes on a bill only when the person asks for it.
+ * Sometimes the server can only offer a rate from another day (every source
+ * down, or only a latest-only source for a past bill). Those bills are skipped
+ * too, and the result says so ("could only get a rate from another day") with
+ * a separate "Use rates from other days" — such a rate goes on a bill only
+ * when the person asks for it.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -41,8 +42,8 @@ import {
   selectBackfill,
 } from '@/lib/fxAutoRate';
 import {
+  backfillOutcome,
   lookupFromError,
-  oldestDay,
   staleLabel,
   usableRate,
   type BackfillLookup,
@@ -55,7 +56,7 @@ interface Progress {
   total: number;
   updated: number;
   failed: number;
-  /** Bills skipped because only an older rate was on offer: one day per bill. */
+  /** Bills skipped because only a rate from another day was on offer: one day per bill. */
   staleDays: string[];
   running: boolean;
 }
@@ -154,7 +155,7 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
           found ? usableRate(found, acceptStale) : null,
         );
         if (!record && found?.kind === 'stale') {
-          // An older rate was on offer and not accepted: left alone, and said so.
+          // A rate from another day was on offer and not accepted: left alone, and said so.
           state.staleDays.push(found.day);
         } else if (!record) {
           state.failed += 1;
@@ -184,29 +185,40 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
   };
 
   const finished = progress && !progress.running ? progress : null;
-  const staleCount = finished?.staleDays.length ?? 0;
-  const staleFrom = finished ? oldestDay(finished.staleDays) : null;
-  const allDone = finished !== null && finished.failed === 0 && staleCount === 0;
+  const outcome = finished ? backfillOutcome(finished) : null;
+  const staleCount = outcome?.staleCount ?? 0;
+  const allDone = outcome?.allDone ?? false;
+  // Only a rate from another day was on offer for these. Said in full, and
+  // used only on the explicit button.
+  const staleText =
+    outcome && outcome.staleFrom
+      ? staleLabel(outcome.staleFrom, t.fx.missingRatesStale, locale).replace(
+          '{n}',
+          String(staleCount),
+        )
+      : null;
+  const headline =
+    running && progress
+      ? t.fx.missingRatesProgress
+          .replace('{done}', String(progress.done))
+          .replace('{total}', String(progress.total))
+      : outcome
+        ? outcome.headline === 'partial'
+          ? t.fx.missingRatesPartial
+              .replace('{n}', String(finished?.updated ?? 0))
+              .replace('{failed}', String(finished?.failed ?? 0))
+          : outcome.headline === 'done'
+            ? t.fx.missingRatesDone.replace('{n}', String(finished?.updated ?? 0))
+            : // Every bill was skipped for a rate from another day: nothing was
+              // done, so no "done" — the explanation is the headline.
+              staleText
+        : t.fx.missingRatesBody.replace('{n}', String(missing));
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <Callout tone={allDone ? 'positive' : 'info'}>
-        {running && progress
-          ? t.fx.missingRatesProgress
-              .replace('{done}', String(progress.done))
-              .replace('{total}', String(progress.total))
-          : finished
-            ? finished.failed > 0
-              ? t.fx.missingRatesPartial
-                  .replace('{n}', String(finished.updated))
-                  .replace('{failed}', String(finished.failed))
-              : t.fx.missingRatesDone.replace('{n}', String(finished.updated))
-            : t.fx.missingRatesBody.replace('{n}', String(missing))}
-      </Callout>
-      {finished && staleCount > 0 && staleFrom ? (
-        // Every source was down for these; only an older rate exists. Said in
-        // full, and used only on the explicit button.
+      <Callout tone={allDone ? 'positive' : 'info'}>{headline}</Callout>
+      {staleText && !outcome?.onlyStale ? (
         <Text variant="caption" tone="muted">
-          {staleLabel(staleFrom, t.fx.missingRatesStale, locale).replace('{n}', String(staleCount))}
+          {staleText}
         </Text>
       ) : null}
       {finished && staleCount > 0 && !running ? (

@@ -1424,12 +1424,14 @@ export async function fetchFxRate(
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
-  // Every provider was down and this is the last rate the server had cached.
-  // Thrown, not returned, so it can never land on a bill unasked: the screens
-  // that offer "Rate from {date}" with Use and Retry catch it.
-  const { record, staleDay } = readFxReply(data);
-  if (staleDay !== null) throw new StaleFxRateError(record, staleDay);
-  return record;
+  // A rate from another day (every provider down, or only a latest-only
+  // source for a past bill). Thrown, not returned, so it can never land on a
+  // bill unasked: the screens that offer "Rate from {date}" with Use and
+  // Retry catch it. One that does not say its day is no rate at all.
+  const reply = readFxReply(data);
+  if (reply.kind === 'invalid') throw new Error(activeStrings().misc.rateFetchFailed);
+  if (reply.kind === 'stale') throw new StaleFxRateError(reply.record, reply.day);
+  return reply.record;
 }
 
 // ────────────────────────────────────── people you owe / who owe you ──

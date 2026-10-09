@@ -1123,6 +1123,23 @@ describe('edge-function wrappers', () => {
     });
   });
 
+  it('fetchFxRate refuses a stale reply with no usable day: an error, never "Rate from "', async () => {
+    h.invoke.mockResolvedValue(
+      ok({
+        num: '33647',
+        den: '10000000',
+        from: 'VND',
+        to: 'INR',
+        ts: '2026-10-05T00:00:00.000Z',
+        source: 'currency-api',
+        stale: true,
+      }),
+    );
+    const caught = await api.fetchFxRate('VND', 'INR').catch((error: unknown) => error);
+    expect(caught).toBeInstanceOf(Error);
+    expect(caught).not.toBeInstanceOf(StaleFxRateError);
+  });
+
   it('deleteMyAccount sends the reason and reads a missing answer as {}', async () => {
     h.invoke.mockResolvedValueOnce(ok({ memberships_anonymised: 4 }));
     expect(await api.deleteMyAccount('moving on')).toEqual({ memberships_anonymised: 4 });

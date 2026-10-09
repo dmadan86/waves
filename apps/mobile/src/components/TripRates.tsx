@@ -21,7 +21,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { type CurrencyCode, fromFxRecord, type FxRate, isCurrencyCode } from '@waves/core';
 import {
@@ -45,6 +45,7 @@ import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { rateAttribution } from '@/lib/fxLine';
 import { StaleFxRateError } from '@/lib/fxStale';
+import { RateAttribution } from '@/components/RateAttribution';
 import {
   currencyMark,
   currencyName,
@@ -266,6 +267,9 @@ export function TripRatesCard({
           );
         })
       )}
+      {/* A pinned rate fetched from ExchangeRate-API is still their rate:
+          credited once under the list, wherever it is shown. */}
+      <RateAttribution fx={rows.find((row) => rateAttribution(row))} tone="faint" />
 
       {canEdit ? (
         <ListRow
@@ -638,18 +642,8 @@ function TripRateSheet({
           {exact && exact.source !== 'manual' ? t.fx.todaysRate : t.fx.removeConfirm}
         </Text>
       )}
-      {exact && !error && rateAttribution(exact) ? (
-        // ExchangeRate-API's terms: credit them, linked, wherever their rate shows.
-        <Pressable
-          onPress={() => void Linking.openURL(rateAttribution(exact)!.url)}
-          accessibilityRole="link"
-          hitSlop={6}
-        >
-          <Text variant="micro" tone="faint" style={{ textDecorationLine: 'underline' }}>
-            {rateAttribution(exact)!.text}
-          </Text>
-        </Pressable>
-      ) : null}
+      {/* ExchangeRate-API's terms: credit them, linked, wherever their rate shows. */}
+      {!error ? <RateAttribution fx={exact} tone="faint" /> : null}
 
       <Button
         label={t.common.save}

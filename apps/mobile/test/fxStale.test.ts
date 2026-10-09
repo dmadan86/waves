@@ -1,11 +1,13 @@
 /**
- * An older rate is never applied without asking (lib/fxStale.ts).
+ * A rate from another day is never applied without asking (lib/fxStale.ts).
  *
  * Pinned: a stale reply is split from the record that would be stored (no
- * `stale`/`day` ever reaches `expense_versions.fx`); the label names the rate's
- * own day in the reader's language without a timezone shift; and the backfill
- * puts a fresh rate on a bill, but an older one only once the person accepted
- * older rates.
+ * `stale`/`day` ever reaches `expense_versions.fx`), and one without a real
+ * day is invalid, never "Rate from "; the label names the rate's own day in
+ * the reader's language without a timezone shift; the backfill puts a fresh
+ * rate on a bill, but one from another day only once the person accepted
+ * them; and a run where every bill was skipped for one says so without a
+ * "done" headline.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -14,6 +16,7 @@ import type { FxRecord } from '@waves/core';
 
 import {
   StaleFxRateError,
+  backfillOutcome,
   lookupFromError,
   oldestDay,
   readFxReply,
@@ -32,22 +35,25 @@ const record: FxRecord = {
 
 describe('readFxReply', () => {
   it('passes a fresh reply through untouched', () => {
-    expect(readFxReply(record)).toEqual({ record, staleDay: null });
+    expect(readFxReply(record)).toEqual({ kind: 'fresh', record });
   });
 
   it('splits a stale reply into the record and its day', () => {
     expect(readFxReply({ ...record, stale: true, day: '2026-10-05' })).toEqual({
+      kind: 'stale',
       record,
-      staleDay: '2026-10-05',
+      day: '2026-10-05',
     });
   });
 
-  it('falls back to the record’s own day when the server sent none', () => {
-    expect(readFxReply({ ...record, stale: true }).staleDay).toBe('2026-10-05');
+  it('a stale reply without a usable day is invalid, never a guess', () => {
+    for (const day of [undefined, '', 'someday', '2026-13-45', 20261005, null]) {
+      expect(readFxReply({ ...record, stale: true, day })).toEqual({ kind: 'invalid' });
+    }
   });
 
   it('treats anything but stale === true as fresh', () => {
-    expect(readFxReply({ ...record, stale: 'yes' }).staleDay).toBeNull();
+    expect(readFxReply({ ...record, stale: 'yes' }).kind).toBe('fresh');
   });
 });
 
@@ -78,6 +84,37 @@ describe('the backfill and older rates', () => {
     const none = lookupFromError(new Error('offline'));
     expect(none).toEqual({ kind: 'none' });
     expect(usableRate(none, true)).toBeNull();
+  });
+
+  it('a run where every bill was skipped for another day’s rate has no "done" headline', () => {
+    expect(
+      backfillOutcome({ updated: 0, failed: 0, staleDays: ['2026-10-05', '2026-10-01'] }),
+    ).toEqual({
+      headline: null,
+      allDone: false,
+      onlyStale: true,
+      staleCount: 2,
+      staleFrom: '2026-10-01',
+    });
+  });
+
+  it('a mixed run keeps its headline and adds the explanation', () => {
+    expect(backfillOutcome({ updated: 3, failed: 0, staleDays: ['2026-10-05'] })).toMatchObject({
+      headline: 'done',
+      allDone: false,
+      onlyStale: false,
+    });
+    expect(backfillOutcome({ updated: 0, failed: 1, staleDays: ['2026-10-05'] })).toMatchObject({
+      headline: 'partial',
+      onlyStale: false,
+    });
+    expect(backfillOutcome({ updated: 2, failed: 0, staleDays: [] })).toEqual({
+      headline: 'done',
+      allDone: true,
+      onlyStale: false,
+      staleCount: 0,
+      staleFrom: null,
+    });
   });
 
   it('names the oldest day a run skipped', () => {

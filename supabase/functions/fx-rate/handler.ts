@@ -16,21 +16,37 @@
  * Where a rate is looked for, in order:
  *
  *   1. this isolate's memory (24 h for a day's own published rate, 15 min for
- *      anything that may still change);
- *   2. `fx_daily_rates`, our own daily cache, shared by every isolate;
- *   3. the provider chain (ECB → currency-api → ExchangeRate-API), whose answer
- *      is written to the daily cache only when it really is the asked-for
- *      day's rate (for "latest": today's);
- *   4. if every provider fails, the most recent cached rate for the pair,
- *      flagged `stale: true` with its `day`. The app never applies one of those
- *      without asking.
+ *      anything that may still change or be bettered);
+ *   2. `fx_daily_rates`, our own daily cache, shared by every isolate (after
+ *      the rate limiter: only a memory hit is free);
+ *   3. the provider chain, in rank order ECB > currency-api > ExchangeRate-API
+ *      (providers.ts);
+ *   4. if every provider fails, the cached rate nearest the asked-for day,
+ *      flagged `stale: true` with its `day`. The app never applies one of
+ *      those without asking.
+ *
+ * What goes in the daily cache, which is first-write-wins: only a rate that
+ * really is the asked-for day's (for "latest": today's), and only from the
+ * best source that publishes the pair —
+ *
+ *   * ECB's, always;
+ *   * currency-api's only when the ECB answered that it does not publish the
+ *     pair. When the ECB was merely down (or skipped by its breaker), the
+ *     fallback is kept in memory for 15 minutes and never written, so a blip
+ *     cannot pin a lower-ranked source as that day's rate for everyone;
+ *   * ExchangeRate-API's never: it is latest-only, so it is not any dated
+ *     day's rate. Memory only. (The table's CHECK refuses it too.)
+ *
+ * Older builds (no `stale=1`) are never sent an ExchangeRate-API rate: they do
+ * not show its required credit, and for a past day they would put today's rate
+ * on the bill as that day's. They get ECB or currency-api, or the old 502.
  *
  * It is behind auth so it cannot be used as an open currency proxy.
  */
 
 import { HttpError, errorResponse, json, type SupabaseClient } from '../_shared/auth.ts';
 import { CircuitBreaker } from '../_shared/resilience.ts';
-import { fetchFromChain, type FxSource } from './providers.ts';
+import { fetchFromChain, type FxSource, type ProviderRate } from './providers.ts';
 
 /** A dated rate that really is that day's never changes. */
 export const DATED_TTL_MS = 24 * 60 * 60 * 1000;
@@ -49,15 +65,23 @@ export interface CachedRate {
 export interface FxStore {
   get(from: string, to: string, day: string): Promise<CachedRate | null>;
   put(from: string, to: string, rate: CachedRate): Promise<void>;
-  /** The newest row on or before `day`, else the newest row at all. */
-  latest(from: string, to: string, day: string): Promise<CachedRate | null>;
+  /**
+   * The row nearest `day`: the newest on or before it, else the oldest after
+   * it. Never a newer row while an older one exists, so "Rate from {date}" is
+   * the closest true thing to the bill's day.
+   */
+  nearest(from: string, to: string, day: string): Promise<CachedRate | null>;
 }
+
+/** How far from the bill's day a cached rate beats ExchangeRate-API's today. */
+export const NEAR_DAYS = 7;
 
 export interface FxRateDeps {
   /** The caller's profile id from their session, or null. */
   callerId: (request: Request) => Promise<string | null>;
   /** Throws (429) when the caller is going too fast. */
   rateLimit: (request: Request, userId: string) => Promise<void>;
+  /** Built on first use; a throw here is a cache miss, like any store failure. */
   store: () => FxStore;
   fetchFn: typeof fetch;
   now?: () => number;
@@ -95,6 +119,10 @@ function body(from: string, to: string, rate: CachedRate): FxBody {
     ts: `${rate.day}T00:00:00.000Z`,
     source: rate.source,
   };
+}
+
+function daysApart(a: string, b: string): number {
+  return Math.abs(Date.parse(a) - Date.parse(b)) / 86_400_000;
 }
 
 async function quietly<T>(work: () => Promise<T>, label: string): Promise<T | null> {
@@ -140,14 +168,17 @@ export async function handleFxRate(request: Request, deps: FxRateDeps): Promise<
         throw new HttpError(400, 'BAD_DATE', 'There is no published rate for a future day');
       }
     }
-    // Whether this client can be offered an older rate when every provider is
-    // down: it shows it as such and applies it only when the person says so.
+    // Whether this client can be offered a rate from another day (`stale`): it
+    // shows it as such, applies it only when the person says so, and credits
+    // ExchangeRate-API. Older builds do none of that.
     const offersStale = url.searchParams.get('stale') === '1';
     // The day a rate must be *for* to be cached: the asked-for one, or today.
     const wantDay = date || today;
 
     // 1. Memory. Before the limiter: a hit costs nothing and reaches nobody.
-    const key = `${from}:${to}:${date}`;
+    // Keyed by whether the client takes stale answers, so an older build is
+    // never handed a body only a newer one knows how to show.
+    const key = `${from}:${to}:${date}${offersStale ? ':s' : ''}`;
     const hit = memory.get(key);
     if (hit && now() - hit.at < hit.ttl) return json(hit.body);
 
@@ -155,64 +186,97 @@ export async function handleFxRate(request: Request, deps: FxRateDeps): Promise<
       memory.set(key, { at: now(), ttl, body: payload });
       return json(payload);
     };
+    const staleBody = (rate: CachedRate): FxBody => ({
+      ...body(from, to, rate),
+      stale: true,
+      day: rate.day,
+    });
 
-    // 2. Our daily cache.
-    const store = deps.store();
-    const cached = await quietly(() => store.get(from, to, wantDay), 'get');
-    if (cached) return remember(body(from, to, cached), date ? DATED_TTL_MS : SHORT_TTL_MS);
+    // Built lazily and inside `quietly`: a store that cannot even be built is
+    // a cache miss, not a 500.
+    let built: FxStore | undefined;
+    const withStore = <T>(label: string, work: (store: FxStore) => Promise<T>) =>
+      quietly(() => work((built ??= deps.store())), label);
 
-    // 3. Upstream. Only the calls that leave the building are limited; the
-    // memory cache is per-isolate, so this is what stops a script turning every
-    // cold miss into an upstream request.
+    // 2. The limiter, then our daily cache. Everything past memory is limited:
+    // the memory cache is per-isolate, so this is what stops a script turning
+    // every cold miss into a database read or an upstream request.
     await deps.rateLimit(request, userId);
 
+    const cached = await withStore('get', (store) => store.get(from, to, wantDay));
+    if (cached) return remember(body(from, to, cached), date ? DATED_TTL_MS : SHORT_TTL_MS);
+
+    // 3. Upstream, in rank order.
     const result = await fetchFromChain(
       { from, to, date: date || null, today },
       { fetchFn: deps.fetchFn, breaker: deps.breaker ?? breakerDefault, timeoutMs: deps.timeoutMs },
     );
-    if (result.ok) {
-      const rate = result.rate;
-      // Only a rate that is really the asked-for day's goes in the daily cache:
-      // ECB answers a weekend with Friday's rate and an unpublished day with an
-      // older one, and ExchangeRate-API only ever has today's. Caching those
-      // under the asked-for day would pin a stand-in as that day's rate.
+    // An older build never gets ExchangeRate-API: it would show it uncredited,
+    // and for a past day as that day's rate. It gets what it always got.
+    const usable = result.ok && (offersStale || result.rate.source !== 'exchangerate-api');
+    if (result.ok && usable) {
+      const rate: ProviderRate = result.rate;
+      if (rate.stale) {
+        // ExchangeRate-API's today, for a past bill. A cached rate from the
+        // bill's own week is closer to the truth; either way it is offered
+        // as a rate from another day, never applied as the bill's.
+        const near = await withStore('nearest', (store) => store.nearest(from, to, wantDay));
+        if (near && daysApart(near.day, wantDay) <= NEAR_DAYS) return json(staleBody(near));
+        return remember(staleBody(rate), SHORT_TTL_MS);
+      }
+      // Only a rate that is really the asked-for day's goes in the daily
+      // cache (ECB answers a weekend with Friday's rate), and only from the
+      // best source that publishes the pair: currency-api only when the ECB
+      // said it does not publish it, never when the ECB was merely down.
       const exact = rate.day === wantDay;
-      if (exact) {
-        await quietly(
-          () =>
-            store.put(from, to, {
-              day: rate.day,
-              num: rate.num,
-              den: rate.den,
-              source: rate.source,
-            }),
-          'put',
+      const ecbSays = result.failures.find((failure) => failure.source === 'ecb')?.reason;
+      const best =
+        rate.source === 'ecb' || (rate.source === 'currency-api' && ecbSays === 'unsupported');
+      const keep = exact && best;
+      if (keep) {
+        await withStore('put', (store) =>
+          store.put(from, to, {
+            day: rate.day,
+            num: rate.num,
+            den: rate.den,
+            source: rate.source,
+          }),
         );
       }
-      return remember(body(from, to, rate), date && exact ? DATED_TTL_MS : SHORT_TTL_MS);
+      return remember(body(from, to, rate), date && keep ? DATED_TTL_MS : SHORT_TTL_MS);
     }
 
-    // 4. Every provider failed. The last rate we saw, plainly marked as old —
-    // but only to a client that asked (`stale=1`) and so knows to ask the
-    // person first. An older build would put it on the bill as if fresh.
-    // Never kept in memory: the next request should try upstream again.
+    // 4. Every provider failed. The nearest rate we have, plainly marked as
+    // from another day — but only to a client that asked (`stale=1`) and so
+    // knows to ask the person first. An older build would put it on the bill
+    // as if fresh. Never kept in memory: the next request tries upstream again.
+    const unsupported = !result.ok && result.unsupported;
     const fallback =
-      result.unsupported || !offersStale
+      unsupported || !offersStale
         ? null
-        : await quietly(() => store.latest(from, to, wantDay), 'latest');
+        : await withStore('nearest', (store) => store.nearest(from, to, wantDay));
     if (fallback) {
       console.warn(JSON.stringify({ event: 'fx_stale', from, to, day: fallback.day }));
-      return json({ ...body(from, to, fallback), stale: true, day: fallback.day } satisfies FxBody);
+      return json(staleBody(fallback));
     }
 
-    if (result.unsupported) {
+    if (unsupported) {
       throw new HttpError(
         404,
         'RATE_UNAVAILABLE',
         `No published rate for ${from} to ${to} — you can type one instead`,
       );
     }
-    console.warn(JSON.stringify({ event: 'fx_all_down', from, to, failures: result.failures }));
+    // `withheld`: only ExchangeRate-API had it, and this build cannot show it.
+    console.warn(
+      JSON.stringify({
+        event: 'fx_all_down',
+        from,
+        to,
+        withheld: result.ok,
+        failures: result.failures,
+      }),
+    );
     throw new HttpError(
       502,
       'RATE_UNAVAILABLE',
@@ -244,6 +308,8 @@ export function supabaseFxStore(service: SupabaseClient): FxStore {
       return read(data);
     },
     async put(from, to, rate) {
+      // Never ExchangeRate-API: latest-only, so it is no dated day's rate.
+      if (rate.source === 'exchangerate-api') return;
       const { error } = await table().upsert(
         {
           from_currency: from,
@@ -253,23 +319,28 @@ export function supabaseFxStore(service: SupabaseClient): FxStore {
           den: rate.den,
           source: rate.source as FxSource,
         },
-        // First write wins: a day's rate, once recorded, is that day's rate.
+        // First write wins: the handler writes only the best source that
+        // publishes the pair, so a day's rate, once recorded, is that day's.
         { onConflict: 'from_currency,to_currency,day', ignoreDuplicates: true },
       );
       if (error) throw new Error(error.message);
     },
-    async latest(from, to, day) {
-      const newest = (onOrBefore: boolean) => {
-        let query = table().select(columns).eq('from_currency', from).eq('to_currency', to);
-        if (onOrBefore) query = query.lte('day', day);
-        return query.order('day', { ascending: false }).limit(1).maybeSingle();
-      };
-      const before = await newest(true);
+    async nearest(from, to, day) {
+      const pair = () => table().select(columns).eq('from_currency', from).eq('to_currency', to);
+      const before = await pair()
+        .lte('day', day)
+        .order('day', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (before.error) throw new Error(before.error.message);
       if (before.data) return read(before.data);
-      const any = await newest(false);
-      if (any.error) throw new Error(any.error.message);
-      return read(any.data);
+      const after = await pair()
+        .gt('day', day)
+        .order('day', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (after.error) throw new Error(after.error.message);
+      return read(after.data);
     },
   };
 }

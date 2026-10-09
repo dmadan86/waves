@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Image, Linking, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, TextInput, View } from 'react-native';
 
 import {
   convert,
@@ -48,11 +48,11 @@ import {
   minorToPlain,
   rateNote,
   rateOrigin,
-  rateAttribution,
   rateParts,
   updatedAgo,
 } from '@/lib/fxLine';
 import { StaleFxRateError, staleLabel } from '@/lib/fxStale';
+import { RateAttribution } from '@/components/RateAttribution';
 
 import { fetchFxRate } from '@/data/api';
 import { localToday, rateDateFor, shouldAutoFetch } from '@/lib/fxAutoRate';
@@ -384,18 +384,6 @@ export function CurrencyRate({
   // show really is a fetched market one.
   const marketShown = origin === 'today' || origin === 'market';
   const parts = fx ? rateParts(fx) : { left: '', right: '' };
-  const attribution = rateAttribution(fx);
-  const attributionLink = attribution ? (
-    <Pressable
-      onPress={() => void Linking.openURL(attribution.url)}
-      accessibilityRole="link"
-      hitSlop={6}
-    >
-      <Text variant="micro" tone="muted" style={{ textDecorationLine: 'underline' }}>
-        {attribution.text}
-      </Text>
-    </Pressable>
-  ) : null;
   const staleRow = staleOffer ? (
     <Row style={{ alignItems: 'center', gap: theme.spacing.md, flexWrap: 'wrap' }}>
       <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -484,7 +472,7 @@ export function CurrencyRate({
         </Pressable>
       )}
 
-      {!sheet && attributionLink}
+      {!sheet ? <RateAttribution fx={fx} /> : null}
 
       {!sheet && staleOffer && !busy ? staleRow : null}
 
@@ -613,7 +601,7 @@ export function CurrencyRate({
                       {t.fx.sheetReliable}
                     </Text>
                   ) : null}
-                  {attributionLink}
+                  <RateAttribution fx={fx} />
                 </View>
                 <Pressable
                   onPress={() => void fetchToday()}

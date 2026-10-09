@@ -4,8 +4,10 @@
  * Pinned: every provider's decimal becomes num/den with no float arithmetic and
  * nothing outside sane bounds gets through; ECB is asked first and a currency
  * it does not publish (VND, AED) falls to currency-api; jsDelivr being down
- * falls to its mirror; ExchangeRate-API is the last resort, is dated today, and
- * a rounded small rate is replaced by the inverse of the precise side.
+ * falls to its mirror (the two are raced); ExchangeRate-API is the last
+ * resort, is dated today (flagged stale for a past day), asks both bases at
+ * once, and a rounded small rate is replaced by the inverse of the precise
+ * side; and the whole chain stays inside one overall budget.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -149,6 +151,7 @@ describe('the chain', () => {
     expect(result).toEqual({
       ok: true,
       rate: { num: '9812', den: '100', day: '2026-09-18', source: 'ecb' },
+      failures: [],
     });
     expect(calls).toEqual(['https://api.frankfurter.dev/v1/2026-09-20?base=EUR&symbols=INR']);
   });
@@ -162,8 +165,11 @@ describe('the chain', () => {
     expect(result).toEqual({
       ok: true,
       rate: { num: '33647', den: '10000000', day: '2026-09-20', source: 'currency-api' },
+      // The handler reads this: "does not publish" lets currency-api be cached.
+      failures: [{ source: 'ecb', reason: 'unsupported' }],
     });
-    expect(calls).toHaveLength(2);
+    // ECB, then both currency-api hosts at once; the first usable answer wins.
+    expect(calls).toHaveLength(3);
   });
 
   it('AED, a target market, comes from currency-api too', async () => {
@@ -208,7 +214,7 @@ describe('the chain', () => {
     expect(result).toMatchObject({ ok: true, rate: { source: 'currency-api' } });
   });
 
-  it('ExchangeRate-API last: dated today, and the precise side of a small rate', async () => {
+  it('ExchangeRate-API last: dated today, stale for a past day, the precise side', async () => {
     const { fn, calls } = fakeFetch({
       [FRANKFURTER]: status(404),
       [JSDELIVR]: status(503),
@@ -225,15 +231,21 @@ describe('the chain', () => {
         // Today, not the bill's day: it only knows the latest.
         day: '2026-10-09',
         source: 'exchangerate-api',
+        stale: true,
       },
+      failures: [
+        { source: 'ecb', reason: 'unsupported' },
+        { source: 'currency-api', reason: 'unavailable' },
+      ],
     });
+    // Forward and reverse asked together, not one after the other.
     expect(calls.slice(-2)).toEqual([
       'https://open.er-api.com/v6/latest/VND',
       'https://open.er-api.com/v6/latest/INR',
     ]);
   });
 
-  it('ExchangeRate-API: a large forward rate is used as is, with one call', async () => {
+  it('ExchangeRate-API: a large forward rate is used as is; "latest" is not stale', async () => {
     const { fn, calls } = fakeFetch({
       [FRANKFURTER]: () => 'throw',
       [JSDELIVR]: () => 'throw',
@@ -245,7 +257,8 @@ describe('the chain', () => {
       { fetchFn: fn },
     );
     expect(result).toMatchObject({ ok: true, rate: { num: '26667', den: '100' } });
-    expect(calls.filter((url) => url.startsWith(ERAPI))).toHaveLength(1);
+    expect(result.ok && result.rate.stale).toBeFalsy();
+    expect(calls.filter((url) => url.startsWith(ERAPI))).toHaveLength(2);
   });
 
   it('all down → unavailable (not unsupported), with each provider named', async () => {
@@ -297,5 +310,56 @@ describe('the chain', () => {
       { fetchFn: fn, breaker },
     );
     expect(calls.some((url) => url.startsWith(FRANKFURTER))).toBe(false);
+  });
+});
+
+describe('latency', () => {
+  /** Never answers; like a real fetch, it gives up when aborted. */
+  const hang: Route = (_url, init) =>
+    new Promise<Response>((_, reject) =>
+      init?.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+    );
+  const after =
+    (ms: number, response: Response): Route =>
+    () =>
+      new Promise((resolve) => setTimeout(() => resolve(response.clone()), ms));
+
+  it('the whole chain is capped by its budget, not the sum of every timeout', async () => {
+    const { fn, calls } = fakeFetch({ 'https://': hang });
+    const started = Date.now();
+    const result = await fetchFromChain(vndInr, { fetchFn: fn, timeoutMs: 80, budgetMs: 100 });
+    const took = Date.now() - started;
+    expect(result).toMatchObject({ ok: false, unsupported: false });
+    // ECB spends 80 of the 100, currency-api the last 20; ExchangeRate-API
+    // is never reached (3 × 80 would be 240).
+    expect(took).toBeLessThan(200);
+    expect(calls.some((url) => url.startsWith(ERAPI))).toBe(false);
+  });
+
+  it('the two currency-api hosts are raced: a fast mirror beats a slow jsDelivr', async () => {
+    const { fn } = fakeFetch({
+      [FRANKFURTER]: status(404),
+      [JSDELIVR]: hang,
+      [MIRROR]: ok({ date: '2026-09-20', vnd: { inr: 0.0033647 } }),
+    });
+    const started = Date.now();
+    const result = await fetchFromChain(vndInr, { fetchFn: fn, timeoutMs: 1000 });
+    expect(result).toMatchObject({ ok: true, rate: { source: 'currency-api' } });
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it('ExchangeRate-API’s forward and reverse calls run in parallel', async () => {
+    const { fn } = fakeFetch({
+      [FRANKFURTER]: status(404),
+      [JSDELIVR]: status(503),
+      [ERAPI + 'v6/latest/VND']: after(150, ok({ result: 'success', rates: { INR: 0.00375 } })),
+      [ERAPI + 'v6/latest/INR']: after(150, ok({ result: 'success', rates: { VND: 266.6667 } })),
+      [MIRROR]: status(503),
+    });
+    const started = Date.now();
+    const result = await fetchFromChain(vndInr, { fetchFn: fn, timeoutMs: 1000 });
+    expect(result).toMatchObject({ ok: true, rate: { num: '10000', den: '2666667' } });
+    // In sequence it would be 300ms or more.
+    expect(Date.now() - started).toBeLessThan(280);
   });
 });

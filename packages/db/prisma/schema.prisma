@@ -220,10 +220,10 @@ model Profile {
 // ────────────────────────────────────────────────── groups & membership ──
 
 model Group {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// Optional: starting a group should cost one tap, and the people in it
   /// identify it better than a name does. NULL means "unnamed", not "".
-  name            String?
+  name                   String?
   /// Optional: what the group is *for*, in the maker's own words — "Goa, Jan
   /// 2026, flights already settled". A name says which group this is; a
   /// description says why it exists, and the two are different questions.
@@ -231,23 +231,26 @@ model Group {
   /// a sentence or two, short enough to stay a caption under the name. NULL
   /// means "none given"; '' never reaches the column (both the `/sync`
   /// boundary and the client normalise an emptied field back to NULL).
-  description     String?
+  description            String?
   /// Object path in the private `group-photos` bucket, read via a signed URL.
-  photoPath       String?   @map("photo_path")
+  photoPath              String?   @map("photo_path")
   /// The raw token of the group's durable join link (WhatsApp-style), re-showable
   /// as a QR. Written only by waves_ensure/reset_group_join_token; a member-only
   /// bearer credential (the group row is RLS-scoped).
-  joinToken       String?   @map("join_token")
-  type            GroupType @default(other)
+  joinToken              String?   @map("join_token")
+  type                   GroupType @default(other)
   /// ISO-3166 alpha-2 — where this group settles, which is not always where its
   /// members live. A Goa trip run from Dubai settles in rupees over UPI, and
   /// the group is the thing that knows that. NULL still works: it falls back to
   /// bank, cash and the cross-border wallets.
-  countryCode     String?   @map("country_code") @db.Char(2)
-  defaultCurrency String    @default("INR") @map("default_currency") @db.Char(3)
+  countryCode            String?   @map("country_code") @db.Char(2)
+  defaultCurrency        String    @default("INR") @map("default_currency") @db.Char(3)
   /// ADR-009: simplification is a per-group presentation setting.
-  simplifyDebts   Boolean   @default(true) @map("simplify_debts")
-  coverEmoji      String?   @map("cover_emoji")
+  simplifyDebts          Boolean   @default(true) @map("simplify_debts")
+  /// Settle a multi-currency group in the group currency (migration
+  /// 20261009120000_settle_in_group_currency).
+  convertToGroupCurrency Boolean   @default(false) @map("convert_to_group_currency")
+  coverEmoji             String?   @map("cover_emoji")
   /// Which event template this group was started from (`event-organizer.md`):
   /// 'wedding_in' | 'wedding_west' | 'birthday' | 'other'. Drives the fixed list
   /// of sub-events the app offers for tagging an expense (Mehendi, Sangeet, …) —
@@ -256,7 +259,7 @@ model Group {
   /// every group made before this shipped, and for any non-Event group. An
   /// ordinary member-writable field like `type`/`coverEmoji`, not admin-gated —
   /// picking a template is part of describing the group, not a budget decision.
-  eventTemplate   String?   @map("event_template")
+  eventTemplate          String?   @map("event_template")
 
   /// A member-typed short label ("Office offsite") shown in place of the
   /// automatic type tag. NULL when unset. <= 24 chars, trimmed, non-empty (CHECK
@@ -1540,7 +1543,8 @@ model RevenuecatEvent {
 }
 
 /// The fx-rate edge function's daily cache of mid-market rates: one row per
-/// pair and day, written only when the provider's own date is that day. `num` /
+/// pair and day, written only when the provider's own date is that day and the
+/// source is the best that publishes the pair (never ExchangeRate-API). `num` /
 /// `den` are the exact rational as digit text (ADR-003). Service role only (RLS
 /// on, no policies); the CHECKs are in the migration.
 model FxDailyRate {
@@ -1549,7 +1553,7 @@ model FxDailyRate {
   day          DateTime @db.Date
   num          String
   den          String
-  /// ecb | currency-api | exchangerate-api
+  /// ecb | currency-api
   source       String
   fetchedAt    DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
 

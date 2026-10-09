@@ -4,8 +4,9 @@
  *
  * Pinned: no client role can read or write it — not even zero rows through
  * RLS, a refused grant — and the service role (the edge function) can; and the
- * CHECKs refuse a rate that is not exact digits, an unknown source, and a
- * second row for the same pair and day.
+ * CHECKs refuse a rate that is not exact digits, an unknown source, an
+ * ExchangeRate-API rate (latest-only, so no dated day's), and a second row for
+ * the same pair and day.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -68,7 +69,7 @@ describe('who may reach fx_daily_rates', () => {
     await asRole(client, 'service_role', { role: 'service_role' }, async () => {
       await client.query(
         `INSERT INTO public.fx_daily_rates (from_currency, to_currency, day, num, den, source)
-         VALUES ('VND', 'INR', '2026-09-22', '3365', '1000000', 'exchangerate-api')`,
+         VALUES ('VND', 'INR', '2026-09-22', '3365', '1000000', 'ecb')`,
       );
       const { rows } = await client.query(
         `SELECT num, den FROM public.fx_daily_rates
@@ -102,6 +103,8 @@ describe('what a row may hold', () => {
     ['a zero den', { den: '0' }],
     ['a negative num', { num: '-3' }],
     ['an unknown source', { source: 'manual' }],
+    // Latest-only: never any dated day's rate, so never cached as one.
+    ['an ExchangeRate-API rate', { source: 'exchangerate-api' }],
     ['a lower-case code', { from: 'vnd' }],
     ['the same currency both sides', { to: 'VND' }],
   ])('refuses %s', async (_name, over) => {

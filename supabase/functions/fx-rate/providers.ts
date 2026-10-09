@@ -7,15 +7,20 @@
  * handler decides caching; this only answers "what is the rate, from whom, for
  * which day".
  *
- * The chain, tried in order, each call under its own short deadline:
+ * The chain, tried in rank order, each call under its own short deadline and
+ * the whole chain under one overall budget (`CHAIN_BUDGET_MS`), so a slow
+ * outage costs the person seconds, not the sum of every timeout:
  *
  *   1. ECB via Frankfurter (`ecb`). The official reference rates, so first —
  *      but only ~30 currencies (no VND, no AED).
  *   2. fawazahmed0's currency-api (`currency-api`): ~200 currencies with dated
- *      history, served from jsDelivr with a Cloudflare Pages mirror.
+ *      history, served from jsDelivr with a Cloudflare Pages mirror; the two
+ *      are raced and the first usable answer wins.
  *   3. ExchangeRate-API open access (`exchangerate-api`): latest only, so for a
- *      past day it is the last resort, and the rate is dated today — never the
- *      bill's day. Its terms require attribution, which the app shows.
+ *      past day it is the last resort, the rate is dated today — never the
+ *      bill's day — and it comes back flagged `stale` so the app asks first.
+ *      Its forward and reverse calls run in parallel. Its terms require
+ *      attribution, which the app shows.
  */
 
 import { fetchJsonWithDeadline, type CircuitBreaker } from '../_shared/resilience.ts';
@@ -30,7 +35,20 @@ export interface ProviderRate {
   /** The day the provider says this rate is for (YYYY-MM-DD). */
   readonly day: string;
   readonly source: FxSource;
+  /**
+   * Not the asked-for day's rate and not a stand-in the provider chose for it
+   * (ECB's Friday for a Sunday): a latest-only provider's today, answered for
+   * a past day. The app treats it like any other rate from another day.
+   */
+  readonly stale?: true;
 }
+
+/** Sources best first. A higher rank is a better rate for the same day. */
+export const SOURCE_RANK: Readonly<Record<FxSource, number>> = {
+  ecb: 3,
+  'currency-api': 2,
+  'exchangerate-api': 1,
+};
 
 /** Why a provider gave no rate. */
 export type ProviderFailure =
@@ -59,10 +77,18 @@ export interface ChainDeps {
   readonly timeoutMs?: number;
   /** Skips a provider that keeps failing, rather than waiting on it each time. */
   readonly breaker?: CircuitBreaker;
+  /** The whole chain. A provider not reached by then is not asked. */
+  readonly budgetMs?: number;
+  readonly now?: () => number;
 }
 
 export type ChainResult =
-  | { readonly ok: true; readonly rate: ProviderRate }
+  | {
+      readonly ok: true;
+      readonly rate: ProviderRate;
+      /** The better-ranked providers that had no rate, and why. */
+      readonly failures: readonly { source: FxSource; reason: ProviderFailure }[];
+    }
   | {
       readonly ok: false;
       /** Every provider said "no such pair" (not one of them was merely down). */
@@ -71,6 +97,8 @@ export type ChainResult =
     };
 
 export const PROVIDER_TIMEOUT_MS = 4000;
+/** The whole chain, however many providers are slow. */
+export const CHAIN_BUDGET_MS = 8000;
 
 /**
  * Bounds no real currency pair leaves. A value outside them is a provider bug
@@ -154,8 +182,13 @@ function realDay(day: unknown): day is string {
   return typeof day === 'string' && DAY.test(day) && !Number.isNaN(Date.parse(day));
 }
 
+/** What one provider may spend: its own deadline, cut to what the chain has left. */
+interface CallDeps extends ChainDeps {
+  readonly callMs: number;
+}
+
 async function getJson(
-  deps: ChainDeps,
+  deps: CallDeps,
   url: string,
   label: string,
 ): Promise<{ status: number; ok: boolean; body: unknown } | null> {
@@ -164,7 +197,7 @@ async function getJson(
       deps.fetchFn,
       url,
       { headers: { Accept: 'application/json' } },
-      deps.timeoutMs ?? PROVIDER_TIMEOUT_MS,
+      deps.callMs,
       label,
     );
   } catch {
@@ -201,7 +234,7 @@ export function parseFrankfurter(status: number, body: unknown, to: string): Pro
   return rate(toRational(value), payload.date, 'ecb');
 }
 
-async function ecb(req: ChainRequest, deps: ChainDeps): Promise<ProviderOutcome> {
+async function ecb(req: ChainRequest, deps: CallDeps): Promise<ProviderOutcome> {
   const reply = await getJson(deps, frankfurterUrl(req), 'ecb');
   if (!reply) return unavailable;
   return parseFrankfurter(reply.status, reply.body, req.to);
@@ -230,23 +263,37 @@ export function parseCurrencyApi(body: unknown, from: string, to: string): Provi
   return rate(toRational(value), payload.date, 'currency-api');
 }
 
-async function currencyApi(req: ChainRequest, deps: ChainDeps): Promise<ProviderOutcome> {
-  let sawNotFound = false;
-  for (const url of currencyApiUrls(req)) {
-    const reply = await getJson(deps, url, 'currency-api');
-    if (!reply) continue;
-    if (reply.status === 404) {
-      // No package for that day on this host; the mirror may still have it.
-      sawNotFound = true;
-      continue;
+/**
+ * Both hosts at once; the first usable answer wins. Only when neither has one
+ * is it "unsupported" (some host said 404: no package for that day) or
+ * "unavailable".
+ */
+function currencyApi(req: ChainRequest, deps: CallDeps): Promise<ProviderOutcome> {
+  const urls = currencyApiUrls(req);
+  return new Promise((resolve) => {
+    let pending = urls.length;
+    let sawNotFound = false;
+    const giveUp = (): void => {
+      pending -= 1;
+      if (pending === 0) resolve(sawNotFound ? unsupported : unavailable);
+    };
+    for (const url of urls) {
+      getJson(deps, url, 'currency-api').then((reply) => {
+        if (!reply) return giveUp();
+        if (reply.status === 404) {
+          // No package for that day on this host; the other may still have it.
+          sawNotFound = true;
+          return giveUp();
+        }
+        if (!reply.ok) return giveUp();
+        const outcome = parseCurrencyApi(reply.body, req.from, req.to);
+        // A malformed body on one host is worth waiting for the other.
+        if (!outcome.ok && outcome.reason === 'unavailable') return giveUp();
+        // Later answers resolve a settled promise, which is a no-op.
+        resolve(outcome);
+      }, giveUp);
     }
-    if (!reply.ok) continue;
-    const outcome = parseCurrencyApi(reply.body, req.from, req.to);
-    // A malformed body on one host is worth the other host.
-    if (!outcome.ok && outcome.reason === 'unavailable') continue;
-    return outcome;
-  }
-  return sawNotFound ? unsupported : unavailable;
+  });
 }
 
 // ──────────────────────────────────────────── 3. ExchangeRate-API ──
@@ -273,59 +320,79 @@ export function erApiValue(
   return value === undefined ? { reason: 'unsupported' } : { value };
 }
 
-async function exchangeRateApi(req: ChainRequest, deps: ChainDeps): Promise<ProviderOutcome> {
-  const reply = await getJson(deps, erApiUrl(req.from), 'exchangerate-api');
+async function exchangeRateApi(req: ChainRequest, deps: CallDeps): Promise<ProviderOutcome> {
+  // Both bases at once: the reverse is only used when the forward value is a
+  // small, rounded one (0.00375), but asking for it in sequence would double
+  // the wait exactly when the chain has already spent most of its budget.
+  const [reply, back] = await Promise.all([
+    getJson(deps, erApiUrl(req.from), 'exchangerate-api'),
+    getJson(deps, erApiUrl(req.to), 'exchangerate-api'),
+  ]);
   if (!reply) return unavailable;
   const forward = erApiValue(reply.body, req.to);
   if ('reason' in forward) {
     return reply.status === 404 ? unsupported : { ok: false, reason: forward.reason };
   }
-  // A small forward value is a rounded one (0.00375): the other base's view of
-  // the pair is the precise side.
   let reverse: unknown = undefined;
   const exact = toRational(forward.value);
-  if (exact && BigInt(exact.num) < BigInt(exact.den)) {
-    const back = await getJson(deps, erApiUrl(req.to), 'exchangerate-api');
-    if (back) {
-      const value = erApiValue(back.body, req.from);
-      if ('value' in value) reverse = value.value;
-    }
+  if (exact && BigInt(exact.num) < BigInt(exact.den) && back) {
+    const value = erApiValue(back.body, req.from);
+    if ('value' in value) reverse = value.value;
   }
   const chosen = preciseOf(forward.value, reverse);
   // Latest only: it is today's rate, and saying it was the bill's day's would
-  // misreport when the number was true.
-  return rate(chosen && { num: chosen.num, den: chosen.den }, req.today, 'exchangerate-api');
+  // misreport when the number was true. For a past day it is flagged, so the
+  // app asks before using it, as with any rate from another day.
+  const outcome = rate(
+    chosen && { num: chosen.num, den: chosen.den },
+    req.today,
+    'exchangerate-api',
+  );
+  if (outcome.ok && req.date && req.date !== req.today) {
+    return { ok: true, rate: { ...outcome.rate, stale: true } };
+  }
+  return outcome;
 }
 
 // ───────────────────────────────────────────────────────── chain ──
 
 const PROVIDERS: readonly {
   source: FxSource;
-  run: (req: ChainRequest, deps: ChainDeps) => Promise<ProviderOutcome>;
+  run: (req: ChainRequest, deps: CallDeps) => Promise<ProviderOutcome>;
 }[] = [
   { source: 'ecb', run: ecb },
   { source: 'currency-api', run: currencyApi },
   { source: 'exchangerate-api', run: exchangeRateApi },
 ];
 
-/** The first provider that has the rate, in order; or why none did. */
+/**
+ * The first provider, in rank order, that has the rate; or why none did.
+ *
+ * Every call is cut to what is left of the chain's budget, and a provider the
+ * budget never reaches counts as unavailable (not unsupported: it might have
+ * had the pair).
+ */
 export async function fetchFromChain(req: ChainRequest, deps: ChainDeps): Promise<ChainResult> {
+  const now = deps.now ?? Date.now;
+  const deadline = now() + (deps.budgetMs ?? CHAIN_BUDGET_MS);
+  const perCall = deps.timeoutMs ?? PROVIDER_TIMEOUT_MS;
   const failures: { source: FxSource; reason: ProviderFailure }[] = [];
   for (const provider of PROVIDERS) {
     const key = `fx:${provider.source}`;
-    if (deps.breaker?.isOpen(key)) {
+    const left = deadline - now();
+    if (left <= 0 || deps.breaker?.isOpen(key)) {
       failures.push({ source: provider.source, reason: 'unavailable' });
       continue;
     }
     let outcome: ProviderOutcome;
     try {
-      outcome = await provider.run(req, deps);
+      outcome = await provider.run(req, { ...deps, callMs: Math.min(perCall, left) });
     } catch {
       outcome = unavailable;
     }
     if (outcome.ok || outcome.reason === 'unsupported') deps.breaker?.success(key);
     else deps.breaker?.failure(key);
-    if (outcome.ok) return outcome;
+    if (outcome.ok) return { ok: true, rate: outcome.rate, failures };
     failures.push({ source: provider.source, reason: outcome.reason });
   }
   return {
