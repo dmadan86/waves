@@ -7,6 +7,7 @@ import {
   orderGroupTiles,
   resolveConfirm,
   type AddExpenseAction,
+  type AddPersonalAction,
 } from '@/lib/voiceConfirmPure';
 
 const local: AgentLocalData = {
@@ -52,17 +53,29 @@ const action: AddExpenseAction = {
 
 const resolve = (fields: Partial<ReturnType<typeof initialFields>>, groups = local) => {
   const initial = initialFields(action, groups, 'You');
-  return resolveConfirm(action, initial, { ...initial, ...fields }, groups, 'You', 'an expense');
+  const result = resolveConfirm(
+    action,
+    initial,
+    { ...initial, ...fields },
+    groups,
+    'You',
+    'an expense',
+  );
+  // Narrowed for the group-expense assertions; a personal result reads as itself.
+  return result as { ok: true; action: AddExpenseAction } | Exclude<typeof result, { ok: true }>;
 };
 
 describe('voice confirmation fields', () => {
-  it('reads the proposal as amount, person, group, note and category', () => {
+  it('reads the proposal as amount, person, group, description and category', () => {
     expect(initialFields(action, local, 'You')).toEqual({
+      personal: false,
       groupId: 'g1',
       amountText: '1000',
       personText: 'Renny Joseph',
-      note: 'Dinner',
+      description: 'Dinner',
+      note: '',
       category: 'food',
+      date: null,
     });
   });
 
@@ -102,9 +115,28 @@ describe('voice confirmation fields', () => {
     expect(result.ok && result.action.split.shares).toEqual([{ memberId: 'm1' }]);
   });
 
-  it('an empty note falls back to the generic one', () => {
-    const result = resolve({ note: '  ' });
+  it('an empty description falls back to the generic one', () => {
+    const result = resolve({ description: '  ' });
     expect(result.ok && result.action.description).toBe('an expense');
+  });
+
+  it('writes a note after the description, and a picked date', () => {
+    const result = resolve({ note: 'with the team', date: '2026-10-07' });
+    expect(result.ok && result.action.description).toBe('Dinner — with the team');
+    expect(result.ok && result.action.date).toBe('2026-10-07');
+  });
+
+  it('"Just for you" turns a group expense into a personal one', () => {
+    expect(resolve({ personal: true, amountText: '250' })).toEqual({
+      ok: true,
+      action: {
+        type: 'add_personal',
+        amountMinor: '25000',
+        currency: 'INR',
+        description: 'Dinner',
+        category: 'food',
+      },
+    });
   });
 
   it('matches a first name uniquely and understands "me"', () => {
@@ -112,6 +144,45 @@ describe('voice confirmation fields', () => {
     expect(matchMember(group, 'renny', 'You')?.id).toBe('m2');
     expect(matchMember(group, 'You', 'You')?.id).toBe('m1');
     expect(matchMember(group, 'zed', 'You')).toBeNull();
+  });
+});
+
+describe('a personal proposal', () => {
+  const personal: AddPersonalAction = {
+    type: 'add_personal',
+    amountMinor: '832266',
+    currency: 'INR',
+    description: 'spicy',
+    category: 'food',
+  };
+  const initial = initialFields(personal, local, 'You');
+  const resolveP = (fields: Partial<typeof initial>) =>
+    resolveConfirm(personal, initial, { ...initial, ...fields }, local, 'You', 'an expense');
+
+  it('opens as just for you', () => {
+    expect(initial).toMatchObject({ personal: true, groupId: null, amountText: '8322.66' });
+    expect(resolveP({})).toEqual({ ok: true, action: personal });
+  });
+
+  it('moved into a group, is paid by you and shared with the names given', () => {
+    const result = resolveP({ personal: false, groupId: 'g2', personText: 'Renny' });
+    expect(result).toEqual({
+      ok: true,
+      action: {
+        type: 'add_expense',
+        groupId: 'g2',
+        amountMinor: '832266',
+        currency: 'INR',
+        description: 'spicy',
+        category: 'food',
+        paidByMemberId: 'n1',
+        split: { mode: 'equal', shares: [{ memberId: 'n1' }, { memberId: 'n2' }] },
+      },
+    });
+  });
+
+  it('needs a group once it is no longer just for you', () => {
+    expect(resolveP({ personal: false })).toEqual({ ok: false, reason: 'group' });
   });
 });
 
