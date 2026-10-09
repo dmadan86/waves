@@ -336,7 +336,7 @@ export function SettleBody({
 
         {split.owesMe.length > 0 ? (
           <Card>
-            <CardHeader title={t.misc.settleOweYouTitle} subtitle={t.misc.settleClearBalanceSub} />
+            <CardHeader title={t.misc.settleOweYouTitle} />
             {split.owesMe.map((transfer) => {
               const person = personFor(transfer.from);
               const name = nameOf(transfer.from);
@@ -406,7 +406,7 @@ export function SettleBody({
 
         {split.iOwe.length > 0 ? (
           <Card>
-            <CardHeader title={t.misc.settleYouOweTitle} subtitle={t.misc.settleClearBalanceSub} />
+            <CardHeader title={t.misc.settleYouOweTitle} />
             {split.iOwe.map((transfer) => {
               const person = personFor(transfer.to);
               const name = nameOf(transfer.to);
@@ -455,9 +455,8 @@ export function SettleBody({
                   onPress={() => void (isPending(transfer) ? explainPending() : markPaid(transfer))}
                   disabled={recordSettlement.isPending}
                   action={
-                    <Button
+                    <PayPill
                       label={t.misc.settlePay}
-                      size="sm"
                       accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
                       disabled={recordSettlement.isPending}
                       onPress={() => void pay(transfer)}
@@ -519,51 +518,19 @@ export function SettleBody({
         ) : null}
 
         <Card>
-          <Pressable
-            accessibilityRole={historyExpandable ? 'button' : undefined}
-            accessibilityState={historyExpandable ? { expanded: showAllHistory } : undefined}
-            disabled={!historyExpandable}
-            onPress={() => setShowAllHistory((open) => !open)}
-          >
-            <Row style={{ gap: theme.spacing.md, alignItems: 'center', minHeight: 56 }}>
-              <Ionicons name="time-outline" size={iconSize.xxl} color={theme.color.brand} />
-              <View style={{ flex: 1 }}>
-                <Text variant="subheading" accessibilityRole="header">
-                  {t.misc.settleHistory}
-                </Text>
-                {history.length === 0 ? (
-                  <>
-                    <Text variant="body" tone="muted">
-                      {t.misc.settleNoHistory}
-                    </Text>
-                    <Text variant="caption" tone="muted">
-                      {t.misc.settleNoHistorySub}
-                    </Text>
-                  </>
-                ) : (
-                  <Text variant="caption" tone="muted">
-                    {plural(locale, history.length, t.misc.settlePaymentsCount)}
-                  </Text>
-                )}
-              </View>
-              {history.length === 0 ? (
-                <Image
-                  source={HISTORY_ART}
-                  style={{ width: 72, height: 40 }}
-                  resizeMode="contain"
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                />
-              ) : null}
-              {historyExpandable ? (
-                <Ionicons
-                  name={showAllHistory ? 'chevron-up' : 'chevron-down'}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              ) : null}
-            </Row>
-          </Pressable>
+          {/* One line when empty (clock, title, muted "No payments yet"): the
+              old illustration and sentence spent 120pt on nothing. */}
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
+            <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
+            <Text variant="subheading" accessibilityRole="header">
+              {t.misc.settleHistory}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
+              {history.length === 0
+                ? t.misc.settleNoHistory
+                : plural(locale, history.length, t.misc.settlePaymentsCount)}
+            </Text>
+          </Row>
           {shownHistory.map((row) => (
             <OtherTile
               key={row.id}
@@ -580,41 +547,48 @@ export function SettleBody({
               past
             />
           ))}
+          {historyExpandable ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showAllHistory }}
+              hitSlop={{ top: 8, bottom: 8 }}
+              onPress={() => setShowAllHistory((open) => !open)}
+              style={{ alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Text variant="caption" tone="brand">
+                {showAllHistory ? t.misc.settleHideAll : t.misc.settleSeeAll}
+              </Text>
+              <Ionicons
+                name={showAllHistory ? 'chevron-up' : directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          ) : null}
         </Card>
 
+        {/* A slim text link, not a card: it is a way out, not content. */}
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={t.whoPaysWhom}
           onPress={() => router.push(`/group/${groupId}/simplify`)}
-          style={({ pressed }) => [
-            {
-              backgroundColor: theme.color.surface,
-              borderRadius: theme.radius.lg,
-              paddingHorizontal: theme.spacing.md,
-              minHeight: 52,
-              justifyContent: 'center',
-              opacity: pressed ? 0.7 : 1,
-            },
-            theme.shadow.soft,
-          ]}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            paddingHorizontal: theme.spacing.xs,
+            justifyContent: 'center',
+            opacity: pressed ? 0.7 : 1,
+          })}
         >
-          <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: theme.color.brandSoft,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
-            </View>
-            <Text variant="subheading" tone="brand" style={{ flex: 1 }}>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
+            <Text variant="body" tone="brand" style={{ flex: 1 }}>
               {t.whoPaysWhom}
             </Text>
-            <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textMuted} />
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.md}
+              color={theme.color.textMuted}
+            />
           </Row>
         </Pressable>
       </ScrollView>
@@ -622,10 +596,10 @@ export function SettleBody({
   );
 }
 
-const GAP = 10;
+// Cards sit 8pt apart: this screen is a checklist, not a showcase.
+const GAP = 8;
 const HISTORY_PREVIEW = 3;
 const WALLET_ART = require('../../../assets/images/settle-wallet.webp') as number;
-const HISTORY_ART = require('../../../assets/images/settle-history.webp') as number;
 
 /** A white card: the one surface every block below the summary sits on. */
 function Card({ children }: { children: ReactNode }) {
@@ -649,22 +623,65 @@ function Card({ children }: { children: ReactNode }) {
   );
 }
 
-function CardHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  const theme = useTheme();
+/** The card's title; the optional subtitle is only for copy that changes what a row means. */
+function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <View style={{ paddingBottom: theme.spacing.sm }}>
-      <Text variant="heading" accessibilityRole="header">
+    <View>
+      <Text variant="subheading" accessibilityRole="header">
         {title}
       </Text>
-      <Text variant="caption" tone="muted">
-        {subtitle}
-      </Text>
+      {subtitle ? (
+        <Text variant="caption" tone="muted">
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
+/**
+ * A compact Pay pill. The shared Button's smallest size is 38pt, which made
+ * the row taller than its avatar; this keeps the same primary look
+ * (`buttonPrimary`, as the confirm sheet's button uses) at 32pt.
+ */
+function PayPill({
+  label,
+  accessibilityLabel,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        height: 32,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: theme.radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: pressed ? theme.color.buttonPrimaryPressed : theme.color.buttonPrimary,
+        opacity: disabled ? 0.5 : 1,
+      })}
+    >
+      <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ fontWeight: '700' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /** The light rounded tile each person or payment sits on inside a card. */
-function Tile({ children }: { children: ReactNode }) {
+function Tile({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   const theme = useTheme();
   return (
     <View
@@ -672,8 +689,10 @@ function Tile({ children }: { children: ReactNode }) {
         backgroundColor: theme.color.surfaceMuted,
         borderRadius: theme.radius.md,
         paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        minHeight: 56,
+        // Dense (payments, no action button) rows land at 48pt; people rows
+        // keep 56pt, the height of their 40pt avatar plus padding.
+        paddingVertical: dense ? theme.spacing.xs : theme.spacing.sm,
+        minHeight: dense ? 48 : 56,
         justifyContent: 'center',
       }}
     >
@@ -960,7 +979,7 @@ function OtherTile({
   });
   const amountText = format(money(amount, currency as CurrencyCode), { locale });
   return (
-    <Tile>
+    <Tile dense>
       <Row
         accessible
         accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
@@ -1053,14 +1072,16 @@ function SummaryCard({
         borderRadius: theme.radius.lg,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.md,
-        minHeight: 96,
+        minHeight: 72,
         overflow: 'hidden',
         justifyContent: 'center',
       }}
     >
+      {/* Small and tucked in the corner: at 132x70 the wallet cost more height
+          than the figures it sat beside. */}
       <Image
         source={WALLET_ART}
-        style={{ position: 'absolute', right: 8, bottom: 4, width: 132, height: 70 }}
+        style={{ position: 'absolute', end: 8, bottom: 4, width: 64, height: 40 }}
         resizeMode="contain"
         accessibilityElementsHidden
         importantForAccessibility="no"
@@ -1070,23 +1091,24 @@ function SummaryCard({
           {t.allSettled}
         </Text>
       ) : (
-        <View accessible accessibilityRole="header">
-          <Text variant="body" tone="muted">
+        <View accessible accessibilityRole="header" style={{ paddingEnd: 72 }}>
+          {/* Label and count share a line: "You owe · across 1 payment". */}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
             {hero.tone === 'owe' ? t.youOwe : t.youAreOwed}
+            {' · '}
+            {plural(locale, hero.count, t.misc.settlePaymentsCount)}
           </Text>
           <MoneyText
             amount={hero.amount}
             currency={currency as CurrencyCode}
             locale={locale}
-            variant="display"
+            variant="title"
             mode="balance"
             direction={hero.tone === 'owe' ? BalanceDirection.YouOwe : BalanceDirection.OwedToYou}
+            style={{ fontSize: 28, lineHeight: 34 }}
           />
-          <Text variant="caption" tone="muted">
-            {plural(locale, hero.count, t.misc.settlePaymentsCount)}
-          </Text>
           {caption ? (
-            <Text variant="micro" tone="muted" numberOfLines={2} style={{ maxWidth: '60%' }}>
+            <Text variant="micro" tone="muted" numberOfLines={2}>
               {caption}
             </Text>
           ) : null}
