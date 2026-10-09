@@ -356,6 +356,15 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   // answer to the question somebody opens a ledger with. The
   // total keeps its place in the subtitle.
   const stake = myStake(version, myMemberId);
+  // A foreign bill reads in the group's money first: the stake converted at the
+  // rate stored on this bill (the same number the balance uses), with what was
+  // actually paid under it. No stored rate, no conversion — the bill stands in
+  // its own currency and says so where the direction would go.
+  const foreign = version !== null && version.currency !== groupCurrency;
+  const stakeHere =
+    foreign && stake !== null && stake !== 0n && converted
+      ? convertedTotal({ ...version, amount: String(stake < 0n ? -stake : stake) }, groupCurrency)
+      : null;
   // Flat row: the category is the badge on the left, not the row's
   // colour. A deleted row is dimmed rather than hidden, so the
   // ledger stays visibly append-only.
@@ -378,7 +387,19 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   const dateStamp = version ? dateFmt.format(new Date(version.expense_date)) : null;
   // The right column's date-line: the direction and the date, joined the way the
   // subtitle joins its parts. Undated rows (no version) show the label alone.
-  const rightMeta = [directionLabel, dateStamp].filter(Boolean).join(' · ');
+  const rightMeta = [
+    foreign && stake !== null && stake !== 0n
+      ? stakeHere
+        ? formatParts(
+            { minor: stake < 0n ? -stake : stake, currency: version.currency },
+            { locale },
+          ).text
+        : t.expense.noRateShort
+      : directionLabel,
+    dateStamp,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   // The whole row is one button to a screen reader, so the money a sighted user
   // reads on the right has to ride the row's label — otherwise it announces the
   // title alone and never the amount. The magnitude (the direction is already in
@@ -390,7 +411,13 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
       ? formatParts({ minor: stake < 0n ? -stake : stake, currency: version.currency }, { locale })
           .text
       : null;
-  const rowLabel = [title, version ? directionLabel : null, amountA11y, dateStamp]
+  const rowLabel = [
+    title,
+    version ? directionLabel : null,
+    stakeHere ? formatParts(stakeHere, { locale }).text : null,
+    amountA11y,
+    dateStamp,
+  ]
     .filter(Boolean)
     .join(', ');
   // The amount's colour: blue when you lent, the negative red when you borrowed
@@ -457,8 +484,8 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                 <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
                   {stake !== null && stake !== 0n ? (
                     <MoneyText
-                      amount={stake}
-                      currency={version.currency}
+                      amount={stakeHere ? (stake < 0n ? -stakeHere.minor : stakeHere.minor) : stake}
+                      currency={stakeHere ? stakeHere.currency : version.currency}
                       locale={locale}
                       mode="balance"
                       numberOfLines={1}
@@ -478,7 +505,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
         {/* Tapping the row opens it; the pencil goes straight to editing. A
             deleted expense has nothing to edit, so it keeps the space empty. */}
         {expense.deleted_at ? (
-          <View style={{ width: iconSize.md + theme.spacing.sm + theme.spacing.md }} />
+          <View style={{ width: 14 + theme.spacing.xs + theme.spacing.sm }} />
         ) : (
           <Pressable
             onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
@@ -486,9 +513,11 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
             accessibilityLabel={t.common.edit}
             hitSlop={{ top: 8, bottom: 8 }}
             // The right inset matches the badge's left one, so the row reads even.
+            // Tight to the amount: the pencil is a small affordance, and the
+            // width it held was taken from the name in the middle.
             style={({ pressed }) => ({
-              paddingStart: theme.spacing.sm,
-              paddingEnd: theme.spacing.md,
+              paddingStart: theme.spacing.xs,
+              paddingEnd: theme.spacing.sm,
               alignSelf: 'stretch',
               alignItems: 'center',
               justifyContent: 'center',
