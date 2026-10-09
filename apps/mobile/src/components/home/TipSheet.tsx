@@ -14,10 +14,10 @@
  * next open.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { I18nManager, PanResponder, Platform, Pressable, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
 import { Gradient, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
@@ -113,6 +113,35 @@ export function TipSheet() {
     setPage(next);
     pager.current?.setPage(next);
   };
+  // Android turns the deck from the swipe here, in JS. Inside the sheet's
+  // Modal the native ViewPager2 never sees the drag on Android (three fixes to
+  // the native side, #1064, #1143, #1175, did not hold), while Next and the
+  // dots — `setPage` — always worked. So the swipe becomes a `setPage` too, and
+  // the pager's own scrolling is off there so the two never both turn it. iOS
+  // keeps the native swipe, which works.
+  const jsSwipe = Platform.OS === 'android';
+  const count = tips.length;
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderRelease: (_event, gesture) => {
+          const flung = Math.abs(gesture.dx) > 40 || Math.abs(gesture.vx) > 0.3;
+          if (!flung || Math.abs(gesture.dx) < Math.abs(gesture.dy)) return;
+          // Leftward is "next" in a left-to-right layout, and the reverse in RTL.
+          const forward = I18nManager.isRTL ? gesture.dx > 0 : gesture.dx < 0;
+          setPage((current) => Math.max(0, Math.min(current + (forward ? 1 : -1), count - 1)));
+        },
+      }),
+    [count],
+  );
+  // A swipe moves `page`; the pager follows (a no-op when it is already there).
+  useEffect(() => {
+    if (jsSwipe) pager.current?.setPage(page);
+  }, [jsSwipe, page]);
   // Where "Show me" goes, held until the sheet has left the screen. The scan
   // tip opens the native scanner on arrival, and on iOS a camera presented while
   // this sheet's Modal is still dismissing is dropped — the capture screen then
@@ -153,7 +182,7 @@ export function TipSheet() {
               a horizontal ScrollView can take the gesture first — the deck once
               showed five dots and would not turn. */}
           <View
-            onStartShouldSetResponder={() => true}
+            {...(jsSwipe ? swipe.panHandlers : { onStartShouldSetResponder: () => true })}
             onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}
           >
             {pageWidth > 0 && pageHeight === 0 ? (
@@ -190,6 +219,7 @@ export function TipSheet() {
                 style={{ width: pageWidth, height: pageHeight }}
                 initialPage={0}
                 overdrag={false}
+                scrollEnabled={!jsSwipe}
                 onPageSelected={(event) => setPage(event.nativeEvent.position)}
               >
                 {tips.map((entry) => (
