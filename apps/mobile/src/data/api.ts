@@ -1612,11 +1612,22 @@ export async function saveDiscoverySettings(
  * group with; `name` is the merged person's name. Throws with the RPC's own
  * message so the caller can map it to something a person can read (see
  * `mergeErrorMessage`).
+ *
+ * `keep` is the phone number and email the merged person keeps, written onto
+ * every merged guest's membership: a value keeps it, `''` clears it ("No
+ * phone"), and leaving a field out leaves every membership's own value alone —
+ * which is also all an older server understands, so it is only sent when set.
  */
-export async function mergeGhosts(memberIds: string[], name: string): Promise<void> {
+export async function mergeGhosts(
+  memberIds: string[],
+  name: string,
+  keep: { readonly phone?: string; readonly email?: string } = {},
+): Promise<void> {
   const { error } = await backend.rpc('waves_merge_ghosts', {
     p_member_ids: memberIds,
     p_name: name,
+    ...(keep.phone !== undefined ? { p_phone: keep.phone } : {}),
+    ...(keep.email !== undefined ? { p_email: keep.email } : {}),
   });
   if (error) throw new Error(error.message);
 }

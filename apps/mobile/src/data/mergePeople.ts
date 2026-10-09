@@ -13,7 +13,7 @@
  * are most likely to be merging *into* — so the balance list, which drops
  * anybody square with you, is the wrong roster to pick from.
  */
-import { sameAddress } from '@/lib/contactMatch';
+import { fold, sameAddress } from '@/lib/contactMatch';
 
 import type { PersonBalanceRow } from './api';
 import { isGhost } from './types';
@@ -237,6 +237,238 @@ export function suggestMergeCluster(candidates: readonly MergeCandidate[]): Merg
   return [];
 }
 
+/**
+ * The key two guests' names are compared on when looking for duplicates:
+ * trimmed and case-folded, nothing cleverer.
+ *
+ * Shared with the Friends tab's own duplicate strip (`findDuplicates` there),
+ * so the two screens agree about who is "the same name": a strip saying "2
+ * possible duplicates" beside a merge screen that suggests none would each be
+ * calling the other wrong.
+ */
+export function duplicateNameKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** Why a set of guests was suggested as one person: the signal that matched. */
+export type DuplicateSignal =
+  | { readonly kind: 'phone'; readonly phone: string }
+  | { readonly kind: 'email'; readonly email: string }
+  | { readonly kind: 'name' };
+
+/** One "likely duplicates" row on the merge screen. */
+export interface DuplicateSet {
+  /** Stable across renders: the members' person keys, joined. */
+  readonly key: string;
+  /** Two or more distinct, pickable people, in roster order. */
+  readonly people: readonly MergeCandidate[];
+  readonly signal: DuplicateSignal;
+  /** Distinct groups the set spans between them, for the reason line. */
+  readonly groupCount: number;
+}
+
+/**
+ * Every likely-duplicate set on the roster, strongest evidence first.
+ *
+ * Address matches come first, found with {@link suggestMergeCluster} itself,
+ * run again over whoever is left after each set. A shared number or email is
+ * the best evidence a guest can carry, and reusing the one star rule (rather
+ * than a second, subtly different closure) keeps the reason a set is offered
+ * the reason it always was. Name matches follow, keyed exactly as the Friends
+ * tab keys them (see {@link duplicateNameKey}). A shared name is weaker, since
+ * two different Ravis are common, which is why it ranks below an address and
+ * why the screen says "same name" out loud for the person to judge.
+ *
+ * Each person lands in at most one set, so one tap on a suggestion can never
+ * sweep somebody in twice. Nobody still waiting to sync is offered: they cannot
+ * be picked, and a suggestion that fails on tap is worse than none. Nothing here
+ * merges anything; every set still goes through the screen's confirm.
+ */
+export function findDuplicateSets(candidates: readonly MergeCandidate[]): DuplicateSet[] {
+  const sets: DuplicateSet[] = [];
+  let pool = candidates.filter((row) => !row.pending);
+
+  for (;;) {
+    const cluster = suggestMergeCluster(pool);
+    const seed = cluster[0];
+    if (!seed || cluster.length < 2) break;
+    // Say which address matched: the email when a partner shares it, else the
+    // number (the star is built on the seed, so the seed's own value is it).
+    const seedEmail = seed.email ? fold(seed.email) : '';
+    const byEmail =
+      seedEmail !== '' &&
+      cluster.some((other) => other !== seed && other.email && fold(other.email) === seedEmail);
+    sets.push(
+      toDuplicateSet(
+        cluster,
+        byEmail && seed.email
+          ? { kind: 'email', email: seed.email }
+          : { kind: 'phone', phone: seed.phone ?? '' },
+      ),
+    );
+    const taken = new Set(cluster.map((row) => row.person_key));
+    pool = pool.filter((row) => !taken.has(row.person_key));
+  }
+
+  const byName = new Map<string, MergeCandidate[]>();
+  for (const row of pool) {
+    const key = duplicateNameKey(row.display_name);
+    if (!key) continue;
+    const bucket = byName.get(key);
+    if (bucket) bucket.push(row);
+    else byName.set(key, [row]);
+  }
+  for (const bucket of byName.values()) {
+    if (bucket.length >= 2) sets.push(toDuplicateSet(bucket, { kind: 'name' }));
+  }
+  return sets;
+}
+
+function toDuplicateSet(people: readonly MergeCandidate[], signal: DuplicateSignal): DuplicateSet {
+  return {
+    key: people.map((row) => row.person_key).join('|'),
+    people,
+    signal,
+    groupCount: new Set(people.flatMap((row) => [...row.group_ids])).size,
+  };
+}
+
+/**
+ * The distinct names among the picked people, for the confirm step's "Keep
+ * which name?" choice, the suggested one ({@link defaultMergeName}) first.
+ *
+ * The merge RPC keeps a *name*, not a surviving row: every membership is folded
+ * under one new person carrying whatever name it is handed. So "which one do I
+ * keep" is exactly "which of these names", and offering the names (deduped
+ * case-insensitively, first spelling wins) is the whole of that choice.
+ */
+export function keepNameOptions(rows: readonly NamedPerson[]): string[] {
+  const suggested = defaultMergeName(rows);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of [suggested, ...rows.map((row) => row.display_name)]) {
+    const trimmed = name?.trim() ?? '';
+    const key = duplicateNameKey(trimmed);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+/** Which recorded address a "Keep which details?" section is choosing. */
+export type ContactField = 'phone' | 'email';
+
+/** How two spellings of one address are compared: digits for a number, case-folded for an email. */
+function contactKey(field: ContactField, value: string): string {
+  return field === 'phone' ? value.replace(/[^\d]/g, '') : value.trim().toLowerCase();
+}
+
+/**
+ * The phone number or email the merge should keep if nobody chooses one.
+ *
+ * The suggested name's own address first — the person whose name is kept is
+ * the person you know, so their number is the one to keep with it — then the
+ * most common address among the picks, ties broken by pick order. Empty when
+ * nobody picked has one.
+ */
+export function defaultMergeContact(rows: readonly NamedPerson[], field: ContactField): string {
+  const suggestedName = duplicateNameKey(defaultMergeName(rows));
+  const valueOf = (row: NamedPerson): string => row[field]?.trim() ?? '';
+  const own = rows.find(
+    (row) => valueOf(row) !== '' && duplicateNameKey(row.display_name) === suggestedName,
+  );
+  if (own) return valueOf(own);
+
+  const counts = new Map<string, { value: string; count: number }>();
+  for (const row of rows) {
+    const value = valueOf(row);
+    if (!value) continue;
+    const key = contactKey(field, value);
+    const seen = counts.get(key);
+    if (seen) seen.count += 1;
+    else counts.set(key, { value, count: 1 });
+  }
+  let best = '';
+  let bestCount = 0;
+  for (const { value, count } of counts.values()) {
+    if (count > bestCount) {
+      best = value;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
+ * The distinct phone numbers (or emails) among the picked people, for the
+ * confirm step's "Keep which details?" choice, the suggested one
+ * ({@link defaultMergeContact}) first. Two spellings of one number count once
+ * (compared on digits; emails case-insensitively), the first spelling wins.
+ */
+export function keepContactOptions(rows: readonly NamedPerson[], field: ContactField): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of [defaultMergeContact(rows, field), ...rows.map((row) => row[field])]) {
+    const trimmed = value?.trim() ?? '';
+    const key = trimmed ? contactKey(field, trimmed) : '';
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+/**
+ * Whether the sheet should ask which phone (or email) to keep at all.
+ *
+ * Not when nobody picked has one — there is nothing to keep — and not when every
+ * picked person already carries the same one, which the merge keeps by leaving
+ * it alone. It does ask when the picks disagree, including when only some of
+ * them have one: keeping it then spreads it to the rest, and "no phone" is a
+ * real answer the person may want to give.
+ */
+export function needsContactChoice(rows: readonly NamedPerson[], field: ContactField): boolean {
+  const options = keepContactOptions(rows, field);
+  if (options.length === 0) return false;
+  if (options.length > 1) return true;
+  return rows.some((row) => !row[field]?.trim());
+}
+
+/** What the person chose in one "Keep which details?" section. */
+export type ContactChoice =
+  | { readonly kind: 'option'; readonly value: string }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'other'; readonly text: string };
+
+/**
+ * The value the merge RPC is handed for one section: the chosen address,
+ * normalised; `''` for "No phone" / "No email" (the RPC clears it); or null when
+ * a typed address is empty or not valid, so the sheet keeps Merge disabled.
+ *
+ * `normalise` is the field's own rule — the phone one reads a bare national
+ * number in the caller's region — and may throw; a throw reads as "not valid".
+ */
+export function resolveContactChoice(
+  choice: ContactChoice,
+  normalise: (raw: string) => string | null,
+): string | null {
+  if (choice.kind === 'none') return '';
+  const raw = choice.kind === 'option' ? choice.value : choice.text;
+  if (!raw.trim()) return null;
+  try {
+    return normalise(raw) || null;
+  } catch {
+    return null;
+  }
+}
+
+/** The email rule the database holds `invite_email` to: trimmed, lowercased, one @ and a dot after it. */
+export function normaliseMergeEmail(raw: string): string | null {
+  const email = raw.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+}
+
 /** What a picked device contact's name resolves to on the mergeable roster. */
 export interface ContactNameMatch {
   /** The one guest that name unambiguously fits, or null. */
@@ -363,6 +595,8 @@ export interface MergeErrorStrings {
   errorNotMergeable: string;
   errorNameRequired: string;
   errorNotSignedIn: string;
+  errorPhoneInvalid: string;
+  errorEmailInvalid: string;
   errorGeneric: string;
 }
 
@@ -385,5 +619,9 @@ export function mergeErrorMessage(error: unknown, t: MergeErrorStrings): string 
   if (message.includes('NOT_MERGEABLE')) return t.errorNotMergeable;
   if (message.includes('NAME_REQUIRED')) return t.errorNameRequired;
   if (message.includes('NOT_SIGNED_IN')) return t.errorNotSignedIn;
+  if (message.includes('PHONE_NEEDS_COUNTRY_CODE') || message.includes('PHONE_NOT_VALID')) {
+    return t.errorPhoneInvalid;
+  }
+  if (message.includes('EMAIL_NOT_VALID')) return t.errorEmailInvalid;
   return t.errorGeneric;
 }

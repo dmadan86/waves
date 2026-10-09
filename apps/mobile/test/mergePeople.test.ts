@@ -4,11 +4,19 @@ import {
   buildMergeCandidates,
   canMerge,
   contactNameMatch,
+  defaultMergeContact,
   defaultMergeName,
+  duplicateNameKey,
+  findDuplicateSets,
   hasContact,
   isMergeable,
+  keepContactOptions,
+  keepNameOptions,
   memberIdsForMerge,
   mergeErrorMessage,
+  needsContactChoice,
+  normaliseMergeEmail,
+  resolveContactChoice,
   suggestMergeCluster,
   type MergeableMember,
   type MergeCandidate,
@@ -509,6 +517,8 @@ describe('mergeErrorMessage', () => {
     errorNotMergeable: 'guests only',
     errorNameRequired: 'name needed',
     errorNotSignedIn: 'signed out',
+    errorPhoneInvalid: 'bad phone',
+    errorEmailInvalid: 'bad email',
     errorGeneric: 'something went wrong',
   };
 
@@ -526,6 +536,13 @@ describe('mergeErrorMessage', () => {
       'name needed',
     );
     expect(mergeErrorMessage(new Error('NOT_SIGNED_IN'), t)).toBe('signed out');
+    expect(mergeErrorMessage(new Error('PHONE_NOT_VALID: +0123 is not a phone number'), t)).toBe(
+      'bad phone',
+    );
+    expect(mergeErrorMessage(new Error('PHONE_NEEDS_COUNTRY_CODE: 98765'), t)).toBe('bad phone');
+    expect(mergeErrorMessage(new Error('EMAIL_NOT_VALID: that is not an email'), t)).toBe(
+      'bad email',
+    );
   });
 
   it('falls back to the generic line for an unrecognised error, leaking nothing', () => {
@@ -539,5 +556,209 @@ describe('mergeErrorMessage', () => {
   it('handles a non-Error thrown value', () => {
     expect(mergeErrorMessage('boom', t)).toBe('something went wrong');
     expect(mergeErrorMessage(null, t)).toBe('something went wrong');
+  });
+});
+
+describe('duplicateNameKey', () => {
+  it('trims and case-folds, the same key the Friends duplicate strip uses', () => {
+    expect(duplicateNameKey('  Renny ')).toBe('renny');
+    expect(duplicateNameKey('RENNY')).toBe(duplicateNameKey('renny'));
+    expect(duplicateNameKey('   ')).toBe('');
+  });
+});
+
+describe('findDuplicateSets', () => {
+  it('suggests two guests sharing a name, with the groups they span between them', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Renny', group_ids: ['g1'] }),
+      candidate({ person_key: 'b', display_name: 'renny ', group_ids: ['g2'] }),
+      candidate({ person_key: 'c', display_name: 'Hethu', group_ids: ['g1'] }),
+    ]);
+    expect(sets).toHaveLength(1);
+    expect(sets[0]?.people.map((p) => p.person_key)).toEqual(['a', 'b']);
+    expect(sets[0]?.signal).toEqual({ kind: 'name' });
+    expect(sets[0]?.groupCount).toBe(2);
+    expect(sets[0]?.key).toBe('a|b');
+  });
+
+  it('counts a group two of them share once', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Renny', group_ids: ['g1', 'g2'] }),
+      candidate({ person_key: 'b', display_name: 'Renny', group_ids: ['g2'] }),
+    ]);
+    expect(sets[0]?.groupCount).toBe(2);
+  });
+
+  it('suggests a shared number even when the names differ, and says it was the number', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Abhish', phone: '+919713812345' }),
+      candidate({ person_key: 'b', display_name: 'Abhish V', phone: '09713812345' }),
+    ]);
+    expect(sets).toHaveLength(1);
+    expect(sets[0]?.signal).toEqual({ kind: 'phone', phone: '+919713812345' });
+  });
+
+  it('names the email when that is what they share', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'Chloé', email: 'Chloe@Example.com' }),
+      candidate({ person_key: 'b', display_name: 'C', email: 'chloe@example.com' }),
+    ]);
+    expect(sets[0]?.signal).toEqual({ kind: 'email', email: 'Chloe@Example.com' });
+  });
+
+  it('ranks address matches above name matches, and puts nobody in two sets', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'n1', display_name: 'Ravi' }),
+      candidate({ person_key: 'n2', display_name: 'Ravi' }),
+      candidate({ person_key: 'p1', display_name: 'Ravi', phone: '+919876543210' }),
+      candidate({ person_key: 'p2', display_name: 'R K', phone: '9876543210' }),
+    ]);
+    expect(sets.map((set) => set.signal.kind)).toEqual(['phone', 'name']);
+    expect(sets[0]?.people.map((p) => p.person_key)).toEqual(['p1', 'p2']);
+    // p1 is a "Ravi" too, but it is already in the stronger set.
+    expect(sets[1]?.people.map((p) => p.person_key)).toEqual(['n1', 'n2']);
+  });
+
+  it('finds every address set, not only the first', () => {
+    const sets = findDuplicateSets([
+      candidate({ person_key: 'a', display_name: 'A', phone: '+911111111111' }),
+      candidate({ person_key: 'b', display_name: 'B', phone: '+911111111111' }),
+      candidate({ person_key: 'c', display_name: 'C', phone: '+912222222222' }),
+      candidate({ person_key: 'd', display_name: 'D', phone: '+912222222222' }),
+    ]);
+    expect(sets.map((set) => set.key)).toEqual(['a|b', 'c|d']);
+  });
+
+  it('leaves out anybody still waiting to sync', () => {
+    expect(
+      findDuplicateSets([
+        candidate({ person_key: 'a', display_name: 'Renny' }),
+        candidate({ person_key: 'b', display_name: 'Renny', pending: true }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('suggests nothing when nobody matches, and ignores blank names', () => {
+    expect(
+      findDuplicateSets([
+        candidate({ person_key: 'a', display_name: 'Anandh' }),
+        candidate({ person_key: 'b', display_name: 'Gayathri' }),
+        candidate({ person_key: 'c', display_name: ' ' }),
+        candidate({ person_key: 'd', display_name: '' }),
+      ]),
+    ).toEqual([]);
+  });
+});
+
+describe('keepNameOptions', () => {
+  it('offers each distinct name once, the suggested one first', () => {
+    expect(
+      keepNameOptions([
+        row({ person_key: 'a', display_name: 'person1' }),
+        row({ person_key: 'b', display_name: 'Abhish V', phone: '+919713812345' }),
+        row({ person_key: 'c', display_name: 'PERSON1' }),
+      ]),
+    ).toEqual(['Abhish V', 'person1']);
+  });
+
+  it('drops blank names and offers nothing for nobody', () => {
+    expect(keepNameOptions([row({ display_name: '  ' }), row({ display_name: 'Renny ' })])).toEqual(
+      ['Renny'],
+    );
+    expect(keepNameOptions([])).toEqual([]);
+  });
+});
+
+describe('keepContactOptions', () => {
+  it("lists each distinct phone once, the suggested person's number first", () => {
+    const picks = [
+      row({ person_key: 'a', display_name: 'person1', phone: '+14155550123' }),
+      row({ person_key: 'b', display_name: 'Ravi', phone: '+919876543210', group_count: 3 }),
+      row({ person_key: 'c', display_name: 'Ravi K', phone: '+91 98765 43210' }),
+      row({ person_key: 'd', display_name: 'nobody' }),
+    ];
+    // Both a and b have a number; the suggested name is the most common among
+    // those with an address, ties by pick order — person1 — so its number leads.
+    expect(defaultMergeName(picks)).toBe('person1');
+    expect(keepContactOptions(picks, 'phone')).toEqual(['+14155550123', '+919876543210']);
+  });
+
+  it('leads with the most common number when the suggested name has none', () => {
+    const picks = [
+      row({ person_key: 'a', display_name: 'Ravi', email: 'ravi@example.com' }),
+      row({ person_key: 'b', display_name: 'R', phone: '+14155550123' }),
+      row({ person_key: 'c', display_name: 'RK', phone: '+919876543210' }),
+      row({ person_key: 'd', display_name: 'RV', phone: '+919876543210' }),
+    ];
+    expect(defaultMergeContact(picks, 'phone')).toBe('+919876543210');
+    expect(keepContactOptions(picks, 'phone')).toEqual(['+919876543210', '+14155550123']);
+  });
+
+  it('dedupes emails case-insensitively and offers nothing for nobody', () => {
+    expect(
+      keepContactOptions(
+        [
+          row({ person_key: 'a', email: 'Ravi@Example.com' }),
+          row({ person_key: 'b', email: 'ravi@example.com ' }),
+        ],
+        'email',
+      ),
+    ).toEqual(['Ravi@Example.com']);
+    expect(
+      keepContactOptions([row({ person_key: 'a' }), row({ person_key: 'b' })], 'phone'),
+    ).toEqual([]);
+    expect(defaultMergeContact([], 'phone')).toBe('');
+  });
+});
+
+describe('needsContactChoice', () => {
+  it('asks only when the picked people disagree', () => {
+    const p = '+919876543210';
+    expect(needsContactChoice([row({ person_key: 'a' }), row({ person_key: 'b' })], 'phone')).toBe(
+      false,
+    );
+    expect(
+      needsContactChoice(
+        [row({ person_key: 'a', phone: p }), row({ person_key: 'b', phone: '+91 98765 43210' })],
+        'phone',
+      ),
+    ).toBe(false);
+    expect(
+      needsContactChoice(
+        [row({ person_key: 'a', phone: p }), row({ person_key: 'b', phone: '+14155550123' })],
+        'phone',
+      ),
+    ).toBe(true);
+    // One has a number, one does not: keep it, or "No phone".
+    expect(
+      needsContactChoice([row({ person_key: 'a', phone: p }), row({ person_key: 'b' })], 'phone'),
+    ).toBe(true);
+  });
+});
+
+describe('resolveContactChoice', () => {
+  const upper = (raw: string): string => raw.trim().toUpperCase();
+  const refuse = (): string => {
+    throw new Error('PHONE_NOT_VALID');
+  };
+
+  it('normalises a chosen or typed value, and clears on "none"', () => {
+    expect(resolveContactChoice({ kind: 'option', value: ' a ' }, upper)).toBe('A');
+    expect(resolveContactChoice({ kind: 'other', text: 'b' }, upper)).toBe('B');
+    expect(resolveContactChoice({ kind: 'none' }, refuse)).toBe('');
+  });
+
+  it('is not ready for an empty or invalid typed value', () => {
+    expect(resolveContactChoice({ kind: 'other', text: '  ' }, upper)).toBeNull();
+    expect(resolveContactChoice({ kind: 'other', text: '123' }, refuse)).toBeNull();
+    expect(resolveContactChoice({ kind: 'other', text: 'x' }, () => null)).toBeNull();
+  });
+});
+
+describe('normaliseMergeEmail', () => {
+  it('lowercases a valid address and refuses a malformed one', () => {
+    expect(normaliseMergeEmail(' Ravi@Example.COM ')).toBe('ravi@example.com');
+    expect(normaliseMergeEmail('nope')).toBeNull();
+    expect(normaliseMergeEmail('a@b')).toBeNull();
   });
 });
