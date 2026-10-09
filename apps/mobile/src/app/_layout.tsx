@@ -2,12 +2,12 @@
 // renders, so relative time works app-wide. Side-effect import, must be first.
 import '@/lib/intlPolyfill';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -73,7 +73,7 @@ import { AppStatusProvider } from '@/lib/appStatus';
 import { StoreUpdateProvider } from '@/lib/storeUpdate';
 import { initClarity } from '@/lib/clarity';
 import { initObservability, withObservability } from '@/lib/observability';
-import { purchasesAvailable } from '@/lib/purchases';
+import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -523,6 +523,22 @@ function AuthGate() {
   // a screen that could only fail.
   const paywallFlag = useFlagEnabled('paywall');
   const paywallEnabled = paywallFlag && purchasesAvailable();
+
+  // Cloud voice depends on the subscription, and its answer is cached for ten
+  // minutes. When RevenueCat reports a different plan (buy, restore, lapse),
+  // re-ask now and once more shortly after: the server learns of the change
+  // through the webhook, which can land after the app does.
+  const queryClient = useQueryClient();
+  const { tier } = useCustomerTier();
+  const lastTier = useRef(tier);
+  useEffect(() => {
+    if (lastTier.current === tier) return;
+    lastTier.current = tier;
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+    refresh();
+    const timer = setTimeout(refresh, 5000);
+    return () => clearTimeout(timer);
+  }, [tier, queryClient]);
 
   // Every forward screen slides in from the leading edge — one consistent
   // motion across the whole app (right in LTR, left in RTL). The only screens

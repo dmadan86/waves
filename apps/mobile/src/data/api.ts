@@ -692,6 +692,20 @@ export interface ExpenseVersionAudit {
   location: ExpenseLocation | null;
   payers: { member_id: string; amount: string }[];
   shares: { member_id: string; amount: string }[];
+  // The columns the diff reads beyond the headline fields. Without them an edit
+  // that touched only a note or a time of day looked like "nothing changed".
+  notes: string | null;
+  payment_method: string | null;
+  /** Time of day, a UTC instant. Null on rows from before it was editable. */
+  occurred_at: string | null;
+  receipt_id: string | null;
+  is_deposit: boolean;
+  /** Minor units; a number or string depending on size, read through BigInt. */
+  balance_due_minor: string | number | null;
+  balance_due_date: string | null;
+  sub_event_id: string | null;
+  /** Weights / percents / items; only compared, never shown. */
+  split_params: unknown;
 }
 
 export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVersionAudit[]> {
@@ -703,6 +717,8 @@ export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVe
       .select(
         'id, version_no, description, amount, currency, created_at, author_member_id, split_type, ' +
           'category, category_meta, expense_date, location, ' +
+          'notes, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
+          'balance_due_date, sub_event_id, split_params, ' +
           'payers:expense_payers ( member_id, amount ), ' +
           'shares:expense_shares ( member_id, amount )',
       )
