@@ -49,3 +49,9 @@ BEGIN
   RETURN public.waves_bucket('voice_agent:' || p_profile::text) < v_flag.rollout_percent;
 END
 $$;
+
+-- CREATE OR REPLACE keeps the grants, but say them here anyway: the caller
+-- model is service-role only (the app reaches it through
+-- waves_my_voice_agent_enabled), exactly as 20261007120000_voice_agent set it.
+REVOKE ALL ON FUNCTION public.waves_voice_agent_enabled(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_agent_enabled(uuid) TO service_role;
