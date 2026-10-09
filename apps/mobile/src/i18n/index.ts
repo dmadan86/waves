@@ -3455,6 +3455,8 @@ export interface UiStrings {
     tripDatesBody: string;
     bankRateNote: string;
     listening: string;
+    /** The mic was tapped and is opening; turns into `listening` once audio is captured. */
+    micStarting: string;
     whereSettle: string;
     youHaveVersion: string;
     versionAvailable: string;
@@ -7465,6 +7467,7 @@ const en: UiStrings = {
       'While the trip is on, everybody gets a nudge to add what they spent — at breakfast about yesterday, and at the end of the day about today. Nobody is asked about a day they have already added to.',
     bankRateNote: 'Your bank’s rate, markup included — this is what your statement says.',
     listening: 'Listening…',
+    micStarting: 'Starting…',
     whereSettle: 'Where does this group settle?',
     youHaveVersion: 'You have {installed}',
     versionAvailable: ' · {latest} is available',
@@ -11474,6 +11477,7 @@ const ta: UiStrings = {
     bankRateNote:
       'உங்கள் வங்கியின் விகிதம், கூடுதல் கட்டணம் உட்பட — இதுதான் உங்கள் அறிக்கையில் இருக்கும்.',
     listening: 'கேட்கிறது…',
+    micStarting: 'தொடங்குகிறது…',
     whereSettle: 'இந்தக் குழு எங்கே தீர்த்துக்கொள்கிறது?',
     youHaveVersion: 'உங்களிடம் {installed} உள்ளது',
     versionAvailable: ' · {latest} கிடைக்கிறது',
@@ -15449,6 +15453,7 @@ const hi: UiStrings = {
       'जब तक यात्रा चलती है, सभी को खर्च जोड़ने का संकेत मिलता है — नाश्ते के समय कल के बारे में, और दिन के अंत में आज के बारे में। जिस दिन को पहले ही जोड़ लिया गया, उसके बारे में किसी से नहीं पूछा जाता।',
     bankRateNote: 'आपके बैंक की दर, मार्कअप सहित — यही आपके स्टेटमेंट में दिखता है।',
     listening: 'सुन रहा है…',
+    micStarting: 'शुरू हो रहा है…',
     whereSettle: 'यह समूह कहाँ निपटान करता है?',
     youHaveVersion: 'आपके पास {installed} है',
     versionAvailable: ' · {latest} उपलब्ध है',
@@ -19623,6 +19628,7 @@ const ar: UiStrings = {
       'أثناء الرحلة، يتلقّى الجميع تذكيرًا بإضافة ما أنفقوه — عند الإفطار عن الأمس، وفي نهاية اليوم عن اليوم. لا يُسأل أحد عن يوم سبق أن أضافه.',
     bankRateNote: 'سعر بنكك، شاملًا الهامش — هذا ما يقوله كشف حسابك.',
     listening: 'يستمع…',
+    micStarting: 'جارٍ البدء…',
     whereSettle: 'أين تُسوّي هذه المجموعة حساباتها؟',
     youHaveVersion: 'لديك {installed}',
     versionAvailable: ' · {latest} متاح',

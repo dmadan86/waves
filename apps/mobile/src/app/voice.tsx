@@ -410,7 +410,11 @@ export default function VoiceScreen() {
   // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
   // and the live transcript goes to the agent (phase 'agent') instead of straight
   // to the on-device parser. Off, none of this runs and the screen behaves as it always has.
-  const { enabled: agentServerOn, ready: agentStatusReady } = useVoiceAgentStatus();
+  const {
+    enabled: agentServerOn,
+    ready: agentStatusReady,
+    lastKnown: agentLastKnown,
+  } = useVoiceAgentStatus();
   // Nothing streams until the person has agreed to send their voice to the
   // third-party AI (Apple 5.1.2(i)): the sheet below asks once, and "Not now"
   // keeps this visit on the on-device voice.
@@ -2318,6 +2322,9 @@ export default function VoiceScreen() {
               onDone={handleTranscript}
               streamLive={agentOn}
               agentReady={agentReady}
+              // Once the server has answered, that answer stands (a "not Pro"
+              // needs no consent read); before it, the phone's last answer.
+              agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
               cloudConsent={agentServerOn ? cloudConsent : 'granted'}
               onEngine={setEngine}
               groupId={launchGroupId}

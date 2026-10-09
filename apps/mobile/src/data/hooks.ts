@@ -127,6 +127,7 @@ import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
 import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
+import { rememberVoiceAgentStatus, useVoiceAgentLastKnown } from '@/lib/voiceAgentLastKnown';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { previousMonthPrefix } from '@/lib/homeDashboard';
 import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
@@ -2986,20 +2987,39 @@ export function useVoiceAgentEnabled(): boolean {
   return useVoiceAgentStatus().enabled;
 }
 
-/** `enabled` plus whether the answer is known yet (a pending read is not "off"). */
-export function useVoiceAgentStatus(): { enabled: boolean; ready: boolean } {
+/**
+ * `enabled` plus whether the answer is known yet (a pending read is not "off"),
+ * and `lastKnown`: the answer this phone last saw, remembered across launches,
+ * so the mic can open at once on a cold start instead of waiting for the server
+ * (null when it has never seen one).
+ *
+ * Mounted from the tab bar as well as the voice screen, so the read is already
+ * in flight — usually done — by the time the mic is tapped.
+ */
+export function useVoiceAgentStatus(): {
+  enabled: boolean;
+  ready: boolean;
+  lastKnown: boolean | null;
+} {
   const { profile } = useAuth();
+  const profileId = profile?.id ?? null;
   const query = useQuery({
-    queryKey: ['voiceAgentEnabled', profile?.id ?? null],
+    queryKey: ['voiceAgentEnabled', profileId],
     queryFn: async (): Promise<boolean> => {
       const { data, error } = await backend.rpc('waves_my_voice_agent_enabled');
       if (error) throw new Error(error.message);
       return data === true;
     },
-    enabled: !!profile?.id,
+    enabled: !!profileId,
     staleTime: 10 * 60_000,
   });
-  return { enabled: query.data === true, ready: !profile?.id || !query.isPending };
+  const lastKnown = useVoiceAgentLastKnown(profileId);
+  // Only a real answer is remembered; a failed read (shown as "off") is not.
+  const answer = query.isSuccess ? query.data === true : null;
+  useEffect(() => {
+    if (profileId && answer !== null) rememberVoiceAgentStatus(profileId, answer);
+  }, [profileId, answer]);
+  return { enabled: query.data === true, ready: !profileId || !query.isPending, lastKnown };
 }
 
 export function useVoiceAccess() {

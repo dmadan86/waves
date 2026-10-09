@@ -338,3 +338,68 @@ describe('two taps at once', () => {
     expect([a, b].filter(Boolean)).toHaveLength(1);
   });
 });
+
+describe('an ending heard with no capture surface mounted', () => {
+  it('lets a reopen claim the mic as soon as the aborted session ends, not after the guard', async () => {
+    const first = Symbol('first');
+    await mic.acquire(first);
+    mic.opened(first);
+    // The voice screen is closed mid-sentence: the abort is issued and nothing
+    // mounted is left to pass its `end` on.
+    mic.release(first);
+
+    const second = Symbol('second');
+    let claimed: boolean | null = null;
+    void mic.acquire(second).then((granted) => {
+      claimed = granted;
+    });
+    await Promise.resolve();
+    expect(claimed).toBeNull();
+
+    // The app-wide listener hears the teardown land, well inside the guard.
+    vi.advanceTimersByTime(20);
+    mic.orphanEnded();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(claimed).toBe(true);
+    expect(mic.owns(second)).toBe(true);
+  });
+
+  it('never ends a session somebody owns', async () => {
+    const first = Symbol('first');
+    await mic.acquire(first);
+    mic.opened(first);
+    mic.orphanEnded();
+    expect(mic.owns(first)).toBe(true);
+    expect(mic.state).toBe('open');
+    // Its own surface still gets to call the ending its own.
+    expect(mic.ended(first)).toBe(true);
+  });
+
+  it('pays the owed ending even after the guard settled it, so it cannot swallow the next one', async () => {
+    const first = Symbol('first');
+    await mic.acquire(first);
+    mic.opened(first);
+    mic.release(first);
+    // The guard gives up waiting; then the late `end` arrives with no owner.
+    vi.advanceTimersByTime(SETTLE);
+    expect(mic.state).toBe('idle');
+    mic.orphanEnded();
+
+    const second = Symbol('second');
+    await mic.acquire(second);
+    mic.opened(second);
+    // The next capture's genuine ending is its own, not swallowed as the debt.
+    expect(mic.ended(second)).toBe(true);
+  });
+
+  it('agrees with a mounted surface that heard the same ending first', async () => {
+    const first = Symbol('first');
+    await mic.acquire(first);
+    mic.opened(first);
+    mic.release(first);
+    const bystander = Symbol('bystander');
+    expect(mic.ended(bystander)).toBe(false);
+    mic.orphanEnded();
+    expect(mic.state).toBe('idle');
+  });
+});
