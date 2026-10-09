@@ -2872,9 +2872,13 @@ export function useOpenReceipts(groupId: string) {
  * every real STT call.
  */
 /**
- * Is Pro advanced voice on for this person? The server answers (allowlist, then
- * the `voice_agent` flag's rollout), since testers are allowlisted while the
- * plain flag stays off. Unknown or failed reads as off — the basic voice path.
+ * Is Pro advanced voice on for this person? The server answers
+ * (`waves_voice_agent_enabled`): never a guest; an allowlisted profile is on
+ * (testers stay on while the plain flag is off); otherwise the `voice_agent`
+ * flag must be on AND the person must hold a Pro subscription (active or grace,
+ * unexpired) AND be inside the flag's rollout. Unknown or failed reads as off —
+ * the basic voice path. Cached ten minutes; the root layout and the paywall
+ * invalidate `['voiceAgentEnabled']` when the plan changes.
  */
 export function useVoiceAgentEnabled(): boolean {
   return useVoiceAgentStatus().enabled;

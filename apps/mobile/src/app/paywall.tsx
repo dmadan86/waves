@@ -13,6 +13,7 @@
  * here is RevenueCat's CustomerInfo, for display only.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -92,6 +93,7 @@ export default function PaywallScreen() {
   const chosen = cards.find((card) => card.tier === selected) ?? cards[cards.length - 1];
   const chosenIsCurrent = chosen ? chosen.tier === current : false;
 
+  const queryClient = useQueryClient();
   const buy = useCallback(async () => {
     if (!chosen || purchasing || chosenIsCurrent || !offering) return;
     const pkg = offering.availablePackages.find((p) => p.identifier === chosen.packageId);
@@ -100,6 +102,7 @@ export default function PaywallScreen() {
     try {
       const outcome = await purchase(pkg);
       if (outcome === 'purchased') {
+        void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
         toast.show(fill(t.paywall.purchased, { plan: planName(t, chosen.tier) }), 'positive');
         router.back();
       } else if (outcome === 'pending') {
@@ -110,12 +113,13 @@ export default function PaywallScreen() {
     } finally {
       setPurchasing(false);
     }
-  }, [chosen, purchasing, chosenIsCurrent, offering, toast, t]);
+  }, [chosen, purchasing, chosenIsCurrent, offering, toast, t, queryClient]);
 
   const onRestore = useCallback(async () => {
     setRestoring(true);
     try {
       const tier = await restore();
+      void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
       const found = isPaidTier(tier);
       toast.show(
         found ? t.paywall.restoredSuccess : t.paywall.restoredNothing,
@@ -126,7 +130,7 @@ export default function PaywallScreen() {
     } finally {
       setRestoring(false);
     }
-  }, [toast, t]);
+  }, [toast, t, queryClient]);
 
   const cta = !chosen
     ? fill(t.paywall.subscribe, { plan: t.paywall.proTitle })

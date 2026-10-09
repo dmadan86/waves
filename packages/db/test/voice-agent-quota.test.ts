@@ -140,13 +140,90 @@ describe('waves_voice_agent_enabled', () => {
     expect(await enabled(b)).toBe(false);
   });
 
-  it('follows enabled + rollout_percent for everybody else', async () => {
+  it('follows enabled + rollout_percent for a Pro subscriber', async () => {
+    await subscribe(b, 'pro');
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
     expect(await enabled(b)).toBe(true);
     await client.query(`UPDATE feature_flags SET rollout_percent = 0 WHERE key = 'voice_agent'`);
     expect(await enabled(b)).toBe(false);
+  });
+
+  it('is off for free and Plus even at full rollout: cloud voice is Pro', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    expect(await enabled(a)).toBe(false);
+    await subscribe(a, 'plus');
+    expect(await enabled(a)).toBe(false);
+  });
+
+  it('counts a promo Pro grant, and not a lapsed or cancelled Pro', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    await subscribe(a, 'pro', 'play', `now() - interval '1 day'`);
+    await client.query(
+      `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store)
+       VALUES ($1, 'pro', 'monthly', 'cancelled', now() + interval '30 days', 'appstore')`,
+      [a],
+    );
+    expect(await enabled(a)).toBe(false);
+    await subscribe(b, 'pro', 'promo', 'NULL');
+    expect(await enabled(b)).toBe(true);
+  });
+
+  it('counts a Pro in grace, but not past its expiry', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    await subscribe(b, 'pro');
+    await client.query(`UPDATE subscriptions SET status = 'grace' WHERE profile_id = $1`, [b]);
+    expect(await enabled(b)).toBe(true);
+    await client.query(
+      `UPDATE subscriptions SET current_period_end = now() - interval '1 day' WHERE profile_id = $1`,
+      [b],
+    );
+    expect(await enabled(b)).toBe(false);
+  });
+
+  it('keeps the kill switch above a subscription', async () => {
+    await subscribe(b, 'pro');
+    expect(await enabled(b)).toBe(false);
+  });
+
+  it('is off for a guest, even a Pro, allowlisted one', async () => {
+    // The stub auth.users this suite runs against has no is_anonymous column;
+    // it is added inside a transaction that is rolled back.
+    await client.query(`CREATE SCHEMA IF NOT EXISTS auth`);
+    await client.query(`CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY)`);
+    await client.query('BEGIN');
+    try {
+      await client.query(
+        `ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS is_anonymous boolean NOT NULL DEFAULT false`,
+      );
+      await client.query(
+        `INSERT INTO auth.users (id) VALUES ($1), ($2) ON CONFLICT (id) DO NOTHING`,
+        [a, b],
+      );
+      await client.query(`UPDATE auth.users SET is_anonymous = true WHERE id = $1`, [a]);
+      await client.query(
+        `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+      );
+      await subscribe(a, 'pro');
+      await subscribe(b, 'pro');
+      await client.query(`INSERT INTO voice_agent_allowlist (profile_id) VALUES ($1)`, [a]);
+      expect(await enabled(a)).toBe(false);
+      expect(await enabled(b)).toBe(true);
+    } finally {
+      await client.query('ROLLBACK');
+    }
+  });
+
+  it('is off for no one at all', async () => {
+    const { rows } = await client.query(`SELECT public.waves_voice_agent_enabled(NULL) AS e`);
+    expect(rows[0].e).toBe(false);
   });
 });
 
