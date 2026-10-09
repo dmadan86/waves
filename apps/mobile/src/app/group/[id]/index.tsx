@@ -45,6 +45,7 @@ import { myStake } from '@/data/activity';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { sendNudge, useNudge } from '@/lib/nudge';
 import { expenseTitle } from '@/data/expenseTitle';
+import { MissingRatesCard } from '@/components/MissingRates';
 import { personKeyOf } from '@/data/peopleBalances';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
@@ -1248,6 +1249,13 @@ export default function GroupScreen() {
               query={query}
               onQuery={setQuery}
             />
+          ) : null}
+          {activeTab === Tab.Balances ? (
+            // Foreign bills saved without a rate hide their conversion; this
+            // only appears while there are some, with the fix one tap away.
+            <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.sm }}>
+              <MissingRatesCard groupId={groupId} />
+            </View>
           ) : null}
         </View>
 

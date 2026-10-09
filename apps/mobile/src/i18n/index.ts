@@ -4439,6 +4439,21 @@ export interface UiStrings {
     change: string;
     /** The quiet link that fills the rate in from today’s mid-market rate. */
     useTodaysRate: string;
+    /** Shown where the rate line is while a rate is being fetched. */
+    fetchingRate: string;
+    /** The link after a failed fetch, and the retry button after a partial backfill. */
+    retryRate: string;
+    /** "Add missing rates" banner. {n} is the number of bills without a rate. */
+    missingRatesBody: string;
+    missingRatesAction: string;
+    /** {done} of {total}. */
+    missingRatesProgress: string;
+    /** {n} bills updated. */
+    missingRatesDone: string;
+    /** {n} updated, {failed} could not get a rate. */
+    missingRatesPartial: string;
+    /** Some bills are somebody else's to change. */
+    missingRatesOthers: string;
     /** Says the number showing was fetched, not invented — the caption under a rate the app filled in. */
     todaysRate: string;
     /** Confirmation before a pinned rate is dropped. */
@@ -8323,6 +8338,16 @@ const en: UiStrings = {
     tierBill: 'This bill',
     change: 'Change',
     useTodaysRate: 'Use today’s rate',
+    fetchingRate: 'Getting the rate…',
+    retryRate: 'Retry',
+    missingRatesBody:
+      'Bills in other currencies without a rate: {n}. Their converted amounts stay hidden until a rate is added.',
+    missingRatesAction: 'Add missing rates',
+    missingRatesProgress: 'Adding rates… {done} of {total}',
+    missingRatesDone: 'Added a rate to {n} bills.',
+    missingRatesPartial:
+      'Added a rate to {n} bills; {failed} could not get one. Check your connection and try again.',
+    missingRatesOthers: 'Some bills belong to someone else; only they can add a rate to those.',
     todaysRate: 'Today’s rate',
     removeConfirm: 'Bills already saved keep the rate they were saved with.',
     appliesNote: 'Changing a rate never moves a bill already saved.',
@@ -12355,6 +12380,17 @@ const ta: UiStrings = {
     tierBill: 'இந்த பில்',
     change: 'மாற்று',
     useTodaysRate: 'இன்றைய விகிதத்தைப் பயன்படுத்து',
+    fetchingRate: 'விகிதம் பெறுகிறது…',
+    retryRate: 'மீண்டும் முயல்',
+    missingRatesBody:
+      'விகிதம் இல்லாத பிற நாணயப் பில்கள்: {n}. விகிதம் சேர்க்கும் வரை மாற்றப்பட்ட தொகைகள் மறைந்திருக்கும்.',
+    missingRatesAction: 'விடுபட்ட விகிதங்களைச் சேர்',
+    missingRatesProgress: 'விகிதங்களைச் சேர்க்கிறது… {total} இல் {done}',
+    missingRatesDone: '{n} பில்களுக்கு விகிதம் சேர்க்கப்பட்டது.',
+    missingRatesPartial:
+      '{n} பில்களுக்கு விகிதம் சேர்க்கப்பட்டது; {failed} பில்களுக்குப் பெற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.',
+    missingRatesOthers:
+      'சில பில்கள் வேறொருவருடையவை; அவற்றுக்கு அவர்களால் மட்டுமே விகிதம் சேர்க்க முடியும்.',
     todaysRate: 'இன்றைய விகிதம்',
     removeConfirm: 'ஏற்கெனவே சேமித்த பில்கள் அவை சேமித்த விகிதத்தையே வைத்திருக்கும்.',
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
@@ -16237,6 +16273,16 @@ const hi: UiStrings = {
     tierBill: 'यह बिल',
     change: 'बदलें',
     useTodaysRate: 'आज की दर लें',
+    fetchingRate: 'दर ला रहे हैं…',
+    retryRate: 'फिर कोशिश करें',
+    missingRatesBody:
+      'दूसरी मुद्रा के जिन बिलों में दर नहीं है: {n}। दर जोड़ने तक उनकी बदली हुई रकम छिपी रहेगी।',
+    missingRatesAction: 'छूटी हुई दरें जोड़ें',
+    missingRatesProgress: 'दरें जोड़ी जा रही हैं… {total} में से {done}',
+    missingRatesDone: '{n} बिलों में दर जोड़ी गई।',
+    missingRatesPartial:
+      '{n} बिलों में दर जोड़ी गई; {failed} के लिए दर नहीं मिल सकी। कनेक्शन जाँचकर फिर कोशिश करें।',
+    missingRatesOthers: 'कुछ बिल किसी और के हैं; उनमें दर सिर्फ़ वही जोड़ सकते हैं।',
     todaysRate: 'आज की दर',
     removeConfirm: 'पहले सहेजे गए बिल उसी दर पर रहेंगे जिस पर सहेजे गए थे।',
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
@@ -20649,6 +20695,16 @@ const ar: UiStrings = {
     tierBill: 'هذه الفاتورة',
     change: 'تغيير',
     useTodaysRate: 'استخدم سعر اليوم',
+    fetchingRate: 'جارٍ جلب السعر…',
+    retryRate: 'إعادة المحاولة',
+    missingRatesBody:
+      'فواتير بعملات أخرى بلا سعر صرف: {n}. تبقى مبالغها المحوّلة مخفية حتى يُضاف سعر.',
+    missingRatesAction: 'إضافة الأسعار الناقصة',
+    missingRatesProgress: 'جارٍ إضافة الأسعار… {done} من {total}',
+    missingRatesDone: 'تمت إضافة سعر إلى {n} من الفواتير.',
+    missingRatesPartial:
+      'تمت إضافة سعر إلى {n} من الفواتير؛ وتعذّر ذلك لـ {failed}. تحقق من الاتصال وحاول مجددًا.',
+    missingRatesOthers: 'بعض الفواتير تخص شخصًا آخر؛ هو وحده يستطيع إضافة سعر إليها.',
     todaysRate: 'سعر اليوم',
     removeConfirm: 'الفواتير المحفوظة تبقى على السعر الذي حُفظت به.',
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
