@@ -4,11 +4,13 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   Pressable,
   ScrollView,
   Share,
+  StyleSheet,
   View,
 } from 'react-native';
 import QRCodeStyled from 'react-native-qrcode-styled';
@@ -19,7 +21,7 @@ import {
   Button,
   Callout,
   Card,
-  Gradient,
+  directionalIcon,
   IconButton,
   iconSize,
   Row,
@@ -36,10 +38,30 @@ import { friendlyError } from '@/lib/errors';
 import { useGroup } from '@/data/hooks';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
-import { displayName, groupLabel, isGhost } from '@/data/types';
+import { displayName, groupLabel, GroupType, isGhost } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
 import { shareInviteCard } from '@/lib/shareInviteCard';
+
+const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as number;
+
+// Sizes that make the screen fit one phone (~800dp) with no scrolling: header
+// ~50, illustration 112 (16 of it under the card), card ~350, share row ~95,
+// button 48, trust line ~28 and the gaps between.
+const ILLUSTRATION_HEIGHT = 112;
+const QR_SIZE = 148;
+const BRACKET_GAP = 8;
+// Room kept at the end of the group row for the members pill that floats over it.
+const PILL_RESERVE = 112;
+
+/** The glyph for the round badge, by group type (same set the new-group screen uses). */
+const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  [GroupType.Trip]: 'airplane',
+  [GroupType.Home]: 'home',
+  [GroupType.Couple]: 'heart',
+  [GroupType.Event]: 'people',
+  [GroupType.Friends]: 'people',
+};
 
 /**
  * The group's durable join link, as an invitation rather than a naked code.
@@ -128,6 +150,18 @@ export default function InviteScreen() {
   // Who is already here, for the row of faces on the card. Ghosts are people
   // somebody typed in rather than people who arrived, so they are counted —
   // they are in the group — but the `ghost` styling says which is which.
+  // "Scan this QR code to join the trip". Only types that read naturally after
+  // "the" get their own word; couple/other fall back to the plain "group".
+  const typeKey = group.data?.type;
+  const typeWord = (
+    typeKey === GroupType.Trip ||
+    typeKey === GroupType.Home ||
+    typeKey === GroupType.Event ||
+    typeKey === GroupType.Friends
+      ? t.groupExport.types[typeKey]
+      : t.groupExport.types.other
+  ).toLowerCase();
+
   const present = (members.data ?? []).filter((member) => !member.left_at);
   const faces = present.slice(0, 4);
   const overflow = present.length - faces.length;
@@ -163,6 +197,16 @@ export default function InviteScreen() {
     try {
       await Linking.openURL(url);
     } catch {
+      // No WhatsApp scheme handler (not installed, or iOS not allow-listing it):
+      // the web link opens the app if present or the web page if not.
+      if (channel === 'whatsapp') {
+        try {
+          await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`);
+          return;
+        } catch {
+          // fall through to the system sheet
+        }
+      }
       await Share.share({ message });
     }
   };
@@ -176,18 +220,24 @@ export default function InviteScreen() {
 
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.xs }}>
         <IconButton label={t.common.close} onPress={() => router.back()}>
           <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
         </IconButton>
-        {/* Title only. The group's name was a second line here, but the screen
-            is opened from inside that group — it said what the user already
-            knew, and a long name pushed the header out of shape. The name now
-            sits on the card, where it is part of the invitation instead of a
-            label, and travels with the shared image. */}
+        {/* Title and a one-line promise. The group's name is not here: the
+            screen is opened from inside that group, so it said what the user
+            already knew. It sits on the card, where it is part of the
+            invitation and travels with the shared image. The title is a notch
+            under the `heading` size so the whole screen fits without a scroll. */}
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.people.inviteTitle}</Text>
+          <Text variant="heading" style={{ fontSize: 22, lineHeight: 27 }}>
+            {t.people.inviteTitle}
+          </Text>
+          <Text variant="caption" tone="muted" align="center" numberOfLines={2}>
+            {t.people.inviteSubtitle}
+          </Text>
         </View>
+        {/* Balances the close button so the title stays centred. */}
         <View style={{ width: 44 }} />
       </Row>
 
@@ -195,68 +245,114 @@ export default function InviteScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
-          // Plus a line's worth, so the closing sentence is not sitting on
-          // the navigation bar.
-          paddingBottom: clearance + theme.spacing.lg,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.xs,
+          // Plus a little, so the closing line is not sitting on the
+          // navigation bar. Everything is sized to fit one phone without
+          // scrolling; the ScrollView is only the net for big text sizes.
+          paddingBottom: clearance + theme.spacing.sm,
+          gap: theme.spacing.sm,
         }}
         showsVerticalScrollIndicator={false}
       >
         {link ? (
           <>
+            {/* Friends above the card, cropped from the top so it is faces that
+                show and the table is hidden by the card riding over it. Kept
+                short on purpose: this screen has to fit one phone. */}
+            <View style={{ height: ILLUSTRATION_HEIGHT, overflow: 'hidden', alignItems: 'center' }}>
+              <Image
+                source={FRIENDS}
+                accessible={false}
+                resizeMode="cover"
+                style={{ width: '100%', aspectRatio: 1200 / 614 }}
+              />
+            </View>
+
             {/* The invitation. One object: whose group, who is in it, and the
-                code to join — on the brand wash, so it reads as something
-                handed over rather than a utility panel. */}
-            <View ref={inviteCardRef} collapsable={false}>
-              <Gradient radius={theme.radius.lg} style={{ padding: theme.spacing.lg }}>
-                <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                  <Text variant="title" style={{ color: '#ffffff' }} align="center">
-                    {label}
-                  </Text>
-                  {present.length > 0 ? (
-                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                      {plural(locale, present.length, t.people.inviteMembersHere)}
+                code to join, then the link under it. */}
+            <View
+              style={{
+                marginTop: -theme.spacing.lg,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.xl,
+                backgroundColor: theme.color.surface,
+                ...theme.shadow.soft,
+              }}
+            >
+              {/* The part that is captured for "Share invite". The members pill
+                  and the link row are outside it: an image of a button and a
+                  copy control would be dead weight in a chat. */}
+              <View
+                ref={inviteCardRef}
+                collapsable={false}
+                style={{ backgroundColor: theme.color.surface, gap: theme.spacing.sm }}
+              >
+                <Row style={{ gap: theme.spacing.md, paddingEnd: PILL_RESERVE }}>
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons
+                      name={TYPE_ICON[group.data?.type ?? ''] ?? 'people'}
+                      size={iconSize.xl}
+                      color={theme.color.brand}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="subheading" numberOfLines={1}>
+                      {label}
                     </Text>
-                  ) : null}
-                </View>
+                    {present.length > 0 ? (
+                      <Text variant="caption" tone="muted" numberOfLines={1}>
+                        {plural(locale, present.length, t.people.inviteMembersHere)}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Row>
 
                 {faces.length > 0 ? (
                   // Overlapped with a negative *start* margin rather than a left
                   // one, so the stack falls the right way round in Arabic.
-                  <Row style={{ justifyContent: 'center', marginTop: theme.spacing.md }}>
+                  <Row>
                     {faces.map((member, index) => (
                       <View
                         key={member.id}
                         style={{
-                          marginStart: index === 0 ? 0 : -12,
+                          marginStart: index === 0 ? 0 : -8,
                           borderRadius: 999,
                           borderWidth: 2,
-                          borderColor: '#ffffff',
+                          borderColor: theme.color.surface,
                         }}
                       >
                         <Avatar
                           name={displayName(member, profile?.id, null, t.misc.someone)}
                           ghost={isGhost(member)}
-                          size={36}
+                          size={28}
                         />
                       </View>
                     ))}
                     {overflow > 0 ? (
                       <View
                         style={{
-                          marginStart: -12,
-                          width: 36,
-                          height: 36,
+                          marginStart: -8,
+                          width: 32,
+                          height: 32,
                           borderRadius: 999,
-                          borderWidth: 2,
-                          borderColor: '#ffffff',
-                          backgroundColor: 'rgba(255,255,255,0.25)',
+                          borderWidth: 1,
+                          borderStyle: 'dashed',
+                          borderColor: theme.color.brand,
+                          backgroundColor: theme.color.brandSoft,
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Text variant="caption" style={{ color: '#ffffff' }}>
+                        <Text variant="micro" style={{ color: theme.color.brand }}>
                           {`+${overflow}`}
                         </Text>
                       </View>
@@ -264,64 +360,103 @@ export default function InviteScreen() {
                   </Row>
                 ) : null}
 
-                {/* The code sits on its own white plate whatever the theme is
-                  doing: a QR on a dark ground does not scan. */}
                 <View
-                  style={{
-                    alignSelf: 'center',
-                    marginTop: theme.spacing.lg,
-                    padding: theme.spacing.md,
-                    backgroundColor: '#ffffff',
-                    borderRadius: theme.radius.lg,
-                  }}
-                >
-                  <QRCodeStyled
-                    data={link}
-                    size={208}
-                    padding={16}
-                    style={{ backgroundColor: '#ffffff' }}
-                    // The RN `backgroundColor` style is not rasterised by
-                    // `toDataURL`, so a captured/shared PNG would come out with a
-                    // transparent ground — the dark pieces then vanish on a dark
-                    // chat bubble (WhatsApp). Paint the white quiet zone as an SVG
-                    // layer behind the code instead, so it is part of the export.
-                    renderBackground={() => (
-                      <Rect x={-40} y={-40} width={330} height={330} fill="#ffffff" />
-                    )}
-                    color="#0A0A1A"
-                    errorCorrectionLevel="H"
-                    pieceBorderRadius="50%"
-                    pieceScale={0.92}
-                    outerEyesOptions={{ borderRadius: '28%', color: '#0A0A1A' }}
-                    innerEyesOptions={{ borderRadius: '35%', color: '#0A0A1A' }}
-                    logo={{
-                      href: require('../../../../assets/images/icon.png'),
-                      scale: 0.85,
-                      padding: 6,
-                      hidePieces: true,
-                    }}
-                  />
+                  style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+                />
+
+                {/* The code sits on its own white plate whatever the theme is
+                    doing: a QR on a dark ground does not scan. The brackets are
+                    the brand's frame round it; they sit outside the plate, in
+                    the wrapper's padding, so they never cover a module. */}
+                <View style={{ alignSelf: 'center', padding: BRACKET_GAP }}>
+                  <View style={{ backgroundColor: '#ffffff', borderRadius: theme.radius.sm }}>
+                    <QRCodeStyled
+                      data={link}
+                      size={QR_SIZE}
+                      padding={8}
+                      style={{ backgroundColor: '#ffffff' }}
+                      // The RN `backgroundColor` style is not rasterised by
+                      // `toDataURL`, so a captured/shared PNG would come out with a
+                      // transparent ground — the dark pieces then vanish on a dark
+                      // chat bubble (WhatsApp). Paint the white quiet zone as an SVG
+                      // layer behind the code instead, so it is part of the export.
+                      renderBackground={() => (
+                        <Rect x={-40} y={-40} width={330} height={330} fill="#ffffff" />
+                      )}
+                      color="#0A0A1A"
+                      errorCorrectionLevel="H"
+                      pieceBorderRadius="50%"
+                      pieceScale={0.92}
+                      outerEyesOptions={{ borderRadius: '28%', color: '#0A0A1A' }}
+                      innerEyesOptions={{ borderRadius: '35%', color: '#0A0A1A' }}
+                      logo={{
+                        href: require('../../../../assets/images/icon.png'),
+                        scale: 0.85,
+                        padding: 4,
+                        hidePieces: true,
+                      }}
+                    />
+                  </View>
+                  <Bracket corner="top-start" color={theme.color.brand} />
+                  <Bracket corner="top-end" color={theme.color.brand} />
+                  <Bracket corner="bottom-start" color={theme.color.brand} />
+                  <Bracket corner="bottom-end" color={theme.color.brand} />
                 </View>
 
+                <Text variant="caption" align="center">
+                  {fill(t.people.scanToJoinType, { type: typeWord })}
+                </Text>
+              </View>
+
+              {/* Opens the members screen. Over the card's corner rather than in
+                  the captured row, and pinned to the end so it mirrors in RTL. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={plural(locale, present.length, t.people.inviteMembersPill)}
+                onPress={() => router.push(`/group/${groupId}/members`)}
+                style={({ pressed }) => ({
+                  position: 'absolute',
+                  top: theme.spacing.md,
+                  end: theme.spacing.md,
+                  height: 36,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  paddingHorizontal: theme.spacing.sm,
+                  borderRadius: 999,
+                  backgroundColor: theme.color.brandSoft,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name="people" size={iconSize.md} color={theme.color.brand} />
+                <Text variant="caption" style={{ color: theme.color.brand }} numberOfLines={1}>
+                  {plural(locale, present.length, t.people.inviteMembersPill)}
+                </Text>
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.sm}
+                  color={theme.color.brand}
+                />
+              </Pressable>
+
+              {/* The link, with copying on it rather than beside it. Copy used to
+                  be a fifth circle on the channel row, which put the act of
+                  taking the link somewhere other than the link itself. */}
+              <Row
+                style={{
+                  gap: theme.spacing.sm,
+                  marginTop: theme.spacing.sm,
+                  paddingStart: theme.spacing.md,
+                  paddingVertical: theme.spacing.xs,
+                  paddingEnd: theme.spacing.xs,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                <Ionicons name="link" size={iconSize.md} color={theme.color.brand} />
                 <Text
                   variant="caption"
-                  align="center"
-                  style={{ color: 'rgba(255,255,255,0.85)', marginTop: theme.spacing.md }}
-                >
-                  {t.people.scanToJoin}
-                </Text>
-              </Gradient>
-            </View>
-
-            {/* The link, with copying on it rather than beside it. Copy used to
-                be a fifth circle on the channel row, which put the act of taking
-                the link somewhere other than the link itself. */}
-            <Card style={{ paddingVertical: theme.spacing.sm }}>
-              <Row style={{ gap: theme.spacing.sm }}>
-                <Ionicons name="link" size={iconSize.md} color={theme.color.textMuted} />
-                <Text
-                  variant="body"
-                  style={{ flex: 1, color: theme.color.brand }}
+                  style={{ flex: 1 }}
                   numberOfLines={1}
                   // The token is the end of the URL and the only part that
                   // differs between groups, so it is the half worth keeping.
@@ -343,10 +478,10 @@ export default function InviteScreen() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: theme.spacing.xs,
-                    paddingHorizontal: theme.spacing.sm,
-                    paddingVertical: theme.spacing.xs,
+                    paddingHorizontal: theme.spacing.md,
+                    paddingVertical: theme.spacing.sm,
                     borderRadius: 999,
-                    backgroundColor: theme.color.surfaceMuted,
+                    backgroundColor: theme.color.brandSoft,
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
@@ -360,11 +495,30 @@ export default function InviteScreen() {
                   </Text>
                 </Pressable>
               </Row>
-            </Card>
+            </View>
 
-            {/* The quick roads: each one opens an app with the link already
-                written. A named channel beats the OS sheet when you already know
-                where this person lives. */}
+            {/* "Share via": the quick roads. Each one opens an app with the link
+                already written; a named channel beats the OS sheet when you
+                already know where this person lives. */}
+            <Row style={{ gap: theme.spacing.md, marginTop: theme.spacing.xs }}>
+              <View
+                style={{
+                  flex: 1,
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: theme.color.border,
+                }}
+              />
+              <Text variant="caption" tone="muted">
+                {t.people.shareVia}
+              </Text>
+              <View
+                style={{
+                  flex: 1,
+                  height: StyleSheet.hairlineWidth,
+                  backgroundColor: theme.color.border,
+                }}
+              />
+            </Row>
             <Row style={{ gap: theme.spacing.md }}>
               {(
                 [
@@ -386,7 +540,7 @@ export default function InviteScreen() {
                   style={({ pressed }) => ({
                     flex: 1,
                     alignItems: 'center',
-                    gap: theme.spacing.xs,
+                    gap: 2,
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
@@ -395,15 +549,15 @@ export default function InviteScreen() {
                       real screen; a circle is one number, not a proportion. */}
                   <View
                     style={{
-                      width: 60,
-                      height: 60,
-                      borderRadius: 30,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: option.color,
                     }}
                   >
-                    <Ionicons name={option.icon} size={iconSize.lg} color="#ffffff" />
+                    <Ionicons name={option.icon} size={iconSize.xl} color="#ffffff" />
                   </View>
                   <Text variant="caption" tone="muted" align="center" numberOfLines={1}>
                     {option.label}
@@ -416,14 +570,15 @@ export default function InviteScreen() {
                 path that sends the code as a picture. */}
             <Button
               label={t.people.shareInvite}
-              size="lg"
+              variant="brand"
               fullWidth
+              icon={<Ionicons name="share-social" size={iconSize.lg} color={theme.color.onBrand} />}
               onPress={() => void shareCard(share)}
             />
 
             {/* Said once, at the bottom, naming the group it lets people into —
                 a warning is only useful if it says what is being opened. */}
-            <Text variant="caption" tone="muted" align="center">
+            <Text variant="micro" tone="muted" align="center" numberOfLines={2}>
               {fill(t.people.inviteTrust, { group: label })}
             </Text>
           </>
@@ -457,5 +612,39 @@ export default function InviteScreen() {
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * One corner of the frame round the QR. Border start/end rather than left/right,
+ * so the pair mirrors in Arabic (the frame is symmetric, but the habit holds).
+ */
+function Bracket({
+  corner,
+  color,
+}: {
+  corner: 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
+  color: string;
+}) {
+  const top = corner.startsWith('top');
+  const start = corner.endsWith('start');
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        ...(top ? { top: 0 } : { bottom: 0 }),
+        ...(start ? { start: 0 } : { end: 0 }),
+        width: 22,
+        height: 22,
+        borderColor: color,
+        ...(top ? { borderTopWidth: 3 } : { borderBottomWidth: 3 }),
+        ...(start ? { borderStartWidth: 3 } : { borderEndWidth: 3 }),
+        ...(top && start ? { borderTopStartRadius: 10 } : null),
+        ...(top && !start ? { borderTopEndRadius: 10 } : null),
+        ...(!top && start ? { borderBottomStartRadius: 10 } : null),
+        ...(!top && !start ? { borderBottomEndRadius: 10 } : null),
+      }}
+    />
   );
 }
