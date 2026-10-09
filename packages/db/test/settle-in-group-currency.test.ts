@@ -22,8 +22,8 @@ import {
   KNOWN_MINOR_UNIT_EXPONENTS,
   minorUnitExponent,
   SettlementStatus,
+  toLedgerSnapshots,
   toSettleExpense,
-  toSettleExpenses,
   usableFx,
   type ExpenseSnapshot,
   type SettlementSnapshot,
@@ -163,31 +163,64 @@ describe('SQL and core convert identically', () => {
   });
 
   it('agree on which stored rates are usable', async () => {
-    const cases: [unknown, string][] = [
-      [rate('VND', 'INR', '34', '10000'), 'VND'],
-      [rate('USD', 'INR', '8350', '100'), 'USD'],
-      [rate('VND', 'INR', '0', '1'), 'VND'],
-      [rate('VND', 'INR', '1', '0'), 'VND'],
-      [rate('VND', 'INR', '1.5', '2'), 'VND'],
-      [rate('VND', 'INR', '-1', '2'), 'VND'],
-      [rate('VND', 'VND', '1', '2'), 'VND'],
-      [rate('EUR', 'INR', '1', '2'), 'VND'],
-      [rate('VND', 'inr', '1', '2'), 'VND'],
-      [{ ...rate('VND', 'INR', '1', '2'), num: 3 }, 'VND'],
-      [{ from: 'VND', to: 'INR', num: '1' }, 'VND'],
-      [[], 'VND'],
-      ['text', 'VND'],
-      [rate('VND', 'INR', '007', '10'), 'VND'],
+    // [fx, bill currency, group currency, usable?]
+    const cases: [unknown, string, string, boolean][] = [
+      [rate('VND', 'INR', '34', '10000'), 'VND', 'INR', true],
+      [rate('USD', 'INR', '8350', '100'), 'USD', 'INR', true],
+      [rate('VND', 'INR', '0', '1'), 'VND', 'INR', false],
+      [rate('VND', 'INR', '1', '0'), 'VND', 'INR', false],
+      [rate('VND', 'INR', '1.5', '2'), 'VND', 'INR', false],
+      [rate('VND', 'INR', '-1', '2'), 'VND', 'INR', false],
+      [rate('VND', 'VND', '1', '2'), 'VND', 'INR', false],
+      [rate('EUR', 'INR', '1', '2'), 'VND', 'INR', false],
+      [rate('VND', 'inr', '1', '2'), 'VND', 'INR', false],
+      [{ ...rate('VND', 'INR', '1', '2'), num: 3 }, 'VND', 'INR', false],
+      [{ from: 'VND', to: 'INR', num: '1' }, 'VND', 'INR', false],
+      [[], 'VND', 'INR', false],
+      ['text', 'VND', 'INR', false],
+      [rate('VND', 'INR', '007', '10'), 'VND', 'INR', true],
+      // A rate into some currency other than the group's is never used: the
+      // bill would land in a bucket the group does not settle in.
+      [rate('VND', 'USD', '4', '100000'), 'VND', 'INR', false],
+      [rate('VND', 'INR', '34', '10000'), 'VND', 'USD', false],
+      [rate('EUR', 'USD', '108', '100'), 'EUR', 'INR', false],
+      [rate('EUR', 'USD', '108', '100'), 'EUR', 'USD', true],
+      // A bill already in the group currency never converts, whatever it carries.
+      [rate('INR', 'USD', '1', '83'), 'INR', 'INR', false],
+      [rate('VND', 'INR', '34', '10000'), 'VND', 'inr', false],
+      [rate('VND', 'INR', '34', '10000'), 'VND', 'VND', false],
     ];
-    for (const [fx, currency] of cases) {
+    for (const [fx, currency, groupCurrency, expected] of cases) {
+      const label = `${JSON.stringify(fx)} ${currency}→${groupCurrency}`;
       const { rows } = await client.query<{ ok: boolean }>(
-        `SELECT waves_fx_usable($1::jsonb, $2) AS ok`,
-        [JSON.stringify(fx), currency],
+        `SELECT waves_fx_usable($1::jsonb, $2, $3) AS ok`,
+        [JSON.stringify(fx), currency, groupCurrency],
       );
-      expect(rows[0]?.ok, JSON.stringify(fx)).toBe(usableFx(fx, currency) !== null);
+      expect(rows[0]?.ok, label).toBe(expected);
+      expect(usableFx(fx, currency, groupCurrency) !== null, label).toBe(expected);
     }
-    const { rows } = await client.query(`SELECT waves_fx_usable(NULL, 'VND') AS ok`);
+    const { rows } = await client.query(`SELECT waves_fx_usable(NULL, 'VND', 'INR') AS ok`);
     expect(rows[0]?.ok).toBe(false);
+  });
+
+  it('leaves a bill whose rate is into another currency in its own currency', async () => {
+    const { groupId, memberIds } = await seedGroup(client, { memberCount: 2 });
+    const [a, b] = memberIds as [string, string];
+    await setConvert(groupId, true);
+    const bill = await writeBill(groupId, {
+      currency: 'VND',
+      amount: 1_000_000n,
+      payers: { [a]: 1_000_000n },
+      shares: { [a]: 500_000n, [b]: 500_000n },
+      // VND→USD in an INR group: not the group's rate, so no conversion.
+      fx: rate('VND', 'USD', '4', '100000'),
+    });
+    const { rows } = await client.query(
+      `SELECT DISTINCT currency FROM waves_group_expense_lines($1)`,
+      [groupId],
+    );
+    expect(rows.map((row) => String(row.currency).trim())).toEqual(['VND']);
+    expect(toSettleExpense(bill.snapshot, 'INR')).toBe(bill.snapshot);
   });
 
   it('produce the same lines, balances and pairwise edges on random fx ledgers', async () => {
@@ -202,6 +235,15 @@ describe('SQL and core convert identically', () => {
       const memberCount = 2 + Math.floor(random() * 5);
       const { groupId, memberIds } = await seedGroup(client, { memberCount });
       const converts = run % 4 !== 3; // every fourth ledger stays per-currency
+      // Every fifth ledger is a USD group: its INR-bound rates (most of them)
+      // are into the wrong currency and must not convert, on either side.
+      const groupCurrency = run % 5 === 2 ? 'USD' : 'INR';
+      if (groupCurrency !== 'INR') {
+        await client.query(`UPDATE groups SET default_currency = $1 WHERE id = $2`, [
+          groupCurrency,
+          groupId,
+        ]);
+      }
       await setConvert(groupId, converts);
 
       const bills: WrittenBill[] = [];
@@ -233,10 +275,12 @@ describe('SQL and core convert identically', () => {
         });
 
         const roll = random();
+        // Mostly a rate into INR, some into USD (EUR for a USD bill). Only a
+        // rate into the group's own currency converts; the rest stay put.
         const fx =
           currency === 'INR' || roll < 0.15
             ? null
-            : roll < 0.25
+            : roll < 0.3
               ? rate(
                   currency,
                   currency === 'USD' ? 'EUR' : 'USD',
@@ -271,7 +315,7 @@ describe('SQL and core convert identically', () => {
         });
       }
 
-      const label = `ledger ${run} (convert=${converts})`;
+      const label = `ledger ${run} (convert=${converts}, ${groupCurrency})`;
 
       // 1. Per-bill lines.
       const { rows: lineRows } = await client.query(
@@ -287,7 +331,7 @@ describe('SQL and core convert identically', () => {
         .sort();
       const coreLines: string[] = [];
       for (const bill of bills) {
-        const settled = converts ? toSettleExpense(bill.snapshot) : bill.snapshot;
+        const settled = converts ? toSettleExpense(bill.snapshot, groupCurrency) : bill.snapshot;
         const members = new Set([...Object.keys(settled.payers), ...Object.keys(settled.shares)]);
         for (const member of members) {
           coreLines.push(
@@ -298,9 +342,9 @@ describe('SQL and core convert identically', () => {
       expect(sqlLines, label).toEqual(coreLines.sort());
 
       // 2. Net balances: the stored projection, the truth, and core.
-      const snapshots = toSettleExpenses(
+      const snapshots = toLedgerSnapshots(
         bills.map((bill) => bill.snapshot),
-        converts,
+        { default_currency: groupCurrency, convert_to_group_currency: converts },
       );
       const net = computeNetBalances(snapshots, settlements);
       const coreNet: string[] = [];

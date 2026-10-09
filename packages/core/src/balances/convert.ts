@@ -15,9 +15,9 @@
  * by member id in byte order.
  */
 
-import { isCurrencyCode, minorUnitExponent, type CurrencyCode } from '../money/currency';
-import { convert, fxRate } from '../money/fx';
-import { money } from '../money/money';
+import { isCurrencyCode, type CurrencyCode } from '../money/currency';
+import { minorUnitRate } from '../money/fx';
+import { divideRoundHalfAwayFromZero } from '../money/money';
 import type { MemberId } from '../split/types';
 import type { ExpenseSnapshot } from './types';
 
@@ -37,26 +37,28 @@ function digits(value: unknown): bigint | null {
 }
 
 /**
- * Whether a version's stored `fx` can convert it, and the rate if so.
+ * Whether a version's stored `fx` can convert it into the group's currency, and
+ * the rate if so.
  *
  * The exact twin of SQL `waves_fx_usable`: an object whose `from` is the bill's
- * currency, whose `to` is a different ISO code, and whose `num`/`den` are
- * positive integers written as strings (how `toFxRecord` stores them). Anything
- * else — null, a number-typed numerator, a rate in the wrong direction — is "no
- * rate", and the bill stays in its own currency on both sides.
+ * currency, whose `to` is the GROUP's currency (and differs from the bill's),
+ * and whose `num`/`den` are positive integers written as strings (how
+ * `toFxRecord` stores them). Anything else — null, a number-typed numerator, a
+ * rate in the wrong direction, a rate into some third currency — is "no rate",
+ * and the bill stays in its own currency on both sides. A rate into another
+ * currency is never used, so a converting group never grows a third bucket.
  */
-export function usableFx(fx: unknown, currency: string): UsableFx | null {
+export function usableFx(fx: unknown, currency: string, groupCurrency: string): UsableFx | null {
   if (fx === null || typeof fx !== 'object' || Array.isArray(fx)) return null;
-  if (!isCurrencyCode(currency)) return null;
+  if (!isCurrencyCode(currency) || !isCurrencyCode(groupCurrency)) return null;
+  if (currency === groupCurrency) return null;
   const record = fx as Record<string, unknown>;
   if (typeof record.from !== 'string' || record.from !== currency) return null;
-  if (typeof record.to !== 'string' || !isCurrencyCode(record.to) || record.to === currency) {
-    return null;
-  }
+  if (typeof record.to !== 'string' || record.to !== groupCurrency) return null;
   const num = digits(record.num);
   const den = digits(record.den);
   if (num === null || den === null) return null;
-  return { num, den, to: record.to };
+  return { num, den, to: groupCurrency };
 }
 
 /** ⌊a / b⌋ for b > 0, rounding toward −∞ (bigint `/` truncates toward 0). */
@@ -119,21 +121,19 @@ export function apportion(
  * paid, and nothing is written back. Balances move only when a bill or a
  * settlement is edited, never because a rate moved somewhere else.
  */
-export function toSettleExpense(snapshot: ExpenseSnapshot): ExpenseSnapshot {
-  const fx = usableFx(snapshot.fx, snapshot.currency);
+export function toSettleExpense(snapshot: ExpenseSnapshot, groupCurrency: string): ExpenseSnapshot {
+  const fx = usableFx(snapshot.fx, snapshot.currency, groupCurrency);
   if (!fx) return snapshot;
 
-  const fromExponent = minorUnitExponent(snapshot.currency);
-  const toExponent = minorUnitExponent(fx.to);
-  const delta = toExponent - fromExponent;
-  // 1 minor unit of `from` = num·10^max(Δ,0) / (den·10^max(−Δ,0)) minor units of `to`.
-  const num = fx.num * (delta > 0 ? 10n ** BigInt(delta) : 1n);
-  const den = fx.den * (delta < 0 ? 10n ** BigInt(-delta) : 1n);
-
-  const total = convert(
-    money(snapshot.amount, snapshot.currency),
-    fxRate({ num: fx.num, den: fx.den, from: snapshot.currency, to: fx.to, ts: '', source: '' }),
-  ).minor;
+  // convert(amount, fx): the exact rational, rounded half away from zero once,
+  // over the same scaled n/d the payers and shares are apportioned with below.
+  const { num, den } = minorUnitRate({
+    num: fx.num,
+    den: fx.den,
+    from: snapshot.currency,
+    to: fx.to,
+  });
+  const total = divideRoundHalfAwayFromZero(snapshot.amount * num, den);
 
   return {
     ...snapshot,
@@ -148,14 +148,41 @@ export function toSettleExpense(snapshot: ExpenseSnapshot): ExpenseSnapshot {
 
 /**
  * Every snapshot of a group's ledger, as balances should count it. A group that
- * has not opted in (`groups.convert_to_group_currency` false) keeps each bill in
- * its own currency, exactly as before.
+ * has not opted in passes null and keeps each bill in its own currency, exactly
+ * as before; one that has passes its `default_currency`.
  */
 export function toSettleExpenses(
   snapshots: readonly ExpenseSnapshot[],
-  convertToGroupCurrency: boolean,
+  groupCurrency: string | null,
 ): ExpenseSnapshot[] {
-  return convertToGroupCurrency ? snapshots.map(toSettleExpense) : [...snapshots];
+  return groupCurrency
+    ? snapshots.map((snapshot) => toSettleExpense(snapshot, groupCurrency))
+    : [...snapshots];
+}
+
+/** The two group columns that decide how its bills count. */
+export interface LedgerGroup {
+  readonly default_currency?: string | null;
+  readonly convert_to_group_currency?: boolean | null;
+}
+
+/**
+ * THE rule for turning a group's bills into what its balances count. Every
+ * reader (the app's ledger, home, people, the offline mirror, the web's
+ * `computeLedger`) goes through this, so it lives in one place: drop rows that
+ * could not be read, and convert into `default_currency` only when the group
+ * has opted in.
+ */
+export function toLedgerSnapshots(
+  snapshots: readonly (ExpenseSnapshot | null)[],
+  group: LedgerGroup | null | undefined,
+): ExpenseSnapshot[] {
+  const readable = snapshots.filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+  const groupCurrency =
+    group?.convert_to_group_currency === true && group.default_currency
+      ? group.default_currency.trim()
+      : null;
+  return toSettleExpenses(readable, groupCurrency);
 }
 
 /**

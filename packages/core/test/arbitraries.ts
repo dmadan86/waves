@@ -99,10 +99,15 @@ export interface FxRecordDraw {
   source: string;
 }
 
-export const fxRecords = (from: string): fc.Arbitrary<FxRecordDraw> =>
+/**
+ * A stored rate out of `from`. With `into`, always into that currency (the
+ * group's); without, into any other one — which a converting group whose
+ * currency differs must ignore.
+ */
+export const fxRecords = (from: string, into?: string): fc.Arbitrary<FxRecordDraw> =>
   fc
     .record({
-      to: fc.constantFrom(...FX_TO.filter((code) => code !== from)),
+      to: into ? fc.constant(into) : fc.constantFrom(...FX_TO.filter((code) => code !== from)),
       num: fc.bigInt({ min: 1n, max: 10_000_000n }),
       den: fc.bigInt({ min: 1n, max: 10_000_000n }),
     })

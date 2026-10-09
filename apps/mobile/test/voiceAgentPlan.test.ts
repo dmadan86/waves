@@ -27,6 +27,7 @@ const text: VoiceAgentText = {
   addMember: 'Add {name} to {group}',
   unknownGroup: 'Unknown group',
   unknownPerson: 'Unknown person',
+  noRateYet: 'No rate yet',
 };
 
 const local: AgentLocalData = {
@@ -66,6 +67,35 @@ const dinner = {
 };
 
 describe('planVoiceAgentActions', () => {
+  it('never offers to settle or remind a rate-less debt in a converting group', () => {
+    const converting: AgentLocalData = {
+      groups: [
+        { ...(local.groups[0] as AgentLocalData['groups'][number]), convertsToGroupCurrency: true },
+      ],
+    };
+    const settle = {
+      type: 'record_settlement' as const,
+      groupId: 'g1',
+      fromMemberId: 'm2',
+      toMemberId: 'm1',
+      amountMinor: '25000',
+    };
+    const plan = planVoiceAgentActions(
+      response([
+        { ...settle, currency: 'VND' },
+        { ...settle, currency: 'INR' },
+        { type: 'nudge', groupId: 'g1', toMemberId: 'm3', currency: 'VND' },
+      ]),
+      converting,
+      text,
+    );
+    expect(plan.cards.map((card) => card.problem)).toEqual([true, false, true]);
+    expect(plan.cards[0]?.segments).toContain('No rate yet');
+    // A group that has not opted in settles every currency, as before.
+    const old = planVoiceAgentActions(response([{ ...settle, currency: 'VND' }]), local, text);
+    expect(old.cards[0]?.problem).toBe(false);
+  });
+
   it('describes an equal-split expense with names, money and group', () => {
     const plan = planVoiceAgentActions(response([dinner]), local, text);
     expect(plan.cards).toHaveLength(1);

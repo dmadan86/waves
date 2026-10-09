@@ -234,6 +234,8 @@ const sumOf = (record: Readonly<Record<string, bigint>>): bigint =>
   Object.values(record).reduce((total, value) => total + value, 0n);
 
 interface FxLedger {
+  /** The group's currency: the only `to` a rate may convert into. */
+  groupCurrency: string;
   members: MemberId[];
   expenses: ExpenseSnapshot[];
   settlements: SettlementSnapshot[];
@@ -241,12 +243,14 @@ interface FxLedger {
 
 const fxLedger: fc.Arbitrary<FxLedger> = fc
   .record({
+    groupCurrency: fc.constantFrom<string>(...FX_TO),
     members: memberIds(2, 6),
     expenseCount: fc.integer({ min: 0, max: 10 }),
     settlementCount: fc.integer({ min: 0, max: 4 }),
   })
-  .chain(({ members, expenseCount, settlementCount }) =>
+  .chain(({ groupCurrency, members, expenseCount, settlementCount }) =>
     fc.record({
+      groupCurrency: fc.constant(groupCurrency),
       members: fc.constant(members),
       expenses: fc.array(
         fc.constantFrom(...FX_FROM).chain((currency) =>
@@ -263,10 +267,21 @@ const fxLedger: fc.Arbitrary<FxLedger> = fc
                 maxLength: members.length,
               }),
             ),
-            fx: fc.oneof(
-              { arbitrary: fxRecords(currency) as fc.Arbitrary<unknown>, weight: 4 },
-              { arbitrary: unusableFx(currency), weight: 1 },
-            ),
+            fx:
+              currency === groupCurrency
+                ? fc.oneof(
+                    { arbitrary: fxRecords(currency) as fc.Arbitrary<unknown>, weight: 1 },
+                    { arbitrary: unusableFx(currency), weight: 1 },
+                  )
+                : fc.oneof(
+                    {
+                      arbitrary: fxRecords(currency, groupCurrency) as fc.Arbitrary<unknown>,
+                      weight: 4,
+                    },
+                    // Into some other currency: possibly the group's, mostly not.
+                    { arbitrary: fxRecords(currency) as fc.Arbitrary<unknown>, weight: 2 },
+                    { arbitrary: unusableFx(currency), weight: 1 },
+                  ),
             deleted: fc.boolean(),
           }),
         ),
@@ -289,7 +304,7 @@ const fxLedger: fc.Arbitrary<FxLedger> = fc
       ),
     }),
   )
-  .map(({ members, expenses, settlements }) => {
+  .map(({ groupCurrency, members, expenses, settlements }) => {
     const rotate = (offset: number, count: number): MemberId[] => {
       const picked: MemberId[] = [];
       for (let step = 0; step < count; step += 1) {
@@ -355,7 +370,7 @@ const fxLedger: fc.Arbitrary<FxLedger> = fc
       at: `2026-10-0${(index % 9) + 1}T10:00:00Z`,
     }));
 
-    return { members, expenses: built, settlements: builtSettlements };
+    return { groupCurrency, members, expenses: built, settlements: builtSettlements };
   });
 
 function netEntries(net: NetBalances): string[] {
@@ -371,16 +386,17 @@ function netEntries(net: NetBalances): string[] {
 describe('a group that settles in its own currency', () => {
   it('converts the total once: Σpayers′ = Σshares′ = convert(amount, fx)', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses }) => {
+      fc.property(fxLedger, ({ groupCurrency, expenses }) => {
         for (const expense of expenses) {
-          const fx = usableFx(expense.fx, expense.currency);
-          const settled = toSettleExpense(expense);
+          const fx = usableFx(expense.fx, expense.currency, groupCurrency);
+          const settled = toSettleExpense(expense, groupCurrency);
           if (!fx) continue;
           const expected = convertWithRecord(
             money(expense.amount, expense.currency),
             expense.fx as FxRecordDraw,
           );
-          expect(settled.currency).toBe(fx.to);
+          expect(settled.currency).toBe(groupCurrency);
+          expect(fx.to).toBe(groupCurrency);
           expect(settled.amount).toBe(expected.minor);
           expect(sumOf(settled.payers)).toBe(expected.minor);
           expect(sumOf(settled.shares)).toBe(expected.minor);
@@ -395,11 +411,11 @@ describe('a group that settles in its own currency', () => {
 
   it('keeps every member within one minor unit of share × rate', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses }) => {
+      fc.property(fxLedger, ({ groupCurrency, expenses }) => {
         for (const expense of expenses) {
-          if (!usableFx(expense.fx, expense.currency)) continue;
+          if (!usableFx(expense.fx, expense.currency, groupCurrency)) continue;
           const { n, d } = scaledRate(expense.currency, expense.fx as FxRecordDraw);
-          const settled = toSettleExpense(expense);
+          const settled = toSettleExpense(expense, groupCurrency);
           for (const side of ['payers', 'shares'] as const) {
             for (const [member, original] of Object.entries(expense[side])) {
               const converted = settled[side][member] ?? 0n;
@@ -416,8 +432,8 @@ describe('a group that settles in its own currency', () => {
 
   it('sums every currency bucket to zero, pending settlements or not', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses, settlements }) => {
-        const settled = toSettleExpenses(expenses, true);
+      fc.property(fxLedger, ({ groupCurrency, expenses, settlements }) => {
+        const settled = toSettleExpenses(expenses, groupCurrency);
         for (const options of [{}, { includePending: true }]) {
           const net = computeNetBalances(settled, settlements, options);
           for (const total of balanceSums(net).values()) expect(total).toBe(0n);
@@ -428,7 +444,7 @@ describe('a group that settles in its own currency', () => {
 
   it('does not depend on the order of bills, payers or shares', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses, settlements }) => {
+      fc.property(fxLedger, ({ groupCurrency, expenses, settlements }) => {
         const reversedRecord = (record: Readonly<Record<string, bigint>>) =>
           Object.fromEntries(Object.entries(record).reverse());
         const shuffled = [...expenses].reverse().map((expense) => ({
@@ -438,27 +454,29 @@ describe('a group that settles in its own currency', () => {
         }));
         for (const [index, expense] of expenses.entries()) {
           const twin = shuffled[expenses.length - 1 - index] as ExpenseSnapshot;
-          const a = toSettleExpense(expense);
-          const b = toSettleExpense(twin);
+          const a = toSettleExpense(expense, groupCurrency);
+          const b = toSettleExpense(twin, groupCurrency);
           expect(Object.entries(b.payers).sort()).toEqual(Object.entries(a.payers).sort());
           expect(Object.entries(b.shares).sort()).toEqual(Object.entries(a.shares).sort());
         }
         expect(
-          netEntries(computeNetBalances(toSettleExpenses(shuffled, true), settlements)),
-        ).toEqual(netEntries(computeNetBalances(toSettleExpenses(expenses, true), settlements)));
+          netEntries(computeNetBalances(toSettleExpenses(shuffled, groupCurrency), settlements)),
+        ).toEqual(
+          netEntries(computeNetBalances(toSettleExpenses(expenses, groupCurrency), settlements)),
+        );
       }),
     );
   });
 
   it('leaves bills without a usable rate exactly as they were', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses }) => {
+      fc.property(fxLedger, ({ groupCurrency, expenses }) => {
         for (const expense of expenses) {
-          if (usableFx(expense.fx, expense.currency)) continue;
-          expect(toSettleExpense(expense)).toBe(expense);
+          if (usableFx(expense.fx, expense.currency, groupCurrency)) continue;
+          expect(toSettleExpense(expense, groupCurrency)).toBe(expense);
         }
         // And a group that has not opted in converts nothing at all.
-        const untouched = toSettleExpenses(expenses, false);
+        const untouched = toSettleExpenses(expenses, null);
         untouched.forEach((expense, index) => expect(expense).toBe(expenses[index]));
       }),
     );
@@ -473,16 +491,67 @@ describe('a group that settles in its own currency', () => {
             fc.record({ currency: fc.constant(currency), fx: unusableFx(currency) }),
           ),
         ({ currency, fx }) => {
-          expect(usableFx(fx, currency)).toBeNull();
+          for (const groupCurrency of FX_TO) {
+            expect(usableFx(fx, currency, groupCurrency)).toBeNull();
+          }
         },
       ),
     );
   });
 
+  it('never converts on a rate into a currency other than the group’s', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...FX_FROM).chain((currency) =>
+          fc.record({
+            currency: fc.constant(currency),
+            fx: fxRecords(currency),
+            groupCurrency: fc.constantFrom<string>(...FX_TO),
+            amount: amounts(5_000_000n),
+          }),
+        ),
+        ({ currency, fx, groupCurrency, amount }) => {
+          const expense: ExpenseSnapshot = {
+            id: 'x',
+            currency,
+            amount,
+            payers: { a: amount },
+            shares: { a: amount },
+            date: '2026-10-01',
+            deletedAt: null,
+            fx: fx as ExpenseSnapshot['fx'],
+          };
+          const settled = toSettleExpense(expense, groupCurrency);
+          if (fx.to === groupCurrency && currency !== groupCurrency) {
+            expect(settled.currency).toBe(groupCurrency);
+          } else {
+            // Mismatched `to` (or a bill already in the group currency): untouched,
+            // never a bucket in `fx.to`.
+            expect(usableFx(fx, currency, groupCurrency)).toBeNull();
+            expect(settled).toBe(expense);
+          }
+        },
+      ),
+    );
+  });
+
+  it('puts every converted bill in the group currency and nowhere else', () => {
+    fc.assert(
+      fc.property(fxLedger, ({ groupCurrency, expenses }) => {
+        const settled = toSettleExpenses(expenses, groupCurrency);
+        settled.forEach((bill, index) => {
+          const original = expenses[index] as ExpenseSnapshot;
+          if (bill.convertedFrom) expect(bill.currency).toBe(groupCurrency);
+          else expect(bill.currency).toBe(original.currency);
+        });
+      }),
+    );
+  });
+
   it('reconciles exactly with the pairwise ledger', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses, settlements }) => {
-        const settled = toSettleExpenses(expenses, true);
+      fc.property(fxLedger, ({ groupCurrency, expenses, settlements }) => {
+        const settled = toSettleExpenses(expenses, groupCurrency);
         const net = computeNetBalances(settled, settlements);
         const implied = netFromPairwise(computePairwiseBalances(settled, settlements));
         expect(netEntries(implied)).toEqual(netEntries(net));
@@ -492,8 +561,8 @@ describe('a group that settles in its own currency', () => {
 
   it('simplifies without moving anybody’s position', () => {
     fc.assert(
-      fc.property(fxLedger, ({ expenses, settlements }) => {
-        const settled = toSettleExpenses(expenses, true);
+      fc.property(fxLedger, ({ groupCurrency, expenses, settlements }) => {
+        const settled = toSettleExpenses(expenses, groupCurrency);
         const net = computeNetBalances(settled, settlements);
         const transfers = simplify(net);
         // Paying every suggested transfer must clear every position exactly.

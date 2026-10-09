@@ -60,7 +60,7 @@ import {
   type SettlementTransitionPayload,
   type Transfer,
   byNewest,
-  toSettleExpenses,
+  toLedgerSnapshots as ledgerSnapshotsOf,
   type CurrencyCode,
 } from '@waves/core';
 
@@ -72,6 +72,7 @@ import { useDemoActive } from '@/demo/useDemoActive';
 import { demoExpenses, demoGroupRow, demoMembers, demoSettlements } from '@/demo/fixtures';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
+import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { normaliseContactPhone } from '@/lib/phone';
 import { backend } from '@/lib/backend';
 import {
@@ -603,8 +604,11 @@ export function useHomeSummary(profileId: string | null) {
     // this morning's activity — so this reads `created_at` on the row and the
     // settlement's own timestamps. See `groupActivityOrder`.
     const activityByGroup = new Map<string, number>();
-    // Every non-zero balance of mine, per real group and currency, for the
-    // headline totals. The demo group never lands here (see below).
+    // My balance per real group and currency, for the headline totals: the
+    // group currency's always (zero included, so a settled-up group still
+    // says "settled in ₹" rather than collapsing to the device currency), and
+    // any other bucket only when it holds something. The demo group never
+    // lands here (see below).
     const myBuckets: (readonly [string, bigint])[] = [];
 
     for (const group of realGroupsForDemo) {
@@ -624,7 +628,7 @@ export function useHomeSummary(profileId: string | null) {
       // What balances count: converted into the group's currency when it settles
       // in it. `snapshots` above stay as written — "this month" is what was
       // spent, in what it was spent in.
-      const settleSnapshots = toSettleExpenses(snapshots, group.convert_to_group_currency === true);
+      const settleSnapshots = ledgerSnapshotsOf(snapshots, group);
 
       if (snapshots.length > 0 || settlements.length > 0) withLedger.add(group.id);
 
@@ -658,11 +662,14 @@ export function useHomeSummary(profileId: string | null) {
         isViewer(member, profileId),
       );
       if (mine) {
-        byGroup.set(group.id, net.get(currency)?.get(mine.id) ?? 0n);
+        const groupBalance = net.get(currency)?.get(mine.id) ?? 0n;
+        byGroup.set(group.id, groupBalance);
         currencyByGroup.set(group.id, currency);
-        // Every bucket I hold here, not only the group currency's: a ₫ bill with
-        // no rate still leaves me owing ₫, and the headline total must say so.
+        myBuckets.push([currency, groupBalance]);
+        // Every other bucket I hold here too: a ₫ bill with no rate still
+        // leaves me owing ₫, and the headline total must say so.
         for (const [bucketCurrency, perMember] of net) {
+          if (bucketCurrency === currency) continue;
           const balance = perMember.get(mine.id) ?? 0n;
           if (balance !== 0n) myBuckets.push([bucketCurrency, balance]);
         }
@@ -1007,7 +1014,7 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       )
         .map((expense) => toSnapshot(expense as unknown as ExpenseRow))
         .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
-      const settleSnapshots = toSettleExpenses(snapshots, group.convert_to_group_currency === true);
+      const settleSnapshots = ledgerSnapshotsOf(snapshots, group);
       const settlementSnapshots = toSettlementSnapshots(
         (isDemo
           ? demoSettlements()
@@ -1301,12 +1308,9 @@ export function toSnapshot(expense: ExpenseRow): ExpenseSnapshot | null {
  */
 export function toLedgerSnapshots(
   rows: readonly ExpenseRow[],
-  group: Pick<GroupRow, 'convert_to_group_currency'> | null | undefined,
+  group: Pick<GroupRow, 'default_currency' | 'convert_to_group_currency'> | null | undefined,
 ): ExpenseSnapshot[] {
-  return toSettleExpenses(
-    rows.map(toSnapshot).filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null),
-    group?.convert_to_group_currency === true,
-  );
+  return ledgerSnapshotsOf(rows.map(toSnapshot), group);
 }
 
 export function toSettlementSnapshot(row: SettlementRow): SettlementSnapshot | null {
@@ -1698,10 +1702,29 @@ export function useRestoreExpense(groupId: string) {
 }
 
 export function useRecordSettlement(groupId: string) {
-  const { mutate } = useSync();
+  const { mutate, mirror, queue } = useSync();
   return useMutation({
-    mutationFn: (input: Parameters<typeof recordSettlement>[0]) =>
-      mutate(
+    mutationFn: (input: Parameters<typeof recordSettlement>[0]) => {
+      // The floor under every caller: a group that settles in its own currency
+      // takes only that currency (the server refuses the rest with
+      // UPDATE_APP_TO_SETTLE). A debt in another one is a bill with no rate yet;
+      // the screens offer "Add rate" instead, and nothing reaches the queue.
+      const group = (materialiseGroups(mirror, queue) as unknown as GroupRow[]).find(
+        (row) => row.id === input.groupId,
+      );
+      if (
+        group &&
+        isRatelessTransfer(
+          { currency: input.currency ?? group.default_currency },
+          group.default_currency,
+          group.convert_to_group_currency === true,
+        )
+      ) {
+        return Promise.reject(
+          new Error('NO_RATE_YET: this debt has no rate into the group currency yet'),
+        );
+      }
+      return mutate(
         MutationKind.SettlementCreate,
         input.groupId,
         {
@@ -1725,7 +1748,8 @@ export function useRecordSettlement(groupId: string) {
           })),
         },
         input.clientMutationId,
-      ),
+      );
+    },
   });
 }
 

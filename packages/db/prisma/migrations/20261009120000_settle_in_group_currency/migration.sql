@@ -59,25 +59,28 @@ CREATE OR REPLACE FUNCTION public.waves_currency_exponent(p_currency text) RETUR
   END
 $$;
 
--- Whether a version's stored fx can convert it. The twin of `usableFx` in
--- core: an object whose `from` is the bill's currency, whose `to` is a
--- different ISO code, and whose num/den are positive integers written as JSON
--- strings. Anything else is "no rate" on both sides. plpgsql so the checks run
--- in order — the numeric casts are only reached once the regex has passed.
-CREATE OR REPLACE FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text) RETURNS boolean
+-- Whether a version's stored fx can convert it into the group's currency. The
+-- twin of `usableFx` in core: an object whose `from` is the bill's currency,
+-- whose `to` is the GROUP's currency (p_to, different from the bill's), and
+-- whose num/den are positive integers written as JSON strings. Anything else —
+-- including a rate into some third currency — is "no rate" on both sides, so a
+-- converting group never grows a bucket in a currency it does not settle in.
+-- plpgsql so the checks run in order — the numeric casts are only reached once
+-- the regex has passed.
+CREATE OR REPLACE FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text, p_to text) RETURNS boolean
     LANGUAGE plpgsql IMMUTABLE
     SET search_path TO 'public', 'pg_temp'
     AS $$
 BEGIN
   IF p_fx IS NULL OR jsonb_typeof(p_fx) <> 'object' THEN RETURN false; END IF;
   IF p_currency IS NULL OR p_currency !~ '^[A-Z]{3}$' THEN RETURN false; END IF;
+  IF p_to IS NULL OR p_to !~ '^[A-Z]{3}$' OR p_to = p_currency THEN RETURN false; END IF;
   IF jsonb_typeof(p_fx -> 'from') IS DISTINCT FROM 'string'
      OR (p_fx ->> 'from') <> p_currency THEN
     RETURN false;
   END IF;
   IF jsonb_typeof(p_fx -> 'to') IS DISTINCT FROM 'string'
-     OR (p_fx ->> 'to') !~ '^[A-Z]{3}$'
-     OR (p_fx ->> 'to') = p_currency THEN
+     OR (p_fx ->> 'to') <> p_to THEN
     RETURN false;
   END IF;
   IF jsonb_typeof(p_fx -> 'num') IS DISTINCT FROM 'string'
@@ -100,7 +103,8 @@ RETURNS TABLE(expense_version_id uuid, member_id uuid, currency character, paid 
     SET search_path TO 'public', 'pg_temp'
     AS $$
   WITH grp AS (
-    SELECT g.convert_to_group_currency AS converts
+    SELECT g.convert_to_group_currency AS converts,
+           btrim(g.default_currency::text) AS settle_cur
       FROM public.groups g
      WHERE g.id = p_group_id
   ),
@@ -110,7 +114,8 @@ RETURNS TABLE(expense_version_id uuid, member_id uuid, currency character, paid 
            ev.amount::numeric AS amount,
            ev.fx,
            COALESCE((SELECT converts FROM grp), false)
-             AND public.waves_fx_usable(ev.fx, ev.currency::text) AS converts
+             AND public.waves_fx_usable(ev.fx, ev.currency::text,
+                                        (SELECT settle_cur FROM grp)) AS converts
       FROM public.expense_versions ev
       JOIN public.expenses e
         ON e.id = ev.expense_id
@@ -338,7 +343,7 @@ BEGIN
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  SELECT g.default_currency::text INTO v_currency FROM public.groups g WHERE g.id = p_group_id;
+  SELECT btrim(g.default_currency::text) INTO v_currency FROM public.groups g WHERE g.id = p_group_id;
 
   RETURN QUERY
   WITH bills AS (
@@ -350,8 +355,7 @@ BEGIN
        AND e.deleted_at IS NULL
      WHERE e.group_id = p_group_id
        AND ev.currency::text <> v_currency
-       AND NOT (public.waves_fx_usable(ev.fx, ev.currency::text)
-                AND (ev.fx ->> 'to') = v_currency)
+       AND NOT public.waves_fx_usable(ev.fx, ev.currency::text, v_currency)
      GROUP BY 1
   ),
   pays AS (
@@ -722,8 +726,8 @@ GRANT EXECUTE ON FUNCTION public.waves_create_group(p_name text, p_type text, p_
 
 REVOKE ALL ON FUNCTION public.waves_currency_exponent(p_currency text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_currency_exponent(p_currency text) TO authenticated, service_role;
-REVOKE ALL ON FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text, p_to text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_fx_usable(p_fx jsonb, p_currency text, p_to text) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.waves_group_expense_lines(p_group_id uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_group_expense_lines(p_group_id uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.waves_group_movements(p_group_id uuid) FROM PUBLIC, anon;

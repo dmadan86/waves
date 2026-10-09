@@ -16,7 +16,7 @@
 import {
   computeNetBalances,
   simplify,
-  toSettleExpenses,
+  toLedgerSnapshots,
   type CurrencyCode,
   type ExpenseSnapshot,
   type MemberId,
@@ -72,12 +72,11 @@ export function computeLedger(
    *  rate in `currency` (ADR-003 amendment), as the server does. */
   convertToGroupCurrency = false,
 ): GroupLedger {
-  const snapshots = toSettleExpenses(
-    expenses
-      .map(toExpenseSnapshot)
-      .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null),
-    convertToGroupCurrency,
-  );
+  // The one conversion rule every reader shares (core's `toLedgerSnapshots`).
+  const snapshots = toLedgerSnapshots(expenses.map(toExpenseSnapshot), {
+    default_currency: currency,
+    convert_to_group_currency: convertToGroupCurrency,
+  });
 
   const balances = computeNetBalances(snapshots, settlements.map(toSettlementSnapshot));
 

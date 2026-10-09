@@ -379,7 +379,7 @@ describe('an INR group settling a ₫ trip in rupees', () => {
   const ledger = [dinner, snacks, boat];
 
   it('converts the dinner at its own rate, apportioned to the paisa', () => {
-    const settled = toSettleExpense(dinner);
+    const settled = toSettleExpense(dinner, 'INR');
     expect(settled.currency).toBe('INR');
     expect(settled.amount).toBe(419_753n);
     expect(settled.payers).toEqual({ [A]: 419_753n });
@@ -388,7 +388,7 @@ describe('an INR group settling a ₫ trip in rupees', () => {
   });
 
   it('nets the converted dinner with the rupee bill; the rate-less boat stays in ₫', () => {
-    const net = computeNetBalances(toSettleExpenses(ledger, true), []);
+    const net = computeNetBalances(toSettleExpenses(ledger, 'INR'), []);
     expect(snapshot(net, 'INR')).toEqual({ [A]: 249_835n, [R]: -79_917n, [M]: -169_918n, [D]: 0n });
     expect(snapshot(net, 'VND')).toEqual({
       [A]: -100_000n,
@@ -398,7 +398,7 @@ describe('an INR group settling a ₫ trip in rupees', () => {
     });
     expect(balanceSums(net).get('INR')).toBe(0n);
     expect(balanceSums(net).get('VND')).toBe(0n);
-    expect(convertedCurrencies(toSettleExpenses(ledger, true))).toEqual(['VND']);
+    expect(convertedCurrencies(toSettleExpenses(ledger, 'INR'))).toEqual(['VND']);
   });
 
   it('pays the rupee debt down with a rupee settlement', () => {
@@ -412,7 +412,7 @@ describe('an INR group settling a ₫ trip in rupees', () => {
       status: SettlementStatus.Confirmed,
       at: '2026-10-03T00:00:00Z',
     };
-    const settled = toSettleExpenses(ledger, true);
+    const settled = toSettleExpenses(ledger, 'INR');
     const net = computeNetBalances(settled, [paid]);
     expect(snapshot(net, 'INR')).toEqual({ [A]: 169_918n, [R]: 0n, [M]: -169_918n, [D]: 0n });
 
@@ -426,7 +426,7 @@ describe('an INR group settling a ₫ trip in rupees', () => {
   });
 
   it('changes nothing for a group that has not opted in', () => {
-    const net = computeNetBalances(toSettleExpenses(ledger, false), []);
+    const net = computeNetBalances(toSettleExpenses(ledger, null), []);
     // Dinner stays in ₫: A +1,234,567 − 411,523 − 100,000 = +723,044 …
     expect(snapshot(net, 'VND')).toEqual({
       [A]: 723_044n,

@@ -696,6 +696,7 @@ describe('snapshots', () => {
       source: 'manual',
     };
     const [converted] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'INR',
       convert_to_group_currency: true,
     });
     expect(converted?.currency).toBe('INR');
@@ -703,11 +704,23 @@ describe('snapshots', () => {
     // b and c tie on remainder; the smaller id ('b') takes the extra paisa.
     expect(converted?.shares).toEqual({ a: 139_918n, b: 139_918n, c: 139_917n });
 
-    const [kept] = hooks.toLedgerSnapshots([row as never], { convert_to_group_currency: false });
+    const [kept] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'INR',
+      convert_to_group_currency: false,
+    });
     expect(kept?.currency).toBe('VND');
     expect(kept?.amount).toBe(1_234_567n);
     // A row mirrored before the column existed reads as "not opted in".
-    expect(hooks.toLedgerSnapshots([row as never], {})[0]?.currency).toBe('VND');
+    expect(hooks.toLedgerSnapshots([row as never], { default_currency: 'INR' })[0]?.currency).toBe(
+      'VND',
+    );
+    // A rate into some other currency than the group's is not a rate for it.
+    const [elsewhere] = hooks.toLedgerSnapshots([row as never], {
+      default_currency: 'USD',
+      convert_to_group_currency: true,
+    });
+    expect(elsewhere?.currency).toBe('VND');
+    expect(elsewhere?.amount).toBe(1_234_567n);
   });
 
   it('toSnapshot drops a row with no version, or an amount that is not an integer', () => {
