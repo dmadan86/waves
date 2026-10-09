@@ -196,8 +196,9 @@ export type ExpenseChange =
       readonly kind: 'deposit';
       readonly oldDeposit: DepositFacts;
       readonly newDeposit: DepositFacts;
-      /** The bill's own currency, which the balance due is kept in. */
-      readonly currency: string;
+      /** The currency the old and new balance due are each kept in. */
+      readonly oldCurrency: string;
+      readonly newCurrency: string;
     }
   | {
       readonly field: 'subEvent';
@@ -262,14 +263,25 @@ function stableJson(value: unknown): string {
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
     return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`).join(',')}}`;
   }
-  return JSON.stringify(value) ?? 'null';
+  return JSON.stringify(canonicalScalar(value)) ?? 'null';
 }
 
-/** A timestamp as an instant, so `+00:00` and `Z` spellings of one moment match. */
-function instantKey(iso: string | null | undefined): string {
+/** 5000 and "5000" mean the same split parameter; numeric-looking values
+ *  (numbers and numeric strings) share one canonical string form. */
+function canonicalScalar(value: unknown): unknown {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+    return String(Number(value));
+  }
+  return value;
+}
+
+/** Clock time (local hours and minutes) of a timestamp, ignoring the date. */
+function timeOfDayKey(iso: string | null | undefined): string {
   if (!iso) return '';
-  const ms = Date.parse(iso);
-  return Number.isFinite(ms) ? String(ms) : iso;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return iso;
+  return `${d.getHours()}:${d.getMinutes()}`;
 }
 
 function depositFacts(version: DiffVersion): DepositFacts {
@@ -448,7 +460,13 @@ export function diffExpenseVersions(
   }
 
   if (prev.payment_method !== undefined && cur.payment_method !== undefined) {
-    if ((prev.payment_method ?? '') !== (cur.payment_method ?? '')) {
+    // The editor shows a missing method as 'cash', so null -> 'cash' is the
+    // editor's default, not a decision.
+    const methodKey = (m: string | null | undefined) => m ?? '';
+    const sameMethod =
+      methodKey(prev.payment_method) === methodKey(cur.payment_method) ||
+      (prev.payment_method == null && cur.payment_method === 'cash');
+    if (!sameMethod) {
       changes.push({
         field: 'paymentMethod',
         kind: 'paymentMethod',
@@ -459,7 +477,7 @@ export function diffExpenseVersions(
   }
 
   if (prev.occurred_at !== undefined && cur.occurred_at !== undefined) {
-    if (instantKey(prev.occurred_at) !== instantKey(cur.occurred_at)) {
+    if (timeOfDayKey(prev.occurred_at) !== timeOfDayKey(cur.occurred_at)) {
       changes.push({
         field: 'time',
         kind: 'time',
@@ -496,7 +514,8 @@ export function diffExpenseVersions(
         kind: 'deposit',
         oldDeposit,
         newDeposit,
-        currency: cur.currency,
+        oldCurrency: prev.currency,
+        newCurrency: cur.currency,
       });
     }
   }

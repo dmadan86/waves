@@ -183,6 +183,17 @@ export function CategoryPicker({
   );
 }
 
+/** A resolved category's name as the reader sees it: a custom tag's own label,
+ *  or the built-in's translation (the catalog's own label is English). */
+export function builtinCategoryLabel(
+  t: { categories: object },
+  resolved: { builtinId: string | null; label: string },
+): string {
+  return resolved.builtinId
+    ? (t.categories as Record<string, string>)[resolved.builtinId]
+    : resolved.label;
+}
+
 /**
  * The chosen category as one row of a settings list: the tag's own glyph, the
  * field's name, the tag's label, then a chevron into {@link CategorySheet}.
@@ -229,11 +240,7 @@ export function CategoryRow({
 
   const entry = visible.find((it) => it.key === value);
   const resolved = resolveCategory(value, meta ?? null);
-  const label =
-    entry?.label ??
-    (resolved.builtinId
-      ? t.categories[resolved.builtinId as keyof typeof t.categories]
-      : resolved.label);
+  const label = entry?.label ?? builtinCategoryLabel(t, resolved);
   const tint = theme.tint[entry ? normaliseTint(entry.tint) : resolved.tint];
 
   return (

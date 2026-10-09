@@ -274,6 +274,52 @@ describe('diffExpenseVersions', () => {
       ]);
     });
 
+    it('treats null -> cash as the editor default, not a change', () => {
+      expect(
+        diffExpenseVersions(
+          version({ payment_method: null }),
+          version({ payment_method: 'cash' }),
+          ASHA,
+        ),
+      ).toEqual([]);
+      expect(
+        fields(
+          diffExpenseVersions(
+            version({ payment_method: 'cash' }),
+            version({ payment_method: null }),
+            ASHA,
+          ),
+        ),
+      ).toEqual(['paymentMethod']);
+    });
+
+    it('does not report a time change when only the date moved', () => {
+      expect(
+        diffExpenseVersions(
+          version({ occurred_at: '2026-09-01T14:00:00Z' }),
+          version({ occurred_at: '2026-09-03T14:00:00Z' }),
+          ASHA,
+        ),
+      ).toEqual([]);
+    });
+
+    it('carries each side currency on a deposit change', () => {
+      const dep = { is_deposit: true, balance_due_minor: '500000', balance_due_date: null };
+      const changes = diffExpenseVersions(
+        version({ ...dep, currency: 'INR' }),
+        version({ ...dep, currency: 'USD', amount: '1000' }),
+        ASHA,
+      );
+      const change = changes.find((c) => c.field === 'deposit');
+      expect(change).toBeUndefined();
+      const moved = diffExpenseVersions(
+        version({ ...dep, currency: 'INR' }),
+        version({ ...dep, currency: 'USD', balance_due_minor: '600000' }),
+        ASHA,
+      ).find((c) => c.field === 'deposit');
+      expect(moved).toMatchObject({ oldCurrency: 'INR', newCurrency: 'USD' });
+    });
+
     it('reports the time of day, ignoring how the same instant is spelled', () => {
       const a = version({ occurred_at: '2026-09-01T12:00:00+00:00' });
       expect(
@@ -342,7 +388,8 @@ describe('diffExpenseVersions', () => {
           kind: 'deposit',
           oldDeposit: { isDeposit: false, balanceDueMinor: null, balanceDueDate: null },
           newDeposit: { isDeposit: true, balanceDueMinor: 500000n, balanceDueDate: '2026-11-01' },
-          currency: 'INR',
+          oldCurrency: 'INR',
+          newCurrency: 'INR',
         },
       ]);
       // Only the date moving is still the one change.
@@ -378,6 +425,12 @@ describe('diffExpenseVersions', () => {
           ASHA,
         ),
       ).toEqual([{ field: 'splitDetails', kind: 'splitDetails' }]);
+    });
+
+    it('treats 5000 and "5000" split params as the same', () => {
+      const before = version({ split_type: 'exact', split_params: { a: 5000, b: '2500' } });
+      const after = version({ split_type: 'exact', split_params: { a: '5000', b: 2500 } });
+      expect(diffExpenseVersions(before, after, ASHA)).toEqual([]);
     });
 
     it('does not repeat split details when the shares already show the edit', () => {

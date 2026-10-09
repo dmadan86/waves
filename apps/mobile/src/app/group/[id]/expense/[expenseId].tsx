@@ -38,7 +38,7 @@ import {
   subEventsForTemplate,
 } from '@waves/core';
 
-import { CategoryRow } from '@/components/Category';
+import { builtinCategoryLabel, CategoryRow } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
@@ -385,10 +385,7 @@ export default function ExpenseDetailScreen() {
     : (guessIcon(version.description) ?? heroCategory.icon);
   // A built-in's name comes from the string table (the catalog's own label is
   // English); a custom tag carries its own.
-  const heroLabel =
-    version.category_meta?.label ??
-    (version.category ? t.categories[version.category as keyof typeof t.categories] : undefined) ??
-    heroCategory.label;
+  const heroLabel = builtinCategoryLabel(t, heroCategory);
   // Year included, unlike the list rows: this is the one place the bill's own date
   // is stated outright. UTC, because the ledger stores a plain day with no zone.
   const heroDate = new Intl.DateTimeFormat(locale, {

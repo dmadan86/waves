@@ -18,6 +18,7 @@ import {
 import type { ExpenseVersionAudit } from '@/data/api';
 import type { ExpenseImageEventRow } from '@/data/hooks';
 import { dayHeading, groupByDay, relativeTime } from '@/data/activity';
+import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { coordLabel } from '@/lib/location';
 import { fill, type UiStrings } from '@/i18n';
 
@@ -80,7 +81,7 @@ function locationLabel(t: UiStrings, location: DiffLocation | null): string {
 /** A date with no time (the expense's own date), read in UTC to match the rest
  *  of the screen. */
 function dateLabel(locale: string, iso: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return dateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -92,16 +93,14 @@ function dateLabel(locale: string, iso: string): string {
  *  pm" means the wall clock where they are, unlike the expense's date above. */
 function timeLabel(t: UiStrings, locale: string, iso: string | null): string {
   if (!iso || !Number.isFinite(Date.parse(iso))) return t.expense.audit.none;
-  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(
-    new Date(iso),
-  );
+  return dateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 }
 
 /** "6 Oct, 3:24 PM": the day and time of an audit stamp, in the reader's own
  *  timezone (it is a UTC instant). The relative phrase beside it is vague past a
  *  day, so the exact moment rides along. */
 function stampLabel(locale: string, iso: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return dateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
@@ -119,7 +118,7 @@ function depositLabel(
 ): string {
   const audit = t.expense.audit;
   if (!deposit.isDeposit) return audit.depositOff;
-  if (deposit.balanceDueMinor === null) return audit.depositOn;
+  if (deposit.balanceDueMinor === null) return t.eventOrganizer.depositOn;
   const amount = formatMoney(coreMoney(deposit.balanceDueMinor, currency as CurrencyCode), {
     locale,
   });
@@ -300,8 +299,8 @@ function describeChanges(
           key: change.field,
           label: t.expense.audit.depositOn,
           kind: 'text',
-          oldText: depositLabel(t, locale, change.oldDeposit, change.currency),
-          newText: depositLabel(t, locale, change.newDeposit, change.currency),
+          oldText: depositLabel(t, locale, change.oldDeposit, change.oldCurrency),
+          newText: depositLabel(t, locale, change.newDeposit, change.newCurrency),
         };
       case 'subEvent':
         return {
@@ -623,18 +622,20 @@ export function ExpenseHistory({
                 }}
               >
                 <View style={{ width: GUTTER, alignItems: 'center' }}>
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: 1,
-                      // First card starts the line at its dot, last ends it there;
-                      // the rest run through, bridging the gap to the next card.
-                      top: first ? DOT_TOP + DOT / 2 : 0,
-                      bottom: last ? undefined : -GAP,
-                      height: last ? DOT_TOP + DOT / 2 : undefined,
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  />
+                  {first && last ? null : (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        // First card starts the line at its dot, last ends it there;
+                        // the rest run through, bridging the gap to the next card.
+                        top: first ? DOT_TOP + DOT / 2 : 0,
+                        bottom: last ? undefined : -GAP,
+                        height: last ? DOT_TOP + DOT / 2 : undefined,
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    />
+                  )}
                   <View
                     style={{
                       marginTop: DOT_TOP,
