@@ -3169,6 +3169,8 @@ export interface UiStrings {
      *  in beyond your share, and your share of money somebody else put in. */
     youLent: string;
     youBorrowed: string;
+    /** A foreign bill with no rate yet, where the direction would go on a ledger row. */
+    noRateShort: string;
     /** An expense you neither paid for nor have a share of. */
     notInvolved: string;
     /** Detail-screen banner title when you are not a party to the bill. */
@@ -7177,6 +7179,7 @@ const en: UiStrings = {
     collapsePayersConfirm: 'Collapse',
     youLent: 'you lent',
     youBorrowed: 'you borrowed',
+    noRateShort: 'no rate yet',
     notInvolved: 'not involved',
     notInvolvedTitle: "You're not in this split",
     notInvolvedChip: 'Not in this split',
@@ -11144,6 +11147,7 @@ const ta: UiStrings = {
     collapsePayersConfirm: 'மாற்று',
     youLent: 'நீங்கள் கொடுத்தது',
     youBorrowed: 'நீங்கள் வாங்கியது',
+    noRateShort: 'விகிதம் இல்லை',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
     notInvolvedChip: 'Not in this split',
@@ -15105,6 +15109,7 @@ const hi: UiStrings = {
     collapsePayersConfirm: 'बदलें',
     youLent: 'आपने दिए',
     youBorrowed: 'आपने लिए',
+    noRateShort: 'दर नहीं',
     notInvolved: 'आप इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
     notInvolvedChip: 'Not in this split',
@@ -19207,6 +19212,7 @@ const ar: UiStrings = {
     collapsePayersConfirm: 'تحويل',
     youLent: 'أقرضت',
     youBorrowed: 'اقترضت',
+    noRateShort: 'لا يوجد سعر',
     notInvolved: 'لست ضمنها',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
     notInvolvedChip: 'Not in this split',
