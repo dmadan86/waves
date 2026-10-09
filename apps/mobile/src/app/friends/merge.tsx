@@ -29,7 +29,7 @@
  *    so what is picked is visible where it was picked. A search icon filters it.
  * 3. **A slim selection bar** that shows who is picked and carries the merge.
  *
- * Either path ends on one confirm sheet, "Keep which name?". The merge RPC keeps
+ * Either path ends on one confirm sheet, "Keep which details?". The merge RPC keeps
  * a *name*, not a surviving row (every membership is folded under one new
  * person wearing the name it is handed), so choosing which person to keep is
  * choosing which of their names; the field below the choices still takes any
@@ -91,9 +91,15 @@ import {
   defaultMergeName,
   duplicateNameKey,
   findDuplicateSets,
+  keepContactOptions,
   keepNameOptions,
   memberIdsForMerge,
   mergeErrorMessage,
+  needsContactChoice,
+  normaliseMergeEmail,
+  resolveContactChoice,
+  type ContactChoice,
+  type ContactField,
   type DuplicateSet,
   type MergeCandidate,
 } from '@/data/mergePeople';
@@ -101,8 +107,9 @@ import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { friendlyError } from '@/lib/errors';
 import { duplicateNames, duplicateReason } from '@/lib/mergeSuggestionText';
+import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
-import { displayPhone } from '@/lib/phone';
+import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { isUnasked, useDialog } from '@/lib/dialog';
@@ -136,6 +143,8 @@ type MergeTarget =
 interface MergeRequest {
   readonly rows: readonly MergeCandidate[];
   readonly name: string;
+  /** The number / email to keep: a value, '' for none, absent to leave alone. */
+  readonly keep: { readonly phone?: string; readonly email?: string };
   readonly groups: InviteGroup[];
 }
 
@@ -148,6 +157,7 @@ export default function MergePeopleScreen() {
   const { t, locale } = useStrings();
   const { ask, confirm } = useDialog();
   const { flush } = useSync();
+  const { profile } = useAuth();
 
   // People pre-picked on the Friends tab (its multiselect merge) arrive as a
   // comma-joined list of person_keys, plus the name to pre-fill. They seed the
@@ -206,6 +216,9 @@ export default function MergePeopleScreen() {
   // (null while it still shows the suggestion, which follows the people).
   const [target, setTarget] = useState<MergeTarget | null>(null);
   const [sheetName, setSheetName] = useState<string | null>(null);
+  // The phone and email chosen in it — null while it still shows the suggestion.
+  const [phoneChoice, setPhoneChoice] = useState<ContactChoice | null>(null);
+  const [emailChoice, setEmailChoice] = useState<ContactChoice | null>(null);
   // Set by the sheet's Merge button so the irreversibility dialog opens once
   // the sheet has left the screen — two overlays never animate at once (see
   // `Sheet`'s `onClosed`).
@@ -308,8 +321,27 @@ export default function MergePeopleScreen() {
   const name = sheetName ?? suggestedName;
   const showingSuggestion = sheetName === null && name.trim().length > 0;
   const targetCount = new Set(targetRows.map((row) => row.person_key)).size;
+
+  // Which number and email the merged person keeps. Asked only when the picks
+  // disagree (see `needsContactChoice`); otherwise left out of the request, and
+  // the server leaves every membership's own value as it is.
+  const phoneOptions = useMemo(() => keepContactOptions(named, 'phone'), [named]);
+  const emailOptions = useMemo(() => keepContactOptions(named, 'email'), [named]);
+  const askPhone = needsContactChoice(named, 'phone');
+  const askEmail = needsContactChoice(named, 'email');
+  const phonePick: ContactChoice = phoneChoice ?? { kind: 'option', value: phoneOptions[0] ?? '' };
+  const emailPick: ContactChoice = emailChoice ?? { kind: 'option', value: emailOptions[0] ?? '' };
+  const keptPhone = askPhone
+    ? resolveContactChoice(phonePick, (raw) => normaliseContactPhone(raw, profile?.country_code))
+    : undefined;
+  const keptEmail = askEmail ? resolveContactChoice(emailPick, normaliseMergeEmail) : undefined;
+
   const targetReady =
-    canMerge(targetRows) && !targetRows.some((row) => row.pending) && name.trim().length > 0;
+    canMerge(targetRows) &&
+    !targetRows.some((row) => row.pending) &&
+    name.trim().length > 0 &&
+    keptPhone !== null &&
+    keptEmail !== null;
 
   /**
    * The groups a set of guests spans, deduped by group id. Read off the mirror
@@ -335,7 +367,7 @@ export default function MergePeopleScreen() {
 
   const merge = useMutation({
     mutationFn: (request: MergeRequest) =>
-      mergeGhosts(memberIdsForMerge(request.rows), request.name),
+      mergeGhosts(memberIdsForMerge(request.rows), request.name, request.keep),
     onSuccess: (_data, request) => {
       // The merge is written server-side by the RPC; pull it into the mirror so
       // the now-local Friends list (ADR-005) — and this screen, which reads the
@@ -374,6 +406,8 @@ export default function MergePeopleScreen() {
     // A contact assigned for the hand picks names them; a suggestion starts on
     // its own suggested name.
     setSheetName(next.kind === 'picked' && pickedContact ? pickedContact.name : null);
+    setPhoneChoice(null);
+    setEmailChoice(null);
     setTarget(next);
   };
 
@@ -409,6 +443,10 @@ export default function MergePeopleScreen() {
     pendingRequest.current = {
       rows: [...targetRows],
       name: name.trim(),
+      keep: {
+        ...(typeof keptPhone === 'string' ? { phone: keptPhone } : {}),
+        ...(typeof keptEmail === 'string' ? { email: keptEmail } : {}),
+      },
       // Snapshot the groups before the write, from the pre-merge people — the
       // pre-merge keys resolve cleanly, a merged one may not.
       groups: gatherInviteGroups(targetRows),
@@ -680,78 +718,44 @@ export default function MergePeopleScreen() {
         </View>
       ) : null}
 
-      {/* Keep which name? — the one decision a merge asks for. The choices are
-          the picked people's own names, the suggested one first; the field
-          below takes any other. */}
+      {/* Keep which details? — the one decision a merge asks for, in up to
+          three compact sections. Name: the picked people's own names, the
+          suggested one first, and a field for any other. Phone and email: only
+          when the picks disagree, their distinct addresses, "none", and a field
+          for another. */}
       <Sheet
         visible={target !== null}
         onClose={closeSheet}
         onClosed={onSheetClosed}
         title={t.mergePeople.keepWhichTitle}
         closeLabel={t.common.close}
-        style={{ maxHeight: '80%' }}
+        style={{ maxHeight: '85%' }}
       >
         <ScrollView
-          contentContainerStyle={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.sm }}
+          contentContainerStyle={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Text variant="caption" tone="muted">
             {t.mergePeople.keepWhichBody}
           </Text>
+          <SectionLabel label={t.mergePeople.keepName} />
           <View>
-            {nameOptions.map((option) => {
-              const on = duplicateNameKey(option) === duplicateNameKey(name);
-              return (
-                <Pressable
-                  key={option}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={option}
-                  onPress={() => setSheetName(option)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    minHeight: 44,
-                    paddingHorizontal: theme.spacing.sm,
-                    borderRadius: theme.radius.sm,
-                    backgroundColor: on ? theme.color.brandSoft : 'transparent',
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Ionicons
-                    name={on ? 'radio-button-on' : 'radio-button-off'}
-                    size={iconSize.lg}
-                    color={on ? theme.color.brand : theme.color.textFaint}
-                  />
-                  <Avatar name={option} size={28} ghost />
-                  <Text variant="body" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
-                    {option}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {nameOptions.map((option) => (
+              <ChoiceRow
+                key={option}
+                label={option}
+                on={duplicateNameKey(option) === duplicateNameKey(name)}
+                leading={<Avatar name={option} size={24} ghost />}
+                onPress={() => setSheetName(option)}
+              />
+            ))}
           </View>
-          <Text variant="micro" tone="muted">
-            {t.mergePeople.otherName}
-          </Text>
-          <TextInput
+          <SheetField
             value={name}
             onChangeText={setSheetName}
             accessibilityLabel={t.mergePeople.nameLabel}
-            placeholder={t.mergePeople.namePlaceholder}
-            placeholderTextColor={theme.color.textFaint}
-            style={{
-              height: 44,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.sm,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              fontSize: theme.typography.body.fontSize,
-              color: theme.color.text,
-              textAlign: 'auto',
-            }}
+            placeholder={t.mergePeople.otherName}
           />
           {/* Say out loud that the name is a suggestion: it is filled from the
               person we already have details for, which is right often enough
@@ -761,13 +765,47 @@ export default function MergePeopleScreen() {
               {t.mergePeople.nameSuggested}
             </Text>
           ) : null}
-          <Button
-            label={plural(locale, targetCount, t.mergePeople.mergeCount)}
-            variant="brand"
-            fullWidth
-            disabled={!targetReady}
-            onPress={submitSheet}
-          />
+
+          {askPhone ? (
+            <ContactSection
+              field="phone"
+              label={t.mergePeople.keepPhone}
+              options={phoneOptions}
+              choice={phonePick}
+              invalid={
+                phonePick.kind === 'other' && phonePick.text.trim() !== '' && keptPhone === null
+              }
+              noneLabel={t.mergePeople.noPhone}
+              otherPlaceholder={t.mergePeople.otherPhone}
+              invalidLabel={t.mergePeople.errorPhoneInvalid}
+              onChoose={setPhoneChoice}
+            />
+          ) : null}
+          {askEmail ? (
+            <ContactSection
+              field="email"
+              label={t.mergePeople.keepEmail}
+              options={emailOptions}
+              choice={emailPick}
+              invalid={
+                emailPick.kind === 'other' && emailPick.text.trim() !== '' && keptEmail === null
+              }
+              noneLabel={t.mergePeople.noEmail}
+              otherPlaceholder={t.mergePeople.otherEmail}
+              invalidLabel={t.mergePeople.errorEmailInvalid}
+              onChoose={setEmailChoice}
+            />
+          ) : null}
+
+          <View style={{ marginTop: theme.spacing.sm }}>
+            <Button
+              label={plural(locale, targetCount, t.mergePeople.mergeCount)}
+              variant="brand"
+              fullWidth
+              disabled={!targetReady}
+              onPress={submitSheet}
+            />
+          </View>
         </ScrollView>
       </Sheet>
 
@@ -876,6 +914,185 @@ export default function MergePeopleScreen() {
         </Screen>
       </Modal>
     </Screen>
+  );
+}
+
+/**
+ * One radio choice in the "Keep which details?" sheet: a name, a number, an
+ * email or "none". Compact (40dp) so three sections still fit one sheet.
+ */
+function ChoiceRow({
+  label,
+  on,
+  leading,
+  ltr = false,
+  onPress,
+}: {
+  label: string;
+  on: boolean;
+  leading?: React.ReactNode;
+  /** A phone number or address reads left to right in every locale. */
+  ltr?: boolean;
+  onPress: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        minHeight: 40,
+        paddingHorizontal: theme.spacing.sm,
+        borderRadius: theme.radius.sm,
+        backgroundColor: on ? theme.color.brandSoft : 'transparent',
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons
+        name={on ? 'radio-button-on' : 'radio-button-off'}
+        size={iconSize.md}
+        color={on ? theme.color.brand : theme.color.textFaint}
+      />
+      {leading}
+      <Text
+        variant="body"
+        numberOfLines={1}
+        style={
+          ltr
+            ? { flex: 1, minWidth: 0, writingDirection: 'ltr', textAlign: 'auto' }
+            : { flex: 1, minWidth: 0 }
+        }
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** The sheet's free-text field: a name, or another number or email. */
+function SheetField({
+  value,
+  onChangeText,
+  accessibilityLabel,
+  placeholder,
+  keyboardType,
+  invalid = false,
+}: {
+  value: string;
+  onChangeText: (text: string) => void;
+  accessibilityLabel: string;
+  placeholder: string;
+  keyboardType?: 'phone-pad' | 'email-address';
+  invalid?: boolean;
+}): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      accessibilityLabel={accessibilityLabel}
+      placeholder={placeholder}
+      placeholderTextColor={theme.color.textFaint}
+      keyboardType={keyboardType}
+      autoCapitalize={keyboardType ? 'none' : 'words'}
+      autoCorrect={!keyboardType}
+      style={{
+        height: 40,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.sm,
+        borderWidth: 1,
+        borderColor: invalid ? theme.color.negative : theme.color.border,
+        fontSize: theme.typography.body.fontSize,
+        color: theme.color.text,
+        textAlign: 'auto',
+        writingDirection: keyboardType ? 'ltr' : undefined,
+      }}
+    />
+  );
+}
+
+/** Two spellings of one address compare equal: digits for a number, case-folded for an email. */
+function sameContact(field: ContactField, a: string, b: string): boolean {
+  return field === 'phone'
+    ? a.replace(/[^\d]/g, '') === b.replace(/[^\d]/g, '')
+    : a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * The phone or email section of the "Keep which details?" sheet: the picked
+ * people's distinct addresses (the suggested one first), "No phone" / "No
+ * email", and a field for another. Typing in the field chooses it; clearing it
+ * goes back to the suggestion.
+ */
+function ContactSection({
+  field,
+  label,
+  options,
+  choice,
+  invalid,
+  noneLabel,
+  otherPlaceholder,
+  invalidLabel,
+  onChoose,
+}: {
+  field: ContactField;
+  label: string;
+  options: readonly string[];
+  choice: ContactChoice;
+  invalid: boolean;
+  noneLabel: string;
+  otherPlaceholder: string;
+  invalidLabel: string;
+  onChoose: (next: ContactChoice | null) => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const icon = field === 'phone' ? 'call-outline' : 'mail-outline';
+  return (
+    <>
+      <SectionLabel label={label} />
+      <View>
+        {options.map((option) => (
+          <ChoiceRow
+            key={option}
+            label={field === 'phone' ? displayPhone(option) : option}
+            on={choice.kind === 'option' && sameContact(field, choice.value, option)}
+            leading={<Ionicons name={icon} size={iconSize.sm} color={theme.color.textMuted} />}
+            ltr
+            onPress={() => onChoose({ kind: 'option', value: option })}
+          />
+        ))}
+        <ChoiceRow
+          label={noneLabel}
+          on={choice.kind === 'none'}
+          leading={
+            <Ionicons
+              name="remove-circle-outline"
+              size={iconSize.sm}
+              color={theme.color.textMuted}
+            />
+          }
+          onPress={() => onChoose({ kind: 'none' })}
+        />
+      </View>
+      <SheetField
+        value={choice.kind === 'other' ? choice.text : ''}
+        onChangeText={(text) => onChoose(text.length > 0 ? { kind: 'other', text } : null)}
+        accessibilityLabel={otherPlaceholder}
+        placeholder={otherPlaceholder}
+        keyboardType={field === 'phone' ? 'phone-pad' : 'email-address'}
+        invalid={invalid}
+      />
+      {invalid ? (
+        <Text variant="micro" tone="negative">
+          {invalidLabel}
+        </Text>
+      ) : null}
+    </>
   );
 }
 

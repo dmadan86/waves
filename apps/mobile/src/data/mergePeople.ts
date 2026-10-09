@@ -356,6 +356,119 @@ export function keepNameOptions(rows: readonly NamedPerson[]): string[] {
   return out;
 }
 
+/** Which recorded address a "Keep which details?" section is choosing. */
+export type ContactField = 'phone' | 'email';
+
+/** How two spellings of one address are compared: digits for a number, case-folded for an email. */
+function contactKey(field: ContactField, value: string): string {
+  return field === 'phone' ? value.replace(/[^\d]/g, '') : value.trim().toLowerCase();
+}
+
+/**
+ * The phone number or email the merge should keep if nobody chooses one.
+ *
+ * The suggested name's own address first — the person whose name is kept is
+ * the person you know, so their number is the one to keep with it — then the
+ * most common address among the picks, ties broken by pick order. Empty when
+ * nobody picked has one.
+ */
+export function defaultMergeContact(rows: readonly NamedPerson[], field: ContactField): string {
+  const suggestedName = duplicateNameKey(defaultMergeName(rows));
+  const valueOf = (row: NamedPerson): string => row[field]?.trim() ?? '';
+  const own = rows.find(
+    (row) => valueOf(row) !== '' && duplicateNameKey(row.display_name) === suggestedName,
+  );
+  if (own) return valueOf(own);
+
+  const counts = new Map<string, { value: string; count: number }>();
+  for (const row of rows) {
+    const value = valueOf(row);
+    if (!value) continue;
+    const key = contactKey(field, value);
+    const seen = counts.get(key);
+    if (seen) seen.count += 1;
+    else counts.set(key, { value, count: 1 });
+  }
+  let best = '';
+  let bestCount = 0;
+  for (const { value, count } of counts.values()) {
+    if (count > bestCount) {
+      best = value;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
+ * The distinct phone numbers (or emails) among the picked people, for the
+ * confirm step's "Keep which details?" choice, the suggested one
+ * ({@link defaultMergeContact}) first. Two spellings of one number count once
+ * (compared on digits; emails case-insensitively), the first spelling wins.
+ */
+export function keepContactOptions(rows: readonly NamedPerson[], field: ContactField): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of [defaultMergeContact(rows, field), ...rows.map((row) => row[field])]) {
+    const trimmed = value?.trim() ?? '';
+    const key = trimmed ? contactKey(field, trimmed) : '';
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+/**
+ * Whether the sheet should ask which phone (or email) to keep at all.
+ *
+ * Not when nobody picked has one — there is nothing to keep — and not when every
+ * picked person already carries the same one, which the merge keeps by leaving
+ * it alone. It does ask when the picks disagree, including when only some of
+ * them have one: keeping it then spreads it to the rest, and "no phone" is a
+ * real answer the person may want to give.
+ */
+export function needsContactChoice(rows: readonly NamedPerson[], field: ContactField): boolean {
+  const options = keepContactOptions(rows, field);
+  if (options.length === 0) return false;
+  if (options.length > 1) return true;
+  return rows.some((row) => !row[field]?.trim());
+}
+
+/** What the person chose in one "Keep which details?" section. */
+export type ContactChoice =
+  | { readonly kind: 'option'; readonly value: string }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'other'; readonly text: string };
+
+/**
+ * The value the merge RPC is handed for one section: the chosen address,
+ * normalised; `''` for "No phone" / "No email" (the RPC clears it); or null when
+ * a typed address is empty or not valid, so the sheet keeps Merge disabled.
+ *
+ * `normalise` is the field's own rule — the phone one reads a bare national
+ * number in the caller's region — and may throw; a throw reads as "not valid".
+ */
+export function resolveContactChoice(
+  choice: ContactChoice,
+  normalise: (raw: string) => string | null,
+): string | null {
+  if (choice.kind === 'none') return '';
+  const raw = choice.kind === 'option' ? choice.value : choice.text;
+  if (!raw.trim()) return null;
+  try {
+    return normalise(raw) || null;
+  } catch {
+    return null;
+  }
+}
+
+/** The email rule the database holds `invite_email` to: trimmed, lowercased, one @ and a dot after it. */
+export function normaliseMergeEmail(raw: string): string | null {
+  const email = raw.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+}
+
 /** What a picked device contact's name resolves to on the mergeable roster. */
 export interface ContactNameMatch {
   /** The one guest that name unambiguously fits, or null. */
@@ -482,6 +595,8 @@ export interface MergeErrorStrings {
   errorNotMergeable: string;
   errorNameRequired: string;
   errorNotSignedIn: string;
+  errorPhoneInvalid: string;
+  errorEmailInvalid: string;
   errorGeneric: string;
 }
 
@@ -504,5 +619,9 @@ export function mergeErrorMessage(error: unknown, t: MergeErrorStrings): string 
   if (message.includes('NOT_MERGEABLE')) return t.errorNotMergeable;
   if (message.includes('NAME_REQUIRED')) return t.errorNameRequired;
   if (message.includes('NOT_SIGNED_IN')) return t.errorNotSignedIn;
+  if (message.includes('PHONE_NEEDS_COUNTRY_CODE') || message.includes('PHONE_NOT_VALID')) {
+    return t.errorPhoneInvalid;
+  }
+  if (message.includes('EMAIL_NOT_VALID')) return t.errorEmailInvalid;
   return t.errorGeneric;
 }

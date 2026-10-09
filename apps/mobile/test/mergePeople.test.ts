@@ -4,14 +4,19 @@ import {
   buildMergeCandidates,
   canMerge,
   contactNameMatch,
+  defaultMergeContact,
   defaultMergeName,
   duplicateNameKey,
   findDuplicateSets,
   hasContact,
   isMergeable,
+  keepContactOptions,
   keepNameOptions,
   memberIdsForMerge,
   mergeErrorMessage,
+  needsContactChoice,
+  normaliseMergeEmail,
+  resolveContactChoice,
   suggestMergeCluster,
   type MergeableMember,
   type MergeCandidate,
@@ -512,6 +517,8 @@ describe('mergeErrorMessage', () => {
     errorNotMergeable: 'guests only',
     errorNameRequired: 'name needed',
     errorNotSignedIn: 'signed out',
+    errorPhoneInvalid: 'bad phone',
+    errorEmailInvalid: 'bad email',
     errorGeneric: 'something went wrong',
   };
 
@@ -529,6 +536,13 @@ describe('mergeErrorMessage', () => {
       'name needed',
     );
     expect(mergeErrorMessage(new Error('NOT_SIGNED_IN'), t)).toBe('signed out');
+    expect(mergeErrorMessage(new Error('PHONE_NOT_VALID: +0123 is not a phone number'), t)).toBe(
+      'bad phone',
+    );
+    expect(mergeErrorMessage(new Error('PHONE_NEEDS_COUNTRY_CODE: 98765'), t)).toBe('bad phone');
+    expect(mergeErrorMessage(new Error('EMAIL_NOT_VALID: that is not an email'), t)).toBe(
+      'bad email',
+    );
   });
 
   it('falls back to the generic line for an unrecognised error, leaking nothing', () => {
@@ -652,5 +666,99 @@ describe('keepNameOptions', () => {
       ['Renny'],
     );
     expect(keepNameOptions([])).toEqual([]);
+  });
+});
+
+describe('keepContactOptions', () => {
+  it("lists each distinct phone once, the suggested person's number first", () => {
+    const picks = [
+      row({ person_key: 'a', display_name: 'person1', phone: '+14155550123' }),
+      row({ person_key: 'b', display_name: 'Ravi', phone: '+919876543210', group_count: 3 }),
+      row({ person_key: 'c', display_name: 'Ravi K', phone: '+91 98765 43210' }),
+      row({ person_key: 'd', display_name: 'nobody' }),
+    ];
+    // Both a and b have a number; the suggested name is the most common among
+    // those with an address, ties by pick order — person1 — so its number leads.
+    expect(defaultMergeName(picks)).toBe('person1');
+    expect(keepContactOptions(picks, 'phone')).toEqual(['+14155550123', '+919876543210']);
+  });
+
+  it('leads with the most common number when the suggested name has none', () => {
+    const picks = [
+      row({ person_key: 'a', display_name: 'Ravi', email: 'ravi@example.com' }),
+      row({ person_key: 'b', display_name: 'R', phone: '+14155550123' }),
+      row({ person_key: 'c', display_name: 'RK', phone: '+919876543210' }),
+      row({ person_key: 'd', display_name: 'RV', phone: '+919876543210' }),
+    ];
+    expect(defaultMergeContact(picks, 'phone')).toBe('+919876543210');
+    expect(keepContactOptions(picks, 'phone')).toEqual(['+919876543210', '+14155550123']);
+  });
+
+  it('dedupes emails case-insensitively and offers nothing for nobody', () => {
+    expect(
+      keepContactOptions(
+        [
+          row({ person_key: 'a', email: 'Ravi@Example.com' }),
+          row({ person_key: 'b', email: 'ravi@example.com ' }),
+        ],
+        'email',
+      ),
+    ).toEqual(['Ravi@Example.com']);
+    expect(
+      keepContactOptions([row({ person_key: 'a' }), row({ person_key: 'b' })], 'phone'),
+    ).toEqual([]);
+    expect(defaultMergeContact([], 'phone')).toBe('');
+  });
+});
+
+describe('needsContactChoice', () => {
+  it('asks only when the picked people disagree', () => {
+    const p = '+919876543210';
+    expect(needsContactChoice([row({ person_key: 'a' }), row({ person_key: 'b' })], 'phone')).toBe(
+      false,
+    );
+    expect(
+      needsContactChoice(
+        [row({ person_key: 'a', phone: p }), row({ person_key: 'b', phone: '+91 98765 43210' })],
+        'phone',
+      ),
+    ).toBe(false);
+    expect(
+      needsContactChoice(
+        [row({ person_key: 'a', phone: p }), row({ person_key: 'b', phone: '+14155550123' })],
+        'phone',
+      ),
+    ).toBe(true);
+    // One has a number, one does not: keep it, or "No phone".
+    expect(
+      needsContactChoice([row({ person_key: 'a', phone: p }), row({ person_key: 'b' })], 'phone'),
+    ).toBe(true);
+  });
+});
+
+describe('resolveContactChoice', () => {
+  const upper = (raw: string): string => raw.trim().toUpperCase();
+  const refuse = (): string => {
+    throw new Error('PHONE_NOT_VALID');
+  };
+
+  it('normalises a chosen or typed value, and clears on "none"', () => {
+    expect(resolveContactChoice({ kind: 'option', value: ' a ' }, upper)).toBe('A');
+    expect(resolveContactChoice({ kind: 'other', text: 'b' }, upper)).toBe('B');
+    expect(resolveContactChoice({ kind: 'none' }, refuse)).toBe('');
+  });
+
+  it('is not ready for an empty or invalid typed value', () => {
+    expect(resolveContactChoice({ kind: 'other', text: '  ' }, upper)).toBeNull();
+    expect(resolveContactChoice({ kind: 'other', text: '123' }, refuse)).toBeNull();
+    expect(resolveContactChoice({ kind: 'other', text: 'x' }, () => null)).toBeNull();
+  });
+});
+
+describe('normaliseMergeEmail', () => {
+  it('lowercases a valid address and refuses a malformed one', () => {
+    expect(normaliseMergeEmail(' Ravi@Example.COM ')).toBe('ravi@example.com');
+    expect(normaliseMergeEmail('nope')).toBeNull();
+    expect(normaliseMergeEmail('a@b')).toBeNull();
   });
 });

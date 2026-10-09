@@ -2045,6 +2045,10 @@ export interface UiStrings {
     errorNotMergeable: string;
     errorNameRequired: string;
     errorNotSignedIn: string;
+    /** The merge's kept number was refused: no country code, or not a number. */
+    errorPhoneInvalid: string;
+    /** The merge's kept email was refused: not an address. */
+    errorEmailInvalid: string;
     errorGeneric: string;
     /** After a merge, the prompt offering to invite the merged person to their
      *  groups. `{name}` is the merged person's name. */
@@ -2107,6 +2111,16 @@ export interface UiStrings {
     keepWhichBody: string;
     /** Label over the free-text name field in that sheet. */
     otherName: string;
+    /** "Keep which details?" section labels: the name, the number, the email. */
+    keepName: string;
+    keepPhone: string;
+    keepEmail: string;
+    /** The choice that keeps no number / no email on the merged person. */
+    noPhone: string;
+    noEmail: string;
+    /** Placeholder of the free-text number / email field in that sheet. */
+    otherPhone: string;
+    otherEmail: string;
     /** The hand-pick section's label when there are no suggestions above it. */
     pickPeople: string;
   };
@@ -6376,6 +6390,8 @@ const en: UiStrings = {
     errorNotMergeable: 'You can only merge guests you share a group with.',
     errorNameRequired: 'Give the merged person a name.',
     errorNotSignedIn: 'You’re signed out. Sign in and try the merge again.',
+    errorPhoneInvalid: 'Add the country code to that number, like +91.',
+    errorEmailInvalid: 'That doesn’t look like an email address.',
     errorGeneric: 'Could not merge. Please try again.',
     invitePromptTitle: 'Invite {name}?',
     invitePromptBody: 'Share a join link so they can see the groups you merged them into.',
@@ -6406,9 +6422,16 @@ const en: UiStrings = {
     searchLabel: 'Search people',
     searchPlaceholder: 'Name, phone or email',
     noMatches: 'No one matches that search.',
-    keepWhichTitle: 'Keep which name?',
-    keepWhichBody: 'Everyone picked becomes one person with this name.',
+    keepWhichTitle: 'Keep which details?',
+    keepWhichBody: 'Everyone picked becomes one person with these details.',
     otherName: 'Or type a name',
+    keepName: 'Name',
+    keepPhone: 'Phone',
+    keepEmail: 'Email',
+    noPhone: 'No phone',
+    noEmail: 'No email',
+    otherPhone: 'Or type a number',
+    otherEmail: 'Or type an email',
     pickPeople: 'Pick who to merge',
   },
   groupMarks: {
@@ -10321,6 +10344,8 @@ const ta: UiStrings = {
     errorNotMergeable: 'நீங்கள் பகிரும் குழுவில் உள்ள விருந்தினர்களை மட்டுமே இணைக்க முடியும்.',
     errorNameRequired: 'இணைந்த நபருக்கு ஒரு பெயரைக் கொடுக்கவும்.',
     errorNotSignedIn: 'நீங்கள் வெளியேறிவிட்டீர்கள். உள்நுழைந்து மீண்டும் இணைக்க முயற்சிக்கவும்.',
+    errorPhoneInvalid: 'அந்த எண்ணுடன் நாட்டுக் குறியீட்டைச் சேர்க்கவும், எடுத்துக்காட்டாக +91.',
+    errorEmailInvalid: 'அது மின்னஞ்சல் முகவரி போலத் தெரியவில்லை.',
     errorGeneric: 'இணைக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     invitePromptTitle: '{name} ஐ அழைக்கவா?',
     invitePromptBody: 'நீங்கள் இணைத்த குழுக்களை அவர்கள் பார்க்க, இணைவதற்கான இணைப்பைப் பகிரவும்.',
@@ -10351,9 +10376,16 @@ const ta: UiStrings = {
     searchLabel: 'நபர்களைத் தேடு',
     searchPlaceholder: 'பெயர், எண் அல்லது மின்னஞ்சல்',
     noMatches: 'இந்தத் தேடலுக்குப் பொருந்தும் யாரும் இல்லை.',
-    keepWhichTitle: 'எந்தப் பெயரை வைக்க வேண்டும்?',
-    keepWhichBody: 'தேர்ந்தெடுத்த அனைவரும் இந்தப் பெயரில் ஒரே நபராவார்கள்.',
+    keepWhichTitle: 'எந்த விவரங்களை வைக்க வேண்டும்?',
+    keepWhichBody: 'தேர்ந்தெடுத்த அனைவரும் இந்த விவரங்களுடன் ஒரே நபராவார்கள்.',
     otherName: 'அல்லது ஒரு பெயரை உள்ளிடுங்கள்',
+    keepName: 'பெயர்',
+    keepPhone: 'தொலைபேசி',
+    keepEmail: 'மின்னஞ்சல்',
+    noPhone: 'தொலைபேசி இல்லை',
+    noEmail: 'மின்னஞ்சல் இல்லை',
+    otherPhone: 'அல்லது ஒரு எண்ணை உள்ளிடுங்கள்',
+    otherEmail: 'அல்லது ஒரு மின்னஞ்சலை உள்ளிடுங்கள்',
     pickPeople: 'இணைக்க வேண்டியவர்களைத் தேர்ந்தெடுங்கள்',
   },
   groupMarks: {
@@ -14345,6 +14377,8 @@ const hi: UiStrings = {
       'आप केवल उन मेहमानों को मर्ज कर सकते हैं जिनके साथ आप कोई समूह साझा करते हैं.',
     errorNameRequired: 'मर्ज किए गए व्यक्ति को एक नाम दें.',
     errorNotSignedIn: 'आप साइन आउट हैं. साइन इन करके फिर से मर्ज करें.',
+    errorPhoneInvalid: 'उस नंबर में देश का कोड जोड़ें, जैसे +91.',
+    errorEmailInvalid: 'यह ईमेल पता नहीं लगता.',
     errorGeneric: 'मर्ज नहीं हो सका. कृपया फिर से प्रयास करें.',
     invitePromptTitle: '{name} को आमंत्रित करें?',
     invitePromptBody:
@@ -14376,9 +14410,16 @@ const hi: UiStrings = {
     searchLabel: 'लोग खोजें',
     searchPlaceholder: 'नाम, नंबर या ईमेल',
     noMatches: 'इस खोज से कोई मेल नहीं खाता.',
-    keepWhichTitle: 'कौन सा नाम रखें?',
-    keepWhichBody: 'चुने गए सभी लोग इस नाम से एक व्यक्ति बन जाएँगे.',
+    keepWhichTitle: 'कौन से विवरण रखें?',
+    keepWhichBody: 'चुने गए सभी लोग इन विवरणों के साथ एक व्यक्ति बन जाएँगे.',
     otherName: 'या कोई नाम लिखें',
+    keepName: 'नाम',
+    keepPhone: 'फ़ोन',
+    keepEmail: 'ईमेल',
+    noPhone: 'कोई फ़ोन नहीं',
+    noEmail: 'कोई ईमेल नहीं',
+    otherPhone: 'या कोई नंबर लिखें',
+    otherEmail: 'या कोई ईमेल लिखें',
     pickPeople: 'मर्ज करने के लिए लोग चुनें',
   },
   groupMarks: {
@@ -18358,6 +18399,8 @@ const ar: UiStrings = {
     errorNotMergeable: 'يمكنك دمج الضيوف الذين تشاركهم مجموعة فقط.',
     errorNameRequired: 'أعطِ الشخص المدمج اسمًا.',
     errorNotSignedIn: 'أنت مسجّل الخروج. سجّل الدخول وحاول الدمج مرة أخرى.',
+    errorPhoneInvalid: 'أضف رمز الدولة إلى هذا الرقم، مثل +91.',
+    errorEmailInvalid: 'لا يبدو هذا عنوان بريد إلكتروني.',
     errorGeneric: 'تعذّر الدمج. يرجى المحاولة مرة أخرى.',
     invitePromptTitle: 'دعوة {name}؟',
     invitePromptBody: 'شارك رابط انضمام حتى يتمكنوا من رؤية المجموعات التي دمجتهم فيها.',
@@ -18414,9 +18457,16 @@ const ar: UiStrings = {
     searchLabel: 'ابحث عن أشخاص',
     searchPlaceholder: 'الاسم أو الرقم أو البريد',
     noMatches: 'لا أحد يطابق هذا البحث.',
-    keepWhichTitle: 'أي اسم تريد الإبقاء عليه؟',
-    keepWhichBody: 'يصبح كل من اخترتهم شخصًا واحدًا بهذا الاسم.',
+    keepWhichTitle: 'أي بيانات تريد الإبقاء عليها؟',
+    keepWhichBody: 'يصبح كل من اخترتهم شخصًا واحدًا بهذه البيانات.',
     otherName: 'أو اكتب اسمًا',
+    keepName: 'الاسم',
+    keepPhone: 'الهاتف',
+    keepEmail: 'البريد الإلكتروني',
+    noPhone: 'بلا هاتف',
+    noEmail: 'بلا بريد إلكتروني',
+    otherPhone: 'أو اكتب رقمًا',
+    otherEmail: 'أو اكتب بريدًا إلكترونيًا',
     pickPeople: 'اختر من تريد دمجهم',
   },
   groupMarks: {
