@@ -17,7 +17,7 @@ import {
 
 import type { ExpenseVersionAudit } from '@/data/api';
 import type { ExpenseImageEventRow } from '@/data/hooks';
-import { type ActivityTint, dayHeading, groupByDay, relativeTime } from '@/data/activity';
+import { dayHeading, groupByDay, relativeTime } from '@/data/activity';
 import { coordLabel } from '@/lib/location';
 import { fill, type UiStrings } from '@/i18n';
 
@@ -95,6 +95,18 @@ function timeLabel(t: UiStrings, locale: string, iso: string | null): string {
   return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(
     new Date(iso),
   );
+}
+
+/** "6 Oct, 3:24 PM": the day and time of an audit stamp, in the reader's own
+ *  timezone (it is a UTC instant). The relative phrase beside it is vague past a
+ *  day, so the exact moment rides along. */
+function stampLabel(locale: string, iso: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso));
 }
 
 /** The vendor-deposit reminder as one phrase: not a deposit, or a deposit with
@@ -345,8 +357,8 @@ function ChangeLine({ change, locale }: { change: Change; locale: string }) {
   const glyph = (
     <Ionicons
       name={CHANGE_ICONS[change.key]}
-      size={iconSize.sm}
-      color={theme.color.textFaint}
+      size={iconSize.md}
+      color={theme.color.brand}
       // Nudged to sit on the label's first line rather than the block's middle.
       style={{ marginTop: 1 }}
     />
@@ -365,7 +377,7 @@ function ChangeLine({ change, locale }: { change: Change; locale: string }) {
     <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
       {glyph}
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text variant="micro" tone="muted">
+        <Text variant="caption" style={{ fontWeight: '600' }}>
           {change.label}
         </Text>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
@@ -379,6 +391,7 @@ function ChangeLine({ change, locale }: { change: Change; locale: string }) {
               // half of an arrow, and colouring both ends makes neither read as
               // the answer.
               tone="muted"
+              style={{ textDecorationLine: 'line-through' }}
             />
           ) : (
             <Text
@@ -401,17 +414,43 @@ function ChangeLine({ change, locale }: { change: Change; locale: string }) {
               currency={change.newCurrency as never}
               locale={locale}
               variant="caption"
+              style={{ fontWeight: '700' }}
               // Sign-derived colour and spoken label for a balance; neutral ink for
               // a total (see `balance` on Change).
               mode={change.balance ? 'balance' : 'plain'}
             />
           ) : (
-            <Text variant="caption" numberOfLines={2} style={{ flexShrink: 1 }}>
+            <Text variant="caption" numberOfLines={2} style={{ flexShrink: 1, fontWeight: '700' }}>
               {change.newText}
             </Text>
           )}
         </Row>
       </View>
+    </Row>
+  );
+}
+
+/** One fact of the created entry: glyph, a fixed-width label, then the value, so
+ *  the values line up in a column the way the design has them. */
+function FactLine({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} style={{ marginTop: 1 }} />
+      <Text variant="caption" tone="muted" style={{ width: 84 }} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text variant="caption" style={{ flex: 1, fontWeight: '700' }} numberOfLines={2}>
+        {value}
+      </Text>
     </Row>
   );
 }
@@ -435,7 +474,6 @@ interface HistoryEvent {
   id: string;
   created_at: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  tint: ActivityTint;
   title: string;
   /** Version amount, when the node is a version. */
   money?: { amount: bigint; currency: string };
@@ -443,6 +481,8 @@ interface HistoryEvent {
   changes?: Change[];
   /** True for the very first version (a creation, no diff to show). */
   created?: boolean;
+  /** What the bill was born as, for the created entry's fact panel. */
+  facts?: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string }[];
   /** A party-only image event wears a badge. */
   partyOnly?: boolean;
 }
@@ -452,6 +492,7 @@ export function ExpenseHistory({
   imageEvents,
   nameOf,
   myMemberId,
+  groupName,
   t,
   locale,
 }: {
@@ -463,6 +504,8 @@ export function ExpenseHistory({
    *  Null for someone with no membership row — the stake line is then omitted
    *  rather than shown as zero. */
   myMemberId: MemberId | null;
+  /** The group the bill sits in, for the created entry's facts. */
+  groupName: string;
   t: UiStrings;
   locale: string;
 }) {
@@ -484,8 +527,7 @@ export function ExpenseHistory({
     return {
       id: `v-${version.id}`,
       created_at: version.created_at,
-      icon: created ? 'receipt-outline' : 'create-outline',
-      tint: created ? 'mint' : 'sky',
+      icon: created ? 'add' : 'pencil-outline',
       title: fill(created ? t.expense.createdByName : t.expense.editedByName, {
         name: nameOf(version.author_member_id),
       }),
@@ -499,6 +541,28 @@ export function ExpenseHistory({
             diffExpenseVersions(ascending[index - 1]!, version, myMemberId),
           ),
       created,
+      // The first version has no diff, so it lists what the bill started as —
+      // otherwise the oldest card would be an empty shell under its title.
+      facts: created
+        ? [
+            {
+              icon: 'text-outline',
+              label: t.expense.audit.description,
+              value: version.description.trim() || t.expense.audit.none,
+            },
+            {
+              icon: 'pricetag-outline',
+              label: t.expense.audit.category,
+              value: categoryLabel(t, version.category, version.category_meta?.label ?? null),
+            },
+            { icon: 'people-outline', label: t.expense.detailGroup, value: groupName },
+            {
+              icon: 'calendar-outline',
+              label: t.expense.detailDate,
+              value: dateLabel(locale, version.expense_date),
+            },
+          ]
+        : undefined,
     };
   });
 
@@ -509,7 +573,6 @@ export function ExpenseHistory({
     id: `i-${event.id}`,
     created_at: event.createdAt ?? fallbackIso,
     icon: event.action === 'added' ? 'attach-outline' : 'trash-outline',
-    tint: event.action === 'added' ? 'lilac' : 'coral',
     title: imageAuditLine(t, event, nameOf(event.actorMemberId)),
     partyOnly: event.visibility === 'parties',
   }));
@@ -520,6 +583,13 @@ export function ExpenseHistory({
     .filter((event) => Number.isFinite(Date.parse(event.created_at)))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
   const sections = groupByDay(events);
+
+  // The timeline gutter: a dot per card on a thin line, so the entries read as
+  // one sequence. The line runs through the gap to the next card.
+  const GUTTER = 16;
+  const DOT = 8;
+  const DOT_TOP = 18;
+  const GAP = theme.spacing.sm;
 
   return (
     <View>
@@ -532,7 +602,7 @@ export function ExpenseHistory({
             tone="muted"
             style={{
               textTransform: 'uppercase',
-              marginTop: theme.spacing.lg,
+              marginTop: theme.spacing.md,
               marginBottom: theme.spacing.sm,
             }}
           >
@@ -540,76 +610,117 @@ export function ExpenseHistory({
           </Text>
 
           {section.entries.map((event, index) => {
-            const tint = theme.tint[event.tint];
+            const first = index === 0;
+            const last = index === section.entries.length - 1;
+            const hasChanges = Boolean(event.changes && event.changes.length > 0);
             return (
-              <View key={event.id}>
-                <Row
-                  style={{
-                    gap: theme.spacing.md,
-                    alignItems: 'flex-start',
-                    // History is a long scroll; the old 40pt disc and roomier
-                    // rows made one edit cost a screenful.
-                    paddingVertical: theme.spacing.md,
-                  }}
-                >
-                  {/* The soft rounded-square icon tile — the same row shape the
-                      Activity and group feeds use, so history reads one way. */}
+              <Row
+                key={event.id}
+                style={{
+                  alignItems: 'stretch',
+                  gap: theme.spacing.sm,
+                  marginBottom: last ? 0 : GAP,
+                }}
+              >
+                <View style={{ width: GUTTER, alignItems: 'center' }}>
                   <View
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: theme.radius.sm,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: tint.bg,
+                      position: 'absolute',
+                      width: 1,
+                      // First card starts the line at its dot, last ends it there;
+                      // the rest run through, bridging the gap to the next card.
+                      top: first ? DOT_TOP + DOT / 2 : 0,
+                      bottom: last ? undefined : -GAP,
+                      height: last ? DOT_TOP + DOT / 2 : undefined,
+                      backgroundColor: theme.color.brandSoft,
                     }}
-                  >
-                    <Ionicons name={event.icon} size={iconSize.base} color={tint.ink} />
-                  </View>
+                  />
+                  <View
+                    style={{
+                      marginTop: DOT_TOP,
+                      width: DOT,
+                      height: DOT,
+                      borderRadius: DOT / 2,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  />
+                </View>
 
-                  <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    {/* Title and amount share one line; the time sits under
-                        them, smaller and muted. */}
-                    <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                      <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: theme.spacing.md,
+                    gap: theme.spacing.sm,
+                    borderRadius: theme.radius.lg,
+                    backgroundColor: theme.color.surface,
+                    ...theme.shadow.soft,
+                  }}
+                >
+                  <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+                    {/* The brand-soft disc: the same glyph language as the hero's
+                        controls, so history reads as part of this screen. */}
+                    <View
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons name={event.icon} size={iconSize.md} color={theme.color.brand} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
                         {event.title}
                       </Text>
-                      {event.money ? (
-                        <MoneyText
-                          amount={event.money.amount}
-                          currency={event.money.currency as never}
-                          locale={locale}
-                          variant="caption"
-                        />
-                      ) : event.partyOnly ? (
-                        <Badge label={t.imageAudit.partyOnly} tone="neutral" />
-                      ) : null}
-                    </Row>
-                    <Text variant="micro" tone="muted" numberOfLines={1}>
-                      {relativeTime(locale, event.created_at)}
-                    </Text>
-
-                    {/* An edit spells out what changed, aligned under its
-                        sentence. A "created" node has no diff; an edit with no
-                        detected field change says so in one quiet line. */}
-                    {event.created ? null : event.changes && event.changes.length > 0 ? (
-                      <View style={{ gap: theme.spacing.xs, marginTop: theme.spacing.xs }}>
-                        {event.changes.map((change) => (
-                          <ChangeLine key={change.key} change={change} locale={locale} />
-                        ))}
-                      </View>
-                    ) : event.money ? (
-                      <Text variant="micro" tone="muted">
-                        {t.expense.noChanges}
+                      <Text variant="micro" tone="muted" numberOfLines={1}>
+                        {`${relativeTime(locale, event.created_at)} • ${stampLabel(locale, event.created_at)}`}
                       </Text>
+                    </View>
+                    {event.money ? (
+                      <MoneyText
+                        amount={event.money.amount}
+                        currency={event.money.currency as never}
+                        locale={locale}
+                        variant="subheading"
+                        style={{ fontWeight: '700' }}
+                      />
+                    ) : event.partyOnly ? (
+                      <Badge label={t.imageAudit.partyOnly} tone="neutral" />
                     ) : null}
-                  </View>
-                </Row>
+                  </Row>
 
-                {index < section.entries.length - 1 ? (
-                  <View style={{ height: 1, backgroundColor: theme.color.border }} />
-                ) : null}
-              </View>
+                  {/* What changed, in a quiet inset panel. A "created" node lists
+                      what the bill started as; an edit with no detected field
+                      change says so in one line. */}
+                  {event.facts || hasChanges || event.money ? (
+                    <View
+                      style={{
+                        gap: theme.spacing.sm,
+                        paddingHorizontal: theme.spacing.md,
+                        paddingVertical: theme.spacing.sm,
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: theme.color.surfaceMuted,
+                      }}
+                    >
+                      {event.facts ? (
+                        event.facts.map((fact) => <FactLine key={fact.label} {...fact} />)
+                      ) : hasChanges ? (
+                        event.changes!.map((change) => (
+                          <ChangeLine key={change.key} change={change} locale={locale} />
+                        ))
+                      ) : (
+                        <Text variant="caption" tone="muted">
+                          {t.expense.noChanges}
+                        </Text>
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+              </Row>
             );
           })}
         </View>
