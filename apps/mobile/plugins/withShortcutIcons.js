@@ -74,11 +74,27 @@ function writeFile(filePath, contents) {
   fs.writeFileSync(filePath, contents);
 }
 
+/**
+ * Release builds shrink resources (`enableShrinkResourcesInReleaseBuilds`), and
+ * the shrinker only keeps what code references. These icons are looked up by
+ * *name* at runtime (expo-quick-actions resolves the item's `icon` string with
+ * `getIdentifier`), so nothing references them and the shrinker deleted all
+ * three — the long-press menu lost its icons the day shrinking was turned on.
+ * A `tools:keep` list in res/raw is Android's sanctioned way to say "these are
+ * used, by name".
+ */
+const keepXml = (names) => `<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+  tools:keep="${names.map((name) => `@drawable/${name}`).join(',')}" />
+`;
+
 function writeNativeSources(projectRoot) {
-  const drawableDir = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'drawable');
+  const res = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res');
+  const drawableDir = path.join(res, 'drawable');
   for (const [name, glyphPath] of Object.entries(GLYPHS)) {
     writeFile(path.join(drawableDir, `${name}.xml`), shortcutIconXml(glyphPath));
   }
+  writeFile(path.join(res, 'raw', 'waves_shortcut_icons_keep.xml'), keepXml(Object.keys(GLYPHS)));
 }
 
 module.exports = function withShortcutIcons(config) {
@@ -94,6 +110,7 @@ module.exports = function withShortcutIcons(config) {
 // Exposed for the plugin's unit test (test/shortcutIconsPlugin.test.ts). Not part
 // of the plugin's runtime contract.
 module.exports._internals = {
+  keepXml,
   BADGE_COLOR,
   BADGE_BACKGROUND_PATH,
   GLYPHS,
