@@ -288,6 +288,33 @@ export interface UiStrings {
   /** Drafts waiting against a group — caught, not yet an expense. */
   draftCount: PluralForms;
   notJoinedYet: string;
+  /** Reminding someone who is not on Waves (no account, so no push). */
+  ghostRemind: {
+    /** Status when we have their phone: the reminder goes by WhatsApp. */
+    statusWhatsApp: string;
+    remindWhatsApp: string;
+    remindEmail: string;
+    /** {name} {amount} {group} {link} */
+    message: string;
+    /** No join link could be made: the same, without it. {name} {amount} {group} */
+    messageNoLink: string;
+    /** {group} */
+    emailSubject: string;
+    /** Joins the last of several amounts: "€25 and ₹2,952". */
+    and: string;
+    /** Between the others: "a, b and c". */
+    comma: string;
+    /** {name} */
+    infoA11y: string;
+    explainTitle: string;
+    /** {name} */
+    explainLead: string;
+    explainWhatsApp: string;
+    explainEmail: string;
+    explainShare: string;
+  };
+  /** Which amount a row's tap or Pay is about, when a person has several. */
+  settlePickAmount: string;
   scansLeft: string;
   simplifyOn: string;
   simplifyOff: string;
@@ -4896,7 +4923,29 @@ const en: UiStrings = {
   members: 'Members',
   memberCount: { one: '{n} member', other: '{n} members' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'not joined yet',
+  notJoinedYet: 'Not on Waves yet',
+  ghostRemind: {
+    statusWhatsApp: 'Not on Waves · reminders go by WhatsApp',
+    remindWhatsApp: 'Remind on WhatsApp',
+    remindEmail: 'Remind by email',
+    message:
+      'Hi {name}, a reminder: you owe {amount} in {group} on Waves. Join to see the details and settle up: {link}',
+    messageNoLink: 'Hi {name}, a reminder: you owe {amount} in {group} on Waves.',
+    emailSubject: 'A reminder from {group} on Waves',
+    and: 'and',
+    comma: ', ',
+    infoA11y: 'Why {name} cannot get app reminders',
+    explainTitle: 'Not on Waves yet',
+    explainLead:
+      "{name} was added by name and doesn't use Waves yet, so they can't get app notifications.",
+    explainWhatsApp:
+      'Remind them on WhatsApp — the message includes a link to join and see what they owe.',
+    explainEmail:
+      'Remind them by email — the message includes a link to join and see what they owe.',
+    explainShare:
+      'Send them a reminder from any app — the message includes a link to join and see what they owe.',
+  },
+  settlePickAmount: 'Which amount?',
   scansLeft: 'scans left',
   simplifyOn: 'Simplify on',
   simplifyOff: 'Simplify off',
@@ -8801,7 +8850,30 @@ const ta: UiStrings = {
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'இன்னும் சேரவில்லை',
+  notJoinedYet: 'இன்னும் Waves-ல் இல்லை',
+  ghostRemind: {
+    statusWhatsApp: 'Waves-ல் இல்லை · நினைவூட்டல் WhatsApp-ல்',
+    remindWhatsApp: 'WhatsApp-ல் நினைவூட்டு',
+    remindEmail: 'மின்னஞ்சலில் நினைவூட்டு',
+    message:
+      'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும். விவரங்களைப் பார்த்துச் செலுத்த சேரவும்: {link}',
+    messageNoLink:
+      'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும்.',
+    emailSubject: 'Waves-ல் {group} குழுவிலிருந்து ஒரு நினைவூட்டல்',
+    and: 'மற்றும்',
+    comma: ', ',
+    infoA11y: '{name}க்கு ஏன் செயலி நினைவூட்டல் வராது',
+    explainTitle: 'இன்னும் Waves-ல் இல்லை',
+    explainLead:
+      '{name} பெயரால் சேர்க்கப்பட்டவர், இன்னும் Waves பயன்படுத்தவில்லை; அதனால் அவருக்குச் செயலி அறிவிப்புகள் வராது.',
+    explainWhatsApp:
+      'WhatsApp-ல் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+    explainEmail:
+      'மின்னஞ்சலில் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+    explainShare:
+      'எந்தச் செயலியிலிருந்தும் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+  },
+  settlePickAmount: 'எந்தத் தொகை?',
   scansLeft: 'ஸ்கேன் மீதம்',
   simplifyOn: 'எளிமையாக்கல் இயக்கத்தில்',
   simplifyOff: 'எளிமையாக்கல் நிறுத்தத்தில்',
@@ -12860,7 +12932,27 @@ const hi: UiStrings = {
   members: 'सदस्य',
   memberCount: { one: '{n} सदस्य', other: '{n} सदस्य' },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'अभी शामिल नहीं हुए',
+  notJoinedYet: 'अभी Waves पर नहीं',
+  ghostRemind: {
+    statusWhatsApp: 'Waves पर नहीं · रिमाइंडर WhatsApp से जाएगा',
+    remindWhatsApp: 'WhatsApp पर याद दिलाएँ',
+    remindEmail: 'ईमेल से याद दिलाएँ',
+    message:
+      'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं। विवरण देखने और चुकाने के लिए जुड़ें: {link}',
+    messageNoLink: 'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं।',
+    emailSubject: 'Waves पर {group} से एक रिमाइंडर',
+    and: 'और',
+    comma: ', ',
+    infoA11y: '{name} को ऐप रिमाइंडर क्यों नहीं मिल सकते',
+    explainTitle: 'अभी Waves पर नहीं',
+    explainLead:
+      '{name} को नाम से जोड़ा गया था और वे अभी Waves इस्तेमाल नहीं करते, इसलिए उन्हें ऐप सूचनाएँ नहीं मिल सकतीं।',
+    explainWhatsApp:
+      'उन्हें WhatsApp पर याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+    explainEmail: 'उन्हें ईमेल से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+    explainShare: 'किसी भी ऐप से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+  },
+  settlePickAmount: 'कौन-सी रकम?',
   scansLeft: 'स्कैन बाकी',
   simplifyOn: 'आसान करना चालू',
   simplifyOff: 'आसान करना बंद',
@@ -16787,7 +16879,25 @@ const ar: UiStrings = {
     other: '{n} عضو',
   },
   draftCount: { one: '{n} draft', other: '{n} drafts' },
-  notJoinedYet: 'لم ينضم بعد',
+  notJoinedYet: 'ليس على Waves بعد',
+  ghostRemind: {
+    statusWhatsApp: 'ليس على Waves · التذكير عبر واتساب',
+    remindWhatsApp: 'ذكّر عبر واتساب',
+    remindEmail: 'ذكّر بالبريد',
+    message:
+      'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves. انضم لترى التفاصيل وتسدّد: {link}',
+    messageNoLink: 'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves.',
+    emailSubject: 'تذكير من {group} على Waves',
+    and: 'و',
+    comma: '، ',
+    infoA11y: 'لماذا لا تصل تذكيرات التطبيق إلى {name}',
+    explainTitle: 'ليس على Waves بعد',
+    explainLead: 'أُضيف {name} بالاسم ولا يستخدم Waves بعد، لذا لا تصله إشعارات التطبيق.',
+    explainWhatsApp: 'ذكّره عبر واتساب — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+    explainEmail: 'ذكّره بالبريد — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+    explainShare: 'ذكّره من أي تطبيق — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+  },
+  settlePickAmount: 'أي مبلغ؟',
   scansLeft: 'عمليات مسح متبقية',
   simplifyOn: 'التبسيط مفعّل',
   simplifyOff: 'التبسيط متوقف',

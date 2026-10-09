@@ -52,6 +52,7 @@ import {
 } from '@/data/hooks';
 import {
   displayName,
+  groupLabel,
   isBlockedMember,
   isGhost,
   payableAt,
@@ -66,7 +67,10 @@ import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
+import { groupDebtsByPerson, joinAmounts, type PersonAmount } from '@/lib/debtsByPerson';
+import { GhostChannel, ghostReminderMessage } from '@/lib/ghostReminder';
 import { useNudge } from '@/lib/nudge';
+import { useGhostReminder } from '@/lib/useGhostReminder';
 import { convertedCaption, isRatelessTransfer } from '@/lib/settleCurrency';
 import { useAddRate } from '@/lib/useAddRate';
 import {
@@ -100,7 +104,7 @@ export function SettleBody({
   // system bar alone on the standalone Settle up screen.
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
-  const { confirm, notify } = useDialog();
+  const { confirm, notify, choose } = useDialog();
   const { profile } = useAuth();
   const { blockedIds } = useBlockedUsers();
 
@@ -316,6 +320,46 @@ export function SettleBody({
   const ghostFor = (member: MemberRow | undefined): boolean =>
     Boolean(member && (isGhost(member) || isBlockedMember(member, blockedIds)));
 
+  // One row per person, their currencies stacked (a person owing in two
+  // currencies used to be two rows, and got two reminders). A debt with no rate
+  // yet cannot be marked, paid or reminded about, so it keeps its own row.
+  const owedPeople = groupDebtsByPerson(
+    split.owesMe.filter((transfer) => !rateless(transfer)),
+    'from',
+    currency,
+  );
+  const owingPeople = groupDebtsByPerson(
+    split.iOwe.filter((transfer) => !rateless(transfer)),
+    'to',
+    currency,
+  );
+  const ratelessOwed = split.owesMe.filter(rateless);
+  const ratelessOwing = split.iOwe.filter(rateless);
+  const groupName = groupLabel(group.data, members.data ?? [], profile?.id);
+  const amountsText = (amounts: readonly PersonAmount[]): string =>
+    joinAmounts(
+      amounts.map((amount) => fmt(amount.minor, amount.currency)),
+      t.ghostRemind.and,
+      t.ghostRemind.comma,
+    );
+
+  /** With one currency the row acts on it; with several, the person picks which. */
+  const pickAmount = async (
+    amounts: readonly PersonAmount[],
+    name: string,
+  ): Promise<PlanTransfer | null> => {
+    if (amounts.length <= 1) return amounts[0]?.transfer ?? null;
+    const picked = await choose({
+      title: t.settlePickAmount,
+      body: name,
+      options: amounts.map((amount, index) => ({
+        id: String(index),
+        label: fmt(amount.minor, amount.currency),
+      })),
+    });
+    return picked === null ? null : (amounts[Number(picked)]?.transfer ?? null);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -337,66 +381,50 @@ export function SettleBody({
         {split.owesMe.length > 0 ? (
           <Card>
             <CardHeader title={t.misc.settleOweYouTitle} />
-            {split.owesMe.map((transfer) => {
-              const person = personFor(transfer.from);
-              const name = nameOf(transfer.from);
-              const joined = Boolean(person && !isGhost(person));
-              if (rateless(transfer)) {
-                return (
-                  <RatelessTile
-                    key={`${transfer.from}-${transfer.currency}`}
-                    name={name}
-                    member={person}
-                    ghost={ghostFor(person)}
-                    amount={transfer.amount}
-                    currency={transfer.currency}
-                    direction={BalanceDirection.OwedToYou}
-                    locale={locale}
-                    onAddRate={() =>
-                      void addRate({
-                        currency: transfer.currency,
-                        parties: [transfer.from, transfer.to],
-                      })
-                    }
-                  />
-                );
-              }
+            {owedPeople.map((debts) => {
+              const person = personFor(debts.memberId);
+              const name = nameOf(debts.memberId);
               return (
-                <PersonTile
-                  key={`${transfer.from}-${transfer.currency}`}
+                <OwedPersonRow
+                  key={debts.memberId}
+                  groupId={groupId}
+                  groupName={groupName}
+                  joinToken={group.data?.join_token ?? null}
+                  memberId={debts.memberId}
+                  member={person}
                   name={name}
+                  ghost={ghostFor(person)}
+                  amounts={debts.amounts}
+                  pending={debts.amounts.some((amount) => isPending(amount.transfer))}
+                  locale={locale}
+                  disabled={recordSettlement.isPending}
+                  // The row has always been the way to say "they paid me".
+                  onPress={() =>
+                    void pickAmount(debts.amounts, name).then((transfer) => {
+                      if (!transfer) return;
+                      return isPending(transfer) ? explainPending() : markReceived(transfer);
+                    })
+                  }
+                />
+              );
+            })}
+            {ratelessOwed.map((transfer) => {
+              const person = personFor(transfer.from);
+              return (
+                <RatelessTile
+                  key={`${transfer.from}-${transfer.currency}`}
+                  name={nameOf(transfer.from)}
                   member={person}
                   ghost={ghostFor(person)}
-                  status={
-                    !joined
-                      ? t.notJoinedYet
-                      : isPending(transfer)
-                        ? t.misc.settleStatusPending
-                        : null
-                  }
-                  hint={t.misc.settleTapReceived}
                   amount={transfer.amount}
                   currency={transfer.currency}
                   direction={BalanceDirection.OwedToYou}
                   locale={locale}
-                  // The row has always been the way to say "they paid me".
-                  accessibilityLabel={`${name}. ${t.misc.settleReceivedHint}`}
-                  onPress={() =>
-                    void (isPending(transfer) ? explainPending() : markReceived(transfer))
-                  }
-                  disabled={recordSettlement.isPending}
-                  action={
-                    joined ? (
-                      <RemindButton
-                        groupId={groupId}
-                        memberId={transfer.from}
-                        currency={transfer.currency}
-                        label={fill(t.misc.settleRemindA11y, {
-                          name,
-                          amount: fmt(transfer.amount, transfer.currency),
-                        })}
-                      />
-                    ) : null
+                  onAddRate={() =>
+                    void addRate({
+                      currency: transfer.currency,
+                      parties: [transfer.from, transfer.to],
+                    })
                   }
                 />
               );
@@ -407,60 +435,70 @@ export function SettleBody({
         {split.iOwe.length > 0 ? (
           <Card>
             <CardHeader title={t.misc.settleYouOweTitle} />
-            {split.iOwe.map((transfer) => {
-              const person = personFor(transfer.to);
-              const name = nameOf(transfer.to);
-              const amountText = fmt(transfer.amount, transfer.currency);
-              if (rateless(transfer)) {
-                return (
-                  <RatelessTile
-                    key={`${transfer.to}-${transfer.currency}`}
-                    name={name}
-                    member={person}
-                    ghost={ghostFor(person)}
-                    amount={transfer.amount}
-                    currency={transfer.currency}
-                    direction={BalanceDirection.YouOwe}
-                    locale={locale}
-                    onAddRate={() =>
-                      void addRate({
-                        currency: transfer.currency,
-                        parties: [transfer.from, transfer.to],
-                      })
-                    }
-                  />
-                );
-              }
+            {owingPeople.map((debts) => {
+              const person = personFor(debts.memberId);
+              const name = nameOf(debts.memberId);
+              const amountText = amountsText(debts.amounts);
+              const pending = debts.amounts.some((amount) => isPending(amount.transfer));
               return (
                 <PersonTile
-                  key={`${transfer.to}-${transfer.currency}`}
+                  key={debts.memberId}
                   name={name}
                   member={person}
                   ghost={ghostFor(person)}
                   status={
                     !person || isGhost(person)
                       ? t.notJoinedYet
-                      : isPending(transfer)
+                      : pending
                         ? t.misc.settleStatusPending
                         : null
                   }
                   hint={t.misc.settleTapPaid}
-                  amount={transfer.amount}
-                  currency={transfer.currency}
+                  amounts={debts.amounts}
                   direction={BalanceDirection.YouOwe}
                   locale={locale}
                   // Already paid outside the app: the row records it, the
                   // button hands off to their payment app.
                   accessibilityLabel={fill(t.misc.settleMarkPaidA11y, { name, amount: amountText })}
-                  onPress={() => void (isPending(transfer) ? explainPending() : markPaid(transfer))}
+                  onPress={() =>
+                    void pickAmount(debts.amounts, name).then((transfer) => {
+                      if (!transfer) return;
+                      return isPending(transfer) ? explainPending() : markPaid(transfer);
+                    })
+                  }
                   disabled={recordSettlement.isPending}
                   action={
                     <PayPill
                       label={t.misc.settlePay}
                       accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
                       disabled={recordSettlement.isPending}
-                      onPress={() => void pay(transfer)}
+                      onPress={() =>
+                        void pickAmount(debts.amounts, name).then((transfer) =>
+                          transfer ? pay(transfer) : undefined,
+                        )
+                      }
                     />
+                  }
+                />
+              );
+            })}
+            {ratelessOwing.map((transfer) => {
+              const person = personFor(transfer.to);
+              return (
+                <RatelessTile
+                  key={`${transfer.to}-${transfer.currency}`}
+                  name={nameOf(transfer.to)}
+                  member={person}
+                  ghost={ghostFor(person)}
+                  amount={transfer.amount}
+                  currency={transfer.currency}
+                  direction={BalanceDirection.YouOwe}
+                  locale={locale}
+                  onAddRate={() =>
+                    void addRate({
+                      currency: transfer.currency,
+                      parties: [transfer.from, transfer.to],
+                    })
                   }
                 />
               );
@@ -792,9 +830,14 @@ function FilterChip({
 }
 
 /**
- * One person on a settle row: avatar, name with a muted status line, amount,
- * and at most one action. The row itself keeps its old job (mark as
- * received / paid) so the new buttons add to it rather than replace it.
+ * One person on a settle row: avatar, name with a muted status line, what they
+ * owe or are owed (one amount per currency, stacked), and at most one action.
+ * The row itself keeps its old job (mark as received / paid) so the buttons add
+ * to it rather than replace it. `footer` sits under the name, for an action too
+ * wide to share the line with the amounts.
+ *
+ * The status line wraps rather than truncates: "Tap to mark recei…" said
+ * nothing, and stacked amounts leave the middle column narrower than it was.
  */
 function PersonTile({
   name,
@@ -802,11 +845,11 @@ function PersonTile({
   ghost,
   status,
   hint,
-  amount,
-  currency,
+  amounts,
   direction,
   locale,
   action,
+  footer,
   onPress,
   disabled,
   accessibilityLabel,
@@ -817,11 +860,11 @@ function PersonTile({
   status: string | null;
   /** Shown in the status line when there is no status: what a tap does. */
   hint: string;
-  amount: bigint;
-  currency: string;
+  amounts: readonly PersonAmount[];
   direction: BalanceDirection;
   locale: string;
-  action: ReactNode;
+  action?: ReactNode;
+  footer?: ReactNode;
   onPress: () => void;
   disabled: boolean;
   accessibilityLabel: string;
@@ -850,24 +893,216 @@ function PersonTile({
             <Text variant="subheading" numberOfLines={1}>
               {name}
             </Text>
-            <Text variant="caption" tone="muted" numberOfLines={1}>
+            <Text variant="caption" tone="muted">
               {status ?? hint}
             </Text>
           </View>
-          <MoneyText
-            amount={amount}
-            currency={currency as CurrencyCode}
-            locale={locale}
-            mode="balance"
-            direction={direction}
-            // Money owed to me wears the brand colour, as the design has it;
-            // money I owe keeps the red the rest of the app reads as "out".
-            tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
-          />
+          <View style={{ alignItems: 'flex-end' }}>
+            {amounts.map((amount) => (
+              <MoneyText
+                key={amount.currency}
+                amount={amount.minor}
+                currency={amount.currency as CurrencyCode}
+                locale={locale}
+                mode="balance"
+                direction={direction}
+                // Money owed to me wears the brand colour, as the design has it;
+                // money I owe keeps the red the rest of the app reads as "out".
+                tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
+              />
+            ))}
+          </View>
         </Pressable>
         {action}
       </Row>
+      {footer ? (
+        // Under the name: the avatar's 40pt plus the row's gap.
+        <View style={{ paddingStart: 40 + theme.spacing.md, paddingTop: theme.spacing.xs }}>
+          {footer}
+        </View>
+      ) : null}
     </Tile>
+  );
+}
+
+/**
+ * Someone who owes me, and the one reminder they get however many currencies
+ * they owe in.
+ *
+ * On Waves: the in-app nudge, sent once. `waves_nudge_to_settle` takes a
+ * currency and its one-a-day limit is per pair, not per currency, so a second
+ * call would only ever come back "already nudged today"; the nudge goes about
+ * the first amount (the group's currency when they owe in it) and opens the
+ * group, where every amount is.
+ *
+ * Not on Waves: no account means no push, so the reminder leaves the app —
+ * WhatsApp to their phone, mail to their email, else the share sheet — with
+ * every amount and the group's join link in the message. The (i) says why.
+ */
+function OwedPersonRow({
+  groupId,
+  groupName,
+  joinToken,
+  memberId,
+  member,
+  name,
+  ghost,
+  amounts,
+  pending,
+  locale,
+  disabled,
+  onPress,
+}: {
+  groupId: string;
+  groupName: string;
+  joinToken: string | null;
+  memberId: string;
+  member?: MemberRow;
+  name: string;
+  ghost: boolean;
+  amounts: readonly PersonAmount[];
+  pending: boolean;
+  locale: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const { confirm } = useDialog();
+  const joined = Boolean(member && !isGhost(member));
+  const lead = amounts[0];
+  const nudge = useNudge({ groupId, memberId, currency: lead?.currency ?? '' });
+  const ghostReminder = useGhostReminder({
+    groupId,
+    memberId,
+    phone: member?.invite_phone ?? null,
+    email: member?.invite_email ?? null,
+    joinToken,
+  });
+
+  const amountText = joinAmounts(
+    amounts.map((amount) =>
+      format(money(amount.minor, amount.currency as CurrencyCode), { locale }),
+    ),
+    t.ghostRemind.and,
+    t.ghostRemind.comma,
+  );
+  const remindA11y = fill(t.misc.settleRemindA11y, { name, amount: amountText });
+  const channel = ghostReminder.channel;
+  const ghostLabel =
+    channel === GhostChannel.WhatsApp
+      ? t.ghostRemind.remindWhatsApp
+      : channel === GhostChannel.Email
+        ? t.ghostRemind.remindEmail
+        : t.people.remind;
+  const ghostIcon =
+    channel === GhostChannel.WhatsApp
+      ? 'logo-whatsapp'
+      : channel === GhostChannel.Email
+        ? 'mail-outline'
+        : 'share-outline';
+
+  const remindGhost = (): void =>
+    ghostReminder.send((link) => ({
+      message: ghostReminderMessage(link ? t.ghostRemind.message : t.ghostRemind.messageNoLink, {
+        name,
+        amount: amountText,
+        group: groupName,
+        link: link ?? '',
+      }),
+      subject: fill(t.ghostRemind.emailSubject, { group: groupName }),
+    }));
+
+  const explain = async (): Promise<void> => {
+    const how =
+      channel === GhostChannel.WhatsApp
+        ? t.ghostRemind.explainWhatsApp
+        : channel === GhostChannel.Email
+          ? t.ghostRemind.explainEmail
+          : t.ghostRemind.explainShare;
+    const yes = await confirm({
+      title: t.ghostRemind.explainTitle,
+      body: `${fill(t.ghostRemind.explainLead, { name })} ${how}`,
+      confirmLabel: ghostLabel,
+      cancelLabel: t.common.close,
+    });
+    if (yes) remindGhost();
+  };
+
+  const status = joined
+    ? (nudge.outcome?.label ?? (pending ? t.misc.settleStatusPending : null))
+    : ghostReminder.reminded
+      ? t.people.reminded
+      : member && channel === GhostChannel.WhatsApp
+        ? t.ghostRemind.statusWhatsApp
+        : t.notJoinedYet;
+
+  const action =
+    joined && !nudge.outcome ? (
+      <Button
+        label={t.people.remind}
+        variant="secondary"
+        size="sm"
+        icon={
+          <Ionicons name="notifications-outline" size={iconSize.base} color={theme.color.brand} />
+        }
+        accessibilityLabel={remindA11y}
+        disabled={nudge.pending}
+        onPress={nudge.send}
+      />
+    ) : null;
+
+  // The off-app reminder's label says where it goes, so it is too wide for
+  // the amounts' line and sits under the name, with the (i) beside it.
+  const footer =
+    !joined && member && !ghostReminder.reminded ? (
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+        <Button
+          label={ghostLabel}
+          variant="secondary"
+          size="sm"
+          icon={
+            <Ionicons
+              name={ghostIcon as 'logo-whatsapp'}
+              size={iconSize.base}
+              color={theme.color.brand}
+            />
+          }
+          accessibilityLabel={`${ghostLabel}. ${remindA11y}`}
+          disabled={ghostReminder.pending}
+          onPress={remindGhost}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={fill(t.ghostRemind.infoA11y, { name })}
+          hitSlop={10}
+          onPress={() => void explain()}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={iconSize.lg}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+      </Row>
+    ) : null;
+
+  return (
+    <PersonTile
+      name={name}
+      member={member}
+      ghost={ghost}
+      status={status}
+      hint={t.misc.settleTapReceived}
+      amounts={amounts}
+      direction={BalanceDirection.OwedToYou}
+      locale={locale}
+      accessibilityLabel={`${name}, ${amountText}. ${t.misc.settleReceivedHint}`}
+      onPress={onPress}
+      disabled={disabled}
+      action={action}
+      footer={footer}
+    />
   );
 }
 
@@ -1115,48 +1350,5 @@ function SummaryCard({
         </View>
       )}
     </LinearGradient>
-  );
-}
-
-/**
- * The nudge: it goes once, and the server's one-a-day rule (ADR-010) reads as
- * "already nudged today" rather than as a failure.
- */
-function RemindButton({
-  groupId,
-  memberId,
-  currency,
-  label,
-}: {
-  groupId: string;
-  memberId: string;
-  currency: string;
-  label: string;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const nudge = useNudge({ groupId, memberId, currency });
-  const note = nudge.outcome?.label ?? null;
-
-  if (note) {
-    return (
-      <Text variant="micro" tone="muted" style={{ maxWidth: 110 }}>
-        {note}
-      </Text>
-    );
-  }
-
-  return (
-    <Button
-      label={t.people.remind}
-      variant="secondary"
-      size="sm"
-      icon={
-        <Ionicons name="notifications-outline" size={iconSize.base} color={theme.color.brand} />
-      }
-      accessibilityLabel={label}
-      disabled={nudge.pending}
-      onPress={nudge.send}
-    />
   );
 }
