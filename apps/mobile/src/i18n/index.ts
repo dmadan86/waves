@@ -475,6 +475,14 @@ export interface UiStrings {
     view: string;
     remove: string;
     removeConfirm: string;
+    /** Payer card: replace an attached proof. */
+    replace: string;
+    /** Label under the proof tile. */
+    tile: string;
+    /** Muted lead above the payee name on the pending card. */
+    youPaidLabel: string;
+    /** Status line on the pending card. */
+    waiting: string;
   };
   /** The comment thread on an expense. */
   comments: {
@@ -2863,6 +2871,10 @@ export interface UiStrings {
     rejectConfirm: string;
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
     cancelSettlement: string;
+    /** Uppercase section label above the member balance rows. */
+    groupBalances: string;
+    /** Link that opens the settle flow for the whole group. */
+    settleUpAll: string;
     cancelTitle: string;
     /** `{name}` is the payee who would have confirmed. */
     cancelBody: string;
@@ -4475,7 +4487,11 @@ export interface UiStrings {
     /** Runs the backfill again, accepting rates from other days. */
     missingRatesUseStale: string;
     /** "Add missing rates" banner. {n} is the number of bills without a rate. */
-    missingRatesBody: string;
+    /** Bold lead of the idle callout; the rest follows in muted type. */
+    missingRatesLead: string;
+    missingRatesRest: string;
+    /** Short label on the callout's outlined pill. */
+    missingRatesAddShort: string;
     missingRatesAction: string;
     /** {done} of {total}. */
     missingRatesProgress: string;
@@ -5074,6 +5090,10 @@ const en: UiStrings = {
     view: 'View payment proof',
     remove: 'Remove proof',
     removeConfirm: 'Remove this payment proof?',
+    replace: 'Replace payment proof',
+    tile: 'Proof',
+    youPaidLabel: 'You paid',
+    waiting: 'Waiting for confirmation',
   },
   comments: {
     title: 'Comments',
@@ -6971,6 +6991,8 @@ const en: UiStrings = {
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
+    groupBalances: 'Group balances',
+    settleUpAll: 'Settle up all',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -8396,8 +8418,9 @@ const en: UiStrings = {
     missingRatesStale:
       '{n} bills could only get a rate from another day ({date}). Use it, or try again later.',
     missingRatesUseStale: 'Use rates from other days',
-    missingRatesBody:
-      'Bills in other currencies without a rate: {n}. Their converted amounts stay hidden until a rate is added.',
+    missingRatesLead: 'Bills in other currencies without a rate.',
+    missingRatesRest: 'Their amounts stay hidden until a rate is added.',
+    missingRatesAddShort: 'Add rates',
     missingRatesAction: 'Add missing rates',
     missingRatesProgress: 'Adding rates… {done} of {total}',
     missingRatesDone: 'Added a rate to {n} bills.',
@@ -8983,6 +9006,10 @@ const ta: UiStrings = {
     view: 'கட்டண சான்றைப் பார்',
     remove: 'சான்றை நீக்கு',
     removeConfirm: 'இந்த கட்டண சான்றை நீக்கவா?',
+    replace: 'கட்டண சான்றை மாற்று',
+    tile: 'சான்று',
+    youPaidLabel: 'நீங்கள் கட்டினீர்கள்',
+    waiting: 'உறுதிப்படுத்த காத்திருக்கிறது',
   },
   comments: {
     title: 'கருத்துகள்',
@@ -10946,6 +10973,8 @@ const ta: UiStrings = {
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
+    groupBalances: 'குழு இருப்புகள்',
+    settleUpAll: 'அனைத்தையும் தீர்',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -12464,8 +12493,9 @@ const ta: UiStrings = {
     missingRatesStale:
       '{n} பில்களுக்கு வேறொரு நாளின் விகிதம் ({date}) மட்டுமே கிடைத்தது. அதைப் பயன்படுத்தலாம், அல்லது பிறகு முயலலாம்.',
     missingRatesUseStale: 'வேறு நாட்களின் விகிதங்களைப் பயன்படுத்து',
-    missingRatesBody:
-      'விகிதம் இல்லாத பிற நாணயப் பில்கள்: {n}. விகிதம் சேர்க்கும் வரை மாற்றப்பட்ட தொகைகள் மறைந்திருக்கும்.',
+    missingRatesLead: 'விகிதம் இல்லாத பிற நாணய பில்கள்.',
+    missingRatesRest: 'விகிதம் சேர்க்கும் வரை அவற்றின் தொகைகள் மறைந்திருக்கும்.',
+    missingRatesAddShort: 'விகிதங்களைச் சேர்',
     missingRatesAction: 'விடுபட்ட விகிதங்களைச் சேர்',
     missingRatesProgress: 'விகிதங்களைச் சேர்க்கிறது… {total} இல் {done}',
     missingRatesDone: '{n} பில்களுக்கு விகிதம் சேர்க்கப்பட்டது.',
@@ -13042,6 +13072,10 @@ const hi: UiStrings = {
     view: 'भुगतान प्रमाण देखें',
     remove: 'प्रमाण हटाएँ',
     removeConfirm: 'यह भुगतान प्रमाण हटाएँ?',
+    replace: 'भुगतान प्रमाण बदलें',
+    tile: 'प्रमाण',
+    youPaidLabel: 'आपने चुकाया',
+    waiting: 'पुष्टि की प्रतीक्षा',
   },
   comments: {
     title: 'टिप्पणियाँ',
@@ -14943,6 +14977,8 @@ const hi: UiStrings = {
       '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
+    groupBalances: 'ग्रुप बैलेंस',
+    settleUpAll: 'सब सेटल करें',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -16382,8 +16418,9 @@ const hi: UiStrings = {
     missingRatesStale:
       '{n} बिलों के लिए सिर्फ़ किसी और दिन की दर ({date}) मिली। इसे इस्तेमाल करें, या बाद में फिर कोशिश करें।',
     missingRatesUseStale: 'दूसरे दिनों की दरें इस्तेमाल करें',
-    missingRatesBody:
-      'दूसरी मुद्रा के जिन बिलों में दर नहीं है: {n}। दर जोड़ने तक उनकी बदली हुई रकम छिपी रहेगी।',
+    missingRatesLead: 'बिना दर वाले दूसरी मुद्राओं के बिल।',
+    missingRatesRest: 'दर जुड़ने तक उनकी रकम छिपी रहती है।',
+    missingRatesAddShort: 'दरें जोड़ें',
     missingRatesAction: 'छूटी हुई दरें जोड़ें',
     missingRatesProgress: 'दरें जोड़ी जा रही हैं… {total} में से {done}',
     missingRatesDone: '{n} बिलों में दर जोड़ी गई।',
@@ -16978,6 +17015,10 @@ const ar: UiStrings = {
     view: 'عرض إثبات الدفع',
     remove: 'إزالة الإثبات',
     removeConfirm: 'إزالة إثبات الدفع هذا؟',
+    replace: 'استبدال إثبات الدفع',
+    tile: 'الإثبات',
+    youPaidLabel: 'دفعتَ',
+    waiting: 'بانتظار التأكيد',
   },
   comments: {
     title: 'التعليقات',
@@ -19047,6 +19088,8 @@ const ar: UiStrings = {
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
+    groupBalances: 'أرصدة المجموعة',
+    settleUpAll: 'تسوية الكل',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
@@ -20832,8 +20875,9 @@ const ar: UiStrings = {
     missingRatesStale:
       'لم يتوفر لـ {n} فواتير سوى سعر من يوم آخر ({date}). استخدمه أو حاول لاحقًا.',
     missingRatesUseStale: 'استخدام أسعار من أيام أخرى',
-    missingRatesBody:
-      'فواتير بعملات أخرى بلا سعر صرف: {n}. تبقى مبالغها المحوّلة مخفية حتى يُضاف سعر.',
+    missingRatesLead: 'فواتير بعملات أخرى بلا سعر صرف.',
+    missingRatesRest: 'تبقى مبالغها مخفية حتى يُضاف سعر.',
+    missingRatesAddShort: 'إضافة الأسعار',
     missingRatesAction: 'إضافة الأسعار الناقصة',
     missingRatesProgress: 'جارٍ إضافة الأسعار… {done} من {total}',
     missingRatesDone: 'تمت إضافة سعر إلى {n} من الفواتير.',

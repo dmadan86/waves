@@ -2799,9 +2799,9 @@ export function useSettlementProof(settlementId: string): LocalRead<SettlementPr
 export function useAttachSettlementProof(groupId: string, settlementId: string) {
   const { flush } = useSync();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<boolean> => {
       const picked = await pickAlbumPhoto();
-      if (!picked) return;
+      if (!picked) return false;
       const ext = picked.mimeType === 'image/webp' ? 'webp' : 'jpg';
       const path = `${settlementId}/${randomUUID()}.${ext}`;
       let committed: string | null = null;
@@ -2827,6 +2827,8 @@ export function useAttachSettlementProof(groupId: string, settlementId: string) 
           await removeRestrictedImage('settlement-proofs', settlementId, committed).catch(() => {});
         throw caught;
       }
+      // Said so the caller can tell a replaced proof from a cancelled picker.
+      return true;
     },
     onSuccess: () => void flush(),
   });

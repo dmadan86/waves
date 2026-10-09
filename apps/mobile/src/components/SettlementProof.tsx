@@ -34,6 +34,14 @@ import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 
 const THUMB = 72;
+/** The compact strip on the pending-payment card: a thumbnail and a square tile. */
+const TILE_THUMB = 56;
+export const TILE = 48;
+
+/** The thin rule between the card's tiles. */
+export function tileDivider(theme: ReturnType<typeof useTheme>) {
+  return { width: 1, height: TILE + 20, backgroundColor: theme.color.border } as const;
+}
 
 /**
  * Resolve a restricted key to a URL, telling "still resolving" apart from
@@ -71,10 +79,17 @@ export function SettlementProof({
   groupId,
   settlementId,
   canManage,
+  layout = 'stack',
 }: {
   groupId: string;
   settlementId: string;
   canManage: boolean;
+  /**
+   * 'stack' is the full-width control the other screens use. 'tiles' is the
+   * pending-payment card's compact strip: a thumbnail and a square Proof tile,
+   * sized to sit beside the card's own Cancel tile.
+   */
+  layout?: 'stack' | 'tiles';
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
@@ -90,6 +105,185 @@ export function SettlementProof({
   // No proof and I cannot add one → nothing to show. The payee sees this state
   // as an absence, not an empty control, until the payer attaches.
   if (!row && !canManage) return null;
+
+  const confirmRemove = () => {
+    if (!row) return;
+    void confirm({
+      title: t.proof.removeConfirm,
+      confirmLabel: t.proof.remove,
+      tone: 'danger',
+    }).then((ok) => {
+      if (!ok) return;
+      setViewing(false);
+      remove.mutate({ proofId: row.id, storagePath: row.storagePath });
+    });
+  };
+
+  // Shared by both layouts: the full-screen look at the image, with the
+  // payer's remove in its corner.
+  const viewer = (
+    <Modal
+      supportedOrientations={MODAL_ORIENTATIONS}
+      visible={viewing}
+      animationType="fade"
+      onRequestClose={() => setViewing(false)}
+    >
+      <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.xxl,
+            paddingBottom: theme.spacing.sm,
+          }}
+        >
+          <IconButton label={t.common.close} onPress={() => setViewing(false)}>
+            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+          </IconButton>
+          {canManage ? (
+            <IconButton
+              label={t.proof.remove}
+              onPress={() => {
+                if (!remove.isPending) confirmRemove();
+              }}
+            >
+              <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.negative} />
+            </IconButton>
+          ) : (
+            <View style={{ width: 44 }} />
+          )}
+        </View>
+        {url ? (
+          <ZoomableImage uri={url} />
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            {resolved ? (
+              <Ionicons name="image-outline" size={iconSize.xl} color={theme.color.textFaint} />
+            ) : (
+              <ActivityIndicator color={theme.color.brand} />
+            )}
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+
+  if (layout === 'tiles') {
+    // A replacement attaches the new image first and only then drops the old
+    // one, so a cancelled picker or a failed upload never costs the proof the
+    // payee may already be looking at.
+    const pickProof = () => {
+      if (attach.isPending) return;
+      const previous = row;
+      void attach.mutateAsync().then(
+        (attached) => {
+          if (attached && previous) {
+            remove.mutate({ proofId: previous.id, storagePath: previous.storagePath });
+          }
+        },
+        () => {},
+      );
+    };
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+        {row ? (
+          // The badge overhangs the thumbnail's corner, so it is a sibling of
+          // the clipped image rather than inside it.
+          <View style={{ width: TILE_THUMB, height: TILE_THUMB }}>
+            <Pressable
+              onPress={() => setViewing(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t.proof.view}
+              style={{
+                width: TILE_THUMB,
+                height: TILE_THUMB,
+                borderRadius: theme.radius.sm,
+                overflow: 'hidden',
+                backgroundColor: theme.color.surfaceMuted,
+              }}
+            >
+              {url ? (
+                <Image
+                  source={{ uri: url }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  {resolved ? (
+                    <Ionicons
+                      name="image-outline"
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  ) : (
+                    <ActivityIndicator color={theme.color.textFaint} />
+                  )}
+                </View>
+              )}
+            </Pressable>
+            {canManage ? (
+              <Pressable
+                onPress={confirmRemove}
+                disabled={remove.isPending}
+                accessibilityRole="button"
+                accessibilityLabel={t.proof.remove}
+                hitSlop={8}
+                style={{
+                  position: 'absolute',
+                  top: -6,
+                  end: -6,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: theme.color.brand,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="close" size={14} color={theme.color.onBrand} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+        {canManage ? (
+          <>
+            {row ? <View style={tileDivider(theme)} /> : null}
+            <Pressable
+              onPress={pickProof}
+              disabled={attach.isPending}
+              accessibilityRole="button"
+              accessibilityLabel={row ? t.proof.replace : t.proof.add}
+              style={{ alignItems: 'center', gap: theme.spacing.xs }}
+            >
+              <View
+                style={{
+                  width: TILE,
+                  height: TILE,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {attach.isPending ? (
+                  <ActivityIndicator color={theme.color.brand} />
+                ) : (
+                  <Ionicons name="camera-outline" size={iconSize.lg} color={theme.color.brand} />
+                )}
+              </View>
+              <Text variant="caption" tone="muted">
+                {t.proof.tile}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+        {viewer}
+      </View>
+    );
+  }
 
   if (!row) {
     return (
@@ -107,18 +301,6 @@ export function SettlementProof({
       />
     );
   }
-
-  const confirmRemove = () => {
-    void confirm({
-      title: t.proof.removeConfirm,
-      confirmLabel: t.proof.remove,
-      tone: 'danger',
-    }).then((ok) => {
-      if (!ok) return;
-      setViewing(false);
-      remove.mutate({ proofId: row.id, storagePath: row.storagePath });
-    });
-  };
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -154,52 +336,7 @@ export function SettlementProof({
         )}
       </Pressable>
 
-      <Modal
-        supportedOrientations={MODAL_ORIENTATIONS}
-        visible={viewing}
-        animationType="fade"
-        onRequestClose={() => setViewing(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: theme.spacing.xl,
-              paddingTop: theme.spacing.xxl,
-              paddingBottom: theme.spacing.sm,
-            }}
-          >
-            <IconButton label={t.common.close} onPress={() => setViewing(false)}>
-              <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-            </IconButton>
-            {canManage ? (
-              <IconButton
-                label={t.proof.remove}
-                onPress={() => {
-                  if (!remove.isPending) confirmRemove();
-                }}
-              >
-                <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.negative} />
-              </IconButton>
-            ) : (
-              <View style={{ width: 44 }} />
-            )}
-          </View>
-          {url ? (
-            <ZoomableImage uri={url} />
-          ) : (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              {resolved ? (
-                <Ionicons name="image-outline" size={iconSize.xl} color={theme.color.textFaint} />
-              ) : (
-                <ActivityIndicator color={theme.color.brand} />
-              )}
-            </View>
-          )}
-        </View>
-      </Modal>
+      {viewer}
     </View>
   );
 }
