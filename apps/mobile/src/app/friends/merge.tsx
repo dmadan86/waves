@@ -104,6 +104,7 @@ import {
   type MergeCandidate,
 } from '@/data/mergePeople';
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
+import { InviteAfterMergeSheet } from '@/components/merge/InviteAfterMergeSheet';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { friendlyError } from '@/lib/errors';
 import { duplicateNames, duplicateReason } from '@/lib/mergeSuggestionText';
@@ -112,8 +113,7 @@ import { router } from '@/lib/navigation';
 import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
-import { isUnasked, useDialog } from '@/lib/dialog';
-import { DIALOG_CANCEL, DIALOG_CONFIRM } from '@/lib/dialogQueue';
+import { useDialog } from '@/lib/dialog';
 
 /**
  * How much of the hand-pick roster is drawn before asking. It is every ghost in
@@ -155,7 +155,7 @@ export default function MergePeopleScreen() {
   // otherwise the Merge pill lands behind the bar, unreachable by scrolling.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { ask, confirm } = useDialog();
+  const { confirm } = useDialog();
   const { flush } = useSync();
   const { profile } = useAuth();
 
@@ -226,6 +226,9 @@ export default function MergePeopleScreen() {
 
   // The post-merge invite step: the merged person's name and the groups they
   // span, or null while the sheet is closed.
+  const [invitePrompt, setInvitePrompt] = useState<{ name: string; groups: InviteGroup[] } | null>(
+    null,
+  );
   const [inviteFor, setInviteFor] = useState<{ name: string; groups: InviteGroup[] } | null>(null);
   const [shareBusyId, setShareBusyId] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -380,21 +383,9 @@ export default function MergePeopleScreen() {
         router.back();
         return;
       }
-      // Asked through `ask` rather than `confirm`: this is the one prompt whose
-      // *no* takes somebody off the screen, and `confirm` reads a question that
-      // was never shown (the queue was full) as a no. A request that was not
-      // asked simply leaves the screen where it is.
-      void ask({
-        title: fill(t.mergePeople.invitePromptTitle, { name: request.name }),
-        body: t.mergePeople.invitePromptBody,
-        actions: [
-          { id: DIALOG_CONFIRM, label: t.people.invite, tone: 'primary' },
-          { id: DIALOG_CANCEL, label: t.mergePeople.invitePromptSkip, tone: 'quiet' },
-        ],
-      }).then((answer) => {
-        if (answer === DIALOG_CONFIRM) setInviteFor({ name: request.name, groups: request.groups });
-        else if (!isUnasked(answer)) router.back();
-      });
+      // Its own sheet rather than a generic dialog: "Not now" takes somebody
+      // off the screen, so the answer is read from the sheet's own two doors.
+      setInvitePrompt({ name: request.name, groups: request.groups });
     },
     onError: (caught) => setError(mergeErrorMessage(caught, t.mergePeople)),
   });
@@ -459,6 +450,19 @@ export default function MergePeopleScreen() {
     if (!confirmAfterClose.current) return;
     confirmAfterClose.current = false;
     void confirmMerge();
+  };
+
+  /** The prompt's yes: hand its guests to the invite sheet. */
+  const acceptInvitePrompt = (): void => {
+    if (!invitePrompt) return;
+    setInviteFor(invitePrompt);
+    setInvitePrompt(null);
+  };
+
+  /** The prompt's no, by any route: nobody is invited, leave the screen. */
+  const skipInvitePrompt = (): void => {
+    setInvitePrompt(null);
+    router.back();
   };
 
   const dismissInvite = (): void => {
@@ -845,6 +849,15 @@ export default function MergePeopleScreen() {
           person spans. There is no targeted send in this app — each group has
           one link (see group/[id]/invite) — so inviting them to "all their
           groups" is one Share per group here. */}
+      <InviteAfterMergeSheet
+        visible={invitePrompt !== null}
+        onInvite={acceptInvitePrompt}
+        onClose={skipInvitePrompt}
+        title={fill(t.mergePeople.invitePromptTitle, { name: invitePrompt?.name ?? '' })}
+        body={t.mergePeople.invitePromptBody}
+        inviteLabel={t.people.invite}
+        skipLabel={t.mergePeople.invitePromptSkip}
+      />
       <Modal
         supportedOrientations={MODAL_ORIENTATIONS}
         visible={inviteFor !== null}
