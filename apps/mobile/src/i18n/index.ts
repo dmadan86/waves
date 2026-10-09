@@ -3279,6 +3279,12 @@ export interface UiStrings {
     settleYourPayments: string;
     settleYourPaymentsSub: string;
     settleBetweenOthersSub: string;
+    settleOweYouTitle: string;
+    settleYouOweTitle: string;
+    settleClearBalanceSub: string;
+    settleStatusPending: string;
+    settleFilterAll: string;
+    settleNoHistorySub: string;
     couldNotAddGeneric: string;
     tryAgainMoment: string;
     couldNotJoin: string;
@@ -7224,7 +7230,13 @@ const en: UiStrings = {
     settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
     settleYourPayments: 'Your payments',
     settleYourPaymentsSub: 'Settle with your friends',
-    settleBetweenOthersSub: 'These don’t affect your balance',
+    settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
+    settleOweYouTitle: 'People who owe you',
+    settleYouOweTitle: 'People you owe',
+    settleClearBalanceSub: 'Settle these to clear your balance',
+    settleStatusPending: 'pending',
+    settleFilterAll: 'All',
+    settleNoHistorySub: 'Once you mark payments as done, they’ll appear here.',
     couldNotAddGeneric: 'Could not add everyone. Please try again.',
     tryAgainMoment: 'Please try again in a moment.',
     couldNotJoin: 'Could not open this invite. Please try again.',
@@ -11164,7 +11176,14 @@ const ta: UiStrings = {
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
     settleYourPayments: 'உங்கள் கட்டணங்கள்',
     settleYourPaymentsSub: 'நண்பர்களுடன் கணக்கை தீர்க்கவும்',
-    settleBetweenOthersSub: 'இவை உங்கள் இருப்பைப் பாதிக்காது',
+    settleBetweenOthersSub:
+      'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
+    settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
+    settleClearBalanceSub: 'உங்கள் இருப்பைத் தீர்க்க இவற்றை முடிக்கவும்',
+    settleStatusPending: 'நிலுவையில்',
+    settleFilterAll: 'அனைத்தும்',
+    settleNoHistorySub: 'கட்டணங்களை முடிந்ததாகக் குறித்ததும் அவை இங்கே தோன்றும்.',
     couldNotAddGeneric: 'எல்லாரையும் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     tryAgainMoment: 'சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     couldNotJoin: 'இந்த அழைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -15091,7 +15110,13 @@ const hi: UiStrings = {
     settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
     settleYourPayments: 'आपके भुगतान',
     settleYourPaymentsSub: 'दोस्तों के साथ हिसाब चुकाएँ',
-    settleBetweenOthersSub: 'ये आपके बैलेंस पर असर नहीं डालते',
+    settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
+    settleOweYouTitle: 'जिन्हें आपको देना है',
+    settleYouOweTitle: 'जिन्हें आपको चुकाना है',
+    settleClearBalanceSub: 'अपना बैलेंस साफ़ करने के लिए इन्हें निपटाएँ',
+    settleStatusPending: 'लंबित',
+    settleFilterAll: 'सभी',
+    settleNoHistorySub: 'भुगतान पूरे चिह्नित करने पर वे यहाँ दिखेंगे।',
     couldNotAddGeneric: 'सभी को नहीं जोड़ा जा सका। कृपया फिर कोशिश करें।',
     tryAgainMoment: 'कृपया थोड़ी देर में फिर कोशिश करें।',
     couldNotJoin: 'यह निमंत्रण नहीं खुल सका। कृपया फिर कोशिश करें।',
@@ -19188,7 +19213,13 @@ const ar: UiStrings = {
     },
     settleYourPayments: 'مدفوعاتك',
     settleYourPaymentsSub: 'سوِّ حسابك مع أصدقائك',
-    settleBetweenOthersSub: 'هذه لا تؤثر على رصيدك',
+    settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
+    settleOweYouTitle: 'من يدينون لك',
+    settleYouOweTitle: 'من تدين لهم',
+    settleClearBalanceSub: 'سوِّ هذه لتصفية رصيدك',
+    settleStatusPending: 'قيد الانتظار',
+    settleFilterAll: 'الكل',
+    settleNoHistorySub: 'عندما تضع علامة تمّ على المدفوعات ستظهر هنا.',
     couldNotAddGeneric: 'تعذّرت إضافة الجميع. حاول مرة أخرى.',
     tryAgainMoment: 'يُرجى المحاولة مرة أخرى بعد قليل.',
     couldNotJoin: 'تعذّر فتح هذه الدعوة. حاول مرة أخرى.',
