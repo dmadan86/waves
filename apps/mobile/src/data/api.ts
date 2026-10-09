@@ -34,6 +34,7 @@ import { activeStrings } from '@/i18n';
 import type { DeviceIdentity } from '@/lib/device';
 import { normaliseContactPhone } from '@/lib/phone';
 import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
+import { readFxReply, StaleFxRateError } from '@/lib/fxStale';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
 import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
@@ -1383,7 +1384,12 @@ export async function fetchFxRate(
     { method: 'GET' },
   );
   if (error) throw new Error(await readFunctionError(error));
-  return data as FxRecord;
+  // Every provider was down and this is the last rate the server had cached.
+  // Thrown, not returned, so it can never land on a bill unasked: the screens
+  // that offer "Rate from {date}" with Use and Retry catch it.
+  const { record, staleDay } = readFxReply(data);
+  if (staleDay !== null) throw new StaleFxRateError(record, staleDay);
+  return record;
 }
 
 // ────────────────────────────────────── people you owe / who owe you ──

@@ -11,12 +11,16 @@
  * again just before it is written, and one that has a rate by then is skipped.
  * A bill whose rate cannot be fetched (offline) is left alone and counted, so
  * running it again later picks up exactly those.
+ *
+ * When every rate source is down the server can still offer the last rate it
+ * had, for an older day. Those bills are skipped too, and the result says so
+ * ("could only get an older rate, from {date}") with a separate "Use older
+ * rates" — an old rate goes on a bill only when the person asks for it.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import type { FxRecord } from '@waves/core';
 import { MutationKind } from '@waves/core';
 import { Button, Callout, Text, useTheme } from '@waves/ui';
 
@@ -36,6 +40,13 @@ import {
   rateDateFor,
   selectBackfill,
 } from '@/lib/fxAutoRate';
+import {
+  lookupFromError,
+  oldestDay,
+  staleLabel,
+  usableRate,
+  type BackfillLookup,
+} from '@/lib/fxStale';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { tripRateFor } from '@/lib/tripRates';
 
@@ -44,12 +55,14 @@ interface Progress {
   total: number;
   updated: number;
   failed: number;
+  /** Bills skipped because only an older rate was on offer: one day per bill. */
+  staleDays: string[];
   running: boolean;
 }
 
 export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.Element | null {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const { mutate } = useSync();
   const guard = useGuestGuard();
   const viewerId = useViewerId();
@@ -86,7 +99,7 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
   // rewrite. A finished run keeps its result on screen until they leave.
   if (!progress && candidates.length === 0) return null;
 
-  const run = async (): Promise<void> => {
+  const run = async (acceptStale = false): Promise<void> => {
     // A ref, not `running`: that is the render's copy and a second tap in the
     // same frame still sees false.
     if (runningRef.current || guard.blockWrite()) return;
@@ -97,16 +110,20 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
       total: targets.length,
       updated: 0,
       failed: 0,
+      staleDays: [],
       running: true,
     };
     setProgress({ ...state });
     // One request per currency and day, however many bills share them.
-    const fetched = new Map<string, Promise<FxRecord | null>>();
-    const lookup = (currency: string, date: string | null): Promise<FxRecord | null> => {
+    const fetched = new Map<string, Promise<BackfillLookup>>();
+    const lookup = (currency: string, date: string | null): Promise<BackfillLookup> => {
       const key = fetchKey(currency, date);
       let pending = fetched.get(key);
       if (!pending) {
-        pending = fetchFxRate(currency, groupCurrency, date ?? undefined).catch(() => null);
+        pending = fetchFxRate(currency, groupCurrency, date ?? undefined).then(
+          (record): BackfillLookup => ({ kind: 'fresh', record }),
+          lookupFromError,
+        );
         fetched.set(key, pending);
       }
       return pending;
@@ -127,15 +144,19 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
           continue;
         }
         const pinned = tripRateFor(pinnedRef.current, version.currency, groupCurrency);
+        const found = pinned
+          ? null
+          : await lookup(version.currency, rateDateFor(version.expense_date, localToday()));
         const record = backfillRateFor(
           version,
           groupCurrency,
           pinned,
-          pinned
-            ? null
-            : await lookup(version.currency, rateDateFor(version.expense_date, localToday())),
+          found ? usableRate(found, acceptStale) : null,
         );
-        if (!record) {
+        if (!record && found?.kind === 'stale') {
+          // An older rate was on offer and not accepted: left alone, and said so.
+          state.staleDays.push(found.day);
+        } else if (!record) {
           state.failed += 1;
         } else {
           try {
@@ -163,9 +184,12 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
   };
 
   const finished = progress && !progress.running ? progress : null;
+  const staleCount = finished?.staleDays.length ?? 0;
+  const staleFrom = finished ? oldestDay(finished.staleDays) : null;
+  const allDone = finished !== null && finished.failed === 0 && staleCount === 0;
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <Callout tone={finished && finished.failed === 0 ? 'positive' : 'info'}>
+      <Callout tone={allDone ? 'positive' : 'info'}>
         {running && progress
           ? t.fx.missingRatesProgress
               .replace('{done}', String(progress.done))
@@ -178,7 +202,21 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
               : t.fx.missingRatesDone.replace('{n}', String(finished.updated))
             : t.fx.missingRatesBody.replace('{n}', String(missing))}
       </Callout>
-      {running || (finished && finished.failed === 0) ? null : (
+      {finished && staleCount > 0 && staleFrom ? (
+        // Every source was down for these; only an older rate exists. Said in
+        // full, and used only on the explicit button.
+        <Text variant="caption" tone="muted">
+          {staleLabel(staleFrom, t.fx.missingRatesStale, locale).replace('{n}', String(staleCount))}
+        </Text>
+      ) : null}
+      {finished && staleCount > 0 && !running ? (
+        <Button
+          label={t.fx.missingRatesUseStale}
+          variant="secondary"
+          onPress={() => void run(true)}
+        />
+      ) : null}
+      {running || allDone ? null : (
         <Button
           label={finished ? t.fx.retryRate : t.fx.missingRatesAction}
           variant="secondary"

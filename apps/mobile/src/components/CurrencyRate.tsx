@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Image, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, TextInput, View } from 'react-native';
 
 import {
   convert,
@@ -48,9 +48,11 @@ import {
   minorToPlain,
   rateNote,
   rateOrigin,
+  rateAttribution,
   rateParts,
   updatedAgo,
 } from '@/lib/fxLine';
+import { StaleFxRateError, staleLabel } from '@/lib/fxStale';
 
 import { fetchFxRate } from '@/data/api';
 import { localToday, rateDateFor, shouldAutoFetch } from '@/lib/fxAutoRate';
@@ -130,6 +132,16 @@ export function CurrencyRate({
   const [error, setError] = useState<string | null>(null);
   // The last automatic fetch failed, so the rate line offers a Retry.
   const [autoFailed, setAutoFailed] = useState(false);
+  // Every rate source was down and the server offered the last rate it had,
+  // for an older day. Never applied on its own: the line says "Rate from
+  // {date}" and the person picks Use or Retry.
+  const [staleOffer, setStaleOffer] = useState<{
+    record: FxRecord;
+    day: string;
+    date: string | null;
+    auto: boolean;
+    pair: string;
+  } | null>(null);
 
   // Whether the rate sheet is open.
   const [openState, setOpen] = useState(false);
@@ -170,6 +182,7 @@ export function CurrencyRate({
   const invalidateFetch = (): void => {
     requestId.current += 1;
     setBusy(false);
+    setStaleOffer(null);
   };
 
   const applyCharged = (text: string): void => {
@@ -215,6 +228,7 @@ export function CurrencyRate({
     setChargedText('');
     setRateText('');
     setError(null);
+    setStaleOffer(null);
     // A new currency is a new question. Whatever was decided about the last
     // one — including a decision to override the trip's rate for it — does not
     // carry over to a rate for a different pair.
@@ -244,6 +258,7 @@ export function CurrencyRate({
     const current = (): boolean => latestPair.current === pair && requestId.current === id;
     setError(null);
     setAutoFailed(false);
+    setStaleOffer(null);
     setBusy(true);
     try {
       const record = await fetchFxRate(currency, groupCurrency, date ?? undefined);
@@ -262,6 +277,11 @@ export function CurrencyRate({
       setRateText(rateToDecimal(fromFxRecord(record), 4));
     } catch (caught) {
       if (!current()) return;
+      if (caught instanceof StaleFxRateError) {
+        // Only an older rate exists right now. Offer it; never apply it.
+        setStaleOffer({ record: caught.record, day: caught.day, date, auto, pair });
+        return;
+      }
       // Not a blocker: typing a rate works offline and is often more accurate.
       if (auto) setAutoFailed(true);
       setError(
@@ -272,6 +292,26 @@ export function CurrencyRate({
     }
   };
   const fetchToday = (): Promise<void> => fetchRate(null, false);
+
+  // "Use" on an older rate: the person's explicit choice, so it lands even over
+  // the automatic-fetch guards — but never for a pair they have moved away
+  // from, and never pinned for the trip (it is not today's rate).
+  const useStale = (): void => {
+    const offer = staleOffer;
+    if (!offer || offer.pair !== `${currency}|${groupCurrency}`) return;
+    requestId.current += 1;
+    setStaleOffer(null);
+    if (offer.auto) autoRecord.current = offer.record;
+    onFxChange(offer.record);
+    setNow(Date.now());
+    setRateText(rateToDecimal(fromFxRecord(offer.record), 4));
+  };
+  const retryStale = (): void => {
+    const offer = staleOffer;
+    if (!offer) return;
+    if (offer.auto) triedKey.current = `${currency}|${groupCurrency}|${offer.date ?? ''}`;
+    void fetchRate(offer.date, offer.auto);
+  };
 
   const converted = fx && amount > 0n ? convertWithRecord(money(amount, currency), fx) : null;
 
@@ -344,6 +384,35 @@ export function CurrencyRate({
   // show really is a fetched market one.
   const marketShown = origin === 'today' || origin === 'market';
   const parts = fx ? rateParts(fx) : { left: '', right: '' };
+  const attribution = rateAttribution(fx);
+  const attributionLink = attribution ? (
+    <Pressable
+      onPress={() => void Linking.openURL(attribution.url)}
+      accessibilityRole="link"
+      hitSlop={6}
+    >
+      <Text variant="micro" tone="muted" style={{ textDecorationLine: 'underline' }}>
+        {attribution.text}
+      </Text>
+    </Pressable>
+  ) : null;
+  const staleRow = staleOffer ? (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.md, flexWrap: 'wrap' }}>
+      <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+        {staleLabel(staleOffer.day, t.fx.staleRateFrom, locale)}
+      </Text>
+      <Pressable onPress={useStale} accessibilityRole="button" hitSlop={8}>
+        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+          {t.fx.staleRateUse}
+        </Text>
+      </Pressable>
+      <Pressable onPress={retryStale} disabled={busy} accessibilityRole="button" hitSlop={8}>
+        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+          {t.fx.retryRate}
+        </Text>
+      </Pressable>
+    </Row>
+  ) : null;
   const updated = fx ? updatedAgo(fx.ts, now, t.fx) : null;
 
   // The preview boxes are a calculator over the rate and change nothing on the
@@ -415,7 +484,11 @@ export function CurrencyRate({
         </Pressable>
       )}
 
-      {!sheet && autoFailed && !fx && !busy ? (
+      {!sheet && attributionLink}
+
+      {!sheet && staleOffer && !busy ? staleRow : null}
+
+      {!sheet && autoFailed && !fx && !busy && !staleOffer ? (
         // The fetch failed (most likely offline). Saving still works; this is
         // the way back to the rate without opening the sheet.
         <Pressable
@@ -540,6 +613,7 @@ export function CurrencyRate({
                       {t.fx.sheetReliable}
                     </Text>
                   ) : null}
+                  {attributionLink}
                 </View>
                 <Pressable
                   onPress={() => void fetchToday()}
@@ -577,6 +651,8 @@ export function CurrencyRate({
               onPress={() => void fetchToday()}
             />
           ) : null}
+
+          {method === Method.Fetched && staleOffer && !busy ? staleRow : null}
 
           {method === Method.Typed ? (
             <View style={[panelStyle(theme), { gap: theme.spacing.xs }]}>

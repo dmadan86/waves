@@ -1539,6 +1539,25 @@ model RevenuecatEvent {
   @@schema("public")
 }
 
+/// The fx-rate edge function's daily cache of mid-market rates: one row per
+/// pair and day, written only when the provider's own date is that day. `num` /
+/// `den` are the exact rational as digit text (ADR-003). Service role only (RLS
+/// on, no policies); the CHECKs are in the migration.
+model FxDailyRate {
+  fromCurrency String   @map("from_currency")
+  toCurrency   String   @map("to_currency")
+  day          DateTime @db.Date
+  num          String
+  den          String
+  /// ecb | currency-api | exchangerate-api
+  source       String
+  fetchedAt    DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+
+  @@id([fromCurrency, toCurrency, day])
+  @@map("fx_daily_rates")
+  @@schema("public")
+}
+
 /// One phone signed into one account. GoTrue tracks refresh tokens; this tracks
 /// the thing a person recognises — a labelled device with a last-seen — and is
 /// what the free-tier two-device cap counts. Written only by

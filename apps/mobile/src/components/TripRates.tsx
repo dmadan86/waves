@@ -21,7 +21,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { type CurrencyCode, fromFxRecord, type FxRate, isCurrencyCode } from '@waves/core';
 import {
@@ -43,6 +43,8 @@ import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { rateAttribution } from '@/lib/fxLine';
+import { StaleFxRateError } from '@/lib/fxStale';
 import {
   currencyMark,
   currencyName,
@@ -444,8 +446,12 @@ function TripRateSheet({
       setHomeFirst(readable);
       setText(shownText(fetched, readable));
     } catch (caught) {
+      // Only an older rate was on offer. A rate pinned for the whole trip is
+      // not the place for one; typing today's rate is.
       setError(
-        `${friendlyError(caught, t.misc.rateFetchFailed, 'tripRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
+        caught instanceof StaleFxRateError
+          ? `${t.misc.rateFetchFailed}${t.misc.rateFetchFailedSuffix}`
+          : `${friendlyError(caught, t.misc.rateFetchFailed, 'tripRate.fetch')}${t.misc.rateFetchFailedSuffix}`,
       );
     } finally {
       setBusy(false);
@@ -632,6 +638,18 @@ function TripRateSheet({
           {exact && exact.source !== 'manual' ? t.fx.todaysRate : t.fx.removeConfirm}
         </Text>
       )}
+      {exact && !error && rateAttribution(exact) ? (
+        // ExchangeRate-API's terms: credit them, linked, wherever their rate shows.
+        <Pressable
+          onPress={() => void Linking.openURL(rateAttribution(exact)!.url)}
+          accessibilityRole="link"
+          hitSlop={6}
+        >
+          <Text variant="micro" tone="faint" style={{ textDecorationLine: 'underline' }}>
+            {rateAttribution(exact)!.text}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Button
         label={t.common.save}
