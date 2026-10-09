@@ -72,6 +72,7 @@ import { SubEventBudgets } from '@/components/SubEventBudgets';
 import { UpcomingPayments } from '@/components/UpcomingPayments';
 import { type VendorCandidate } from '@/lib/eventVendors';
 import { vendorCandidates } from '@/lib/vendorCandidates';
+import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
 import { EventPlanHeader, EventPlanSummary, type PlanScope } from '@/components/EventPlanSummary';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -334,14 +335,35 @@ export default function PlanScreen() {
   // Event organizer (docs/event-organizer.md): the fixed sub-event list this
   // Event's template suggests — empty for a group with no template, which is
   // what hides the "Event budget" card below.
-  const eventSubEvents = subEventsForTemplate(group.data?.event_template);
-  const isEvent = group.data?.type === 'event';
+  const isEvent = showsVendorTools(group.data?.type);
+  // Gated on the type too: a group re-typed away from Event keeps its template.
+  const eventSubEvents = isEvent ? subEventsForTemplate(group.data?.event_template) : [];
   const subEventLabel = (id: string): string =>
     `${eventSubEvents.find((s) => s.id === id)?.emoji ?? ''} ${t.eventSubEvents[id] ?? id}`.trim();
-  const depositCandidates: VendorCandidate[] = vendorCandidates(expenses.rows, {
-    subEvent: subEventLabel,
-    category: (id) => (t.categories as Record<string, string | undefined>)[id] ?? null,
-  });
+  // Deposits still owing a balance, whatever the group is now: they are data
+  // that must stay reachable even after a group is re-typed away from Event.
+  const openDepositCount = useMemo(
+    () =>
+      expenses.rows.filter((expense) => {
+        const v = expense.currentVersion;
+        return (
+          v && !expense.deleted_at && v.is_deposit === true && BigInt(v.balance_due_minor ?? 0) > 0n
+        );
+      }).length,
+    [expenses.rows],
+  );
+  const showUpcoming = showsUpcomingPayments(group.data?.type, openDepositCount);
+  const depositCandidates: VendorCandidate[] = useMemo(
+    () =>
+      showUpcoming
+        ? vendorCandidates(expenses.rows, {
+            subEvent: subEventLabel,
+            category: (id) => (t.categories as Record<string, string | undefined>)[id] ?? null,
+          })
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showUpcoming, expenses.rows, t, eventSubEvents],
+  );
   // Overall plan = the group's overall budget when set, else the sum of the
   // sub-event budgets (in the group's currency; currencies are never mixed).
   // Nothing set is 0, which the summary reads as "no budget", not "over".
@@ -748,25 +770,24 @@ export default function PlanScreen() {
           />
         ) : null}
 
-        {/* Vendor deposits still owing a balance — on any group, not only an
-            Event: a trip's hotel deposit is the same shape. Hidden by
-            `UpcomingPayments` itself when there are none. */}
-        <UpcomingPayments
-          groupId={groupId}
-          candidates={depositCandidates}
-          today={today}
-          subEventLabel={subEventLabel}
-          showEmpty={isEvent}
-          onViewAll={
-            isEvent
-              ? () =>
-                  router.push({
-                    pathname: `/group/${groupId}`,
-                    params: { tab: 'vendors', vendorFilter: 'due' },
-                  })
-              : undefined
-          }
-        />
+        {/* Vendor deposits still owing a balance. Event groups always; any
+            other group only while it still has an open deposit, so that money
+            can be seen and settled. */}
+        {showUpcoming ? (
+          <UpcomingPayments
+            groupId={groupId}
+            candidates={depositCandidates}
+            today={today}
+            subEventLabel={subEventLabel}
+            showEmpty
+            onViewAll={() =>
+              router.push({
+                pathname: `/group/${groupId}`,
+                params: { tab: 'vendors', vendorFilter: 'due' },
+              })
+            }
+          />
+        ) : null}
 
         {isTrip && forecasts.length > 0 ? (
           <Card style={{ gap: theme.spacing.sm }}>
