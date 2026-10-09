@@ -39,10 +39,10 @@ import {
   Row,
   Text,
   useTheme,
-  useScreenClearance,
 } from '@waves/ui';
 
 import { useBlockedUsers } from '@/data/blocked';
+import { useBottomClearance } from '@/lib/clearance';
 import {
   memberLookup,
   toSnapshot,
@@ -92,7 +92,10 @@ export function SettleBody({
   onRecorded?: () => void;
 }) {
   const theme = useTheme();
-  const clearance = useScreenClearance();
+  // The foot clears whatever is there: the app's tab bar when this is a
+  // group's Settle up tab (the last "who pays whom" rows sat under it), the
+  // system bar alone on the standalone Settle up screen.
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const { profile } = useAuth();
