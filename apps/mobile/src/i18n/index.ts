@@ -2938,6 +2938,14 @@ export interface UiStrings {
     inviteLink: string;
     /** Caption over the invite QR code. */
     scanToJoin: string;
+    /** Caption over the invite QR: "Scan this QR code to join the {type}". */
+    scanToJoinType: string;
+    /** Line under the invite title. */
+    inviteSubtitle: string;
+    /** The pill that opens the members screen: "5 members". */
+    inviteMembersPill: PluralForms;
+    /** Label on the divider above the channel buttons. */
+    shareVia: string;
     whatsapp: string;
     shareAnotherWay: string;
     /** The clipboard item on the invite screen's share row. */
@@ -7012,6 +7020,10 @@ const en: UiStrings = {
     shareInvite: 'Share invite',
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
+    scanToJoinType: 'Scan this QR code to join the {type}',
+    inviteSubtitle: 'Add friends and split the expense together',
+    inviteMembersPill: { one: '{n} member', other: '{n} members' },
+    shareVia: 'Share via',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'Share another way',
     copyLink: 'Copy link',
@@ -10989,6 +11001,10 @@ const ta: UiStrings = {
     shareInvite: 'அழைப்பைப் பகிர்',
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
+    scanToJoinType: 'இந்த QR குறியீட்டை ஸ்கேன் செய்து சேரவும் ({type})',
+    inviteSubtitle: 'நண்பர்களை அழைத்து செலவைச் சேர்ந்து பகிருங்கள்',
+    inviteMembersPill: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+    shareVia: 'இதன் மூலம் பகிர்',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'வேறு வழியில் பகிர்',
     copyLink: 'இணைப்பை நகலெடு',
@@ -14978,6 +14994,10 @@ const hi: UiStrings = {
     shareInvite: 'निमंत्रण साझा करें',
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
+    scanToJoinType: 'जुड़ने के लिए यह QR कोड स्कैन करें ({type})',
+    inviteSubtitle: 'दोस्तों को जोड़ें और खर्च साथ बाँटें',
+    inviteMembersPill: { one: '{n} सदस्य', other: '{n} सदस्य' },
+    shareVia: 'इनसे साझा करें',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'किसी और तरीके से साझा करें',
     copyLink: 'लिंक कॉपी करें',
@@ -19086,6 +19106,16 @@ const ar: UiStrings = {
     shareInvite: 'شارك الدعوة',
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
+    scanToJoinType: 'امسح رمز QR هذا للانضمام ({type})',
+    inviteSubtitle: 'أضف أصدقاءك وقسّموا المصروف معًا',
+    inviteMembersPill: {
+      one: '{n} عضو',
+      two: '{n} عضوان',
+      few: '{n} أعضاء',
+      many: '{n} عضوًا',
+      other: '{n} عضو',
+    },
+    shareVia: 'شارك عبر',
     whatsapp: 'واتساب',
     shareAnotherWay: 'شارك بطريقة أخرى',
     copyLink: 'نسخ الرابط',
