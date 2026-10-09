@@ -186,6 +186,42 @@ export function newestActivityFromOthers(mirror: MirrorState, myProfileId: strin
 }
 
 /**
+ * The same "somebody else did something" signal as `newestActivityFromOthers`,
+ * kept per group: group id → ms of the newest row another member wrote. Drives
+ * the small unread dot on each group row (`lib/groupUnread`). One pass over the
+ * log, no sort and no join, so the dashboard can afford it on every mirror
+ * move. A group nobody else has touched is simply absent from the map.
+ */
+export function newestActivityFromOthersByGroup(
+  mirror: MirrorState,
+  myProfileId: string | null,
+): Map<string, number> {
+  const deleted = new Set<string>();
+  for (const row of rowsFor(mirror, SyncTable.Groups)) {
+    const g = row as unknown as { id: string; deleted_at: string | null };
+    if (g.deleted_at) deleted.add(g.id);
+  }
+  // Every member id that is the reader, across all groups: their own rows are
+  // never news to them, whichever group they were written in.
+  const mine = new Set<string>();
+  if (myProfileId) {
+    for (const row of rowsFor(mirror, SyncTable.GroupMembers)) {
+      const m = row as unknown as { id: MemberId; profile_id: string | null };
+      if (isViewer(m, myProfileId)) mine.add(m.id);
+    }
+  }
+  const newest = new Map<string, number>();
+  for (const row of rowsFor(mirror, SyncTable.ActivityLog) as unknown as ActivityRow[]) {
+    if (deleted.has(row.group_id)) continue;
+    if (row.actor_member_id && mine.has(row.actor_member_id)) continue;
+    const at = Date.parse(String(row.created_at));
+    if (!(at > (newest.get(row.group_id) ?? 0))) continue;
+    newest.set(row.group_id, at);
+  }
+  return newest;
+}
+
+/**
  * The reader's stake in the expense an activity row is about, or null when the
  * row is not about an expense they are on. A settled/confirmed row is left
  * null on purpose: a settlement moves money one way and the balance the other,

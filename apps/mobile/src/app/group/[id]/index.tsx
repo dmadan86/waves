@@ -74,6 +74,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
+import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router } from '@/lib/navigation';
 
@@ -615,6 +616,9 @@ export default function GroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  // Opening the group reads its news: the unread dot on its Home and Groups
+  // rows goes out (and stays out for what lands while it is open).
+  useMarkGroupSeen(groupId || null);
   const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
   // The Expenses tab's filters: who paid, which month, and a text search.
