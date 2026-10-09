@@ -475,12 +475,14 @@ export default function ExpenseDetailScreen() {
         radius={0}
         colors={theme.gradient.brand}
         style={{
-          paddingTop: insets.top + theme.spacing.md,
+          // Compact: a tight top, a short foot and small gaps, so the hero is a
+          // header over the page rather than half of it.
+          paddingTop: insets.top + theme.spacing.sm,
           paddingHorizontal: theme.spacing.xl,
-          paddingBottom: theme.spacing.lg,
+          paddingBottom: theme.spacing.md,
           borderBottomLeftRadius: theme.radius.xxl,
           borderBottomRightRadius: theme.radius.xxl,
-          gap: theme.spacing.md,
+          gap: theme.spacing.sm,
           overflow: 'hidden',
         }}
       >
@@ -516,9 +518,9 @@ export default function ExpenseDetailScreen() {
             accessibilityHint={t.expense.detailTapHint}
             hitSlop={6}
             style={({ pressed }) => ({
-              width: 48,
-              height: 48,
-              borderRadius: 24,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: theme.color.onBrand,
@@ -527,7 +529,7 @@ export default function ExpenseDetailScreen() {
           >
             <Ionicons
               name={heroGlyph as keyof typeof Ionicons.glyphMap}
-              size={iconSize.xxl}
+              size={iconSize.xl}
               color={theme.color.brand}
             />
           </Pressable>
@@ -609,7 +611,7 @@ export default function ExpenseDetailScreen() {
               currency={currency}
               locale={locale}
               variant="display"
-              style={{ color: theme.color.onBrand, fontSize: 40, lineHeight: 46 }}
+              style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
             />
           ) : (
             <Pressable
@@ -627,7 +629,7 @@ export default function ExpenseDetailScreen() {
                 currency={currency}
                 locale={locale}
                 variant="display"
-                style={{ color: theme.color.onBrand, fontSize: 40, lineHeight: 46 }}
+                style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
               />
             </Pressable>
           )}
@@ -680,8 +682,8 @@ export default function ExpenseDetailScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
-              paddingHorizontal: theme.spacing.md,
-              paddingVertical: 4,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 2,
               borderRadius: theme.radius.pill,
               backgroundColor: HERO_GLASS,
               opacity: pressed ? 0.6 : 1,
@@ -702,7 +704,7 @@ export default function ExpenseDetailScreen() {
             </Text>
           </Pressable>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.onBrand} />
+            <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.onBrand} />
             <Text variant="caption" tone="onBrand" style={{ fontWeight: '600' }}>
               {heroDate}
             </Text>
