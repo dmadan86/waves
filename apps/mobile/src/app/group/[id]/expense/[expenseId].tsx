@@ -20,6 +20,7 @@ import {
   Gradient,
   Row,
   Screen,
+  SegmentedTabs,
   SectionHeader,
   Text,
   useTheme,
@@ -121,80 +122,6 @@ function HeroButton({
     >
       <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
     </Pressable>
-  );
-}
-
-/** The page's two faces as one white rounded card. The live face wears a
- *  brand-soft pill and a brand bar beneath it, so the control still says which
- *  face you are on at a glance. Local rather than `SegmentedTabs`: that one is a
- *  hairline-underlined row used on several screens, and this card is specific to
- *  this page's design. */
-function DetailTabs<T extends string>({
-  value,
-  onChange,
-  tabs,
-}: {
-  value: T;
-  onChange: (value: T) => void;
-  tabs: readonly { value: T; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[];
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Row
-      accessibilityRole="tablist"
-      style={{
-        padding: theme.spacing.xs,
-        gap: theme.spacing.xs,
-        borderRadius: theme.radius.xl,
-        backgroundColor: theme.color.surface,
-        ...theme.shadow.soft,
-      }}
-    >
-      {tabs.map((tab) => {
-        const live = tab.value === value;
-        const ink = live ? theme.color.brand : theme.color.textMuted;
-        return (
-          <Pressable
-            key={tab.value}
-            onPress={() => onChange(tab.value)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: live }}
-            accessibilityLabel={tab.label}
-            style={({ pressed }) => ({
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              paddingVertical: theme.spacing.sm,
-              borderRadius: theme.radius.lg,
-              backgroundColor: live ? theme.color.brandSoft : 'transparent',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons name={tab.icon} size={iconSize.md} color={ink} />
-            <Text variant="body" numberOfLines={1} style={{ color: ink, fontWeight: '700' }}>
-              {tab.label}
-            </Text>
-            {/* Drawn only on the live face, inset so it reads as an underline of
-                the pill rather than its edge. */}
-            {live ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  start: theme.spacing.xl,
-                  end: theme.spacing.xl,
-                  height: 2,
-                  borderRadius: 1,
-                  backgroundColor: theme.color.brand,
-                }}
-              />
-            ) : null}
-          </Pressable>
-        );
-      })}
-    </Row>
   );
 }
 
@@ -793,8 +720,8 @@ export default function ExpenseDetailScreen() {
           the control that says which face you are on was the one thing not on
           screen. It sits tight against the hero — a label for what follows, not
           a band of its own. */}
-      <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <DetailTabs
+      <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.sm }}>
+        <SegmentedTabs
           value={tab}
           // Back to the top on the way in. The two faces are different lengths,
           // so keeping the offset landed somebody halfway down a history they
@@ -804,8 +731,16 @@ export default function ExpenseDetailScreen() {
             setTab(next);
           }}
           tabs={[
-            { value: 'details', label: t.expense.detailsTab, icon: 'receipt-outline' },
-            { value: 'history', label: t.expense.history, icon: 'time-outline' },
+            {
+              value: 'details',
+              label: t.expense.detailsTab,
+              icon: (color) => <Ionicons name="receipt-outline" size={iconSize.md} color={color} />,
+            },
+            {
+              value: 'history',
+              label: t.expense.history,
+              icon: (color) => <Ionicons name="time-outline" size={iconSize.md} color={color} />,
+            },
           ]}
         />
       </View>
