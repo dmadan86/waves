@@ -120,84 +120,93 @@ function describe(
   const withAmounts = (rows: readonly PayerRow[], currency: string) =>
     payerAuditText(rows, who, (minor) => money(minor, currency, locale), t.expense.audit.none);
 
-  return changes.map((change): Line => {
-    switch (change.kind) {
-      case 'money':
-        return {
-          key: change.field,
-          label: change.field === 'stake' ? t.expense.audit.yourShare : t.expense.audit.amount,
-          kind: 'money',
-          balance: change.balance,
-          oldAmount: change.oldAmount,
-          newAmount: change.newAmount,
-          oldText: money(change.oldAmount, change.oldCurrency, locale),
-          newText: money(change.newAmount, change.newCurrency, locale),
-        };
-      case 'text':
-        return {
-          key: change.field,
-          label: t.expense.audit.description,
-          kind: 'text',
-          oldText: change.oldText || t.expense.audit.none,
-          newText: change.newText || t.expense.audit.none,
-        };
-      case 'category':
-        return {
-          key: change.field,
-          label: t.expense.audit.category,
-          kind: 'text',
-          oldText: categoryLabel(t, change.oldCategory, change.oldLabel),
-          newText: categoryLabel(t, change.newCategory, change.newLabel),
-        };
-      case 'split':
-        return {
-          key: change.field,
-          label: t.expense.audit.split,
-          kind: 'text',
-          oldText: splitLabel(t, change.oldSplit),
-          newText: splitLabel(t, change.newSplit),
-        };
-      case 'date':
-        return {
-          key: change.field,
-          label: t.expense.audit.date,
-          kind: 'text',
-          oldText: dateLabel(locale, change.oldIso),
-          newText: dateLabel(locale, change.newIso),
-        };
-      case 'location':
-        return {
-          key: change.field,
-          label: t.expense.audit.location,
-          kind: 'text',
-          oldText: locationLabel(t, change.oldLocation),
-          newText: locationLabel(t, change.newLocation),
-        };
-      case 'payers':
-        return {
-          key: change.field,
-          label: t.expense.audit.payers,
-          kind: 'text',
-          oldText: withAmounts(change.oldPayers, change.oldCurrency),
-          newText: withAmounts(change.newPayers, change.newCurrency),
-        };
-      case 'members':
-        // A changed set of people is a list of names. A reallocation between
-        // the same people is only legible with the figures beside them — the
-        // names on their own would read "Asha, Ravi → Asha, Ravi".
-        return {
-          key: change.field,
-          label: t.expense.audit.participants,
-          kind: 'text',
-          oldText: change.membersChanged
-            ? names(change.oldShares.map((row) => row.member_id))
-            : withAmounts(change.oldShares, change.oldCurrency),
-          newText: change.membersChanged
-            ? names(change.newShares.map((row) => row.member_id))
-            : withAmounts(change.newShares, change.newCurrency),
-        };
-    }
-  });
+  return changes
+    .map((change): Line | null => {
+      switch (change.kind) {
+        case 'money':
+          return {
+            key: change.field,
+            label: change.field === 'stake' ? t.expense.audit.yourShare : t.expense.audit.amount,
+            kind: 'money',
+            balance: change.balance,
+            oldAmount: change.oldAmount,
+            newAmount: change.newAmount,
+            oldText: money(change.oldAmount, change.oldCurrency, locale),
+            newText: money(change.newAmount, change.newCurrency, locale),
+          };
+        case 'text':
+          if (change.field !== 'description') return null;
+          return {
+            key: change.field,
+            label: t.expense.audit.description,
+            kind: 'text',
+            oldText: change.oldText || t.expense.audit.none,
+            newText: change.newText || t.expense.audit.none,
+          };
+        case 'category':
+          return {
+            key: change.field,
+            label: t.expense.audit.category,
+            kind: 'text',
+            oldText: categoryLabel(t, change.oldCategory, change.oldLabel),
+            newText: categoryLabel(t, change.newCategory, change.newLabel),
+          };
+        case 'split':
+          return {
+            key: change.field,
+            label: t.expense.audit.split,
+            kind: 'text',
+            oldText: splitLabel(t, change.oldSplit),
+            newText: splitLabel(t, change.newSplit),
+          };
+        case 'date':
+          return {
+            key: change.field,
+            label: t.expense.audit.date,
+            kind: 'text',
+            oldText: dateLabel(locale, change.oldIso),
+            newText: dateLabel(locale, change.newIso),
+          };
+        case 'location':
+          return {
+            key: change.field,
+            label: t.expense.audit.location,
+            kind: 'text',
+            oldText: locationLabel(t, change.oldLocation),
+            newText: locationLabel(t, change.newLocation),
+          };
+        case 'payers':
+          return {
+            key: change.field,
+            label: t.expense.audit.payers,
+            kind: 'text',
+            oldText: withAmounts(change.oldPayers, change.oldCurrency),
+            newText: withAmounts(change.newPayers, change.newCurrency),
+          };
+        case 'members':
+          // A changed set of people is a list of names. A reallocation between
+          // the same people is only legible with the figures beside them — the
+          // names on their own would read "Asha, Ravi → Asha, Ravi".
+          return {
+            key: change.field,
+            label: t.expense.audit.participants,
+            kind: 'text',
+            oldText: change.membersChanged
+              ? names(change.oldShares.map((row) => row.member_id))
+              : withAmounts(change.oldShares, change.oldCurrency),
+            newText: change.membersChanged
+              ? names(change.newShares.map((row) => row.member_id))
+              : withAmounts(change.newShares, change.newCurrency),
+          };
+        // The core also diffs notes, payment method, time, receipt, deposit,
+        // sub-event and split details, but only when a client reads those
+        // columns. The browser's projection does not, so none arrive here; the
+        // phone shows them (see its ExpenseHistory).
+        default:
+          return null;
+      }
+    })
+    .filter((line): line is Line => line !== null);
 }
 
 /**

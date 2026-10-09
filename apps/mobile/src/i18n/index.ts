@@ -3224,7 +3224,7 @@ export interface UiStrings {
     /** "Created by Asha" / "Edited by Ravi" — the head of one audit entry. */
     createdByName: string;
     editedByName: string;
-    /** Shown on an edit that touched nothing this audit tracks. */
+    /** Shown, quietly, on an edit that saved without changing anything we can see. */
     noChanges: string;
     /** Field names on the edit-history audit, each shown as old → new. */
     audit: {
@@ -3240,6 +3240,20 @@ export interface UiStrings {
       participants: string;
       /** Placeholder for a field that was empty on one side (e.g. no location). */
       none: string;
+      /** Fields the audit used to skip: a note, how it was paid, time of day, receipt, deposit, sub-event. */
+      notes: string;
+      paymentMethod: string;
+      time: string;
+      receipt: string;
+      receiptAttached: string;
+      receiptReplaced: string;
+      depositOff: string;
+      depositOn: string;
+      /** `{amount}` and `{date}` are filled by the screen. */
+      depositOwing: string;
+      depositOwingOn: string;
+      subEvent: string;
+      splitDetails: string;
     };
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
@@ -7175,7 +7189,7 @@ const en: UiStrings = {
     note: 'Note',
     createdByName: 'Created by {name}',
     editedByName: 'Edited by {name}',
-    noChanges: 'No tracked fields changed',
+    noChanges: 'Saved again, nothing changed',
     audit: {
       amount: 'Amount',
       description: 'Description',
@@ -7187,6 +7201,18 @@ const en: UiStrings = {
       yourShare: 'Your balance',
       participants: 'People',
       none: 'None',
+      notes: 'Note',
+      paymentMethod: 'Paid with',
+      time: 'Time',
+      receipt: 'Receipt',
+      receiptAttached: 'Attached',
+      receiptReplaced: 'Replaced',
+      depositOff: 'Not a deposit',
+      depositOn: 'Deposit',
+      depositOwing: 'Deposit, {amount} due',
+      depositOwingOn: 'Deposit, {amount} due {date}',
+      subEvent: 'Event part',
+      splitDetails: 'Split details updated',
     },
   },
   misc: {
@@ -11113,7 +11139,7 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
-    noChanges: 'கண்காணிக்கப்படும் புலங்கள் மாறவில்லை',
+    noChanges: 'மீண்டும் சேமிக்கப்பட்டது, எதுவும் மாறவில்லை',
     audit: {
       amount: 'தொகை',
       description: 'விவரம்',
@@ -11125,6 +11151,18 @@ const ta: UiStrings = {
       yourShare: 'உங்கள் நிலுவை',
       participants: 'நபர்கள்',
       none: 'இல்லை',
+      notes: 'குறிப்பு',
+      paymentMethod: 'செலுத்திய முறை',
+      time: 'நேரம்',
+      receipt: 'ரசீது',
+      receiptAttached: 'இணைக்கப்பட்டது',
+      receiptReplaced: 'மாற்றப்பட்டது',
+      depositOff: 'முன்பணம் அல்ல',
+      depositOn: 'முன்பணம்',
+      depositOwing: 'முன்பணம், {amount} நிலுவை',
+      depositOwingOn: 'முன்பணம், {amount} நிலுவை {date} வரை',
+      subEvent: 'நிகழ்வின் பகுதி',
+      splitDetails: 'பிரிப்பு விவரங்கள் புதுப்பிக்கப்பட்டன',
     },
   },
   misc: {
@@ -15040,7 +15078,7 @@ const hi: UiStrings = {
     note: 'नोट',
     createdByName: '{name} ने बनाया',
     editedByName: '{name} ने बदला',
-    noChanges: 'कोई ट्रैक किया गया फ़ील्ड नहीं बदला',
+    noChanges: 'फिर से सहेजा, कुछ नहीं बदला',
     audit: {
       amount: 'राशि',
       description: 'विवरण',
@@ -15052,6 +15090,18 @@ const hi: UiStrings = {
       yourShare: 'आपका हिसाब',
       participants: 'लोग',
       none: 'कोई नहीं',
+      notes: 'नोट',
+      paymentMethod: 'भुगतान का तरीका',
+      time: 'समय',
+      receipt: 'रसीद',
+      receiptAttached: 'जुड़ी',
+      receiptReplaced: 'बदली गई',
+      depositOff: 'जमा नहीं',
+      depositOn: 'जमा राशि',
+      depositOwing: 'जमा राशि, {amount} बाकी',
+      depositOwingOn: 'जमा राशि, {amount} बाकी, {date} तक',
+      subEvent: 'आयोजन का हिस्सा',
+      splitDetails: 'बँटवारे का विवरण अपडेट हुआ',
     },
   },
   misc: {
@@ -19132,7 +19182,7 @@ const ar: UiStrings = {
     note: 'ملاحظة',
     createdByName: 'أنشأها {name}',
     editedByName: 'عدّلها {name}',
-    noChanges: 'لم تتغيّر أي حقول متتبَّعة',
+    noChanges: 'حُفظ مجددًا دون أي تغيير',
     audit: {
       amount: 'المبلغ',
       description: 'الوصف',
@@ -19144,6 +19194,18 @@ const ar: UiStrings = {
       yourShare: 'رصيدك',
       participants: 'الأشخاص',
       none: 'لا شيء',
+      notes: 'ملاحظة',
+      paymentMethod: 'طريقة الدفع',
+      time: 'الوقت',
+      receipt: 'الإيصال',
+      receiptAttached: 'مرفق',
+      receiptReplaced: 'تم استبداله',
+      depositOff: 'ليست دفعة مقدّمة',
+      depositOn: 'دفعة مقدّمة',
+      depositOwing: 'دفعة مقدّمة، المتبقي {amount}',
+      depositOwingOn: 'دفعة مقدّمة، المتبقي {amount} حتى {date}',
+      subEvent: 'جزء من الفعالية',
+      splitDetails: 'تم تحديث تفاصيل التقسيم',
     },
   },
   misc: {

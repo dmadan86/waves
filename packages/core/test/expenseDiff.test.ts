@@ -240,4 +240,157 @@ describe('diffExpenseVersions', () => {
       fields(diffExpenseVersions(version(), version({ expense_date: '2026-08-30' }), ASHA)),
     ).toEqual(['date']);
   });
+  describe('columns the audit used to ignore', () => {
+    it('produces no new lines for a version without the optional fields', () => {
+      // The browser reads a narrower projection; absent must mean "not asked",
+      // never "changed to nothing".
+      expect(diffExpenseVersions(version(), version({ description: 'Dinner' }), ASHA)).toEqual([]);
+      expect(
+        diffExpenseVersions(version(), version({ notes: 'hello', payment_method: 'cash' }), ASHA),
+      ).toEqual([]);
+    });
+
+    it('reports notes changing, trimmed', () => {
+      const changes = diffExpenseVersions(
+        version({ notes: null }),
+        version({ notes: ' Birthday ' }),
+        ASHA,
+      );
+      expect(changes).toEqual([{ field: 'notes', kind: 'text', oldText: '', newText: 'Birthday' }]);
+      expect(diffExpenseVersions(version({ notes: '' }), version({ notes: null }), ASHA)).toEqual(
+        [],
+      );
+    });
+
+    it('reports the payment method changing', () => {
+      expect(
+        diffExpenseVersions(
+          version({ payment_method: null }),
+          version({ payment_method: 'upi' }),
+          ASHA,
+        ),
+      ).toEqual([
+        { field: 'paymentMethod', kind: 'paymentMethod', oldMethod: null, newMethod: 'upi' },
+      ]);
+    });
+
+    it('reports the time of day, ignoring how the same instant is spelled', () => {
+      const a = version({ occurred_at: '2026-09-01T12:00:00+00:00' });
+      expect(
+        diffExpenseVersions(a, version({ occurred_at: '2026-09-01T12:00:00.000Z' }), ASHA),
+      ).toEqual([]);
+      expect(
+        diffExpenseVersions(a, version({ occurred_at: '2026-09-01T19:30:00Z' }), ASHA),
+      ).toEqual([
+        {
+          field: 'time',
+          kind: 'time',
+          oldIso: '2026-09-01T12:00:00+00:00',
+          newIso: '2026-09-01T19:30:00Z',
+        },
+      ]);
+    });
+
+    it('reports a receipt added, removed and replaced', () => {
+      const none = version({ receipt_id: null });
+      const one = version({ receipt_id: 'r1' });
+      const two = version({ receipt_id: 'r2' });
+      expect(diffExpenseVersions(none, one, ASHA)).toEqual([
+        {
+          field: 'receipt',
+          kind: 'receipt',
+          oldHasReceipt: false,
+          newHasReceipt: true,
+          replaced: false,
+        },
+      ]);
+      expect(diffExpenseVersions(one, none, ASHA)).toEqual([
+        {
+          field: 'receipt',
+          kind: 'receipt',
+          oldHasReceipt: true,
+          newHasReceipt: false,
+          replaced: false,
+        },
+      ]);
+      expect(diffExpenseVersions(one, two, ASHA)).toEqual([
+        {
+          field: 'receipt',
+          kind: 'receipt',
+          oldHasReceipt: true,
+          newHasReceipt: true,
+          replaced: true,
+        },
+      ]);
+      expect(diffExpenseVersions(one, one, ASHA)).toEqual([]);
+    });
+
+    it('reports deposit flag, balance and due date as one change', () => {
+      const before = version({
+        is_deposit: false,
+        balance_due_minor: null,
+        balance_due_date: null,
+      });
+      const after = version({
+        is_deposit: true,
+        balance_due_minor: '500000',
+        balance_due_date: '2026-11-01',
+      });
+      expect(diffExpenseVersions(before, after, ASHA)).toEqual([
+        {
+          field: 'deposit',
+          kind: 'deposit',
+          oldDeposit: { isDeposit: false, balanceDueMinor: null, balanceDueDate: null },
+          newDeposit: { isDeposit: true, balanceDueMinor: 500000n, balanceDueDate: '2026-11-01' },
+          currency: 'INR',
+        },
+      ]);
+      // Only the date moving is still the one change.
+      expect(
+        fields(diffExpenseVersions(after, { ...after, balance_due_date: '2026-12-01' }, ASHA)),
+      ).toEqual(['deposit']);
+    });
+
+    it('reports the sub-event changing', () => {
+      expect(
+        diffExpenseVersions(
+          version({ sub_event_id: null }),
+          version({ sub_event_id: 'sangeet' }),
+          ASHA,
+        ),
+      ).toEqual([{ field: 'subEvent', kind: 'subEvent', oldId: null, newId: 'sangeet' }]);
+    });
+
+    it('reports split details moving while type and shares held still', () => {
+      const before = version({ split_type: 'percent', split_params: { a: 50, b: 50 } });
+      // Key order differs but the content is the same: not a change.
+      expect(
+        diffExpenseVersions(
+          before,
+          version({ split_type: 'percent', split_params: { b: 50, a: 50 } }),
+          ASHA,
+        ),
+      ).toEqual([]);
+      expect(
+        diffExpenseVersions(
+          before,
+          version({ split_type: 'percent', split_params: { a: 50.0001, b: 49.9999 } }),
+          ASHA,
+        ),
+      ).toEqual([{ field: 'splitDetails', kind: 'splitDetails' }]);
+    });
+
+    it('does not repeat split details when the shares already show the edit', () => {
+      const before = version({ split_type: 'percent', split_params: { a: 50, b: 50 } });
+      const after = version({
+        split_type: 'percent',
+        split_params: { a: 60, b: 40 },
+        shares: [
+          { member_id: ASHA, amount: '60000' },
+          { member_id: RAVI, amount: '40000' },
+        ],
+      });
+      expect(fields(diffExpenseVersions(before, after, MEERA))).toEqual(['participants']);
+    });
+  });
 });

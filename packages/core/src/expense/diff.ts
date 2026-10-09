@@ -54,6 +54,30 @@ export interface DiffVersion {
   readonly location?: DiffLocation | null;
   readonly payers: readonly PayerRow[];
   readonly shares: readonly ShareRow[];
+  // Everything below is optional on purpose. A caller whose read does not carry
+  // a column leaves it out, and a field is only compared when *both* versions
+  // have it (`!== undefined`) — so the browser's narrower projection keeps
+  // producing exactly the lines it did before, rather than a phantom "notes
+  // None → None" for a column it never fetched. `null` is a real answer ("no
+  // note"); `undefined` is "not asked".
+  readonly notes?: string | null;
+  readonly payment_method?: string | null;
+  /** The time of day the spend happened, a full ISO timestamp. */
+  readonly occurred_at?: string | null;
+  readonly receipt_id?: string | null;
+  readonly is_deposit?: boolean;
+  readonly balance_due_minor?: string | bigint | number | null;
+  readonly balance_due_date?: string | null;
+  readonly sub_event_id?: string | null;
+  /** Weights / percents / items — compared structurally, never shown. */
+  readonly split_params?: unknown;
+}
+
+/** The vendor-deposit reminder as one fact: it moves as a unit. */
+export interface DepositFacts {
+  readonly isDeposit: boolean;
+  readonly balanceDueMinor: bigint | null;
+  readonly balanceDueDate: string | null;
 }
 
 /**
@@ -140,6 +164,55 @@ export type ExpenseChange =
       readonly membersChanged: boolean;
       readonly oldCurrency: string;
       readonly newCurrency: string;
+    }
+  | {
+      readonly field: 'notes';
+      readonly kind: 'text';
+      readonly oldText: string;
+      readonly newText: string;
+    }
+  | {
+      readonly field: 'paymentMethod';
+      readonly kind: 'paymentMethod';
+      readonly oldMethod: string | null;
+      readonly newMethod: string | null;
+    }
+  | {
+      readonly field: 'time';
+      readonly kind: 'time';
+      readonly oldIso: string | null;
+      readonly newIso: string | null;
+    }
+  | {
+      readonly field: 'receipt';
+      readonly kind: 'receipt';
+      readonly oldHasReceipt: boolean;
+      readonly newHasReceipt: boolean;
+      /** One receipt swapped for another: both sides have one, but not the same. */
+      readonly replaced: boolean;
+    }
+  | {
+      readonly field: 'deposit';
+      readonly kind: 'deposit';
+      readonly oldDeposit: DepositFacts;
+      readonly newDeposit: DepositFacts;
+      /** The bill's own currency, which the balance due is kept in. */
+      readonly currency: string;
+    }
+  | {
+      readonly field: 'subEvent';
+      readonly kind: 'subEvent';
+      readonly oldId: string | null;
+      readonly newId: string | null;
+    }
+  | {
+      /**
+       * The split's inputs moved (percentages, weights, itemized claims) but its
+       * type and resulting shares did not. No values: the params are a shape per
+       * split type, and what the reader needs to know is only that it happened.
+       */
+      readonly field: 'splitDetails';
+      readonly kind: 'splitDetails';
     };
 
 /** The set of member ids on a side, sorted, as a stable comparison key. */
@@ -177,6 +250,37 @@ function shareFactsKey(rows: readonly ShareRow[]): string {
 function locationKey(location: DiffLocation | null | undefined): string {
   if (!location) return '';
   return `${location.lat},${location.lng},${location.name?.trim() ?? ''}`;
+}
+
+/** JSON with object keys sorted, so two equal params compare equal however the
+ *  database happened to order them. */
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+/** A timestamp as an instant, so `+00:00` and `Z` spellings of one moment match. */
+function instantKey(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? String(ms) : iso;
+}
+
+function depositFacts(version: DiffVersion): DepositFacts {
+  return {
+    isDeposit: version.is_deposit === true,
+    balanceDueMinor:
+      version.balance_due_minor === null || version.balance_due_minor === undefined
+        ? null
+        : BigInt(version.balance_due_minor),
+    balanceDueDate: version.balance_due_date ?? null,
+  };
 }
 
 /**
@@ -330,6 +434,97 @@ export function diffExpenseVersions(
       oldCurrency: prev.currency,
       newCurrency: cur.currency,
     });
+  }
+
+  // The columns below were never compared, so an edit that touched only one of
+  // them read "no tracked fields changed" — true of the audit, false of the
+  // edit. Each is compared only when both versions carry it (see DiffVersion).
+  if (prev.notes !== undefined && cur.notes !== undefined) {
+    const oldNotes = (prev.notes ?? '').trim();
+    const newNotes = (cur.notes ?? '').trim();
+    if (oldNotes !== newNotes) {
+      changes.push({ field: 'notes', kind: 'text', oldText: oldNotes, newText: newNotes });
+    }
+  }
+
+  if (prev.payment_method !== undefined && cur.payment_method !== undefined) {
+    if ((prev.payment_method ?? '') !== (cur.payment_method ?? '')) {
+      changes.push({
+        field: 'paymentMethod',
+        kind: 'paymentMethod',
+        oldMethod: prev.payment_method ?? null,
+        newMethod: cur.payment_method ?? null,
+      });
+    }
+  }
+
+  if (prev.occurred_at !== undefined && cur.occurred_at !== undefined) {
+    if (instantKey(prev.occurred_at) !== instantKey(cur.occurred_at)) {
+      changes.push({
+        field: 'time',
+        kind: 'time',
+        oldIso: prev.occurred_at ?? null,
+        newIso: cur.occurred_at ?? null,
+      });
+    }
+  }
+
+  if (prev.receipt_id !== undefined && cur.receipt_id !== undefined) {
+    if ((prev.receipt_id ?? '') !== (cur.receipt_id ?? '')) {
+      changes.push({
+        field: 'receipt',
+        kind: 'receipt',
+        oldHasReceipt: !!prev.receipt_id,
+        newHasReceipt: !!cur.receipt_id,
+        replaced: !!prev.receipt_id && !!cur.receipt_id,
+      });
+    }
+  }
+
+  // The flag and its two reminders are one fact to the reader ("deposit, ₹5,000
+  // due 1 Nov"), so they are one change rather than three lines.
+  if (prev.is_deposit !== undefined && cur.is_deposit !== undefined) {
+    const oldDeposit = depositFacts(prev);
+    const newDeposit = depositFacts(cur);
+    if (
+      oldDeposit.isDeposit !== newDeposit.isDeposit ||
+      oldDeposit.balanceDueMinor !== newDeposit.balanceDueMinor ||
+      oldDeposit.balanceDueDate !== newDeposit.balanceDueDate
+    ) {
+      changes.push({
+        field: 'deposit',
+        kind: 'deposit',
+        oldDeposit,
+        newDeposit,
+        currency: cur.currency,
+      });
+    }
+  }
+
+  if (prev.sub_event_id !== undefined && cur.sub_event_id !== undefined) {
+    if ((prev.sub_event_id ?? '') !== (cur.sub_event_id ?? '')) {
+      changes.push({
+        field: 'subEvent',
+        kind: 'subEvent',
+        oldId: prev.sub_event_id ?? null,
+        newId: cur.sub_event_id ?? null,
+      });
+    }
+  }
+
+  // Only when nothing above already explains it: a changed split type or
+  // changed shares are reported under their own lines, and repeating them as
+  // "details updated" would say the same edit twice. What is left is the case
+  // that used to vanish — 33/33/34 becoming 34/33/33 percent, or an item
+  // re-priced so the shares round to the same figures.
+  if (
+    prev.split_params !== undefined &&
+    cur.split_params !== undefined &&
+    prev.split_type === cur.split_type &&
+    shareFactsKey(prev.shares) === shareFactsKey(cur.shares) &&
+    stableJson(prev.split_params) !== stableJson(cur.split_params)
+  ) {
+    changes.push({ field: 'splitDetails', kind: 'splitDetails' });
   }
 
   return changes;

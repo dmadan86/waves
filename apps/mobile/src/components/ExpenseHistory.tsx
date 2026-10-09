@@ -9,6 +9,7 @@ import {
   money as coreMoney,
   payerAuditText,
   type CurrencyCode,
+  type DepositFacts,
   type DiffLocation,
   type ExpenseChange,
   type MemberId,
@@ -51,6 +52,19 @@ function splitLabel(t: UiStrings, splitType: string): string {
   return map[splitType] ?? splitType;
 }
 
+/** How it was paid, in the words add-expense uses (the capture strings), so a
+ *  rail is named the same way on the form and in its history. */
+function paymentMethodLabel(t: UiStrings, code: string | null): string {
+  const labels: Record<string, string> = {
+    cash: t.captures.payCash,
+    upi: t.captures.payUpi,
+    credit: t.captures.payCredit,
+    debit: t.captures.payDebit,
+    forex: t.captures.payForex,
+  };
+  return code ? (labels[code] ?? code) : t.expense.audit.none;
+}
+
 /** A category as somebody reads it: the custom tag's own label if it has one,
  *  else the built-in's translation, else the raw code. */
 function categoryLabel(t: UiStrings, code: string | null, label: string | null): string {
@@ -74,11 +88,61 @@ function dateLabel(locale: string, iso: string): string {
   }).format(new Date(iso));
 }
 
+/** A time of day, in the reader's own timezone — it is a UTC instant, and "7:30
+ *  pm" means the wall clock where they are, unlike the expense's date above. */
+function timeLabel(t: UiStrings, locale: string, iso: string | null): string {
+  if (!iso || !Number.isFinite(Date.parse(iso))) return t.expense.audit.none;
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(
+    new Date(iso),
+  );
+}
+
+/** The vendor-deposit reminder as one phrase: not a deposit, or a deposit with
+ *  whatever of the balance and due date is known. */
+function depositLabel(
+  t: UiStrings,
+  locale: string,
+  deposit: DepositFacts,
+  currency: string,
+): string {
+  const audit = t.expense.audit;
+  if (!deposit.isDeposit) return audit.depositOff;
+  if (deposit.balanceDueMinor === null) return audit.depositOn;
+  const amount = formatMoney(coreMoney(deposit.balanceDueMinor, currency as CurrencyCode), {
+    locale,
+  });
+  return deposit.balanceDueDate
+    ? fill(audit.depositOwingOn, { amount, date: dateLabel(locale, deposit.balanceDueDate) })
+    : fill(audit.depositOwing, { amount });
+}
+
+/** The icon each field wears beside its name, so a list of changes scans by
+ *  glyph before it is read. */
+const CHANGE_ICONS: Record<ExpenseChange['field'], React.ComponentProps<typeof Ionicons>['name']> =
+  {
+    stake: 'person-outline',
+    amount: 'cash-outline',
+    description: 'text-outline',
+    category: 'pricetag-outline',
+    split: 'pie-chart-outline',
+    date: 'calendar-outline',
+    location: 'location-outline',
+    payers: 'wallet-outline',
+    participants: 'people-outline',
+    notes: 'document-text-outline',
+    paymentMethod: 'card-outline',
+    time: 'time-outline',
+    receipt: 'receipt-outline',
+    deposit: 'hourglass-outline',
+    subEvent: 'flag-outline',
+    splitDetails: 'options-outline',
+  };
+
 /** One line of the diff as this screen draws it: a field name, then two values.
  *  Money renders through MoneyText; everything else is text. */
 type Change =
   | {
-      key: string;
+      key: ExpenseChange['field'];
       label: string;
       kind: 'money';
       oldAmount: bigint;
@@ -95,7 +159,10 @@ type Change =
        */
       balance?: boolean;
     }
-  | { key: string; label: string; kind: 'text'; oldText: string; newText: string };
+  | { key: ExpenseChange['field']; label: string; kind: 'text'; oldText: string; newText: string }
+  // A change with no before/after to show: the fact that it happened is the
+  // whole message (split details, whose params are not human-readable).
+  | { key: ExpenseChange['field']; label: string; kind: 'note' };
 
 /**
  * The core's field-level comparison, said in this reader's language.
@@ -130,7 +197,7 @@ function describeChanges(
       case 'text':
         return {
           key: change.field,
-          label: t.expense.audit.description,
+          label: change.field === 'notes' ? t.expense.audit.notes : t.expense.audit.description,
           kind: 'text',
           oldText: change.oldText || t.expense.audit.none,
           newText: change.newText || t.expense.audit.none,
@@ -188,6 +255,56 @@ function describeChanges(
           ),
         };
       }
+      case 'paymentMethod':
+        return {
+          key: change.field,
+          label: t.expense.audit.paymentMethod,
+          kind: 'text',
+          oldText: paymentMethodLabel(t, change.oldMethod),
+          newText: paymentMethodLabel(t, change.newMethod),
+        };
+      case 'time':
+        return {
+          key: change.field,
+          label: t.expense.audit.time,
+          kind: 'text',
+          oldText: timeLabel(t, locale, change.oldIso),
+          newText: timeLabel(t, locale, change.newIso),
+        };
+      case 'receipt':
+        return {
+          key: change.field,
+          label: t.expense.audit.receipt,
+          kind: 'text',
+          oldText: change.oldHasReceipt ? t.expense.audit.receiptAttached : t.expense.audit.none,
+          newText: change.replaced
+            ? t.expense.audit.receiptReplaced
+            : change.newHasReceipt
+              ? t.expense.audit.receiptAttached
+              : t.expense.audit.none,
+        };
+      case 'deposit':
+        return {
+          key: change.field,
+          label: t.expense.audit.depositOn,
+          kind: 'text',
+          oldText: depositLabel(t, locale, change.oldDeposit, change.currency),
+          newText: depositLabel(t, locale, change.newDeposit, change.currency),
+        };
+      case 'subEvent':
+        return {
+          key: change.field,
+          label: t.expense.audit.subEvent,
+          kind: 'text',
+          oldText: change.oldId
+            ? (t.eventSubEvents[change.oldId] ?? change.oldId)
+            : t.expense.audit.none,
+          newText: change.newId
+            ? (t.eventSubEvents[change.newId] ?? change.newId)
+            : t.expense.audit.none,
+        };
+      case 'splitDetails':
+        return { key: change.field, label: t.expense.audit.splitDetails, kind: 'note' };
       case 'members': {
         // A changed set of people is a list of names. A reallocation between
         // the same people is only legible with the figures beside them — the
@@ -220,60 +337,82 @@ function describeChanges(
   });
 }
 
-/** One "old → new" line: a field name, then the two values with a direction
- *  arrow between them. Money renders through MoneyText; everything else is
- *  plain text with the previous value struck through. */
+/** One "old → new" line: the field's glyph, its name, then the two values with
+ *  a direction arrow between them. Money renders through MoneyText; everything
+ *  else is plain text with the previous value struck through. */
 function ChangeLine({ change, locale }: { change: Change; locale: string }) {
   const theme = useTheme();
-  return (
-    <View style={{ gap: 2 }}>
-      <Text variant="micro" tone="muted">
-        {change.label}
-      </Text>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-        {change.kind === 'money' ? (
-          <MoneyText
-            amount={change.oldAmount}
-            currency={change.oldCurrency as never}
-            locale={locale}
-            variant="caption"
-            // The superseded value stays muted whatever it is — it is the "from"
-            // half of an arrow, and colouring both ends makes neither read as
-            // the answer.
-            tone="muted"
-          />
-        ) : (
-          <Text
-            variant="caption"
-            tone="muted"
-            style={{ textDecorationLine: 'line-through' }}
-            numberOfLines={2}
-          >
-            {change.oldText}
-          </Text>
-        )}
-        <Ionicons
-          name={directionalIcon('arrow-forward')}
-          size={iconSize.sm}
-          color={theme.color.textFaint}
-        />
-        {change.kind === 'money' ? (
-          <MoneyText
-            amount={change.newAmount}
-            currency={change.newCurrency as never}
-            locale={locale}
-            variant="caption"
-            // Sign-derived colour and spoken label for a balance; neutral ink for
-            // a total (see `balance` on Change).
-            mode={change.balance ? 'balance' : 'plain'}
-          />
-        ) : (
-          <Text variant="caption" numberOfLines={2} style={{ flexShrink: 1 }}>
-            {change.newText}
-          </Text>
-        )}
+  const glyph = (
+    <Ionicons
+      name={CHANGE_ICONS[change.key]}
+      size={iconSize.sm}
+      color={theme.color.textFaint}
+      // Nudged to sit on the label's first line rather than the block's middle.
+      style={{ marginTop: 1 }}
+    />
+  );
+  if (change.kind === 'note') {
+    return (
+      <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+        {glyph}
+        <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+          {change.label}
+        </Text>
       </Row>
-    </View>
+    );
+  }
+  return (
+    <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+      {glyph}
+      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <Text variant="micro" tone="muted">
+          {change.label}
+        </Text>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+          {change.kind === 'money' ? (
+            <MoneyText
+              amount={change.oldAmount}
+              currency={change.oldCurrency as never}
+              locale={locale}
+              variant="caption"
+              // The superseded value stays muted whatever it is — it is the "from"
+              // half of an arrow, and colouring both ends makes neither read as
+              // the answer.
+              tone="muted"
+            />
+          ) : (
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ textDecorationLine: 'line-through' }}
+              numberOfLines={2}
+            >
+              {change.oldText}
+            </Text>
+          )}
+          <Ionicons
+            name={directionalIcon('arrow-forward')}
+            size={iconSize.sm}
+            color={theme.color.textFaint}
+          />
+          {change.kind === 'money' ? (
+            <MoneyText
+              amount={change.newAmount}
+              currency={change.newCurrency as never}
+              locale={locale}
+              variant="caption"
+              // Sign-derived colour and spoken label for a balance; neutral ink for
+              // a total (see `balance` on Change).
+              mode={change.balance ? 'balance' : 'plain'}
+            />
+          ) : (
+            <Text variant="caption" numberOfLines={2} style={{ flexShrink: 1 }}>
+              {change.newText}
+            </Text>
+          )}
+        </Row>
+      </View>
+    </Row>
   );
 }
 
@@ -408,6 +547,8 @@ export function ExpenseHistory({
                   style={{
                     gap: theme.spacing.md,
                     alignItems: 'flex-start',
+                    // History is a long scroll; the old 40pt disc and roomier
+                    // rows made one edit cost a screenful.
                     paddingVertical: theme.spacing.md,
                   }}
                 >
@@ -415,20 +556,22 @@ export function ExpenseHistory({
                       Activity and group feeds use, so history reads one way. */}
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: theme.radius.md,
+                      width: 32,
+                      height: 32,
+                      borderRadius: theme.radius.sm,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: tint.bg,
                     }}
                   >
-                    <Ionicons name={event.icon} size={iconSize.lg} color={tint.ink} />
+                    <Ionicons name={event.icon} size={iconSize.base} color={tint.ink} />
                   </View>
 
-                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
-                      <Text variant="body" numberOfLines={2} style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    {/* Title and amount share one line; the time sits under
+                        them, smaller and muted. */}
+                    <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                      <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
                         {event.title}
                       </Text>
                       {event.money ? (
@@ -448,15 +591,15 @@ export function ExpenseHistory({
 
                     {/* An edit spells out what changed, aligned under its
                         sentence. A "created" node has no diff; an edit with no
-                        detected field change says so plainly. */}
+                        detected field change says so in one quiet line. */}
                     {event.created ? null : event.changes && event.changes.length > 0 ? (
-                      <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
+                      <View style={{ gap: theme.spacing.xs, marginTop: theme.spacing.xs }}>
                         {event.changes.map((change) => (
                           <ChangeLine key={change.key} change={change} locale={locale} />
                         ))}
                       </View>
                     ) : event.money ? (
-                      <Text variant="caption" tone="muted" style={{ marginTop: 2 }}>
+                      <Text variant="micro" tone="muted">
                         {t.expense.noChanges}
                       </Text>
                     ) : null}
