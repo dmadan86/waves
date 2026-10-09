@@ -287,6 +287,8 @@ model Group {
   /// own card rate and a per-bill override live off the group (device-local and
   /// on `expense_versions.fx` respectively).
   fxRates Json? @map("fx_rates")
+  /// Settle in the group currency: foreign bills count at their stored rate (ADR-003 amendment).
+  convertToGroupCurrency Boolean @default(false) @map("convert_to_group_currency")
 
   /// When the trip is. Both ends inclusive — the last day of a trip is the one
   /// with the most unrecorded spending on it.

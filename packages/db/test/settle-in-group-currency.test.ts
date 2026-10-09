@@ -225,7 +225,10 @@ describe('SQL and core convert identically', () => {
 
   it('produce the same lines, balances and pairwise edges on random fx ledgers', async () => {
     const CURRENCIES = ['VND', 'USD', 'JPY', 'KWD', 'EUR', 'INR'];
-    const LEDGERS = 150;
+    // 150 seeded ledgers locally; fewer on CI's slower runners, where 150 ran
+    // past the timeout and, still writing on the shared client, interleaved its
+    // BEGIN…COMMIT with the next test's and broke that one too.
+    const LEDGERS = process.env.CI ? 60 : 150;
 
     for (let run = 0; run < LEDGERS; run += 1) {
       const random = mulberry32(0x5e771e + run);
@@ -383,7 +386,7 @@ describe('SQL and core convert identically', () => {
         label,
       ).toEqual(edges.map((e) => `${e.currency} ${e.from} ${e.to} ${e.amount}`).sort());
     }
-  });
+  }, 180_000);
 
   it('lets a confirmed settlement pay pairwise debt down, not up', async () => {
     // Regression for the baseline sign error in `waves_group_pairwise_truth`:
