@@ -73,6 +73,7 @@ import { amountEditsInline, canEditInline } from '@/lib/expenseEdit';
 import { showDate, showTime } from '@/lib/expenseDay';
 import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
+import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -366,7 +367,18 @@ export default function ExpenseDetailScreen() {
     subEvents: subEventsForTemplate(group.data?.event_template),
     timeZone: group.data?.time_zone ?? 'Asia/Kolkata',
   });
-  const openPlan = () => router.push(`/group/${groupId}/plan`);
+  // Facts recorded on an expense stay visible whatever the group is now, but
+  // the link to the plan (budgets, vendor balances) is a vendor tool.
+  const goPlan = (): void => router.push(`/group/${groupId}/plan`);
+  const openPlan = showsVendorTools(group.data?.type) ? goPlan : undefined;
+  // The plan's Upcoming payments card also shows for any group with an open
+  // deposit, so an open deposit here can always tap through to it.
+  const openDepositPlan = showsUpcomingPayments(
+    group.data?.type,
+    eventFacts.isDeposit && eventFacts.balanceDueMinor !== null ? 1 : 0,
+  )
+    ? goPlan
+    : undefined;
   // The typed note. It also names the expense in the hero, but that heading is
   // clamped to a single line while the field is multiline — so a long or
   // multi-line note is only half-shown up top. Render the full text as a "Note"
@@ -776,8 +788,8 @@ export default function ExpenseDetailScreen() {
                 group / category / split details. A tap opens the plan. */}
             {eventFacts.isDeposit ? (
               <Pressable
-                onPress={openPlan}
-                accessibilityRole="button"
+                onPress={openDepositPlan}
+                accessibilityRole={openDepositPlan ? 'button' : 'text'}
                 accessibilityLabel={`${t.eventOrganizer.advancePaid}, ${format(
                   money(BigInt(version.amount), currency),
                   { locale },

@@ -61,7 +61,6 @@ import { useBlockedUsers } from '@/data/blocked';
 import {
   displayName,
   groupLabel,
-  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -72,6 +71,7 @@ import {
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
+import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router } from '@/lib/navigation';
@@ -829,7 +829,7 @@ export default function GroupScreen() {
   }
 
   const groupData = group.data;
-  const isEvent = groupData.type === GroupType.Event;
+  const isEvent = showsVendorTools(groupData.type);
   // The Vendors tab is Event-only; a stale selection on a group that is not one
   // falls back to Expenses rather than an empty body.
   const activeTab = tab === Tab.Vendors && !isEvent ? Tab.Expenses : tab;
