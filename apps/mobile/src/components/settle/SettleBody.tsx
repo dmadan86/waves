@@ -805,21 +805,41 @@ function OtherTile({
       <Row
         accessible
         accessibilityLabel={fill(t.simplifyPaysWhom, { from: fromName, to: toName })}
-        style={{ gap: theme.spacing.sm, alignItems: 'center' }}
+        style={{ gap: theme.spacing.md, alignItems: 'center' }}
       >
-        <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={32} />
-        <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-          {fromName}
-        </Text>
-        <Ionicons
-          name={directionalIcon('arrow-forward')}
-          size={iconSize.md}
-          color={theme.color.brand}
-        />
-        <MemberAvatar name={toName} member={to} ghost={toGhost} size={32} />
-        <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-          {toName}
-        </Text>
+        {/* The pair, overlapped, and the names stacked beside them: the payer
+            on the first line, "→ receiver" on the second. Two names side by
+            side squeezed each into a third of the row, and a long one
+            ("Rvs R Deepak") was cut to nothing; stacked, each gets the full
+            width of the text column. */}
+        <View style={{ flexDirection: 'row' }}>
+          <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={30} />
+          <View
+            style={{
+              marginStart: -8,
+              borderRadius: 17,
+              borderWidth: 2,
+              borderColor: theme.color.surfaceMuted,
+            }}
+          >
+            <MemberAvatar name={toName} member={to} ghost={toGhost} size={30} />
+          </View>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+            {fromName}
+          </Text>
+          <Row style={{ gap: 4, alignItems: 'center' }}>
+            <Ionicons
+              name={directionalIcon('arrow-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
+            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {toName}
+            </Text>
+          </Row>
+        </View>
         <View style={{ alignItems: 'flex-end' }}>
           <MoneyText
             amount={amount}
