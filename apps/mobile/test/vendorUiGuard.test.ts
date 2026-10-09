@@ -33,6 +33,8 @@ const GATES = /\bshows(VendorTools|DepositRow|SubEventRow|UpcomingPayments)\b/;
 
 /** Files that render vendor UI but are only mounted by a screen that is gated. */
 const ALLOWLIST: Record<string, string> = {
+  'components/ExpenseHistory.tsx':
+    'The audit trail: records what an edit changed, deposit and sub-event facts included. Shows history, never a vendor tool.',
   'components/VendorsBody.tsx':
     'Only mounted by the group screen behind showsVendorTools (Vendors tab).',
   'components/UpcomingPayments.tsx': 'Only mounted by the plan screen behind showsVendorTools.',
