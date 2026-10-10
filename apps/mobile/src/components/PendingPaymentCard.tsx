@@ -230,7 +230,11 @@ export function PendingPaymentCard({
     />
   ) : (
     <Action
-      label={fill(t.proof.reminded, { ago: reminder.ago ? agoText(reminder.ago) : '' })}
+      // The third is too narrow for "Reminded 2h ago"; the time goes to the reader.
+      label={fill(t.proof.reminded, { ago: '' }).trim()}
+      accessibilityLabel={fill(t.proof.reminded, {
+        ago: reminder.ago ? agoText(reminder.ago) : '',
+      })}
       icon="checkmark"
       tone="muted"
       disabled
@@ -278,7 +282,14 @@ export function PendingPaymentCard({
             />
             {settlement.pending ? <PendingMark size={14} /> : null}
           </Row>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Row
+            style={{
+              alignItems: 'center',
+              columnGap: theme.spacing.sm,
+              rowGap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
             {synced ? (
               <Pressable
                 onPress={() => setShowDate(true)}
@@ -302,9 +313,9 @@ export function PendingPaymentCard({
                 {datePart}
               </Text>
             )}
-            <Row style={{ alignItems: 'center', gap: 3, flexShrink: 1, minWidth: 0 }}>
+            <Row style={{ alignItems: 'center', gap: 3 }}>
               <Ionicons name="time-outline" size={12} color={theme.color.textMuted} />
-              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              <Text variant="micro" tone="muted" numberOfLines={1}>
                 {t.proof.awaitingShort}
               </Text>
             </Row>
