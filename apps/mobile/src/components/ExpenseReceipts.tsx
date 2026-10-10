@@ -18,6 +18,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
@@ -927,144 +928,149 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
             setViewerIndex(null);
           }}
         >
-          {/* A dark, immersive viewer (the Photos/ChatGPT pattern): the image fills
+          {/* A Modal is its own native root on Android: without this, pinch and pan never reach the image. */}
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            {/* A dark, immersive viewer (the Photos/ChatGPT pattern): the image fills
             the screen and every control floats over it, so nothing squeezes the
             pixels. Save, adjust, annotate and remove sit as translucent circular
             buttons; the counter is a pill at the foot. */}
-          <View style={{ flex: 1, backgroundColor: '#000' }}>
-            <StatusBar barStyle="light-content" />
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
+              <StatusBar barStyle="light-content" />
 
-            <ZoomableGallery
-              pages={pages}
-              index={viewerIndex ?? 0}
-              onIndexChange={(i) => setViewerIndex(i)}
-            />
-
-            <Row
-              style={{
-                position: 'absolute',
-                top: insets.top + theme.spacing.sm,
-                left: theme.spacing.xl,
-                right: theme.spacing.xl,
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-              }}
-            >
-              <ViewerButton
-                icon="close"
-                label={t.common.close}
-                onPress={() => {
-                  setViewerError(null);
-                  setViewerIndex(null);
-                }}
+              <ZoomableGallery
+                pages={pages}
+                index={viewerIndex ?? 0}
+                onIndexChange={(i) => setViewerIndex(i)}
               />
-              <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {viewerIndex !== null && urls[viewerIndex] ? (
-                  <ViewerButton
-                    icon="download-outline"
-                    label={t.receipts.download}
-                    onPress={saveViewed}
-                    busy={saving}
-                  />
-                ) : null}
-                {(() => {
-                  if (viewerIndex === null) return null;
-                  // An attachment's edit/remove is party-only (`canManage`); the
-                  // legacy bill's remove also allows a group admin
-                  // (`canRemoveLegacy`) — the same split the RPCs enforce.
-                  const showEdit =
-                    canManage && viewing?.kind === 'attachment' ? urls[viewerIndex] : null;
-                  const showRemove =
-                    viewing !== null && (viewing.kind === 'legacy' ? canRemoveLegacy : canManage);
-                  return (
-                    <>
-                      {showEdit ? (
-                        <ViewerButton
-                          icon="crop"
-                          label={t.adjust.title}
-                          onPress={() => {
-                            const url = urls[viewerIndex];
-                            if (viewing?.kind === 'attachment' && url) {
-                              setAdjusting({
-                                attachmentId: viewing.row.id,
-                                uri: url,
-                                oldStoragePath: viewing.row.storagePath,
-                              });
-                            }
-                          }}
-                        />
-                      ) : null}
-                      {showEdit ? (
-                        <ViewerButton
-                          icon="pencil"
-                          label={t.annotate.title}
-                          onPress={() => {
-                            const url = urls[viewerIndex];
-                            if (viewing?.kind === 'attachment' && url) {
-                              setEditing({
-                                attachmentId: viewing.row.id,
-                                uri: url,
-                                initial: viewing.row.annotations ?? EMPTY_ANNOTATIONS,
-                              });
-                            }
-                          }}
-                        />
-                      ) : null}
-                      {showRemove ? (
-                        <ViewerButton
-                          icon="trash-outline"
-                          label={t.receipts.remove}
-                          tint={theme.color.negative}
-                          onPress={() => {
-                            if (!removeAttachment.isPending && !removeLegacy.isPending)
-                              void removeAt(viewerIndex);
-                          }}
-                        />
-                      ) : null}
-                    </>
-                  );
-                })()}
-              </Row>
-            </Row>
 
-            {/* Page counter + private tag, a floating pill at the foot. */}
-            <View
-              style={{
-                position: 'absolute',
-                bottom: insets.bottom + theme.spacing.xl,
-                left: 0,
-                right: 0,
-                alignItems: 'center',
-              }}
-            >
               <Row
                 style={{
-                  gap: theme.spacing.xs,
-                  alignItems: 'center',
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: 6,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: 'rgba(20, 20, 30, 0.55)',
+                  position: 'absolute',
+                  top: insets.top + theme.spacing.sm,
+                  left: theme.spacing.xl,
+                  right: theme.spacing.xl,
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
                 }}
               >
-                {viewing && isPrivate(viewing) ? (
-                  <Ionicons name="lock-closed" size={11} color="#FFFFFF" />
-                ) : null}
-                <Text variant="caption" style={{ color: '#FFFFFF' }}>
-                  {fill(t.receipts.counter, {
-                    index: (viewerIndex ?? 0) + 1,
-                    total: items.length,
-                  })}
-                </Text>
+                <ViewerButton
+                  icon="close"
+                  label={t.common.close}
+                  onPress={() => {
+                    setViewerError(null);
+                    setViewerIndex(null);
+                  }}
+                />
+                <Row
+                  style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'flex-end' }}
+                >
+                  {viewerIndex !== null && urls[viewerIndex] ? (
+                    <ViewerButton
+                      icon="download-outline"
+                      label={t.receipts.download}
+                      onPress={saveViewed}
+                      busy={saving}
+                    />
+                  ) : null}
+                  {(() => {
+                    if (viewerIndex === null) return null;
+                    // An attachment's edit/remove is party-only (`canManage`); the
+                    // legacy bill's remove also allows a group admin
+                    // (`canRemoveLegacy`) — the same split the RPCs enforce.
+                    const showEdit =
+                      canManage && viewing?.kind === 'attachment' ? urls[viewerIndex] : null;
+                    const showRemove =
+                      viewing !== null && (viewing.kind === 'legacy' ? canRemoveLegacy : canManage);
+                    return (
+                      <>
+                        {showEdit ? (
+                          <ViewerButton
+                            icon="crop"
+                            label={t.adjust.title}
+                            onPress={() => {
+                              const url = urls[viewerIndex];
+                              if (viewing?.kind === 'attachment' && url) {
+                                setAdjusting({
+                                  attachmentId: viewing.row.id,
+                                  uri: url,
+                                  oldStoragePath: viewing.row.storagePath,
+                                });
+                              }
+                            }}
+                          />
+                        ) : null}
+                        {showEdit ? (
+                          <ViewerButton
+                            icon="pencil"
+                            label={t.annotate.title}
+                            onPress={() => {
+                              const url = urls[viewerIndex];
+                              if (viewing?.kind === 'attachment' && url) {
+                                setEditing({
+                                  attachmentId: viewing.row.id,
+                                  uri: url,
+                                  initial: viewing.row.annotations ?? EMPTY_ANNOTATIONS,
+                                });
+                              }
+                            }}
+                          />
+                        ) : null}
+                        {showRemove ? (
+                          <ViewerButton
+                            icon="trash-outline"
+                            label={t.receipts.remove}
+                            tint={theme.color.negative}
+                            onPress={() => {
+                              if (!removeAttachment.isPending && !removeLegacy.isPending)
+                                void removeAt(viewerIndex);
+                            }}
+                          />
+                        ) : null}
+                      </>
+                    );
+                  })()}
+                </Row>
               </Row>
+
+              {/* Page counter + private tag, a floating pill at the foot. */}
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: insets.bottom + theme.spacing.xl,
+                  left: 0,
+                  right: 0,
+                  alignItems: 'center',
+                }}
+              >
+                <Row
+                  style={{
+                    gap: theme.spacing.xs,
+                    alignItems: 'center',
+                    paddingHorizontal: theme.spacing.md,
+                    paddingVertical: 6,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: 'rgba(20, 20, 30, 0.55)',
+                  }}
+                >
+                  {viewing && isPrivate(viewing) ? (
+                    <Ionicons name="lock-closed" size={11} color="#FFFFFF" />
+                  ) : null}
+                  <Text variant="caption" style={{ color: '#FFFFFF' }}>
+                    {fill(t.receipts.counter, {
+                      index: (viewerIndex ?? 0) + 1,
+                      total: items.length,
+                    })}
+                  </Text>
+                </Row>
+              </View>
+              {/* Clear of the page-counter pill at `insets.bottom + xl`. */}
+              <ModalNotice
+                message={viewerError}
+                onDismiss={() => setViewerError(null)}
+                offset={theme.spacing.xxxl * 2}
+              />
             </View>
-            {/* Clear of the page-counter pill at `insets.bottom + xl`. */}
-            <ModalNotice
-              message={viewerError}
-              onDismiss={() => setViewerError(null)}
-              offset={theme.spacing.xxxl * 2}
-            />
-          </View>
+          </GestureHandlerRootView>
         </Modal>
 
         {editing ? (

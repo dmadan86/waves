@@ -271,6 +271,10 @@ export interface SettlementRow {
   note: string | null;
   initiated_at: string;
   confirmed_at: string | null;
+  /** The day the money moved (YYYY-MM-DD); missing on rows pulled before the column existed. */
+  paid_at?: string | null;
+  /** When the payer last reminded the payee to confirm. */
+  reminded_at?: string | null;
   allocations?: { expense_id: string; amount: string }[];
   /** True while this row exists only in the local queue (ADR-005). */
   pending?: boolean;

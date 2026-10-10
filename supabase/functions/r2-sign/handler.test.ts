@@ -275,6 +275,38 @@ describe('put — reserve a presigned upload', () => {
     expect((await response.json()).code).toBe('STORAGE_CAP');
   });
 
+  // A payment can carry several proofs, and every one is charged to the uploader
+  // like any other image: a free account out of storage is refused the next one
+  // with the 402 the app turns into its upgrade prompt, and nothing is signed.
+  it('refuses another settlement proof with 402 STORAGE_CAP when the free quota is full', async () => {
+    const caller = client({
+      user: { id: 'user-1' },
+      rpc: { waves_my_member_id: { data: 'member-1' }, waves_is_settlement_party: { data: true } },
+    });
+    const service = client({
+      rpc: { waves_storage_reserve: { data: null, error: { message: 'STORAGE_CAP' } } },
+      from: { settlements: { data: { group_id: 'group-1' }, error: null } },
+    });
+    const { deps, sign } = makeDeps({ caller, service });
+    const response = await handleR2Sign(
+      post(
+        body({
+          bucket: 'settlement-proofs',
+          subjectId: 'settle-1',
+          path: 'settle-1/second.webp',
+        }),
+      ),
+      deps,
+    );
+    expect(response.status).toBe(402);
+    expect((await response.json()).code).toBe('STORAGE_CAP');
+    expect(service.rpc).toHaveBeenCalledWith(
+      'waves_storage_reserve',
+      expect.objectContaining({ p_logical_bucket: 'settlement-proofs', p_group_id: 'group-1' }),
+    );
+    expect(sign).not.toHaveBeenCalled();
+  });
+
   it('maps a STORAGE_TOO_MANY_PENDING reservation failure to 429', async () => {
     const service = client({
       rpc: {

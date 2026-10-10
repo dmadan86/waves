@@ -475,6 +475,32 @@ export interface UiStrings {
     view: string;
     remove: string;
     removeConfirm: string;
+    /** Paid date line; {date} is the day the money moved. */
+    paidOn: string;
+    /** Second-line status while the payee has not confirmed. */
+    awaitingShort: string;
+    /** Compact action: ask the payee to confirm. */
+    remind: string;
+    /** Screen-reader label for Remind; {name} is the payee. */
+    remindA11y: string;
+    /** Replaces Remind after one went out; {ago} is one of the ago strings. */
+    reminded: string;
+    /** {n} minutes ago, short. */
+    agoMinutes: string;
+    /** {n} hours ago, short. */
+    agoHours: string;
+    /** {n} days ago, short. */
+    agoDays: string;
+    /** The reminder could not be sent. */
+    remindFailed: string;
+    /** WhatsApp / share text to a payee not on Waves; {name} payee, {amount}, {group}, {date}. */
+    remindMessage: string;
+    /** Compact action: add another proof image. */
+    addShort: string;
+    /** Full-screen viewer heading; {n} of {total}. */
+    viewerTitle: string;
+    /** Accessibility label for the paid-date control. */
+    changeDate: string;
   };
   /** The comment thread on an expense. */
   comments: {
@@ -5074,6 +5100,20 @@ const en: UiStrings = {
     view: 'View payment proof',
     remove: 'Remove proof',
     removeConfirm: 'Remove this payment proof?',
+    paidOn: 'Paid on {date}',
+    awaitingShort: 'Waiting for confirmation',
+    remind: 'Remind',
+    remindA11y: 'Remind {name} to confirm this payment',
+    reminded: 'Reminded {ago}',
+    agoMinutes: '{n}m ago',
+    agoHours: '{n}h ago',
+    agoDays: '{n}d ago',
+    remindFailed: 'Could not send the reminder. Try again.',
+    remindMessage:
+      'Hi {name}, I paid you {amount} for {group} on {date}. Please confirm it in Waves.',
+    addShort: 'Add proof',
+    viewerTitle: 'Proof {n} of {total}',
+    changeDate: 'Change the date paid',
   },
   comments: {
     title: 'Comments',
@@ -8983,6 +9023,20 @@ const ta: UiStrings = {
     view: 'கட்டண சான்றைப் பார்',
     remove: 'சான்றை நீக்கு',
     removeConfirm: 'இந்த கட்டண சான்றை நீக்கவா?',
+    paidOn: '{date} அன்று செலுத்தப்பட்டது',
+    awaitingShort: 'உறுதிப்படுத்தலுக்குக் காத்திருக்கிறது',
+    remind: 'நினைவூட்டு',
+    remindA11y: 'இந்தக் கட்டணத்தை உறுதிப்படுத்த {name} ஐ நினைவூட்டு',
+    reminded: 'நினைவூட்டியது {ago}',
+    agoMinutes: '{n} நிமி முன்',
+    agoHours: '{n} மணி முன்',
+    agoDays: '{n} நாள் முன்',
+    remindFailed: 'நினைவூட்டலை அனுப்ப முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    remindMessage:
+      'வணக்கம் {name}, {group} க்காக {date} அன்று உங்களுக்கு {amount} செலுத்தினேன். Waves-ல் உறுதிப்படுத்துங்கள்.',
+    addShort: 'சான்று சேர்',
+    viewerTitle: 'சான்று {n} / {total}',
+    changeDate: 'செலுத்திய தேதியை மாற்று',
   },
   comments: {
     title: 'கருத்துகள்',
@@ -13042,6 +13096,20 @@ const hi: UiStrings = {
     view: 'भुगतान प्रमाण देखें',
     remove: 'प्रमाण हटाएँ',
     removeConfirm: 'यह भुगतान प्रमाण हटाएँ?',
+    paidOn: '{date} को भुगतान किया',
+    awaitingShort: 'पुष्टि की प्रतीक्षा',
+    remind: 'याद दिलाएं',
+    remindA11y: '{name} को यह भुगतान कन्फ़र्म करने की याद दिलाएं',
+    reminded: 'याद दिलाया {ago}',
+    agoMinutes: '{n} मि. पहले',
+    agoHours: '{n} घं. पहले',
+    agoDays: '{n} दिन पहले',
+    remindFailed: 'याद दिलाना नहीं भेजा जा सका। फिर कोशिश करें।',
+    remindMessage:
+      'नमस्ते {name}, मैंने {date} को {group} के लिए आपको {amount} दिए। कृपया Waves में कन्फ़र्म करें।',
+    addShort: 'प्रूफ़ जोड़ें',
+    viewerTitle: 'प्रूफ़ {n} / {total}',
+    changeDate: 'भुगतान की तारीख बदलें',
   },
   comments: {
     title: 'टिप्पणियाँ',
@@ -16978,6 +17046,20 @@ const ar: UiStrings = {
     view: 'عرض إثبات الدفع',
     remove: 'إزالة الإثبات',
     removeConfirm: 'إزالة إثبات الدفع هذا؟',
+    paidOn: 'دُفع في {date}',
+    awaitingShort: 'بانتظار التأكيد',
+    remind: 'تذكير',
+    remindA11y: 'ذكّر {name} بتأكيد هذه الدفعة',
+    reminded: 'تم التذكير {ago}',
+    agoMinutes: 'منذ {n} د',
+    agoHours: 'منذ {n} س',
+    agoDays: 'منذ {n} ي',
+    remindFailed: 'تعذّر إرسال التذكير. حاول مرة أخرى.',
+    remindMessage:
+      'مرحباً {name}، دفعت لك {amount} في {group} بتاريخ {date}. يرجى تأكيد ذلك في Waves.',
+    addShort: 'إضافة إثبات',
+    viewerTitle: 'الإثبات {n} من {total}',
+    changeDate: 'تغيير تاريخ الدفع',
   },
   comments: {
     title: 'التعليقات',

@@ -176,6 +176,43 @@ describe('the free-tier storage ceiling', () => {
   });
 });
 
+describe('payment proofs and the ceiling', () => {
+  it('charges several proofs to a free uploader and refuses the one that crosses the cap', async () => {
+    const p = await makeProfile();
+    const settlementId = randomUUID();
+    await reserve(p, null, 'settlement-proofs', `${settlementId}/1.webp`, 4 * MB);
+    await reserve(p, null, 'settlement-proofs', `${settlementId}/2.webp`, 4 * MB);
+    await expect(
+      reserve(p, null, 'settlement-proofs', `${settlementId}/3.webp`, 4 * MB),
+    ).rejects.toThrow(/STORAGE_CAP/);
+    expect(await countedSum(p)).toBe(BigInt(8 * MB));
+  });
+
+  it('never charges a paid uploader for any number of proofs', async () => {
+    const p = await makeProfile();
+    await makePaid(p);
+    const settlementId = randomUUID();
+    for (let n = 0; n < 5; n += 1) {
+      await reserve(p, null, 'settlement-proofs', `${settlementId}/${n}.webp`, 9 * MB);
+    }
+    expect(await countedSum(p)).toBe(0n);
+  });
+
+  it('frees the room when a proof is removed', async () => {
+    const p = await makeProfile();
+    const settlementId = randomUUID();
+    const path = `${settlementId}/1.webp`;
+    await reserve(p, null, 'settlement-proofs', path, 9 * MB);
+    await expect(
+      reserve(p, null, 'settlement-proofs', `${settlementId}/2.webp`, 2 * MB),
+    ).rejects.toThrow(/STORAGE_CAP/);
+    await client.query(`SELECT public.waves_storage_release('settlement-proofs', $1)`, [path]);
+    await expect(
+      reserve(p, null, 'settlement-proofs', `${settlementId}/2.webp`, 2 * MB),
+    ).resolves.toBeUndefined();
+  });
+});
+
 describe('who is exempt from the ceiling', () => {
   it('never counts a paid uploader', async () => {
     const p = await makeProfile();

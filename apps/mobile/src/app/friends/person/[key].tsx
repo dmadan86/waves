@@ -30,6 +30,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import { Linking, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -525,31 +526,34 @@ export default function PersonDetailScreen() {
           animationType="fade"
           onRequestClose={() => setPhotoOpen(false)}
         >
-          <View style={{ flex: 1, backgroundColor: '#000' }}>
-            <StatusBar barStyle="light-content" />
-            <ZoomableGallery pages={[{ url: photo }]} index={0} onIndexChange={() => {}} />
-            <Row
-              style={{
-                position: 'absolute',
-                top: insets.top + theme.spacing.sm,
-                left: theme.spacing.xl,
-                right: theme.spacing.xl,
-                gap: theme.spacing.md,
-                alignItems: 'center',
-              }}
-            >
-              <ViewerButton
-                icon="close"
-                label={t.common.close}
-                onPress={() => setPhotoOpen(false)}
-              />
-              {/* Whose face it is, over the picture — the one thing the viewer
+          {/* A Modal is its own native root on Android: without this, pinch and pan never reach the image. */}
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
+              <StatusBar barStyle="light-content" />
+              <ZoomableGallery pages={[{ url: photo }]} index={0} onIndexChange={() => {}} />
+              <Row
+                style={{
+                  position: 'absolute',
+                  top: insets.top + theme.spacing.sm,
+                  left: theme.spacing.xl,
+                  right: theme.spacing.xl,
+                  gap: theme.spacing.md,
+                  alignItems: 'center',
+                }}
+              >
+                <ViewerButton
+                  icon="close"
+                  label={t.common.close}
+                  onPress={() => setPhotoOpen(false)}
+                />
+                {/* Whose face it is, over the picture — the one thing the viewer
                   has to say, and the reason the bar is not just a close button. */}
-              <Text variant="subheading" numberOfLines={1} style={{ flex: 1, color: '#FFFFFF' }}>
-                {title}
-              </Text>
-            </Row>
-          </View>
+                <Text variant="subheading" numberOfLines={1} style={{ flex: 1, color: '#FFFFFF' }}>
+                  {title}
+                </Text>
+              </Row>
+            </View>
+          </GestureHandlerRootView>
         </Modal>
       ) : null}
     </Screen>

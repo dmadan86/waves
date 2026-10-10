@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -1082,24 +1083,27 @@ export default function CaptureScreen() {
         onRequestClose={() => setPreviewing(false)}
         statusBarTranslucent
       >
-        <View style={{ flex: 1, backgroundColor: '#000000' }}>
-          {photo ? <ZoomableImage uri={photo.uri} /> : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.common.close}
-            onPress={() => setPreviewing(false)}
-            style={{
-              position: 'absolute',
-              top: insets.top + theme.spacing.md,
-              right: theme.spacing.xl,
-              padding: theme.spacing.sm,
-              borderRadius: theme.radius.pill,
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            }}
-          >
-            <Ionicons name="close" size={iconSize.md} color="#ffffff" />
-          </Pressable>
-        </View>
+        {/* A Modal is its own native root on Android: without this, pinch and pan never reach the image. */}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: '#000000' }}>
+            {photo ? <ZoomableImage uri={photo.uri} /> : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.common.close}
+              onPress={() => setPreviewing(false)}
+              style={{
+                position: 'absolute',
+                top: insets.top + theme.spacing.md,
+                right: theme.spacing.xl,
+                padding: theme.spacing.sm,
+                borderRadius: theme.radius.pill,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              }}
+            >
+              <Ionicons name="close" size={iconSize.md} color="#ffffff" />
+            </Pressable>
+          </View>
+        </GestureHandlerRootView>
       </Modal>
 
       {/* Make a tag on the spot, from the category sheet's "＋ New tag" row. */}

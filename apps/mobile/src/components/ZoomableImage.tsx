@@ -138,7 +138,15 @@ export function ZoomableImage({
       }
     });
 
+  // At fit the pan must not activate at all, or it takes the horizontal swipe
+  // from the gallery's pager (and a scroll view behind it). It claims the touch
+  // only once the image is magnified.
   const pan = Gesture.Pan()
+    .manualActivation(true)
+    .onTouchesMove((_event, state) => {
+      if (scale.get() > 1) state.activate();
+      else state.fail();
+    })
     .onUpdate((event) => {
       // Panning only makes sense once zoomed in; at fit it stays put.
       if (scale.get() <= 1) return;
