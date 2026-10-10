@@ -9,7 +9,7 @@
  */
 
 /** Proofs one payment can carry. The same number lives in the attach RPC. */
-export const MAX_PROOFS = 5;
+export const MAX_PROOFS = 2;
 
 /** One reminder per payment per day. The same window lives in the remind RPC. */
 export const REMIND_COOLDOWN_MS = 24 * 60 * 60 * 1000;

@@ -8,7 +8,7 @@
  *   1. avatar · "You paid Renny Benita" · ₹26,328.00 (one line each, shrinking
  *      before wrapping),
  *   2. "Paid on 8 Oct · Waiting for confirmation" (the date opens a picker),
- *   3. the proof thumbnails with an add tile (up to five),
+ *   3. the proof thumbnails with an add tile (up to two),
  *   4. compact actions: Remind, Add proof, Cancel payment.
  *
  * Remind is once a day per payment (the server holds the line). A payee on

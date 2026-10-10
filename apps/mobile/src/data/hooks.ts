@@ -2794,7 +2794,7 @@ function toProofRow(
   };
 }
 
-/** The payment proofs on a settlement (up to five), oldest first. Parties only. */
+/** The payment proofs on a settlement (up to two), oldest first. Parties only. */
 export function useSettlementProofs(settlementId: string): LocalRead<SettlementProofRow[]> {
   const { mirror } = useSync();
   const proofs = useMemo(

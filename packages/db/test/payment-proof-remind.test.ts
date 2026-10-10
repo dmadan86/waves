@@ -156,11 +156,11 @@ describe('waves_remind_settlement_confirm', () => {
   });
 });
 
-describe('up to five proofs', () => {
-  it('accepts five and turns the sixth away, until one is removed', async () => {
+describe('up to two proofs', () => {
+  it('accepts two and turns the third away, until one is removed', async () => {
     const f = await fixture();
     const ids: string[] = [];
-    for (let n = 0; n < 5; n += 1) ids.push(await attach(f.payer, f.settlementId));
+    for (let n = 0; n < 2; n += 1) ids.push(await attach(f.payer, f.settlementId));
 
     const path = `${f.settlementId}/${randomUUID()}.webp`;
     await seedCommittedObject(client, {
@@ -190,7 +190,7 @@ describe('up to five proofs', () => {
         WHERE settlement_id = $1 AND deleted_at IS NULL`,
       [f.settlementId],
     );
-    expect(rows[0].n).toBe(5);
+    expect(rows[0].n).toBe(2);
   });
 
   it('replaying the same proof id at the limit is still a success', async () => {
@@ -213,7 +213,7 @@ describe('up to five proofs', () => {
           .then((r) => String(r.rows[0].id)),
       );
     expect(await call()).toBe(proofId);
-    for (let n = 0; n < 4; n += 1) await attach(f.payer, f.settlementId);
+    await attach(f.payer, f.settlementId);
     expect(await call()).toBe(proofId);
   });
 

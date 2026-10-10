@@ -23,10 +23,10 @@ const MIN = 60_000;
 const HOUR = 60 * MIN;
 
 describe('proof count limit', () => {
-  it('allows up to five proofs', () => {
-    expect(MAX_PROOFS).toBe(5);
-    expect([0, 1, 4].map(canAddProof)).toEqual([true, true, true]);
-    expect([5, 6].map(canAddProof)).toEqual([false, false]);
+  it('allows up to two proofs', () => {
+    expect(MAX_PROOFS).toBe(2);
+    expect([0, 1].map(canAddProof)).toEqual([true, true]);
+    expect([2, 3].map(canAddProof)).toEqual([false, false]);
   });
 });
 

@@ -1,5 +1,5 @@
 /**
- * The payment proofs on a settlement — up to five screenshots the payer
+ * The payment proofs on a settlement — up to two screenshots the payer
  * attaches, visible to the two parties only (feature §4).
  *
  * The payer records that they paid (ADR-007: Waves never moves the money) and
