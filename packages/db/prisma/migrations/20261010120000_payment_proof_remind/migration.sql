@@ -26,6 +26,11 @@ ALTER TABLE public.settlements
 
 UPDATE public.settlements SET paid_at = (initiated_at AT TIME ZONE 'UTC')::date WHERE paid_at IS NULL;
 
+-- The backfill queues `settlements_refresh_balances`, a deferred trigger, once
+-- per row; ALTER TABLE refuses to run while those are pending ("pending trigger
+-- events"). Fire them now, inside this migration, rather than at commit.
+SET CONSTRAINTS ALL IMMEDIATE;
+
 ALTER TABLE public.settlements
   ALTER COLUMN paid_at SET DEFAULT ((now() AT TIME ZONE 'UTC')::date),
   ALTER COLUMN paid_at SET NOT NULL;
