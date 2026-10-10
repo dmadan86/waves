@@ -13,6 +13,8 @@ ledger, currency handling or growth loop is India-only. Every amount is stored
 in ISO-4217 minor units from M0, and opening a new market is a settlement rail
 and a price tier, not a rewrite.
 
+This project is tested with [BrowserStack](https://www.browserstack.com).
+
 The two binding specs live in this repo: [`waves-adr.md`](./waves-adr.md) (14
 accepted architecture decisions) and [`waves-tdr.md`](./waves-tdr.md) (how to
 build them, milestone by milestone). **The ADRs are constraints, not
@@ -894,3 +896,12 @@ Manual expense entry, groups, all split types, balances, settlement recording
 and export are **unlimited and free, forever**. No daily caps, no ads in a money
 flow. Convenience is what gets monetized: AI scan volume beyond the free quota,
 deeper analytics, trip passes, themes. Treat this as a review checklist item.
+
+## Licence
+
+Copyright © 2026 Madan D.
+
+Waves is free software: you can redistribute it and/or modify it under the
+terms of the [GNU Affero General Public License v3.0](./LICENSE) as published by
+the Free Software Foundation. If you run a modified version as a network
+service or app, the AGPL requires you to offer its source to your users.

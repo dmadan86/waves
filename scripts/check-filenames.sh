@@ -40,6 +40,10 @@ while IFS= read -r path; do
   # not a person's, so the directory is exempt the same way assets are.
   case $path in patches/*.patch) continue ;; esac
 
+  # The licence lives at the root as plain `LICENSE`, the name GitHub and every
+  # licence scanner look for; it has no extension by convention.
+  case $path in LICENSE) continue ;; esac
+
   # Apple requires a bundle's property list to be called exactly `Info.plist`
   # (the voice-names bench's Swift ASR helper, iOS targets). The name is the
   # platform's, so that one filename is allowed rather than `.plist` generally.
