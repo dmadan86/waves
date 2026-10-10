@@ -415,6 +415,10 @@ export interface MirrorSettlement extends MirrorRow {
   readonly status: string;
   readonly initiated_at: string;
   readonly confirmed_at: string | null;
+  /** The day the money moved (YYYY-MM-DD). Absent on a mirror pulled before the column existed. */
+  readonly paid_at?: string | null;
+  /** When the payer last asked the payee to confirm; null if never. */
+  readonly reminded_at?: string | null;
   readonly allocations?: readonly { expense_id: string; amount: string }[];
   readonly pending?: boolean;
 }
@@ -440,6 +444,7 @@ export function materialiseSettlements(
         currency?: string | null;
         amount: string;
         note?: string | null;
+        paidAt?: string | null;
         allocations?: readonly { expenseId: string; amount: string }[];
       };
       // Falling back to the mutation id keeps the row addressable even for a
@@ -459,6 +464,8 @@ export function materialiseSettlements(
         status: 'initiated',
         initiated_at: mutation.clientCreatedAt,
         confirmed_at: null,
+        paid_at: payload.paidAt ?? null,
+        reminded_at: null,
         note: payload.note ?? null,
         allocations: (payload.allocations ?? []).map((allocation) => ({
           expense_id: allocation.expenseId,
@@ -1258,17 +1265,30 @@ export interface MirrorSettlementProof extends MirrorRow {
   readonly deleted_at: string | null;
 }
 
-/** The live proof for a settlement, or null. One proof per settlement (v1). */
+/**
+ * The live proofs for a settlement, oldest first (a payment holds up to five).
+ * Ties on the timestamp fall back to the id so the order is the same on every
+ * device.
+ */
+export function materialiseSettlementProofs(
+  state: MirrorState,
+  options: { readonly settlementId: string },
+): MirrorSettlementProof[] {
+  const live: MirrorSettlementProof[] = [];
+  for (const row of rowsFor(state, SyncTable.SettlementProofs) as MirrorSettlementProof[]) {
+    if (row.settlement_id === options.settlementId && row.deleted_at === null) live.push(row);
+  }
+  return live.sort(
+    (a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id),
+  );
+}
+
+/** The first live proof for a settlement, or null. */
 export function materialiseSettlementProof(
   state: MirrorState,
   options: { readonly settlementId: string },
 ): MirrorSettlementProof | null {
-  for (const row of rowsFor(state, SyncTable.SettlementProofs) as MirrorSettlementProof[]) {
-    if (row.settlement_id === options.settlementId && row.deleted_at === null) {
-      return row;
-    }
-  }
-  return null;
+  return materialiseSettlementProofs(state, options)[0] ?? null;
 }
 
 /** An image attached to an expense (group- or party-visible). */
