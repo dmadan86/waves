@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { IconButton, iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
@@ -41,7 +42,7 @@ import { canAddProof, classifyProofAddFailure, ProofAddFailure } from '@/lib/pay
 import { restrictedImageUrl } from '@/lib/storage';
 
 const THUMB = 56;
-const STACK_THUMB = 52;
+const STACK_THUMB = 46;
 
 /**
  * Resolve restricted keys to URLs, telling "still resolving" apart from
@@ -304,47 +305,50 @@ export function SettlementProof({
         animationType="fade"
         onRequestClose={() => setViewing(null)}
       >
-        <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: theme.spacing.xl,
-              paddingTop: theme.spacing.xxl,
-              paddingBottom: theme.spacing.sm,
-            }}
-          >
-            <IconButton label={t.common.close} onPress={() => setViewing(null)}>
-              <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-            </IconButton>
-            <Text variant="caption" tone="muted">
-              {fill(t.proof.viewerTitle, { n: viewedIndex + 1, total: rows.length })}
-            </Text>
-            {canManage && viewed ? (
-              <IconButton
-                label={t.proof.remove}
-                onPress={() => {
-                  if (!remove.isPending) confirmRemove(viewed);
-                }}
-              >
-                <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.negative} />
+        {/* A Modal is its own native root on Android: without this, pinch and pan never reach the image. */}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: theme.spacing.xl,
+                paddingTop: theme.spacing.xxl,
+                paddingBottom: theme.spacing.sm,
+              }}
+            >
+              <IconButton label={t.common.close} onPress={() => setViewing(null)}>
+                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
               </IconButton>
-            ) : (
-              <View style={{ width: 44 }} />
-            )}
+              <Text variant="caption" tone="muted">
+                {fill(t.proof.viewerTitle, { n: viewedIndex + 1, total: rows.length })}
+              </Text>
+              {canManage && viewed ? (
+                <IconButton
+                  label={t.proof.remove}
+                  onPress={() => {
+                    if (!remove.isPending) confirmRemove(viewed);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={iconSize.lg} color={theme.color.negative} />
+                </IconButton>
+              ) : (
+                <View style={{ width: 44 }} />
+              )}
+            </View>
+            {viewed ? (
+              // Keyed by the first row so the pager restarts at the tapped page
+              // each time it opens, and after a removal shifts the others.
+              <ZoomableGallery
+                key={rows.length}
+                pages={pages}
+                index={viewedIndex}
+                onIndexChange={setViewing}
+              />
+            ) : null}
           </View>
-          {viewed ? (
-            // Keyed by the first row so the pager restarts at the tapped page
-            // each time it opens, and after a removal shifts the others.
-            <ZoomableGallery
-              key={rows.length}
-              pages={pages}
-              index={viewedIndex}
-              onIndexChange={setViewing}
-            />
-          ) : null}
-        </View>
+        </GestureHandlerRootView>
       </Modal>
     </View>
   );

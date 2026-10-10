@@ -95,13 +95,7 @@ function Action({
       ) : (
         <Ionicons name={icon} size={iconSize.sm} color={color} />
       )}
-      <Text
-        variant="caption"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-        style={{ color, fontWeight: '600', flexShrink: 1 }}
-      >
+      <Text variant="caption" numberOfLines={1} style={{ color, fontWeight: '600', flexShrink: 1 }}>
         {label}
       </Text>
     </Pressable>
@@ -273,48 +267,48 @@ export function PendingPaymentCard({
           <Text variant="body" numberOfLines={1}>
             {fill(t.proof.youPaid, { name: payeeName })}
           </Text>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Row style={{ alignItems: 'center', gap: 6 }}>
             <MoneyText
               amount={BigInt(settlement.amount)}
               currency={settlement.currency as CurrencyCode}
               locale={locale}
-              variant="subheading"
+              variant="body"
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              style={{ flexShrink: 0, fontWeight: '700' }}
+              style={{ flexShrink: 0, fontWeight: '700', fontSize: 19 }}
             />
             {settlement.pending ? <PendingMark size={14} /> : null}
-            <Row style={{ alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
-              <Ionicons name="time-outline" size={13} color={theme.color.textMuted} />
+          </Row>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            {synced ? (
+              <Pressable
+                onPress={() => setShowDate(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`${datePart}. ${t.proof.changeDate}`}
+                hitSlop={{ top: 6, bottom: 6 }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <Text variant="micro" tone="muted">
+                  {datePart}
+                </Text>
+                <Ionicons name="create-outline" size={12} color={theme.color.textMuted} />
+              </Pressable>
+            ) : (
+              <Text variant="micro" tone="muted">
+                {datePart}
+              </Text>
+            )}
+            <Row style={{ alignItems: 'center', gap: 3, flexShrink: 1, minWidth: 0 }}>
+              <Ionicons name="time-outline" size={12} color={theme.color.textMuted} />
               <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {t.proof.awaitingShort}
               </Text>
             </Row>
           </Row>
-          {synced ? (
-            <Pressable
-              onPress={() => setShowDate(true)}
-              accessibilityRole="button"
-              accessibilityLabel={`${datePart}. ${t.proof.changeDate}`}
-              hitSlop={{ top: 6, bottom: 6 }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                alignSelf: 'flex-start',
-              }}
-            >
-              <Text variant="micro" tone="muted">
-                {datePart}
-              </Text>
-              <Ionicons name="create-outline" size={12} color={theme.color.textMuted} />
-            </Pressable>
-          ) : (
-            <Text variant="micro" tone="muted">
-              {datePart}
-            </Text>
-          )}
         </View>
         {/* The proofs, stacked: one thumbnail and a "+N", opening the viewer. */}
         <SettlementProof
