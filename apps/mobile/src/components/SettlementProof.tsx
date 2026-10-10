@@ -41,6 +41,7 @@ import { canAddProof, classifyProofAddFailure, ProofAddFailure } from '@/lib/pay
 import { restrictedImageUrl } from '@/lib/storage';
 
 const THUMB = 56;
+const STACK_THUMB = 52;
 
 /**
  * Resolve restricted keys to URLs, telling "still resolving" apart from
@@ -107,11 +108,17 @@ export function SettlementProof({
   settlementId,
   canManage,
   adder,
+  stack = false,
 }: {
   groupId: string;
   settlementId: string;
   canManage: boolean;
   adder?: ReturnType<typeof useAddProof>;
+  /**
+   * One thumbnail with a "+N" badge and a chevron instead of the row — for a
+   * card whose own action row carries "Add proof". Nothing when there are none.
+   */
+  stack?: boolean;
 }): React.JSX.Element | null {
   const theme = useTheme();
   const { t } = useStrings();
@@ -128,7 +135,7 @@ export function SettlementProof({
     rows.map((row) => row.storagePath),
   );
 
-  const showAdd = canManage && canAddProof(rows.length);
+  const showAdd = !stack && canManage && canAddProof(rows.length);
   // No proof and I cannot add one → nothing to show. The payee sees this state
   // as an absence, not an empty control, until the payer attaches.
   if (rows.length === 0 && !showAdd) return null;
@@ -149,77 +156,147 @@ export function SettlementProof({
   const viewedIndex = viewed ? rows.indexOf(viewed) : 0;
   const pages: GalleryPage[] = rows.map((row) => ({ url: urls.get(row.storagePath) ?? null }));
 
+  const first = rows[0];
+  const firstUrl = first ? urls.get(first.storagePath) : undefined;
+  const stacked = first ? (
+    <Pressable
+      onPress={() => setViewing(0)}
+      accessibilityRole="button"
+      accessibilityLabel={t.proof.view}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: STACK_THUMB,
+          height: STACK_THUMB,
+          borderRadius: theme.radius.sm,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          backgroundColor: theme.color.surfaceMuted,
+        }}
+      >
+        {firstUrl ? (
+          <Image
+            source={{ uri: firstUrl }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            {firstUrl === null ? (
+              <Ionicons name="image-outline" size={iconSize.sm} color={theme.color.textFaint} />
+            ) : (
+              <ActivityIndicator size="small" color={theme.color.textFaint} />
+            )}
+          </View>
+        )}
+        {rows.length > 1 ? (
+          <View
+            style={{
+              position: 'absolute',
+              right: 3,
+              bottom: 3,
+              minWidth: 20,
+              height: 20,
+              paddingHorizontal: 4,
+              borderRadius: 10,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.6)',
+            }}
+          >
+            <Text variant="micro" style={{ color: '#fff', fontWeight: '700' }}>
+              +{rows.length - 1}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textFaint} />
+    </Pressable>
+  ) : null;
+
   return (
     <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: theme.spacing.sm, alignItems: 'center' }}
-      >
-        {rows.map((row, index) => {
-          const url = urls.get(row.storagePath);
-          return (
+      {stack ? (
+        stacked
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: theme.spacing.sm, alignItems: 'center' }}
+        >
+          {rows.map((row, index) => {
+            const url = urls.get(row.storagePath);
+            return (
+              <Pressable
+                key={row.id}
+                onPress={() => setViewing(index)}
+                accessibilityRole="button"
+                accessibilityLabel={fill(t.proof.viewerTitle, { n: index + 1, total: rows.length })}
+                style={{
+                  width: THUMB,
+                  height: THUMB,
+                  borderRadius: theme.radius.md,
+                  overflow: 'hidden',
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                {url ? (
+                  <Image
+                    source={{ uri: url }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    {url === null ? (
+                      <Ionicons
+                        name="image-outline"
+                        size={iconSize.md}
+                        color={theme.color.textFaint}
+                      />
+                    ) : (
+                      <ActivityIndicator color={theme.color.textFaint} />
+                    )}
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+          {showAdd ? (
             <Pressable
-              key={row.id}
-              onPress={() => setViewing(index)}
+              onPress={add}
+              disabled={pending}
               accessibilityRole="button"
-              accessibilityLabel={fill(t.proof.viewerTitle, { n: index + 1, total: rows.length })}
+              accessibilityLabel={t.proof.add}
+              accessibilityState={{ disabled: pending }}
               style={{
                 width: THUMB,
                 height: THUMB,
                 borderRadius: theme.radius.md,
-                overflow: 'hidden',
-                backgroundColor: theme.color.surfaceMuted,
+                borderWidth: 1,
+                borderStyle: 'dashed',
+                borderColor: theme.color.border,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {url ? (
-                <Image
-                  source={{ uri: url }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit="cover"
-                />
+              {pending ? (
+                <ActivityIndicator color={theme.color.brand} />
               ) : (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  {url === null ? (
-                    <Ionicons
-                      name="image-outline"
-                      size={iconSize.md}
-                      color={theme.color.textFaint}
-                    />
-                  ) : (
-                    <ActivityIndicator color={theme.color.textFaint} />
-                  )}
-                </View>
+                <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
               )}
             </Pressable>
-          );
-        })}
-        {showAdd ? (
-          <Pressable
-            onPress={add}
-            disabled={pending}
-            accessibilityRole="button"
-            accessibilityLabel={t.proof.add}
-            accessibilityState={{ disabled: pending }}
-            style={{
-              width: THUMB,
-              height: THUMB,
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderStyle: 'dashed',
-              borderColor: theme.color.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {pending ? (
-              <ActivityIndicator color={theme.color.brand} />
-            ) : (
-              <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
-            )}
-          </Pressable>
-        ) : null}
-      </ScrollView>
+          ) : null}
+        </ScrollView>
+      )}
 
       <Modal
         supportedOrientations={MODAL_ORIENTATIONS}

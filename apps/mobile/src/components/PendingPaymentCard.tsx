@@ -16,10 +16,10 @@
  * written here, after which the server is told so the day's limit still counts.
  */
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { ActivityIndicator, Linking, Platform, Pressable, Share } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, Share, View } from 'react-native';
 
 import { format, money, type CurrencyCode } from '@waves/core';
 import { Avatar, Card, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
@@ -48,8 +48,8 @@ import {
   reminderUrls,
 } from '@/lib/paymentProof';
 
-/** A compact action: 32dp tall, so three fit on one line at 360dp. */
-function Pill({
+/** One of the card's three equal, flat actions: icon and label, no fill. */
+function Action({
   label,
   icon,
   onPress,
@@ -80,16 +80,14 @@ function Pill({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: Boolean(disabled || busy) }}
-      hitSlop={{ top: 6, bottom: 6 }}
       style={({ pressed }) => ({
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        height: 32,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: 16,
-        backgroundColor: pressed ? theme.color.border : theme.color.surfaceMuted,
-        opacity: disabled ? 0.6 : 1,
+        justifyContent: 'center',
+        gap: 6,
+        height: 36,
+        opacity: pressed ? 0.6 : 1,
       })}
     >
       {busy ? (
@@ -97,11 +95,22 @@ function Pill({
       ) : (
         <Ionicons name={icon} size={iconSize.sm} color={color} />
       )}
-      <Text variant="caption" numberOfLines={1} style={{ color, fontWeight: '600' }}>
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ color, fontWeight: '600', flexShrink: 1 }}
+      >
         {label}
       </Text>
     </Pressable>
   );
+}
+
+function ActionDivider(): React.JSX.Element {
+  const theme = useTheme();
+  return <View style={{ width: 1, height: 18, backgroundColor: theme.color.border }} />;
 }
 
 export function PendingPaymentCard({
@@ -217,54 +226,104 @@ export function PendingPaymentCard({
 
   const datePart = fill(t.proof.paidOn, { date: formatPaidDay(day, locale) });
 
-  return (
-    <Card style={{ gap: theme.spacing.sm }}>
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-        <Avatar name={payeeName} ghost={payee ? isGhost(payee) : false} size={32} />
-        <Text
-          variant="subheading"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          {fill(t.proof.youPaid, { name: payeeName })}
-        </Text>
-        <MoneyText
-          amount={BigInt(settlement.amount)}
-          currency={settlement.currency as CurrencyCode}
-          locale={locale}
-          variant="subheading"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-          style={{ flexShrink: 0 }}
-        />
-        {settlement.pending ? <PendingMark size={16} /> : null}
-      </Row>
+  const remindAction = !synced ? null : reminder.available ? (
+    <Action
+      label={t.proof.remind}
+      icon="notifications-outline"
+      busy={sending}
+      onPress={() => void onRemind()}
+      accessibilityLabel={fill(t.proof.remindA11y, { name: payeeName })}
+    />
+  ) : (
+    <Action
+      label={fill(t.proof.reminded, { ago: reminder.ago ? agoText(reminder.ago) : '' })}
+      icon="checkmark"
+      tone="muted"
+      disabled
+      onPress={() => {}}
+    />
+  );
+  const addAction =
+    synced && canAddProof(proofs.data?.length ?? 0) ? (
+      <Action
+        label={t.proof.addShort}
+        icon="camera-outline"
+        busy={adder.pending}
+        onPress={adder.add}
+        accessibilityLabel={t.proof.add}
+      />
+    ) : null;
+  const actions = [remindAction, addAction].filter(Boolean);
 
-      <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-        {synced ? (
-          <Pressable
-            onPress={() => setShowDate(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`${datePart}. ${t.proof.changeDate}`}
-            hitSlop={{ top: 8, bottom: 8 }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
-          >
-            <Text variant="micro" style={{ color: theme.color.brand }}>
+  return (
+    <Card
+      padded={false}
+      style={{
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        paddingTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
+        paddingBottom: theme.spacing.xs,
+        gap: theme.spacing.xs,
+      }}
+    >
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <Avatar name={payeeName} ghost={payee ? isGhost(payee) : false} size={40} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text variant="body" numberOfLines={1}>
+            {fill(t.proof.youPaid, { name: payeeName })}
+          </Text>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <MoneyText
+              amount={BigInt(settlement.amount)}
+              currency={settlement.currency as CurrencyCode}
+              locale={locale}
+              variant="subheading"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              style={{ flexShrink: 0, fontWeight: '700' }}
+            />
+            {settlement.pending ? <PendingMark size={14} /> : null}
+            <Row style={{ alignItems: 'center', gap: 3, flex: 1, minWidth: 0 }}>
+              <Ionicons name="time-outline" size={13} color={theme.color.textMuted} />
+              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {t.proof.awaitingShort}
+              </Text>
+            </Row>
+          </Row>
+          {synced ? (
+            <Pressable
+              onPress={() => setShowDate(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`${datePart}. ${t.proof.changeDate}`}
+              hitSlop={{ top: 6, bottom: 6 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                alignSelf: 'flex-start',
+              }}
+            >
+              <Text variant="micro" tone="muted">
+                {datePart}
+              </Text>
+              <Ionicons name="create-outline" size={12} color={theme.color.textMuted} />
+            </Pressable>
+          ) : (
+            <Text variant="micro" tone="muted">
               {datePart}
             </Text>
-            <Ionicons name="create-outline" size={12} color={theme.color.brand} />
-          </Pressable>
-        ) : (
-          <Text variant="micro" tone="muted">
-            {datePart}
-          </Text>
-        )}
-        <Text variant="micro" tone="muted">
-          · {t.proof.awaitingShort}
-        </Text>
+          )}
+        </View>
+        {/* The proofs, stacked: one thumbnail and a "+N", opening the viewer. */}
+        <SettlementProof
+          groupId={groupId}
+          settlementId={settlement.id}
+          canManage={synced}
+          adder={adder}
+          stack
+        />
       </Row>
       {showDate ? (
         <DateTimePicker
@@ -287,53 +346,23 @@ export function PendingPaymentCard({
         />
       ) : null}
 
-      {/* Manage only once the settlement has reached the server: the attach and
-          remove RPCs check party against a real row. */}
-      <SettlementProof
-        groupId={groupId}
-        settlementId={settlement.id}
-        canManage={synced}
-        adder={adder}
-      />
-
-      <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-        {synced ? (
-          reminder.available ? (
-            <Pill
-              label={t.proof.remind}
-              icon="notifications-outline"
-              busy={sending}
-              onPress={() => void onRemind()}
-              accessibilityLabel={fill(t.proof.remindA11y, { name: payeeName })}
-            />
-          ) : (
-            <Pill
-              label={fill(t.proof.reminded, { ago: reminder.ago ? agoText(reminder.ago) : '' })}
-              icon="checkmark"
-              tone="muted"
-              disabled
-              onPress={() => {}}
-            />
-          )
-        ) : null}
-        {synced && canAddProof(proofs.data?.length ?? 0) ? (
-          <Pill
-            label={t.proof.addShort}
-            icon="camera-outline"
-            busy={adder.pending}
-            onPress={adder.add}
-            accessibilityLabel={t.proof.add}
-          />
-        ) : null}
+      <Row style={{ alignItems: 'center' }}>
+        {actions.map((action, i) => (
+          <Fragment key={i}>
+            {action}
+            <ActionDivider />
+          </Fragment>
+        ))}
         {/* Withdraw a payment recorded by mistake or twice. Queued like every
             other mutation, so even a still-syncing claim cancels cleanly — the
             create runs before the cancel in the ordered queue. */}
-        <Pill
-          label={t.group.cancelSettlement}
-          icon="close-circle-outline"
+        <Action
+          label={t.common.cancel}
+          icon="trash-outline"
           tone="danger"
           disabled={cancelSettlement.isPending}
           onPress={onCancel}
+          accessibilityLabel={t.group.cancelSettlement}
         />
       </Row>
     </Card>
