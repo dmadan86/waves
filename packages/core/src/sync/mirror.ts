@@ -1266,7 +1266,7 @@ export interface MirrorSettlementProof extends MirrorRow {
 }
 
 /**
- * The live proofs for a settlement, oldest first (a payment holds up to five).
+ * The live proofs for a settlement, oldest first (a payment holds up to two).
  * Ties on the timestamp fall back to the id so the order is the same on every
  * device.
  */
