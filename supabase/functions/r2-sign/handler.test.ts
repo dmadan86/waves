@@ -19,6 +19,7 @@ import {
   handleR2Sign,
   locate,
   readBucket,
+  readObjectKey,
   readPath,
   receiptExpenseId,
   type R2SignDeps,
@@ -776,4 +777,221 @@ describe('receiptExpenseId', () => {
       expect(receiptExpenseId(path)).toBeNull();
     },
   );
+});
+
+describe('thumbnails — `<path>.thumb.jpg`, authorised as their original', () => {
+  it('readObjectKey splits a thumbnail key from the path it is authorised on', () => {
+    expect(readObjectKey('group-1/r.webp')).toEqual({
+      path: 'group-1/r.webp',
+      authPath: 'group-1/r.webp',
+      isThumb: false,
+    });
+    expect(readObjectKey('group-1/r.webp.thumb.jpg')).toEqual({
+      path: 'group-1/r.webp.thumb.jpg',
+      authPath: 'group-1/r.webp',
+      isThumb: true,
+    });
+  });
+
+  it('readObjectKey refuses a thumbnail of a thumbnail and a thumbnail with no base', () => {
+    expect(() => readObjectKey('group-1/r.webp.thumb.jpg.thumb.jpg')).toThrowError(/Malformed/);
+    expect(() => readObjectKey('group-1/.thumb.jpg')).toThrowError(/Malformed/);
+    // The bare suffix names no original, so it is just an ordinary key.
+    expect(readObjectKey('.thumb.jpg').isThumb).toBe(false);
+  });
+
+  function ledger(owner: string | null) {
+    return client({
+      rpc: {
+        waves_storage_reserve: { data: null, error: null },
+        waves_storage_record: { data: null, error: null },
+        waves_storage_release: { data: null, error: null },
+      },
+      from: {
+        storage_objects: {
+          data: owner === null ? null : { owner_profile_id: owner, path: 'x' },
+          error: null,
+        },
+      },
+    });
+  }
+
+  function member(id: string) {
+    return client({
+      user: { id },
+      rpc: { waves_my_member_id: { data: `member-${id}` }, is_group_admin: { data: false } },
+    });
+  }
+
+  const thumbPut = (extra: Record<string, unknown> = {}) =>
+    post({
+      action: 'put',
+      bucket: 'receipts',
+      path: 'group-1/r.webp.thumb.jpg',
+      contentType: 'image/jpeg',
+      contentLength: 20_000,
+      ...extra,
+    });
+
+  it('lets the uploader of the original put its thumbnail, reserving the thumbnail key', async () => {
+    const { deps, service } = makeDeps({ caller: member('user-1'), service: ledger('user-1') });
+    const response = await handleR2Sign(thumbPut(), deps);
+    expect(response.status).toBe(200);
+    expect(service.rpc).toHaveBeenCalledWith(
+      'waves_storage_reserve',
+      expect.objectContaining({ p_path: 'group-1/r.webp.thumb.jpg', p_bytes: 20_000 }),
+    );
+  });
+
+  it('refuses a thumbnail for somebody else’s original exactly as it refuses the original', async () => {
+    const { deps, sign } = makeDeps({ caller: member('user-2'), service: ledger('user-1') });
+    const response = await handleR2Sign(thumbPut(), deps);
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('NOT_UPLOADER');
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  it('caps a thumbnail far below an original, and only takes JPEG', async () => {
+    const big = await handleR2Sign(
+      thumbPut({ contentLength: 2_000_000 }),
+      makeDeps({ caller: member('user-1'), service: ledger('user-1') }).deps,
+    );
+    expect(big.status).toBe(413);
+    const webp = await handleR2Sign(
+      thumbPut({ contentType: 'image/webp' }),
+      makeDeps({ caller: member('user-1'), service: ledger('user-1') }).deps,
+    );
+    expect(webp.status).toBe(415);
+  });
+
+  it('refuses a group thumbnail read to an outsider of the group', async () => {
+    const outsider = client({
+      user: { id: 'user-9' },
+      rpc: { waves_my_member_id: { data: null } },
+    });
+    const { deps, sign } = makeDeps({ caller: outsider, service: ledger('user-1') });
+    const response = await handleR2Sign(
+      post({ action: 'get', bucket: 'receipts', path: 'group-1/r.webp.thumb.jpg' }),
+      deps,
+    );
+    expect(response.status).toBe(403);
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  function party(hasRow: boolean) {
+    return client({
+      user: { id: 'user-1' },
+      rpc: { waves_my_member_id: { data: 'member-1' }, waves_is_expense_party: { data: true } },
+      from: { expense_attachments: { data: hasRow ? { id: 'att-1' } : null, error: null } },
+    });
+  }
+
+  it('signs a restricted thumbnail for a party, checking the row of its original', async () => {
+    const service = client({
+      from: {
+        expenses: { data: { group_id: 'group-1' }, error: null },
+        storage_objects: { data: { path: 'exp-1/a.webp.thumb.jpg' }, error: null },
+      },
+    });
+    const { deps, sign, caller } = makeDeps({ caller: party(true), service });
+    const response = await handleR2Sign(
+      post({
+        action: 'get',
+        bucket: 'expense-attachments',
+        subjectId: 'exp-1',
+        path: 'exp-1/a.webp.thumb.jpg',
+      }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(caller.from).toHaveBeenCalledWith('expense_attachments');
+    const signed = sign.mock.calls[0][0] as Request;
+    expect(signed.url).toContain('exp-1/a.webp.thumb.jpg');
+  });
+
+  it('answers 404 for a restricted thumbnail that was never uploaded, signing nothing', async () => {
+    const service = client({
+      from: {
+        expenses: { data: { group_id: 'group-1' }, error: null },
+        storage_objects: { data: null, error: null },
+      },
+    });
+    const { deps, sign } = makeDeps({ caller: party(true), service });
+    const response = await handleR2Sign(
+      post({
+        action: 'get',
+        bucket: 'expense-attachments',
+        subjectId: 'exp-1',
+        path: 'exp-1/a.webp.thumb.jpg',
+      }),
+      deps,
+    );
+    expect(response.status).toBe(404);
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  it('removes the thumbnail with its original, from R2 and the ledger', async () => {
+    const { deps, r2fetch, service } = makeDeps({
+      caller: member('user-1'),
+      service: ledger('user-1'),
+    });
+    const response = await handleR2Sign(
+      post({ action: 'delete', bucket: 'receipts', path: 'group-1/r.webp' }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    const deleted = r2fetch.mock.calls
+      .filter(([, init]) => (init as { method?: string } | undefined)?.method === 'DELETE')
+      .map(([url]) => url);
+    expect(deleted).toEqual([
+      'https://r2.example/bucket/receipts/group-1/r.webp',
+      'https://r2.example/bucket/receipts/group-1/r.webp.thumb.jpg',
+    ]);
+    expect(service.rpc).toHaveBeenCalledWith('waves_storage_release', {
+      p_logical_bucket: 'receipts',
+      p_path: 'group-1/r.webp.thumb.jpg',
+    });
+  });
+
+  it('refuses to commit a thumbnail whose original is gone, deleting what was written', async () => {
+    const service = client({
+      rpc: { waves_storage_release_reservation: { data: true, error: null } },
+      from: { storage_objects: { data: null, error: null } },
+    });
+    const { deps, r2fetch } = makeDeps({ caller: member('user-1'), service });
+    const response = await handleR2Sign(
+      post({
+        action: 'commit',
+        bucket: 'receipts',
+        path: 'group-1/r.webp.thumb.jpg',
+        contentType: 'image/jpeg',
+      }),
+      deps,
+    );
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('NO_ORIGINAL');
+    expect(r2fetch).toHaveBeenCalledWith(
+      'https://r2.example/bucket/receipts/group-1/r.webp.thumb.jpg',
+      { method: 'DELETE' },
+    );
+    expect(service.rpc).not.toHaveBeenCalledWith('waves_storage_record', expect.anything());
+  });
+
+  it('commits a thumbnail whose original is recorded', async () => {
+    const { deps, service } = makeDeps({ caller: member('user-1'), service: ledger('user-1') });
+    const response = await handleR2Sign(
+      post({
+        action: 'commit',
+        bucket: 'receipts',
+        path: 'group-1/r.webp.thumb.jpg',
+        contentType: 'image/jpeg',
+      }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(service.rpc).toHaveBeenCalledWith(
+      'waves_storage_record',
+      expect.objectContaining({ p_path: 'group-1/r.webp.thumb.jpg' }),
+    );
+  });
 });

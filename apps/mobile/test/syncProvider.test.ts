@@ -99,6 +99,8 @@ const h = vi.hoisted(() => {
     reportHandled: vi.fn(),
     flushReceiptQueue: vi.fn(async () => ({ uploadedExpenseIds: [] as string[] })),
     clearImageCache: vi.fn(),
+    scheduleThumbPrefetch: vi.fn(),
+    evictGroupThumbs: vi.fn(),
     clearLocalPrivateData: vi.fn(async (_owner: string): Promise<void> => undefined),
     uuid: vi.fn(() => 'uuid-1'),
   };
@@ -126,6 +128,8 @@ vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.auth.session }) }));
 vi.mock('@/lib/observability', () => ({ reportHandled: h.reportHandled }));
 vi.mock('@/lib/receiptQueue', () => ({ flushReceiptQueue: h.flushReceiptQueue }));
 vi.mock('@/lib/storage/imageCache', () => ({ clearImageCache: h.clearImageCache }));
+vi.mock('@/lib/storage/thumbPrefetch', () => ({ scheduleThumbPrefetch: h.scheduleThumbPrefetch }));
+vi.mock('@/lib/storage/thumbStore', () => ({ evictGroupThumbs: h.evictGroupThumbs }));
 vi.mock('@/sync/engine', () => ({ syncEngine: h.engine }));
 vi.mock('@/sync/localWipe', () => ({ clearLocalPrivateData: h.clearLocalPrivateData }));
 
@@ -579,6 +583,27 @@ describe('SyncProvider — the value it provides', () => {
     expect(h.engine.retry).toHaveBeenCalledWith('m1');
     expect(h.engine.discard).toHaveBeenCalledWith('m2');
     expect(h.engine.forgetGroup).toHaveBeenCalledWith('g2');
+    // A forgotten group's kept thumbnails go with it.
+    expect(h.evictGroupThumbs).toHaveBeenCalledWith('g2');
+  });
+
+  it('prefetches thumbnails once per landed sync, and not before hydration', () => {
+    signIn('alice');
+    mount();
+    h.engine.emit({ lastSyncedAt: 't1' });
+    expect(h.scheduleThumbPrefetch).not.toHaveBeenCalled();
+    h.engine.emit({ hydrated: true });
+    expect(h.scheduleThumbPrefetch).toHaveBeenCalledTimes(1);
+    h.engine.emit({ status: 'syncing' });
+    expect(h.scheduleThumbPrefetch).toHaveBeenCalledTimes(1);
+    h.engine.emit({ lastSyncedAt: 't2' });
+    expect(h.scheduleThumbPrefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('never prefetches while signed out', () => {
+    mount();
+    h.engine.emit({ hydrated: true, lastSyncedAt: 't1' });
+    expect(h.scheduleThumbPrefetch).not.toHaveBeenCalled();
   });
 });
 

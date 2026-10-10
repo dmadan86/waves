@@ -50,6 +50,7 @@ import {
 import { EMPTY_ANNOTATIONS, isEmptyAnnotations, type Annotations } from '@/lib/annotations';
 import { imageUrl, restrictedImageUrl } from '@/lib/storage';
 import { cacheImage, cachedImageUri, evictImage } from '@/lib/storage/imageCache';
+import { localThumbUri } from '@/lib/storage/thumbStore';
 import {
   discardPendingReceipt,
   dropSettledReceipts,
@@ -95,9 +96,16 @@ function localUri(it: GalleryItem): string | null {
   return cachedImageUri(bucket, path);
 }
 
-/** The tiny stored stand-in for an item's image, when it has one. */
+/**
+ * The stand-in drawn under an item's image until the real one decodes: the
+ * low-resolution copy kept on the phone (`thumbStore`, filled after each sync —
+ * sharp enough for a tile, and there offline), else the tiny blurred preview
+ * the row carries.
+ */
 function previewOf(it: GalleryItem): string | null {
-  if (it.kind === 'attachment') return it.row.preview;
+  if (it.kind === 'attachment') {
+    return localThumbUri('expense-attachments', it.row.storagePath) ?? it.row.preview;
+  }
   if (it.kind === 'pending') return it.entry.preview ?? null;
   // The legacy bill predates the column; there is nothing to have kept.
   return null;
