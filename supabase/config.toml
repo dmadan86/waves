@@ -214,16 +214,13 @@ content_path = "./supabase/templates/reauthentication.html"
 # ADR-006: guests join a group from a link with no account at all, so phone is a
 # way to keep an account, never the way to get one.
 #
-# Signup is off because no SMS provider is configured on either stack. Turned on
-# without one, Supabase marks Twilio enabled with empty credentials, every code
-# fails to send, and the person is left on a screen waiting for an SMS that was
-# never posted. Turn both on in the same change that adds the credentials.
 [auth.sms]
-# Stays off, and the client agrees: `sendOtp` in apps/mobile/src/lib/auth.tsx
-# passes `shouldCreateUser: false`, and the phone tile is absent from the
-# sign-up door. A number signs a person back in, or attaches to the account a
-# guest already has; it never opens a new one.
-enable_signup = false
+# On, matching the hosted project. The app still never opens an account by
+# phone: `sendPhoneCode` asks GoTrue with `create_user: false`, and the phone
+# tile is absent from the sign-up door. A number signs a person back in, or
+# attaches to the account a guest already has. Only a modified client asking
+# with `create_user: true` could mint a phone-only account.
+enable_signup = true
 enable_confirmations = true
 
 # Programmable Messaging — not used. Verify below is the provider; this block
