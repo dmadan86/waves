@@ -188,6 +188,8 @@ export interface SettlementCreatePayload {
   readonly amount: string;
   readonly method: 'upi' | 'cash' | 'bank' | 'other';
   readonly note?: string | null;
+  /** The day the money moved, YYYY-MM-DD. Omitted by older builds (the server dates it today). */
+  readonly paidAt?: string | null;
   readonly allocations?: readonly { expenseId: string; amount: string }[];
 }
 

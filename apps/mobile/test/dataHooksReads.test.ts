@@ -1340,6 +1340,25 @@ describe('per-expense and per-settlement rows', () => {
           created_at: '2026-02-01T00:00:00Z',
           deleted_at: null,
         },
+        // A second proof on the same payment, added later; and one removed.
+        {
+          id: 'pr-3',
+          group_id: 'g-1',
+          settlement_id: 's-1',
+          storage_path: 's-1/p3.jpg',
+          uploader_member_id: 'm1',
+          created_at: '2026-02-03T00:00:00Z',
+          deleted_at: null,
+        },
+        {
+          id: 'pr-2',
+          group_id: 'g-1',
+          settlement_id: 's-1',
+          storage_path: 's-1/p2.jpg',
+          uploader_member_id: 'm1',
+          created_at: '2026-02-02T00:00:00Z',
+          deleted_at: '2026-02-02T01:00:00Z',
+        },
       ],
     });
   });
@@ -1396,6 +1415,12 @@ describe('per-expense and per-settlement rows', () => {
       createdAt: '2026-02-01T00:00:00Z',
     });
     expect(render(() => hooks.useSettlementProof('s-none')).data).toBeNull();
+  });
+
+  it('useSettlementProofs lists every live proof, oldest first, skipping removed ones', () => {
+    const proofs = render(() => hooks.useSettlementProofs('s-1')).data ?? [];
+    expect(proofs.map((proof) => proof.id)).toEqual(['pr-1', 'pr-3']);
+    expect(render(() => hooks.useSettlementProofs('s-none')).data).toEqual([]);
   });
 });
 

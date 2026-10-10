@@ -360,6 +360,7 @@ describe('settlements', () => {
         rail: 'upi',
         currency: 'INR',
         note: 'thanks',
+        paidAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
         allocations: [{ expenseId: 'e-1', amount: '345' }],
       },
       'cm-1',
@@ -881,6 +882,74 @@ describe('settlement proofs', () => {
     await expect(
       mutation<void>(() => hooks.useAttachSettlementProof('g-1', 's-1')).mutationFn(undefined),
     ).rejects.toThrow('offline');
+    expect(storage.removeRestrictedImage).not.toHaveBeenCalled();
+  });
+
+  it('useRecordSettlement sends the day the caller chose', async () => {
+    const record = mutation<Record<string, unknown>>(() => hooks.useRecordSettlement('g-1'));
+    await record.mutationFn({
+      groupId: 'g-1',
+      fromMemberId: 'a',
+      toMemberId: 'b',
+      amount: 1n,
+      rail: 'cash',
+      currency: 'INR',
+      paidAt: '2026-09-30',
+    });
+    expect(onlyMutate()[2]).toMatchObject({ paidAt: '2026-09-30' });
+  });
+
+  it('useRemindSettlement asks the server and reports who was reached', async () => {
+    backend.rpc.mockResolvedValueOnce({ data: 'notified', error: null });
+    const remind = mutation<void>(() => hooks.useRemindSettlement('s-1'));
+    expect(await remind.mutationFn(undefined)).toBe('notified');
+    expect(backend.rpc).toHaveBeenCalledWith('waves_remind_settlement_confirm', {
+      p_settlement_id: 's-1',
+    });
+    backend.rpc.mockResolvedValueOnce({ data: 'external', error: null });
+    expect(await remind.mutationFn(undefined)).toBe('external');
+    remind.onSuccess?.();
+    expect(sync.flush).toHaveBeenCalled();
+  });
+
+  it('useRemindSettlement surfaces the server cooldown', async () => {
+    backend.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'REMIND_RATE_LIMIT: you reminded them in the last 24 hours' },
+    });
+    await expect(
+      mutation<void>(() => hooks.useRemindSettlement('s-1')).mutationFn(undefined),
+    ).rejects.toThrow('REMIND_RATE_LIMIT');
+  });
+
+  it('useSetSettlementPaidAt sends the corrected day', async () => {
+    await mutation<string>(() => hooks.useSetSettlementPaidAt('s-1')).mutationFn('2026-10-01');
+    expect(backend.rpc).toHaveBeenCalledWith('waves_set_settlement_paid_at', {
+      p_settlement_id: 's-1',
+      p_paid_at: '2026-10-01',
+    });
+  });
+
+  it("useAttachSettlementProof passes the server's proof limit through and frees the upload", async () => {
+    image.pickAlbumPhoto.mockResolvedValueOnce({ base64: 'QUJD', mimeType: 'image/jpeg' });
+    backend.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'PROOF_LIMIT: a payment can have at most 5 proofs; remove one first' },
+    });
+    await expect(
+      mutation<void>(() => hooks.useAttachSettlementProof('g-1', 's-1')).mutationFn(undefined),
+    ).rejects.toThrow('PROOF_LIMIT');
+    expect(storage.removeRestrictedImage).toHaveBeenCalled();
+  });
+
+  it('useAttachSettlementProof surfaces a full free-storage quota and records nothing', async () => {
+    class StorageFull extends Error {}
+    image.pickAlbumPhoto.mockResolvedValueOnce({ base64: 'QUJD', mimeType: 'image/jpeg' });
+    storage.putImage.mockRejectedValueOnce(new StorageFull('free storage limit'));
+    await expect(
+      mutation<void>(() => hooks.useAttachSettlementProof('g-1', 's-1')).mutationFn(undefined),
+    ).rejects.toBeInstanceOf(StorageFull);
+    expect(backend.rpc).not.toHaveBeenCalled();
     expect(storage.removeRestrictedImage).not.toHaveBeenCalled();
   });
 

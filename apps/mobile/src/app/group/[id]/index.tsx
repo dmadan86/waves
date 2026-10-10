@@ -31,7 +31,6 @@ import {
 
 import {
   memberLookup,
-  useCancelSettlement,
   useGhostMergePersonIds,
   useGroup,
   useGroupLedger,
@@ -84,7 +83,7 @@ import { ExpenseFilterBar, type ExpenseScope } from '@/components/ExpenseFilterB
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
 import { PendingMark } from '@/components/PendingMark';
-import { SettlementProof } from '@/components/SettlementProof';
+import { PendingPaymentCard } from '@/components/PendingPaymentCard';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -96,7 +95,6 @@ import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
-import { useDialog } from '@/lib/dialog';
 
 enum Tab {
   Expenses = 'expenses',
@@ -592,7 +590,6 @@ export default function GroupScreen() {
   const clearance = tabBarClearance + 36;
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
   // `?welcome=trip` is set once, by the create screen, when a trip is made
   // without dates — it opens this group with a one-time plan-your-trip nudge.
   // The param is gone on any later visit, so the nudge is a moment, not a nag.
@@ -645,7 +642,6 @@ export default function GroupScreen() {
   const setGroupPin = useSetGroupPin();
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
-  const cancelSettlement = useCancelSettlement(groupId);
 
   const { blockedIds } = useBlockedUsers();
   const lookup = useMemo(() => memberLookup(members.data), [members.data]);
@@ -1557,55 +1553,15 @@ export default function GroupScreen() {
                   back the claim with a screenshot, and an acknowledgement that
                   it is in flight. */}
                   {pendingByMe.map((settlement) => (
-                    <Card key={settlement.id} style={{ gap: theme.spacing.md }}>
-                      <Text variant="subheading">
-                        {fill(t.proof.youPaid, { name: nameOf(settlement.to_member_id) })}
-                      </Text>
-                      <Row style={{ gap: theme.spacing.sm }}>
-                        <MoneyText
-                          amount={BigInt(settlement.amount)}
-                          currency={settlement.currency}
-                          locale={locale}
-                          variant="title"
-                        />
-                        {settlement.pending ? <PendingMark size={16} /> : null}
-                      </Row>
-                      <Text variant="micro" tone="muted">
-                        {fill(t.proof.awaiting, { name: nameOf(settlement.to_member_id) })}
-                      </Text>
-                      {/* Manage only once the settlement has reached the server:
-                      the attach/remove RPCs check party against a real row, and
-                      `pending` means it has not synced yet. Until then the card
-                      still shows "waiting", just without the attach control. */}
-                      <SettlementProof
-                        groupId={groupId}
-                        settlementId={settlement.id}
-                        canManage={!settlement.pending}
-                      />
-                      {/* Withdraw a payment recorded by mistake or twice. Queued
-                        like every other mutation, so even a still-syncing claim
-                        cancels cleanly — the create runs before the cancel in
-                        the ordered queue. */}
-                      <Button
-                        label={t.group.cancelSettlement}
-                        variant="secondary"
-                        fullWidth
-                        onPress={() =>
-                          void confirm({
-                            title: t.group.cancelTitle,
-                            body: fill(t.group.cancelBody, {
-                              name: nameOf(settlement.to_member_id),
-                            }),
-                            confirmLabel: t.group.cancelConfirm,
-                            cancelLabel: t.group.keep,
-                            tone: 'danger',
-                          }).then((ok) => {
-                            if (ok) cancelSettlement.mutate(settlement.id);
-                          })
-                        }
-                        disabled={cancelSettlement.isPending}
-                      />
-                    </Card>
+                    <PendingPaymentCard
+                      key={settlement.id}
+                      groupId={groupId}
+                      groupName={groupLabel(groupData, members.data, viewerId)}
+                      settlement={settlement}
+                      payee={lookup.get(settlement.to_member_id)}
+                      payeeName={nameOf(settlement.to_member_id)}
+                      locale={locale}
+                    />
                   ))}
                 </View>
               </View>

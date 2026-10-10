@@ -740,6 +740,11 @@ model Settlement {
   status           SettlementStatus @default(initiated)
   note             String?
   initiatedAt      DateTime         @default(now()) @map("initiated_at") @db.Timestamptz(6)
+  /// The day the money moved (UTC date); defaults to the day recorded, and the
+  /// payer can correct it. Separate from `initiatedAt`, which is when the row was made.
+  paidAt           DateTime         @default(dbgenerated("((now() AT TIME ZONE 'UTC'::text))::date")) @map("paid_at") @db.Date
+  /// When the payer last asked the payee to confirm; one reminder per 24 hours.
+  remindedAt       DateTime?        @map("reminded_at") @db.Timestamptz(6)
   confirmedAt      DateTime?        @map("confirmed_at") @db.Timestamptz(6)
   clientMutationId String?          @unique @map("client_mutation_id") @db.Uuid
   updatedSeq       BigInt           @default(0) @map("updated_seq")

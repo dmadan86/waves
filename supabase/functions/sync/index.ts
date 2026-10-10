@@ -232,7 +232,7 @@ const EXPENSE_SELECT = `
 
 const SETTLEMENT_SELECT = `
   id, group_id, from_member_id, to_member_id, currency, amount, method, status, note,
-  initiated_at, confirmed_at, updated_seq,
+  initiated_at, confirmed_at, paid_at, reminded_at, updated_seq,
   allocations:settlement_allocations ( expense_id, amount )
 `;
 
@@ -847,6 +847,7 @@ export class SyncSession {
       rail?: string | null;
       currency?: string | null;
       note?: string | null;
+      paidAt?: string | null;
       allocations?: { expenseId: string; amount: string }[];
     };
 
@@ -864,6 +865,9 @@ export class SyncSession {
       p_note: payload.note ?? null,
       p_allocations: payload.allocations ?? [],
       p_client_mutation_id: mutation.clientMutationId,
+      // The day the money moved. Absent from an older client's payload, in which
+      // case the database dates it today.
+      p_paid_at: payload.paidAt ?? null,
     });
   }
 
