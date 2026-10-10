@@ -30,6 +30,7 @@ import {
   useSettlementProof,
 } from '@/data/hooks';
 import { restrictedImageUrl } from '@/lib/storage';
+import { localThumbUri } from '@/lib/storage/thumbStore';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 
@@ -86,6 +87,10 @@ export function SettlementProof({
 
   const row = proof.data;
   const { url, resolved } = useRestrictedUrl(settlementId, row?.storagePath ?? null);
+  // The low-resolution copy kept on the phone: drawn at once, offline too, and
+  // replaced by the full image whenever it resolves.
+  const thumb = localThumbUri('settlement-proofs', row?.storagePath);
+  const shown = url ?? thumb;
 
   // No proof and I cannot add one → nothing to show. The payee sees this state
   // as an absence, not an empty control, until the payer attaches.
@@ -137,9 +142,11 @@ export function SettlementProof({
           backgroundColor: theme.color.surfaceMuted,
         }}
       >
-        {url ? (
+        {shown ? (
           <Image
-            source={{ uri: url }}
+            source={{ uri: shown }}
+            placeholder={thumb && url ? { uri: thumb } : undefined}
+            placeholderContentFit="cover"
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"
           />
@@ -187,8 +194,8 @@ export function SettlementProof({
               <View style={{ width: 44 }} />
             )}
           </View>
-          {url ? (
-            <ZoomableImage uri={url} />
+          {shown ? (
+            <ZoomableImage uri={shown} />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {resolved ? (
