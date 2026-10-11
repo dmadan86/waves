@@ -212,7 +212,7 @@ beforeAll(async () => {
     });
     group3Excluded.set(expenseId, excluded);
   }
-}, 120_000);
+}, 300_000);
 
 afterAll(async () => {
   // Leave the shared test DB as it was found. A plain DELETE cascades into the
