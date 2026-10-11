@@ -68,6 +68,7 @@ import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
 import { convertedCaption, isRatelessTransfer } from '@/lib/settleCurrency';
+import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useAddRate } from '@/lib/useAddRate';
 import {
   settleHero,
@@ -113,6 +114,13 @@ export function SettleBody({
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterMember, setFilterMember] = useState<string | null>(null);
+  // The row being confirmed stays put after the dialog closes, and only the
+  // open flag flips, so the dialog keeps its words through its fade-out.
+  const [settleAsk, setSettleAsk] = useState<{
+    kind: 'received' | 'paid';
+    transfer: PlanTransfer;
+  } | null>(null);
+  const [settleAskOpen, setSettleAskOpen] = useState(false);
 
   const currency = group.data?.default_currency ?? 'INR';
   const country = group.data?.country_code ?? null;
@@ -189,17 +197,9 @@ export function SettleBody({
   };
 
   /** Somebody paid me: ask before writing, it is easy to mis-tap a row. */
-  const markReceived = async (transfer: PlanTransfer): Promise<void> => {
-    const yes = await confirm({
-      title: fill(t.misc.settleReceivedTitle, {
-        amount: fmt(transfer.amount, transfer.currency),
-        name: nameOf(transfer.from),
-      }),
-      body: t.misc.settleReceivedBody,
-      confirmLabel: t.misc.settleReceivedConfirm,
-      cancelLabel: t.misc.recordNo,
-    });
-    if (yes) void record(transfer, defaultRailFor(country));
+  const markReceived = (transfer: PlanTransfer): void => {
+    setSettleAsk({ kind: 'received', transfer });
+    setSettleAskOpen(true);
   };
 
   /** A payment already marked and waiting on the other side: say so, record nothing. */
@@ -208,17 +208,9 @@ export function SettleBody({
   };
 
   /** I already paid, outside the app. */
-  const markPaid = async (transfer: PlanTransfer): Promise<void> => {
-    const yes = await confirm({
-      title: fill(t.misc.settleMarkPaidTitle, {
-        amount: fmt(transfer.amount, transfer.currency),
-        name: nameOf(transfer.to),
-      }),
-      body: t.misc.settleMarkPaidBody,
-      confirmLabel: t.misc.settleMarkPaidConfirm,
-      cancelLabel: t.misc.recordNo,
-    });
-    if (yes) void record(transfer, defaultRailFor(country));
+  const markPaid = (transfer: PlanTransfer): void => {
+    setSettleAsk({ kind: 'paid', transfer });
+    setSettleAskOpen(true);
   };
 
   /**
@@ -231,7 +223,7 @@ export function SettleBody({
     const payee = lookup.get(transfer.to);
     const payable = payee ? payableAt(payee) : null;
     if (!payee || !payable) {
-      await markPaid(transfer);
+      markPaid(transfer);
       return;
     }
     const railInfo = railById(payable.rail);
@@ -316,6 +308,22 @@ export function SettleBody({
   const ghostFor = (member: MemberRow | undefined): boolean =>
     Boolean(member && (isGhost(member) || isBlockedMember(member, blockedIds)));
 
+  // The other side of the row being confirmed: who paid me, or whom I paid.
+  const settleAskReceived = settleAsk?.kind === 'received';
+  const settleAskOtherId = settleAsk
+    ? settleAskReceived
+      ? settleAsk.transfer.from
+      : settleAsk.transfer.to
+    : null;
+  const settleAskName = settleAskOtherId ? nameOf(settleAskOtherId) : '';
+  const settleAskMember = settleAskOtherId ? lookup.get(settleAskOtherId) : undefined;
+  const settleAskTitle = settleAsk
+    ? fill(settleAskReceived ? t.misc.settleReceivedTitle : t.misc.settleConfirmPaidTitle, {
+        amount: fmt(settleAsk.transfer.amount, settleAsk.transfer.currency),
+        name: settleAskName,
+      })
+    : '';
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -382,7 +390,7 @@ export function SettleBody({
                   // The row has always been the way to say "they paid me".
                   accessibilityLabel={`${name}. ${t.misc.settleReceivedHint}`}
                   onPress={() =>
-                    void (isPending(transfer) ? explainPending() : markReceived(transfer))
+                    isPending(transfer) ? void explainPending() : markReceived(transfer)
                   }
                   disabled={recordSettlement.isPending}
                   action={
@@ -452,7 +460,7 @@ export function SettleBody({
                   // Already paid outside the app: the row records it, the
                   // button hands off to their payment app.
                   accessibilityLabel={fill(t.misc.settleMarkPaidA11y, { name, amount: amountText })}
-                  onPress={() => void (isPending(transfer) ? explainPending() : markPaid(transfer))}
+                  onPress={() => (isPending(transfer) ? void explainPending() : markPaid(transfer))}
                   disabled={recordSettlement.isPending}
                   action={
                     <Button
@@ -618,6 +626,34 @@ export function SettleBody({
           </Row>
         </Pressable>
       </ScrollView>
+
+      {settleAsk ? (
+        <SettleConfirmSheet
+          visible={settleAskOpen}
+          onClose={() => setSettleAskOpen(false)}
+          onConfirm={() => {
+            setSettleAskOpen(false);
+            void record(settleAsk.transfer, defaultRailFor(country));
+          }}
+          title={settleAskTitle}
+          body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}
+          avatar={
+            <MemberAvatar
+              name={settleAskName}
+              member={settleAskMember}
+              ghost={settleAskMember ? isGhost(settleAskMember) : false}
+              size={40}
+            />
+          }
+          name={settleAskName}
+          relation={settleAskReceived ? t.misc.settleConfirmPaidYou : t.misc.settleConfirmYouPaid}
+          amount={settleAsk.transfer.amount}
+          currency={settleAsk.transfer.currency as CurrencyCode}
+          confirmLabel={
+            settleAskReceived ? t.misc.settleReceivedConfirm : t.misc.settleConfirmPaidYes
+          }
+        />
+      ) : null}
     </View>
   );
 }

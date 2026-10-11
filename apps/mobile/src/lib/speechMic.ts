@@ -241,6 +241,27 @@ export class SpeechMic {
     return mine;
   }
 
+  /**
+   * The recogniser reported `end`, heard by an app-wide listener rather than a
+   * capture surface.
+   *
+   * The surfaces hear `end` through their own hooks, so when the voice screen
+   * is closed mid-sentence its abort's `end` arrives with nobody mounted to
+   * pass it on, and the next capture sat out the whole guard timer
+   * ({@link SETTLE_MS}) before it could open — a reopen inside 1.5 s waited the
+   * full 1.5 s. This settles exactly that teardown and nothing else: a session
+   * somebody owns is left alone (its own surface decides what its ending
+   * means). With no owner the `end` can only be the aborted session's, so the
+   * debt is paid here too — even when the guard timer already settled it — and
+   * cannot later swallow the next capture's genuine ending.
+   */
+  orphanEnded(): void {
+    if (this.owner !== null) return;
+    const closing = this.phase === 'closing';
+    this.owed = 0;
+    if (closing) this.settle();
+  }
+
   private settle(): void {
     if (this.guard !== null) {
       clearTimeout(this.guard);

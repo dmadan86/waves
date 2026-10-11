@@ -104,7 +104,7 @@ const TWILIO_TIMEOUT_MS = 15_000;
  * chunked encoding and can lie, so the running total is what actually enforces
  * the limit. Returns null when the body is too large.
  */
-async function readBoundedText(request: Request, limit: number): Promise<string | null> {
+export async function readBoundedText(request: Request, limit: number): Promise<string | null> {
   const declared = Number(request.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > limit) return null;
 
