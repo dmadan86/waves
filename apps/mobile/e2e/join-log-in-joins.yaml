@@ -1,0 +1,43 @@
+# Signed out, app closed: the invite opens the preview, "Log in" with a real
+# account, and the person lands in the group as a member (ADR-006 amendment,
+# 2026-10-11). Run on the iOS simulator:
+#
+#   maestro test --env JOIN_TOKEN=<token> --env B_EMAIL=<email> --env B_PW=<password> \
+#     apps/mobile/e2e/join-log-in-joins.yaml
+#
+# B must be an existing account that is not yet in the group. Reset the
+# simulator keychain first (`xcrun simctl keychain <sim> reset`) — iOS keeps the
+# session there across clearState.
+appId: app.wavs.mobile
+---
+- stopApp
+- openLink: 'waves:///join?token=${JOIN_TOKEN}'
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Sign up to join'
+    timeout: 30000
+- assertVisible: 'Log in'
+- assertNotVisible: '.*[Gg]uest.*'
+- tapOn:
+    id: 'join-log-in'
+- extendedWaitUntil:
+    visible: 'Email or phone number'
+    timeout: 10000
+- assertNotVisible: 'Continue as guest'
+- tapOn: 'Email or phone number'
+- inputText: ${B_EMAIL}
+- tapOn: 'Password'
+- inputText: ${B_PW}
+- tapOn: 'Sign in'
+- tapOn:
+    text: 'Not Now'
+    optional: true
+- tapOn:
+    text: 'Skip intro.*'
+    optional: true
+# The pending invite resumes after sign-in and opens the group.
+- extendedWaitUntil:
+    visible: '.*2 members.*'
+    timeout: 45000
