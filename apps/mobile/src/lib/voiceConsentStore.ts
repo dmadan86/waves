@@ -27,6 +27,14 @@ function publish(viewerId: string, record: VoiceConsentRecord | null): void {
   listeners.forEach((listener) => listener());
 }
 
+/**
+ * Read this account's stored answer into memory ahead of need — the voice mic
+ * waits on it before it opens, so the app start warms it (see `useVoiceWarmup`).
+ */
+export function preloadVoiceConsent(viewerId: string): Promise<void> {
+  return load(viewerId);
+}
+
 function load(viewerId: string): Promise<void> {
   if (current?.viewerId === viewerId) return Promise.resolve();
   const pending = loading.get(viewerId);
