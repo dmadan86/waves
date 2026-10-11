@@ -83,6 +83,9 @@ interface SyncResponseBody {
   /** The server truncated at least one table's page; more rows are waiting.
    *  Absent on older servers, so treated as false. */
   hasMore?: boolean;
+  /** The groups the caller is still an active member of. Absent on older
+   *  servers, which means nothing can be concluded from it. */
+  memberOf?: string[];
 }
 
 /** While the app is open and online, catch anything Realtime missed. */
@@ -372,7 +375,11 @@ export class SyncEngine {
    */
   async forgetGroup(groupId: string): Promise<void> {
     await this.flushing;
+    await this.dropGroup(groupId);
+  }
 
+  /** `forgetGroup` without the wait, for a flush that is itself the one in flight. */
+  private async dropGroup(groupId: string): Promise<void> {
     const tables = {} as Record<SyncTable, Record<string, MirrorRow>>;
     for (const table of Object.keys(this.state.mirror.tables) as SyncTable[]) {
       const kept: Record<string, MirrorRow> = {};
@@ -644,6 +651,18 @@ export class SyncEngine {
         lastError: null,
       });
 
+      // Removed by an admin: the server no longer lists the group as one of
+      // ours, and RLS means no pull will ever say so. Drop it here the way
+      // leaving does — unless something for it is still queued, which is a
+      // group made offline that the server has not seen yet.
+      for (const groupId of groupsNoLongerMine(
+        this.state.mirror,
+        this.state.queue,
+        response.memberOf,
+      )) {
+        await this.dropGroup(groupId);
+      }
+
       // The server capped a table at MAX_ROWS_PER_TABLE and left the cursor
       // below its high-water; the rest is still on the server. Drain it now
       // rather than waiting out the 30s poll, so a large backlog (a fresh device
@@ -866,3 +885,21 @@ async function describeFunctionError(error: unknown): Promise<string> {
 }
 
 export const syncEngine = new SyncEngine();
+
+/**
+ * Groups in the mirror the server says this person is no longer in. Nothing
+ * when the server did not say (an older deploy), and never a group with a
+ * mutation still queued — that is one the server has not been told about yet.
+ */
+export function groupsNoLongerMine(
+  mirror: MirrorState,
+  queue: readonly QueuedMutation[],
+  memberOf: readonly string[] | undefined,
+): string[] {
+  if (!memberOf) return [];
+  const mine = new Set(memberOf);
+  const queued = new Set(queue.map((mutation) => mutation.groupId));
+  return Object.keys(mirror.tables[SyncTable.Groups] ?? {}).filter(
+    (groupId) => !mine.has(groupId) && !queued.has(groupId),
+  );
+}
