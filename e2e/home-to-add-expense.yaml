@@ -18,7 +18,7 @@ appId: app.waves.mobile
 # Balances tab shows the seeded, unclaimed ghost
 - tapOn: 'Balances'
 - assertVisible: 'Priya'
-- assertVisible: 'not joined yet'
+- assertVisible: 'Not on Waves yet'
 
 # Add expense, with the calculator in the amount field
 - tapOn: 'Expenses'
