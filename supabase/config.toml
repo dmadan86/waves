@@ -21,6 +21,9 @@ major_version = 17
 enabled = true
 port = 54329
 pool_mode = "transaction"
+# The hosted project's sizes, mirrored so a push leaves them alone.
+default_pool_size = 15
+max_client_conn = 200
 
 [realtime]
 enabled = true
@@ -36,13 +39,24 @@ enabled = true
 [storage.vector]
 enabled = false
 
+# On in the hosted project; mirrored so a push leaves them alone.
+[storage.image_transformation]
+enabled = true
+
+[storage.analytics]
+enabled = true
+max_namespaces = 10
+
 # Receipts live in a private bucket, reachable only through signed URLs
 # (ADR-013). The bucket itself is created by a migration in M5.
 file_size_limit = "10MiB"
 
 [auth]
 enabled = true
-site_url = "waves://"
+# Matches the hosted project. The fallback redirect when a request names none of
+# `additional_redirect_urls` — the web app, which a browser can open; the phone
+# always asks for `waves://auth` explicitly.
+site_url = "https://app.wavs.co.in"
 # `waves://auth` is what `makeRedirectUri({ scheme: 'waves', path: 'auth' })`
 # produces, and Supabase matches these exactly — `waves://` on its own does not
 # cover it, so leaving it out sends every OAuth round trip to site_url instead
@@ -200,16 +214,13 @@ content_path = "./supabase/templates/reauthentication.html"
 # ADR-006: guests join a group from a link with no account at all, so phone is a
 # way to keep an account, never the way to get one.
 #
-# Signup is off because no SMS provider is configured on either stack. Turned on
-# without one, Supabase marks Twilio enabled with empty credentials, every code
-# fails to send, and the person is left on a screen waiting for an SMS that was
-# never posted. Turn both on in the same change that adds the credentials.
 [auth.sms]
-# Stays off, and the client agrees: `sendOtp` in apps/mobile/src/lib/auth.tsx
-# passes `shouldCreateUser: false`, and the phone tile is absent from the
-# sign-up door. A number signs a person back in, or attaches to the account a
-# guest already has; it never opens a new one.
-enable_signup = false
+# On, matching the hosted project. The app still never opens an account by
+# phone: `sendPhoneCode` asks GoTrue with `create_user: false`, and the phone
+# tile is absent from the sign-up door. A number signs a person back in, or
+# attaches to the account a guest already has. Only a modified client asking
+# with `create_user: true` could mint a phone-only account.
+enable_signup = true
 enable_confirmations = true
 
 # Programmable Messaging — not used. Verify below is the provider; this block
@@ -350,8 +361,19 @@ secrets = "env(SEND_EMAIL_HOOK_SECRETS)"
 # on 2026-09-04.
 [auth.external.google]
 enabled = true
-client_id = "484909326858-1va1lbsiba9chuouu8e3m7u9bbivoj02.apps.googleusercontent.com"
+# The hosted project lists four: the current web client last, plus three
+# 654054834944-* clients kept as accepted ID-token audiences. Mirrored here so a
+# `config push` cannot quietly drop them.
+client_id = "654054834944-2bvm97mlqcgncigh203e9tm30g0rt9e4.apps.googleusercontent.com,654054834944-jjuc5oh59gavuvkld7ov2kk35v1v9s6m.apps.googleusercontent.com,654054834944-4v6n1adb04ipq5dblem6nd5tjuoskc2s.apps.googleusercontent.com,484909326858-1va1lbsiba9chuouu8e3m7u9bbivoj02.apps.googleusercontent.com"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# On in the hosted project, so ID tokens minted without a nonce are accepted.
+skip_nonce_check = true
+
+# The OAuth 2.1 server (with dynamic client registration) the Waves MCP
+# connector signs in through. On in the hosted project.
+[auth.oauth_server]
+enabled = true
+allow_dynamic_registration = true
 
 # Sign in with Apple. Two audiences share one block:
 #   - the Services ID (`app.wavs.web`) authorizes the browser-redirect fallback
