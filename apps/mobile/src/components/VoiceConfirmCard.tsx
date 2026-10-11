@@ -40,7 +40,9 @@ import {
   initialFields,
   matchMember,
   namesIn,
+  reseedFields,
   resolveConfirm,
+  sameFields,
   type ConfirmableAction,
   type ConfirmFields,
 } from '@/lib/voiceConfirmPure';
@@ -108,6 +110,14 @@ export function VoiceConfirmCard({
 
   const initial = useMemo(() => initialFields(action, local, youLabel), [action, local, youLabel]);
   const [fields, setFields] = useState<ConfirmFields>(initial);
+  // The starting values can move after mount: the reader's groups and people
+  // often load after the agent's answer on a first run. Untouched fields follow
+  // them (React's "adjust state when the input changes" pattern, no effect).
+  const [seen, setSeen] = useState<ConfirmFields>(initial);
+  if (!sameFields(seen, initial)) {
+    setSeen(initial);
+    setFields(reseedFields(seen, initial, fields));
+  }
   const patch = (next: Partial<ConfirmFields>): void =>
     setFields((current) => ({ ...current, ...next }));
   useEffect(() => {

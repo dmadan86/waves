@@ -87,6 +87,33 @@ export function initialFields(
   };
 }
 
+/**
+ * The fields after the proposal's own starting values changed under them.
+ *
+ * `initialFields` reads the reader's groups and members, which on a first run
+ * (a cold mirror, a session still restoring) arrive after the agent's answer. A
+ * screen that seeded its fields once would keep the empty ones forever: no
+ * group, nobody in "with", while the proposal itself is complete. So when the
+ * starting values move, every field the person has not touched follows them, and
+ * every field they have touched stays as they left it.
+ */
+export function reseedFields(
+  previous: ConfirmFields,
+  next: ConfirmFields,
+  current: ConfirmFields,
+): ConfirmFields {
+  const merged = { ...current };
+  for (const key of Object.keys(next) as (keyof ConfirmFields)[]) {
+    if (current[key] === previous[key]) (merged as Record<string, unknown>)[key] = next[key];
+  }
+  return merged;
+}
+
+/** Whether two sets of fields hold the same values. */
+export function sameFields(a: ConfirmFields, b: ConfirmFields): boolean {
+  return (Object.keys(a) as (keyof ConfirmFields)[]).every((key) => a[key] === b[key]);
+}
+
 /** The member a typed name stands for: an exact match, else the only prefix match. */
 export function matchMember(
   group: AgentLocalGroup,
