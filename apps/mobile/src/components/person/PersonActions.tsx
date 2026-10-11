@@ -24,21 +24,23 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Linking, View } from 'react-native';
 
-import { buildPaymentUri, toMajorString, type CurrencyCode } from '@waves/core';
+import { buildPaymentUri, format, money, toMajorString, type CurrencyCode } from '@waves/core';
 import { Button, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useGroup, useGroupLedger, useRecordSettlement } from '@/data/hooks';
-import { displayName, payableAt } from '@/data/types';
+import { displayName, groupLabel, payableAt } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
+import { GhostChannel, ghostReminderMessage } from '@/lib/ghostReminder';
 import { useNudge } from '@/lib/nudge';
 import { findPersonMember, type ActionTarget } from '@/lib/personActions';
 import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { useAddRate } from '@/lib/useAddRate';
+import { useGhostReminder } from '@/lib/useGhostReminder';
 
 export function PersonActions({
   personKey,
@@ -55,7 +57,7 @@ export function PersonActions({
   owed: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const { confirm, notify } = useDialog();
   const { profile } = useAuth();
   const guard = useGuestGuard();
@@ -79,6 +81,42 @@ export function PersonActions({
   const actionable = groupCurrency !== null && !rateless;
   // A guest has no account to notify, so a reminder to one would only fail.
   const canRemind = actionable && owed && Boolean(member) && Boolean(member?.profile_id);
+  // Someone not on Waves gets the reminder outside the app instead: WhatsApp to
+  // their phone, mail to their email, else the share sheet, with the group's
+  // join link in it (see `useGhostReminder`).
+  const canRemindGhost = actionable && owed && Boolean(member) && !member?.profile_id;
+  const ghostReminder = useGhostReminder({
+    groupId: target.groupId,
+    memberId: member?.id ?? '',
+    phone: member?.invite_phone ?? null,
+    email: member?.invite_email ?? null,
+    joinToken: group.data?.join_token ?? null,
+  });
+  const ghostLabel =
+    ghostReminder.channel === GhostChannel.WhatsApp
+      ? t.ghostRemind.remindWhatsApp
+      : ghostReminder.channel === GhostChannel.Email
+        ? t.ghostRemind.remindEmail
+        : t.people.remind;
+  const ghostIcon =
+    ghostReminder.channel === GhostChannel.WhatsApp
+      ? 'logo-whatsapp'
+      : ghostReminder.channel === GhostChannel.Email
+        ? 'mail-outline'
+        : 'share-outline';
+  const remindGhost = (): void => {
+    const groupName = groupLabel(group.data, members.data ?? [], profile?.id);
+    const amount = format(money(target.amount, currency as CurrencyCode), { locale });
+    ghostReminder.send((link) => ({
+      message: ghostReminderMessage(link ? t.ghostRemind.message : t.ghostRemind.messageNoLink, {
+        name,
+        amount,
+        group: groupName,
+        link: link ?? '',
+      }),
+      subject: fill(t.ghostRemind.emailSubject, { group: groupName }),
+    }));
+  };
   const canPay = actionable && !owed && Boolean(member) && Boolean(myMemberId);
 
   const record = async (): Promise<void> => {
@@ -193,6 +231,23 @@ export function PersonActions({
             onPress={nudge.send}
           />
         ) : null}
+        {canRemindGhost && !ghostReminder.reminded ? (
+          <Button
+            size="sm"
+            variant="brand"
+            label={ghostLabel}
+            accessibilityLabel={`${ghostLabel}. ${fill(t.person.remindA11y, { name })}`}
+            icon={
+              <Ionicons
+                name={ghostIcon as 'logo-whatsapp'}
+                size={iconSize.sm}
+                color={theme.color.onBrand}
+              />
+            }
+            disabled={ghostReminder.pending}
+            onPress={remindGhost}
+          />
+        ) : null}
         {canPay && payable ? (
           <Button
             size="sm"
@@ -222,6 +277,11 @@ export function PersonActions({
           onPress={() => router.push(`/group/${target.groupId}/settle`)}
         />
       </Row>
+      {canRemindGhost && ghostReminder.reminded ? (
+        <Text variant="caption" tone="positive" accessibilityLiveRegion="polite">
+          {t.people.reminded}
+        </Text>
+      ) : null}
       {nudge.outcome ? (
         <Text
           variant="caption"
