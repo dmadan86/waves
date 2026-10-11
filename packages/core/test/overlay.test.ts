@@ -33,6 +33,8 @@ import {
   materialiseMemberBudgets,
   materialiseMembers,
   materialisePlanItems,
+  materialiseSettlementProof,
+  materialiseSettlementProofs,
   materialiseSettlements,
   MutationKind,
   openCaptures,
@@ -64,6 +66,56 @@ function queued(...envelopes: MutationEnvelope[]): QueuedMutation[] {
   for (const item of envelopes) queue = enqueue(queue, item);
   return queue;
 }
+
+describe('settlement proofs', () => {
+  const proof = (
+    id: string,
+    settlementId: string,
+    createdAt: string,
+    deletedAt: string | null,
+  ) => ({
+    table: SyncTable.SettlementProofs,
+    groupId: GROUP,
+    seq: 1,
+    row: {
+      id,
+      group_id: GROUP,
+      settlement_id: settlementId,
+      storage_path: `${settlementId}/${id}.webp`,
+      uploader_member_id: 'member-a',
+      created_at: createdAt,
+      deleted_at: deletedAt,
+    },
+  });
+
+  it('holds several live proofs for one payment, oldest first, without the removed ones', () => {
+    const mirror = reconcile(emptyMirror(), [
+      proof('p-3', 's-1', '2026-10-03T00:00:00Z', null),
+      proof('p-1', 's-1', '2026-10-01T00:00:00Z', null),
+      proof('p-2', 's-1', '2026-10-02T00:00:00Z', '2026-10-02T01:00:00Z'),
+      proof('p-9', 's-2', '2026-10-01T00:00:00Z', null),
+    ]).state;
+    expect(materialiseSettlementProofs(mirror, { settlementId: 's-1' }).map((p) => p.id)).toEqual([
+      'p-1',
+      'p-3',
+    ]);
+    // Older code asking for "the" proof still gets one: the first.
+    expect(materialiseSettlementProof(mirror, { settlementId: 's-1' })?.id).toBe('p-1');
+    expect(materialiseSettlementProofs(mirror, { settlementId: 's-none' })).toEqual([]);
+    expect(materialiseSettlementProof(mirror, { settlementId: 's-none' })).toBeNull();
+  });
+
+  it('orders proofs created in the same instant by id, the same on every device', () => {
+    const mirror = reconcile(emptyMirror(), [
+      proof('p-b', 's-1', '2026-10-01T00:00:00Z', null),
+      proof('p-a', 's-1', '2026-10-01T00:00:00Z', null),
+    ]).state;
+    expect(materialiseSettlementProofs(mirror, { settlementId: 's-1' }).map((p) => p.id)).toEqual([
+      'p-a',
+      'p-b',
+    ]);
+  });
+});
 
 describe('settlements', () => {
   const settle = envelope('m-1', MutationKind.SettlementCreate, {
@@ -121,6 +173,20 @@ describe('settlements', () => {
     );
     const [row] = materialiseSettlements(mirror, queue, { groupId: GROUP });
     expect(row).toMatchObject({ id: 's-9', status: 'confirmed', pending: true });
+  });
+
+  it('carries the day it was paid on a payment recorded with no network', () => {
+    const dated = queued({
+      ...settle,
+      clientMutationId: 'm-dated',
+      payload: { ...(settle.payload as Record<string, unknown>), paidAt: '2026-10-08' },
+    });
+    const [row] = materialiseSettlements(emptyMirror(), dated, { groupId: GROUP });
+    expect(row?.paid_at).toBe('2026-10-08');
+    expect(row?.reminded_at).toBeNull();
+    // An older payload has none; the screen then falls back to the recorded day.
+    const [older] = materialiseSettlements(emptyMirror(), queued(settle), { groupId: GROUP });
+    expect(older?.paid_at).toBeNull();
   });
 
   it('leaves another group alone', () => {

@@ -39,6 +39,7 @@ import {
   materialiseExpenseImageEvents,
   materialisePlanItems,
   materialiseSettlementProof,
+  materialiseSettlementProofs,
   materialiseSettlements,
   MutationKind,
   nextSortOrder,
@@ -124,12 +125,19 @@ import { totalsByCurrency } from './totals';
 import { serialiseExpense } from './serialiseExpense';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
 import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
+import { localDay } from '@/lib/paymentProof';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
 import { sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
+import { rememberVoiceAgentStatus, useVoiceAgentLastKnown } from '@/lib/voiceAgentLastKnown';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { previousMonthPrefix } from '@/lib/homeDashboard';
-import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
+import {
+  newestActivityFromOthers,
+  newestActivityFromOthersByGroup,
+  recentActivity,
+  type RecentActivityRow,
+} from './recentActivity';
 import { useBlockedUsers } from './blocked';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
@@ -1104,6 +1112,14 @@ export function useNewestActivityFromOthers(myProfileId: string | null): number 
   return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
 }
 
+/** Per group, when somebody else last did something in it, in ms (absent: never). */
+export function useNewestActivityFromOthersByGroup(
+  myProfileId: string | null,
+): Map<string, number> {
+  const { mirror } = useSync();
+  return useMemo(() => newestActivityFromOthersByGroup(mirror, myProfileId), [mirror, myProfileId]);
+}
+
 /** How much a destination (group, or a person's 1:1 group) has been used. */
 export interface DestinationUsage {
   /** ISO of the most recent non-deleted expense in it, or null if never. */
@@ -1742,6 +1758,8 @@ export function useRecordSettlement(groupId: string) {
           rail: input.rail,
           currency: input.currency ?? null,
           note: input.note ?? null,
+          // The day the money moved: today on this phone unless the caller says otherwise.
+          paidAt: input.paidAt ?? localDay(new Date()),
           allocations: (input.allocations ?? []).map((allocation) => ({
             expenseId: allocation.expenseId,
             amount: allocation.amount.toString(),
@@ -2777,20 +2795,35 @@ export interface SettlementProofRow {
   createdAt: string | null;
 }
 
-/** The payment proof on a settlement, visible to its two parties only, or null. */
+function toProofRow(
+  row: ReturnType<typeof materialiseSettlementProofs>[number],
+): SettlementProofRow {
+  return {
+    id: row.id,
+    settlementId: row.settlement_id,
+    groupId: row.group_id,
+    storagePath: row.storage_path,
+    uploaderMemberId: row.uploader_member_id,
+    createdAt: row.created_at,
+  };
+}
+
+/** The payment proofs on a settlement (up to two), oldest first. Parties only. */
+export function useSettlementProofs(settlementId: string): LocalRead<SettlementProofRow[]> {
+  const { mirror } = useSync();
+  const proofs = useMemo(
+    () => materialiseSettlementProofs(mirror, { settlementId }).map(toProofRow),
+    [mirror, settlementId],
+  );
+  return useLocalRead(proofs);
+}
+
+/** The first payment proof on a settlement, visible to its two parties only, or null. */
 export function useSettlementProof(settlementId: string): LocalRead<SettlementProofRow | null> {
   const { mirror } = useSync();
   const proof = useMemo(() => {
     const row = materialiseSettlementProof(mirror, { settlementId });
-    if (!row) return null;
-    return {
-      id: row.id,
-      settlementId: row.settlement_id,
-      groupId: row.group_id,
-      storagePath: row.storage_path,
-      uploaderMemberId: row.uploader_member_id,
-      createdAt: row.created_at,
-    } as SettlementProofRow;
+    return row ? toProofRow(row) : null;
   }, [mirror, settlementId]);
   return useLocalRead(proof);
 }
@@ -2844,6 +2877,42 @@ export function useRemoveSettlementProof(settlementId: string) {
       await removeRestrictedImage('settlement-proofs', settlementId, input.storagePath).catch(
         () => {},
       );
+    },
+    onSuccess: () => void flush(),
+  });
+}
+
+/**
+ * Ask the payee to confirm a payment still waiting on them. The server pushes a
+ * payee on Waves and enforces one reminder per payment per day; for a payee who
+ * is not on Waves it only stamps the cooldown and answers `external`, and the
+ * caller sends the message itself (WhatsApp / share sheet).
+ */
+export function useRemindSettlement(settlementId: string) {
+  const { flush } = useSync();
+  return useMutation({
+    mutationFn: async (): Promise<'notified' | 'external'> => {
+      const { data, error } = await backend.rpc('waves_remind_settlement_confirm', {
+        p_settlement_id: settlementId,
+      });
+      if (error) throw new Error(error.message);
+      return data === 'external' ? 'external' : 'notified';
+    },
+    // The stamp comes back on the next pull; "Reminded just now" needs it.
+    onSuccess: () => void flush(),
+  });
+}
+
+/** Correct the day a payment was made (payer only, while it is still open). */
+export function useSetSettlementPaidAt(settlementId: string) {
+  const { flush } = useSync();
+  return useMutation({
+    mutationFn: async (paidAt: string) => {
+      const { error } = await backend.rpc('waves_set_settlement_paid_at', {
+        p_settlement_id: settlementId,
+        p_paid_at: paidAt,
+      });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => void flush(),
   });
@@ -2986,20 +3055,39 @@ export function useVoiceAgentEnabled(): boolean {
   return useVoiceAgentStatus().enabled;
 }
 
-/** `enabled` plus whether the answer is known yet (a pending read is not "off"). */
-export function useVoiceAgentStatus(): { enabled: boolean; ready: boolean } {
+/**
+ * `enabled` plus whether the answer is known yet (a pending read is not "off"),
+ * and `lastKnown`: the answer this phone last saw, remembered across launches,
+ * so the mic can open at once on a cold start instead of waiting for the server
+ * (null when it has never seen one).
+ *
+ * Mounted from the tab bar as well as the voice screen, so the read is already
+ * in flight — usually done — by the time the mic is tapped.
+ */
+export function useVoiceAgentStatus(): {
+  enabled: boolean;
+  ready: boolean;
+  lastKnown: boolean | null;
+} {
   const { profile } = useAuth();
+  const profileId = profile?.id ?? null;
   const query = useQuery({
-    queryKey: ['voiceAgentEnabled', profile?.id ?? null],
+    queryKey: ['voiceAgentEnabled', profileId],
     queryFn: async (): Promise<boolean> => {
       const { data, error } = await backend.rpc('waves_my_voice_agent_enabled');
       if (error) throw new Error(error.message);
       return data === true;
     },
-    enabled: !!profile?.id,
+    enabled: !!profileId,
     staleTime: 10 * 60_000,
   });
-  return { enabled: query.data === true, ready: !profile?.id || !query.isPending };
+  const lastKnown = useVoiceAgentLastKnown(profileId);
+  // Only a real answer is remembered; a failed read (shown as "off") is not.
+  const answer = query.isSuccess ? query.data === true : null;
+  useEffect(() => {
+    if (profileId && answer !== null) rememberVoiceAgentStatus(profileId, answer);
+  }, [profileId, answer]);
+  return { enabled: query.data === true, ready: !profileId || !query.isPending, lastKnown };
 }
 
 export function useVoiceAccess() {

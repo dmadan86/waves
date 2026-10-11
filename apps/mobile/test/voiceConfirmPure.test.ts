@@ -5,6 +5,8 @@ import {
   initialFields,
   matchMember,
   orderGroupTiles,
+  reseedFields,
+  sameFields,
   resolveConfirm,
   type AddExpenseAction,
   type AddPersonalAction,
@@ -208,5 +210,42 @@ describe('group tiles', () => {
   it('keeps a group picked from "Other group" visible', () => {
     const tiles = orderGroupTiles(local.groups, 'g1', 'g3', activity, 2);
     expect(tiles.map((g) => g.id)).toEqual(['g1', 'g3']);
+  });
+});
+
+describe("fields when the reader's groups load after the proposal (first run)", () => {
+  const cold: AgentLocalData = { groups: [] };
+
+  it('a cold start reads no group and nobody, which is what the card was stuck with', () => {
+    const early = initialFields(action, cold, 'You');
+    expect(early.groupId).toBeNull();
+    expect(early.personText).toBe('');
+  });
+
+  it('untouched fields follow the starting values once the groups arrive', () => {
+    const early = initialFields(action, cold, 'You');
+    const loaded = initialFields(action, local, 'You');
+    expect(sameFields(early, loaded)).toBe(false);
+    expect(reseedFields(early, loaded, early)).toEqual(loaded);
+  });
+
+  it('keeps what the person already changed', () => {
+    const early = initialFields(action, cold, 'You');
+    const loaded = initialFields(action, local, 'You');
+    const typed = { ...early, description: 'Lunch', amountText: '250', note: 'with dessert' };
+    expect(reseedFields(early, loaded, typed)).toEqual({
+      ...loaded,
+      description: 'Lunch',
+      amountText: '250',
+      note: 'with dessert',
+    });
+  });
+
+  it('writes the whole proposal, people included, from the reseeded fields', () => {
+    const early = initialFields(action, cold, 'You');
+    const loaded = initialFields(action, local, 'You');
+    const fields = reseedFields(early, loaded, early);
+    const result = resolveConfirm(action, loaded, fields, local, 'You', 'an expense');
+    expect(result).toEqual({ ok: true, action });
   });
 });
