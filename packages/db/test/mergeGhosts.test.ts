@@ -190,3 +190,148 @@ describe('merging guests unions overlapping groups', () => {
     expect(await personIdOf(caller, ghostC!)).toBe(pa);
   });
 });
+
+/** Merge with the contact parameters, as the newer app sends them. */
+async function mergeWith(
+  profileId: string,
+  memberIds: string[],
+  name: string,
+  phone: string | null,
+  email: string | null = null,
+): Promise<string> {
+  return asUser(profileId, async () => {
+    const { rows } = await client.query(
+      `SELECT waves_merge_ghosts($1::uuid[], $2, $3, $4) AS person_id`,
+      [memberIds, name, phone, email],
+    );
+    return String(rows[0]?.person_id);
+  });
+}
+
+async function contactOf(
+  memberId: string,
+): Promise<{ phone: string | null; email: string | null }> {
+  const { rows } = await client.query(
+    `SELECT invite_phone, invite_email FROM group_members WHERE id = $1`,
+    [memberId],
+  );
+  return { phone: rows[0]?.invite_phone ?? null, email: rows[0]?.invite_email ?? null };
+}
+
+async function setContact(
+  memberId: string,
+  phone: string | null,
+  email: string | null = null,
+): Promise<void> {
+  await client.query(
+    `UPDATE group_members SET invite_phone = $2, invite_email = $3 WHERE id = $1`,
+    [memberId, phone, email],
+  );
+}
+
+describe('merging guests keeps a chosen phone and email', () => {
+  it('keeps the chosen phone on every merged membership', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 3 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB, ghostC] = memberIds;
+    await setContact(ghostA!, '+919876543210');
+    await setContact(ghostB!, '+14155550123');
+
+    await mergeWith(caller, [ghostA!, ghostB!, ghostC!], 'Ravi', '+14155550123');
+
+    for (const id of [ghostA!, ghostB!, ghostC!]) {
+      expect((await contactOf(id)).phone).toBe('+14155550123');
+    }
+  });
+
+  it('normalises a typed number and accepts a new valid one', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 2 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB] = memberIds;
+
+    await mergeWith(caller, [ghostA!, ghostB!], 'Ravi', '+44 (20) 7946-0958');
+
+    expect((await contactOf(ghostA!)).phone).toBe('+442079460958');
+    expect((await contactOf(ghostB!)).phone).toBe('+442079460958');
+  });
+
+  it('refuses an invalid phone and writes nothing', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 2 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB] = memberIds;
+    await setContact(ghostA!, '+919876543210');
+
+    await expect(mergeWith(caller, [ghostA!, ghostB!], 'Ravi', '98765')).rejects.toThrow(
+      /PHONE_NEEDS_COUNTRY_CODE/,
+    );
+    await expect(mergeWith(caller, [ghostA!, ghostB!], 'Ravi', '+0123')).rejects.toThrow(
+      /PHONE_NOT_VALID/,
+    );
+    expect(await personIdOf(caller, ghostA!)).toBeNull();
+    expect((await contactOf(ghostA!)).phone).toBe('+919876543210');
+  });
+
+  it('clears the phone on an empty string ("No phone")', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 2 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB] = memberIds;
+    await setContact(ghostA!, '+919876543210', 'ravi@example.com');
+
+    await mergeWith(caller, [ghostA!, ghostB!], 'Ravi', '', null);
+
+    expect(await contactOf(ghostA!)).toEqual({ phone: null, email: 'ravi@example.com' });
+  });
+
+  it('keeps a chosen email, lowercased, and refuses a malformed one', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 2 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB] = memberIds;
+    await setContact(ghostA!, null, 'old@example.com');
+
+    await expect(mergeWith(caller, [ghostA!, ghostB!], 'Ravi', null, 'nope')).rejects.toThrow(
+      /EMAIL_NOT_VALID/,
+    );
+    await mergeWith(caller, [ghostA!, ghostB!], 'Ravi', null, ' Ravi@Example.COM ');
+
+    expect((await contactOf(ghostA!)).email).toBe('ravi@example.com');
+    expect((await contactOf(ghostB!)).email).toBe('ravi@example.com');
+  });
+
+  it('still works with two arguments and leaves the contact alone', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 2 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB] = memberIds;
+    await setContact(ghostA!, '+919876543210');
+    await setContact(ghostB!, '+14155550123');
+
+    await merge(caller, [ghostA!, ghostB!], 'Ravi');
+
+    expect(await personIdOf(caller, ghostA!)).not.toBeNull();
+    expect((await contactOf(ghostA!)).phone).toBe('+919876543210');
+    expect((await contactOf(ghostB!)).phone).toBe('+14155550123');
+  });
+
+  it('extends the kept phone to members folded by an earlier merge', async () => {
+    const { profileIds, memberIds } = await seedGroup(client, { memberCount: 1, ghostCount: 3 });
+    const caller = profileIds[0]!;
+    const [, ghostA, ghostB, ghostC] = memberIds;
+
+    await merge(caller, [ghostA!, ghostB!], 'Ravi');
+    await mergeWith(caller, [ghostB!, ghostC!], 'Ravi', '+919876543210');
+
+    expect((await contactOf(ghostA!)).phone).toBe('+919876543210');
+  });
+
+  it('is the only waves_merge_ghosts, executable by authenticated and not anon', async () => {
+    const { rows } = await client.query(
+      `SELECT p.oid::regprocedure::text AS sig,
+              has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authed,
+              has_function_privilege('anon', p.oid, 'EXECUTE') AS anon
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'waves_merge_ghosts'`,
+    );
+    expect(rows).toEqual([
+      { sig: 'waves_merge_ghosts(uuid[],text,text,text)', authed: true, anon: false },
+    ]);
+  });
+});

@@ -1229,11 +1229,21 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
      *
      * The message comes back raw on purpose: each refusal is a different
      * sentence to a person, and the caller maps the code.
+     *
+     * `keep` is the phone and email the merged person keeps on every merged
+     * membership: a value keeps it, `''` clears it, and an absent field leaves
+     * each membership's own value alone (and is not sent at all).
      */
-    mergeGhosts(memberIds: readonly string[], name: string): Promise<string> {
+    mergeGhosts(
+      memberIds: readonly string[],
+      name: string,
+      keep: { readonly phone?: string; readonly email?: string } = {},
+    ): Promise<string> {
       return rpc<string>('waves_merge_ghosts', {
         p_member_ids: [...memberIds],
         p_name: name,
+        ...(keep.phone !== undefined ? { p_phone: keep.phone } : {}),
+        ...(keep.email !== undefined ? { p_email: keep.email } : {}),
       });
     },
 

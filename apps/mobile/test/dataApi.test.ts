@@ -563,6 +563,14 @@ const rpcCases: [string, () => Promise<unknown>, string, unknown, unknown, unkno
     undefined,
   ],
   [
+    'mergeGhosts keeping a phone and clearing the email',
+    () => api.mergeGhosts(['m1', 'm2'], 'Ravi', { phone: '+919876543210', email: '' }),
+    'waves_merge_ghosts',
+    { p_member_ids: ['m1', 'm2'], p_name: 'Ravi', p_phone: '+919876543210', p_email: '' },
+    null,
+    undefined,
+  ],
+  [
     'nudgeToSettle',
     () => api.nudgeToSettle({ groupId: 'g1', toMemberId: 'm2', currency: 'INR' }),
     'waves_nudge_to_settle',
