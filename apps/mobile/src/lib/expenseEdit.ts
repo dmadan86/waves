@@ -18,6 +18,7 @@
  */
 
 import {
+  cleanPayee,
   computeShares,
   format,
   formatMinorInput,
@@ -57,6 +58,8 @@ export interface ExpenseEditState {
   expenseDate: string;
   /** The time of day chosen for the bill (ISO instant), or null when none was. */
   occurredAt: string | null;
+  /** "Paid to": who outside the group the money went to, or null. */
+  payee: string | null;
   /** The currency the bill was paid in — never converted by an edit. */
   currency: string;
   fx: FxRecord | null;
@@ -132,6 +135,7 @@ export function editStateFromVersion(
     categoryMeta: (version.category_meta as CategoryMeta | null) ?? null,
     expenseDate: version.expense_date,
     occurredAt: version.occurred_at ?? null,
+    payee: version.payee ?? null,
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
     splitKind: splitKindOf(version.split_type),
@@ -323,6 +327,9 @@ export function expenseWritePayload(input: {
     categoryMeta: state.categoryMeta,
     expenseDate: state.expenseDate,
     occurredAt: state.occurredAt,
+    // Always sent: '' is "no payee" and clears one an earlier version had. An
+    // absent field means "this build does not know about it" and keeps it.
+    payee: cleanPayee(state.payee) ?? '',
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,

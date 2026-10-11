@@ -626,6 +626,12 @@ model ExpenseVersion {
   /// truth for the day. Carried forward by waves_apply_expense when an edit
   /// from an older client sends none and the day did not change.
   occurredAt       DateTime?     @map("occurred_at") @db.Timestamptz(6)
+  /// "Paid to": who outside the group the money went to (a landlord, a rental
+  /// firm, a maid). Free text, never part of a balance. NULL when unset.
+  /// Trimmed, non-empty, <= 80 chars (CHECK in the migration SQL). Carried
+  /// forward by waves_apply_expense when an edit from an older client sends
+  /// none; a newer client clears it with ''.
+  payee            String?
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)

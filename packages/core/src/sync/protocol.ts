@@ -154,6 +154,9 @@ export interface ExpenseCreatePayload {
   /** The time of day the person chose (ISO instant, UTC); null/absent keeps
    *  whatever the server already has, or none on a new expense. */
   readonly occurredAt?: string | null;
+  /** "Paid to": who outside the group the money went to. Absent (an older
+   *  build) keeps what the server already has; '' clears it. */
+  readonly payee?: string | null;
 }
 
 /** The four ways an expense is paid for; optional everywhere it appears. */

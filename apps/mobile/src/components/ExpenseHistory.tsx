@@ -141,6 +141,7 @@ const CHANGE_ICONS: Record<ExpenseChange['field'], React.ComponentProps<typeof I
     payers: 'wallet-outline',
     participants: 'people-outline',
     notes: 'document-text-outline',
+    payee: 'send-outline',
     paymentMethod: 'card-outline',
     time: 'time-outline',
     receipt: 'receipt-outline',
@@ -208,7 +209,12 @@ function describeChanges(
       case 'text':
         return {
           key: change.field,
-          label: change.field === 'notes' ? t.expense.audit.notes : t.expense.audit.description,
+          label:
+            change.field === 'notes'
+              ? t.expense.audit.notes
+              : change.field === 'payee'
+                ? t.expense.audit.payee
+                : t.expense.audit.description,
           kind: 'text',
           oldText: change.oldText || t.expense.audit.none,
           newText: change.newText || t.expense.audit.none,
