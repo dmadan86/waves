@@ -38,6 +38,7 @@ import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
 import { useTabBarSuppressed } from '@/lib/tabBarSuppress';
+import { useVoiceWarmup } from '@/lib/voiceWarmup';
 
 /**
  * How far the finger has to slide off the mic to call the whole thing off.
@@ -68,6 +69,9 @@ function buzz(ms: number): void {
 export function AppTabBar() {
   const { t, locale } = useStrings();
   const { session } = useAuth();
+  // The bar carries the mic, so it is where the mic's slow answers are fetched
+  // ahead of the tap: the voice screen then opens straight onto a live mic.
+  useVoiceWarmup();
   // `useSegments` is typed as a union of fixed-length route tuples, so indexing
   // past the first element trips the tuple bounds check under the CI tsconfig.
   // We only ever read positions generically, so widen to a plain string array.

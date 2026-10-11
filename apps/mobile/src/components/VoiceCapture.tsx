@@ -58,6 +58,7 @@ import {
   type VoiceCloudConsent,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
+import { createModelProbe, planAgentWait } from '@/lib/voiceStartPure';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
 /**
@@ -85,6 +86,29 @@ speechMic.attach({
   stop: () => ExpoSpeechRecognitionModule.stop(),
   abort: () => ExpoSpeechRecognitionModule.abort(),
 });
+
+// An app-wide ear for `end`, so a session aborted by a screen that has since
+// unmounted is settled the moment its teardown lands rather than after the
+// arbiter's 1.5 s guard — which is what a quick close-and-reopen used to wait
+// out. Never acts on a session somebody owns (see `SpeechMic.orphanEnded`).
+try {
+  ExpoSpeechRecognitionModule.addListener('end', () => speechMic.orphanEnded());
+} catch {
+  // No event emitter on this build: the guard timer still settles it.
+}
+
+/**
+ * Dev-only timing for the start sequence, so the next "it feels slow" can be
+ * measured rather than guessed: one line per step, milliseconds since the tap.
+ * Compiled to nothing that logs in a release build.
+ */
+function startTimer(): (step: string) => void {
+  if (!__DEV__) return () => {};
+  const t0 = performance.now();
+  return (step) => {
+    console.log(`[voice-start] ${step} +${Math.round(performance.now() - t0)}ms`);
+  };
+}
 
 /**
  * How long a session may stay completely inert before it is written off.
@@ -479,6 +503,14 @@ export interface VoiceCaptureProps {
    */
   agentReady?: boolean;
   /**
+   * The last answer this phone saw for "advanced voice is on", while
+   * `agentReady` is false: `false` opens the on-device recogniser at once
+   * instead of waiting for the live answer, `true` records from the press and
+   * waits as before, `null` (never seen) waits only briefly. See
+   * `planAgentWait`.
+   */
+  agentLastKnown?: boolean | null;
+  /**
    * The person's consent to cloud voice, when advanced voice is on for them but
    * they have not agreed (or switched it off): the mic then stays on-device and
    * the badge says why. Omit when advanced voice is not on for them at all.
@@ -543,20 +575,6 @@ function recognitionAvailable(): boolean {
 }
 
 /**
- * Once English has been confirmed on-device, keep that answer for the session.
- *
- * The probe below (`getSupportedLocales`) is flaky when called right after a
- * recognition session ends: Android's RecognitionService is briefly busy and the
- * query throws or returns empty, so the `catch` reports `false`. That flipped the
- * *second* capture to the network recogniser — which, offline, fails with a
- * "needs a connection" error even though the very model that served the first
- * capture is still installed. A model is not uninstalled between two utterances,
- * so the positive signal is reliable and a re-probe's negative is not: latch the
- * true and never re-probe once it lands.
- */
-let englishOnDeviceConfirmed = false;
-
-/**
  * Whether an on-device English model is actually installed on this phone.
  *
  * `supportsOnDeviceRecognition()` only says the phone can do on-device work at
@@ -570,35 +588,97 @@ let englishOnDeviceConfirmed = false;
  * and the network path, which works, rather than the on-device path, which may
  * not.)
  */
-async function englishInstalledOnDevice(): Promise<boolean> {
-  if (englishOnDeviceConfirmed) return true;
+async function probeEnglishInstalled(): Promise<boolean> {
+  let supportsOnDevice = false;
   try {
-    let supportsOnDevice = false;
-    try {
-      supportsOnDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
-    } catch {
-      supportsOnDevice = false;
-    }
-    if (!supportsOnDevice) return false;
-
-    let androidRecognitionServicePackage: string | undefined;
-    try {
-      const pkg = ExpoSpeechRecognitionModule.getDefaultRecognitionService?.().packageName;
-      if (pkg) androidRecognitionServicePackage = pkg;
-    } catch {
-      // iOS / older builds have no Android service concept — query without one.
-    }
-    const { installedLocales } = await ExpoSpeechRecognitionModule.getSupportedLocales(
-      androidRecognitionServicePackage ? { androidRecognitionServicePackage } : {},
-    );
-    const installed = (installedLocales ?? []).some(
-      (tag) => tag.trim().split(/[-_]/)[0]?.toLowerCase() === 'en',
-    );
-    if (installed) englishOnDeviceConfirmed = true;
-    return installed;
+    supportsOnDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
   } catch {
-    return false;
+    supportsOnDevice = false;
   }
+  if (!supportsOnDevice) return false;
+
+  let androidRecognitionServicePackage: string | undefined;
+  try {
+    const pkg = ExpoSpeechRecognitionModule.getDefaultRecognitionService?.().packageName;
+    if (pkg) androidRecognitionServicePackage = pkg;
+  } catch {
+    // iOS / older builds have no Android service concept — query without one.
+  }
+  const { installedLocales } = await ExpoSpeechRecognitionModule.getSupportedLocales(
+    androidRecognitionServicePackage ? { androidRecognitionServicePackage } : {},
+  );
+  return (installedLocales ?? []).some(
+    (tag) => tag.trim().split(/[-_]/)[0]?.toLowerCase() === 'en',
+  );
+}
+
+/**
+ * The installed-model answer, asked once and shared (see `createModelProbe`).
+ *
+ * `getSupportedLocales` is slow on Android, and it used to be asked on every
+ * start, between the tap and the mic. It is now warmed after the app's first
+ * frame, so a start reads an answer that is already in hand. A `true` is kept
+ * for the process: the probe is flaky right after a recognition session ends
+ * (Android's RecognitionService is briefly busy and answers a false "no"), and
+ * a model is not uninstalled between two utterances. A `false` is asked again
+ * after the app returns to the foreground, in case one was installed meanwhile.
+ */
+const modelProbe = createModelProbe(probeEnglishInstalled);
+const englishInstalledOnDevice = (): Promise<boolean> => modelProbe.get();
+
+/**
+ * The microphone and speech permissions, known granted for this foreground.
+ *
+ * `requestPermissionsAsync` was called on every start. The cheap
+ * `getPermissionsAsync` is asked first now, the request only made when that
+ * says no, and a grant is remembered until the app next leaves the foreground —
+ * where Android's one-time permission can lapse and Settings can revoke it.
+ */
+let permissionGranted = false;
+
+async function ensurePermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+  if (permissionGranted) return { granted: true, canAskAgain: true };
+  try {
+    const current = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+    if (current.granted) {
+      permissionGranted = true;
+      return current;
+    }
+  } catch {
+    // Fall through to the request, which answers for itself.
+  }
+  const asked = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+  if (asked.granted) permissionGranted = true;
+  return asked;
+}
+
+/**
+ * Get the slow parts of a start out of the way before anybody taps: the
+ * installed-model probe and the permission read. Never prompts and never opens
+ * the mic. Called after the app's first frame and again on each return to the
+ * foreground (see `useVoiceWarmup`).
+ */
+export function warmVoiceCapture(): void {
+  if (!recognitionAvailable()) return;
+  // Not while a session is live or tearing down: that is exactly when the
+  // locale probe answers a false "no", and the answer is now kept.
+  if (speechMic.state !== 'idle') return;
+  void modelProbe.get();
+  void ExpoSpeechRecognitionModule.getPermissionsAsync()
+    .then((current) => {
+      if (current.granted) permissionGranted = true;
+    })
+    .catch(() => {});
+}
+
+/**
+ * The app went to the background: forget what may have changed while it was
+ * away — a negative model answer (one may get installed from Settings) and the
+ * permission grant (it may be revoked, or lapse if it was one-time).
+ */
+export function coolVoiceCapture(): void {
+  modelProbe.invalidate();
+  permissionGranted = false;
 }
 
 export function VoiceCapture({
@@ -612,6 +692,7 @@ export function VoiceCapture({
   onEndConsumed,
   streamLive = false,
   agentReady = true,
+  agentLastKnown = null,
   cloudConsent = 'granted',
   onEngine,
   groupId = null,
@@ -622,6 +703,11 @@ export function VoiceCapture({
 
   const [available] = useState(recognitionAvailable);
   const [listening, setListening] = useState(false);
+  // The mic was asked to open and is on its way: shown at once as a calm
+  // "Starting…" over an idling wave, so a tap answers within a frame, and it
+  // turns into "Listening" only once audio is actually being captured. True from
+  // the very first render when the panel opens the mic by itself.
+  const [preparing, setPreparing] = useState(() => autoStart && recognitionAvailable());
   const [live, setLive] = useState('');
   // Which engine hears the mic. null until it is known (the entitlement may
   // still be loading); the start decides it and every start refreshes it.
@@ -631,11 +717,13 @@ export function VoiceCapture({
   // on the on-device engine before the flag had loaded.
   const streamLiveRef = useRef(streamLive);
   const agentReadyRef = useRef(agentReady);
+  const agentLastKnownRef = useRef(agentLastKnown);
   const cloudConsentRef = useRef(cloudConsent);
   const onEngineRef = useRef(onEngine);
   useEffect(() => {
     streamLiveRef.current = streamLive;
     agentReadyRef.current = agentReady;
+    agentLastKnownRef.current = agentLastKnown;
     cloudConsentRef.current = cloudConsent;
     onEngineRef.current = onEngine;
   });
@@ -789,7 +877,7 @@ export function VoiceCapture({
   // it listens (that state has motion of its own), not behind another screen,
   // not on a build that has no microphone to offer, and never when the reader
   // has asked the OS for less motion.
-  const breath = useIdleBreath(available && focused && !listening && !reduceMotion);
+  const breath = useIdleBreath(available && focused && !listening && !preparing && !reduceMotion);
 
   useSpeechRecognitionEvent('start', () => {
     if (!speechMic.owns(session)) return;
@@ -1023,12 +1111,13 @@ export function VoiceCapture({
     [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t],
   );
 
-  const start = useCallback(
+  const openMic = useCallback(
     async (forceNetwork = false): Promise<void> => {
       // One start at a time from this panel, and one capture at a time in the app.
       // A live stream is a capture in progress too.
       if (starting.current || stream.current) return;
       starting.current = true;
+      const mark = startTimer();
       // A fresh user-initiated start re-arms the one-time network fallback; a
       // fallback re-entry keeps it spent. Either way, drop the old attempt's
       // watchdogs before opening the next.
@@ -1062,6 +1151,7 @@ export function VoiceCapture({
       // teardown to land. Everything below must give it back — a claimed mic that
       // is never released is one nothing can reopen.
       const claimed = await speechMic.acquire(session);
+      mark('mic claimed');
       if (!mounted.current) {
         starting.current = false;
         if (claimed) speechMic.release(session);
@@ -1079,7 +1169,8 @@ export function VoiceCapture({
         speechMic.release(session);
       };
 
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      const permission = await ensurePermission();
+      mark('permission');
       if (!mounted.current) return give();
       if (!permission.granted) {
         setError(permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked);
@@ -1089,18 +1180,35 @@ export function VoiceCapture({
         return give();
       }
 
+      // How long to wait for the entitlement, if at all. It used to be up to
+      // 1.5 s on every cold start, nearly always to learn "not Pro"; now the
+      // last answer this phone saw decides (see `planAgentWait`).
+      const wait = planAgentWait({
+        ready: agentReadyRef.current,
+        streamLive: streamLiveRef.current,
+        lastKnown: agentLastKnownRef.current,
+        streamAvailable: streamingAvailable(),
+      });
+      // The connection check only matters to a stream; asked alongside the
+      // recorder and the wait rather than after them.
+      const onlineCheck = wait.earlyCapture || streamLiveRef.current ? checkOnline() : null;
+
       // Advanced voice records from the press: the mic starts here, before the
       // flag wait, the online check and the token, and buffers until the stream
       // attaches — otherwise the first words fell into those round trips. Only
       // once the recorder has reported started does the panel say "Listening".
-      if ((streamLiveRef.current || !agentReadyRef.current) && streamingAvailable()) {
+      if (wait.earlyCapture) {
         capture.current = await startCapture({
           onLevel: (value) => level.set(withTiming(value, { duration: 90 })),
         });
+        mark('recorder started');
         if (!mounted.current) {
           await dropCapture();
           return give();
         }
+        // "Listening" only when this recording is the one that will be heard.
+        // While the entitlement is still unknown it may yet be dropped for the
+        // on-device recogniser, so the panel stays on "Starting…" until then.
         if (capture.current && streamLiveRef.current) setListening(true);
       }
 
@@ -1110,14 +1218,15 @@ export function VoiceCapture({
       // Tap, hold, retry and auto-start all come through here, so none of them
       // can pick a different engine. The entitlement is read now, not from the
       // render this start was created in; a flag still loading is waited for.
-      for (let waited = 0; !agentReadyRef.current && waited < 1500; waited += 50) {
+      for (let waited = 0; !agentReadyRef.current && waited < wait.waitMs; waited += 50) {
         await new Promise<void>((resolve) => setTimeout(resolve, 50));
       }
+      if (wait.waitMs > 0) mark(agentReadyRef.current ? 'agent status in' : 'agent wait gave up');
       if (!mounted.current) {
         await dropCapture();
         return give();
       }
-      const online = streamLiveRef.current ? await checkOnline() : true;
+      const online = streamLiveRef.current ? await (onlineCheck ?? checkOnline()) : true;
       if (!mounted.current) {
         await dropCapture();
         return give();
@@ -1133,6 +1242,7 @@ export function VoiceCapture({
       endRules.current = plan;
       if (plan.stream) {
         const opened = capture.current ? await beginStream(capture.current) : 'failed';
+        mark(`stream ${opened}`);
         if (opened === 'streaming') {
           reportEngine(CLOUD);
           return;
@@ -1169,6 +1279,7 @@ export function VoiceCapture({
       // recogniser is left to use the network, which speaks English on every phone.
       // Requiring on-device for a model that is not there is what returned silence.
       const onDevice = forceNetwork ? false : await englishInstalledOnDevice();
+      mark(`model probe (${onDevice ? 'on-device' : 'network'})`);
       if (!mounted.current) return give();
       usedOnDevice.current = onDevice;
       setEngine(onDevice ? 'on-device' : 'network');
@@ -1205,6 +1316,7 @@ export function VoiceCapture({
           },
         });
         speechMic.opened(session);
+        mark('recogniser started');
         setListening(true);
         openedAt.current = Date.now();
         stoppedAt.current = 0;
@@ -1303,6 +1415,22 @@ export function VoiceCapture({
     ],
   );
 
+  // Every way in — tap, hold, auto-start, retry — shows "Starting…" the instant
+  // it is asked, and drops it once the mic is open (or has failed to open).
+  const start = useCallback(
+    async (forceNetwork = false): Promise<void> => {
+      // A start already on its way owns the "Starting…" state; leave it be.
+      if (starting.current || stream.current) return;
+      setPreparing(true);
+      try {
+        await openMic(forceNetwork);
+      } finally {
+        if (mounted.current) setPreparing(false);
+      }
+    },
+    [openMic],
+  );
+
   // Point the recursion handle at the current start on every change.
   useEffect(() => {
     startRef.current = start;
@@ -1320,7 +1448,7 @@ export function VoiceCapture({
       if (status === 'download_success') {
         // The model is on the device now: latch it so the next capture asks for
         // on-device recognition (see englishInstalledOnDevice), and open the mic.
-        englishOnDeviceConfirmed = true;
+        modelProbe.confirm();
         setOfflineEligible(false);
         setDownloadMsg(t.voice.offlineReady);
         void start();
@@ -1608,11 +1736,22 @@ export function VoiceCapture({
           importantForAccessibility="no-hide-descendants"
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text tone={listening || showMiss ? 'brand' : 'muted'}>
-            {listening ? t.misc.listening : showMiss ? t.voice.tapToRetry : t.voice.tapToSpeak}
+          <Text tone={listening || preparing || showMiss ? 'brand' : 'muted'}>
+            {listening
+              ? t.misc.listening
+              : preparing
+                ? t.misc.micStarting
+                : showMiss
+                  ? t.voice.tapToRetry
+                  : t.voice.tapToSpeak}
           </Text>
         </Pressable>
-        {listening && !reduceMotion ? <Waveform active={listening} level={level} /> : null}
+        {/* While the mic is opening the wave is already there, idling low (no
+            level yet), so the tap is answered at once; it rides the real
+            loudness from the moment audio arrives. */}
+        {(listening || preparing) && !reduceMotion ? (
+          <Waveform active={listening || preparing} level={level} />
+        ) : null}
         <VoiceEngineBadge info={micEngine} />
       </View>
 
