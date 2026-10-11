@@ -786,6 +786,8 @@ export async function recordSettlement(input: {
   note?: string | null;
   allocations?: { expenseId: string; amount: bigint }[];
   clientMutationId?: string;
+  /** The day the money moved (YYYY-MM-DD); the server dates it today when omitted. */
+  paidAt?: string;
 }): Promise<string> {
   const { data, error } = await backend.rpc('waves_record_settlement', {
     p_group_id: input.groupId,
@@ -805,6 +807,7 @@ export async function recordSettlement(input: {
       amount: allocation.amount.toString(),
     })),
     p_client_mutation_id: input.clientMutationId ?? randomUUID(),
+    ...(input.paidAt ? { p_paid_at: input.paidAt } : {}),
   });
   if (error) throw new Error(error.message);
   return data as string;
