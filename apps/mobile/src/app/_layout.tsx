@@ -63,6 +63,7 @@ import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
 import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
+import { PendingInviteResume } from '@/lib/PendingInviteResume';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -268,6 +269,10 @@ function RootLayout() {
                                       sheet; outside every gate because a signed-in screen
                                       can attempt a demo write at any point past them. */}
                                         <DemoGateHost />
+                                        {/* Renders nothing: it takes a person who opened an
+                                      invite before they had an account back to it once
+                                      they have one, and the join finishes there. */}
+                                        <PendingInviteResume />
                                         {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
