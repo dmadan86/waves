@@ -51,6 +51,7 @@ import { pushToTalk } from '@/lib/pushToTalk';
 
 import {
   CLOUD,
+  pauseAllowanceMs,
   planMicStart,
   resolveEngine,
   STREAM_MAX_SESSION_MS,
@@ -1056,7 +1057,9 @@ export function VoiceCapture({
         latest.current = text;
         setLive(text);
         const { silenceMs } = endRules.current;
-        if (changed && text.trim() && silenceMs !== null) armSilence(silenceMs);
+        if (changed && text.trim() && silenceMs !== null) {
+          armSilence(pauseAllowanceMs(text, silenceMs));
+        }
       };
       const attached = await attachStream(mic, got.session, {
         onInterim: hear,
@@ -1306,13 +1309,13 @@ export function VoiceCapture({
           // People start with a greeting and a beat of thought — "hello… uh… add
           // 500 to Goa". Android's default endpointing finalises on that first
           // pause, ending the session on the greeting alone. Give it room: keep
-          // listening for at least a few seconds, and do not treat a two-second
-          // pause as the end of speech. (Android-only extras; iOS endpointing is
+          // listening for at least a few seconds, and do not treat a pause to
+          // think (two or three seconds) as the end of speech. (Android-only extras; iOS endpointing is
           // already more forgiving and ignores these.)
           androidIntentOptions: {
-            EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 4000,
-            EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2000,
-            EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2000,
+            EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 6000,
+            EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3500,
+            EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
           },
         });
         speechMic.opened(session);
