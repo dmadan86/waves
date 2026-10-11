@@ -29,6 +29,8 @@ import {
   usePinnedGroupIds,
 } from '@/data/hooks';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
+import { useGroupUnread } from '@/lib/useGroupUnread';
+import { UnreadDot } from '@/components/UnreadDot';
 import { orderByActivity } from '@/lib/groupActivityOrder';
 import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
@@ -57,7 +59,6 @@ import { measureAnchor } from '@/lib/measureAnchor';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
-import { SettlePickerSheet, type SettleCandidate } from '@/components/home/SettlePickerSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -372,24 +373,16 @@ export default function HomeScreen() {
   const newestFromOthers = useNewestActivityFromOthers(viewerId);
   const activitySeenAt = useActivitySeenAt();
   const unseenActivity = hasUnseenActivity(newestFromOthers, activitySeenAt);
+  // The per-group version of the same dot: a group someone else has touched
+  // since the reader last opened it. Over the whole list, not just the
+  // preview, so "All groups" can say when the news is in a row cut off below.
+  const groupIds = useMemo(() => list.map((group) => group.id), [list]);
+  const unreadGroups = useGroupUnread(groupIds);
+  const unreadBeyondPreview = list
+    .slice(GROUPS_PREVIEW)
+    .some((group) => unreadGroups.has(group.id));
 
-  // Settle up from Home asks which group first; these are the ones with money
-  // outstanding either way, largest first.
-  const [settleOpen, setSettleOpen] = useState(false);
-  const settleCandidates: SettleCandidate[] = list
-    .map((group) => ({
-      id: group.id,
-      title: groupLabel(group, summary.membersFor(group.id), viewerId),
-      coverEmoji: group.cover_emoji,
-      balance: summary.balanceFor(group.id),
-      currency: group.default_currency,
-    }))
-    .filter((group) => group.balance !== 0n)
-    .sort((a, b) => {
-      const size = (x: bigint) => (x < 0n ? -x : x);
-      const d = size(b.balance) - size(a.balance);
-      return d > 0n ? 1 : d < 0n ? -1 : 0;
-    });
+  // Settle up opens its own screen (`/settle-up`), which works out the groups.
   // How many groups each side of the balance card comes from — in the
   // headline's currency, the one those sides are totalled in.
   const inHeadline = list.filter(
@@ -545,7 +538,7 @@ export default function HomeScreen() {
                     onAddExpense={() => setQuickExpenseOpen(true)}
                     onAddExpenseLong={() => setQuickAddOpen(true)}
                     onReports={openReports}
-                    onSettleUp={() => setSettleOpen(true)}
+                    onSettleUp={() => router.push('/settle-up')}
                     onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}
                   />
@@ -620,7 +613,9 @@ export default function HomeScreen() {
                 <Pressable
                   onPress={() => router.navigate('/groups')}
                   accessibilityRole="button"
-                  accessibilityLabel={t.allGroups}
+                  accessibilityLabel={
+                    unreadBeyondPreview ? `${t.allGroups}, ${t.groupNewActivity}` : t.allGroups
+                  }
                   hitSlop={8}
                   style={({ pressed }) => ({
                     flexDirection: 'row',
@@ -629,6 +624,22 @@ export default function HomeScreen() {
                     opacity: pressed ? 0.5 : 1,
                   })}
                 >
+                  {/* Only when the news is in a group the preview cuts off:
+                      a row above already wears its own dot, and a second one
+                      here would say the same thing twice. */}
+                  {unreadBeyondPreview ? (
+                    <View
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginEnd: 4,
+                        backgroundColor: theme.color.negative,
+                      }}
+                    />
+                  ) : null}
                   <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
                     {t.allGroups}
                   </Text>
@@ -738,6 +749,7 @@ export default function HomeScreen() {
                         // group's own ••• menu; a pinned group still sorts first
                         // and wears its glyph.
                         pinned={pinnedIds.has(group.id)}
+                        unread={unreadGroups.has(group.id)}
                       />
                     );
                   })}
@@ -754,11 +766,6 @@ export default function HomeScreen() {
         anchor={newGroupAnchor}
         onClose={() => setNewGroupOpen(false)}
         onCreate={openNewGroup}
-      />
-      <SettlePickerSheet
-        visible={settleOpen}
-        onClose={() => setSettleOpen(false)}
-        groups={settleCandidates}
       />
 
       {/* Signed in on a phone that holds no personal ledger — a new handset, a
@@ -983,6 +990,7 @@ function GroupRow({
   hidden = false,
   onPress,
   pinned = false,
+  unread = false,
 }: {
   title: string;
   memberLabel: string;
@@ -1022,6 +1030,9 @@ function GroupRow({
       announced in the row's accessibility label — a glyph alone says nothing
       to a screen reader. */
   pinned?: boolean;
+  /** Someone else has done something here since the reader last opened it:
+      a dot on the icon, a heavier name, and said aloud. */
+  unread?: boolean;
 }) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -1067,9 +1078,9 @@ function GroupRow({
         accessibilityRole="button"
         // Pinned is spoken, not just drawn: a screen reader never sees the
         // glyph below, so the state has to be in the label itself.
-        accessibilityLabel={
-          pinned ? `${title}. ${t.group.pinnedBadge}. ${spoken}` : `${title}. ${spoken}`
-        }
+        accessibilityLabel={`${title}${unread ? `, ${t.groupNewActivity}` : ''}. ${
+          pinned ? `${t.group.pinnedBadge}. ` : ''
+        }${spoken}`}
         onPress={onPress}
         style={({ pressed }) => ({
           flexDirection: 'row',
@@ -1093,11 +1104,18 @@ function GroupRow({
           }}
         >
           <GroupMark emoji={coverEmoji} size={22} />
+          {unread ? <UnreadDot /> : null}
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
-            <Text variant="body" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
+            {/* A step heavier while unread — the chat-list cue — so the dot
+                is not the only thing saying it. */}
+            <Text
+              variant="body"
+              numberOfLines={1}
+              style={{ flexShrink: 1, fontWeight: unread ? '800' : '600' }}
+            >
               {title}
             </Text>
             {tag ? (

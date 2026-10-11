@@ -31,7 +31,6 @@ import {
 
 import {
   memberLookup,
-  useCancelSettlement,
   useGhostMergePersonIds,
   useGroup,
   useGroupLedger,
@@ -75,6 +74,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
+import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { router } from '@/lib/navigation';
 
@@ -97,7 +97,6 @@ import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
-import { useDialog } from '@/lib/dialog';
 
 enum Tab {
   Expenses = 'expenses',
@@ -506,18 +505,22 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
         {/* Tapping the row opens it; the pencil goes straight to editing. A
             deleted expense has nothing to edit, so it keeps the space empty. */}
         {expense.deleted_at ? (
-          <View style={{ width: 14 + theme.spacing.xs + theme.spacing.sm }} />
+          <View style={{ width: 14 - 2 + theme.spacing.sm }} />
         ) : (
           <Pressable
             onPress={() => router.push(`/group/${groupId}/add-expense?expenseId=${expense.id}`)}
             accessibilityRole="button"
             accessibilityLabel={t.common.edit}
-            hitSlop={{ top: 8, bottom: 8 }}
+            // The tap target reaches back over the gap instead of the gap being
+            // padding: the glyph sits right against the amount, the finger
+            // still gets a full-size target.
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             // The right inset matches the badge's left one, so the row reads even.
             // Tight to the amount: the pencil is a small affordance, and the
             // width it held was taken from the name in the middle.
             style={({ pressed }) => ({
-              paddingStart: theme.spacing.xs,
+              paddingStart: 0,
+              marginStart: -2,
               paddingEnd: theme.spacing.sm,
               alignSelf: 'stretch',
               alignItems: 'center',
@@ -619,7 +622,6 @@ export default function GroupScreen() {
   const clearance = tabBarClearance + 36;
   const pull = usePullRefresh();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
   // `?welcome=trip` is set once, by the create screen, when a trip is made
   // without dates — it opens this group with a one-time plan-your-trip nudge.
   // The param is gone on any later visit, so the nudge is a moment, not a nag.
@@ -642,6 +644,9 @@ export default function GroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  // Opening the group reads its news: the unread dot on its Home and Groups
+  // rows goes out (and stays out for what lands while it is open).
+  useMarkGroupSeen(groupId || null);
   const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
   // The Expenses tab's filters: who paid, which month, and a text search.
@@ -672,7 +677,6 @@ export default function GroupScreen() {
   const setGroupPin = useSetGroupPin();
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
-  const cancelSettlement = useCancelSettlement(groupId);
 
   const { blockedIds } = useBlockedUsers();
   const lookup = useMemo(() => memberLookup(members.data), [members.data]);
@@ -1607,26 +1611,11 @@ export default function GroupScreen() {
                     <PendingPaymentCard
                       key={settlement.id}
                       groupId={groupId}
-                      settlementId={settlement.id}
+                      groupName={groupLabel(groupData, members.data, viewerId)}
+                      settlement={settlement}
+                      payee={lookup.get(settlement.to_member_id)}
                       payeeName={nameOf(settlement.to_member_id)}
-                      amount={BigInt(settlement.amount)}
-                      currency={settlement.currency}
                       locale={locale}
-                      unsynced={Boolean(settlement.pending)}
-                      cancelling={cancelSettlement.isPending}
-                      onCancel={() =>
-                        void confirm({
-                          title: t.group.cancelTitle,
-                          body: fill(t.group.cancelBody, {
-                            name: nameOf(settlement.to_member_id),
-                          }),
-                          confirmLabel: t.group.cancelConfirm,
-                          cancelLabel: t.group.keep,
-                          tone: 'danger',
-                        }).then((ok) => {
-                          if (ok) cancelSettlement.mutate(settlement.id);
-                        })
-                      }
                     />
                   ))}
                   {/* The balances' own heading, with the one door to settling

@@ -201,24 +201,25 @@ describe('settlement proofs', () => {
     });
   });
 
-  it('T14 — remove then re-attach rotates the key; a second live proof is refused', async () => {
+  it('T14 — a second proof is allowed; removing the first (by the payer) leaves the second', async () => {
     const firstPath = `${settlementId}/${randomUUID()}.webp`;
     const proofId = await as(g.profileIds[0] as string, () =>
       attachProof(settlementId, firstPath).then((r) => String(r.rows[0].id)),
     );
-    // A second live proof without removing the first is refused.
-    await as(g.profileIds[0] as string, async () => {
-      const message = await expectDenied(
-        attachProof(settlementId, `${settlementId}/${randomUUID()}.webp`),
-      );
-      expect(message).toMatch(/PROOF_EXISTS/);
-    });
-    // Remove, then re-attach with a fresh key → different storage_path.
-    await as(g.profileIds[1] as string, () =>
-      client.query(`SELECT waves_remove_settlement_proof($1)`, [proofId]),
-    );
+    // Several proofs are fine (the old one-live-proof rule is gone).
     const secondPath = `${settlementId}/${randomUUID()}.webp`;
     await as(g.profileIds[0] as string, () => attachProof(settlementId, secondPath));
+    expect(await countProofs(settlementId)).toBe(2);
+    // The payee cannot remove the payer's evidence.
+    await as(g.profileIds[1] as string, async () => {
+      const message = await expectDenied(
+        client.query(`SELECT waves_remove_settlement_proof($1)`, [proofId]),
+      );
+      expect(message).toMatch(/NOT_THE_PAYER/);
+    });
+    await as(g.profileIds[0] as string, () =>
+      client.query(`SELECT waves_remove_settlement_proof($1)`, [proofId]),
+    );
     const { rows } = await client.query(
       `SELECT storage_path FROM settlement_proofs
         WHERE settlement_id = $1 AND deleted_at IS NULL`,

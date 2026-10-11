@@ -30,6 +30,7 @@ import { displayName, isGhost, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { formatPaidDay, paidDay } from '@/lib/paymentProof';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 
@@ -160,6 +161,8 @@ export default function PendingConfirmationsScreen() {
                         variant="caption"
                       />
                       <Text variant="micro" tone="muted">
+                        ·{' '}
+                        {fill(t.proof.paidOn, { date: formatPaidDay(paidDay(settlement), locale) })}{' '}
                         ·{' '}
                         {plural(
                           locale,
