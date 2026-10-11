@@ -83,6 +83,14 @@ describe('the links that were already rewritten', () => {
     expect(go('waves:///capture?gallery=1')).toMatch(/^\/capture\?gallery=\d+$/);
   });
 
+  it('lets a search-widget chip preset a built-in category, and only a built-in one', () => {
+    expect(go('waves:///capture?category=food')).toBe('/capture?category=food');
+    expect(go('waves:///capture?category=travel')).toBe('/capture?category=travel');
+    expect(go('waves:///capture?category=shopping')).toBe('/capture?category=shopping');
+    // An id the app does not ship still opens quick add, without the preset.
+    expect(go('waves:///capture?category=not-a-thing')).toBe('/capture');
+  });
+
   it('passes anything it does not recognise straight through', () => {
     expect(go('waves://group/abc')).toBe('waves://group/abc');
     expect(go('not a url at all')).toBe('not a url at all');
