@@ -132,7 +132,12 @@ import type { VoiceAccess } from '@/lib/voiceAccess';
 import { rememberVoiceAgentStatus, useVoiceAgentLastKnown } from '@/lib/voiceAgentLastKnown';
 import { activityTime } from '@/lib/groupActivityOrder';
 import { previousMonthPrefix } from '@/lib/homeDashboard';
-import { newestActivityFromOthers, recentActivity, type RecentActivityRow } from './recentActivity';
+import {
+  newestActivityFromOthers,
+  newestActivityFromOthersByGroup,
+  recentActivity,
+  type RecentActivityRow,
+} from './recentActivity';
 import { useBlockedUsers } from './blocked';
 import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
@@ -1105,6 +1110,14 @@ export function useRecentActivity(
 export function useNewestActivityFromOthers(myProfileId: string | null): number {
   const { mirror } = useSync();
   return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
+}
+
+/** Per group, when somebody else last did something in it, in ms (absent: never). */
+export function useNewestActivityFromOthersByGroup(
+  myProfileId: string | null,
+): Map<string, number> {
+  const { mirror } = useSync();
+  return useMemo(() => newestActivityFromOthersByGroup(mirror, myProfileId), [mirror, myProfileId]);
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */

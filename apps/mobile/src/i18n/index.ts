@@ -213,6 +213,9 @@ export interface UiStrings {
   tagNew: string;
   /** A small tag on a group whose trip is running today. */
   tagOnTrip: string;
+  /** Spoken after a group's name when someone else has done something in it
+   *  since the reader last opened it — the words for the row's small dot. */
+  groupNewActivity: string;
   newGroup: string;
   /** The Activity screen's own title, still used there (it moved off the bar
    *  onto a dashboard hero control, `app/activity.tsx`). */
@@ -4871,6 +4874,7 @@ const en: UiStrings = {
   filterAll: 'All',
   tagNew: 'New',
   tagOnTrip: 'On trip',
+  groupNewActivity: 'new activity',
   newGroup: 'New group',
   activity: 'Activity',
   friends: 'Friends',
@@ -8791,6 +8795,7 @@ const ta: UiStrings = {
   filterAll: 'அனைத்தும்',
   tagNew: 'புதியது',
   tagOnTrip: 'பயணத்தில்',
+  groupNewActivity: 'புதிய செயல்பாடு',
   newGroup: 'புதிய குழு',
   activity: 'செயல்பாடு',
   friends: 'நண்பர்கள்',
@@ -12869,6 +12874,7 @@ const hi: UiStrings = {
   filterAll: 'सभी',
   tagNew: 'नया',
   tagOnTrip: 'यात्रा जारी',
+  groupNewActivity: 'नई गतिविधि',
   newGroup: 'नया समूह',
   activity: 'गतिविधि',
   friends: 'दोस्त',
@@ -16806,6 +16812,7 @@ const ar: UiStrings = {
   filterAll: 'الكل',
   tagNew: 'جديد',
   tagOnTrip: 'في رحلة',
+  groupNewActivity: 'نشاط جديد',
   newGroup: 'مجموعة جديدة',
   activity: 'النشاط',
   friends: 'الأصدقاء',

@@ -42,6 +42,7 @@ import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFil
 import { FeedSkeleton } from '@/components/Skeletons';
 import { useTransitionSettled } from '@/lib/useTransitionSettled';
 import { markActivitySeen } from '@/lib/activitySeen';
+import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -319,6 +320,9 @@ export default function ActivityScreen() {
       markActivitySeen(Math.max(Date.now(), newest));
     }, [feed, onlyGroup]),
   );
+  // That one group's slice does count as reading that group, though: its
+  // unread dot on Home and Groups goes out, as if the group had been opened.
+  useMarkGroupSeen(onlyGroup);
   const allEntries = useMemo(
     () => (onlyGroup ? feed.filter((entry) => entry.group_id === onlyGroup) : feed),
     [feed, onlyGroup],

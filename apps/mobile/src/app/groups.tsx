@@ -33,6 +33,8 @@ import {
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
+import { UnreadDot } from '@/components/UnreadDot';
+import { useGroupUnread } from '@/lib/useGroupUnread';
 import { SkeletonList } from '@/components/Skeletons';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -80,6 +82,9 @@ export default function AllGroupsScreen() {
   const loading = groups.isLoading || summary.isLoading;
   const pinnedIds = usePinnedGroupIds();
   const setGroupPin = useSetGroupPin();
+  // Groups someone else has touched since the reader last opened them.
+  const groupIds = useMemo(() => list.map((group) => group.id), [list]);
+  const unreadGroups = useGroupUnread(groupIds);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<GroupsFilter>('all');
@@ -158,8 +163,13 @@ export default function AllGroupsScreen() {
   // member-count formatting) and the theme (its colours). Both hold identity
   // between renders and move only when they truly change, so this memo is a
   // stable extraData that re-renders rows on a language or light/dark switch
-  // without the per-render churn an inline array would cause.
-  const listExtraData = useMemo(() => ({ locale, theme }), [locale, theme]);
+  // without the per-render churn an inline array would cause. The unread set
+  // too: it is memoised on the mirror and the stored reads, so it moves only
+  // when a dot should appear or go out.
+  const listExtraData = useMemo(
+    () => ({ locale, theme, unreadGroups }),
+    [locale, theme, unreadGroups],
+  );
 
   const empty = loading ? (
     <SkeletonList rows={5} />
@@ -301,6 +311,7 @@ export default function AllGroupsScreen() {
                   pinLabel={`${pinned ? t.group.unpin : t.group.pin} ${row.item.label}`}
                   onTogglePin={() => setGroupPin.mutate({ groupId: group.id, pinned: !pinned })}
                   isDemo={group.isDemo === true}
+                  unread={unreadGroups.has(group.id)}
                 />
               );
             }}
@@ -689,6 +700,7 @@ const GroupListRow = memo(function GroupListRow({
   pinLabel,
   onTogglePin,
   isDemo = false,
+  unread = false,
 }: {
   groupId: string;
   label: string;
@@ -712,6 +724,8 @@ const GroupListRow = memo(function GroupListRow({
       star and the long-press action. */
   pinLabel?: string;
   onTogglePin?: () => void;
+  /** Someone else has done something here since the reader last opened it. */
+  unread?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -724,9 +738,9 @@ const GroupListRow = memo(function GroupListRow({
         // balance would otherwise be read out as "All settled", hiding the very
         // state that needs attention. Favorite is spoken too — a screen reader
         // never sees the star the row draws below.
-        accessibilityLabel={
-          pinned ? `${label}. ${t.group.pinnedBadge}. ${spoken}` : `${label}. ${spoken}`
-        }
+        accessibilityLabel={`${label}${unread ? `, ${t.groupNewActivity}` : ''}. ${
+          pinned ? `${t.group.pinnedBadge}. ` : ''
+        }${spoken}`}
         onPress={() => router.push(`/group/${groupId}`)}
         onLongPress={onTogglePin}
         accessibilityActions={
@@ -765,13 +779,16 @@ const GroupListRow = memo(function GroupListRow({
             }}
           >
             <GroupMark emoji={coverEmoji} size={20} />
+            {unread ? <UnreadDot /> : null}
           </View>
           <View style={{ flex: 1, gap: 1 }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
               <Text
                 variant="body"
                 numberOfLines={1}
-                style={{ flexShrink: 1, fontSize: 15, fontWeight: '700' }}
+                // A step heavier while unread — the chat-list cue — so the
+                // dot is not the only thing saying it.
+                style={{ flexShrink: 1, fontSize: 15, fontWeight: unread ? '800' : '700' }}
               >
                 {label}
               </Text>
