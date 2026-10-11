@@ -22,6 +22,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { signedUrls } from '@/lib/signedUrlCache';
 
 import type { LogicalBucket } from './index';
+import { clearThumbs, evictThumb } from './thumbStore';
 
 /** Subdirectory under the OS cache dir that holds every cached receipt image. */
 const CACHE_DIR = 'receipt-image-cache';
@@ -183,11 +184,13 @@ export function cacheImageBytes(
 
 /**
  * Drop a cached object — called when its source is removed or replaced, so a
- * stale copy cannot outlive the real one. Best-effort.
+ * stale copy cannot outlive the real one. Its low-resolution copy goes too.
+ * Best-effort.
  */
 export function evictImage(bucket: LogicalBucket, path: string | null): void {
   const key = usablePath(path);
   if (!key) return;
+  evictThumb(bucket, key);
   try {
     const file = fileFor(bucket, key);
     if (file.exists) file.delete();
@@ -196,11 +199,15 @@ export function evictImage(bucket: LogicalBucket, path: string | null): void {
   }
 }
 
-/** Sign-out/privacy cleanup: remove every cached receipt/proof/attachment image. */
+/**
+ * Sign-out/privacy cleanup: remove every cached receipt/proof/attachment image,
+ * and every low-resolution group image kept in the persistent thumbnail store.
+ */
 export function clearImageCache(): void {
   // Move the generation first, so any download already awaiting a response sees
   // the change and skips its write even if it resolves after this returns.
   cacheGeneration += 1;
+  clearThumbs();
   // The signed URLs of the account that is leaving go too; they are bearer
   // links to its private images.
   signedUrls.clear();

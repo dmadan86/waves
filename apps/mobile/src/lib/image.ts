@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image, Platform } from 'react-native';
 
 import { scanDocument } from './scanner';
+import { THUMB_MAX_EDGE, THUMB_QUALITY } from './storage/thumbKey';
 
 /**
  * Loaded on demand, and only once the native side is known to be there.
@@ -676,6 +677,37 @@ export async function transformReceipt(
     mimeType: 'image/jpeg',
     preview: await previewDataUri(saved.uri),
   };
+}
+
+/**
+ * Shrink a local image to the low-resolution copy kept beside it in storage and
+ * on every member's phone (`lib/storage/thumbKey.ts`): about 320px on its long
+ * edge, JPEG at 0.6, returned as base64. Never enlarges a smaller image. JPEG
+ * for the same reason as {@link previewDataUri}: WebP encoding is the step
+ * known to throw on some iOS versions.
+ *
+ * Null on any failure (no manipulator, an unreadable file); the caller then
+ * simply has no thumbnail, and the full image is fetched as it always was.
+ */
+export async function thumbnailBase64(uri: string): Promise<string | null> {
+  const module = await loadManipulator();
+  if (!module) return null;
+  try {
+    const size = await imageSize(uri);
+    if (!size || size.width <= 0 || size.height <= 0) return null;
+    const context = module.ImageManipulator.manipulate(uri);
+    if (Math.max(size.width, size.height) > THUMB_MAX_EDGE) {
+      context.resize(
+        size.width >= size.height ? { width: THUMB_MAX_EDGE } : { height: THUMB_MAX_EDGE },
+      );
+    }
+    const saved = await (
+      await context.renderAsync()
+    ).saveAsync({ base64: true, compress: THUMB_QUALITY, format: module.SaveFormat.JPEG });
+    return saved.base64 ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function imageSize(uri: string): Promise<{ width: number; height: number } | null> {

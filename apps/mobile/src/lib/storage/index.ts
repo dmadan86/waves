@@ -21,6 +21,8 @@ import { decode } from 'base64-arraybuffer';
 import { backend } from '@/lib/backend';
 import { SIGNED_URL_ABSENT, signedUrlKey, signedUrls, type MintResult } from '@/lib/signedUrlCache';
 
+import { wantsThumbnail } from './thumbKey';
+
 /** The four private buckets. Values match the R2 namespace and the old bucket. */
 export type LogicalBucket =
   | 'receipts'
@@ -131,11 +133,23 @@ export async function putImage(input: PutImageInput): Promise<string> {
   // show them from its cache. Dropped again once the upload settles, in case a
   // reader minted in between.
   signedUrls.invalidate(signedUrlKey(input.bucket, input.path));
+  let stored: string;
   try {
-    return await uploadImage(input);
+    stored = await uploadImage(input);
   } finally {
     signedUrls.invalidate(signedUrlKey(input.bucket, input.path));
   }
+  // A group image gets a small copy beside it (`thumbKey.ts`), so every member's
+  // phone can keep it offline without downloading the original. Not awaited:
+  // the original is what the caller is waiting for, and an image with no
+  // thumbnail still works — other phones shrink the original themselves. Loaded
+  // lazily so this seam does not pull the image pipeline into every importer.
+  if (wantsThumbnail(input.bucket, input.path)) {
+    void import('./thumbUpload')
+      .then(({ uploadThumbnailFor }) => uploadThumbnailFor(input, decode(input.base64)))
+      .catch(() => {});
+  }
+  return stored;
 }
 
 async function uploadImage(input: PutImageInput): Promise<string> {
