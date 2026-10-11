@@ -1,3 +1,5 @@
+import { CategoryId } from '@waves/core';
+
 import { tokenFromScan } from '@/lib/inviteLink';
 
 /**
@@ -108,6 +110,20 @@ export function redirectSystemPath({
       url.searchParams.has('gallery')
     ) {
       return `/capture?gallery=${Date.now()}`;
+    }
+    // The search widget's Food / Travel / Shopping chips open quick add with
+    // that category already chosen (`?category=food`). Only a built-in id is
+    // let through: a link from outside the app has no business naming a custom
+    // tag, and an unknown id would leave the category row blank. Anything else
+    // still opens quick add, just without a preset.
+    if (
+      (url.hostname === 'capture' || firstSegment === 'capture') &&
+      url.searchParams.has('category')
+    ) {
+      const id = url.searchParams.get('category') ?? '';
+      return (Object.values(CategoryId) as string[]).includes(id)
+        ? `/capture?category=${id}`
+        : '/capture';
     }
     return path;
   } catch {
