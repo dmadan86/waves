@@ -16,6 +16,7 @@
  */
 
 import { computeShares } from '../split/computeShares';
+import { resolvePayee } from '../expense/payee';
 import type { MemberId, SplitParams, SplitType } from '../split/types';
 import type { CurrencyCode } from '../money/currency';
 import type { ExpenseSnapshot } from '../balances/types';
@@ -204,6 +205,9 @@ export interface MirrorExpense extends MirrorRow {
     readonly balance_due_date?: string | null;
     /** The chosen time of day (ISO instant); null on a row from before it existed. */
     readonly occurred_at?: string | null;
+    /** "Paid to", or null; optional because a row mirrored before it existed
+     *  does not carry the column. */
+    readonly payee?: string | null;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -315,6 +319,9 @@ function applyPending(
           balance_due_minor: payload.balanceDueMinor ?? null,
           balance_due_date: payload.balanceDueDate ?? null,
           occurred_at: payload.occurredAt ?? null,
+          // An older queued payload has no payee: keep the one the version it
+          // replaces carries, exactly as the server will.
+          payee: resolvePayee(payload.payee, existing?.currentVersion?.payee),
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,

@@ -46,6 +46,9 @@ export function serialiseExpense(
         )
       : undefined,
     notes: input.notes ?? null,
+    // Left out (undefined) when the caller does not know it, so an edit keeps
+    // the payee the expense already has; '' clears it.
+    payee: input.payee,
     paymentMethod: input.paymentMethod ?? null,
     categoryMeta: input.categoryMeta ?? null,
     location: input.location ?? null,

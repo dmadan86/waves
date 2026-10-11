@@ -262,6 +262,33 @@ describe('diffExpenseVersions', () => {
       );
     });
 
+    it('reports "Paid to" being set, changed and cleared, and only when both sides carry it', () => {
+      expect(
+        diffExpenseVersions(version({ payee: null }), version({ payee: ' Car rental ' }), ASHA),
+      ).toEqual([{ field: 'payee', kind: 'text', oldText: '', newText: 'Car rental' }]);
+      expect(
+        fields(
+          diffExpenseVersions(version({ payee: 'Landlord' }), version({ payee: 'Maid' }), ASHA),
+        ),
+      ).toEqual(['payee']);
+      expect(
+        diffExpenseVersions(version({ payee: 'Landlord' }), version({ payee: null }), ASHA),
+      ).toEqual([{ field: 'payee', kind: 'text', oldText: 'Landlord', newText: '' }]);
+      // Blank and null are the same "none"; extra spaces are not an edit.
+      expect(diffExpenseVersions(version({ payee: '' }), version({ payee: null }), ASHA)).toEqual(
+        [],
+      );
+      expect(
+        diffExpenseVersions(
+          version({ payee: 'Car  rental' }),
+          version({ payee: 'Car rental' }),
+          ASHA,
+        ),
+      ).toEqual([]);
+      // A projection that never read the column says nothing about it.
+      expect(diffExpenseVersions(version(), version({ payee: 'Landlord' }), ASHA)).toEqual([]);
+    });
+
     it('reports the payment method changing', () => {
       expect(
         diffExpenseVersions(

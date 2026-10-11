@@ -58,6 +58,7 @@ import { CategoryRow, CategorySheet } from '@/components/Category';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
+import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
@@ -210,6 +211,8 @@ interface ExpenseDraft {
   categoryChosen: boolean;
   /** Where the spend happened (A43), when the person attached one. */
   location?: ExpenseLocation | null;
+  /** "Paid to". Optional: a draft from an older build has none. */
+  payee?: string | null;
 }
 
 /**
@@ -499,6 +502,12 @@ export default function AddExpenseScreen() {
   const [pickingCategory, setPickingCategory] = useState(false);
   const [pickingPayment, setPickingPayment] = useState(false);
   /**
+   * "Paid to": who outside the group the money went to (the landlord, the car
+   * rental). Any group type, not only an Event; never part of the split.
+   */
+  const [payee, setPayee] = useState<string | null>(null);
+  const [pickingPayee, setPickingPayee] = useState(false);
+  /**
    * Names to bias the recogniser towards. "You" and "Someone" are placeholders
    * this screen prints, not things anybody says out loud, so they would only
    * teach it to hear the wrong word.
@@ -509,6 +518,14 @@ export default function AddExpenseScreen() {
         .map((member) => displayName(member, viewerId))
         .filter((name) => name !== 'You' && name !== 'Someone'),
     [members.data, viewerId],
+  );
+  /** Every payee on this group's live expenses, newest first, for suggestions. */
+  const usedPayees = useMemo(
+    () =>
+      expenses.rows
+        .filter((row) => !row.deleted_at)
+        .map((row) => row.currentVersion?.payee ?? null),
+    [expenses.rows],
   );
 
   // Seeded from the hand-off when one came with a currency, so a foreign amount
@@ -780,6 +797,7 @@ export default function AddExpenseScreen() {
       setCategoryMeta(draft.categoryMeta ?? null);
       setCategoryChosen(draft.categoryChosen ?? false);
       setLocation(draft.location ?? null);
+      setPayee(draft.payee !== undefined ? draft.payee : (version?.payee ?? null));
     } else if (version) {
       // The saved version as an edit starts from it — the same seeding the
       // expense screen's pop-ups use (lib/expenseEdit), so the two write the same
@@ -813,6 +831,7 @@ export default function AddExpenseScreen() {
       setPayersFor(`${seeded.amount}:${seeded.currency}`);
       setPaymentMethod(seeded.paymentMethod);
       setLocation(seeded.location);
+      setPayee(seeded.payee);
       setSubEventId(seeded.subEventId);
       setIsDeposit(seeded.isDeposit);
       setBalanceDueMinor(seeded.balanceDueMinor);
@@ -1217,6 +1236,7 @@ export default function AddExpenseScreen() {
       categoryMeta,
       categoryChosen,
       location,
+      payee,
     },
     { enabled: seededFor !== null && !draftsPaused },
   );
@@ -1384,6 +1404,7 @@ export default function AddExpenseScreen() {
             payers,
             paymentMethod,
             location,
+            payee,
             subEventId: effectiveSubEventId,
             isDeposit: effectiveIsDeposit,
             balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
@@ -2345,6 +2366,18 @@ export default function AddExpenseScreen() {
                 dense
               />
 
+              {/* Who outside the group the money went to: the landlord, the
+                  car rental, the maid. Optional, so a faint "Add" until set. */}
+              <DetailRow
+                icon="send-outline"
+                tint={theme.tint.coral}
+                dense
+                label={t.expense.payee.label}
+                value={payee ?? t.expense.payee.add}
+                placeholder={!payee}
+                onPress={() => setPickingPayee(true)}
+              />
+
               {/* What it was paid in, as a named row rather than only as the
                 pill in the header. The pill is still there and still works —
                 but it is a hairline outline on a gradient beside a large
@@ -2509,6 +2542,15 @@ export default function AddExpenseScreen() {
           onClose={() => setPickingPayment(false)}
         />
       ) : null}
+
+      {/* "Paid to": a field and this group's earlier payees, most-used first. */}
+      <PayeeSheet
+        visible={pickingPayee}
+        value={payee}
+        usedBefore={usedPayees}
+        onChange={setPayee}
+        onClose={() => setPickingPayee(false)}
+      />
 
       {/* Make a tag on the spot, from the category sheet's "＋ New tag" row —
           and then wear it. Somebody who breaks off from tagging an expense to

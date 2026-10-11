@@ -19,6 +19,7 @@
  */
 
 import { myStake } from '../balances/stake';
+import { cleanPayee } from './payee';
 import { payerFactsKey, type PayerRow } from './payers';
 
 /** One person's side of the split: who, and what they owe of it. */
@@ -61,6 +62,8 @@ export interface DiffVersion {
   // None → None" for a column it never fetched. `null` is a real answer ("no
   // note"); `undefined` is "not asked".
   readonly notes?: string | null;
+  /** "Paid to": who outside the group the money went to. */
+  readonly payee?: string | null;
   readonly payment_method?: string | null;
   /** The time of day the spend happened, a full ISO timestamp. */
   readonly occurred_at?: string | null;
@@ -167,6 +170,13 @@ export type ExpenseChange =
     }
   | {
       readonly field: 'notes';
+      readonly kind: 'text';
+      readonly oldText: string;
+      readonly newText: string;
+    }
+  | {
+      /** "Paid to" moved. An empty side is "none", for the client to word. */
+      readonly field: 'payee';
       readonly kind: 'text';
       readonly oldText: string;
       readonly newText: string;
@@ -456,6 +466,14 @@ export function diffExpenseVersions(
     const newNotes = (cur.notes ?? '').trim();
     if (oldNotes !== newNotes) {
       changes.push({ field: 'notes', kind: 'text', oldText: oldNotes, newText: newNotes });
+    }
+  }
+
+  if (prev.payee !== undefined && cur.payee !== undefined) {
+    const oldPayee = cleanPayee(prev.payee) ?? '';
+    const newPayee = cleanPayee(cur.payee) ?? '';
+    if (oldPayee !== newPayee) {
+      changes.push({ field: 'payee', kind: 'text', oldText: oldPayee, newText: newPayee });
     }
   }
 

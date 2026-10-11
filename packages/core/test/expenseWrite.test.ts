@@ -51,6 +51,7 @@ const APPLY_EXPENSE_KEYS = [
   'p_balance_due_minor',
   'p_balance_due_date',
   'p_occurred_at',
+  'p_payee',
 ].sort();
 
 /** A representative custom-tag snapshot reused across the cases. */
@@ -155,6 +156,8 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     expect(args.p_balance_due_minor).toBeNull();
     expect(args.p_balance_due_date).toBeNull();
     expect(args.p_occurred_at).toBeNull();
+    // Not sent is null, so the server carries the old payee forward.
+    expect(args.p_payee).toBeNull();
   });
 
   it('carries a vendor deposit through: sub-event, the flag and the balance due (event-organizer.md)', () => {
@@ -177,6 +180,14 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
       buildApplyExpenseArgs(baseArgs({ occurredAt: '2026-03-01T20:05:00+05:30' })).p_occurred_at,
     ).toBe('2026-03-01T14:35:00.000Z');
     expect(buildApplyExpenseArgs(baseArgs({ occurredAt: 'not a time' })).p_occurred_at).toBeNull();
+  });
+
+  it('passes "Paid to" cleaned, and keeps a deliberate clear apart from "not sent"', () => {
+    expect(buildApplyExpenseArgs(baseArgs({ payee: '  Car   rental ' })).p_payee).toBe(
+      'Car rental',
+    );
+    expect(buildApplyExpenseArgs(baseArgs({ payee: '' })).p_payee).toBe('');
+    expect(buildApplyExpenseArgs(baseArgs({ payee: null })).p_payee).toBeNull();
   });
 });
 
@@ -225,6 +236,7 @@ describe('buildExpenseWriteBody — the client → edge contract', () => {
     expect(body.balanceDueMinor).toBeNull();
     expect(body.balanceDueDate).toBeNull();
     expect(body.occurredAt).toBeNull();
+    expect(body.payee).toBeNull();
   });
 
   it('carries the vendor-deposit fields and stringifies the balance (event-organizer.md)', () => {
