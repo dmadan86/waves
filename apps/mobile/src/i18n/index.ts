@@ -3002,6 +3002,18 @@ export interface UiStrings {
     currentRoleAdmin: string;
     /** That row's subtitle when the member is a plain member today. */
     currentRoleMember: string;
+    /** Member page: the admin-only row that takes somebody out of the group. */
+    removeFromGroup: string;
+    /** That row's subtitle. */
+    removeFromGroupHint: string;
+    /** Confirm sheet title; `{name}` is the person. */
+    removeConfirmTitle: string;
+    /** Confirm sheet body; `{name}` is the person. */
+    removeConfirmBody: string;
+    /** Prefixed to the body when the person owes; `{name}`, `{amount}`. */
+    removeStillOwes: string;
+    /** Prefixed to the body when the person is owed; `{name}`, `{amount}`. */
+    removeIsOwed: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
@@ -7202,6 +7214,12 @@ const en: UiStrings = {
     manageRole: 'Manage role',
     currentRoleAdmin: 'Current role: Admin',
     currentRoleMember: 'Current role: Member',
+    removeFromGroup: 'Remove from group',
+    removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
+    removeConfirmTitle: 'Remove {name}?',
+    removeConfirmBody: '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
+    removeStillOwes: '{name} still owes {amount}.',
+    removeIsOwed: '{name} is owed {amount}.',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
@@ -11263,6 +11281,12 @@ const ta: UiStrings = {
     manageRole: 'பங்கை நிர்வகி',
     currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
     currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
+    removeFromGroup: 'குழுவிலிருந்து நீக்கு',
+    removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
+    removeConfirmTitle: '{name} ஐ நீக்கவா?',
+    removeConfirmBody: '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
+    removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
+    removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
@@ -15344,6 +15368,12 @@ const hi: UiStrings = {
     manageRole: 'भूमिका प्रबंधित करें',
     currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
     currentRoleMember: 'मौजूदा भूमिका: सदस्य',
+    removeFromGroup: 'ग्रुप से हटाएँ',
+    removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
+    removeConfirmTitle: '{name} को हटाएँ?',
+    removeConfirmBody: '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
+    removeStillOwes: '{name} पर अभी भी {amount} बकाया है.',
+    removeIsOwed: '{name} को {amount} मिलने हैं.',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
@@ -19545,6 +19575,12 @@ const ar: UiStrings = {
     manageRole: 'إدارة الدور',
     currentRoleAdmin: 'الدور الحالي: مشرف',
     currentRoleMember: 'الدور الحالي: عضو',
+    removeFromGroup: 'إزالة من المجموعة',
+    removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
+    removeConfirmTitle: 'إزالة {name}؟',
+    removeConfirmBody: 'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
+    removeStillOwes: '{name} ما زال عليه {amount}.',
+    removeIsOwed: '{name} له {amount}.',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
