@@ -91,8 +91,16 @@ const STRINGS = {
   waves_widget_grid_description: 'Photo, voice, scan or manual — capture expenses, anywhere',
 };
 
+// An Android string resource: XML-escape, then the resource format's own
+// escapes. The backslash goes first so the ones added for quotes survive.
 const escapeXml = (s) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, "\\'");
+  s
+    .replace(/\\/g, '\\\\')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"');
 
 const STRINGS_XML = `<?xml version="1.0" encoding="utf-8"?>
 <resources>
