@@ -77,8 +77,10 @@ vi.mock('expo/fetch', () => ({ fetch: fs.fetch }));
 vi.mock('expo-file-system', () => ({
   Directory: FakeDirectory,
   File: FakeFile,
-  Paths: { cache: 'cache-root' },
+  Paths: { cache: 'cache-root', document: 'doc-root' },
 }));
+
+const thumbs = await import('../src/lib/storage/thumbStore');
 
 const { cacheImage, cachedImageUri, cacheImageBytes, evictImage, clearImageCache } =
   await import('../src/lib/storage/imageCache');
@@ -285,5 +287,18 @@ describe('image cache', () => {
     expect(
       [...fs.files.keys()].filter((key) => key.includes('.first') || key.includes('.second')),
     ).toEqual([]);
+  });
+
+  it('sign-out clears the persistent thumbnail store too, and evicting an image drops its thumbnail', () => {
+    thumbs.resetThumbStoreForTests();
+    const image = { bucket: 'expense-attachments', path: 'e1/a.webp', groupId: 'g1' } as const;
+    expect(thumbs.saveThumb(image, new Uint8Array([1, 2]))).not.toBeNull();
+    evictImage('expense-attachments', 'e1/a.webp');
+    expect(thumbs.localThumbUri('expense-attachments', 'e1/a.webp')).toBeNull();
+
+    expect(thumbs.saveThumb(image, new Uint8Array([1, 2]))).not.toBeNull();
+    clearImageCache();
+    expect(thumbs.localThumbUri('expense-attachments', 'e1/a.webp')).toBeNull();
+    expect([...fs.files.keys()].some((k) => k.startsWith('doc-root/'))).toBe(false);
   });
 });

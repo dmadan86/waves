@@ -29,6 +29,8 @@ import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 import { flushReceiptQueue } from '@/lib/receiptQueue';
 import { clearImageCache } from '@/lib/storage/imageCache';
+import { scheduleThumbPrefetch } from '@/lib/storage/thumbPrefetch';
+import { evictGroupThumbs } from '@/lib/storage/thumbStore';
 
 import { syncEngine, type SyncState } from './engine';
 import { clearLocalPrivateData } from './localWipe';
@@ -200,6 +202,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => syncEngine.subscribe(setState), []);
 
+  // Every sync that lands is a chance a new image arrived in one of the groups:
+  // keep a small copy of each on the phone so it draws instantly and offline
+  // (`lib/storage/thumbPrefetch`). Cheap when nothing is new — the plan skips
+  // everything already on disk — so it rides every successful sync.
+  useEffect(() => {
+    if (!signedIn) return;
+    let seen: string | null = null;
+    return syncEngine.subscribe((next) => {
+      if (!next.hydrated || next.lastSyncedAt === null || next.lastSyncedAt === seen) return;
+      seen = next.lastSyncedAt;
+      scheduleThumbPrefetch(next.mirror);
+    });
+  }, [signedIn]);
+
   useEffect(() => {
     if (!signedIn) {
       // The session is gone — but *why* it is gone decides what may be deleted,
@@ -357,7 +373,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       flush: (groupIds?: string[]) => syncEngine.flush({ groupIds }),
       retry: (id: string) => syncEngine.retry(id),
       discard: (id: string) => syncEngine.discard(id),
-      forgetGroup: (groupId: string) => syncEngine.forgetGroup(groupId),
+      // A group this device forgets takes its kept images with it.
+      forgetGroup: (groupId: string) =>
+        syncEngine.forgetGroup(groupId).then(() => evictGroupThumbs(groupId)),
     }),
     [mutate],
   );

@@ -116,3 +116,33 @@ export async function readObjectBytes(
   if (error || !data) throw new HttpError(404, 'NOT_FOUND', 'Object not found');
   return new Uint8Array(await data.arrayBuffer());
 }
+
+// ──────────────────────────────────────────────────────────── thumbnails ──
+
+/**
+ * A low-resolution copy of an image is stored beside it at `<path>.thumb.jpg`,
+ * uploaded by the client that uploaded the original. The key is derived, so no
+ * table needs a column for it, and every rule that guards the original guards
+ * the thumbnail too: `r2-sign` authorises a thumbnail path exactly as it
+ * authorises its base path. The app keeps the same constant in
+ * `apps/mobile/src/lib/storage/thumbKey.ts`; the two must agree.
+ */
+export const THUMB_SUFFIX = '.thumb.jpg';
+
+/** A thumbnail is ~320px JPEG, tens of KB. Anything far past that is not one. */
+export const MAX_THUMB_BYTES = 512 * 1024;
+
+/** The thumbnail key for an object path. */
+export function thumbPathFor(path: string): string {
+  return `${path}${THUMB_SUFFIX}`;
+}
+
+/**
+ * The original's path when `path` names a thumbnail, or null when it is an
+ * ordinary object. Only the base is returned, never validated here: the caller
+ * runs it through the same path checks as any other key.
+ */
+export function thumbBase(path: string): string | null {
+  if (!path.endsWith(THUMB_SUFFIX) || path.length === THUMB_SUFFIX.length) return null;
+  return path.slice(0, -THUMB_SUFFIX.length);
+}

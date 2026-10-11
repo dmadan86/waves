@@ -40,6 +40,7 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { canAddProof, classifyProofAddFailure, ProofAddFailure } from '@/lib/paymentProof';
 import { restrictedImageUrl } from '@/lib/storage';
+import { localThumbUri } from '@/lib/storage/thumbStore';
 
 const THUMB = 56;
 const STACK_THUMB = 46;
@@ -155,10 +156,17 @@ export function SettlementProof({
 
   const viewed = viewing === null ? null : (rows[Math.min(viewing, rows.length - 1)] ?? null);
   const viewedIndex = viewed ? rows.indexOf(viewed) : 0;
-  const pages: GalleryPage[] = rows.map((row) => ({ url: urls.get(row.storagePath) ?? null }));
+  // The full image once signed; until then (or offline) the low-resolution copy
+  // kept on the phone. Undefined still means "resolving", null "nothing to show".
+  const shownFor = (path: string): string | null | undefined =>
+    urls.get(path) ?? localThumbUri('settlement-proofs', path) ?? urls.get(path);
+  const pages: GalleryPage[] = rows.map((row) => ({
+    url: urls.get(row.storagePath) ?? null,
+    preview: localThumbUri('settlement-proofs', row.storagePath),
+  }));
 
   const first = rows[0];
-  const firstUrl = first ? urls.get(first.storagePath) : undefined;
+  const firstUrl = first ? shownFor(first.storagePath) : undefined;
   const stacked = first ? (
     <Pressable
       onPress={() => setViewing(0)}
@@ -234,7 +242,7 @@ export function SettlementProof({
           contentContainerStyle={{ gap: theme.spacing.sm, alignItems: 'center' }}
         >
           {rows.map((row, index) => {
-            const url = urls.get(row.storagePath);
+            const url = shownFor(row.storagePath);
             return (
               <Pressable
                 key={row.id}

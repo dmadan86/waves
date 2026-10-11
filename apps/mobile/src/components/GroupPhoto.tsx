@@ -21,6 +21,7 @@ import { useStrings } from '@/i18n';
 
 import { GroupMark } from './GroupMark';
 import { groupPhotoUrl } from '@/data/api';
+import { localThumbUri } from '@/lib/storage/thumbStore';
 import { useSignedUrl } from '@/lib/useSignedUrl';
 
 interface GroupPhotoProps {
@@ -56,7 +57,10 @@ export function GroupPhoto({
   const theme = useTheme();
   const { t } = useStrings();
   const url = useGroupPhotoUrl(photoPath);
-  const source = localUri ?? url;
+  // The cover's low-resolution copy kept on the phone (`thumbStore`): what is
+  // drawn offline, and under the full image while it loads online.
+  const thumb = localThumbUri('group-photos', photoPath);
+  const source = localUri ?? url ?? thumb;
 
   const body = (
     <View
@@ -82,6 +86,8 @@ export function GroupPhoto({
           // the old photo from disk after it is replaced. The shared signed URL
           // (`signedUrlCache`) is what keeps the cache warm between mounts.
           recyclingKey={photoPath ?? localUri ?? undefined}
+          placeholder={thumb && source !== thumb ? { uri: thumb } : undefined}
+          placeholderContentFit="cover"
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
           transition={150}

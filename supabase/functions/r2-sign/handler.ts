@@ -36,8 +36,11 @@ import {
 import {
   LOGICAL_BUCKETS,
   type LogicalBucket,
+  MAX_THUMB_BYTES,
   RESTRICTED_BUCKETS,
   RESTRICTED_URL_TTL_SECONDS,
+  thumbBase,
+  thumbPathFor,
 } from '../_shared/r2.ts';
 
 /** Presigned URLs live an hour, exactly like the Supabase signed URLs they replace. */
@@ -122,6 +125,28 @@ export function readPath(value: unknown): string {
     throw new HttpError(400, 'BAD_PATH', 'Malformed object path');
   }
   return value;
+}
+
+/**
+ * Split a key into the object it names and the path its authorisation is
+ * decided on. An ordinary key is both. A thumbnail (`<base>.thumb.jpg`) is
+ * stored under its own key but authorised as its base, so it can never be read
+ * or written by anybody who could not do the same to the original. A thumbnail
+ * of a thumbnail is refused: nothing makes one, so a caller asking is probing.
+ */
+export function readObjectKey(value: unknown): {
+  path: string;
+  authPath: string;
+  isThumb: boolean;
+} {
+  const path = readPath(value);
+  const base = thumbBase(path);
+  if (base === null) return { path, authPath: path, isThumb: false };
+  const authPath = readPath(base);
+  if (thumbBase(authPath) !== null) {
+    throw new HttpError(400, 'BAD_PATH', 'Malformed object path');
+  }
+  return { path, authPath, isThumb: true };
 }
 
 /** The group an object belongs to, and whether it is a member-scoped path. */
@@ -435,6 +460,26 @@ async function authorizeRead(
   }
 }
 
+/** Remove an original's derived thumbnail from both backends and the ledger. */
+async function removeThumbnail(
+  deps: R2SignDeps,
+  service: SupabaseClient,
+  bucket: LogicalBucket,
+  path: string,
+): Promise<void> {
+  const thumb = thumbPathFor(path);
+  try {
+    await deps.r2().client.fetch(deps.objectUrl(bucket, thumb), { method: 'DELETE' });
+    await service.storage
+      .from(bucket)
+      .remove([thumb])
+      .catch(() => {});
+    await service.rpc('waves_storage_release', { p_logical_bucket: bucket, p_path: thumb });
+  } catch {
+    // Best-effort — see the caller.
+  }
+}
+
 export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<Response> {
   const { objectUrl } = deps;
   try {
@@ -450,7 +495,8 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     const bucket = readBucket(body.bucket);
     const restricted = RESTRICTED_BUCKETS.has(bucket);
     const subjectId = restricted ? readSubject(body.subjectId) : null;
-    const path = readPath(body.path);
+    const { path, authPath, isThumb } = readObjectKey(body.path);
+    const maxBytes = isThumb ? MAX_THUMB_BYTES : MAX_OBJECT_BYTES;
 
     // A restricted read is authorised by (SUBJECT, path): the server confirms a
     // party-visible row references that path before signing it, so a non-party
@@ -470,7 +516,20 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       // `left_at IS NULL`, so a party is a current member by construction, and a
       // second round trip could only ever agree.
       await requireRestrictedParty(caller, bucket, subjectId as string);
-      await assertRestrictedPath(caller, bucket, subjectId as string, path);
+      await assertRestrictedPath(caller, bucket, subjectId as string, authPath);
+      // A thumbnail is optional — anything uploaded before thumbnails existed has
+      // none — so say so plainly instead of signing a URL that would 404. The
+      // client then falls back to shrinking the original itself.
+      if (isThumb) {
+        const { data: thumb, error: thumbError } = await service
+          .from('storage_objects')
+          .select('path')
+          .eq('logical_bucket', bucket)
+          .eq('path', path)
+          .maybeSingle();
+        if (thumbError) throw new HttpError(500, 'INTERNAL', thumbError.message);
+        if (!thumb) throw new HttpError(404, 'NOT_FOUND', 'No such object');
+      }
       const getUrl = new URL(objectUrl(bucket, path));
       getUrl.searchParams.set('X-Amz-Expires', String(RESTRICTED_URL_TTL_SECONDS));
       const signed = await deps.r2().client.sign(new Request(getUrl), { aws: { signQuery: true } });
@@ -484,7 +543,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         service,
         uid,
         bucket,
-        path,
+        authPath,
         subjectId,
         'put',
       );
@@ -493,12 +552,12 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       if (!Number.isFinite(declared) || declared <= 0) {
         throw new HttpError(400, 'BAD_LENGTH', 'contentLength is required');
       }
-      if (declared > MAX_OBJECT_BYTES) {
+      if (declared > maxBytes) {
         throw new HttpError(413, 'TOO_LARGE', 'That image is too large');
       }
 
       const contentType = typeof body.contentType === 'string' ? body.contentType : 'image/webp';
-      if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+      if (!ALLOWED_CONTENT_TYPES.has(contentType) || (isThumb && contentType !== 'image/jpeg')) {
         throw new HttpError(415, 'BAD_CONTENT_TYPE', 'Only image uploads are allowed');
       }
 
@@ -549,7 +608,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         service,
         uid,
         bucket,
-        path,
+        authPath,
         subjectId,
         'commit',
       );
@@ -558,10 +617,38 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         throw new HttpError(415, 'BAD_CONTENT_TYPE', 'Only image uploads are allowed');
       }
 
+      // A thumbnail is only worth keeping while its original exists. The client
+      // uploads it right after the original, so a delete of that original can
+      // land in between — and this commit would then leave a small orphan
+      // counting against the cap with nothing pointing at it. Refuse it, and
+      // clean up what the PUT wrote.
+      if (isThumb) {
+        const { data: original, error: originalError } = await service
+          .from('storage_objects')
+          .select('path')
+          .eq('logical_bucket', bucket)
+          .eq('path', authPath)
+          .eq('pending', false)
+          .maybeSingle();
+        if (originalError) throw new HttpError(500, 'INTERNAL', originalError.message);
+        if (!original) {
+          try {
+            await service.rpc('waves_storage_release_reservation', {
+              p_logical_bucket: bucket,
+              p_path: path,
+            });
+          } catch {
+            // Best-effort — an expired reservation is swept anyway.
+          }
+          await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
+          throw new HttpError(409, 'NO_ORIGINAL', 'The original image is gone');
+        }
+      }
+
       const head = await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'HEAD' });
       if (!head.ok) throw new HttpError(404, 'NOT_UPLOADED', 'Object was not uploaded');
       const size = Number(head.headers.get('content-length') ?? '0');
-      if (size > MAX_OBJECT_BYTES) {
+      if (size > maxBytes) {
         await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
         throw new HttpError(413, 'TOO_LARGE', 'That image is too large');
       }
@@ -608,7 +695,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
 
     // ── resolve a readable URL (R2 if we own it, else the old backend) ─────
     if (action === 'get') {
-      await authorizeRead(caller, service, uid, bucket, path);
+      await authorizeRead(caller, service, uid, bucket, authPath);
 
       const { data: known, error: lookupError } = await service
         .from('storage_objects')
@@ -643,7 +730,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     // was actually removed — so a failed *replacement*, which never held a
     // pending row, cannot take the committed image down with it.
     if (action === 'release') {
-      await authorizeWrite(caller, service, uid, bucket, path, subjectId, 'release');
+      await authorizeWrite(caller, service, uid, bucket, authPath, subjectId, 'release');
       const { data: removed, error } = await service.rpc('waves_storage_release_reservation', {
         p_logical_bucket: bucket,
         p_path: path,
@@ -657,7 +744,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
 
     // ── delete an object and forget it ────────────────────────────────────
     if (action === 'delete') {
-      await authorizeWrite(caller, service, uid, bucket, path, subjectId, 'delete');
+      await authorizeWrite(caller, service, uid, bucket, authPath, subjectId, 'delete');
       // authorizeWrite proves party + subject-scoped path, but not that this
       // exact object is a live attachment/proof the caller may take down. For a
       // restricted bucket, require a live row that references this path (the same
@@ -665,7 +752,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       // co-party's bytes out of band — the row and audit trail left pointing at
       // nothing — bypassing the author/admin-only delete matrix in the DB RPCs.
       if (restricted) {
-        await assertRestrictedPath(caller, bucket, subjectId as string, path);
+        await assertRestrictedPath(caller, bucket, subjectId as string, authPath);
       }
       await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
       // A legacy object may still live on Supabase Storage (dual-read); remove it
@@ -679,6 +766,10 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         p_path: path,
       });
       if (error) throw new HttpError(500, 'INTERNAL', error.message);
+      // The original's thumbnail goes with it, so a removed image does not
+      // linger as a small copy. Best-effort: there may be none (an image from
+      // before thumbnails), and a ledger row left behind is still swept.
+      if (!isThumb) await removeThumbnail(deps, service, bucket, path);
       return json({ ok: true });
     }
 
