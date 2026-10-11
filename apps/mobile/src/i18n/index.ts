@@ -213,6 +213,9 @@ export interface UiStrings {
   tagNew: string;
   /** A small tag on a group whose trip is running today. */
   tagOnTrip: string;
+  /** Spoken after a group's name when someone else has done something in it
+   *  since the reader last opened it — the words for the row's small dot. */
+  groupNewActivity: string;
   newGroup: string;
   /** The Activity screen's own title, still used there (it moved off the bar
    *  onto a dashboard hero control, `app/activity.tsx`). */
@@ -475,6 +478,32 @@ export interface UiStrings {
     view: string;
     remove: string;
     removeConfirm: string;
+    /** Paid date line; {date} is the day the money moved. */
+    paidOn: string;
+    /** Second-line status while the payee has not confirmed. */
+    awaitingShort: string;
+    /** Compact action: ask the payee to confirm. */
+    remind: string;
+    /** Screen-reader label for Remind; {name} is the payee. */
+    remindA11y: string;
+    /** Replaces Remind after one went out; {ago} is one of the ago strings. */
+    reminded: string;
+    /** {n} minutes ago, short. */
+    agoMinutes: string;
+    /** {n} hours ago, short. */
+    agoHours: string;
+    /** {n} days ago, short. */
+    agoDays: string;
+    /** The reminder could not be sent. */
+    remindFailed: string;
+    /** WhatsApp / share text to a payee not on Waves; {name} payee, {amount}, {group}, {date}. */
+    remindMessage: string;
+    /** Compact action: add another proof image. */
+    addShort: string;
+    /** Full-screen viewer heading; {n} of {total}. */
+    viewerTitle: string;
+    /** Accessibility label for the paid-date control. */
+    changeDate: string;
   };
   /** The comment thread on an expense. */
   comments: {
@@ -1992,6 +2021,19 @@ export interface UiStrings {
     reports: string;
     settleTitle: string;
     settleEmpty: string;
+    settleSubtitle: string;
+    settleSearch: string;
+    settleSortTitle: string;
+    settleSortBalance: string;
+    settleSortRecent: string;
+    settleSortName: string;
+    settleChipAll: string;
+    settleChipYours: string;
+    settleChipTrips: string;
+    settleChipFamily: string;
+    settleChipFriends: string;
+    /** "{members} · Last activity {when}" under a group's name. */
+    settleMeta: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
   };
@@ -2938,6 +2980,14 @@ export interface UiStrings {
     inviteLink: string;
     /** Caption over the invite QR code. */
     scanToJoin: string;
+    /** Caption over the invite QR: "Scan this QR code to join the {type}". */
+    scanToJoinType: string;
+    /** Line under the invite title. */
+    inviteSubtitle: string;
+    /** The pill that opens the members screen: "5 members". */
+    inviteMembersPill: PluralForms;
+    /** Label on the divider above the channel buttons. */
+    shareVia: string;
     whatsapp: string;
     shareAnotherWay: string;
     /** The clipboard item on the invite screen's share row. */
@@ -3280,6 +3330,12 @@ export interface UiStrings {
     settleMarkPaidTitle: string;
     settleMarkPaidBody: string;
     settleMarkPaidConfirm: string;
+    settleConfirmReceivedBody: string;
+    settleConfirmPaidTitle: string;
+    settleConfirmPaidBody: string;
+    settleConfirmPaidYou: string;
+    settleConfirmYouPaid: string;
+    settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
     settleMarkPaidA11y: string;
@@ -3455,6 +3511,8 @@ export interface UiStrings {
     tripDatesBody: string;
     bankRateNote: string;
     listening: string;
+    /** The mic was tapped and is opening; turns into `listening` once audio is captured. */
+    micStarting: string;
     whereSettle: string;
     youHaveVersion: string;
     versionAvailable: string;
@@ -4843,6 +4901,7 @@ const en: UiStrings = {
   filterAll: 'All',
   tagNew: 'New',
   tagOnTrip: 'On trip',
+  groupNewActivity: 'new activity',
   newGroup: 'New group',
   activity: 'Activity',
   friends: 'Friends',
@@ -5074,6 +5133,20 @@ const en: UiStrings = {
     view: 'View payment proof',
     remove: 'Remove proof',
     removeConfirm: 'Remove this payment proof?',
+    paidOn: 'Paid on {date}',
+    awaitingShort: 'Waiting for confirmation',
+    remind: 'Remind',
+    remindA11y: 'Remind {name} to confirm this payment',
+    reminded: 'Reminded {ago}',
+    agoMinutes: '{n}m ago',
+    agoHours: '{n}h ago',
+    agoDays: '{n}d ago',
+    remindFailed: 'Could not send the reminder. Try again.',
+    remindMessage:
+      'Hi {name}, I paid you {amount} for {group} on {date}. Please confirm it in Waves.',
+    addShort: 'Add proof',
+    viewerTitle: 'Proof {n} of {total}',
+    changeDate: 'Change the date paid',
   },
   comments: {
     title: 'Comments',
@@ -6326,7 +6399,19 @@ const en: UiStrings = {
     addExpense: 'Add expense',
     reports: 'Reports',
     settleTitle: 'Settle up in',
-    settleEmpty: 'You are square in every group.',
+    settleEmpty: "You're square everywhere",
+    settleSubtitle: 'Pick a group to view balances and settle up.',
+    settleSearch: 'Search groups…',
+    settleSortTitle: 'Sort by',
+    settleSortBalance: 'Biggest balance',
+    settleSortRecent: 'Recent activity',
+    settleSortName: 'Name',
+    settleChipAll: 'All',
+    settleChipYours: 'Your groups',
+    settleChipTrips: 'Trips',
+    settleChipFamily: 'Family',
+    settleChipFriends: 'Friends',
+    settleMeta: '{members} · Last activity {when}',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
@@ -7020,6 +7105,10 @@ const en: UiStrings = {
     shareInvite: 'Share invite',
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
+    scanToJoinType: 'Scan this QR code to join the {type}',
+    inviteSubtitle: 'Add friends and split the expense together',
+    inviteMembersPill: { one: '{n} member', other: '{n} members' },
+    shareVia: 'Share via',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'Share another way',
     copyLink: 'Copy link',
@@ -7291,6 +7380,14 @@ const en: UiStrings = {
     settleMarkPaidBody:
       'This records your payment in the group and updates the balances. Only if you already paid them.',
     settleMarkPaidConfirm: 'Yes, I paid',
+    settleConfirmReceivedBody:
+      "This will record their payment in the group and update everyone's balances.",
+    settleConfirmPaidTitle: 'Paid {name} {amount}?',
+    settleConfirmPaidBody:
+      "This will record your payment in the group and update everyone's balances.",
+    settleConfirmPaidYou: 'Paid you',
+    settleConfirmYouPaid: 'You paid',
+    settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
@@ -7465,6 +7562,7 @@ const en: UiStrings = {
       'While the trip is on, everybody gets a nudge to add what they spent — at breakfast about yesterday, and at the end of the day about today. Nobody is asked about a day they have already added to.',
     bankRateNote: 'Your bank’s rate, markup included — this is what your statement says.',
     listening: 'Listening…',
+    micStarting: 'Starting…',
     whereSettle: 'Where does this group settle?',
     youHaveVersion: 'You have {installed}',
     versionAvailable: ' · {latest} is available',
@@ -8748,6 +8846,7 @@ const ta: UiStrings = {
   filterAll: 'அனைத்தும்',
   tagNew: 'புதியது',
   tagOnTrip: 'பயணத்தில்',
+  groupNewActivity: 'புதிய செயல்பாடு',
   newGroup: 'புதிய குழு',
   activity: 'செயல்பாடு',
   friends: 'நண்பர்கள்',
@@ -8983,6 +9082,20 @@ const ta: UiStrings = {
     view: 'கட்டண சான்றைப் பார்',
     remove: 'சான்றை நீக்கு',
     removeConfirm: 'இந்த கட்டண சான்றை நீக்கவா?',
+    paidOn: '{date} அன்று செலுத்தப்பட்டது',
+    awaitingShort: 'உறுதிப்படுத்தலுக்குக் காத்திருக்கிறது',
+    remind: 'நினைவூட்டு',
+    remindA11y: 'இந்தக் கட்டணத்தை உறுதிப்படுத்த {name} ஐ நினைவூட்டு',
+    reminded: 'நினைவூட்டியது {ago}',
+    agoMinutes: '{n} நிமி முன்',
+    agoHours: '{n} மணி முன்',
+    agoDays: '{n} நாள் முன்',
+    remindFailed: 'நினைவூட்டலை அனுப்ப முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    remindMessage:
+      'வணக்கம் {name}, {group} க்காக {date} அன்று உங்களுக்கு {amount} செலுத்தினேன். Waves-ல் உறுதிப்படுத்துங்கள்.',
+    addShort: 'சான்று சேர்',
+    viewerTitle: 'சான்று {n} / {total}',
+    changeDate: 'செலுத்திய தேதியை மாற்று',
   },
   comments: {
     title: 'கருத்துகள்',
@@ -10266,6 +10379,18 @@ const ta: UiStrings = {
     reports: 'அறிக்கைகள்',
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
+    settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
+    settleSearch: 'குழுக்களைத் தேடு…',
+    settleSortTitle: 'வரிசைப்படுத்து',
+    settleSortBalance: 'பெரிய இருப்பு',
+    settleSortRecent: 'சமீபத்திய செயல்பாடு',
+    settleSortName: 'பெயர்',
+    settleChipAll: 'அனைத்தும்',
+    settleChipYours: 'உங்கள் குழுக்கள்',
+    settleChipTrips: 'பயணங்கள்',
+    settleChipFamily: 'குடும்பம்',
+    settleChipFriends: 'நண்பர்கள்',
+    settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
@@ -11002,6 +11127,10 @@ const ta: UiStrings = {
     shareInvite: 'அழைப்பைப் பகிர்',
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
+    scanToJoinType: 'இந்த QR குறியீட்டை ஸ்கேன் செய்து சேரவும் ({type})',
+    inviteSubtitle: 'நண்பர்களை அழைத்து செலவைச் சேர்ந்து பகிருங்கள்',
+    inviteMembersPill: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+    shareVia: 'இதன் மூலம் பகிர்',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'வேறு வழியில் பகிர்',
     copyLink: 'இணைப்பை நகலெடு',
@@ -11287,6 +11416,14 @@ const ta: UiStrings = {
     settleMarkPaidBody:
       'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, இருப்புகளைப் புதுப்பிக்கும். நீங்கள் ஏற்கெனவே செலுத்தியிருந்தால் மட்டும்.',
     settleMarkPaidConfirm: 'ஆம், செலுத்தினேன்',
+    settleConfirmReceivedBody:
+      'இது குழுவில் அவர்களின் கட்டணத்தைப் பதிவு செய்து, அனைவரின் இருப்புகளையும் புதுப்பிக்கும்.',
+    settleConfirmPaidTitle: '{name}க்கு {amount} செலுத்தினீர்களா?',
+    settleConfirmPaidBody:
+      'இது குழுவில் உங்கள் கட்டணத்தைப் பதிவு செய்து, அனைவரின் இருப்புகளையும் புதுப்பிக்கும்.',
+    settleConfirmPaidYou: 'உங்களுக்குச் செலுத்தினார்',
+    settleConfirmYouPaid: 'நீங்கள் செலுத்தினீர்கள்',
+    settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
@@ -11474,6 +11611,7 @@ const ta: UiStrings = {
     bankRateNote:
       'உங்கள் வங்கியின் விகிதம், கூடுதல் கட்டணம் உட்பட — இதுதான் உங்கள் அறிக்கையில் இருக்கும்.',
     listening: 'கேட்கிறது…',
+    micStarting: 'தொடங்குகிறது…',
     whereSettle: 'இந்தக் குழு எங்கே தீர்த்துக்கொள்கிறது?',
     youHaveVersion: 'உங்களிடம் {installed} உள்ளது',
     versionAvailable: ' · {latest} கிடைக்கிறது',
@@ -12811,6 +12949,7 @@ const hi: UiStrings = {
   filterAll: 'सभी',
   tagNew: 'नया',
   tagOnTrip: 'यात्रा जारी',
+  groupNewActivity: 'नई गतिविधि',
   newGroup: 'नया समूह',
   activity: 'गतिविधि',
   friends: 'दोस्त',
@@ -13042,6 +13181,20 @@ const hi: UiStrings = {
     view: 'भुगतान प्रमाण देखें',
     remove: 'प्रमाण हटाएँ',
     removeConfirm: 'यह भुगतान प्रमाण हटाएँ?',
+    paidOn: '{date} को भुगतान किया',
+    awaitingShort: 'पुष्टि की प्रतीक्षा',
+    remind: 'याद दिलाएं',
+    remindA11y: '{name} को यह भुगतान कन्फ़र्म करने की याद दिलाएं',
+    reminded: 'याद दिलाया {ago}',
+    agoMinutes: '{n} मि. पहले',
+    agoHours: '{n} घं. पहले',
+    agoDays: '{n} दिन पहले',
+    remindFailed: 'याद दिलाना नहीं भेजा जा सका। फिर कोशिश करें।',
+    remindMessage:
+      'नमस्ते {name}, मैंने {date} को {group} के लिए आपको {amount} दिए। कृपया Waves में कन्फ़र्म करें।',
+    addShort: 'प्रूफ़ जोड़ें',
+    viewerTitle: 'प्रूफ़ {n} / {total}',
+    changeDate: 'भुगतान की तारीख बदलें',
   },
   comments: {
     title: 'टिप्पणियाँ',
@@ -14293,6 +14446,18 @@ const hi: UiStrings = {
     reports: 'रिपोर्ट',
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
+    settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
+    settleSearch: 'समूह खोजें…',
+    settleSortTitle: 'इसके अनुसार क्रमबद्ध करें',
+    settleSortBalance: 'सबसे बड़ा बैलेंस',
+    settleSortRecent: 'हाल की गतिविधि',
+    settleSortName: 'नाम',
+    settleChipAll: 'सभी',
+    settleChipYours: 'आपके समूह',
+    settleChipTrips: 'यात्राएँ',
+    settleChipFamily: 'परिवार',
+    settleChipFriends: 'दोस्त',
+    settleMeta: '{members} · आखिरी गतिविधि {when}',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
@@ -14996,6 +15161,10 @@ const hi: UiStrings = {
     shareInvite: 'निमंत्रण साझा करें',
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
+    scanToJoinType: 'जुड़ने के लिए यह QR कोड स्कैन करें ({type})',
+    inviteSubtitle: 'दोस्तों को जोड़ें और खर्च साथ बाँटें',
+    inviteMembersPill: { one: '{n} सदस्य', other: '{n} सदस्य' },
+    shareVia: 'इनसे साझा करें',
     whatsapp: 'WhatsApp',
     shareAnotherWay: 'किसी और तरीके से साझा करें',
     copyLink: 'लिंक कॉपी करें',
@@ -15273,6 +15442,12 @@ const hi: UiStrings = {
     settleMarkPaidBody:
       'इससे ग्रुप में आपका भुगतान दर्ज होगा और बैलेंस अपडेट होंगे। केवल तभी जब आप उन्हें पहले ही चुका चुके हों।',
     settleMarkPaidConfirm: 'हाँ, मैंने चुकाया',
+    settleConfirmReceivedBody: 'इससे ग्रुप में उनका भुगतान दर्ज होगा और सबके बैलेंस अपडेट होंगे।',
+    settleConfirmPaidTitle: '{name} को {amount} चुकाए?',
+    settleConfirmPaidBody: 'इससे ग्रुप में आपका भुगतान दर्ज होगा और सबके बैलेंस अपडेट होंगे।',
+    settleConfirmPaidYou: 'आपको चुकाया',
+    settleConfirmYouPaid: 'आपने चुकाया',
+    settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
@@ -15449,6 +15624,7 @@ const hi: UiStrings = {
       'जब तक यात्रा चलती है, सभी को खर्च जोड़ने का संकेत मिलता है — नाश्ते के समय कल के बारे में, और दिन के अंत में आज के बारे में। जिस दिन को पहले ही जोड़ लिया गया, उसके बारे में किसी से नहीं पूछा जाता।',
     bankRateNote: 'आपके बैंक की दर, मार्कअप सहित — यही आपके स्टेटमेंट में दिखता है।',
     listening: 'सुन रहा है…',
+    micStarting: 'शुरू हो रहा है…',
     whereSettle: 'यह समूह कहाँ निपटान करता है?',
     youHaveVersion: 'आपके पास {installed} है',
     versionAvailable: ' · {latest} उपलब्ध है',
@@ -16733,6 +16909,7 @@ const ar: UiStrings = {
   filterAll: 'الكل',
   tagNew: 'جديد',
   tagOnTrip: 'في رحلة',
+  groupNewActivity: 'نشاط جديد',
   newGroup: 'مجموعة جديدة',
   activity: 'النشاط',
   friends: 'الأصدقاء',
@@ -16978,6 +17155,20 @@ const ar: UiStrings = {
     view: 'عرض إثبات الدفع',
     remove: 'إزالة الإثبات',
     removeConfirm: 'إزالة إثبات الدفع هذا؟',
+    paidOn: 'دُفع في {date}',
+    awaitingShort: 'بانتظار التأكيد',
+    remind: 'تذكير',
+    remindA11y: 'ذكّر {name} بتأكيد هذه الدفعة',
+    reminded: 'تم التذكير {ago}',
+    agoMinutes: 'منذ {n} د',
+    agoHours: 'منذ {n} س',
+    agoDays: 'منذ {n} ي',
+    remindFailed: 'تعذّر إرسال التذكير. حاول مرة أخرى.',
+    remindMessage:
+      'مرحباً {name}، دفعت لك {amount} في {group} بتاريخ {date}. يرجى تأكيد ذلك في Waves.',
+    addShort: 'إضافة إثبات',
+    viewerTitle: 'الإثبات {n} من {total}',
+    changeDate: 'تغيير تاريخ الدفع',
   },
   comments: {
     title: 'التعليقات',
@@ -18295,6 +18486,18 @@ const ar: UiStrings = {
     reports: 'التقارير',
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
+    settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
+    settleSearch: 'ابحث عن المجموعات…',
+    settleSortTitle: 'ترتيب حسب',
+    settleSortBalance: 'أكبر رصيد',
+    settleSortRecent: 'النشاط الأخير',
+    settleSortName: 'الاسم',
+    settleChipAll: 'الكل',
+    settleChipYours: 'مجموعاتك',
+    settleChipTrips: 'الرحلات',
+    settleChipFamily: 'العائلة',
+    settleChipFriends: 'الأصدقاء',
+    settleMeta: '{members} · آخر نشاط {when}',
     acrossGroups: {
       zero: 'في {n} مجموعة',
       one: 'في مجموعة واحدة',
@@ -19109,6 +19312,16 @@ const ar: UiStrings = {
     shareInvite: 'شارك الدعوة',
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
+    scanToJoinType: 'امسح رمز QR هذا للانضمام ({type})',
+    inviteSubtitle: 'أضف أصدقاءك وقسّموا المصروف معًا',
+    inviteMembersPill: {
+      one: '{n} عضو',
+      two: '{n} عضوان',
+      few: '{n} أعضاء',
+      many: '{n} عضوًا',
+      other: '{n} عضو',
+    },
+    shareVia: 'شارك عبر',
     whatsapp: 'واتساب',
     shareAnotherWay: 'شارك بطريقة أخرى',
     copyLink: 'نسخ الرابط',
@@ -19418,6 +19631,12 @@ const ar: UiStrings = {
     settleMarkPaidBody:
       'سيُسجَّل دفعك في المجموعة وتُحدَّث الأرصدة. فقط إذا كنت قد دفعت لهم بالفعل.',
     settleMarkPaidConfirm: 'نعم، دفعت',
+    settleConfirmReceivedBody: 'سيُسجَّل دفعهم في المجموعة وتُحدَّث أرصدة الجميع.',
+    settleConfirmPaidTitle: 'هل دفعت {amount} إلى {name}؟',
+    settleConfirmPaidBody: 'سيُسجَّل دفعك في المجموعة وتُحدَّث أرصدة الجميع.',
+    settleConfirmPaidYou: 'دفع لك',
+    settleConfirmYouPaid: 'دفعت',
+    settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
@@ -19623,6 +19842,7 @@ const ar: UiStrings = {
       'أثناء الرحلة، يتلقّى الجميع تذكيرًا بإضافة ما أنفقوه — عند الإفطار عن الأمس، وفي نهاية اليوم عن اليوم. لا يُسأل أحد عن يوم سبق أن أضافه.',
     bankRateNote: 'سعر بنكك، شاملًا الهامش — هذا ما يقوله كشف حسابك.',
     listening: 'يستمع…',
+    micStarting: 'جارٍ البدء…',
     whereSettle: 'أين تُسوّي هذه المجموعة حساباتها؟',
     youHaveVersion: 'لديك {installed}',
     versionAvailable: ' · {latest} متاح',

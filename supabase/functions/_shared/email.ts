@@ -375,6 +375,38 @@ export function factsOf(payload: Record<string, unknown>): Record<string, string
   };
 }
 
+export interface AuthEmail {
+  readonly to: string;
+  readonly subject: string;
+  readonly html: string;
+  readonly text: string;
+  /** Extra top-level headers, e.g. `OTP-Token`. */
+  readonly headers: Record<string, string>;
+  /** Idempotency key; a retry of the same hook delivery must not double-send. */
+  readonly key: string;
+}
+
+export type AuthEmailResult =
+  | { readonly ok: true; readonly messageId?: string }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * One transactional auth mail through the configured provider (Resend by
+ * default), from `EMAIL_FROM`. Never throws: a network error or a missing key
+ * comes back as `{ ok: false }` so the Send Email Hook can answer GoTrue in its
+ * own envelope.
+ */
+export async function sendAuthEmail(message: AuthEmail): Promise<AuthEmailResult> {
+  try {
+    const outcome = await sendVia(emailProvider(), message);
+    return outcome.ok
+      ? { ok: true, messageId: outcome.messageId }
+      : { ok: false, error: outcome.error ?? 'provider refused the message' };
+  } catch (failure) {
+    return { ok: false, error: (failure as Error).message };
+  }
+}
+
 export async function sendEmail(built: BuiltEmail): Promise<EmailResult> {
   let outcome: ProviderOutcome;
 
