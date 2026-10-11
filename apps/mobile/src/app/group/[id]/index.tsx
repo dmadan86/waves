@@ -50,6 +50,7 @@ import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
 import {
   balanceDirection,
+  BalanceDirection,
   copyFor,
   deadLettered,
   formatParts,
@@ -544,6 +545,32 @@ const ROW_PAD = 10;
  * throughout, the top edge and corners on the first, the bottom on the last, a
  * hairline between neighbours.
  */
+/**
+ * One member's balance as its own white card — separate cards a small gap
+ * apart, as the Balances design has them, rather than the hairline-divided
+ * block the expense rows share.
+ */
+function BalanceCard({
+  theme,
+  children,
+}: {
+  theme: ReturnType<typeof useTheme>;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: theme.color.surface,
+        borderRadius: theme.radius.lg,
+        marginBottom: theme.spacing.sm,
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
 function CardRow({
   isFirst,
   isLast,
@@ -1015,7 +1042,7 @@ export default function GroupScreen() {
       );
     }
     if (item.kind === 'balance') {
-      const { member, balance, isFirst, isLast } = item;
+      const { member, balance } = item;
       // The name the row is allowed to say — already masked for a blocked
       // person, and it travels with the tap so the destination opens under the
       // same mask rather than flashing the real name while it loads.
@@ -1087,7 +1114,17 @@ export default function GroupScreen() {
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
             <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs }}>
               <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                <MoneyText amount={balance} currency={currency} locale={locale} mode="balance" />
+                {/* Owed to you reads in the brand colour, what you owe in the
+                    negative one; the paise fade is MoneyText's default. */}
+                <MoneyText
+                  amount={balance}
+                  currency={currency}
+                  locale={locale}
+                  mode="balance"
+                  tone={
+                    balanceDirection(balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
+                  }
+                />
                 {member.pending ? <PendingMark /> : null}
               </Row>
               {/* Somebody who owes the group money can be nudged from the row
@@ -1116,7 +1153,7 @@ export default function GroupScreen() {
         </Row>
       );
       return (
-        <CardRow isFirst={isFirst} isLast={isLast} theme={theme}>
+        <BalanceCard theme={theme}>
           {personKey ? (
             <Pressable
               accessibilityRole="button"
@@ -1148,7 +1185,7 @@ export default function GroupScreen() {
           ) : (
             row
           )}
-        </CardRow>
+        </BalanceCard>
       );
     }
     return null;
@@ -1413,7 +1450,17 @@ export default function GroupScreen() {
               // `lg` under the tabs, cards are separate sections `xl` apart, and
               // the list starts `xl` below the last one. With no cards the header
               // takes no room at all and the rows start `lg` under the tabs.
-              <View style={{ marginBottom: hasHeaderCards ? theme.spacing.xl : 0 }}>
+              <View
+                style={{
+                  // The balances heading is a header item too, but sits close
+                  // above its rows rather than a whole section away.
+                  marginBottom: hasHeaderCards
+                    ? theme.spacing.xl
+                    : tab === Tab.Balances
+                      ? theme.spacing.sm
+                      : 0,
+                }}
+              >
                 <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
                   {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
@@ -1571,6 +1618,50 @@ export default function GroupScreen() {
                       locale={locale}
                     />
                   ))}
+                  {/* The balances' own heading, with the one door to settling
+                      everything at once: the Settle up tab is that flow. */}
+                  {tab === Tab.Balances ? (
+                    <Row
+                      style={{
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Text
+                        variant="caption"
+                        tone="muted"
+                        style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
+                      >
+                        {t.group.groupBalances}
+                      </Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.group.settleUpAll}
+                        onPress={() => setTab(Tab.Settle)}
+                        hitSlop={8}
+                        style={({ pressed }) => ({
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: theme.spacing.xs,
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Ionicons
+                          name="people-outline"
+                          size={iconSize.md}
+                          color={theme.color.brand}
+                        />
+                        <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                          {t.group.settleUpAll}
+                        </Text>
+                        <Ionicons
+                          name={directionalIcon('chevron-forward')}
+                          size={iconSize.sm}
+                          color={theme.color.brand}
+                        />
+                      </Pressable>
+                    </Row>
+                  ) : null}
                 </View>
               </View>
             }

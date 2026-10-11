@@ -20,7 +20,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, View } from 'react-native';
 
 import { MutationKind } from '@waves/core';
 import { Button, Callout, Text, useTheme } from '@waves/ui';
@@ -212,7 +213,71 @@ export function MissingRatesCard({ groupId }: { groupId: string }): React.JSX.El
             : // Every bill was skipped for a rate from another day: nothing was
               // done, so no "done" — the explanation is the headline.
               staleText
-        : t.fx.missingRatesBody.replace('{n}', String(missing));
+        : null;
+
+  // Before a run there is one thing to say and one thing to do, so it is one
+  // compact row: a lead the reader can act on, the consequence in muted type,
+  // and the action as an outlined pill beside it. Progress and results keep
+  // the fuller Callout below — they have numbers and more than one action.
+  if (!progress) {
+    return (
+      <View style={{ gap: theme.spacing.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            backgroundColor: theme.color.brandSoft,
+            borderRadius: theme.radius.md,
+            paddingVertical: theme.spacing.md,
+            paddingHorizontal: theme.spacing.md,
+          }}
+        >
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: theme.color.brand,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="information" size={14} color={theme.color.onBrand} />
+          </View>
+          <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {t.fx.missingRatesLead}
+            </Text>{' '}
+            {t.fx.missingRatesRest}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.fx.missingRatesAction}
+            onPress={() => void run()}
+            style={({ pressed }) => ({
+              borderWidth: 1,
+              borderColor: theme.color.brand,
+              borderRadius: theme.radius.xl,
+              paddingVertical: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.md,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {t.fx.missingRatesAddShort}
+            </Text>
+          </Pressable>
+        </View>
+        {missing > candidates.length ? (
+          <Text variant="micro" tone="muted">
+            {t.fx.missingRatesOthers}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <Callout tone={allDone ? 'positive' : 'info'}>{headline}</Callout>
