@@ -14,7 +14,12 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { ACCOUNT_REQUIRED, handleInviteAccept, type InviteAcceptDeps } from './handler.ts';
+import {
+  ACCOUNT_REQUIRED,
+  handleInviteAccept,
+  REMOVED_FROM_GROUP,
+  type InviteAcceptDeps,
+} from './handler.ts';
 
 const INVITE = {
   id: 'inv-1',
@@ -166,6 +171,32 @@ describe('invite-accept requires an account to join', () => {
     });
     const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
     expect(response.status).toBe(403);
+  });
+
+  it('maps REMOVED on a direct join to 403 REMOVED_FROM_GROUP with the ask-an-admin message', async () => {
+    const { deps, inserts } = harness({
+      joinResult: { data: { ok: false, reason: 'REMOVED' }, error: null },
+    });
+    const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.code).toBe(REMOVED_FROM_GROUP);
+    expect(body.message).toBe('You were removed from this group. Ask an admin for a new invite.');
+    expect(inserts).toEqual([]);
+  });
+
+  it('maps REMOVED on a ghost claim the same way', async () => {
+    const { deps, inserts } = harness({
+      members: [{ id: 'ghost-1', ghost_name: 'Ravi', profile_id: null }],
+      claimResult: { data: { ok: false, reason: 'REMOVED' }, error: null },
+    });
+    const response = await handleInviteAccept(
+      post({ token: 't', mode: 'join', claimMemberId: 'ghost-1' }),
+      deps,
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe(REMOVED_FROM_GROUP);
+    expect(inserts).toEqual([]);
   });
 
   it('still lets an anonymous caller who is already a member in (nobody is removed)', async () => {
