@@ -71,6 +71,16 @@ describe('shareInviteCard with text', () => {
     expect(fallback).not.toHaveBeenCalled();
   });
 
+  it.each(['whatsapp', 'email', 'any'] as const)(
+    'opens no second sheet when the user cancels %s',
+    async (target) => {
+      m.shareImageWithText.mockResolvedValue('cancelled');
+      await shareInviteCard({ ...base, text: 't', target });
+      expect(fallback).not.toHaveBeenCalled();
+      expect(m.shareAsync).not.toHaveBeenCalled();
+    },
+  );
+
   it('uses the link path when the native call throws', async () => {
     m.shareImageWithText.mockRejectedValue(new Error('boom'));
     await shareInviteCard({ ...base, text: 't', target: 'email' });
