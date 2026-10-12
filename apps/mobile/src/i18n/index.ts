@@ -756,12 +756,21 @@ export interface UiStrings {
     menu: string;
     title: string;
     intro: string;
+    subtitle: string;
     /** The format picker. */
     formatLabel: string;
     pdf: string;
     excel: string;
     pdfHint: string;
     excelHint: string;
+    /** The "Include" checklist. */
+    includeLabel: string;
+    includeBalances: string;
+    includeBalancesHint: string;
+    includeExpenses: string;
+    includeExpensesHint: string;
+    includeSettlements: string;
+    includeSettlementsHint: string;
     /** Action + busy + success. */
     generate: string;
     preparing: string;
@@ -1711,6 +1720,8 @@ export interface UiStrings {
     gateTitle: string;
     gateGroupBody: string;
     gateExpiredBody: string;
+    /** A guest sent here from an invite: make the account, then the join finishes. */
+    gateJoinBody: string;
   };
   /** Entry copy — the signed-out screens (phone, verify-email, guest intro,
       gateway legal) and the push soft-ask. Kept translatable and RTL-safe. */
@@ -2845,14 +2856,6 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
-    /** The ••• menu's Pin/Unpin row and the row-level accessibility action
-     *  (long-press). Concatenated with the group's own label at the call site
-     *  — "Pin Goa trip" / "Unpin Goa trip" — so the word itself stays short. */
-    pin: string;
-    unpin: string;
-    /** Spoken after a pinned row's name, since the pin glyph itself is
-     *  invisible to a screen reader. */
-    pinnedBadge: string;
     confirmReceived: string;
     /** The group hero's pill, beside its "+" glyph. Screen readers still hear `addExpense`. */
     heroExpense: string;
@@ -3009,6 +3012,18 @@ export interface UiStrings {
     currentRoleAdmin: string;
     /** That row's subtitle when the member is a plain member today. */
     currentRoleMember: string;
+    /** Member page: the admin-only row that takes somebody out of the group. */
+    removeFromGroup: string;
+    /** That row's subtitle. */
+    removeFromGroupHint: string;
+    /** Confirm sheet title; `{name}` is the person. */
+    removeConfirmTitle: string;
+    /** Confirm sheet body; `{name}` is the person. */
+    removeConfirmBody: string;
+    /** Prefixed to the body when the person owes; `{name}`, `{amount}`. */
+    removeStillOwes: string;
+    /** Prefixed to the body when the person is owed; `{name}`, `{amount}`. */
+    removeIsOwed: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
@@ -3050,6 +3065,22 @@ export interface UiStrings {
     scanToJoin: string;
     /** Caption over the invite QR: "Scan this QR code to join the {type}". */
     scanToJoinType: string;
+    /** Shared invite image: bold line over the QR. */
+    cardScanTitle: string;
+    /** Shared invite image: line under it, "{type}" is trip/home/event/friends/group. */
+    cardScanSubtitle: string;
+    /** Shared invite image: divider between the QR and the link. */
+    cardOr: string;
+    /** Shared invite image: heading of the link box. */
+    cardJoinLink: string;
+    /** Shared invite image: the (decorative) copy pill. */
+    cardCopy: string;
+    /** Shared invite image: footer, first point. */
+    cardNoApp: string;
+    /** Shared invite image: footer, second point. */
+    cardJoinFast: string;
+    /** Shared invite image: footer, third point. */
+    cardStartSplitting: string;
     /** Line under the invite title. */
     inviteSubtitle: string;
     /** The pill that opens the members screen: "5 members". */
@@ -3480,7 +3511,6 @@ export interface UiStrings {
     groupsSubtitle: string;
     filterOwed: string;
     filterOwe: string;
-    filterFavorites: string;
     sortGroupsTitle: string;
     sortRecent: string;
     sortAmount: string;
@@ -3497,11 +3527,11 @@ export interface UiStrings {
     linkExpiredBody: string;
     linkMissingCode: string;
     goToWaves: string;
-    freeNoAccount: string;
+    joinFreeBadge: string;
     joinFeatureQuickTitle: string;
     joinFeatureQuickBody: string;
-    joinFeatureGuestTitle: string;
-    joinFeatureGuestBody: string;
+    joinFeatureAccountTitle: string;
+    joinFeatureAccountBody: string;
     joinFeatureTogetherTitle: string;
     joinFeatureTogetherBody: string;
     isOneOfTheseYou: string;
@@ -3518,6 +3548,16 @@ export interface UiStrings {
     unnamed: string;
     joinAndClaim: string;
     joinGroup: string;
+    /** Invite screen, signed out: the two ways in. */
+    joinSignUp: string;
+    joinLogIn: string;
+    /** Why joining needs an account; `{group}` is the group's name. */
+    joinAccountWhy: string;
+    /** A guest opening an invite: upgrade the account they have, then join. */
+    joinGuestUpgrade: string;
+    joinGuestWhy: string;
+    /** The server refused a guest join (an older screen, or a race). */
+    joinAccountRequired: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -4474,7 +4514,6 @@ export interface UiStrings {
     ghostNote: string;
     claimHistoryNote: string;
     theirPastBecomesYours: string;
-    guestKeepsItHere: string;
     lockedTitle: string;
     lockedBody: string;
     unlock: string;
@@ -5423,12 +5462,20 @@ const en: UiStrings = {
     menu: 'Export',
     title: 'Export this group',
     intro:
-      'A tidy statement of this group — balances, every expense and settlement — as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
-    formatLabel: 'Format',
+      'Export balances, every expense and settlement as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
+    subtitle: 'Get a complete statement of this group',
+    formatLabel: 'Export format',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'A printable statement',
-    excelHint: 'A spreadsheet workbook',
+    pdfHint: 'A clean, printable statement',
+    excelHint: 'A detailed workbook for analysis',
+    includeLabel: 'Include',
+    includeBalances: 'Group balances',
+    includeBalancesHint: 'Who owes whom',
+    includeExpenses: 'All expenses',
+    includeExpensesHint: 'With date, category and notes',
+    includeSettlements: 'Settlements',
+    includeSettlementsHint: 'Payments and settlements',
     generate: 'Generate',
     preparing: 'Preparing…',
     ready: 'Export ready',
@@ -6215,6 +6262,8 @@ const en: UiStrings = {
       "You're in a group as a guest. Add an email, phone or provider to start or join more — everything you've entered stays with you.",
     gateExpiredBody:
       'Your guest trial has ended, so the app is read-only for now. Add a way to sign in to keep adding — your groups and expenses are all still here.',
+    gateJoinBody:
+      'Add an email or phone to create your account. Then we take you back to the invite and add you to the group. Everything you have so far stays with you.',
   },
   entry: {
     phonePlaceholder: 'Enter your phone number',
@@ -7090,9 +7139,6 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
-    pin: 'Pin',
-    unpin: 'Unpin',
-    pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
     heroExpense: 'Expense',
     rowOwed: 'owed',
@@ -7213,6 +7259,13 @@ const en: UiStrings = {
     manageRole: 'Manage role',
     currentRoleAdmin: 'Current role: Admin',
     currentRoleMember: 'Current role: Member',
+    removeFromGroup: 'Remove from group',
+    removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
+    removeConfirmTitle: 'Remove {name}?',
+    removeConfirmBody:
+      '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
+    removeStillOwes: '{name} still owes {amount}.',
+    removeIsOwed: '{name} is owed {amount}.',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
@@ -7238,6 +7291,14 @@ const en: UiStrings = {
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
     scanToJoinType: 'Scan this QR code to join the {type}',
+    cardScanTitle: 'Scan this QR code',
+    cardScanSubtitle: 'to join the {type} on Waves',
+    cardOr: 'or',
+    cardJoinLink: 'Join using this link',
+    cardCopy: 'Copy',
+    cardNoApp: 'No app needed',
+    cardJoinFast: 'Join in seconds',
+    cardStartSplitting: 'Start splitting expenses',
     inviteSubtitle: 'Add friends and split the expense together',
     inviteMembersPill: { one: '{n} member', other: '{n} members' },
     shareVia: 'Share via',
@@ -7584,7 +7645,6 @@ const en: UiStrings = {
     groupsSubtitle: 'All your groups in one place',
     filterOwed: "I'm owed",
     filterOwe: 'I owe',
-    filterFavorites: 'Favorites',
     sortGroupsTitle: 'Sort groups',
     sortRecent: 'Recent activity',
     sortAmount: 'Amount',
@@ -7603,11 +7663,11 @@ const en: UiStrings = {
       'Ask whoever sent it for a fresh one — links expire so they cannot be passed around forever.',
     linkMissingCode: 'This link is missing its invite code',
     goToWaves: 'Go to Waves',
-    freeNoAccount: 'Free forever, no account needed',
+    joinFreeBadge: 'Free forever',
     joinFeatureQuickTitle: 'Quick join',
     joinFeatureQuickBody: 'Start tracking expenses instantly',
-    joinFeatureGuestTitle: 'No account needed',
-    joinFeatureGuestBody: 'Join as a guest',
+    joinFeatureAccountTitle: 'Your own account',
+    joinFeatureAccountBody: 'Your expenses stay yours',
     joinFeatureTogetherTitle: 'Split together',
     joinFeatureTogetherBody: 'Keep everyone on the same page',
     isOneOfTheseYou: 'Is one of these you?',
@@ -7622,6 +7682,15 @@ const en: UiStrings = {
     unnamed: 'Unnamed',
     joinAndClaim: 'Join and claim my history',
     joinGroup: 'Join this group',
+    joinSignUp: 'Sign up to join',
+    joinLogIn: 'Log in',
+    joinAccountWhy:
+      'Create a free account to join {group} so your expenses stay yours on every device.',
+    joinGuestUpgrade: 'Create an account to join',
+    joinGuestWhy:
+      'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
+    joinAccountRequired:
+      'You need an account to join this group. Sign up or log in, then open the link again.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -8509,8 +8578,6 @@ const en: UiStrings = {
     ghostNote: 'They do not need the app. Add them now and they can claim their history later.',
     claimHistoryNote: 'Pick your name and everything already recorded for you comes with you.',
     theirPastBecomesYours: 'Their past expenses and balances become yours.',
-    guestKeepsItHere:
-      'Joining as a guest keeps everything on this device. Add a phone number later and it all comes with you.',
     lockedTitle: 'Waves is locked',
     lockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
     unlock: 'Unlock',
@@ -9425,12 +9492,20 @@ const ta: UiStrings = {
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
-      'இந்தக் குழுவின் நேர்த்தியான அறிக்கை — இருப்புகள், ஒவ்வொரு செலவும் தீர்வும் — படிக்க PDF ஆகவோ, கணக்கிட Excel கோப்பாகவோ. உங்கள் சாதனத்தில் ஏற்கனவே உள்ளதிலிருந்து உருவாக்கப்படுகிறது, எனவே இணையம் இல்லாமலும் இயங்கும்.',
-    formatLabel: 'வடிவம்',
+      'நிலுவைகள், ஒவ்வொரு செலவு மற்றும் தீர்வையும் படிக்க PDF ஆகவோ, கணக்கிட Excel ஆகவோ ஏற்றுமதி செய்யுங்கள். உங்கள் சாதனத்தில் ஏற்கனவே உள்ளவற்றிலிருந்தே உருவாக்கப்படுவதால் இணையம் இல்லாமலும் வேலை செய்யும்.',
+    subtitle: 'இந்தக் குழுவின் முழுமையான அறிக்கையைப் பெறுங்கள்',
+    formatLabel: 'ஏற்றுமதி வடிவம்',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'அச்சிடக்கூடிய அறிக்கை',
-    excelHint: 'விரிதாள் கோப்பு',
+    pdfHint: 'தெளிவான, அச்சிடக்கூடிய அறிக்கை',
+    excelHint: 'பகுப்பாய்வுக்கான விரிவான கோப்பு',
+    includeLabel: 'சேர்க்க வேண்டியவை',
+    includeBalances: 'குழு நிலுவைகள்',
+    includeBalancesHint: 'யார் யாருக்குக் கொடுக்க வேண்டும்',
+    includeExpenses: 'அனைத்துச் செலவுகள்',
+    includeExpensesHint: 'தேதி, வகை, குறிப்புகளுடன்',
+    includeSettlements: 'தீர்வுகள்',
+    includeSettlementsHint: 'பணம் செலுத்தல்கள் மற்றும் தீர்வுகள்',
     generate: 'உருவாக்கு',
     preparing: 'தயாராகிறது…',
     ready: 'ஏற்றுமதி தயார்',
@@ -10237,6 +10312,8 @@ const ta: UiStrings = {
       'விருந்தினராக ஒரு குழுவில் உள்ளீர்கள். மேலும் குழுக்களைத் தொடங்கவோ சேரவோ ஒரு மின்னஞ்சல், ஃபோன் அல்லது வழங்குநரைச் சேர்க்கவும் — நீங்கள் சேர்த்த அனைத்தும் உங்களுடன் இருக்கும்.',
     gateExpiredBody:
       'உங்கள் விருந்தினர் காலம் முடிந்துவிட்டது, எனவே இப்போது ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையும் வழியைச் சேர்க்கவும் — உங்கள் குழுக்களும் செலவுகளும் இங்கேயே உள்ளன.',
+    gateJoinBody:
+      'உங்கள் கணக்கை உருவாக்க மின்னஞ்சல் அல்லது ஃபோன் எண்ணைச் சேர்க்கவும். பிறகு உங்களை அழைப்புக்குத் திரும்ப அழைத்துச் சென்று குழுவில் சேர்ப்போம். இதுவரை உள்ள அனைத்தும் உங்களுடன் இருக்கும்.',
   },
   entry: {
     phonePlaceholder: 'உங்கள் தொலைபேசி எண்ணை உள்ளிடுங்கள்',
@@ -11158,9 +11235,6 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
-    pin: 'பின் செய்',
-    unpin: 'பின் நீக்கு',
-    pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -11283,6 +11357,13 @@ const ta: UiStrings = {
     manageRole: 'பங்கை நிர்வகி',
     currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
     currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
+    removeFromGroup: 'குழுவிலிருந்து நீக்கு',
+    removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
+    removeConfirmTitle: '{name} ஐ நீக்கவா?',
+    removeConfirmBody:
+      '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
+    removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
+    removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
@@ -11315,6 +11396,14 @@ const ta: UiStrings = {
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     scanToJoinType: 'இந்த QR குறியீட்டை ஸ்கேன் செய்து சேரவும் ({type})',
+    cardScanTitle: 'இந்த QR குறியீட்டை ஸ்கேன் செய்யுங்கள்',
+    cardScanSubtitle: 'Waves-ல் {type} குழுவில் சேர',
+    cardOr: 'அல்லது',
+    cardJoinLink: 'இந்த இணைப்பில் சேரவும்',
+    cardCopy: 'நகலெடு',
+    cardNoApp: 'ஆப் தேவையில்லை',
+    cardJoinFast: 'சில விநாடிகளில் சேரலாம்',
+    cardStartSplitting: 'செலவுகளைப் பகிர ஆரம்பிக்கவும்',
     inviteSubtitle: 'நண்பர்களை அழைத்து செலவைச் சேர்ந்து பகிருங்கள்',
     inviteMembersPill: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
     shareVia: 'இதன் மூலம் பகிர்',
@@ -11679,7 +11768,6 @@ const ta: UiStrings = {
     groupsSubtitle: 'உங்கள் எல்லா குழுக்களும் ஒரே இடத்தில்',
     filterOwed: 'எனக்கு வர வேண்டியது',
     filterOwe: 'நான் தர வேண்டியது',
-    filterFavorites: 'பிடித்தவை',
     sortGroupsTitle: 'குழுக்களை வரிசைப்படுத்து',
     sortRecent: 'சமீபத்திய செயல்பாடு',
     sortAmount: 'தொகை',
@@ -11698,11 +11786,11 @@ const ta: UiStrings = {
       'அனுப்பியவரிடம் புதிய ஒன்றைக் கேளுங்கள் — இணைப்புகள் காலாவதியாவதால்தான் அவை என்றென்றும் கைமாறுவதில்லை.',
     linkMissingCode: 'இந்த இணைப்பில் அழைப்புக் குறியீடு இல்லை',
     goToWaves: 'Waves-க்குச் செல்',
-    freeNoAccount: 'எப்போதும் இலவசம், கணக்கு தேவையில்லை',
+    joinFreeBadge: 'எப்போதும் இலவசம்',
     joinFeatureQuickTitle: 'விரைவாகச் சேர்',
     joinFeatureQuickBody: 'உடனே செலவுகளைக் கண்காணிக்கத் தொடங்கு',
-    joinFeatureGuestTitle: 'கணக்கு தேவையில்லை',
-    joinFeatureGuestBody: 'விருந்தினராகச் சேர்',
+    joinFeatureAccountTitle: 'உங்கள் சொந்தக் கணக்கு',
+    joinFeatureAccountBody: 'உங்கள் செலவுகள் உங்களுடையதே',
     joinFeatureTogetherTitle: 'சேர்ந்து பிரி',
     joinFeatureTogetherBody: 'எல்லோரும் ஒரே பக்கத்தில் இருங்கள்',
     isOneOfTheseYou: 'இவர்களில் ஒருவர் நீங்களா?',
@@ -11718,6 +11806,15 @@ const ta: UiStrings = {
     unnamed: 'பெயரிடப்படாதவர்',
     joinAndClaim: 'சேர்ந்து என் வரலாற்றை உரிமை கொள்',
     joinGroup: 'இந்தக் குழுவில் சேர்',
+    joinSignUp: 'பதிவு செய்து சேர்',
+    joinLogIn: 'உள்நுழை',
+    joinAccountWhy:
+      '{group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள்; உங்கள் செலவுகள் எல்லாச் சாதனங்களிலும் உங்களுடையதாகவே இருக்கும்.',
+    joinGuestUpgrade: 'கணக்கை உருவாக்கிச் சேர்',
+    joinGuestWhy:
+      'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
+    joinAccountRequired:
+      'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -12671,8 +12768,6 @@ const ta: UiStrings = {
     claimHistoryNote:
       'உங்கள் பெயரைத் தேர்ந்தெடுத்தால், உங்களுக்காக ஏற்கெனவே பதிவானது எல்லாம் உங்களுடன் வரும்.',
     theirPastBecomesYours: 'அவர்களின் பழைய செலவுகளும் இருப்புகளும் உங்களுடையவை ஆகும்.',
-    guestKeepsItHere:
-      'விருந்தினராகச் சேர்ந்தால் எல்லாம் இந்தச் சாதனத்திலேயே இருக்கும். பிறகு ஒரு ஃபோன் எண்ணைச் சேர்த்தால், எல்லாம் வேறு ஃபோனுக்கும் உங்களைப் பின்தொடரும்.',
     lockedTitle: 'Waves பூட்டப்பட்டுள்ளது',
     lockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
     unlock: 'திற',
@@ -13575,12 +13670,20 @@ const hi: UiStrings = {
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
-      'इस समूह का सुव्यवस्थित विवरण — शेष, हर खर्च और निपटान — पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक। आपके डिवाइस पर पहले से मौजूद डेटा से बनाया जाता है, इसलिए यह ऑफ़लाइन भी काम करता है।',
-    formatLabel: 'प्रारूप',
+      'शेष, हर खर्च और निपटान को पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक के रूप में निर्यात करें। आपके डिवाइस पर पहले से मौजूद डेटा से बनता है, इसलिए ऑफ़लाइन भी काम करता है।',
+    subtitle: 'इस समूह का पूरा विवरण पाएँ',
+    formatLabel: 'निर्यात प्रारूप',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'छपने योग्य विवरण',
-    excelHint: 'स्प्रेडशीट वर्कबुक',
+    pdfHint: 'साफ़, छपने योग्य विवरण',
+    excelHint: 'विश्लेषण के लिए विस्तृत वर्कबुक',
+    includeLabel: 'शामिल करें',
+    includeBalances: 'समूह के शेष',
+    includeBalancesHint: 'किसे किसका देना है',
+    includeExpenses: 'सभी खर्च',
+    includeExpensesHint: 'तारीख, श्रेणी और नोट्स के साथ',
+    includeSettlements: 'निपटान',
+    includeSettlementsHint: 'भुगतान और निपटान',
     generate: 'बनाएँ',
     preparing: 'तैयार हो रहा है…',
     ready: 'निर्यात तैयार',
@@ -14367,6 +14470,8 @@ const hi: UiStrings = {
       'आप बतौर मेहमान एक समूह में हैं। और समूह शुरू करने या उनमें शामिल होने के लिए ईमेल, फ़ोन या प्रोवाइडर जोड़ें — आपका जोड़ा हुआ सब कुछ आपके साथ रहेगा।',
     gateExpiredBody:
       'आपकी मेहमान अवधि खत्म हो गई है, इसलिए अभी ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन इन का कोई तरीका जोड़ें — आपके समूह और खर्च सब यहीं मौजूद हैं।',
+    gateJoinBody:
+      'खाता बनाने के लिए ईमेल या फ़ोन नंबर जोड़ें। फिर हम आपको निमंत्रण पर वापस ले जाकर ग्रुप में जोड़ देंगे। अब तक का सब कुछ आपके साथ रहेगा।',
   },
   entry: {
     phonePlaceholder: 'अपना फ़ोन नंबर डालें',
@@ -15249,9 +15354,6 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
-    pin: 'पिन करें',
-    unpin: 'अनपिन करें',
-    pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -15371,6 +15473,13 @@ const hi: UiStrings = {
     manageRole: 'भूमिका प्रबंधित करें',
     currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
     currentRoleMember: 'मौजूदा भूमिका: सदस्य',
+    removeFromGroup: 'ग्रुप से हटाएँ',
+    removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
+    removeConfirmTitle: '{name} को हटाएँ?',
+    removeConfirmBody:
+      '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
+    removeStillOwes: '{name} पर अभी भी {amount} बकाया है.',
+    removeIsOwed: '{name} को {amount} मिलने हैं.',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
@@ -15400,6 +15509,14 @@ const hi: UiStrings = {
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
     scanToJoinType: 'जुड़ने के लिए यह QR कोड स्कैन करें ({type})',
+    cardScanTitle: 'यह QR कोड स्कैन करें',
+    cardScanSubtitle: 'Waves पर {type} से जुड़ने के लिए',
+    cardOr: 'या',
+    cardJoinLink: 'इस लिंक से जुड़ें',
+    cardCopy: 'कॉपी',
+    cardNoApp: 'ऐप की ज़रूरत नहीं',
+    cardJoinFast: 'कुछ ही सेकंड में जुड़ें',
+    cardStartSplitting: 'खर्च बाँटना शुरू करें',
     inviteSubtitle: 'दोस्तों को जोड़ें और खर्च साथ बाँटें',
     inviteMembersPill: { one: '{n} सदस्य', other: '{n} सदस्य' },
     shareVia: 'इनसे साझा करें',
@@ -15751,7 +15868,6 @@ const hi: UiStrings = {
     groupsSubtitle: 'आपके सभी समूह एक जगह',
     filterOwed: 'मुझे मिलना है',
     filterOwe: 'मुझे देना है',
-    filterFavorites: 'पसंदीदा',
     sortGroupsTitle: 'समूह क्रमबद्ध करें',
     sortRecent: 'हाल की गतिविधि',
     sortAmount: 'राशि',
@@ -15769,11 +15885,11 @@ const hi: UiStrings = {
       'जिसने भेजा था उससे नया माँग लें — लिंक इसीलिए खत्म होते हैं ताकि वे हमेशा घूमते न रहें।',
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
-    freeNoAccount: 'हमेशा मुफ़्त, खाता ज़रूरी नहीं',
+    joinFreeBadge: 'हमेशा मुफ़्त',
     joinFeatureQuickTitle: 'झटपट जुड़ें',
     joinFeatureQuickBody: 'तुरंत खर्च ट्रैक करना शुरू करें',
-    joinFeatureGuestTitle: 'खाता ज़रूरी नहीं',
-    joinFeatureGuestBody: 'मेहमान के रूप में जुड़ें',
+    joinFeatureAccountTitle: 'आपका अपना खाता',
+    joinFeatureAccountBody: 'आपके खर्चे आपके ही रहते हैं',
     joinFeatureTogetherTitle: 'साथ में बाँटें',
     joinFeatureTogetherBody: 'सबको एक ही पेज पर रखें',
     isOneOfTheseYou: 'क्या इनमें से कोई आप हैं?',
@@ -15788,6 +15904,15 @@ const hi: UiStrings = {
     unnamed: 'बिना नाम',
     joinAndClaim: 'जुड़ें और अपना इतिहास लें',
     joinGroup: 'इस समूह में जुड़ें',
+    joinSignUp: 'जुड़ने के लिए साइन अप करें',
+    joinLogIn: 'लॉग इन करें',
+    joinAccountWhy:
+      '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
+    joinGuestUpgrade: 'खाता बनाकर जुड़ें',
+    joinGuestWhy:
+      'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
+    joinAccountRequired:
+      'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
     noAddress: 'कोई पता नहीं',
@@ -16682,8 +16807,6 @@ const hi: UiStrings = {
     ghostNote: 'उन्हें ऐप की ज़रूरत नहीं। अभी जोड़ दें, बाद में वे अपना इतिहास ले सकते हैं।',
     claimHistoryNote: 'अपना नाम चुनें और आपके लिए जो कुछ पहले से दर्ज है, सब साथ आ जाएगा।',
     theirPastBecomesYours: 'उनके पुराने खर्च और हिसाब आपके हो जाएँगे।',
-    guestKeepsItHere:
-      'मेहमान के तौर पर जुड़ने से सब कुछ इसी डिवाइस पर रहता है। बाद में फ़ोन नंबर जोड़ें और सब कुछ दूसरे फ़ोन तक आपके साथ चला आएगा।',
     lockedTitle: 'Waves लॉक है',
     lockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
     unlock: 'खोलें',
@@ -17596,12 +17719,20 @@ const ar: UiStrings = {
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:
-      'كشف مرتّب لهذه المجموعة — الأرصدة وكل مصروف وتسوية — بصيغة PDF للقراءة أو ملف Excel للحساب. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
-    formatLabel: 'الصيغة',
+      'صدّر الأرصدة وكل مصروف وتسوية بصيغة PDF للقراءة أو ملف Excel للتحليل. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
+    subtitle: 'احصل على كشف كامل لهذه المجموعة',
+    formatLabel: 'صيغة التصدير',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'كشف قابل للطباعة',
-    excelHint: 'ملف جداول بيانات',
+    pdfHint: 'كشف نظيف قابل للطباعة',
+    excelHint: 'ملف مفصّل للتحليل',
+    includeLabel: 'ما يُضمَّن',
+    includeBalances: 'أرصدة المجموعة',
+    includeBalancesHint: 'من يدين لمن',
+    includeExpenses: 'كل المصروفات',
+    includeExpensesHint: 'مع التاريخ والفئة والملاحظات',
+    includeSettlements: 'التسويات',
+    includeSettlementsHint: 'المدفوعات والتسويات',
     generate: 'إنشاء',
     preparing: 'جارٍ التحضير…',
     ready: 'التصدير جاهز',
@@ -18437,6 +18568,8 @@ const ar: UiStrings = {
       'أنت في مجموعة كضيف. أضف بريدًا إلكترونيًا أو هاتفًا أو مزوّدًا لبدء مجموعات أخرى أو الانضمام إليها — كل ما أدخلته يبقى معك.',
     gateExpiredBody:
       'انتهت فترتك كضيف، لذا التطبيق للقراءة فقط الآن. أضف طريقة لتسجيل الدخول لمواصلة الإضافة — مجموعاتك ومصروفاتك كلها لا تزال هنا.',
+    gateJoinBody:
+      'أضف بريدًا إلكترونيًا أو رقم هاتف لإنشاء حسابك. ثم نعيدك إلى الدعوة ونضيفك إلى المجموعة. كل ما لديك حتى الآن يبقى معك.',
   },
   entry: {
     phonePlaceholder: 'أدخل رقم هاتفك',
@@ -19438,9 +19571,6 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
-    pin: 'تثبيت',
-    unpin: 'إلغاء التثبيت',
-    pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -19590,6 +19720,13 @@ const ar: UiStrings = {
     manageRole: 'إدارة الدور',
     currentRoleAdmin: 'الدور الحالي: مشرف',
     currentRoleMember: 'الدور الحالي: عضو',
+    removeFromGroup: 'إزالة من المجموعة',
+    removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
+    removeConfirmTitle: 'إزالة {name}؟',
+    removeConfirmBody:
+      'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
+    removeStillOwes: '{name} ما زال عليه {amount}.',
+    removeIsOwed: '{name} له {amount}.',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
@@ -19621,6 +19758,14 @@ const ar: UiStrings = {
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
     scanToJoinType: 'امسح رمز QR هذا للانضمام ({type})',
+    cardScanTitle: 'امسح رمز QR هذا',
+    cardScanSubtitle: 'للانضمام إلى {type} على Waves',
+    cardOr: 'أو',
+    cardJoinLink: 'انضم عبر هذا الرابط',
+    cardCopy: 'نسخ',
+    cardNoApp: 'لا حاجة إلى تطبيق',
+    cardJoinFast: 'انضم في ثوانٍ',
+    cardStartSplitting: 'ابدأ بتقسيم المصروفات',
     inviteSubtitle: 'أضف أصدقاءك وقسّموا المصروف معًا',
     inviteMembersPill: {
       one: '{n} عضو',
@@ -20015,7 +20160,6 @@ const ar: UiStrings = {
     groupsSubtitle: 'كل مجموعاتك في مكان واحد',
     filterOwed: 'مستحق لي',
     filterOwe: 'عليّ',
-    filterFavorites: 'المفضلة',
     sortGroupsTitle: 'ترتيب المجموعات',
     sortRecent: 'النشاط الأخير',
     sortAmount: 'المبلغ',
@@ -20032,11 +20176,11 @@ const ar: UiStrings = {
     linkExpiredBody: 'اطلب رابطًا جديدًا ممن أرسله — الروابط تنتهي كي لا تتداول إلى الأبد.',
     linkMissingCode: 'هذا الرابط ينقصه رمز الدعوة',
     goToWaves: 'اذهب إلى Waves',
-    freeNoAccount: 'مجاني دائمًا، بلا حاجة إلى حساب',
+    joinFreeBadge: 'مجاني دائمًا',
     joinFeatureQuickTitle: 'انضمام سريع',
     joinFeatureQuickBody: 'ابدأ تتبّع المصاريف فورًا',
-    joinFeatureGuestTitle: 'بلا حاجة إلى حساب',
-    joinFeatureGuestBody: 'انضم كضيف',
+    joinFeatureAccountTitle: 'حسابك الخاص',
+    joinFeatureAccountBody: 'مصاريفك تبقى لك',
     joinFeatureTogetherTitle: 'اقتسموا معًا',
     joinFeatureTogetherBody: 'أبقوا الجميع على اطلاع',
     isOneOfTheseYou: 'هل أحد هؤلاء أنت؟',
@@ -20051,6 +20195,14 @@ const ar: UiStrings = {
     unnamed: 'بلا اسم',
     joinAndClaim: 'انضم وطالب بسجلي',
     joinGroup: 'انضم إلى هذه المجموعة',
+    joinSignUp: 'سجّل للانضمام',
+    joinLogIn: 'تسجيل الدخول',
+    joinAccountWhy: 'أنشئ حسابًا مجانيًا للانضمام إلى {group} لتبقى مصاريفك لك على كل جهاز.',
+    joinGuestUpgrade: 'أنشئ حسابًا للانضمام',
+    joinGuestWhy:
+      'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
+    joinAccountRequired:
+      'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
     fromYourContacts: 'من جهات اتصالك',
     continueWith: 'المتابعة مع',
     noAddress: 'لا يوجد عنوان',
@@ -21242,8 +21394,6 @@ const ar: UiStrings = {
     ghostNote: 'لا يحتاجون التطبيق. أضفهم الآن ويمكنهم المطالبة بسجلّهم لاحقًا.',
     claimHistoryNote: 'اختر اسمك فيأتي معك كل ما سُجّل لك من قبل.',
     theirPastBecomesYours: 'تصبح مصاريفهم وأرصدتهم السابقة لك.',
-    guestKeepsItHere:
-      'الانضمام كضيف يُبقي كل شيء على هذا الجهاز. أضف رقم هاتف لاحقًا فيتبعك كل شيء إلى هاتف آخر.',
     lockedTitle: 'Waves مقفل',
     lockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
     unlock: 'فتح',

@@ -17,31 +17,39 @@
  * downstream can undo. So the claim is offered first and by name.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { InvitePreview } from '@waves/api-client';
+import { isAccountRequired, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
 
+import { SignIn } from '@/components/SignIn';
 import { useAuth } from '@/lib/auth';
-import { queueJoinAfterSignIn, rememberGuestJoin } from '@/lib/guestSwitch';
-import { supabase, waves } from '@/lib/waves';
+import { clearAfterSignIn, queueJoinAfterSignIn } from '@/lib/guestSwitch';
+import { waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 
-export function JoinFlow({ token }: { token: string }) {
+export function JoinFlow({ token, resume = false }: { token: string; resume?: boolean }) {
   const router = useRouter();
 
   const { t, locale } = useStrings();
-  const { session, signInWithGoogle } = useAuth();
-  // Nobody signed in yet: the join would make a guest. Somebody who already
-  // has an account is offered it first, so they join as themselves rather than
-  // as a guest they later have to switch away from.
-  const nobody = !session;
+  const { session } = useAuth();
+  // Joining a shared group needs an account (ADR-006 amendment, 2026-10-11).
+  // There is no guest way in: a signed-out visitor signs up or logs in, and a
+  // guest session is asked to create an account (upgrading the identity they
+  // have, so what they already hold is kept). `gate` is the one decision.
+  const gate = joinGate({
+    signedIn: Boolean(session),
+    anonymous: session?.user.is_anonymous === true,
+  });
+  /** Which door the person chose on this page; null while they are reading the invite. */
+  const [authMode, setAuthMode] = useState<null | 'sign_in' | 'sign_up'>(null);
+  const attempted = useRef(false);
 
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [claimId, setClaimId] = useState<string | null>(null);
-  const [name, setName] = useState('');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** A claim has been sent and is waiting on an admin of the group. */
@@ -78,14 +86,10 @@ export function JoinFlow({ token }: { token: string }) {
       setError(null);
       setJoining(true);
       try {
-        // The guest account is made first, then the invite is accepted against
-        // it. Same account when they later add an email, so the group and its
-        // history stay theirs rather than being re-joined as a stranger.
-        await waves.signInAsGuest();
         const accepted = await waves.acceptInvite({
           token,
           claimMemberId: claim,
-          displayName: name.trim() || null,
+          displayName: null,
         });
 
         // Claiming somebody's place only asks now (ADR-006). Routing into the
@@ -96,26 +100,41 @@ export function JoinFlow({ token }: { token: string }) {
           setJoining(false);
           return;
         }
-        // Kept for the guest, so a later sign-in to an account they already
-        // have can join this group again as them (`lib/guestSwitch`). Only a
-        // join that went through: a claim still waiting on an admin is not a
-        // membership, and replaying it would skip the admin's answer.
-        const { data } = await supabase.auth.getSession();
-        const user = data.session?.user;
-        if (user?.is_anonymous === true) rememberGuestJoin(user.id, token);
         router.replace(`/g/${accepted.group.id}`);
       } catch (caught) {
         setError(
-          friendlyError(caught, 'web.join.accept', {
-            fallback: t.errors.couldNotSave,
-            offline: t.errors.offline,
-          }),
+          isAccountRequired(caught)
+            ? t.join.accountRequired
+            : friendlyError(caught, 'web.join.accept', {
+                fallback: t.errors.couldNotSave,
+                offline: t.errors.offline,
+              }),
         );
         setJoining(false);
       }
     },
-    [token, claimId, name, router, t.errors.couldNotSave, t.errors.offline],
+    [token, claimId, router, t.errors.couldNotSave, t.errors.offline, t.join.accountRequired],
   );
+
+  // The far side of signing up or logging in: finish the join without asking
+  // again. Either this page was reloaded by the sign-in (`resume`) or the
+  // person chose a door here and the session just appeared.
+  const claimableCount = preview?.claimable.length ?? 0;
+  useEffect(() => {
+    if (
+      !preview ||
+      !shouldAutoJoin({
+        gate,
+        resume: resume || authMode !== null,
+        claimableCount,
+        attempted: attempted.current,
+      })
+    ) {
+      return;
+    }
+    attempted.current = true;
+    void join(null);
+  }, [preview, gate, resume, authMode, claimableCount, join]);
 
   if (error && !preview) {
     return (
@@ -169,6 +188,55 @@ export function JoinFlow({ token }: { token: string }) {
     );
   }
 
+  // Not yet an account: show the group, say why, and offer the two ways in.
+  // The sign-in form is the app's own (same component as the front door); the
+  // person is brought back here afterwards and joined.
+  if (gate !== JoinGate.Ready) {
+    if (authMode) {
+      return (
+        <SignIn
+          initialMode={authMode}
+          note={fill(gate === JoinGate.UpgradeGuest ? t.join.guestWhy : t.join.accountWhy, {
+            group: groupName,
+          })}
+          onBack={{
+            label: t.join.backToLink,
+            run: () => {
+              clearAfterSignIn();
+              setAuthMode(null);
+            },
+          }}
+        />
+      );
+    }
+    const choose = (mode: 'sign_in' | 'sign_up') => {
+      queueJoinAfterSignIn(token);
+      setAuthMode(mode);
+    };
+    return (
+      <main className="guest">
+        <div className="card">
+          <h1>
+            {preview.group?.cover_emoji ? `${preview.group.cover_emoji} ` : ''}
+            {fill(t.join.addedTo, { group: groupName })}
+          </h1>
+          <p>{plural(locale, preview.memberCount, t.join.splittingHere)}</p>
+          <p className="faint" data-testid="join-account-why">
+            {fill(gate === JoinGate.UpgradeGuest ? t.join.guestWhy : t.join.accountWhy, {
+              group: groupName,
+            })}
+          </p>
+        </div>
+        <button type="button" className="btn block lg" onClick={() => choose('sign_up')}>
+          {gate === JoinGate.UpgradeGuest ? t.join.guestUpgrade : t.join.signUpToJoin}
+        </button>
+        <button type="button" className="btn soft block" onClick={() => choose('sign_in')}>
+          {t.join.logIn}
+        </button>
+      </main>
+    );
+  }
+
   return (
     <main className="guest">
       <div className="card">
@@ -207,35 +275,7 @@ export function JoinFlow({ token }: { token: string }) {
         </div>
       ) : null}
 
-      {claimId === null ? (
-        <div className="card">
-          <h2>{t.join.yourName}</h2>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={t.join.namePlaceholder}
-            aria-label={t.join.yourName}
-            autoComplete="name"
-          />
-          <p className="faint">{t.join.onlyThingAsked}</p>
-        </div>
-      ) : null}
-
       {error ? <p className="error">{error}</p> : null}
-
-      {nobody ? (
-        <button
-          type="button"
-          className="btn soft block"
-          onClick={() => {
-            queueJoinAfterSignIn(token);
-            void signInWithGoogle();
-          }}
-          disabled={joining}
-        >
-          {t.join.signInFirst}
-        </button>
-      ) : null}
 
       <button type="button" className="btn block lg" onClick={() => void join()} disabled={joining}>
         {joining

@@ -57,6 +57,14 @@ describe('reading a notification', () => {
     expect(bare.body).not.toContain('undefined');
   });
 
+  it('tells a removed person which group, in every language', () => {
+    for (const language of SPOKEN) {
+      const { title } = renderNotification('member_removed', { group: 'Goa' }, language);
+      expect(title).toContain('Goa');
+      expect(title).not.toContain('{group}');
+    }
+  });
+
   it('formats minor units as money, in the reader’s locale', () => {
     // 42000 paise is ₹420.00, and the row has no idea of either fact.
     const { body } = renderNotification('settlement_confirmed', TRIP, 'en-IN');
