@@ -817,6 +817,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/invite" options={slide} />
           <Stack.Screen name="group/[id]/itemize" options={slide} />
           <Stack.Screen name="group/[id]/export" options={slide} />
+          <Stack.Screen name="group/[id]/import" options={slide} />
           <Stack.Screen name="group/[id]/insights" />
           <Stack.Screen name="group/[id]/map" />
           <Stack.Screen name="group/[id]/month" />
