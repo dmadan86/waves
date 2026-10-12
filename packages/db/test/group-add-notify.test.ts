@@ -325,4 +325,20 @@ describe('a contact who is already on Waves joins as themselves', () => {
     expect(row.ghost_name).toBe('Ravi');
     expect(await notificationsFor(ravi.id)).toHaveLength(0);
   });
+
+  it('keeps a ghost, and taps no one, when the account is not findable by that channel', async () => {
+    const owner = await person('Asha');
+    const mira = await person('Mira');
+    const groupId = await group(owner.id);
+    await client.query(`UPDATE profiles SET discoverable_by_phone = false WHERE id = $1`, [
+      mira.id,
+    ]);
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Mira', phone: `+${mira.phone}` });
+
+    const row = await memberRow(memberId);
+    expect(row.profile_id).toBeNull();
+    expect(row.ghost_name).toBe('Mira');
+    expect(await notificationsFor(mira.id)).toHaveLength(0);
+  });
 });

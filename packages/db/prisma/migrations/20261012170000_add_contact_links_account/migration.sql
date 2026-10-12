@@ -14,8 +14,11 @@
 --     removed by an admin. A contact add must not walk anyone back into a group
 --     they left or were removed from; the invite link (#1254) owns that.
 --
--- `discoverable_by_*` still does not gate the match; see
--- 20260908090000_person_profile_and_discovery for why.
+--   * the account has switched off being found by that channel
+--     (`discoverable_by_email` / `discoverable_by_phone`). Linking shows the
+--     adder the account's name, i.e. it answers "does this number have Waves",
+--     which is exactly what those switches let somebody refuse. They are not
+--     tapped either: the tap would open a group they are not in.
 
 CREATE OR REPLACE FUNCTION public.waves_add_ghost_member(
   p_group_id uuid,
@@ -104,8 +107,9 @@ BEGIN
       JOIN public.profiles p ON p.id = u.id
      WHERE u.deleted_at IS NULL
        AND (
-         (v_email IS NOT NULL AND lower(u.email) = v_email)
+         (v_email IS NOT NULL AND lower(u.email) = v_email AND p.discoverable_by_email)
          OR (v_phone_bare IS NOT NULL
+             AND p.discoverable_by_phone
              AND regexp_replace(coalesce(u.phone, ''), '[^0-9]', '', 'g') = v_phone_bare)
        )
      ORDER BY (v_email IS NOT NULL AND lower(u.email) = v_email) DESC
