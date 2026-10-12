@@ -199,3 +199,77 @@ describe('direct stale edit is superseded (same as /sync, TDR §4.4)', () => {
     expect(stale.supersededVersionNo).toBe(fresh.versionNo);
   });
 });
+
+describe('the import batch parameter does not disturb any other caller', () => {
+  it('replaced the previous signature rather than overloading it', async () => {
+    const { rows } = await client.query(
+      `SELECT to_regprocedure(
+         'public.waves_apply_expense(uuid, uuid, uuid, text, text, date, character, bigint, text, jsonb, jsonb, jsonb, uuid, text, uuid, integer, jsonb, text, text, text, jsonb, jsonb, text, boolean, bigint, date, timestamptz, text)'
+       ) AS old_sig,
+       (SELECT count(*) FROM pg_proc WHERE proname = 'waves_apply_expense')::int AS overloads`,
+    );
+    expect(rows[0].old_sig).toBeNull();
+    expect(rows[0].overloads).toBe(1);
+  });
+
+  it('leaves import_batch_id empty for a caller that does not name one (the edges, sync, the agent tools)', async () => {
+    const { groupId, memberIds } = await seedGroup(client, { memberCount: 2 });
+    const [a, b] = memberIds as [string, string];
+    const created = await applyExpense({
+      groupId,
+      author: a,
+      amount: 1000n,
+      ...halves(a, b, 1000n),
+    });
+    const { rows } = await client.query(
+      `SELECT import_batch_id FROM expense_versions WHERE id = $1`,
+      [created.versionId],
+    );
+    expect(rows[0].import_batch_id).toBeNull();
+  });
+
+  it("files a version under its group's batch, and refuses another group's", async () => {
+    const mine = await seedGroup(client, { memberCount: 2 });
+    const theirs = await seedGroup(client, { memberCount: 2 });
+    const [a, b] = mine.memberIds as [string, string];
+    const batchOf = async (group: { groupId: string; memberIds: string[] }): Promise<string> => {
+      const id = randomUUID();
+      await client.query(
+        `INSERT INTO import_batches (id, group_id, actor_member_id, source) VALUES ($1, $2, $3, 'csv')`,
+        [id, group.groupId, group.memberIds[0]],
+      );
+      return id;
+    };
+    const args = (batchId: string, mutationId: string) =>
+      [
+        mine.groupId,
+        a,
+        JSON.stringify([{ memberId: a, amount: '1000' }]),
+        JSON.stringify([
+          { memberId: a, amount: '500' },
+          { memberId: b, amount: '500' },
+        ]),
+        mutationId,
+        batchId,
+      ] as const;
+    const sql = `SELECT waves_apply_expense(
+        p_group_id := $1, p_expense_id := NULL, p_author_member_id := $2, p_description := 'Row',
+        p_category := NULL, p_expense_date := '2026-03-01', p_currency := 'INR', p_amount := 1000,
+        p_split_type := 'equal', p_split_params := '{"kind":"equal"}'::jsonb,
+        p_payers := $3::jsonb, p_shares := $4::jsonb, p_client_mutation_id := $5,
+        p_source := 'imported', p_import_batch_id := $6) AS out`;
+
+    const own = await batchOf(mine);
+    const { rows } = await client.query(sql, [...args(own, randomUUID())]);
+    const stored = await client.query(
+      `SELECT import_batch_id FROM expense_versions WHERE id = $1`,
+      [rows[0].out.versionId],
+    );
+    expect(stored.rows[0].import_batch_id).toBe(own);
+
+    const foreign = await batchOf(theirs);
+    await expect(client.query(sql, [...args(foreign, randomUUID())])).rejects.toThrow(
+      /UNKNOWN_BATCH/,
+    );
+  });
+});

@@ -2,6 +2,7 @@ export * from './problem';
 export * from './splitwise';
 export * from './waves';
 export * from './email';
+export * from './batch';
 export * from './table';
 export * from './amount';
 export * from './date';

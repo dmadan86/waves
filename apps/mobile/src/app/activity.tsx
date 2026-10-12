@@ -23,6 +23,7 @@ import {
 
 import {
   activityDateSpan,
+  type ActivityLabels,
   activityHeadline,
   activityTarget,
   activityTimestamp,
@@ -34,6 +35,7 @@ import {
   verbIcon,
   verbTint,
 } from '@/data/activity';
+import { activityLabels } from '@/data/activityLabels';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { SplitMoney } from '@/components/SplitMoney';
@@ -94,6 +96,7 @@ type RowContext = {
   myProfileId: string | null;
   blockedIds: ReturnType<typeof useBlockedUsers>['blockedIds'];
   rtf: Intl.RelativeTimeFormat | undefined;
+  labels: ActivityLabels;
 };
 
 // Resolve everything a row shows, once, at list-build time. `describeActivity`
@@ -104,8 +107,8 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   const glyph = rowGlyph(entry);
   return {
     href: activityTarget(entry) as Href,
-    label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone),
-    headline: activityHeadline(entry),
+    label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
+    headline: activityHeadline(entry, ctx.labels),
     // Nobody did an auto-event, so it carries no actor — omit it rather than say
     // "Someone". A blocked or since-left actor still resolves through actorName.
     who: entry.actor
@@ -382,7 +385,14 @@ export default function ActivityScreen() {
   // mounts with no work. This whole pass only reruns when the data, filter or
   // locale changes — never on scroll — so the up-front cost is paid off-fling.
   const listData = useMemo(() => {
-    const ctx: RowContext = { locale, t, myProfileId, blockedIds, rtf };
+    const ctx: RowContext = {
+      locale,
+      t,
+      myProfileId,
+      blockedIds,
+      rtf,
+      labels: activityLabels(locale, t.activityScreen),
+    };
     const rows: FeedRow[] = [];
     for (const section of groupByDay(visibleEntries)) {
       rows.push({

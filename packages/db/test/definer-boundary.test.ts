@@ -42,6 +42,8 @@ interface Objects {
   photoId: string;
   planItemId: string;
   ghostIds: [string, string];
+  /** An empty import batch (made by `payer`), for waves_undo_import. */
+  batchId: string;
 }
 
 let scene: Scene;
@@ -119,7 +121,13 @@ async function seedObjects(group: SeededGroup): Promise<Objects> {
     [planItemId, group.groupId, payer],
   );
 
-  return { attachmentId, proofId, photoId, planItemId, ghostIds };
+  const batchId = randomUUID();
+  await client.query(
+    `INSERT INTO import_batches (id, group_id, actor_member_id, source) VALUES ($1, $2, $3, 'csv')`,
+    [batchId, group.groupId, payer],
+  );
+
+  return { attachmentId, proofId, photoId, planItemId, ghostIds, batchId };
 }
 
 beforeAll(async () => {
@@ -230,6 +238,23 @@ const cases: Case[] = [
         g.groupId,
         JSON.stringify([{ name: 'Imported ghost', memberId: null }]),
       ]),
+    memberActor: (g) => g.profileIds[0]!,
+    refuse: /NOT_A_MEMBER/,
+  },
+  {
+    name: 'waves_import_into_group (chunked import into an existing group)',
+    call: (_o, g) =>
+      q(`SELECT waves_import_into_group($1, $2, 'csv', $3::jsonb, '[]'::jsonb, '[]'::jsonb)`, [
+        g.groupId,
+        randomUUID(),
+        JSON.stringify([{ name: 'Imported ghost', memberId: null }]),
+      ]),
+    memberActor: (g) => g.profileIds[0]!,
+    refuse: /NOT_A_MEMBER/,
+  },
+  {
+    name: 'waves_undo_import (undo an import, importer or admin)',
+    call: (o) => q(`SELECT waves_undo_import($1)`, [o.batchId]),
     memberActor: (g) => g.profileIds[0]!,
     refuse: /NOT_A_MEMBER/,
   },

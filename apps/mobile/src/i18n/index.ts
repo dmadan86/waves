@@ -2004,6 +2004,13 @@ export interface UiStrings {
     viewDetails: string;
     openGroup: string;
     noneForFilter: string;
+    /** "Imported {n} expenses": the feed row for one import into a group. */
+    importedHeadline: PluralForms;
+    /** The same event as a sentence, from the reader's side: "{who} imported {n} expenses". */
+    importedSentence: PluralForms;
+    importUndoneHeadline: string;
+    /** "{who} undid an import". */
+    importUndoneSentence: string;
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
@@ -6512,6 +6519,10 @@ const en: UiStrings = {
     viewDetails: 'View details',
     openGroup: 'Open group',
     noneForFilter: 'Nothing here for this filter yet.',
+    importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
+    importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
+    importUndoneHeadline: 'Import undone',
+    importUndoneSentence: '{who} undid an import',
   },
   newGroupForm: {
     title: 'Create a new group',
@@ -10586,6 +10597,16 @@ const ta: UiStrings = {
     viewDetails: 'விவரங்களைப் பார்',
     openGroup: 'குழுவைத் திற',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
+    importedHeadline: {
+      one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
+      other: '{n} செலவுகள் இறக்குமதி செய்யப்பட்டன',
+    },
+    importedSentence: {
+      one: '{who} {n} செலவை இறக்குமதி செய்தார்',
+      other: '{who} {n} செலவுகளை இறக்குமதி செய்தார்',
+    },
+    importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
+    importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
@@ -14743,6 +14764,13 @@ const hi: UiStrings = {
     viewDetails: 'विवरण देखें',
     openGroup: 'समूह खोलें',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
+    importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
+    importedSentence: {
+      one: '{who} ने {n} ख़र्च इम्पोर्ट किया',
+      other: '{who} ने {n} ख़र्च इम्पोर्ट किए',
+    },
+    importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
+    importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
@@ -18872,6 +18900,24 @@ const ar: UiStrings = {
     viewDetails: 'عرض التفاصيل',
     openGroup: 'فتح المجموعة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
+    importedHeadline: {
+      zero: 'استيراد {n} مصروف',
+      one: 'استيراد مصروف واحد',
+      two: 'استيراد مصروفين',
+      few: 'استيراد {n} مصروفات',
+      many: 'استيراد {n} مصروفًا',
+      other: 'استيراد {n} مصروف',
+    },
+    importedSentence: {
+      zero: '{who} استورد {n} مصروف',
+      one: '{who} استورد مصروفًا واحدًا',
+      two: '{who} استورد مصروفين',
+      few: '{who} استورد {n} مصروفات',
+      many: '{who} استورد {n} مصروفًا',
+      other: '{who} استورد {n} مصروف',
+    },
+    importUndoneHeadline: 'تم التراجع عن الاستيراد',
+    importUndoneSentence: '{who} تراجع عن استيراد',
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
