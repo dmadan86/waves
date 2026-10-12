@@ -10,11 +10,16 @@ import WatchConnectivity
 // UNVERIFIED: written on Windows with no Xcode. Build on a Mac/EAS before trust.
 public final class WavesWatchModule: Module {
   private let relay = WatchRelay()
+  // A clip can be delivered at launch, before JS has subscribed (the system
+  // hands queued transfers over the moment the session activates). Those wait
+  // here until the first `onWatchFile` listener attaches, so none is dropped.
+  private var observingFiles = false
+  private var pendingFiles: [[String: Any]] = []
 
   public func definition() -> ModuleDefinition {
     Name("WavesWatch")
 
-    Events("onWatchMessage", "onWatchSendFailed")
+    Events("onWatchMessage", "onWatchSendFailed", "onWatchFile")
 
     OnCreate {
       self.relay.onMessage = { [weak self] payload in
@@ -27,7 +32,32 @@ public final class WavesWatchModule: Module {
       self.relay.onSendFailed = { [weak self] kind in
         self?.sendEvent("onWatchSendFailed", ["t": kind ?? ""])
       }
+      // A recorded clip the watch sent with `transferFile`. `uri` is a copy in
+      // this app's caches (WatchConnectivity deletes its own when the delegate
+      // returns); `metadata` is the watch's {t:"voiceClip", id, durationMs}.
+      self.relay.onFile = { [weak self] uri, metadata in
+        guard let self else { return }
+        let payload: [String: Any] = ["uri": uri, "metadata": metadata]
+        DispatchQueue.main.async {
+          if self.observingFiles {
+            self.sendEvent("onWatchFile", payload)
+          } else {
+            self.pendingFiles.append(payload)
+          }
+        }
+      }
       self.relay.activate()
+    }
+
+    OnStartObserving("onWatchFile") {
+      self.observingFiles = true
+      let queued = self.pendingFiles
+      self.pendingFiles = []
+      for payload in queued { self.sendEvent("onWatchFile", payload) }
+    }
+
+    OnStopObserving("onWatchFile") {
+      self.observingFiles = false
     }
 
     Function("isReachable") { () -> Bool in
@@ -46,6 +76,8 @@ private final class WatchRelay: NSObject, WCSessionDelegate {
   var onMessage: (([String: Any]) -> Void)?
   /** Called with the `t` of a queued payload that never reached the watch. */
   var onSendFailed: ((String?) -> Void)?
+  /** Called with a cache copy of a file the watch transferred, and its metadata. */
+  var onFile: ((String, [String: Any]) -> Void)?
 
   private var session: WCSession? {
     WCSession.isSupported() ? WCSession.default : nil
@@ -86,6 +118,29 @@ private final class WatchRelay: NSObject, WCSessionDelegate {
   // The queued counterpart of the live sendMessage path — delivered on wake.
   func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
     onMessage?(userInfo)
+  }
+
+  /**
+   * A file the watch sent (`transferFile`) — a recorded voice clip.
+   *
+   * WatchConnectivity removes `file.fileURL` as soon as this returns, so the
+   * file is copied out synchronously here and JS is handed the copy. A transfer
+   * is queued by the system until the phone app next runs, so this also fires
+   * for clips recorded while the phone was out of reach.
+   */
+  func session(_ session: WCSession, didReceive file: WCSessionFile) {
+    guard let metadata = file.metadata, metadata["t"] as? String == "voiceClip" else { return }
+    let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("watch-clips", isDirectory: true)
+    do {
+      try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+      let ext = file.fileURL.pathExtension.isEmpty ? "m4a" : file.fileURL.pathExtension
+      let copy = dir.appendingPathComponent("\(UUID().uuidString).\(ext)")
+      try FileManager.default.copyItem(at: file.fileURL, to: copy)
+      onFile?(copy.absoluteString, metadata)
+    } catch {
+      // Nothing to hand JS; the watch's own timeout reports the clip as unsent.
+    }
   }
 
   /**

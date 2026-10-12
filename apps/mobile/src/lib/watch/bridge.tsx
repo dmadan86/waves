@@ -23,7 +23,12 @@ import {
 } from '@waves/core';
 
 import { describeActivity, parseMoney, relativeTime } from '@/data/activity';
-import { useCreateCapture, useGroups, type RecentActivityRow } from '@/data/hooks';
+import {
+  useCreateCapture,
+  useGroups,
+  useVoiceAgentStatus,
+  type RecentActivityRow,
+} from '@/data/hooks';
 import { recentActivity } from '@/data/recentActivity';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -32,6 +37,15 @@ import { useRecentCount } from '@/lib/recentCount';
 import { parseVoiceExpenses, type VoiceGroupRef } from '@/lib/voiceExpense';
 import { useSync } from '@/sync';
 import {
+  agentCall,
+  deleteClip,
+  readClipBase64,
+  sweepStaleClips,
+  transcribeFile,
+} from './voiceClip';
+import { parseWatchClip, processClip } from './voiceClipPure';
+import {
+  onWatchFile,
   onWatchMessage,
   onWatchSendFailed,
   sendToWatch,
@@ -93,6 +107,10 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   const { session } = useAuth();
   const defaultCurrency = useDefaultCurrency();
   const { t, locale } = useStrings();
+  // Until the server's answer is in, trust the one this phone last saw, so a clip
+  // that arrives at launch is not demoted to the free path by a pending read.
+  const voiceAgent = useVoiceAgentStatus();
+  const agentEnabled = voiceAgent.ready ? voiceAgent.enabled : voiceAgent.lastKnown === true;
 
   // The message handler is bound once; it reads the latest of everything through
   // this ref so a new recent list or a changed setting never re-subscribes.
@@ -105,6 +123,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     locale,
     someone: t.misc.someone,
     personal: t.captures.unassigned,
+    agentEnabled,
   });
   const createRef = useRef(createCapture);
   /** The last recent payload sent, so an unchanged list is not re-sent. */
@@ -122,6 +141,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
       locale,
       someone: t.misc.someone,
       personal: t.captures.unassigned,
+      agentEnabled,
     };
     createRef.current = createCapture;
   });
@@ -277,6 +297,10 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               sendToWatch({ t: 'ack', ok: true });
               break;
             }
+            case 'voiceClip':
+              // The audio arrives as a file (`onWatchFile`); this metadata-only
+              // message carries nothing to act on.
+              break;
             case 'requestRecent':
               relayRecent(coerceRecentCount(msg.count), { force: true });
               break;
@@ -294,6 +318,67 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
     return unsubscribe;
     // `relayRecent` is stable, so this still subscribes exactly once.
   }, [relayRecent]);
+
+  // A voice clip recorded on the watch arrives as a file. Transcribe it (Pro:
+  // the voice-agent; otherwise on this phone), save what it says the way a
+  // voiceAdd does — unassigned captures, nothing auto-filed — and tell the watch
+  // what happened.
+  const handledClips = useRef(new Set<string>());
+  useEffect(() => {
+    if (!watchAvailable()) return;
+    sweepStaleClips();
+    return onWatchFile((event) => {
+      const clip = parseWatchClip(event);
+      if (!clip) return;
+      // A queued transfer can be redelivered; one clip is one outcome.
+      if (handledClips.current.has(clip.id)) {
+        deleteClip(clip.uri);
+        return;
+      }
+      handledClips.current.add(clip.id);
+      void (async () => {
+        const s = stateRef.current;
+        const today = localDate(Date.now());
+        try {
+          const outcome = await processClip(clip, {
+            agentEnabled: s.agentEnabled,
+            ctx: {
+              groups: s.groups.map((g) => ({ id: g.id, name: g.name })),
+              defaultCurrency: s.defaultCurrency,
+              locale: s.locale,
+            },
+            readBase64: readClipBase64,
+            callAgent: agentCall({ locale: s.locale, today }),
+            transcribe: (uri) => transcribeFile(uri, s.locale),
+          });
+          const single = outcome.captures.length === 1;
+          for (const item of outcome.captures) {
+            await createRef.current.mutateAsync({
+              captureId: single ? clip.id : undefined,
+              amount: item.amountMinor,
+              currency: item.currency,
+              description: item.note,
+              expenseDate: today,
+              rawText: outcome.rawText,
+            });
+          }
+          sendToWatch({ t: 'voiceResult', id: clip.id, ...outcome.result });
+        } catch {
+          // Allow a redelivery of this clip to try again.
+          handledClips.current.delete(clip.id);
+          sendToWatch({
+            t: 'voiceResult',
+            id: clip.id,
+            status: 'error',
+            text: '',
+            error: 'failed',
+          });
+        } finally {
+          deleteClip(clip.uri);
+        }
+      })();
+    });
+  }, []);
 
   // Keep the watch's copy of the settings (list size + the currency a quick-add
   // is booked in) in step with the phone.
