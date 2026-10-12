@@ -44,7 +44,7 @@ import { router } from '@/lib/navigation';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { plural, useStrings } from '@/i18n';
-import { inviteCardBackground } from '@/components/invite/inviteCardBackgrounds';
+import { INVITE_CARD_BACKGROUND } from '@/components/invite/inviteCardBackgrounds';
 import { TYPE_ICON } from '@/components/invite/inviteCardModel';
 import { useBottomClearance } from '@/lib/clearance';
 
@@ -347,7 +347,7 @@ export default function GroupExportScreen() {
         >
           <View style={{ borderRadius: theme.radius.lg, overflow: 'hidden' }}>
             <Image
-              source={inviteCardBackground(groupData?.type)}
+              source={INVITE_CARD_BACKGROUND}
               contentFit="cover"
               style={{
                 position: 'absolute',
