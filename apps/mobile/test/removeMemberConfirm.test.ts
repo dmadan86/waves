@@ -41,9 +41,7 @@ describe('removeMemberBody', () => {
   });
 
   it('has the real strings in every language, with no placeholder left over', () => {
-    for (const language of Object.keys(STRINGS_BY_LANGUAGE) as Array<
-      keyof typeof STRINGS_BY_LANGUAGE
-    >) {
+    for (const language of Object.keys(STRINGS_BY_LANGUAGE) as (keyof typeof STRINGS_BY_LANGUAGE)[]) {
       const people = STRINGS_BY_LANGUAGE[language].people;
       for (const balance of [0n, -1000n, 1000n]) {
         const text = removeMemberBody({
