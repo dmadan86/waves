@@ -174,3 +174,6 @@ BEGIN
   RETURN v_member_id;
 END
 $function$;
+
+REVOKE EXECUTE ON FUNCTION public.waves_add_ghost_member(uuid, text, uuid, text, text) FROM anon, PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.waves_add_ghost_member(uuid, text, uuid, text, text) TO authenticated, service_role;
