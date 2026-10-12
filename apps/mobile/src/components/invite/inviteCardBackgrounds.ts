@@ -5,11 +5,9 @@ import { inviteBackgroundKey } from './inviteCardModel';
 /**
  * Full-bleed artwork behind the shared invite image, one per group type.
  *
- * PLACEHOLDERS: the files in assets/images/invite-card are 2:3 crops of
- * existing scenes so the layout can be built and checked. Replace each with the
- * real per-type illustration under the SAME filename (portrait 2:3, ~1080 px
- * wide, under ~150 KB, calm in the lower half where the card sits); nothing
- * else needs to change.
+ * Cut from the per-type artwork set (trip, home, event, friends, couple,
+ * other) at 720 px wide. A higher-resolution export of the same scenes can
+ * replace each file under the same name; nothing else needs to change.
  */
 export const INVITE_CARD_BACKGROUNDS: Record<GroupType, number> = {
   [GroupType.Trip]: require('../../../assets/images/invite-card/trip.webp') as number,
