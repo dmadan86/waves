@@ -1720,6 +1720,8 @@ export interface UiStrings {
     gateTitle: string;
     gateGroupBody: string;
     gateExpiredBody: string;
+    /** A guest sent here from an invite: make the account, then the join finishes. */
+    gateJoinBody: string;
   };
   /** Entry copy — the signed-out screens (phone, verify-email, guest intro,
       gateway legal) and the push soft-ask. Kept translatable and RTL-safe. */
@@ -3527,11 +3529,11 @@ export interface UiStrings {
     linkExpiredBody: string;
     linkMissingCode: string;
     goToWaves: string;
-    freeNoAccount: string;
+    joinFreeBadge: string;
     joinFeatureQuickTitle: string;
     joinFeatureQuickBody: string;
-    joinFeatureGuestTitle: string;
-    joinFeatureGuestBody: string;
+    joinFeatureAccountTitle: string;
+    joinFeatureAccountBody: string;
     joinFeatureTogetherTitle: string;
     joinFeatureTogetherBody: string;
     isOneOfTheseYou: string;
@@ -3548,6 +3550,16 @@ export interface UiStrings {
     unnamed: string;
     joinAndClaim: string;
     joinGroup: string;
+    /** Invite screen, signed out: the two ways in. */
+    joinSignUp: string;
+    joinLogIn: string;
+    /** Why joining needs an account; `{group}` is the group's name. */
+    joinAccountWhy: string;
+    /** A guest opening an invite: upgrade the account they have, then join. */
+    joinGuestUpgrade: string;
+    joinGuestWhy: string;
+    /** The server refused a guest join (an older screen, or a race). */
+    joinAccountRequired: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -4504,7 +4516,6 @@ export interface UiStrings {
     ghostNote: string;
     claimHistoryNote: string;
     theirPastBecomesYours: string;
-    guestKeepsItHere: string;
     lockedTitle: string;
     lockedBody: string;
     unlock: string;
@@ -6253,6 +6264,8 @@ const en: UiStrings = {
       "You're in a group as a guest. Add an email, phone or provider to start or join more — everything you've entered stays with you.",
     gateExpiredBody:
       'Your guest trial has ended, so the app is read-only for now. Add a way to sign in to keep adding — your groups and expenses are all still here.',
+    gateJoinBody:
+      'Add an email or phone to create your account. Then we take you back to the invite and add you to the group. Everything you have so far stays with you.',
   },
   entry: {
     phonePlaceholder: 'Enter your phone number',
@@ -7652,11 +7665,11 @@ const en: UiStrings = {
       'Ask whoever sent it for a fresh one — links expire so they cannot be passed around forever.',
     linkMissingCode: 'This link is missing its invite code',
     goToWaves: 'Go to Waves',
-    freeNoAccount: 'Free forever, no account needed',
+    joinFreeBadge: 'Free forever',
     joinFeatureQuickTitle: 'Quick join',
     joinFeatureQuickBody: 'Start tracking expenses instantly',
-    joinFeatureGuestTitle: 'No account needed',
-    joinFeatureGuestBody: 'Join as a guest',
+    joinFeatureAccountTitle: 'Your own account',
+    joinFeatureAccountBody: 'Your expenses stay yours',
     joinFeatureTogetherTitle: 'Split together',
     joinFeatureTogetherBody: 'Keep everyone on the same page',
     isOneOfTheseYou: 'Is one of these you?',
@@ -7671,6 +7684,15 @@ const en: UiStrings = {
     unnamed: 'Unnamed',
     joinAndClaim: 'Join and claim my history',
     joinGroup: 'Join this group',
+    joinSignUp: 'Sign up to join',
+    joinLogIn: 'Log in',
+    joinAccountWhy:
+      'Create a free account to join {group} so your expenses stay yours on every device.',
+    joinGuestUpgrade: 'Create an account to join',
+    joinGuestWhy:
+      'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
+    joinAccountRequired:
+      'You need an account to join this group. Sign up or log in, then open the link again.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -8558,8 +8580,6 @@ const en: UiStrings = {
     ghostNote: 'They do not need the app. Add them now and they can claim their history later.',
     claimHistoryNote: 'Pick your name and everything already recorded for you comes with you.',
     theirPastBecomesYours: 'Their past expenses and balances become yours.',
-    guestKeepsItHere:
-      'Joining as a guest keeps everything on this device. Add a phone number later and it all comes with you.',
     lockedTitle: 'Waves is locked',
     lockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
     unlock: 'Unlock',
@@ -10294,6 +10314,8 @@ const ta: UiStrings = {
       'விருந்தினராக ஒரு குழுவில் உள்ளீர்கள். மேலும் குழுக்களைத் தொடங்கவோ சேரவோ ஒரு மின்னஞ்சல், ஃபோன் அல்லது வழங்குநரைச் சேர்க்கவும் — நீங்கள் சேர்த்த அனைத்தும் உங்களுடன் இருக்கும்.',
     gateExpiredBody:
       'உங்கள் விருந்தினர் காலம் முடிந்துவிட்டது, எனவே இப்போது ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையும் வழியைச் சேர்க்கவும் — உங்கள் குழுக்களும் செலவுகளும் இங்கேயே உள்ளன.',
+    gateJoinBody:
+      'உங்கள் கணக்கை உருவாக்க மின்னஞ்சல் அல்லது ஃபோன் எண்ணைச் சேர்க்கவும். பிறகு உங்களை அழைப்புக்குத் திரும்ப அழைத்துச் சென்று குழுவில் சேர்ப்போம். இதுவரை உள்ள அனைத்தும் உங்களுடன் இருக்கும்.',
   },
   entry: {
     phonePlaceholder: 'உங்கள் தொலைபேசி எண்ணை உள்ளிடுங்கள்',
@@ -11760,11 +11782,11 @@ const ta: UiStrings = {
       'அனுப்பியவரிடம் புதிய ஒன்றைக் கேளுங்கள் — இணைப்புகள் காலாவதியாவதால்தான் அவை என்றென்றும் கைமாறுவதில்லை.',
     linkMissingCode: 'இந்த இணைப்பில் அழைப்புக் குறியீடு இல்லை',
     goToWaves: 'Waves-க்குச் செல்',
-    freeNoAccount: 'எப்போதும் இலவசம், கணக்கு தேவையில்லை',
+    joinFreeBadge: 'எப்போதும் இலவசம்',
     joinFeatureQuickTitle: 'விரைவாகச் சேர்',
     joinFeatureQuickBody: 'உடனே செலவுகளைக் கண்காணிக்கத் தொடங்கு',
-    joinFeatureGuestTitle: 'கணக்கு தேவையில்லை',
-    joinFeatureGuestBody: 'விருந்தினராகச் சேர்',
+    joinFeatureAccountTitle: 'உங்கள் சொந்தக் கணக்கு',
+    joinFeatureAccountBody: 'உங்கள் செலவுகள் உங்களுடையதே',
     joinFeatureTogetherTitle: 'சேர்ந்து பிரி',
     joinFeatureTogetherBody: 'எல்லோரும் ஒரே பக்கத்தில் இருங்கள்',
     isOneOfTheseYou: 'இவர்களில் ஒருவர் நீங்களா?',
@@ -11780,6 +11802,15 @@ const ta: UiStrings = {
     unnamed: 'பெயரிடப்படாதவர்',
     joinAndClaim: 'சேர்ந்து என் வரலாற்றை உரிமை கொள்',
     joinGroup: 'இந்தக் குழுவில் சேர்',
+    joinSignUp: 'பதிவு செய்து சேர்',
+    joinLogIn: 'உள்நுழை',
+    joinAccountWhy:
+      '{group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள்; உங்கள் செலவுகள் எல்லாச் சாதனங்களிலும் உங்களுடையதாகவே இருக்கும்.',
+    joinGuestUpgrade: 'கணக்கை உருவாக்கிச் சேர்',
+    joinGuestWhy:
+      'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
+    joinAccountRequired:
+      'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -12733,8 +12764,6 @@ const ta: UiStrings = {
     claimHistoryNote:
       'உங்கள் பெயரைத் தேர்ந்தெடுத்தால், உங்களுக்காக ஏற்கெனவே பதிவானது எல்லாம் உங்களுடன் வரும்.',
     theirPastBecomesYours: 'அவர்களின் பழைய செலவுகளும் இருப்புகளும் உங்களுடையவை ஆகும்.',
-    guestKeepsItHere:
-      'விருந்தினராகச் சேர்ந்தால் எல்லாம் இந்தச் சாதனத்திலேயே இருக்கும். பிறகு ஒரு ஃபோன் எண்ணைச் சேர்த்தால், எல்லாம் வேறு ஃபோனுக்கும் உங்களைப் பின்தொடரும்.',
     lockedTitle: 'Waves பூட்டப்பட்டுள்ளது',
     lockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
     unlock: 'திற',
@@ -14437,6 +14466,8 @@ const hi: UiStrings = {
       'आप बतौर मेहमान एक समूह में हैं। और समूह शुरू करने या उनमें शामिल होने के लिए ईमेल, फ़ोन या प्रोवाइडर जोड़ें — आपका जोड़ा हुआ सब कुछ आपके साथ रहेगा।',
     gateExpiredBody:
       'आपकी मेहमान अवधि खत्म हो गई है, इसलिए अभी ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन इन का कोई तरीका जोड़ें — आपके समूह और खर्च सब यहीं मौजूद हैं।',
+    gateJoinBody:
+      'खाता बनाने के लिए ईमेल या फ़ोन नंबर जोड़ें। फिर हम आपको निमंत्रण पर वापस ले जाकर ग्रुप में जोड़ देंगे। अब तक का सब कुछ आपके साथ रहेगा।',
   },
   entry: {
     phonePlaceholder: 'अपना फ़ोन नंबर डालें',
@@ -15847,11 +15878,11 @@ const hi: UiStrings = {
       'जिसने भेजा था उससे नया माँग लें — लिंक इसीलिए खत्म होते हैं ताकि वे हमेशा घूमते न रहें।',
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
-    freeNoAccount: 'हमेशा मुफ़्त, खाता ज़रूरी नहीं',
+    joinFreeBadge: 'हमेशा मुफ़्त',
     joinFeatureQuickTitle: 'झटपट जुड़ें',
     joinFeatureQuickBody: 'तुरंत खर्च ट्रैक करना शुरू करें',
-    joinFeatureGuestTitle: 'खाता ज़रूरी नहीं',
-    joinFeatureGuestBody: 'मेहमान के रूप में जुड़ें',
+    joinFeatureAccountTitle: 'आपका अपना खाता',
+    joinFeatureAccountBody: 'आपके खर्चे आपके ही रहते हैं',
     joinFeatureTogetherTitle: 'साथ में बाँटें',
     joinFeatureTogetherBody: 'सबको एक ही पेज पर रखें',
     isOneOfTheseYou: 'क्या इनमें से कोई आप हैं?',
@@ -15866,6 +15897,15 @@ const hi: UiStrings = {
     unnamed: 'बिना नाम',
     joinAndClaim: 'जुड़ें और अपना इतिहास लें',
     joinGroup: 'इस समूह में जुड़ें',
+    joinSignUp: 'जुड़ने के लिए साइन अप करें',
+    joinLogIn: 'लॉग इन करें',
+    joinAccountWhy:
+      '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
+    joinGuestUpgrade: 'खाता बनाकर जुड़ें',
+    joinGuestWhy:
+      'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
+    joinAccountRequired:
+      'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
     noAddress: 'कोई पता नहीं',
@@ -16760,8 +16800,6 @@ const hi: UiStrings = {
     ghostNote: 'उन्हें ऐप की ज़रूरत नहीं। अभी जोड़ दें, बाद में वे अपना इतिहास ले सकते हैं।',
     claimHistoryNote: 'अपना नाम चुनें और आपके लिए जो कुछ पहले से दर्ज है, सब साथ आ जाएगा।',
     theirPastBecomesYours: 'उनके पुराने खर्च और हिसाब आपके हो जाएँगे।',
-    guestKeepsItHere:
-      'मेहमान के तौर पर जुड़ने से सब कुछ इसी डिवाइस पर रहता है। बाद में फ़ोन नंबर जोड़ें और सब कुछ दूसरे फ़ोन तक आपके साथ चला आएगा।',
     lockedTitle: 'Waves लॉक है',
     lockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
     unlock: 'खोलें',
@@ -18523,6 +18561,8 @@ const ar: UiStrings = {
       'أنت في مجموعة كضيف. أضف بريدًا إلكترونيًا أو هاتفًا أو مزوّدًا لبدء مجموعات أخرى أو الانضمام إليها — كل ما أدخلته يبقى معك.',
     gateExpiredBody:
       'انتهت فترتك كضيف، لذا التطبيق للقراءة فقط الآن. أضف طريقة لتسجيل الدخول لمواصلة الإضافة — مجموعاتك ومصروفاتك كلها لا تزال هنا.',
+    gateJoinBody:
+      'أضف بريدًا إلكترونيًا أو رقم هاتف لإنشاء حسابك. ثم نعيدك إلى الدعوة ونضيفك إلى المجموعة. كل ما لديك حتى الآن يبقى معك.',
   },
   entry: {
     phonePlaceholder: 'أدخل رقم هاتفك',
@@ -20115,11 +20155,11 @@ const ar: UiStrings = {
     linkExpiredBody: 'اطلب رابطًا جديدًا ممن أرسله — الروابط تنتهي كي لا تتداول إلى الأبد.',
     linkMissingCode: 'هذا الرابط ينقصه رمز الدعوة',
     goToWaves: 'اذهب إلى Waves',
-    freeNoAccount: 'مجاني دائمًا، بلا حاجة إلى حساب',
+    joinFreeBadge: 'مجاني دائمًا',
     joinFeatureQuickTitle: 'انضمام سريع',
     joinFeatureQuickBody: 'ابدأ تتبّع المصاريف فورًا',
-    joinFeatureGuestTitle: 'بلا حاجة إلى حساب',
-    joinFeatureGuestBody: 'انضم كضيف',
+    joinFeatureAccountTitle: 'حسابك الخاص',
+    joinFeatureAccountBody: 'مصاريفك تبقى لك',
     joinFeatureTogetherTitle: 'اقتسموا معًا',
     joinFeatureTogetherBody: 'أبقوا الجميع على اطلاع',
     isOneOfTheseYou: 'هل أحد هؤلاء أنت؟',
@@ -20134,6 +20174,14 @@ const ar: UiStrings = {
     unnamed: 'بلا اسم',
     joinAndClaim: 'انضم وطالب بسجلي',
     joinGroup: 'انضم إلى هذه المجموعة',
+    joinSignUp: 'سجّل للانضمام',
+    joinLogIn: 'تسجيل الدخول',
+    joinAccountWhy: 'أنشئ حسابًا مجانيًا للانضمام إلى {group} لتبقى مصاريفك لك على كل جهاز.',
+    joinGuestUpgrade: 'أنشئ حسابًا للانضمام',
+    joinGuestWhy:
+      'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
+    joinAccountRequired:
+      'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
     fromYourContacts: 'من جهات اتصالك',
     continueWith: 'المتابعة مع',
     noAddress: 'لا يوجد عنوان',
@@ -21325,8 +21373,6 @@ const ar: UiStrings = {
     ghostNote: 'لا يحتاجون التطبيق. أضفهم الآن ويمكنهم المطالبة بسجلّهم لاحقًا.',
     claimHistoryNote: 'اختر اسمك فيأتي معك كل ما سُجّل لك من قبل.',
     theirPastBecomesYours: 'تصبح مصاريفهم وأرصدتهم السابقة لك.',
-    guestKeepsItHere:
-      'الانضمام كضيف يُبقي كل شيء على هذا الجهاز. أضف رقم هاتف لاحقًا فيتبعك كل شيء إلى هاتف آخر.',
     lockedTitle: 'Waves مقفل',
     lockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
     unlock: 'فتح',

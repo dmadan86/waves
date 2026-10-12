@@ -36,7 +36,12 @@ export function AfterSignIn() {
     const next = takeAfterSignIn();
     if (!next) return;
     if (next.kind === 'join') {
-      router.replace(`/join#${encodeURIComponent(next.token)}`);
+      // Signed up or logged in on the invite page itself: that page is still
+      // mounted and finishes the join, so there is nowhere to go back to.
+      if (pathname === '/join') return;
+      // `resume` tells the page it is the far side of a sign-in, so it joins
+      // by itself instead of asking again.
+      router.replace(`/join?resume=1#${encodeURIComponent(next.token)}`);
       return;
     }
     void rejoin(
@@ -47,7 +52,7 @@ export function AfterSignIn() {
       requeueFailed(failed, next.attempts);
       router.replace(to);
     });
-  }, [signedIn, settling, router]);
+  }, [signedIn, settling, router, pathname]);
 
   return null;
 }

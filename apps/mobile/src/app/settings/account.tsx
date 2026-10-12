@@ -103,13 +103,15 @@ function AccountForm() {
   // Set when a guest was sent here by a limit rather than arriving on their own
   // (ADR-006 addendum). It only changes the explainer at the top; the linking
   // below is the same either way.
-  const { reason } = useLocalSearchParams<{ reason?: 'group_limit' | 'trial_expired' }>();
+  const { reason } = useLocalSearchParams<{ reason?: 'group_limit' | 'trial_expired' | 'join' }>();
   const gateBody =
     reason === 'group_limit'
       ? t.contact.gateGroupBody
       : reason === 'trial_expired'
         ? t.contact.gateExpiredBody
-        : null;
+        : reason === 'join'
+          ? t.contact.gateJoinBody
+          : null;
 
   // The display name lives here now — "You" folded into "Your account", since
   // both were the same thing edited on two screens. Seeded once from the

@@ -55,6 +55,7 @@ import { useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useIdentityTaken } from '@/lib/useIdentityTaken';
 import { friendlyError } from '@/lib/errors';
+import { pendingInvite } from '@/lib/pendingInvite';
 import { router, useGoBack } from '@/lib/navigation';
 import { CodeRoute, codeRouteFor, looksLikePhone } from '@/lib/authCodeRoute';
 import { phoneSignInAvailable } from '@/lib/phoneAuth';
@@ -131,6 +132,19 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const [passwordShown, setPasswordShown] = useState(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  // Somebody who came here from an invite link is joining a shared group, which
+  // needs an account (ADR-006 amendment, 2026-10-11): the personal guest door
+  // would only strand them outside it, so it is not offered on this visit.
+  const [fromInvite, setFromInvite] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void pendingInvite.has().then((waiting) => {
+      if (active) setFromInvite(waiting);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   const { width: windowWidth, height: screenHeight } = useWindowDimensions();
@@ -695,7 +709,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                     />
                     {/* ADR-006 addendum: the guest way in belongs to the sign-up
                         page — a text link, one tap, still before any detail. */}
-                    {isSignup && !isGuest ? (
+                    {isSignup && !isGuest && !fromInvite ? (
                       <View style={{ alignItems: 'center' }}>
                         <TextLink
                           testID="auth-guest"

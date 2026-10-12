@@ -1,0 +1,76 @@
+# An invite link needs an account (ADR-006 amendment, 2026-10-11).
+#
+# Opens a real invite as a signed-out person, from a fresh install, and proves
+# the invite screen offers no way in as a guest: it shows the group, says why an
+# account is needed, and offers "Sign up to join" and "Log in" only.
+#
+# Run it on the iOS simulator:
+#
+#   maestro test --env JOIN_TOKEN=<token> apps/mobile/e2e/join-requires-account.yaml
+#
+# JOIN_TOKEN is the token of a LIVE invite — the part after `#` in a group's
+# join link (https://app.wavs.co.in/join#<token>), from the invite screen's
+# "Copy link" in a group on the seeded staging account. The preview needs the
+# token to be valid, because the buttons only appear once the group is shown;
+# an unknown token gets "This link has expired" instead (that is the
+# `INVITE_INVALID` copy and a different test).
+#
+# The deep link the flow opens, which is also what the QR scanner and a pasted
+# link resolve to:
+#
+#   waves:///join?token=<token>
+#
+# (Universal links — https://app.wavs.co.in/join#<token> — reach the same
+# screen through app/+native-intent.ts, but Maestro cannot drive the Safari
+# hand-off, so the custom scheme is the one used here.)
+#
+# appId is the iOS bundle id. On Android it is app.waves.mobile.
+appId: app.wavs.mobile
+---
+- launchApp:
+    clearState: true
+
+# The invite, from outside the app. iOS may ask whether to open it in Waves.
+- openLink: 'waves:///join?token=${JOIN_TOKEN}'
+- tapOn:
+    text: 'Open'
+    optional: true
+
+# The group preview loads, then the two ways in.
+- extendedWaitUntil:
+    visible: 'Sign up to join'
+    timeout: 30000
+- assertVisible: 'Log in'
+
+# Why, in the person's terms (the group's name is filled in).
+- assertVisible:
+    id: 'join-account-why'
+- assertVisible: '.*Create a free account to join .* so your expenses stay yours on every device.*'
+
+# No guest way in, and no join that skips the account.
+- assertNotVisible: 'Join this group'
+- assertNotVisible: 'No account needed'
+- assertNotVisible: 'Join as a guest'
+- assertNotVisible: '.*[Cc]ontinue as (a )?guest.*'
+- assertNotVisible: '.*[Gg]uest.*'
+
+# "Sign up to join" goes to the real sign-up sheet, and that sheet does not
+# offer the personal guest door on this visit either.
+- tapOn:
+    id: 'join-sign-up'
+- assertVisible: 'Email or phone number'
+- assertVisible: 'Password'
+- assertNotVisible: 'Continue as guest'
+
+# The invite again, and "Log in" goes to the login sheet.
+- openLink: 'waves:///join?token=${JOIN_TOKEN}'
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Log in'
+    timeout: 30000
+- tapOn:
+    id: 'join-log-in'
+- assertVisible: 'Email or phone number'
+- assertNotVisible: 'Continue as guest'

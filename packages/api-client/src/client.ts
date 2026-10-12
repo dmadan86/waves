@@ -240,19 +240,6 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
 
   return {
     /**
-     * A guest is a real account with no credentials on it yet (ADR-006). It is
-     * created before the invite is accepted so the membership has somebody to
-     * belong to — and it is the *same* account they later add an email to, so
-     * the group does not have to be re-joined and the history stays theirs.
-     */
-    async signInAsGuest(): Promise<void> {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) return;
-      const { error } = await supabase.auth.signInAnonymously();
-      if (error) throw new WavesApiError(error.message);
-    },
-
-    /**
      * The real login (ADR-006 names Google among the upgrade providers). An
      * anonymous guest who does this keeps the same user id, so the groups and
      * expenses made as a guest come with them — which is `startOAuth`'s doing,

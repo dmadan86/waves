@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -26,17 +26,18 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { isAccountRequired, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
+
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 
 import { acceptInvite, previewInvite, type InvitePreview } from '@/data/api';
 import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
-import { useGuestGuard } from '@/lib/guestGuard';
-import { backend } from '@/lib/backend';
+import { joinActions, routeForJoinAction, type JoinAction } from '@/lib/joinActions';
+import { pendingInvite } from '@/lib/pendingInvite';
 import { expectGroup } from '@/lib/groupArrival';
 import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
-import { guestJoins } from '@/lib/guestJoins';
 import { router, useGoBack } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
@@ -54,9 +55,18 @@ export default function JoinScreen() {
   // `from` says how the link was opened. The scanner sends `scan`, because a
   // link that turns out to be dead has a different next step there: point the
   // camera at another code, rather than being shown the door to the app.
-  const { token, from } = useLocalSearchParams<{ token?: string; from?: string }>();
-  const { session, continueAsGuest } = useAuth();
-  const guard = useGuestGuard();
+  // `resume` is set by the screen that brings a person back after signing up or
+  // logging in: they already said they want to join, so it finishes by itself.
+  const { token, from, resume } = useLocalSearchParams<{
+    token?: string;
+    from?: string;
+    resume?: string;
+  }>();
+  const { session, isGuest } = useAuth();
+  // Joining a shared group needs an account (ADR-006 amendment, 2026-10-11):
+  // nothing on this screen joins as a guest.
+  const gate = joinGate({ signedIn: Boolean(session), anonymous: isGuest });
+  const autoJoinAttempted = useRef(false);
   const queryClient = useQueryClient();
   const { flush } = useSync();
   const goBack = useGoBack('/');
@@ -114,15 +124,13 @@ export default function JoinScreen() {
    */
   const join = async (claim: string | null = claimId): Promise<void> => {
     if (!token) return;
-    // An existing guest holds one group (ADR-006 addendum); joining a second
-    // sends them to sign up instead. A brand-new person with no session yet is
-    // not a guest, so `guard.gate` is null and their first join is never gated.
-    if (guard.blockAddGroup()) return;
+    // The buttons below never offer a join to a signed-out person or a guest;
+    // this is the same rule for any other caller, and the server enforces it
+    // regardless (`ACCOUNT_REQUIRED`).
+    if (gate !== JoinGate.Ready) return;
     setJoining(true);
     setError(null);
     try {
-      // Nobody is forced to register to accept an invite.
-      if (!session) await continueAsGuest();
       const result = await acceptInvite({ token, claimMemberId: claim });
       // Claiming somebody's place only asks. Routing into the group here would
       // land on a screen the person cannot read yet, because they are not a
@@ -131,14 +139,6 @@ export default function JoinScreen() {
         setPending(result.group.name);
         return;
       }
-
-      // A guest's way into this group, kept in case they later find their
-      // Google or Apple login already has an account and switch to it: the link
-      // is how that account joins this group again (`lib/guestSwitch`). Only a
-      // join that went through; a claim still waiting on an admin is not a
-      // membership, and replaying it would skip the admin's answer. Never
-      // allowed to cost the join itself.
-      void rememberGuestJoin(token);
 
       await queryClient.invalidateQueries({ queryKey: keys.groups });
       // The membership exists on the server; this phone's mirror does not have
@@ -155,15 +155,56 @@ export default function JoinScreen() {
         await flush([result.group.id]).catch(() => undefined);
       };
       await Promise.race([pull(), new Promise<void>((done) => setTimeout(done, 6_000))]);
-      router.replace(`/group/${result.group.id}`);
+      if (resume === '1') {
+        // Reached by replacing the screen the person signed in on, so the
+        // invite they first opened is still on the stack: clear back to the
+        // root so Back from the group does not return to a finished invite.
+        router.dismissAll();
+        router.push(`/group/${result.group.id}`);
+      } else {
+        router.replace(`/group/${result.group.id}`);
+      }
       // A good moment to offer notifications, if the phone is not yet set up.
       requestJoinPushPrompt(result.group.name);
     } catch (caught) {
-      setError(friendlyError(caught, t.misc.couldNotJoin, 'join.accept'));
+      setError(
+        isAccountRequired(caught)
+          ? t.misc.joinAccountRequired
+          : friendlyError(caught, t.misc.couldNotJoin, 'join.accept'),
+      );
     } finally {
       setJoining(false);
     }
   };
+
+  /** Sign up, log in, or (a guest) create an account — then come back and join. */
+  const startAccount = async (action: Exclude<JoinAction, 'join'>): Promise<void> => {
+    if (!token) return;
+    await pendingInvite.remember(token);
+    router.push(routeForJoinAction(action));
+  };
+
+  // The far side of signing up or logging in: finish the join without asking
+  // again, unless there are unclaimed people to choose from first.
+  const claimableCount = preview?.claimable.length ?? 0;
+  useEffect(() => {
+    if (
+      !shouldAutoJoin({
+        gate,
+        resume: resume === '1',
+        claimableCount,
+        attempted: autoJoinAttempted.current,
+      }) ||
+      !preview?.group ||
+      pending
+    ) {
+      return;
+    }
+    autoJoinAttempted.current = true;
+    void join(null);
+    // `join` closes over state that only changes with these.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate, resume, claimableCount, preview, pending]);
 
   if (busy) {
     return (
@@ -253,8 +294,8 @@ export default function JoinScreen() {
       { icon: 'flash', title: t.misc.joinFeatureQuickTitle, body: t.misc.joinFeatureQuickBody },
       {
         icon: 'shield-outline',
-        title: t.misc.joinFeatureGuestTitle,
-        body: t.misc.joinFeatureGuestBody,
+        title: t.misc.joinFeatureAccountTitle,
+        body: t.misc.joinFeatureAccountBody,
       },
       {
         icon: 'people',
@@ -327,7 +368,7 @@ export default function JoinScreen() {
             <Text variant="caption" tone="muted" align="center">
               {plural(locale, preview.memberCount, t.misc.peopleSplitting)}
             </Text>
-            <Badge label={t.misc.freeNoAccount} tone="positive" />
+            <Badge label={t.misc.joinFreeBadge} tone="positive" />
             <Row style={{ alignItems: 'flex-start', marginTop: theme.spacing.sm }}>
               {features.map((feature, index) => (
                 <Row key={feature.icon} style={{ flex: 1, alignItems: 'stretch' }}>
@@ -365,7 +406,7 @@ export default function JoinScreen() {
         </View>
 
         <View style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.lg }}>
-          {preview.claimable.length > 0 ? (
+          {gate === JoinGate.Ready && preview.claimable.length > 0 ? (
             <Card style={{ gap: theme.spacing.md }}>
               <Text variant="subheading">{t.misc.isOneOfTheseYou}</Text>
               <Text variant="caption" tone="muted">
@@ -413,54 +454,84 @@ export default function JoinScreen() {
 
           {shown ? <Callout tone="negative">{shown}</Callout> : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ disabled: joining, busy: joining }}
-            disabled={joining}
-            onPress={() => void join()}
-            style={({ pressed }) => ({
-              minHeight: 54,
-              borderRadius: 27,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
-              opacity: joining ? 0.7 : 1,
-            })}
-          >
-            {/* Claiming asks; joining as somebody new does not. The button says
-              which of the two is about to happen. */}
-            <Text variant="subheading" style={{ color: theme.color.onBrand }}>
-              {claimId
-                ? fill(t.claims.askToJoinAs, {
-                    name:
-                      preview.claimable.find((candidate) => candidate.memberId === claimId)?.name ??
-                      t.misc.unnamed,
-                  })
-                : t.misc.joinGroup}
-            </Text>
-            {joining ? (
-              <ActivityIndicator color={theme.color.onBrand} />
-            ) : (
-              <Ionicons
-                name={directionalIcon('arrow-forward')}
-                size={iconSize.base}
-                color={theme.color.onBrand}
-              />
-            )}
-          </Pressable>
-
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={iconSize.base}
-              color={theme.color.brand}
-            />
-            <Text variant="micro" tone="muted" style={{ flex: 1 }}>
-              {t.extras.guestKeepsItHere}
-            </Text>
-          </Row>
+          {gate === JoinGate.Ready ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: joining, busy: joining }}
+              disabled={joining}
+              onPress={() => void join()}
+              style={({ pressed }) => ({
+                minHeight: 54,
+                borderRadius: 27,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.spacing.sm,
+                backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
+                opacity: joining ? 0.7 : 1,
+              })}
+            >
+              {/* Claiming asks; joining as somebody new does not. The button says
+                which of the two is about to happen. */}
+              <Text variant="subheading" style={{ color: theme.color.onBrand }}>
+                {claimId
+                  ? fill(t.claims.askToJoinAs, {
+                      name:
+                        preview.claimable.find((candidate) => candidate.memberId === claimId)
+                          ?.name ?? t.misc.unnamed,
+                    })
+                  : t.misc.joinGroup}
+              </Text>
+              {joining ? (
+                <ActivityIndicator color={theme.color.onBrand} />
+              ) : (
+                <Ionicons
+                  name={directionalIcon('arrow-forward')}
+                  size={iconSize.base}
+                  color={theme.color.onBrand}
+                />
+              )}
+            </Pressable>
+          ) : (
+            <>
+              {/* Why, in the person's terms: the account is what keeps their
+                  expenses theirs on every device. There is no guest option. */}
+              <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={iconSize.base}
+                  color={theme.color.brand}
+                />
+                <Text variant="caption" tone="muted" style={{ flex: 1 }} testID="join-account-why">
+                  {fill(
+                    gate === JoinGate.UpgradeGuest ? t.misc.joinGuestWhy : t.misc.joinAccountWhy,
+                    {
+                      group: preview.group.name,
+                    },
+                  )}
+                </Text>
+              </Row>
+              {joinActions(gate).map((action, index) =>
+                action === 'join' ? null : (
+                  <Button
+                    key={action}
+                    testID={`join-${action.replace('_', '-')}`}
+                    label={
+                      action === 'sign_up'
+                        ? t.misc.joinSignUp
+                        : action === 'create_account'
+                          ? t.misc.joinGuestUpgrade
+                          : t.misc.joinLogIn
+                    }
+                    variant={index === 0 ? 'primary' : 'secondary'}
+                    size="lg"
+                    fullWidth
+                    onPress={() => void startAccount(action)}
+                  />
+                ),
+              )}
+            </>
+          )}
         </View>
       </ScrollView>
     </Screen>
@@ -478,16 +549,4 @@ function BackRow({ onPress, label }: { onPress: () => void; label: string }) {
       <TranslucentBackButton dark label={label} onPress={onPress} />
     </View>
   );
-}
-
-/** Remembers `token` against the signed-in account, if that account is a guest. */
-async function rememberGuestJoin(token: string): Promise<void> {
-  try {
-    const { data } = await backend.auth.getSession();
-    const user = data.session?.user;
-    if (user?.is_anonymous !== true) return;
-    await guestJoins.remember(user.id, token);
-  } catch {
-    // A lost note costs one rejoin later, never this join.
-  }
 }

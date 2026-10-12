@@ -1,0 +1,28 @@
+# A guest opening an invite to a group they are not in is asked to create an
+# account; there is no way in as a guest. Run on a fresh simulator (reset the
+# keychain first):
+#
+#   maestro test --env JOIN_TOKEN=<token> apps/mobile/e2e/join-guest-needs-account.yaml
+appId: app.wavs.mobile
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Skip'
+    timeout: 30000
+- tapOn: 'Skip'
+- tapOn: 'Continue'
+- tapOn: 'Skip intro.*'
+- extendedWaitUntil:
+    visible: 'Home'
+    timeout: 40000
+- openLink: 'waves:///join?token=${JOIN_TOKEN}'
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Create an account to join'
+    timeout: 30000
+- assertVisible: '.*You are using Waves as a guest.*'
+- assertNotVisible: 'Join this group'
+- assertNotVisible: '.*[Cc]ontinue as (a )?guest.*'
