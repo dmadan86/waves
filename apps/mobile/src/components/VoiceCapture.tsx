@@ -135,8 +135,15 @@ const STALL_MS = 8000;
  * `release()` — an abort — so the session always lands on a transcript or the
  * calm miss, never an endless spinner. Set a beat above STALL so the no-event
  * path reports first.
+ *
+ * Sized to the same 20 s as the server's streamed-audio cap
+ * (STREAM_MAX_SESSION_MS), not the old 9.5 s: Android's intent allows a 6 s
+ * minimum plus 3.5 s of complete silence (EXTRA_SPEECH_INPUT_* below), and the
+ * longer pause allowance lets a speaker resume after ~6 s, so a cap near 9.5 s
+ * cut people off right after the pause. A dead recogniser still resolves within
+ * 20 s, and nothing longer than that could be streamed anyway.
  */
-const MAX_LISTEN_MS = 9500;
+const MAX_LISTEN_MS = STREAM_MAX_SESSION_MS;
 
 /**
  * A streamed sentence ends the way the recogniser's own endpointing would: this
