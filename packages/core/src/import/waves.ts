@@ -30,8 +30,7 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
-import { ImportProblemKind } from './splitwise';
-import type { ImportProblem } from './splitwise';
+import { ImportProblemKind, type ImportProblem } from './problem';
 
 /** Statuses that move a balance (TDR §3.3). The rest are carried as history. */
 const SETTLING = new Set(['confirmed', 'auto_confirmed']);
