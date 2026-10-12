@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { inviteBackgroundKey, inviteTypeWordKey } from '../src/components/invite/inviteCardModel';
+import { inviteTypeWordKey } from '../src/components/invite/inviteCardModel';
 import { GroupType } from '../src/data/types';
 
 vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
@@ -30,17 +30,9 @@ describe('inviteTypeWordKey', () => {
   });
 });
 
-describe('inviteBackgroundKey', () => {
-  it('gives every group type its own art file', () => {
-    for (const type of Object.values(GroupType)) {
-      expect(inviteBackgroundKey(type)).toBe(type);
-      expect(existsSync(join(__dirname, `../assets/images/invite-card/${type}.webp`))).toBe(true);
-    }
-  });
-
-  it('uses the `other` art for anything unknown', () => {
-    expect(inviteBackgroundKey(null)).toBe(GroupType.Other);
-    expect(inviteBackgroundKey('cruise')).toBe(GroupType.Other);
+describe('shared image background', () => {
+  it('is one scene for every group', () => {
+    expect(existsSync(join(__dirname, '../assets/images/invite-card/background.webp'))).toBe(true);
   });
 });
 

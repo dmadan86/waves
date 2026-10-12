@@ -5,7 +5,7 @@ import { Image, View, type TextProps } from 'react-native';
 import { Avatar, Text, useTheme } from '@waves/ui';
 
 import { InviteQr } from './InviteQr';
-import { inviteCardBackground } from './inviteCardBackgrounds';
+import { INVITE_CARD_BACKGROUND } from './inviteCardBackgrounds';
 import { TYPE_ICON } from './inviteCardModel';
 
 /** The shared image is portrait 2:3, laid out in dp and captured at a higher pixel size. */
@@ -78,7 +78,7 @@ export function SharedInviteCard({
       }}
     >
       <Image
-        source={inviteCardBackground(groupType)}
+        source={INVITE_CARD_BACKGROUND}
         accessible={false}
         resizeMode="cover"
         style={{ position: 'absolute', top: 0, start: 0, width: '100%', height: '100%' }}
