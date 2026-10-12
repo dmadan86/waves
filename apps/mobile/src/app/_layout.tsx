@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
 import { Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -57,7 +58,7 @@ import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
 import { useRouter } from '@/lib/navigation';
 import { onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
-import { isRouteAllowed } from '@/lib/routeAccess';
+import { decideAuthRedirect } from '@/lib/authRedirect';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
@@ -579,25 +580,50 @@ function AuthGate() {
   // groups below are built from, kept in `lib/routeAccess` so the guard and this
   // redirect cannot drift apart.
   const signedIn = Boolean(session);
-  const routeAllowed = isRouteAllowed(segments as string[], signedIn, __DEV__, {
-    paywall: paywallEnabled,
+
+  // The link that launched the app, read once. On a cold start the router has
+  // no route until the navigator mounts (`segments` is `[]`), and without this
+  // the guard sent a signed-out invite link to /welcome before it was applied.
+  const [initialUrl, setInitialUrl] = useState<string | null | undefined>(
+    Platform.OS === 'web' ? null : undefined,
+  );
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let cancelled = false;
+    Linking.getInitialURL()
+      .then((url) => {
+        if (!cancelled) setInitialUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setInitialUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const decision = decideAuthRedirect({
+    segments: segments as string[],
+    loading,
+    signedIn,
+    dev: __DEV__,
+    flags: { paywall: paywallEnabled },
+    initialUrl,
   });
 
   /**
-   * The route we are on disagrees with the session we have, and the effect
-   * below is about to `replace` to the right one. The Stack's default route is
-   * `(tabs)` — the dashboard — so rendering it now, for the frame before the
-   * redirect lands, is exactly the flash of the dashboard a signed-out person
-   * sees on a cold start. Hold the spinner until the route and the session
-   * agree, and the app tree never mounts the wrong screen at all.
+   * The route we are on disagrees with the session we have (or the launch link
+   * is still being read), so the app tree must not mount yet. The Stack's
+   * default route is `(tabs)` — the dashboard — so rendering it for the frame
+   * before the redirect lands is the flash of the dashboard a signed-out person
+   * sees on a cold start.
    */
-  const needsRedirect = !loading && !routeAllowed;
+  const needsRedirect = decision !== 'stay' && !loading;
 
   useEffect(() => {
-    if (loading || routeAllowed) return;
-    if (!session) router.replace('/welcome');
-    else router.replace('/');
-  }, [session, loading, routeAllowed, router]);
+    if (decision === 'welcome') router.replace('/welcome');
+    else if (decision === 'home') router.replace('/');
+  }, [decision, router]);
 
   // The intro tour comes *after* sign-in, not in front of it: the first launch
   // of an account shows the three cards once, over the app, then never again.

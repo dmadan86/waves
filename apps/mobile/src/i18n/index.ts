@@ -3004,6 +3004,18 @@ export interface UiStrings {
     currentRoleAdmin: string;
     /** That row's subtitle when the member is a plain member today. */
     currentRoleMember: string;
+    /** Member page: the admin-only row that takes somebody out of the group. */
+    removeFromGroup: string;
+    /** That row's subtitle. */
+    removeFromGroupHint: string;
+    /** Confirm sheet title; `{name}` is the person. */
+    removeConfirmTitle: string;
+    /** Confirm sheet body; `{name}` is the person. */
+    removeConfirmBody: string;
+    /** Prefixed to the body when the person owes; `{name}`, `{amount}`. */
+    removeStillOwes: string;
+    /** Prefixed to the body when the person is owed; `{name}`, `{amount}`. */
+    removeIsOwed: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
@@ -3045,6 +3057,22 @@ export interface UiStrings {
     scanToJoin: string;
     /** Caption over the invite QR: "Scan this QR code to join the {type}". */
     scanToJoinType: string;
+    /** Shared invite image: bold line over the QR. */
+    cardScanTitle: string;
+    /** Shared invite image: line under it, "{type}" is trip/home/event/friends/group. */
+    cardScanSubtitle: string;
+    /** Shared invite image: divider between the QR and the link. */
+    cardOr: string;
+    /** Shared invite image: heading of the link box. */
+    cardJoinLink: string;
+    /** Shared invite image: the (decorative) copy pill. */
+    cardCopy: string;
+    /** Shared invite image: footer, first point. */
+    cardNoApp: string;
+    /** Shared invite image: footer, second point. */
+    cardJoinFast: string;
+    /** Shared invite image: footer, third point. */
+    cardStartSplitting: string;
     /** Line under the invite title. */
     inviteSubtitle: string;
     /** The pill that opens the members screen: "5 members". */
@@ -7215,6 +7243,13 @@ const en: UiStrings = {
     manageRole: 'Manage role',
     currentRoleAdmin: 'Current role: Admin',
     currentRoleMember: 'Current role: Member',
+    removeFromGroup: 'Remove from group',
+    removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
+    removeConfirmTitle: 'Remove {name}?',
+    removeConfirmBody:
+      '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
+    removeStillOwes: '{name} still owes {amount}.',
+    removeIsOwed: '{name} is owed {amount}.',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
@@ -7240,6 +7275,14 @@ const en: UiStrings = {
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
     scanToJoinType: 'Scan this QR code to join the {type}',
+    cardScanTitle: 'Scan this QR code',
+    cardScanSubtitle: 'to join the {type} on Waves',
+    cardOr: 'or',
+    cardJoinLink: 'Join using this link',
+    cardCopy: 'Copy',
+    cardNoApp: 'No app needed',
+    cardJoinFast: 'Join in seconds',
+    cardStartSplitting: 'Start splitting expenses',
     inviteSubtitle: 'Add friends and split the expense together',
     inviteMembersPill: { one: '{n} member', other: '{n} members' },
     shareVia: 'Share via',
@@ -7249,8 +7292,7 @@ const en: UiStrings = {
     createLink: 'Create an invite link',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
-    shareMessage:
-      'Join {group} on Waves to split expenses — no app or account needed to start: {link}',
+    shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
@@ -11285,6 +11327,13 @@ const ta: UiStrings = {
     manageRole: 'பங்கை நிர்வகி',
     currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
     currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
+    removeFromGroup: 'குழுவிலிருந்து நீக்கு',
+    removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
+    removeConfirmTitle: '{name} ஐ நீக்கவா?',
+    removeConfirmBody:
+      '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
+    removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
+    removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
@@ -11317,6 +11366,14 @@ const ta: UiStrings = {
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     scanToJoinType: 'இந்த QR குறியீட்டை ஸ்கேன் செய்து சேரவும் ({type})',
+    cardScanTitle: 'இந்த QR குறியீட்டை ஸ்கேன் செய்யுங்கள்',
+    cardScanSubtitle: 'Waves-ல் {type} குழுவில் சேர',
+    cardOr: 'அல்லது',
+    cardJoinLink: 'இந்த இணைப்பில் சேரவும்',
+    cardCopy: 'நகலெடு',
+    cardNoApp: 'ஆப் தேவையில்லை',
+    cardJoinFast: 'சில விநாடிகளில் சேரலாம்',
+    cardStartSplitting: 'செலவுகளைப் பகிர ஆரம்பிக்கவும்',
     inviteSubtitle: 'நண்பர்களை அழைத்து செலவைச் சேர்ந்து பகிருங்கள்',
     inviteMembersPill: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
     shareVia: 'இதன் மூலம் பகிர்',
@@ -11327,7 +11384,7 @@ const ta: UiStrings = {
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage:
-      'செலவுகளைப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும் — தொடங்க ஆப் அல்லது கணக்கு தேவையில்லை: {link}',
+      'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
@@ -15375,6 +15432,13 @@ const hi: UiStrings = {
     manageRole: 'भूमिका प्रबंधित करें',
     currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
     currentRoleMember: 'मौजूदा भूमिका: सदस्य',
+    removeFromGroup: 'ग्रुप से हटाएँ',
+    removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
+    removeConfirmTitle: '{name} को हटाएँ?',
+    removeConfirmBody:
+      '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
+    removeStillOwes: '{name} पर अभी भी {amount} बकाया है.',
+    removeIsOwed: '{name} को {amount} मिलने हैं.',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
@@ -15404,6 +15468,14 @@ const hi: UiStrings = {
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
     scanToJoinType: 'जुड़ने के लिए यह QR कोड स्कैन करें ({type})',
+    cardScanTitle: 'यह QR कोड स्कैन करें',
+    cardScanSubtitle: 'Waves पर {type} से जुड़ने के लिए',
+    cardOr: 'या',
+    cardJoinLink: 'इस लिंक से जुड़ें',
+    cardCopy: 'कॉपी',
+    cardNoApp: 'ऐप की ज़रूरत नहीं',
+    cardJoinFast: 'कुछ ही सेकंड में जुड़ें',
+    cardStartSplitting: 'खर्च बाँटना शुरू करें',
     inviteSubtitle: 'दोस्तों को जोड़ें और खर्च साथ बाँटें',
     inviteMembersPill: { one: '{n} सदस्य', other: '{n} सदस्य' },
     shareVia: 'इनसे साझा करें',
@@ -15414,7 +15486,7 @@ const hi: UiStrings = {
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage:
-      'खर्च बाँटने के लिए Waves पर {group} में शामिल हों — शुरू करने के लिए कोई ऐप या खाता ज़रूरी नहीं: {link}',
+      'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
@@ -19585,6 +19657,13 @@ const ar: UiStrings = {
     manageRole: 'إدارة الدور',
     currentRoleAdmin: 'الدور الحالي: مشرف',
     currentRoleMember: 'الدور الحالي: عضو',
+    removeFromGroup: 'إزالة من المجموعة',
+    removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
+    removeConfirmTitle: 'إزالة {name}؟',
+    removeConfirmBody:
+      'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
+    removeStillOwes: '{name} ما زال عليه {amount}.',
+    removeIsOwed: '{name} له {amount}.',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
@@ -19616,6 +19695,14 @@ const ar: UiStrings = {
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
     scanToJoinType: 'امسح رمز QR هذا للانضمام ({type})',
+    cardScanTitle: 'امسح رمز QR هذا',
+    cardScanSubtitle: 'للانضمام إلى {type} على Waves',
+    cardOr: 'أو',
+    cardJoinLink: 'انضم عبر هذا الرابط',
+    cardCopy: 'نسخ',
+    cardNoApp: 'لا حاجة إلى تطبيق',
+    cardJoinFast: 'انضم في ثوانٍ',
+    cardStartSplitting: 'ابدأ بتقسيم المصروفات',
     inviteSubtitle: 'أضف أصدقاءك وقسّموا المصروف معًا',
     inviteMembersPill: {
       one: '{n} عضو',
@@ -19631,8 +19718,7 @@ const ar: UiStrings = {
     createLink: 'أنشئ رابط دعوة',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
-    shareMessage:
-      'انضم إلى {group} على Waves لتقسيم المصروفات — لا حاجة إلى تطبيق أو حساب للبدء: {link}',
+    shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
