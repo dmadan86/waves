@@ -44,13 +44,14 @@ import { router } from '@/lib/navigation';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { plural, useStrings } from '@/i18n';
-import { INVITE_CARD_BACKGROUND } from '@/components/invite/inviteCardBackgrounds';
 import { TYPE_ICON } from '@/components/invite/inviteCardModel';
 import { useBottomClearance } from '@/lib/clearance';
 
 /** The correct OOXML spreadsheet MIME type + Apple UTI for an .xlsx. */
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const XLSX_UTI = 'org.openxmlformats.spreadsheetml.sheet';
+
+const BANNER = require('../../../../assets/images/export-banner.webp') as number;
 
 enum Format {
   Pdf = 'pdf',
@@ -347,8 +348,9 @@ export default function GroupExportScreen() {
         >
           <View style={{ borderRadius: theme.radius.lg, overflow: 'hidden' }}>
             <Image
-              source={INVITE_CARD_BACKGROUND}
+              source={BANNER}
               contentFit="cover"
+              contentPosition="right"
               style={{
                 position: 'absolute',
                 top: 0,
