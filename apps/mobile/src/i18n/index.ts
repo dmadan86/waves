@@ -4008,6 +4008,159 @@ export interface UiStrings {
     removeItem: string;
     hadItem: string;
   };
+  /** Importing expenses into an existing group from a spreadsheet, CSV or Splitwise file. */
+  groupImport: {
+    /** The group ⋯ menu entry, and the title of the screen. */
+    menu: string;
+    /** Secondary link on an empty group. */
+    emptyLink: string;
+    /** Header: "Import into {group}". */
+    titleNamed: string;
+    sourceIntro: string;
+    sourceFileTitle: string;
+    sourceFileHint: string;
+    sourceSplitwiseTitle: string;
+    sourceSplitwiseHint: string;
+    sourceShotTitle: string;
+    sourceShotHint: string;
+    plusBadge: string;
+    seeExamples: string;
+    nothingAdded: string;
+    reading: string;
+    parsing: string;
+    /** Uses {mb}. */
+    errTooLarge: string;
+    /** Uses {n}. */
+    errTooMany: string;
+    errEmpty: string;
+    errEncoding: string;
+    errUnreadable: string;
+    errNoColumns: string;
+    errNoRows: string;
+    upsellTitle: string;
+    upsellBody: string;
+    seePlans: string;
+    useCsv: string;
+    examplesTitle: string;
+    exTabSimple: string;
+    exTabSplit: string;
+    exTabSplitwise: string;
+    exSimple: string;
+    exSplit: string;
+    exSplitwise: string;
+    headersNote: string;
+    shareTemplate: string;
+    copyExample: string;
+    copied: string;
+    templateShareTitle: string;
+    templateFailed: string;
+    columnsTitle: string;
+    columnsHint: string;
+    /** A column with no heading: "Column {n}". */
+    columnFallback: string;
+    /** Sheet title: "What is {header}?". */
+    chooseColumn: string;
+    colDate: string;
+    colDescription: string;
+    colAmount: string;
+    colCurrency: string;
+    colPaidBy: string;
+    colSplit: string;
+    colCategory: string;
+    colType: string;
+    colPerson: string;
+    colIgnore: string;
+    dateOrderTitle: string;
+    dateDayFirst: string;
+    dateMonthFirst: string;
+    /** Uses {raw} and {date}. */
+    dateReadsAs: string;
+    decimalTitle: string;
+    previewTitle: string;
+    previewUnreadable: string;
+    needAmount: string;
+    continueLabel: string;
+    peopleTitle: string;
+    peopleHint: string;
+    matchedByName: string;
+    chooseWho: string;
+    addAsNew: string;
+    addRestAsNew: string;
+    /** Uses {names}. */
+    mergeWarning: string;
+    /** Sheet title: "Who is {name}?". */
+    whoIsName: string;
+    /** Spoken: "{name} is {who}. Tap to change.". */
+    personMapped: string;
+    reviewTitle: string;
+    summaryExpenses: PluralForms;
+    summarySettlements: PluralForms;
+    summaryNewPeople: PluralForms;
+    summaryOtherCurrency: PluralForms;
+    /** Uses {from} and {to}. */
+    summaryRange: string;
+    summaryLeft: PluralForms;
+    changesTitle: string;
+    changesNote: string;
+    filterAll: string;
+    filterAttention: string;
+    filterWont: string;
+    filterDuplicates: string;
+    noneHere: string;
+    ctaExpenses: PluralForms;
+    ctaItems: PluralForms;
+    ctaNothing: string;
+    /** Uses {who}. */
+    rowPaid: string;
+    /** Uses {who} and {n}. */
+    rowSplit: PluralForms;
+    /** Uses {from} and {to}. */
+    rowSettlement: string;
+    /** Uses {description}, {date} and {amount}. */
+    duplicateOf: string;
+    /** Uses {currency}. */
+    foreignNote: string;
+    stateWont: string;
+    stateDuplicate: string;
+    stateAttention: string;
+    editHint: string;
+    edited: string;
+    editTitle: string;
+    fieldDescription: string;
+    fieldAmount: string;
+    fieldDate: string;
+    fieldPayer: string;
+    fieldSplit: string;
+    fieldCategory: string;
+    everyone: string;
+    categoryNone: string;
+    resetRow: string;
+    invalidAmount: string;
+    invalidDate: string;
+    committing: string;
+    /** Uses {done} and {total}. */
+    rowsProgress: string;
+    waitingTitle: string;
+    waitingHint: string;
+    failedTitle: string;
+    partialNote: string;
+    tryAgain: string;
+    /** Uses {group}. */
+    resultImported: PluralForms;
+    resultSettlements: PluralForms;
+    resultPeople: PluralForms;
+    resultInvite: string;
+    resultLeftOut: PluralForms;
+    openGroup: string;
+    undo: string;
+    undoing: string;
+    undoneTitle: PluralForms;
+    undoHint: string;
+    undoEdited: string;
+    undoExpired: string;
+    undoNotAllowed: string;
+    undoFailed: string;
+  };
   /** Bringing a ledger in from Splitwise or from Waves's own export. */
   importLedger: {
     anExistingGroup: string;
@@ -8123,6 +8276,181 @@ const en: UiStrings = {
     itemFallback: 'Item {n}',
     removeItem: 'Remove {label}',
     hadItem: '{name} had {label}',
+  },
+  groupImport: {
+    menu: 'Import expenses',
+    emptyLink: 'Have these in a spreadsheet? Import',
+    titleNamed: 'Import into {group}',
+    sourceIntro: 'Bring in expenses you already keep somewhere else.',
+    sourceFileTitle: 'Spreadsheet or CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceSplitwiseTitle: 'Splitwise export',
+    sourceSplitwiseHint: 'In Splitwise: your group, then Export as spreadsheet',
+    sourceShotTitle: 'Screenshot',
+    sourceShotHint: 'A photo of a list, a bank app or a chat',
+    plusBadge: 'PLUS',
+    seeExamples: 'See CSV examples and get a template',
+    nothingAdded: 'Nothing is added until you review it.',
+    reading: 'Reading the file…',
+    parsing: 'Checking the rows…',
+    errTooLarge:
+      'That file is over {mb} MB. Split it into smaller files and import them one at a time.',
+    errTooMany: 'That file has more than {n} rows. Split it into parts of up to {n} rows.',
+    errEmpty: 'We couldn’t find any expenses in this file.',
+    errEncoding: 'Some characters didn’t come through. Save the file as “CSV UTF-8” and try again.',
+    errUnreadable: 'We couldn’t open that file. Try saving it as CSV or Excel (.xlsx).',
+    errNoColumns: 'We couldn’t find a date, a description and an amount in this file.',
+    errNoRows: 'We couldn’t find any expenses in this file.',
+    upsellTitle: 'Snap a list, we’ll type it in',
+    upsellBody:
+      'Screenshot import comes with Waves Plus. Photos of lists, bank apps and chats become expenses you check before anything is added.',
+    seePlans: 'See plans',
+    useCsv: 'Use a CSV instead (free)',
+    examplesTitle: 'CSV examples',
+    exTabSimple: 'Simple',
+    exTabSplit: 'Split',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'Each row is split equally between everyone in the group.',
+    exSplit: '“Name:2” means two shares. Leave Split between empty for everyone.',
+    exSplitwise: 'Each person’s column is what they’re up (+) or down (−) on that row.',
+    headersNote: 'Column headings in your own language work too.',
+    shareTemplate: 'Share template',
+    copyExample: 'Copy example',
+    copied: 'Copied',
+    templateShareTitle: 'Import template',
+    templateFailed: 'Couldn’t make the template. Please try again.',
+    columnsTitle: 'Check the columns',
+    columnsHint: 'We matched what we could. Change any column that’s wrong.',
+    columnFallback: 'Column {n}',
+    chooseColumn: 'What is “{header}”?',
+    colDate: 'Date',
+    colDescription: 'Description',
+    colAmount: 'Amount',
+    colCurrency: 'Currency',
+    colPaidBy: 'Paid by',
+    colSplit: 'Split between',
+    colCategory: 'Category',
+    colType: 'Type',
+    colPerson: 'Amount owed by a person',
+    colIgnore: 'Ignore',
+    dateOrderTitle: 'Which comes first in your dates?',
+    dateDayFirst: 'Day first',
+    dateMonthFirst: 'Month first',
+    dateReadsAs: '{raw} reads as {date}',
+    decimalTitle: 'How are decimals written?',
+    previewTitle: 'First rows, as we’ll read them',
+    previewUnreadable: 'Can’t read this row',
+    needAmount: 'Choose an Amount column to continue.',
+    continueLabel: 'Continue',
+    peopleTitle: 'Who is who',
+    peopleHint: 'The file names people. Say who each one is in this group.',
+    matchedByName: 'Matched by name',
+    chooseWho: 'Choose who',
+    addAsNew: 'Add as new person',
+    addRestAsNew: 'Add the rest as new people',
+    mergeWarning: '{names} will be treated as one person',
+    whoIsName: 'Who is {name}?',
+    personMapped: '{name} is {who}. Tap to change.',
+    reviewTitle: 'Review',
+    summaryExpenses: {
+      one: '{n} expense',
+      other: '{n} expenses',
+    },
+    summarySettlements: {
+      one: '{n} payment',
+      other: '{n} payments',
+    },
+    summaryNewPeople: {
+      one: '{n} new person',
+      other: '{n} new people',
+    },
+    summaryOtherCurrency: {
+      one: '{n} in another currency, not in the total',
+      other: '{n} in other currencies, not in the total',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} left out',
+      other: '{n} left out',
+    },
+    changesTitle: 'What this changes',
+    changesNote: 'Each person’s balance after the ticked rows, in the group’s currency.',
+    filterAll: 'All',
+    filterAttention: 'Needs attention',
+    filterWont: 'Won’t import',
+    filterDuplicates: 'Possible duplicates',
+    noneHere: 'Nothing here.',
+    ctaExpenses: {
+      one: 'Import {n} expense',
+      other: 'Import {n} expenses',
+    },
+    ctaItems: {
+      one: 'Import {n} item',
+      other: 'Import {n} items',
+    },
+    ctaNothing: 'Nothing to import',
+    rowPaid: '{who} paid',
+    rowSplit: {
+      one: '{who} paid · for {n} person',
+      other: '{who} paid · split {n} ways',
+    },
+    rowSettlement: '{from} paid {to}',
+    duplicateOf: 'Looks like “{description}” on {date} ({amount}), already in this group',
+    foreignNote: 'In {currency}; balances use the group’s rate',
+    stateWont: 'won’t be imported',
+    stateDuplicate: 'possible duplicate',
+    stateAttention: 'needs attention',
+    editHint: 'Opens the row to edit',
+    edited: 'Edited',
+    editTitle: 'Edit row',
+    fieldDescription: 'Description',
+    fieldAmount: 'Amount',
+    fieldDate: 'Date (YYYY-MM-DD)',
+    fieldPayer: 'Paid by',
+    fieldSplit: 'Split between',
+    fieldCategory: 'Category',
+    everyone: 'Everyone',
+    categoryNone: 'None',
+    resetRow: 'Undo my changes',
+    invalidAmount: 'Enter an amount above zero.',
+    invalidDate: 'Use the form YYYY-MM-DD.',
+    committing: 'Importing…',
+    rowsProgress: '{done} of {total} rows',
+    waitingTitle: 'Waiting for a connection',
+    waitingHint: 'Keep Waves open. It will import when you’re back online.',
+    failedTitle: 'Couldn’t finish importing',
+    partialNote: 'Some rows may already be in. Trying again won’t add them twice.',
+    tryAgain: 'Try again',
+    resultImported: {
+      one: 'Imported {n} expense into {group}',
+      other: 'Imported {n} expenses into {group}',
+    },
+    resultSettlements: {
+      one: '{n} payment recorded',
+      other: '{n} payments recorded',
+    },
+    resultPeople: {
+      one: '{n} new person added',
+      other: '{n} new people added',
+    },
+    resultInvite: 'Invite them',
+    resultLeftOut: {
+      one: '{n} row left out',
+      other: '{n} rows left out',
+    },
+    openGroup: 'Open group',
+    undo: 'Undo import',
+    undoing: 'Undoing…',
+    undoneTitle: {
+      one: 'Undone: {n} expense removed',
+      other: 'Undone: {n} expenses removed',
+    },
+    undoHint: 'You can undo this for 24 hours, as long as nothing from it has been edited.',
+    undoEdited:
+      'Something from this import has been edited since, so it can’t be undone in one go.',
+    undoExpired: 'An import can only be undone within 24 hours.',
+    undoNotAllowed: 'Only the person who imported this, or a group admin, can undo it.',
+    undoFailed: 'Couldn’t undo the import. Please try again.',
   },
   importLedger: {
     anExistingGroup: 'An existing group',
@@ -12301,6 +12629,187 @@ const ta: UiStrings = {
     removeItem: '{label} அகற்று',
     hadItem: '{name} {label} சாப்பிட்டார்',
   },
+  groupImport: {
+    menu: 'செலவுகளை இறக்குமதி செய்',
+    emptyLink: 'ஸ்ப்ரெட்ஷீட்டில் வைத்திருக்கிறீர்களா? இறக்குமதி செய்யுங்கள்',
+    titleNamed: '{group} குழுவில் இறக்குமதி',
+    sourceIntro: 'வேறு இடத்தில் வைத்திருக்கும் செலவுகளை இங்கே கொண்டு வாருங்கள்.',
+    sourceFileTitle: 'ஸ்ப்ரெட்ஷீட் அல்லது CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceSplitwiseTitle: 'Splitwise ஏற்றுமதி',
+    sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
+    sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
+    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படம்',
+    plusBadge: 'PLUS',
+    seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
+    nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
+    reading: 'கோப்பைப் படிக்கிறது…',
+    parsing: 'வரிசைகளைச் சரிபார்க்கிறது…',
+    errTooLarge:
+      'அந்தக் கோப்பு {mb} MB-ஐ விட பெரியது. சிறிய கோப்புகளாகப் பிரித்து ஒவ்வொன்றாக இறக்குமதி செய்யுங்கள்.',
+    errTooMany:
+      'அந்தக் கோப்பில் {n}-க்கும் மேற்பட்ட வரிசைகள் உள்ளன. {n} வரிசைகள் வரையிலான பகுதிகளாகப் பிரியுங்கள்.',
+    errEmpty: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
+    errEncoding:
+      'சில எழுத்துகள் சரியாக வரவில்லை. கோப்பை “CSV UTF-8” ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    errUnreadable:
+      'அந்தக் கோப்பைத் திறக்க முடியவில்லை. CSV அல்லது Excel (.xlsx) ஆகச் சேமித்துப் பாருங்கள்.',
+    errNoColumns: 'இந்தக் கோப்பில் தேதி, விவரம், தொகை ஆகியவற்றைக் கண்டறிய முடியவில்லை.',
+    errNoRows: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
+    upsellTitle: 'பட்டியலைப் படம் எடுங்கள், நாங்கள் தட்டச்சு செய்கிறோம்',
+    upsellBody:
+      'ஸ்கிரீன்ஷாட் இறக்குமதி Waves Plus-ல் உண்டு. பட்டியல்கள், வங்கி ஆப்கள், அரட்டைகளின் படங்கள் செலவுகளாக மாறும்; எதுவும் சேர்க்கும் முன் நீங்கள் சரிபார்ப்பீர்கள்.',
+    seePlans: 'திட்டங்களைப் பாருங்கள்',
+    useCsv: 'அதற்கு பதிலாக CSV பயன்படுத்துங்கள் (இலவசம்)',
+    examplesTitle: 'CSV எடுத்துக்காட்டுகள்',
+    exTabSimple: 'எளிமை',
+    exTabSplit: 'பிரிப்பு',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'ஒவ்வொரு வரிசையும் குழுவில் உள்ள அனைவருக்கும் சமமாகப் பிரிக்கப்படும்.',
+    exSplit:
+      '“பெயர்:2” என்றால் இரண்டு பங்குகள். அனைவருக்கும் என்றால் “யாருக்கு” நெடுவரிசையை காலியாக விடுங்கள்.',
+    exSplitwise:
+      'ஒவ்வொருவரின் நெடுவரிசையும் அந்த வரிசையில் அவர்கள் பெற வேண்டியது (+) அல்லது தர வேண்டியது (−).',
+    headersNote: 'உங்கள் மொழியிலான தலைப்புகளும் வேலை செய்யும்.',
+    shareTemplate: 'டெம்ப்ளேட்டைப் பகிர்',
+    copyExample: 'எடுத்துக்காட்டை நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    templateShareTitle: 'இறக்குமதி டெம்ப்ளேட்',
+    templateFailed: 'டெம்ப்ளேட்டை உருவாக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    columnsTitle: 'நெடுவரிசைகளைச் சரிபாருங்கள்',
+    columnsHint: 'முடிந்தவரை பொருத்தியுள்ளோம். தவறான நெடுவரிசையை மாற்றுங்கள்.',
+    columnFallback: 'நெடுவரிசை {n}',
+    chooseColumn: '“{header}” என்பது என்ன?',
+    colDate: 'தேதி',
+    colDescription: 'விவரம்',
+    colAmount: 'தொகை',
+    colCurrency: 'நாணயம்',
+    colPaidBy: 'செலுத்தியவர்',
+    colSplit: 'பிரிக்கப்படுபவர்கள்',
+    colCategory: 'வகை',
+    colType: 'வகைமை',
+    colPerson: 'ஒருவர் தர வேண்டிய தொகை',
+    colIgnore: 'புறக்கணி',
+    dateOrderTitle: 'உங்கள் தேதிகளில் முதலில் வருவது எது?',
+    dateDayFirst: 'நாள் முதலில்',
+    dateMonthFirst: 'மாதம் முதலில்',
+    dateReadsAs: '{raw} என்பது {date}',
+    decimalTitle: 'தசமங்கள் எப்படி எழுதப்பட்டுள்ளன?',
+    previewTitle: 'முதல் சில வரிசைகள், நாங்கள் படிக்கும் விதத்தில்',
+    previewUnreadable: 'இந்த வரிசையைப் படிக்க முடியவில்லை',
+    needAmount: 'தொடர “தொகை” நெடுவரிசையைத் தேர்ந்தெடுக்கவும்.',
+    continueLabel: 'தொடரவும்',
+    peopleTitle: 'யார் யார்',
+    peopleHint: 'கோப்பில் பெயர்கள் உள்ளன. இந்தக் குழுவில் அவர் யார் என்று சொல்லுங்கள்.',
+    matchedByName: 'பெயரால் பொருந்தியது',
+    chooseWho: 'யார் என்று தேர்ந்தெடுக்கவும்',
+    addAsNew: 'புதிய நபராகச் சேர்',
+    addRestAsNew: 'மீதமுள்ளவர்களைப் புதிய நபர்களாகச் சேர்',
+    mergeWarning: '{names} ஒரே நபராகக் கருதப்படுவார்கள்',
+    whoIsName: '{name} யார்?',
+    personMapped: '{name} என்பது {who}. மாற்ற தட்டவும்.',
+    reviewTitle: 'சரிபார்ப்பு',
+    summaryExpenses: {
+      one: '{n} செலவு',
+      other: '{n} செலவுகள்',
+    },
+    summarySettlements: {
+      one: '{n} பணப்பரிமாற்றம்',
+      other: '{n} பணப்பரிமாற்றங்கள்',
+    },
+    summaryNewPeople: {
+      one: '{n} புதிய நபர்',
+      other: '{n} புதிய நபர்கள்',
+    },
+    summaryOtherCurrency: {
+      one: '{n} வேறு நாணயத்தில், மொத்தத்தில் இல்லை',
+      other: '{n} வேறு நாணயங்களில், மொத்தத்தில் இல்லை',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} விடப்பட்டது',
+      other: '{n} விடப்பட்டவை',
+    },
+    changesTitle: 'இது எதை மாற்றுகிறது',
+    changesNote: 'டிக் செய்த வரிசைகளுக்குப் பிறகு ஒவ்வொருவரின் இருப்பு, குழுவின் நாணயத்தில்.',
+    filterAll: 'அனைத்தும்',
+    filterAttention: 'கவனிக்க வேண்டியவை',
+    filterWont: 'இறக்குமதி ஆகாதவை',
+    filterDuplicates: 'இரட்டிப்பாக இருக்கலாம்',
+    noneHere: 'இங்கே எதுவும் இல்லை.',
+    ctaExpenses: {
+      one: '{n} செலவை இறக்குமதி செய்',
+      other: '{n} செலவுகளை இறக்குமதி செய்',
+    },
+    ctaItems: {
+      one: '{n} பதிவை இறக்குமதி செய்',
+      other: '{n} பதிவுகளை இறக்குமதி செய்',
+    },
+    ctaNothing: 'இறக்குமதி செய்ய எதுவும் இல்லை',
+    rowPaid: '{who} செலுத்தினார்',
+    rowSplit: {
+      one: '{who} செலுத்தினார் · {n} நபருக்கு',
+      other: '{who} செலுத்தினார் · {n} பேருக்குப் பிரிப்பு',
+    },
+    rowSettlement: '{from} → {to} செலுத்தினார்',
+    duplicateOf:
+      '{date} அன்று “{description}” ({amount}) போல் தெரிகிறது, ஏற்கனவே இந்தக் குழுவில் உள்ளது',
+    foreignNote: '{currency} நாணயத்தில்; இருப்பு குழுவின் மாற்று விகிதத்தைப் பயன்படுத்தும்',
+    stateWont: 'இறக்குமதி ஆகாது',
+    stateDuplicate: 'இரட்டிப்பாக இருக்கலாம்',
+    stateAttention: 'கவனிக்க வேண்டும்',
+    editHint: 'திருத்த வரிசையைத் திறக்கும்',
+    edited: 'திருத்தப்பட்டது',
+    editTitle: 'வரிசையைத் திருத்து',
+    fieldDescription: 'விவரம்',
+    fieldAmount: 'தொகை',
+    fieldDate: 'தேதி (YYYY-MM-DD)',
+    fieldPayer: 'செலுத்தியவர்',
+    fieldSplit: 'பிரிக்கப்படுபவர்கள்',
+    fieldCategory: 'வகை',
+    everyone: 'அனைவரும்',
+    categoryNone: 'இல்லை',
+    resetRow: 'என் மாற்றங்களை நீக்கு',
+    invalidAmount: 'பூஜ்யத்துக்கு மேல் தொகையை உள்ளிடவும்.',
+    invalidDate: 'YYYY-MM-DD வடிவத்தைப் பயன்படுத்தவும்.',
+    committing: 'இறக்குமதி செய்கிறது…',
+    rowsProgress: '{total} வரிசைகளில் {done}',
+    waitingTitle: 'இணைப்புக்காகக் காத்திருக்கிறது',
+    waitingHint: 'Waves-ஐத் திறந்தே வையுங்கள். இணைப்பு வந்ததும் இறக்குமதி ஆகும்.',
+    failedTitle: 'இறக்குமதியை முடிக்க முடியவில்லை',
+    partialNote: 'சில வரிசைகள் ஏற்கனவே சேர்ந்திருக்கலாம். மீண்டும் முயன்றால் இரண்டு முறை சேராது.',
+    tryAgain: 'மீண்டும் முயற்சி',
+    resultImported: {
+      one: '{group} குழுவில் {n} செலவு இறக்குமதியானது',
+      other: '{group} குழுவில் {n} செலவுகள் இறக்குமதியாயின',
+    },
+    resultSettlements: {
+      one: '{n} பணப்பரிமாற்றம் பதிவானது',
+      other: '{n} பணப்பரிமாற்றங்கள் பதிவாயின',
+    },
+    resultPeople: {
+      one: '{n} புதிய நபர் சேர்க்கப்பட்டார்',
+      other: '{n} புதிய நபர்கள் சேர்க்கப்பட்டனர்',
+    },
+    resultInvite: 'அவர்களை அழையுங்கள்',
+    resultLeftOut: {
+      one: '{n} வரிசை விடப்பட்டது',
+      other: '{n} வரிசைகள் விடப்பட்டன',
+    },
+    openGroup: 'குழுவைத் திற',
+    undo: 'இறக்குமதியைத் திரும்பப்பெறு',
+    undoing: 'திரும்பப்பெறுகிறது…',
+    undoneTitle: {
+      one: 'திரும்பப்பெறப்பட்டது: {n} செலவு நீக்கப்பட்டது',
+      other: 'திரும்பப்பெறப்பட்டது: {n} செலவுகள் நீக்கப்பட்டன',
+    },
+    undoHint: 'இதிலிருந்து எதுவும் திருத்தப்படாத வரை 24 மணி நேரம் திரும்பப்பெறலாம்.',
+    undoEdited:
+      'இந்த இறக்குமதியில் ஏதோ ஒன்று திருத்தப்பட்டுள்ளது, அதனால் ஒரே தடவையில் திரும்பப்பெற முடியாது.',
+    undoExpired: 'இறக்குமதியை 24 மணி நேரத்துக்குள் மட்டுமே திரும்பப்பெற முடியும்.',
+    undoNotAllowed: 'இதை இறக்குமதி செய்தவர் அல்லது குழு நிர்வாகி மட்டுமே திரும்பப்பெற முடியும்.',
+    undoFailed: 'இறக்குமதியைத் திரும்பப்பெற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+  },
   importLedger: {
     anExistingGroup: 'ஏற்கனவே உள்ள குழு',
     anExistingGroupHint: 'உங்களிடம் உள்ள ஒரு குழுவில் சேர்க்கவும்',
@@ -16392,6 +16901,184 @@ const hi: UiStrings = {
     itemFallback: 'आइटम {n}',
     removeItem: '{label} हटाएँ',
     hadItem: '{name} ने {label} लिया',
+  },
+  groupImport: {
+    menu: 'खर्च इम्पोर्ट करें',
+    emptyLink: 'ये स्प्रेडशीट में हैं? इम्पोर्ट करें',
+    titleNamed: '{group} में इम्पोर्ट',
+    sourceIntro: 'जो खर्च आप कहीं और रखते हैं, उन्हें यहाँ ले आइए।',
+    sourceFileTitle: 'स्प्रेडशीट या CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceSplitwiseTitle: 'Splitwise एक्सपोर्ट',
+    sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
+    sourceShotTitle: 'स्क्रीनशॉट',
+    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो',
+    plusBadge: 'PLUS',
+    seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
+    nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
+    reading: 'फ़ाइल पढ़ी जा रही है…',
+    parsing: 'पंक्तियाँ जाँची जा रही हैं…',
+    errTooLarge:
+      'वह फ़ाइल {mb} MB से बड़ी है। उसे छोटी फ़ाइलों में बाँटकर एक-एक करके इम्पोर्ट करें।',
+    errTooMany:
+      'उस फ़ाइल में {n} से ज़्यादा पंक्तियाँ हैं। उसे {n} पंक्तियों तक के हिस्सों में बाँटें।',
+    errEmpty: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
+    errEncoding:
+      'कुछ अक्षर ठीक से नहीं आए। फ़ाइल को “CSV UTF-8” के रूप में सेव करके फिर कोशिश करें।',
+    errUnreadable: 'वह फ़ाइल खुल नहीं सकी। उसे CSV या Excel (.xlsx) के रूप में सेव करके देखें।',
+    errNoColumns: 'इस फ़ाइल में तारीख़, विवरण और रकम नहीं मिले।',
+    errNoRows: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
+    upsellTitle: 'लिस्ट की फ़ोटो लें, टाइप हम करेंगे',
+    upsellBody:
+      'स्क्रीनशॉट इम्पोर्ट Waves Plus में मिलता है। लिस्ट, बैंक ऐप और चैट की फ़ोटो खर्च बन जाती हैं, और कुछ जुड़ने से पहले आप उन्हें जाँचते हैं।',
+    seePlans: 'प्लान देखें',
+    useCsv: 'इसकी जगह CSV इस्तेमाल करें (मुफ़्त)',
+    examplesTitle: 'CSV के उदाहरण',
+    exTabSimple: 'सरल',
+    exTabSplit: 'बँटवारा',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'हर पंक्ति ग्रुप में सबके बीच बराबर बँटती है।',
+    exSplit: '“नाम:2” का मतलब दो हिस्से। सबके लिए “बँटवारा” वाला कॉलम खाली छोड़ें।',
+    exSplitwise: 'हर व्यक्ति का कॉलम बताता है कि उस पंक्ति में उसे पाना है (+) या देना है (−)।',
+    headersNote: 'आपकी अपनी भाषा के कॉलम शीर्षक भी चलते हैं।',
+    shareTemplate: 'टेम्पलेट शेयर करें',
+    copyExample: 'उदाहरण कॉपी करें',
+    copied: 'कॉपी हो गया',
+    templateShareTitle: 'इम्पोर्ट टेम्पलेट',
+    templateFailed: 'टेम्पलेट नहीं बन सका। कृपया फिर कोशिश करें।',
+    columnsTitle: 'कॉलम जाँचें',
+    columnsHint: 'जितना हो सका हमने मिला दिया। जो कॉलम गलत हो उसे बदलें।',
+    columnFallback: 'कॉलम {n}',
+    chooseColumn: '“{header}” क्या है?',
+    colDate: 'तारीख़',
+    colDescription: 'विवरण',
+    colAmount: 'रकम',
+    colCurrency: 'मुद्रा',
+    colPaidBy: 'किसने चुकाया',
+    colSplit: 'किनके बीच बँटा',
+    colCategory: 'श्रेणी',
+    colType: 'प्रकार',
+    colPerson: 'किसी व्यक्ति पर बकाया रकम',
+    colIgnore: 'छोड़ दें',
+    dateOrderTitle: 'आपकी तारीख़ों में पहले क्या आता है?',
+    dateDayFirst: 'पहले दिन',
+    dateMonthFirst: 'पहले महीना',
+    dateReadsAs: '{raw} का मतलब {date}',
+    decimalTitle: 'दशमलव कैसे लिखे हैं?',
+    previewTitle: 'पहली कुछ पंक्तियाँ, जैसी हम पढ़ेंगे',
+    previewUnreadable: 'यह पंक्ति पढ़ी नहीं जा सकी',
+    needAmount: 'आगे बढ़ने के लिए “रकम” कॉलम चुनें।',
+    continueLabel: 'आगे बढ़ें',
+    peopleTitle: 'कौन कौन है',
+    peopleHint: 'फ़ाइल में नाम हैं। बताइए इस ग्रुप में हर कोई कौन है।',
+    matchedByName: 'नाम से मिलाया गया',
+    chooseWho: 'चुनें कौन',
+    addAsNew: 'नए व्यक्ति के रूप में जोड़ें',
+    addRestAsNew: 'बाकी को नए लोगों के रूप में जोड़ें',
+    mergeWarning: '{names} को एक ही व्यक्ति माना जाएगा',
+    whoIsName: '{name} कौन है?',
+    personMapped: '{name} है {who}। बदलने के लिए टैप करें।',
+    reviewTitle: 'जाँच',
+    summaryExpenses: {
+      one: '{n} खर्च',
+      other: '{n} खर्च',
+    },
+    summarySettlements: {
+      one: '{n} भुगतान',
+      other: '{n} भुगतान',
+    },
+    summaryNewPeople: {
+      one: '{n} नया व्यक्ति',
+      other: '{n} नए लोग',
+    },
+    summaryOtherCurrency: {
+      one: '{n} दूसरी मुद्रा में, कुल में नहीं',
+      other: '{n} दूसरी मुद्राओं में, कुल में नहीं',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} छोड़ा गया',
+      other: '{n} छोड़े गए',
+    },
+    changesTitle: 'इससे क्या बदलता है',
+    changesNote: 'टिक की गई पंक्तियों के बाद हर व्यक्ति का बैलेंस, ग्रुप की मुद्रा में।',
+    filterAll: 'सभी',
+    filterAttention: 'ध्यान चाहिए',
+    filterWont: 'इम्पोर्ट नहीं होंगे',
+    filterDuplicates: 'संभावित डुप्लिकेट',
+    noneHere: 'यहाँ कुछ नहीं है।',
+    ctaExpenses: {
+      one: '{n} खर्च इम्पोर्ट करें',
+      other: '{n} खर्च इम्पोर्ट करें',
+    },
+    ctaItems: {
+      one: '{n} प्रविष्टि इम्पोर्ट करें',
+      other: '{n} प्रविष्टियाँ इम्पोर्ट करें',
+    },
+    ctaNothing: 'इम्पोर्ट करने को कुछ नहीं',
+    rowPaid: '{who} ने चुकाया',
+    rowSplit: {
+      one: '{who} ने चुकाया · {n} व्यक्ति के लिए',
+      other: '{who} ने चुकाया · {n} लोगों में बँटा',
+    },
+    rowSettlement: '{from} ने {to} को चुकाया',
+    duplicateOf: '{date} के “{description}” ({amount}) जैसा लगता है, जो इस ग्रुप में पहले से है',
+    foreignNote: '{currency} में; बैलेंस ग्रुप की दर का इस्तेमाल करेंगे',
+    stateWont: 'इम्पोर्ट नहीं होगा',
+    stateDuplicate: 'संभावित डुप्लिकेट',
+    stateAttention: 'ध्यान चाहिए',
+    editHint: 'बदलने के लिए पंक्ति खुलती है',
+    edited: 'बदला गया',
+    editTitle: 'पंक्ति बदलें',
+    fieldDescription: 'विवरण',
+    fieldAmount: 'रकम',
+    fieldDate: 'तारीख़ (YYYY-MM-DD)',
+    fieldPayer: 'किसने चुकाया',
+    fieldSplit: 'किनके बीच बँटा',
+    fieldCategory: 'श्रेणी',
+    everyone: 'सब',
+    categoryNone: 'कोई नहीं',
+    resetRow: 'मेरे बदलाव हटाएँ',
+    invalidAmount: 'शून्य से ज़्यादा रकम डालें।',
+    invalidDate: 'YYYY-MM-DD रूप इस्तेमाल करें।',
+    committing: 'इम्पोर्ट हो रहा है…',
+    rowsProgress: '{total} में से {done} पंक्तियाँ',
+    waitingTitle: 'कनेक्शन का इंतज़ार',
+    waitingHint: 'Waves खुला रखें। ऑनलाइन होते ही इम्पोर्ट हो जाएगा।',
+    failedTitle: 'इम्पोर्ट पूरा नहीं हो सका',
+    partialNote:
+      'कुछ पंक्तियाँ पहले से जुड़ चुकी हो सकती हैं। दोबारा कोशिश करने पर वे दो बार नहीं जुड़ेंगी।',
+    tryAgain: 'फिर कोशिश करें',
+    resultImported: {
+      one: '{group} में {n} खर्च इम्पोर्ट हुआ',
+      other: '{group} में {n} खर्च इम्पोर्ट हुए',
+    },
+    resultSettlements: {
+      one: '{n} भुगतान दर्ज हुआ',
+      other: '{n} भुगतान दर्ज हुए',
+    },
+    resultPeople: {
+      one: '{n} नया व्यक्ति जुड़ा',
+      other: '{n} नए लोग जुड़े',
+    },
+    resultInvite: 'उन्हें बुलाएँ',
+    resultLeftOut: {
+      one: '{n} पंक्ति छोड़ी गई',
+      other: '{n} पंक्तियाँ छोड़ी गईं',
+    },
+    openGroup: 'ग्रुप खोलें',
+    undo: 'इम्पोर्ट वापस लें',
+    undoing: 'वापस लिया जा रहा है…',
+    undoneTitle: {
+      one: 'वापस लिया गया: {n} खर्च हटा',
+      other: 'वापस लिया गया: {n} खर्च हटे',
+    },
+    undoHint: 'जब तक इसमें से कुछ बदला न गया हो, आप 24 घंटे तक इसे वापस ले सकते हैं।',
+    undoEdited:
+      'इस इम्पोर्ट में से कुछ बाद में बदला गया है, इसलिए इसे एक बार में वापस नहीं लिया जा सकता।',
+    undoExpired: 'इम्पोर्ट केवल 24 घंटे के भीतर वापस लिया जा सकता है।',
+    undoNotAllowed: 'इसे केवल इम्पोर्ट करने वाला व्यक्ति या ग्रुप एडमिन वापस ले सकता है।',
+    undoFailed: 'इम्पोर्ट वापस नहीं लिया जा सका। कृपया फिर कोशिश करें।',
   },
   importLedger: {
     anExistingGroup: 'पहले से बना ग्रुप',
@@ -20876,6 +21563,231 @@ const ar: UiStrings = {
     itemFallback: 'بند {n}',
     removeItem: 'إزالة {label}',
     hadItem: '{name} تناول {label}',
+  },
+  groupImport: {
+    menu: 'استيراد المصاريف',
+    emptyLink: 'لديك هذه في جدول بيانات؟ استوردها',
+    titleNamed: 'الاستيراد إلى {group}',
+    sourceIntro: 'أحضر المصاريف التي تحتفظ بها في مكان آخر.',
+    sourceFileTitle: 'جدول بيانات أو CSV',
+    sourceFileHint: 'Google Sheets وExcel وTricount وSettle Up…',
+    sourceSplitwiseTitle: 'ملف تصدير Splitwise',
+    sourceSplitwiseHint: 'في Splitwise: مجموعتك ثم «Export as spreadsheet»',
+    sourceShotTitle: 'لقطة شاشة',
+    sourceShotHint: 'صورة لقائمة أو تطبيق بنكي أو محادثة',
+    plusBadge: 'PLUS',
+    seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
+    nothingAdded: 'لن يُضاف شيء حتى تراجعه.',
+    reading: 'جارٍ قراءة الملف…',
+    parsing: 'جارٍ فحص الصفوف…',
+    errTooLarge: 'حجم الملف يتجاوز {mb} ميغابايت. قسّمه إلى ملفات أصغر واستورد كل واحد على حدة.',
+    errTooMany: 'يحتوي الملف على أكثر من {n} صف. قسّمه إلى أجزاء من {n} صف على الأكثر.',
+    errEmpty: 'لم نعثر على أي مصاريف في هذا الملف.',
+    errEncoding: 'لم تظهر بعض الأحرف بشكل صحيح. احفظ الملف بصيغة «CSV UTF-8» وحاول مرة أخرى.',
+    errUnreadable: 'تعذّر فتح هذا الملف. جرّب حفظه بصيغة CSV أو Excel ‏(.xlsx).',
+    errNoColumns: 'لم نجد التاريخ والوصف والمبلغ في هذا الملف.',
+    errNoRows: 'لم نعثر على أي مصاريف في هذا الملف.',
+    upsellTitle: 'صوّر القائمة ونحن نكتبها',
+    upsellBody:
+      'استيراد لقطات الشاشة متاح مع Waves Plus. صور القوائم والتطبيقات البنكية والمحادثات تتحول إلى مصاريف تراجعها قبل إضافة أي شيء.',
+    seePlans: 'عرض الباقات',
+    useCsv: 'استخدم CSV بدلًا من ذلك (مجانًا)',
+    examplesTitle: 'أمثلة CSV',
+    exTabSimple: 'بسيط',
+    exTabSplit: 'تقسيم',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'يُقسَّم كل صف بالتساوي بين جميع أفراد المجموعة.',
+    exSplit: '«الاسم:2» تعني حصتين. اترك عمود التقسيم فارغًا ليشمل الجميع.',
+    exSplitwise: 'عمود كل شخص هو ما له (+) أو ما عليه (−) في ذلك الصف.',
+    headersNote: 'عناوين الأعمدة بلغتك تعمل أيضًا.',
+    shareTemplate: 'مشاركة القالب',
+    copyExample: 'نسخ المثال',
+    copied: 'تم النسخ',
+    templateShareTitle: 'قالب الاستيراد',
+    templateFailed: 'تعذّر إنشاء القالب. حاول مرة أخرى.',
+    columnsTitle: 'راجع الأعمدة',
+    columnsHint: 'طابقنا ما استطعنا. غيّر أي عمود غير صحيح.',
+    columnFallback: 'العمود {n}',
+    chooseColumn: 'ما هو «{header}»؟',
+    colDate: 'التاريخ',
+    colDescription: 'الوصف',
+    colAmount: 'المبلغ',
+    colCurrency: 'العملة',
+    colPaidBy: 'دفعه',
+    colSplit: 'قُسِّم بين',
+    colCategory: 'الفئة',
+    colType: 'النوع',
+    colPerson: 'المبلغ المستحق على شخص',
+    colIgnore: 'تجاهل',
+    dateOrderTitle: 'ما الذي يأتي أولًا في تواريخك؟',
+    dateDayFirst: 'اليوم أولًا',
+    dateMonthFirst: 'الشهر أولًا',
+    dateReadsAs: '{raw} تُقرأ {date}',
+    decimalTitle: 'كيف تُكتب الكسور العشرية؟',
+    previewTitle: 'الصفوف الأولى كما سنقرؤها',
+    previewUnreadable: 'تعذّرت قراءة هذا الصف',
+    needAmount: 'اختر عمود «المبلغ» للمتابعة.',
+    continueLabel: 'متابعة',
+    peopleTitle: 'من هو من',
+    peopleHint: 'الملف يذكر أسماء. حدّد من هو كل شخص في هذه المجموعة.',
+    matchedByName: 'طُوبق بالاسم',
+    chooseWho: 'اختر من',
+    addAsNew: 'إضافة كشخص جديد',
+    addRestAsNew: 'إضافة الباقين كأشخاص جدد',
+    mergeWarning: 'سيُعامَل {names} كشخص واحد',
+    whoIsName: 'من هو {name}؟',
+    personMapped: '{name} هو {who}. اضغط للتغيير.',
+    reviewTitle: 'مراجعة',
+    summaryExpenses: {
+      zero: 'لا مصاريف',
+      one: 'مصروف واحد',
+      two: 'مصروفان',
+      few: '{n} مصاريف',
+      many: '{n} مصروفًا',
+      other: '{n} مصروف',
+    },
+    summarySettlements: {
+      zero: 'لا دفعات',
+      one: 'دفعة واحدة',
+      two: 'دفعتان',
+      few: '{n} دفعات',
+      many: '{n} دفعة',
+      other: '{n} دفعة',
+    },
+    summaryNewPeople: {
+      zero: 'لا أشخاص جدد',
+      one: 'شخص جديد',
+      two: 'شخصان جديدان',
+      few: '{n} أشخاص جدد',
+      many: '{n} شخصًا جديدًا',
+      other: '{n} شخص جديد',
+    },
+    summaryOtherCurrency: {
+      zero: 'لا شيء بعملة أخرى',
+      one: 'واحد بعملة أخرى، خارج الإجمالي',
+      two: 'اثنان بعملة أخرى، خارج الإجمالي',
+      few: '{n} بعملات أخرى، خارج الإجمالي',
+      many: '{n} بعملات أخرى، خارج الإجمالي',
+      other: '{n} بعملات أخرى، خارج الإجمالي',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      zero: 'لم يُستبعد شيء',
+      one: 'استُبعد واحد',
+      two: 'استُبعد اثنان',
+      few: 'استُبعد {n}',
+      many: 'استُبعد {n}',
+      other: 'استُبعد {n}',
+    },
+    changesTitle: 'ما الذي يتغير',
+    changesNote: 'رصيد كل شخص بعد الصفوف المحددة، بعملة المجموعة.',
+    filterAll: 'الكل',
+    filterAttention: 'يحتاج انتباهًا',
+    filterWont: 'لن يُستورد',
+    filterDuplicates: 'مكرر محتمل',
+    noneHere: 'لا شيء هنا.',
+    ctaExpenses: {
+      zero: 'لا مصاريف للاستيراد',
+      one: 'استيراد مصروف واحد',
+      two: 'استيراد مصروفين',
+      few: 'استيراد {n} مصاريف',
+      many: 'استيراد {n} مصروفًا',
+      other: 'استيراد {n} مصروف',
+    },
+    ctaItems: {
+      zero: 'لا عناصر للاستيراد',
+      one: 'استيراد عنصر واحد',
+      two: 'استيراد عنصرين',
+      few: 'استيراد {n} عناصر',
+      many: 'استيراد {n} عنصرًا',
+      other: 'استيراد {n} عنصر',
+    },
+    ctaNothing: 'لا شيء للاستيراد',
+    rowPaid: 'دفع {who}',
+    rowSplit: {
+      zero: 'دفع {who}',
+      one: 'دفع {who} · لشخص واحد',
+      two: 'دفع {who} · لشخصين',
+      few: 'دفع {who} · مقسّم على {n} أشخاص',
+      many: 'دفع {who} · مقسّم على {n} شخصًا',
+      other: 'دفع {who} · مقسّم على {n} شخص',
+    },
+    rowSettlement: 'دفع {from} إلى {to}',
+    duplicateOf: 'يشبه «{description}» بتاريخ {date} ({amount}) وهو موجود في هذه المجموعة',
+    foreignNote: 'بعملة {currency}؛ الأرصدة تستخدم سعر المجموعة',
+    stateWont: 'لن يُستورد',
+    stateDuplicate: 'مكرر محتمل',
+    stateAttention: 'يحتاج انتباهًا',
+    editHint: 'يفتح الصف للتعديل',
+    edited: 'معدّل',
+    editTitle: 'تعديل الصف',
+    fieldDescription: 'الوصف',
+    fieldAmount: 'المبلغ',
+    fieldDate: 'التاريخ (YYYY-MM-DD)',
+    fieldPayer: 'دفعه',
+    fieldSplit: 'قُسِّم بين',
+    fieldCategory: 'الفئة',
+    everyone: 'الجميع',
+    categoryNone: 'بلا',
+    resetRow: 'تراجع عن تعديلاتي',
+    invalidAmount: 'أدخل مبلغًا أكبر من صفر.',
+    invalidDate: 'استخدم الصيغة YYYY-MM-DD.',
+    committing: 'جارٍ الاستيراد…',
+    rowsProgress: '{done} من {total} صف',
+    waitingTitle: 'بانتظار الاتصال',
+    waitingHint: 'أبقِ Waves مفتوحًا. سيتم الاستيراد عند عودتك إلى الإنترنت.',
+    failedTitle: 'تعذّر إكمال الاستيراد',
+    partialNote: 'قد تكون بعض الصفوف أُضيفت بالفعل. إعادة المحاولة لن تضيفها مرتين.',
+    tryAgain: 'حاول مرة أخرى',
+    resultImported: {
+      zero: 'لم يُستورد أي مصروف إلى {group}',
+      one: 'تم استيراد مصروف واحد إلى {group}',
+      two: 'تم استيراد مصروفين إلى {group}',
+      few: 'تم استيراد {n} مصاريف إلى {group}',
+      many: 'تم استيراد {n} مصروفًا إلى {group}',
+      other: 'تم استيراد {n} مصروف إلى {group}',
+    },
+    resultSettlements: {
+      zero: 'لم تُسجَّل دفعات',
+      one: 'سُجّلت دفعة واحدة',
+      two: 'سُجّلت دفعتان',
+      few: 'سُجّلت {n} دفعات',
+      many: 'سُجّلت {n} دفعة',
+      other: 'سُجّلت {n} دفعة',
+    },
+    resultPeople: {
+      zero: 'لم يُضَف أشخاص جدد',
+      one: 'أُضيف شخص جديد',
+      two: 'أُضيف شخصان جديدان',
+      few: 'أُضيف {n} أشخاص جدد',
+      many: 'أُضيف {n} شخصًا جديدًا',
+      other: 'أُضيف {n} شخص جديد',
+    },
+    resultInvite: 'ادعُهم',
+    resultLeftOut: {
+      zero: 'لم يُستبعد أي صف',
+      one: 'استُبعد صف واحد',
+      two: 'استُبعد صفان',
+      few: 'استُبعدت {n} صفوف',
+      many: 'استُبعد {n} صفًا',
+      other: 'استُبعد {n} صف',
+    },
+    openGroup: 'فتح المجموعة',
+    undo: 'التراجع عن الاستيراد',
+    undoing: 'جارٍ التراجع…',
+    undoneTitle: {
+      zero: 'تم التراجع: لم يُحذف شيء',
+      one: 'تم التراجع: حُذف مصروف واحد',
+      two: 'تم التراجع: حُذف مصروفان',
+      few: 'تم التراجع: حُذفت {n} مصاريف',
+      many: 'تم التراجع: حُذف {n} مصروفًا',
+      other: 'تم التراجع: حُذف {n} مصروف',
+    },
+    undoHint: 'يمكنك التراجع خلال 24 ساعة ما دام لم يُعدَّل شيء منه.',
+    undoEdited: 'عُدِّل شيء من هذا الاستيراد بعد ذلك، لذا لا يمكن التراجع عنه دفعة واحدة.',
+    undoExpired: 'لا يمكن التراجع عن الاستيراد إلا خلال 24 ساعة.',
+    undoNotAllowed: 'يمكن لمن أجرى الاستيراد أو لمشرف المجموعة فقط التراجع عنه.',
+    undoFailed: 'تعذّر التراجع عن الاستيراد. حاول مرة أخرى.',
   },
   importLedger: {
     anExistingGroup: 'مجموعة موجودة',

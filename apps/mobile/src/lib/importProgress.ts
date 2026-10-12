@@ -7,14 +7,19 @@
  * shows one banner above the group list through {@link useImportProgress}. When
  * it finishes, the new group animates into that list on its own.
  *
- * It reports *phases*, not a percentage. The import is a single transactional
- * RPC with no streaming, so there is no honest fraction to tick — and ticking a
- * fake one meant emitting many times a second, which re-rendered a heavy
- * dashboard on every tick and made the whole app crawl while a large import ran.
- * Now the store emits only on a real transition (running → success, or into the
- * offline wait), a handful of times total; the banner shows an indeterminate bar
- * that animates on the native driver, so a slow or stalled import costs the JS
- * thread nothing.
+ * It reports *phases*, not a ticking percentage. A new-group import is a single
+ * transactional RPC with no streaming, so there is no honest fraction to show —
+ * and ticking a fake one meant emitting many times a second, which re-rendered a
+ * heavy dashboard on every tick and made the whole app crawl while a large
+ * import ran. So the store emits only on a real transition (running → success,
+ * or into the offline wait), and the banner shows an indeterminate bar that
+ * animates on the native driver, so a slow or stalled import costs the JS thread
+ * nothing.
+ *
+ * The one honest fraction is an import into a group, which is written in chunks
+ * of 250 rows: a job may call the `report` it is handed after each chunk lands,
+ * and the banner then fills a real bar. That is a handful of emits for even a
+ * 2,000-row file, never a tick per frame.
  *
  * Offline (Option B — deferred): with no connection the RPC cannot land, so the
  * store parks the job in a `waiting` phase and watches for connectivity; the
@@ -34,7 +39,18 @@ export interface ImportSummary {
   expenses: number;
   ghosts: number;
   settlements: number;
+  /** An import into a group is one batch; its id is how it is undone. */
+  batchId?: string;
 }
+
+/** Rows written so far, of all of them: the chunks of an import into a group. */
+export interface ImportRowsProgress {
+  done: number;
+  total: number;
+}
+
+/** Called by a job after each chunk lands. */
+export type ReportImportProgress = (done: number, total: number) => void;
 
 /** The result an import job resolves with: where it landed, and what it added. */
 export type ImportResult = { groupId: string } & ImportSummary;
@@ -44,6 +60,11 @@ export interface ImportJob {
   /** The group's name, shown in the banner. */
   name: string;
   /**
+   * The group the rows are going into, when it exists already. A banner on that
+   * group's own screen shows this job and no other.
+   */
+  groupId?: string | null;
+  /**
    * The whole import — create/target the group, resolve members, write the
    * ledger, and pull it into the mirror — resolving with the group id and the
    * counts. It MUST be idempotent: the store may run it more than once (a
@@ -52,7 +73,7 @@ export interface ImportJob {
    * Error whose message is already people-facing (via friendlyError); the store
    * shows that message verbatim on a real failure.
    */
-  run: () => Promise<ImportResult>;
+  run: (report: ReportImportProgress) => Promise<ImportResult>;
 }
 
 export interface ImportProgressSnapshot {
@@ -60,6 +81,10 @@ export interface ImportProgressSnapshot {
   groupName: string;
   /** The imported group, known only once it has succeeded. */
   groupId: string | null;
+  /** The existing group the job was started for, if any (see {@link ImportJob.groupId}). */
+  targetGroupId: string | null;
+  /** Chunks landed so far, for a job that reports them; null while it has not. */
+  progress: ImportRowsProgress | null;
   summary: ImportSummary | null;
   /** A people-facing message, set only in the error phase. */
   error: string | null;
@@ -69,6 +94,8 @@ const IDLE: ImportProgressSnapshot = {
   phase: 'idle',
   groupName: '',
   groupId: null,
+  targetGroupId: null,
+  progress: null,
   summary: null,
   error: null,
 };
@@ -124,24 +151,39 @@ async function isOnline(): Promise<boolean> {
 }
 
 function toRunning(job: ImportJob): void {
-  emit({ phase: 'running', groupName: job.name, groupId: null, summary: null, error: null });
+  emit({
+    phase: 'running',
+    groupName: job.name,
+    groupId: null,
+    targetGroupId: job.groupId ?? null,
+    progress: null,
+    summary: null,
+    error: null,
+  });
 }
 
 /** Run the job now: resolve to success, park (offline), or fail. `mine` is the
  *  start token this attempt belongs to. */
 function attempt(job: ImportJob, mine: number): void {
   toRunning(job);
-  job.run().then(
+  const report: ReportImportProgress = (done, total) => {
+    if (token !== mine || snapshot.phase !== 'running') return;
+    emit({ ...snapshot, progress: { done, total } });
+  };
+  job.run(report).then(
     (result) => {
       if (token !== mine) return;
       emit({
         phase: 'success',
         groupName: job.name,
         groupId: result.groupId,
+        targetGroupId: job.groupId ?? null,
+        progress: null,
         summary: {
           expenses: result.expenses,
           ghosts: result.ghosts,
           settlements: result.settlements,
+          batchId: result.batchId,
         },
         error: null,
       });
@@ -165,6 +207,8 @@ function attempt(job: ImportJob, mine: number): void {
             phase: 'error',
             groupName: job.name,
             groupId: null,
+            targetGroupId: job.groupId ?? null,
+            progress: null,
             summary: null,
             error: message,
           });
@@ -177,7 +221,15 @@ function attempt(job: ImportJob, mine: number): void {
 /** Hold the job for a reconnect, and start watching for one. */
 function park(job: ImportJob, mine: number): void {
   pendingJob = job;
-  emit({ phase: 'waiting', groupName: job.name, groupId: null, summary: null, error: null });
+  emit({
+    phase: 'waiting',
+    groupName: job.name,
+    groupId: null,
+    targetGroupId: job.groupId ?? null,
+    progress: null,
+    summary: null,
+    error: null,
+  });
   stopNetWatch();
   netWatch = setInterval(() => {
     if (token !== mine) {
