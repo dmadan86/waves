@@ -36,6 +36,15 @@ export interface InviteAcceptDeps {
 export const ACCOUNT_REQUIRED = 'ACCOUNT_REQUIRED';
 const ACCOUNT_REQUIRED_MESSAGE = 'Create a free account (or log in) to join this group';
 
+/**
+ * The refusal for somebody an admin removed who presents an invite from before
+ * the removal. Only an invite minted afterwards brings them back. Stable: the
+ * apps key their message off it.
+ */
+export const REMOVED_FROM_GROUP = 'REMOVED_FROM_GROUP';
+const REMOVED_FROM_GROUP_MESSAGE =
+  'You were removed from this group. Ask an admin for a new invite.';
+
 interface AcceptRequest {
   token: string;
   mode?: 'preview' | 'join';
@@ -188,6 +197,9 @@ export async function handleInviteAccept(
       if (verdict?.reason === ACCOUNT_REQUIRED) {
         throw new HttpError(403, ACCOUNT_REQUIRED, ACCOUNT_REQUIRED_MESSAGE);
       }
+      if (verdict?.reason === 'REMOVED') {
+        throw new HttpError(403, REMOVED_FROM_GROUP, REMOVED_FROM_GROUP_MESSAGE);
+      }
       if (verdict?.reason === 'INVITE_INVALID') {
         throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
       }
@@ -226,6 +238,9 @@ export async function handleInviteAccept(
       }
       if (joined?.reason === ACCOUNT_REQUIRED) {
         throw new HttpError(403, ACCOUNT_REQUIRED, ACCOUNT_REQUIRED_MESSAGE);
+      }
+      if (joined?.reason === 'REMOVED') {
+        throw new HttpError(403, REMOVED_FROM_GROUP, REMOVED_FROM_GROUP_MESSAGE);
       }
       if (!joined?.ok) {
         throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');

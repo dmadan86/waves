@@ -8,7 +8,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-import { JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
+import { isRemovedFromGroup, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
 
 vi.mock('../src/lib/secureStorage', () => ({ secureAuthStorage: {} }));
 
@@ -138,5 +138,33 @@ describe('resume after login', () => {
     expect(shouldAutoJoin({ ...base, claimableCount: 1 })).toBe(false);
     // A guest who has not finished upgrading is not joined.
     expect(shouldAutoJoin({ ...base, gate: JoinGate.UpgradeGuest })).toBe(false);
+  });
+});
+
+describe('removed from the group', () => {
+  it('recognises the edge function refusal as readFunctionError words it', () => {
+    expect(
+      isRemovedFromGroup(
+        new Error(
+          'REMOVED_FROM_GROUP: You were removed from this group. Ask an admin for a new invite.',
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isRemovedFromGroup(new Error('INVITE_INVALID: This invite link is no longer valid')),
+    ).toBe(false);
+  });
+
+  it('has the message in all four languages', async () => {
+    vi.doMock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
+    const { STRINGS_BY_LANGUAGE } = await import('../src/i18n');
+    expect(STRINGS_BY_LANGUAGE.en.misc.joinRemoved).toBe(
+      'You were removed from this group. Ask an admin for a new invite.',
+    );
+    const texts = (['en', 'ta', 'hi', 'ar'] as const).map(
+      (language) => STRINGS_BY_LANGUAGE[language].misc.joinRemoved,
+    );
+    expect(texts.every(Boolean)).toBe(true);
+    expect(new Set(texts).size).toBe(4);
   });
 });

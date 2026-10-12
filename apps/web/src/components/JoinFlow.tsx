@@ -21,7 +21,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { InvitePreview } from '@waves/api-client';
-import { isAccountRequired, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
+import {
+  isAccountRequired,
+  isRemovedFromGroup,
+  JoinGate,
+  joinGate,
+  shouldAutoJoin,
+} from '@waves/core';
 
 import { SignIn } from '@/components/SignIn';
 import { useAuth } from '@/lib/auth';
@@ -105,15 +111,25 @@ export function JoinFlow({ token, resume = false }: { token: string; resume?: bo
         setError(
           isAccountRequired(caught)
             ? t.join.accountRequired
-            : friendlyError(caught, 'web.join.accept', {
-                fallback: t.errors.couldNotSave,
-                offline: t.errors.offline,
-              }),
+            : isRemovedFromGroup(caught)
+              ? t.join.removedFromGroup
+              : friendlyError(caught, 'web.join.accept', {
+                  fallback: t.errors.couldNotSave,
+                  offline: t.errors.offline,
+                }),
         );
         setJoining(false);
       }
     },
-    [token, claimId, router, t.errors.couldNotSave, t.errors.offline, t.join.accountRequired],
+    [
+      token,
+      claimId,
+      router,
+      t.errors.couldNotSave,
+      t.errors.offline,
+      t.join.accountRequired,
+      t.join.removedFromGroup,
+    ],
   );
 
   // The far side of signing up or logging in: finish the join without asking

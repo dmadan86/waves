@@ -26,7 +26,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { isAccountRequired, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
+import {
+  isAccountRequired,
+  isRemovedFromGroup,
+  JoinGate,
+  joinGate,
+  shouldAutoJoin,
+} from '@waves/core';
 
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
@@ -170,7 +176,9 @@ export default function JoinScreen() {
       setError(
         isAccountRequired(caught)
           ? t.misc.joinAccountRequired
-          : friendlyError(caught, t.misc.couldNotJoin, 'join.accept'),
+          : isRemovedFromGroup(caught)
+            ? t.misc.joinRemoved
+            : friendlyError(caught, t.misc.couldNotJoin, 'join.accept'),
       );
     } finally {
       setJoining(false);

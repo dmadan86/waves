@@ -3558,6 +3558,7 @@ export interface UiStrings {
     joinGuestWhy: string;
     /** The server refused a guest join (an older screen, or a race). */
     joinAccountRequired: string;
+    joinRemoved: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -7706,6 +7707,7 @@ const en: UiStrings = {
       'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
     joinAccountRequired:
       'You need an account to join this group. Sign up or log in, then open the link again.',
+    joinRemoved: 'You were removed from this group. Ask an admin for a new invite.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -11849,6 +11851,8 @@ const ta: UiStrings = {
       'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
     joinAccountRequired:
       'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
+    joinRemoved:
+      'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -15966,6 +15970,7 @@ const hi: UiStrings = {
       'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
     joinAccountRequired:
       'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
+    joinRemoved: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
     noAddress: 'कोई पता नहीं',
@@ -20275,6 +20280,7 @@ const ar: UiStrings = {
       'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
     joinAccountRequired:
       'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
+    joinRemoved: 'تمت إزالتك من هذه المجموعة. اطلب دعوة جديدة من أحد المشرفين.',
     fromYourContacts: 'من جهات اتصالك',
     continueWith: 'المتابعة مع',
     noAddress: 'لا يوجد عنوان',

@@ -38,6 +38,12 @@ export function joinGate(viewer: JoinViewer): JoinGate {
   return viewer.anonymous ? JoinGate.UpgradeGuest : JoinGate.Ready;
 }
 
+/**
+ * The code the server refuses a removed member with when they present an invite
+ * from before their removal. Stable across apps.
+ */
+export const REMOVED_FROM_GROUP = 'REMOVED_FROM_GROUP';
+
 /** Whether a failure from the join call is the server asking for an account. */
 export function isAccountRequired(caught: unknown): boolean {
   const message =
@@ -51,6 +57,21 @@ export function isAccountRequired(caught: unknown): boolean {
       ? (caught as { code: string }).code
       : '';
   return code === ACCOUNT_REQUIRED || message.includes(ACCOUNT_REQUIRED);
+}
+
+/** Whether a failure from the join call is "you were removed; ask for a new invite". */
+export function isRemovedFromGroup(caught: unknown): boolean {
+  const message =
+    typeof caught === 'string'
+      ? caught
+      : caught && typeof (caught as { message?: unknown }).message === 'string'
+        ? (caught as { message: string }).message
+        : '';
+  const code =
+    caught && typeof (caught as { code?: unknown }).code === 'string'
+      ? (caught as { code: string }).code
+      : '';
+  return code === REMOVED_FROM_GROUP || message.includes(REMOVED_FROM_GROUP);
 }
 
 /**
