@@ -45,6 +45,7 @@ import { importIntoGroup, undoImport } from '@/data/api';
 import { useGroup } from '@/data/hooks';
 import { displayName, groupLabel, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 import { friendlyError } from '@/lib/errors';
 import { layoutIsReadable } from '@/lib/groupImport/columns';
 import { GroupImportFileError, tableFromBytes } from '@/lib/groupImport/file';
@@ -87,6 +88,7 @@ function leave(groupId: string): void {
 
 export default function GroupImportScreen() {
   const theme = useTheme();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const g = t.groupImport;
   const toast = useToast();
@@ -434,7 +436,7 @@ export default function GroupImportScreen() {
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.xl,
             paddingTop: state.step === 'source' ? 0 : theme.spacing.lg,
-            paddingBottom: theme.spacing.xl,
+            paddingBottom: state.step === 'source' ? clearance : theme.spacing.xl,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

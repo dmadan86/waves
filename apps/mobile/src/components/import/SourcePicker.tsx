@@ -8,6 +8,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { I18nManager, Pressable, View } from 'react-native';
@@ -31,7 +32,7 @@ export type SourceChoice = 'file' | 'splitwise' | 'screenshot';
 
 // The beach behind the group's name; the suitcase sits on the right, clear of the text.
 const BANNER = require('../../../assets/images/import-banner.webp') as number;
-const BANNER_HEIGHT = 230;
+const BANNER_HEIGHT = 178;
 
 // The spreadsheet green is the file's own colour (Sheets, Excel), not a money
 // hue, so it lives here rather than in the palette.
@@ -73,7 +74,7 @@ export function ImportHero({
         locations={[0.7, 1]}
         style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}
       />
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
         <IconButton label={t.common.back} onPress={onBack}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -83,13 +84,13 @@ export function ImportHero({
         </IconButton>
       </View>
       <View style={{ paddingHorizontal: theme.spacing.xl, maxWidth: '62%', gap: 2 }}>
-        <Text variant="body" tone="muted">
+        <Text variant="caption" tone="muted">
           {t.groupImport.titleLead}
         </Text>
-        <Text variant="display" numberOfLines={2} accessibilityRole="header">
+        <Text variant="title" numberOfLines={1} accessibilityRole="header">
           {groupName}
         </Text>
-        <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing.xs }}>
+        <Text variant="caption" tone="muted" numberOfLines={2}>
           {t.groupImport.sourceIntro}
         </Text>
       </View>
@@ -128,10 +129,13 @@ export function SourcePicker({
     art: (keyof typeof Ionicons.glyphMap)[];
     chips?: string[];
     plus?: boolean;
+    /** Draw the spreadsheet mark instead of `icon`. */
+    sheetGlyph?: boolean;
   }[] = [
     {
       choice: 'file',
       icon: 'grid-outline',
+      sheetGlyph: true,
       title: t.groupImport.sourceFileTitle,
       hint: t.groupImport.sourceFileHint,
       disc: sheet,
@@ -173,9 +177,9 @@ export function SourcePicker({
   const chevron = (
     <View
       style={{
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         backgroundColor: theme.color.brandSoft,
         alignItems: 'center',
         justifyContent: 'center',
@@ -190,7 +194,7 @@ export function SourcePicker({
   );
 
   return (
-    <View style={{ gap: theme.spacing.md }}>
+    <View style={{ gap: theme.spacing.sm }}>
       {error ? <Callout tone="negative">{errorText[error]}</Callout> : null}
 
       {rows.map((row) => (
@@ -230,20 +234,20 @@ export function SourcePicker({
                 importantForAccessibility="no-hide-descendants"
                 style={{
                   position: 'absolute',
-                  end: theme.spacing.lg,
-                  bottom: -6,
+                  end: 52,
+                  bottom: -8,
                   flexDirection: 'row',
                   alignItems: 'flex-end',
-                  opacity: 0.22,
+                  opacity: 0.16,
                 }}
               >
                 {row.art.map((glyph, index) => (
                   <Ionicons
                     key={glyph}
                     name={glyph}
-                    size={index === 0 ? 64 : 40}
+                    size={index === 0 ? 44 : 28}
                     color={row.disc.ink}
-                    style={index > 0 ? { marginStart: -14, marginBottom: 18 } : undefined}
+                    style={index > 0 ? { marginStart: -10, marginBottom: 12 } : undefined}
                   />
                 ))}
               </View>
@@ -251,26 +255,35 @@ export function SourcePicker({
             <View
               style={{
                 flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: theme.spacing.lg,
-                padding: theme.spacing.lg,
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: theme.spacing.md,
               }}
             >
               <View
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   backgroundColor: row.disc.fill,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name={row.icon} size={28} color={row.disc.ink} />
+                {row.sheetGlyph ? (
+                  <MaterialCommunityIcons
+                    name="google-spreadsheet"
+                    size={26}
+                    color={row.disc.ink}
+                  />
+                ) : (
+                  <Ionicons name={row.icon} size={22} color={row.disc.ink} />
+                )}
               </View>
-              <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
                     {row.title}
@@ -285,7 +298,7 @@ export function SourcePicker({
                     style={{
                       flexDirection: 'row',
                       flexWrap: 'wrap',
-                      gap: theme.spacing.sm,
+                      gap: theme.spacing.xs,
                       marginTop: theme.spacing.xs,
                     }}
                   >
@@ -335,7 +348,7 @@ export function SourcePicker({
             flexDirection: 'row',
             alignItems: 'center',
             gap: theme.spacing.md,
-            minHeight: 56,
+            minHeight: 48,
             paddingHorizontal: theme.spacing.lg,
             borderRadius: theme.radius.lg,
             backgroundColor: theme.color.surface,
@@ -344,8 +357,13 @@ export function SourcePicker({
           theme.shadow.soft,
         ]}
       >
-        <Ionicons name="document-text" size={iconSize.lg} color={theme.color.brand} />
-        <Text variant="body" tone="brand" style={{ flex: 1, fontWeight: '600' }}>
+        <Ionicons name="document-text" size={iconSize.md} color={theme.color.brand} />
+        <Text
+          variant="caption"
+          tone="brand"
+          numberOfLines={1}
+          style={{ flex: 1, fontWeight: '600' }}
+        >
           {t.groupImport.seeExamples}
         </Text>
         <Ionicons
@@ -360,14 +378,15 @@ export function SourcePicker({
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          padding: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.md,
           borderRadius: theme.radius.lg,
           backgroundColor: theme.tint.sky.bg,
         }}
       >
-        <Ionicons name="shield-checkmark-outline" size={30} color={theme.color.positive} />
+        <Ionicons name="shield-checkmark-outline" size={24} color={theme.color.positive} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text variant="body" style={{ fontWeight: '700' }}>
+          <Text variant="caption" style={{ fontWeight: '700' }}>
             {t.groupImport.nothingAdded}
           </Text>
           <Text variant="caption" tone="muted">
