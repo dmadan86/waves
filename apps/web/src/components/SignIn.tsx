@@ -134,7 +134,18 @@ function EyeMark({ off }: { off: boolean }) {
 /** Digits in the sign-in code: `otp_length` in supabase/config.toml. */
 const CODE_LENGTH = 6;
 
-export function SignIn() {
+export function SignIn({
+  initialMode = 'sign_in',
+  note,
+  onBack,
+}: {
+  /** Which door opens first. The join screen sends "Sign up to join" to sign_up. */
+  initialMode?: 'sign_in' | 'sign_up';
+  /** Why the person is here, shown under the heading (the join screen's reason). */
+  note?: string;
+  /** Offers a way back to the page that sent them (the invite). */
+  onBack?: { label: string; run: () => void };
+} = {}) {
   const { t, locale } = useStrings();
   const {
     signInWithGoogle,
@@ -148,7 +159,7 @@ export function SignIn() {
   const [busy, setBusy] = useState<null | 'google' | 'apple' | 'password' | 'link' | 'code'>(null);
   /** The six digits from the mail, once it has been sent. */
   const [code, setCode] = useState('');
-  const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
+  const [mode, setMode] = useState<'sign_in' | 'sign_up'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
@@ -442,6 +453,18 @@ export function SignIn() {
             <>
               <h1 className="door-head">{t.dash.doorWelcome}</h1>
               <p className="door-sub">{t.dash.doorSub}</p>
+              {note ? (
+                <p className="door-sub" data-testid="join-account-why">
+                  {note}
+                </p>
+              ) : null}
+              {onBack ? (
+                <p className="door-swap">
+                  <button type="button" className="linklike" onClick={onBack.run}>
+                    {onBack.label}
+                  </button>
+                </p>
+              ) : null}
 
               <form onSubmit={onPassword} className="door-fields">
                 <label className="door-label" htmlFor="door-email">
