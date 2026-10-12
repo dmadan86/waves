@@ -756,12 +756,21 @@ export interface UiStrings {
     menu: string;
     title: string;
     intro: string;
+    subtitle: string;
     /** The format picker. */
     formatLabel: string;
     pdf: string;
     excel: string;
     pdfHint: string;
     excelHint: string;
+    /** The "Include" checklist. */
+    includeLabel: string;
+    includeBalances: string;
+    includeBalancesHint: string;
+    includeExpenses: string;
+    includeExpensesHint: string;
+    includeSettlements: string;
+    includeSettlementsHint: string;
     /** Action + busy + success. */
     generate: string;
     preparing: string;
@@ -5432,12 +5441,20 @@ const en: UiStrings = {
     menu: 'Export',
     title: 'Export this group',
     intro:
-      'A tidy statement of this group — balances, every expense and settlement — as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
-    formatLabel: 'Format',
+      'Export balances, every expense and settlement as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
+    subtitle: 'Get a complete statement of this group',
+    formatLabel: 'Export format',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'A printable statement',
-    excelHint: 'A spreadsheet workbook',
+    pdfHint: 'A clean, printable statement',
+    excelHint: 'A detailed workbook for analysis',
+    includeLabel: 'Include',
+    includeBalances: 'Group balances',
+    includeBalancesHint: 'Who owes whom',
+    includeExpenses: 'All expenses',
+    includeExpensesHint: 'With date, category and notes',
+    includeSettlements: 'Settlements',
+    includeSettlementsHint: 'Payments and settlements',
     generate: 'Generate',
     preparing: 'Preparing…',
     ready: 'Export ready',
@@ -9439,12 +9456,20 @@ const ta: UiStrings = {
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
-      'இந்தக் குழுவின் நேர்த்தியான அறிக்கை — இருப்புகள், ஒவ்வொரு செலவும் தீர்வும் — படிக்க PDF ஆகவோ, கணக்கிட Excel கோப்பாகவோ. உங்கள் சாதனத்தில் ஏற்கனவே உள்ளதிலிருந்து உருவாக்கப்படுகிறது, எனவே இணையம் இல்லாமலும் இயங்கும்.',
-    formatLabel: 'வடிவம்',
+      'நிலுவைகள், ஒவ்வொரு செலவு மற்றும் தீர்வையும் படிக்க PDF ஆகவோ, கணக்கிட Excel ஆகவோ ஏற்றுமதி செய்யுங்கள். உங்கள் சாதனத்தில் ஏற்கனவே உள்ளவற்றிலிருந்தே உருவாக்கப்படுவதால் இணையம் இல்லாமலும் வேலை செய்யும்.',
+    subtitle: 'இந்தக் குழுவின் முழுமையான அறிக்கையைப் பெறுங்கள்',
+    formatLabel: 'ஏற்றுமதி வடிவம்',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'அச்சிடக்கூடிய அறிக்கை',
-    excelHint: 'விரிதாள் கோப்பு',
+    pdfHint: 'தெளிவான, அச்சிடக்கூடிய அறிக்கை',
+    excelHint: 'பகுப்பாய்வுக்கான விரிவான கோப்பு',
+    includeLabel: 'சேர்க்க வேண்டியவை',
+    includeBalances: 'குழு நிலுவைகள்',
+    includeBalancesHint: 'யார் யாருக்குக் கொடுக்க வேண்டும்',
+    includeExpenses: 'அனைத்துச் செலவுகள்',
+    includeExpensesHint: 'தேதி, வகை, குறிப்புகளுடன்',
+    includeSettlements: 'தீர்வுகள்',
+    includeSettlementsHint: 'பணம் செலுத்தல்கள் மற்றும் தீர்வுகள்',
     generate: 'உருவாக்கு',
     preparing: 'தயாராகிறது…',
     ready: 'ஏற்றுமதி தயார்',
@@ -13587,12 +13612,20 @@ const hi: UiStrings = {
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
-      'इस समूह का सुव्यवस्थित विवरण — शेष, हर खर्च और निपटान — पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक। आपके डिवाइस पर पहले से मौजूद डेटा से बनाया जाता है, इसलिए यह ऑफ़लाइन भी काम करता है।',
-    formatLabel: 'प्रारूप',
+      'शेष, हर खर्च और निपटान को पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक के रूप में निर्यात करें। आपके डिवाइस पर पहले से मौजूद डेटा से बनता है, इसलिए ऑफ़लाइन भी काम करता है।',
+    subtitle: 'इस समूह का पूरा विवरण पाएँ',
+    formatLabel: 'निर्यात प्रारूप',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'छपने योग्य विवरण',
-    excelHint: 'स्प्रेडशीट वर्कबुक',
+    pdfHint: 'साफ़, छपने योग्य विवरण',
+    excelHint: 'विश्लेषण के लिए विस्तृत वर्कबुक',
+    includeLabel: 'शामिल करें',
+    includeBalances: 'समूह के शेष',
+    includeBalancesHint: 'किसे किसका देना है',
+    includeExpenses: 'सभी खर्च',
+    includeExpensesHint: 'तारीख, श्रेणी और नोट्स के साथ',
+    includeSettlements: 'निपटान',
+    includeSettlementsHint: 'भुगतान और निपटान',
     generate: 'बनाएँ',
     preparing: 'तैयार हो रहा है…',
     ready: 'निर्यात तैयार',
@@ -17609,12 +17642,20 @@ const ar: UiStrings = {
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:
-      'كشف مرتّب لهذه المجموعة — الأرصدة وكل مصروف وتسوية — بصيغة PDF للقراءة أو ملف Excel للحساب. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
-    formatLabel: 'الصيغة',
+      'صدّر الأرصدة وكل مصروف وتسوية بصيغة PDF للقراءة أو ملف Excel للتحليل. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
+    subtitle: 'احصل على كشف كامل لهذه المجموعة',
+    formatLabel: 'صيغة التصدير',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'كشف قابل للطباعة',
-    excelHint: 'ملف جداول بيانات',
+    pdfHint: 'كشف نظيف قابل للطباعة',
+    excelHint: 'ملف مفصّل للتحليل',
+    includeLabel: 'ما يُضمَّن',
+    includeBalances: 'أرصدة المجموعة',
+    includeBalancesHint: 'من يدين لمن',
+    includeExpenses: 'كل المصروفات',
+    includeExpensesHint: 'مع التاريخ والفئة والملاحظات',
+    includeSettlements: 'التسويات',
+    includeSettlementsHint: 'المدفوعات والتسويات',
     generate: 'إنشاء',
     preparing: 'جارٍ التحضير…',
     ready: 'التصدير جاهز',
