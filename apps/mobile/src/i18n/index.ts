@@ -3043,6 +3043,22 @@ export interface UiStrings {
     scanToJoin: string;
     /** Caption over the invite QR: "Scan this QR code to join the {type}". */
     scanToJoinType: string;
+    /** Shared invite image: bold line over the QR. */
+    cardScanTitle: string;
+    /** Shared invite image: line under it, "{type}" is trip/home/event/friends/group. */
+    cardScanSubtitle: string;
+    /** Shared invite image: divider between the QR and the link. */
+    cardOr: string;
+    /** Shared invite image: heading of the link box. */
+    cardJoinLink: string;
+    /** Shared invite image: the (decorative) copy pill. */
+    cardCopy: string;
+    /** Shared invite image: footer, first point. */
+    cardNoApp: string;
+    /** Shared invite image: footer, second point. */
+    cardJoinFast: string;
+    /** Shared invite image: footer, third point. */
+    cardStartSplitting: string;
     /** Line under the invite title. */
     inviteSubtitle: string;
     /** The pill that opens the members screen: "5 members". */
@@ -7227,6 +7243,14 @@ const en: UiStrings = {
     inviteLink: 'Invite link',
     scanToJoin: 'Scan to join',
     scanToJoinType: 'Scan this QR code to join the {type}',
+    cardScanTitle: 'Scan this QR code',
+    cardScanSubtitle: 'to join the {type} on Waves',
+    cardOr: 'or',
+    cardJoinLink: 'Join using this link',
+    cardCopy: 'Copy',
+    cardNoApp: 'No app needed',
+    cardJoinFast: 'Join in seconds',
+    cardStartSplitting: 'Start splitting expenses',
     inviteSubtitle: 'Add friends and split the expense together',
     inviteMembersPill: { one: '{n} member', other: '{n} members' },
     shareVia: 'Share via',
@@ -11294,6 +11318,14 @@ const ta: UiStrings = {
     inviteLink: 'அழைப்பு இணைப்பு',
     scanToJoin: 'ஸ்கேன் செய்து சேரவும்',
     scanToJoinType: 'இந்த QR குறியீட்டை ஸ்கேன் செய்து சேரவும் ({type})',
+    cardScanTitle: 'இந்த QR குறியீட்டை ஸ்கேன் செய்யுங்கள்',
+    cardScanSubtitle: 'Waves-ல் {type} குழுவில் சேர',
+    cardOr: 'அல்லது',
+    cardJoinLink: 'இந்த இணைப்பில் சேரவும்',
+    cardCopy: 'நகலெடு',
+    cardNoApp: 'ஆப் தேவையில்லை',
+    cardJoinFast: 'சில விநாடிகளில் சேரலாம்',
+    cardStartSplitting: 'செலவுகளைப் பகிர ஆரம்பிக்கவும்',
     inviteSubtitle: 'நண்பர்களை அழைத்து செலவைச் சேர்ந்து பகிருங்கள்',
     inviteMembersPill: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
     shareVia: 'இதன் மூலம் பகிர்',
@@ -15372,6 +15404,14 @@ const hi: UiStrings = {
     inviteLink: 'निमंत्रण लिंक',
     scanToJoin: 'स्कैन करके जुड़ें',
     scanToJoinType: 'जुड़ने के लिए यह QR कोड स्कैन करें ({type})',
+    cardScanTitle: 'यह QR कोड स्कैन करें',
+    cardScanSubtitle: 'Waves पर {type} से जुड़ने के लिए',
+    cardOr: 'या',
+    cardJoinLink: 'इस लिंक से जुड़ें',
+    cardCopy: 'कॉपी',
+    cardNoApp: 'ऐप की ज़रूरत नहीं',
+    cardJoinFast: 'कुछ ही सेकंड में जुड़ें',
+    cardStartSplitting: 'खर्च बाँटना शुरू करें',
     inviteSubtitle: 'दोस्तों को जोड़ें और खर्च साथ बाँटें',
     inviteMembersPill: { one: '{n} सदस्य', other: '{n} सदस्य' },
     shareVia: 'इनसे साझा करें',
@@ -19575,6 +19615,14 @@ const ar: UiStrings = {
     inviteLink: 'رابط الدعوة',
     scanToJoin: 'امسح للانضمام',
     scanToJoinType: 'امسح رمز QR هذا للانضمام ({type})',
+    cardScanTitle: 'امسح رمز QR هذا',
+    cardScanSubtitle: 'للانضمام إلى {type} على Waves',
+    cardOr: 'أو',
+    cardJoinLink: 'انضم عبر هذا الرابط',
+    cardCopy: 'نسخ',
+    cardNoApp: 'لا حاجة إلى تطبيق',
+    cardJoinFast: 'انضم في ثوانٍ',
+    cardStartSplitting: 'ابدأ بتقسيم المصروفات',
     inviteSubtitle: 'أضف أصدقاءك وقسّموا المصروف معًا',
     inviteMembersPill: {
       one: '{n} عضو',
