@@ -123,6 +123,80 @@ describe('waves_join_via_invite', () => {
   });
 });
 
+describe('rejoining after leaving or being removed', () => {
+  // Leaving and an admin's removal both only stamp left_at, and (group_id,
+  // profile_id) is unique, so a fresh invite has to bring the same row back.
+  const memberRow = (groupId: string, profileId: string) =>
+    client
+      .query(
+        `SELECT id, left_at, role, joined_via FROM group_members WHERE group_id = $1 AND profile_id = $2`,
+        [groupId, profileId],
+      )
+      .then((r) => r.rows);
+
+  async function leftMember(role: 'member' | 'admin') {
+    const g = await seedGroup(client, { memberCount: 1, name: 'Goa' });
+    const invite = await inviteFor(g.groupId);
+    const real = await person(false);
+    const first = await join(invite, real);
+    await client.query(`UPDATE group_members SET role = $2 WHERE id = $1`, [first.member_id, role]);
+    await client.query(`UPDATE group_members SET left_at = now() WHERE id = $1`, [first.member_id]);
+    return { g, invite, real, memberId: first.member_id as string };
+  }
+
+  it('reactivates the same row after the person left, spending one use', async () => {
+    const { g, invite, real, memberId } = await leftMember('member');
+    const before = await useCount(invite);
+    const verdict = await join(invite, real);
+    expect(verdict).toMatchObject({ ok: true, member_id: memberId });
+    const rows = await memberRow(g.groupId, real);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ left_at: null, role: 'member', joined_via: 'invite_link' });
+    expect(await useCount(invite)).toBe(before + 1);
+  });
+
+  it('comes back as a plain member after an admin removed them, even if they were an admin', async () => {
+    const { g, invite, real, memberId } = await leftMember('admin');
+    const verdict = await join(invite, real);
+    expect(verdict).toMatchObject({ ok: true, member_id: memberId });
+    const rows = await memberRow(g.groupId, real);
+    expect(rows[0]).toMatchObject({ left_at: null, role: 'member' });
+  });
+
+  it('still refuses a guest, and leaves the old row and the invite alone', async () => {
+    const g = await seedGroup(client, { memberCount: 1 });
+    const invite = await inviteFor(g.groupId);
+    const user = await person(false);
+    const first = await join(invite, user);
+    await client.query(`UPDATE group_members SET left_at = now() WHERE id = $1`, [first.member_id]);
+    await client.query(`UPDATE auth.users SET is_anonymous = true WHERE id = $1`, [user]);
+    const used = await useCount(invite);
+    expect(await join(invite, user)).toMatchObject({ ok: false, reason: 'ACCOUNT_REQUIRED' });
+    const rows = await memberRow(g.groupId, user);
+    expect(rows[0].left_at).not.toBeNull();
+    expect(await useCount(invite)).toBe(used);
+  });
+
+  it('answers an active member with their id and spends no use', async () => {
+    const g = await seedGroup(client, { memberCount: 1 });
+    const invite = await inviteFor(g.groupId);
+    const real = await person(false);
+    const first = await join(invite, real);
+    const used = await useCount(invite);
+    const again = await join(invite, real);
+    expect(again).toMatchObject({ ok: true, member_id: first.member_id });
+    expect(await useCount(invite)).toBe(used);
+    expect(await memberRow(g.groupId, real)).toHaveLength(1);
+  });
+
+  it('does not reactivate through a dead invite', async () => {
+    const { g, invite, real } = await leftMember('member');
+    await client.query(`UPDATE invites SET revoked_at = now() WHERE id = $1`, [invite]);
+    expect(await join(invite, real)).toMatchObject({ ok: false, reason: 'INVITE_INVALID' });
+    expect((await memberRow(g.groupId, real))[0].left_at).not.toBeNull();
+  });
+});
+
 describe('waves_request_member_claim', () => {
   it('refuses an anonymous user before any invite use is spent', async () => {
     const g = await seedGroup(client, { memberCount: 1, ghostCount: 1 });
@@ -167,6 +241,21 @@ describe('the membership trigger (any other writer)', () => {
     ).rejects.toThrow(/ACCOUNT_REQUIRED/);
     await client.query('ROLLBACK TO s');
     expect(await memberRows(g.groupId, guest)).toBe(0);
+  });
+
+  it('also refuses relabelling an existing guest row as an invite join', async () => {
+    const g = await seedGroup(client, { memberCount: 1 });
+    const guest = await person(true);
+    await client.query(
+      `INSERT INTO group_members (group_id, profile_id, role, joined_via) VALUES ($1, $2, 'member', 'creator')`,
+      [g.groupId, guest],
+    );
+    await expect(
+      client.query(
+        `UPDATE group_members SET joined_via = 'invite_link' WHERE group_id = $1 AND profile_id = $2`,
+        [g.groupId, guest],
+      ),
+    ).rejects.toThrow(/ACCOUNT_REQUIRED/);
   });
 
   it('accepts the same insert for a real user', async () => {

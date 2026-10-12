@@ -46,6 +46,7 @@ CREATE OR REPLACE FUNCTION public.waves_join_via_invite(p_invite_id uuid, p_prof
 DECLARE
   v_group_id  uuid;
   v_member_id uuid;
+  v_left_at   timestamptz;
 BEGIN
   IF p_profile_id IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'NOT_AUTHENTICATED');
@@ -60,13 +61,34 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'INVITE_INVALID');
   END IF;
 
+  -- Somebody already in the group is simply let through, and no use is spent
+  -- (invite-accept has always answered "already a member" this way). Locked,
+  -- so two taps at once cannot both reactivate or both insert.
+  SELECT id, left_at INTO v_member_id, v_left_at
+    FROM public.group_members
+   WHERE group_id = v_group_id AND profile_id = p_profile_id
+   FOR UPDATE;
+
+  IF v_member_id IS NOT NULL AND v_left_at IS NULL THEN
+    RETURN jsonb_build_object('ok', true, 'member_id', v_member_id, 'group_id', v_group_id, 'already_member', true);
+  END IF;
+
   IF public.waves_consume_invite(p_invite_id) IS NOT TRUE THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'INVITE_INVALID');
   END IF;
 
-  INSERT INTO public.group_members (group_id, profile_id, joined_via)
-  VALUES (v_group_id, p_profile_id, 'invite_link')
-  RETURNING id INTO v_member_id;
+  IF v_member_id IS NOT NULL THEN
+    -- Left, or removed by an admin: both only stamp left_at, and (group_id,
+    -- profile_id) is unique, so a fresh invite brings the same row back, as an
+    -- ordinary member whatever they were before.
+    UPDATE public.group_members
+       SET left_at = NULL, role = 'member', joined_via = 'invite_link'
+     WHERE id = v_member_id;
+  ELSE
+    INSERT INTO public.group_members (group_id, profile_id, joined_via)
+    VALUES (v_group_id, p_profile_id, 'invite_link')
+    RETURNING id INTO v_member_id;
+  END IF;
 
   RETURN jsonb_build_object('ok', true, 'member_id', v_member_id, 'group_id', v_group_id);
 END
