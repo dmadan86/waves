@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
@@ -237,6 +237,7 @@ export default function MemberScreen() {
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
   const removeFromGroup = useRemoveMember(groupId);
+  const removing = useRef(false);
   const claimAsMe = useClaimMemberAsMe(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
@@ -365,6 +366,9 @@ export default function MemberScreen() {
    * settle it, the expenses and the balance stay in the history.
    */
   const confirmRemove = async (): Promise<void> => {
+    // One dialog / removal at a time: covers the window before `isPending` flips.
+    if (removing.current) return;
+    removing.current = true;
     const ok = await confirm({
       title: fill(t.people.removeConfirmTitle, { name: realName }),
       body: removeMemberBody({
@@ -381,11 +385,17 @@ export default function MemberScreen() {
       confirmLabel: t.people.removeFromGroup,
       tone: 'danger',
     });
-    if (!ok) return;
+    if (!ok) {
+      removing.current = false;
+      return;
+    }
     setStatus(null);
     removeFromGroup.mutate(member.id, {
       onSuccess: () => router.back(),
       onError: (caught) => setStatus(friendlyError(caught, t.couldNotSave, 'member.remove')),
+      onSettled: () => {
+        removing.current = false;
+      },
     });
   };
   // The hero wears the money colour for its meaning — mint when this person is

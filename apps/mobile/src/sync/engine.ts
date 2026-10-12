@@ -655,11 +655,12 @@ export class SyncEngine {
       // ours, and RLS means no pull will ever say so. Drop it here the way
       // leaving does — unless something for it is still queued, which is a
       // group made offline that the server has not seen yet.
-      for (const groupId of groupsNoLongerMine(
-        this.state.mirror,
-        this.state.queue,
-        response.memberOf,
-      )) {
+      // The list is a snapshot, so the awaited drops cannot change it; the live
+      // queue is re-read before each one, so a mutation enqueued meanwhile
+      // keeps its group.
+      const dropped = groupsNoLongerMine(this.state.mirror, this.state.queue, response.memberOf);
+      for (const groupId of dropped) {
+        if (this.state.queue.some((mutation) => mutation.groupId === groupId)) continue;
         await this.dropGroup(groupId);
       }
 
