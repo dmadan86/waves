@@ -25,6 +25,21 @@ type ImportText = Pick<
   | 'problemNoRows'
   | 'problemNotAnExport'
   | 'problemNewerFormat'
+  | 'problemAmbiguousDate'
+  | 'problemMixedDates'
+  | 'problemTooManyDecimals'
+  | 'problemRefund'
+  | 'problemUnknownPerson'
+  | 'problemSplitMismatch'
+  | 'problemPercentNot100'
+  | 'problemTooManyRows'
+  | 'problemFileTooLarge'
+  | 'problemEncoding'
+  | 'problemLikelyDuplicate'
+  | 'problemLowConfidence'
+  | 'problemNotAnExpense'
+  | 'problemPayerEstimated'
+  | 'problemUnexpectedSettlement'
 >;
 
 /** The sentence for one import problem, without saying where in the file it is. */
@@ -48,6 +63,36 @@ export function importProblemText(problem: ImportProblem, t: ImportText): string
       return t.problemNotAnExport;
     case ImportProblemKind.NewerFormat:
       return t.problemNewerFormat;
+    case ImportProblemKind.AmbiguousDate:
+      return t.problemAmbiguousDate;
+    case ImportProblemKind.MixedDateFormats:
+      return t.problemMixedDates;
+    case ImportProblemKind.TooManyDecimals:
+      return t.problemTooManyDecimals;
+    case ImportProblemKind.RefundNotSupported:
+      return t.problemRefund;
+    case ImportProblemKind.UnknownPerson:
+      return t.problemUnknownPerson;
+    case ImportProblemKind.SplitDoesNotAddUp:
+      return t.problemSplitMismatch;
+    case ImportProblemKind.PercentNot100:
+      return t.problemPercentNot100;
+    case ImportProblemKind.TooManyRows:
+      return t.problemTooManyRows;
+    case ImportProblemKind.FileTooLarge:
+      return t.problemFileTooLarge;
+    case ImportProblemKind.EncodingLost:
+      return t.problemEncoding;
+    case ImportProblemKind.LikelyDuplicate:
+      return t.problemLikelyDuplicate;
+    case ImportProblemKind.LowConfidence:
+      return t.problemLowConfidence;
+    case ImportProblemKind.NotAnExpense:
+      return t.problemNotAnExpense;
+    case ImportProblemKind.PayerEstimated:
+      return t.problemPayerEstimated;
+    case ImportProblemKind.UnexpectedSettlement:
+      return t.problemUnexpectedSettlement;
   }
 }
 

@@ -1,0 +1,9 @@
+Date,Description,Category,Cost,Currency,Asha,Bharath,Chitra
+2026-02-01,Flat rent,Rent,"30,000.00",INR,20000.00,-5000.00,-15000.00
+2026-02-03,"Groceries, veg and milk",Groceries,1850.50,INR,-616.84,1233.66,-616.82
+2026-02-07,"Dinner at Toit
+(birthday)",Dining out,3450.00,INR,-1150.00,-1150.00,2300.00
+2026-02-09,Payment,Payment,5000.00,INR,5000.00,-5000.00,0.00
+2026-02-12,Electricity,Electricity,2100.00,INR,2100.00,-1050.00,-1050.00
+
+2026-02-28,Total balance,,,INR,3333.16,-5116.34,1783.18
