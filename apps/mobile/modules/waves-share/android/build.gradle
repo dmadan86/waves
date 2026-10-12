@@ -1,0 +1,20 @@
+// The expo-module-gradle-plugin alone applies com.android.library + Kotlin and
+// wires the `release` software component autolinking expects.
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.wavesshare'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.wavesshare'
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // FileProvider, to hand the card PNG to another app as a content:// URI.
+  implementation 'androidx.core:core:1.13.1'
+}

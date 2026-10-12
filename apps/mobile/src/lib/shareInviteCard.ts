@@ -3,6 +3,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 
+import { shareImageWithText, type ShareTarget } from '../../modules/waves-share';
+
 type CaptureTarget = Parameters<typeof captureRef>[0];
 
 export interface ShareInviteCardOptions {
@@ -10,6 +12,16 @@ export interface ShareInviteCardOptions {
   readonly filename: string;
   readonly dialogTitle: string;
   readonly fallback: () => Promise<void>;
+  /**
+   * With `text` and `target`, the card and the message go out together in one
+   * WhatsApp message / mail / share sheet instead of the card alone. If that
+   * cannot be done (no native module, WhatsApp or a mail app not installed),
+   * `fallback` runs for `whatsapp` / `email`, and the plain image share for
+   * `any`.
+   */
+  readonly text?: string;
+  readonly subject?: string;
+  readonly target?: ShareTarget;
 }
 
 /**
@@ -22,7 +34,10 @@ export interface ShareInviteCardOptions {
  */
 export async function shareInviteCard(options: ShareInviteCardOptions): Promise<void> {
   try {
-    if (!(await Sharing.isAvailableAsync())) {
+    // The native share does not need expo-sharing, so only a card-only share
+    // is cut short by its absence.
+    const withText = options.text != null && options.target != null;
+    if (!withText && !(await Sharing.isAvailableAsync())) {
       await options.fallback();
       return;
     }
@@ -41,6 +56,20 @@ export async function shareInviteCard(options: ShareInviteCardOptions): Promise<
     if (file.exists) file.delete();
     file.create();
     file.write(new Uint8Array(decodeBase64(base64)));
+    if (options.text != null && options.target != null) {
+      const result = await shareImageWithText({
+        fileUri: file.uri,
+        mimeType: 'image/png',
+        text: options.text,
+        subject: options.subject,
+        target: options.target,
+      });
+      if (result === 'shared') return;
+      if (options.target !== 'any' || !(await Sharing.isAvailableAsync())) {
+        await options.fallback();
+        return;
+      }
+    }
     await Sharing.shareAsync(file.uri, {
       mimeType: 'image/png',
       dialogTitle: options.dialogTitle,
