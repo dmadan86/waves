@@ -367,14 +367,12 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'server-side-fallback-2026-07-01',
           'content-type': 'application/json',
         },
         signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         body: JSON.stringify({
           model,
           max_tokens: 16000,
-          fallbacks: 'default',
           system: SYSTEM_PROMPT,
           // Transcription, not deliberation: low effort keeps an import cheap.
           output_config: {

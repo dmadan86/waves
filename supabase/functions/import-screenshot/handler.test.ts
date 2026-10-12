@@ -174,11 +174,11 @@ describe('success', () => {
     expect(url).toBe('https://api.anthropic.com/v1/messages');
     const headers = (init as RequestInit).headers as Record<string, string>;
     expect(headers['x-api-key']).toBe('key');
-    expect(headers['anthropic-beta']).toBe('server-side-fallback-2026-07-01');
+    expect(headers['anthropic-beta']).toBeUndefined();
     const sent = JSON.parse((init as RequestInit).body as string);
     expect(sent.model).toBe(DEFAULT_MODEL);
     expect(sent.max_tokens).toBe(16000);
-    expect(sent.fallbacks).toBe('default');
+    expect(sent.fallbacks).toBeUndefined();
     expect(sent.thinking).toBeUndefined();
     expect(sent.system).toBe(SYSTEM_PROMPT);
     expect(sent.output_config.effort).toBe('low');
