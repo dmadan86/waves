@@ -234,6 +234,86 @@ export function SplitKindChips({
   );
 }
 
+/** The ways to split, in the order the controls list them. */
+const SPLIT_KINDS = [
+  SplitKind.Equal,
+  SplitKind.Shares,
+  SplitKind.Percent,
+  SplitKind.Exact,
+] as const;
+
+/**
+ * The four ways to split as one segmented control: a light track with the
+ * chosen way filled in the brand colour — the group add-expense look. Each
+ * segment is word plus glyph and takes an equal share of the track, shrinking
+ * its label rather than scrolling, so all four stay in view on a phone.
+ */
+export function SplitKindSegments({
+  value,
+  onChange,
+}: {
+  value: SplitKind;
+  onChange: (next: SplitKind) => void;
+}): React.JSX.Element {
+  const { t } = useStrings();
+  const theme = useTheme();
+  const labelOf = (kind: SplitKind): string =>
+    kind === SplitKind.Equal
+      ? t.expense.equally
+      : kind === SplitKind.Shares
+        ? t.expense.shares
+        : kind === SplitKind.Percent
+          ? t.expense.percent
+          : t.expense.exactly;
+  return (
+    <Row
+      style={{
+        padding: 4,
+        gap: 2,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.color.surfaceMuted,
+      }}
+    >
+      {SPLIT_KINDS.map((kind) => {
+        const selected = kind === value;
+        const ink = selected ? theme.color.onBrand : theme.color.textMuted;
+        return (
+          <Pressable
+            key={kind}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={labelOf(kind)}
+            onPress={() => onChange(kind)}
+            style={({ pressed }) => ({
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              minHeight: 40,
+              paddingHorizontal: theme.spacing.xs,
+              borderRadius: theme.radius.pill,
+              backgroundColor: selected ? theme.color.brand : 'transparent',
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Ionicons name={splitIcon(kind)} size={iconSize.base} color={ink} />
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+              style={{ color: ink, fontWeight: selected ? '700' : '500', flexShrink: 1 }}
+            >
+              {labelOf(kind)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
 /**
  * Everybody in the group, each ticked in or out of the split, with the figure
  * field beside the ticked ones on a weighted or exact split and what each is
@@ -256,6 +336,7 @@ export function SplitParticipants({
   amount,
   lineAmount,
   splitIssue,
+  onSelectAll,
 }: {
   members: readonly MemberRow[];
   viewerId: string | null | undefined;
@@ -268,23 +349,48 @@ export function SplitParticipants({
   amount: bigint;
   lineAmount: (memberId: MemberId) => bigint;
   splitIssue: string | null;
+  /** The group add-expense look: a bolder heading with a "Select all" link, the
+   *  people on hairline-separated rows, each share in the brand colour. Left
+   *  off, the list is the plain one the split pop-up uses. */
+  onSelectAll?: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const card = onSelectAll !== undefined;
   return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Text variant="caption" tone="muted">
+    <View style={{ gap: card ? 0 : theme.spacing.sm }}>
+      <Row
+        style={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingBottom: card ? theme.spacing.xs : 0,
+        }}
+      >
+        <Text variant={card ? 'subheading' : 'caption'} tone={card ? undefined : 'muted'}>
           {t.expense.splitBetween}
         </Text>
-        <Text variant="micro" tone="muted">
-          {t.expense.ofCount
-            .replace('{chosen}', String(participants.length))
-            .replace('{total}', String(members.length))}
-        </Text>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <Text variant={card ? 'caption' : 'micro'} tone="muted">
+            {t.expense.ofCount
+              .replace('{chosen}', String(participants.length))
+              .replace('{total}', String(members.length))}
+          </Text>
+          {card ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.expense.selectAll}
+              onPress={onSelectAll}
+              hitSlop={10}
+            >
+              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                {t.expense.selectAll}
+              </Text>
+            </Pressable>
+          ) : null}
+        </Row>
       </Row>
 
-      {members.map((member) => {
+      {members.map((member, index) => {
         const selected = participants.includes(member.id);
         const name = displayName(member, viewerId);
         return (
@@ -296,7 +402,10 @@ export function SplitParticipants({
               gap: theme.spacing.md,
               // The avatar is 38pt and the share field has a 44pt floor, so the
               // row is tall enough to tap without padding stretching it.
-              paddingVertical: theme.spacing.xs,
+              paddingVertical: card ? theme.spacing.sm : theme.spacing.xs,
+              ...(card && index > 0
+                ? { borderTopWidth: 1, borderTopColor: theme.color.border }
+                : null),
             }}
           >
             <Pressable
@@ -311,7 +420,7 @@ export function SplitParticipants({
                 flex: 1,
               }}
             >
-              <Avatar name={displayName(member)} ghost={isGhost(member)} size={38} />
+              <Avatar name={displayName(member)} ghost={isGhost(member)} size={card ? 44 : 38} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="subheading" numberOfLines={1}>
                   {name}
@@ -325,8 +434,10 @@ export function SplitParticipants({
                     // This person's share = money owed toward the bill, so it
                     // wears the owe colour, matching the who-owes-what list.
                     // Forced red: a positive share would read as "owed to you"
-                    // under sign-derived colour.
-                    tone="negative"
+                    // under sign-derived colour. The group add-expense card
+                    // draws it in the brand colour instead, as the rest of that
+                    // card's figures are.
+                    tone={card ? 'brand' : 'negative'}
                   />
                 ) : null}
               </View>
