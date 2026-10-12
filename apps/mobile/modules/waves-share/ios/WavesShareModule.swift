@@ -7,17 +7,11 @@ import UIKit
  * (WhatsApp's share extension turns the text into the image's caption), or for
  * `email` a mail draft with the image attached when a Mail account is set up.
  *
-<<<<<<< HEAD
- * Resolves `shared` once the sheet or draft is on screen. iOS cannot tell
- * whether a given app is installed from here, so `unavailable` only means
- * there was nothing to present on.
-=======
  * Resolves `shared` once the draft is on screen, or, for `any`, the sheet. For
  * `whatsapp` and the `email` sheet fallback it waits for the sheet to finish:
  * `shared` if the user picked the intended route (WhatsApp's share extension;
  * any activity for email), `cancelled` otherwise, so the caller does not open
  * a second sheet. `unavailable` only means there was nothing to present on.
->>>>>>> origin/main
  *
  * Compiled with Xcode; exercise a real share before trusting it in a release.
  */
@@ -36,17 +30,12 @@ public final class WavesShareModule: Module {
       let target = options["target"] ?? "any"
       let utilities = self.appContext?.utilities
 
-<<<<<<< HEAD
-      return await MainActor.run { () -> String in
-        guard let presenter = utilities?.currentViewController() else { return "unavailable" }
-=======
       return await withCheckedContinuation { (continuation: CheckedContinuation<String, Never>) in
         Task { @MainActor in
         guard let presenter = utilities?.currentViewController() else {
           continuation.resume(returning: "unavailable")
           return
         }
->>>>>>> origin/main
 
         if target == "email", MFMailComposeViewController.canSendMail(),
            let data = try? Data(contentsOf: url) {
@@ -58,12 +47,8 @@ public final class WavesShareModule: Module {
           mail.setMessageBody(text, isHTML: false)
           mail.addAttachmentData(data, mimeType: "image/png", fileName: url.lastPathComponent)
           presenter.present(mail, animated: true)
-<<<<<<< HEAD
-          return "shared"
-=======
           continuation.resume(returning: "shared")
           return
->>>>>>> origin/main
         }
 
         var items: [Any] = []
@@ -85,10 +70,6 @@ public final class WavesShareModule: Module {
             x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
           popover.permittedArrowDirections = []
         }
-<<<<<<< HEAD
-        presenter.present(sheet, animated: true)
-        return "shared"
-=======
         if target != "any" {
           sheet.completionWithItemsHandler = { activityType, completed, _, _ in
             // WhatsApp's share extension is net.whatsapp.WhatsApp.ShareExtension.
@@ -102,7 +83,6 @@ public final class WavesShareModule: Module {
         presenter.present(sheet, animated: true)
         if target == "any" { continuation.resume(returning: "shared") }
         }
->>>>>>> origin/main
       }
     }
   }
