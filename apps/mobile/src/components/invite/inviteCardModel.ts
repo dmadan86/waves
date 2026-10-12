@@ -25,10 +25,3 @@ export function inviteTypeWordKey(type: string | null | undefined): InviteTypeWo
     ? type
     : 'other';
 }
-
-/** The art key for a group type; every GroupType has its own file, anything else gets `other`. */
-export function inviteBackgroundKey(type: string | null | undefined): GroupType {
-  return (Object.values(GroupType) as string[]).includes(type ?? '')
-    ? (type as GroupType)
-    : GroupType.Other;
-}
