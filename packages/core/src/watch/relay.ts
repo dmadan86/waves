@@ -49,6 +49,9 @@ export type WatchToPhone =
   // tap is idempotent instead of creating a duplicate expense.
   | { t: 'quickAdd'; id: string; amountMinor: string; currency: string; note: string }
   | { t: 'voiceAdd'; id: string; transcript: string }
+  // The metadata of a recorded clip sent as a file (`transferFile`); the audio
+  // itself travels as the file, not in this message.
+  | { t: 'voiceClip'; id: string; durationMs: number }
   | { t: 'requestRecent'; count: number }
   | { t: 'notifAction'; actionId: string; objectId: string };
 
@@ -58,7 +61,17 @@ export type PhoneToWatch =
   // `currency` is the phone's default (ISO code); the watch has no currency
   // knowledge of its own, so it books a quick-add in whatever the phone relays.
   | { t: 'settings'; recentCount: RecentCount; currency: string }
-  | { t: 'ack'; ok: boolean; error?: string };
+  | { t: 'ack'; ok: boolean; error?: string }
+  // The outcome of a voice clip, keyed by the clip's id. `text` is preformatted
+  // on the phone ("₹8,000 · Renny") so the watch needs no money formatting; a failure
+  // carries a short `error` code the watch words itself.
+  | { t: 'voiceResult'; id: string; status: WatchVoiceStatus; text: string; error?: string };
+
+/** `added`: written as captures; `review`: waiting on the phone; `error`: nothing saved. */
+export type WatchVoiceStatus = 'added' | 'review' | 'error';
+
+/** Longest clip the watch records, and so the most the phone will accept. */
+export const WATCH_VOICE_CLIP_MAX_MS = 30_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -103,6 +116,14 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
       return id && typeof raw.transcript === 'string' && raw.transcript.trim().length > 0
         ? { t: 'voiceAdd', id, transcript: raw.transcript }
         : null;
+    case 'voiceClip': {
+      // WatchConnectivity metadata is a property list: a number may arrive as
+      // an Int or a Double, never a string — but accept a numeric string too.
+      const ms = typeof raw.durationMs === 'string' ? Number(raw.durationMs) : raw.durationMs;
+      return id && typeof ms === 'number' && Number.isFinite(ms) && ms > 0
+        ? { t: 'voiceClip', id, durationMs: Math.min(Math.round(ms), WATCH_VOICE_CLIP_MAX_MS) }
+        : null;
+    }
     case 'requestRecent':
       return { t: 'requestRecent', count: coerceRecentCount(raw.count) };
     case 'notifAction':
