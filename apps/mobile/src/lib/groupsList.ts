@@ -1,13 +1,11 @@
 /**
  * The pure half of the Groups list: which rows a filter chip and a search keep,
  * and what order they come in. Kept out of the screen so the rules — who counts
- * as "owed", where settled groups fall, how a pin sits in front — can be tested
+ * as "owed" and where settled groups fall — can be tested
  * without a renderer.
  */
 
-import { orderByPin } from '@/lib/groupPinOrder';
-
-export type GroupsFilter = 'all' | 'owed' | 'owe' | 'favorites';
+export type GroupsFilter = 'all' | 'owed' | 'owe';
 export type GroupsSort = 'amount' | 'recent' | 'name';
 
 /** What the list needs to know about one group; the screen fills it in. */
@@ -29,7 +27,6 @@ export function filterGroups<T extends GroupsEntry>(
   entries: readonly T[],
   filter: GroupsFilter,
   query: string,
-  isFavorite: (entry: T) => boolean,
 ): T[] {
   const needle = query.trim().toLowerCase();
   return entries.filter((entry) => {
@@ -39,8 +36,6 @@ export function filterGroups<T extends GroupsEntry>(
         return entry.balance > 0n;
       case 'owe':
         return entry.balance < 0n;
-      case 'favorites':
-        return isFavorite(entry);
       default:
         return true;
     }
@@ -48,7 +43,7 @@ export function filterGroups<T extends GroupsEntry>(
 }
 
 /**
- * Orders the rows, favorites first whatever the sort. `amount` is the screen's
+ * Orders the rows. `amount` is the screen's
  * original money-first order — groups wanting action, biggest balance first,
  * then the settled ones; `recent` is newest ledger activity first; `name` is
  * alphabetical in the reader's locale. Every sort is stable on ties.
@@ -56,7 +51,6 @@ export function filterGroups<T extends GroupsEntry>(
 export function sortGroups<T extends GroupsEntry>(
   entries: readonly T[],
   sort: GroupsSort,
-  isFavorite: (entry: T) => boolean,
   locale?: string,
 ): T[] {
   const byBalance = (a: T, b: T): number => {
@@ -64,14 +58,12 @@ export function sortGroups<T extends GroupsEntry>(
     const y = absBig(b.balance);
     return x === y ? 0 : y > x ? 1 : -1;
   };
-  let sorted: T[];
   if (sort === 'name') {
-    sorted = [...entries].sort((a, b) => a.label.localeCompare(b.label, locale));
-  } else if (sort === 'recent') {
-    sorted = [...entries].sort((a, b) => b.lastActive - a.lastActive);
-  } else {
-    const active = entries.filter((e) => e.needsAction).sort(byBalance);
-    sorted = [...active, ...entries.filter((e) => !e.needsAction)];
+    return [...entries].sort((a, b) => a.label.localeCompare(b.label, locale));
   }
-  return orderByPin(sorted, isFavorite);
+  if (sort === 'recent') {
+    return [...entries].sort((a, b) => b.lastActive - a.lastActive);
+  }
+  const active = entries.filter((e) => e.needsAction).sort(byBalance);
+  return [...active, ...entries.filter((e) => !e.needsAction)];
 }

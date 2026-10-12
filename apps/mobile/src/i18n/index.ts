@@ -2849,14 +2849,6 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
-    /** The ••• menu's Pin/Unpin row and the row-level accessibility action
-     *  (long-press). Concatenated with the group's own label at the call site
-     *  — "Pin Goa trip" / "Unpin Goa trip" — so the word itself stays short. */
-    pin: string;
-    unpin: string;
-    /** Spoken after a pinned row's name, since the pin glyph itself is
-     *  invisible to a screen reader. */
-    pinnedBadge: string;
     confirmReceived: string;
     /** The group hero's pill, beside its "+" glyph. Screen readers still hear `addExpense`. */
     heroExpense: string;
@@ -3512,7 +3504,6 @@ export interface UiStrings {
     groupsSubtitle: string;
     filterOwed: string;
     filterOwe: string;
-    filterFavorites: string;
     sortGroupsTitle: string;
     sortRecent: string;
     sortAmount: string;
@@ -7137,9 +7128,6 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
-    pin: 'Pin',
-    unpin: 'Unpin',
-    pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
     heroExpense: 'Expense',
     rowOwed: 'owed',
@@ -7646,7 +7634,6 @@ const en: UiStrings = {
     groupsSubtitle: 'All your groups in one place',
     filterOwed: "I'm owed",
     filterOwe: 'I owe',
-    filterFavorites: 'Favorites',
     sortGroupsTitle: 'Sort groups',
     sortRecent: 'Recent activity',
     sortAmount: 'Amount',
@@ -11227,9 +11214,6 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
-    pin: 'பின் செய்',
-    unpin: 'பின் நீக்கு',
-    pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -11763,7 +11747,6 @@ const ta: UiStrings = {
     groupsSubtitle: 'உங்கள் எல்லா குழுக்களும் ஒரே இடத்தில்',
     filterOwed: 'எனக்கு வர வேண்டியது',
     filterOwe: 'நான் தர வேண்டியது',
-    filterFavorites: 'பிடித்தவை',
     sortGroupsTitle: 'குழுக்களை வரிசைப்படுத்து',
     sortRecent: 'சமீபத்திய செயல்பாடு',
     sortAmount: 'தொகை',
@@ -15343,9 +15326,6 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
-    pin: 'पिन करें',
-    unpin: 'अनपिन करें',
-    pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -15860,7 +15840,6 @@ const hi: UiStrings = {
     groupsSubtitle: 'आपके सभी समूह एक जगह',
     filterOwed: 'मुझे मिलना है',
     filterOwe: 'मुझे देना है',
-    filterFavorites: 'पसंदीदा',
     sortGroupsTitle: 'समूह क्रमबद्ध करें',
     sortRecent: 'हाल की गतिविधि',
     sortAmount: 'राशि',
@@ -19546,9 +19525,6 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
-    pin: 'تثبيت',
-    unpin: 'إلغاء التثبيت',
-    pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -20138,7 +20114,6 @@ const ar: UiStrings = {
     groupsSubtitle: 'كل مجموعاتك في مكان واحد',
     filterOwed: 'مستحق لي',
     filterOwe: 'عليّ',
-    filterFavorites: 'المفضلة',
     sortGroupsTitle: 'ترتيب المجموعات',
     sortRecent: 'النشاط الأخير',
     sortAmount: 'المبلغ',

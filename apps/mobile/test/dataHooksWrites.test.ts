@@ -13,13 +13,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  MutationKind,
-  SyncTable,
-  categoryTagsScope,
-  groupPinId,
-  groupPinsScope,
-} from '@waves/core';
+import { MutationKind, SyncTable, categoryTagsScope } from '@waves/core';
 
 import {
   mirrorOf,
@@ -203,26 +197,6 @@ describe('groups', () => {
     await del.onSuccess?.();
     expect(sync.forgetGroup).toHaveBeenCalledWith('g-1');
     await settled();
-  });
-
-  it('useSetGroupPin pins on the personal scope with a derived id, and unpins the same row', async () => {
-    const pin = mutation<{ groupId: string; pinned: boolean }, string>(() =>
-      hooks.useSetGroupPin(),
-    );
-    const pinId = groupPinId(OWNER, 'g-1');
-    await expect(pin.mutationFn({ groupId: 'g-1', pinned: true })).resolves.toBe(pinId);
-    await pin.mutationFn({ groupId: 'g-1', pinned: false });
-    expect(sync.mutate.mock.calls).toEqual([
-      [MutationKind.GroupPinSet, groupPinsScope(OWNER), { pinId, groupId: 'g-1' }],
-      [MutationKind.GroupPinClear, groupPinsScope(OWNER), { pinId }],
-    ]);
-  });
-
-  it('useSetGroupPin refuses without a session', async () => {
-    auth.value = { session: null, profile: null };
-    const pin = mutation<{ groupId: string; pinned: boolean }>(() => hooks.useSetGroupPin());
-    await expect(pin.mutationFn({ groupId: 'g-1', pinned: true })).rejects.toThrow('Sign in');
-    expect(sync.mutate).not.toHaveBeenCalled();
   });
 });
 

@@ -37,8 +37,6 @@ import {
   useGroupRealtime,
   useOpenReceipts,
   useCaptures,
-  usePinnedGroupIds,
-  useSetGroupPin,
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
@@ -672,11 +670,6 @@ export default function GroupScreen() {
 
   const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
-  // Pin/Unpin lives in this screen's own ••• menu — the discoverable path; a
-  // long-press on the group's row (dashboard or All groups) is the fast one.
-  const pinnedIds = usePinnedGroupIds();
-  const isPinned = pinnedIds.has(groupId);
-  const setGroupPin = useSetGroupPin();
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
 
@@ -950,18 +943,6 @@ export default function GroupScreen() {
     pendingByMe.length > 0;
 
   const menuItems: OverflowMenuItem[] = [
-    // Pinning has one effect — it sorts this group to the top of the
-    // dashboard and All-groups lists — so it belongs beside the other ways
-    // of changing how the group behaves, not the ones that navigate away.
-    // Label carries which it will do rather than a static "Pin", so a
-    // screen reader (which reads the button text as the label here, same
-    // as every other row) hears the same "Pin Goa trip" the row's own
-    // long-press action does.
-    {
-      icon: isPinned ? 'pin' : 'pin-outline',
-      label: `${isPinned ? t.group.unpin : t.group.pin} ${groupLabel(groupData, members.data, viewerId)}`,
-      onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
-    },
     // The hero's QR used to open this; the hero's corner is Activity now.
     { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },

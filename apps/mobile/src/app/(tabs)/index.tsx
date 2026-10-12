@@ -21,18 +21,11 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import {
-  useCaptures,
-  useGroups,
-  useHomeSummary,
-  useNewestActivityFromOthers,
-  usePinnedGroupIds,
-} from '@/data/hooks';
+import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
 import { orderByActivity } from '@/lib/groupActivityOrder';
-import { orderByPin } from '@/lib/groupPinOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
@@ -103,10 +96,6 @@ export default function HomeScreen() {
   const avatarUrl = useAvatarUrl(profile?.avatar_url);
 
   const groups = useGroups();
-  // Which groups this person has pinned. Read
-  // once here rather than per row: every row asks the same `Set.has`, and the
-  // preview's own order depends on it before any row exists to ask.
-  const pinnedIds = usePinnedGroupIds();
   const summary = useHomeSummary(viewerId);
   const guard = useGuestGuard();
   const tour = useTour();
@@ -150,21 +139,19 @@ export default function HomeScreen() {
    * one, which says nothing about whether you use it. With only
    * GROUPS_PREVIEW slots that meant a trip that ended in March could hold a
    * row for a year while the flat you settle up in weekly fell off the
-   * bottom, and pinning was the only cure. Ordering by when each ledger last
+   * bottom. Ordering by when each ledger last
    * moved lets a dormant group sink on its own and brings it straight back
    * the moment somebody spends — without hiding anything, because a settled
    * group is not a finished one.
    *
-   * Both steps run *before* the slice: pinning and recency are precisely
-   * arguments about which groups deserve the limited slots, so they have to be
-   * settled while there are still rows to lose.
+   * The order is settled *before* the slice: recency is precisely an argument
+   * about which groups deserve the limited slots, so it has to be settled while
+   * there are still rows to lose.
    */
-  const list = useMemo(() => {
-    const byActivity = orderByActivity(groups.data ?? [], (group) =>
-      summary.lastActivityFor(group.id),
-    );
-    return orderByPin(byActivity, (group) => pinnedIds.has(group.id));
-  }, [groups.data, pinnedIds, summary]);
+  const list = useMemo(
+    () => orderByActivity(groups.data ?? [], (group) => summary.lastActivityFor(group.id)),
+    [groups.data, summary],
+  );
   // Two states, not one, because they deserve different answers.
   //
   // `hydrating` is "there is nothing to paint": the mirror has not been read off
@@ -744,11 +731,6 @@ export default function HomeScreen() {
                         // a confident wrong ₹0 that then jumps to the real figure.
                         pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
                         onPress={() => router.push(`/group/${group.id}`)}
-                        // No long-press pin here: a hold on Home's list pinned by
-                        // accident. Pinning lives on the Groups list and the
-                        // group's own ••• menu; a pinned group still sorts first
-                        // and wears its glyph.
-                        pinned={pinnedIds.has(group.id)}
                         unread={unreadGroups.has(group.id)}
                       />
                     );
@@ -989,7 +971,6 @@ function GroupRow({
   pendingBalance = false,
   hidden = false,
   onPress,
-  pinned = false,
   unread = false,
 }: {
   title: string;
@@ -1026,10 +1007,6 @@ function GroupRow({
       into place on mount rather than blinking in. */
   enter?: boolean;
   onPress: () => void;
-  /** Sorted to the top by `orderByPin`; carries the small pin glyph and is
-      announced in the row's accessibility label — a glyph alone says nothing
-      to a screen reader. */
-  pinned?: boolean;
   /** Someone else has done something here since the reader last opened it:
       a dot on the icon, a heavier name, and said aloud. */
   unread?: boolean;
@@ -1076,11 +1053,7 @@ function GroupRow({
     >
       <Pressable
         accessibilityRole="button"
-        // Pinned is spoken, not just drawn: a screen reader never sees the
-        // glyph below, so the state has to be in the label itself.
-        accessibilityLabel={`${title}${unread ? `, ${t.groupNewActivity}` : ''}. ${
-          pinned ? `${t.group.pinnedBadge}. ` : ''
-        }${spoken}`}
+        accessibilityLabel={`${title}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken}`}
         onPress={onPress}
         style={({ pressed }) => ({
           flexDirection: 'row',
@@ -1108,7 +1081,6 @@ function GroupRow({
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            {pinned ? <Ionicons name="pin" size={12} color={theme.color.textMuted} /> : null}
             {/* A step heavier while unread — the chat-list cue — so the dot
                 is not the only thing saying it. */}
             <Text
