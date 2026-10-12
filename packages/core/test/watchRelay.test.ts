@@ -132,3 +132,32 @@ describe('encodePhoneToWatch', () => {
     });
   });
 });
+
+describe('parseWatchToPhone voiceClip', () => {
+  it('accepts the clip metadata the watch attaches to a file transfer', () => {
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 4200, version: 1 })).toEqual({
+      t: 'voiceClip',
+      id: 'c1',
+      durationMs: 4200,
+    });
+  });
+
+  it('takes a Double or numeric-string duration and caps it at 30 s', () => {
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 1500.4 })).toMatchObject({
+      durationMs: 1500,
+    });
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: '900' })).toMatchObject({
+      durationMs: 900,
+    });
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 90_000 })).toMatchObject({
+      durationMs: 30_000,
+    });
+  });
+
+  it('rejects a clip with no id or no usable duration', () => {
+    expect(parseWatchToPhone({ t: 'voiceClip', durationMs: 1000 })).toBeNull();
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1' })).toBeNull();
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 0 })).toBeNull();
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: -5 })).toBeNull();
+  });
+});

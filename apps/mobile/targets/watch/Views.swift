@@ -106,6 +106,132 @@ struct QuickAddView: View {
 struct VoiceView: View {
   @EnvironmentObject var relay: WatchRelay
   @Environment(\.dismiss) private var dismiss
+  @StateObject private var recorder = VoiceRecorder()
+  @State private var startedOnce = false
+
+  var body: some View {
+    VStack(spacing: 8) {
+      switch relay.voiceOutcome {
+      case .idle:
+        recordingBody
+      case .sending:
+        status(icon: "paperplane.fill", text: "Sending…", detail: nil, spinner: true)
+      case .queued:
+        status(
+          icon: "iphone.radiowaves.left.and.right",
+          text: "Queued",
+          detail: "Will add when your phone is near",
+          spinner: false)
+      case .added(let text):
+        status(icon: "checkmark.circle.fill", text: "Added \(text)", detail: nil, spinner: false)
+      case .review:
+        status(icon: "tray.and.arrow.down.fill", text: "Saved for review", detail: "Check it on your phone", spinner: false)
+      case .failed(let text):
+        status(icon: "exclamationmark.triangle.fill", text: text, detail: nil, spinner: false)
+      }
+    }
+    .padding(.horizontal, 4)
+    .navigationTitle("Speak")
+    .onAppear {
+      relay.resetVoiceOutcome()
+      recorder.onFinished = { url, ms in relay.sendClip(url, durationMs: ms) }
+      // One tap on Speak is the whole gesture: recording starts here.
+      if relay.voiceOutcome == .idle && !startedOnce {
+        startedOnce = true
+        recorder.start()
+      }
+    }
+    .onDisappear { recorder.cancel() }
+  }
+
+  @ViewBuilder
+  private var recordingBody: some View {
+    switch recorder.phase {
+    case .idle:
+      // Back from "Type instead" (or a take that was cancelled): not recording.
+      Button {
+        recorder.start()
+      } label: {
+        Label("Tap to speak", systemImage: "mic.fill").frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+      .tint(accent)
+      typeInstead
+    case .recording:
+      Image(systemName: "mic.fill")
+        .font(.system(size: 40))
+        .foregroundStyle(accent)
+        .scaleEffect(1 + 0.35 * recorder.level)
+        .animation(.easeOut(duration: 0.12), value: recorder.level)
+        .frame(height: 64)
+      Text(String(format: "0:%02d", Int(recorder.elapsed)))
+        .font(.system(.body, design: .monospaced))
+        .foregroundStyle(.secondary)
+      Button(role: .destructive) {
+        recorder.stop()
+      } label: {
+        Label("Stop", systemImage: "stop.fill").frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+      .tint(accent)
+      typeInstead
+    case .denied:
+      Image(systemName: "mic.slash.fill").font(.title2).foregroundStyle(.orange)
+      Text("Allow the microphone for Waves in the Watch app's settings, or type instead.")
+        .font(.caption2)
+        .multilineTextAlignment(.center)
+      typeInstead
+    case .failed(let text):
+      Image(systemName: "waveform.slash").font(.title2).foregroundStyle(.orange)
+      Text(text).font(.footnote)
+      Button {
+        recorder.start()
+      } label: {
+        Label("Try again", systemImage: "mic.fill").frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+      .tint(accent)
+      typeInstead
+    }
+  }
+
+  private var typeInstead: some View {
+    NavigationLink(destination: TypeInsteadView(onSent: { dismiss() })) {
+      Text("Type instead").font(.caption2)
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(.secondary)
+    .simultaneousGesture(TapGesture().onEnded { recorder.cancel() })
+  }
+
+  private func status(icon: String, text: String, detail: String?, spinner: Bool) -> some View {
+    VStack(spacing: 6) {
+      if spinner {
+        ProgressView()
+      } else {
+        Image(systemName: icon).font(.title2).foregroundStyle(accent)
+      }
+      Text(text).font(.footnote).multilineTextAlignment(.center)
+      if let detail {
+        Text(detail).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
+      }
+      if !spinner {
+        Button("Done") {
+          relay.resetVoiceOutcome()
+          dismiss()
+        }
+        .buttonStyle(.bordered)
+      }
+    }
+  }
+}
+
+// The keyboard path, kept for when speaking is not an option (noisy room,
+// microphone refused). TextFieldLink opens the system input sheet.
+struct TypeInsteadView: View {
+  @EnvironmentObject var relay: WatchRelay
+  /// Closes the Speak screen this was opened from, so a send lands back on Home.
+  var onSent: () -> Void
   @State private var text: String = ""
 
   private var transcript: String {
@@ -144,7 +270,7 @@ struct VoiceView: View {
 
         Button {
           relay.voiceAdd(transcript)
-          dismiss()
+          onSent()
         } label: {
           Label("Send", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
         }
@@ -153,6 +279,6 @@ struct VoiceView: View {
       }
       .padding(.horizontal, 4)
     }
-    .navigationTitle("Speak")
+    .navigationTitle("Type")
   }
 }
