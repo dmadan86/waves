@@ -15,11 +15,14 @@ export function EmptyStateCta({
   body,
   action,
   onAdd,
+  secondary,
 }: {
   title: string;
   body: string;
   action: string;
   onAdd: () => void;
+  /** A quieter second way in, under the main button: a text link. */
+  secondary?: { label: string; onPress: () => void };
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
@@ -79,6 +82,20 @@ export function EmptyStateCta({
         <Ionicons name="add" size={24} color="#FFFFFF" />
         <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
       </Pressable>
+      {secondary ? (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={secondary.label}
+          onPress={secondary.onPress}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '600', color: accent }}>{secondary.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

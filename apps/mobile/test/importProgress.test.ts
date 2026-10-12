@@ -256,6 +256,77 @@ describe('importProgress store', () => {
   });
 });
 
+describe('importProgress for an import into a group', () => {
+  it('scopes the job to its group and fills a real fraction as chunks land', async () => {
+    const d = deferred<ImportResult>();
+    let report: (done: number, total: number) => void = () => {};
+    beginImport({
+      name: 'Goa',
+      groupId: 'g1',
+      run: (r) => {
+        report = r;
+        return d.promise;
+      },
+    });
+    expect(getImportSnapshot()).toMatchObject({
+      phase: 'running',
+      targetGroupId: 'g1',
+      progress: null,
+    });
+    await flush();
+
+    report(250, 600);
+    expect(getImportSnapshot().progress).toEqual({ done: 250, total: 600 });
+    report(500, 600);
+    expect(getImportSnapshot().progress).toEqual({ done: 500, total: 600 });
+
+    d.resolve({ ...result('g1'), batchId: 'b1' });
+    await flush();
+    const snap = getImportSnapshot();
+    expect(snap).toMatchObject({ phase: 'success', targetGroupId: 'g1', progress: null });
+    expect(snap.summary?.batchId).toBe('b1');
+  });
+
+  it('ignores progress from a job that has been dismissed or replaced', async () => {
+    let report: (done: number, total: number) => void = () => {};
+    beginImport({
+      name: 'Goa',
+      groupId: 'g1',
+      run: (r) => {
+        report = r;
+        return new Promise<ImportResult>(() => {});
+      },
+    });
+    await flush();
+    dismissImport();
+    report(100, 200);
+    expect(getImportSnapshot().phase).toBe('idle');
+    expect(getImportSnapshot().progress).toBeNull();
+  });
+
+  it('keeps the group while parked offline and on failure', async () => {
+    netMock.mockResolvedValue(OFFLINE);
+    beginImport({ name: 'Goa', groupId: 'g1', run: () => new Promise<ImportResult>(() => {}) });
+    await flush();
+    expect(getImportSnapshot()).toMatchObject({ phase: 'waiting', targetGroupId: 'g1' });
+    dismissImport();
+
+    netMock.mockResolvedValue(ONLINE);
+    beginImport({ name: 'Goa', groupId: 'g1', run: () => Promise.reject(new Error('Nope')) });
+    await flush();
+    expect(getImportSnapshot()).toMatchObject({
+      phase: 'error',
+      targetGroupId: 'g1',
+      error: 'Nope',
+    });
+  });
+
+  it('a new-group import has no target group', async () => {
+    beginImport({ name: 'Goa', run: () => new Promise<ImportResult>(() => {}) });
+    expect(getImportSnapshot().targetGroupId).toBeNull();
+  });
+});
+
 describe('importProgress subscriptions', () => {
   it('tells subscribers about each transition until they unsubscribe', async () => {
     const heard: string[] = [];
