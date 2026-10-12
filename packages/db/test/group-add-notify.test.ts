@@ -1,5 +1,6 @@
 /**
- * Tapping the people already on Waves when they are added to a group.
+ * Tapping the people already on Waves when they are added to a group — and
+ * putting them in it as themselves, not as a "Not on Waves yet" ghost.
  *
  * The clone flow's promise is that someone you add — by an email or a number
  * that already belongs to an account — hears about it, the same way they hear
@@ -10,7 +11,9 @@
  *   - adding yourself by your own address does not tap you;
  *   - somebody already in the group is not tapped (they are already inside);
  *   - a re-add — the offline replay or a double-tap — does not tap twice;
- *   - a plain ghost, and a contact matching no account, tap no one at all.
+ *   - a plain ghost, and a contact matching no account, tap no one at all;
+ *   - a match joins as the account itself; a contact add never brings back
+ *     someone who left or was removed.
  *
  * The read of `auth.users` is why this file makes sure the stub has the columns
  * the function reads (`phone`, `deleted_at`) — the bare-Postgres test database
@@ -234,5 +237,92 @@ describe('adding someone already on Waves', () => {
     const after = await countHere();
 
     expect(after).toBe(before);
+  });
+});
+
+async function memberRow(memberId: string): Promise<{
+  group_id: string;
+  profile_id: string | null;
+  ghost_name: string | null;
+  joined_via: string;
+  left_at: Date | null;
+}> {
+  const { rows } = await client.query(
+    `SELECT group_id, profile_id, ghost_name, joined_via, left_at FROM group_members WHERE id = $1`,
+    [memberId],
+  );
+  return rows[0];
+}
+
+describe('a contact who is already on Waves joins as themselves', () => {
+  it('links a match by phone to the account, not a ghost', async () => {
+    const owner = await person('Asha');
+    const mira = await person('Mira');
+    const groupId = await group(owner.id);
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Mira', phone: `+${mira.phone}` });
+
+    const row = await memberRow(memberId);
+    expect(row.profile_id).toBe(mira.id);
+    expect(row.ghost_name).toBeNull();
+    expect(row.joined_via).toBe('contact');
+  });
+
+  it('links a match by email', async () => {
+    const owner = await person('Asha');
+    const ravi = await person('Ravi');
+    const groupId = await group(owner.id);
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Ravi', email: ravi.email });
+
+    expect((await memberRow(memberId)).profile_id).toBe(ravi.id);
+  });
+
+  it('keeps a contact matching no account a ghost', async () => {
+    const owner = await person('Asha');
+    const groupId = await group(owner.id);
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Nobody', phone: '+919000000001' });
+
+    const row = await memberRow(memberId);
+    expect(row.profile_id).toBeNull();
+    expect(row.ghost_name).toBe('Nobody');
+  });
+
+  it('returns the existing row for someone already in the group', async () => {
+    const owner = await person('Asha');
+    const ravi = await person('Ravi');
+    const groupId = await group(owner.id);
+    const { rows } = await client.query(
+      `INSERT INTO group_members (group_id, profile_id, joined_via) VALUES ($1, $2, 'invite_link') RETURNING id`,
+      [groupId, ravi.id],
+    );
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Ravi', phone: `+${ravi.phone}` });
+
+    expect(memberId).toBe(rows[0].id);
+    const { rows: count } = await client.query(
+      `SELECT count(*)::int AS n FROM group_members WHERE group_id = $1`,
+      [groupId],
+    );
+    expect(count[0].n).toBe(2);
+  });
+
+  it('does not bring back someone who was removed: a ghost, and no tap', async () => {
+    const owner = await person('Asha');
+    const ravi = await person('Ravi');
+    const groupId = await group(owner.id);
+    await client.query(
+      `INSERT INTO group_members (group_id, profile_id, joined_via, left_at, removed_at, removed_by)
+       VALUES ($1, $2, 'invite_link', now(), now(), $3)`,
+      [groupId, ravi.id, owner.id],
+    );
+
+    const memberId = await addGhost(owner.id, groupId, { name: 'Ravi', phone: `+${ravi.phone}` });
+
+    const row = await memberRow(memberId);
+    expect(row.profile_id).toBeNull();
+    expect(row.ghost_name).toBe('Ravi');
+    expect(await notificationsFor(ravi.id)).toHaveLength(0);
   });
 });
