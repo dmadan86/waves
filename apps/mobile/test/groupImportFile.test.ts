@@ -124,6 +124,30 @@ describe('reading a spreadsheet', () => {
     expect(draft.people).toEqual(['Asha', 'Ravi']);
   });
 
+  it('reads a date column the spreadsheet holds as text, in any of the usual spellings', () => {
+    const bytes = workbookBytes(() => {}, [
+      ['Date', 'Description', 'Amount', 'Paid by'],
+      ['01-10-2026', 'Groceries', 1200, 'Asha'],
+      ['1 Oct 2026', 'Cab', 640, 'Ravi'],
+      ['25/10/2026', 'Hotel', 9000, 'Asha'],
+    ]);
+    const { table } = tableFromBytes(bytes, 'text-dates.xlsx');
+    expect(table.rows.map((row) => row[0])).toEqual([
+      'Date',
+      '01-10-2026',
+      '1 Oct 2026',
+      '25/10/2026',
+    ]);
+
+    const layout = detectLayout(table, {});
+    const draft = draftFromTable(table, layout, { defaultCurrency: 'INR' });
+    expect(draft.rows.map((row) => [row.date, row.issues.length])).toEqual([
+      ['2026-10-01', 0],
+      ['2026-10-01', 0],
+      ['2026-10-25', 0],
+    ]);
+  });
+
   it('does not let float noise from a formula become a decimal error', () => {
     const bytes = workbookBytes(() => {}, [
       ['Date', 'Description', 'Amount'],

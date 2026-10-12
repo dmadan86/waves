@@ -57,6 +57,7 @@ import {
   existingFromExpenses,
 } from '@/lib/groupImport/review';
 import { importSourceFor, rowTotal, runGroupImport } from '@/lib/groupImport/run';
+import { undoErrorText } from '@/lib/groupImport/undoText';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { beginImport, dismissImport, useImportProgress } from '@/lib/importProgress';
 import { router } from '@/lib/navigation';
@@ -352,15 +353,7 @@ export default function GroupImportScreen() {
         void syncEngine.flush({ groupIds: [groupId] });
       },
       (caught: unknown) => {
-        const code = (caught as { code?: string } | null)?.code;
-        const message =
-          code === 'IMPORT_EDITED'
-            ? g.undoEdited
-            : code === 'IMPORT_UNDO_EXPIRED'
-              ? g.undoExpired
-              : code === 'NOT_ALLOWED'
-                ? g.undoNotAllowed
-                : g.undoFailed;
+        const message = undoErrorText(caught, g);
         dispatch({ type: 'undoFailed', message });
       },
     );

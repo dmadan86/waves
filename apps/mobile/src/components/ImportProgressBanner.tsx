@@ -25,6 +25,8 @@ import { Animated, Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, ProgressBar, Row, Text, useTheme } from '@waves/ui';
 
+import { undoImport } from '@/data/api';
+import { undoErrorText } from '@/lib/groupImport/undoText';
 import { dismissImport, useImportProgress } from '@/lib/importProgress';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -40,6 +42,8 @@ export function ImportProgressBanner({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const reduceMotion = useReducedMotion();
+  // 'idle', 'working', 'done', or the sentence for a refused undo.
+  const [undo, setUndo] = useState<string>('idle');
 
   // Stable Animated values via useState (not useRef) so reading them in render
   // is not a ref access — the pattern the rest of the app's animations use.
@@ -77,6 +81,20 @@ export function ImportProgressBanner({
       : success
         ? t.importLedger.addedNamed.replace('{name}', imp.groupName)
         : t.importLedger.importFailed;
+  // Only the person who ran it sees this banner (it lives in memory) and it clears
+  // itself long before the 24 hours an import can be undone for.
+  const batchId = success && groupId ? imp.summary?.batchId : undefined;
+  const undoable = Boolean(batchId) && undo !== 'done';
+  const refused = undo !== 'idle' && undo !== 'working' && undo !== 'done' ? undo : null;
+  const runUndo = (): void => {
+    if (!batchId) return;
+    setUndo('working');
+    undoImport(batchId).then(
+      () => setUndo('done'),
+      (caught: unknown) => setUndo(undoErrorText(caught, t.groupImport)),
+    );
+  };
+
   const sub = running
     ? imp.progress
       ? fill(t.groupImport.rowsProgress, { done: imp.progress.done, total: imp.progress.total })
@@ -84,7 +102,10 @@ export function ImportProgressBanner({
     : waiting
       ? t.importLedger.waitingHint
       : success && imp.summary
-        ? plural(locale, imp.summary.expenses, t.importLedger.expenseCount)
+        ? (refused ??
+          (undo === 'done'
+            ? plural(locale, imp.summary.expenses, t.groupImport.undoneTitle)
+            : plural(locale, imp.summary.expenses, t.importLedger.expenseCount)))
         : imp.error;
 
   const icon: keyof typeof Ionicons.glyphMap = running
@@ -161,6 +182,19 @@ export function ImportProgressBanner({
               hitSlop={10}
             >
               <Ionicons name="close" size={iconSize.lg} color={theme.color.textMuted} />
+            </Pressable>
+          ) : undoable ? (
+            <Pressable
+              onPress={runUndo}
+              disabled={undo === 'working'}
+              accessibilityRole="button"
+              accessibilityLabel={t.groupImport.undo}
+              hitSlop={10}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                {undo === 'working' ? t.groupImport.undoing : t.groupImport.undo}
+              </Text>
             </Pressable>
           ) : success && imp.groupId && imp.groupId !== groupId ? (
             <Ionicons

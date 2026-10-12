@@ -135,6 +135,8 @@ function stopNetWatch(): void {
 
 /** How long a success banner lingers before it clears itself. */
 const SUCCESS_LINGER_MS = 4200;
+/** An import into a group lingers longer: its banner carries an Undo. */
+const UNDO_LINGER_MS = 20000;
 /** How often, while parked offline, to check whether the phone is back online. */
 const NET_POLL_MS = 4000;
 
@@ -189,9 +191,12 @@ function attempt(job: ImportJob, mine: number): void {
       });
       // Leave the "added" banner up for a beat, then clear it. The new group row
       // on Home animates itself in the moment the mirror gains the group.
-      clearTimer = setTimeout(() => {
-        if (token === mine) emit(IDLE);
-      }, SUCCESS_LINGER_MS);
+      clearTimer = setTimeout(
+        () => {
+          if (token === mine) emit(IDLE);
+        },
+        result.batchId ? UNDO_LINGER_MS : SUCCESS_LINGER_MS,
+      );
     },
     (caught: unknown) => {
       if (token !== mine) return;
