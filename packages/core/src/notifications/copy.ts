@@ -83,6 +83,14 @@ export enum NotificationKind {
    * either can be turned on without the other.
    */
   DigestWeekly = 'digest_weekly',
+  /**
+   * One notification when somebody finishes importing a batch of expenses into a
+   * group you are in. Per-expense notices stay off for an import (a spreadsheet
+   * of old bills is not news, row by row); this is the single line that says
+   * balances in the group just changed. Pushed under the "involves me" switch,
+   * and not at all to somebody who muted the group.
+   */
+  GroupImport = 'group_import',
 }
 
 /**
@@ -254,6 +262,10 @@ const en: CopyStrings = {
       title: 'Your week on Waves',
       body: '{count} expenses · {amount}',
     },
+    [NotificationKind.GroupImport]: {
+      title: '{actor} imported expenses',
+      body: '{count} expenses added to {group}',
+    },
   },
   email: {
     confirmAction: 'Confirm you received it',
@@ -378,6 +390,10 @@ const ta: CopyStrings = {
       title: 'Waves-இல் உங்கள் வாரம்',
       body: '{count} செலவுகள் · {amount}',
     },
+    [NotificationKind.GroupImport]: {
+      title: '{actor} செலவுகளை இறக்குமதி செய்தார்',
+      body: '{group} இல் {count} செலவுகள் சேர்க்கப்பட்டன',
+    },
   },
   email: {
     confirmAction: 'கிடைத்தது என உறுதிப்படுத்தவும்',
@@ -499,6 +515,10 @@ const hi: CopyStrings = {
       title: 'Waves पर आपका हफ़्ता',
       body: '{count} ख़र्च · {amount}',
     },
+    [NotificationKind.GroupImport]: {
+      title: '{actor} ने ख़र्च इम्पोर्ट किए',
+      body: '{group} में {count} ख़र्च जुड़े',
+    },
   },
   email: {
     confirmAction: 'मिलने की पुष्टि करें',
@@ -619,6 +639,10 @@ const ar: CopyStrings = {
     [NotificationKind.DigestWeekly]: {
       title: 'أسبوعك على Waves',
       body: '{count} مصروفات · {amount}',
+    },
+    [NotificationKind.GroupImport]: {
+      title: 'استورد {actor} مصروفات',
+      body: 'أُضيفت {count} مصروفات إلى {group}',
     },
   },
   email: {

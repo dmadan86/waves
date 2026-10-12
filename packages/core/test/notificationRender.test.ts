@@ -37,6 +37,26 @@ describe('reading a notification', () => {
     expect(title).not.toContain('{group}');
   });
 
+  it('says who imported how many expenses into which group, in every language', () => {
+    // The one digest an import sends: `count` is the batch total as text.
+    const facts = { counterparty: 'Ravi', group: 'Goa', count: '42' };
+    for (const lang of SPOKEN) {
+      const { title, body } = renderNotification('group_import', facts, lang);
+      expect(title, lang).toContain('Ravi');
+      expect(body, lang).toContain('42');
+      expect(body, lang).toContain('Goa');
+      expect(`${title} ${body}`, lang).not.toMatch(/\{\w+\}/);
+    }
+    // A row without a count (an older server) still reads as a sentence.
+    const bare = renderNotification(
+      'group_import',
+      { counterparty: 'Ravi', group: 'Goa' },
+      'en-IN',
+    );
+    expect(bare.title).toBe('Ravi imported expenses');
+    expect(bare.body).not.toContain('undefined');
+  });
+
   it('formats minor units as money, in the reader’s locale', () => {
     // 42000 paise is ₹420.00, and the row has no idea of either fact.
     const { body } = renderNotification('settlement_confirmed', TRIP, 'en-IN');

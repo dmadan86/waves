@@ -12,7 +12,7 @@
  * else's name on your own action, and the sync-conflict entry.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   activityDateSpan,
@@ -30,6 +30,11 @@ import {
   verbTint,
 } from '@/data/activity';
 import type { ActivityActor, ActivityRow } from '@/data/types';
+import { activityLabels } from '@/data/activityLabels';
+import { Language, STRINGS_BY_LANGUAGE } from '@/i18n';
+
+// `@/i18n` reads the device locale; the import lines below are tested per language.
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
 const RAVI: ActivityActor = {
   id: 'member-ravi',
@@ -733,5 +738,109 @@ describe('relativeTime, the larger units', () => {
     expect(relativeTime('en', new Date(now - 86400 * 1000).toISOString(), now, rtf)).toBe(
       '1 day ago',
     );
+  });
+});
+
+describe('an import into a group', () => {
+  const imported = (payload: Record<string, unknown>, over: Partial<ActivityRow> = {}) =>
+    row({ verb: 'imported', object_type: 'import_batch', object_id: 'batch-1', payload, ...over });
+
+  it('reads as how many expenses came in, and who brought them', () => {
+    const entry = imported({ expenses: 42, settlements: 3, ghosts: 2, from: 'csv' });
+    expect(describeActivity(entry, 'me')).toBe('Ravi imported 42 expenses');
+    expect(activityHeadline(entry)).toBe('Imported 42 expenses');
+    expect(describeActivity({ ...entry, actor: ME }, 'profile-asha')).toBe(
+      'You imported 42 expenses',
+    );
+  });
+
+  it('is singular for one', () => {
+    const entry = imported({ expenses: 1 });
+    expect(describeActivity(entry, 'me')).toBe('Ravi imported 1 expense');
+    expect(activityHeadline(entry)).toBe('Imported 1 expense');
+  });
+
+  it('does not claim a count it was not given (a file of settlements only, a bad payload)', () => {
+    for (const payload of [
+      { expenses: 0, settlements: 4 },
+      {},
+      { expenses: '12' },
+      { expenses: null },
+    ]) {
+      expect(activityHeadline(imported(payload))).toBe('Group imported');
+      expect(describeActivity(imported(payload), 'me')).toBe('Ravi imported import_batch');
+    }
+  });
+
+  it('leaves the older "imported" row of a brand-new group exactly as it was', () => {
+    const legacy = row({ verb: 'imported', object_type: 'group', payload: { expenses: 90 } });
+    expect(activityHeadline(legacy)).toBe('Group imported');
+    expect(describeActivity(legacy, 'me')).toBe('Ravi imported group');
+  });
+
+  it('says an import was undone, by whom', () => {
+    const entry = row({ verb: 'import_undone', object_type: 'import_batch', object_id: 'batch-1' });
+    expect(describeActivity(entry, 'me')).toBe('Ravi undid an import');
+    expect(activityHeadline(entry)).toBe('Import undone');
+    expect(describeActivity({ ...entry, actor: ME }, 'profile-asha')).toBe('You undid an import');
+  });
+
+  it('opens the group, and wears its own icon and tint', () => {
+    expect(activityTarget(imported({ expenses: 3 }))).toBe('/group/group-1');
+    expect(verbIcon('imported')).toBe('cloud-upload-outline');
+    expect(verbIcon('import_undone')).toBe('arrow-undo-outline');
+    expect(verbTint('import_undone')).toBe('coral');
+    expect(verbTint('imported')).toBe('lilac');
+  });
+});
+
+describe('the import lines in every language', () => {
+  const entry = row({
+    verb: 'imported',
+    object_type: 'import_batch',
+    object_id: 'batch-1',
+    payload: { expenses: 42 },
+  });
+  const undone = row({ verb: 'import_undone', object_type: 'import_batch', object_id: 'batch-1' });
+  const english = STRINGS_BY_LANGUAGE[Language.En].activityScreen;
+
+  it.each([
+    [Language.En, 'en-IN'],
+    [Language.Ta, 'ta-IN'],
+    [Language.Hi, 'hi-IN'],
+    [Language.Ar, 'ar-AE'],
+  ])('%s says all four lines, with the actor and the count filled in', (language, locale) => {
+    const labels = activityLabels(locale, STRINGS_BY_LANGUAGE[language].activityScreen);
+
+    const sentence = describeActivity(entry, 'me', null, 'Someone', labels);
+    const headline = activityHeadline(entry, labels);
+    const undoneSentence = describeActivity(undone, 'me', null, 'Someone', labels);
+    const undoneHeadline = activityHeadline(undone, labels);
+
+    expect(sentence).toContain('Ravi');
+    expect(undoneSentence).toContain('Ravi');
+    // The count is shown (digits may be localised by Intl.NumberFormat, so ask it).
+    const shown = new Intl.NumberFormat(locale).format(42);
+    expect(sentence).toContain(shown);
+    expect(headline).toContain(shown);
+    for (const text of [sentence, headline, undoneSentence, undoneHeadline]) {
+      expect(text).not.toMatch(/\{\w+\}/);
+      expect(text.trim()).not.toBe('');
+    }
+    if (language !== Language.En) {
+      // Not the English line borrowed.
+      expect(headline).not.toBe(activityHeadline(entry));
+      expect(undoneHeadline).not.toBe('Import undone');
+      expect(undoneSentence).not.toBe('Ravi undid an import');
+    }
+  });
+
+  it('uses the plural the language needs', () => {
+    const arabic = activityLabels('ar-AE', STRINGS_BY_LANGUAGE[Language.Ar].activityScreen);
+    expect(arabic.importedHeadline(1)).toBe('استيراد مصروف واحد');
+    expect(arabic.importedHeadline(2)).toBe('استيراد مصروفين');
+    const tamil = activityLabels('ta-IN', STRINGS_BY_LANGUAGE[Language.Ta].activityScreen);
+    expect(tamil.importedHeadline(1)).not.toBe(tamil.importedHeadline(2));
+    expect(english.importedHeadline.one).toContain('{n}');
   });
 });
