@@ -4002,6 +4002,21 @@ export interface UiStrings {
     problemNoRows: string;
     problemNotAnExport: string;
     problemNewerFormat: string;
+    problemAmbiguousDate: string;
+    problemMixedDates: string;
+    problemTooManyDecimals: string;
+    problemRefund: string;
+    problemUnknownPerson: string;
+    problemSplitMismatch: string;
+    problemPercentNot100: string;
+    problemTooManyRows: string;
+    problemFileTooLarge: string;
+    problemEncoding: string;
+    problemLikelyDuplicate: string;
+    problemLowConfidence: string;
+    problemNotAnExpense: string;
+    problemPayerEstimated: string;
+    problemUnexpectedSettlement: string;
     whereItGoes: string;
     aNewGroup: string;
     namedAfterFile: string;
@@ -8059,6 +8074,25 @@ const en: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'Where it goes',
     aNewGroup: 'A new group',
     namedAfterFile: 'Named after the file',
@@ -12177,6 +12211,25 @@ const ta: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'எங்கே சேரும்',
     aNewGroup: 'ஒரு புதிய குழு',
     namedAfterFile: 'கோப்பின் பெயரில்',
@@ -16209,6 +16262,25 @@ const hi: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'कहाँ जाएगा',
     aNewGroup: 'एक नया समूह',
     namedAfterFile: 'फ़ाइल के नाम पर',
@@ -20625,6 +20697,25 @@ const ar: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'إلى أين يذهب',
     aNewGroup: 'مجموعة جديدة',
     namedAfterFile: 'باسم الملف',
