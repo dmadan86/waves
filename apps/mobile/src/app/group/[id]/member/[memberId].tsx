@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
@@ -237,7 +237,7 @@ export default function MemberScreen() {
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
   const removeFromGroup = useRemoveMember(groupId);
-  const removing = useRef(false);
+  const [removing, setRemoving] = useState(false);
   const claimAsMe = useClaimMemberAsMe(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
@@ -366,9 +366,9 @@ export default function MemberScreen() {
    * settle it, the expenses and the balance stay in the history.
    */
   const confirmRemove = async (): Promise<void> => {
-    // One dialog / removal at a time: covers the window before `isPending` flips.
-    if (removing.current) return;
-    removing.current = true;
+    // One dialog / removal at a time: covers the dialog and the mutation.
+    if (removing) return;
+    setRemoving(true);
     const ok = await confirm({
       title: fill(t.people.removeConfirmTitle, { name: realName }),
       body: removeMemberBody({
@@ -386,7 +386,7 @@ export default function MemberScreen() {
       tone: 'danger',
     });
     if (!ok) {
-      removing.current = false;
+      setRemoving(false);
       return;
     }
     setStatus(null);
@@ -394,7 +394,7 @@ export default function MemberScreen() {
       onSuccess: () => router.back(),
       onError: (caught) => setStatus(friendlyError(caught, t.couldNotSave, 'member.remove')),
       onSettled: () => {
-        removing.current = false;
+        setRemoving(false);
       },
     });
   };
@@ -465,7 +465,7 @@ export default function MemberScreen() {
             label: t.people.removeFromGroup,
             hint: t.people.removeFromGroupHint,
             destructive: true,
-            onPress: removeFromGroup.isPending ? undefined : () => void confirmRemove(),
+            onPress: removing || removeFromGroup.isPending ? undefined : () => void confirmRemove(),
           },
         ]
       : []),
