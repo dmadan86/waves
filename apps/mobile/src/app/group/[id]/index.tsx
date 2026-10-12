@@ -37,8 +37,6 @@ import {
   useGroupRealtime,
   useOpenReceipts,
   useCaptures,
-  usePinnedGroupIds,
-  useSetGroupPin,
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
@@ -92,6 +90,9 @@ import { usePullRefresh } from '@/lib/pullRefresh';
 import { SettleBody } from '@/components/settle/SettleBody';
 import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { ImportProgressBanner } from '@/components/ImportProgressBanner';
+import { useImportProgress } from '@/lib/importProgress';
+import { useGuestGuard } from '@/lib/guestGuard';
 import { VendorsBody } from '@/components/VendorsBody';
 import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
@@ -672,13 +673,10 @@ export default function GroupScreen() {
 
   const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
-  // Pin/Unpin lives in this screen's own ••• menu — the discoverable path; a
-  // long-press on the group's row (dashboard or All groups) is the fast one.
-  const pinnedIds = usePinnedGroupIds();
-  const isPinned = pinnedIds.has(groupId);
-  const setGroupPin = useSetGroupPin();
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
+  const importProgress = useImportProgress();
+  const guestGuard = useGuestGuard();
 
   const { blockedIds } = useBlockedUsers();
   const lookup = useMemo(() => memberLookup(members.data), [members.data]);
@@ -939,9 +937,19 @@ export default function GroupScreen() {
   const showTripNudge =
     welcome === 'trip' && groupData.type === 'trip' && !groupData.start_date && !tripNudgeDismissed;
 
+  // An import into this group under way (or just finished) shows its banner here.
+  const importHere = importProgress.phase !== 'idle' && importProgress.targetGroupId === groupId;
+  // Importing is a bulk write: not into the demo, not as a guest past the trial,
+  // and not by somebody who has left the group.
+  const canImport =
+    !groupData.isDemo &&
+    (guestGuard.gate?.canWrite ?? true) &&
+    (members.data ?? []).some((member) => isViewer(member, viewerId) && !member.left_at);
+
   // Whether the list header has any card in it — it keeps its section gap
   // below only when it does, so an empty header adds nothing under the tabs.
   const hasHeaderCards =
+    importHere ||
     groupData.isDemo === true ||
     stalledHere ||
     groupDrafts.length > 0 ||
@@ -950,18 +958,6 @@ export default function GroupScreen() {
     pendingByMe.length > 0;
 
   const menuItems: OverflowMenuItem[] = [
-    // Pinning has one effect — it sorts this group to the top of the
-    // dashboard and All-groups lists — so it belongs beside the other ways
-    // of changing how the group behaves, not the ones that navigate away.
-    // Label carries which it will do rather than a static "Pin", so a
-    // screen reader (which reads the button text as the label here, same
-    // as every other row) hears the same "Pin Goa trip" the row's own
-    // long-press action does.
-    {
-      icon: isPinned ? 'pin' : 'pin-outline',
-      label: `${isPinned ? t.group.unpin : t.group.pin} ${groupLabel(groupData, members.data, viewerId)}`,
-      onPress: () => setGroupPin.mutate({ groupId, pinned: !isPinned }),
-    },
     // The hero's QR used to open this; the hero's corner is Activity now.
     { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
@@ -971,6 +967,15 @@ export default function GroupScreen() {
             icon: 'map-outline',
             label: t.plan,
             route: `/group/${groupId}/plan`,
+          } as OverflowMenuItem,
+        ]
+      : []),
+    ...(canImport
+      ? [
+          {
+            icon: 'cloud-upload-outline',
+            label: t.groupImport.menu,
+            route: `/group/${groupId}/import`,
           } as OverflowMenuItem,
         ]
       : []),
@@ -1467,6 +1472,7 @@ export default function GroupScreen() {
                 }}
               >
                 <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                  <ImportProgressBanner groupId={groupId} />
                   {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
@@ -1684,6 +1690,14 @@ export default function GroupScreen() {
                   body={t.nothingYetBody}
                   action={t.addExpense}
                   onAdd={() => router.push(`/group/${groupId}/add-expense`)}
+                  secondary={
+                    canImport
+                      ? {
+                          label: t.groupImport.emptyLink,
+                          onPress: () => router.push(`/group/${groupId}/import`),
+                        }
+                      : undefined
+                  }
                 />
               ) : null
             }

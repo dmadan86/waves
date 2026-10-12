@@ -12,6 +12,7 @@ import { randomUUID } from 'expo-crypto';
 import {
   buildExpenseWriteBody,
   DEFAULT_NOTIFICATION_PREFS,
+  IMPORT_CHUNK_SIZE,
   normaliseEmail,
   normalisePhone,
   serialiseSplitParams,
@@ -871,6 +872,17 @@ export async function setMemberRole(memberId: string, role: 'admin' | 'member'):
   if (error) throw new Error(error.message);
 }
 
+/**
+ * An admin takes somebody out of the group. The same soft exit as leaving, done
+ * to another person, so it cannot be a plain update (the policy only lets you
+ * write your own row): `waves_remove_member` checks the caller is an admin, will
+ * not remove yourself, and keeps every expense and balance.
+ */
+export async function removeMember(memberId: string): Promise<void> {
+  const { error } = await backend.rpc('waves_remove_member', { p_member_id: memberId });
+  if (error) throw new Error(error.message);
+}
+
 /** Leaving is a soft exit: history stays, the person stops accruing new shares. */
 export async function leaveGroup(memberId: string): Promise<void> {
   const { error } = await backend
@@ -1068,6 +1080,12 @@ export interface ImportExpense {
   amount: bigint;
   payers: Record<string, bigint>;
   shares: Record<string, bigint>;
+  /**
+   * How the file said the expense was split, when it said. Only `'equal'` is
+   * acted on: the server stores the row as an equal split when its shares are
+   * within a minor unit of each other. Anything else is stored as exact.
+   */
+  splitHint?: 'equal';
 }
 
 export interface ImportSettlement {
@@ -1082,6 +1100,43 @@ export interface ImportSettlement {
   note?: string | null;
   /** ISO timestamp. */
   at: string;
+}
+
+/**
+ * The wire shape of one imported row. Minor units as strings all the way down:
+ * a number in JSON is a double, and a double is how a paisa goes missing from a
+ * four-year history.
+ */
+function importExpenseRow(expense: ImportExpense): Record<string, unknown> {
+  return {
+    clientMutationId: expense.clientMutationId,
+    description: expense.description,
+    category: expense.category,
+    date: expense.date,
+    currency: expense.currency,
+    amount: expense.amount.toString(),
+    payers: Object.fromEntries(
+      Object.entries(expense.payers).map(([name, value]) => [name, value.toString()]),
+    ),
+    shares: Object.fromEntries(
+      Object.entries(expense.shares).map(([name, value]) => [name, value.toString()]),
+    ),
+    ...(expense.splitHint ? { splitHint: expense.splitHint } : {}),
+  };
+}
+
+function importSettlementRow(settlement: ImportSettlement): Record<string, unknown> {
+  return {
+    clientMutationId: settlement.clientMutationId,
+    from: settlement.from,
+    to: settlement.to,
+    currency: settlement.currency,
+    amount: settlement.amount.toString(),
+    method: settlement.method,
+    status: settlement.status,
+    note: settlement.note ?? null,
+    at: settlement.at,
+  };
 }
 
 export interface ImportResult {
@@ -1117,33 +1172,8 @@ export async function importLedger(input: {
     p_group_id: input.groupId,
     p_people: input.people,
     p_origin: input.origin ?? 'splitwise',
-    p_settlements: (input.settlements ?? []).map((settlement) => ({
-      clientMutationId: settlement.clientMutationId,
-      from: settlement.from,
-      to: settlement.to,
-      currency: settlement.currency,
-      amount: settlement.amount.toString(),
-      method: settlement.method,
-      status: settlement.status,
-      note: settlement.note ?? null,
-      at: settlement.at,
-    })),
-    // Minor units as strings all the way down: a number in JSON is a double,
-    // and a double is how a paisa goes missing from a four-year history.
-    p_expenses: input.expenses.map((expense) => ({
-      clientMutationId: expense.clientMutationId,
-      description: expense.description,
-      category: expense.category,
-      date: expense.date,
-      currency: expense.currency,
-      amount: expense.amount.toString(),
-      payers: Object.fromEntries(
-        Object.entries(expense.payers).map(([name, value]) => [name, value.toString()]),
-      ),
-      shares: Object.fromEntries(
-        Object.entries(expense.shares).map(([name, value]) => [name, value.toString()]),
-      ),
-    })),
+    p_settlements: (input.settlements ?? []).map(importSettlementRow),
+    p_expenses: input.expenses.map(importExpenseRow),
   });
 
   if (error) {
@@ -1157,6 +1187,178 @@ export async function importLedger(input: {
     );
   }
   return data as ImportResult;
+}
+
+// ───────────────────────────── import into a group, in batches ──
+
+/** What kind of file an import came from; stored on its batch. */
+export type ImportSource = 'csv' | 'splitwise' | 'waves_csv' | 'waves_json' | 'xlsx' | 'screenshot';
+
+export interface ImportBatchResult {
+  groupId: string;
+  batchId: string;
+  /** Written by the chunk that just landed (0 for a replayed one). */
+  expenses: number;
+  ghosts: number;
+  settlements: number;
+  settlementsPending: number;
+  /** Name from the file to member id, ghosts included. */
+  members: Record<string, string>;
+  /** The batch so far, across every chunk. */
+  totals: { expenses: number; settlements: number; ghosts: number };
+}
+
+/** Progress after each chunk lands. */
+export interface ImportProgress {
+  /** 1-based. */
+  chunk: number;
+  chunks: number;
+  /** Rows (expenses and settlements) written or replayed so far, of `total`. */
+  done: number;
+  total: number;
+  result: ImportBatchResult;
+}
+
+/**
+ * A chunk the server refused or never answered. Carries how far the import got
+ * so the screen can say "38 of 42 imported" and offer a retry: the retry sends
+ * the same ids, so the chunks that already landed are replays.
+ */
+export class ImportChunkError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | null,
+    readonly done: number,
+    readonly total: number,
+  ) {
+    super(message);
+    this.name = 'ImportChunkError';
+  }
+}
+
+const IMPORT_ERROR_TEXT: Readonly<Record<string, string>> = {
+  NOT_A_MEMBER: 'You are not in that group',
+  NO_PEOPLE: 'That file named nobody to import',
+  TOO_MANY_ROWS: 'That is too many rows to import in one go',
+  BATCH_CONFLICT: 'That import belongs to somebody else',
+  IMPORT_UNDONE: 'That import was undone. Start a new one',
+  IMPORT_EDITED:
+    'Something from this import has been changed since, so it cannot be undone in one go',
+  IMPORT_UNDO_EXPIRED: 'An import can only be undone within 24 hours',
+  NOT_ALLOWED: 'Only the person who imported this, or an admin, can undo it',
+  NOT_FOUND: 'That import no longer exists',
+};
+
+function importErrorCode(message: string): string | null {
+  return /^([A-Z_]+):/.exec(message)?.[1] ?? null;
+}
+
+/**
+ * Write a parsed file into an EXISTING group, 250 rows at a time, all under
+ * one `batchId` (`waves_import_into_group`).
+ *
+ * Choose `batchId` and every row's `clientMutationId` once, before the first
+ * call, and reuse them on a retry: that makes the whole import idempotent. A
+ * chunk that already landed is a replay (no row, ghost or settlement twice), so
+ * "retry" is simply "call this again". Each chunk is atomic; the import as a
+ * whole is not, which is why `onChunk` exists: it reports honest progress, and
+ * a failure says how far it got (`ImportChunkError`).
+ *
+ * Expenses go first, then settlements. The other members of the group get one
+ * digest notification, sent with the LAST chunk.
+ */
+export async function importIntoGroup(input: {
+  groupId: string;
+  batchId: string;
+  source: ImportSource;
+  people: ImportPerson[];
+  expenses: ImportExpense[];
+  settlements?: ImportSettlement[];
+  /** Rows per call; the server accepts at most 500. */
+  chunkSize?: number;
+  onChunk?: (progress: ImportProgress) => void;
+}): Promise<ImportBatchResult> {
+  const settlements = input.settlements ?? [];
+  const total = input.expenses.length + settlements.length;
+  const chunkSize = Math.max(1, Math.floor(input.chunkSize ?? IMPORT_CHUNK_SIZE));
+  const chunks = Math.max(1, Math.ceil(total / chunkSize));
+
+  let last: ImportBatchResult | null = null;
+  let done = 0;
+  for (let index = 0; index < chunks; index += 1) {
+    const from = index * chunkSize;
+    const to = Math.min(total, from + chunkSize);
+    // Expenses occupy [0, expenses.length) and settlements the rest.
+    const expenseSlice = input.expenses.slice(
+      Math.min(from, input.expenses.length),
+      Math.min(to, input.expenses.length),
+    );
+    const settlementSlice = settlements.slice(
+      Math.max(0, from - input.expenses.length),
+      Math.max(0, to - input.expenses.length),
+    );
+
+    const { data, error } = await backend.rpc('waves_import_into_group', {
+      p_group_id: input.groupId,
+      p_batch_id: input.batchId,
+      p_source: input.source,
+      p_people: input.people,
+      p_expenses: expenseSlice.map(importExpenseRow),
+      p_settlements: settlementSlice.map(importSettlementRow),
+      p_final: index === chunks - 1,
+    });
+    if (error) {
+      const code = importErrorCode(error.message);
+      throw new ImportChunkError(
+        (code && IMPORT_ERROR_TEXT[code]) || error.message,
+        code,
+        done,
+        total,
+      );
+    }
+
+    last = data as ImportBatchResult;
+    done = to;
+    input.onChunk?.({ chunk: index + 1, chunks, done, total, result: last });
+  }
+  // `chunks` is at least 1, so the loop ran.
+  return last as ImportBatchResult;
+}
+
+export interface UndoImportResult {
+  batchId: string;
+  /** True when it had already been undone: nothing more happened. */
+  replayed: boolean;
+  expenses: number;
+  settlements: number;
+  /** Ghosts the import created that were taken back out, and ones kept because something else uses them. */
+  ghostsRemoved: number;
+  ghostsKept: number;
+}
+
+/**
+ * Reverse a whole import (`waves_undo_import`): its expenses are deleted (they
+ * sit in the group's Deleted list like any other), its settlements cancelled,
+ * and the people it added taken out again. Only the importer or an admin, within
+ * 24 hours, and only if nothing from it has been edited since.
+ */
+export async function undoImport(batchId: string): Promise<UndoImportResult> {
+  const { data, error } = await backend.rpc('waves_undo_import', { p_batch_id: batchId });
+  if (error) {
+    const code = importErrorCode(error.message);
+    const thrown = new Error((code && IMPORT_ERROR_TEXT[code]) || error.message);
+    if (code) (thrown as { code?: string }).code = code;
+    throw thrown;
+  }
+  const row = (data ?? {}) as Partial<UndoImportResult>;
+  return {
+    batchId,
+    replayed: row.replayed === true,
+    expenses: row.expenses ?? 0,
+    settlements: row.settlements ?? 0,
+    ghostsRemoved: row.ghostsRemoved ?? 0,
+    ghostsKept: row.ghostsKept ?? 0,
+  };
 }
 
 // ─────────────────────────────── notification preferences (ADR-010) ──

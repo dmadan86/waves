@@ -30,6 +30,9 @@ export default function JoinHashPage() {
   // thing from "there is no token", and must not flash the broken-link page at
   // somebody whose link is fine.
   const [token, setToken] = useState<string | undefined>(undefined);
+  // Set by `AfterSignIn` when this page is the far side of a sign-in: the
+  // person already said they want to join, so the join happens by itself.
+  const [resume, setResume] = useState(false);
 
   useEffect(() => {
     const read = () => {
@@ -44,6 +47,7 @@ export default function JoinHashPage() {
         // preview call refuse it.
       }
       setToken(decoded.trim());
+      setResume(new URLSearchParams(window.location.search).get('resume') === '1');
     };
     read();
     // If somebody pastes a second link into the same tab, the fragment changes
@@ -78,5 +82,5 @@ export default function JoinHashPage() {
   // the key the previous invite's group name, claim and pending state would
   // stay on screen over a token that has already been swapped underneath —
   // showing group A while the join button accepts B.
-  return <JoinFlow key={token} token={token} />;
+  return <JoinFlow key={token} token={token} resume={resume} />;
 }

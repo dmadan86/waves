@@ -14,7 +14,7 @@
 
 import * as XLSX from 'xlsx';
 
-import { type GroupExportModel } from './groupExport';
+import { INCLUDE_ALL, type ExportInclude, type GroupExportModel } from './groupExport';
 
 /** The visible labels the workbook needs — sheet names and column headers. */
 export interface GroupExportSheetLabels {
@@ -61,12 +61,14 @@ type Cell = string | number | boolean;
 type Sheet = Cell[][];
 
 /**
- * Assemble the five sheets. Returns a SheetJS workbook — serialise it with
+ * Assemble the sheets (Expenses, Settlements and Balances only when `include`
+ * keeps them; Summary and Members always stay). Returns a SheetJS workbook — serialise it with
  * `workbookToBase64`.
  */
 export function buildGroupExportWorkbook(
   model: GroupExportModel,
   labels: GroupExportSheetLabels,
+  include: ExportInclude = INCLUDE_ALL,
 ): XLSX.WorkBook {
   const workbook = XLSX.utils.book_new();
 
@@ -87,80 +89,86 @@ export function buildGroupExportWorkbook(
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(summary), labels.sheetSummary);
 
   // --- Expenses -----------------------------------------------------------
-  const expenses: Sheet = [
-    [
-      labels.colDate,
-      labels.colDescription,
-      labels.colCategory,
-      labels.colPaidBy,
-      labels.colParticipants,
-      labels.colAmount,
-      labels.colCurrency,
-      labels.colDisplay,
-      labels.colDeleted,
-    ],
-    ...model.expenses.map((expense) => [
-      expense.date ?? '',
-      expense.description,
-      expense.category,
-      expense.paidBy,
-      expense.participants,
-      expense.amount.value,
-      expense.amount.currency,
-      expense.amount.text,
-      expense.deleted ? labels.yes : labels.no,
-    ]),
-  ];
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(expenses), labels.sheetExpenses);
+  if (include.expenses) {
+    const expenses: Sheet = [
+      [
+        labels.colDate,
+        labels.colDescription,
+        labels.colCategory,
+        labels.colPaidBy,
+        labels.colParticipants,
+        labels.colAmount,
+        labels.colCurrency,
+        labels.colDisplay,
+        labels.colDeleted,
+      ],
+      ...model.expenses.map((expense) => [
+        expense.date ?? '',
+        expense.description,
+        expense.category,
+        expense.paidBy,
+        expense.participants,
+        expense.amount.value,
+        expense.amount.currency,
+        expense.amount.text,
+        expense.deleted ? labels.yes : labels.no,
+      ]),
+    ];
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(expenses), labels.sheetExpenses);
+  }
 
   // --- Settlements --------------------------------------------------------
-  const settlements: Sheet = [
-    [
-      labels.colDate,
-      labels.colFrom,
-      labels.colTo,
-      labels.colMethod,
-      labels.colStatus,
-      labels.colAmount,
-      labels.colCurrency,
-      labels.colDisplay,
-    ],
-    ...model.settlements.map((settlement) => [
-      settlement.date ?? '',
-      settlement.from,
-      settlement.to,
-      settlement.method,
-      settlement.status,
-      settlement.amount.value,
-      settlement.amount.currency,
-      settlement.amount.text,
-    ]),
-  ];
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.aoa_to_sheet(settlements),
-    labels.sheetSettlements,
-  );
+  if (include.settlements) {
+    const settlements: Sheet = [
+      [
+        labels.colDate,
+        labels.colFrom,
+        labels.colTo,
+        labels.colMethod,
+        labels.colStatus,
+        labels.colAmount,
+        labels.colCurrency,
+        labels.colDisplay,
+      ],
+      ...model.settlements.map((settlement) => [
+        settlement.date ?? '',
+        settlement.from,
+        settlement.to,
+        settlement.method,
+        settlement.status,
+        settlement.amount.value,
+        settlement.amount.currency,
+        settlement.amount.text,
+      ]),
+    ];
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet(settlements),
+      labels.sheetSettlements,
+    );
+  }
 
   // --- Balances -----------------------------------------------------------
-  const balances: Sheet = [
-    [
-      labels.colMember,
-      labels.colDirection,
-      labels.colBalance,
-      labels.colCurrency,
-      labels.colDisplay,
-    ],
-    ...model.balances.map((balance) => [
-      balance.name,
-      balance.directionText,
-      // Signed major-unit number, so a column sum reflects who owes whom.
-      balance.signedValue,
-      balance.amount.currency,
-      balance.amount.text,
-    ]),
-  ];
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(balances), labels.sheetBalances);
+  if (include.balances) {
+    const balances: Sheet = [
+      [
+        labels.colMember,
+        labels.colDirection,
+        labels.colBalance,
+        labels.colCurrency,
+        labels.colDisplay,
+      ],
+      ...model.balances.map((balance) => [
+        balance.name,
+        balance.directionText,
+        // Signed major-unit number, so a column sum reflects who owes whom.
+        balance.signedValue,
+        balance.amount.currency,
+        balance.amount.text,
+      ]),
+    ];
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(balances), labels.sheetBalances);
+  }
 
   // --- Members ------------------------------------------------------------
   const members: Sheet = [

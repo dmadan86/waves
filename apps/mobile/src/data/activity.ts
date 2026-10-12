@@ -52,11 +52,51 @@ export function parseMoney(
  */
 export { myStake, type StakeSides } from '@waves/core';
 
+/**
+ * The wording of the two import events, which carry a count and so need a
+ * plural per language. The rest of this file is English (see `activityHeadline`);
+ * these come from the locale tables (`activityScreen.imported*`) because they
+ * shipped after the localisation work started and have no excuse.
+ *
+ * Optional everywhere: a caller that passes none gets English, which is what
+ * every other line here says.
+ */
+export interface ActivityLabels {
+  /** "Imported 12 expenses". */
+  importedHeadline(count: number): string;
+  /** "Ravi imported 12 expenses". */
+  importedSentence(who: string, count: number): string;
+  importUndoneHeadline: string;
+  /** "Ravi undid an import". */
+  importUndoneSentence(who: string): string;
+}
+
+const ENGLISH_LABELS: ActivityLabels = {
+  importedHeadline: (count) => `Imported ${count} ${count === 1 ? 'expense' : 'expenses'}`,
+  importedSentence: (who, count) =>
+    `${who} imported ${count} ${count === 1 ? 'expense' : 'expenses'}`,
+  importUndoneHeadline: 'Import undone',
+  importUndoneSentence: (who) => `${who} undid an import`,
+};
+
+/**
+ * How many expenses an `imported` row for an import batch brought in, or null
+ * when it did not say (or brought none: a file of settlements only). The older
+ * `imported` row of a brand-new group has `object_type = 'group'` and no use for
+ * this.
+ */
+function importedCount(entry: ActivityRow): number | null {
+  if (entry.object_type !== 'import_batch') return null;
+  const value = entry.payload.expenses;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
 export function describeActivity(
   entry: ActivityRow,
   myProfileId: string | null,
   blocked?: ReadonlySet<string> | null,
   someoneLabel = 'Someone',
+  labels: ActivityLabels = ENGLISH_LABELS,
 ): string {
   const { payload } = entry;
   const description = typeof payload.description === 'string' ? payload.description : null;
@@ -124,6 +164,15 @@ export function describeActivity(
         typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : null;
       return name ? `${who} deleted ${name}` : `${who} deleted the group`;
     }
+    case 'imported': {
+      const count = importedCount(entry);
+      // An older `imported` row (a brand-new group, object_type 'group') falls
+      // through to the generic line below, as it always has.
+      if (count !== null) return labels.importedSentence(who, count);
+      return `${who} ${entry.verb} ${entry.object_type}`;
+    }
+    case 'import_undone':
+      return labels.importUndoneSentence(who);
     default:
       // An unknown verb is a row written by a newer build than this one. Say
       // what is known rather than dropping it — a feed with holes in it is
@@ -147,7 +196,10 @@ export function describeActivity(
  * English to match `describeActivity`, which is itself not yet localized — this
  * is not the change that closes that gap.
  */
-export function activityHeadline(entry: ActivityRow): string {
+export function activityHeadline(
+  entry: ActivityRow,
+  labels: ActivityLabels = ENGLISH_LABELS,
+): string {
   const { payload } = entry;
   const description = typeof payload.description === 'string' ? payload.description : null;
   // Verb first, description second. An imported description can itself be a whole
@@ -193,8 +245,12 @@ export function activityHeadline(entry: ActivityRow): string {
         typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : null;
       return name ? `Created ${name}` : 'Group created';
     }
-    case 'imported':
-      return 'Group imported';
+    case 'imported': {
+      const count = importedCount(entry);
+      return count !== null ? labels.importedHeadline(count) : 'Group imported';
+    }
+    case 'import_undone':
+      return labels.importUndoneHeadline;
     case 'auto_archived':
       return 'Group archived';
     // Its own verb rather than the plain 'deleted' above, which is about an
@@ -272,6 +328,10 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
       return 'person-add-outline';
     case 'created':
       return 'sparkles-outline';
+    case 'imported':
+      return 'cloud-upload-outline';
+    case 'import_undone':
+      return 'arrow-undo-outline';
     default:
       return 'ellipse-outline';
   }
@@ -303,6 +363,7 @@ export function verbTint(verb: string): ActivityTint {
     case 'settle_disputed':
     case 'cancelled':
     case 'rejected_dispute':
+    case 'import_undone':
       return 'coral';
     case 'added':
     case 'joined':

@@ -1038,6 +1038,222 @@ describe('importLedger', () => {
   });
 });
 
+describe('importIntoGroup', () => {
+  const expenseRow = (n: number) => ({
+    clientMutationId: `m${n}`,
+    description: `Row ${n}`,
+    category: null,
+    date: '2026-01-02',
+    currency: 'INR',
+    amount: 100n,
+    payers: { Ravi: 100n },
+    shares: { Ravi: 50n, Me: 50n },
+  });
+  const settlementRow = (n: number) => ({
+    clientMutationId: `s${n}`,
+    from: 'Ravi',
+    to: 'Me',
+    currency: 'INR',
+    amount: 10n,
+    method: 'cash',
+    status: 'confirmed',
+    at: '2026-01-03T00:00:00Z',
+  });
+  const reply = (expenses: number, settlements = 0) =>
+    ok({
+      groupId: 'g1',
+      batchId: 'b1',
+      expenses,
+      ghosts: 0,
+      settlements,
+      settlementsPending: 0,
+      members: { Ravi: 'm-ravi' },
+      totals: { expenses, settlements, ghosts: 0 },
+    });
+
+  it('sends 250 rows per call under one batch id, and only the last call is final', async () => {
+    h.rpc.mockResolvedValue(reply(250));
+    const progress: number[] = [];
+
+    await api.importIntoGroup({
+      groupId: 'g1',
+      batchId: 'b1',
+      source: 'csv',
+      people: [{ name: 'Ravi', memberId: null }],
+      expenses: Array.from({ length: 600 }, (_, n) => expenseRow(n)),
+      onChunk: (p) => progress.push(p.done),
+    });
+
+    expect(h.rpc).toHaveBeenCalledTimes(3);
+    const sent = h.rpc.mock.calls.map(([name, args]) => ({
+      name,
+      args: args as Record<string, unknown>,
+    }));
+    expect(sent.every((call) => call.name === 'waves_import_into_group')).toBe(true);
+    expect(sent.map((call) => (call.args.p_expenses as unknown[]).length)).toEqual([250, 250, 100]);
+    expect(sent.map((call) => call.args.p_final)).toEqual([false, false, true]);
+    for (const call of sent) {
+      expect(call.args).toMatchObject({
+        p_group_id: 'g1',
+        p_batch_id: 'b1',
+        p_source: 'csv',
+        p_people: [{ name: 'Ravi', memberId: null }],
+      });
+    }
+    // Every row once, in order, with the id the caller chose.
+    const ids = sent.flatMap((call) =>
+      (call.args.p_expenses as { clientMutationId: string }[]).map((row) => row.clientMutationId),
+    );
+    expect(ids).toEqual(Array.from({ length: 600 }, (_, n) => `m${n}`));
+    expect(progress).toEqual([250, 500, 600]);
+  });
+
+  it('puts the settlements after the expenses, splitting a chunk between them', async () => {
+    h.rpc.mockResolvedValue(reply(1));
+
+    await api.importIntoGroup({
+      groupId: 'g1',
+      batchId: 'b1',
+      source: 'waves_json',
+      people: [],
+      expenses: [expenseRow(1), expenseRow(2), expenseRow(3)],
+      settlements: [settlementRow(1), settlementRow(2), settlementRow(3)],
+      chunkSize: 4,
+    });
+
+    const sent = h.rpc.mock.calls.map(([, args]) => args as Record<string, unknown[]>);
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.p_expenses).toHaveLength(3);
+    expect(sent[0]!.p_settlements).toHaveLength(1);
+    expect(sent[1]!.p_expenses).toHaveLength(0);
+    expect(sent[1]!.p_settlements).toHaveLength(2);
+    expect(sent[1]!.p_settlements[0]).toMatchObject({ clientMutationId: 's2', amount: '10' });
+  });
+
+  it('sends amounts as strings and carries an equal-split hint only when there is one', async () => {
+    h.rpc.mockResolvedValue(reply(2));
+
+    await api.importIntoGroup({
+      groupId: 'g1',
+      batchId: 'b1',
+      source: 'xlsx',
+      people: [],
+      expenses: [
+        { ...expenseRow(1), amount: 90_071_992_547_409_931n, splitHint: 'equal' },
+        expenseRow(2),
+      ],
+    });
+
+    const rows = (h.rpc.mock.calls[0]![1] as { p_expenses: Record<string, unknown>[] }).p_expenses;
+    expect(rows[0]).toMatchObject({ amount: '90071992547409931', splitHint: 'equal' });
+    expect(rows[1]).not.toHaveProperty('splitHint');
+  });
+
+  it('returns the last chunk, with the running totals', async () => {
+    h.rpc
+      .mockResolvedValueOnce(reply(1))
+      .mockResolvedValueOnce(
+        ok({ ...(reply(1).data as object), totals: { expenses: 2, settlements: 0, ghosts: 1 } }),
+      );
+
+    const result = await api.importIntoGroup({
+      groupId: 'g1',
+      batchId: 'b1',
+      source: 'csv',
+      people: [],
+      expenses: [expenseRow(1), expenseRow(2)],
+      chunkSize: 1,
+    });
+
+    expect(result.totals).toEqual({ expenses: 2, settlements: 0, ghosts: 1 });
+  });
+
+  it('says how far it got when a chunk fails, with the server’s code', async () => {
+    h.rpc
+      .mockResolvedValueOnce(reply(250))
+      .mockResolvedValueOnce(fail('TOO_MANY_ROWS: send at most 500 rows per call'));
+
+    const caught = (await api
+      .importIntoGroup({
+        groupId: 'g1',
+        batchId: 'b1',
+        source: 'csv',
+        people: [],
+        expenses: Array.from({ length: 300 }, (_, n) => expenseRow(n)),
+      })
+      .catch((error: unknown) => error)) as InstanceType<typeof api.ImportChunkError>;
+
+    expect(caught).toBeInstanceOf(api.ImportChunkError);
+    expect(caught.code).toBe('TOO_MANY_ROWS');
+    expect(caught.done).toBe(250);
+    expect(caught.total).toBe(300);
+    expect(caught.message).toBe('That is too many rows to import in one go');
+  });
+
+  it('keeps an unknown refusal’s own words', async () => {
+    h.rpc.mockResolvedValue(fail('connection reset'));
+    await expect(
+      api.importIntoGroup({
+        groupId: 'g1',
+        batchId: 'b1',
+        source: 'csv',
+        people: [],
+        expenses: [expenseRow(1)],
+      }),
+    ).rejects.toThrow('connection reset');
+  });
+});
+
+describe('undoImport', () => {
+  it('asks for the batch and hands back what was reversed', async () => {
+    h.rpc.mockResolvedValue(
+      ok({
+        batchId: 'b1',
+        undone: true,
+        replayed: false,
+        expenses: 12,
+        settlements: 2,
+        ghostsRemoved: 1,
+        ghostsKept: 0,
+      }),
+    );
+
+    const result = await api.undoImport('b1');
+
+    expect(h.rpc).toHaveBeenCalledWith('waves_undo_import', { p_batch_id: 'b1' });
+    expect(result).toEqual({
+      batchId: 'b1',
+      replayed: false,
+      expenses: 12,
+      settlements: 2,
+      ghostsRemoved: 1,
+      ghostsKept: 0,
+    });
+  });
+
+  it('reads a replay (already undone) as a success that did nothing', async () => {
+    h.rpc.mockResolvedValue(ok({ batchId: 'b1', undone: true, replayed: true }));
+    expect(await api.undoImport('b1')).toMatchObject({
+      replayed: true,
+      expenses: 0,
+      settlements: 0,
+    });
+  });
+
+  it.each([
+    ['IMPORT_EDITED: x', 'IMPORT_EDITED'],
+    ['IMPORT_UNDO_EXPIRED: x', 'IMPORT_UNDO_EXPIRED'],
+    ['NOT_ALLOWED: x', 'NOT_ALLOWED'],
+  ])('carries the code of the refusal %j', async (message, code) => {
+    h.rpc.mockResolvedValue(fail(message));
+    const caught = (await api.undoImport('b1').catch((error: unknown) => error)) as Error & {
+      code?: string;
+    };
+    expect(caught.code).toBe(code);
+    expect(caught.message).not.toMatch(/^[A-Z_]+:/);
+  });
+});
+
 // ───────────────────────────────────────────── edge functions ──
 
 /** A non-2xx from an edge function, as supabase-js wraps it. */

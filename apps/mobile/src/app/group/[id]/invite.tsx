@@ -14,8 +14,6 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import QRCodeStyled from 'react-native-qrcode-styled';
-import { Rect } from 'react-native-svg';
 
 import {
   Avatar,
@@ -39,10 +37,18 @@ import { friendlyError } from '@/lib/errors';
 import { useGroup } from '@/data/hooks';
 import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
-import { displayName, groupLabel, GroupType, isGhost } from '@/data/types';
+import { displayName, groupLabel, isGhost } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
+import { InviteQr } from '@/components/invite/InviteQr';
+import { inviteTypeWordKey, TYPE_ICON } from '@/components/invite/inviteCardModel';
+import {
+  SHARED_CARD_HEIGHT,
+  SHARED_CARD_WIDTH,
+  SharedInviteCard,
+} from '@/components/invite/SharedInviteCard';
 import { shareInviteCard } from '@/lib/shareInviteCard';
+import type { ShareTarget } from '../../../../modules/waves-share';
 
 const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as number;
 
@@ -51,18 +57,10 @@ const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as num
 // button 48, trust line ~28 and the gaps between.
 const ILLUSTRATION_HEIGHT = 112;
 const QR_SIZE = 148;
-const BRACKET_GAP = 8;
+// The shared picture is laid out at 360x540 dp and captured at 3x: 1080x1620 px.
+const SHARED_CARD_SCALE = 3;
 // Room kept at the end of the group row for the members pill that floats over it.
 const PILL_RESERVE = 112;
-
-/** The glyph for the round badge, by group type (same set the new-group screen uses). */
-const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  [GroupType.Trip]: 'airplane',
-  [GroupType.Home]: 'home',
-  [GroupType.Couple]: 'heart',
-  [GroupType.Event]: 'people',
-  [GroupType.Friends]: 'people',
-};
 
 /**
  * The group's durable join link, as an invitation rather than a naked code.
@@ -76,7 +74,8 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
  * handing over: the group's name, who is already in it, and the code, together.
  * A QR alone says "scan this" and nothing about what is on the other side —
  * whoever is holding out the phone then has to say it out loud. The card says
- * it, and it is what the shared image carries too.
+ * it; the shared image says the same in a portrait of its own, drawn
+ * off-screen (`SharedInviteCard`).
  *
  * Below it, the three ways to send a link are peers on one row, and copying
  * lives on the link itself rather than pretending to be a fourth channel: it is
@@ -103,7 +102,8 @@ export default function InviteScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const inviteCardRef = useRef<View | null>(null);
+  // The off-screen picture that "Share invite" captures; never seen on screen.
+  const sharedCardRef = useRef<View | null>(null);
 
   const joinToken = group.data?.join_token ?? ensured;
   const link = joinToken ? groupJoinLink(joinToken) : null;
@@ -155,14 +155,7 @@ export default function InviteScreen() {
   // "Scan this QR code to join the trip". Only types that read naturally after
   // "the" get their own word; couple/other fall back to the plain "group".
   const typeKey = group.data?.type;
-  const typeWord = (
-    typeKey === GroupType.Trip ||
-    typeKey === GroupType.Home ||
-    typeKey === GroupType.Event ||
-    typeKey === GroupType.Friends
-      ? t.groupExport.types[typeKey]
-      : t.groupExport.types.other
-  ).toLowerCase();
+  const typeWord = t.groupExport.types[inviteTypeWordKey(typeKey)].toLowerCase();
 
   const present = (members.data ?? []).filter((member) => !member.left_at);
   const faces = present.slice(0, 4);
@@ -176,20 +169,28 @@ export default function InviteScreen() {
   /**
    * Send the complete invitation card, so the person on the other end sees the
    * group name and member context as well as the QR code. `fallback` is the
-   * link-only path for when the card cannot be captured.
+   * link-only path for when the card cannot be captured. The message and link
+   * travel with it (WhatsApp caption, mail body) where the target allows.
    */
-  const shareCard = async (fallback: () => Promise<void>): Promise<void> => {
+  const shareCard = async (
+    fallback: () => Promise<void>,
+    target: ShareTarget = 'any',
+  ): Promise<void> => {
     if (!link) return;
     await shareInviteCard({
-      cardRef: inviteCardRef,
+      cardRef: sharedCardRef,
+      width: SHARED_CARD_WIDTH * SHARED_CARD_SCALE,
+      height: SHARED_CARD_HEIGHT * SHARED_CARD_SCALE,
       filename: 'waves-invite-card.png',
       dialogTitle: message,
+      text: message,
+      subject: t.people.emailSubject.replace('{group}', label),
+      target,
       fallback,
     });
   };
 
-  const shareVia = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
-    if (!link) return;
+  const openChannelLink = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
     const url =
       channel === 'whatsapp'
         ? `whatsapp://send?text=${encodeURIComponent(message)}`
@@ -211,6 +212,16 @@ export default function InviteScreen() {
       }
       await Share.share({ message });
     }
+  };
+
+  // WhatsApp and email send the card with the message; SMS is text only.
+  const shareVia = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
+    if (!link) return;
+    if (channel === 'sms') {
+      await openChannelLink(channel);
+      return;
+    }
+    await shareCard(() => openChannelLink(channel), channel);
   };
 
   const copy = async (): Promise<void> => {
@@ -284,14 +295,7 @@ export default function InviteScreen() {
                 ...theme.shadow.soft,
               }}
             >
-              {/* The part that is captured for "Share invite". The members pill
-                  and the link row are outside it: an image of a button and a
-                  copy control would be dead weight in a chat. */}
-              <View
-                ref={inviteCardRef}
-                collapsable={false}
-                style={{ backgroundColor: theme.color.surface, gap: theme.spacing.sm }}
-              >
+              <View style={{ backgroundColor: theme.color.surface, gap: theme.spacing.sm }}>
                 <Row style={{ gap: theme.spacing.md, paddingEnd: PILL_RESERVE }}>
                   <View
                     style={{
@@ -369,44 +373,7 @@ export default function InviteScreen() {
                   style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
                 />
 
-                {/* The code sits on its own white plate whatever the theme is
-                    doing: a QR on a dark ground does not scan. The brackets are
-                    the brand's frame round it; they sit outside the plate, in
-                    the wrapper's padding, so they never cover a module. */}
-                <View style={{ alignSelf: 'center', padding: BRACKET_GAP }}>
-                  <View style={{ backgroundColor: '#ffffff', borderRadius: theme.radius.sm }}>
-                    <QRCodeStyled
-                      data={link}
-                      size={QR_SIZE}
-                      padding={8}
-                      style={{ backgroundColor: '#ffffff' }}
-                      // The RN `backgroundColor` style is not rasterised by
-                      // `toDataURL`, so a captured/shared PNG would come out with a
-                      // transparent ground — the dark pieces then vanish on a dark
-                      // chat bubble (WhatsApp). Paint the white quiet zone as an SVG
-                      // layer behind the code instead, so it is part of the export.
-                      renderBackground={() => (
-                        <Rect x={-40} y={-40} width={330} height={330} fill="#ffffff" />
-                      )}
-                      color="#0A0A1A"
-                      errorCorrectionLevel="H"
-                      pieceBorderRadius="50%"
-                      pieceScale={0.92}
-                      outerEyesOptions={{ borderRadius: '28%', color: '#0A0A1A' }}
-                      innerEyesOptions={{ borderRadius: '35%', color: '#0A0A1A' }}
-                      logo={{
-                        href: require('../../../../assets/images/icon.png'),
-                        scale: 0.85,
-                        padding: 4,
-                        hidePieces: true,
-                      }}
-                    />
-                  </View>
-                  <Bracket corner="top-start" color={theme.color.brand} />
-                  <Bracket corner="top-end" color={theme.color.brand} />
-                  <Bracket corner="bottom-start" color={theme.color.brand} />
-                  <Bracket corner="bottom-end" color={theme.color.brand} />
-                </View>
+                <InviteQr link={link} size={QR_SIZE} />
 
                 <Text variant="caption" align="center">
                   {fill(t.people.scanToJoinType, { type: typeWord })}
@@ -616,40 +583,45 @@ export default function InviteScreen() {
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
-    </Screen>
-  );
-}
 
-/**
- * One corner of the frame round the QR. Border start/end rather than left/right,
- * so the pair mirrors in Arabic (the frame is symmetric, but the habit holds).
- */
-function Bracket({
-  corner,
-  color,
-}: {
-  corner: 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
-  color: string;
-}) {
-  const top = corner.startsWith('top');
-  const start = corner.endsWith('start');
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        ...(top ? { top: 0 } : { bottom: 0 }),
-        ...(start ? { start: 0 } : { end: 0 }),
-        width: 22,
-        height: 22,
-        borderColor: color,
-        ...(top ? { borderTopWidth: 3 } : { borderBottomWidth: 3 }),
-        ...(start ? { borderStartWidth: 3 } : { borderEndWidth: 3 }),
-        ...(top && start ? { borderTopStartRadius: 10 } : null),
-        ...(top && !start ? { borderTopEndRadius: 10 } : null),
-        ...(!top && start ? { borderBottomStartRadius: 10 } : null),
-        ...(!top && !start ? { borderBottomEndRadius: 10 } : null),
-      }}
-    />
+      {/* The picture "Share invite" sends, laid out far off to the side so it
+          is never seen. Not `opacity: 0` or hidden: a view that is not painted
+          captures blank. `collapsable={false}` keeps the native view that
+          `captureRef` needs. */}
+      {link ? (
+        <View
+          ref={sharedCardRef}
+          collapsable={false}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ position: 'absolute', left: -10000, top: 0 }}
+        >
+          <SharedInviteCard
+            groupType={group.data?.type}
+            groupName={label}
+            peopleLine={
+              present.length > 0 ? plural(locale, present.length, t.people.inviteMembersHere) : null
+            }
+            faces={faces.map((member) => ({
+              id: member.id,
+              name: displayName(member, profile?.id, null, t.misc.someone),
+              ghost: isGhost(member),
+            }))}
+            link={link}
+            subtitle={fill(t.people.cardScanSubtitle, { type: typeWord })}
+            strings={{
+              scanTitle: t.people.cardScanTitle,
+              or: t.people.cardOr,
+              joinLink: t.people.cardJoinLink,
+              copy: t.people.cardCopy,
+              noApp: t.people.cardNoApp,
+              joinFast: t.people.cardJoinFast,
+              startSplitting: t.people.cardStartSplitting,
+            }}
+          />
+        </View>
+      ) : null}
+    </Screen>
   );
 }

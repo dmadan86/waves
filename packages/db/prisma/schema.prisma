@@ -181,6 +181,7 @@ model Profile {
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships         GroupMember[]
+  membersRemoved      GroupMember[]          @relation("MemberRemovedBy")
   captures            Capture[]
   categoryTags        CategoryTag[]
   personalRecords     PersonalRecord[]
@@ -321,6 +322,7 @@ model Group {
   receipts           Receipt[]
   settlements        Settlement[]
   activity           ActivityLog[]
+  importBatches      ImportBatch[]
   reminders          Reminder[]
   balances           GroupBalance[]
   pairwise           PairwiseBalance[]
@@ -373,13 +375,22 @@ model GroupMember {
   /// is the same person.
   paymentRail   String?    @map("payment_rail")
   paymentHandle String?    @map("payment_handle")
+  /// The import that minted this ghost (`import_batches`); null for everyone else.
+  importBatchId String?    @map("import_batch_id") @db.Uuid
   leftAt        DateTime?  @map("left_at") @db.Timestamptz(6)
+  /// When an admin removed them (null: never removed, or they left by
+  /// themselves). An invite minted at or before this cannot bring them back.
+  removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
+  /// The admin who removed them.
+  removedBy     String?    @map("removed_by") @db.Uuid
   updatedSeq    BigInt     @default(0) @map("updated_seq")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
+  importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
 
   authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")
   paidFor            ExpensePayer[]
@@ -409,6 +420,8 @@ model GroupMember {
   claimsDecided      MemberClaim[]       @relation("ClaimDecider")
   tripBudget         TripMemberBudget?
   ghostMerges        GhostMerge[]
+  importsRun         ImportBatch[]       @relation("BatchActor")
+  importsUndone      ImportBatch[]       @relation("BatchUndoneBy")
 
   @@unique([groupId, profileId])
   @@index([groupId])
@@ -632,17 +645,21 @@ model ExpenseVersion {
   /// forward by waves_apply_expense when an edit from an older client sends
   /// none; a newer client clears it with ''.
   payee            String?
+  /// The import this version came in with (`import_batches`), set on version 1
+  /// of an imported expense only; edits carry none. What Undo import acts on.
+  importBatchId    String?       @map("import_batch_id") @db.Uuid
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  expense   Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
-  currentOf Expense?       @relation("CurrentVersion")
-  author    GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
-  receipt   Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
-  payers    ExpensePayer[]
-  shares    ExpenseShare[]
+  expense     Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
+  currentOf   Expense?       @relation("CurrentVersion")
+  author      GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
+  importBatch ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  receipt     Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  payers      ExpensePayer[]
+  shares      ExpenseShare[]
 
   @@unique([expenseId, versionNo])
   @@index([expenseId])
@@ -753,6 +770,8 @@ model Settlement {
   remindedAt       DateTime?        @map("reminded_at") @db.Timestamptz(6)
   confirmedAt      DateTime?        @map("confirmed_at") @db.Timestamptz(6)
   clientMutationId String?          @unique @map("client_mutation_id") @db.Uuid
+  /// The import that wrote this settlement, if any (`import_batches`).
+  importBatchId    String?          @map("import_batch_id") @db.Uuid
   updatedSeq       BigInt           @default(0) @map("updated_seq")
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -760,6 +779,7 @@ model Settlement {
   group       Group                  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   fromMember  GroupMember            @relation("SettlementFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
   toMember    GroupMember            @relation("SettlementTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+  importBatch ImportBatch?           @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   allocations SettlementAllocation[]
   proofs      SettlementProof[]
 
@@ -803,6 +823,35 @@ model ActivityLog {
   @@index([groupId, createdAt])
   @@index([groupId, updatedSeq])
   @@map("activity_log")
+  @@schema("public")
+}
+
+/// One import into a group: the id every imported row carries, and what Undo
+/// import acts on (`waves_undo_import`). Written only by the definer functions;
+/// members of the group can read it. The id is chosen by the client, so it is
+/// the idempotency key for the whole import. `source` is one of csv | splitwise |
+/// waves_csv | waves_json | xlsx | screenshot (CHECK in the migration).
+model ImportBatch {
+  id              String    @id @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  actorMemberId   String?   @map("actor_member_id") @db.Uuid
+  source          String
+  expenseCount    Int       @default(0) @map("expense_count")
+  settlementCount Int       @default(0) @map("settlement_count")
+  ghostCount      Int       @default(0) @map("ghost_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  undoneAt        DateTime? @map("undone_at") @db.Timestamptz(6)
+  undoneBy        String?   @map("undone_by") @db.Uuid
+
+  group    Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  actor    GroupMember?     @relation("BatchActor", fields: [actorMemberId], references: [id], onDelete: SetNull)
+  undoer   GroupMember?     @relation("BatchUndoneBy", fields: [undoneBy], references: [id], onDelete: SetNull)
+  versions ExpenseVersion[]
+  payments Settlement[]
+  ghosts   GroupMember[]    @relation("BatchGhosts")
+
+  @@index([groupId, createdAt])
+  @@map("import_batches")
   @@schema("public")
 }
 

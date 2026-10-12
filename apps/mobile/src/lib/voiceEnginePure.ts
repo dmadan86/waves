@@ -25,8 +25,14 @@ export interface VoiceEngineInfo {
   reason: VoiceEngineReason | null;
 }
 
-/** A streamed sentence ends this long after the last word... */
-export const STREAM_SILENCE_MS = 2200;
+/**
+ * A streamed sentence ends this long after the last word... People pause to
+ * think mid-sentence ("lunch… 600… split with Renny"); at 2.2 s that pause
+ * ended the take and the rest of the sentence was lost.
+ */
+export const STREAM_SILENCE_MS = 3500;
+/** Extra pause allowed when the words so far plainly do not end a sentence. */
+export const UNFINISHED_EXTRA_MS = 2500;
 /** ...or, if nothing is said at all, after this long. */
 export const STREAM_FIRST_WORD_MS = 5000;
 /** No voice session runs longer than this, however it was started. */
@@ -142,4 +148,69 @@ export function planMicStart(input: MicStartInputs): MicStartPlan {
     silenceMs: input.held ? STREAM_SILENCE_MS * 2 : STREAM_SILENCE_MS,
     firstWordMs: STREAM_FIRST_WORD_MS,
   };
+}
+
+/**
+ * Words a sentence does not end on: a connective, a preposition, a filler. When
+ * the last word heard is one of these the person is mid-thought ("dinner 900
+ * split with…"), so the silence allowed before the take ends grows. English
+ * plus the Hindi/Hinglish connectives people mix in.
+ */
+const UNFINISHED_TAIL = new Set([
+  'and',
+  'or',
+  'but',
+  'to',
+  'for',
+  'with',
+  'from',
+  'of',
+  'the',
+  'a',
+  'an',
+  'at',
+  'on',
+  'in',
+  'by',
+  'between',
+  'among',
+  'plus',
+  'paid',
+  'split',
+  'between',
+  'uh',
+  'um',
+  'umm',
+  'er',
+  'erm',
+  'hmm',
+  'like',
+  'so',
+  'then',
+  'aur',
+  'ke',
+  'ka',
+  'ki',
+  'se',
+  'ko',
+  'mein',
+  'liye',
+  'wala',
+  'wali',
+]);
+
+/** True when the text so far ends on a word a sentence does not end on. */
+export function soundsUnfinished(text: string): boolean {
+  const words = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
+    .trim()
+    .split(/\s+/);
+  const last = words[words.length - 1];
+  return Boolean(last) && UNFINISHED_TAIL.has(last as string);
+}
+
+/** How long a pause may last before the take ends, given what was heard so far. */
+export function pauseAllowanceMs(text: string, baseMs: number): number {
+  return soundsUnfinished(text) ? baseMs + UNFINISHED_EXTRA_MS : baseMs;
 }
