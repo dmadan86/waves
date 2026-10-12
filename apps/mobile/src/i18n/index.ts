@@ -2004,6 +2004,13 @@ export interface UiStrings {
     viewDetails: string;
     openGroup: string;
     noneForFilter: string;
+    /** "Imported {n} expenses": the feed row for one import into a group. */
+    importedHeadline: PluralForms;
+    /** The same event as a sentence, from the reader's side: "{who} imported {n} expenses". */
+    importedSentence: PluralForms;
+    importUndoneHeadline: string;
+    /** "{who} undid an import". */
+    importUndoneSentence: string;
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
@@ -4043,6 +4050,21 @@ export interface UiStrings {
     problemNoRows: string;
     problemNotAnExport: string;
     problemNewerFormat: string;
+    problemAmbiguousDate: string;
+    problemMixedDates: string;
+    problemTooManyDecimals: string;
+    problemRefund: string;
+    problemUnknownPerson: string;
+    problemSplitMismatch: string;
+    problemPercentNot100: string;
+    problemTooManyRows: string;
+    problemFileTooLarge: string;
+    problemEncoding: string;
+    problemLikelyDuplicate: string;
+    problemLowConfidence: string;
+    problemNotAnExpense: string;
+    problemPayerEstimated: string;
+    problemUnexpectedSettlement: string;
     whereItGoes: string;
     aNewGroup: string;
     namedAfterFile: string;
@@ -6498,6 +6520,10 @@ const en: UiStrings = {
     viewDetails: 'View details',
     openGroup: 'Open group',
     noneForFilter: 'Nothing here for this filter yet.',
+    importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
+    importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
+    importUndoneHeadline: 'Import undone',
+    importUndoneSentence: '{who} undid an import',
   },
   newGroupForm: {
     title: 'Create a new group',
@@ -8130,6 +8156,25 @@ const en: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'Where it goes',
     aNewGroup: 'A new group',
     namedAfterFile: 'Named after the file',
@@ -10554,6 +10599,16 @@ const ta: UiStrings = {
     viewDetails: 'விவரங்களைப் பார்',
     openGroup: 'குழுவைத் திற',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
+    importedHeadline: {
+      one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
+      other: '{n} செலவுகள் இறக்குமதி செய்யப்பட்டன',
+    },
+    importedSentence: {
+      one: '{who} {n} செலவை இறக்குமதி செய்தார்',
+      other: '{who} {n} செலவுகளை இறக்குமதி செய்தார்',
+    },
+    importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
+    importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
@@ -12278,6 +12333,25 @@ const ta: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'எங்கே சேரும்',
     aNewGroup: 'ஒரு புதிய குழு',
     namedAfterFile: 'கோப்பின் பெயரில்',
@@ -14694,6 +14768,13 @@ const hi: UiStrings = {
     viewDetails: 'विवरण देखें',
     openGroup: 'समूह खोलें',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
+    importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
+    importedSentence: {
+      one: '{who} ने {n} ख़र्च इम्पोर्ट किया',
+      other: '{who} ने {n} ख़र्च इम्पोर्ट किए',
+    },
+    importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
+    importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
@@ -16339,6 +16420,25 @@ const hi: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'कहाँ जाएगा',
     aNewGroup: 'एक नया समूह',
     namedAfterFile: 'फ़ाइल के नाम पर',
@@ -18805,6 +18905,24 @@ const ar: UiStrings = {
     viewDetails: 'عرض التفاصيل',
     openGroup: 'فتح المجموعة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
+    importedHeadline: {
+      zero: 'استيراد {n} مصروف',
+      one: 'استيراد مصروف واحد',
+      two: 'استيراد مصروفين',
+      few: 'استيراد {n} مصروفات',
+      many: 'استيراد {n} مصروفًا',
+      other: 'استيراد {n} مصروف',
+    },
+    importedSentence: {
+      zero: '{who} استورد {n} مصروف',
+      one: '{who} استورد مصروفًا واحدًا',
+      two: '{who} استورد مصروفين',
+      few: '{who} استورد {n} مصروفات',
+      many: '{who} استورد {n} مصروفًا',
+      other: '{who} استورد {n} مصروف',
+    },
+    importUndoneHeadline: 'تم التراجع عن الاستيراد',
+    importUndoneSentence: '{who} تراجع عن استيراد',
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
@@ -20783,6 +20901,25 @@ const ar: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'إلى أين يذهب',
     aNewGroup: 'مجموعة جديدة',
     namedAfterFile: 'باسم الملف',
