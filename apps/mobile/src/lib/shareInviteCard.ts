@@ -70,7 +70,7 @@ export async function shareInviteCard(options: ShareInviteCardOptions): Promise<
         subject: options.subject,
         target: options.target,
       });
-      if (result === 'shared') return;
+      if (result === 'shared' || result === 'cancelled') return;
       if (options.target !== 'any' || !(await Sharing.isAvailableAsync())) {
         await options.fallback();
         return;
