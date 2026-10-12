@@ -132,3 +132,13 @@ export interface AcceptedInvite {
 export function nameOf(member: Member): string {
   return member.profile?.display_name ?? member.ghost_name ?? 'Someone';
 }
+
+/**
+ * The name for somebody the past points at. A bill or payment keeps naming a
+ * member after they leave or are removed, so they keep their name, marked with
+ * `leftLabel` (the localized "(left)") once `left_at` is set.
+ */
+export function pastNameOf(member: Member, leftLabel: string): string {
+  const name = nameOf(member);
+  return member.left_at ? `${name} ${leftLabel}` : name;
+}

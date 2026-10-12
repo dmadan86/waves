@@ -30,7 +30,8 @@ import {
 } from '@waves/ui';
 
 import { useGroup, useGroupLedger } from '@/data/hooks';
-import { displayName, groupLabel, isGhost, GroupType, SettlementMethod } from '@/data/types';
+import { memberNameFor } from '@/lib/memberName';
+import { groupLabel, isGhost, GroupType, SettlementMethod } from '@/data/types';
 import { useBlockedUsers } from '@/data/blocked';
 import { buildGroupExportModel, INCLUDE_ALL, type ExportInclude } from '@/data/groupExport';
 import { renderGroupExportHtml, type GroupExportLabels } from '@/data/groupExportHtml';
@@ -95,7 +96,7 @@ export default function GroupExportScreen() {
   const { profile } = useAuth();
   const { blockedIds } = useBlockedUsers();
 
-  const { group, members, expenses, settlements } = useGroup(groupId);
+  const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
 
   const [format, setFormat] = useState<Format>(Format.Pdf);
@@ -207,11 +208,17 @@ export default function GroupExportScreen() {
           type: groupData.type,
           currency: groupData.default_currency,
         },
-        members: (members.data ?? []).map((member) => ({
+        members: (everyone.data ?? []).map((member) => ({
           id: member.id,
-          name: displayName(member, profile?.id, blockedIds, t.misc.someone),
+          name: memberNameFor(member, {
+            viewerId: profile?.id,
+            blocked: blockedIds,
+            someone: t.misc.someone,
+            leftLabel: t.misc.memberLeft,
+          }),
           role: member.role,
           isGhost: isGhost(member),
+          left: Boolean(member.left_at),
         })),
         // `expenses.rows` is the queue-replayed render list; `settlements.data`
         // is the mirror's settlement rows. Both already read for this group.

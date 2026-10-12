@@ -81,6 +81,7 @@ import {
   type PlanTransfer,
   type SettleHero,
 } from '@/lib/settlePlan';
+import { memberNameById } from '@/lib/memberName';
 
 export function SettleBody({
   groupId,
@@ -109,7 +110,7 @@ export function SettleBody({
   const { profile } = useAuth();
   const { blockedIds } = useBlockedUsers();
 
-  const { group, members, expenses, settlements } = useGroup(groupId);
+  const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const recordSettlement = useRecordSettlement(groupId);
   const guard = useGuestGuard();
@@ -129,7 +130,7 @@ export function SettleBody({
   const currency = group.data?.default_currency ?? 'INR';
   const country = group.data?.country_code ?? null;
   const myMemberId = ledger.myMemberId;
-  const lookup = useMemo(() => memberLookup(members.data), [members.data]);
+  const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
 
   const split = useMemo(
     () => splitSettlePlan(ledger.transfers, myMemberId),
@@ -138,8 +139,12 @@ export function SettleBody({
   const summary = useMemo(() => summariseSettlePlan(split, currency), [split, currency]);
 
   const nameOf = (memberId: string): string => {
-    const member = lookup.get(memberId);
-    return member ? displayName(member, null, blockedIds, t.misc.someone) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId: null,
+      blocked: blockedIds,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+    });
   };
   const fmt = (value: bigint, code: string = currency): string =>
     format(money(value, code as CurrencyCode), { locale });

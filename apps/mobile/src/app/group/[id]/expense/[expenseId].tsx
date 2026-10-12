@@ -59,7 +59,7 @@ import {
 import { rateAt } from '@/lib/fxLine';
 import { expenseTitle } from '@/data/expenseTitle';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, isBlockedMember, isGhost, isViewer } from '@/data/types';
+import { groupLabel, isBlockedMember, isGhost, isViewer } from '@/data/types';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
@@ -74,6 +74,7 @@ import { showDate, showTime } from '@/lib/expenseDay';
 import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
 import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
+import { memberNameById } from '@/lib/memberName';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -161,7 +162,7 @@ export default function ExpenseDetailScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, everyone, expenses } = useGroup(groupId);
   const versions = useExpenseVersions(expenseId ?? '');
   const imageEvents = useExpenseImageEvents(expenseId ?? '');
   const scrollRef = useRef<RNScrollView>(null);
@@ -229,7 +230,9 @@ export default function ExpenseDetailScreen() {
       active = false;
     };
   });
-  const lookup = memberLookup(members.data);
+  // Names come from everyone who was ever in the group: a bill still points at
+  // somebody who has since left, and they keep their name (marked as left).
+  const lookup = memberLookup(everyone.data);
   // A party to this expense — a payer of the current version, or its author — is
   // the only one who may attach to it (the RPC enforces this too). Non-parties
   // still SEE any group-visible attachment; they just cannot add or see a private
@@ -266,16 +269,25 @@ export default function ExpenseDetailScreen() {
   const iAmAdmin =
     (members.data ?? []).find((m) => isViewer(m, viewerId) && m.left_at === null)?.role === 'admin';
   const nameOf = (memberId: string | null): string => {
-    const member = memberId ? lookup.get(memberId) : undefined;
-    return member ? displayName(member, viewerId, blockedIds, t.misc.someone) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId,
+      blocked: blockedIds,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+    });
   };
   // The label reads "You"; the avatar keeps the real name so the current user's
   // circle is the same initial and colour here as on every other screen — a
   // balances row keys the avatar off the real name too. Passing "You" to the
   // avatar made it a lone pink "Y" next to a blue "G" elsewhere for one person.
   const avatarNameOf = (memberId: string | null): string => {
-    const member = memberId ? lookup.get(memberId) : undefined;
-    return member ? displayName(member, null, blockedIds, t.misc.someone) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId: null,
+      blocked: blockedIds,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+      bare: true,
+    });
   };
 
   if (expenses.isLoading || askingServer) {
@@ -1020,7 +1032,7 @@ export default function ExpenseDetailScreen() {
                     const payerHref = expenseMemberHref(
                       groupId,
                       payer.member_id,
-                      Boolean(payerMember),
+                      Boolean(payerMember) && !payerMember?.left_at,
                     );
                     return (
                       <View key={payer.member_id}>
@@ -1078,7 +1090,11 @@ export default function ExpenseDetailScreen() {
                   // written into an old version and since gone) has nowhere to
                   // land, so it stays a plain row rather than a tap that ends on
                   // "member not found".
-                  const memberHref = expenseMemberHref(groupId, row.memberId, Boolean(member));
+                  const memberHref = expenseMemberHref(
+                    groupId,
+                    row.memberId,
+                    Boolean(member) && !member?.left_at,
+                  );
                   const openMember = memberHref ? () => router.push(memberHref) : undefined;
                   // The words under the name, computed once and given to both the
                   // row and its spoken label — an explicit `accessibilityLabel`

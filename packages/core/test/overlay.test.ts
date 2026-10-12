@@ -216,6 +216,23 @@ describe('members', () => {
     });
   });
 
+  it('hides people who left unless asked for the past', () => {
+    // Pickers for a new bill must not offer them; a past bill still has to name them.
+    const row = (id: string, left_at: string | null) => ({
+      table: SyncTable.GroupMembers,
+      groupId: GROUP,
+      seq: 1,
+      row: { id, group_id: GROUP, profile_id: null, ghost_name: id, left_at },
+    });
+    const mirror = reconcile(emptyMirror(), [row('Renny', AT), row('Asha', null)]).state;
+    expect(materialiseMembers(mirror, [], { groupId: GROUP }).map((m) => m.id)).toEqual(['Asha']);
+    expect(
+      materialiseMembers(mirror, [], { groupId: GROUP, includeLeft: true })
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual(['Asha', 'Renny']);
+  });
+
   it('does not duplicate somebody the server has since confirmed', () => {
     // Same id both sides — the client chose it, so the row the server sends
     // back replaces the queued one rather than sitting beside it.
