@@ -20,6 +20,7 @@ import { resolveDates, type DateCell } from './date';
 import { detectLayout, squashHeader, type DetectedLayout } from './layout';
 import { ImportProblemKind, type ImportProblem } from './problem';
 import { readTable, type TableRead } from './table';
+import { nameMap } from './nameMap';
 
 export type ImportSource = 'csv' | 'splitwise' | 'waves_csv' | 'waves_json' | 'xlsx' | 'screenshot';
 
@@ -345,7 +346,7 @@ export function draftFromSplitwiseTable(table: TableRead, options: DraftOptions 
     }
     const amount = cost.minor;
 
-    const nets: Record<string, bigint> = {};
+    const nets: Record<string, bigint> = nameMap();
     let netTotal = 0n;
     for (const entry of personColumns) {
       const raw = fields[entry.column] ?? '';
@@ -761,7 +762,7 @@ function parseSplitCell(
   }
 
   if (valued.every((pair) => pair.value!.endsWith('%'))) {
-    const basisPoints: Record<string, number> = {};
+    const basisPoints: Record<string, number> = nameMap();
     for (const pair of valued) {
       const number = pair.value!.slice(0, -1).trim();
       if (!/^\d+(\.\d{1,2})?$/.test(number)) {
@@ -778,7 +779,7 @@ function parseSplitCell(
     return { split: { kind: 'percent', basisPoints }, issues: [] };
   }
 
-  const exact: Record<string, bigint> = {};
+  const exact: Record<string, bigint> = nameMap();
   let exactOk = true;
   for (const pair of valued) {
     const parsed = parseLooseAmount(pair.value!, ctx.currency, ctx.style);
@@ -819,7 +820,7 @@ function parsePayerCell(
   if (trimmed === '') return { payers: null, issues: [] };
 
   if (trimmed.includes(':')) {
-    const payers: Record<string, bigint> = {};
+    const payers: Record<string, bigint> = nameMap();
     for (const token of trimmed.split(PAYER_SEPARATORS)) {
       const at = token.lastIndexOf(':');
       const name = at < 0 ? null : ctx.book.add(token.slice(0, at));
@@ -1039,7 +1040,7 @@ export function draftFromTable(
     let split: DraftSplit | null;
     const filled = wide.filter((person) => person.text !== '');
     if (cell(fields, 'split') === '' && filled.length > 0) {
-      const values: Record<string, bigint> = {};
+      const values: Record<string, bigint> = nameMap();
       let readable = true;
       for (const person of filled) {
         const parsed = parseLooseAmount(person.text, hint, layout.decimalStyle);
