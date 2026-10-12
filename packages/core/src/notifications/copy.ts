@@ -69,6 +69,11 @@ export enum NotificationKind {
    */
   GroupAdded = 'group_added',
   /**
+   * An admin took you out of a group. Your past expenses stay in its history;
+   * a fresh invite is the way back in.
+   */
+  MemberRemoved = 'member_removed',
+  /**
    * A device that has never signed in on this account just did. The one
    * notification here that is a *security* notice rather than ledger news:
    * it is the only way somebody learns their account was opened somewhere they
@@ -246,6 +251,10 @@ const en: CopyStrings = {
       title: '{actor} added you to {group}',
       body: 'Tap to open the group',
     },
+    [NotificationKind.MemberRemoved]: {
+      title: 'You were removed from {group}',
+      body: 'Your past expenses stay in the group history',
+    },
     [NotificationKind.NewDeviceLogin]: {
       title: 'New sign-in on {device}',
       body: 'If this was not you, sign that device out and change how you sign in.',
@@ -370,6 +379,10 @@ const ta: CopyStrings = {
       title: '{actor} உங்களை {group} இல் சேர்த்தார்',
       body: 'குழுவைத் திறக்கத் தட்டவும்',
     },
+    [NotificationKind.MemberRemoved]: {
+      title: 'நீங்கள் {group} இலிருந்து நீக்கப்பட்டீர்கள்',
+      body: 'உங்கள் கடந்த செலவுகள் குழுவின் வரலாற்றில் இருக்கும்',
+    },
     [NotificationKind.NewDeviceLogin]: {
       title: '{device} இல் புதிய உள்நுழைவு',
       body: 'இது நீங்கள் இல்லையென்றால், அந்தச் சாதனத்தை வெளியேற்றி உள்நுழையும் முறையை மாற்றவும்.',
@@ -491,6 +504,10 @@ const hi: CopyStrings = {
       title: '{actor} ने आपको {group} में जोड़ा',
       body: 'ग्रुप खोलने के लिए टैप करें',
     },
+    [NotificationKind.MemberRemoved]: {
+      title: 'आपको {group} से हटा दिया गया',
+      body: 'आपके पिछले खर्च ग्रुप के इतिहास में बने रहेंगे',
+    },
     [NotificationKind.NewDeviceLogin]: {
       title: '{device} पर नया साइन-इन',
       body: 'अगर यह आप नहीं थे, तो उस डिवाइस को साइन आउट करें और साइन-इन का तरीका बदलें।',
@@ -611,6 +628,10 @@ const ar: CopyStrings = {
     [NotificationKind.GroupAdded]: {
       title: 'أضافك {actor} إلى {group}',
       body: 'اضغط لفتح المجموعة',
+    },
+    [NotificationKind.MemberRemoved]: {
+      title: 'تمت إزالتك من {group}',
+      body: 'تبقى مصروفاتك السابقة في سجل المجموعة',
     },
     [NotificationKind.NewDeviceLogin]: {
       title: 'تسجيل دخول جديد على {device}',
