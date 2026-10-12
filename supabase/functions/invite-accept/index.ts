@@ -219,13 +219,33 @@ serveWithCors(async (request) => {
         throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
       }
 
-      const { data: inserted, error: insertError } = await service
+      // Somebody who left, or was removed by an admin, still has their row —
+      // (group_id, profile_id) is unique and their history hangs off it — so a
+      // fresh invite brings that row back rather than inserting a second one.
+      const { data: former } = await service
         .from('group_members')
-        .insert({ group_id: invite.group_id, profile_id: profileId, joined_via: 'invite_link' })
         .select('id')
-        .single();
-      if (insertError) throw new HttpError(500, 'INTERNAL', insertError.message);
-      memberId = inserted.id;
+        .eq('group_id', invite.group_id)
+        .eq('profile_id', profileId)
+        .not('left_at', 'is', null)
+        .maybeSingle();
+
+      if (former) {
+        const { error: rejoinError } = await service
+          .from('group_members')
+          .update({ left_at: null, role: 'member', joined_via: 'invite_link' })
+          .eq('id', former.id);
+        if (rejoinError) throw new HttpError(500, 'INTERNAL', rejoinError.message);
+        memberId = former.id;
+      } else {
+        const { data: inserted, error: insertError } = await service
+          .from('group_members')
+          .insert({ group_id: invite.group_id, profile_id: profileId, joined_via: 'invite_link' })
+          .select('id')
+          .single();
+        if (insertError) throw new HttpError(500, 'INTERNAL', insertError.message);
+        memberId = inserted.id;
+      }
     }
 
     await service.from('activity_log').insert({

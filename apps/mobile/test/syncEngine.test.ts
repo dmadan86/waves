@@ -127,7 +127,7 @@ vi.mock('../src/sync/store', () => ({
   }),
 }));
 
-const { SyncEngine } = await import('../src/sync/engine');
+const { SyncEngine, groupsNoLongerMine } = await import('../src/sync/engine');
 
 const online = () => h.net.mockResolvedValue({ isInternetReachable: true });
 const offline = () => h.net.mockResolvedValue({ isInternetReachable: false });
@@ -387,6 +387,63 @@ describe('leaving a group forgets it locally', () => {
     const relaunched = new SyncEngine();
     await relaunched.hydrate();
     expect(groupIds(relaunched.getState().mirror)).toEqual([]);
+  });
+});
+
+describe('removed by an admin', () => {
+  it('drops a group the server no longer lists as ours', async () => {
+    online();
+    h.invoke.mockResolvedValueOnce({
+      data: { ...discoveryResponse(), memberOf: ['g-goa'] },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+    expect(groupIds(engine.getState().mirror)).toEqual(['g-goa']);
+
+    // Removed: RLS hides the group, so the pull says nothing about it.
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [],
+        changes: [],
+        cursors: {},
+        memberOf: [],
+        serverTime: '2026-08-10T00:00:00.000Z',
+      },
+      error: null,
+    });
+    await engine.flush();
+
+    expect(groupIds(engine.getState().mirror)).toEqual([]);
+    const relaunched = new SyncEngine();
+    await relaunched.hydrate();
+    expect(groupIds(relaunched.getState().mirror)).toEqual([]);
+  });
+
+  it('keeps every group when an older server does not say', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+    const engine = new SyncEngine();
+    await engine.flush();
+    await engine.flush();
+    expect(groupIds(engine.getState().mirror)).toEqual(['g-goa']);
+  });
+});
+
+describe('groupsNoLongerMine', () => {
+  const mirror = {
+    cursors: {},
+    tables: { groups: { 'g-a': { id: 'g-a' }, 'g-b': { id: 'g-b' } } },
+  } as unknown as MirrorState;
+
+  it('is nothing without a membership list', () => {
+    expect(groupsNoLongerMine(mirror, [], undefined)).toEqual([]);
+  });
+
+  it('names groups missing from the list, but never one with queued work', () => {
+    expect(groupsNoLongerMine(mirror, [], ['g-a'])).toEqual(['g-b']);
+    const queued = [{ groupId: 'g-b' }] as unknown as QueuedMutation[];
+    expect(groupsNoLongerMine(mirror, queued, ['g-a'])).toEqual([]);
   });
 });
 

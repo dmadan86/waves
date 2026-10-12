@@ -871,6 +871,17 @@ export async function setMemberRole(memberId: string, role: 'admin' | 'member'):
   if (error) throw new Error(error.message);
 }
 
+/**
+ * An admin takes somebody out of the group. The same soft exit as leaving, done
+ * to another person, so it cannot be a plain update (the policy only lets you
+ * write your own row): `waves_remove_member` checks the caller is an admin, will
+ * not remove yourself, and keeps every expense and balance.
+ */
+export async function removeMember(memberId: string): Promise<void> {
+  const { error } = await backend.rpc('waves_remove_member', { p_member_id: memberId });
+  if (error) throw new Error(error.message);
+}
+
 /** Leaving is a soft exit: history stays, the person stops accruing new shares. */
 export async function leaveGroup(memberId: string): Promise<void> {
   const { error } = await backend

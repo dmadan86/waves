@@ -31,11 +31,13 @@ import {
   useGhostMergePersonIds,
   useGroup,
   useGroupLedger,
+  useRemoveMember,
   useSetMemberRole,
   useUpdateMember,
 } from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
+import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { personKeyOf } from '@/data/peopleBalances';
 import { useBlockedUsers } from '@/data/blocked';
 import {
@@ -234,6 +236,8 @@ export default function MemberScreen() {
   const ledger = useGroupLedger(groupId, viewerId);
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
+  const removeFromGroup = useRemoveMember(groupId);
+  const [removing, setRemoving] = useState(false);
   const claimAsMe = useClaimMemberAsMe(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
@@ -355,6 +359,45 @@ export default function MemberScreen() {
   };
 
   const balance = ledger.balances.get(member.id) ?? 0n;
+
+  /**
+   * Admin removes this person. Asked in plain words, with what is still open
+   * between them and the group when the balance is not square: removing does not
+   * settle it, the expenses and the balance stay in the history.
+   */
+  const confirmRemove = async (): Promise<void> => {
+    // One dialog / removal at a time: covers the dialog and the mutation.
+    if (removing) return;
+    setRemoving(true);
+    const ok = await confirm({
+      title: fill(t.people.removeConfirmTitle, { name: realName }),
+      body: removeMemberBody({
+        name: realName,
+        balance,
+        currency,
+        locale,
+        strings: {
+          body: t.people.removeConfirmBody,
+          stillOwes: t.people.removeStillOwes,
+          isOwed: t.people.removeIsOwed,
+        },
+      }),
+      confirmLabel: t.people.removeFromGroup,
+      tone: 'danger',
+    });
+    if (!ok) {
+      setRemoving(false);
+      return;
+    }
+    setStatus(null);
+    removeFromGroup.mutate(member.id, {
+      onSuccess: () => router.back(),
+      onError: (caught) => setStatus(friendlyError(caught, t.couldNotSave, 'member.remove')),
+      onSettled: () => {
+        setRemoving(false);
+      },
+    });
+  };
   // The hero wears the money colour for its meaning — mint when this person is
   // owed, pink when they owe — and a neutral lilac when they are square, so a
   // settled member is never painted a direction they are not in. Ink from the
@@ -412,6 +455,17 @@ export default function MemberScreen() {
                           setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
                       },
                     ),
+          },
+        ]
+      : []),
+    ...(iAmAdmin && !isMe && !member.left_at
+      ? [
+          {
+            icon: 'person-remove-outline' as const,
+            label: t.people.removeFromGroup,
+            hint: t.people.removeFromGroupHint,
+            destructive: true,
+            onPress: removing || removeFromGroup.isPending ? undefined : () => void confirmRemove(),
           },
         ]
       : []),

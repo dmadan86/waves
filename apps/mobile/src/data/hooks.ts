@@ -108,6 +108,7 @@ import {
   type GroupBudget,
   recordSettlement,
   leaveGroup,
+  removeMember,
   updateGroup,
   updateMember,
   setMemberRole,
@@ -2174,6 +2175,20 @@ export function useSetMemberRole(groupId: string) {
   return useMutation({
     mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'member' }) =>
       isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setMemberRole(memberId, role),
+    onSuccess: () => invalidateGroup(queryClient, groupId),
+  });
+}
+
+/**
+ * Admin removes a member. Unlike leaving, the group stays on this device, so
+ * there is nothing to forget: flush and refetch to pick up the member's
+ * `left_at`, and the ledger recomputes with them shown as having left.
+ */
+export function useRemoveMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : removeMember(memberId),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
