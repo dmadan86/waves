@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
+  useWindowDimensions,
   Linking,
   Platform,
   Pressable,
@@ -85,6 +86,7 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
  */
 export default function InviteScreen() {
   const theme = useTheme();
+  const illustrationWidth = useWindowDimensions().width - theme.spacing.xl * 2;
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -259,12 +261,15 @@ export default function InviteScreen() {
             {/* Friends above the card, cropped from the top so it is faces that
                 show and the table is hidden by the card riding over it. Kept
                 short on purpose: this screen has to fit one phone. */}
-            <View style={{ height: ILLUSTRATION_HEIGHT, overflow: 'hidden', alignItems: 'center' }}>
+            <View style={{ height: ILLUSTRATION_HEIGHT, overflow: 'hidden' }}>
+              {/* Sized in numbers, not '100%' + aspectRatio: inside the clipped
+                  box Android laid that out far larger than the column, so all
+                  that showed was the tops of two heads. */}
               <Image
                 source={FRIENDS}
                 accessible={false}
-                resizeMode="cover"
-                style={{ width: '100%', aspectRatio: 1200 / 614 }}
+                resizeMode="contain"
+                style={{ width: illustrationWidth, height: illustrationWidth * (614 / 1200) }}
               />
             </View>
 
