@@ -957,7 +957,10 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       const isDemo = group.id === DEMO_GROUP_ID;
       const members = isDemo
         ? demoMembers(profileId)
-        : (materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]);
+        : (materialiseMembers(mirror, queue, {
+            groupId: group.id,
+            includeLeft: true,
+          }) as unknown as MemberRow[]);
       const me = members.find((member) => isViewer(member, profileId) && member.left_at === null);
       if (!me) continue;
       const byId = new Map(members.map((member) => [member.id, member] as const));
@@ -1133,6 +1136,7 @@ export function useGroup(groupId: string) {
         return {
           group: null,
           members: [],
+          everyone: [],
           settlements: [],
           activity: [],
           stored: [],
@@ -1143,6 +1147,7 @@ export function useGroup(groupId: string) {
       return {
         group: demoGroupRow(),
         members: demoMembers(viewerId),
+        everyone: demoMembers(viewerId),
         settlements: demoSettlements(),
         activity: [] as ActivityRow[],
         stored: expenses,
@@ -1164,6 +1169,11 @@ export function useGroup(groupId: string) {
     // ledger was never deleted; it was only unreachable.
     const group = built && !built.deleted_at ? built : null;
     const members = materialiseMembers(mirror, queue, { groupId }) as unknown as MemberRow[];
+    // Everyone who ever appeared in the group, for resolving names in the past.
+    const everyone = materialiseMembers(mirror, queue, {
+      groupId,
+      includeLeft: true,
+    }) as unknown as MemberRow[];
     const settlements = materialiseSettlements(mirror, queue, {
       groupId,
     }) as unknown as SettlementRow[];
@@ -1182,7 +1192,7 @@ export function useGroup(groupId: string) {
       groupId,
     }) as unknown as ExpenseRow[];
 
-    return { group, members, settlements, activity, stored, withPending };
+    return { group, members, everyone, settlements, activity, stored, withPending };
   }, [mirror, queue, groupId, demo, showDemo, viewerId]);
 
   // A group that is not in the mirror yet is not necessarily a group that does
@@ -1207,6 +1217,7 @@ export function useGroup(groupId: string) {
   const localGroup = useLocalRead(rows.group);
   const group = arriving ? { ...localGroup, isLoading: true } : localGroup;
   const members = useLocalRead(rows.members);
+  const everyone = useLocalRead(rows.everyone);
   const settlements = useLocalRead(rows.settlements);
   const activity = useLocalRead(rows.activity);
   const expenses = useLocalRead(rows.stored);
@@ -1221,7 +1232,12 @@ export function useGroup(groupId: string) {
 
   return {
     group,
+    // Who is in the group now: what every picker for a new expense, split or
+    // settle-up offers.
     members,
+    // Everyone who has ever been in it, people who left or were removed included.
+    // For names in bills, balances and history — never for choosing who to add.
+    everyone,
     // `expenses.data` is what the server has; `expenses.rows` is what to render.
     expenses: { ...expenses, rows: rows.withPending },
     settlements,

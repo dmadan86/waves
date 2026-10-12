@@ -34,18 +34,12 @@ import {
 import { memberLookup, useGhostMergePersonIds, useGroup, useGroupLedger } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
 import { personKeyOf } from '@/data/peopleBalances';
-import {
-  displayName,
-  groupLabel,
-  isBlockedMember,
-  isGhost,
-  isViewer,
-  type MemberRow,
-} from '@/data/types';
+import { groupLabel, isBlockedMember, isGhost, isViewer, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { memberNameById } from '@/lib/memberName';
 
 /**
  * One proposed payment.
@@ -177,11 +171,11 @@ export default function SimplifyScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members } = useGroup(groupId);
+  const { group, members, everyone } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const { blockedIds } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
-  const lookup = useMemo(() => memberLookup(members.data), [members.data]);
+  const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
 
   // Never "You": the three sentences below already have their own you-forms,
   // and "You pays Ravi" is not a sentence in any of the four languages. A
@@ -189,10 +183,14 @@ export default function SimplifyScreen() {
   // travels into the destination so that screen never flashes the real one.
   const nameOf = useCallback(
     (memberId: string): string => {
-      const member = lookup.get(memberId);
-      return member ? displayName(member, null, blockedIds, t.misc.someone) : t.misc.someone;
+      return memberNameById(lookup, memberId, {
+        viewerId: null,
+        blocked: blockedIds,
+        someone: t.misc.someone,
+        leftLabel: t.misc.memberLeft,
+      });
     },
-    [blockedIds, lookup, t.misc.someone],
+    [blockedIds, lookup, t.misc.someone, t.misc.memberLeft],
   );
 
   // Where a row goes when it is tapped: the person on it who is not you, one

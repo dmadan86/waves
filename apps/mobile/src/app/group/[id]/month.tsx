@@ -37,13 +37,14 @@ import {
 import { CategoryBadge } from '@/components/Category';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { expenseTitle } from '@/data/expenseTitle';
-import { displayName, groupLabel, isViewer, type ExpenseRow } from '@/data/types';
+import { groupLabel, isViewer, type ExpenseRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 
 import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
+import { memberNameById } from '@/lib/memberName';
 
 /** One row of the flattened month: the header tile, a day heading, or a bill. */
 type MonthItem =
@@ -81,17 +82,20 @@ export default function SpendingMonthScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, everyone, expenses } = useGroup(groupId);
 
   const myMemberId = useMemo(
     () => (members.data ?? []).find((member) => isViewer(member, viewerId))?.id ?? null,
     [members.data, viewerId],
   );
 
-  const lookup = memberLookup(members.data);
+  const lookup = memberLookup(everyone.data);
   const nameOf = (memberId: string | null): string => {
-    const member = memberId ? lookup.get(memberId) : undefined;
-    return member ? displayName(member, viewerId) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+    });
   };
 
   // The expenses that make up the tapped column: live, in this currency, in this

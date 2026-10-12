@@ -180,6 +180,8 @@ export interface WebStrings {
     noneYet: string;
     noneYetBody: string;
     whereEveryoneStands: string;
+    /** After the name of somebody who left or was removed, wherever the past names them. */
+    memberLeft: string;
     settledUp: string;
     isSettledUp: string;
     isOwed: string;
@@ -1407,6 +1409,7 @@ const en: WebStrings = {
     noneYet: 'Nothing here yet',
     noneYetBody: 'The first expense somebody adds will show up here.',
     whereEveryoneStands: 'Where everyone stands',
+    memberLeft: '(left)',
     settledUp: 'settled up',
     isSettledUp: 'is settled up',
     isOwed: 'is owed',
@@ -2420,6 +2423,7 @@ const ta: WebStrings = {
     noneYet: 'இன்னும் எதுவும் இல்லை',
     noneYetBody: 'யாராவது சேர்க்கும் முதல் செலவு இங்கே தெரியும்.',
     whereEveryoneStands: 'யார் எங்கே நிற்கிறார்கள்',
+    memberLeft: '(வெளியேறினார்)',
     settledUp: 'தீர்ந்தது',
     isSettledUp: 'கணக்கு தீர்ந்தது',
     isOwed: 'பெற வேண்டியது',
@@ -3472,6 +3476,7 @@ const hi: WebStrings = {
     noneYet: 'अभी यहाँ कुछ नहीं',
     noneYetBody: 'कोई पहला खर्च जोड़ेगा तो यहाँ दिखेगा।',
     whereEveryoneStands: 'किसका क्या हिसाब है',
+    memberLeft: '(छोड़ चुके)',
     settledUp: 'हिसाब बराबर',
     isSettledUp: 'का हिसाब बराबर है',
     isOwed: 'को मिलने हैं',
@@ -4499,6 +4504,7 @@ const ar: WebStrings = {
     noneYet: 'لا شيء هنا بعد',
     noneYetBody: 'أول مصروف يضيفه أحدهم سيظهر هنا.',
     whereEveryoneStands: 'أين يقف كل واحد',
+    memberLeft: '(غادر)',
     settledUp: 'مسوّى',
     isSettledUp: 'حسابه مسوّى',
     isOwed: 'له',

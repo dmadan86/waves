@@ -529,7 +529,16 @@ export interface MirrorMember extends MirrorRow {
 export function materialiseMembers(
   state: MirrorState,
   queue: readonly QueuedMutation[],
-  options: { readonly groupId: string },
+  options: {
+    readonly groupId: string;
+    /**
+     * Keep people who left or were removed. Off by default: pickers for a NEW
+     * expense, split or settle-up must only offer who is in the group now. On
+     * for anything that reads the past — a bill, a balance, a history line still
+     * points at a departed member's id, and without the row it has no name.
+     */
+    readonly includeLeft?: boolean;
+  },
 ): MirrorMember[] {
   const byId = new Map<string, MirrorMember>();
   for (const row of rowsFor(state, SyncTable.GroupMembers, options.groupId) as MirrorMember[]) {
@@ -588,7 +597,8 @@ export function materialiseMembers(
     });
   }
 
-  return [...byId.values()].filter((member) => member.left_at === null);
+  const all = [...byId.values()];
+  return options.includeLeft ? all : all.filter((member) => member.left_at === null);
 }
 
 export interface MirrorGroup extends MirrorRow {

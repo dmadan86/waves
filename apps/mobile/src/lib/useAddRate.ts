@@ -26,7 +26,7 @@ export function useAddRate(
   const { t } = useStrings();
   const { confirm } = useDialog();
   const viewerId = useViewerId();
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, everyone, expenses } = useGroup(groupId);
 
   return useCallback(
     async ({ currency, parties }) => {
@@ -50,7 +50,7 @@ export function useAddRate(
           router.push(`/group/${groupId}/expense/${fix.expenseId}`);
           return;
         case 'notYours': {
-          const author = fix.authorId ? memberLookup(members.data).get(fix.authorId) : undefined;
+          const author = fix.authorId ? memberLookup(everyone.data).get(fix.authorId) : undefined;
           const name = author ? displayName(author) : t.misc.someone;
           const open = await confirm({
             title: fill(t.fx.rateNotYoursTitle, { name }),
@@ -63,6 +63,6 @@ export function useAddRate(
         }
       }
     },
-    [confirm, expenses.rows, group.data, groupId, members.data, t, viewerId],
+    [confirm, expenses.rows, group.data, groupId, members.data, everyone.data, t, viewerId],
   );
 }
