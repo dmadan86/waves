@@ -7217,7 +7217,8 @@ const en: UiStrings = {
     removeFromGroup: 'Remove from group',
     removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
     removeConfirmTitle: 'Remove {name}?',
-    removeConfirmBody: '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
+    removeConfirmBody:
+      '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
     removeStillOwes: '{name} still owes {amount}.',
     removeIsOwed: '{name} is owed {amount}.',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
@@ -11283,7 +11284,8 @@ const ta: UiStrings = {
     removeFromGroup: 'குழுவிலிருந்து நீக்கு',
     removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
     removeConfirmTitle: '{name} ஐ நீக்கவா?',
-    removeConfirmBody: '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
+    removeConfirmBody:
+      '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
     removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
     removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
     adminNote:
@@ -15370,7 +15372,8 @@ const hi: UiStrings = {
     removeFromGroup: 'ग्रुप से हटाएँ',
     removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
     removeConfirmTitle: '{name} को हटाएँ?',
-    removeConfirmBody: '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
+    removeConfirmBody:
+      '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
     removeStillOwes: '{name} पर अभी भी {amount} बकाया है.',
     removeIsOwed: '{name} को {amount} मिलने हैं.',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
@@ -19577,7 +19580,8 @@ const ar: UiStrings = {
     removeFromGroup: 'إزالة من المجموعة',
     removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
     removeConfirmTitle: 'إزالة {name}؟',
-    removeConfirmBody: 'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
+    removeConfirmBody:
+      'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
     removeStillOwes: '{name} ما زال عليه {amount}.',
     removeIsOwed: '{name} له {amount}.',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
