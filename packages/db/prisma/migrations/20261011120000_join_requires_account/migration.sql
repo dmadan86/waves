@@ -163,8 +163,8 @@ REVOKE ALL ON FUNCTION public.waves_request_member_claim(uuid, uuid, uuid, text,
 GRANT EXECUTE ON FUNCTION public.waves_request_member_claim(uuid, uuid, uuid, text, uuid) TO service_role;
 
 -- The backstop. Fires when a profile is attached to a membership row by an
--- invite (insert, or a claim being approved onto a placeholder), whoever wrote
--- it. Later updates to an existing membership are untouched, so a guest who is
+-- invite (insert, a claim being approved onto a placeholder, or a row being
+-- relabelled as invite-joined), whoever wrote it. Later updates to an existing membership are untouched, so a guest who is
 -- already in a group keeps it.
 CREATE OR REPLACE FUNCTION public.waves_guard_join_needs_account() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
@@ -173,7 +173,9 @@ CREATE OR REPLACE FUNCTION public.waves_guard_join_needs_account() RETURNS trigg
 BEGIN
   IF NEW.profile_id IS NOT NULL
      AND NEW.joined_via IN ('invite_link', 'invite_link_claim')
-     AND (TG_OP = 'INSERT' OR OLD.profile_id IS DISTINCT FROM NEW.profile_id) THEN
+     AND (TG_OP = 'INSERT'
+          OR OLD.profile_id IS DISTINCT FROM NEW.profile_id
+          OR OLD.joined_via IS DISTINCT FROM NEW.joined_via) THEN
     PERFORM public.waves_require_account(NEW.profile_id);
   END IF;
   RETURN NEW;

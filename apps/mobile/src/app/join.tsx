@@ -155,7 +155,15 @@ export default function JoinScreen() {
         await flush([result.group.id]).catch(() => undefined);
       };
       await Promise.race([pull(), new Promise<void>((done) => setTimeout(done, 6_000))]);
-      router.replace(`/group/${result.group.id}`);
+      if (resume === '1') {
+        // Reached by replacing the screen the person signed in on, so the
+        // invite they first opened is still on the stack: clear back to the
+        // root so Back from the group does not return to a finished invite.
+        router.dismissAll();
+        router.push(`/group/${result.group.id}`);
+      } else {
+        router.replace(`/group/${result.group.id}`);
+      }
       // A good moment to offer notifications, if the phone is not yet set up.
       requestJoinPushPrompt(result.group.name);
     } catch (caught) {
