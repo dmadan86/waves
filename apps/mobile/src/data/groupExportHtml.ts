@@ -14,7 +14,7 @@
  * and returns an HTML string, so it is unit-testable without a device.
  */
 
-import { BalanceDir, type GroupExportModel } from './groupExport';
+import { BalanceDir, INCLUDE_ALL, type ExportInclude, type GroupExportModel } from './groupExport';
 
 /**
  * Every visible label the document prints that is not already baked into the
@@ -88,7 +88,11 @@ function emptyRow(span: number, note: string): string {
  * the CSS lives inline in a single `<style>` so the document is entirely
  * self-contained. `dir="rtl"` and right alignment flip on for an Arabic locale.
  */
-export function renderGroupExportHtml(model: GroupExportModel, labels: GroupExportLabels): string {
+export function renderGroupExportHtml(
+  model: GroupExportModel,
+  labels: GroupExportLabels,
+  include: ExportInclude = INCLUDE_ALL,
+): string {
   const dir = model.isRtl ? 'rtl' : 'ltr';
   // In RTL the text columns hang right and the money column hangs left; in LTR
   // it is the reverse. One class toggles the money column's edge.
@@ -331,6 +335,9 @@ export function renderGroupExportHtml(model: GroupExportModel, labels: GroupExpo
       </div>
     </div>
 
+${
+  include.balances
+    ? `
     <section>
       <h2>${escapeHtml(labels.balancesTitle)}</h2>
       <table>
@@ -342,7 +349,13 @@ export function renderGroupExportHtml(model: GroupExportModel, labels: GroupExpo
         <tbody>${balanceRows}</tbody>
       </table>
     </section>
+`
+    : ''
+}
 
+${
+  include.expenses
+    ? `
     <section>
       <h2>${escapeHtml(labels.expensesLabel)}</h2>
       <table>
@@ -356,7 +369,13 @@ export function renderGroupExportHtml(model: GroupExportModel, labels: GroupExpo
         <tbody>${expenseRows}</tbody>
       </table>
     </section>
+`
+    : ''
+}
 
+${
+  include.settlements
+    ? `
     <section>
       <h2>${escapeHtml(labels.settlementsLabel)}</h2>
       <table>
@@ -370,6 +389,9 @@ export function renderGroupExportHtml(model: GroupExportModel, labels: GroupExpo
         <tbody>${settlementRows}</tbody>
       </table>
     </section>
+`
+    : ''
+}
 
     <section>
       <h2>${escapeHtml(labels.membersTitle)}</h2>
