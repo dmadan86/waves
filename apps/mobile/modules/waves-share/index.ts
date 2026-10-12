@@ -11,7 +11,7 @@ import { requireOptionalNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
 export type ShareTarget = 'whatsapp' | 'email' | 'any';
-export type ShareImageResult = 'shared' | 'unavailable';
+export type ShareImageResult = 'shared' | 'unavailable' | 'cancelled';
 
 export interface ShareImageWithTextOptions {
   readonly fileUri: string;
@@ -42,7 +42,8 @@ export function isAvailable(): boolean {
 
 /**
  * `shared` once the target app / sheet has been presented, `unavailable` when
- * the module is missing or the target app is not installed.
+ * the module is missing or the target app is not installed, `cancelled` when
+ * the user dismissed the sheet or picked another route (no fallback wanted).
  */
 export async function shareImageWithText(
   options: ShareImageWithTextOptions,
