@@ -73,6 +73,14 @@ export const FREE_MONTHLY_SCANS = 20;
 export const PLUS_MONTHLY_SCANS = 300;
 
 /**
+ * Screenshot imports a month (the `import-screenshot` function; each image is
+ * one model call). Paid only. The database enforces these through
+ * `waves_screenshot_import_quota`, and the function passes them in.
+ */
+export const PLUS_MONTHLY_SCREENSHOT_IMPORTS = 30;
+export const PRO_MONTHLY_SCREENSHOT_IMPORTS = 100;
+
+/**
  * Prices per country, in minor units.
  *
  * Not a conversion of one number — each market is priced at what it will bear.
