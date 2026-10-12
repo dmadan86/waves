@@ -6,6 +6,9 @@ import {
   resolveEngine,
   STREAM_FIRST_WORD_MS,
   STREAM_SILENCE_MS,
+  UNFINISHED_EXTRA_MS,
+  pauseAllowanceMs,
+  soundsUnfinished,
   STREAM_MAX_SESSION_MS,
 } from '@/lib/voiceEnginePure';
 
@@ -80,5 +83,38 @@ describe('planMicStart', () => {
         fallback: { reason: 'offline' },
       });
     }
+  });
+});
+
+describe('pause allowance', () => {
+  it('gives a thinking pause room before the take ends', () => {
+    expect(STREAM_SILENCE_MS).toBeGreaterThanOrEqual(3000);
+  });
+
+  it('allows a longer pause when the sentence plainly is not finished', () => {
+    for (const text of [
+      'dinner 900 split with',
+      'lunch and',
+      'paid for',
+      'uh',
+      'chai ke',
+      'taxi 300, and…',
+    ]) {
+      expect(soundsUnfinished(text)).toBe(true);
+      expect(pauseAllowanceMs(text, STREAM_SILENCE_MS)).toBe(
+        STREAM_SILENCE_MS + UNFINISHED_EXTRA_MS,
+      );
+    }
+  });
+
+  it('keeps the normal pause once the sentence sounds complete', () => {
+    for (const text of ['dinner 900 split with Renny', 'coffee 250', '', 'Goa trip.']) {
+      expect(soundsUnfinished(text)).toBe(false);
+      expect(pauseAllowanceMs(text, STREAM_SILENCE_MS)).toBe(STREAM_SILENCE_MS);
+    }
+  });
+
+  it('never outlasts the session cap', () => {
+    expect(STREAM_SILENCE_MS * 2 + UNFINISHED_EXTRA_MS).toBeLessThan(STREAM_MAX_SESSION_MS);
   });
 });
