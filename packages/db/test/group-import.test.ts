@@ -1256,3 +1256,59 @@ describe('a full chunk', () => {
     expect(performance.now() - undoStarted).toBeLessThan(8_000);
   });
 });
+
+describe('the balance refresh survives deferred triggers firing early', () => {
+  it('includes a write made after SET CONSTRAINTS ALL IMMEDIATE in the same transaction', async () => {
+    const { group } = await scene();
+    const [a, b] = group.memberIds as [string, string];
+    const apply = (amount: number, description: string) =>
+      client.query(
+        `SELECT waves_apply_expense(
+           p_group_id := $1, p_expense_id := NULL, p_author_member_id := $2, p_description := $3,
+           p_category := NULL, p_expense_date := '2026-09-14', p_currency := 'INR', p_amount := $4,
+           p_split_type := 'exact', p_split_params := '{"kind":"exact","amounts":{}}'::jsonb,
+           p_payers := $5::jsonb, p_shares := $6::jsonb, p_client_mutation_id := $7)`,
+        [
+          group.groupId,
+          a,
+          description,
+          amount,
+          JSON.stringify([{ memberId: a, amount: String(amount) }]),
+          JSON.stringify([
+            { memberId: a, amount: String(amount / 2) },
+            { memberId: b, amount: String(amount / 2) },
+          ]),
+          randomUUID(),
+        ],
+      );
+
+    await client.query('BEGIN');
+    try {
+      await apply(1_000, 'A');
+      // Deferred triggers fire now, for A only...
+      await client.query('SET CONSTRAINTS ALL IMMEDIATE');
+      const early = await client.query(
+        `SELECT balance FROM group_balances WHERE group_id = $1 AND member_id = $2`,
+        [group.groupId, b],
+      );
+      expect(big(early.rows[0]!.balance)).toBe(-500n);
+      await client.query('SET CONSTRAINTS ALL DEFERRED');
+      // ...and B is written after.
+      await apply(4_000, 'B');
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    }
+
+    const cached = await client.query(
+      `SELECT member_id, balance FROM group_balances WHERE group_id = $1`,
+      [group.groupId],
+    );
+    const truth = await readTruth(client, group.groupId);
+    expect(truth.get(b)).toBe(-2_500n);
+    expect(nonZero(new Map(cached.rows.map((r) => [String(r.member_id), big(r.balance)])))).toEqual(
+      nonZero(truth),
+    );
+  });
+});
