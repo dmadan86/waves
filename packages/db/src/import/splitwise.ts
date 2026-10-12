@@ -19,10 +19,10 @@
  *      from one member to another ("Hethu paid Madan D."), not a shared cost.
  *      It becomes a `settlements` row, never an `expenses` one — otherwise the
  *      history would show a dinner that never happened.
- *   2. **A real category.** `guessCategory(description)` maps the free-text
- *      description onto the app's ten-category system (TDR §8), falling back to
- *      null when nothing matches — the same "machine proposes" bargain the app
- *      makes everywhere else.
+ *   2. **A real category.** Splitwise's category name, or failing that the
+ *      free-text description, is mapped onto the app's ten-category system
+ *      (TDR §8), falling back to null when nothing matches — the same "machine
+ *      proposes" bargain the app makes everywhere else.
  *
  * The actual insert reuses the canonical `waves_import_ledger` RPC — the exact
  * function the app's own import path calls — so ghosts, idempotency, the
@@ -30,12 +30,12 @@
  * derived-balance triggers are all exercised the way production exercises them,
  * rather than reproduced (and allowed to drift) here.
  *
- * Money is parsed digit by digit via `parseCsvAmount` (ADR-003). A CSV of
+ * Money is parsed digit by digit by core's `parseLooseAmount` (ADR-003). A CSV of
  * somebody's entire trip is precisely where a float quietly loses a paisa per
  * row and only shows up as a balance that will not settle.
  */
 
-import { type CurrencyCode, guessCategory, parseCsvAmount, parseCsvRow } from '@waves/core';
+import { type CurrencyCode, draftFromSplitwise, draftProblems, resolveDraft } from '@waves/core';
 
 // ── parse result ────────────────────────────────────────────────────────────
 
@@ -46,6 +46,9 @@ export enum SplitwiseRowKind {
 
 export enum SplitwiseProblemKind {
   UnparseableRow = 'unparseable_row',
+  UnknownCurrency = 'unknown_currency',
+  TooManyDecimals = 'too_many_decimals',
+  MixedDateFormats = 'mixed_date_formats',
   RowDoesNotBalance = 'row_does_not_balance',
   UnexpectedSettlement = 'unexpected_settlement',
   DuplicatePerson = 'duplicate_person',
@@ -109,304 +112,81 @@ export interface SplitwiseParse {
   readonly netByPerson: Readonly<Record<string, bigint>>;
 }
 
-/** Columns Splitwise writes before the per-person ones. */
-const FIXED_COLUMNS = ['date', 'description', 'category', 'cost', 'currency'];
-
-function normaliseHeaderName(name: string): string {
-  return name
-    .replace(/^\uFEFF/, '')
-    .trim()
-    .toLowerCase();
-}
-
-function normalisePersonName(name: string): string {
-  return name.replace(/^\uFEFF/, '').trim();
-}
-
-/** The trailing summary row Splitwise appends — not an expense. */
-const TOTAL_ROW = /^total\s+balance$/i;
-
-/** Splitwise marks a member-to-member payment with this category. */
-const PAYMENT_CATEGORY = 'payment';
-
-/** Splitwise writes YYYY-MM-DD; be forgiving about DD/MM/YYYY too. */
-function parseDate(text: string): string | null {
-  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(text.trim());
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const slashed = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
-  if (slashed) {
-    return `${slashed[3]}-${String(slashed[2]).padStart(2, '0')}-${String(slashed[1]).padStart(2, '0')}`;
-  }
-  return null;
-}
-
-/**
- * Turn each person's net for a row into a (paid, owed) pair that reproduces it
- * exactly.
- *
- * Anyone with a positive net is treated as having paid, in proportion to that
- * net; everyone's share is then `paid - net`, which is non-negative and sums to
- * the total by construction (Σshares = Σpaid − Σnet = amount − 0). The remainder
- * from the proportional division is handed out one minor unit at a time, in a
- * fixed order, so the reconstruction is deterministic and the same file always
- * imports identically. A row where nobody is owed anything (every net zero) has
- * its whole cost attributed to the first person by name, which leaves every
- * balance at zero — the row moved no money and the reconstruction does not
- * either.
- *
- * This mirrors the reconstruction in `@waves/core`'s `importSplitwiseCsv`; it is
- * a choice, not a recovery. The original group knew who paid; the CSV does not.
- */
-function reconstruct(
-  nets: ReadonlyMap<string, bigint>,
-  amount: bigint,
-): { payers: Record<string, bigint>; shares: Record<string, bigint> } {
-  const creditors = [...nets.entries()]
-    .filter(([, net]) => net > 0n)
-    .sort((a, b) => (b[1] === a[1] ? a[0].localeCompare(b[0]) : b[1] > a[1] ? 1 : -1));
-  const positive = creditors.reduce((sum, [, net]) => sum + net, 0n);
-
-  const payers: Record<string, bigint> = {};
-  if (positive === 0n) {
-    const first = [...nets.keys()].sort((a, b) => a.localeCompare(b))[0];
-    if (first !== undefined) payers[first] = amount;
-  } else {
-    let handed = 0n;
-    for (const [person, net] of creditors) {
-      const paid = (amount * net) / positive;
-      payers[person] = paid;
-      handed += paid;
-    }
-    let remainder = amount - handed;
-    const step = remainder < 0n ? -1n : 1n;
-    for (let index = 0; remainder !== 0n && creditors.length > 0; index += 1) {
-      const person = creditors[index % creditors.length]?.[0];
-      if (person === undefined) break;
-      payers[person] = (payers[person] ?? 0n) + step;
-      remainder -= step;
-    }
-  }
-
-  const shares: Record<string, bigint> = {};
-  for (const [person, net] of nets) {
-    shares[person] = (payers[person] ?? 0n) - net;
-  }
-  return { payers, shares };
-}
-
-function sumValues(record: Readonly<Record<string, bigint>>): bigint {
-  return Object.values(record).reduce((total, value) => total + value, 0n);
-}
-
 /**
  * Read a Splitwise CSV export into structured expenses, settlements and the
  * errors for anything that would not reconcile.
  *
- * Never throws. A file with three bad rows and forty good ones yields the forty
- * and names the three — refusing the lot because one row is malformed would be
- * the wrong trade for somebody moving years of history.
+ * The reading is `@waves/core`'s (`draftFromSplitwise` + `resolveDraft`), the
+ * same one the app uses, so the CLI and the phone can never disagree about a
+ * file. Never throws. A file with three bad rows and forty good ones yields the
+ * forty and names the three, because refusing the lot over one malformed row
+ * would be the wrong trade for somebody moving years of history.
  */
 export function parseSplitwiseCsv(csv: string): SplitwiseParse {
-  const errors: SplitwiseProblem[] = [];
-  const lines = csv.split(/\r?\n/).filter((line) => line.trim() !== '');
+  const draft = draftFromSplitwise(csv);
+  const resolved = resolveDraft(draft, {}, { groupCurrency: 'INR', members: [] });
+  const byKey = new Map(draft.rows.map((row) => [row.key, row]));
 
-  const header = lines[0] ? parseCsvRow(lines[0]) : [];
-  const fixedCount = FIXED_COLUMNS.filter((name) =>
-    header.some((column) => normaliseHeaderName(column) === name),
-  ).length;
-  // Keep the field index beside each name: a blank person column in the header
-  // shifts the people list without shifting the field positions, so reading by
-  // list index would attribute every net after the gap to the wrong person.
-  const personColumns = header
-    .slice(FIXED_COLUMNS.length)
-    .map((name, offset) => ({
-      name: normalisePersonName(name),
-      column: FIXED_COLUMNS.length + offset,
-    }))
-    .filter((entry) => entry.name !== '');
-  const people = personColumns.map((entry) => entry.name);
-  const duplicatePeople = people.filter((person, index) => people.indexOf(person) !== index);
-
-  if (fixedCount < FIXED_COLUMNS.length || people.length === 0) {
-    errors.push({
-      kind: SplitwiseProblemKind.NoPeople,
-      row: 1,
-      message:
-        'This does not look like a Splitwise export — expected Date, Description, Category, Cost, Currency and then one column per person.',
-    });
-    return {
-      people: [],
-      expenses: [],
-      settlements: [],
-      errors,
-      currency: 'INR',
-      netByPerson: {},
-    };
+  const errors: SplitwiseProblem[] = draftProblems(draft).map((problem) => ({
+    kind: problem.kind as string as SplitwiseProblemKind,
+    row: problem.row,
+    message: problem.message,
+  }));
+  for (const { row, issues } of resolved.rejected) {
+    for (const issue of issues.slice(row.issues.length)) {
+      if (issue.severity === 'error') {
+        errors.push({
+          kind: issue.code as string as SplitwiseProblemKind,
+          row: row.row,
+          message: issue.message,
+        });
+      }
+    }
   }
-
-  if (duplicatePeople.length > 0) {
-    errors.push({
-      kind: SplitwiseProblemKind.DuplicatePerson,
-      row: 1,
-      message: `Splitwise export has duplicate person columns: ${[...new Set(duplicatePeople)].join(', ')}.`,
-    });
-    return {
-      people: [],
-      expenses: [],
-      settlements: [],
-      errors,
-      currency: 'INR',
-      netByPerson: {},
-    };
-  }
+  errors.sort((a, b) => (a.row ?? 0) - (b.row ?? 0));
 
   const expenses: ParsedExpense[] = [];
   const settlements: ParsedSettlement[] = [];
-  const netByPerson = new Map<string, bigint>(people.map((person) => [person, 0n]));
-  let currency: CurrencyCode = 'INR';
-
-  const commitNets = (nets: ReadonlyMap<string, bigint>): void => {
-    for (const [person, value] of nets) {
-      netByPerson.set(person, (netByPerson.get(person) ?? 0n) + value);
-    }
-  };
-
-  for (let index = 1; index < lines.length; index += 1) {
-    const rowNumber = index + 1;
-    const fields = parseCsvRow(lines[index] ?? '');
-    const description = fields[1] ?? '';
-
-    if (TOTAL_ROW.test((fields[0] ?? '').trim()) || TOTAL_ROW.test(description.trim())) continue;
-
-    const date = parseDate(fields[0] ?? '');
-    const rowCurrency = (fields[4] ?? '').trim().toUpperCase() || currency;
-    const amount = parseCsvAmount(fields[3] ?? '', rowCurrency);
-    if (!date || amount === null || !/^[A-Z]{3}$/.test(rowCurrency)) {
-      errors.push({
-        kind: SplitwiseProblemKind.UnparseableRow,
-        row: rowNumber,
-        message: `Row ${rowNumber}: could not read ${
-          !date ? 'the date' : amount === null ? 'the cost' : 'the currency'
-        }.`,
+  const netByPerson = new Map<string, bigint>(draft.people.map((person) => [person, 0n]));
+  for (const row of resolved.rows) {
+    const source = byKey.get(row.key);
+    const line = row.row ?? 0;
+    if (row.kind === 'expense') {
+      expenses.push({
+        kind: SplitwiseRowKind.Expense,
+        row: line,
+        description: row.description,
+        category: row.category,
+        rawCategory: source?.rawCategory ?? null,
+        date: row.date,
+        currency: row.currency,
+        amount: row.amount,
+        payers: row.payers,
+        shares: row.shares,
       });
-      continue;
-    }
-    currency = rowCurrency;
-
-    if (amount <= 0n) {
-      errors.push({
-        kind: SplitwiseProblemKind.NonPositiveCost,
-        row: rowNumber,
-        message: `Row ${rowNumber} ("${description}"): Splitwise cost must be greater than zero.`,
-      });
-      continue;
-    }
-
-    const nets = new Map<string, bigint>();
-    let netTotal = 0n;
-    let malformedNet: string | null = null;
-    for (const entry of personColumns) {
-      const raw = fields[entry.column] ?? '';
-      const parsed = parseCsvAmount(raw, rowCurrency);
-      if (parsed === null && raw.trim() !== '') {
-        malformedNet = entry.name;
-        break;
-      }
-      const value = parsed ?? 0n;
-      nets.set(entry.name, value);
-      netTotal += value;
-    }
-
-    if (malformedNet) {
-      errors.push({
-        kind: SplitwiseProblemKind.UnparseableRow,
-        row: rowNumber,
-        message: `Row ${rowNumber} ("${description}"): could not read ${malformedNet}'s amount.`,
-      });
-      continue;
-    }
-
-    // Every row in a correct export sums to zero across people. A row that does
-    // not is the one case where importing it would silently corrupt balances.
-    if (netTotal !== 0n) {
-      errors.push({
-        kind: SplitwiseProblemKind.RowDoesNotBalance,
-        row: rowNumber,
-        message: `Row ${rowNumber} ("${description}"): the people's columns add up to ${netTotal}, not 0.`,
-      });
-      continue;
-    }
-
-    const rawCategory = (fields[2] ?? '').trim() || null;
-
-    if ((rawCategory ?? '').toLowerCase() === PAYMENT_CATEGORY) {
-      // A settlement: exactly one person paid (positive net) and exactly one
-      // received (negative net), each for the whole cost. Positive net is the
-      // payer — "Hethu paid Madan" has Hethu +X, Madan −X.
-      const creditors = [...nets.entries()].filter(([, net]) => net > 0n);
-      const debtors = [...nets.entries()].filter(([, net]) => net < 0n);
-      const from = creditors[0];
-      const to = debtors[0];
-      if (creditors.length !== 1 || debtors.length !== 1 || !from || !to || from[1] !== amount) {
-        errors.push({
-          kind: SplitwiseProblemKind.UnexpectedSettlement,
-          row: rowNumber,
-          message: `Row ${rowNumber} ("${description}"): a payment should be one person paying one other the full amount; this one is not.`,
-        });
-        continue;
-      }
+    } else {
       settlements.push({
         kind: SplitwiseRowKind.Settlement,
-        row: rowNumber,
-        description: description || 'Payment',
-        date,
-        currency: rowCurrency,
-        amount,
-        from: from[0],
-        to: to[0],
+        row: line,
+        description: row.description,
+        date: row.date,
+        currency: row.currency,
+        amount: row.amount,
+        from: row.from,
+        to: row.to,
       });
-      commitNets(nets);
-      continue;
     }
-
-    const { payers, shares } = reconstruct(nets, amount);
-    // Belt and braces: the reconstruction sums to the total by construction, but
-    // a row that somehow does not must be named, not written — the database's
-    // Σpayers = Σshares = amount constraint would reject it anyway (ADR-003).
-    if (sumValues(payers) !== amount || sumValues(shares) !== amount) {
-      errors.push({
-        kind: SplitwiseProblemKind.RowDoesNotBalance,
-        row: rowNumber,
-        message: `Row ${rowNumber} ("${description}"): reconstructed payers/shares do not sum to the cost.`,
-      });
-      continue;
+  }
+  for (const book of Object.values(resolved.balances)) {
+    for (const [person, value] of Object.entries(book)) {
+      netByPerson.set(person, (netByPerson.get(person) ?? 0n) + value);
     }
-
-    expenses.push({
-      kind: SplitwiseRowKind.Expense,
-      row: rowNumber,
-      description: description || 'Imported expense',
-      category: guessCategory(description),
-      rawCategory,
-      date,
-      currency: rowCurrency,
-      amount,
-      payers,
-      shares,
-    });
-    commitNets(nets);
   }
 
-  if (expenses.length === 0 && settlements.length === 0 && errors.length === 0) {
-    errors.push({
-      kind: SplitwiseProblemKind.NoRows,
-      row: null,
-      message: 'There were no expenses in this file.',
-    });
-  }
-
+  const currency =
+    [...draft.rows].reverse().find((row) => row.currency !== null)?.currency ?? 'INR';
   return {
-    people,
+    people: draft.people,
     expenses,
     settlements,
     errors,

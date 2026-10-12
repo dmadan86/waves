@@ -1,0 +1,9 @@
+group,type,date,description,currency,amount_minor,paid_by,owed_by,owed_amount_minor,status,version
+Goa,expense,2026-06-01,Dinner,INR,120000,Asha,Asha,40000,active,v1
+Goa,expense,2026-06-01,Dinner,INR,120000,Asha,Bharath,40000,active,v1
+Goa,expense,2026-06-01,Dinner,INR,120000,Asha,Chitra,40000,active,v1
+Goa,expense,2026-06-02,Taxi,INR,30001,Asha + Bharath,Asha,15000,active,v2
+Goa,expense,2026-06-02,Taxi,INR,30001,Asha + Bharath,Chitra,15001,active,v2
+Goa,expense (deleted),2026-06-03,Mistake,INR,5000,Asha,Asha,5000,deleted,v1
+Goa,settlement,2026-06-04,upi payment,INR,20000,Chitra,Asha,20000,confirmed,
+Goa,settlement,2026-06-05,pending one,INR,9900,Bharath,Asha,9900,pending,

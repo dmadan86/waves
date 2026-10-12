@@ -291,7 +291,7 @@ export default function ImportScreen() {
         people: result.people,
         currency: result.currency,
         expenses: result.expenses,
-        settlements: [],
+        settlements: result.settlements,
         balances: result.balances,
         otherCurrencies: [],
         problems: result.problems,

@@ -1,0 +1,4 @@
+date,description,amount,paid_by
+2026-07-01,"=HYPERLINK(""http://evil.example"",""click"")",100,Asha
+2026-07-02,'=1+1,200,Asha
+2026-07-03,"@SUM(A1:A9)",300,Asha

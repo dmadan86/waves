@@ -30,8 +30,8 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
-import { ImportProblemKind } from './splitwise';
-import type { ImportProblem } from './splitwise';
+import { ImportProblemKind, type ImportProblem } from './problem';
+import { nameMap } from './nameMap';
 
 /** Statuses that move a balance (TDR §3.3). The rest are carried as history. */
 const SETTLING = new Set(['confirmed', 'auto_confirmed']);
@@ -312,7 +312,7 @@ function parseGroup(entry: unknown): WavesImportGroup {
 }
 
 function amounts(rows: unknown, namesById: Map<string, string>): Record<string, bigint> | null {
-  const result: Record<string, bigint> = {};
+  const result: Record<string, bigint> = nameMap();
   for (const entry of asArray(rows)) {
     const record = asRecord(entry);
     const name = namesById.get(String(record?.member_id));

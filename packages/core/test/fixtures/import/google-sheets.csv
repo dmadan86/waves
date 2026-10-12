@@ -1,0 +1,6 @@
+Date,Item,Amount,Paid by,Split between,Category
+01/10/2026,Cab to airport,"₹1,200",Asha,Asha; Bharath,Taxi
+02/10/2026,Hotel,"₹18,000.00",Bharath,Asha:2; Bharath:1; Chitra:1,Hotel
+03/10/2026,Dinner,2400,Chitra,Asha:50%; Bharath:30%; Chitra:20%,Dining out
+04/10/2026,Snacks,450,Asha + Bharath,,
+13/10/2026,Museum,900,Bharath,Asha:300; Bharath:300; Chitra:300,Entertainment
