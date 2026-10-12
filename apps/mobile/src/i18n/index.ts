@@ -7277,8 +7277,7 @@ const en: UiStrings = {
     createLink: 'Create an invite link',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
-    shareMessage:
-      'Join {group} on Waves to split expenses — no app or account needed to start: {link}',
+    shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
@@ -11362,7 +11361,7 @@ const ta: UiStrings = {
     expires: '{when} க்கு காலாவதி',
     usesBadge: '{count} பயன்பாடுகள்',
     shareMessage:
-      'செலவுகளைப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும் — தொடங்க ஆப் அல்லது கணக்கு தேவையில்லை: {link}',
+      'செலவுகளை ஒன்றாகப் பிரிக்க Waves-ல் {group} குழுவில் சேரவும். சேர தட்டவும்: {link}',
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
@@ -15456,7 +15455,7 @@ const hi: UiStrings = {
     expires: '{when} को खत्म',
     usesBadge: '{count} उपयोग',
     shareMessage:
-      'खर्च बाँटने के लिए Waves पर {group} में शामिल हों — शुरू करने के लिए कोई ऐप या खाता ज़रूरी नहीं: {link}',
+      'साथ मिलकर खर्च बाँटने के लिए Waves पर {group} में शामिल हों। जुड़ने के लिए टैप करें: {link}',
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
@@ -19680,8 +19679,7 @@ const ar: UiStrings = {
     createLink: 'أنشئ رابط دعوة',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
-    shareMessage:
-      'انضم إلى {group} على Waves لتقسيم المصروفات — لا حاجة إلى تطبيق أو حساب للبدء: {link}',
+    shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
