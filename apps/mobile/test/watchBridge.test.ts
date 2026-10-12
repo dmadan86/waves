@@ -58,12 +58,13 @@ vi.mock('@/lib/watch/nativeModule', () => ({
 vi.mock('@/data/hooks', () => ({
   useCreateCapture: () => ({ mutateAsync: h.mutateAsync }),
   useGroups: () => ({ data: h.groups }),
-  useVoiceAgentEnabled: () => false,
+  useVoiceAgentStatus: () => ({ enabled: false, ready: true, lastKnown: false }),
 }));
 vi.mock('@/lib/watch/voiceClip', () => ({
   agentCall: () => async () => ({ kind: 'error' }),
   deleteClip: () => undefined,
   readClipBase64: async () => '',
+  sweepStaleClips: () => undefined,
   transcribeFile: async () => null,
 }));
 vi.mock('@/data/recentActivity', () => ({

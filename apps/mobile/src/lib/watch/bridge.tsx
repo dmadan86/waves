@@ -26,7 +26,7 @@ import { describeActivity, parseMoney, relativeTime } from '@/data/activity';
 import {
   useCreateCapture,
   useGroups,
-  useVoiceAgentEnabled,
+  useVoiceAgentStatus,
   type RecentActivityRow,
 } from '@/data/hooks';
 import { recentActivity } from '@/data/recentActivity';
@@ -36,7 +36,13 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { useRecentCount } from '@/lib/recentCount';
 import { parseVoiceExpenses, type VoiceGroupRef } from '@/lib/voiceExpense';
 import { useSync } from '@/sync';
-import { agentCall, deleteClip, readClipBase64, transcribeFile } from './voiceClip';
+import {
+  agentCall,
+  deleteClip,
+  readClipBase64,
+  sweepStaleClips,
+  transcribeFile,
+} from './voiceClip';
 import { parseWatchClip, processClip } from './voiceClipPure';
 import {
   onWatchFile,
@@ -101,7 +107,10 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   const { session } = useAuth();
   const defaultCurrency = useDefaultCurrency();
   const { t, locale } = useStrings();
-  const agentEnabled = useVoiceAgentEnabled();
+  // Until the server's answer is in, trust the one this phone last saw, so a clip
+  // that arrives at launch is not demoted to the free path by a pending read.
+  const voiceAgent = useVoiceAgentStatus();
+  const agentEnabled = voiceAgent.ready ? voiceAgent.enabled : voiceAgent.lastKnown === true;
 
   // The message handler is bound once; it reads the latest of everything through
   // this ref so a new recent list or a changed setting never re-subscribes.
@@ -317,6 +326,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
   const handledClips = useRef(new Set<string>());
   useEffect(() => {
     if (!watchAvailable()) return;
+    sweepStaleClips();
     return onWatchFile((event) => {
       const clip = parseWatchClip(event);
       if (!clip) return;

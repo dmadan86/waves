@@ -34,6 +34,28 @@ export function deleteClip(uri: string): void {
   }
 }
 
+/** A clip nobody processed within this long (app killed mid-way) is dropped. */
+const STALE_CLIP_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Remove clips left in the cache by a run that was killed before it finished
+ * them. The folder is the one the native module copies into; a clip still being
+ * processed is far younger than the cutoff.
+ */
+export function sweepStaleClips(now: number = Date.now()): void {
+  try {
+    const dir = new FileSystem.Directory(FileSystem.Paths.cache, 'watch-clips');
+    if (!dir.exists) return;
+    for (const entry of dir.list()) {
+      if (!(entry instanceof FileSystem.File)) continue;
+      const modified = entry.info().modificationTime;
+      if (typeof modified === 'number' && now - modified > STALE_CLIP_MS) entry.delete();
+    }
+  } catch {
+    // Housekeeping only.
+  }
+}
+
 export function agentCall(input: { locale: string; today: string }): ClipDeps['callAgent'] {
   return async ({ audioBase64, durationMs }) => {
     const result = await callVoiceAgent({
