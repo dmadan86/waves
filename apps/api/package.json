@@ -12,19 +12,19 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.2",
+    "@supabase/supabase-js": "^2.117.3",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
-    "hono": "^4.13.10",
-    "next": "^16.3.8",
+    "hono": "^4.13.13",
+    "next": "^16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@types/react": "~19.3.0",
-    "eslint": "^10.11.0",
-    "eslint-config-next": "^16.3.8",
+    "eslint": "^10.12.0",
+    "eslint-config-next": "^16.4.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
   }
