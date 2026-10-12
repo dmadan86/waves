@@ -7236,8 +7236,7 @@ const en: UiStrings = {
     createLink: 'Create an invite link',
     expires: 'expires {when}',
     usesBadge: '{count} uses',
-    shareMessage:
-      'Join {group} on Waves to split expenses together. Tap to join: {link}',
+    shareMessage: 'Join {group} on Waves to split expenses together. Tap to join: {link}',
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
@@ -19591,8 +19590,7 @@ const ar: UiStrings = {
     createLink: 'أنشئ رابط دعوة',
     expires: 'ينتهي {when}',
     usesBadge: '{count} استخدامات',
-    shareMessage:
-      'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
+    shareMessage: 'انضم إلى {group} على Waves لتقسيم المصروفات معًا. اضغط للانضمام: {link}',
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
