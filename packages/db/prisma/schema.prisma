@@ -181,6 +181,7 @@ model Profile {
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships         GroupMember[]
+  membersRemoved      GroupMember[]          @relation("MemberRemovedBy")
   captures            Capture[]
   categoryTags        CategoryTag[]
   personalRecords     PersonalRecord[]
@@ -377,12 +378,18 @@ model GroupMember {
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId String?    @map("import_batch_id") @db.Uuid
   leftAt        DateTime?  @map("left_at") @db.Timestamptz(6)
+  /// When an admin removed them (null: never removed, or they left by
+  /// themselves). An invite minted at or before this cannot bring them back.
+  removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
+  /// The admin who removed them.
+  removedBy     String?    @map("removed_by") @db.Uuid
   updatedSeq    BigInt     @default(0) @map("updated_seq")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
   profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
   importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
 
   authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")

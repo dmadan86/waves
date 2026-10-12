@@ -155,6 +155,7 @@ export interface WebStrings {
     guestWhy: string;
     /** The server refused the join for want of an account. */
     accountRequired: string;
+    removedFromGroup: string;
     backToLink: string;
     /** A guest's Google/Apple login already belongs to another Waves account. */
     takenTitle: string;
@@ -1380,6 +1381,7 @@ const en: WebStrings = {
       'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
     accountRequired:
       'You need an account to join this group. Sign up or log in, then open the link again.',
+    removedFromGroup: 'You were removed from this group. Ask an admin for a new invite.',
     backToLink: 'Back',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
@@ -2391,6 +2393,8 @@ const ta: WebStrings = {
       'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
     accountRequired:
       'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
+    removedFromGroup:
+      'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
     backToLink: 'பின்செல்',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
@@ -3442,6 +3446,7 @@ const hi: WebStrings = {
       'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
     accountRequired:
       'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
+    removedFromGroup: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
     backToLink: 'वापस',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
@@ -4454,6 +4459,7 @@ const ar: WebStrings = {
       'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
     accountRequired:
       'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
+    removedFromGroup: 'تمت إزالتك من هذه المجموعة. اطلب دعوة جديدة من أحد المشرفين.',
     backToLink: 'رجوع',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
