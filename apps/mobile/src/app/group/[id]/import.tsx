@@ -40,11 +40,12 @@ import { PeopleMapper, type MemberChoice } from '@/components/import/PeopleMappe
 import { ReviewList } from '@/components/import/ReviewList';
 import { RowEditSheet } from '@/components/import/RowEditSheet';
 import { ExamplesSheet, UpsellSheet } from '@/components/import/ImportSheets';
-import { SourcePicker, type SourceChoice } from '@/components/import/SourcePicker';
+import { ImportHero, SourcePicker, type SourceChoice } from '@/components/import/SourcePicker';
 import { importIntoGroup, undoImport } from '@/data/api';
 import { useGroup } from '@/data/hooks';
 import { displayName, groupLabel, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
 import { friendlyError } from '@/lib/errors';
 import { layoutIsReadable } from '@/lib/groupImport/columns';
 import { GroupImportFileError, tableFromBytes } from '@/lib/groupImport/file';
@@ -87,6 +88,7 @@ function leave(groupId: string): void {
 
 export default function GroupImportScreen() {
   const theme = useTheme();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const g = t.groupImport;
   const toast = useToast();
@@ -407,11 +409,13 @@ export default function GroupImportScreen() {
 
   return (
     <Screen>
-      <ImportHeader
-        title={fill(g.titleNamed, { group: title })}
-        subtitle={subtitle}
-        onBack={onBack}
-      />
+      {state.step === 'source' ? null : (
+        <ImportHeader
+          title={fill(g.titleNamed, { group: title })}
+          subtitle={subtitle}
+          onBack={onBack}
+        />
+      )}
 
       {state.step === 'review' && review ? (
         <View style={{ flex: 1 }}>
@@ -431,12 +435,15 @@ export default function GroupImportScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.lg,
-            paddingBottom: theme.spacing.xl,
+            paddingTop: state.step === 'source' ? 0 : theme.spacing.lg,
+            paddingBottom: state.step === 'source' ? clearance : theme.spacing.xl,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {state.step === 'source' ? (
+            <ImportHero groupName={title} onBack={() => leave(groupId)} />
+          ) : null}
           {state.step === 'source' ? (
             <SourcePicker
               stage={state.stage}

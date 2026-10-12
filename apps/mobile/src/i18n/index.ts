@@ -4010,6 +4010,8 @@ export interface UiStrings {
     emptyLink: string;
     /** Header: "Import into {group}". */
     titleNamed: string;
+    /** The small line over the group's name on the first step: "Import into". */
+    titleLead: string;
     sourceIntro: string;
     sourceFileTitle: string;
     sourceFileHint: string;
@@ -4020,6 +4022,8 @@ export interface UiStrings {
     plusBadge: string;
     seeExamples: string;
     nothingAdded: string;
+    /** The line under `nothingAdded` on the first step. */
+    nothingAddedBody: string;
     reading: string;
     parsing: string;
     /** Uses {mb}. */
@@ -8273,16 +8277,18 @@ const en: UiStrings = {
     menu: 'Import expenses',
     emptyLink: 'Have these in a spreadsheet? Import',
     titleNamed: 'Import into {group}',
+    titleLead: 'Import into',
     sourceIntro: 'Bring in expenses you already keep somewhere else.',
     sourceFileTitle: 'Spreadsheet or CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
     sourceSplitwiseTitle: 'Splitwise export',
-    sourceSplitwiseHint: 'In Splitwise: your group, then Export as spreadsheet',
+    sourceSplitwiseHint: 'In Splitwise: open your group, then export as spreadsheet',
     sourceShotTitle: 'Screenshot',
     sourceShotHint: 'A photo of a list, a bank app or a chat',
     plusBadge: 'PLUS',
     seeExamples: 'See CSV examples and get a template',
     nothingAdded: 'Nothing is added until you review it.',
+    nothingAddedBody: 'We’ll show you a preview to confirm before anything is imported.',
     reading: 'Reading the file…',
     parsing: 'Checking the rows…',
     errTooLarge:
@@ -12624,9 +12630,10 @@ const ta: UiStrings = {
     menu: 'செலவுகளை இறக்குமதி செய்',
     emptyLink: 'ஸ்ப்ரெட்ஷீட்டில் வைத்திருக்கிறீர்களா? இறக்குமதி செய்யுங்கள்',
     titleNamed: '{group} குழுவில் இறக்குமதி',
+    titleLead: 'இதில் இறக்குமதி',
     sourceIntro: 'வேறு இடத்தில் வைத்திருக்கும் செலவுகளை இங்கே கொண்டு வாருங்கள்.',
     sourceFileTitle: 'ஸ்ப்ரெட்ஷீட் அல்லது CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
     sourceSplitwiseTitle: 'Splitwise ஏற்றுமதி',
     sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
     sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
@@ -12634,6 +12641,7 @@ const ta: UiStrings = {
     plusBadge: 'PLUS',
     seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
     nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
+    nothingAddedBody: 'இறக்குமதி செய்யும் முன் உறுதிப்படுத்த ஒரு முன்னோட்டத்தைக் காட்டுவோம்.',
     reading: 'கோப்பைப் படிக்கிறது…',
     parsing: 'வரிசைகளைச் சரிபார்க்கிறது…',
     errTooLarge:
@@ -16895,9 +16903,10 @@ const hi: UiStrings = {
     menu: 'खर्च इम्पोर्ट करें',
     emptyLink: 'ये स्प्रेडशीट में हैं? इम्पोर्ट करें',
     titleNamed: '{group} में इम्पोर्ट',
+    titleLead: 'इसमें इम्पोर्ट करें',
     sourceIntro: 'जो खर्च आप कहीं और रखते हैं, उन्हें यहाँ ले आइए।',
     sourceFileTitle: 'स्प्रेडशीट या CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up…',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
     sourceSplitwiseTitle: 'Splitwise एक्सपोर्ट',
     sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
     sourceShotTitle: 'स्क्रीनशॉट',
@@ -16905,6 +16914,7 @@ const hi: UiStrings = {
     plusBadge: 'PLUS',
     seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
     nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
+    nothingAddedBody: 'इम्पोर्ट से पहले हम एक झलक दिखाएँगे, ताकि आप पुष्टि कर सकें।',
     reading: 'फ़ाइल पढ़ी जा रही है…',
     parsing: 'पंक्तियाँ जाँची जा रही हैं…',
     errTooLarge:
@@ -21555,6 +21565,7 @@ const ar: UiStrings = {
     menu: 'استيراد المصاريف',
     emptyLink: 'لديك هذه في جدول بيانات؟ استوردها',
     titleNamed: 'الاستيراد إلى {group}',
+    titleLead: 'الاستيراد إلى',
     sourceIntro: 'أحضر المصاريف التي تحتفظ بها في مكان آخر.',
     sourceFileTitle: 'جدول بيانات أو CSV',
     sourceFileHint: 'Google Sheets وExcel وTricount وSettle Up…',
@@ -21565,6 +21576,7 @@ const ar: UiStrings = {
     plusBadge: 'PLUS',
     seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
     nothingAdded: 'لن يُضاف شيء حتى تراجعه.',
+    nothingAddedBody: 'سنعرض لك معاينة لتأكيدها قبل استيراد أي شيء.',
     reading: 'جارٍ قراءة الملف…',
     parsing: 'جارٍ فحص الصفوف…',
     errTooLarge: 'حجم الملف يتجاوز {mb} ميغابايت. قسّمه إلى ملفات أصغر واستورد كل واحد على حدة.',
