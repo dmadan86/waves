@@ -95,6 +95,7 @@ import { todayInZone } from '@/lib/eventDetailFacts';
 import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
+import { memberNameById, memberNameFor } from '@/lib/memberName';
 
 enum Tab {
   Expenses = 'expenses',
@@ -668,19 +669,23 @@ export default function GroupScreen() {
   // ambient offline / syncing states are the header glyph's job now (below).
   const { queue, rejected } = useSync();
 
-  const { group, members, expenses, settlements } = useGroup(groupId);
+  const { group, members, everyone, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
 
   const { blockedIds } = useBlockedUsers();
-  const lookup = useMemo(() => memberLookup(members.data), [members.data]);
+  const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const nameOf = useCallback(
     (memberId: string | null): string => {
-      const member = memberId ? lookup.get(memberId) : undefined;
-      return member ? displayName(member, viewerId, blockedIds, t.misc.someone) : t.misc.someone;
+      return memberNameById(lookup, memberId, {
+        viewerId,
+        blocked: blockedIds,
+        someone: t.misc.someone,
+        leftLabel: t.misc.memberLeft,
+      });
     },
-    [blockedIds, lookup, viewerId, t.misc.someone],
+    [blockedIds, lookup, viewerId, t.misc.someone, t.misc.memberLeft],
   );
 
   // Where a Balances row goes when it is tapped: that person, un-collapsed
@@ -819,15 +824,19 @@ export default function GroupScreen() {
   // made the tab switch stall (they were mapped in full inside the list footer).
   const balanceItems: FeedItem[] = useMemo(
     () =>
-      (members.data ?? []).map((member, index, arr) => ({
-        kind: 'balance',
-        key: `balance-${member.id}`,
-        member,
-        balance: ledger.balances.get(member.id) ?? 0n,
-        isFirst: index === 0,
-        isLast: index === arr.length - 1,
-      })),
-    [members.data, ledger.balances],
+      // Anyone still in the group, plus anyone who left but is still owed or owes:
+      // a departed member's open balance must not vanish from the list.
+      (everyone.data ?? [])
+        .filter((member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n)
+        .map((member, index, arr) => ({
+          kind: 'balance',
+          key: `balance-${member.id}`,
+          member,
+          balance: ledger.balances.get(member.id) ?? 0n,
+          isFirst: index === 0,
+          isLast: index === arr.length - 1,
+        })),
+    [everyone.data, ledger.balances],
   );
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
@@ -1032,7 +1041,12 @@ export default function GroupScreen() {
       // The name the row is allowed to say — already masked for a blocked
       // person, and it travels with the tap so the destination opens under the
       // same mask rather than flashing the real name while it loads.
-      const shownName = displayName(member, viewerId, blockedIds, t.misc.someone);
+      const shownName = memberNameFor(member, {
+        viewerId,
+        blocked: blockedIds,
+        someone: t.misc.someone,
+        leftLabel: t.misc.memberLeft,
+      });
       const personKey = personKeyFor(member);
       const canRemind = canRemindFromBalanceRow({
         balance,

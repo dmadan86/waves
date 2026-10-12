@@ -3575,6 +3575,8 @@ export interface UiStrings {
     /** Appended to the added-count when some were skipped for already being there. */
     alreadyThereSkipped: PluralForms;
     someone: string;
+    /** After the name of somebody who left or was removed, wherever the past names them. */
+    memberLeft: string;
     /** Badges on a cross-group activity row: its group is archived, or no
      *  longer on this device (left or deleted). */
     archivedGroup: string;
@@ -7723,6 +7725,7 @@ const en: UiStrings = {
       other: '{n} were already in that group.',
     },
     someone: 'Someone',
+    memberLeft: '(left)',
     archivedGroup: 'Archived',
     unavailableGroup: 'Unavailable',
     serverRefused: 'The server refused this change.',
@@ -11871,6 +11874,7 @@ const ta: UiStrings = {
       other: '{n} பேர் ஏற்கனவே அந்தக் குழுவில் இருந்தனர்.',
     },
     someone: 'யாரோ',
+    memberLeft: '(வெளியேறினார்)',
     archivedGroup: 'காப்பகம்',
     unavailableGroup: 'கிடைக்கவில்லை',
     serverRefused: 'இந்த மாற்றத்தை சர்வர் ஏற்கவில்லை.',
@@ -15989,6 +15993,7 @@ const hi: UiStrings = {
       other: '{n} पहले से उस समूह में थे।',
     },
     someone: 'कोई',
+    memberLeft: '(छोड़ चुके)',
     archivedGroup: 'संग्रहीत',
     unavailableGroup: 'अनुपलब्ध',
     serverRefused: 'सर्वर ने यह बदलाव नहीं माना।',
@@ -20307,6 +20312,7 @@ const ar: UiStrings = {
       other: 'كان {n} منهم في تلك المجموعة من قبل.',
     },
     someone: 'أحدهم',
+    memberLeft: '(غادر)',
     archivedGroup: 'مؤرشَف',
     unavailableGroup: 'غير متاح',
     serverRefused: 'رفض الخادم هذا التغيير.',

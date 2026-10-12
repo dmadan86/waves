@@ -36,7 +36,7 @@ import { myStake, simplifyItems, SimplifySide } from '@waves/core';
 import {
   computeLedger,
   GroupType,
-  nameOf,
+  pastNameOf,
   type ActivityRow,
   type Expense,
   type Group,
@@ -94,7 +94,10 @@ function GroupDetail({
   const { t, locale } = useStrings();
 
   const [group, setGroup] = useState<Group | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  // Everyone who was ever in the group, for naming the past; `members` is who is
+  // in it now, for counts and anything that acts on the present.
+  const [everyone, setEveryone] = useState<Member[]>([]);
+  const members = useMemo(() => everyone.filter((m) => !m.left_at), [everyone]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [activity, setActivity] = useState<ActivityRow[] | null>(null);
@@ -115,13 +118,13 @@ function GroupDetail({
         // entirely and would have sent somebody to ask why they were removed.
         const [g, m, e, s] = await Promise.all([
           waves.group(groupId),
-          waves.members(groupId),
+          waves.allMembers(groupId),
           waves.expenses(groupId),
           waves.settlements(groupId),
         ]);
         if (!active) return;
         setGroup(g);
-        setMembers(m);
+        setEveryone(m);
         setExpenses(e);
         setSettlements(s);
       } catch (caught) {
@@ -219,7 +222,7 @@ function GroupDetail({
     currency,
     group.convert_to_group_currency === true,
   );
-  const byId = new Map(members.map((member) => [member.id, member]));
+  const byId = new Map(everyone.map((member) => [member.id, member]));
   /**
    * A member's name for a sentence about them.
    *
@@ -231,7 +234,7 @@ function GroupDetail({
    */
   const who = (memberId: string) => {
     const member = byId.get(memberId);
-    return member ? nameOf(member) : t.join.someone;
+    return member ? pastNameOf(member, t.group.memberLeft) : t.join.someone;
   };
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const hasPlaces = live.some((expense) => expense.currentVersion?.location);
@@ -356,22 +359,25 @@ function GroupDetail({
                 <h2>{t.group.whereEveryoneStands}</h2>
               </div>
               <div className="list">
-                {members.map((member) => {
-                  const net = ledger.balances.get(member.id) ?? 0n;
-                  const cls = net > 0n ? 'pos' : net < 0n ? 'neg' : 'zero';
-                  return (
-                    <div key={member.id} className="item" style={{ cursor: 'default' }}>
-                      <span className="grow">
-                        <span className="title">{nameOf(member)}</span>
-                      </span>
-                      <span className={`amount ${cls}`}>
-                        {net === 0n
-                          ? t.group.settledUp
-                          : `${net > 0n ? '+' : '−'}${money(net < 0n ? -net : net, currency, locale)}`}
-                      </span>
-                    </div>
-                  );
-                })}
+                {/* Somebody who left but still owes or is owed stays on the list. */}
+                {everyone
+                  .filter((m) => !m.left_at || (ledger.balances.get(m.id) ?? 0n) !== 0n)
+                  .map((member) => {
+                    const net = ledger.balances.get(member.id) ?? 0n;
+                    const cls = net > 0n ? 'pos' : net < 0n ? 'neg' : 'zero';
+                    return (
+                      <div key={member.id} className="item" style={{ cursor: 'default' }}>
+                        <span className="grow">
+                          <span className="title">{pastNameOf(member, t.group.memberLeft)}</span>
+                        </span>
+                        <span className={`amount ${cls}`}>
+                          {net === 0n
+                            ? t.group.settledUp
+                            : `${net > 0n ? '+' : '−'}${money(net < 0n ? -net : net, currency, locale)}`}
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
             </section>
 

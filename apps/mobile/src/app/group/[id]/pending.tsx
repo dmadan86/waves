@@ -26,13 +26,14 @@ import {
 } from '@/data/hooks';
 import { SettlementProof } from '@/components/SettlementProof';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, isGhost, type SettlementRow } from '@/data/types';
+import { isGhost, type SettlementRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { formatPaidDay, paidDay } from '@/lib/paymentProof';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { memberNameById } from '@/lib/memberName';
 
 /**
  * Whole days left before a pending settlement auto-confirms — the 7-day window
@@ -67,17 +68,21 @@ export default function PendingConfirmationsScreen() {
   const groupId = id ?? '';
   const { profile } = useAuth();
 
-  const { group, members, settlements } = useGroup(groupId);
+  const { group, everyone, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
   const { blockedIds } = useBlockedUsers();
 
   const currency = group.data?.default_currency ?? 'INR';
-  const lookup = memberLookup(members.data);
+  const lookup = memberLookup(everyone.data);
   const nameOf = (memberId: string | null): string => {
-    const member = memberId ? lookup.get(memberId) : undefined;
-    return member ? displayName(member, profile?.id, blockedIds, t.misc.someone) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId: profile?.id,
+      blocked: blockedIds,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+    });
   };
 
   const pending: SettlementRow[] = (settlements.data ?? []).filter(

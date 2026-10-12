@@ -53,6 +53,12 @@ export interface ExportMemberInput {
   readonly role: 'admin' | 'member';
   /** A ghost has not joined yet — surfaced so the sheet can note it. */
   readonly isGhost: boolean;
+  /**
+   * Left or was removed. Still passed in (name already marked) so past bills and
+   * payments can name them; listed in the members and balances tables only while
+   * they have an open balance, and never counted in `memberCount`.
+   */
+  readonly left?: boolean;
 }
 
 /**
@@ -277,7 +283,12 @@ export function buildGroupExportModel(input: GroupExportInput): GroupExportModel
   const { group, labels, locale } = input;
   const byId = new Map(input.members.map((member) => [member.id, member]));
 
-  const members: ExportMemberRow[] = input.members.map((member) => ({
+  // Who the tables list: everyone still in, plus a departed member who is owed or
+  // owes. A departed member with nothing open stays out, but byId still names them.
+  const listed = input.members.filter(
+    (member) => !member.left || (input.balances.get(member.id) ?? 0n) !== 0n,
+  );
+  const members: ExportMemberRow[] = listed.map((member) => ({
     id: member.id,
     name: member.name,
     role: member.role === 'admin' ? labels.roleAdmin : labels.roleMember,
@@ -331,7 +342,7 @@ export function buildGroupExportModel(input: GroupExportInput): GroupExportModel
   // Balances: the ledger's net-per-member map, in the group default currency.
   // A member the map omits is square (0). Order follows the member list so the
   // balances table reads in the same order as the members table.
-  const balances: ExportBalanceRow[] = input.members.map((member) => {
+  const balances: ExportBalanceRow[] = listed.map((member) => {
     const minor = input.balances.get(member.id) ?? 0n;
     const direction =
       minor > 0n ? BalanceDir.Owed : minor < 0n ? BalanceDir.Owes : BalanceDir.Settled;
@@ -386,7 +397,7 @@ export function buildGroupExportModel(input: GroupExportInput): GroupExportModel
     settlements,
     balances,
     totals,
-    memberCount: members.length,
+    memberCount: input.members.filter((member) => !member.left).length,
     expenseCount: input.expenses.length,
     settlementCount: settlements.length,
   };
