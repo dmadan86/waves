@@ -9,6 +9,9 @@ type CaptureTarget = Parameters<typeof captureRef>[0];
 
 export interface ShareInviteCardOptions {
   readonly cardRef: CaptureTarget;
+  /** Output size in pixels; the card is laid out in dp, so this sets how crisp the PNG is. */
+  readonly width?: number;
+  readonly height?: number;
   readonly filename: string;
   readonly dialogTitle: string;
   readonly fallback: () => Promise<void>;
@@ -25,12 +28,12 @@ export interface ShareInviteCardOptions {
 }
 
 /**
- * Share the whole rendered invitation card as a PNG.
+ * Share the invitation picture as a PNG.
  *
  * The QR widget can export only itself, which drops the group name and member
- * context. Capturing the outer card keeps the invitation readable when a user,
- * rider, traveller, or financer forwards it as an image. If capture or native
- * sharing is unavailable, the caller's link-only share remains the fallback.
+ * context, so the caller hands over a dedicated, fixed-size card view instead
+ * and it is captured whole. If capture or native sharing is unavailable, the
+ * caller's link-only share remains the fallback.
  */
 export async function shareInviteCard(options: ShareInviteCardOptions): Promise<void> {
   try {
@@ -45,6 +48,9 @@ export async function shareInviteCard(options: ShareInviteCardOptions): Promise<
     const base64 = await captureRef(options.cardRef, {
       format: 'png',
       quality: 1,
+      ...(options.width != null && options.height != null
+        ? { width: options.width, height: options.height }
+        : null),
       result: 'base64',
     });
     if (!base64) {
