@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11+ package visibility: without these, the checks for WhatsApp
+       and for a mail app would always come back empty. -->
+  <queries>
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
+    <intent>
+      <action android:name="android.intent.action.SENDTO" />
+      <data android:scheme="mailto" />
+    </intent>
+  </queries>
+
+  <application>
+    <!-- The module's own authority, so it never depends on the one expo-sharing
+         or expo-file-system declares. -->
+    <provider
+      android:name="expo.modules.wavesshare.WavesShareFileProvider"
+      android:authorities="${applicationId}.wavesshare.fileprovider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/waves_share_paths" />
+    </provider>
+  </application>
+</manifest>

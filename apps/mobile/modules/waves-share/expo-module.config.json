@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "android": {
+    "modules": ["expo.modules.wavesshare.WavesShareModule"]
+  },
+  "apple": {
+    "modules": ["WavesShareModule"]
+  }
+}

@@ -42,6 +42,7 @@ import { displayName, groupLabel, GroupType, isGhost } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { fill, plural, useStrings } from '@/i18n';
 import { shareInviteCard } from '@/lib/shareInviteCard';
+import type { ShareTarget } from '../../../../modules/waves-share';
 
 const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as number;
 
@@ -174,20 +175,26 @@ export default function InviteScreen() {
   /**
    * Send the complete invitation card, so the person on the other end sees the
    * group name and member context as well as the QR code. `fallback` is the
-   * link-only path for when the card cannot be captured.
+   * link-only path for when the card cannot be captured. The message and link
+   * travel with it (WhatsApp caption, mail body) where the target allows.
    */
-  const shareCard = async (fallback: () => Promise<void>): Promise<void> => {
+  const shareCard = async (
+    fallback: () => Promise<void>,
+    target: ShareTarget = 'any',
+  ): Promise<void> => {
     if (!link) return;
     await shareInviteCard({
       cardRef: inviteCardRef,
       filename: 'waves-invite-card.png',
       dialogTitle: message,
+      text: message,
+      subject: t.people.emailSubject.replace('{group}', label),
+      target,
       fallback,
     });
   };
 
-  const shareVia = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
-    if (!link) return;
+  const openChannelLink = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
     const url =
       channel === 'whatsapp'
         ? `whatsapp://send?text=${encodeURIComponent(message)}`
@@ -209,6 +216,16 @@ export default function InviteScreen() {
       }
       await Share.share({ message });
     }
+  };
+
+  // WhatsApp and email send the card with the message; SMS is text only.
+  const shareVia = async (channel: 'whatsapp' | 'sms' | 'email'): Promise<void> => {
+    if (!link) return;
+    if (channel === 'sms') {
+      await openChannelLink(channel);
+      return;
+    }
+    await shareCard(() => openChannelLink(channel), channel);
   };
 
   const copy = async (): Promise<void> => {

@@ -36,6 +36,8 @@ vi.mock('expo-file-system', () => ({
   Paths: { cache: 'cache://' },
 }));
 
+vi.mock('../modules/waves-share', () => ({ shareImageWithText: vi.fn() }));
+
 vi.mock('react-native-view-shot', () => ({
   captureRef: capture,
 }));

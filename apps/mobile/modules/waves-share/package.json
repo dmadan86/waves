@@ -1,0 +1,7 @@
+{
+  "name": "waves-share",
+  "version": "1.0.0",
+  "description": "Share an image together with its caption text to one chosen app (WhatsApp, mail, any).",
+  "main": "index.ts",
+  "private": true
+}
