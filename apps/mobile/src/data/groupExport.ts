@@ -21,6 +21,18 @@ import { format, minorUnitScale, toMajorString, type CurrencyCode } from '@waves
 import type { ExpenseRow, SettlementRow } from './types';
 import { expenseTitle } from './expenseTitle';
 
+/**
+ * Which sections the export keeps. The summary band and the member list always
+ * stay; only the three ledger sections are optional.
+ */
+export interface ExportInclude {
+  readonly balances: boolean;
+  readonly expenses: boolean;
+  readonly settlements: boolean;
+}
+
+export const INCLUDE_ALL: ExportInclude = { balances: true, expenses: true, settlements: true };
+
 // ---------------------------------------------------------------------------
 // Inputs
 // ---------------------------------------------------------------------------

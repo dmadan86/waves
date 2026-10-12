@@ -413,3 +413,44 @@ describe('edge rows', () => {
     expect(html).toContain('Nothing here yet');
   });
 });
+
+// --- Include toggles --------------------------------------------------------
+
+describe('include toggles', () => {
+  const model = buildGroupExportModel(makeInput());
+  const NONE = { balances: false, expenses: false, settlements: false };
+
+  it('keeps every section when include is omitted', () => {
+    const html = renderGroupExportHtml(model, PDF_LABELS);
+    expect(html).toContain('<h2>Balances</h2>');
+    expect(html).toContain('<h2>Expenses</h2>');
+    expect(html).toContain('<h2>Settlements</h2>');
+  });
+
+  it('omits unchecked sections from the PDF but keeps summary and members', () => {
+    const html = renderGroupExportHtml(model, PDF_LABELS, NONE);
+    expect(html).not.toContain('<h2>Balances</h2>');
+    expect(html).not.toContain('<h2>Expenses</h2>');
+    expect(html).not.toContain('<h2>Settlements</h2>');
+    expect(html).not.toContain('Dinner');
+    expect(html).toContain('Total spent');
+    expect(html).toContain('<h2>Members</h2>');
+  });
+
+  it('drops only the sections that are unchecked in the PDF', () => {
+    const html = renderGroupExportHtml(model, PDF_LABELS, { ...NONE, expenses: true });
+    expect(html).toContain('Dinner');
+    expect(html).not.toContain('<h2>Balances</h2>');
+    expect(html).not.toContain('<h2>Settlements</h2>');
+  });
+
+  it('omits unchecked sheets from the workbook but keeps Summary and Members', () => {
+    expect(buildGroupExportWorkbook(model, SHEET_LABELS, NONE).SheetNames).toEqual([
+      'Summary',
+      'Members',
+    ]);
+    expect(
+      buildGroupExportWorkbook(model, SHEET_LABELS, { ...NONE, settlements: true }).SheetNames,
+    ).toEqual(['Summary', 'Settlements', 'Members']);
+  });
+});
