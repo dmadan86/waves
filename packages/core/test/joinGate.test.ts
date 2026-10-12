@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ACCOUNT_REQUIRED,
   isAccountRequired,
+  isRemovedFromGroup,
+  REMOVED_FROM_GROUP,
   JoinGate,
   joinGate,
   shouldAutoJoin,
@@ -38,6 +40,21 @@ describe('isAccountRequired', () => {
     expect(isAccountRequired(new Error('INVITE_INVALID: nope'))).toBe(false);
     expect(isAccountRequired(null)).toBe(false);
     expect(isAccountRequired(undefined)).toBe(false);
+  });
+});
+
+describe('isRemovedFromGroup', () => {
+  it('recognises the server code however the client wrapped it', () => {
+    expect(
+      isRemovedFromGroup(new Error('REMOVED_FROM_GROUP: You were removed from this group.')),
+    ).toBe(true);
+    expect(isRemovedFromGroup({ code: REMOVED_FROM_GROUP })).toBe(true);
+    expect(isRemovedFromGroup('REMOVED_FROM_GROUP')).toBe(true);
+  });
+  it('ignores other failures', () => {
+    expect(isRemovedFromGroup(new Error('ACCOUNT_REQUIRED: nope'))).toBe(false);
+    expect(isRemovedFromGroup(new Error('INVITE_INVALID: nope'))).toBe(false);
+    expect(isRemovedFromGroup(null)).toBe(false);
   });
 });
 
