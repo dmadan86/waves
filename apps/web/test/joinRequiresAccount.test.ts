@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createWavesClient } from '@waves/api-client';
-import { JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
+import { isRemovedFromGroup, JoinGate, joinGate, shouldAutoJoin } from '@waves/core';
 
 import { fill, LANGUAGES, STRINGS_BY_LANGUAGE } from '../src/i18n';
 import { queueJoinAfterSignIn, takeAfterSignIn, type KeyValue } from '../src/lib/guestSwitch';
@@ -30,7 +30,13 @@ describe('web join: strings', () => {
   it('has the sign-up, log-in and why copy in every language', () => {
     for (const language of LANGUAGES) {
       const join = STRINGS_BY_LANGUAGE[language].join;
-      for (const key of ['signUpToJoin', 'logIn', 'guestUpgrade', 'accountRequired'] as const) {
+      for (const key of [
+        'signUpToJoin',
+        'logIn',
+        'guestUpgrade',
+        'accountRequired',
+        'removedFromGroup',
+      ] as const) {
         expect(join[key], `${language}.${key}`).toBeTruthy();
       }
       // The reason names the group, so it must carry the placeholder.
@@ -38,6 +44,18 @@ describe('web join: strings', () => {
       expect(join.guestWhy, language).toContain('{group}');
       expect(fill(join.accountWhy, { group: 'Goa' })).toContain('Goa');
     }
+  });
+
+  it('says a removed person needs a new invite, and the page maps the server code to it', () => {
+    expect(STRINGS_BY_LANGUAGE.en.join.removedFromGroup).toBe(
+      'You were removed from this group. Ask an admin for a new invite.',
+    );
+    // What api-client throws for the edge function's 403 REMOVED_FROM_GROUP.
+    expect(isRemovedFromGroup({ code: 'REMOVED_FROM_GROUP', message: 'You were removed' })).toBe(
+      true,
+    );
+    const texts = LANGUAGES.map((language) => STRINGS_BY_LANGUAGE[language].join.removedFromGroup);
+    expect(new Set(texts).size).toBe(LANGUAGES.length);
   });
 
   it('no longer promises a join without an account', () => {

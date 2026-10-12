@@ -17,8 +17,13 @@ export const TEMPLATE_HEADER = [
   'category',
 ] as const;
 
-const cellText = (value: string): string =>
-  /["\n\r,;]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+// Member names are typed by other people, and the template is opened in a
+// spreadsheet: a leading =, +, -, @ (or tab/CR) would run as a formula. Prefix
+// a single quote, as the exports do; readTable strips it on the way back in.
+const cellText = (raw: string): string => {
+  const value = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return /["\n\r,;]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+};
 
 export function buildTemplateCsv(
   members: readonly string[],

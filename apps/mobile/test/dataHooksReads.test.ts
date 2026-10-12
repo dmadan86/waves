@@ -11,7 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MutationKind, SyncTable, categoryTagsScope, groupPinsScope } from '@waves/core';
+import { MutationKind, SyncTable, categoryTagsScope } from '@waves/core';
 
 import {
   expenseRow,
@@ -260,23 +260,6 @@ describe('group lists', () => {
     });
     const ids = render(() => hooks.useGroups()).data.map((g) => g.id);
     expect(ids).toContain('g-new');
-  });
-});
-
-describe('usePinnedGroupIds', () => {
-  it('is empty when nobody is signed in', () => {
-    auth.value = { session: null, profile: null };
-    expect(render(() => hooks.usePinnedGroupIds()).size).toBe(0);
-  });
-
-  it('includes a group pinned offline by the signed-in person', () => {
-    sync.queue = queueOf({
-      id: 'm-pin',
-      kind: MutationKind.GroupPinSet,
-      scope: groupPinsScope(OWNER),
-      payload: { pinId: 'pin-1', groupId: 'g-1' },
-    });
-    expect([...render(() => hooks.usePinnedGroupIds())]).toEqual(['g-1']);
   });
 });
 

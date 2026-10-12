@@ -66,6 +66,13 @@ describe('buildTemplateCsv', () => {
     expect(csv).toContain('Asha');
   });
 
+  it('writes a formula-looking name as text, and reads it back unchanged', () => {
+    const csv = buildTemplateCsv(['=HYPERLINK("x")', 'Asha'], 'INR');
+    expect(csv).not.toMatch(/(^|,)=HYPERLINK/m);
+    expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
+    expect(draftFromText(csv).people).toContain('=HYPERLINK("x")');
+  });
+
   it('re-parses to the rows it describes', () => {
     const csv = buildTemplateCsv(['Asha', 'Bharath', 'Chitra'], 'INR');
     const draft = draftFromText(csv);

@@ -25,6 +25,7 @@ import {
   type ImportIssue,
 } from './draft';
 import { ImportProblemKind } from './problem';
+import { nameMap } from './nameMap';
 
 /** File name to a group member id, or `'ghost'` for "add as a new person". Absent means ghost. */
 export type PersonMapping = Readonly<Record<string, string>>;
@@ -115,7 +116,7 @@ export function reconstructPayers(
     .sort((a, b) => (b[1] === a[1] ? a[0].localeCompare(b[0]) : b[1] > a[1] ? 1 : -1));
   const positive = creditors.reduce((sum, [, net]) => sum + net, 0n);
 
-  const payers: Record<string, bigint> = {};
+  const payers: Record<string, bigint> = nameMap();
   if (positive === 0n) {
     // Nobody is owed anything: a fully settled or zero row. Attribute the whole
     // cost to the first person so the totals still hold.
@@ -140,7 +141,7 @@ export function reconstructPayers(
     }
   }
 
-  const shares: Record<string, bigint> = {};
+  const shares: Record<string, bigint> = nameMap();
   for (const [person, net] of nets) {
     shares[person] = (payers[person] ?? 0n) - net;
   }
@@ -311,7 +312,7 @@ export function resolveDraft(
     }
 
     try {
-      let shares: Record<string, bigint> = {};
+      let shares: Record<string, bigint> = nameMap();
       let payers: Record<string, bigint> | null = null;
 
       if (split.kind === 'net') {
@@ -331,19 +332,19 @@ export function resolveDraft(
             split.among === 'everyone' ? everyone() : [...new Set(split.among.map(canon))];
           params = { kind: 'equal' };
         } else if (split.kind === 'shares') {
-          const weights: Record<string, number> = {};
+          const weights: Record<string, number> = nameMap();
           for (const [name, weight] of Object.entries(split.weights))
             weights[canon(name)] = (weights[canon(name)] ?? 0) + weight;
           participants = Object.keys(weights);
           params = { kind: 'shares', weights };
         } else if (split.kind === 'percent') {
-          const basisPoints: Record<string, number> = {};
+          const basisPoints: Record<string, number> = nameMap();
           for (const [name, bp] of Object.entries(split.basisPoints))
             basisPoints[canon(name)] = (basisPoints[canon(name)] ?? 0) + bp;
           participants = Object.keys(basisPoints);
           params = { kind: 'percent', basisPoints };
         } else {
-          const amounts: Record<string, bigint> = {};
+          const amounts: Record<string, bigint> = nameMap();
           for (const [name, value] of Object.entries(split.amounts))
             addInto(amounts, canon(name), value);
           participants = Object.keys(amounts);

@@ -175,7 +175,7 @@ $$;
 
 -- (3) The settlement notice: see the branch added below.
 
--- (4) One balance refresh per group per transaction, not one per row.
+-- (4) One balance refresh per group per burst of writes, not one per row.
 --
 -- `waves_touch_balances` is a DEFERRED constraint trigger, so it runs at COMMIT
 -- once for every row event: each expense is ~7 events (the expense, its payers,
@@ -185,20 +185,67 @@ $$;
 -- before this change, growing with the size of the group, far past the API's
 -- 8 s statement timeout.
 --
--- Deferred events only run after every statement of the transaction has
--- written, so the first event for a group already sees the final state of that
--- group: refreshing again for the next event of the same group, in the same
--- transaction, computes the same answer. The refresh is therefore remembered
--- (transaction-local, per group) and not repeated. Same refresh, same result,
--- one of it. Nothing in the schema uses SET CONSTRAINTS ... IMMEDIATE, which is
--- the one thing that could fire events early.
+-- A refresh reads the whole group, so a refresh that follows the last write is
+-- as good as any later one. But deferred events can fire EARLY (SET CONSTRAINTS
+-- ... IMMEDIATE, which migrations here have used), with more writes after. So
+-- "already refreshed in this transaction" is not enough; it must be "already
+-- refreshed since the last write". An immediate row trigger on the same tables
+-- bumps a transaction-local per-group generation on every write; the deferred
+-- refresh records the generation it ran at and skips only while that is still
+-- the current one. At commit the first event refreshes, the rest skip; a write
+-- after an early refresh bumps the generation and forces another.
+CREATE FUNCTION public.waves_mark_balances_dirty() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_group_id uuid;
+  v_key      text;
+BEGIN
+  IF TG_TABLE_NAME IN ('expenses', 'settlements') THEN
+    IF TG_OP = 'DELETE' THEN
+      v_group_id := OLD.group_id;
+    ELSE
+      v_group_id := NEW.group_id;
+    END IF;
+  ELSE
+    IF TG_OP = 'DELETE' THEN
+      v_group_id := public.waves_version_group_id(OLD.expense_version_id);
+    ELSE
+      v_group_id := public.waves_version_group_id(NEW.expense_version_id);
+    END IF;
+  END IF;
+
+  IF v_group_id IS NOT NULL THEN
+    v_key := 'waves.bal_gen_' || replace(v_group_id::text, '-', '');
+    PERFORM set_config(
+      v_key, (COALESCE(NULLIF(current_setting(v_key, true), ''), '0')::bigint + 1)::text, true
+    );
+  END IF;
+  RETURN NULL;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_mark_balances_dirty() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_mark_balances_dirty() TO service_role;
+
+CREATE TRIGGER expenses_mark_dirty AFTER INSERT OR UPDATE ON public.expenses
+    FOR EACH ROW EXECUTE FUNCTION public.waves_mark_balances_dirty();
+CREATE TRIGGER settlements_mark_dirty AFTER INSERT OR UPDATE ON public.settlements
+    FOR EACH ROW EXECUTE FUNCTION public.waves_mark_balances_dirty();
+CREATE TRIGGER expense_payers_mark_dirty AFTER INSERT OR DELETE ON public.expense_payers
+    FOR EACH ROW EXECUTE FUNCTION public.waves_mark_balances_dirty();
+CREATE TRIGGER expense_shares_mark_dirty AFTER INSERT OR DELETE ON public.expense_shares
+    FOR EACH ROW EXECUTE FUNCTION public.waves_mark_balances_dirty();
+
 CREATE OR REPLACE FUNCTION public.waves_touch_balances() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
   v_group_id uuid;
-  v_done     text;
+  v_suffix   text;
+  v_gen      text;
 BEGIN
   IF TG_TABLE_NAME IN ('expenses', 'settlements') THEN
     IF TG_OP = 'DELETE' THEN
@@ -215,10 +262,11 @@ BEGIN
   END IF;
 
   IF v_group_id IS NOT NULL THEN
-    v_done := COALESCE(current_setting('waves.balances_refreshed', true), '');
-    IF position(v_group_id::text || ',' IN v_done) = 0 THEN
+    v_suffix := replace(v_group_id::text, '-', '');
+    v_gen := COALESCE(NULLIF(current_setting('waves.bal_gen_' || v_suffix, true), ''), '0');
+    IF COALESCE(current_setting('waves.bal_done_' || v_suffix, true), '') IS DISTINCT FROM v_gen THEN
       PERFORM public.waves_refresh_group_balances(v_group_id);
-      PERFORM set_config('waves.balances_refreshed', v_done || v_group_id::text || ',', true);
+      PERFORM set_config('waves.bal_done_' || v_suffix, v_gen, true);
     END IF;
   END IF;
   RETURN NULL;

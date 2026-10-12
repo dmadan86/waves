@@ -17,19 +17,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary, usePinnedGroupIds, useSetGroupPin } from '@/data/hooks';
+import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { useAuth } from '@/lib/auth';
 import { PressableScale } from '@/lib/anim';
-import {
-  filterGroups,
-  sortGroups,
-  type GroupsEntry,
-  type GroupsFilter,
-  type GroupsSort,
-} from '@/lib/groupsList';
+import { filterGroups, sortGroups, type GroupsFilter, type GroupsSort } from '@/lib/groupsList';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
@@ -62,8 +56,7 @@ const SCENE_INTO_CARD = 34;
  * groups that owe or are owed (or are waiting on a confirmation) sort to the
  * top, biggest balances first; the settled ones fall below a quiet "Settled"
  * label, dimmed, present but not competing. The chips under the search field
- * narrow the roster to what you are owed, what you owe, or your favorites (the
- * same pin the dashboard and the group's own menu set), and the round button
+ * narrow the roster to what you are owed or what you owe, and the round button
  * at their end re-sorts it by recent activity or name.
  *
  * It wears the scenic header Home and Personal wear — the way back, the title,
@@ -80,14 +73,12 @@ export default function AllGroupsScreen() {
   const groups = useGroups();
   const list = useMemo(() => groups.data ?? [], [groups.data]);
   const loading = groups.isLoading || summary.isLoading;
-  const pinnedIds = usePinnedGroupIds();
-  const setGroupPin = useSetGroupPin();
   // Groups someone else has touched since the reader last opened them.
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);
   const unreadGroups = useGroupUnread(groupIds);
 
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<GroupsFilter>('all');
+  const [filter] = useState<GroupsFilter>('all');
   const [sort, setSort] = useState<GroupsSort>('amount');
   const [sortDesc, setSortDesc] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
@@ -118,46 +109,24 @@ export default function AllGroupsScreen() {
       };
     });
 
-    const isFavorite = (entry: GroupsEntry): boolean => pinnedIds.has(entry.id);
-    const sorted = sortGroups(
-      filterGroups(decorated, filter, trimmed, isFavorite),
-      sort,
-      isFavorite,
-      locale,
-    );
-    // The same toggle Friends has: picking the active sort again flips it. The
-    // favorites keep their place in front either way.
-    const ordered = sortDesc
-      ? sorted
-      : [...sorted.filter(isFavorite), ...sorted.filter((entry) => !isFavorite(entry)).reverse()];
+    const sorted = sortGroups(filterGroups(decorated, filter, trimmed), sort, locale);
+    // The same toggle Friends has: picking the active sort again flips it.
+    const ordered = sortDesc ? sorted : [...sorted].reverse();
 
     type Entry = (typeof decorated)[number];
     type ListRow = { kind: 'group'; item: Entry } | { kind: 'header'; label: string };
     const out: ListRow[] = [];
-    // The favorites sit in front of the money-first split, so the "Settled"
-    // label belongs to the unfavorited rest — and only when that rest holds a
-    // mix, since a block that is all settled (or all active) needs no label.
-    const rest = ordered.filter((entry) => !isFavorite(entry));
-    const firstSettled = rest.findIndex((entry) => !entry.needsAction);
+    // The "Settled" label only appears when the list holds a mix, since a
+    // block that is all settled (or all active) needs no label.
+    const firstSettled = ordered.findIndex((entry) => !entry.needsAction);
     const settledLabelAt =
-      sort === 'amount' && sortDesc && firstSettled > 0 ? rest[firstSettled]!.id : null;
+      sort === 'amount' && sortDesc && firstSettled > 0 ? ordered[firstSettled]!.id : null;
     for (const item of ordered) {
       if (item.id === settledLabelAt) out.push({ kind: 'header', label: t.settledHeader });
       out.push({ kind: 'group', item });
     }
     return out;
-  }, [
-    list,
-    summary,
-    profile?.id,
-    trimmed,
-    filter,
-    sort,
-    sortDesc,
-    locale,
-    pinnedIds,
-    t.settledHeader,
-  ]);
+  }, [list, summary, profile?.id, trimmed, filter, sort, sortDesc, locale, t.settledHeader]);
 
   // What a rendered row reads from outside its own data: the locale (money and
   // member-count formatting) and the theme (its colours). Both hold identity
@@ -222,8 +191,6 @@ export default function AllGroupsScreen() {
           filter on a brand-new account, so they wait for the first group. */}
       {list.length > 0 ? (
         <FilterBar
-          favoritesOnly={filter === 'favorites'}
-          onToggleFavorites={() => setFilter((f) => (f === 'favorites' ? 'all' : 'favorites'))}
           sortLabel={sortLabelFor(sort, t)}
           sortDesc={sortDesc}
           onOpenSort={(anchor) => {
@@ -292,7 +259,6 @@ export default function AllGroupsScreen() {
               const direction =
                 balance === 0n ? t.allSettled : balance > 0n ? t.group.rowOwed : t.group.rowYouOwe;
 
-              const pinned = pinnedIds.has(group.id);
               return (
                 <GroupListRow
                   groupId={group.id}
@@ -307,9 +273,6 @@ export default function AllGroupsScreen() {
                   // Settled groups are present, not urgent: dimmed so the eye
                   // lands on the rows that still need something.
                   dim={!row.item.needsAction}
-                  pinned={pinned}
-                  pinLabel={`${pinned ? t.group.unpin : t.group.pin} ${row.item.label}`}
-                  onTogglePin={() => setGroupPin.mutate({ groupId: group.id, pinned: !pinned })}
                   isDemo={group.isDemo === true}
                   unread={unreadGroups.has(group.id)}
                 />
@@ -555,19 +518,14 @@ function sortLabelFor(key: GroupsSort, t: UiStrings): string {
 }
 
 /**
- * One quiet row above the list: a Favorites toggle on the left and, on the
- * right, the same "Sort by" pill Friends wears, opening the same drop-down
+ * One quiet row above the list: the same "Sort by" pill Friends wears, opening the same drop-down
  * (`SortMenu`) from where it sits. Picking the active sort again flips it.
  */
 function FilterBar({
-  favoritesOnly,
-  onToggleFavorites,
   sortLabel,
   sortDesc,
   onOpenSort,
 }: {
-  favoritesOnly: boolean;
-  onToggleFavorites: () => void;
   sortLabel: string;
   sortDesc: boolean;
   onOpenSort: (anchor: MenuAnchor | null) => void;
@@ -596,33 +554,12 @@ function FilterBar({
     <Row
       style={{
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         paddingHorizontal: theme.spacing.md,
         paddingTop: theme.spacing.sm,
         paddingBottom: 6,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ selected: favoritesOnly }}
-        onPress={onToggleFavorites}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          ...pill,
-          backgroundColor: favoritesOnly ? theme.color.warningSoft : theme.color.surface,
-          borderColor: favoritesOnly ? theme.color.warning : theme.color.border,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <Ionicons
-          name={favoritesOnly ? 'star' : 'star-outline'}
-          size={iconSize.sm}
-          color={theme.color.warning}
-        />
-        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
-          {t.misc.filterFavorites}
-        </Text>
-      </Pressable>
       <View ref={pillRef} collapsable={false}>
         <Pressable
           onPress={openSort}
@@ -668,17 +605,13 @@ function SectionLabel({ label }: { label: string }): React.JSX.Element {
 /**
  * One group as a compact card — the group's mark in a 40dp soft disc, the name
  * over its member count, the balance to the right with who-owes-whom under it, a
- * star to favorite and a chevron.
+ * and a chevron.
  *
  * The amount keeps `MoneyText`'s `balance` mode, which is where owe-versus-owed
  * lives: colour *and* sign together, with the minor units drawn fainter. A
  * settled group has nothing to colour, so it drops the zero amount and says so
  * in words instead, dimmed — which quietens it without telling the reader the
  * wrong direction.
- *
- * The star is the same pin the dashboard and the group's own menu set (a
- * favorite sorts to the top), so there is one concept, not two. Long-press stays
- * as the quick path to it.
  *
  * Memoized, because it lives in a virtualized list: a recycled row that lands on
  * the same group does no work when the parent re-renders. Every prop is a
@@ -696,9 +629,6 @@ const GroupListRow = memo(function GroupListRow({
   spoken,
   direction,
   dim,
-  pinned = false,
-  pinLabel,
-  onTogglePin,
   isDemo = false,
   unread = false,
 }: {
@@ -715,15 +645,9 @@ const GroupListRow = memo(function GroupListRow({
   direction: string;
   /** Nothing owed and nothing pending — present, but not competing for the eye. */
   dim: boolean;
-  /** A favorite: sorted to the top, star filled, announced in the row's label. */
-  pinned?: boolean;
   /** The one client-side demo group (`@/demo`) — wears a small "Demo" pill
       beside its name, same word the dashboard's own row and Friends use. */
   isDemo?: boolean;
-  /** "Pin Goa trip" / "Unpin Goa trip" — what a screen reader announces for the
-      star and the long-press action. */
-  pinLabel?: string;
-  onTogglePin?: () => void;
   /** Someone else has done something here since the reader last opened it. */
   unread?: boolean;
 }): React.JSX.Element {
@@ -736,19 +660,9 @@ const GroupListRow = memo(function GroupListRow({
         accessibilityRole="button"
         // The full subtitle, not just the status word: a pending group at a zero
         // balance would otherwise be read out as "All settled", hiding the very
-        // state that needs attention. Favorite is spoken too — a screen reader
-        // never sees the star the row draws below.
-        accessibilityLabel={`${label}${unread ? `, ${t.groupNewActivity}` : ''}. ${
-          pinned ? `${t.group.pinnedBadge}. ` : ''
-        }${spoken}`}
+        // state that needs attention.
+        accessibilityLabel={`${label}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken}`}
         onPress={() => router.push(`/group/${groupId}`)}
-        onLongPress={onTogglePin}
-        accessibilityActions={
-          onTogglePin && pinLabel ? [{ name: 'togglePin', label: pinLabel }] : undefined
-        }
-        onAccessibilityAction={(event) => {
-          if (event.nativeEvent.actionName === 'togglePin') onTogglePin?.();
-        }}
         style={({ pressed }) => ({
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
@@ -827,21 +741,6 @@ const GroupListRow = memo(function GroupListRow({
             </Text>
           </View>
           <View style={{ alignItems: 'center', gap: 4, width: 18 }}>
-            {onTogglePin ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={pinLabel}
-                accessibilityState={{ selected: pinned }}
-                onPress={onTogglePin}
-                hitSlop={10}
-              >
-                <Ionicons
-                  name={pinned ? 'star' : 'star-outline'}
-                  size={14}
-                  color={pinned ? theme.color.warning : theme.color.textMuted}
-                />
-              </Pressable>
-            ) : null}
             <Ionicons
               name={directionalIcon('chevron-forward')}
               size={iconSize.sm}
