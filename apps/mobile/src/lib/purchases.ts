@@ -17,7 +17,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import Purchases, {
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
@@ -175,4 +175,29 @@ export async function restore(): Promise<PlanTier> {
   const info = await Purchases.restorePurchases();
   accept(info);
   return tierFromCustomerInfo(info);
+}
+
+// --- Managing it -------------------------------------------------------------
+
+/** Google Play's own list of the account's subscriptions. */
+const PLAY_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions';
+
+/**
+ * True when RevenueCat sees a store subscription this person can change or
+ * cancel. A plan granted by a promo code has nothing to manage in a store.
+ */
+export function hasStoreSubscription(info: CustomerInfo | null): boolean {
+  return activeProductId(info) !== null;
+}
+
+/**
+ * Open the store's page for changing or cancelling the plan: the App Store
+ * sheet on iOS, Google Play's subscriptions page on Android.
+ */
+export async function manageSubscription(): Promise<void> {
+  if (Platform.OS === 'ios') {
+    await Purchases.showManageSubscriptions();
+    return;
+  }
+  await Linking.openURL(snapshot.info?.managementURL ?? PLAY_SUBSCRIPTIONS_URL);
 }

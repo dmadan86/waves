@@ -172,6 +172,17 @@ describe('mapEvent', () => {
     ).toMatchObject({ kind: 'ignore', reason: 'sandbox' });
   });
 
+  it('writes Test Store purchases, and drops them as sandbox when told to', () => {
+    expect(mapEvent(event({ store: 'TEST_STORE' })).action).toMatchObject({
+      kind: 'upsert',
+      store: 'test',
+    });
+    expect(
+      mapEvent(event({ store: 'TEST_STORE', environment: 'PRODUCTION' }), { ignoreSandbox: true })
+        .action,
+    ).toMatchObject({ kind: 'ignore', reason: 'sandbox' });
+  });
+
   it('works out the period from the dates when the product id does not say', () => {
     expect(upsert({ product_id: 'waves_plus', expiration_at_ms: NOW + 365 * DAY }).period).toBe(
       'yearly',
@@ -193,6 +204,7 @@ describe('helpers', () => {
     expect(storeFor('MAC_APP_STORE')).toBe('appstore');
     expect(storeFor('PLAY_STORE')).toBe('play');
     expect(storeFor('PROMOTIONAL')).toBe('promo');
+    expect(storeFor('TEST_STORE')).toBe('test');
     expect(storeFor('AMAZON')).toBeNull();
   });
 

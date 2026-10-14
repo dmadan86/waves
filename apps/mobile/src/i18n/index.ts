@@ -4383,6 +4383,7 @@ export interface UiStrings {
     seePlans: string;
     onPlan: string;
     plansPromise: string;
+    manageSubscription: string;
     whatCosts: string;
   };
   /**
@@ -8649,6 +8650,7 @@ const en: UiStrings = {
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
+    manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
   },
   paywall: {
@@ -13030,6 +13032,7 @@ const ta: UiStrings = {
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
+    manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
   paywall: {
@@ -17282,6 +17285,7 @@ const hi: UiStrings = {
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
+    manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
   },
   paywall: {
@@ -22087,6 +22091,7 @@ const ar: UiStrings = {
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
+    manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
   },
   paywall: {

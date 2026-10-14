@@ -22,6 +22,10 @@
  *   REFUND                                  → refunded
  *   TRANSFER                                → store rows move to the new profile
  *   TEST and anything else                  → recorded, nothing written
+ *
+ * RevenueCat's Test Store (a `test_` SDK key) writes rows with store 'test', so
+ * a test purchase unlocks what a real one would. It counts as sandbox: with
+ * REVENUECAT_IGNORE_SANDBOX on, its events are dropped like any other.
  */
 
 import {
@@ -70,7 +74,7 @@ export interface UpsertAction {
   period: 'monthly' | 'yearly' | 'lifetime';
   status: SubscriptionStatus;
   current_period_end: string | null;
-  store: 'play' | 'appstore' | 'promo';
+  store: 'play' | 'appstore' | 'promo' | 'test';
   store_txn_id: string;
   price_minor: number | null;
   currency: string | null;
@@ -108,6 +112,8 @@ export function storeFor(store: string | null | undefined): UpsertAction['store'
       return 'play';
     case 'PROMOTIONAL':
       return 'promo';
+    case 'TEST_STORE':
+      return 'test';
     default:
       return null;
   }
@@ -184,7 +190,10 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
   const base = { eventId, type, appUserId, eventAt };
   const ignore = (reason: string): Mapped => ({ ...base, action: { kind: 'ignore', reason } });
 
-  if (options.ignoreSandbox && (event.environment ?? '').toUpperCase() === 'SANDBOX') {
+  const sandbox =
+    (event.environment ?? '').toUpperCase() === 'SANDBOX' ||
+    (event.store ?? '').toUpperCase() === 'TEST_STORE';
+  if (options.ignoreSandbox && sandbox) {
     return ignore('sandbox');
   }
 
