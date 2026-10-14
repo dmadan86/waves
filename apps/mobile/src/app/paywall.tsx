@@ -38,6 +38,7 @@ import {
   type PlanCardModel,
   type PlanPeriod,
 } from '@/lib/pricing';
+import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
@@ -53,7 +54,7 @@ function planName(t: UiStrings, tier: PlanTier): string {
 
 export default function PaywallScreen() {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, language } = useStrings();
   const toast = useToast();
   const entitlement = useEntitlement();
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
@@ -257,7 +258,7 @@ export default function PaywallScreen() {
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={t.paywall.terms}
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => openLegal('terms', language)}
             hitSlop={8}
           >
             <Text variant="caption" tone="muted">
@@ -267,7 +268,7 @@ export default function PaywallScreen() {
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={t.paywall.privacy}
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => openLegal('privacy', language)}
             hitSlop={8}
           >
             <Text variant="caption" tone="muted">

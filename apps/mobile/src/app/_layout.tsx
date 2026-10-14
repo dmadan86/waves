@@ -530,17 +530,21 @@ function AuthGate() {
   const paywallFlag = useFlagEnabled('paywall');
   const paywallEnabled = paywallFlag && purchasesAvailable();
 
-  // Cloud voice depends on the subscription, and its answer is cached for ten
-  // minutes. When RevenueCat reports a different plan (buy, restore, lapse),
-  // re-ask now and once more shortly after: the server learns of the change
-  // through the webhook, which can land after the app does.
+  // Cloud voice and the server's plan (scan limits, the plan badge) depend on
+  // the subscription, and both answers are cached for minutes. When RevenueCat
+  // reports a different plan (buy, restore, lapse), re-ask now and once more
+  // shortly after: the server learns of the change through the webhook, which
+  // can land after the app does.
   const queryClient = useQueryClient();
   const { tier } = useCustomerTier();
   const lastTier = useRef(tier);
   useEffect(() => {
     if (lastTier.current === tier) return;
     lastTier.current = tier;
-    const refresh = () => void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+      void queryClient.invalidateQueries({ queryKey: ['myPlan'] });
+    };
     refresh();
     const timer = setTimeout(refresh, 5000);
     return () => clearTimeout(timer);

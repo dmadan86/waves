@@ -14,6 +14,12 @@
  *                                             an upgrade (stores apply upgrades now,
  *                                             downgrades at the next renewal, which
  *                                             then arrives as a RENEWAL of the new product)
+ *   TEMPORARY_ENTITLEMENT_GRANT             → active until expiration: RevenueCat's
+ *                                             stand-in while a store is down, so the
+ *                                             person is not locked out of what they just
+ *                                             paid for. Its own row (the real purchase,
+ *                                             when it lands, writes another), keyed by
+ *                                             the event when there is no transaction
  *   CANCELLATION                            → stays active until expiration (it only
  *                                             stops the renewal); refunded when the
  *                                             reason is CUSTOMER_SUPPORT (a store refund)
@@ -22,6 +28,10 @@
  *   REFUND                                  → refunded
  *   TRANSFER                                → store rows move to the new profile
  *   TEST and anything else                  → recorded, nothing written
+ *
+ * RevenueCat's Test Store (a `test_` SDK key) writes rows with store 'test', so
+ * a test purchase unlocks what a real one would. It counts as sandbox: with
+ * REVENUECAT_IGNORE_SANDBOX on, its events are dropped like any other.
  */
 
 import {
@@ -70,7 +80,7 @@ export interface UpsertAction {
   period: 'monthly' | 'yearly' | 'lifetime';
   status: SubscriptionStatus;
   current_period_end: string | null;
-  store: 'play' | 'appstore' | 'promo';
+  store: 'play' | 'appstore' | 'promo' | 'test';
   store_txn_id: string;
   price_minor: number | null;
   currency: string | null;
@@ -108,6 +118,8 @@ export function storeFor(store: string | null | undefined): UpsertAction['store'
       return 'play';
     case 'PROMOTIONAL':
       return 'promo';
+    case 'TEST_STORE':
+      return 'test';
     default:
       return null;
   }
@@ -120,6 +132,7 @@ const ACTIVE_TYPES = new Set([
   'SUBSCRIPTION_EXTENDED',
   'REFUND_REVERSED',
   'PRODUCT_CHANGE',
+  'TEMPORARY_ENTITLEMENT_GRANT',
 ]);
 const HANDLED_TYPES = new Set([
   ...ACTIVE_TYPES,
@@ -184,7 +197,10 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
   const base = { eventId, type, appUserId, eventAt };
   const ignore = (reason: string): Mapped => ({ ...base, action: { kind: 'ignore', reason } });
 
-  if (options.ignoreSandbox && (event.environment ?? '').toUpperCase() === 'SANDBOX') {
+  const sandbox =
+    (event.environment ?? '').toUpperCase() === 'SANDBOX' ||
+    (event.store ?? '').toUpperCase() === 'TEST_STORE';
+  if (options.ignoreSandbox && sandbox) {
     return ignore('sandbox');
   }
 
@@ -207,7 +223,10 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
   const store = storeFor(event.store);
   if (!store) return ignore(`unsupported store ${event.store ?? '(none)'}`);
 
-  const txn = event.original_transaction_id || event.transaction_id;
+  const txn =
+    event.original_transaction_id ||
+    event.transaction_id ||
+    (type === 'TEMPORARY_ENTITLEMENT_GRANT' && eventId ? `temp:${eventId}` : null);
   if (!txn) return ignore('no transaction id');
 
   let tier = tierOf(event);
