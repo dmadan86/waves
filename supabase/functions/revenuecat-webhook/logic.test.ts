@@ -172,6 +172,29 @@ describe('mapEvent', () => {
     ).toMatchObject({ kind: 'ignore', reason: 'sandbox' });
   });
 
+  it('grants a store-outage stand-in until it expires, on a row of its own', () => {
+    const NOW_ISO = new Date(NOW + DAY).toISOString();
+    expect(
+      mapEvent(
+        event({
+          id: 'evt-temp-1',
+          type: 'TEMPORARY_ENTITLEMENT_GRANT',
+          entitlement_ids: ['pro'],
+          product_id: null,
+          transaction_id: null,
+          original_transaction_id: null,
+          expiration_at_ms: NOW + DAY,
+        }),
+      ).action,
+    ).toMatchObject({
+      kind: 'upsert',
+      tier: 'pro',
+      status: 'active',
+      store_txn_id: 'temp:evt-temp-1',
+      current_period_end: NOW_ISO,
+    });
+  });
+
   it('writes Test Store purchases, and drops them as sandbox when told to', () => {
     expect(mapEvent(event({ store: 'TEST_STORE' })).action).toMatchObject({
       kind: 'upsert',

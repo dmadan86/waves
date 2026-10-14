@@ -17,7 +17,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Linking, Platform } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import Purchases, {
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
@@ -46,6 +46,22 @@ export function purchasesAvailable(): boolean {
 let configured = false;
 let currentUser: string | null = null;
 let queue: Promise<void> = Promise.resolve();
+/** The account the app last asked for, so a failed setup can be retried. */
+let wanted: string | null = null;
+let watching = false;
+
+/**
+ * Ask again each time the app comes back to the front. For the account
+ * RevenueCat already has this does nothing; after a setup or switch that
+ * failed (no network at launch, say), it is the retry.
+ */
+function watchForeground(): void {
+  if (watching) return;
+  watching = true;
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void syncPurchasesUser(wanted);
+  });
+}
 
 interface EntitlementSnapshot {
   readonly tier: PlanTier;
@@ -83,6 +99,8 @@ async function readCustomerInfo(): Promise<void> {
 export function syncPurchasesUser(profileId: string | null): Promise<void> {
   if (!API_KEY) return Promise.resolve();
   const key = API_KEY;
+  wanted = profileId;
+  watchForeground();
   queue = queue.then(async () => {
     try {
       if (!configured) {

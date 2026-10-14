@@ -23,6 +23,8 @@ import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { forgetTours } from '@/lib/onboardingSeen';
+import { reportHandled } from '@/lib/observability';
+import { hasStoreSubscription, manageSubscription, useCustomerTier } from '@/lib/purchases';
 
 /**
  * Leaving, with the consequence in view before the button.
@@ -32,6 +34,10 @@ import { forgetTours } from '@/lib/onboardingSeen';
  * removing them would silently change somebody else's balance to settle a debt
  * nobody paid. Saying so first is the difference between a promise the app can
  * keep and one it cannot.
+ *
+ * Somebody paying through a store is told, before anything else, that deleting
+ * the account does not stop the store billing them: only the store can cancel
+ * it, and the account that could have reminded them will be gone.
  *
  * Export sits above the confirmation on purpose. Somebody who has decided to
  * leave should be offered their data on the way out rather than reminded of it
@@ -50,6 +56,14 @@ export default function DeleteAccountScreen() {
   const [done, setDone] = useState<string | null>(null);
 
   const preview = useQuery({ queryKey: ['erasure-preview'], queryFn: erasurePreview });
+  const { info } = useCustomerTier();
+  const subscribed = hasStoreSubscription(info);
+  const onManage = () => {
+    manageSubscription().catch((caught: unknown) => {
+      reportHandled(caught, 'purchases.manageSubscription');
+      setError(t.paywall.genericError);
+    });
+  };
 
   const armed = confirm.trim().toUpperCase() === t.privacy.deleteConfirmWord;
 
@@ -181,6 +195,20 @@ export default function DeleteAccountScreen() {
           </View>
           <BasketArt />
         </Row>
+
+        {subscribed ? (
+          <Callout tone="warning" title={t.deleteForm.subscriptionTitle}>
+            {t.deleteForm.subscriptionBody}
+          </Callout>
+        ) : null}
+        {subscribed ? (
+          <Button
+            label={t.upgradeScreen.manageSubscription}
+            variant="secondary"
+            size="sm"
+            onPress={onManage}
+          />
+        ) : null}
 
         {/* What stays comes first: it is the surprising half. */}
         <Card style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>

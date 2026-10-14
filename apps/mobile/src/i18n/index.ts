@@ -1957,6 +1957,8 @@ export interface UiStrings {
   deleteForm: {
     heroTitle: string;
     staysPill: string;
+    subscriptionTitle: string;
+    subscriptionBody: string;
     goesPill: string;
     cannotRecover: string;
     statGroups: string;
@@ -6634,6 +6636,9 @@ const en: UiStrings = {
   deleteForm: {
     heroTitle: 'This cannot be undone',
     staysPill: 'Remains in your groups',
+    subscriptionTitle: 'Your subscription keeps renewing',
+    subscriptionBody:
+      'Deleting your account does not cancel it. Cancel it in your app store first, or the store keeps charging you.',
     goesPill: 'Permanently deleted',
     cannotRecover: 'Your data will be permanently deleted and cannot be recovered.',
     statGroups: 'Groups you are in',
@@ -10892,6 +10897,9 @@ const ta: UiStrings = {
   deleteForm: {
     heroTitle: 'இதைத் திரும்பப் பெற முடியாது',
     staysPill: 'உங்கள் குழுக்களில் இருக்கும்',
+    subscriptionTitle: 'உங்கள் சந்தா தொடர்ந்து புதுப்பிக்கப்படும்',
+    subscriptionBody:
+      'கணக்கை நீக்குவது சந்தாவை ரத்து செய்யாது. முதலில் உங்கள் ஆப் ஸ்டோரில் ரத்து செய்யுங்கள், இல்லையெனில் ஸ்டோர் தொடர்ந்து கட்டணம் வசூலிக்கும்.',
     goesPill: 'நிரந்தரமாக நீக்கப்படும்',
     cannotRecover: 'உங்கள் தரவு நிரந்தரமாக நீக்கப்படும், மீட்க முடியாது.',
     statGroups: 'நீங்கள் உள்ள குழுக்கள்',
@@ -15247,6 +15255,9 @@ const hi: UiStrings = {
   deleteForm: {
     heroTitle: 'इसे वापस नहीं किया जा सकता',
     staysPill: 'आपके समूहों में रहता है',
+    subscriptionTitle: 'आपकी सदस्यता नवीनीकृत होती रहेगी',
+    subscriptionBody:
+      'खाता हटाने से सदस्यता रद्द नहीं होती। पहले अपने ऐप स्टोर में इसे रद्द करें, वरना स्टोर शुल्क लेता रहेगा।',
     goesPill: 'स्थायी रूप से हटाया जाएगा',
     cannotRecover: 'आपका डेटा स्थायी रूप से हट जाएगा और वापस नहीं आ सकेगा।',
     statGroups: 'आपके समूह',
@@ -19560,6 +19571,9 @@ const ar: UiStrings = {
   deleteForm: {
     heroTitle: 'لا يمكن التراجع عن هذا',
     staysPill: 'يبقى في مجموعاتك',
+    subscriptionTitle: 'اشتراكك يستمر في التجديد',
+    subscriptionBody:
+      'حذف حسابك لا يلغي الاشتراك. ألغِه من متجر التطبيقات أولًا، وإلا سيستمر المتجر في تحصيل الرسوم.',
     goesPill: 'يُحذف نهائيًا',
     cannotRecover: 'ستُحذف بياناتك نهائيًا ولا يمكن استعادتها.',
     statGroups: 'المجموعات التي أنت فيها',
