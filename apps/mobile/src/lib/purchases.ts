@@ -17,7 +17,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import Purchases, {
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
@@ -46,6 +46,22 @@ export function purchasesAvailable(): boolean {
 let configured = false;
 let currentUser: string | null = null;
 let queue: Promise<void> = Promise.resolve();
+/** The account the app last asked for, so a failed setup can be retried. */
+let wanted: string | null = null;
+let watching = false;
+
+/**
+ * Ask again each time the app comes back to the front. For the account
+ * RevenueCat already has this does nothing; after a setup or switch that
+ * failed (no network at launch, say), it is the retry.
+ */
+function watchForeground(): void {
+  if (watching) return;
+  watching = true;
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void syncPurchasesUser(wanted);
+  });
+}
 
 interface EntitlementSnapshot {
   readonly tier: PlanTier;
@@ -83,6 +99,8 @@ async function readCustomerInfo(): Promise<void> {
 export function syncPurchasesUser(profileId: string | null): Promise<void> {
   if (!API_KEY) return Promise.resolve();
   const key = API_KEY;
+  wanted = profileId;
+  watchForeground();
   queue = queue.then(async () => {
     try {
       if (!configured) {
@@ -175,4 +193,29 @@ export async function restore(): Promise<PlanTier> {
   const info = await Purchases.restorePurchases();
   accept(info);
   return tierFromCustomerInfo(info);
+}
+
+// --- Managing it -------------------------------------------------------------
+
+/** Google Play's own list of the account's subscriptions. */
+const PLAY_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions';
+
+/**
+ * True when RevenueCat sees a store subscription this person can change or
+ * cancel. A plan granted by a promo code has nothing to manage in a store.
+ */
+export function hasStoreSubscription(info: CustomerInfo | null): boolean {
+  return activeProductId(info) !== null;
+}
+
+/**
+ * Open the store's page for changing or cancelling the plan: the App Store
+ * sheet on iOS, Google Play's subscriptions page on Android.
+ */
+export async function manageSubscription(): Promise<void> {
+  if (Platform.OS === 'ios') {
+    await Purchases.showManageSubscriptions();
+    return;
+  }
+  await Linking.openURL(snapshot.info?.managementURL ?? PLAY_SUBSCRIPTIONS_URL);
 }
