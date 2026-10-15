@@ -240,7 +240,9 @@ const sentBody = (call: unknown[]) => JSON.parse((call[1] as { body: string }).b
 describe('receipt-parse on OpenRouter', () => {
   it('falls back to the second model on a 500 and reports who answered', async () => {
     const t = setup();
-    t.fetchMock.mockResolvedValueOnce(new Response('{"error":{"message":"boom"}}', { status: 500 }));
+    t.fetchMock.mockResolvedValueOnce(
+      new Response('{"error":{"message":"boom"}}', { status: 500 }),
+    );
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const res = await handleReceiptParse(t.request(), t.deps);
     expect(res.status).toBe(200);

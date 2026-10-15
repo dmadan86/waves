@@ -520,7 +520,11 @@ async function askModels(
       }
       return { parsed, model, usage: completion.usage ?? {} };
     } catch (error) {
-      console.error('openrouter call failed', model, error instanceof Error ? error.message : error);
+      console.error(
+        'openrouter call failed',
+        model,
+        error instanceof Error ? error.message : error,
+      );
       failure = new HttpError(502, 'SCAN_FAILED', 'The scanner could not read that just now');
     }
   }
