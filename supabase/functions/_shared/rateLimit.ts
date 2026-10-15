@@ -58,6 +58,12 @@ export const LIMITS = {
    * a stuck retry loop spending a month of commands in seconds.
    */
   'voice-agent': { limit: 10, windowSeconds: 60 },
+  /**
+   * Screenshot import: each call is a vision-model request. The monthly quota
+   * (`waves_screenshot_import_quota`) is the billing gate; this stops a stuck
+   * retry loop spending a month of imports in seconds.
+   */
+  'import-screenshot': { limit: 10, windowSeconds: 60 },
   'voice-stream-token': { limit: 12, windowSeconds: 60 },
   /** One per mic press, like the token it replaces. */
   'voice-stream': { limit: 12, windowSeconds: 60 },
