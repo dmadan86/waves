@@ -88,6 +88,74 @@ export function referralShareText(message: string, link: string): string {
   return `${message.trim()} ${link}`;
 }
 
+// ── the code that rode along with the install ───────────────────────────────
+
+/** The query key the web landing page puts inside the Play Store `referrer=`. */
+export const INSTALL_REFERRER_KEY = 'waves_ref';
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, ' '));
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * The referral code inside a Play Install Referrer string, or null.
+ *
+ * The string is whatever followed `referrer=` on the Play Store link, decoded
+ * once by Play: `waves_ref=ABCD2345` with any `utm_*` pairs beside it. Be
+ * forgiving of one more level of encoding (`waves_ref%3DABCD2345`), but never
+ * of a value that is not a code: anything else is null. Hand-parsed because
+ * Hermes' URLSearchParams is not something to lean on.
+ */
+export function referralCodeFromInstallReferrer(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const text = raw.trim();
+  if (!text) return null;
+  const attempts = text.includes('=') ? [text] : [safeDecode(text)];
+  for (const attempt of attempts) {
+    for (const pair of attempt.split('&')) {
+      const eq = pair.indexOf('=');
+      if (eq < 0) continue;
+      if (safeDecode(pair.slice(0, eq)).trim() !== INSTALL_REFERRER_KEY) continue;
+      const code = normalizeReferralCode(safeDecode(pair.slice(eq + 1)));
+      if (code) return code;
+    }
+  }
+  return null;
+}
+
+/**
+ * Once per install, turn the Play referrer into a waiting referral code.
+ *
+ * Everything outside is injected so this is testable: `read` is the native
+ * module (null on any failure), `done`/`markDone` remember that the question
+ * was asked, `pending` is the same store a deep link writes to. A code that is
+ * already waiting (it came from a deep link) is never replaced. The question
+ * is marked asked before the answer is used, so a failed read is not retried
+ * on every launch: the install referrer is a one-time thing.
+ */
+export async function captureInstallReferrer(deps: {
+  read: () => Promise<string | null>;
+  done: () => Promise<boolean>;
+  markDone: () => Promise<void>;
+  pending: Pick<PendingReferralStore, 'peek' | 'remember'>;
+}): Promise<string | null> {
+  try {
+    if (await deps.done()) return null;
+    await deps.markDone();
+    const code = referralCodeFromInstallReferrer(await deps.read());
+    if (!code) return null;
+    if (await deps.pending.peek()) return null;
+    await deps.pending.remember(code);
+    return code;
+  } catch {
+    return null;
+  }
+}
+
 // ── what the server says ────────────────────────────────────────────────────
 
 export interface MyReferral {

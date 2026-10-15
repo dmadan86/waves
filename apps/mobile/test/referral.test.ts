@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { redirectSystemPath } from '@/app/+native-intent';
 import {
+  captureInstallReferrer,
   daysEarnedText,
   daysFraction,
   isDefinitiveRefusal,
@@ -15,6 +16,7 @@ import {
   parseClaimOutcome,
   parseMyReferral,
   PENDING_REFERRAL_TTL_MS,
+  referralCodeFromInstallReferrer,
   referralCodeFromUrl,
   referralLink,
   referralShareText,
@@ -235,5 +237,91 @@ describe('the pending referral note', () => {
     await expect(store.remember(CODE)).resolves.toBeUndefined();
     await expect(store.peek()).resolves.toBeNull();
     await expect(store.clear()).resolves.toBeUndefined();
+  });
+});
+
+describe('referralCodeFromInstallReferrer', () => {
+  it('reads the code from a plain referrer', () => {
+    expect(referralCodeFromInstallReferrer('waves_ref=ABCD2345')).toBe(CODE);
+  });
+
+  it('reads an urlencoded referrer and a lower-case code', () => {
+    expect(referralCodeFromInstallReferrer('waves_ref%3Dabcd2345')).toBe(CODE);
+    expect(referralCodeFromInstallReferrer('waves_ref=abcd%2D2345')).toBe(CODE);
+  });
+
+  it('ignores extra utm params around it', () => {
+    expect(
+      referralCodeFromInstallReferrer(
+        'utm_source=google-play&utm_medium=organic&waves_ref=ABCD2345&utm_campaign=x',
+      ),
+    ).toBe(CODE);
+  });
+
+  it('is null for garbage, a bad code, a missing key and an empty string', () => {
+    expect(referralCodeFromInstallReferrer('')).toBeNull();
+    expect(referralCodeFromInstallReferrer('   ')).toBeNull();
+    expect(referralCodeFromInstallReferrer(null)).toBeNull();
+    expect(referralCodeFromInstallReferrer('utm_source=google-play&utm_medium=organic')).toBeNull();
+    expect(referralCodeFromInstallReferrer('%%%&&==')).toBeNull();
+    expect(referralCodeFromInstallReferrer('waves_ref=')).toBeNull();
+    expect(referralCodeFromInstallReferrer('waves_ref=ABCD234')).toBeNull();
+    expect(referralCodeFromInstallReferrer('waves_ref=ABCD2340')).toBeNull();
+    expect(referralCodeFromInstallReferrer('other_ref=ABCD2345')).toBeNull();
+  });
+});
+
+describe('captureInstallReferrer', () => {
+  const setup = (opts: { referrer: string | null; checked?: boolean; waiting?: string | null }) => {
+    let checked = opts.checked ?? false;
+    let waiting = opts.waiting ?? null;
+    const reads: number[] = [];
+    return {
+      deps: {
+        read: async () => {
+          reads.push(1);
+          return opts.referrer;
+        },
+        done: async () => checked,
+        markDone: async () => {
+          checked = true;
+        },
+        pending: {
+          peek: async () => waiting,
+          remember: async (c: string) => {
+            waiting = c;
+          },
+        },
+      },
+      state: () => ({ checked, waiting, reads: reads.length }),
+    };
+  };
+
+  it('stores the code as the pending referral, once', async () => {
+    const t = setup({ referrer: 'waves_ref=ABCD2345' });
+    expect(await captureInstallReferrer(t.deps)).toBe(CODE);
+    expect(t.state()).toMatchObject({ checked: true, waiting: CODE });
+    expect(await captureInstallReferrer(t.deps)).toBeNull();
+    expect(t.state().reads).toBe(1);
+  });
+
+  it('never overwrites a code that came from a deep link', async () => {
+    const t = setup({ referrer: 'waves_ref=ABCD2345', waiting: 'WXYZ6789' });
+    expect(await captureInstallReferrer(t.deps)).toBeNull();
+    expect(t.state().waiting).toBe('WXYZ6789');
+  });
+
+  it('does nothing for a missing or junk referrer, and does not ask again', async () => {
+    const t = setup({ referrer: null });
+    expect(await captureInstallReferrer(t.deps)).toBeNull();
+    expect(t.state()).toMatchObject({ checked: true, waiting: null });
+  });
+
+  it('never throws', async () => {
+    const t = setup({ referrer: null });
+    t.deps.read = async () => {
+      throw new Error('boom');
+    };
+    expect(await captureInstallReferrer(t.deps)).toBeNull();
   });
 });
