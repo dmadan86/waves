@@ -4426,6 +4426,17 @@ export interface UiStrings {
     purchasePending: string;
     genericError: string;
     terms: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    continueWith: string;
+    noPlans: string;
+    freeTitle: string;
+    freeGroups: string;
+    freeExpenses: string;
+    freeBalances: string;
+    alwaysFree: string;
+    redeemTitle: string;
+    redeemHint: string;
     privacy: string;
   };
   /**
@@ -8774,6 +8785,18 @@ const en: UiStrings = {
     genericError: 'That did not go through. Try again in a moment.',
     terms: 'Terms',
     privacy: 'Privacy',
+    heroTitle: 'Upgrade to Waves Pro',
+    heroSubtitle:
+      'More scans, bigger transfers and advanced AI voice. The basics stay free forever.',
+    continueWith: 'Continue with {plan}',
+    noPlans: 'Plans are not available right now.',
+    freeTitle: 'What stays free?',
+    freeGroups: 'Groups & splits',
+    freeExpenses: 'Add & manage expenses',
+    freeBalances: 'View balances & settle up',
+    alwaysFree: 'Always free',
+    redeemTitle: 'Redeem a code',
+    redeemHint: 'If somebody gave you one.',
   },
   promo: {
     clear: 'Clear',
@@ -13266,6 +13289,18 @@ const ta: UiStrings = {
     genericError: 'அது முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     terms: 'விதிமுறைகள்',
     privacy: 'தனியுரிமை',
+    heroTitle: 'Waves Pro-விற்கு மேம்படுத்துங்கள்',
+    heroSubtitle:
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல். அடிப்படை வசதிகள் என்றும் இலவசம்.',
+    continueWith: '{plan} உடன் தொடரவும்',
+    noPlans: 'திட்டங்கள் இப்போது கிடைக்கவில்லை.',
+    freeTitle: 'எவை இலவசமாகவே இருக்கும்?',
+    freeGroups: 'குழுக்கள் & பிரிப்பு',
+    freeExpenses: 'செலவுகளைச் சேர்த்து நிர்வகிக்க',
+    freeBalances: 'இருப்புகளைப் பார்த்து தீர்க்க',
+    alwaysFree: 'எப்போதும் இலவசம்',
+    redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
+    redeemHint: 'யாராவது கொடுத்திருந்தால்.',
   },
   promo: {
     clear: 'அழி',
@@ -17635,6 +17670,18 @@ const hi: UiStrings = {
     genericError: 'यह नहीं हो पाया। कुछ देर में फिर से कोशिश करें।',
     terms: 'शर्तें',
     privacy: 'निजता',
+    heroTitle: 'Waves Pro में अपग्रेड करें',
+    heroSubtitle:
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस। बुनियादी सुविधाएँ हमेशा मुफ़्त रहती हैं।',
+    continueWith: '{plan} के साथ आगे बढ़ें',
+    noPlans: 'प्लान अभी उपलब्ध नहीं हैं।',
+    freeTitle: 'क्या मुफ़्त रहता है?',
+    freeGroups: 'ग्रुप और बँटवारा',
+    freeExpenses: 'खर्चे जोड़ें और सँभालें',
+    freeBalances: 'बैलेंस देखें और हिसाब चुकाएँ',
+    alwaysFree: 'हमेशा मुफ़्त',
+    redeemTitle: 'कोड इस्तेमाल करें',
+    redeemHint: 'अगर किसी ने आपको दिया हो।',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -22550,6 +22597,17 @@ const ar: UiStrings = {
     genericError: 'لم تنجح العملية. حاول مرة أخرى بعد قليل.',
     terms: 'الشروط',
     privacy: 'الخصوصية',
+    heroTitle: 'الترقية إلى Waves Pro',
+    heroSubtitle: 'مسحات أكثر، ونقل أكبر، وصوت ذكاء اصطناعي متقدم. تبقى الأساسيات مجانية دائمًا.',
+    continueWith: 'المتابعة مع {plan}',
+    noPlans: 'الخطط غير متاحة حاليًا.',
+    freeTitle: 'ما الذي يبقى مجانيًا؟',
+    freeGroups: 'المجموعات والتقسيم',
+    freeExpenses: 'إضافة المصروفات وإدارتها',
+    freeBalances: 'عرض الأرصدة والتسوية',
+    alwaysFree: 'مجاني دائمًا',
+    redeemTitle: 'استخدام رمز',
+    redeemHint: 'إذا أعطاك أحدهم واحدًا.',
   },
   promo: {
     clear: 'مسح',

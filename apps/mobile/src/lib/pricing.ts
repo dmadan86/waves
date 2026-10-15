@@ -207,3 +207,43 @@ export function selectOffering<T extends { readonly identifier: string }>(
   const arm = armId ? offerings.all[armId] : undefined;
   return arm ?? offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
 }
+
+// --- Paywall presentation -----------------------------------------------------
+
+/** Which plan the paywall starts on: Pro, the one with more on it, for everyone. */
+export function defaultSelectedTier(): PaidTier {
+  return PlanTier.Pro;
+}
+
+/** The card the buy button acts on: the selected one, else the last (Pro). */
+export function chosenCard(
+  cards: readonly PlanCardModel[],
+  selected: PaidTier,
+): PlanCardModel | undefined {
+  return cards.find((card) => card.tier === selected) ?? cards[cards.length - 1];
+}
+
+export type CtaKind = 'continue' | 'current' | 'busy';
+
+/** What the primary button says and whether it can be pressed. */
+export function ctaState(input: {
+  chosen: Pick<PlanCardModel, 'tier'> | undefined;
+  current: PlanTier;
+  purchasing: boolean;
+}): { kind: CtaKind; disabled: boolean } {
+  const { chosen, current, purchasing } = input;
+  if (!chosen) return { kind: 'continue', disabled: true };
+  if (chosen.tier === current) return { kind: 'current', disabled: true };
+  if (purchasing) return { kind: 'busy', disabled: true };
+  return { kind: 'continue', disabled: false };
+}
+
+/** The hero says "Upgrade to Waves Pro" to everyone who is not already on Pro. */
+export function showUpgradeHero(current: PlanTier): boolean {
+  return current !== PlanTier.Pro;
+}
+
+/** The empty paywall: the offering loaded but sells nothing we recognise, or it failed to load. */
+export function paywallEmptyReason(loadFailed: boolean): 'network' | 'no-plans' {
+  return loadFailed ? 'network' : 'no-plans';
+}
