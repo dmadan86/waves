@@ -190,6 +190,8 @@ interface Quota {
   tier: 'free' | 'plus' | 'pro';
   /** On the Pro trial: `limit` is the trial's total, not a month's. */
   trial?: boolean;
+  /** With `trial`: when the pool closes. */
+  until?: string;
   allowed: boolean;
 }
 
@@ -295,7 +297,13 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
       transcript: spoken,
       actions: [],
-      quota: { used: quota.used, limit: quota.limit, tier: quota.tier, trial: quota.trial },
+      quota: {
+        used: quota.used,
+        limit: quota.limit,
+        tier: quota.tier,
+        trial: quota.trial,
+        until: quota.until,
+      },
     };
     return json(metered);
   }
@@ -377,14 +385,26 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
-          quota: { used, limit: quota.limit, tier: quota.tier, trial: quota.trial },
+          quota: {
+            used,
+            limit: quota.limit,
+            tier: quota.tier,
+            trial: quota.trial,
+            until: quota.until,
+          },
         }
       : {
           schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
           transcript,
           actions: [],
           clarify: "Sorry, I didn't catch what to do with that. Could you say it again?",
-          quota: { used, limit: quota.limit, tier: quota.tier, trial: quota.trial },
+          quota: {
+            used,
+            limit: quota.limit,
+            tier: quota.tier,
+            trial: quota.trial,
+            until: quota.until,
+          },
         };
 
     // Metadata only: never the audio, the transcript or any name.

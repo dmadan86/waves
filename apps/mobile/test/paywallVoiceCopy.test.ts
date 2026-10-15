@@ -42,6 +42,13 @@ describe('Pro trial copy', () => {
       expect(t.paywall.keepPro.length).toBeGreaterThan(2);
       expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('15');
       expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('20');
+      const until = fill(t.voice.agentTrialQuotaLeftUntil, {
+        left: '15',
+        limit: '20',
+        date: '20 Nov',
+      });
+      expect(until).toContain('15');
+      expect(until).toContain('20 Nov');
     });
   }
 });

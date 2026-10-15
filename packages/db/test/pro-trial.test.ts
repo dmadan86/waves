@@ -100,6 +100,19 @@ const trialRows = async (id: string) =>
     )
   ).rows;
 
+/** Pretend the trial was granted `days` ago: Pro ran 15 days, the voice pool 30. */
+async function ageTrial(id: string, days: number): Promise<void> {
+  await client.query(
+    `UPDATE pro_trials SET granted_at = now() - make_interval(days => $2) WHERE profile_id = $1`,
+    [id, days],
+  );
+  await client.query(
+    `UPDATE subscriptions SET current_period_end = now() - make_interval(days => $2) + interval '15 days'
+      WHERE profile_id = $1 AND store = 'trial'`,
+    [id, days],
+  );
+}
+
 const quota = async (id: string) =>
   (await client.query(`SELECT waves_voice_agent_quota($1) AS q`, [id])).rows[0].q as Record<
     string,
@@ -264,7 +277,13 @@ describe('when the trial ends or a purchase arrives', () => {
       [solo],
     );
     expect(await plan(solo)).toMatchObject({ plan: 'free' });
-    expect(await quota(solo)).toMatchObject({ tier: 'free', limit: 10 });
+    // Pro is over, but the voice pool still runs to day 30.
+    expect(await quota(solo)).toMatchObject({
+      tier: 'free',
+      trial: true,
+      limit: 20,
+      allowed: true,
+    });
   });
 
   it('lets a store purchase take precedence over the trial', async () => {
@@ -288,7 +307,7 @@ describe('voice on the trial', () => {
   it('allows 20 commands in total, then refuses, without touching the monthly count', async () => {
     const id = await person();
     await grant(id);
-    expect(await quota(id)).toEqual({
+    expect(await quota(id)).toMatchObject({
       used: 1,
       limit: 20,
       tier: 'pro',
@@ -296,7 +315,7 @@ describe('voice on the trial', () => {
       allowed: true,
     });
     for (let i = 0; i < 19; i += 1) expect((await quota(id)).allowed).toBe(true);
-    expect(await quota(id)).toEqual({
+    expect(await quota(id)).toMatchObject({
       used: 20,
       limit: 20,
       tier: 'pro',
@@ -334,11 +353,65 @@ describe('voice on the trial', () => {
     const id = await person();
     await grant(id);
     expect(await enabled(id)).toBe(true);
-    await client.query(
-      `UPDATE subscriptions SET current_period_end = now() - interval '1 minute' WHERE profile_id = $1`,
+    // Day 20: Pro is over but the pool is open, so cloud voice is still on.
+    await ageTrial(id, 20);
+    expect(await enabled(id)).toBe(true);
+    // Spent: off. Day 31: off.
+    await client.query(`UPDATE pro_trials SET voice_used = 20 WHERE profile_id = $1`, [id]);
+    expect(await enabled(id)).toBe(false);
+    await client.query(`UPDATE pro_trials SET voice_used = 0 WHERE profile_id = $1`, [id]);
+    await ageTrial(id, 31);
+    expect(await enabled(id)).toBe(false);
+  });
+
+  it('keeps the pool usable on day 20, after the Pro days ended', async () => {
+    const id = await person();
+    await grant(id);
+    await ageTrial(id, 20);
+    expect(await plan(id)).toMatchObject({ plan: 'free', trialVoiceLimit: 20, trialVoiceUsed: 0 });
+    const q = await quota(id);
+    expect(q).toMatchObject({ used: 1, limit: 20, tier: 'free', trial: true, allowed: true });
+    expect(new Date(q.until as string).getTime()).toBeGreaterThan(Date.now());
+    // And a spent pool gives nothing more until day 30, not Free's 10.
+    await client.query(`UPDATE pro_trials SET voice_used = 20 WHERE profile_id = $1`, [id]);
+    expect(await quota(id)).toMatchObject({ used: 20, limit: 20, trial: true, allowed: false });
+    const { rows } = await client.query(
+      `SELECT count(*)::int AS n FROM voice_agent_usage WHERE profile_id = $1`,
       [id],
     );
-    expect(await enabled(id)).toBe(false);
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('is gone on day 31: the normal Free allowance applies', async () => {
+    const id = await person();
+    await grant(id);
+    await ageTrial(id, 31);
+    const q = await quota(id);
+    expect(q).toMatchObject({ limit: 10, tier: 'free', allowed: true });
+    expect(q.trial).toBeUndefined();
+    expect((await plan(id)).trialVoiceLimit).toBeUndefined();
+  });
+
+  it('does not stack with the free 10: the pool is 20, not 30', async () => {
+    const id = await person();
+    await grant(id);
+    await ageTrial(id, 20);
+    for (let i = 0; i < 20; i += 1) expect((await quota(id)).allowed).toBe(true);
+    expect((await quota(id)).allowed).toBe(false);
+  });
+
+  it('is ignored by a paid plan, which uses its own monthly allowance', async () => {
+    const id = await person();
+    await grant(id);
+    await ageTrial(id, 20);
+    await subscribe(id, 'plus', 'play');
+    const q = await quota(id);
+    expect(q).toMatchObject({ tier: 'plus', limit: 50, allowed: true });
+    expect(q.trial).toBeUndefined();
+    const { rows } = await client.query(`SELECT voice_used FROM pro_trials WHERE profile_id = $1`, [
+      id,
+    ]);
+    expect(rows[0].voice_used).toBe(0);
   });
 
   it('has its own stream budget of 60', async () => {
@@ -346,6 +419,12 @@ describe('voice on the trial', () => {
     await grant(id);
     const { rows } = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
     expect(rows[0].m).toMatchObject({ budget: 60, tier: 'pro', trial: true, allowed: true });
+    await ageTrial(id, 20);
+    const later = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
+    expect(later.rows[0].m).toMatchObject({ budget: 60, tier: 'free', trial: true });
+    await ageTrial(id, 31);
+    const gone = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
+    expect(gone.rows[0].m).toMatchObject({ budget: 30, tier: 'free', trial: false });
   });
 });
 
@@ -369,6 +448,7 @@ describe('waves_my_plan caller scoping', () => {
 describe('privileges', () => {
   const fns = [
     'waves_pro_trial_active(uuid)',
+    'waves_voice_trial_until(uuid)',
     'waves_pro_trial_grant(uuid)',
     'waves_pro_trial_after_auth_user()',
     'waves_voice_agent_quota(uuid, integer, integer, integer, integer)',

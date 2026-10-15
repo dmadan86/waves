@@ -29,6 +29,8 @@ function makeDeps(over: {
   plus?: boolean;
   trial?: boolean;
   trialUsed?: number;
+  /** Days since the trial was granted; Pro lasts 15, the voice pool 30. */
+  trialAgeDays?: number;
   mints?: number;
   mintError?: boolean;
 }) {
@@ -102,7 +104,15 @@ function makeDeps(over: {
             t === 'voice_agent_usage'
               ? { count: over.used ?? 0 }
               : t === 'pro_trials'
-                ? { voice_used: over.trialUsed ?? 0 }
+                ? over.trial
+                  ? {
+                      voice_used: over.trialUsed ?? 0,
+                      outcome: 'granted',
+                      granted_at: new Date(
+                        Date.now() - (over.trialAgeDays ?? 0) * 86_400_000,
+                      ).toISOString(),
+                    }
+                  : null
                 : null,
           error: null,
         });
@@ -171,6 +181,34 @@ describe('handleVoiceStreamToken', () => {
     await expect(
       handleVoiceStreamToken(request(), makeDeps({ trial: true, mints: 60 }).deps),
     ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
+  });
+
+  it('keeps the trial pool usable after the Pro days end, until day 30', async () => {
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 20, trialUsed: 5 }).deps,
+      ),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 20, trialUsed: 20 }).deps,
+      ),
+    ).rejects.toMatchObject({ code: 'VOICE_AGENT_QUOTA' });
+    // Day 31: the pool is gone and the normal free allowance (10 a month) applies.
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 31, trialUsed: 5, used: 10 }).deps,
+      ),
+    ).rejects.toMatchObject({ code: 'VOICE_AGENT_QUOTA' });
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 31, trialUsed: 20, used: 3 }).deps,
+      ),
+    ).resolves.toBeTruthy();
   });
 
   it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 450)', async () => {

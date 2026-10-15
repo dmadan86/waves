@@ -12,6 +12,7 @@ import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
+  PRO_TRIAL_VOICE_DAYS,
   VOICE_AGENT_TRIAL_COMMANDS,
   VOICE_STREAM_FREE_MONTHLY,
   VOICE_STREAM_PLUS_MONTHLY,
@@ -135,7 +136,11 @@ export async function remainingCommands(
       .eq('profile_id', profileId)
       .eq('month', month)
       .maybeSingle(),
-    service.from('pro_trials').select('voice_used').eq('profile_id', profileId).maybeSingle(),
+    service
+      .from('pro_trials')
+      .select('voice_used, granted_at, outcome')
+      .eq('profile_id', profileId)
+      .maybeSingle(),
   ]);
   const rows = (subs.data ?? []) as {
     tier: string;
@@ -151,9 +156,24 @@ export async function remainingCommands(
       live(row) &&
       (row.tier === 'pro' || ['play', 'appstore', 'test'].includes(row.store ?? '')),
   );
-  if (trialLive && !purchasedOrPro) {
-    const used = Number((trialRow.data as { voice_used?: number } | null)?.voice_used ?? 0);
-    return VOICE_AGENT_TRIAL_COMMANDS - used;
+  // The trial's pool: 20 commands for 30 days from the grant, for anyone with
+  // no paid plan of their own (also after the 15 Pro days end). Spent, or past
+  // day 30, it is out of the picture and the normal rules apply.
+  const pool = trialRow.data as {
+    voice_used?: number;
+    granted_at?: string;
+    outcome?: string;
+  } | null;
+  const poolOpen =
+    !!pool &&
+    pool.outcome !== 'skipped_has_plan' &&
+    !!pool.granted_at &&
+    now.getTime() < new Date(pool.granted_at).getTime() + PRO_TRIAL_VOICE_DAYS * 86_400_000;
+  const ownPlan = rows.some(
+    (row) => row.store !== 'trial' && live(row) && ['plus', 'pro'].includes(row.tier),
+  );
+  if (poolOpen && ((trialLive && !purchasedOrPro) || !ownPlan)) {
+    return VOICE_AGENT_TRIAL_COMMANDS - Number(pool?.voice_used ?? 0);
   }
   const has = (tier: string) =>
     rows.some((row) => row.store !== 'trial' && row.tier === tier && live(row));

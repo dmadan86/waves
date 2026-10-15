@@ -243,11 +243,9 @@ describe('quotaLeft', () => {
       limit: 10,
       trial: false,
     });
-    expect(quotaLeft({ used: 5, limit: 20, tier: 'pro', trial: true })).toEqual({
-      left: 15,
-      limit: 20,
-      trial: true,
-    });
+    expect(
+      quotaLeft({ used: 5, limit: 20, tier: 'free', trial: true, until: '2026-11-20T00:00:00Z' }),
+    ).toEqual({ left: 15, limit: 20, trial: true, until: '2026-11-20T00:00:00Z' });
   });
 });
 

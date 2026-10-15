@@ -237,8 +237,13 @@ New accounts get **15 days of Pro free, no card needed**, granted by the server.
   phone or email change: the moment the account is verified). It writes a
   `subscriptions` row: tier `pro`, store `trial`, `store_txn_id` `trial:<profile>`,
   ending 15 days later. Idempotent.
-- **Voice:** 20 AI voice commands in total for the whole trial
-  (`pro_trials.voice_used`), not 150 a month. Everything else in Pro is unlocked.
+- **Voice:** the trial's 20 AI voice commands are one pool that lasts **30 days**
+  from the grant (`pro_trials.granted_at` + `pro_trial_settings.voice_days`), though
+  Pro itself lasts 15. Anyone with no paid plan uses the pool, also after the Pro
+  days end; it does not stack with Free's 10. Once the 20 are spent there is nothing
+  more until day 30; after day 30 the normal Free rules apply ("first month 20,
+  then Free"). A paid plan (or referral Plus days) uses its own monthly allowance.
+  Cloud voice itself stays Plus/Pro/trial only, so Free has it only through the pool.
 - **A purchase wins:** while a store purchase (or another Pro) is active the trial
   row is ignored. Referral Plus days start after the trial ends, as for any coverage.
 - **App:** the paywall shows "Pro trial · N days left" and "Keep Pro"; the dashboard

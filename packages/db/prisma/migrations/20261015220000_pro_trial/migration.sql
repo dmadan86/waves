@@ -25,8 +25,13 @@
 -- unchanged: waves_referral_grant already starts after the latest end date, so
 -- they sit after the trial and become the fallback when it ends.
 --
--- VOICE. 20 AI voice commands in total for the whole trial (pro_trials.voice_used),
--- not 150 a month. Everything else in Pro is unlocked.
+-- VOICE. The trial's 20 AI voice commands are one pool for 30 days from the grant
+-- (pro_trial_settings.voice_days), not 150 a month; Pro itself lasts 15 days. The
+-- pool is used by anyone with no paid plan (it does not stack with Free's 10), also
+-- after the Pro days end. When the 20 are spent there is nothing more until day 30;
+-- after day 30 the person is on the normal Free rules. A paid plan (or referral Plus
+-- days) uses its own monthly allowance instead. Everything else in Pro is unlocked
+-- for the 15 days.
 --
 -- Every function below is SECURITY DEFINER or touches protected tables, and is
 -- callable by the service role only (the app reads waves_my_plan).
@@ -42,9 +47,11 @@ CREATE TABLE public.pro_trial_settings (
     launched_at    timestamp with time zone DEFAULT now() NOT NULL,
     days           integer DEFAULT 15 NOT NULL,
     voice_commands integer DEFAULT 20 NOT NULL,
+    -- How long the trial's voice pool lasts, from the grant.
+    voice_days     integer DEFAULT 30 NOT NULL,
     CONSTRAINT pro_trial_settings_pkey PRIMARY KEY (id),
     CONSTRAINT pro_trial_settings_single CHECK (id),
-    CONSTRAINT pro_trial_settings_sane CHECK (days BETWEEN 1 AND 90 AND voice_commands >= 0)
+    CONSTRAINT pro_trial_settings_sane CHECK (days BETWEEN 1 AND 90 AND voice_commands >= 0 AND voice_days BETWEEN 1 AND 90)
 );
 INSERT INTO public.pro_trial_settings (id) VALUES (true);
 
@@ -91,6 +98,34 @@ CREATE OR REPLACE FUNCTION public.waves_pro_trial_active(p_profile uuid) RETURNS
           AND (o.current_period_end IS NULL OR o.current_period_end > now())
           AND (o.store IN ('play', 'appstore', 'test') AND o.tier IN ('plus', 'pro')
                OR o.tier = 'pro')
+     );
+$$;
+
+-- The end of the trial's voice pool when it is usable right now, else NULL: a
+-- granted trial inside its voice window, for someone with no paid plan (or while
+-- the trial's own Pro is the effective one). Whether the 20 are used up is the
+-- caller's business.
+CREATE OR REPLACE FUNCTION public.waves_voice_trial_until(p_profile uuid) RETURNS timestamptz
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  SELECT t.granted_at + make_interval(days => st.voice_days)
+    FROM public.pro_trials t
+    CROSS JOIN public.pro_trial_settings st
+   WHERE t.profile_id = p_profile
+     AND t.outcome = 'granted'
+     AND st.id
+     AND now() < t.granted_at + make_interval(days => st.voice_days)
+     AND (
+       public.waves_pro_trial_active(p_profile) IS NOT NULL
+       OR NOT EXISTS (
+         SELECT 1 FROM public.subscriptions s
+          WHERE s.profile_id = p_profile
+            AND s.store <> 'trial'
+            AND s.tier IN ('plus', 'pro')
+            AND s.status IN ('active', 'grace')
+            AND (s.current_period_end IS NULL OR s.current_period_end > now())
+       )
      );
 $$;
 
@@ -213,7 +248,44 @@ BEGIN
 END
 $$;
 
--- 5. Voice: 20 commands in total on a trial ---------------------------------
+-- 5. Voice: the trial's 20 commands, a 30-day pool ---------------------------
+-- The gate (from 20261015210000_voice_agent_plus) also lets in a person whose
+-- trial pool is usable and not spent, so the pool works after the Pro days end.
+CREATE OR REPLACE FUNCTION public.waves_voice_agent_enabled(p_profile uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_flag public.feature_flags%ROWTYPE;
+BEGIN
+  IF p_profile IS NULL OR public.waves_is_guest(p_profile) THEN
+    RETURN false;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.voice_agent_allowlist WHERE profile_id = p_profile) THEN
+    RETURN true;
+  END IF;
+  SELECT * INTO v_flag FROM public.feature_flags WHERE key = 'voice_agent';
+  IF NOT FOUND OR NOT v_flag.enabled THEN
+    RETURN false;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+      FROM public.subscriptions s
+     WHERE s.profile_id = p_profile
+       AND s.status IN ('active', 'grace')
+       AND s.tier IN ('plus', 'pro')
+       AND (s.current_period_end IS NULL OR s.current_period_end > now())
+  ) AND NOT (
+    public.waves_voice_trial_until(p_profile) IS NOT NULL
+    AND COALESCE((SELECT voice_used FROM public.pro_trials WHERE profile_id = p_profile), 0)
+        < COALESCE((SELECT voice_commands FROM public.pro_trial_settings WHERE id), 20)
+  ) THEN
+    RETURN false;
+  END IF;
+  RETURN public.waves_bucket('voice_agent:' || p_profile::text) < v_flag.rollout_percent;
+END
+$$;
+
 DROP FUNCTION IF EXISTS public.waves_voice_agent_quota(uuid, integer, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.waves_voice_agent_quota(
@@ -231,18 +303,22 @@ DECLARE
   v_tier  text;
   v_limit integer;
   v_count integer;
+  v_until timestamptz := public.waves_voice_trial_until(p_profile);
+  v_ttier text := CASE WHEN public.waves_pro_trial_active(p_profile) IS NOT NULL THEN 'pro' ELSE 'free' END;
 BEGIN
-  -- On the trial the allowance is one total for the whole trial, not a month's.
-  IF public.waves_pro_trial_active(p_profile) IS NOT NULL THEN
+  -- Inside the trial's voice window, with no paid plan, the allowance is the
+  -- trial's one pool of 20 (not a month's, and not on top of Free's). When it is
+  -- spent there is nothing more until the window closes.
+  IF v_until IS NOT NULL THEN
     UPDATE public.pro_trials
        SET voice_used = voice_used + 1
      WHERE profile_id = p_profile AND voice_used < p_trial_limit
     RETURNING voice_used INTO v_count;
     IF v_count IS NOT NULL THEN
-      RETURN jsonb_build_object('used', v_count, 'limit', p_trial_limit, 'tier', 'pro', 'trial', true, 'allowed', true);
+      RETURN jsonb_build_object('used', v_count, 'limit', p_trial_limit, 'tier', v_ttier, 'trial', true, 'until', v_until, 'allowed', true);
     END IF;
     SELECT voice_used INTO v_count FROM public.pro_trials WHERE profile_id = p_profile;
-    RETURN jsonb_build_object('used', COALESCE(v_count, 0), 'limit', p_trial_limit, 'tier', 'pro', 'trial', true, 'allowed', false);
+    RETURN jsonb_build_object('used', COALESCE(v_count, 0), 'limit', p_trial_limit, 'tier', v_ttier, 'trial', true, 'until', v_until, 'allowed', false);
   END IF;
 
   SELECT CASE WHEN count(*) = 0 THEN NULL WHEN bool_or(s.tier = 'pro') THEN 'pro' ELSE 'plus' END
@@ -285,7 +361,7 @@ CREATE OR REPLACE FUNCTION public.waves_voice_agent_refund(p_profile uuid) RETUR
 DECLARE
   v_count integer;
 BEGIN
-  IF public.waves_pro_trial_active(p_profile) IS NOT NULL THEN
+  IF public.waves_voice_trial_until(p_profile) IS NOT NULL THEN
     UPDATE public.pro_trials
        SET voice_used = GREATEST(0, voice_used - 1)
      WHERE profile_id = p_profile
@@ -318,14 +394,14 @@ DECLARE
   v_tier   text;
   v_budget integer;
   v_mints  integer;
-  v_trial  boolean := public.waves_pro_trial_active(p_profile) IS NOT NULL;
+  v_trial  boolean := public.waves_voice_trial_until(p_profile) IS NOT NULL;
 BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_voice_stream_mint needs a profile';
   END IF;
 
   IF v_trial THEN
-    v_tier := 'pro';
+    v_tier := CASE WHEN public.waves_pro_trial_active(p_profile) IS NOT NULL THEN 'pro' ELSE 'free' END;
     v_budget := p_trial_budget;
   ELSE
     SELECT CASE WHEN count(*) = 0 THEN NULL WHEN bool_or(s.tier = 'pro') THEN 'pro' ELSE 'plus' END
@@ -363,8 +439,9 @@ $$;
 -- 6. The plan the app reads (and no longer anyone else's) ---------------------------------------------------
 -- waves_my_plan from 20261008120000_revenuecat_webhook, plus the trial: its
 -- row counts unless a real purchase or another Pro is active, and the answer
--- carries trial / trialEndsAt / trialVoiceLimit / trialVoiceUsed while the
--- trial is the person's Pro.
+-- carries trial / trialEndsAt while the trial is the person's Pro, and
+-- trialVoiceLimit / trialVoiceUsed / trialVoiceUntil while the voice pool is usable
+-- (which outlives the Pro days).
 CREATE OR REPLACE FUNCTION public.waves_my_plan(p_profile_id uuid DEFAULT NULL::uuid) RETURNS jsonb
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -383,12 +460,25 @@ DECLARE
   v_used    integer;
   v_limit   integer;
   v_out     jsonb;
+  v_until   timestamptz;
+  v_pool    jsonb := '{}'::jsonb;
 BEGIN
   IF v_profile IS NULL THEN
     RETURN jsonb_build_object('tier', 'free', 'plan', 'free', 'until', NULL, 'source', 'free', 'scanLimit', 20);
   END IF;
 
   v_trial := public.waves_pro_trial_active(v_profile);
+  -- The voice pool outlives the Pro days (30 days from the grant).
+  v_until := public.waves_voice_trial_until(v_profile);
+  IF v_until IS NOT NULL THEN
+    SELECT voice_used INTO v_used FROM public.pro_trials WHERE profile_id = v_profile;
+    SELECT voice_commands INTO v_limit FROM public.pro_trial_settings WHERE id;
+    v_pool := jsonb_build_object(
+      'trialVoiceLimit', COALESCE(v_limit, 20),
+      'trialVoiceUsed', COALESCE(v_used, 0),
+      'trialVoiceUntil', v_until
+    );
+  END IF;
 
   SELECT period, current_period_end INTO v_row
   FROM public.subscriptions
@@ -401,7 +491,7 @@ BEGIN
   LIMIT 1;
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('tier', 'free', 'plan', 'free', 'until', NULL, 'source', 'free', 'scanLimit', 20);
+    RETURN jsonb_build_object('tier', 'free', 'plan', 'free', 'until', NULL, 'source', 'free', 'scanLimit', 20) || v_pool;
   END IF;
 
   SELECT CASE WHEN bool_or(tier = 'pro') THEN 'pro' ELSE 'plus' END INTO v_plan
@@ -420,15 +510,9 @@ BEGIN
     'scanLimit', 300
   );
 
+  v_out := v_out || v_pool;
   IF v_trial IS NOT NULL THEN
-    SELECT voice_used INTO v_used FROM public.pro_trials WHERE profile_id = v_profile;
-    SELECT voice_commands INTO v_limit FROM public.pro_trial_settings WHERE id;
-    v_out := v_out || jsonb_build_object(
-      'trial', true,
-      'trialEndsAt', v_trial,
-      'trialVoiceLimit', COALESCE(v_limit, 20),
-      'trialVoiceUsed', COALESCE(v_used, 0)
-    );
+    v_out := v_out || jsonb_build_object('trial', true, 'trialEndsAt', v_trial);
   END IF;
   RETURN v_out;
 END
@@ -546,6 +630,8 @@ $$;
 
 -- 8. Callers --------------------------------------------------------------------
 REVOKE ALL ON FUNCTION public.waves_pro_trial_active(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.waves_voice_trial_until(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.waves_voice_agent_enabled(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.waves_pro_trial_grant(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.waves_pro_trial_after_auth_user() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer, integer) FROM PUBLIC, anon, authenticated;
@@ -554,6 +640,8 @@ REVOKE ALL ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, in
 REVOKE ALL ON FUNCTION public.waves_revenuecat_apply(text, text, text, timestamptz, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.waves_my_plan(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_pro_trial_active(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.waves_voice_trial_until(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.waves_voice_agent_enabled(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.waves_pro_trial_grant(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.waves_voice_agent_refund(uuid) TO service_role;
