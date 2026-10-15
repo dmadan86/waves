@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
 import { FeatureStrip } from '@/components/feature-strip';
@@ -113,6 +114,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Moments t={t.moments} />
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
+        <AgentsBand t={t.agents} locale={locale} />
         <Faq t={t.faq} />
         <DownloadBanner t={t.cta} stores={t.stores} />
       </main>

@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { bestYearlySaving, plans, type PlanId } from './plans';
+import { mcpEndpoint } from './mcp-tools';
 import { absoluteUrl, site } from './site';
 
 /**
@@ -81,6 +82,18 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`- ${t.privacy.pills.join('\n- ')}`);
   line();
   line(`${t.privacy.cta}: ${absoluteUrl(`/${locale}/privacy`)}`);
+  line();
+
+  line(`## ${t.agents.title}`);
+  line();
+  line(t.agents.body);
+  line();
+  for (const prompt of t.agents.prompts) line(`- “${prompt}”`);
+  line();
+  line(`- ${t.agents.safety.join('\n- ')}`);
+  line();
+  line(`MCP: ${mcpEndpoint(site.appUrl)}`);
+  line(`${t.agents.cta}: ${absoluteUrl(`/${locale}/mcp`)}`);
   line();
 
   line(`## ${t.faq.title}`);

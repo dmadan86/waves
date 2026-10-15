@@ -257,3 +257,22 @@ export const GooglePlay = ({ className }: IconProps) => (
     <path d="M13 13.5 16.8 9.7 3.4 1.2c-.8-.4-1.5-.3-1.9.1L13 13.5Z" fill="#00f076" />
   </svg>
 );
+
+export const Copy = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" />
+    <path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5" />
+  </Svg>
+);
+
+export const Plug = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 3v5M15 3v5M6.5 8h11v3.5a5.5 5.5 0 0 1-11 0V8ZM12 17v4" />
+  </Svg>
+);
+
+export const Spark = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3.5c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z" />
+  </Svg>
+);
