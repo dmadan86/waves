@@ -269,7 +269,13 @@ describe('the per-address flood guard', () => {
     const before = Number(
       (await client.query('SELECT count(*) AS n FROM public.app_event_ip_hits')).rows[0].n,
     );
-    for (const headers of [null, {}, { 'x-forwarded-for': '' }, { 'user-agent': 'x' }]) {
+    const cases: Array<Record<string, string> | null> = [
+      null,
+      {},
+      { 'x-forwarded-for': '' },
+      { 'user-agent': 'x' },
+    ];
+    for (const headers of cases) {
       expect(await trackFrom(headers, randomUUID(), 'app_installed')).toBe(true);
     }
     // Garbage in the setting is "no address", not an error.
