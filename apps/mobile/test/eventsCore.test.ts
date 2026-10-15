@@ -59,8 +59,21 @@ describe('sanitizeProps', () => {
     expect(sanitizeProps({ method: '+919999999999' })).toEqual({});
     expect(sanitizeProps({ method: 'a@b.co' })).toEqual({});
     expect(sanitizeProps({ source: 'Dinner at Taj' })).toEqual({});
-    expect(sanitizeProps({ source: 'x'.repeat(33) })).toEqual({});
+    expect(sanitizeProps({ source: 'x'.repeat(41) })).toEqual({});
+    expect(sanitizeProps({ method: 'x'.repeat(33) })).toEqual({});
     expect(sanitizeProps({ screen: '' })).toEqual({});
+  });
+
+  it('keeps campaign tags up to 40 characters, and no more', () => {
+    expect(sanitizeProps({ source: 'meta', medium: 'paid', campaign: 'diwali_in-2026' })).toEqual({
+      source: 'meta',
+      medium: 'paid',
+      campaign: 'diwali_in-2026',
+    });
+    expect(sanitizeProps({ campaign: 'x'.repeat(40) })).toEqual({ campaign: 'x'.repeat(40) });
+    expect(sanitizeProps({ campaign: 'x'.repeat(41) })).toEqual({});
+    expect(sanitizeProps({ medium: 'Paid Social' })).toEqual({});
+    expect(sanitizeProps({ campaign: 'a@b.co' })).toEqual({});
   });
 
   it('drops values that are not strings', () => {

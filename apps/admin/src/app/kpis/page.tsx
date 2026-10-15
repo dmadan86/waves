@@ -1,5 +1,6 @@
 import { Badge, Card, Empty, Lede, PageHeader, TableScroll, type Tone } from '@/components/ui';
-import { kpis, retentionCohorts, type KpiRow } from '@/lib/data';
+import { campaignLabel, ofInstalls } from '@/lib/campaigns';
+import { campaignStats, kpis, retentionCohorts, type KpiRow } from '@/lib/data';
 import {
   KPI_THRESHOLDS,
   kpiStatus,
@@ -83,7 +84,11 @@ const targetText = (key: KpiKey): string => {
 };
 
 export default async function Kpis() {
-  const [row, cohorts] = await Promise.all([kpis(30), retentionCohorts(8)]);
+  const [row, cohorts, campaigns] = await Promise.all([
+    kpis(30),
+    retentionCohorts(8),
+    campaignStats(30),
+  ]);
 
   if (!row) {
     return (
@@ -218,6 +223,56 @@ export default async function Kpis() {
                     <Cell got={c.d1_retained} of={c.d1_eligible} />
                     <Cell got={c.d7_retained} of={c.d7_eligible} />
                     <Cell got={c.d30_retained} of={c.d30_eligible} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
+
+      <h2 className="section">Campaigns</h2>
+      <Card
+        bare
+        note="Installs in the last 30 days by the campaign tag the install carried (Android: the Play link's utm tags; iOS installs are all app_store, so read Apple campaigns in App Store Connect). Registered and activated follow the install to its account. Activated counts only accounts at least 7 days old. Paid plans exclude comped grants. Cost per activated user = ad spend ÷ activated."
+      >
+        {campaigns.length === 0 ? (
+          <Empty title="No installs yet">
+            No app_installed events in this window carry a campaign.
+          </Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">
+                Installs, registrations and activations per campaign
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Source / medium / campaign</th>
+                  <th scope="col" className="n">
+                    Installs
+                  </th>
+                  <th scope="col" className="n">
+                    Registered
+                  </th>
+                  <th scope="col" className="n">
+                    Activated
+                  </th>
+                  <th scope="col" className="n">
+                    Plus / Pro
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaigns.map((c) => (
+                  <tr key={campaignLabel(c)}>
+                    <th scope="row" style={{ fontWeight: 600 }}>
+                      {campaignLabel(c)}
+                    </th>
+                    <td className="n">{num(c.installs)}</td>
+                    <td className="n">{ofInstalls(c.registrations, c.installs)}</td>
+                    <td className="n">{ofInstalls(c.activated, c.installs)}</td>
+                    <td className="n">{ofInstalls(c.subscriptions, c.installs)}</td>
                   </tr>
                 ))}
               </tbody>

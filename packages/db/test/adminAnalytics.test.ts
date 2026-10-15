@@ -29,6 +29,7 @@ const FUNCTIONS = [
   'waves_admin_logins(30)',
   'waves_admin_kpis(30)',
   'waves_admin_retention_cohorts(8)',
+  'waves_admin_campaigns(30)',
   'waves_admin_creations(current_date)',
   'waves_admin_activity_days(current_date)',
 ];

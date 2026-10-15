@@ -23,7 +23,7 @@ export const EVENT_NAMES = [
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** The keys a prop may use, and no others. */
-export const PROP_KEYS = ['method', 'source', 'screen', 'variant'] as const;
+export const PROP_KEYS = ['method', 'source', 'medium', 'campaign', 'screen', 'variant'] as const;
 
 export type EventProps = Partial<Record<(typeof PROP_KEYS)[number], string>>;
 
@@ -31,6 +31,10 @@ export type EventPlatform = 'ios' | 'android' | 'web';
 
 /** A short lowercase word: `phone`, `paywall`, `settings`, `google`. */
 const SAFE_VALUE = /^[a-z0-9_-]{1,32}$/;
+
+/** Campaign tags (`source`, `medium`, `campaign`) may run to 40 characters. */
+const TAG_VALUE = /^[a-z0-9_-]{1,40}$/;
+const TAG_KEYS: readonly string[] = ['source', 'medium', 'campaign'];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,7 +56,8 @@ export function sanitizeProps(props: unknown): EventProps {
   const clean: EventProps = {};
   for (const key of PROP_KEYS) {
     const value = source[key];
-    if (typeof value === 'string' && SAFE_VALUE.test(value)) clean[key] = value;
+    const rule = TAG_KEYS.includes(key) ? TAG_VALUE : SAFE_VALUE;
+    if (typeof value === 'string' && rule.test(value)) clean[key] = value;
   }
   return clean;
 }
