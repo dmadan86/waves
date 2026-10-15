@@ -139,17 +139,24 @@ export interface WebStrings {
     claimNote: string;
     someone: string;
     noneOfThese: string;
-    yourName: string;
-    namePlaceholder: string;
-    onlyThingAsked: string;
     joining: string;
     joinGroup: string;
     askToJoinAs: string;
     waitingTitle: string;
     waitingBody: string;
     joinAsNewInstead: string;
-    /** Offered before the guest door, for somebody who already has an account. */
-    signInFirst: string;
+    /** Signed out: the two ways in. There is no guest way in (ADR-006 amendment). */
+    signUpToJoin: string;
+    logIn: string;
+    /** Why joining needs an account; `{group}` is the group's name. */
+    accountWhy: string;
+    /** A guest on the link: upgrade the account they have, then join. */
+    guestUpgrade: string;
+    guestWhy: string;
+    /** The server refused the join for want of an account. */
+    accountRequired: string;
+    removedFromGroup: string;
+    backToLink: string;
     /** A guest's Google/Apple login already belongs to another Waves account. */
     takenTitle: string;
     takenBody: string;
@@ -157,6 +164,21 @@ export interface WebStrings {
     takenLeftBehindUnknown: string;
     takenSwitch: string;
     takenStay: string;
+  };
+  /** A friend's personal link: what Waves is, and where to get it. */
+  referral: {
+    heading: string;
+    body: string;
+    perk: string;
+    codeLabel: string;
+    openApp: string;
+    googlePlay: string;
+    appStore: string;
+    useOnWeb: string;
+    enterCode: string;
+    copyCode: string;
+    codeCopied: string;
+    linkBroken: string;
   };
   /** The group, in a browser: less than the app, and enough for a trip. */
   group: {
@@ -173,6 +195,8 @@ export interface WebStrings {
     noneYet: string;
     noneYetBody: string;
     whereEveryoneStands: string;
+    /** After the name of somebody who left or was removed, wherever the past names them. */
+    memberLeft: string;
     settledUp: string;
     isSettledUp: string;
     isOwed: string;
@@ -1350,18 +1374,14 @@ const en: WebStrings = {
     aGroup: 'a group',
     addedTo: 'You have been added to {group}',
     splittingHere: {
-      one: '{n} person is splitting costs here. You can join and add an expense right now — nothing to install.',
-      other:
-        '{n} people are splitting costs here. You can join and add an expense right now — nothing to install.',
+      one: '{n} person is splitting costs here.',
+      other: '{n} people are splitting costs here.',
     },
     whichOneAreYou: 'Which one are you?',
     claimNote:
       'Somebody already added these names. Picking yours keeps the expenses already filed against it.',
     someone: 'Someone',
     noneOfThese: 'None of these',
-    yourName: 'Your name',
-    namePlaceholder: 'What should they call you?',
-    onlyThingAsked: 'This is the only thing asked of you. No email, no password, no app.',
     joining: 'Joining…',
     joinGroup: 'Join {group}',
     askToJoinAs: 'Ask to join as {name}',
@@ -1369,7 +1389,17 @@ const en: WebStrings = {
     waitingBody:
       'Somebody who runs {group} has to confirm you are {name}. Nothing has changed in the group yet.',
     joinAsNewInstead: 'Join as someone new instead',
-    signInFirst: 'Already on Waves? Sign in',
+    signUpToJoin: 'Sign up to join',
+    logIn: 'Log in',
+    accountWhy:
+      'Create a free account to join {group} so your expenses stay yours on every device.',
+    guestUpgrade: 'Create an account to join',
+    guestWhy:
+      'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
+    accountRequired:
+      'You need an account to join this group. Sign up or log in, then open the link again.',
+    removedFromGroup: 'You were removed from this group. Ask an admin for a new invite.',
+    backToLink: 'Back',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     takenLeftBehind: {
@@ -1379,6 +1409,21 @@ const en: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'A friend invited you to Waves',
+    body: 'Money is easier together. Waves keeps shared expenses clear, so nobody has to keep the score.',
+    perk: 'Start using Waves with your friend and you both get 7 days of Plus.',
+    codeLabel: "Your friend's code",
+    openApp: 'Open in Waves',
+    googlePlay: 'Get it on Google Play',
+    appStore: 'Download on the App Store',
+    useOnWeb: 'Or continue in your browser',
+    enterCode:
+      'Signed up after installing? Open Invite your friends in your profile and enter this code.',
+    copyCode: 'Copy code',
+    codeCopied: 'Copied',
+    linkBroken: 'This invite link does not look right. Ask your friend to send it again.',
   },
   group: {
     loading: 'Loading…',
@@ -1394,6 +1439,7 @@ const en: WebStrings = {
     noneYet: 'Nothing here yet',
     noneYetBody: 'The first expense somebody adds will show up here.',
     whereEveryoneStands: 'Where everyone stands',
+    memberLeft: '(left)',
     settledUp: 'settled up',
     isSettledUp: 'is settled up',
     isOwed: 'is owed',
@@ -2356,19 +2402,14 @@ const ta: WebStrings = {
     aGroup: 'ஒரு குழு',
     addedTo: '{group} இல் நீங்கள் சேர்க்கப்பட்டுள்ளீர்கள்',
     splittingHere: {
-      one: '{n} நபர் இங்கே செலவுகளைப் பிரிக்கிறார். இப்போதே சேர்ந்து ஒரு செலவைச் சேர்க்கலாம் — எதுவும் நிறுவ வேண்டாம்.',
-      other:
-        '{n} பேர் இங்கே செலவுகளைப் பிரிக்கிறார்கள். இப்போதே சேர்ந்து ஒரு செலவைச் சேர்க்கலாம் — எதுவும் நிறுவ வேண்டாம்.',
+      one: '{n} நபர் இங்கே செலவுகளைப் பிரிக்கிறார்.',
+      other: '{n} பேர் இங்கே செலவுகளைப் பிரிக்கிறார்கள்.',
     },
     whichOneAreYou: 'நீங்கள் யார்?',
     claimNote:
       'இந்தப் பெயர்களை ஏற்கெனவே யாரோ சேர்த்துவிட்டார்கள். உங்களுடையதைத் தேர்ந்தெடுத்தால், அதற்கு எதிராக ஏற்கெனவே பதிவான செலவுகள் உங்களுடன் இருக்கும்.',
     someone: 'யாரோ',
     noneOfThese: 'இவை எதுவும் இல்லை',
-    yourName: 'உங்கள் பெயர்',
-    namePlaceholder: 'உங்களை என்ன அழைக்க வேண்டும்?',
-    onlyThingAsked:
-      'உங்களிடம் கேட்கப்படுவது இது ஒன்றுதான். மின்னஞ்சல் இல்லை, கடவுச்சொல் இல்லை, செயலி இல்லை.',
     joining: 'சேர்கிறது…',
     joinGroup: '{group} இல் சேர்',
     askToJoinAs: '{name} ஆக சேர அனுமதி கேளுங்கள்',
@@ -2376,7 +2417,18 @@ const ta: WebStrings = {
     waitingBody:
       'நீங்கள் {name} தானா என்பதை {group} நடத்துபவர் உறுதி செய்ய வேண்டும். குழுவில் இன்னும் எதுவும் மாறவில்லை.',
     joinAsNewInstead: 'புதிய நபராகச் சேருங்கள்',
-    signInFirst: 'Already on Waves? Sign in',
+    signUpToJoin: 'பதிவு செய்து சேர்',
+    logIn: 'உள்நுழை',
+    accountWhy:
+      '{group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள்; உங்கள் செலவுகள் எல்லாச் சாதனங்களிலும் உங்களுடையதாகவே இருக்கும்.',
+    guestUpgrade: 'கணக்கை உருவாக்கிச் சேர்',
+    guestWhy:
+      'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
+    accountRequired:
+      'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
+    removedFromGroup:
+      'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
+    backToLink: 'பின்செல்',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     takenLeftBehind: {
@@ -2386,6 +2438,22 @@ const ta: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'ஒரு நண்பர் உங்களை Waves-க்கு அழைத்துள்ளார்',
+    body: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது. பகிர்ந்த செலவுகளை Waves தெளிவாக வைத்திருக்கும்; யாரும் கணக்கு வைத்துக்கொள்ள வேண்டியதில்லை.',
+    perk: 'உங்கள் நண்பருடன் Waves-ஐப் பயன்படுத்தத் தொடங்கினால் இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+    codeLabel: 'உங்கள் நண்பரின் குறியீடு',
+    openApp: 'Waves-இல் திற',
+    googlePlay: 'Google Play-இல் பெறுங்கள்',
+    appStore: 'App Store-இல் பதிவிறக்குங்கள்',
+    useOnWeb: 'அல்லது உலாவியிலேயே தொடருங்கள்',
+    enterCode:
+      'நிறுவிய பிறகு பதிவு செய்தீர்களா? உங்கள் சுயவிவரத்தில் "நண்பர்களை அழையுங்கள்" என்பதைத் திறந்து இந்தக் குறியீட்டை உள்ளிடுங்கள்.',
+    copyCode: 'குறியீட்டை நகலெடு',
+    codeCopied: 'நகலெடுக்கப்பட்டது',
+    linkBroken:
+      'இந்த அழைப்புச் சுட்டி சரியாகத் தெரியவில்லை. உங்கள் நண்பரிடம் மீண்டும் அனுப்பச் சொல்லுங்கள்.',
   },
   group: {
     loading: 'ஏற்றுகிறது…',
@@ -2401,6 +2469,7 @@ const ta: WebStrings = {
     noneYet: 'இன்னும் எதுவும் இல்லை',
     noneYetBody: 'யாராவது சேர்க்கும் முதல் செலவு இங்கே தெரியும்.',
     whereEveryoneStands: 'யார் எங்கே நிற்கிறார்கள்',
+    memberLeft: '(வெளியேறினார்)',
     settledUp: 'தீர்ந்தது',
     isSettledUp: 'கணக்கு தீர்ந்தது',
     isOwed: 'பெற வேண்டியது',
@@ -3403,18 +3472,14 @@ const hi: WebStrings = {
     aGroup: 'एक समूह',
     addedTo: 'आपको {group} में जोड़ा गया है',
     splittingHere: {
-      one: '{n} व्यक्ति यहाँ खर्च बाँट रहा है। आप अभी जुड़कर खर्च जोड़ सकते हैं — कुछ भी इंस्टॉल नहीं करना।',
-      other:
-        '{n} लोग यहाँ खर्च बाँट रहे हैं। आप अभी जुड़कर खर्च जोड़ सकते हैं — कुछ भी इंस्टॉल नहीं करना।',
+      one: '{n} व्यक्ति यहाँ खर्च बाँट रहा है।',
+      other: '{n} लोग यहाँ खर्च बाँट रहे हैं।',
     },
     whichOneAreYou: 'इनमें आप कौन हैं?',
     claimNote:
       'ये नाम पहले ही किसी ने जोड़ दिए हैं। अपना चुनने से उस नाम पर पहले से दर्ज खर्च आपके साथ रहते हैं।',
     someone: 'कोई',
     noneOfThese: 'इनमें से कोई नहीं',
-    yourName: 'आपका नाम',
-    namePlaceholder: 'वे आपको क्या कहकर बुलाएँ?',
-    onlyThingAsked: 'आपसे बस यही पूछा जाता है। न ईमेल, न पासवर्ड, न ऐप।',
     joining: 'जुड़ रहे हैं…',
     joinGroup: '{group} में जुड़ें',
     askToJoinAs: '{name} के रूप में शामिल होने की पूछें',
@@ -3422,7 +3487,17 @@ const hi: WebStrings = {
     waitingBody:
       '{group} चलाने वाले किसी को पुष्टि करनी है कि आप {name} हैं। समूह में अभी कुछ नहीं बदला।',
     joinAsNewInstead: 'नए व्यक्ति के रूप में शामिल हों',
-    signInFirst: 'Already on Waves? Sign in',
+    signUpToJoin: 'जुड़ने के लिए साइन अप करें',
+    logIn: 'लॉग इन करें',
+    accountWhy:
+      '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
+    guestUpgrade: 'खाता बनाकर जुड़ें',
+    guestWhy:
+      'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
+    accountRequired:
+      'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
+    removedFromGroup: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
+    backToLink: 'वापस',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     takenLeftBehind: {
@@ -3432,6 +3507,21 @@ const hi: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'एक दोस्त ने आपको Waves पर बुलाया है',
+    body: 'पैसों की बात साथ मिलकर आसान होती है। Waves साझा खर्चों को साफ़ रखता है, ताकि किसी को हिसाब याद न रखना पड़े।',
+    perk: 'अपने दोस्त के साथ Waves इस्तेमाल करना शुरू करें, और आप दोनों को 7 दिन का Plus मिलेगा।',
+    codeLabel: 'आपके दोस्त का कोड',
+    openApp: 'Waves में खोलें',
+    googlePlay: 'Google Play पर पाएँ',
+    appStore: 'App Store से डाउनलोड करें',
+    useOnWeb: 'या ब्राउज़र में ही जारी रखें',
+    enterCode:
+      'इंस्टॉल करने के बाद साइन अप किया? अपनी प्रोफ़ाइल में "दोस्तों को आमंत्रित करें" खोलें और यह कोड डालें।',
+    copyCode: 'कोड कॉपी करें',
+    codeCopied: 'कॉपी हो गया',
+    linkBroken: 'यह आमंत्रण लिंक सही नहीं लग रहा। अपने दोस्त से इसे दोबारा भेजने को कहें।',
   },
   group: {
     loading: 'लोड हो रहा है…',
@@ -3447,6 +3537,7 @@ const hi: WebStrings = {
     noneYet: 'अभी यहाँ कुछ नहीं',
     noneYetBody: 'कोई पहला खर्च जोड़ेगा तो यहाँ दिखेगा।',
     whereEveryoneStands: 'किसका क्या हिसाब है',
+    memberLeft: '(छोड़ चुके)',
     settledUp: 'हिसाब बराबर',
     isSettledUp: 'का हिसाब बराबर है',
     isOwed: 'को मिलने हैं',
@@ -4408,20 +4499,17 @@ const ar: WebStrings = {
     aGroup: 'مجموعة',
     addedTo: 'تمت إضافتك إلى {group}',
     splittingHere: {
-      zero: 'لا أحد يقسّم التكاليف هنا بعد. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
-      one: 'شخص واحد يقسّم التكاليف هنا. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
-      two: 'شخصان يقسّمان التكاليف هنا. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
-      few: '{n} أشخاص يقسّمون التكاليف هنا. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
-      many: '{n} شخصًا يقسّمون التكاليف هنا. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
-      other: '{n} شخص يقسّمون التكاليف هنا. يمكنك الانضمام وإضافة مصروف الآن — دون تثبيت شيء.',
+      zero: 'لا أحد يقسّم التكاليف هنا بعد.',
+      one: 'شخص واحد يقسّم التكاليف هنا.',
+      two: 'شخصان يقسّمان التكاليف هنا.',
+      few: '{n} أشخاص يقسّمون التكاليف هنا.',
+      many: '{n} شخصًا يقسّمون التكاليف هنا.',
+      other: '{n} شخص يقسّمون التكاليف هنا.',
     },
     whichOneAreYou: 'أيّهم أنت؟',
     claimNote: 'أضاف أحدهم هذه الأسماء من قبل. اختيار اسمك يبقي المصاريف المسجّلة عليه معك.',
     someone: 'أحدهم',
     noneOfThese: 'لا أحد منهم',
-    yourName: 'اسمك',
-    namePlaceholder: 'بماذا ينادونك؟',
-    onlyThingAsked: 'هذا كل ما يُطلب منك. لا بريد، ولا كلمة مرور، ولا تطبيق.',
     joining: 'جارٍ الانضمام…',
     joinGroup: 'انضم إلى {group}',
     askToJoinAs: 'اطلب الانضمام بصفتك {name}',
@@ -4429,7 +4517,16 @@ const ar: WebStrings = {
     waitingBody:
       'على أحد القائمين على {group} أن يؤكّد أنك {name}. ولم يتغيّر شيء في المجموعة بعد.',
     joinAsNewInstead: 'انضم بصفتك شخصًا جديدًا',
-    signInFirst: 'Already on Waves? Sign in',
+    signUpToJoin: 'سجّل للانضمام',
+    logIn: 'تسجيل الدخول',
+    accountWhy: 'أنشئ حسابًا مجانيًا للانضمام إلى {group} لتبقى مصاريفك لك على كل جهاز.',
+    guestUpgrade: 'أنشئ حسابًا للانضمام',
+    guestWhy:
+      'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
+    accountRequired:
+      'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
+    removedFromGroup: 'تمت إزالتك من هذه المجموعة. اطلب دعوة جديدة من أحد المشرفين.',
+    backToLink: 'رجوع',
     takenTitle: 'This {provider} account already has Waves',
     takenBody: 'Switch to it and the groups you joined as a guest are joined again, as you.',
     takenLeftBehind: {
@@ -4439,6 +4536,20 @@ const ar: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'دعاك صديق إلى Waves',
+    body: 'المال أسهل حين نتشاركه. يُبقي Waves المصاريف المشتركة واضحة، فلا يحتاج أحد إلى تتبّع الحساب.',
+    perk: 'ابدأ استخدام Waves مع صديقك وتحصلان معًا على 7 أيام من Plus.',
+    codeLabel: 'رمز صديقك',
+    openApp: 'افتح في Waves',
+    googlePlay: 'احصل عليه من Google Play',
+    appStore: 'نزّله من App Store',
+    useOnWeb: 'أو تابع في المتصفح',
+    enterCode: 'سجّلت بعد التثبيت؟ افتح «ادعُ أصدقاءك» في ملفك الشخصي وأدخل هذا الرمز.',
+    copyCode: 'نسخ الرمز',
+    codeCopied: 'تم النسخ',
+    linkBroken: 'رابط الدعوة هذا لا يبدو صحيحًا. اطلب من صديقك إرساله مرة أخرى.',
   },
   group: {
     loading: 'جارٍ التحميل…',
@@ -4468,6 +4579,7 @@ const ar: WebStrings = {
     noneYet: 'لا شيء هنا بعد',
     noneYetBody: 'أول مصروف يضيفه أحدهم سيظهر هنا.',
     whereEveryoneStands: 'أين يقف كل واحد',
+    memberLeft: '(غادر)',
     settledUp: 'مسوّى',
     isSettledUp: 'حسابه مسوّى',
     isOwed: 'له',

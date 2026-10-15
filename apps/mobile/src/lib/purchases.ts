@@ -17,7 +17,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import Purchases, {
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
@@ -26,15 +26,19 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 
-import { PlanTier, RC_DEFAULT_OFFERING } from '@waves/core';
+import { PlanTier } from '@waves/core';
 
 import { reportHandled } from './observability';
-import { activeProductId, revenueCatApiKey, tierFromCustomerInfo } from './pricing';
+import { activeProductId, revenueCatApiKey, selectOffering, tierFromCustomerInfo } from './pricing';
 
-const API_KEY = revenueCatApiKey(Platform.OS, {
-  ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
-  android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
-});
+const API_KEY = revenueCatApiKey(
+  Platform.OS,
+  {
+    ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+    android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+  },
+  __DEV__,
+);
 
 /** True when this build can sell anything at all. */
 export function purchasesAvailable(): boolean {
@@ -46,6 +50,22 @@ export function purchasesAvailable(): boolean {
 let configured = false;
 let currentUser: string | null = null;
 let queue: Promise<void> = Promise.resolve();
+/** The account the app last asked for, so a failed setup can be retried. */
+let wanted: string | null = null;
+let watching = false;
+
+/**
+ * Ask again each time the app comes back to the front. For the account
+ * RevenueCat already has this does nothing; after a setup or switch that
+ * failed (no network at launch, say), it is the retry.
+ */
+function watchForeground(): void {
+  if (watching) return;
+  watching = true;
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void syncPurchasesUser(wanted);
+  });
+}
 
 interface EntitlementSnapshot {
   readonly tier: PlanTier;
@@ -83,6 +103,8 @@ async function readCustomerInfo(): Promise<void> {
 export function syncPurchasesUser(profileId: string | null): Promise<void> {
   if (!API_KEY) return Promise.resolve();
   const key = API_KEY;
+  wanted = profileId;
+  watchForeground();
   queue = queue.then(async () => {
     try {
       if (!configured) {
@@ -134,11 +156,17 @@ export async function refreshCustomerInfo(): Promise<void> {
 
 // --- Buying ------------------------------------------------------------------
 
-/** The offering the paywall shows: RevenueCat's current one, else 'default'. */
-export async function loadOffering(): Promise<PurchasesOffering | null> {
+/**
+ * The offering the paywall shows: the Plus price arm's (`plus_p49` / `plus_p79`
+ * / `plus_p99`) when this person is in the test, else RevenueCat's current one,
+ * else 'default'. See `selectOffering`.
+ */
+export async function loadOffering(
+  plusPriceVariant: string | null = null,
+): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   const offerings = await Purchases.getOfferings();
-  return offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
+  return selectOffering(offerings, plusPriceVariant);
 }
 
 export type PurchaseOutcome = 'purchased' | 'cancelled' | 'pending';
@@ -175,4 +203,29 @@ export async function restore(): Promise<PlanTier> {
   const info = await Purchases.restorePurchases();
   accept(info);
   return tierFromCustomerInfo(info);
+}
+
+// --- Managing it -------------------------------------------------------------
+
+/** Google Play's own list of the account's subscriptions. */
+const PLAY_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions';
+
+/**
+ * True when RevenueCat sees a store subscription this person can change or
+ * cancel. A plan granted by a promo code has nothing to manage in a store.
+ */
+export function hasStoreSubscription(info: CustomerInfo | null): boolean {
+  return activeProductId(info) !== null;
+}
+
+/**
+ * Open the store's page for changing or cancelling the plan: the App Store
+ * sheet on iOS, Google Play's subscriptions page on Android.
+ */
+export async function manageSubscription(): Promise<void> {
+  if (Platform.OS === 'ios') {
+    await Purchases.showManageSubscriptions();
+    return;
+  }
+  await Linking.openURL(snapshot.info?.managementURL ?? PLAY_SUBSCRIPTIONS_URL);
 }

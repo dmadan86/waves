@@ -31,7 +31,6 @@ import {
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { useBlockedUsers } from '@/data/blocked';
 import { memberLookup, useGroup } from '@/data/hooks';
-import { displayName } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
 import {
@@ -48,6 +47,7 @@ import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { router } from '@/lib/navigation';
 import { vendorCandidates } from '@/lib/vendorCandidates';
 import { useViewerId } from '@/lib/auth';
+import { memberNameById } from '@/lib/memberName';
 
 export function VendorsBody({
   groupId,
@@ -63,17 +63,21 @@ export function VendorsBody({
   const clearance = useScreenClearance();
   const viewerId = useViewerId();
   const { blockedIds } = useBlockedUsers();
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, everyone, expenses } = useGroup(groupId);
   const [filter, setFilter] = useState<VendorFilter>(initialFilter);
   const [subEvent, setSubEvent] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const [showSubFilter, setShowSubFilter] = useState(false);
 
-  const lookup = useMemo(() => memberLookup(members.data), [members.data]);
+  const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const nameOf = (memberId: string | null): string => {
-    const member = memberId ? lookup.get(memberId) : undefined;
-    return member ? displayName(member, viewerId, blockedIds, t.misc.someone) : t.misc.someone;
+    return memberNameById(lookup, memberId, {
+      viewerId,
+      blocked: blockedIds,
+      someone: t.misc.someone,
+      leftLabel: t.misc.memberLeft,
+    });
   };
 
   const templateSubEvents = subEventsForTemplate(group.data?.event_template);

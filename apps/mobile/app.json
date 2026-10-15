@@ -69,6 +69,11 @@
               "scheme": "https",
               "host": "app.wavs.co.in",
               "pathPrefix": "/g/"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wavs.co.in",
+              "pathPrefix": "/r/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

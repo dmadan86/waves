@@ -181,6 +181,7 @@ model Profile {
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   memberships         GroupMember[]
+  membersRemoved      GroupMember[]          @relation("MemberRemovedBy")
   captures            Capture[]
   categoryTags        CategoryTag[]
   personalRecords     PersonalRecord[]
@@ -196,9 +197,13 @@ model Profile {
   usageEvents         UsageEvent[]
   subscriptions       Subscription[]
   promoRedemptions    PromoRedemption[]
+  referralCode        ReferralCode?
+  referralsMade       Referral[]        @relation("ReferralReferrer")
+  referralClaimed     Referral?         @relation("ReferralReferee")
   campaignImpressions CampaignImpression[]
   campaignEmailSends  CampaignEmailSend[]
   feedback            Feedback[]
+  appEvents           AppEvent[]
   purchasedPasses     GroupPass[]
   syncMutations       SyncMutation[]
   memberClaims        MemberClaim[]
@@ -323,6 +328,7 @@ model Group {
   receipts           Receipt[]
   settlements        Settlement[]
   activity           ActivityLog[]
+  importBatches      ImportBatch[]
   reminders          Reminder[]
   balances           GroupBalance[]
   pairwise           PairwiseBalance[]
@@ -375,13 +381,22 @@ model GroupMember {
   /// is the same person.
   paymentRail   String?    @map("payment_rail")
   paymentHandle String?    @map("payment_handle")
+  /// The import that minted this ghost (`import_batches`); null for everyone else.
+  importBatchId String?    @map("import_batch_id") @db.Uuid
   leftAt        DateTime?  @map("left_at") @db.Timestamptz(6)
+  /// When an admin removed them (null: never removed, or they left by
+  /// themselves). An invite minted at or before this cannot bring them back.
+  removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
+  /// The admin who removed them.
+  removedBy     String?    @map("removed_by") @db.Uuid
   updatedSeq    BigInt     @default(0) @map("updated_seq")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
+  importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
 
   authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")
   paidFor            ExpensePayer[]
@@ -411,6 +426,8 @@ model GroupMember {
   claimsDecided      MemberClaim[]       @relation("ClaimDecider")
   tripBudget         TripMemberBudget?
   ghostMerges        GhostMerge[]
+  importsRun         ImportBatch[]       @relation("BatchActor")
+  importsUndone      ImportBatch[]       @relation("BatchUndoneBy")
 
   @@unique([groupId, profileId])
   @@index([groupId])
@@ -634,17 +651,21 @@ model ExpenseVersion {
   /// forward by waves_apply_expense when an edit from an older client sends
   /// none; a newer client clears it with ''.
   payee            String?
+  /// The import this version came in with (`import_batches`), set on version 1
+  /// of an imported expense only; edits carry none. What Undo import acts on.
+  importBatchId    String?       @map("import_batch_id") @db.Uuid
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  expense   Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
-  currentOf Expense?       @relation("CurrentVersion")
-  author    GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
-  receipt   Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
-  payers    ExpensePayer[]
-  shares    ExpenseShare[]
+  expense     Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
+  currentOf   Expense?       @relation("CurrentVersion")
+  author      GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
+  importBatch ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  receipt     Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  payers      ExpensePayer[]
+  shares      ExpenseShare[]
 
   @@unique([expenseId, versionNo])
   @@index([expenseId])
@@ -755,6 +776,8 @@ model Settlement {
   remindedAt       DateTime?        @map("reminded_at") @db.Timestamptz(6)
   confirmedAt      DateTime?        @map("confirmed_at") @db.Timestamptz(6)
   clientMutationId String?          @unique @map("client_mutation_id") @db.Uuid
+  /// The import that wrote this settlement, if any (`import_batches`).
+  importBatchId    String?          @map("import_batch_id") @db.Uuid
   updatedSeq       BigInt           @default(0) @map("updated_seq")
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -762,6 +785,7 @@ model Settlement {
   group       Group                  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   fromMember  GroupMember            @relation("SettlementFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
   toMember    GroupMember            @relation("SettlementTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+  importBatch ImportBatch?           @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   allocations SettlementAllocation[]
   proofs      SettlementProof[]
 
@@ -805,6 +829,35 @@ model ActivityLog {
   @@index([groupId, createdAt])
   @@index([groupId, updatedSeq])
   @@map("activity_log")
+  @@schema("public")
+}
+
+/// One import into a group: the id every imported row carries, and what Undo
+/// import acts on (`waves_undo_import`). Written only by the definer functions;
+/// members of the group can read it. The id is chosen by the client, so it is
+/// the idempotency key for the whole import. `source` is one of csv | splitwise |
+/// waves_csv | waves_json | xlsx | screenshot (CHECK in the migration).
+model ImportBatch {
+  id              String    @id @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  actorMemberId   String?   @map("actor_member_id") @db.Uuid
+  source          String
+  expenseCount    Int       @default(0) @map("expense_count")
+  settlementCount Int       @default(0) @map("settlement_count")
+  ghostCount      Int       @default(0) @map("ghost_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  undoneAt        DateTime? @map("undone_at") @db.Timestamptz(6)
+  undoneBy        String?   @map("undone_by") @db.Uuid
+
+  group    Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  actor    GroupMember?     @relation("BatchActor", fields: [actorMemberId], references: [id], onDelete: SetNull)
+  undoer   GroupMember?     @relation("BatchUndoneBy", fields: [undoneBy], references: [id], onDelete: SetNull)
+  versions ExpenseVersion[]
+  payments Settlement[]
+  ghosts   GroupMember[]    @relation("BatchGhosts")
+
+  @@index([groupId, createdAt])
+  @@map("import_batches")
   @@schema("public")
 }
 
@@ -1367,6 +1420,49 @@ model PromoCode {
   @@schema("public")
 }
 
+/// A person's personal invite code (https://wavs.co.in/r/<CODE>). Created
+/// lazily by `waves_my_referral`; read-only for the owner (RLS).
+model ReferralCode {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @unique(map: "referral_codes_profile_key") @map("profile_id") @db.Uuid
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, map: "referral_codes_profile_fkey")
+  referrals Referral[]
+
+  @@map("referral_codes")
+  @@schema("public")
+}
+
+/// One friend brought in by one person. Written only by the referral RPCs and
+/// triggers (SECURITY DEFINER); `status` moves claimed -> rewarded | rejected
+/// exactly once, when the friend is verified and has recorded a genuine expense
+/// in a group of two or more. Days granted are capped at 30 per account.
+model Referral {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId   String    @map("referrer_id") @db.Uuid
+  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code         String
+  source       String    @default("code")
+  status       String    @default("claimed")
+  rejectReason String?   @map("reject_reason")
+  claimedAt    DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
+  referrerDays Int       @default(0) @map("referrer_days")
+  refereeDays  Int       @default(0) @map("referee_days")
+  identityKeys String[]  @default([]) @map("identity_keys")
+
+  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
+  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
+  referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+
+  @@index([referrerId, status], map: "referrals_referrer_idx")
+  @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
+  @@map("referrals")
+  @@schema("public")
+}
+
 /// Who used which code. Written only by `waves_redeem_promo`, which is
 /// SECURITY DEFINER so the client never touches `subscriptions` itself.
 model PromoRedemption {
@@ -1503,6 +1599,47 @@ model Feedback {
 
   @@index([createdAt(sort: Desc)], map: "feedback_recent_idx")
   @@map("feedback")
+  @@schema("public")
+}
+
+/// First-party product analytics: the few app steps the database cannot derive
+/// from its own rows. Written only through waves_track_event; no direct access
+/// for anon or authenticated. `props` holds short enum words and nothing else.
+/// One-install-per-install_id is a partial unique index (name = 'app_installed')
+/// that the datamodel cannot express.
+model AppEvent {
+  id         BigInt   @id @default(autoincrement())
+  installId  String   @map("install_id") @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  /// app_installed | signup_started | onboarding_completed | premium_viewed
+  name       String
+  /// ios | android | web
+  platform   String?
+  appVersion String?  @map("app_version")
+  props      Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([name, occurredAt])
+  @@index([profileId])
+  @@index([installId, occurredAt])
+  @@map("app_events")
+  @@schema("public")
+}
+
+/// Hits per client address on `waves_track_event`, for its flood guard. Holds
+/// a salted sha256 of the address, never the address. Disposable: the function
+/// sweeps rows older than two days.
+model AppEventIpHit {
+  id        BigInt   @id @default(autoincrement())
+  ipHash    String   @map("ip_hash")
+  isInstall Boolean  @default(false) @map("is_install")
+  at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([ipHash, at], map: "app_event_ip_hits_ip_hash_at_idx")
+  @@index([at], map: "app_event_ip_hits_at_idx")
+  @@map("app_event_ip_hits")
   @@schema("public")
 }
 

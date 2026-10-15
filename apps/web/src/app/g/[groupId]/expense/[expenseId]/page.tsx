@@ -16,6 +16,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 import {
   nameOf,
+  pastNameOf,
   type DisputeRow,
   type Expense,
   type ExpenseVersionSummary,
@@ -73,7 +74,10 @@ function ExpenseDetail({
   const router = useRouter();
 
   const [expense, setExpense] = useState<Expense | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  // Everyone who was ever in the group: a bill keeps naming a member after they
+  // leave. `members` is who is in it now, for anything that acts on the present.
+  const [everyone, setEveryone] = useState<Member[]>([]);
+  const members = everyone.filter((m) => !m.left_at);
   const [versions, setVersions] = useState<ExpenseVersionSummary[]>([]);
   const [disputes, setDisputes] = useState<DisputeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,12 +89,12 @@ function ExpenseDetail({
   const load = useCallback(async () => {
     const [e, m, v, d] = await Promise.all([
       waves.expense(expenseId),
-      waves.members(groupId),
+      waves.allMembers(groupId),
       waves.expenseVersions(expenseId),
       waves.disputes(groupId),
     ]);
     setExpense(e);
-    setMembers(m);
+    setEveryone(m);
     setVersions(v);
     setDisputes(d.filter((row) => row.expense_id === expenseId));
   }, [expenseId, groupId]);
@@ -172,8 +176,11 @@ function ExpenseDetail({
     );
   }
 
-  const byId = new Map(members.map((m) => [m.id, m]));
-  const nameFor = (id: string) => nameOf(byId.get(id) ?? fallback(id));
+  const byId = new Map(everyone.map((m) => [m.id, m]));
+  const nameFor = (id: string) => {
+    const member = byId.get(id);
+    return member ? pastNameOf(member, t.group.memberLeft) : nameOf(fallback(id));
+  };
   const currency = version.currency;
   const deleted = Boolean(expense.deleted_at);
 

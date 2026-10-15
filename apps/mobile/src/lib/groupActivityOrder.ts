@@ -5,7 +5,7 @@
  * the fifteen were whichever came back first, which is `created_at` — the day
  * you were *added* to a group, not the day anything happened in it. So a trip
  * that ended in March could hold a slot for a year while the flat you settle up
- * in every week fell off the bottom, and pinning was the only cure.
+ * in every week fell off the bottom.
  *
  * Recency fixes that without hiding anything, which matters: a settled group is
  * not a finished one. You go back to it to add the next expense, and a list that
@@ -24,7 +24,7 @@
  * Note the dashboard and the All-groups screen now answer different questions on
  * purpose: this one is "what am I using", which is what a fifteen-row preview is
  * for, and that one is "where does my money stand", which is what a full list
- * sorted by balance is for. Pinning still sits in front of both (`orderByPin`).
+ * sorted by balance is for.
  */
 
 /**

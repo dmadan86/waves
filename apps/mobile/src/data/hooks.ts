@@ -22,8 +22,6 @@ import {
   ghostMerges,
   groupMuteId,
   groupMutesScope,
-  groupPinId,
-  groupPinsScope,
   materialiseArchivedGroups,
   materialiseCaptures,
   materialiseCategoryTags,
@@ -46,7 +44,6 @@ import {
   openCaptures,
   openPlanItems,
   mutedGroupIds,
-  pinnedGroupIds,
   rowsFor,
   simplify,
   SyncTable,
@@ -108,6 +105,7 @@ import {
   type GroupBudget,
   recordSettlement,
   leaveGroup,
+  removeMember,
   updateGroup,
   updateMember,
   setMemberRole,
@@ -236,57 +234,6 @@ export function useAllGroupMembers(): readonly MemberRow[] {
       );
     return members;
   }, [mirror, queue]);
-}
-
-// ────────────────────────────────────────────────────── group pins ──
-//
-// A pin rides its own personal scope (`groupPinsScope`), independent of the
-// group's own scope, on purpose — see the `group_pins` migration. That keeps
-// this feature's queue traffic from ever blocking, or being blocked by, the
-// group's own mutations, and it is why reading "which groups are pinned" is
-// nothing more than `pinnedGroupIds`, the overlay a dashboard-shaped hook.
-
-/** The groups this person has pinned, as a set of ids — cheap to check once
- *  per row while a list orders itself (`orderByPin`, `pinnedIds.has(id)`). */
-export function usePinnedGroupIds(): Set<string> {
-  const { session } = useAuth();
-  const ownerId = session?.user?.id ?? '';
-  const { mirror, queue } = useSync();
-  return useMemo(
-    () => (ownerId ? pinnedGroupIds(mirror, queue, { ownerId }) : new Set<string>()),
-    [mirror, queue, ownerId],
-  );
-}
-
-/**
- * Pin or unpin a group.
- *
- * One mutation kind either way: pinning is an upsert keyed by
- * `groupPinId(owner, group)`, derived rather than drawn, so two devices
- * pinning the same group while both offline write the *same* row instead of
- * racing to create two; unpinning is that row's soft tombstone, so it reaches
- * the person's other devices rather than only vanishing from this one.
- *
- * Nothing here touches the group itself — a pin is a separate opinion about a
- * group that already exists, materialised by its own overlay
- * (`materialiseGroupPins`) that `materialiseGroups` never reads from. That is
- * what keeps a refused pin's worst case to the pin: see the collapse rule in
- * `@waves/core`'s sync queue for how discarding one behaves.
- */
-export function useSetGroupPin() {
-  const { mutate } = useSync();
-  const { session } = useAuth();
-  return useMutation({
-    mutationFn: async ({ groupId, pinned }: { groupId: string; pinned: boolean }) => {
-      const ownerId = session?.user?.id;
-      if (!ownerId) throw new Error('Sign in first');
-      const pinId = groupPinId(ownerId, groupId);
-      const kind = pinned ? MutationKind.GroupPinSet : MutationKind.GroupPinClear;
-      const payload = pinned ? { pinId, groupId } : { pinId };
-      await mutate(kind, groupPinsScope(ownerId), payload);
-      return pinId;
-    },
-  });
 }
 
 // ────────────────────────────────────────────────────── group mutes ──
@@ -1010,7 +957,10 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       const isDemo = group.id === DEMO_GROUP_ID;
       const members = isDemo
         ? demoMembers(profileId)
-        : (materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]);
+        : (materialiseMembers(mirror, queue, {
+            groupId: group.id,
+            includeLeft: true,
+          }) as unknown as MemberRow[]);
       const me = members.find((member) => isViewer(member, profileId) && member.left_at === null);
       if (!me) continue;
       const byId = new Map(members.map((member) => [member.id, member] as const));
@@ -1186,6 +1136,7 @@ export function useGroup(groupId: string) {
         return {
           group: null,
           members: [],
+          everyone: [],
           settlements: [],
           activity: [],
           stored: [],
@@ -1196,6 +1147,7 @@ export function useGroup(groupId: string) {
       return {
         group: demoGroupRow(),
         members: demoMembers(viewerId),
+        everyone: demoMembers(viewerId),
         settlements: demoSettlements(),
         activity: [] as ActivityRow[],
         stored: expenses,
@@ -1217,6 +1169,11 @@ export function useGroup(groupId: string) {
     // ledger was never deleted; it was only unreachable.
     const group = built && !built.deleted_at ? built : null;
     const members = materialiseMembers(mirror, queue, { groupId }) as unknown as MemberRow[];
+    // Everyone who ever appeared in the group, for resolving names in the past.
+    const everyone = materialiseMembers(mirror, queue, {
+      groupId,
+      includeLeft: true,
+    }) as unknown as MemberRow[];
     const settlements = materialiseSettlements(mirror, queue, {
       groupId,
     }) as unknown as SettlementRow[];
@@ -1235,7 +1192,7 @@ export function useGroup(groupId: string) {
       groupId,
     }) as unknown as ExpenseRow[];
 
-    return { group, members, settlements, activity, stored, withPending };
+    return { group, members, everyone, settlements, activity, stored, withPending };
   }, [mirror, queue, groupId, demo, showDemo, viewerId]);
 
   // A group that is not in the mirror yet is not necessarily a group that does
@@ -1260,6 +1217,7 @@ export function useGroup(groupId: string) {
   const localGroup = useLocalRead(rows.group);
   const group = arriving ? { ...localGroup, isLoading: true } : localGroup;
   const members = useLocalRead(rows.members);
+  const everyone = useLocalRead(rows.everyone);
   const settlements = useLocalRead(rows.settlements);
   const activity = useLocalRead(rows.activity);
   const expenses = useLocalRead(rows.stored);
@@ -1274,7 +1232,12 @@ export function useGroup(groupId: string) {
 
   return {
     group,
+    // Who is in the group now: what every picker for a new expense, split or
+    // settle-up offers.
     members,
+    // Everyone who has ever been in it, people who left or were removed included.
+    // For names in bills, balances and history — never for choosing who to add.
+    everyone,
     // `expenses.data` is what the server has; `expenses.rows` is what to render.
     expenses: { ...expenses, rows: rows.withPending },
     settlements,
@@ -2174,6 +2137,20 @@ export function useSetMemberRole(groupId: string) {
   return useMutation({
     mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'member' }) =>
       isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setMemberRole(memberId, role),
+    onSuccess: () => invalidateGroup(queryClient, groupId),
+  });
+}
+
+/**
+ * Admin removes a member. Unlike leaving, the group stays on this device, so
+ * there is nothing to forget: flush and refetch to pick up the member's
+ * `left_at`, and the ledger recomputes with them shown as having left.
+ */
+export function useRemoveMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : removeMember(memberId),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }

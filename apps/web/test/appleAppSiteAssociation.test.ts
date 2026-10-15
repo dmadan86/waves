@@ -36,14 +36,20 @@ describe('apple-app-site-association', () => {
     };
     const [detail] = body.applinks.details;
     expect(detail?.appIDs).toEqual([APP_ID]);
-    expect(detail?.components.map((c) => c['/'])).toEqual(['/join', '/join/*', '/g', '/g/*']);
+    expect(detail?.components.map((c) => c['/'])).toEqual([
+      '/join',
+      '/join/*',
+      '/g',
+      '/g/*',
+      '/r/*',
+    ]);
   });
 
   it('claims the same paths as the Android intent filter', () => {
     const android = appJson.expo.android.intentFilters
       .flatMap((filter) => filter.data)
       .map((d) => (d.path ? d.path : `${d.pathPrefix}*`));
-    expect(android.sort()).toEqual(['/g', '/g/*', '/join', '/join/*'].sort());
+    expect(android.sort()).toEqual(['/g', '/g/*', '/join', '/join/*', '/r/*'].sort());
   });
 
   it('is declared by the app for the same host', () => {

@@ -389,6 +389,10 @@ serveWithCors(async (request) => {
       changes,
       cursors: nextCursors,
       hasMore,
+      // The groups this person is still in. Leaving or being removed hides a
+      // group from the pull (RLS), so the pull alone can never say "it is gone";
+      // this list lets a device drop a group an admin removed them from.
+      memberOf: (mine.data ?? []).map((row) => row.group_id as string),
       serverTime: new Date().toISOString(),
     });
   } catch (error) {

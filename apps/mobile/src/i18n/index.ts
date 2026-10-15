@@ -756,12 +756,21 @@ export interface UiStrings {
     menu: string;
     title: string;
     intro: string;
+    subtitle: string;
     /** The format picker. */
     formatLabel: string;
     pdf: string;
     excel: string;
     pdfHint: string;
     excelHint: string;
+    /** The "Include" checklist. */
+    includeLabel: string;
+    includeBalances: string;
+    includeBalancesHint: string;
+    includeExpenses: string;
+    includeExpensesHint: string;
+    includeSettlements: string;
+    includeSettlementsHint: string;
     /** Action + busy + success. */
     generate: string;
     preparing: string;
@@ -1711,6 +1720,8 @@ export interface UiStrings {
     gateTitle: string;
     gateGroupBody: string;
     gateExpiredBody: string;
+    /** A guest sent here from an invite: make the account, then the join finishes. */
+    gateJoinBody: string;
   };
   /** Entry copy — the signed-out screens (phone, verify-email, guest intro,
       gateway legal) and the push soft-ask. Kept translatable and RTL-safe. */
@@ -1946,6 +1957,8 @@ export interface UiStrings {
   deleteForm: {
     heroTitle: string;
     staysPill: string;
+    subscriptionTitle: string;
+    subscriptionBody: string;
     goesPill: string;
     cannotRecover: string;
     statGroups: string;
@@ -1993,6 +2006,13 @@ export interface UiStrings {
     viewDetails: string;
     openGroup: string;
     noneForFilter: string;
+    /** "Imported {n} expenses": the feed row for one import into a group. */
+    importedHeadline: PluralForms;
+    /** The same event as a sentence, from the reader's side: "{who} imported {n} expenses". */
+    importedSentence: PluralForms;
+    importUndoneHeadline: string;
+    /** "{who} undid an import". */
+    importUndoneSentence: string;
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
@@ -2838,14 +2858,6 @@ export interface UiStrings {
     loading: string;
     settings: string;
     more: string;
-    /** The ••• menu's Pin/Unpin row and the row-level accessibility action
-     *  (long-press). Concatenated with the group's own label at the call site
-     *  — "Pin Goa trip" / "Unpin Goa trip" — so the word itself stays short. */
-    pin: string;
-    unpin: string;
-    /** Spoken after a pinned row's name, since the pin glyph itself is
-     *  invisible to a screen reader. */
-    pinnedBadge: string;
     confirmReceived: string;
     /** The group hero's pill, beside its "+" glyph. Screen readers still hear `addExpense`. */
     heroExpense: string;
@@ -3002,6 +3014,18 @@ export interface UiStrings {
     currentRoleAdmin: string;
     /** That row's subtitle when the member is a plain member today. */
     currentRoleMember: string;
+    /** Member page: the admin-only row that takes somebody out of the group. */
+    removeFromGroup: string;
+    /** That row's subtitle. */
+    removeFromGroupHint: string;
+    /** Confirm sheet title; `{name}` is the person. */
+    removeConfirmTitle: string;
+    /** Confirm sheet body; `{name}` is the person. */
+    removeConfirmBody: string;
+    /** Prefixed to the body when the person owes; `{name}`, `{amount}`. */
+    removeStillOwes: string;
+    /** Prefixed to the body when the person is owed; `{name}`, `{amount}`. */
+    removeIsOwed: string;
     adminNote: string;
     adminNeedsAccount: string;
     you: string;
@@ -3489,7 +3513,6 @@ export interface UiStrings {
     groupsSubtitle: string;
     filterOwed: string;
     filterOwe: string;
-    filterFavorites: string;
     sortGroupsTitle: string;
     sortRecent: string;
     sortAmount: string;
@@ -3506,11 +3529,11 @@ export interface UiStrings {
     linkExpiredBody: string;
     linkMissingCode: string;
     goToWaves: string;
-    freeNoAccount: string;
+    joinFreeBadge: string;
     joinFeatureQuickTitle: string;
     joinFeatureQuickBody: string;
-    joinFeatureGuestTitle: string;
-    joinFeatureGuestBody: string;
+    joinFeatureAccountTitle: string;
+    joinFeatureAccountBody: string;
     joinFeatureTogetherTitle: string;
     joinFeatureTogetherBody: string;
     isOneOfTheseYou: string;
@@ -3527,6 +3550,17 @@ export interface UiStrings {
     unnamed: string;
     joinAndClaim: string;
     joinGroup: string;
+    /** Invite screen, signed out: the two ways in. */
+    joinSignUp: string;
+    joinLogIn: string;
+    /** Why joining needs an account; `{group}` is the group's name. */
+    joinAccountWhy: string;
+    /** A guest opening an invite: upgrade the account they have, then join. */
+    joinGuestUpgrade: string;
+    joinGuestWhy: string;
+    /** The server refused a guest join (an older screen, or a race). */
+    joinAccountRequired: string;
+    joinRemoved: string;
     fromYourContacts: string;
     continueWith: string;
     noAddress: string;
@@ -3543,6 +3577,8 @@ export interface UiStrings {
     /** Appended to the added-count when some were skipped for already being there. */
     alreadyThereSkipped: PluralForms;
     someone: string;
+    /** After the name of somebody who left or was removed, wherever the past names them. */
+    memberLeft: string;
     /** Badges on a cross-group activity row: its group is archived, or no
      *  longer on this device (left or deleted). */
     archivedGroup: string;
@@ -3968,6 +4004,163 @@ export interface UiStrings {
     removeItem: string;
     hadItem: string;
   };
+  /** Importing expenses into an existing group from a spreadsheet, CSV or Splitwise file. */
+  groupImport: {
+    /** The group ⋯ menu entry, and the title of the screen. */
+    menu: string;
+    /** Secondary link on an empty group. */
+    emptyLink: string;
+    /** Header: "Import into {group}". */
+    titleNamed: string;
+    /** The small line over the group's name on the first step: "Import into". */
+    titleLead: string;
+    sourceIntro: string;
+    sourceFileTitle: string;
+    sourceFileHint: string;
+    sourceSplitwiseTitle: string;
+    sourceSplitwiseHint: string;
+    sourceShotTitle: string;
+    sourceShotHint: string;
+    plusBadge: string;
+    seeExamples: string;
+    nothingAdded: string;
+    /** The line under `nothingAdded` on the first step. */
+    nothingAddedBody: string;
+    reading: string;
+    parsing: string;
+    /** Uses {mb}. */
+    errTooLarge: string;
+    /** Uses {n}. */
+    errTooMany: string;
+    errEmpty: string;
+    errEncoding: string;
+    errUnreadable: string;
+    errNoColumns: string;
+    errNoRows: string;
+    upsellTitle: string;
+    upsellBody: string;
+    seePlans: string;
+    useCsv: string;
+    examplesTitle: string;
+    exTabSimple: string;
+    exTabSplit: string;
+    exTabSplitwise: string;
+    exSimple: string;
+    exSplit: string;
+    exSplitwise: string;
+    headersNote: string;
+    shareTemplate: string;
+    copyExample: string;
+    copied: string;
+    templateShareTitle: string;
+    templateFailed: string;
+    columnsTitle: string;
+    columnsHint: string;
+    /** A column with no heading: "Column {n}". */
+    columnFallback: string;
+    /** Sheet title: "What is {header}?". */
+    chooseColumn: string;
+    colDate: string;
+    colDescription: string;
+    colAmount: string;
+    colCurrency: string;
+    colPaidBy: string;
+    colSplit: string;
+    colCategory: string;
+    colType: string;
+    colPerson: string;
+    colIgnore: string;
+    dateOrderTitle: string;
+    dateDayFirst: string;
+    dateMonthFirst: string;
+    /** Uses {raw} and {date}. */
+    dateReadsAs: string;
+    decimalTitle: string;
+    previewTitle: string;
+    previewUnreadable: string;
+    needAmount: string;
+    continueLabel: string;
+    peopleTitle: string;
+    peopleHint: string;
+    matchedByName: string;
+    chooseWho: string;
+    addAsNew: string;
+    addRestAsNew: string;
+    /** Uses {names}. */
+    mergeWarning: string;
+    /** Sheet title: "Who is {name}?". */
+    whoIsName: string;
+    /** Spoken: "{name} is {who}. Tap to change.". */
+    personMapped: string;
+    reviewTitle: string;
+    summaryExpenses: PluralForms;
+    summarySettlements: PluralForms;
+    summaryNewPeople: PluralForms;
+    summaryOtherCurrency: PluralForms;
+    /** Uses {from} and {to}. */
+    summaryRange: string;
+    summaryLeft: PluralForms;
+    changesTitle: string;
+    changesNote: string;
+    filterAll: string;
+    filterAttention: string;
+    filterWont: string;
+    filterDuplicates: string;
+    noneHere: string;
+    ctaExpenses: PluralForms;
+    ctaItems: PluralForms;
+    ctaNothing: string;
+    /** Uses {who}. */
+    rowPaid: string;
+    /** Uses {who} and {n}. */
+    rowSplit: PluralForms;
+    /** Uses {from} and {to}. */
+    rowSettlement: string;
+    /** Uses {description}, {date} and {amount}. */
+    duplicateOf: string;
+    /** Uses {currency}. */
+    foreignNote: string;
+    stateWont: string;
+    stateDuplicate: string;
+    stateAttention: string;
+    editHint: string;
+    edited: string;
+    editTitle: string;
+    fieldDescription: string;
+    fieldAmount: string;
+    fieldDate: string;
+    fieldPayer: string;
+    fieldSplit: string;
+    fieldCategory: string;
+    everyone: string;
+    categoryNone: string;
+    resetRow: string;
+    invalidAmount: string;
+    invalidDate: string;
+    committing: string;
+    /** Uses {done} and {total}. */
+    rowsProgress: string;
+    waitingTitle: string;
+    waitingHint: string;
+    failedTitle: string;
+    partialNote: string;
+    tryAgain: string;
+    /** Uses {group}. */
+    resultImported: PluralForms;
+    resultSettlements: PluralForms;
+    resultPeople: PluralForms;
+    resultInvite: string;
+    resultLeftOut: PluralForms;
+    openGroup: string;
+    undo: string;
+    undoing: string;
+    undoneTitle: PluralForms;
+    undoHint: string;
+    undoEdited: string;
+    undoExpired: string;
+    undoNotAllowed: string;
+    undoFailed: string;
+  };
   /** Bringing a ledger in from Splitwise or from Waves's own export. */
   importLedger: {
     anExistingGroup: string;
@@ -4018,6 +4211,21 @@ export interface UiStrings {
     problemNoRows: string;
     problemNotAnExport: string;
     problemNewerFormat: string;
+    problemAmbiguousDate: string;
+    problemMixedDates: string;
+    problemTooManyDecimals: string;
+    problemRefund: string;
+    problemUnknownPerson: string;
+    problemSplitMismatch: string;
+    problemPercentNot100: string;
+    problemTooManyRows: string;
+    problemFileTooLarge: string;
+    problemEncoding: string;
+    problemLikelyDuplicate: string;
+    problemLowConfidence: string;
+    problemNotAnExpense: string;
+    problemPayerEstimated: string;
+    problemUnexpectedSettlement: string;
     whereItGoes: string;
     aNewGroup: string;
     namedAfterFile: string;
@@ -4177,6 +4385,7 @@ export interface UiStrings {
     seePlans: string;
     onPlan: string;
     plansPromise: string;
+    manageSubscription: string;
     whatCosts: string;
   };
   /**
@@ -4217,6 +4426,17 @@ export interface UiStrings {
     purchasePending: string;
     genericError: string;
     terms: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    continueWith: string;
+    noPlans: string;
+    freeTitle: string;
+    freeGroups: string;
+    freeExpenses: string;
+    freeBalances: string;
+    alwaysFree: string;
+    redeemTitle: string;
+    redeemHint: string;
     privacy: string;
   };
   /**
@@ -4241,6 +4461,41 @@ export interface UiStrings {
     exhausted: string;
     alreadyRedeemed: string;
     couldNotRedeem: string;
+  };
+  /**
+   * Invite your friends: the personal link and what it has earned. A useful part
+   * of sharing expenses, not a game; days of Plus follow real use, never an
+   * install, a rating or a review.
+   */
+  referral: {
+    row: string;
+    rowHint: string;
+    title: string;
+    headline: string;
+    body: string;
+    youGetTitle: string;
+    youGetBody: string;
+    friendGetsTitle: string;
+    friendGetsBody: string;
+    /** Milestone label under a node on the progress path: "{n} days" */
+    milestoneDays: string;
+    share: string;
+    shareMessage: string;
+    /** "{earned} of {cap} days earned" */
+    progress: string;
+    /** "... all {cap} days ..." */
+    capReached: string;
+    pending: PluralForms;
+    loadError: string;
+    haveCode: string;
+    paste: string;
+    apply: string;
+    applied: string;
+    unknownCode: string;
+    ownCode: string;
+    alreadyUsed: string;
+    notNew: string;
+    couldNotApply: string;
   };
   /**
    * Taking over a place somebody already holds in a group, and an admin
@@ -4326,6 +4581,57 @@ export interface UiStrings {
     confirmTitle: string;
     confirmBody: string;
     badge: string;
+  };
+  /** Settings → Privacy → Network activity: the on-device list of connections. */
+  netlog: {
+    row: string;
+    rowHint: string;
+    title: string;
+    explainer: string;
+    empty: string;
+    emptyFiltered: string;
+    today: string;
+    yesterday: string;
+    filterAll: string;
+    clear: string;
+    clearTitle: string;
+    clearBody: string;
+    clearConfirm: string;
+    statusFailed: string;
+    statusOffline: string;
+    /** Spoken label for a row: time, purpose, method, address, status. */
+    rowLabel: string;
+    purposes: {
+      sync: string;
+      signIn: string;
+      analytics: string;
+      files: string;
+      exchangeRates: string;
+      serverTask: string;
+      purchases: string;
+      crashReports: string;
+      sessionReplay: string;
+      google: string;
+      maps: string;
+      other: string;
+    };
+    servicesTitle: string;
+    usedFor: string;
+    dataLabel: string;
+    svc: Record<
+      | 'supabase'
+      | 'files'
+      | 'purchases'
+      | 'sentry'
+      | 'firebase'
+      | 'drive'
+      | 'clarity'
+      | 'maps'
+      | 'appStore',
+      { purpose: string; data: string }
+    >;
+    builtinNote: string;
+    unseenNote: string;
   };
   privacy: {
     exportMine: string;
@@ -4483,7 +4789,6 @@ export interface UiStrings {
     ghostNote: string;
     claimHistoryNote: string;
     theirPastBecomesYours: string;
-    guestKeepsItHere: string;
     lockedTitle: string;
     lockedBody: string;
     unlock: string;
@@ -5432,12 +5737,20 @@ const en: UiStrings = {
     menu: 'Export',
     title: 'Export this group',
     intro:
-      'A tidy statement of this group — balances, every expense and settlement — as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
-    formatLabel: 'Format',
+      'Export balances, every expense and settlement as a PDF to read or an Excel workbook to crunch. Built on your device from what you already have, so it works offline.',
+    subtitle: 'Get a complete statement of this group',
+    formatLabel: 'Export format',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'A printable statement',
-    excelHint: 'A spreadsheet workbook',
+    pdfHint: 'A clean, printable statement',
+    excelHint: 'A detailed workbook for analysis',
+    includeLabel: 'Include',
+    includeBalances: 'Group balances',
+    includeBalancesHint: 'Who owes whom',
+    includeExpenses: 'All expenses',
+    includeExpensesHint: 'With date, category and notes',
+    includeSettlements: 'Settlements',
+    includeSettlementsHint: 'Payments and settlements',
     generate: 'Generate',
     preparing: 'Preparing…',
     ready: 'Export ready',
@@ -6224,6 +6537,8 @@ const en: UiStrings = {
       "You're in a group as a guest. Add an email, phone or provider to start or join more — everything you've entered stays with you.",
     gateExpiredBody:
       'Your guest trial has ended, so the app is read-only for now. Add a way to sign in to keep adding — your groups and expenses are all still here.',
+    gateJoinBody:
+      'Add an email or phone to create your account. Then we take you back to the invite and add you to the group. Everything you have so far stays with you.',
   },
   entry: {
     phonePlaceholder: 'Enter your phone number',
@@ -6418,6 +6733,9 @@ const en: UiStrings = {
   deleteForm: {
     heroTitle: 'This cannot be undone',
     staysPill: 'Remains in your groups',
+    subscriptionTitle: 'Your subscription keeps renewing',
+    subscriptionBody:
+      'Deleting your account does not cancel it. Cancel it in your app store first, or the store keeps charging you.',
     goesPill: 'Permanently deleted',
     cannotRecover: 'Your data will be permanently deleted and cannot be recovered.',
     statGroups: 'Groups you are in',
@@ -6464,6 +6782,10 @@ const en: UiStrings = {
     viewDetails: 'View details',
     openGroup: 'Open group',
     noneForFilter: 'Nothing here for this filter yet.',
+    importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
+    importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
+    importUndoneHeadline: 'Import undone',
+    importUndoneSentence: '{who} undid an import',
   },
   newGroupForm: {
     title: 'Create a new group',
@@ -7095,9 +7417,6 @@ const en: UiStrings = {
     loading: 'Loading…',
     settings: 'Group settings',
     more: 'More',
-    pin: 'Pin',
-    unpin: 'Unpin',
-    pinnedBadge: 'Pinned',
     confirmReceived: 'Confirm received',
     heroExpense: 'Expense',
     rowOwed: 'owed',
@@ -7218,6 +7537,13 @@ const en: UiStrings = {
     manageRole: 'Manage role',
     currentRoleAdmin: 'Current role: Admin',
     currentRoleMember: 'Current role: Member',
+    removeFromGroup: 'Remove from group',
+    removeFromGroupHint: 'They lose access. Their expenses stay in the history.',
+    removeConfirmTitle: 'Remove {name}?',
+    removeConfirmBody:
+      '{name} will lose access to this group. Their expenses and balance stay in the group history. A new invite can bring them back.',
+    removeStillOwes: '{name} still owes {amount}.',
+    removeIsOwed: '{name} is owed {amount}.',
     adminNote: 'Admins can edit the group, manage members, and set the overall budget.',
     adminNeedsAccount: 'They have not joined yet. Only a member with an account can be an admin.',
     you: 'you',
@@ -7597,7 +7923,6 @@ const en: UiStrings = {
     groupsSubtitle: 'All your groups in one place',
     filterOwed: "I'm owed",
     filterOwe: 'I owe',
-    filterFavorites: 'Favorites',
     sortGroupsTitle: 'Sort groups',
     sortRecent: 'Recent activity',
     sortAmount: 'Amount',
@@ -7616,11 +7941,11 @@ const en: UiStrings = {
       'Ask whoever sent it for a fresh one — links expire so they cannot be passed around forever.',
     linkMissingCode: 'This link is missing its invite code',
     goToWaves: 'Go to Waves',
-    freeNoAccount: 'Free forever, no account needed',
+    joinFreeBadge: 'Free forever',
     joinFeatureQuickTitle: 'Quick join',
     joinFeatureQuickBody: 'Start tracking expenses instantly',
-    joinFeatureGuestTitle: 'No account needed',
-    joinFeatureGuestBody: 'Join as a guest',
+    joinFeatureAccountTitle: 'Your own account',
+    joinFeatureAccountBody: 'Your expenses stay yours',
     joinFeatureTogetherTitle: 'Split together',
     joinFeatureTogetherBody: 'Keep everyone on the same page',
     isOneOfTheseYou: 'Is one of these you?',
@@ -7635,6 +7960,16 @@ const en: UiStrings = {
     unnamed: 'Unnamed',
     joinAndClaim: 'Join and claim my history',
     joinGroup: 'Join this group',
+    joinSignUp: 'Sign up to join',
+    joinLogIn: 'Log in',
+    joinAccountWhy:
+      'Create a free account to join {group} so your expenses stay yours on every device.',
+    joinGuestUpgrade: 'Create an account to join',
+    joinGuestWhy:
+      'You are using Waves as a guest. Create a free account to join {group}. Everything you have so far comes with you.',
+    joinAccountRequired:
+      'You need an account to join this group. Sign up or log in, then open the link again.',
+    joinRemoved: 'You were removed from this group. Ask an admin for a new invite.',
     fromYourContacts: 'From your contacts',
     continueWith: 'Continue with',
     noAddress: 'No address',
@@ -7650,6 +7985,7 @@ const en: UiStrings = {
       other: '{n} were already in that group.',
     },
     someone: 'Someone',
+    memberLeft: '(left)',
     archivedGroup: 'Archived',
     unavailableGroup: 'Unavailable',
     serverRefused: 'The server refused this change.',
@@ -8040,6 +8376,183 @@ const en: UiStrings = {
     removeItem: 'Remove {label}',
     hadItem: '{name} had {label}',
   },
+  groupImport: {
+    menu: 'Import expenses',
+    emptyLink: 'Have these in a spreadsheet? Import',
+    titleNamed: 'Import into {group}',
+    titleLead: 'Import into',
+    sourceIntro: 'Bring in expenses you already keep somewhere else.',
+    sourceFileTitle: 'Spreadsheet or CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
+    sourceSplitwiseTitle: 'Splitwise export',
+    sourceSplitwiseHint: 'In Splitwise: open your group, then export as spreadsheet',
+    sourceShotTitle: 'Screenshot',
+    sourceShotHint: 'A photo of a list, a bank app or a chat',
+    plusBadge: 'PLUS',
+    seeExamples: 'See CSV examples and get a template',
+    nothingAdded: 'Nothing is added until you review it.',
+    nothingAddedBody: 'We’ll show you a preview to confirm before anything is imported.',
+    reading: 'Reading the file…',
+    parsing: 'Checking the rows…',
+    errTooLarge:
+      'That file is over {mb} MB. Split it into smaller files and import them one at a time.',
+    errTooMany: 'That file has more than {n} rows. Split it into parts of up to {n} rows.',
+    errEmpty: 'We couldn’t find any expenses in this file.',
+    errEncoding: 'Some characters didn’t come through. Save the file as “CSV UTF-8” and try again.',
+    errUnreadable: 'We couldn’t open that file. Try saving it as CSV or Excel (.xlsx).',
+    errNoColumns: 'We couldn’t find a date, a description and an amount in this file.',
+    errNoRows: 'We couldn’t find any expenses in this file.',
+    upsellTitle: 'Snap a list, we’ll type it in',
+    upsellBody:
+      'Screenshot import comes with Waves Plus. Photos of lists, bank apps and chats become expenses you check before anything is added.',
+    seePlans: 'See plans',
+    useCsv: 'Use a CSV instead (free)',
+    examplesTitle: 'CSV examples',
+    exTabSimple: 'Simple',
+    exTabSplit: 'Split',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'Each row is split equally between everyone in the group.',
+    exSplit: '“Name:2” means two shares. Leave Split between empty for everyone.',
+    exSplitwise: 'Each person’s column is what they’re up (+) or down (−) on that row.',
+    headersNote: 'Column headings in your own language work too.',
+    shareTemplate: 'Share template',
+    copyExample: 'Copy example',
+    copied: 'Copied',
+    templateShareTitle: 'Import template',
+    templateFailed: 'Couldn’t make the template. Please try again.',
+    columnsTitle: 'Check the columns',
+    columnsHint: 'We matched what we could. Change any column that’s wrong.',
+    columnFallback: 'Column {n}',
+    chooseColumn: 'What is “{header}”?',
+    colDate: 'Date',
+    colDescription: 'Description',
+    colAmount: 'Amount',
+    colCurrency: 'Currency',
+    colPaidBy: 'Paid by',
+    colSplit: 'Split between',
+    colCategory: 'Category',
+    colType: 'Type',
+    colPerson: 'Amount owed by a person',
+    colIgnore: 'Ignore',
+    dateOrderTitle: 'Which comes first in your dates?',
+    dateDayFirst: 'Day first',
+    dateMonthFirst: 'Month first',
+    dateReadsAs: '{raw} reads as {date}',
+    decimalTitle: 'How are decimals written?',
+    previewTitle: 'First rows, as we’ll read them',
+    previewUnreadable: 'Can’t read this row',
+    needAmount: 'Choose an Amount column to continue.',
+    continueLabel: 'Continue',
+    peopleTitle: 'Who is who',
+    peopleHint: 'The file names people. Say who each one is in this group.',
+    matchedByName: 'Matched by name',
+    chooseWho: 'Choose who',
+    addAsNew: 'Add as new person',
+    addRestAsNew: 'Add the rest as new people',
+    mergeWarning: '{names} will be treated as one person',
+    whoIsName: 'Who is {name}?',
+    personMapped: '{name} is {who}. Tap to change.',
+    reviewTitle: 'Review',
+    summaryExpenses: {
+      one: '{n} expense',
+      other: '{n} expenses',
+    },
+    summarySettlements: {
+      one: '{n} payment',
+      other: '{n} payments',
+    },
+    summaryNewPeople: {
+      one: '{n} new person',
+      other: '{n} new people',
+    },
+    summaryOtherCurrency: {
+      one: '{n} in another currency, not in the total',
+      other: '{n} in other currencies, not in the total',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} left out',
+      other: '{n} left out',
+    },
+    changesTitle: 'What this changes',
+    changesNote: 'Each person’s balance after the ticked rows, in the group’s currency.',
+    filterAll: 'All',
+    filterAttention: 'Needs attention',
+    filterWont: 'Won’t import',
+    filterDuplicates: 'Possible duplicates',
+    noneHere: 'Nothing here.',
+    ctaExpenses: {
+      one: 'Import {n} expense',
+      other: 'Import {n} expenses',
+    },
+    ctaItems: {
+      one: 'Import {n} item',
+      other: 'Import {n} items',
+    },
+    ctaNothing: 'Nothing to import',
+    rowPaid: '{who} paid',
+    rowSplit: {
+      one: '{who} paid · for {n} person',
+      other: '{who} paid · split {n} ways',
+    },
+    rowSettlement: '{from} paid {to}',
+    duplicateOf: 'Looks like “{description}” on {date} ({amount}), already in this group',
+    foreignNote: 'In {currency}; balances use the group’s rate',
+    stateWont: 'won’t be imported',
+    stateDuplicate: 'possible duplicate',
+    stateAttention: 'needs attention',
+    editHint: 'Opens the row to edit',
+    edited: 'Edited',
+    editTitle: 'Edit row',
+    fieldDescription: 'Description',
+    fieldAmount: 'Amount',
+    fieldDate: 'Date (YYYY-MM-DD)',
+    fieldPayer: 'Paid by',
+    fieldSplit: 'Split between',
+    fieldCategory: 'Category',
+    everyone: 'Everyone',
+    categoryNone: 'None',
+    resetRow: 'Undo my changes',
+    invalidAmount: 'Enter an amount above zero.',
+    invalidDate: 'Use the form YYYY-MM-DD.',
+    committing: 'Importing…',
+    rowsProgress: '{done} of {total} rows',
+    waitingTitle: 'Waiting for a connection',
+    waitingHint: 'Keep Waves open. It will import when you’re back online.',
+    failedTitle: 'Couldn’t finish importing',
+    partialNote: 'Some rows may already be in. Trying again won’t add them twice.',
+    tryAgain: 'Try again',
+    resultImported: {
+      one: 'Imported {n} expense into {group}',
+      other: 'Imported {n} expenses into {group}',
+    },
+    resultSettlements: {
+      one: '{n} payment recorded',
+      other: '{n} payments recorded',
+    },
+    resultPeople: {
+      one: '{n} new person added',
+      other: '{n} new people added',
+    },
+    resultInvite: 'Invite them',
+    resultLeftOut: {
+      one: '{n} row left out',
+      other: '{n} rows left out',
+    },
+    openGroup: 'Open group',
+    undo: 'Undo import',
+    undoing: 'Undoing…',
+    undoneTitle: {
+      one: 'Undone: {n} expense removed',
+      other: 'Undone: {n} expenses removed',
+    },
+    undoHint: 'You can undo this for 24 hours, as long as nothing from it has been edited.',
+    undoEdited:
+      'Something from this import has been edited since, so it can’t be undone in one go.',
+    undoExpired: 'An import can only be undone within 24 hours.',
+    undoNotAllowed: 'Only the person who imported this, or a group admin, can undo it.',
+    undoFailed: 'Couldn’t undo the import. Please try again.',
+  },
   importLedger: {
     anExistingGroup: 'An existing group',
     anExistingGroupHint: 'Add to a group you already have',
@@ -8083,6 +8596,25 @@ const en: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'Where it goes',
     aNewGroup: 'A new group',
     namedAfterFile: 'Named after the file',
@@ -8220,6 +8752,7 @@ const en: UiStrings = {
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
+    manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
   },
   paywall: {
@@ -8256,6 +8789,18 @@ const en: UiStrings = {
     genericError: 'That did not go through. Try again in a moment.',
     terms: 'Terms',
     privacy: 'Privacy',
+    heroTitle: 'Upgrade to Waves Pro',
+    heroSubtitle:
+      'More scans, bigger transfers and advanced AI voice. The basics stay free forever.',
+    continueWith: 'Continue with {plan}',
+    noPlans: 'Plans are not available right now.',
+    freeTitle: 'What stays free?',
+    freeGroups: 'Groups & splits',
+    freeExpenses: 'Add & manage expenses',
+    freeBalances: 'View balances & settle up',
+    alwaysFree: 'Always free',
+    redeemTitle: 'Redeem a code',
+    redeemHint: 'If somebody gave you one.',
   },
   promo: {
     clear: 'Clear',
@@ -8272,6 +8817,36 @@ const en: UiStrings = {
     exhausted: 'That code has been used as many times as it allows.',
     alreadyRedeemed: 'You have already used that one.',
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
+  },
+  referral: {
+    row: 'Invite your friends',
+    rowHint: 'Earn days of Plus together',
+    title: 'Invite your friends',
+    headline: 'Money is easier together.',
+    body: 'Share a group with friends and unlock a little more from Waves.',
+    youGetTitle: 'You get 7 days of Plus',
+    youGetBody: 'After your friend starts using Waves.',
+    friendGetsTitle: 'Your friend gets 7 days too',
+    friendGetsBody: 'Try premium features together.',
+    milestoneDays: '{n} days',
+    share: 'Share invite link',
+    shareMessage: 'I use Waves to split expenses with friends. Join me:',
+    progress: '{earned} of {cap} days earned',
+    capReached: 'You have earned all {cap} days. Thank you!',
+    pending: {
+      one: '{n} friend has joined. Waiting for their first shared expense.',
+      other: '{n} friends have joined. Waiting for their first shared expense.',
+    },
+    loadError: 'Could not load your invite. Try again in a moment.',
+    haveCode: 'Got a code from a friend?',
+    paste: 'Paste',
+    apply: 'Apply',
+    applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
+    unknownCode: 'That code does not match anyone.',
+    ownCode: 'That is your own code.',
+    alreadyUsed: 'You have already used an invite.',
+    notNew: 'Codes only work for new accounts, within 7 days of signing up.',
+    couldNotApply: 'Could not apply the code. Try again in a moment.',
   },
   timeline: {
     fullScreen: 'Full screen map',
@@ -8355,6 +8930,84 @@ const en: UiStrings = {
       'They will appear as an anonymous ghost everywhere in the app. Your balances with them do not change, and they are not told.',
     badge: 'Blocked',
   },
+  netlog: {
+    row: 'Network activity',
+    rowHint: 'Every connection this phone made, kept only on it',
+    title: 'Network activity',
+    explainer:
+      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+    empty: 'No connections recorded yet.',
+    emptyFiltered: 'Nothing under this filter.',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    filterAll: 'All',
+    clear: 'Clear',
+    clearTitle: 'Clear this list?',
+    clearBody: 'This empties the list on this phone. It does not change anything Waves does.',
+    clearConfirm: 'Clear',
+    statusFailed: 'failed',
+    statusOffline: 'offline',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'Sync',
+      signIn: 'Sign-in',
+      analytics: 'Analytics',
+      files: 'Files',
+      exchangeRates: 'Exchange rates',
+      serverTask: 'Server task',
+      purchases: 'Purchases',
+      crashReports: 'Crash reports',
+      sessionReplay: 'Session replay',
+      google: 'Google services',
+      maps: 'Maps',
+      other: 'Other',
+    },
+    servicesTitle: 'Services Waves can contact',
+    usedFor: 'Used for',
+    dataLabel: 'Data',
+    svc: {
+      supabase: {
+        purpose: 'Your account, groups and expenses, and exchange rates fetched for you.',
+        data: 'Your account, the groups you are in, their expenses and settlements, and the app events you send.',
+      },
+      files: {
+        purpose: 'Receipts and photos you add, stored in a private bucket.',
+        data: 'The image file you add, uploaded through a short-lived signed link.',
+      },
+      purchases: {
+        purpose: 'Your Plus or Pro subscription.',
+        data: 'Store receipts and your account id.',
+      },
+      sentry: {
+        purpose:
+          'Crash reports, scrubbed before they leave the phone. Only in builds with crash reporting set up.',
+        data: 'What went wrong in the app, with names, amounts and contacts removed.',
+      },
+      firebase: {
+        purpose: 'Phone sign-in, and proof that a request comes from the real app (App Check).',
+        data: 'Your phone number while you verify it, and a device check from the app store.',
+      },
+      drive: {
+        purpose: 'Your own backup, only if you turn on Google Drive backup.',
+        data: 'The backup file, in a private app folder of your Google Drive.',
+      },
+      clarity: {
+        purpose: 'Session replay. Off unless you turn it on in Privacy.',
+        data: 'How you use the app on screen, only while it is on.',
+      },
+      maps: {
+        purpose: 'The map behind a place on an expense.',
+        data: 'The map area being shown, which is roughly where the place is.',
+      },
+      appStore: {
+        purpose: 'Checking whether a newer version of Waves is out (iPhone).',
+        data: "Waves' app id and your country.",
+      },
+    },
+    builtinNote:
+      "Some services (purchases, crash reports, Google sign-in) also connect from their own built-in code, which Waves can't list call by call. They are included in the list above.",
+    unseenNote: 'Images and map tiles drawn by the phone itself, and live voice, are not listed.',
+  },
   privacy: {
     exportMine: 'Export my data',
     row: 'Privacy',
@@ -8374,7 +9027,7 @@ const en: UiStrings = {
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
-      'Waves can record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.',
+      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. On Android, the install also counts which ad or link it came from (its campaign tag, such as meta or diwali_in), with no advertising identifier. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
@@ -8394,7 +9047,8 @@ const en: UiStrings = {
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     servicesSummary: 'Supabase for the database, Sentry for crashes, Clarity only if you allow it.',
-    analyticsSummary: 'No ads, no ad identifier. Screen recording is off unless you turn it on.',
+    analyticsSummary:
+      "No ads, no ad identifier. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
@@ -8522,8 +9176,6 @@ const en: UiStrings = {
     ghostNote: 'They do not need the app. Add them now and they can claim their history later.',
     claimHistoryNote: 'Pick your name and everything already recorded for you comes with you.',
     theirPastBecomesYours: 'Their past expenses and balances become yours.',
-    guestKeepsItHere:
-      'Joining as a guest keeps everything on this device. Add a phone number later and it all comes with you.',
     lockedTitle: 'Waves is locked',
     lockedBody: 'Unlock with the same face or fingerprint that opens this phone.',
     unlock: 'Unlock',
@@ -9438,12 +10090,20 @@ const ta: UiStrings = {
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
-      'இந்தக் குழுவின் நேர்த்தியான அறிக்கை — இருப்புகள், ஒவ்வொரு செலவும் தீர்வும் — படிக்க PDF ஆகவோ, கணக்கிட Excel கோப்பாகவோ. உங்கள் சாதனத்தில் ஏற்கனவே உள்ளதிலிருந்து உருவாக்கப்படுகிறது, எனவே இணையம் இல்லாமலும் இயங்கும்.',
-    formatLabel: 'வடிவம்',
+      'நிலுவைகள், ஒவ்வொரு செலவு மற்றும் தீர்வையும் படிக்க PDF ஆகவோ, கணக்கிட Excel ஆகவோ ஏற்றுமதி செய்யுங்கள். உங்கள் சாதனத்தில் ஏற்கனவே உள்ளவற்றிலிருந்தே உருவாக்கப்படுவதால் இணையம் இல்லாமலும் வேலை செய்யும்.',
+    subtitle: 'இந்தக் குழுவின் முழுமையான அறிக்கையைப் பெறுங்கள்',
+    formatLabel: 'ஏற்றுமதி வடிவம்',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'அச்சிடக்கூடிய அறிக்கை',
-    excelHint: 'விரிதாள் கோப்பு',
+    pdfHint: 'தெளிவான, அச்சிடக்கூடிய அறிக்கை',
+    excelHint: 'பகுப்பாய்வுக்கான விரிவான கோப்பு',
+    includeLabel: 'சேர்க்க வேண்டியவை',
+    includeBalances: 'குழு நிலுவைகள்',
+    includeBalancesHint: 'யார் யாருக்குக் கொடுக்க வேண்டும்',
+    includeExpenses: 'அனைத்துச் செலவுகள்',
+    includeExpensesHint: 'தேதி, வகை, குறிப்புகளுடன்',
+    includeSettlements: 'தீர்வுகள்',
+    includeSettlementsHint: 'பணம் செலுத்தல்கள் மற்றும் தீர்வுகள்',
     generate: 'உருவாக்கு',
     preparing: 'தயாராகிறது…',
     ready: 'ஏற்றுமதி தயார்',
@@ -10250,6 +10910,8 @@ const ta: UiStrings = {
       'விருந்தினராக ஒரு குழுவில் உள்ளீர்கள். மேலும் குழுக்களைத் தொடங்கவோ சேரவோ ஒரு மின்னஞ்சல், ஃபோன் அல்லது வழங்குநரைச் சேர்க்கவும் — நீங்கள் சேர்த்த அனைத்தும் உங்களுடன் இருக்கும்.',
     gateExpiredBody:
       'உங்கள் விருந்தினர் காலம் முடிந்துவிட்டது, எனவே இப்போது ஆப் படிக்க மட்டுமே. தொடர்ந்து சேர்க்க உள்நுழையும் வழியைச் சேர்க்கவும் — உங்கள் குழுக்களும் செலவுகளும் இங்கேயே உள்ளன.',
+    gateJoinBody:
+      'உங்கள் கணக்கை உருவாக்க மின்னஞ்சல் அல்லது ஃபோன் எண்ணைச் சேர்க்கவும். பிறகு உங்களை அழைப்புக்குத் திரும்ப அழைத்துச் சென்று குழுவில் சேர்ப்போம். இதுவரை உள்ள அனைத்தும் உங்களுடன் இருக்கும்.',
   },
   entry: {
     phonePlaceholder: 'உங்கள் தொலைபேசி எண்ணை உள்ளிடுங்கள்',
@@ -10453,6 +11115,9 @@ const ta: UiStrings = {
   deleteForm: {
     heroTitle: 'இதைத் திரும்பப் பெற முடியாது',
     staysPill: 'உங்கள் குழுக்களில் இருக்கும்',
+    subscriptionTitle: 'உங்கள் சந்தா தொடர்ந்து புதுப்பிக்கப்படும்',
+    subscriptionBody:
+      'கணக்கை நீக்குவது சந்தாவை ரத்து செய்யாது. முதலில் உங்கள் ஆப் ஸ்டோரில் ரத்து செய்யுங்கள், இல்லையெனில் ஸ்டோர் தொடர்ந்து கட்டணம் வசூலிக்கும்.',
     goesPill: 'நிரந்தரமாக நீக்கப்படும்',
     cannotRecover: 'உங்கள் தரவு நிரந்தரமாக நீக்கப்படும், மீட்க முடியாது.',
     statGroups: 'நீங்கள் உள்ள குழுக்கள்',
@@ -10499,6 +11164,16 @@ const ta: UiStrings = {
     viewDetails: 'விவரங்களைப் பார்',
     openGroup: 'குழுவைத் திற',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
+    importedHeadline: {
+      one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
+      other: '{n} செலவுகள் இறக்குமதி செய்யப்பட்டன',
+    },
+    importedSentence: {
+      one: '{who} {n} செலவை இறக்குமதி செய்தார்',
+      other: '{who} {n} செலவுகளை இறக்குமதி செய்தார்',
+    },
+    importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
+    importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
@@ -11161,9 +11836,6 @@ const ta: UiStrings = {
     loading: 'ஏற்றப்படுகிறது…',
     settings: 'குழு அமைப்புகள்',
     more: 'மேலும்',
-    pin: 'பின் செய்',
-    unpin: 'பின் நீக்கு',
-    pinnedBadge: 'பின் செய்யப்பட்டது',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -11286,6 +11958,13 @@ const ta: UiStrings = {
     manageRole: 'பங்கை நிர்வகி',
     currentRoleAdmin: 'தற்போதைய பங்கு: நிர்வாகி',
     currentRoleMember: 'தற்போதைய பங்கு: உறுப்பினர்',
+    removeFromGroup: 'குழுவிலிருந்து நீக்கு',
+    removeFromGroupHint: 'அவர்களுக்கு அணுகல் போய்விடும். அவர்களின் செலவுகள் வரலாற்றில் இருக்கும்.',
+    removeConfirmTitle: '{name} ஐ நீக்கவா?',
+    removeConfirmBody:
+      '{name} இந்தக் குழுவை அணுக முடியாது. அவர்களின் செலவுகளும் இருப்பும் குழுவின் வரலாற்றில் இருக்கும். புதிய அழைப்பு மூலம் மீண்டும் சேர்க்கலாம்.',
+    removeStillOwes: '{name} இன்னும் {amount} தர வேண்டும்.',
+    removeIsOwed: '{name} க்கு {amount} வர வேண்டும்.',
     adminNote:
       'நிர்வாகிகள் குழுவைத் திருத்தலாம், உறுப்பினர்களை நிர்வகிக்கலாம், மொத்த பட்ஜெட்டை அமைக்கலாம்.',
     adminNeedsAccount:
@@ -11690,7 +12369,6 @@ const ta: UiStrings = {
     groupsSubtitle: 'உங்கள் எல்லா குழுக்களும் ஒரே இடத்தில்',
     filterOwed: 'எனக்கு வர வேண்டியது',
     filterOwe: 'நான் தர வேண்டியது',
-    filterFavorites: 'பிடித்தவை',
     sortGroupsTitle: 'குழுக்களை வரிசைப்படுத்து',
     sortRecent: 'சமீபத்திய செயல்பாடு',
     sortAmount: 'தொகை',
@@ -11709,11 +12387,11 @@ const ta: UiStrings = {
       'அனுப்பியவரிடம் புதிய ஒன்றைக் கேளுங்கள் — இணைப்புகள் காலாவதியாவதால்தான் அவை என்றென்றும் கைமாறுவதில்லை.',
     linkMissingCode: 'இந்த இணைப்பில் அழைப்புக் குறியீடு இல்லை',
     goToWaves: 'Waves-க்குச் செல்',
-    freeNoAccount: 'எப்போதும் இலவசம், கணக்கு தேவையில்லை',
+    joinFreeBadge: 'எப்போதும் இலவசம்',
     joinFeatureQuickTitle: 'விரைவாகச் சேர்',
     joinFeatureQuickBody: 'உடனே செலவுகளைக் கண்காணிக்கத் தொடங்கு',
-    joinFeatureGuestTitle: 'கணக்கு தேவையில்லை',
-    joinFeatureGuestBody: 'விருந்தினராகச் சேர்',
+    joinFeatureAccountTitle: 'உங்கள் சொந்தக் கணக்கு',
+    joinFeatureAccountBody: 'உங்கள் செலவுகள் உங்களுடையதே',
     joinFeatureTogetherTitle: 'சேர்ந்து பிரி',
     joinFeatureTogetherBody: 'எல்லோரும் ஒரே பக்கத்தில் இருங்கள்',
     isOneOfTheseYou: 'இவர்களில் ஒருவர் நீங்களா?',
@@ -11729,6 +12407,17 @@ const ta: UiStrings = {
     unnamed: 'பெயரிடப்படாதவர்',
     joinAndClaim: 'சேர்ந்து என் வரலாற்றை உரிமை கொள்',
     joinGroup: 'இந்தக் குழுவில் சேர்',
+    joinSignUp: 'பதிவு செய்து சேர்',
+    joinLogIn: 'உள்நுழை',
+    joinAccountWhy:
+      '{group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள்; உங்கள் செலவுகள் எல்லாச் சாதனங்களிலும் உங்களுடையதாகவே இருக்கும்.',
+    joinGuestUpgrade: 'கணக்கை உருவாக்கிச் சேர்',
+    joinGuestWhy:
+      'நீங்கள் Waves-ஐ விருந்தினராகப் பயன்படுத்துகிறீர்கள். {group} குழுவில் சேர இலவசக் கணக்கை உருவாக்குங்கள். இதுவரை உள்ள அனைத்தும் உங்களுடன் வரும்.',
+    joinAccountRequired:
+      'இந்தக் குழுவில் சேர கணக்கு தேவை. பதிவு செய்யுங்கள் அல்லது உள்நுழையுங்கள், பிறகு இணைப்பை மீண்டும் திறக்கவும்.',
+    joinRemoved:
+      'நீங்கள் இந்தக் குழுவிலிருந்து நீக்கப்பட்டீர்கள். புதிய அழைப்பிற்கு நிர்வாகியிடம் கேளுங்கள்.',
     fromYourContacts: 'உங்கள் தொடர்புகளிலிருந்து',
     continueWith: 'இவர்களுடன் தொடர்',
     noAddress: 'முகவரி இல்லை',
@@ -11747,6 +12436,7 @@ const ta: UiStrings = {
       other: '{n} பேர் ஏற்கனவே அந்தக் குழுவில் இருந்தனர்.',
     },
     someone: 'யாரோ',
+    memberLeft: '(வெளியேறினார்)',
     archivedGroup: 'காப்பகம்',
     unavailableGroup: 'கிடைக்கவில்லை',
     serverRefused: 'இந்த மாற்றத்தை சர்வர் ஏற்கவில்லை.',
@@ -12164,6 +12854,189 @@ const ta: UiStrings = {
     removeItem: '{label} அகற்று',
     hadItem: '{name} {label} சாப்பிட்டார்',
   },
+  groupImport: {
+    menu: 'செலவுகளை இறக்குமதி செய்',
+    emptyLink: 'ஸ்ப்ரெட்ஷீட்டில் வைத்திருக்கிறீர்களா? இறக்குமதி செய்யுங்கள்',
+    titleNamed: '{group} குழுவில் இறக்குமதி',
+    titleLead: 'இதில் இறக்குமதி',
+    sourceIntro: 'வேறு இடத்தில் வைத்திருக்கும் செலவுகளை இங்கே கொண்டு வாருங்கள்.',
+    sourceFileTitle: 'ஸ்ப்ரெட்ஷீட் அல்லது CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
+    sourceSplitwiseTitle: 'Splitwise ஏற்றுமதி',
+    sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
+    sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
+    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படம்',
+    plusBadge: 'PLUS',
+    seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
+    nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
+    nothingAddedBody: 'இறக்குமதி செய்யும் முன் உறுதிப்படுத்த ஒரு முன்னோட்டத்தைக் காட்டுவோம்.',
+    reading: 'கோப்பைப் படிக்கிறது…',
+    parsing: 'வரிசைகளைச் சரிபார்க்கிறது…',
+    errTooLarge:
+      'அந்தக் கோப்பு {mb} MB-ஐ விட பெரியது. சிறிய கோப்புகளாகப் பிரித்து ஒவ்வொன்றாக இறக்குமதி செய்யுங்கள்.',
+    errTooMany:
+      'அந்தக் கோப்பில் {n}-க்கும் மேற்பட்ட வரிசைகள் உள்ளன. {n} வரிசைகள் வரையிலான பகுதிகளாகப் பிரியுங்கள்.',
+    errEmpty: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
+    errEncoding:
+      'சில எழுத்துகள் சரியாக வரவில்லை. கோப்பை “CSV UTF-8” ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    errUnreadable:
+      'அந்தக் கோப்பைத் திறக்க முடியவில்லை. CSV அல்லது Excel (.xlsx) ஆகச் சேமித்துப் பாருங்கள்.',
+    errNoColumns: 'இந்தக் கோப்பில் தேதி, விவரம், தொகை ஆகியவற்றைக் கண்டறிய முடியவில்லை.',
+    errNoRows: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
+    upsellTitle: 'பட்டியலைப் படம் எடுங்கள், நாங்கள் தட்டச்சு செய்கிறோம்',
+    upsellBody:
+      'ஸ்கிரீன்ஷாட் இறக்குமதி Waves Plus-ல் உண்டு. பட்டியல்கள், வங்கி ஆப்கள், அரட்டைகளின் படங்கள் செலவுகளாக மாறும்; எதுவும் சேர்க்கும் முன் நீங்கள் சரிபார்ப்பீர்கள்.',
+    seePlans: 'திட்டங்களைப் பாருங்கள்',
+    useCsv: 'அதற்கு பதிலாக CSV பயன்படுத்துங்கள் (இலவசம்)',
+    examplesTitle: 'CSV எடுத்துக்காட்டுகள்',
+    exTabSimple: 'எளிமை',
+    exTabSplit: 'பிரிப்பு',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'ஒவ்வொரு வரிசையும் குழுவில் உள்ள அனைவருக்கும் சமமாகப் பிரிக்கப்படும்.',
+    exSplit:
+      '“பெயர்:2” என்றால் இரண்டு பங்குகள். அனைவருக்கும் என்றால் “யாருக்கு” நெடுவரிசையை காலியாக விடுங்கள்.',
+    exSplitwise:
+      'ஒவ்வொருவரின் நெடுவரிசையும் அந்த வரிசையில் அவர்கள் பெற வேண்டியது (+) அல்லது தர வேண்டியது (−).',
+    headersNote: 'உங்கள் மொழியிலான தலைப்புகளும் வேலை செய்யும்.',
+    shareTemplate: 'டெம்ப்ளேட்டைப் பகிர்',
+    copyExample: 'எடுத்துக்காட்டை நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    templateShareTitle: 'இறக்குமதி டெம்ப்ளேட்',
+    templateFailed: 'டெம்ப்ளேட்டை உருவாக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    columnsTitle: 'நெடுவரிசைகளைச் சரிபாருங்கள்',
+    columnsHint: 'முடிந்தவரை பொருத்தியுள்ளோம். தவறான நெடுவரிசையை மாற்றுங்கள்.',
+    columnFallback: 'நெடுவரிசை {n}',
+    chooseColumn: '“{header}” என்பது என்ன?',
+    colDate: 'தேதி',
+    colDescription: 'விவரம்',
+    colAmount: 'தொகை',
+    colCurrency: 'நாணயம்',
+    colPaidBy: 'செலுத்தியவர்',
+    colSplit: 'பிரிக்கப்படுபவர்கள்',
+    colCategory: 'வகை',
+    colType: 'வகைமை',
+    colPerson: 'ஒருவர் தர வேண்டிய தொகை',
+    colIgnore: 'புறக்கணி',
+    dateOrderTitle: 'உங்கள் தேதிகளில் முதலில் வருவது எது?',
+    dateDayFirst: 'நாள் முதலில்',
+    dateMonthFirst: 'மாதம் முதலில்',
+    dateReadsAs: '{raw} என்பது {date}',
+    decimalTitle: 'தசமங்கள் எப்படி எழுதப்பட்டுள்ளன?',
+    previewTitle: 'முதல் சில வரிசைகள், நாங்கள் படிக்கும் விதத்தில்',
+    previewUnreadable: 'இந்த வரிசையைப் படிக்க முடியவில்லை',
+    needAmount: 'தொடர “தொகை” நெடுவரிசையைத் தேர்ந்தெடுக்கவும்.',
+    continueLabel: 'தொடரவும்',
+    peopleTitle: 'யார் யார்',
+    peopleHint: 'கோப்பில் பெயர்கள் உள்ளன. இந்தக் குழுவில் அவர் யார் என்று சொல்லுங்கள்.',
+    matchedByName: 'பெயரால் பொருந்தியது',
+    chooseWho: 'யார் என்று தேர்ந்தெடுக்கவும்',
+    addAsNew: 'புதிய நபராகச் சேர்',
+    addRestAsNew: 'மீதமுள்ளவர்களைப் புதிய நபர்களாகச் சேர்',
+    mergeWarning: '{names} ஒரே நபராகக் கருதப்படுவார்கள்',
+    whoIsName: '{name} யார்?',
+    personMapped: '{name} என்பது {who}. மாற்ற தட்டவும்.',
+    reviewTitle: 'சரிபார்ப்பு',
+    summaryExpenses: {
+      one: '{n} செலவு',
+      other: '{n} செலவுகள்',
+    },
+    summarySettlements: {
+      one: '{n} பணப்பரிமாற்றம்',
+      other: '{n} பணப்பரிமாற்றங்கள்',
+    },
+    summaryNewPeople: {
+      one: '{n} புதிய நபர்',
+      other: '{n} புதிய நபர்கள்',
+    },
+    summaryOtherCurrency: {
+      one: '{n} வேறு நாணயத்தில், மொத்தத்தில் இல்லை',
+      other: '{n} வேறு நாணயங்களில், மொத்தத்தில் இல்லை',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} விடப்பட்டது',
+      other: '{n} விடப்பட்டவை',
+    },
+    changesTitle: 'இது எதை மாற்றுகிறது',
+    changesNote: 'டிக் செய்த வரிசைகளுக்குப் பிறகு ஒவ்வொருவரின் இருப்பு, குழுவின் நாணயத்தில்.',
+    filterAll: 'அனைத்தும்',
+    filterAttention: 'கவனிக்க வேண்டியவை',
+    filterWont: 'இறக்குமதி ஆகாதவை',
+    filterDuplicates: 'இரட்டிப்பாக இருக்கலாம்',
+    noneHere: 'இங்கே எதுவும் இல்லை.',
+    ctaExpenses: {
+      one: '{n} செலவை இறக்குமதி செய்',
+      other: '{n} செலவுகளை இறக்குமதி செய்',
+    },
+    ctaItems: {
+      one: '{n} பதிவை இறக்குமதி செய்',
+      other: '{n} பதிவுகளை இறக்குமதி செய்',
+    },
+    ctaNothing: 'இறக்குமதி செய்ய எதுவும் இல்லை',
+    rowPaid: '{who} செலுத்தினார்',
+    rowSplit: {
+      one: '{who} செலுத்தினார் · {n} நபருக்கு',
+      other: '{who} செலுத்தினார் · {n} பேருக்குப் பிரிப்பு',
+    },
+    rowSettlement: '{from} → {to} செலுத்தினார்',
+    duplicateOf:
+      '{date} அன்று “{description}” ({amount}) போல் தெரிகிறது, ஏற்கனவே இந்தக் குழுவில் உள்ளது',
+    foreignNote: '{currency} நாணயத்தில்; இருப்பு குழுவின் மாற்று விகிதத்தைப் பயன்படுத்தும்',
+    stateWont: 'இறக்குமதி ஆகாது',
+    stateDuplicate: 'இரட்டிப்பாக இருக்கலாம்',
+    stateAttention: 'கவனிக்க வேண்டும்',
+    editHint: 'திருத்த வரிசையைத் திறக்கும்',
+    edited: 'திருத்தப்பட்டது',
+    editTitle: 'வரிசையைத் திருத்து',
+    fieldDescription: 'விவரம்',
+    fieldAmount: 'தொகை',
+    fieldDate: 'தேதி (YYYY-MM-DD)',
+    fieldPayer: 'செலுத்தியவர்',
+    fieldSplit: 'பிரிக்கப்படுபவர்கள்',
+    fieldCategory: 'வகை',
+    everyone: 'அனைவரும்',
+    categoryNone: 'இல்லை',
+    resetRow: 'என் மாற்றங்களை நீக்கு',
+    invalidAmount: 'பூஜ்யத்துக்கு மேல் தொகையை உள்ளிடவும்.',
+    invalidDate: 'YYYY-MM-DD வடிவத்தைப் பயன்படுத்தவும்.',
+    committing: 'இறக்குமதி செய்கிறது…',
+    rowsProgress: '{total} வரிசைகளில் {done}',
+    waitingTitle: 'இணைப்புக்காகக் காத்திருக்கிறது',
+    waitingHint: 'Waves-ஐத் திறந்தே வையுங்கள். இணைப்பு வந்ததும் இறக்குமதி ஆகும்.',
+    failedTitle: 'இறக்குமதியை முடிக்க முடியவில்லை',
+    partialNote: 'சில வரிசைகள் ஏற்கனவே சேர்ந்திருக்கலாம். மீண்டும் முயன்றால் இரண்டு முறை சேராது.',
+    tryAgain: 'மீண்டும் முயற்சி',
+    resultImported: {
+      one: '{group} குழுவில் {n} செலவு இறக்குமதியானது',
+      other: '{group} குழுவில் {n} செலவுகள் இறக்குமதியாயின',
+    },
+    resultSettlements: {
+      one: '{n} பணப்பரிமாற்றம் பதிவானது',
+      other: '{n} பணப்பரிமாற்றங்கள் பதிவாயின',
+    },
+    resultPeople: {
+      one: '{n} புதிய நபர் சேர்க்கப்பட்டார்',
+      other: '{n} புதிய நபர்கள் சேர்க்கப்பட்டனர்',
+    },
+    resultInvite: 'அவர்களை அழையுங்கள்',
+    resultLeftOut: {
+      one: '{n} வரிசை விடப்பட்டது',
+      other: '{n} வரிசைகள் விடப்பட்டன',
+    },
+    openGroup: 'குழுவைத் திற',
+    undo: 'இறக்குமதியைத் திரும்பப்பெறு',
+    undoing: 'திரும்பப்பெறுகிறது…',
+    undoneTitle: {
+      one: 'திரும்பப்பெறப்பட்டது: {n} செலவு நீக்கப்பட்டது',
+      other: 'திரும்பப்பெறப்பட்டது: {n} செலவுகள் நீக்கப்பட்டன',
+    },
+    undoHint: 'இதிலிருந்து எதுவும் திருத்தப்படாத வரை 24 மணி நேரம் திரும்பப்பெறலாம்.',
+    undoEdited:
+      'இந்த இறக்குமதியில் ஏதோ ஒன்று திருத்தப்பட்டுள்ளது, அதனால் ஒரே தடவையில் திரும்பப்பெற முடியாது.',
+    undoExpired: 'இறக்குமதியை 24 மணி நேரத்துக்குள் மட்டுமே திரும்பப்பெற முடியும்.',
+    undoNotAllowed: 'இதை இறக்குமதி செய்தவர் அல்லது குழு நிர்வாகி மட்டுமே திரும்பப்பெற முடியும்.',
+    undoFailed: 'இறக்குமதியைத் திரும்பப்பெற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+  },
   importLedger: {
     anExistingGroup: 'ஏற்கனவே உள்ள குழு',
     anExistingGroupHint: 'உங்களிடம் உள்ள ஒரு குழுவில் சேர்க்கவும்',
@@ -12209,6 +13082,25 @@ const ta: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'எங்கே சேரும்',
     aNewGroup: 'ஒரு புதிய குழு',
     namedAfterFile: 'கோப்பின் பெயரில்',
@@ -12366,6 +13258,7 @@ const ta: UiStrings = {
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
+    manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
   paywall: {
@@ -12403,6 +13296,18 @@ const ta: UiStrings = {
     genericError: 'அது முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     terms: 'விதிமுறைகள்',
     privacy: 'தனியுரிமை',
+    heroTitle: 'Waves Pro-விற்கு மேம்படுத்துங்கள்',
+    heroSubtitle:
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல். அடிப்படை வசதிகள் என்றும் இலவசம்.',
+    continueWith: '{plan} உடன் தொடரவும்',
+    noPlans: 'திட்டங்கள் இப்போது கிடைக்கவில்லை.',
+    freeTitle: 'எவை இலவசமாகவே இருக்கும்?',
+    freeGroups: 'குழுக்கள் & பிரிப்பு',
+    freeExpenses: 'செலவுகளைச் சேர்த்து நிர்வகிக்க',
+    freeBalances: 'இருப்புகளைப் பார்த்து தீர்க்க',
+    alwaysFree: 'எப்போதும் இலவசம்',
+    redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
+    redeemHint: 'யாராவது கொடுத்திருந்தால்.',
   },
   promo: {
     clear: 'அழி',
@@ -12421,6 +13326,39 @@ const ta: UiStrings = {
     exhausted: 'அனுமதிக்கப்பட்ட அளவுக்கு அந்தக் குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டுவிட்டது.',
     alreadyRedeemed: 'அதை நீங்கள் ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.',
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+  },
+  referral: {
+    row: 'நண்பர்களை அழையுங்கள்',
+    rowHint: 'சேர்ந்து Plus நாட்களைப் பெறுங்கள்',
+    title: 'நண்பர்களை அழையுங்கள்',
+    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
+    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும்',
+    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
+    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
+    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
+    milestoneDays: '{n} நாட்கள்',
+    share: 'அழைப்புச் சுட்டியைப் பகிர்',
+    shareMessage:
+      'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
+    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
+    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    pending: {
+      one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+      other:
+        '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+    },
+    loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
+    haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
+    paste: 'ஒட்டு',
+    apply: 'பயன்படுத்து',
+    applied:
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+    unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
+    ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
+    alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
+    notNew: 'குறியீடுகள் புதிய கணக்குகளுக்கு, பதிவு செய்த 7 நாட்களுக்குள் மட்டுமே வேலை செய்யும்.',
+    couldNotApply: 'குறியீட்டைப் பயன்படுத்த முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
   },
   timeline: {
     fullScreen: 'முழுத்திரை வரைபடம்',
@@ -12505,6 +13443,87 @@ const ta: UiStrings = {
       'செயலி முழுவதும் அவர் அடையாளம் தெரியாத பேயாகத் தோன்றுவார். அவருடனான உங்கள் இருப்புகள் மாறாது, அவருக்கு அறிவிக்கப்படாது.',
     badge: 'தடுக்கப்பட்டது',
   },
+  netlog: {
+    row: 'நெட்வொர்க் செயல்பாடு',
+    rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
+    title: 'நெட்வொர்க் செயல்பாடு',
+    explainer:
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+    empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
+    emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    filterAll: 'அனைத்தும்',
+    clear: 'அழி',
+    clearTitle: 'இந்தப் பட்டியலை அழிக்கவா?',
+    clearBody: 'இது இந்த ஃபோனில் உள்ள பட்டியலை காலியாக்கும். Waves செய்யும் எதையும் இது மாற்றாது.',
+    clearConfirm: 'அழி',
+    statusFailed: 'தோல்வி',
+    statusOffline: 'ஆஃப்லைன்',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'ஒத்திசைவு',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பகுப்பாய்வு',
+      files: 'கோப்புகள்',
+      exchangeRates: 'நாணய மாற்று விகிதங்கள்',
+      serverTask: 'சர்வர் பணி',
+      purchases: 'வாங்குதல்கள்',
+      crashReports: 'செயலிழப்பு அறிக்கைகள்',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      google: 'Google சேவைகள்',
+      maps: 'வரைபடங்கள்',
+      other: 'மற்றவை',
+    },
+    servicesTitle: 'Waves தொடர்பு கொள்ளக்கூடிய சேவைகள்',
+    usedFor: 'எதற்காக',
+    dataLabel: 'தரவு',
+    svc: {
+      supabase: {
+        purpose:
+          'உங்கள் கணக்கு, குழுக்கள், செலவுகள், மேலும் உங்களுக்காகப் பெறப்படும் நாணய மாற்று விகிதங்கள்.',
+        data: 'உங்கள் கணக்கு, நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள் மற்றும் தீர்வுகள், நீங்கள் அனுப்பும் செயலி நிகழ்வுகள்.',
+      },
+      files: {
+        purpose:
+          'நீங்கள் சேர்க்கும் ரசீதுகள் மற்றும் புகைப்படங்கள், தனிப்பட்ட சேமிப்பகத்தில் வைக்கப்படும்.',
+        data: 'நீங்கள் சேர்க்கும் படக் கோப்பு, குறுகிய காலம் செல்லுபடியாகும் கையொப்பமிட்ட இணைப்பு வழியாகப் பதிவேற்றப்படும்.',
+      },
+      purchases: {
+        purpose: 'உங்கள் Plus அல்லது Pro சந்தா.',
+        data: 'ஸ்டோர் ரசீதுகளும் உங்கள் கணக்கு அடையாளமும்.',
+      },
+      sentry: {
+        purpose:
+          'செயலிழப்பு அறிக்கைகள், ஃபோனை விட்டுச் செல்லும் முன் தூய்மைப்படுத்தப்படும். செயலிழப்பு அறிக்கை அமைக்கப்பட்ட பதிப்புகளில் மட்டும்.',
+        data: 'செயலியில் என்ன தவறு நடந்தது, பெயர்கள், தொகைகள், தொடர்புகள் நீக்கப்பட்டு.',
+      },
+      firebase: {
+        purpose:
+          'ஃபோன் எண் மூலம் உள்நுழைவு, மேலும் கோரிக்கை உண்மையான செயலியிலிருந்து வருகிறது என்பதற்கான சான்று (App Check).',
+        data: 'சரிபார்க்கும்போது உங்கள் ஃபோன் எண், மற்றும் ஆப் ஸ்டோரிலிருந்து சாதனச் சரிபார்ப்பு.',
+      },
+      drive: {
+        purpose: 'உங்கள் சொந்த காப்புப்பிரதி, Google Drive காப்புப்பிரதியை இயக்கினால் மட்டும்.',
+        data: 'காப்புப்பிரதிக் கோப்பு, உங்கள் Google Drive-இல் உள்ள செயலிக்கான தனிப்பட்ட கோப்புறையில்.',
+      },
+      clarity: {
+        purpose: 'அமர்வு மறுஒளிபரப்பு. தனியுரிமையில் நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்.',
+        data: 'இயங்கும் நேரத்தில் மட்டும், திரையில் செயலியை நீங்கள் பயன்படுத்தும் விதம்.',
+      },
+      maps: {
+        purpose: 'செலவில் உள்ள இடத்தின் பின்னணி வரைபடம்.',
+        data: 'காட்டப்படும் வரைபடப் பகுதி, அதாவது இடம் தோராயமாக எங்கே என்பது.',
+      },
+      appStore: {
+        purpose: 'Waves-இன் புதிய பதிப்பு வந்துள்ளதா எனச் சரிபார்த்தல் (iPhone).',
+        data: 'Waves-இன் செயலி அடையாளமும் உங்கள் நாடும்.',
+      },
+    },
+    builtinNote:
+      'சில சேவைகள் (வாங்குதல்கள், செயலிழப்பு அறிக்கைகள், Google உள்நுழைவு) தங்களுடைய உள்ளமைந்த குறியீட்டிலிருந்தும் இணைகின்றன; அவற்றை Waves ஒவ்வொரு அழைப்பாகப் பட்டியலிட முடியாது. அவை மேலே உள்ள பட்டியலில் சேர்க்கப்பட்டுள்ளன.',
+    unseenNote: 'ஃபோனே வரையும் படங்களும் வரைபடத் துண்டுகளும், நேரடிக் குரலும் பட்டியலில் இல்லை.',
+  },
   privacy: {
     exportMine: 'என் தரவை ஏற்றுமதி செய்',
     row: 'தனியுரிமை',
@@ -12524,7 +13543,7 @@ const ta: UiStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
-      'எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. நிறுவலுடன், அது எந்த விளம்பரம் அல்லது இணைப்பிலிருந்து வந்தது (அதன் பிரச்சாரக் குறிச்சொல்) என்பதும் எண்ணப்படுகிறது; விளம்பர அடையாளம் இல்லை. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
@@ -12547,7 +13566,8 @@ const ta: UiStrings = {
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
       'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity.',
-    analyticsSummary: 'விளம்பரம் இல்லை. நீங்கள் இயக்கும் வரை திரைப் பதிவும் இல்லை.',
+    analyticsSummary:
+      'விளம்பரம் இல்லை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
@@ -12682,8 +13702,6 @@ const ta: UiStrings = {
     claimHistoryNote:
       'உங்கள் பெயரைத் தேர்ந்தெடுத்தால், உங்களுக்காக ஏற்கெனவே பதிவானது எல்லாம் உங்களுடன் வரும்.',
     theirPastBecomesYours: 'அவர்களின் பழைய செலவுகளும் இருப்புகளும் உங்களுடையவை ஆகும்.',
-    guestKeepsItHere:
-      'விருந்தினராகச் சேர்ந்தால் எல்லாம் இந்தச் சாதனத்திலேயே இருக்கும். பிறகு ஒரு ஃபோன் எண்ணைச் சேர்த்தால், எல்லாம் வேறு ஃபோனுக்கும் உங்களைப் பின்தொடரும்.',
     lockedTitle: 'Waves பூட்டப்பட்டுள்ளது',
     lockedBody: 'இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
     unlock: 'திற',
@@ -13586,12 +14604,20 @@ const hi: UiStrings = {
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
-      'इस समूह का सुव्यवस्थित विवरण — शेष, हर खर्च और निपटान — पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक। आपके डिवाइस पर पहले से मौजूद डेटा से बनाया जाता है, इसलिए यह ऑफ़लाइन भी काम करता है।',
-    formatLabel: 'प्रारूप',
+      'शेष, हर खर्च और निपटान को पढ़ने के लिए PDF या हिसाब लगाने के लिए Excel वर्कबुक के रूप में निर्यात करें। आपके डिवाइस पर पहले से मौजूद डेटा से बनता है, इसलिए ऑफ़लाइन भी काम करता है।',
+    subtitle: 'इस समूह का पूरा विवरण पाएँ',
+    formatLabel: 'निर्यात प्रारूप',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'छपने योग्य विवरण',
-    excelHint: 'स्प्रेडशीट वर्कबुक',
+    pdfHint: 'साफ़, छपने योग्य विवरण',
+    excelHint: 'विश्लेषण के लिए विस्तृत वर्कबुक',
+    includeLabel: 'शामिल करें',
+    includeBalances: 'समूह के शेष',
+    includeBalancesHint: 'किसे किसका देना है',
+    includeExpenses: 'सभी खर्च',
+    includeExpensesHint: 'तारीख, श्रेणी और नोट्स के साथ',
+    includeSettlements: 'निपटान',
+    includeSettlementsHint: 'भुगतान और निपटान',
     generate: 'बनाएँ',
     preparing: 'तैयार हो रहा है…',
     ready: 'निर्यात तैयार',
@@ -14378,6 +15404,8 @@ const hi: UiStrings = {
       'आप बतौर मेहमान एक समूह में हैं। और समूह शुरू करने या उनमें शामिल होने के लिए ईमेल, फ़ोन या प्रोवाइडर जोड़ें — आपका जोड़ा हुआ सब कुछ आपके साथ रहेगा।',
     gateExpiredBody:
       'आपकी मेहमान अवधि खत्म हो गई है, इसलिए अभी ऐप सिर्फ़ पढ़ने के लिए है। जोड़ते रहने के लिए साइन इन का कोई तरीका जोड़ें — आपके समूह और खर्च सब यहीं मौजूद हैं।',
+    gateJoinBody:
+      'खाता बनाने के लिए ईमेल या फ़ोन नंबर जोड़ें। फिर हम आपको निमंत्रण पर वापस ले जाकर ग्रुप में जोड़ देंगे। अब तक का सब कुछ आपके साथ रहेगा।',
   },
   entry: {
     phonePlaceholder: 'अपना फ़ोन नंबर डालें',
@@ -14572,6 +15600,9 @@ const hi: UiStrings = {
   deleteForm: {
     heroTitle: 'इसे वापस नहीं किया जा सकता',
     staysPill: 'आपके समूहों में रहता है',
+    subscriptionTitle: 'आपकी सदस्यता नवीनीकृत होती रहेगी',
+    subscriptionBody:
+      'खाता हटाने से सदस्यता रद्द नहीं होती। पहले अपने ऐप स्टोर में इसे रद्द करें, वरना स्टोर शुल्क लेता रहेगा।',
     goesPill: 'स्थायी रूप से हटाया जाएगा',
     cannotRecover: 'आपका डेटा स्थायी रूप से हट जाएगा और वापस नहीं आ सकेगा।',
     statGroups: 'आपके समूह',
@@ -14617,6 +15648,13 @@ const hi: UiStrings = {
     viewDetails: 'विवरण देखें',
     openGroup: 'समूह खोलें',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
+    importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
+    importedSentence: {
+      one: '{who} ने {n} ख़र्च इम्पोर्ट किया',
+      other: '{who} ने {n} ख़र्च इम्पोर्ट किए',
+    },
+    importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
+    importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
@@ -15253,9 +16291,6 @@ const hi: UiStrings = {
     loading: 'आ रहा है…',
     settings: 'समूह सेटिंग्स',
     more: 'और',
-    pin: 'पिन करें',
-    unpin: 'अनपिन करें',
-    pinnedBadge: 'पिन किया गया',
     confirmReceived: 'मिलने की पुष्टि करें',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -15375,6 +16410,13 @@ const hi: UiStrings = {
     manageRole: 'भूमिका प्रबंधित करें',
     currentRoleAdmin: 'मौजूदा भूमिका: एडमिन',
     currentRoleMember: 'मौजूदा भूमिका: सदस्य',
+    removeFromGroup: 'ग्रुप से हटाएँ',
+    removeFromGroupHint: 'इनका एक्सेस खत्म हो जाएगा. इनके खर्च इतिहास में रहेंगे.',
+    removeConfirmTitle: '{name} को हटाएँ?',
+    removeConfirmBody:
+      '{name} इस ग्रुप को नहीं देख पाएँगे. इनके खर्च और बकाया ग्रुप के इतिहास में बने रहेंगे. नया इनवाइट इन्हें वापस ला सकता है.',
+    removeStillOwes: '{name} पर अभी भी {amount} बकाया है.',
+    removeIsOwed: '{name} को {amount} मिलने हैं.',
     adminNote: 'एडमिन ग्रुप बदल सकते हैं, सदस्य संभाल सकते हैं, और कुल बजट तय कर सकते हैं.',
     adminNeedsAccount: 'ये अभी शामिल नहीं हुए हैं. सिर्फ़ अकाउंट वाला सदस्य ही एडमिन बन सकता है.',
     you: 'आप',
@@ -15763,7 +16805,6 @@ const hi: UiStrings = {
     groupsSubtitle: 'आपके सभी समूह एक जगह',
     filterOwed: 'मुझे मिलना है',
     filterOwe: 'मुझे देना है',
-    filterFavorites: 'पसंदीदा',
     sortGroupsTitle: 'समूह क्रमबद्ध करें',
     sortRecent: 'हाल की गतिविधि',
     sortAmount: 'राशि',
@@ -15781,11 +16822,11 @@ const hi: UiStrings = {
       'जिसने भेजा था उससे नया माँग लें — लिंक इसीलिए खत्म होते हैं ताकि वे हमेशा घूमते न रहें।',
     linkMissingCode: 'इस लिंक में निमंत्रण कोड नहीं है',
     goToWaves: 'Waves पर जाएँ',
-    freeNoAccount: 'हमेशा मुफ़्त, खाता ज़रूरी नहीं',
+    joinFreeBadge: 'हमेशा मुफ़्त',
     joinFeatureQuickTitle: 'झटपट जुड़ें',
     joinFeatureQuickBody: 'तुरंत खर्च ट्रैक करना शुरू करें',
-    joinFeatureGuestTitle: 'खाता ज़रूरी नहीं',
-    joinFeatureGuestBody: 'मेहमान के रूप में जुड़ें',
+    joinFeatureAccountTitle: 'आपका अपना खाता',
+    joinFeatureAccountBody: 'आपके खर्चे आपके ही रहते हैं',
     joinFeatureTogetherTitle: 'साथ में बाँटें',
     joinFeatureTogetherBody: 'सबको एक ही पेज पर रखें',
     isOneOfTheseYou: 'क्या इनमें से कोई आप हैं?',
@@ -15800,6 +16841,16 @@ const hi: UiStrings = {
     unnamed: 'बिना नाम',
     joinAndClaim: 'जुड़ें और अपना इतिहास लें',
     joinGroup: 'इस समूह में जुड़ें',
+    joinSignUp: 'जुड़ने के लिए साइन अप करें',
+    joinLogIn: 'लॉग इन करें',
+    joinAccountWhy:
+      '{group} से जुड़ने के लिए मुफ़्त खाता बनाएँ, ताकि आपके खर्चे हर डिवाइस पर आपके ही रहें।',
+    joinGuestUpgrade: 'खाता बनाकर जुड़ें',
+    joinGuestWhy:
+      'आप Waves को मेहमान के तौर पर इस्तेमाल कर रहे हैं। {group} से जुड़ने के लिए मुफ़्त खाता बनाएँ। अब तक का सब कुछ आपके साथ रहेगा।',
+    joinAccountRequired:
+      'इस ग्रुप से जुड़ने के लिए खाता चाहिए। साइन अप या लॉग इन करें, फिर लिंक दोबारा खोलें।',
+    joinRemoved: 'आपको इस ग्रुप से हटा दिया गया था। नए निमंत्रण के लिए किसी एडमिन से पूछें।',
     fromYourContacts: 'आपके संपर्कों से',
     continueWith: 'इनके साथ जारी रखें',
     noAddress: 'कोई पता नहीं',
@@ -15818,6 +16869,7 @@ const hi: UiStrings = {
       other: '{n} पहले से उस समूह में थे।',
     },
     someone: 'कोई',
+    memberLeft: '(छोड़ चुके)',
     archivedGroup: 'संग्रहीत',
     unavailableGroup: 'अनुपलब्ध',
     serverRefused: 'सर्वर ने यह बदलाव नहीं माना।',
@@ -16206,6 +17258,186 @@ const hi: UiStrings = {
     removeItem: '{label} हटाएँ',
     hadItem: '{name} ने {label} लिया',
   },
+  groupImport: {
+    menu: 'खर्च इम्पोर्ट करें',
+    emptyLink: 'ये स्प्रेडशीट में हैं? इम्पोर्ट करें',
+    titleNamed: '{group} में इम्पोर्ट',
+    titleLead: 'इसमें इम्पोर्ट करें',
+    sourceIntro: 'जो खर्च आप कहीं और रखते हैं, उन्हें यहाँ ले आइए।',
+    sourceFileTitle: 'स्प्रेडशीट या CSV',
+    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
+    sourceSplitwiseTitle: 'Splitwise एक्सपोर्ट',
+    sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
+    sourceShotTitle: 'स्क्रीनशॉट',
+    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो',
+    plusBadge: 'PLUS',
+    seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
+    nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
+    nothingAddedBody: 'इम्पोर्ट से पहले हम एक झलक दिखाएँगे, ताकि आप पुष्टि कर सकें।',
+    reading: 'फ़ाइल पढ़ी जा रही है…',
+    parsing: 'पंक्तियाँ जाँची जा रही हैं…',
+    errTooLarge:
+      'वह फ़ाइल {mb} MB से बड़ी है। उसे छोटी फ़ाइलों में बाँटकर एक-एक करके इम्पोर्ट करें।',
+    errTooMany:
+      'उस फ़ाइल में {n} से ज़्यादा पंक्तियाँ हैं। उसे {n} पंक्तियों तक के हिस्सों में बाँटें।',
+    errEmpty: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
+    errEncoding:
+      'कुछ अक्षर ठीक से नहीं आए। फ़ाइल को “CSV UTF-8” के रूप में सेव करके फिर कोशिश करें।',
+    errUnreadable: 'वह फ़ाइल खुल नहीं सकी। उसे CSV या Excel (.xlsx) के रूप में सेव करके देखें।',
+    errNoColumns: 'इस फ़ाइल में तारीख़, विवरण और रकम नहीं मिले।',
+    errNoRows: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
+    upsellTitle: 'लिस्ट की फ़ोटो लें, टाइप हम करेंगे',
+    upsellBody:
+      'स्क्रीनशॉट इम्पोर्ट Waves Plus में मिलता है। लिस्ट, बैंक ऐप और चैट की फ़ोटो खर्च बन जाती हैं, और कुछ जुड़ने से पहले आप उन्हें जाँचते हैं।',
+    seePlans: 'प्लान देखें',
+    useCsv: 'इसकी जगह CSV इस्तेमाल करें (मुफ़्त)',
+    examplesTitle: 'CSV के उदाहरण',
+    exTabSimple: 'सरल',
+    exTabSplit: 'बँटवारा',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'हर पंक्ति ग्रुप में सबके बीच बराबर बँटती है।',
+    exSplit: '“नाम:2” का मतलब दो हिस्से। सबके लिए “बँटवारा” वाला कॉलम खाली छोड़ें।',
+    exSplitwise: 'हर व्यक्ति का कॉलम बताता है कि उस पंक्ति में उसे पाना है (+) या देना है (−)।',
+    headersNote: 'आपकी अपनी भाषा के कॉलम शीर्षक भी चलते हैं।',
+    shareTemplate: 'टेम्पलेट शेयर करें',
+    copyExample: 'उदाहरण कॉपी करें',
+    copied: 'कॉपी हो गया',
+    templateShareTitle: 'इम्पोर्ट टेम्पलेट',
+    templateFailed: 'टेम्पलेट नहीं बन सका। कृपया फिर कोशिश करें।',
+    columnsTitle: 'कॉलम जाँचें',
+    columnsHint: 'जितना हो सका हमने मिला दिया। जो कॉलम गलत हो उसे बदलें।',
+    columnFallback: 'कॉलम {n}',
+    chooseColumn: '“{header}” क्या है?',
+    colDate: 'तारीख़',
+    colDescription: 'विवरण',
+    colAmount: 'रकम',
+    colCurrency: 'मुद्रा',
+    colPaidBy: 'किसने चुकाया',
+    colSplit: 'किनके बीच बँटा',
+    colCategory: 'श्रेणी',
+    colType: 'प्रकार',
+    colPerson: 'किसी व्यक्ति पर बकाया रकम',
+    colIgnore: 'छोड़ दें',
+    dateOrderTitle: 'आपकी तारीख़ों में पहले क्या आता है?',
+    dateDayFirst: 'पहले दिन',
+    dateMonthFirst: 'पहले महीना',
+    dateReadsAs: '{raw} का मतलब {date}',
+    decimalTitle: 'दशमलव कैसे लिखे हैं?',
+    previewTitle: 'पहली कुछ पंक्तियाँ, जैसी हम पढ़ेंगे',
+    previewUnreadable: 'यह पंक्ति पढ़ी नहीं जा सकी',
+    needAmount: 'आगे बढ़ने के लिए “रकम” कॉलम चुनें।',
+    continueLabel: 'आगे बढ़ें',
+    peopleTitle: 'कौन कौन है',
+    peopleHint: 'फ़ाइल में नाम हैं। बताइए इस ग्रुप में हर कोई कौन है।',
+    matchedByName: 'नाम से मिलाया गया',
+    chooseWho: 'चुनें कौन',
+    addAsNew: 'नए व्यक्ति के रूप में जोड़ें',
+    addRestAsNew: 'बाकी को नए लोगों के रूप में जोड़ें',
+    mergeWarning: '{names} को एक ही व्यक्ति माना जाएगा',
+    whoIsName: '{name} कौन है?',
+    personMapped: '{name} है {who}। बदलने के लिए टैप करें।',
+    reviewTitle: 'जाँच',
+    summaryExpenses: {
+      one: '{n} खर्च',
+      other: '{n} खर्च',
+    },
+    summarySettlements: {
+      one: '{n} भुगतान',
+      other: '{n} भुगतान',
+    },
+    summaryNewPeople: {
+      one: '{n} नया व्यक्ति',
+      other: '{n} नए लोग',
+    },
+    summaryOtherCurrency: {
+      one: '{n} दूसरी मुद्रा में, कुल में नहीं',
+      other: '{n} दूसरी मुद्राओं में, कुल में नहीं',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      one: '{n} छोड़ा गया',
+      other: '{n} छोड़े गए',
+    },
+    changesTitle: 'इससे क्या बदलता है',
+    changesNote: 'टिक की गई पंक्तियों के बाद हर व्यक्ति का बैलेंस, ग्रुप की मुद्रा में।',
+    filterAll: 'सभी',
+    filterAttention: 'ध्यान चाहिए',
+    filterWont: 'इम्पोर्ट नहीं होंगे',
+    filterDuplicates: 'संभावित डुप्लिकेट',
+    noneHere: 'यहाँ कुछ नहीं है।',
+    ctaExpenses: {
+      one: '{n} खर्च इम्पोर्ट करें',
+      other: '{n} खर्च इम्पोर्ट करें',
+    },
+    ctaItems: {
+      one: '{n} प्रविष्टि इम्पोर्ट करें',
+      other: '{n} प्रविष्टियाँ इम्पोर्ट करें',
+    },
+    ctaNothing: 'इम्पोर्ट करने को कुछ नहीं',
+    rowPaid: '{who} ने चुकाया',
+    rowSplit: {
+      one: '{who} ने चुकाया · {n} व्यक्ति के लिए',
+      other: '{who} ने चुकाया · {n} लोगों में बँटा',
+    },
+    rowSettlement: '{from} ने {to} को चुकाया',
+    duplicateOf: '{date} के “{description}” ({amount}) जैसा लगता है, जो इस ग्रुप में पहले से है',
+    foreignNote: '{currency} में; बैलेंस ग्रुप की दर का इस्तेमाल करेंगे',
+    stateWont: 'इम्पोर्ट नहीं होगा',
+    stateDuplicate: 'संभावित डुप्लिकेट',
+    stateAttention: 'ध्यान चाहिए',
+    editHint: 'बदलने के लिए पंक्ति खुलती है',
+    edited: 'बदला गया',
+    editTitle: 'पंक्ति बदलें',
+    fieldDescription: 'विवरण',
+    fieldAmount: 'रकम',
+    fieldDate: 'तारीख़ (YYYY-MM-DD)',
+    fieldPayer: 'किसने चुकाया',
+    fieldSplit: 'किनके बीच बँटा',
+    fieldCategory: 'श्रेणी',
+    everyone: 'सब',
+    categoryNone: 'कोई नहीं',
+    resetRow: 'मेरे बदलाव हटाएँ',
+    invalidAmount: 'शून्य से ज़्यादा रकम डालें।',
+    invalidDate: 'YYYY-MM-DD रूप इस्तेमाल करें।',
+    committing: 'इम्पोर्ट हो रहा है…',
+    rowsProgress: '{total} में से {done} पंक्तियाँ',
+    waitingTitle: 'कनेक्शन का इंतज़ार',
+    waitingHint: 'Waves खुला रखें। ऑनलाइन होते ही इम्पोर्ट हो जाएगा।',
+    failedTitle: 'इम्पोर्ट पूरा नहीं हो सका',
+    partialNote:
+      'कुछ पंक्तियाँ पहले से जुड़ चुकी हो सकती हैं। दोबारा कोशिश करने पर वे दो बार नहीं जुड़ेंगी।',
+    tryAgain: 'फिर कोशिश करें',
+    resultImported: {
+      one: '{group} में {n} खर्च इम्पोर्ट हुआ',
+      other: '{group} में {n} खर्च इम्पोर्ट हुए',
+    },
+    resultSettlements: {
+      one: '{n} भुगतान दर्ज हुआ',
+      other: '{n} भुगतान दर्ज हुए',
+    },
+    resultPeople: {
+      one: '{n} नया व्यक्ति जुड़ा',
+      other: '{n} नए लोग जुड़े',
+    },
+    resultInvite: 'उन्हें बुलाएँ',
+    resultLeftOut: {
+      one: '{n} पंक्ति छोड़ी गई',
+      other: '{n} पंक्तियाँ छोड़ी गईं',
+    },
+    openGroup: 'ग्रुप खोलें',
+    undo: 'इम्पोर्ट वापस लें',
+    undoing: 'वापस लिया जा रहा है…',
+    undoneTitle: {
+      one: 'वापस लिया गया: {n} खर्च हटा',
+      other: 'वापस लिया गया: {n} खर्च हटे',
+    },
+    undoHint: 'जब तक इसमें से कुछ बदला न गया हो, आप 24 घंटे तक इसे वापस ले सकते हैं।',
+    undoEdited:
+      'इस इम्पोर्ट में से कुछ बाद में बदला गया है, इसलिए इसे एक बार में वापस नहीं लिया जा सकता।',
+    undoExpired: 'इम्पोर्ट केवल 24 घंटे के भीतर वापस लिया जा सकता है।',
+    undoNotAllowed: 'इसे केवल इम्पोर्ट करने वाला व्यक्ति या ग्रुप एडमिन वापस ले सकता है।',
+    undoFailed: 'इम्पोर्ट वापस नहीं लिया जा सका। कृपया फिर कोशिश करें।',
+  },
   importLedger: {
     anExistingGroup: 'पहले से बना ग्रुप',
     anExistingGroupHint: 'अपने किसी मौजूदा ग्रुप में जोड़ें',
@@ -16249,6 +17481,25 @@ const hi: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'कहाँ जाएगा',
     aNewGroup: 'एक नया समूह',
     namedAfterFile: 'फ़ाइल के नाम पर',
@@ -16390,6 +17641,7 @@ const hi: UiStrings = {
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
+    manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
   },
   paywall: {
@@ -16426,6 +17678,18 @@ const hi: UiStrings = {
     genericError: 'यह नहीं हो पाया। कुछ देर में फिर से कोशिश करें।',
     terms: 'शर्तें',
     privacy: 'निजता',
+    heroTitle: 'Waves Pro में अपग्रेड करें',
+    heroSubtitle:
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस। बुनियादी सुविधाएँ हमेशा मुफ़्त रहती हैं।',
+    continueWith: '{plan} के साथ आगे बढ़ें',
+    noPlans: 'प्लान अभी उपलब्ध नहीं हैं।',
+    freeTitle: 'क्या मुफ़्त रहता है?',
+    freeGroups: 'ग्रुप और बँटवारा',
+    freeExpenses: 'खर्चे जोड़ें और सँभालें',
+    freeBalances: 'बैलेंस देखें और हिसाब चुकाएँ',
+    alwaysFree: 'हमेशा मुफ़्त',
+    redeemTitle: 'कोड इस्तेमाल करें',
+    redeemHint: 'अगर किसी ने आपको दिया हो।',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -16442,6 +17706,36 @@ const hi: UiStrings = {
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
     alreadyRedeemed: 'आप उसे पहले ही इस्तेमाल कर चुके हैं।',
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
+  },
+  referral: {
+    row: 'दोस्तों को आमंत्रित करें',
+    rowHint: 'साथ में Plus के दिन पाएँ',
+    title: 'दोस्तों को आमंत्रित करें',
+    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
+    youGetTitle: 'आपको 7 दिन का Plus मिलेगा',
+    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
+    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
+    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
+    milestoneDays: '{n} दिन',
+    share: 'आमंत्रण लिंक शेयर करें',
+    shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
+    progress: '{cap} में से {earned} दिन मिल चुके हैं',
+    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    pending: {
+      one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+      other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+    },
+    loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    haveCode: 'किसी दोस्त से कोड मिला है?',
+    paste: 'पेस्ट करें',
+    apply: 'लागू करें',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
+    unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
+    ownCode: 'यह आपका अपना कोड है।',
+    alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
+    notNew: 'कोड सिर्फ़ नए खातों पर, साइन अप के 7 दिनों के भीतर काम करते हैं।',
+    couldNotApply: 'कोड लागू नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
   },
   timeline: {
     fullScreen: 'फ़ुल स्क्रीन मैप',
@@ -16526,6 +17820,84 @@ const hi: UiStrings = {
       'वे पूरे ऐप में एक गुमनाम भूत के रूप में दिखेंगे। उनके साथ आपका हिसाब नहीं बदलता, और उन्हें बताया नहीं जाता।',
     badge: 'अवरोधित',
   },
+  netlog: {
+    row: 'नेटवर्क गतिविधि',
+    rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
+    title: 'नेटवर्क गतिविधि',
+    explainer:
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+    empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
+    emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
+    today: 'आज',
+    yesterday: 'कल',
+    filterAll: 'सभी',
+    clear: 'साफ़ करें',
+    clearTitle: 'यह सूची साफ़ करें?',
+    clearBody: 'इससे इस फ़ोन की सूची खाली हो जाएगी। Waves जो करता है, उसमें कुछ नहीं बदलता।',
+    clearConfirm: 'साफ़ करें',
+    statusFailed: 'विफल',
+    statusOffline: 'ऑफ़लाइन',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'सिंक',
+      signIn: 'साइन-इन',
+      analytics: 'एनालिटिक्स',
+      files: 'फ़ाइलें',
+      exchangeRates: 'विनिमय दरें',
+      serverTask: 'सर्वर का काम',
+      purchases: 'खरीदारी',
+      crashReports: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      google: 'Google सेवाएँ',
+      maps: 'नक्शे',
+      other: 'अन्य',
+    },
+    servicesTitle: 'जिन सेवाओं से Waves जुड़ सकता है',
+    usedFor: 'किसलिए',
+    dataLabel: 'डेटा',
+    svc: {
+      supabase: {
+        purpose: 'आपका खाता, ग्रुप और खर्चे, और आपके लिए लाई गई विनिमय दरें।',
+        data: 'आपका खाता, आप जिन ग्रुपों में हैं, उनके खर्चे और हिसाब-किताब, और आपके भेजे ऐप इवेंट।',
+      },
+      files: {
+        purpose: 'आपकी जोड़ी गई रसीदें और फ़ोटो, एक निजी बकेट में रखी जाती हैं।',
+        data: 'आपकी जोड़ी गई इमेज फ़ाइल, कुछ देर चलने वाले साइन किए हुए लिंक से अपलोड होती है।',
+      },
+      purchases: {
+        purpose: 'आपकी Plus या Pro सदस्यता।',
+        data: 'स्टोर की रसीदें और आपकी खाता आईडी।',
+      },
+      sentry: {
+        purpose:
+          'क्रैश रिपोर्ट, फ़ोन से निकलने से पहले साफ़ की हुई। सिर्फ़ उन बिल्ड में जिनमें क्रैश रिपोर्टिंग सेट है।',
+        data: 'ऐप में क्या गड़बड़ हुई, नाम, रकम और संपर्क हटाकर।',
+      },
+      firebase: {
+        purpose: 'फ़ोन से साइन-इन, और यह प्रमाण कि अनुरोध असली ऐप से आया है (App Check)।',
+        data: 'सत्यापन के दौरान आपका फ़ोन नंबर, और ऐप स्टोर की ओर से डिवाइस जाँच।',
+      },
+      drive: {
+        purpose: 'आपका अपना बैकअप, सिर्फ़ तब जब आप Google Drive बैकअप चालू करें।',
+        data: 'बैकअप फ़ाइल, आपके Google Drive के निजी ऐप फ़ोल्डर में।',
+      },
+      clarity: {
+        purpose: 'सेशन रीप्ले। जब तक आप गोपनीयता में चालू न करें, बंद रहता है।',
+        data: 'स्क्रीन पर आप ऐप कैसे इस्तेमाल करते हैं, सिर्फ़ जब यह चालू हो।',
+      },
+      maps: {
+        purpose: 'खर्चे में दिए गए स्थान के पीछे का नक्शा।',
+        data: 'दिखाया जा रहा नक्शे का इलाका, यानी स्थान लगभग कहाँ है।',
+      },
+      appStore: {
+        purpose: 'यह जाँच कि Waves का नया संस्करण आया है या नहीं (iPhone)।',
+        data: 'Waves की ऐप आईडी और आपका देश।',
+      },
+    },
+    builtinNote:
+      'कुछ सेवाएँ (खरीदारी, क्रैश रिपोर्ट, Google साइन-इन) अपने अंदर बने कोड से भी जुड़ती हैं, जिन्हें Waves हर कॉल के हिसाब से सूचीबद्ध नहीं कर सकता। वे ऊपर की सूची में शामिल हैं।',
+    unseenNote: 'फ़ोन खुद जो इमेज और नक्शे की टाइलें बनाता है, और लाइव वॉइस, सूची में नहीं हैं।',
+  },
   privacy: {
     exportMine: 'मेरा डेटा एक्सपोर्ट करें',
     row: 'निजता',
@@ -16545,7 +17917,7 @@ const hi: UiStrings = {
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
-      'Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
+      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। इंस्टॉल के साथ यह भी गिना जाता है कि वह किस विज्ञापन या लिंक से आया (उसका कैंपेन टैग), और कोई विज्ञापन पहचानकर्ता नहीं है। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
@@ -16566,7 +17938,8 @@ const hi: UiStrings = {
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary: 'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity।',
-    analyticsSummary: 'कोई विज्ञापन नहीं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
+    analyticsSummary:
+      'कोई विज्ञापन नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
@@ -16694,8 +18067,6 @@ const hi: UiStrings = {
     ghostNote: 'उन्हें ऐप की ज़रूरत नहीं। अभी जोड़ दें, बाद में वे अपना इतिहास ले सकते हैं।',
     claimHistoryNote: 'अपना नाम चुनें और आपके लिए जो कुछ पहले से दर्ज है, सब साथ आ जाएगा।',
     theirPastBecomesYours: 'उनके पुराने खर्च और हिसाब आपके हो जाएँगे।',
-    guestKeepsItHere:
-      'मेहमान के तौर पर जुड़ने से सब कुछ इसी डिवाइस पर रहता है। बाद में फ़ोन नंबर जोड़ें और सब कुछ दूसरे फ़ोन तक आपके साथ चला आएगा।',
     lockedTitle: 'Waves लॉक है',
     lockedBody: 'उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
     unlock: 'खोलें',
@@ -17608,12 +18979,20 @@ const ar: UiStrings = {
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:
-      'كشف مرتّب لهذه المجموعة — الأرصدة وكل مصروف وتسوية — بصيغة PDF للقراءة أو ملف Excel للحساب. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
-    formatLabel: 'الصيغة',
+      'صدّر الأرصدة وكل مصروف وتسوية بصيغة PDF للقراءة أو ملف Excel للتحليل. يُنشأ على جهازك مما لديك بالفعل، لذا يعمل دون اتصال.',
+    subtitle: 'احصل على كشف كامل لهذه المجموعة',
+    formatLabel: 'صيغة التصدير',
     pdf: 'PDF',
     excel: 'Excel',
-    pdfHint: 'كشف قابل للطباعة',
-    excelHint: 'ملف جداول بيانات',
+    pdfHint: 'كشف نظيف قابل للطباعة',
+    excelHint: 'ملف مفصّل للتحليل',
+    includeLabel: 'ما يُضمَّن',
+    includeBalances: 'أرصدة المجموعة',
+    includeBalancesHint: 'من يدين لمن',
+    includeExpenses: 'كل المصروفات',
+    includeExpensesHint: 'مع التاريخ والفئة والملاحظات',
+    includeSettlements: 'التسويات',
+    includeSettlementsHint: 'المدفوعات والتسويات',
     generate: 'إنشاء',
     preparing: 'جارٍ التحضير…',
     ready: 'التصدير جاهز',
@@ -18449,6 +19828,8 @@ const ar: UiStrings = {
       'أنت في مجموعة كضيف. أضف بريدًا إلكترونيًا أو هاتفًا أو مزوّدًا لبدء مجموعات أخرى أو الانضمام إليها — كل ما أدخلته يبقى معك.',
     gateExpiredBody:
       'انتهت فترتك كضيف، لذا التطبيق للقراءة فقط الآن. أضف طريقة لتسجيل الدخول لمواصلة الإضافة — مجموعاتك ومصروفاتك كلها لا تزال هنا.',
+    gateJoinBody:
+      'أضف بريدًا إلكترونيًا أو رقم هاتف لإنشاء حسابك. ثم نعيدك إلى الدعوة ونضيفك إلى المجموعة. كل ما لديك حتى الآن يبقى معك.',
   },
   entry: {
     phonePlaceholder: 'أدخل رقم هاتفك',
@@ -18656,6 +20037,9 @@ const ar: UiStrings = {
   deleteForm: {
     heroTitle: 'لا يمكن التراجع عن هذا',
     staysPill: 'يبقى في مجموعاتك',
+    subscriptionTitle: 'اشتراكك يستمر في التجديد',
+    subscriptionBody:
+      'حذف حسابك لا يلغي الاشتراك. ألغِه من متجر التطبيقات أولًا، وإلا سيستمر المتجر في تحصيل الرسوم.',
     goesPill: 'يُحذف نهائيًا',
     cannotRecover: 'ستُحذف بياناتك نهائيًا ولا يمكن استعادتها.',
     statGroups: 'المجموعات التي أنت فيها',
@@ -18707,6 +20091,24 @@ const ar: UiStrings = {
     viewDetails: 'عرض التفاصيل',
     openGroup: 'فتح المجموعة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
+    importedHeadline: {
+      zero: 'استيراد {n} مصروف',
+      one: 'استيراد مصروف واحد',
+      two: 'استيراد مصروفين',
+      few: 'استيراد {n} مصروفات',
+      many: 'استيراد {n} مصروفًا',
+      other: 'استيراد {n} مصروف',
+    },
+    importedSentence: {
+      zero: '{who} استورد {n} مصروف',
+      one: '{who} استورد مصروفًا واحدًا',
+      two: '{who} استورد مصروفين',
+      few: '{who} استورد {n} مصروفات',
+      many: '{who} استورد {n} مصروفًا',
+      other: '{who} استورد {n} مصروف',
+    },
+    importUndoneHeadline: 'تم التراجع عن الاستيراد',
+    importUndoneSentence: '{who} تراجع عن استيراد',
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
@@ -19432,9 +20834,6 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     settings: 'إعدادات المجموعة',
     more: 'المزيد',
-    pin: 'تثبيت',
-    unpin: 'إلغاء التثبيت',
-    pinnedBadge: 'مثبّتة',
     confirmReceived: 'أكّد الاستلام',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
     rowOwed: 'owed', // English placeholder — English-first phase, translation owed
@@ -19584,6 +20983,13 @@ const ar: UiStrings = {
     manageRole: 'إدارة الدور',
     currentRoleAdmin: 'الدور الحالي: مشرف',
     currentRoleMember: 'الدور الحالي: عضو',
+    removeFromGroup: 'إزالة من المجموعة',
+    removeFromGroupHint: 'سيفقد وصوله إلى المجموعة. تبقى مصروفاته في السجل.',
+    removeConfirmTitle: 'إزالة {name}؟',
+    removeConfirmBody:
+      'سيفقد {name} الوصول إلى هذه المجموعة. تبقى مصروفاته ورصيده في سجل المجموعة. يمكن لدعوة جديدة إعادته.',
+    removeStillOwes: '{name} ما زال عليه {amount}.',
+    removeIsOwed: '{name} له {amount}.',
     adminNote: 'يمكن للمشرفين تعديل المجموعة وإدارة الأعضاء وتحديد الميزانية الإجمالية.',
     adminNeedsAccount: 'لم ينضم بعد. المشرف يجب أن يكون عضوًا لديه حساب.',
     you: 'أنت',
@@ -20017,7 +21423,6 @@ const ar: UiStrings = {
     groupsSubtitle: 'كل مجموعاتك في مكان واحد',
     filterOwed: 'مستحق لي',
     filterOwe: 'عليّ',
-    filterFavorites: 'المفضلة',
     sortGroupsTitle: 'ترتيب المجموعات',
     sortRecent: 'النشاط الأخير',
     sortAmount: 'المبلغ',
@@ -20034,11 +21439,11 @@ const ar: UiStrings = {
     linkExpiredBody: 'اطلب رابطًا جديدًا ممن أرسله — الروابط تنتهي كي لا تتداول إلى الأبد.',
     linkMissingCode: 'هذا الرابط ينقصه رمز الدعوة',
     goToWaves: 'اذهب إلى Waves',
-    freeNoAccount: 'مجاني دائمًا، بلا حاجة إلى حساب',
+    joinFreeBadge: 'مجاني دائمًا',
     joinFeatureQuickTitle: 'انضمام سريع',
     joinFeatureQuickBody: 'ابدأ تتبّع المصاريف فورًا',
-    joinFeatureGuestTitle: 'بلا حاجة إلى حساب',
-    joinFeatureGuestBody: 'انضم كضيف',
+    joinFeatureAccountTitle: 'حسابك الخاص',
+    joinFeatureAccountBody: 'مصاريفك تبقى لك',
     joinFeatureTogetherTitle: 'اقتسموا معًا',
     joinFeatureTogetherBody: 'أبقوا الجميع على اطلاع',
     isOneOfTheseYou: 'هل أحد هؤلاء أنت؟',
@@ -20053,6 +21458,15 @@ const ar: UiStrings = {
     unnamed: 'بلا اسم',
     joinAndClaim: 'انضم وطالب بسجلي',
     joinGroup: 'انضم إلى هذه المجموعة',
+    joinSignUp: 'سجّل للانضمام',
+    joinLogIn: 'تسجيل الدخول',
+    joinAccountWhy: 'أنشئ حسابًا مجانيًا للانضمام إلى {group} لتبقى مصاريفك لك على كل جهاز.',
+    joinGuestUpgrade: 'أنشئ حسابًا للانضمام',
+    joinGuestWhy:
+      'أنت تستخدم Waves كضيف. أنشئ حسابًا مجانيًا للانضمام إلى {group}. كل ما لديك حتى الآن سيبقى معك.',
+    joinAccountRequired:
+      'تحتاج إلى حساب للانضمام إلى هذه المجموعة. سجّل أو سجّل الدخول ثم افتح الرابط مرة أخرى.',
+    joinRemoved: 'تمت إزالتك من هذه المجموعة. اطلب دعوة جديدة من أحد المشرفين.',
     fromYourContacts: 'من جهات اتصالك',
     continueWith: 'المتابعة مع',
     noAddress: 'لا يوجد عنوان',
@@ -20079,6 +21493,7 @@ const ar: UiStrings = {
       other: 'كان {n} منهم في تلك المجموعة من قبل.',
     },
     someone: 'أحدهم',
+    memberLeft: '(غادر)',
     archivedGroup: 'مؤرشَف',
     unavailableGroup: 'غير متاح',
     serverRefused: 'رفض الخادم هذا التغيير.',
@@ -20630,6 +22045,233 @@ const ar: UiStrings = {
     removeItem: 'إزالة {label}',
     hadItem: '{name} تناول {label}',
   },
+  groupImport: {
+    menu: 'استيراد المصاريف',
+    emptyLink: 'لديك هذه في جدول بيانات؟ استوردها',
+    titleNamed: 'الاستيراد إلى {group}',
+    titleLead: 'الاستيراد إلى',
+    sourceIntro: 'أحضر المصاريف التي تحتفظ بها في مكان آخر.',
+    sourceFileTitle: 'جدول بيانات أو CSV',
+    sourceFileHint: 'Google Sheets وExcel وTricount وSettle Up…',
+    sourceSplitwiseTitle: 'ملف تصدير Splitwise',
+    sourceSplitwiseHint: 'في Splitwise: مجموعتك ثم «Export as spreadsheet»',
+    sourceShotTitle: 'لقطة شاشة',
+    sourceShotHint: 'صورة لقائمة أو تطبيق بنكي أو محادثة',
+    plusBadge: 'PLUS',
+    seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
+    nothingAdded: 'لن يُضاف شيء حتى تراجعه.',
+    nothingAddedBody: 'سنعرض لك معاينة لتأكيدها قبل استيراد أي شيء.',
+    reading: 'جارٍ قراءة الملف…',
+    parsing: 'جارٍ فحص الصفوف…',
+    errTooLarge: 'حجم الملف يتجاوز {mb} ميغابايت. قسّمه إلى ملفات أصغر واستورد كل واحد على حدة.',
+    errTooMany: 'يحتوي الملف على أكثر من {n} صف. قسّمه إلى أجزاء من {n} صف على الأكثر.',
+    errEmpty: 'لم نعثر على أي مصاريف في هذا الملف.',
+    errEncoding: 'لم تظهر بعض الأحرف بشكل صحيح. احفظ الملف بصيغة «CSV UTF-8» وحاول مرة أخرى.',
+    errUnreadable: 'تعذّر فتح هذا الملف. جرّب حفظه بصيغة CSV أو Excel ‏(.xlsx).',
+    errNoColumns: 'لم نجد التاريخ والوصف والمبلغ في هذا الملف.',
+    errNoRows: 'لم نعثر على أي مصاريف في هذا الملف.',
+    upsellTitle: 'صوّر القائمة ونحن نكتبها',
+    upsellBody:
+      'استيراد لقطات الشاشة متاح مع Waves Plus. صور القوائم والتطبيقات البنكية والمحادثات تتحول إلى مصاريف تراجعها قبل إضافة أي شيء.',
+    seePlans: 'عرض الباقات',
+    useCsv: 'استخدم CSV بدلًا من ذلك (مجانًا)',
+    examplesTitle: 'أمثلة CSV',
+    exTabSimple: 'بسيط',
+    exTabSplit: 'تقسيم',
+    exTabSplitwise: 'Splitwise',
+    exSimple: 'يُقسَّم كل صف بالتساوي بين جميع أفراد المجموعة.',
+    exSplit: '«الاسم:2» تعني حصتين. اترك عمود التقسيم فارغًا ليشمل الجميع.',
+    exSplitwise: 'عمود كل شخص هو ما له (+) أو ما عليه (−) في ذلك الصف.',
+    headersNote: 'عناوين الأعمدة بلغتك تعمل أيضًا.',
+    shareTemplate: 'مشاركة القالب',
+    copyExample: 'نسخ المثال',
+    copied: 'تم النسخ',
+    templateShareTitle: 'قالب الاستيراد',
+    templateFailed: 'تعذّر إنشاء القالب. حاول مرة أخرى.',
+    columnsTitle: 'راجع الأعمدة',
+    columnsHint: 'طابقنا ما استطعنا. غيّر أي عمود غير صحيح.',
+    columnFallback: 'العمود {n}',
+    chooseColumn: 'ما هو «{header}»؟',
+    colDate: 'التاريخ',
+    colDescription: 'الوصف',
+    colAmount: 'المبلغ',
+    colCurrency: 'العملة',
+    colPaidBy: 'دفعه',
+    colSplit: 'قُسِّم بين',
+    colCategory: 'الفئة',
+    colType: 'النوع',
+    colPerson: 'المبلغ المستحق على شخص',
+    colIgnore: 'تجاهل',
+    dateOrderTitle: 'ما الذي يأتي أولًا في تواريخك؟',
+    dateDayFirst: 'اليوم أولًا',
+    dateMonthFirst: 'الشهر أولًا',
+    dateReadsAs: '{raw} تُقرأ {date}',
+    decimalTitle: 'كيف تُكتب الكسور العشرية؟',
+    previewTitle: 'الصفوف الأولى كما سنقرؤها',
+    previewUnreadable: 'تعذّرت قراءة هذا الصف',
+    needAmount: 'اختر عمود «المبلغ» للمتابعة.',
+    continueLabel: 'متابعة',
+    peopleTitle: 'من هو من',
+    peopleHint: 'الملف يذكر أسماء. حدّد من هو كل شخص في هذه المجموعة.',
+    matchedByName: 'طُوبق بالاسم',
+    chooseWho: 'اختر من',
+    addAsNew: 'إضافة كشخص جديد',
+    addRestAsNew: 'إضافة الباقين كأشخاص جدد',
+    mergeWarning: 'سيُعامَل {names} كشخص واحد',
+    whoIsName: 'من هو {name}؟',
+    personMapped: '{name} هو {who}. اضغط للتغيير.',
+    reviewTitle: 'مراجعة',
+    summaryExpenses: {
+      zero: 'لا مصاريف',
+      one: 'مصروف واحد',
+      two: 'مصروفان',
+      few: '{n} مصاريف',
+      many: '{n} مصروفًا',
+      other: '{n} مصروف',
+    },
+    summarySettlements: {
+      zero: 'لا دفعات',
+      one: 'دفعة واحدة',
+      two: 'دفعتان',
+      few: '{n} دفعات',
+      many: '{n} دفعة',
+      other: '{n} دفعة',
+    },
+    summaryNewPeople: {
+      zero: 'لا أشخاص جدد',
+      one: 'شخص جديد',
+      two: 'شخصان جديدان',
+      few: '{n} أشخاص جدد',
+      many: '{n} شخصًا جديدًا',
+      other: '{n} شخص جديد',
+    },
+    summaryOtherCurrency: {
+      zero: 'لا شيء بعملة أخرى',
+      one: 'واحد بعملة أخرى، خارج الإجمالي',
+      two: 'اثنان بعملة أخرى، خارج الإجمالي',
+      few: '{n} بعملات أخرى، خارج الإجمالي',
+      many: '{n} بعملات أخرى، خارج الإجمالي',
+      other: '{n} بعملات أخرى، خارج الإجمالي',
+    },
+    summaryRange: '{from} – {to}',
+    summaryLeft: {
+      zero: 'لم يُستبعد شيء',
+      one: 'استُبعد واحد',
+      two: 'استُبعد اثنان',
+      few: 'استُبعد {n}',
+      many: 'استُبعد {n}',
+      other: 'استُبعد {n}',
+    },
+    changesTitle: 'ما الذي يتغير',
+    changesNote: 'رصيد كل شخص بعد الصفوف المحددة، بعملة المجموعة.',
+    filterAll: 'الكل',
+    filterAttention: 'يحتاج انتباهًا',
+    filterWont: 'لن يُستورد',
+    filterDuplicates: 'مكرر محتمل',
+    noneHere: 'لا شيء هنا.',
+    ctaExpenses: {
+      zero: 'لا مصاريف للاستيراد',
+      one: 'استيراد مصروف واحد',
+      two: 'استيراد مصروفين',
+      few: 'استيراد {n} مصاريف',
+      many: 'استيراد {n} مصروفًا',
+      other: 'استيراد {n} مصروف',
+    },
+    ctaItems: {
+      zero: 'لا عناصر للاستيراد',
+      one: 'استيراد عنصر واحد',
+      two: 'استيراد عنصرين',
+      few: 'استيراد {n} عناصر',
+      many: 'استيراد {n} عنصرًا',
+      other: 'استيراد {n} عنصر',
+    },
+    ctaNothing: 'لا شيء للاستيراد',
+    rowPaid: 'دفع {who}',
+    rowSplit: {
+      zero: 'دفع {who}',
+      one: 'دفع {who} · لشخص واحد',
+      two: 'دفع {who} · لشخصين',
+      few: 'دفع {who} · مقسّم على {n} أشخاص',
+      many: 'دفع {who} · مقسّم على {n} شخصًا',
+      other: 'دفع {who} · مقسّم على {n} شخص',
+    },
+    rowSettlement: 'دفع {from} إلى {to}',
+    duplicateOf: 'يشبه «{description}» بتاريخ {date} ({amount}) وهو موجود في هذه المجموعة',
+    foreignNote: 'بعملة {currency}؛ الأرصدة تستخدم سعر المجموعة',
+    stateWont: 'لن يُستورد',
+    stateDuplicate: 'مكرر محتمل',
+    stateAttention: 'يحتاج انتباهًا',
+    editHint: 'يفتح الصف للتعديل',
+    edited: 'معدّل',
+    editTitle: 'تعديل الصف',
+    fieldDescription: 'الوصف',
+    fieldAmount: 'المبلغ',
+    fieldDate: 'التاريخ (YYYY-MM-DD)',
+    fieldPayer: 'دفعه',
+    fieldSplit: 'قُسِّم بين',
+    fieldCategory: 'الفئة',
+    everyone: 'الجميع',
+    categoryNone: 'بلا',
+    resetRow: 'تراجع عن تعديلاتي',
+    invalidAmount: 'أدخل مبلغًا أكبر من صفر.',
+    invalidDate: 'استخدم الصيغة YYYY-MM-DD.',
+    committing: 'جارٍ الاستيراد…',
+    rowsProgress: '{done} من {total} صف',
+    waitingTitle: 'بانتظار الاتصال',
+    waitingHint: 'أبقِ Waves مفتوحًا. سيتم الاستيراد عند عودتك إلى الإنترنت.',
+    failedTitle: 'تعذّر إكمال الاستيراد',
+    partialNote: 'قد تكون بعض الصفوف أُضيفت بالفعل. إعادة المحاولة لن تضيفها مرتين.',
+    tryAgain: 'حاول مرة أخرى',
+    resultImported: {
+      zero: 'لم يُستورد أي مصروف إلى {group}',
+      one: 'تم استيراد مصروف واحد إلى {group}',
+      two: 'تم استيراد مصروفين إلى {group}',
+      few: 'تم استيراد {n} مصاريف إلى {group}',
+      many: 'تم استيراد {n} مصروفًا إلى {group}',
+      other: 'تم استيراد {n} مصروف إلى {group}',
+    },
+    resultSettlements: {
+      zero: 'لم تُسجَّل دفعات',
+      one: 'سُجّلت دفعة واحدة',
+      two: 'سُجّلت دفعتان',
+      few: 'سُجّلت {n} دفعات',
+      many: 'سُجّلت {n} دفعة',
+      other: 'سُجّلت {n} دفعة',
+    },
+    resultPeople: {
+      zero: 'لم يُضَف أشخاص جدد',
+      one: 'أُضيف شخص جديد',
+      two: 'أُضيف شخصان جديدان',
+      few: 'أُضيف {n} أشخاص جدد',
+      many: 'أُضيف {n} شخصًا جديدًا',
+      other: 'أُضيف {n} شخص جديد',
+    },
+    resultInvite: 'ادعُهم',
+    resultLeftOut: {
+      zero: 'لم يُستبعد أي صف',
+      one: 'استُبعد صف واحد',
+      two: 'استُبعد صفان',
+      few: 'استُبعدت {n} صفوف',
+      many: 'استُبعد {n} صفًا',
+      other: 'استُبعد {n} صف',
+    },
+    openGroup: 'فتح المجموعة',
+    undo: 'التراجع عن الاستيراد',
+    undoing: 'جارٍ التراجع…',
+    undoneTitle: {
+      zero: 'تم التراجع: لم يُحذف شيء',
+      one: 'تم التراجع: حُذف مصروف واحد',
+      two: 'تم التراجع: حُذف مصروفان',
+      few: 'تم التراجع: حُذفت {n} مصاريف',
+      many: 'تم التراجع: حُذف {n} مصروفًا',
+      other: 'تم التراجع: حُذف {n} مصروف',
+    },
+    undoHint: 'يمكنك التراجع خلال 24 ساعة ما دام لم يُعدَّل شيء منه.',
+    undoEdited: 'عُدِّل شيء من هذا الاستيراد بعد ذلك، لذا لا يمكن التراجع عنه دفعة واحدة.',
+    undoExpired: 'لا يمكن التراجع عن الاستيراد إلا خلال 24 ساعة.',
+    undoNotAllowed: 'يمكن لمن أجرى الاستيراد أو لمشرف المجموعة فقط التراجع عنه.',
+    undoFailed: 'تعذّر التراجع عن الاستيراد. حاول مرة أخرى.',
+  },
   importLedger: {
     anExistingGroup: 'مجموعة موجودة',
     anExistingGroupHint: 'أضِف إلى مجموعة لديك بالفعل',
@@ -20673,6 +22315,25 @@ const ar: UiStrings = {
     problemNotAnExport: "That file isn't a Waves export.",
     problemNewerFormat:
       'That file was saved by a newer version of Waves. Update the app and try again.',
+    problemAmbiguousDate:
+      'Dates like 03/04/2026 can be read two ways, so check the day and month order.',
+    problemMixedDates:
+      "This file mixes day-first and month-first dates, so this date couldn't be read.",
+    problemTooManyDecimals: 'The amount on this row has more decimals than its currency allows.',
+    problemRefund:
+      "Refunds aren't supported yet. Remove the minus sign to import this as an expense.",
+    problemUnknownPerson: "This row names someone who isn't in the file.",
+    problemSplitMismatch: "The split on this row doesn't add up to its cost.",
+    problemPercentNot100: "The percentages on this row don't add up to 100.",
+    problemTooManyRows: 'This file has too many rows. Split it into parts of up to 2,000 rows.',
+    problemFileTooLarge: 'This file is too large to import. Keep it under 5 MB.',
+    problemEncoding: "Some characters in this file couldn't be read and may look wrong.",
+    problemLikelyDuplicate: "This looks like an expense that's already in the group.",
+    problemLowConfidence: 'This value was hard to read, so please check it.',
+    problemNotAnExpense: 'This line looks like a total or a heading, not an expense.',
+    problemPayerEstimated: "Who paid wasn't spelled out, so the payment was estimated.",
+    problemUnexpectedSettlement:
+      'A payment should be one person paying one other person the full amount.',
     whereItGoes: 'إلى أين يذهب',
     aNewGroup: 'مجموعة جديدة',
     namedAfterFile: 'باسم الملف',
@@ -20910,6 +22571,7 @@ const ar: UiStrings = {
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
+    manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
   },
   paywall: {
@@ -20946,6 +22608,17 @@ const ar: UiStrings = {
     genericError: 'لم تنجح العملية. حاول مرة أخرى بعد قليل.',
     terms: 'الشروط',
     privacy: 'الخصوصية',
+    heroTitle: 'الترقية إلى Waves Pro',
+    heroSubtitle: 'مسحات أكثر، ونقل أكبر، وصوت ذكاء اصطناعي متقدم. تبقى الأساسيات مجانية دائمًا.',
+    continueWith: 'المتابعة مع {plan}',
+    noPlans: 'الخطط غير متاحة حاليًا.',
+    freeTitle: 'ما الذي يبقى مجانيًا؟',
+    freeGroups: 'المجموعات والتقسيم',
+    freeExpenses: 'إضافة المصروفات وإدارتها',
+    freeBalances: 'عرض الأرصدة والتسوية',
+    alwaysFree: 'مجاني دائمًا',
+    redeemTitle: 'استخدام رمز',
+    redeemHint: 'إذا أعطاك أحدهم واحدًا.',
   },
   promo: {
     clear: 'مسح',
@@ -20962,6 +22635,40 @@ const ar: UiStrings = {
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
     alreadyRedeemed: 'لقد استخدمته من قبل.',
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
+  },
+  referral: {
+    row: 'ادعُ أصدقاءك',
+    rowHint: 'اكسبوا أيام Plus معًا',
+    title: 'ادعُ أصدقاءك',
+    headline: 'المال أسهل حين نتشاركه.',
+    body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
+    youGetTitle: 'تحصل على 7 أيام من Plus',
+    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
+    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
+    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
+    milestoneDays: '{n} أيام',
+    share: 'شارك رابط الدعوة',
+    shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
+    progress: 'تم كسب {earned} من {cap} يومًا',
+    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    pending: {
+      zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
+      one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
+      two: 'انضم صديقان. ننتظر أول مصروف مشترك لهما.',
+      few: 'انضم {n} أصدقاء. ننتظر أول مصروف مشترك لهم.',
+      many: 'انضم {n} صديقًا. ننتظر أول مصروف مشترك لهم.',
+      other: 'انضم {n} صديق. ننتظر أول مصروف مشترك لهم.',
+    },
+    loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
+    haveCode: 'هل لديك رمز من صديق؟',
+    paste: 'لصق',
+    apply: 'تطبيق',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
+    unknownCode: 'هذا الرمز لا يطابق أي شخص.',
+    ownCode: 'هذا رمزك الخاص.',
+    alreadyUsed: 'لقد استخدمت دعوة من قبل.',
+    notNew: 'تعمل الرموز مع الحسابات الجديدة فقط، خلال 7 أيام من التسجيل.',
+    couldNotApply: 'تعذّر تطبيق الرمز. حاول مجددًا بعد قليل.',
   },
   timeline: {
     fullScreen: 'خريطة بملء الشاشة',
@@ -21063,6 +22770,84 @@ const ar: UiStrings = {
     confirmBody: 'سيظهر كشبح مجهول في كل مكان في التطبيق. أرصدتك معه لا تتغيّر، ولا يتم إخباره.',
     badge: 'محظور',
   },
+  netlog: {
+    row: 'نشاط الشبكة',
+    rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
+    title: 'نشاط الشبكة',
+    explainer:
+      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+    empty: 'لم يُسجَّل أي اتصال بعد.',
+    emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    filterAll: 'الكل',
+    clear: 'مسح',
+    clearTitle: 'مسح هذه القائمة؟',
+    clearBody: 'سيؤدي هذا إلى إفراغ القائمة على هذا الهاتف. ولا يغيّر شيئًا مما يفعله Waves.',
+    clearConfirm: 'مسح',
+    statusFailed: 'فشل',
+    statusOffline: 'بلا اتصال',
+    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    purposes: {
+      sync: 'المزامنة',
+      signIn: 'تسجيل الدخول',
+      analytics: 'التحليلات',
+      files: 'الملفات',
+      exchangeRates: 'أسعار الصرف',
+      serverTask: 'مهمة على الخادم',
+      purchases: 'المشتريات',
+      crashReports: 'تقارير الأعطال',
+      sessionReplay: 'إعادة تشغيل الجلسة',
+      google: 'خدمات Google',
+      maps: 'الخرائط',
+      other: 'أخرى',
+    },
+    servicesTitle: 'الخدمات التي يمكن لـ Waves الاتصال بها',
+    usedFor: 'الغرض',
+    dataLabel: 'البيانات',
+    svc: {
+      supabase: {
+        purpose: 'حسابك ومجموعاتك ومصاريفك، وأسعار الصرف التي تُجلب لك.',
+        data: 'حسابك والمجموعات التي أنت فيها ومصاريفها وتسوياتها، وأحداث التطبيق التي ترسلها.',
+      },
+      files: {
+        purpose: 'الإيصالات والصور التي تضيفها، وتُحفظ في مستودع خاص.',
+        data: 'ملف الصورة الذي تضيفه، ويُرفع عبر رابط موقّع قصير الأمد.',
+      },
+      purchases: {
+        purpose: 'اشتراكك في Plus أو Pro.',
+        data: 'إيصالات المتجر ومعرّف حسابك.',
+      },
+      sentry: {
+        purpose:
+          'تقارير الأعطال، بعد تنقيتها قبل أن تغادر الهاتف. فقط في الإصدارات التي أُعدّ فيها الإبلاغ عن الأعطال.',
+        data: 'ما الذي حدث من خطأ في التطبيق، بعد حذف الأسماء والمبالغ وجهات الاتصال.',
+      },
+      firebase: {
+        purpose: 'تسجيل الدخول بالهاتف، والتحقق من أن الطلب صادر من التطبيق الحقيقي (App Check).',
+        data: 'رقم هاتفك أثناء التحقق منه، وفحص الجهاز من المتجر.',
+      },
+      drive: {
+        purpose: 'نسختك الاحتياطية الخاصة، فقط إذا فعّلت النسخ الاحتياطي على Google Drive.',
+        data: 'ملف النسخة الاحتياطية، في مجلد خاص بالتطبيق داخل Google Drive الخاص بك.',
+      },
+      clarity: {
+        purpose: 'إعادة تشغيل الجلسة. متوقفة ما لم تفعّلها من الخصوصية.',
+        data: 'كيف تستخدم التطبيق على الشاشة، فقط أثناء تفعيلها.',
+      },
+      maps: {
+        purpose: 'الخريطة خلف المكان المضاف إلى مصروف.',
+        data: 'منطقة الخريطة المعروضة، أي المكان التقريبي الذي يوجد فيه الموقع.',
+      },
+      appStore: {
+        purpose: 'التحقق من صدور إصدار أحدث من Waves (آيفون).',
+        data: 'معرّف تطبيق Waves وبلدك.',
+      },
+    },
+    builtinNote:
+      'بعض الخدمات (المشتريات وتقارير الأعطال وتسجيل الدخول بـ Google) تتصل أيضًا من شيفرتها المدمجة، ولا يستطيع Waves سرد اتصالاتها واحدًا واحدًا. وهي مشمولة في القائمة أعلاه.',
+    unseenNote: 'الصور وبلاطات الخرائط التي يرسمها الهاتف نفسه، والصوت المباشر، غير مدرجة.',
+  },
   privacy: {
     exportMine: 'تصدير بياناتي',
     row: 'الخصوصية',
@@ -21081,7 +22866,7 @@ const ar: UiStrings = {
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
-      'يمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
+      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. ويُحصى مع التثبيت أيضًا الإعلان أو الرابط الذي جاء منه (وسم حملته)، دون أي معرّف إعلاني. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
@@ -21101,7 +22886,8 @@ const ar: UiStrings = {
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     servicesSummary: 'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت.',
-    analyticsSummary: 'لا إعلانات ولا معرّف إعلاني. ولا تسجيل للشاشة ما لم تفعّله.',
+    analyticsSummary:
+      'لا إعلانات ولا معرّف إعلاني. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
@@ -21244,8 +23030,6 @@ const ar: UiStrings = {
     ghostNote: 'لا يحتاجون التطبيق. أضفهم الآن ويمكنهم المطالبة بسجلّهم لاحقًا.',
     claimHistoryNote: 'اختر اسمك فيأتي معك كل ما سُجّل لك من قبل.',
     theirPastBecomesYours: 'تصبح مصاريفهم وأرصدتهم السابقة لك.',
-    guestKeepsItHere:
-      'الانضمام كضيف يُبقي كل شيء على هذا الجهاز. أضف رقم هاتف لاحقًا فيتبعك كل شيء إلى هاتف آخر.',
     lockedTitle: 'Waves مقفل',
     lockedBody: 'افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
     unlock: 'فتح',

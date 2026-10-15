@@ -13,20 +13,15 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 
 import {
-  applyOutcomes,
   categoryTagsScope,
-  discard,
   emptyMirror,
   enqueue,
   groupMuteId,
   groupMutesScope,
-  groupPinId,
-  groupPinsScope,
   materialiseCaptures,
   materialiseArchivedGroups,
   materialiseCategoryTags,
   materialiseGroupMutes,
-  materialiseGroupPins,
   materialiseGroups,
   materialiseLedgerGroupIds,
   materialiseLedgerGroups,
@@ -40,9 +35,7 @@ import {
   openCaptures,
   openPlanItems,
   mutedGroupIds,
-  pinnedGroupIds,
   reconcile,
-  SyncRejectionCode,
   SyncTable,
   type MutationEnvelope,
   type QueuedMutation,
@@ -221,6 +214,23 @@ describe('members', () => {
       profile_id: null,
       pending: true,
     });
+  });
+
+  it('hides people who left unless asked for the past', () => {
+    // Pickers for a new bill must not offer them; a past bill still has to name them.
+    const row = (id: string, left_at: string | null) => ({
+      table: SyncTable.GroupMembers,
+      groupId: GROUP,
+      seq: 1,
+      row: { id, group_id: GROUP, profile_id: null, ghost_name: id, left_at },
+    });
+    const mirror = reconcile(emptyMirror(), [row('Renny', AT), row('Asha', null)]).state;
+    expect(materialiseMembers(mirror, [], { groupId: GROUP }).map((m) => m.id)).toEqual(['Asha']);
+    expect(
+      materialiseMembers(mirror, [], { groupId: GROUP, includeLeft: true })
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual(['Asha', 'Renny']);
   });
 
   it('does not duplicate somebody the server has since confirmed', () => {
@@ -1237,101 +1247,6 @@ describe('category tags', () => {
   });
 });
 
-describe('group pins', () => {
-  const OWNER = 'user-1';
-  const SCOPE = groupPinsScope(OWNER);
-  const PIN_ID = groupPinId(OWNER, GROUP);
-
-  const pin = envelope('m-1', MutationKind.GroupPinSet, { pinId: PIN_ID, groupId: GROUP }, SCOPE);
-
-  it('shows a group pinned offline, before it has synced', () => {
-    const rows = materialiseGroupPins(emptyMirror(), queued(pin), { ownerId: OWNER });
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: PIN_ID, group_id: GROUP, pending: true });
-    expect(pinnedGroupIds(emptyMirror(), queued(pin), { ownerId: OWNER })).toEqual(
-      new Set([GROUP]),
-    );
-  });
-
-  it('is invisible under a different owner — the scope is the person', () => {
-    const rows = materialiseGroupPins(emptyMirror(), queued(pin), { ownerId: 'someone-else' });
-    expect(rows).toHaveLength(0);
-  });
-
-  it('two devices pinning the same group offline derive the same row and converge on one', () => {
-    // Both devices compute `groupPinId(OWNER, GROUP)` themselves — there is no
-    // server round trip to agree on an id first — so a second `group_pin.set`
-    // for the same (owner, group) upserts the first rather than adding a row.
-    const second = envelope(
-      'm-1b',
-      MutationKind.GroupPinSet,
-      { pinId: PIN_ID, groupId: GROUP },
-      SCOPE,
-    );
-    const rows = materialiseGroupPins(emptyMirror(), queued(pin, second), { ownerId: OWNER });
-    expect(rows).toHaveLength(1);
-  });
-
-  it('unpinning tombstones the row so it stops showing as pinned', () => {
-    const unpin = envelope('m-2', MutationKind.GroupPinClear, { pinId: PIN_ID }, SCOPE);
-    const rows = materialiseGroupPins(emptyMirror(), queued(pin, unpin), { ownerId: OWNER });
-    expect(rows).toHaveLength(0);
-    expect(pinnedGroupIds(emptyMirror(), queued(pin, unpin), { ownerId: OWNER }).size).toBe(0);
-  });
-
-  it('unpinning something never pinned here is a no-op, not a phantom row', () => {
-    const unpin = envelope('m-1', MutationKind.GroupPinClear, { pinId: 'never-pinned' }, SCOPE);
-    const rows = materialiseGroupPins(emptyMirror(), queued(unpin), { ownerId: OWNER });
-    expect(rows).toHaveLength(0);
-  });
-
-  it('a refused pin loses the pin and never the group', () => {
-    // The incident this feature is built around: dropping a refused mutation
-    // must never delete what it made. A pin is deliberately a separate row from
-    // the group it names, so refusing (then discarding) the pin can only ever
-    // remove the pin — the group itself has its own `group.create` and is
-    // never touched by anything in this describe block.
-    const groupCreate = envelope('g-1', MutationKind.GroupCreate, {
-      name: 'Goa',
-      currency: 'INR',
-    });
-    let queue = queued(groupCreate, pin);
-    expect(materialiseGroups(emptyMirror(), queue)).toHaveLength(1);
-    expect(pinnedGroupIds(emptyMirror(), queue, { ownerId: OWNER })).toEqual(new Set([GROUP]));
-
-    // The server refuses the pin (e.g. NOT_A_MEMBER) — the app marks it
-    // rejected rather than dropping it, exactly like any other mutation.
-    const { queue: afterRejection } = applyOutcomes(queue, [
-      {
-        clientMutationId: 'm-1',
-        status: 'rejected',
-        code: SyncRejectionCode.NotAMember,
-        message: 'x',
-      },
-    ]);
-    queue = afterRejection;
-    expect(materialiseGroups(emptyMirror(), queue)).toHaveLength(1);
-    expect(pinnedGroupIds(emptyMirror(), queue, { ownerId: OWNER })).toEqual(new Set([GROUP]));
-
-    // The person discards the refused pin. The group — a completely different
-    // mutation, still queued — must still be there afterwards.
-    queue = discard(queue, 'm-1');
-    expect(materialiseGroups(emptyMirror(), queue)).toHaveLength(1);
-    expect(pinnedGroupIds(emptyMirror(), queue, { ownerId: OWNER }).size).toBe(0);
-  });
-
-  it('never shows another owner’s pins', () => {
-    const theirs = envelope(
-      'm-3',
-      MutationKind.GroupPinSet,
-      { pinId: groupPinId('user-2', GROUP), groupId: GROUP },
-      groupPinsScope('user-2'),
-    );
-    const rows = materialiseGroupPins(emptyMirror(), queued(pin, theirs), { ownerId: OWNER });
-    expect(rows.map((r) => r.id)).toEqual([PIN_ID]);
-  });
-});
-
 describe('group mutes', () => {
   const OWNER = 'user-1';
   const SCOPE = groupMutesScope(OWNER);
@@ -1385,6 +1300,5 @@ describe('group mutes', () => {
     );
     const rows = materialiseGroupMutes(emptyMirror(), queued(mute, theirs), { ownerId: OWNER });
     expect(rows.map((r) => r.id)).toEqual([MUTE_ID]);
-    expect(pinnedGroupIds(emptyMirror(), queued(mute), { ownerId: OWNER }).size).toBe(0);
   });
 });

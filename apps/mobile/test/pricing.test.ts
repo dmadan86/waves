@@ -9,7 +9,15 @@ import { describe, expect, it } from 'vitest';
 import { PlanTier } from '@waves/core';
 
 import {
+  chosenCard,
+  ctaState,
+  defaultSelectedTier,
+  paywallEmptyReason,
+  showUpgradeHero,
   activeProductId,
+  isPlusPriceVariant,
+  plusPriceOfferingId,
+  selectOffering,
   periodOfPackage,
   periodsInOffering,
   planCardsFromOffering,
@@ -19,6 +27,7 @@ import {
   yearlySavingsPercent,
   type OfferingLike,
   type PackageLike,
+  type PaidTier,
 } from '../src/lib/pricing';
 
 function pkg(
@@ -130,11 +139,17 @@ describe('tierFromCustomerInfo', () => {
 describe('revenueCatApiKey', () => {
   it('uses the platform’s key and treats a blank one as none', () => {
     const env = { ios: 'appl_abc', android: ' goog_xyz ' };
-    expect(revenueCatApiKey('ios', env)).toBe('appl_abc');
-    expect(revenueCatApiKey('android', env)).toBe('goog_xyz');
-    expect(revenueCatApiKey('web', env)).toBeNull();
-    expect(revenueCatApiKey('ios', { ios: '  ' })).toBeNull();
-    expect(revenueCatApiKey('android', {})).toBeNull();
+    expect(revenueCatApiKey('ios', env, false)).toBe('appl_abc');
+    expect(revenueCatApiKey('android', env, false)).toBe('goog_xyz');
+    expect(revenueCatApiKey('web', env, false)).toBeNull();
+    expect(revenueCatApiKey('ios', { ios: '  ' }, false)).toBeNull();
+    expect(revenueCatApiKey('android', {}, false)).toBeNull();
+  });
+
+  it('uses a Test Store key only in a development build', () => {
+    const env = { ios: 'test_abc', android: 'test_abc' };
+    expect(revenueCatApiKey('ios', env, true)).toBe('test_abc');
+    expect(revenueCatApiKey('android', env, false)).toBeNull();
   });
 });
 
@@ -143,5 +158,87 @@ describe('yearlySavingsPercent', () => {
     expect(yearlySavingsPercent(49, 490)).toBe(17);
     expect(yearlySavingsPercent(0, 490)).toBe(0);
     expect(yearlySavingsPercent(49, 999)).toBe(0);
+  });
+});
+
+describe('the Plus price test', () => {
+  const offering = (identifier: string) => ({ identifier, availablePackages: [] });
+  const all = {
+    default: offering('default'),
+    plus_p49: offering('plus_p49'),
+    plus_p79: offering('plus_p79'),
+    plus_p99: offering('plus_p99'),
+  };
+
+  it('knows the three arms and maps each to its offering id', () => {
+    expect(plusPriceOfferingId('p49')).toBe('plus_p49');
+    expect(plusPriceOfferingId('p79')).toBe('plus_p79');
+    expect(plusPriceOfferingId('p99')).toBe('plus_p99');
+    for (const other of [null, undefined, '', 'control', 'p59', 'plus_p49', 'P49']) {
+      expect(plusPriceOfferingId(other)).toBeNull();
+      expect(isPlusPriceVariant(other)).toBe(false);
+    }
+  });
+
+  it("gives each arm its own offering, even when another is RevenueCat's current one", () => {
+    const offerings = { current: all.default, all };
+    expect(selectOffering(offerings, 'p49')).toBe(all.plus_p49);
+    expect(selectOffering(offerings, 'p79')).toBe(all.plus_p79);
+    expect(selectOffering(offerings, 'p99')).toBe(all.plus_p99);
+  });
+
+  it('behaves as before for somebody outside the test', () => {
+    expect(selectOffering({ current: all.plus_p99, all }, null)).toBe(all.plus_p99);
+    expect(selectOffering({ current: null, all }, null)).toBe(all.default);
+    expect(selectOffering({ current: all.default, all }, 'control')).toBe(all.default);
+  });
+
+  it("falls back to current, then default, when the arm's offering is missing", () => {
+    const { plus_p79: _gone, ...rest } = all;
+    expect(selectOffering({ current: all.plus_p49, all: rest }, 'p79')).toBe(all.plus_p49);
+    expect(selectOffering({ current: null, all: rest }, 'p79')).toBe(all.default);
+    expect(selectOffering({ current: null, all: {} }, 'p79')).toBeNull();
+  });
+});
+
+describe('paywall presentation', () => {
+  const cards = [{ tier: PlanTier.Plus }, { tier: PlanTier.Pro }] as unknown as Parameters<
+    typeof chosenCard
+  >[0];
+
+  it('starts on Pro', () => {
+    expect(defaultSelectedTier()).toBe(PlanTier.Pro);
+  });
+  it('falls back to the last card when the selected tier has none', () => {
+    expect(chosenCard(cards, PlanTier.Plus)?.tier).toBe(PlanTier.Plus);
+    expect(chosenCard([cards[0]!], PlanTier.Pro)?.tier).toBe(PlanTier.Plus);
+    expect(chosenCard([], PlanTier.Pro)).toBeUndefined();
+  });
+  it('disables the button for the current plan, while buying and with no card', () => {
+    const pro = { tier: PlanTier.Pro as PaidTier };
+    expect(ctaState({ chosen: pro, current: PlanTier.Plus, purchasing: false })).toEqual({
+      kind: 'continue',
+      disabled: false,
+    });
+    expect(ctaState({ chosen: pro, current: PlanTier.Pro, purchasing: false })).toEqual({
+      kind: 'current',
+      disabled: true,
+    });
+    expect(ctaState({ chosen: pro, current: PlanTier.Free, purchasing: true })).toEqual({
+      kind: 'busy',
+      disabled: true,
+    });
+    expect(
+      ctaState({ chosen: undefined, current: PlanTier.Free, purchasing: false }).disabled,
+    ).toBe(true);
+  });
+  it('shows the upgrade hero except for Pro', () => {
+    expect(showUpgradeHero(PlanTier.Free)).toBe(true);
+    expect(showUpgradeHero(PlanTier.Plus)).toBe(true);
+    expect(showUpgradeHero(PlanTier.Pro)).toBe(false);
+  });
+  it('blames the network only when loading failed', () => {
+    expect(paywallEmptyReason(true)).toBe('network');
+    expect(paywallEmptyReason(false)).toBe('no-plans');
   });
 });

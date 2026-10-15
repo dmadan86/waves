@@ -2,6 +2,10 @@
 // renders, so relative time works app-wide. Side-effect import, must be first.
 import '@/lib/intlPolyfill';
 
+// Wraps `fetch` for the on-device network log (Settings → Privacy → Network
+// activity). Before anything that creates a client holding on to `fetch`.
+import '@/lib/netLogInstall';
+
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
@@ -64,6 +68,8 @@ import { RecentCountProvider } from '@/lib/recentCount';
 import { WatchBridgeProvider } from '@/lib/watch/bridge';
 import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
+import { PendingInviteResume } from '@/lib/PendingInviteResume';
+import { PendingReferralClaim } from '@/lib/PendingReferralClaim';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -73,6 +79,7 @@ import { ToastProvider } from '@/lib/toast';
 import { AppStatusProvider } from '@/lib/appStatus';
 import { StoreUpdateProvider } from '@/lib/storeUpdate';
 import { initClarity } from '@/lib/clarity';
+import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
@@ -103,6 +110,9 @@ initClarity();
 // Resume capture only for someone who opted in on a previous run; everyone
 // else stays paused where `initClarity` left them. Async, and it fails to off.
 void applyStoredSessionReplayConsent();
+
+// Counts this install once (first launch only). Fire-and-forget; see `lib/events`.
+trackInstallOnce();
 
 // Arriving while the app is open should still surface: a notification that is
 // silently swallowed because you happened to be looking at the app is the one
@@ -269,6 +279,13 @@ function RootLayout() {
                                       sheet; outside every gate because a signed-in screen
                                       can attempt a demo write at any point past them. */}
                                         <DemoGateHost />
+                                        {/* Renders nothing: it takes a person who opened an
+                                      invite before they had an account back to it once
+                                      they have one, and the join finishes there. */}
+                                        <PendingInviteResume />
+                                        {/* Renders nothing: claims a friend's referral code once
+                                      there is a real account to claim it for. */}
+                                        <PendingReferralClaim />
                                         {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
@@ -525,17 +542,21 @@ function AuthGate() {
   const paywallFlag = useFlagEnabled('paywall');
   const paywallEnabled = paywallFlag && purchasesAvailable();
 
-  // Cloud voice depends on the subscription, and its answer is cached for ten
-  // minutes. When RevenueCat reports a different plan (buy, restore, lapse),
-  // re-ask now and once more shortly after: the server learns of the change
-  // through the webhook, which can land after the app does.
+  // Cloud voice and the server's plan (scan limits, the plan badge) depend on
+  // the subscription, and both answers are cached for minutes. When RevenueCat
+  // reports a different plan (buy, restore, lapse), re-ask now and once more
+  // shortly after: the server learns of the change through the webhook, which
+  // can land after the app does.
   const queryClient = useQueryClient();
   const { tier } = useCustomerTier();
   const lastTier = useRef(tier);
   useEffect(() => {
     if (lastTier.current === tier) return;
     lastTier.current = tier;
-    const refresh = () => void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+      void queryClient.invalidateQueries({ queryKey: ['myPlan'] });
+    };
     refresh();
     const timer = setTimeout(refresh, 5000);
     return () => clearTimeout(timer);
@@ -698,6 +719,7 @@ function AuthGate() {
           // Not awaited: the tour is over the moment they say so, and a write
           // that fails costs them one repeat, not a stuck screen.
           void rememberOnboardingSeen(ownerId);
+          track('onboarding_completed');
           // One onboarding, not two: mark the coach tour seen as well so it does
           // not autostart on the Home screen the intro just handed them to.
           tour.finish();
@@ -812,6 +834,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/invite" options={slide} />
           <Stack.Screen name="group/[id]/itemize" options={slide} />
           <Stack.Screen name="group/[id]/export" options={slide} />
+          <Stack.Screen name="group/[id]/import" options={slide} />
           <Stack.Screen name="group/[id]/insights" />
           <Stack.Screen name="group/[id]/map" />
           <Stack.Screen name="group/[id]/month" />
@@ -854,6 +877,7 @@ function AuthGate() {
           <Stack.Screen name="settings/paying" />
           <Stack.Screen name="settings/upgrade" />
           <Stack.Screen name="settings/redeem" />
+          <Stack.Screen name="settings/invite" />
           <Stack.Screen name="settings/account" />
           <Stack.Screen name="settings/feedback" />
           <Stack.Screen name="settings/delete-account" />
@@ -872,7 +896,9 @@ function AuthGate() {
               signed in, never the language picker. */}
         <Stack.Screen name="language" />
         <Stack.Screen name="join" />
+        <Stack.Screen name="r/[code]" />
         <Stack.Screen name="settings/privacy" />
+        <Stack.Screen name="settings/network-activity" />
         <Stack.Screen name="settings/licenses" />
         {/* Dev-only screen, and deliberately still reachable after sign-out so
               the e2e suite can prove private local state was removed. */}
