@@ -12,7 +12,8 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 | Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers. No AI voice. |
 | Pro  | ₹99 / month | Everything in Plus, plus the advanced AI voice agent (150 commands/month).       |
 
-Annual plans and every other market's price are set **in the stores** later.
+Yearly plans are ₹429 (Plus, 27% off ₹588) and ₹849 (Pro, 29% off ₹1,188); US is $8.49 and $16.99
+(29% off). Every other market's price is set **in the stores**.
 The app never hardcodes a charged price: the paywall shows RevenueCat's
 `priceString`, which is the store's own localized price. Yearly cards and a
 Monthly/Yearly switch appear by themselves once the offering has yearly
@@ -97,8 +98,8 @@ Product ids are the same on both stores (`packages/core/src/billing/revenuecat.t
 ```
 waves_plus_monthly    ₹49
 waves_pro_monthly     ₹99
-waves_plus_yearly     later
-waves_pro_yearly      later
+waves_plus_yearly    ₹429  ($8.49)
+waves_pro_yearly     ₹849  ($16.99)
 ```
 
 **App Store Connect** → app → Monetization → Subscriptions:
@@ -108,8 +109,10 @@ waves_pro_yearly      later
    downgrade, not a second subscription.
 2. In the group, rank **Pro above Plus** (group level order: Pro monthly/yearly
    at level 1, Plus at level 2), so Plus → Pro is an immediate upgrade.
-3. Create `waves_plus_monthly` (1 month) and `waves_pro_monthly` (1 month).
-   Set India to ₹49 / ₹99; leave other storefronts to be set later.
+3. Create `waves_plus_monthly` (1 month) and `waves_pro_monthly` (1 month),
+   plus `waves_plus_yearly` and `waves_pro_yearly` (1 year). Set India to
+   ₹49 / ₹99 monthly and ₹429 / ₹849 yearly, USA to $0.99 / $1.99 monthly and
+   $8.49 / $16.99 yearly; equalize the other storefronts from the USA price.
 4. Fill in display names, descriptions and the review screenshot; submit them
    with the app version that ships this paywall.
 5. Agreements, Tax and Banking must be active (Paid Apps agreement).
@@ -119,7 +122,7 @@ waves_pro_yearly      later
 1. Create subscription `waves_plus_monthly` with one auto-renewing base plan
    (e.g. `monthly`, 1 month), India ₹49; activate it.
 2. Create `waves_pro_monthly` the same way at ₹99.
-3. Later: yearly base plans (`yearly`) or separate `*_yearly` products; the app
+3. Yearly base plans (`yearly`) on `waves_plus_yearly` / `waves_pro_yearly`: IN ₹429 / ₹849, US $8.49 / $16.99; the app
    picks them up from the offering with no release.
 4. Play needs an uploaded build with the billing library (any internal-testing
    build of this branch) before subscriptions can be created.
