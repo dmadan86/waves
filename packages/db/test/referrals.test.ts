@@ -261,11 +261,14 @@ describe('code and claim', () => {
     const referrer = await person();
     const friend = await person({ unverified: true });
     expect((await claim(friend, await myCode(referrer))).ok).toBe(true);
-    await client.query(`UPDATE referrals SET claimed_at = now() + interval '8 days' WHERE referee_id = $1`, [friend]);
-    await client.query(`UPDATE auth.users SET phone = $2, phone_confirmed_at = now() WHERE id = $1`, [
-      friend,
-      `9199${randomDigits(8)}`,
-    ]);
+    await client.query(
+      `UPDATE referrals SET claimed_at = now() + interval '8 days' WHERE referee_id = $1`,
+      [friend],
+    );
+    await client.query(
+      `UPDATE auth.users SET phone = $2, phone_confirmed_at = now() WHERE id = $1`,
+      [friend, `9199${randomDigits(8)}`],
+    );
     const other = await person();
     const g = await group([friend, other]);
     await expense(g.groupId, g.members[0]!);
