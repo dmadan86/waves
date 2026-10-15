@@ -267,6 +267,7 @@ export function SplitKindSegments({
           : t.expense.exactly;
   return (
     <Row
+      accessibilityRole="radiogroup"
       style={{
         padding: 4,
         gap: 2,
@@ -280,8 +281,8 @@ export function SplitKindSegments({
         return (
           <Pressable
             key={kind}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected, selected }}
             accessibilityLabel={labelOf(kind)}
             onPress={() => onChange(kind)}
             style={({ pressed }) => ({
