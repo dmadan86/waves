@@ -13,9 +13,9 @@ export function PrivacyBand({ t, locale }: { t: Dictionary['privacy']; locale: L
     <section id="security" aria-labelledby="security-title" className="scroll-mt-20 py-6 lg:py-8">
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <div className="privacy-card relative grid items-center gap-5 overflow-hidden rounded-[1.75rem] p-5 shadow-[var(--w-shadow-card)] sm:grid-cols-[auto_1fr] sm:gap-7 sm:p-6">
-          <div className="art-plate relative h-28 w-32 justify-self-start sm:h-32 sm:w-40">
+          <div className="art-plate relative h-[6.25rem] w-40 justify-self-start sm:h-[7.5rem] sm:w-48">
             <Image
-              src="/home/shield.webp"
+              src="/home/feature-shield.webp"
               alt={t.alt}
               fill
               sizes="10rem"

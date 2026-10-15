@@ -13,21 +13,7 @@ export function DownloadBanner({
   return (
     <section id="download" aria-labelledby="download-title" className="scroll-mt-20 py-6 lg:py-8">
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
-        <div className="banner-sky relative isolate overflow-hidden rounded-[1.75rem] px-6 py-7 sm:px-24 sm:py-9 lg:px-36">
-          <Image
-            src="/home/cta-left.webp"
-            alt=""
-            width={280}
-            height={404}
-            className="fade-to-end pointer-events-none absolute left-0 top-0 -z-10 h-full w-auto"
-          />
-          <Image
-            src="/home/cta-right.webp"
-            alt={t.alt}
-            width={664}
-            height={404}
-            className="fade-to-start pointer-events-none absolute right-0 top-0 -z-10 hidden h-full w-auto sm:block"
-          />
+        <div className="banner-sky relative isolate overflow-hidden rounded-[1.75rem] px-6 py-7 sm:px-10 sm:py-9 lg:px-14">
           <h2
             id="download-title"
             className="text-[1.5rem] font-bold tracking-[-0.02em] text-[#1c1830] sm:text-[1.8rem]"
@@ -36,6 +22,13 @@ export function DownloadBanner({
           </h2>
           <p className="mt-1.5 max-w-md text-[0.95rem] text-[#3b3652]">{t.subtitle}</p>
           <StoreBadges t={stores} className="mt-5" />
+          <Image
+            src="/home/cta.webp"
+            alt={t.alt}
+            width={470}
+            height={175}
+            className="pointer-events-none mt-5 ms-auto h-28 w-auto mix-blend-multiply sm:absolute sm:inset-y-0 sm:end-0 sm:-z-10 sm:mt-0 sm:h-full sm:[mask-image:linear-gradient(to_left,#000_70%,transparent_100%)] sm:rtl:[mask-image:linear-gradient(to_right,#000_70%,transparent_100%)]"
+          />
         </div>
       </div>
     </section>

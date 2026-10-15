@@ -7,7 +7,7 @@ const art = [
   '/home/moment-trips.webp',
   '/home/moment-dining.webp',
   '/home/moment-home.webp',
-  '/home/moment-finance.webp',
+  '/home/moment-personal.webp',
 ];
 
 export function Moments({ t }: { t: Dictionary['moments'] }) {
@@ -24,7 +24,7 @@ export function Moments({ t }: { t: Dictionary['moments'] }) {
               key={item.title}
               className="rounded-[1.4rem] bg-surface p-2.5 shadow-[var(--w-shadow-card)]"
             >
-              <div className="relative aspect-[144/84] overflow-hidden rounded-2xl">
+              <div className="relative aspect-[5/2] overflow-hidden rounded-2xl">
                 <Image
                   src={art[i]!}
                   alt={item.alt}

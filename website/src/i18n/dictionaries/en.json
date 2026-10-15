@@ -36,7 +36,12 @@
     "titleAccent": "together",
     "subtitle": "Waves helps you manage shared expenses with friends, family or anyone. Simple, beautiful and built for real life.",
     "trust": ["Free to get started", "No credit card required", "Works offline"],
-    "alt": "Friends sharing a meal at a table by a lake at sunset, with notifications such as Renny paid Dinner ₹1,200 floating above them"
+    "alt": "Friends sharing a meal at a table by a lake at sunset",
+    "chips": [
+      { "who": "Renny paid", "item": "Dinner", "amount": "₹1,200" },
+      { "who": "You paid", "item": "Villa stay", "amount": "₹8,400" },
+      { "who": "Gayathri paid", "item": "Scooter", "amount": "₹450" }
+    ]
   },
   "features": {
     "label": "What Waves does",

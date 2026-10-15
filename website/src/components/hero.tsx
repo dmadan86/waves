@@ -4,6 +4,12 @@ import type { Dictionary } from '@/i18n/dictionaries';
 import { Check } from './icons';
 import { StoreBadges } from './store-badges';
 
+const chipPos = [
+  'start-[4%] top-[2%] lg:start-[14%] lg:top-[16%]',
+  'end-[4%] top-[2%] lg:end-[5%] lg:top-[14%]',
+  'end-[1%] top-[30%] max-sm:hidden lg:end-[2%] lg:top-[34%]',
+];
+
 export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary['stores'] }) {
   return (
     <section className="relative isolate overflow-hidden">
@@ -31,16 +37,41 @@ export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary[
       </div>
 
       {/* One image for every width: below `lg` it follows the copy, above it
-          sits behind it and fades into the page on its inner and lower edges. */}
-      <div className="hero-art relative -z-10 mx-auto mt-2 aspect-[364/282] w-full max-w-xl lg:absolute lg:end-0 lg:top-0 lg:mt-0 lg:aspect-auto lg:h-full lg:w-[60%] lg:max-w-none">
-        <Image
-          src="/home/hero.webp"
-          alt={t.alt}
-          fill
-          priority
-          sizes="(min-width: 1024px) 60vw, 100vw"
-          className="object-cover object-left"
-        />
+          sits behind it and fades into the page on its inner and lower edges.
+          The payment chips are real text, laid over the scene (not inside the
+          masked layer, which would fade them). */}
+      <div className="relative -z-10 mx-auto mt-2 aspect-[943/490] w-full max-w-xl lg:absolute lg:end-0 lg:top-0 lg:mt-0 lg:aspect-auto lg:h-full lg:w-[60%] lg:max-w-none">
+        <div className="hero-art absolute inset-0">
+          <Image
+            src="/home/hero.webp"
+            alt={t.alt}
+            fill
+            priority
+            sizes="(min-width: 1024px) 60vw, 100vw"
+            className="object-cover object-[30%_center]"
+          />
+        </div>
+        <ul className="pointer-events-none absolute inset-0">
+          {t.chips.map((chip, i) => (
+            <li
+              key={chip.item}
+              className={`absolute flex items-center gap-2 rounded-xl bg-surface/95 px-2.5 py-1.5 shadow-[var(--w-shadow-md)] sm:gap-2.5 sm:px-3.5 sm:py-2.5 ${chipPos[i]}`}
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-accent/15 text-[0.62rem] font-bold text-accent sm:h-8 sm:w-8 sm:text-xs">
+                {chip.amount.slice(0, 1)}
+              </span>
+              <span className="leading-tight">
+                <span className="block text-[0.6rem] text-ink-3 sm:text-[0.7rem]">{chip.who}</span>
+                <span className="block text-[0.7rem] font-semibold text-ink sm:text-[0.82rem]">
+                  {chip.item}
+                </span>
+                <span className="block text-[0.66rem] text-ink-2 sm:text-[0.75rem]">
+                  {chip.amount}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

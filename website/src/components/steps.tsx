@@ -33,13 +33,13 @@ export function Steps({ t }: { t: Dictionary['how'] }) {
                     <p className="mt-1 text-[0.88rem] leading-snug text-ink-2">{step.body}</p>
                   </div>
                 </div>
-                <div className="art-plate relative mx-3 mb-3 aspect-[177/84] overflow-hidden rounded-2xl">
+                <div className="art-plate relative mx-3 mb-3 aspect-[7/4] overflow-hidden rounded-2xl">
                   <Image
                     src={art[i]!}
                     alt={step.alt}
                     fill
                     sizes="(min-width: 768px) 22rem, 90vw"
-                    className="art-blend object-cover"
+                    className="art-blend object-cover [mask-image:linear-gradient(to_right,transparent,#000_9%,#000_91%,transparent)]"
                   />
                 </div>
               </div>
