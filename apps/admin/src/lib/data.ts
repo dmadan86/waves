@@ -104,6 +104,41 @@ export interface DailyRow {
   active_profiles: number;
 }
 
+/** One row, as Postgres returns it: bigint counts arrive as numbers or strings, ratios as numeric. */
+export interface KpiRow {
+  installs: number | string;
+  registrations: number | string;
+  install_to_registration: number | string | null;
+  activation_cohort: number | string;
+  activated: number | string;
+  registration_to_activation: number | string | null;
+  d1_cohort: number | string;
+  d1_retained: number | string;
+  d1: number | string | null;
+  d7_cohort: number | string;
+  d7_retained: number | string;
+  d7: number | string | null;
+  d30_cohort: number | string;
+  d30_retained: number | string;
+  d30: number | string | null;
+  invites_sent: number | string;
+  invite_registrations: number | string;
+  invite_to_registration: number | string | null;
+}
+
+export interface RetentionCohortRow {
+  week_start: string;
+  size: number | string;
+  activation_eligible: number | string;
+  activated: number | string;
+  d1_eligible: number | string;
+  d1_retained: number | string;
+  d7_eligible: number | string;
+  d7_retained: number | string;
+  d30_eligible: number | string;
+  d30_retained: number | string;
+}
+
 export interface GeoRow {
   country_code: string | null;
   profile_count: number;
@@ -817,6 +852,11 @@ export async function upgradeUser(userId: string, days: number): Promise<string>
 }
 
 export const daily = (days = 30) => call<DailyRow>('waves_admin_daily', { p_days: days });
+/** The activation and retention row for signups in the last `days` days. */
+export const kpis = async (days = 30): Promise<KpiRow | null> =>
+  (await call<KpiRow>('waves_admin_kpis', { p_days: days }))[0] ?? null;
+export const retentionCohorts = (weeks = 8) =>
+  call<RetentionCohortRow>('waves_admin_retention_cohorts', { p_weeks: weeks });
 export const geo = () => call<GeoRow>('waves_admin_geo');
 export const money = () => call<MoneyRow>('waves_admin_money');
 export const aiCost = (days = 30) => call<AiCostRow>('waves_admin_ai_cost', { p_days: days });

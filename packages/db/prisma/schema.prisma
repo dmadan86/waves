@@ -203,6 +203,7 @@ model Profile {
   campaignImpressions CampaignImpression[]
   campaignEmailSends  CampaignEmailSend[]
   feedback            Feedback[]
+  appEvents           AppEvent[]
   purchasedPasses     GroupPass[]
   syncMutations       SyncMutation[]
   memberClaims        MemberClaim[]
@@ -1595,6 +1596,32 @@ model Feedback {
 
   @@index([createdAt(sort: Desc)], map: "feedback_recent_idx")
   @@map("feedback")
+  @@schema("public")
+}
+
+/// First-party product analytics: the few app steps the database cannot derive
+/// from its own rows. Written only through waves_track_event; no direct access
+/// for anon or authenticated. `props` holds short enum words and nothing else.
+/// One-install-per-install_id is a partial unique index (name = 'app_installed')
+/// that the datamodel cannot express.
+model AppEvent {
+  id         BigInt   @id @default(autoincrement())
+  installId  String   @map("install_id") @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  /// app_installed | signup_started | onboarding_completed | premium_viewed
+  name       String
+  /// ios | android | web
+  platform   String?
+  appVersion String?  @map("app_version")
+  props      Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([name, occurredAt])
+  @@index([profileId])
+  @@index([installId, occurredAt])
+  @@map("app_events")
   @@schema("public")
 }
 
