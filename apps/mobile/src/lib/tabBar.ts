@@ -20,6 +20,7 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'verify-email',
   'guest-welcome',
   'join',
+  'r',
   'language',
   'capture',
   'contact-picker',

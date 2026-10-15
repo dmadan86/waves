@@ -356,6 +356,23 @@ export interface PromoCodeRow {
 
 export const promoCodes = () => call<PromoCodeRow>('waves_admin_promo_codes');
 
+export interface ReferralRow {
+  id: string;
+  referrer_id: string;
+  referrer_name: string;
+  referee_id: string;
+  referee_name: string;
+  source: string;
+  status: string;
+  reject_reason: string | null;
+  claimed_at: string;
+  qualified_at: string | null;
+  referrer_days: number;
+  referee_days: number;
+}
+
+export const referrals = () => call<ReferralRow>('waves_admin_referrals', { p_limit: 100 });
+
 export async function createPromoCode(input: {
   code: string;
   days: number;

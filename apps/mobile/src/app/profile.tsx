@@ -32,6 +32,7 @@ import { useAuth } from '@/lib/auth';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
 import { router } from '@/lib/navigation';
+import { useReferralsLive } from '@/lib/useReferralsLive';
 import { r2Enabled } from '@/lib/storage';
 import { describeGrace, useLock } from '@/lib/lock';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';
@@ -163,6 +164,7 @@ function ProfileForm() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const referralsLive = useReferralsLive();
   const { session, profile, isGuest, signOut } = useAuth();
   const voiceAgentOn = useVoiceAgentEnabled();
   const showVoiceRecorder = voiceAgentOn || __DEV__;
@@ -339,6 +341,18 @@ function ProfileForm() {
               hint: t.account.upgradeHint,
               route: '/settings/upgrade',
             },
+            // Invite-and-earn only where Plus can be bought (the upgrade
+            // screen's `plansLive`): the reward is days of a plan.
+            ...(referralsLive && !isGuest
+              ? [
+                  {
+                    icon: 'gift-outline' as const,
+                    label: t.referral.row,
+                    hint: t.referral.rowHint,
+                    route: '/settings/invite' as const,
+                  },
+                ]
+              : []),
             // Only once storage is on R2 is there a per-user byte tally to meter;
             // before that the row would open a screen with nothing to show.
             ...(r2Enabled()

@@ -25,12 +25,13 @@
 /** `<Apple Team ID>.<bundle id>` — `ios.appleTeamId` and `ios.bundleIdentifier`. */
 export const APP_ID = 'JBAY4E524Q.app.wavs.mobile';
 
-/** The invite paths, and only those: the same four the Android intent filter claims. */
+/** The invite and referral paths, and only those: the same five the Android intent filter claims. */
 export const INVITE_COMPONENTS = [
   { '/': '/join', comment: 'Invite, token in the fragment or the query' },
   { '/': '/join/*', comment: 'Invite, the older path form' },
   { '/': '/g', comment: 'Short group invite' },
   { '/': '/g/*', comment: 'Short group invite with its code' },
+  { '/': '/r/*', comment: "A friend's referral link (the app remembers the code)" },
 ];
 
 export const runtime = 'nodejs';

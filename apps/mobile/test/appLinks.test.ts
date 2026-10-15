@@ -51,9 +51,11 @@ describe('Android App Links config', () => {
     expect(matcherFor('/join/')).toMatchObject({ pathPrefix: '/join/' });
     expect(matcherFor('/g')).toMatchObject({ path: '/g' });
     expect(matcherFor('/g/')).toMatchObject({ pathPrefix: '/g/' });
+    expect(matcherFor('/r/')).toMatchObject({ pathPrefix: '/r/' });
 
     expect(appLinkData).not.toContainEqual(expect.objectContaining({ pathPrefix: '/join' }));
     expect(appLinkData).not.toContainEqual(expect.objectContaining({ pathPrefix: '/g' }));
+    expect(appLinkData).not.toContainEqual(expect.objectContaining({ pathPrefix: '/r' }));
   });
 
   it('keeps every app link on the verified invite host', () => {

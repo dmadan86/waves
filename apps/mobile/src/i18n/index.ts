@@ -4452,6 +4452,36 @@ export interface UiStrings {
     couldNotRedeem: string;
   };
   /**
+   * Invite your friends: the personal link and what it has earned. A useful part
+   * of sharing expenses, not a game; days of Plus follow real use, never an
+   * install, a rating or a review.
+   */
+  referral: {
+    row: string;
+    rowHint: string;
+    title: string;
+    headline: string;
+    body: string;
+    youGet: string;
+    friendGets: string;
+    share: string;
+    shareMessage: string;
+    /** "{earned} of {cap} days earned" */
+    progress: string;
+    /** "... all {cap} days ..." */
+    capReached: string;
+    pending: PluralForms;
+    loadError: string;
+    haveCode: string;
+    apply: string;
+    applied: string;
+    unknownCode: string;
+    ownCode: string;
+    alreadyUsed: string;
+    notNew: string;
+    couldNotApply: string;
+  };
+  /**
    * Taking over a place somebody already holds in a group, and an admin
    * agreeing to it (ADR-006). Worded as a request throughout, because that is
    * what it now is: approving hands over every expense filed under that name.
@@ -8708,6 +8738,32 @@ const en: UiStrings = {
     exhausted: 'That code has been used as many times as it allows.',
     alreadyRedeemed: 'You have already used that one.',
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
+  },
+  referral: {
+    row: 'Invite your friends',
+    rowHint: 'Earn days of Plus together',
+    title: 'Invite your friends',
+    headline: 'Money is easier together.',
+    body: 'Share a group with friends and unlock a little more from Waves.',
+    youGet: 'You get 7 days of Plus. After your friend starts using Waves.',
+    friendGets: 'Your friend gets 7 days too. Try premium features together.',
+    share: 'Share invite link',
+    shareMessage: 'I use Waves to split expenses with friends. Join me:',
+    progress: '{earned} of {cap} days earned',
+    capReached: 'You have earned all {cap} days. Thank you!',
+    pending: {
+      one: '{n} friend has joined. Waiting for their first shared expense.',
+      other: '{n} friends have joined. Waiting for their first shared expense.',
+    },
+    loadError: 'Could not load your invite. Try again in a moment.',
+    haveCode: 'Got a code from a friend?',
+    apply: 'Apply',
+    applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
+    unknownCode: 'That code does not match anyone.',
+    ownCode: 'That is your own code.',
+    alreadyUsed: 'You have already used an invite.',
+    notNew: 'Codes only work for new accounts, within an hour of signing up.',
+    couldNotApply: 'Could not apply the code. Try again in a moment.',
   },
   timeline: {
     fullScreen: 'Full screen map',
@@ -13098,6 +13154,38 @@ const ta: UiStrings = {
     alreadyRedeemed: 'அதை நீங்கள் ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.',
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
   },
+  referral: {
+    row: 'நண்பர்களை அழையுங்கள்',
+    rowHint: 'சேர்ந்து Plus நாட்களைப் பெறுங்கள்',
+    title: 'நண்பர்களை அழையுங்கள்',
+    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
+    youGet:
+      'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும் — உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
+    friendGets:
+      'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும். பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
+    share: 'அழைப்புச் சுட்டியைப் பகிர்',
+    shareMessage:
+      'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
+    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
+    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    pending: {
+      one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+      other:
+        '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+    },
+    loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
+    haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
+    apply: 'பயன்படுத்து',
+    applied:
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+    unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
+    ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
+    alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
+    notNew:
+      'குறியீடுகள் புதிய கணக்குகளுக்கு, பதிவு செய்த ஒரு மணி நேரத்துக்குள் மட்டுமே வேலை செய்யும்.',
+    couldNotApply: 'குறியீட்டைப் பயன்படுத்த முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
+  },
   timeline: {
     fullScreen: 'முழுத்திரை வரைபடம்',
     exitFullScreen: 'முழுத்திரையிலிருந்து வெளியேறு',
@@ -17351,6 +17439,32 @@ const hi: UiStrings = {
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
     alreadyRedeemed: 'आप उसे पहले ही इस्तेमाल कर चुके हैं।',
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
+  },
+  referral: {
+    row: 'दोस्तों को आमंत्रित करें',
+    rowHint: 'साथ में Plus के दिन पाएँ',
+    title: 'दोस्तों को आमंत्रित करें',
+    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
+    youGet: 'आपको 7 दिन का Plus मिलेगा — आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
+    friendGets: 'आपके दोस्त को भी 7 दिन मिलेंगे। प्रीमियम फ़ीचर साथ में आज़माएँ।',
+    share: 'आमंत्रण लिंक शेयर करें',
+    shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
+    progress: '{cap} में से {earned} दिन मिल चुके हैं',
+    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    pending: {
+      one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+      other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+    },
+    loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    haveCode: 'किसी दोस्त से कोड मिला है?',
+    apply: 'लागू करें',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
+    unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
+    ownCode: 'यह आपका अपना कोड है।',
+    alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
+    notNew: 'कोड सिर्फ़ नए खातों पर, साइन अप के एक घंटे के भीतर काम करते हैं।',
+    couldNotApply: 'कोड लागू नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
   },
   timeline: {
     fullScreen: 'फ़ुल स्क्रीन मैप',
@@ -22161,6 +22275,36 @@ const ar: UiStrings = {
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
     alreadyRedeemed: 'لقد استخدمته من قبل.',
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
+  },
+  referral: {
+    row: 'ادعُ أصدقاءك',
+    rowHint: 'اكسبوا أيام Plus معًا',
+    title: 'ادعُ أصدقاءك',
+    headline: 'المال أسهل حين نتشاركه.',
+    body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
+    youGet: 'تحصل على 7 أيام من Plus — بعد أن يبدأ صديقك باستخدام Waves.',
+    friendGets: 'ويحصل صديقك على 7 أيام أيضًا. جرّبا الميزات المميزة معًا.',
+    share: 'شارك رابط الدعوة',
+    shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
+    progress: 'تم كسب {earned} من {cap} يومًا',
+    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    pending: {
+      zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
+      one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
+      two: 'انضم صديقان. ننتظر أول مصروف مشترك لهما.',
+      few: 'انضم {n} أصدقاء. ننتظر أول مصروف مشترك لهم.',
+      many: 'انضم {n} صديقًا. ننتظر أول مصروف مشترك لهم.',
+      other: 'انضم {n} صديق. ننتظر أول مصروف مشترك لهم.',
+    },
+    loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
+    haveCode: 'هل لديك رمز من صديق؟',
+    apply: 'تطبيق',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
+    unknownCode: 'هذا الرمز لا يطابق أي شخص.',
+    ownCode: 'هذا رمزك الخاص.',
+    alreadyUsed: 'لقد استخدمت دعوة من قبل.',
+    notNew: 'تعمل الرموز مع الحسابات الجديدة فقط، خلال ساعة من التسجيل.',
+    couldNotApply: 'تعذّر تطبيق الرمز. حاول مجددًا بعد قليل.',
   },
   timeline: {
     fullScreen: 'خريطة بملء الشاشة',

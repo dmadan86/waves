@@ -5,7 +5,7 @@ import { CsrfField } from '@/components/CsrfField';
 import { Icon } from '@/components/icons';
 import { Card, Empty, Field, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
 import { guardMutation } from '@/lib/csrf';
-import { createPromoCode, grantPromo, promoCodes } from '@/lib/data';
+import { createPromoCode, grantPromo, promoCodes, referrals } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default async function Promotions({
   searchParams: Promise<{ error?: string; done?: string }>;
 }) {
   const { error, done } = await searchParams;
-  const codes = await promoCodes();
+  const [codes, referralRows] = await Promise.all([promoCodes(), referrals()]);
 
   async function create(formData: FormData) {
     'use server';
@@ -160,6 +160,60 @@ export default async function Promotions({
                     <td className="n">{num(row.max_redemptions)}</td>
                     <td>{day(row.expires_at)}</td>
                     <td className="wrap">{row.note || <span className="muted">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
+
+      <h2 className="section">Referrals</h2>
+      <Lede>
+        Friends who joined through a personal link or a group invite. Both sides get 7 days of Plus
+        (30 per account at most) once the friend is verified and has recorded a real expense in a
+        group of two or more, granted as <code>store = &lsquo;promo&rsquo;</code> rows like the
+        above.
+      </Lede>
+      <Card bare>
+        {referralRows.length === 0 ? (
+          <Empty title="No referrals yet" migration="20261015140000_referral_rewards">
+            Nothing in <code>referrals</code>.
+          </Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">Referrals, newest first</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Referrer</th>
+                  <th scope="col">Friend</th>
+                  <th scope="col">Via</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Claimed</th>
+                  <th scope="col">Rewarded</th>
+                  <th scope="col" className="n">
+                    Days (referrer / friend)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {referralRows.map((row) => (
+                  <tr key={row.id}>
+                    <th scope="row">{row.referrer_name}</th>
+                    <td>{row.referee_name}</td>
+                    <td>{row.source === 'group_invite' ? 'Group invite' : 'Link'}</td>
+                    <td>
+                      {row.status}
+                      {row.reject_reason ? (
+                        <span className="muted"> ({row.reject_reason})</span>
+                      ) : null}
+                    </td>
+                    <td>{day(row.claimed_at)}</td>
+                    <td>{day(row.qualified_at)}</td>
+                    <td className="n">
+                      {num(row.referrer_days)} / {num(row.referee_days)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

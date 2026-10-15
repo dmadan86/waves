@@ -197,6 +197,9 @@ model Profile {
   usageEvents         UsageEvent[]
   subscriptions       Subscription[]
   promoRedemptions    PromoRedemption[]
+  referralCode        ReferralCode?
+  referralsMade       Referral[]        @relation("ReferralReferrer")
+  referralClaimed     Referral?         @relation("ReferralReferee")
   campaignImpressions CampaignImpression[]
   campaignEmailSends  CampaignEmailSend[]
   feedback            Feedback[]
@@ -1412,6 +1415,49 @@ model PromoCode {
   campaigns   Campaign[]
 
   @@map("promo_codes")
+  @@schema("public")
+}
+
+/// A person's personal invite code (https://wavs.co.in/r/<CODE>). Created
+/// lazily by `waves_my_referral`; read-only for the owner (RLS).
+model ReferralCode {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @unique(map: "referral_codes_profile_key") @map("profile_id") @db.Uuid
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, map: "referral_codes_profile_fkey")
+  referrals Referral[]
+
+  @@map("referral_codes")
+  @@schema("public")
+}
+
+/// One friend brought in by one person. Written only by the referral RPCs and
+/// triggers (SECURITY DEFINER); `status` moves claimed -> rewarded | rejected
+/// exactly once, when the friend is verified and has recorded a genuine expense
+/// in a group of two or more. Days granted are capped at 30 per account.
+model Referral {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId   String    @map("referrer_id") @db.Uuid
+  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code         String
+  source       String    @default("code")
+  status       String    @default("claimed")
+  rejectReason String?   @map("reject_reason")
+  claimedAt    DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
+  referrerDays Int       @default(0) @map("referrer_days")
+  refereeDays  Int       @default(0) @map("referee_days")
+  identityKeys String[]  @default([]) @map("identity_keys")
+
+  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
+  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
+  referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+
+  @@index([referrerId, status], map: "referrals_referrer_idx")
+  @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
+  @@map("referrals")
   @@schema("public")
 }
 

@@ -65,6 +65,7 @@ import { WatchBridgeProvider } from '@/lib/watch/bridge';
 import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShortcuts';
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
 import { PendingInviteResume } from '@/lib/PendingInviteResume';
+import { PendingReferralClaim } from '@/lib/PendingReferralClaim';
 import { TourProvider, useTour } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
@@ -278,6 +279,9 @@ function RootLayout() {
                                       invite before they had an account back to it once
                                       they have one, and the join finishes there. */}
                                         <PendingInviteResume />
+                                        {/* Renders nothing: claims a friend's referral code once
+                                      there is a real account to claim it for. */}
+                                        <PendingReferralClaim />
                                         {/* Outside the lock and the auth gate on purpose: a build
                             we have stopped trusting should not be unlocking a
                             ledger or signing anybody in either. */}
@@ -869,6 +873,7 @@ function AuthGate() {
           <Stack.Screen name="settings/paying" />
           <Stack.Screen name="settings/upgrade" />
           <Stack.Screen name="settings/redeem" />
+          <Stack.Screen name="settings/invite" />
           <Stack.Screen name="settings/account" />
           <Stack.Screen name="settings/feedback" />
           <Stack.Screen name="settings/delete-account" />
@@ -887,6 +892,7 @@ function AuthGate() {
               signed in, never the language picker. */}
         <Stack.Screen name="language" />
         <Stack.Screen name="join" />
+        <Stack.Screen name="r/[code]" />
         <Stack.Screen name="settings/privacy" />
         <Stack.Screen name="settings/licenses" />
         {/* Dev-only screen, and deliberately still reachable after sign-out so

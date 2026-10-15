@@ -1,6 +1,7 @@
 import { CategoryId } from '@waves/core';
 
 import { tokenFromScan } from '@/lib/inviteLink';
+import { referralCodeFromUrl } from '@/lib/referral';
 
 /**
  * Rewrite incoming native deep links before expo-router tries to match them.
@@ -49,6 +50,12 @@ export function redirectSystemPath({
     ) {
       return initial ? '/' : null;
     }
+    // A friend's referral link (`https://app.wavs.co.in/r/<CODE>` or
+    // `waves://r/<CODE>`): sent to the screen that remembers the code. A path
+    // that is not shaped like ours is left to fall through unchanged.
+    const referral = referralCodeFromUrl(path);
+    if (referral !== null) return `/r/${referral}`;
+
     // An invite, arriving as an App Link. The token is in the fragment
     // (`https://app.wavs.co.in/join#abc`), and a fragment is not a route: left
     // alone, expo-router matches `/join` with no params and the screen asks for
