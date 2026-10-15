@@ -18,8 +18,8 @@ describe('paywall voice copy', () => {
   });
 
   for (const [locale, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
-    it(`${locale}: the Plus tagline mentions 50 and the voice line takes a count`, () => {
-      expect(t.paywall.plusTagline).toContain('50');
+    it(`${locale}: the Plus tagline is short and the voice line carries the count`, () => {
+      expect(t.paywall.plusTagline).not.toContain('50');
       expect(t.paywall.featureVoice).toContain('{commands}');
       expect(fill(t.paywall.featureVoice, { commands: 50 })).toContain('50');
       expect(t.upgradeScreen.plansBody).toContain('50');
