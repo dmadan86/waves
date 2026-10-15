@@ -29,7 +29,7 @@
 -- (pro_trial_settings.voice_days), not 150 a month; Pro itself lasts 15 days. The
 -- pool is used by anyone with no paid plan (it does not stack with Free's 10), also
 -- after the Pro days end. When the 20 are spent there is nothing more until day 30;
--- after day 30 the person is on the normal Free rules. A paid plan (or referral Plus
+-- after day 30 the person is on Free's 10 a month. A paid plan (or referral Plus
 -- days) uses its own monthly allowance instead. Everything else in Pro is unlocked
 -- for the 15 days.
 --
@@ -249,8 +249,9 @@ END
 $$;
 
 -- 5. Voice: the trial's 20 commands, a 30-day pool ---------------------------
--- The gate (from 20261015210000_voice_agent_plus) also lets in a person whose
--- trial pool is usable and not spent, so the pool works after the Pro days end.
+-- The gate (from 20261015210000_voice_agent_plus): any signed-in, non-guest
+-- account may use cloud voice, within its tier's allowance (Free 10 a month; the
+-- trial's pool, Plus and Pro as before). Guests stay refused.
 CREATE OR REPLACE FUNCTION public.waves_voice_agent_enabled(p_profile uuid) RETURNS boolean
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -268,20 +269,8 @@ BEGIN
   IF NOT FOUND OR NOT v_flag.enabled THEN
     RETURN false;
   END IF;
-  IF NOT EXISTS (
-    SELECT 1
-      FROM public.subscriptions s
-     WHERE s.profile_id = p_profile
-       AND s.status IN ('active', 'grace')
-       AND s.tier IN ('plus', 'pro')
-       AND (s.current_period_end IS NULL OR s.current_period_end > now())
-  ) AND NOT (
-    public.waves_voice_trial_until(p_profile) IS NOT NULL
-    AND COALESCE((SELECT voice_used FROM public.pro_trials WHERE profile_id = p_profile), 0)
-        < COALESCE((SELECT voice_commands FROM public.pro_trial_settings WHERE id), 20)
-  ) THEN
-    RETURN false;
-  END IF;
+  -- Every non-guest account is let in (guests returned false above): Free gets
+  -- 10 commands a month, the trial pool 20 for 30 days, Plus 50, Pro 150.
   RETURN public.waves_bucket('voice_agent:' || p_profile::text) < v_flag.rollout_percent;
 END
 $$;

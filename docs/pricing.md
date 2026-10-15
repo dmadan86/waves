@@ -8,7 +8,7 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 
 | Tier | India price | What it adds                                                                                                   |
 | ---- | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export.                                 |
+| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month.    |
 | Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month). |
 | Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                         |
 
@@ -28,7 +28,8 @@ How the server reads the tiers (migration `20261008120000_revenuecat_webhook`):
 - `waves_my_plan()`: `tier` is `'plus'` for any paid row (the device cap and
   older apps read it as "paid"); the new `plan` key is `'plus'` or `'pro'`.
 - `waves_voice_agent_enabled`: an active or grace, unexpired `plus` or `pro` row
-  turns advanced voice on (free and guests stay off).
+  turns advanced voice on, and so does any signed-in (non-guest) account: Free gets
+  10 commands a month; guests stay off.
 - `waves_voice_agent_quota` / `waves_voice_stream_mint`: an active `pro` row gets
   150 commands (450 streams) a month, an active `plus` row 50 (150 streams),
   free 10 (30). Migration `20261015210000_voice_agent_plus`.
@@ -242,8 +243,9 @@ New accounts get **15 days of Pro free, no card needed**, granted by the server.
   Pro itself lasts 15. Anyone with no paid plan uses the pool, also after the Pro
   days end; it does not stack with Free's 10. Once the 20 are spent there is nothing
   more until day 30; after day 30 the normal Free rules apply ("first month 20,
-  then Free"). A paid plan (or referral Plus days) uses its own monthly allowance.
-  Cloud voice itself stays Plus/Pro/trial only, so Free has it only through the pool.
+  then 10 a month"). A paid plan (or referral Plus days) uses its own monthly allowance.
+  After day 30 Free's own 10 commands a month apply (cloud voice is on for every
+  non-guest account); a pool spent early gives nothing more until day 30.
 - **A purchase wins:** while a store purchase (or another Pro) is active the trial
   row is ignored. Referral Plus days start after the trial ends, as for any coverage.
 - **App:** the paywall shows "Pro trial · N days left" and "Keep Pro"; the dashboard

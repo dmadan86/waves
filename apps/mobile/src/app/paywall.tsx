@@ -690,44 +690,60 @@ function FreeCard() {
   return (
     <View
       style={{
-        flexDirection: 'row',
         backgroundColor: theme.color.surface,
         borderRadius: theme.radius.lg,
         paddingVertical: theme.spacing.md,
+        gap: theme.spacing.sm,
       }}
     >
-      {items.map((item, i) => (
-        <View
-          key={item.icon}
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            gap: 4,
-            paddingHorizontal: theme.spacing.xs,
-            borderStartWidth: i === 0 ? 0 : 1,
-            borderStartColor: theme.color.border,
-          }}
-        >
+      <View style={{ flexDirection: 'row' }}>
+        {items.map((item, i) => (
           <View
+            key={item.icon}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.tint[item.tint].bg,
+              flex: 1,
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 4,
+              paddingHorizontal: theme.spacing.xs,
+              borderStartWidth: i === 0 ? 0 : 1,
+              borderStartColor: theme.color.border,
             }}
           >
-            <Ionicons name={item.icon} size={20} color={theme.tint[item.tint].ink} />
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: theme.tint[item.tint].bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name={item.icon} size={20} color={theme.tint[item.tint].ink} />
+            </View>
+            <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
+              {item.label}
+            </Text>
+            <Text variant="micro" tone="muted" align="center">
+              {t.paywall.alwaysFree}
+            </Text>
           </View>
-          <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
-            {item.label}
-          </Text>
-          <Text variant="micro" tone="muted" align="center">
-            {t.paywall.alwaysFree}
-          </Text>
-        </View>
-      ))}
+        ))}
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.spacing.xs,
+          paddingHorizontal: theme.spacing.md,
+        }}
+      >
+        <Ionicons name="mic-outline" size={16} color={theme.tint.lilac.ink} />
+        <Text variant="caption" tone="muted" align="center">
+          {t.paywall.freeVoice}
+        </Text>
+      </View>
     </View>
   );
 }

@@ -341,27 +341,26 @@ describe('voice on the trial', () => {
     expect(await quota(id)).toMatchObject({ used: 1 });
   });
 
-  it('is on during the trial and off after it, and still refuses free users', async () => {
+  it('is on during the trial and after it (Free), and refuses guests', async () => {
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
     const enabled = async (p: string) =>
       (await client.query(`SELECT waves_voice_agent_enabled($1) AS e`, [p])).rows[0].e;
     const free = await person({ verifiedDaysAgo: 30 });
-    expect(await enabled(free)).toBe(false);
+    expect(await enabled(free)).toBe(true);
     expect(await quota(free)).toMatchObject({ tier: 'free', limit: 10 });
+    const guest = await person({ guest: true });
+    expect(await enabled(guest)).toBe(false);
     const id = await person();
     await grant(id);
     expect(await enabled(id)).toBe(true);
     // Day 20: Pro is over but the pool is open, so cloud voice is still on.
     await ageTrial(id, 20);
     expect(await enabled(id)).toBe(true);
-    // Spent: off. Day 31: off.
-    await client.query(`UPDATE pro_trials SET voice_used = 20 WHERE profile_id = $1`, [id]);
-    expect(await enabled(id)).toBe(false);
-    await client.query(`UPDATE pro_trials SET voice_used = 0 WHERE profile_id = $1`, [id]);
+    // Spent, or day 31: still let in as Free (its quota decides what is left).
     await ageTrial(id, 31);
-    expect(await enabled(id)).toBe(false);
+    expect(await enabled(id)).toBe(true);
   });
 
   it('keeps the pool usable on day 20, after the Pro days ended', async () => {
@@ -425,6 +424,41 @@ describe('voice on the trial', () => {
     await ageTrial(id, 31);
     const gone = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
     expect(gone.rows[0].m).toMatchObject({ budget: 30, tier: 'free', trial: false });
+  });
+});
+
+describe('Free voice: 10 commands a month', () => {
+  it('lets a verified Free account use 10 a month, then refuses', async () => {
+    const id = await person({ verifiedDaysAgo: 30 });
+    for (let i = 0; i < 10; i += 1) expect((await quota(id)).allowed).toBe(true);
+    expect(await quota(id)).toMatchObject({ used: 10, limit: 10, tier: 'free', allowed: false });
+  });
+
+  it('refuses a guest at the gate', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    const guest = await person({ guest: true });
+    const { rows } = await client.query(`SELECT waves_voice_agent_enabled($1) AS e`, [guest]);
+    expect(rows[0].e).toBe(false);
+  });
+
+  it('gives a trial user 10 again on month 2 after the pool ends, and nothing extra before', async () => {
+    const id = await person();
+    await grant(id);
+    // Pool spent on day 10: nothing more until day 30.
+    await ageTrial(id, 10);
+    await client.query(`UPDATE pro_trials SET voice_used = 20 WHERE profile_id = $1`, [id]);
+    expect(await quota(id)).toMatchObject({ trial: true, allowed: false });
+    // Day 31: Free's 10 a month, even though the pool was spent.
+    await ageTrial(id, 31);
+    for (let i = 0; i < 10; i += 1) expect((await quota(id)).allowed).toBe(true);
+    expect(await quota(id)).toMatchObject({ tier: 'free', limit: 10, allowed: false });
+    // And a new month starts a fresh 10.
+    await client.query(`UPDATE voice_agent_usage SET month = '2020-01' WHERE profile_id = $1`, [
+      id,
+    ]);
+    expect(await quota(id)).toMatchObject({ used: 1, limit: 10, allowed: true });
   });
 });
 

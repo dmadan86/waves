@@ -4445,6 +4445,7 @@ export interface UiStrings {
     freeGroups: string;
     freeExpenses: string;
     freeBalances: string;
+    freeVoice: string;
     alwaysFree: string;
     redeemTitle: string;
     redeemHint: string;
@@ -8820,6 +8821,7 @@ const en: UiStrings = {
     freeGroups: 'Groups & splits',
     freeExpenses: 'Add & manage expenses',
     freeBalances: 'View balances & settle up',
+    freeVoice: 'AI voice: 10 commands a month',
     alwaysFree: 'Always free',
     redeemTitle: 'Redeem a code',
     redeemHint: 'If somebody gave you one.',
@@ -13335,6 +13337,7 @@ const ta: UiStrings = {
     freeGroups: 'குழுக்கள் & பிரிப்பு',
     freeExpenses: 'செலவுகளைச் சேர்த்து நிர்வகிக்க',
     freeBalances: 'இருப்புகளைப் பார்த்து தீர்க்க',
+    freeVoice: 'AI குரல்: மாதம் 10 கட்டளைகள்',
     alwaysFree: 'எப்போதும் இலவசம்',
     redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
     redeemHint: 'யாராவது கொடுத்திருந்தால்.',
@@ -17726,6 +17729,7 @@ const hi: UiStrings = {
     freeGroups: 'ग्रुप और बँटवारा',
     freeExpenses: 'खर्चे जोड़ें और सँभालें',
     freeBalances: 'बैलेंस देखें और हिसाब चुकाएँ',
+    freeVoice: 'AI वॉइस: हर महीने 10 कमांड',
     alwaysFree: 'हमेशा मुफ़्त',
     redeemTitle: 'कोड इस्तेमाल करें',
     redeemHint: 'अगर किसी ने आपको दिया हो।',
@@ -22678,6 +22682,7 @@ const ar: UiStrings = {
     freeGroups: 'المجموعات والتقسيم',
     freeExpenses: 'إضافة المصروفات وإدارتها',
     freeBalances: 'عرض الأرصدة والتسوية',
+    freeVoice: 'الصوت الذكي: 10 أوامر شهريًا',
     alwaysFree: 'مجاني دائمًا',
     redeemTitle: 'استخدام رمز',
     redeemHint: 'إذا أعطاك أحدهم واحدًا.',

@@ -28,6 +28,14 @@ describe('paywall voice copy', () => {
   }
 });
 
+describe('Free voice copy', () => {
+  for (const [locale, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
+    it(`${locale}: "What stays free?" lists the 10 monthly AI voice commands`, () => {
+      expect(t.paywall.freeVoice).toContain('10');
+    });
+  }
+});
+
 describe('Pro trial copy', () => {
   for (const [locale, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
     it(`${locale}: days left in the badge and the menu row, commands left in the voice screen`, () => {

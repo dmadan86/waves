@@ -178,18 +178,19 @@ describe('waves_voice_agent_enabled', () => {
     expect(await enabled(b)).toBe(false);
   });
 
-  it('is off for free even at full rollout, on for Plus and Pro', async () => {
+  it('is on for free, Plus and Pro alike at full rollout (Free has 10 a month)', async () => {
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
-    expect(await enabled(a)).toBe(false);
+    expect(await enabled(a)).toBe(true);
+    expect(await reserve(a, 10, 150, 50)).toMatchObject({ tier: 'free', limit: 10, allowed: true });
     await subscribe(a, 'plus');
     expect(await enabled(a)).toBe(true);
     await subscribe(b, 'pro');
     expect(await enabled(b)).toBe(true);
   });
 
-  it('counts a Plus in grace, but not a lapsed Plus', async () => {
+  it('counts a Plus in grace; a lapsed Plus is Free, which is let in too', async () => {
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
@@ -200,7 +201,7 @@ describe('waves_voice_agent_enabled', () => {
       `UPDATE subscriptions SET current_period_end = now() - interval '1 day' WHERE profile_id = $1`,
       [a],
     );
-    expect(await enabled(a)).toBe(false);
+    expect(await enabled(a)).toBe(true);
   });
 
   it('counts a promo Pro grant, and not a lapsed or cancelled Pro', async () => {
@@ -213,12 +214,14 @@ describe('waves_voice_agent_enabled', () => {
        VALUES ($1, 'pro', 'monthly', 'cancelled', now() + interval '30 days', 'appstore')`,
       [a],
     );
-    expect(await enabled(a)).toBe(false);
+    // A lapsed or cancelled Pro is simply Free now, which is let in too.
+    expect(await enabled(a)).toBe(true);
+    expect((await reserve(a)).tier).toBe('free');
     await subscribe(b, 'pro', 'promo', 'NULL');
     expect(await enabled(b)).toBe(true);
   });
 
-  it('counts a Pro in grace, but not past its expiry', async () => {
+  it('counts a Pro in grace; past its expiry it is Free, which is let in too', async () => {
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
@@ -229,7 +232,7 @@ describe('waves_voice_agent_enabled', () => {
       `UPDATE subscriptions SET current_period_end = now() - interval '1 day' WHERE profile_id = $1`,
       [b],
     );
-    expect(await enabled(b)).toBe(false);
+    expect(await enabled(b)).toBe(true);
   });
 
   it('keeps the kill switch above a subscription', async () => {
