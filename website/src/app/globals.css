@@ -408,6 +408,12 @@
       color-mix(in srgb, var(--w-accent) 8%, var(--w-surface));
   }
 
+  .agents-card {
+    background:
+      radial-gradient(circle at 100% 0%, rgb(154 128 249 / 0.22), transparent 55%),
+      color-mix(in srgb, var(--w-accent) 7%, var(--w-surface));
+  }
+
   .banner-sky {
     background: linear-gradient(100deg, #f9e7df 0%, #f6d9e6 38%, #ddd2f7 100%);
   }

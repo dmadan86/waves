@@ -14,6 +14,7 @@ type Nav = {
   features: string;
   how: string;
   security: string;
+  agents: string;
   pricing: string;
   faq: string;
   openApp: string;
@@ -77,6 +78,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
     { href: '#features', label: nav.features },
     { href: '#how', label: nav.how },
     { href: '#security', label: nav.security },
+    { href: '#agents', label: nav.agents },
     { href: '#pricing', label: nav.pricing },
     { href: '#faq', label: nav.faq },
   ];

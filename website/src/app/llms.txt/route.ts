@@ -1,5 +1,6 @@
 import { locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
+import { mcpEndpoint } from '@/lib/mcp-tools';
 import { absoluteUrl, site } from '@/lib/site';
 
 export const dynamic = 'force-static';
@@ -25,7 +26,8 @@ export async function GET() {
     `- [Home, as Markdown](${absoluteUrl('/en/index.md')}): the full landing page in prose.`,
     `- [Privacy](${absoluteUrl('/en/privacy')}): what is held, what is not, and what this does not protect against.`,
     `- [Terms](${absoluteUrl('/en/terms')})`,
-    `- [Connect an AI agent](${absoluteUrl('/en/mcp')}): Waves speaks MCP — what an agent may do with your ledger, and what it can never do.`,
+    `- [Connect an AI agent](${absoluteUrl('/en/mcp')}): Waves speaks MCP — setup for Claude, ChatGPT, Cursor and VS Code, every tool, what an agent may do with your ledger, and what it can never do.`,
+    `- [MCP server](${mcpEndpoint(site.appUrl)}): remote MCP endpoint over streamable HTTP, OAuth sign-in.`,
     `- [Web app](${site.appUrl})`,
     '',
     '## Languages',
