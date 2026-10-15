@@ -126,6 +126,13 @@ describe('purposeFor', () => {
     expect(purposeFor(host, path)).toBe(purpose);
   });
 
+  it('does not file a lookalike host under a known service', () => {
+    expect(purposeFor('evilsentry.io', '/x')).toBe('other');
+    expect(purposeFor('notgoogleapis.com', '/x')).toBe('other');
+    expect(purposeFor('o1.ingest.sentry.io', '/api/1/envelope/')).toBe('crash-reports');
+    expect(purposeFor('firebaseinstallations.googleapis.com', '/v1/x')).toBe('google');
+  });
+
   it('ignores a port, and recognises a configured map provider', () => {
     expect(purposeFor('abc.supabase.co:443', '/rest/v1/x')).toBe('sync');
     expect(purposeFor('tiles.example.com', '/1/2/3.png')).toBe('other');

@@ -153,6 +153,11 @@ function functionPurpose(name: string): NetPurpose {
   }
 }
 
+/** `host` is `domain` itself or one of its subdomains — never a lookalike such as `evilsentry.io`. */
+function isUnder(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
 /**
  * File a connection under a purpose, from where it went. `extra.mapHosts` lets
  * a build that points the map tiles at its own provider say so.
@@ -165,14 +170,14 @@ export function purposeFor(
   const h = host.replace(/:\d+$/, '').toLowerCase();
   const p = path.startsWith('/') ? path : `/${path}`;
 
-  if (h === 'api.revenuecat.com' || h.endsWith('.revenuecat.com')) return 'purchases';
-  if (h.endsWith('sentry.io') || h.startsWith('ingest.') || h.includes('.ingest.')) {
+  if (isUnder(h, 'revenuecat.com')) return 'purchases';
+  if (isUnder(h, 'sentry.io') || h.startsWith('ingest.') || h.includes('.ingest.')) {
     return 'crash-reports';
   }
-  if (h === 'clarity.ms' || h.endsWith('.clarity.ms')) return 'session-replay';
-  if (h.endsWith('cloudflarestorage.com')) return 'files';
+  if (isUnder(h, 'clarity.ms')) return 'session-replay';
+  if (isUnder(h, 'cloudflarestorage.com')) return 'files';
   if (
-    h.endsWith('openstreetmap.org') ||
+    isUnder(h, 'openstreetmap.org') ||
     h === 'maps.googleapis.com' ||
     h === 'maps.gstatic.com' ||
     (extra.mapHosts ?? []).some((m) => m.toLowerCase() === h)
@@ -180,14 +185,14 @@ export function purposeFor(
     return 'maps';
   }
   if (
-    h.endsWith('googleapis.com') ||
-    h.endsWith('firebaseio.com') ||
-    h.endsWith('firebaseapp.com') ||
-    h.endsWith('firebase.com') ||
-    h.endsWith('firebaseinstallations.googleapis.com') ||
-    h === 'google.com' ||
-    h.endsWith('.google.com') ||
-    h.endsWith('gstatic.com')
+    [
+      'googleapis.com',
+      'firebaseio.com',
+      'firebaseapp.com',
+      'firebase.com',
+      'google.com',
+      'gstatic.com',
+    ].some((domain) => isUnder(h, domain))
   ) {
     return 'google';
   }
