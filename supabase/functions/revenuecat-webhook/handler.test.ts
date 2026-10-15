@@ -353,6 +353,14 @@ describe('REVENUECAT_IGNORE_SANDBOX', () => {
   );
 });
 
+describe('the event id', () => {
+  it('is trimmed before it is used, so a padded id is stored without the padding', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(request(rcEvent('RENEWAL', { id: '  evt-padded  ' })), deps);
+    expect(rpc.mock.calls[0]![1]).toMatchObject({ p_event_id: 'evt-padded' });
+  });
+});
+
 describe('ordering and delivery', () => {
   /** A fake database that applies the SQL's rule: an older event never overwrites a newer one. */
   function orderedDb() {
@@ -451,7 +459,15 @@ describe('ordering and delivery', () => {
 
   it('answers 400 for a body that is not an event, so RevenueCat sees the mistake', async () => {
     const { deps, rpc } = makeDeps();
-    for (const body of [{ event: 'nope' }, { event: { id: 7 } }, { event: { id: '' } }, null, []]) {
+    for (const body of [
+      { event: 'nope' },
+      { event: { id: 7 } },
+      { event: { id: '' } },
+      { event: { id: '   ' } },
+      { event: { id: '\t\n' } },
+      null,
+      [],
+    ]) {
       await expect(handleRevenueCatWebhook(request(body), deps)).rejects.toMatchObject({
         status: 400,
       });
