@@ -9,6 +9,11 @@ import { describe, expect, it } from 'vitest';
 import { PlanTier } from '@waves/core';
 
 import {
+  chosenCard,
+  ctaState,
+  defaultSelectedTier,
+  paywallEmptyReason,
+  showUpgradeHero,
   activeProductId,
   isPlusPriceVariant,
   plusPriceOfferingId,
@@ -22,6 +27,7 @@ import {
   yearlySavingsPercent,
   type OfferingLike,
   type PackageLike,
+  type PaidTier,
 } from '../src/lib/pricing';
 
 function pkg(
@@ -192,5 +198,47 @@ describe('the Plus price test', () => {
     expect(selectOffering({ current: all.plus_p49, all: rest }, 'p79')).toBe(all.plus_p49);
     expect(selectOffering({ current: null, all: rest }, 'p79')).toBe(all.default);
     expect(selectOffering({ current: null, all: {} }, 'p79')).toBeNull();
+  });
+});
+
+describe('paywall presentation', () => {
+  const cards = [{ tier: PlanTier.Plus }, { tier: PlanTier.Pro }] as unknown as Parameters<
+    typeof chosenCard
+  >[0];
+
+  it('starts on Pro', () => {
+    expect(defaultSelectedTier()).toBe(PlanTier.Pro);
+  });
+  it('falls back to the last card when the selected tier has none', () => {
+    expect(chosenCard(cards, PlanTier.Plus)?.tier).toBe(PlanTier.Plus);
+    expect(chosenCard([cards[0]!], PlanTier.Pro)?.tier).toBe(PlanTier.Plus);
+    expect(chosenCard([], PlanTier.Pro)).toBeUndefined();
+  });
+  it('disables the button for the current plan, while buying and with no card', () => {
+    const pro = { tier: PlanTier.Pro as PaidTier };
+    expect(ctaState({ chosen: pro, current: PlanTier.Plus, purchasing: false })).toEqual({
+      kind: 'continue',
+      disabled: false,
+    });
+    expect(ctaState({ chosen: pro, current: PlanTier.Pro, purchasing: false })).toEqual({
+      kind: 'current',
+      disabled: true,
+    });
+    expect(ctaState({ chosen: pro, current: PlanTier.Free, purchasing: true })).toEqual({
+      kind: 'busy',
+      disabled: true,
+    });
+    expect(
+      ctaState({ chosen: undefined, current: PlanTier.Free, purchasing: false }).disabled,
+    ).toBe(true);
+  });
+  it('shows the upgrade hero except for Pro', () => {
+    expect(showUpgradeHero(PlanTier.Free)).toBe(true);
+    expect(showUpgradeHero(PlanTier.Plus)).toBe(true);
+    expect(showUpgradeHero(PlanTier.Pro)).toBe(false);
+  });
+  it('blames the network only when loading failed', () => {
+    expect(paywallEmptyReason(true)).toBe('network');
+    expect(paywallEmptyReason(false)).toBe('no-plans');
   });
 });
