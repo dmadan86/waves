@@ -63,7 +63,7 @@ async function person(ageDays = 30): Promise<string> {
   return id;
 }
 
-const grant = async (profile: string, kind = 'voice', tx = randomUUID(), unit = '123') =>
+const grant = async (profile: string, kind = 'voice', tx: string = randomUUID(), unit = '123') =>
   (
     await client.query(`SELECT public.waves_ads_grant($1, $2, $3, $4) AS g`, [
       profile,
