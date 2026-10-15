@@ -195,3 +195,283 @@ describe('idempotency', () => {
     expect(await response.json()).toEqual({ ok: true, outcome: 'unknown_profile' });
   });
 });
+
+describe('the Authorization header, more closely', () => {
+  it.each([
+    ['a Bearer prefix in any case', 'bearer rc-webhook-secret-123', 200],
+    ['surrounding whitespace', `  ${SECRET}  `, 200],
+    ['a different scheme', `Basic ${SECRET}`, 401],
+    ['the secret with something appended', `${SECRET}x`, 401],
+    ['a prefix of the secret', SECRET.slice(0, -1), 401],
+    ['the right secret in the wrong case', SECRET.toUpperCase(), 401],
+    ['an empty header', '', 401],
+    ['Bearer with nothing after it', 'Bearer ', 401],
+  ])('%s', async (_name, header, status) => {
+    const { deps, rpc } = makeDeps();
+    const run = handleRevenueCatWebhook(request(rcEvent('RENEWAL'), header), deps);
+    if (status === 200) {
+      expect((await run).status).toBe(200);
+      expect(rpc).toHaveBeenCalledTimes(1);
+    } else {
+      await expect(run).rejects.toMatchObject({ status: 401, code: 'NOT_AUTHORIZED' });
+      expect(rpc).not.toHaveBeenCalled();
+    }
+  });
+
+  it('answers 401 before it looks at the body, so a bad caller learns nothing about the format', async () => {
+    const { deps, rpc } = makeDeps();
+    await expect(
+      handleRevenueCatWebhook(request('{not json', 'wrong'), deps),
+    ).rejects.toMatchObject({ status: 401 });
+    await expect(handleRevenueCatWebhook(request({}, null), deps)).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses a missing or wrong header for every event type, TEST included', async () => {
+    const { deps, rpc } = makeDeps();
+    for (const type of [...EVENT_TYPES, 'TEST', 'TRANSFER', 'SUBSCRIPTION_PAUSED']) {
+      await expect(
+        handleRevenueCatWebhook(request(rcEvent(type), 'nope'), deps),
+      ).rejects.toMatchObject({ status: 401 });
+    }
+    expect(rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe('product changes and the rest of the lifecycle', () => {
+  const sent = async (type: string, over: Record<string, unknown> = {}) => {
+    const { deps, rpc } = makeDeps();
+    const response = await handleRevenueCatWebhook(request(rcEvent(type, over)), deps);
+    return { response, args: rpc.mock.calls[0]![1] as { p_action: Record<string, unknown> } };
+  };
+
+  it('PRODUCT_CHANGE from Plus to Pro writes the Pro tier now', async () => {
+    const { args } = await sent('PRODUCT_CHANGE', {
+      product_id: 'waves_plus_monthly',
+      entitlement_ids: ['plus'],
+      new_product_id: 'waves_pro_monthly',
+    });
+    expect(args.p_action).toMatchObject({ kind: 'upsert', tier: 'pro', status: 'active' });
+  });
+
+  it('PRODUCT_CHANGE from Pro to Plus keeps Pro until the renewal', async () => {
+    const { args } = await sent('PRODUCT_CHANGE', {
+      product_id: 'waves_pro_monthly',
+      entitlement_ids: ['pro'],
+      new_product_id: 'waves_plus_monthly',
+    });
+    expect(args.p_action).toMatchObject({ kind: 'upsert', tier: 'pro', status: 'active' });
+  });
+
+  it('CANCELLATION stays active until the period ends; UNCANCELLATION reverses it', async () => {
+    const cancel = await sent('CANCELLATION', { cancel_reason: 'UNSUBSCRIBE' });
+    expect(cancel.args.p_action).toMatchObject({
+      status: 'active',
+      current_period_end: new Date(1_792_600_000_000).toISOString(),
+    });
+    const back = await sent('UNCANCELLATION');
+    expect(back.args.p_action).toMatchObject({ status: 'active' });
+  });
+
+  it('SUBSCRIPTION_PAUSED is acknowledged and recorded but writes nothing', async () => {
+    const { response, args } = await sent('SUBSCRIPTION_PAUSED');
+    expect(await response.json()).toEqual({ ok: true, outcome: 'ignored' });
+    expect(args.p_action).toMatchObject({ kind: 'ignore' });
+  });
+
+  it('a product that is not Plus or Pro is acknowledged and recorded, not retried', async () => {
+    const { response, args } = await sent('INITIAL_PURCHASE', {
+      product_id: 'monthly',
+      entitlement_ids: [],
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, outcome: 'ignored' });
+    expect(args.p_action).toMatchObject({ kind: 'ignore' });
+  });
+
+  it('an unsupported store is acknowledged and recorded', async () => {
+    const { response, args } = await sent('INITIAL_PURCHASE', { store: 'STRIPE' });
+    expect(await response.json()).toEqual({ ok: true, outcome: 'ignored' });
+    expect(args.p_action).toMatchObject({ kind: 'ignore' });
+  });
+});
+
+describe('each store', () => {
+  it.each([
+    ['APP_STORE', 'appstore'],
+    ['PLAY_STORE', 'play'],
+    ['TEST_STORE', 'test'],
+  ])('%s is written as %s', async (store, expected) => {
+    const { deps, rpc } = makeDeps();
+    const response = await handleRevenueCatWebhook(
+      request(rcEvent('INITIAL_PURCHASE', { store })),
+      deps,
+    );
+    expect(await response.json()).toEqual({ ok: true, outcome: 'applied' });
+    expect(rpc.mock.calls[0]![1]).toMatchObject({ p_action: { kind: 'upsert', store: expected } });
+  });
+});
+
+describe('REVENUECAT_IGNORE_SANDBOX', () => {
+  const withSetting = (value: string | undefined) =>
+    makeDeps({ REVENUECAT_WEBHOOK_SECRET: SECRET, REVENUECAT_IGNORE_SANDBOX: value });
+  const run = async (value: string | undefined, over: Record<string, unknown>) => {
+    const { deps, rpc } = withSetting(value);
+    const response = await handleRevenueCatWebhook(
+      request(rcEvent('INITIAL_PURCHASE', over)),
+      deps,
+    );
+    return { outcome: (await response.json()).outcome as string, rpc };
+  };
+
+  it('on: sandbox and Test Store events are acknowledged but not written', async () => {
+    for (const over of [
+      { environment: 'SANDBOX' },
+      { store: 'TEST_STORE', environment: 'PRODUCTION' },
+      { store: 'TEST_STORE', environment: 'SANDBOX' },
+    ]) {
+      const { outcome, rpc } = await run('true', over);
+      expect(outcome).toBe('ignored');
+      expect(rpc.mock.calls[0]![1]).toMatchObject({
+        p_action: { kind: 'ignore', reason: 'sandbox' },
+      });
+    }
+  });
+
+  it('on: a production purchase on a real store is still written', async () => {
+    expect((await run('true', { environment: 'PRODUCTION' })).outcome).toBe('applied');
+  });
+
+  it.each([undefined, 'false', '', '1', 'TRUE'])(
+    '%j: sandbox events are written',
+    async (value) => {
+      expect((await run(value, { environment: 'SANDBOX' })).outcome).toBe('applied');
+      expect((await run(value, { store: 'TEST_STORE' })).outcome).toBe('applied');
+    },
+  );
+});
+
+describe('the event id', () => {
+  it('is trimmed before it is used, so a padded id is stored without the padding', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(request(rcEvent('RENEWAL', { id: '  evt-padded  ' })), deps);
+    expect(rpc.mock.calls[0]![1]).toMatchObject({ p_event_id: 'evt-padded' });
+  });
+});
+
+describe('ordering and delivery', () => {
+  /** A fake database that applies the SQL's rule: an older event never overwrites a newer one. */
+  function orderedDb() {
+    const seen = new Set<string>();
+    const rows = new Map<string, { at: number; status: string }>();
+    const rpc = vi.fn(async (_name: string, args: Record<string, unknown>) => {
+      const id = args.p_event_id as string;
+      if (seen.has(id)) return { data: 'duplicate', error: null };
+      seen.add(id);
+      const action = args.p_action as { kind: string; store_txn_id?: string; status?: string };
+      if (action.kind !== 'upsert') return { data: 'ignored', error: null };
+      const at = Date.parse(args.p_event_at as string);
+      const row = rows.get(action.store_txn_id!);
+      if (row && row.at > at) return { data: 'stale', error: null };
+      rows.set(action.store_txn_id!, { at, status: action.status! });
+      return { data: 'applied', error: null };
+    });
+    const deps: Deps = { env: (n) => ({ REVENUECAT_WEBHOOK_SECRET: SECRET })[n], service: { rpc } };
+    return { deps, rpc, rows };
+  }
+
+  it('hands the database each event’s own timestamp as p_event_at', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(rcEvent('RENEWAL', { event_timestamp_ms: 1_791_000_000_000 })),
+      deps,
+    );
+    expect(rpc.mock.calls[0]![1]).toMatchObject({
+      p_event_at: new Date(1_791_000_000_000).toISOString(),
+    });
+  });
+
+  it('sends a null p_event_at for an event with no timestamp, rather than inventing one', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(rcEvent('RENEWAL', { event_timestamp_ms: undefined })),
+      deps,
+    );
+    expect(rpc.mock.calls[0]![1]).toMatchObject({ p_event_at: null });
+  });
+
+  it('an older event delivered after a newer one is acknowledged as stale and changes nothing', async () => {
+    const { deps, rows } = orderedDb();
+    const t = 1_791_000_000_000;
+    const expiry = rcEvent('EXPIRATION', { id: 'evt-late-1', event_timestamp_ms: t });
+    const renewal = rcEvent('RENEWAL', { id: 'evt-late-0', event_timestamp_ms: t - 86_400_000 });
+    const first = await handleRevenueCatWebhook(request(expiry), deps);
+    const second = await handleRevenueCatWebhook(request(renewal), deps);
+    expect(await first.json()).toEqual({ ok: true, outcome: 'applied' });
+    // 200, so RevenueCat stops retrying something that can never apply.
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual({ ok: true, outcome: 'stale' });
+    expect([...rows.values()]).toEqual([{ at: t, status: 'expired' }]);
+  });
+
+  it('delivered in order, each event applies and the last one stands', async () => {
+    const { deps, rows } = orderedDb();
+    const t = 1_791_000_000_000;
+    const steps = [
+      ['INITIAL_PURCHASE', 0],
+      ['BILLING_ISSUE', 1],
+      ['RENEWAL', 2],
+      ['CANCELLATION', 3],
+      ['EXPIRATION', 4],
+    ] as const;
+    for (const [type, day] of steps) {
+      const response = await handleRevenueCatWebhook(
+        request(rcEvent(type, { id: `evt-${type}`, event_timestamp_ms: t + day * 86_400_000 })),
+        deps,
+      );
+      expect((await response.json()).outcome).toBe('applied');
+    }
+    expect([...rows.values()]).toEqual([{ at: t + 4 * 86_400_000, status: 'expired' }]);
+  });
+
+  it('the same event delivered twice at once is one write', async () => {
+    const { deps, rpc } = makeDeps();
+    const [a, b] = await Promise.all([
+      handleRevenueCatWebhook(request(rcEvent('RENEWAL')), deps),
+      handleRevenueCatWebhook(request(rcEvent('RENEWAL')), deps),
+    ]);
+    const outcomes = [(await a.json()).outcome, (await b.json()).outcome].sort();
+    expect(outcomes).toEqual(['applied', 'duplicate']);
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it('a replay is a duplicate whatever the second body says', async () => {
+    const { deps } = makeDeps();
+    await handleRevenueCatWebhook(request(rcEvent('INITIAL_PURCHASE', { id: 'same' })), deps);
+    const again = await handleRevenueCatWebhook(
+      request(rcEvent('EXPIRATION', { id: 'same' })),
+      deps,
+    );
+    expect(await again.json()).toEqual({ ok: true, outcome: 'duplicate' });
+  });
+
+  it('answers 400 for a body that is not an event, so RevenueCat sees the mistake', async () => {
+    const { deps, rpc } = makeDeps();
+    for (const body of [
+      { event: 'nope' },
+      { event: { id: 7 } },
+      { event: { id: '' } },
+      { event: { id: '   ' } },
+      { event: { id: '\t\n' } },
+      null,
+      [],
+    ]) {
+      await expect(handleRevenueCatWebhook(request(body), deps)).rejects.toMatchObject({
+        status: 400,
+      });
+    }
+    expect(rpc).not.toHaveBeenCalled();
+  });
+});

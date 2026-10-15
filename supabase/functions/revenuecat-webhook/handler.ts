@@ -76,7 +76,7 @@ export async function handleRevenueCatWebhook(request: Request, deps: Deps): Pro
     throw new HttpError(400, 'BAD_JSON', 'Body is not JSON');
   }
   const event = body?.event;
-  if (!event || typeof event !== 'object' || typeof event.id !== 'string' || !event.id) {
+  if (!event || typeof event !== 'object' || typeof event.id !== 'string' || !event.id.trim()) {
     throw new HttpError(400, 'BAD_EVENT', 'Missing event or event id');
   }
 

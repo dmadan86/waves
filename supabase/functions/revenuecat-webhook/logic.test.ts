@@ -244,3 +244,235 @@ describe('helpers', () => {
     expect(priceMinor(event({ currency: 'rupees' }))).toBeNull();
   });
 });
+
+describe('stores and product ids', () => {
+  it.each([
+    ['APP_STORE', 'appstore', '2000000100'],
+    ['PLAY_STORE', 'play', 'GPA.1234-5678'],
+    ['TEST_STORE', 'test', 'test-txn-1'],
+    ['play_store', 'play', 'GPA.1234-5678'],
+  ] as const)('%s writes a %s row keyed by the original transaction', (raw, store, txn) => {
+    expect(
+      upsert({ store: raw, original_transaction_id: txn, transaction_id: `${txn}.1` }),
+    ).toMatchObject({
+      store,
+      store_txn_id: txn,
+    });
+  });
+
+  it('falls back to the transaction id when there is no original one', () => {
+    expect(
+      upsert({ original_transaction_id: null, transaction_id: 'GPA.only-this' }).store_txn_id,
+    ).toBe('GPA.only-this');
+  });
+
+  it.each([
+    // Google Play reports <productId>:<basePlanId>
+    ['waves_plus_monthly:monthly', 'plus', 'monthly'],
+    ['waves_plus_yearly:yearly', 'plus', 'yearly'],
+    ['waves_pro_monthly:monthly', 'pro', 'monthly'],
+    ['waves_pro_yearly:yearly', 'pro', 'yearly'],
+    // App Store and Test Store use the plain id
+    ['waves_plus_monthly', 'plus', 'monthly'],
+    ['waves_plus_yearly', 'plus', 'yearly'],
+    ['waves_pro_monthly', 'pro', 'monthly'],
+    ['waves_pro_yearly', 'pro', 'yearly'],
+  ] as const)('reads %s as %s %s with no entitlement on the event', (product_id, tier, period) => {
+    expect(upsert({ product_id, entitlement_ids: null })).toMatchObject({ tier, period });
+  });
+
+  it('prefers the entitlement RevenueCat attached over the product id', () => {
+    expect(upsert({ product_id: 'waves_plus_monthly', entitlement_ids: ['pro'] }).tier).toBe('pro');
+    expect(upsert({ product_id: 'x', entitlement_ids: null, entitlement_id: 'plus' }).tier).toBe(
+      'plus',
+    );
+  });
+
+  it('ignores a product that is neither Plus nor Pro, naming it', () => {
+    for (const product_id of ['some_other_app', 'waves_promo', 'monthly', 'lifetime', '', null]) {
+      const { action } = mapEvent(event({ product_id, entitlement_ids: [] }));
+      expect(action, String(product_id)).toMatchObject({ kind: 'ignore' });
+    }
+    expect(
+      mapEvent(event({ product_id: 'sample_pack', entitlement_ids: ['waves_pro'] })).action,
+    ).toMatchObject({ kind: 'ignore', reason: expect.stringContaining('sample_pack') });
+  });
+
+  it('ignores a store Waves does not sell through, and a missing one', () => {
+    for (const store of ['AMAZON', 'STRIPE', 'RC_BILLING', '', null]) {
+      expect(mapEvent(event({ store })).action, String(store)).toMatchObject({ kind: 'ignore' });
+    }
+  });
+});
+
+describe('product changes', () => {
+  const change = (from: string, to: string, over: Partial<RcEvent> = {}) =>
+    upsert({
+      type: 'PRODUCT_CHANGE',
+      product_id: from,
+      new_product_id: to,
+      entitlement_ids: [from.includes('pro') ? 'pro' : 'plus'],
+      ...over,
+    });
+
+  it('Plus to Pro: the Pro tier and the new product’s period apply now', () => {
+    expect(change('waves_plus_monthly', 'waves_pro_monthly')).toMatchObject({
+      tier: 'pro',
+      status: 'active',
+      period: 'monthly',
+    });
+    expect(change('waves_plus_monthly', 'waves_pro_yearly')).toMatchObject({
+      tier: 'pro',
+      period: 'yearly',
+    });
+    expect(change('waves_plus_monthly:monthly', 'waves_pro_monthly:monthly').tier).toBe('pro');
+  });
+
+  it('Pro to Plus: the person stays Pro until the renewal brings the new product', () => {
+    expect(change('waves_pro_monthly', 'waves_plus_monthly')).toMatchObject({
+      tier: 'pro',
+      period: 'monthly',
+    });
+    expect(change('waves_pro_yearly', 'waves_plus_monthly')).toMatchObject({
+      tier: 'pro',
+      period: 'yearly',
+    });
+    // ...and the renewal that follows is a Plus row on the same transaction.
+    expect(
+      upsert({ type: 'RENEWAL', product_id: 'waves_plus_monthly', entitlement_ids: ['plus'] }),
+    ).toMatchObject({ tier: 'plus', store_txn_id: 'GPA.1234-5678' });
+  });
+
+  it('same tier, different period: stays that tier, takes the old product’s period', () => {
+    expect(change('waves_plus_monthly', 'waves_plus_yearly')).toMatchObject({
+      tier: 'plus',
+      period: 'monthly',
+    });
+  });
+
+  it('a change to something unknown, or with no new product, changes nothing', () => {
+    expect(change('waves_plus_monthly', 'something_else')).toMatchObject({ tier: 'plus' });
+    expect(change('waves_plus_monthly', '', { new_product_id: null })).toMatchObject({
+      tier: 'plus',
+    });
+  });
+});
+
+describe('one transaction, every event', () => {
+  const TYPES = [
+    'INITIAL_PURCHASE',
+    'RENEWAL',
+    'PRODUCT_CHANGE',
+    'CANCELLATION',
+    'UNCANCELLATION',
+    'BILLING_ISSUE',
+    'EXPIRATION',
+    'REFUND',
+  ];
+
+  it('all land on the same row, so each updates what the purchase created', () => {
+    const keys = TYPES.map((type) => upsert({ type }).store_txn_id);
+    expect(new Set(keys)).toEqual(new Set(['GPA.1234-5678']));
+  });
+
+  it.each([
+    ['INITIAL_PURCHASE', 'active'],
+    ['RENEWAL', 'active'],
+    ['PRODUCT_CHANGE', 'active'],
+    ['CANCELLATION', 'active'],
+    ['UNCANCELLATION', 'active'],
+    ['BILLING_ISSUE', 'grace'],
+    ['EXPIRATION', 'expired'],
+    ['REFUND', 'refunded'],
+  ])('%s is %s', (type, status) => {
+    expect(upsert({ type }).status).toBe(status);
+  });
+
+  it('matches event types without regard to case', () => {
+    expect(upsert({ type: 'renewal' }).status).toBe('active');
+    expect(mapEvent(event({ type: 'expiration' })).type).toBe('EXPIRATION');
+    expect(upsert({ type: 'CANCELLATION', cancel_reason: 'customer_support' }).status).toBe(
+      'refunded',
+    );
+  });
+
+  it('hands every event its own timestamp, for the database’s ordering guard', () => {
+    const older = mapEvent(event({ type: 'RENEWAL', event_timestamp_ms: NOW - DAY }));
+    const newer = mapEvent(event({ type: 'EXPIRATION', event_timestamp_ms: NOW }));
+    expect(Date.parse(older.eventAt!)).toBeLessThan(Date.parse(newer.eventAt!));
+    expect(mapEvent(event({ event_timestamp_ms: null })).eventAt).toBeNull();
+    expect(mapEvent(event({ event_timestamp_ms: 0 })).eventAt).toBeNull();
+  });
+});
+
+describe('SUBSCRIPTION_PAUSED and other types Waves does not act on', () => {
+  it.each([
+    'SUBSCRIPTION_PAUSED',
+    'NON_RENEWING_PURCHASE',
+    'INVOICE_ISSUANCE',
+    'VIRTUAL_CURRENCY_TRANSACTION',
+    'TEST',
+  ])('%s is recorded and writes nothing', (type) => {
+    const mapped = mapEvent(event({ type }));
+    expect(mapped.action).toMatchObject({ kind: 'ignore', reason: `unhandled type ${type}` });
+    expect(mapped.eventId).toBe('evt-1');
+  });
+
+  it('ignores an event with no type at all', () => {
+    expect(mapEvent(event({ type: undefined })).action).toMatchObject({
+      kind: 'ignore',
+      reason: 'unhandled type (none)',
+    });
+  });
+});
+
+describe('sandbox and the Test Store', () => {
+  it('lets sandbox events through by default, and drops them under ignoreSandbox', () => {
+    for (const environment of ['SANDBOX', 'sandbox']) {
+      expect(mapEvent(event({ environment })).action.kind).toBe('upsert');
+      expect(mapEvent(event({ environment }), { ignoreSandbox: true }).action).toMatchObject({
+        kind: 'ignore',
+        reason: 'sandbox',
+      });
+    }
+    expect(mapEvent(event({ environment: 'SANDBOX' }), { ignoreSandbox: false }).action.kind).toBe(
+      'upsert',
+    );
+  });
+
+  it('never drops production purchases on a real store', () => {
+    for (const store of ['APP_STORE', 'PLAY_STORE']) {
+      expect(
+        mapEvent(event({ store, environment: 'PRODUCTION' }), { ignoreSandbox: true }).action.kind,
+      ).toBe('upsert');
+    }
+  });
+
+  it('drops a Test Store event whatever its environment says', () => {
+    for (const environment of ['PRODUCTION', 'SANDBOX', null]) {
+      expect(
+        mapEvent(event({ store: 'TEST_STORE', environment }), { ignoreSandbox: true }).action,
+      ).toMatchObject({ kind: 'ignore', reason: 'sandbox' });
+    }
+  });
+
+  it('drops a sandbox TRANSFER too, rather than moving real purchases for a test', () => {
+    expect(
+      mapEvent(
+        event({
+          type: 'TRANSFER',
+          environment: 'SANDBOX',
+          transferred_to: [ME],
+          transferred_from: ['x'],
+        }),
+        { ignoreSandbox: true },
+      ).action,
+    ).toMatchObject({ kind: 'ignore', reason: 'sandbox' });
+  });
+
+  it('checks the sandbox before anything else, so a TEST event still counts as ignored', () => {
+    expect(
+      mapEvent(event({ type: 'TEST', environment: 'SANDBOX' }), { ignoreSandbox: true }).action,
+    ).toMatchObject({ reason: 'sandbox' });
+  });
+});

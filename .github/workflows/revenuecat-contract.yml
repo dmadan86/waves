@@ -1,0 +1,64 @@
+# RevenueCat configuration contract.
+#
+# Asks RevenueCat's REST API whether the dashboard still matches what the app and
+# the webhook expect: the "default" offering is current and has the four
+# packages, every package carries a product for every store app, each product
+# sells the tier its package says and unlocks the matching entitlement. It is
+# the guard for "Plans could not be loaded", which was a dashboard mistake (an
+# offering holding only sample products) that no unit test can see.
+#
+# Weekly, and by hand from the Actions tab (run it after touching products,
+# offerings or entitlements in RevenueCat). Not on pull requests: it tests the
+# dashboard, not the diff.
+#
+# Needs the repository secret REVENUECAT_SECRET_KEY, a RevenueCat v2 secret key
+# with read access to the project. Without it the job reports that and passes,
+# so a fork or a repo that has not set it up is not red.
+name: revenuecat-contract
+
+on:
+  schedule:
+    # Mondays 04:00 UTC.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    name: dashboard matches the app
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Skip without the secret
+        id: gate
+        env:
+          HAS_KEY: ${{ secrets.REVENUECAT_SECRET_KEY != '' }}
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "REVENUECAT_SECRET_KEY is not set; skipping the RevenueCat contract."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.gate.outputs.run == 'true'
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        if: steps.gate.outputs.run == 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.gate.outputs.run == 'true'
+      - name: Check the RevenueCat project
+        if: steps.gate.outputs.run == 'true'
+        env:
+          REVENUECAT_SECRET_KEY: ${{ secrets.REVENUECAT_SECRET_KEY }}
+        run: pnpm --filter @waves/core exec vitest run test/revenuecat.live.test.ts
