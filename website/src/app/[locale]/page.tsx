@@ -1,22 +1,19 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { Audience } from '@/components/audience';
-import { Comparison } from '@/components/comparison';
-import { Currencies } from '@/components/currencies';
-import { Custody } from '@/components/custody';
+import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
-import { Features } from '@/components/features';
-import { FinalCta } from '@/components/final-cta';
+import { FeatureStrip } from '@/components/feature-strip';
 import { Hero } from '@/components/hero';
-import { HowItWorks } from '@/components/how-it-works';
+import { Moments } from '@/components/moments';
 import { Pricing } from '@/components/pricing';
-import { PrivacySection } from '@/components/privacy-section';
+import { PrivacyBand } from '@/components/privacy-band';
+import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
+import { Steps } from '@/components/steps';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { currencyRows } from '@/lib/currencies';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
 
 /**
@@ -98,11 +95,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <>
-      {/* A scroll animation must never be the reason a page is empty. */}
-      <noscript>
-        <style>{`.reveal{opacity:1;transform:none}`}</style>
-      </noscript>
-
       <script
         type="application/ld+json"
         // The payload is our own copy, not user input.
@@ -114,23 +106,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
-        <Hero t={t.hero} banner={t.banner} appUrl={site.appUrl} />
-        <Custody t={t.custody} />
-        <Features t={t.features} visuals={t.visuals} />
-        <HowItWorks t={t.how} />
-        <Audience t={t.audience} />
-        <Currencies t={t.currencies} rows={currencyRows(locale)} />
-        <PrivacySection t={t.privacy} />
-        {/* Between "here is what we hold" and "here is what it costs" — the
-            visitor has the product in their head by now and the next honest
-            question is what else they could be using instead. */}
-        <Comparison t={t.comparison} locale={locale} />
-        <Pricing t={t.pricing} appUrl={site.appUrl} />
+        <Hero t={t.hero} stores={t.stores} />
+        <FeatureStrip t={t.features} />
+        <Steps t={t.how} />
+        <Showcase t={t.showcase} />
+        <Moments t={t.moments} />
+        <Pricing t={t.pricing} />
+        <PrivacyBand t={t.privacy} locale={locale} />
         <Faq t={t.faq} />
-        <FinalCta t={t.cta} stores={t.hero.stores} appUrl={site.appUrl} />
+        <DownloadBanner t={t.cta} stores={t.stores} />
       </main>
 
-      <SiteFooter locale={locale} t={t.footer} appUrl={site.appUrl} />
+      <SiteFooter locale={locale} t={t.footer} legal={t.legal} appUrl={site.appUrl} />
     </>
   );
 }

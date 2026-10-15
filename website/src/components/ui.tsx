@@ -9,63 +9,11 @@ export function Container({
   className?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <div className={`mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10 ${className}`}>{children}</div>
-  );
+  return <div className={`mx-auto w-full max-w-[73rem] px-5 sm:px-8 ${className}`}>{children}</div>;
 }
 
-export function Section({
-  id,
-  ground = 'base',
-  className = '',
-  children,
-}: {
-  id?: string;
-  ground?: 'base' | 'paper';
-  className?: string;
-  children: React.ReactNode;
-}) {
-  const skin = ground === 'paper' ? 'border-y border-line bg-paper' : 'bg-transparent';
-  return (
-    <section
-      id={id}
-      className={`section-shell relative scroll-mt-24 py-20 sm:py-28 lg:py-32 ${skin} ${className}`}
-    >
-      {children}
-    </section>
-  );
-}
-
-export function Eyebrow({ index, children }: { index?: string; children: React.ReactNode }) {
-  return (
-    <p className="section-kicker">
-      {index ? (
-        <span aria-hidden="true" className="font-mono text-accent">
-          {index}
-        </span>
-      ) : null}
-      <span>{children}</span>
-    </p>
-  );
-}
-
-export function SectionTitle({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <h2
-      className={`text-balance text-[2rem] leading-[1.04] font-semibold tracking-[-0.045em] text-ink sm:text-[3rem] lg:text-[3.8rem] ${className}`}
-    >
-      {children}
-    </h2>
-  );
-}
-
-export function Lede({
+/** Small uppercase label above a section heading. */
+export function Kicker({
   children,
   className = '',
 }: {
@@ -74,10 +22,29 @@ export function Lede({
 }) {
   return (
     <p
-      className={`max-w-2xl text-pretty text-[1.05rem] leading-[1.72] text-ink-2 sm:text-[1.12rem] ${className}`}
+      className={`text-[0.72rem] font-semibold tracking-[0.12em] text-accent uppercase ${className}`}
     >
       {children}
     </p>
+  );
+}
+
+export function SectionTitle({
+  children,
+  className = '',
+  id,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+}) {
+  return (
+    <h2
+      id={id}
+      className={`text-balance text-[1.85rem] leading-[1.1] font-bold tracking-[-0.03em] text-ink sm:text-[2.25rem] ${className}`}
+    >
+      {children}
+    </h2>
   );
 }
 

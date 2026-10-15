@@ -18,7 +18,7 @@ export async function GET() {
     '',
     `> ${t.meta.description}`,
     '',
-    `${t.custody.claim} ${t.custody.body}`,
+    t.hero.subtitle,
     '',
     '## Pages',
     '',

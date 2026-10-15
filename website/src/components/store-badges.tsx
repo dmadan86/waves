@@ -1,59 +1,65 @@
+import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
-import { Apple, Android } from './icons';
+import { Apple, GooglePlay } from './icons';
 
 /**
- * Store links, and only when there is somewhere to send people.
- *
- * The official App Store and Google Play badge artwork is deliberately not
- * reproduced here: both vendors require their own asset, unaltered, at a
- * minimum height with a fixed clear space around it, and a hand-drawn
- * lookalike breaches those guidelines. When the listings exist, set
- * `NEXT_PUBLIC_IOS_URL` and `NEXT_PUBLIC_ANDROID_URL` and drop the two SVGs in
- * — until then this renders nothing rather than a badge that goes nowhere.
+ * Black store badges. They link to the listings when `NEXT_PUBLIC_IOS_URL` /
+ * `NEXT_PUBLIC_ANDROID_URL` are set. Until a listing exists the badge is shown
+ * as inert and labelled "coming soon": a badge that goes nowhere would be a
+ * false promise. These are drawn lookalikes; swap in the vendors' official
+ * artwork (they require it, unaltered) when the listings go live.
  */
 export function StoreBadges({
   t,
   className = '',
-  linksOnly = false,
 }: {
-  t: { ios: string; android: string; soon: string };
+  t: Dictionary['stores'];
   className?: string;
-  /** Suppress the "not in the stores yet" line where it would only repeat. */
-  linksOnly?: boolean;
 }) {
-  const links = [
-    { href: site.iosUrl, label: t.ios, Icon: Apple },
-    { href: site.androidUrl, label: t.android, Icon: Android },
-  ].filter((link): link is { href: string; label: string; Icon: typeof Apple } =>
-    Boolean(link.href),
-  );
-
-  if (links.length === 0) {
-    if (linksOnly) return null;
-    return (
-      <p className={`font-mono text-[0.75rem] text-ink-3 ${className}`}>
-        <span aria-hidden="true" className="me-1.5 text-accent">
-          ·
-        </span>
-        {t.soon}
-      </p>
-    );
-  }
+  const badges = [
+    { href: site.iosUrl, Icon: Apple, small: t.downloadOn, name: t.appStore, mark: 'h-7 w-7' },
+    {
+      href: site.androidUrl,
+      Icon: GooglePlay,
+      small: t.getItOn,
+      name: t.googlePlay,
+      mark: 'h-6 w-6',
+    },
+  ];
+  const cls =
+    'inline-flex h-11 min-w-[8.75rem] items-center gap-2.5 rounded-lg border border-white/15 bg-black px-3.5 text-white shadow-[0_6px_16px_rgb(10_8_24_/_0.22)]';
 
   return (
-    <ul className={`flex flex-wrap items-center gap-2.5 ${className}`}>
-      {links.map(({ href, label, Icon }) => (
-        <li key={label}>
-          <a
-            href={href}
-            rel="noreferrer"
-            className="inline-flex h-11 items-center gap-2 rounded-md border border-line px-3.5 text-sm text-ink transition-colors duration-150 hover:border-line-strong hover:bg-chip"
-          >
-            <Icon className="h-[1.15rem] w-[1.15rem]" />
-            {label}
-          </a>
-        </li>
-      ))}
+    <ul aria-label={t.label} className={`flex flex-wrap items-center gap-2.5 ${className}`}>
+      {badges.map(({ href, Icon, small, name, mark }) => {
+        const inner = (
+          <>
+            <Icon className={`${mark} shrink-0`} />
+            <span className="flex flex-col text-start leading-none">
+              <span className="text-[0.55rem] tracking-wide uppercase opacity-85">{small}</span>
+              <span className="mt-1 text-[1.02rem] font-semibold tracking-[-0.01em]">{name}</span>
+            </span>
+          </>
+        );
+        return (
+          <li key={name}>
+            {href ? (
+              <a
+                href={href}
+                rel="noreferrer"
+                className={`${cls} transition-transform hover:-translate-y-0.5`}
+              >
+                {inner}
+              </a>
+            ) : (
+              <span className={`${cls} cursor-default opacity-90`} title={t.soon}>
+                {inner}
+                <span className="sr-only">({t.soon})</span>
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

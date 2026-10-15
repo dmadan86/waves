@@ -13,11 +13,11 @@ import { ThemeToggle } from './theme-toggle';
 type Nav = {
   features: string;
   how: string;
-  currencies: string;
+  security: string;
   pricing: string;
   faq: string;
   openApp: string;
-  getApp: string;
+  download: string;
   menu: string;
   close: string;
   language: string;
@@ -76,7 +76,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
   const links = [
     { href: '#features', label: nav.features },
     { href: '#how', label: nav.how },
-    { href: '#currencies', label: nav.currencies },
+    { href: '#security', label: nav.security },
     { href: '#pricing', label: nav.pricing },
     { href: '#faq', label: nav.faq },
   ];
@@ -107,7 +107,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
         }`}
       >
         <div
-          className={`mx-auto flex h-14 max-w-7xl items-center gap-3 px-5 transition-all sm:h-16 sm:px-8 ${
+          className={`mx-auto flex h-14 max-w-[73rem] items-center gap-3 px-5 transition-all sm:h-16 sm:px-8 ${
             scrolled
               ? 'rounded-2xl border border-white/12 bg-[color:var(--w-paper)]/88 shadow-[var(--w-shadow-md)] backdrop-blur-xl'
               : 'bg-transparent'
@@ -190,10 +190,10 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
             </div>
 
             <a
-              href={appUrl}
-              className="ms-1 hidden h-10 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-ink shadow-[0_7px_18px_rgb(122_90_248_/_0.2)] transition-transform active:translate-y-px sm:inline-flex"
+              href="#download"
+              className="ms-1 hidden h-10 items-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.3)] transition-transform active:translate-y-px sm:inline-flex"
             >
-              {nav.getApp}
+              {nav.download}
             </a>
 
             <button
@@ -224,7 +224,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
         className="m-0 max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-[#0a0712]/60 lg:hidden"
       >
         <div className="min-h-dvh w-full bg-bg">
-          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-5 sm:h-16 sm:px-8">
+          <div className="mx-auto flex h-14 max-w-[73rem] items-center justify-between px-5 sm:h-16 sm:px-8">
             <Wordmark />
             <button
               type="button"
@@ -235,7 +235,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
               <Close />
             </button>
           </div>
-          <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
+          <div className="mx-auto max-w-[73rem] px-5 pb-10 sm:px-8">
             <nav aria-label="Mobile" className="border-t border-line">
               {links.map((link) => (
                 <a
@@ -266,10 +266,11 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
               ))}
             </div>
             <a
-              href={appUrl}
-              className="mt-8 flex h-12 items-center justify-center rounded-lg bg-accent text-sm font-medium text-accent-ink"
+              href="#download"
+              onClick={closeMenu}
+              className="mt-8 flex h-12 items-center justify-center rounded-full bg-accent text-sm font-medium text-accent-ink"
             >
-              {nav.getApp}
+              {nav.download}
             </a>
             <a
               href={appUrl}

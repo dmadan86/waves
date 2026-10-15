@@ -1,144 +1,153 @@
+'use client';
+
+import { useState } from 'react';
+
 import type { Dictionary } from '@/i18n/dictionaries';
-import { ArrowRight, Check, Minus } from './icons';
-import { Container, Eyebrow, Lede, Section, SectionTitle } from './ui';
+import { bestYearlySaving, plans, type PlanId } from '@/lib/plans';
+import { Check, Crown, Wallet } from './icons';
+import { Kicker, SectionTitle } from './ui';
 
-export function Pricing({ t, appUrl }: { t: Dictionary['pricing']; appUrl: string }) {
+type Period = 'monthly' | 'yearly';
+
+const tile: Record<PlanId, { Icon: typeof Wallet; color: string }> = {
+  plus: { Icon: Wallet, color: '#6f6ae8' },
+  pro: { Icon: Crown, color: '#f59e0b' },
+};
+
+export function Pricing({ t }: { t: Dictionary['pricing'] }) {
+  const [period, setPeriod] = useState<Period>('monthly');
+  const [selected, setSelected] = useState<PlanId>('pro');
+
+  const periods: { id: Period; label: string }[] = [
+    { id: 'monthly', label: t.monthly },
+    { id: 'yearly', label: t.yearly },
+  ];
+
   return (
-    <Section id="pricing" className="lg:py-36">
-      <Container>
-        <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">
+    <section id="pricing" aria-labelledby="pricing-title" className="scroll-mt-20 py-10 lg:py-12">
+      <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Eyebrow index="07">{t.eyebrow}</Eyebrow>
-            <SectionTitle className="mt-5">{t.title}</SectionTitle>
-            <Lede className="mt-5">{t.subtitle}</Lede>
-            <p className="mt-6 font-mono text-[0.68rem] leading-relaxed text-ink-3">
-              {t.billedNote}
-            </p>
+            <Kicker>{t.eyebrow}</Kicker>
+            <SectionTitle id="pricing-title" className="mt-2 max-w-[16rem] sm:max-w-none">
+              {t.title}
+            </SectionTitle>
           </div>
-
-          <div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {t.plans.map((plan) => (
-                <article
-                  key={plan.name}
-                  className={`relative flex min-h-[31rem] flex-col rounded-[1.5rem] border p-6 sm:p-7 ${plan.featured ? 'border-accent/40 bg-[#171321] text-white shadow-[var(--w-shadow-lg)]' : 'border-line bg-surface'}`}
-                >
-                  {plan.badge ? (
-                    <span className="absolute right-5 top-5 rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[0.64rem] text-white">
-                      {plan.badge}
-                    </span>
-                  ) : null}
-                  <p
-                    className={`font-mono text-[0.68rem] tracking-[0.12em] uppercase ${plan.featured ? 'text-white/45' : 'text-ink-3'}`}
-                  >
-                    {plan.name}
-                  </p>
-                  <p
-                    className={`mt-5 text-[2.4rem] font-semibold tracking-[-0.05em] ${plan.featured ? 'text-white' : 'text-ink'}`}
-                  >
-                    {plan.price}
-                  </p>
-                  {plan.period ? (
-                    <span
-                      className={`mt-1 font-mono text-[0.7rem] ${plan.featured ? 'text-white/45' : 'text-ink-3'}`}
-                    >
-                      {plan.period}
-                    </span>
-                  ) : null}
-                  <p
-                    className={`mt-5 text-[0.88rem] leading-relaxed ${plan.featured ? 'text-white/65' : 'text-ink-2'}`}
-                  >
-                    {plan.tagline}
-                  </p>
-                  <ul className="mt-8 flex-1 space-y-3">
-                    {plan.inherits ? (
-                      <li className="border-b border-white/10 pb-3 text-[0.8rem] text-white/60">
-                        {plan.inherits}
-                      </li>
-                    ) : null}
-                    {plan.features.map((feature) => (
-                      <li
-                        key={feature}
-                        className={`flex items-start gap-2.5 text-[0.82rem] ${plan.featured ? 'text-white/72' : 'text-ink-2'}`}
-                      >
-                        <Check
-                          className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${plan.featured ? 'text-brand-300' : 'text-accent'}`}
-                          aria-hidden="true"
-                        />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <a
-                    href={appUrl}
-                    className={`mt-8 flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold ${plan.featured ? 'bg-white text-[#2c1d73]' : 'bg-ink text-bg'}`}
-                  >
-                    {plan.cta}
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </article>
-              ))}
-            </div>
-
-            <div
-              tabIndex={0}
-              role="group"
-              aria-label={t.table.caption}
-              className="mt-5 overflow-x-auto rounded-[1.25rem] border border-line bg-surface"
-            >
-              <table className="w-full min-w-[34rem] border-collapse text-start">
-                <caption className="px-5 pb-3 pt-5 text-start font-mono text-[0.68rem] tracking-[0.1em] text-ink-3 uppercase">
-                  {t.table.caption}
-                </caption>
-                <thead>
-                  <tr className="border-y border-line">
-                    <th className="px-5 py-3 text-start text-[0.78rem] font-medium text-ink-2">
-                      {t.table.head}
-                    </th>
-                    {t.plans.map((plan) => (
-                      <th
-                        key={plan.name}
-                        className="w-24 py-3 text-center font-mono text-[0.68rem] font-normal uppercase text-ink-3"
-                      >
-                        {plan.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-divider">
-                  {t.table.rows.map((row) => (
-                    <tr key={row.label}>
-                      <th
-                        scope="row"
-                        className="px-5 py-3 text-start text-[0.8rem] font-normal text-ink"
-                      >
-                        {row.label}
-                      </th>
-                      {[row.free, row.plus].map((cell, index) => (
-                        <td key={index} className="py-3 text-center">
-                          {cell === true ? (
-                            <>
-                              <Check className="mx-auto h-4 w-4 text-accent" />
-                              <span className="sr-only">{t.table.included}</span>
-                            </>
-                          ) : cell === false ? (
-                            <>
-                              <Minus className="mx-auto h-4 w-4 text-ink-3/40" />
-                              <span className="sr-only">{t.table.notIncluded}</span>
-                            </>
-                          ) : (
-                            <span className="font-mono text-[0.76rem] text-ink-2">{cell}</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div
+            role="radiogroup"
+            aria-label={t.groupLabel}
+            className="flex items-center gap-1 rounded-full bg-surface p-1 shadow-[var(--w-shadow-card)]"
+          >
+            {periods.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={period === p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`inline-flex h-9 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors ${
+                  period === p.id ? 'bg-accent text-accent-ink' : 'text-ink-2 hover:text-ink'
+                }`}
+              >
+                {p.label}
+                {p.id === 'yearly' ? (
+                  <span className={period === 'yearly' ? 'text-accent-ink/85' : 'text-blue'}>
+                    {t.saveUpTo.replace('{pct}', String(bestYearlySaving))}
+                  </span>
+                ) : null}
+              </button>
+            ))}
           </div>
         </div>
-      </Container>
-    </Section>
+
+        <div role="radiogroup" aria-label={t.planLabel} className="mt-6 grid gap-4 md:grid-cols-2">
+          {t.plans.map((plan) => {
+            const id = plan.id as PlanId;
+            const { Icon, color } = tile[id];
+            const on = selected === id;
+            const amount = plans[id][period];
+            return (
+              <div
+                key={id}
+                role="radio"
+                aria-checked={on}
+                tabIndex={0}
+                onClick={() => setSelected(id)}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setSelected(id);
+                  }
+                }}
+                className={`relative cursor-pointer rounded-[1.4rem] border-2 p-5 transition-colors ${
+                  on
+                    ? 'border-accent bg-[color-mix(in_srgb,var(--w-accent)_7%,var(--w-surface))] shadow-[var(--w-shadow-card)]'
+                    : 'border-transparent bg-surface shadow-[var(--w-shadow-card)]'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`absolute end-5 top-5 grid h-6 w-6 place-items-center rounded-full border-2 ${
+                    on ? 'border-accent' : 'border-line-strong'
+                  }`}
+                >
+                  {on ? <span className="h-2.5 w-2.5 rounded-full bg-accent" /> : null}
+                </span>
+
+                <div className="flex items-start gap-3.5">
+                  <span
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+                    style={{
+                      background: `color-mix(in srgb, ${color} 15%, var(--w-surface))`,
+                      color,
+                    }}
+                  >
+                    <Icon className="h-6 w-6" />
+                  </span>
+                  <div>
+                    <p className="flex items-center gap-2 text-[1.15rem] font-semibold text-ink">
+                      {plan.name}
+                      {plan.badge ? (
+                        <span className="rounded-full bg-[#2f6bf6] px-2 py-0.5 text-[0.62rem] font-semibold text-white">
+                          {plan.badge}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-[0.84rem] text-ink-3">{plan.tagline}</p>
+                  </div>
+                </div>
+
+                <p className="mt-4 flex items-baseline gap-1.5">
+                  <span className="text-[2rem] leading-none font-bold tracking-[-0.03em] text-ink">
+                    ₹{amount}
+                  </span>
+                  <span className="text-[0.85rem] text-ink-3">
+                    {period === 'monthly' ? t.perMonth : t.perYear}
+                  </span>
+                  {period === 'yearly' ? (
+                    <span className="ms-2 text-[0.75rem] text-ink-3">{t.billedYearly}</span>
+                  ) : null}
+                </p>
+
+                <ul className="mt-4 space-y-2.5">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-[0.9rem] text-ink">
+                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent text-accent-ink">
+                        <Check className="h-3 w-3" />
+                      </span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 max-w-3xl text-[0.82rem] leading-relaxed text-ink-3">
+          {t.freeNote} {t.priceNote}
+        </p>
+      </div>
+    </section>
   );
 }

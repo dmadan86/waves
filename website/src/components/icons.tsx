@@ -214,3 +214,46 @@ export const Alert = (p: IconProps) => (
     <circle cx="12" cy="12" r="9" />
   </Svg>
 );
+
+export const ScanFrame = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15" />
+    <path d="M9 9.5 12 12l3-2.5M12 12v3" />
+  </Svg>
+);
+
+export const BarChart = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 20v-7M12 20V5M17 20v-10" strokeWidth="3" />
+  </Svg>
+);
+
+export const Groups = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8" r="3" />
+    <circle cx="5.5" cy="10" r="2.2" />
+    <circle cx="18.5" cy="10" r="2.2" />
+    <path d="M6.5 19c0-3 2.5-4.8 5.5-4.8s5.5 1.8 5.5 4.8M1.5 17.5c0-2 1.5-3.3 3.5-3.3M22.5 17.5c0-2-1.5-3.3-3.5-3.3" />
+  </Svg>
+);
+
+export const Crown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m4 8 4.5 4L12 5l3.5 7L20 8l-1.5 10h-13L4 8Z" />
+  </Svg>
+);
+
+export const ArrowUpRight = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 17 17 7M8 7h9v9" />
+  </Svg>
+);
+
+export const GooglePlay = ({ className }: IconProps) => (
+  <svg viewBox="0 0 24 26" className={className ?? base} aria-hidden="true">
+    <path d="M1.5 1.3c-.3.3-.5.8-.5 1.4v20.6c0 .6.2 1.1.5 1.4L13 13.5 1.5 1.3Z" fill="#00d7fe" />
+    <path d="m16.8 17.3-3.8-3.8 3.8-3.8 4.4 2.5c1.3.7 1.3 1.9 0 2.6l-4.4 2.5Z" fill="#ffce00" />
+    <path d="M13 13.5 1.5 25.7c.4.4 1.1.5 1.9.1l13.4-8.5L13 13.5Z" fill="#ff3a44" />
+    <path d="M13 13.5 16.8 9.7 3.4 1.2c-.8-.4-1.5-.3-1.9.1L13 13.5Z" fill="#00f076" />
+  </svg>
+);
