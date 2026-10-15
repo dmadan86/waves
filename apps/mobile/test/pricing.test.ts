@@ -88,8 +88,8 @@ describe('planCardsFromOffering', () => {
       identifier: 'default',
       availablePackages: [
         ...OFFERING.availablePackages,
-        { ...pkg('$rc_annual', 'waves_plus_yearly', '₹499.00', 499), packageType: 'ANNUAL' },
-        pkg('pro_annual', 'waves_pro_y', '₹999.00', 999),
+        { ...pkg('$rc_annual', 'waves_plus_yearly', '₹429.00', 429), packageType: 'ANNUAL' },
+        pkg('pro_annual', 'waves_pro_y', '₹849.00', 849),
       ],
     };
     expect(periodsInOffering(withAnnual)).toEqual(['monthly', 'yearly']);
@@ -155,7 +155,8 @@ describe('revenueCatApiKey', () => {
 
 describe('yearlySavingsPercent', () => {
   it('compares a year against twelve months', () => {
-    expect(yearlySavingsPercent(49, 490)).toBe(17);
+    expect(yearlySavingsPercent(49, 429)).toBe(27);
+    expect(yearlySavingsPercent(99, 849)).toBe(29);
     expect(yearlySavingsPercent(0, 490)).toBe(0);
     expect(yearlySavingsPercent(49, 999)).toBe(0);
   });

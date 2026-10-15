@@ -1,13 +1,13 @@
 /**
  * What the paid plans cost in India, in rupees. These mirror the store
  * products documented in docs/pricing.md (`waves_plus_monthly` ₹49,
- * `waves_pro_monthly` ₹99) and the yearly prices set for launch (₹499, ₹999).
+ * `waves_pro_monthly` ₹99) and the yearly prices set for launch (₹429, ₹849: about 27% and 29% off twelve months).
  * Other markets are priced in the stores themselves, so the page says so rather
  * than converting a number here.
  */
 export const plans = {
-  plus: { monthly: 49, yearly: 499 },
-  pro: { monthly: 99, yearly: 999 },
+  plus: { monthly: 49, yearly: 429 },
+  pro: { monthly: 99, yearly: 849 },
 } as const;
 
 export type PlanId = keyof typeof plans;
