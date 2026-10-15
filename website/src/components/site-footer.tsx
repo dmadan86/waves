@@ -27,6 +27,7 @@ export function SiteFooter({
         { label: t.links.how, href: '#how', kind: 'anchor' },
         { label: t.links.offline, href: '#offline', kind: 'anchor' },
         { label: t.links.voice, href: '#voice', kind: 'anchor' },
+        { label: t.links.wearables, href: '#wearables', kind: 'anchor' },
         { label: t.links.agents, href: '#agents', kind: 'anchor' },
         { label: t.links.pricing, href: '#pricing', kind: 'anchor' },
         { label: t.links.security, href: '#security', kind: 'anchor' },

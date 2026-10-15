@@ -15,6 +15,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
 import { VoiceBand } from '@/components/voice-band';
+import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
@@ -116,6 +117,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Moments t={t.moments} />
         <OfflineBand t={t.offline} />
         <VoiceBand t={t.voice} />
+        <WearablesBand t={t.wearables} />
         <AgentsBand t={t.agents} locale={locale} />
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />

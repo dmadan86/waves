@@ -23,7 +23,8 @@
     "skip": "Skip to content",
     "agents": "AI agents",
     "offline": "Offline",
-    "voice": "AI voice"
+    "voice": "AI voice",
+    "wearables": "Watch & widgets"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -41,9 +42,21 @@
     "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
     "alt": "Friends sharing a meal at a table by a lake at sunset",
     "chips": [
-      { "who": "Renny paid", "item": "Dinner", "amount": "₹1,200" },
-      { "who": "You paid", "item": "Villa stay", "amount": "₹8,400" },
-      { "who": "Gayathri paid", "item": "Scooter", "amount": "₹450" }
+      {
+        "who": "Renny paid",
+        "item": "Dinner",
+        "amount": "₹1,200"
+      },
+      {
+        "who": "You paid",
+        "item": "Villa stay",
+        "amount": "₹8,400"
+      },
+      {
+        "who": "Gayathri paid",
+        "item": "Scooter",
+        "amount": "₹450"
+      }
     ]
   },
   "features": {
@@ -249,7 +262,8 @@
       "deleteAccount": "Delete your account",
       "agents": "AI agents",
       "offline": "Offline",
-      "voice": "AI voice"
+      "voice": "AI voice",
+      "wearables": "Watch & widgets"
     },
     "rights": "All rights reserved."
   },
@@ -658,5 +672,69 @@
         "lines": ["Personal expense", "Not split"]
       }
     ]
+  },
+  "wearables": {
+    "eyebrow": "Watch and widgets",
+    "title": "On your wrist and your home screen",
+    "body": "Add an expense without taking your phone out. Speak or dial it on your watch, or tap a Waves widget on your home screen to jump straight into adding one. The watch hands everything to your phone, so your ledger stays in one place.",
+    "availableLabel": "Available",
+    "soonLabel": "Coming soon",
+    "chips": [
+      {
+        "id": "watchos",
+        "label": "Apple Watch",
+        "status": "available"
+      },
+      {
+        "id": "ios",
+        "label": "iPhone widgets",
+        "status": "available"
+      },
+      {
+        "id": "android",
+        "label": "Android widgets",
+        "status": "available"
+      },
+      {
+        "id": "wear",
+        "label": "Wear OS",
+        "status": "soon"
+      }
+    ],
+    "watchTitle": "The watch app",
+    "widgetsTitle": "The widgets",
+    "watchCaption": "Home, a voice add and the recent list on Apple Watch.",
+    "widgetCaption": "Three widgets: Add expense, What did you spend on? and the action grid.",
+    "mockNote": "Screens are drawn from the app and are shown in English.",
+    "examplesTitle": "What you can do",
+    "examples": [
+      {
+        "where": "Watch",
+        "title": "Say it to your wrist",
+        "body": "Open Speak and say “Auto 120”. The watch sends the clip to your phone and shows “Added ₹120 · Auto”. It lands in your captures, ready to put in a group."
+      },
+      {
+        "where": "Watch",
+        "title": "Dial it in",
+        "body": "No time to talk? Turn the Digital Crown to the amount and tap Add. On Wear OS you use plus and minus buttons."
+      },
+      {
+        "where": "Watch",
+        "title": "See what you just added",
+        "body": "Recent lists your latest expenses with the amount and when, right on the watch."
+      },
+      {
+        "where": "Widgets",
+        "title": "Start from the home screen",
+        "body": "Tap Food on the “What did you spend on?” widget and quick add opens with Food already chosen. The mic and photo buttons jump straight to voice and receipt photos."
+      }
+    ],
+    "points": [
+      "The watch only sends and shows. Every expense is written by your phone, through the same offline queue as the app.",
+      "Out of reach of your phone? The watch says “Queued” and adds it when your phone is near.",
+      "A voice add that needs a decision, like a split or someone else paying, is saved for review instead of guessed.",
+      "The widgets are shortcuts. They do not show balances, and they work with the app’s own screens."
+    ],
+    "soonNote": "Wear OS is on its way and not released yet."
   }
 }
