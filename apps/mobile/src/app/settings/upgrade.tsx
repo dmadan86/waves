@@ -14,7 +14,7 @@
  * open the card to its whole sentence either way.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -34,6 +34,7 @@ import {
 import { PlanTier } from '@waves/core';
 
 import { fill, useStrings, type UiStrings } from '@/i18n';
+import { track } from '@/lib/events';
 import { useFlagEnabled } from '@/lib/flags';
 import { router } from '@/lib/navigation';
 import {
@@ -102,6 +103,10 @@ export default function UpgradeScreen() {
   const { info } = useCustomerTier();
   const canManage = plansLive && hasStoreSubscription(info);
   const toast = useToast();
+  // Counts this screen being opened, once per mount.
+  useEffect(() => {
+    track('premium_viewed', { screen: 'upgrade' });
+  }, []);
   const onManage = () => {
     manageSubscription().catch((error: unknown) => {
       reportHandled(error, 'purchases.manageSubscription');

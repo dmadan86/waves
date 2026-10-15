@@ -39,12 +39,18 @@ afterAll(async () => {
  * `TO anon, authenticated` has to be able to evaluate for either role, so these
  * stay reachable signed-out — they answer "is this caller a member", which for
  * a signed-out caller is always false.
+ *
+ * `waves_track_event` is the one deliberate exception that is not a helper: the
+ * first-launch `app_installed` event is sent before any session exists. It
+ * writes one allow-listed, size-limited row and returns a boolean; see
+ * `app-events.test.ts`.
  */
 const POLICY_HELPERS = [
   'is_group_member',
   'waves_is_expense_party',
   'waves_is_settlement_party',
   'waves_my_member_id',
+  'waves_track_event',
   'waves_version_group_id',
 ];
 
