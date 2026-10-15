@@ -21,7 +21,7 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "skip": "Skip to content",
-    "agents": "AI agents",
+    "agents": "AI Assistant",
     "offline": "Offline",
     "voice": "AI voice",
     "wearables": "Watch & widgets"
@@ -264,7 +264,7 @@
       "terms": "Terms",
       "markdown": "This page as Markdown",
       "deleteAccount": "Delete your account",
-      "agents": "AI agents",
+      "agents": "AI Assistant",
       "offline": "Offline",
       "voice": "AI voice",
       "wearables": "Watch & widgets"
@@ -373,9 +373,10 @@
   "mcpPage": {
     "metaTitle": "Connect an AI agent to Waves (MCP)",
     "metaDescription": "Connect Claude, ChatGPT, Cursor or any MCP client to your Waves ledger: the address, setup steps, every tool, what it can never do, and how to disconnect.",
-    "eyebrow": "AI agents · MCP",
-    "title": "Connect your AI assistant to Waves",
-    "subtitle": "Waves speaks MCP, the Model Context Protocol. Connect an assistant and it can read your groups and add expenses for you, as you, with the same rules the app follows. It is optional, and off until you set it up.",
+    "eyebrow": "AI Assistant · MCP",
+    "titleStart": "Connect your AI assistant",
+    "titleAccent": "to Waves",
+    "subtitle": "Use the Waves MCP (Model Context Protocol) server to let your AI assistant read your groups and add expenses for you, as you. It works with Claude, ChatGPT, Cursor, VS Code and any MCP client, and it stays off until you set it up.",
     "endpointLabel": "Server address",
     "copy": "Copy",
     "copied": "Copied",
@@ -383,27 +384,27 @@
     "updated": "Updated",
     "clientsLabel": "Works with",
     "clients": ["Claude", "ChatGPT", "Cursor", "VS Code", "Any MCP client"],
-    "whatTitle": "What this is",
-    "what": [
-      "MCP is a standard way for an AI assistant to use software that is not itself. With Waves connected you can ask things like “what do I owe from the Goa trip” or “split last night’s dinner four ways”, and it reads and writes the same ledger the app does.",
-      "It connects to your account, not to Waves in general. An assistant you sign in sees what you see when you open the app: your groups, the people in them and the money between you. It cannot see a group you are not in, and nobody else’s assistant can see yours."
+    "heroCard": ["Add ₹1,250", "Dinner with friends", "Split among 4 people"],
+    "whatTitle": "What is this?",
+    "what": "MCP is a standard way for AI assistants to use software that is not built in. With Waves connected, your assistant can read your groups, check balances and add expenses, using the same permissions you already have in the app. It connects to your account, not to Waves in general: it cannot see a group you are not in, and nobody else’s assistant can see yours.",
+    "features": [
+      "Sees only your data",
+      "Same permissions as your app",
+      "Optional and easy to set up"
     ],
     "signinTitle": "How sign-in works",
     "signinIntro": "It is the ordinary OAuth flow, and your client does all of it. You only paste the address.",
     "signin": [
-      [
-        "Add the address",
-        "Add the server in your client. It calls Waves and is told it needs to sign in."
-      ],
-      [
-        "Approve in the browser",
-        "A Waves page opens. You sign in and see which application is asking, then approve or refuse."
-      ],
-      [
-        "Ask away",
-        "The assistant now acts as you. Refusing is a normal outcome and the application is told."
-      ]
+      ["Add the address", "Add the server address in your MCP client."],
+      ["Approve in your browser", "You are sent to Waves to sign in and approve access."],
+      ["Start using it", "Your assistant can now read your groups and add expenses."]
     ],
+    "signinVisual": {
+      "approve": "Approve",
+      "ask": "Add ₹850 dinner with friends, split 3 ways",
+      "done": "Added to Waves",
+      "doneSub": "Dinner with friends · 3 people"
+    },
     "signinNote": "Waves does not vouch for anybody else’s software, and the approval screen says so. Approve only assistants you chose to install.",
     "setupTitle": "Set it up",
     "setupIntro": "Pick your client. If a menu is worded differently in your version, look for “add a custom connector” or “add an MCP server”.",
@@ -492,41 +493,52 @@
       "add_people": "Adds people to a group by name, as members without an account yet.",
       "invite_link": "Returns the group’s join link to send to someone."
     },
+    "toolsCardTitle": "All the tools your assistant needs",
+    "toolsCardBody": "Every write is a named, validated operation. Nothing else is offered.",
     "neverTitle": "What it can never do",
     "never": [
       [
-        "It cannot move money",
-        "No tool pays anybody. Recording a settlement writes down that a payment happened. The paying stays something you do, in your own banking app, on purpose."
+        "Move your money",
+        "No tool pays anybody. Recording a settlement only writes down that a payment happened; the paying stays yours, in your own banking app."
       ],
       [
-        "It cannot reach past you",
-        "Every request runs under your own account with the same database rules as the app. There is no admin key in this path and no way to run raw queries."
+        "Reach past your account",
+        "It runs as you, under the same database rules as the app. It cannot see a group you are not in."
       ],
       [
-        "It cannot spend without limit",
-        "A single expense and a single settlement each have a ceiling, and there is a further daily ceiling on what an assistant can write for you. The limits are enforced in the database."
+        "Change things without a record",
+        "Every change it makes is listed for you: ask it, or read the list_agent_writes tool. A single expense and a day’s writes each have a ceiling, enforced in the database."
       ],
       [
-        "It cannot hide what it did",
-        "Every change an assistant makes is recorded. Ask it “what did you change today?” and it reads that record back to you."
+        "Access hidden data",
+        "It sees what you see in the app and nothing else. There is no admin key in this path and no way to run raw queries."
       ]
     ],
-    "revokeTitle": "How to disconnect",
-    "revoke": [
-      "Remove Waves from your assistant’s connectors (or delete the entry from mcp.json). That deletes the credentials the assistant was holding, and it stops.",
-      "To cut an assistant off right now, write to us and say so. The app does not yet have a screen that lists the assistants connected through this address.",
-      "Check what one has done by asking it, or see the tools list_agent_writes above. Writes you made in the app yourself are not in that record."
+    "revokeTitle": "Disconnect",
+    "revokeIntro": "You can remove the connection at any time from your Waves account.",
+    "revokeSteps": [
+      ["Open Settings", "In the Waves app or on the web."],
+      ["Go to Connected apps", "Find your AI assistant in the list."],
+      ["Disconnect", "Its sign-in is cancelled and it has to ask for approval again."]
     ],
+    "revokeNote": "You can also remove Waves from your assistant’s own connector list. A sign-in token it already holds can keep working for up to an hour after you disconnect.",
     "selfTitle": "Running it yourself",
-    "self": [
-      "There is also a local server for people working from the source repository. It runs on your own machine over stdio and signs in with a six-digit code sent to your email. It exists for development; use the hosted address above otherwise.",
-      "Set WAVES_MCP_READONLY=1 and only the reading tools are registered at all, so an assistant cannot attempt a write it was never offered."
+    "selfBody": "You can also run the Waves MCP server on your own machine. It is open source, speaks stdio, and signs in with a six-digit code sent to your email. It is meant for developers; use the hosted address above otherwise.",
+    "selfChecks": [
+      "Open source on GitHub",
+      "Runs on your machine over stdio",
+      "Read-only mode available"
     ],
+    "selfLink": "View self-hosting guide",
     "faqTitle": "Questions",
     "faq": [
       [
         "Is this on by default?",
         "No. Nothing happens until you add the address to an assistant and approve it. Waves works the same whether or not you ever do."
+      ],
+      [
+        "Can I use this with friends and family?",
+        "Yes. Each person connects their own assistant to their own account, and an assistant only acts as the person who approved it. A group you share is the same group for all of you."
       ],
       [
         "Can an assistant pay my friends?",
@@ -545,6 +557,7 @@
         "Check that the address is exactly as shown, ending in /api/mcp, and that your client supports OAuth sign-in for remote servers. If it still fails, write to us with the client name."
       ]
     ],
+    "faqAll": "View all FAQs",
     "contact": "Questions about any of this:"
   },
   "offline": {

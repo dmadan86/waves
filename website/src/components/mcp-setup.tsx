@@ -25,12 +25,17 @@ export type SetupTab = {
  */
 export function McpSetup({
   tabs,
+  endpoint,
+  endpointLabel,
   copyLabel,
   copy,
   copied,
   label,
 }: {
   tabs: SetupTab[];
+  /** The server address, shown beside every client's steps. */
+  endpoint: string;
+  endpointLabel: string;
   copyLabel: string;
   copy: string;
   copied: string;
@@ -54,13 +59,11 @@ export function McpSetup({
     refs.current[target]?.focus();
   };
 
+  const copyProps = { copyLabel, copy, copied };
+
   return (
     <div>
-      <div
-        role="tablist"
-        aria-label={label}
-        className="flex gap-1.5 overflow-x-auto rounded-2xl bg-chip p-1.5"
-      >
+      <div role="tablist" aria-label={label} className="flex flex-wrap gap-2">
         {tabs.map((tab, i) => (
           <button
             key={tab.id}
@@ -75,10 +78,10 @@ export function McpSetup({
             tabIndex={active === i ? 0 : -1}
             onClick={() => setActive(i)}
             onKeyDown={(e) => onKey(e, i)}
-            className={`inline-flex h-10 shrink-0 items-center rounded-xl px-4 text-[0.88rem] font-semibold whitespace-nowrap transition-colors ${
+            className={`inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[0.84rem] font-semibold whitespace-nowrap transition-colors ${
               active === i
-                ? 'bg-surface text-ink shadow-[var(--w-shadow-sm)]'
-                : 'text-ink-2 hover:text-ink'
+                ? 'bg-accent text-accent-ink shadow-[0_6px_16px_rgb(122_90_248_/_0.28)]'
+                : 'bg-chip text-ink-2 hover:text-ink'
             }`}
           >
             {tab.name}
@@ -93,44 +96,36 @@ export function McpSetup({
           id={`${base}-panel-${tab.id}`}
           aria-labelledby={`${base}-tab-${tab.id}`}
           hidden={active !== i}
-          className="mt-5"
+          className="mt-5 grid gap-6 lg:grid-cols-[1fr_21.5rem] lg:gap-8"
         >
-          <ol className="space-y-3">
+          <ol className="space-y-3 self-center">
             {tab.steps.map((step, n) => (
               <li key={step} className="flex items-start gap-3">
                 <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-wash text-[0.75rem] font-bold text-accent">
                   {n + 1}
                 </span>
-                <span className="text-[0.95rem] leading-[1.6] text-ink-2">{step}</span>
+                <span className="text-[0.9rem] leading-[1.55] text-ink-2">{step}</span>
               </li>
             ))}
           </ol>
-          {tab.snippet ? (
-            <div className="mt-5 space-y-3">
-              <CopyCode
-                code={tab.snippet}
-                label={tab.snippetLabel}
-                copyLabel={copyLabel}
-                copy={copy}
-                copied={copied}
-              />
-              {tab.after ? (
-                <p className="text-[0.88rem] leading-[1.6] text-ink-2">{tab.after}</p>
-              ) : null}
-            </div>
-          ) : null}
-          {tab.extra ? (
-            <div className="mt-4">
+          <div className="min-w-0 space-y-3 rounded-2xl bg-chip/70 p-3.5">
+            <CopyCode code={endpoint} label={endpointLabel} inline compact {...copyProps} />
+            {tab.snippet ? (
+              <CopyCode code={tab.snippet} label={tab.snippetLabel} compact {...copyProps} />
+            ) : null}
+            {tab.extra ? (
               <CopyCode
                 code={tab.extra.code}
                 label={tab.extra.label}
-                copyLabel={copyLabel}
-                copy={copy}
-                copied={copied}
                 inline
+                compact
+                {...copyProps}
               />
-            </div>
-          ) : null}
+            ) : null}
+            {tab.after ? (
+              <p className="text-[0.8rem] leading-[1.55] text-ink-2">{tab.after}</p>
+            ) : null}
+          </div>
         </div>
       ))}
     </div>
