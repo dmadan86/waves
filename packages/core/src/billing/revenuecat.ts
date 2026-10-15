@@ -7,8 +7,8 @@
  * from here so a product renamed in one place cannot quietly grant the wrong
  * tier in the other.
  *
- * Tiers: **Plus** is the paid features without the advanced voice agent; **Pro**
- * is everything. A person holding both entitlements is Pro.
+ * Tiers: **Plus** is the paid features with 50 advanced voice commands a month;
+ * **Pro** is everything, with 150. A person holding both entitlements is Pro.
  */
 
 import { PlanTier } from './plans';

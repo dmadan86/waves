@@ -1,7 +1,7 @@
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
- * Plus (the paid features without the advanced AI voice) and Pro (everything),
+ * Plus (the paid features with 50 advanced AI voice commands a month) and Pro (everything),
  * sold through RevenueCat. The cards come from RevenueCat's current offering
  * ('default'), so every price on screen is the store's own localized string —
  * nothing here is hardcoded. A monthly/yearly switch appears only once the
@@ -16,6 +16,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import type { PurchasesOffering } from 'react-native-purchases';
@@ -25,11 +26,12 @@ import {
   PlanTier,
   PLUS_DEVICE_LIMIT,
   PLUS_MONTHLY_SCANS,
+  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
 import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
-import { fill, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import {
   chosenCard,
@@ -48,14 +50,18 @@ import { usePlusPriceVariant, useTrackPremiumViewed } from '@/lib/plusPrice';
 import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
+import { trialDaysLeft } from '@/lib/proTrial';
 import { useEntitlement } from '@/lib/useEntitlement';
+import { useProTrial } from '@/lib/useProTrial';
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; offering: PurchasesOffering | null };
 
-const HERO_ART = require('../../assets/images/paywall/paywall-hero.webp') as number;
+/** The lighter end of the hero badge's gradient, and the sparkles' tone. Fixed so both themes read. */
+const BADGE_TINT = '#A58FFF';
+const SPARKLE = '#F5B83D';
 const PRO_TILE = require('../../assets/images/paywall/paywall-pro-tile.webp') as number;
 
 function planName(t: UiStrings, tier: PlanTier): string {
@@ -106,7 +112,12 @@ export default function PaywallScreen() {
     return best;
   }, [offering]);
 
-  const current = entitlement.tier;
+  // On the automatic Pro trial the person has Pro but has not paid: the cards
+  // treat them as Free, so Pro stays buyable ("Keep Pro"), and the Pro card
+  // says how many days are left instead of "Current plan".
+  const trial = useProTrial();
+  const onTrial = trial !== null && entitlement.tier === PlanTier.Pro;
+  const current = onTrial ? PlanTier.Free : entitlement.tier;
   const chosen = chosenCard(cards, selected);
   const chosenIsCurrent = chosen ? chosen.tier === current : false;
 
@@ -152,11 +163,13 @@ export default function PaywallScreen() {
   const cta = ctaState({ chosen, current, purchasing });
   const ctaLabel = !chosen
     ? fill(t.paywall.continueWith, { plan: t.paywall.proTitle })
-    : cta.kind === 'current'
-      ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
-      : cta.kind === 'busy'
-        ? t.paywall.subscribing
-        : fill(t.paywall.continueWith, { plan: planName(t, chosen.tier) });
+    : onTrial && chosen.tier === PlanTier.Pro && cta.kind === 'continue'
+      ? t.paywall.keepPro
+      : cta.kind === 'current'
+        ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
+        : cta.kind === 'busy'
+          ? t.paywall.subscribing
+          : fill(t.paywall.continueWith, { plan: planName(t, chosen.tier) });
 
   const heroTitle = showUpgradeHero(current) ? t.paywall.heroTitle : t.paywall.title;
   const emptyCopy =
@@ -190,11 +203,11 @@ export default function PaywallScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -theme.spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1, gap: theme.spacing.sm, paddingEnd: theme.spacing.xs }}>
             <Text
               accessibilityRole="header"
-              style={{ fontSize: 30, lineHeight: 34, fontWeight: '800' }}
+              style={{ fontSize: 26, lineHeight: 32, fontWeight: '800' }}
             >
               {heroTitle}
             </Text>
@@ -202,13 +215,7 @@ export default function PaywallScreen() {
               {t.paywall.heroSubtitle}
             </Text>
           </View>
-          <Image
-            source={HERO_ART}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ width: 150, height: 136, marginEnd: -theme.spacing.sm }}
-            resizeMode="contain"
-          />
+          <HeroBadge />
         </View>
 
         {periods.length > 1 ? (
@@ -253,6 +260,9 @@ export default function PaywallScreen() {
                 card={card}
                 active={chosen?.packageId === card.packageId}
                 current={card.tier === current}
+                trialDaysLeft={
+                  onTrial && card.tier === PlanTier.Pro && trial ? trialDaysLeft(trial) : null
+                }
                 onPress={() => setSelected(card.tier)}
               />
             ))}
@@ -457,25 +467,95 @@ function PeriodSwitch({
   );
 }
 
+/** A crisp, code-drawn badge: a brand-gradient disc, a white crown, three gold sparkles. */
+function HeroBadge() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 104, height: 104, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <View
+        style={{
+          width: 84,
+          height: 84,
+          borderRadius: 42,
+          shadowColor: theme.color.brand,
+          shadowOpacity: 0.4,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
+          backgroundColor: theme.color.brand,
+        }}
+      >
+        <LinearGradient
+          colors={[theme.color.brand, BADGE_TINT]}
+          start={{ x: 0.1, y: 1 }}
+          end={{ x: 0.9, y: 0 }}
+          style={{
+            flex: 1,
+            borderRadius: 42,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255,255,255,0.35)',
+          }}
+        >
+          <MaterialCommunityIcons name="crown" size={42} color="#FFFFFF" />
+        </LinearGradient>
+      </View>
+      <Ionicons
+        name="sparkles"
+        size={20}
+        color={SPARKLE}
+        style={{ position: 'absolute', top: 2, end: 6 }}
+      />
+      <Ionicons
+        name="sparkles"
+        size={13}
+        color={SPARKLE}
+        style={{ position: 'absolute', top: 24, start: 0 }}
+      />
+      <Ionicons
+        name="sparkles"
+        size={11}
+        color={SPARKLE}
+        style={{ position: 'absolute', bottom: 6, end: 2 }}
+      />
+    </View>
+  );
+}
+
 /** One plan: icon tile, name and price, a radio, then what it includes. */
 function PlanCard({
   card,
   active,
   current,
+  trialDaysLeft: trialDays,
   onPress,
 }: {
   card: PlanCardModel;
   active: boolean;
   current: boolean;
+  /** Days left on the automatic Pro trial, for the Pro card while on it. */
+  trialDaysLeft: number | null;
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const pro = card.tier === PlanTier.Pro;
   const title = pro ? t.paywall.proTitle : t.paywall.plusTitle;
   const tagline = pro ? t.paywall.proTagline : t.paywall.plusTagline;
   const cadence = card.period === 'yearly' ? t.paywall.perYear : t.paywall.perMonth;
-  const badge = current ? t.paywall.currentPlan : pro ? t.paywall.proBadge : null;
+  const badge =
+    trialDays !== null
+      ? plural(locale, trialDays, t.paywall.trialBadge)
+      : current
+        ? t.paywall.currentPlan
+        : pro
+          ? t.paywall.proBadge
+          : null;
   const features = pro
     ? [
         t.paywall.featureEverythingPlus,
@@ -485,6 +565,7 @@ function PlanCard({
         fill(t.paywall.featureScans, { scans: PLUS_MONTHLY_SCANS }),
         fill(t.paywall.featureDevices, { devices: PLUS_DEVICE_LIMIT }),
         t.paywall.featureTransfers,
+        fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PLUS_MONTHLY }),
       ];
 
   return (
@@ -609,44 +690,60 @@ function FreeCard() {
   return (
     <View
       style={{
-        flexDirection: 'row',
         backgroundColor: theme.color.surface,
         borderRadius: theme.radius.lg,
         paddingVertical: theme.spacing.md,
+        gap: theme.spacing.sm,
       }}
     >
-      {items.map((item, i) => (
-        <View
-          key={item.icon}
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            gap: 4,
-            paddingHorizontal: theme.spacing.xs,
-            borderStartWidth: i === 0 ? 0 : 1,
-            borderStartColor: theme.color.border,
-          }}
-        >
+      <View style={{ flexDirection: 'row' }}>
+        {items.map((item, i) => (
           <View
+            key={item.icon}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.tint[item.tint].bg,
+              flex: 1,
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 4,
+              paddingHorizontal: theme.spacing.xs,
+              borderStartWidth: i === 0 ? 0 : 1,
+              borderStartColor: theme.color.border,
             }}
           >
-            <Ionicons name={item.icon} size={20} color={theme.tint[item.tint].ink} />
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: theme.tint[item.tint].bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name={item.icon} size={20} color={theme.tint[item.tint].ink} />
+            </View>
+            <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
+              {item.label}
+            </Text>
+            <Text variant="micro" tone="muted" align="center">
+              {t.paywall.alwaysFree}
+            </Text>
           </View>
-          <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
-            {item.label}
-          </Text>
-          <Text variant="micro" tone="muted" align="center">
-            {t.paywall.alwaysFree}
-          </Text>
-        </View>
-      ))}
+        ))}
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.spacing.xs,
+          paddingHorizontal: theme.spacing.md,
+        }}
+      >
+        <Ionicons name="mic-outline" size={16} color={theme.tint.lilac.ink} />
+        <Text variant="caption" tone="muted" align="center">
+          {t.paywall.freeVoice}
+        </Text>
+      </View>
     </View>
   );
 }

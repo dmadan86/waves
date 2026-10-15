@@ -322,7 +322,18 @@ export function VoiceAgentPanel({
       ) : null}
 
       <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
-        {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+        {fill(
+          quota.trial
+            ? quota.until
+              ? t.voice.agentTrialQuotaLeftUntil
+              : t.voice.agentTrialQuotaLeft
+            : t.voice.agentQuotaLeft,
+          {
+            left: String(quota.left),
+            limit: String(quota.limit),
+            date: quota.until ? shortDate(quota.until, locale) : '',
+          },
+        )}
       </Text>
       <VoiceEngineBadge info={engine} />
     </View>
@@ -608,4 +619,15 @@ function AgentActionCard({
       )}
     </View>
   );
+}
+
+/** "20 Nov": the day the trial's voice pool closes. */
+function shortDate(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  try {
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
 }

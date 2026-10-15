@@ -9,10 +9,13 @@ import {
   FREE_ENTITLEMENT,
   FREE_MONTHLY_SCANS,
   PLUS_MONTHLY_SCANS,
+  PlanTier,
   PRICED_COUNTRIES,
   priceFor,
   readEntitlement,
+  voiceAgentMonthlyLimit,
 } from '../src/billing/plans';
+import * as voice from '../src/voice/agentProtocol';
 import { isCurrencyCode } from '../src/money/currency';
 import { currencyForCountry } from '../src/money/region';
 
@@ -115,5 +118,15 @@ describe('reading what the server said', () => {
     // tier, which is the thing that gates, and let the source be cosmetic.
     expect(readEntitlement({ tier: 'free', source: 'lifetime' }).source).toBe('free');
     expect(readEntitlement({ tier: 'plus', source: 'free' }).source).toBe('subscription');
+  });
+});
+
+describe('advanced voice allowance', () => {
+  it('is 10 for free, 50 for Plus and 150 for Pro, streams at 3x', () => {
+    expect(voiceAgentMonthlyLimit(PlanTier.Free)).toBe(10);
+    expect(voiceAgentMonthlyLimit(PlanTier.Plus)).toBe(50);
+    expect(voiceAgentMonthlyLimit(PlanTier.Pro)).toBe(150);
+    expect(voice.VOICE_STREAM_PLUS_MONTHLY).toBe(150);
+    expect(voice.VOICE_STREAM_PRO_MONTHLY).toBe(450);
   });
 });

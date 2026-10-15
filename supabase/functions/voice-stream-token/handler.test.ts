@@ -26,6 +26,11 @@ function makeDeps(over: {
   grant?: Response;
   used?: number;
   pro?: boolean;
+  plus?: boolean;
+  trial?: boolean;
+  trialUsed?: number;
+  /** Days since the trial was granted; Pro lasts 15, the voice pool 30. */
+  trialAgeDays?: number;
   mints?: number;
   mintError?: boolean;
 }) {
@@ -57,14 +62,20 @@ function makeDeps(over: {
       rpc: async (name: string, args: Record<string, number>) => {
         if (name !== 'waves_voice_stream_mint') return { data: over.enabled ?? true, error: null };
         if (over.mintError) return { data: null, error: { message: 'down' } };
-        const budget = over.pro ? args.p_pro_budget : args.p_free_budget;
+        const budget = over.trial
+          ? args.p_trial_budget
+          : over.pro
+            ? args.p_pro_budget
+            : over.plus
+              ? args.p_plus_budget
+              : args.p_free_budget;
         const used = over.mints ?? 0;
         return {
           data: {
             allowed: used < budget,
             mints: Math.min(used + 1, budget),
             budget,
-            tier: over.pro ? 'pro' : 'free',
+            tier: over.pro || over.trial ? 'pro' : over.plus ? 'plus' : 'free',
           },
           error: null,
         };
@@ -72,15 +83,37 @@ function makeDeps(over: {
       from: (t: string) => {
         const rows =
           t === 'subscriptions'
-            ? over.pro
-              ? [{ tier: 'pro', status: 'active', current_period_end: null }]
-              : []
+            ? over.trial
+              ? [
+                  {
+                    tier: 'pro',
+                    store: 'trial',
+                    status: 'active',
+                    current_period_end: '2999-01-01',
+                  },
+                ]
+              : over.pro || over.plus
+                ? [{ tier: over.pro ? 'pro' : 'plus', status: 'active', current_period_end: null }]
+                : []
             : [];
         const q: Record<string, unknown> = {};
         const chain = () => q;
         for (const m of ['select', 'eq']) q[m] = chain;
         q.maybeSingle = async () => ({
-          data: t === 'voice_agent_usage' ? { count: over.used ?? 0 } : null,
+          data:
+            t === 'voice_agent_usage'
+              ? { count: over.used ?? 0 }
+              : t === 'pro_trials'
+                ? over.trial
+                  ? {
+                      voice_used: over.trialUsed ?? 0,
+                      outcome: 'granted',
+                      granted_at: new Date(
+                        Date.now() - (over.trialAgeDays ?? 0) * 86_400_000,
+                      ).toISOString(),
+                    }
+                  : null
+                : null,
           error: null,
         });
         q.then = (resolve: (v: unknown) => unknown) => resolve({ data: rows, error: null });
@@ -115,6 +148,67 @@ describe('handleVoiceStreamToken', () => {
     expect(free.fetchMock).not.toHaveBeenCalled();
     const pro = makeDeps({ used: 10, pro: true });
     await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
+  });
+
+  it('gives Plus 50 commands and 150 streams a month, Pro 150 and 450', async () => {
+    const plusSpent = makeDeps({ used: 50, plus: true });
+    await expect(handleVoiceStreamToken(request(), plusSpent.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_AGENT_QUOTA',
+    });
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ used: 49, plus: true }).deps),
+    ).resolves.toBeTruthy();
+    // 50 commands is Plus's limit, but well inside Pro's.
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ used: 50, pro: true }).deps),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ mints: 149, plus: true }).deps),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ mints: 150, plus: true }).deps),
+    ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
+  });
+
+  it('on the Pro trial the stream gate allows 20 commands in total and a 60-stream budget', async () => {
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ trial: true, trialUsed: 19 }).deps),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ trial: true, trialUsed: 20 }).deps),
+    ).rejects.toMatchObject({ status: 402, code: 'VOICE_AGENT_QUOTA' });
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ trial: true, mints: 60 }).deps),
+    ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
+  });
+
+  it('keeps the trial pool usable after the Pro days end, until day 30', async () => {
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 20, trialUsed: 5 }).deps,
+      ),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 20, trialUsed: 20 }).deps,
+      ),
+    ).rejects.toMatchObject({ code: 'VOICE_AGENT_QUOTA' });
+    // Day 31: the pool is gone and the normal free allowance (10 a month) applies.
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 31, trialUsed: 5, used: 10 }).deps,
+      ),
+    ).rejects.toMatchObject({ code: 'VOICE_AGENT_QUOTA' });
+    await expect(
+      handleVoiceStreamToken(
+        request(),
+        makeDeps({ trial: true, trialAgeDays: 31, trialUsed: 20, used: 3 }).deps,
+      ),
+    ).resolves.toBeTruthy();
   });
 
   it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 450)', async () => {

@@ -27,6 +27,8 @@ import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
 import { orderByActivity } from '@/lib/groupActivityOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
+import { trialDaysLeft } from '@/lib/proTrial';
+import { useProTrial } from '@/lib/useProTrial';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -228,6 +230,7 @@ export default function HomeScreen() {
   // Same test the Upgrade screen uses for `plansLive`: the paywall flag is on
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
+  const proTrial = useProTrial();
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // The `section` keys are internal grouping only (not user-visible): they
@@ -244,7 +247,7 @@ export default function HomeScreen() {
         ? [
             {
               icon: 'rocket-outline' as const,
-              label: t.upgrade,
+              label: proTrial ? plural(locale, trialDaysLeft(proTrial), t.upgradeTrial) : t.upgrade,
               route: '/paywall' as const,
               section: 'account' as const,
             },
@@ -304,7 +307,7 @@ export default function HomeScreen() {
         section: 'settings',
       },
     ],
-    [t, tour, canUpgrade],
+    [t, locale, tour, canUpgrade, proTrial],
   );
 
   // A guest tapping "new group" past their limit is sent to sign up rather than

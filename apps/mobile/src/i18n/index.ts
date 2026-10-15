@@ -678,6 +678,8 @@ export interface UiStrings {
    */
   language: string;
   upgrade: string;
+  /** The dashboard menu's Upgrade row while on the automatic Pro trial. */
+  upgradeTrial: PluralForms;
   /**
    * The words that are on almost every screen.
    *
@@ -1361,6 +1363,9 @@ export interface UiStrings {
     agentAnswer: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
+    agentTrialQuotaLeft: string;
+    /** The same, with the day the pool closes. */
+    agentTrialQuotaLeftUntil: string;
     confirmSubtitle: string;
     confirmUnderstood: string;
     confirmEditHint: string;
@@ -4402,6 +4407,10 @@ export interface UiStrings {
     plusTagline: string;
     proTagline: string;
     proBadge: string;
+    /** The Pro card's badge on the automatic Pro trial. */
+    trialBadge: PluralForms;
+    /** The CTA that buys Pro during the trial. */
+    keepPro: string;
     featureScans: string;
     featureDevices: string;
     featureTransfers: string;
@@ -4436,6 +4445,7 @@ export interface UiStrings {
     freeGroups: string;
     freeExpenses: string;
     freeBalances: string;
+    freeVoice: string;
     alwaysFree: string;
     redeemTitle: string;
     redeemHint: string;
@@ -5680,6 +5690,7 @@ const en: UiStrings = {
   getStarted: 'Get started',
   language: 'Language',
   upgrade: 'Upgrade',
+  upgradeTrial: { one: '{n} day of Pro left', other: '{n} days of Pro left' },
   common: {
     appName: 'Waves',
     back: 'Back',
@@ -6232,6 +6243,8 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    agentTrialQuotaLeft: '{left} of {limit} Pro trial commands left',
+    agentTrialQuotaLeftUntil: '{left} of {limit} trial voice commands left · until {date}',
     confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
     confirmUnderstood: 'I understood this',
     confirmEditHint: 'You can edit if something looks wrong.',
@@ -8756,7 +8769,7 @@ const en: UiStrings = {
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
     plansTitle: 'Waves Plus and Pro',
     plansBody:
-      'More scans, bigger transfers and, on Pro, the advanced AI voice. The ledger stays free.',
+      'More scans, bigger transfers and advanced AI voice: 50 commands a month on Plus, 150 on Pro. The ledger stays free.',
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
@@ -8767,9 +8780,11 @@ const en: UiStrings = {
     title: 'Choose your plan',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'The paid features, without AI voice',
+    plusTagline: 'The paid features, with AI voice',
     proTagline: 'Everything in Waves, including advanced AI voice',
     proBadge: 'Everything',
+    trialBadge: { one: 'Pro trial · {n} day left', other: 'Pro trial · {n} days left' },
+    keepPro: 'Keep Pro',
     featureScans: '{scans} receipt scans a month',
     featureDevices: 'Signed in on up to {devices} devices',
     featureTransfers: 'Bigger exports, imports and backups',
@@ -8806,6 +8821,7 @@ const en: UiStrings = {
     freeGroups: 'Groups & splits',
     freeExpenses: 'Add & manage expenses',
     freeBalances: 'View balances & settle up',
+    freeVoice: 'AI voice: 10 commands a month',
     alwaysFree: 'Always free',
     redeemTitle: 'Redeem a code',
     redeemHint: 'If somebody gave you one.',
@@ -10037,6 +10053,7 @@ const ta: UiStrings = {
   getStarted: 'தொடங்கலாம்',
   language: 'மொழி',
   upgrade: 'மேம்படுத்தல்',
+  upgradeTrial: { one: 'Pro-வில் {n} நாள் மீதம்', other: 'Pro-வில் {n} நாட்கள் மீதம்' },
   common: {
     appName: 'Waves',
     back: 'பின்',
@@ -10601,6 +10618,8 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    agentTrialQuotaLeft: '{limit}-ல் {left} Pro சோதனைக் கட்டளைகள் மீதம்',
+    agentTrialQuotaLeftUntil: '{limit}-ல் {left} சோதனைக் குரல் கட்டளைகள் மீதம் · {date} வரை',
     confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
     confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
     confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
@@ -13265,7 +13284,7 @@ const ta: UiStrings = {
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
     plansTitle: 'Waves Plus மற்றும் Pro',
     plansBody:
-      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், Pro-வில் மேம்பட்ட AI குரல். கணக்கேடு இலவசமாகவே இருக்கும்.',
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல் (Plus-இல் மாதம் 50, Pro-வில் 150 கட்டளைகள்). கணக்கேடு இலவசமாகவே இருக்கும்.',
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
@@ -13276,9 +13295,11 @@ const ta: UiStrings = {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'கட்டண அம்சங்கள், AI குரல் இல்லாமல்',
+    plusTagline: 'கட்டண அம்சங்கள், AI குரலுடன்',
     proTagline: 'Waves-இல் அனைத்தும், மேம்பட்ட AI குரல் உட்பட',
     proBadge: 'அனைத்தும்',
+    trialBadge: { one: 'Pro சோதனை · {n} நாள் மீதம்', other: 'Pro சோதனை · {n} நாட்கள் மீதம்' },
+    keepPro: 'Pro-வைத் தொடரவும்',
     featureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     featureDevices: '{devices} சாதனங்கள் வரை உள்நுழைவு',
     featureTransfers: 'பெரிய ஏற்றுமதிகள், இறக்குமதிகள், காப்புப் பிரதிகள்',
@@ -13316,6 +13337,7 @@ const ta: UiStrings = {
     freeGroups: 'குழுக்கள் & பிரிப்பு',
     freeExpenses: 'செலவுகளைச் சேர்த்து நிர்வகிக்க',
     freeBalances: 'இருப்புகளைப் பார்த்து தீர்க்க',
+    freeVoice: 'AI குரல்: மாதம் 10 கட்டளைகள்',
     alwaysFree: 'எப்போதும் இலவசம்',
     redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
     redeemHint: 'யாராவது கொடுத்திருந்தால்.',
@@ -14554,6 +14576,7 @@ const hi: UiStrings = {
   getStarted: 'शुरू करें',
   language: 'भाषा',
   upgrade: 'अपग्रेड',
+  upgradeTrial: { one: 'Pro का {n} दिन बाकी', other: 'Pro के {n} दिन बाकी' },
   common: {
     appName: 'Waves',
     back: 'वापस',
@@ -15108,6 +15131,8 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    agentTrialQuotaLeft: '{limit} में से {left} Pro ट्रायल कमांड बाकी',
+    agentTrialQuotaLeftUntil: '{limit} में से {left} ट्रायल वॉइस कमांड बाकी · {date} तक',
     confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
     confirmUnderstood: 'मैंने यह समझा',
     confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
@@ -17651,7 +17676,8 @@ const hi: UiStrings = {
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
     plansTitle: 'Waves Plus और Pro',
-    plansBody: 'ज़्यादा स्कैन, बड़े ट्रांसफ़र और Pro पर एडवांस्ड AI वॉइस। लेजर मुफ़्त ही रहेगा।',
+    plansBody:
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (Plus में हर महीने 50, Pro में 150 कमांड)। लेजर मुफ़्त ही रहेगा।',
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
@@ -17662,9 +17688,11 @@ const hi: UiStrings = {
     title: 'अपना प्लान चुनें',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'पेड फ़ीचर, AI वॉइस के बिना',
+    plusTagline: 'पेड फ़ीचर, AI वॉइस के साथ',
     proTagline: 'Waves में सब कुछ, एडवांस्ड AI वॉइस समेत',
     proBadge: 'सब कुछ',
+    trialBadge: { one: 'Pro ट्रायल · {n} दिन बाकी', other: 'Pro ट्रायल · {n} दिन बाकी' },
+    keepPro: 'Pro जारी रखें',
     featureScans: 'हर महीने {scans} रसीद स्कैन',
     featureDevices: '{devices} डिवाइस तक साइन इन',
     featureTransfers: 'बड़े एक्सपोर्ट, इम्पोर्ट और बैकअप',
@@ -17701,6 +17729,7 @@ const hi: UiStrings = {
     freeGroups: 'ग्रुप और बँटवारा',
     freeExpenses: 'खर्चे जोड़ें और सँभालें',
     freeBalances: 'बैलेंस देखें और हिसाब चुकाएँ',
+    freeVoice: 'AI वॉइस: हर महीने 10 कमांड',
     alwaysFree: 'हमेशा मुफ़्त',
     redeemTitle: 'कोड इस्तेमाल करें',
     redeemHint: 'अगर किसी ने आपको दिया हो।',
@@ -18933,6 +18962,14 @@ const ar: UiStrings = {
   getStarted: 'لنبدأ',
   language: 'اللغة',
   upgrade: 'الترقية',
+  upgradeTrial: {
+    zero: '{n} يوم من Pro متبقٍ',
+    one: 'يوم واحد من Pro متبقٍ',
+    two: 'يومان من Pro متبقيان',
+    few: '{n} أيام من Pro متبقية',
+    many: '{n} يومًا من Pro متبقية',
+    other: '{n} يوم من Pro متبقٍ',
+  },
   common: {
     appName: 'Waves',
     back: 'رجوع',
@@ -19535,6 +19572,8 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    agentTrialQuotaLeft: 'تبقّى {left} من {limit} أمرًا في تجربة Pro',
+    agentTrialQuotaLeftUntil: 'تبقّى {left} من {limit} أمرًا صوتيًا في التجربة · حتى {date}',
     confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
     confirmUnderstood: 'فهمتُ هذا',
     confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',
@@ -22584,7 +22623,8 @@ const ar: UiStrings = {
     whatNeverWillBody:
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
     plansTitle: 'Waves Plus وPro',
-    plansBody: 'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم في Pro. يبقى السجل مجانيًا.',
+    plansBody:
+      'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم: 50 أمرًا شهريًا في Plus و150 في Pro. يبقى السجل مجانيًا.',
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
@@ -22595,9 +22635,18 @@ const ar: UiStrings = {
     title: 'اختر خطتك',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'الميزات المدفوعة، بدون الصوت الذكي',
+    plusTagline: 'الميزات المدفوعة، مع الصوت الذكي',
     proTagline: 'كل شيء في Waves، بما فيه الصوت الذكي المتقدّم',
     proBadge: 'كل شيء',
+    trialBadge: {
+      zero: 'تجربة Pro · {n} يوم متبقٍ',
+      one: 'تجربة Pro · يوم واحد متبقٍ',
+      two: 'تجربة Pro · يومان متبقيان',
+      few: 'تجربة Pro · {n} أيام متبقية',
+      many: 'تجربة Pro · {n} يومًا متبقية',
+      other: 'تجربة Pro · {n} يوم متبقٍ',
+    },
+    keepPro: 'احتفظ بـ Pro',
     featureScans: '{scans} مسحًا للإيصالات شهريًا',
     featureDevices: 'تسجيل الدخول على ما يصل إلى {devices} أجهزة',
     featureTransfers: 'تصدير واستيراد ونسخ احتياطي أكبر',
@@ -22633,6 +22682,7 @@ const ar: UiStrings = {
     freeGroups: 'المجموعات والتقسيم',
     freeExpenses: 'إضافة المصروفات وإدارتها',
     freeBalances: 'عرض الأرصدة والتسوية',
+    freeVoice: 'الصوت الذكي: 10 أوامر شهريًا',
     alwaysFree: 'مجاني دائمًا',
     redeemTitle: 'استخدام رمز',
     redeemHint: 'إذا أعطاك أحدهم واحدًا.',

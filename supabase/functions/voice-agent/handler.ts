@@ -1,5 +1,5 @@
 /**
- * voice-agent — Pro "advanced voice" (A73 phase 1, server half).
+ * voice-agent — Plus and Pro "advanced voice" (A73 phase 1, server half).
  *
  * One request: a short clip in, proposed actions out. Deepgram transcribes it,
  * Claude (tool use) turns the transcript into actions against the caller's own
@@ -14,8 +14,10 @@
 import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_MAX_CLIP_MS,
+  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
   VOICE_AGENT_SCHEMA_VERSION,
+  VOICE_AGENT_TRIAL_COMMANDS,
   VoiceAgentError,
   type VoiceAgentRequest,
   type VoiceAgentResponse,
@@ -186,6 +188,10 @@ interface Quota {
   used: number;
   limit: number;
   tier: 'free' | 'plus' | 'pro';
+  /** On the Pro trial: `limit` is the trial's total, not a month's. */
+  trial?: boolean;
+  /** With `trial`: when the pool closes. */
+  until?: string;
   allowed: boolean;
 }
 
@@ -261,6 +267,8 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       p_profile: profileId,
       p_free_limit: VOICE_AGENT_FREE_MONTHLY,
       p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
+      p_plus_limit: VOICE_AGENT_PLUS_MONTHLY,
+      p_trial_limit: VOICE_AGENT_TRIAL_COMMANDS,
     }),
   );
   let quotaResult: Awaited<typeof reservation>;
@@ -289,7 +297,13 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
       transcript: spoken,
       actions: [],
-      quota: { used: quota.used, limit: quota.limit, tier: quota.tier },
+      quota: {
+        used: quota.used,
+        limit: quota.limit,
+        tier: quota.tier,
+        trial: quota.trial,
+        until: quota.until,
+      },
     };
     return json(metered);
   }
@@ -371,14 +385,26 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
-          quota: { used, limit: quota.limit, tier: quota.tier },
+          quota: {
+            used,
+            limit: quota.limit,
+            tier: quota.tier,
+            trial: quota.trial,
+            until: quota.until,
+          },
         }
       : {
           schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
           transcript,
           actions: [],
           clarify: "Sorry, I didn't catch what to do with that. Could you say it again?",
-          quota: { used, limit: quota.limit, tier: quota.tier },
+          quota: {
+            used,
+            limit: quota.limit,
+            tier: quota.tier,
+            trial: quota.trial,
+            until: quota.until,
+          },
         };
 
     // Metadata only: never the audio, the transcript or any name.
