@@ -261,5 +261,10 @@
       }
     },
     "owner": "dmadan86"
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-9572359084681116~1185787174",
+    "ios_app_id": "ca-app-pub-9572359084681116~4326955839",
+    "delay_app_measurement_init": true
   }
 }
