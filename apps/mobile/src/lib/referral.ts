@@ -127,6 +127,57 @@ export function referralCodeFromInstallReferrer(raw: string | null | undefined):
   return null;
 }
 
+export interface InstallCampaign {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+}
+
+const CAMPAIGN_KEYS = {
+  utm_source: 'source',
+  utm_medium: 'medium',
+  utm_campaign: 'campaign',
+} as const;
+
+/** A campaign tag: lowercase letters, digits, `_` and `-`, at most 40 characters. */
+const CAMPAIGN_VALUE = /^[a-z0-9_-]{1,40}$/;
+
+/** 16 or more hex digits in a row is an id (a click id, a uuid), never a campaign name. */
+const LOOKS_LIKE_ID = /[0-9a-f]{16,}/;
+
+function campaignValue(raw: string): string | null {
+  const value = safeDecode(raw).trim().toLowerCase();
+  if (!CAMPAIGN_VALUE.test(value)) return null;
+  const compact = value.replace(/[-_]/g, '');
+  return LOOKS_LIKE_ID.test(compact) ? null : value;
+}
+
+/**
+ * The campaign tag inside a Play Install Referrer string: `utm_source`,
+ * `utm_medium` and `utm_campaign`, each a lowercase [a-z0-9_-] word of at most
+ * 40 characters. Anything else is dropped: other params (`gclid`, `fbclid`,
+ * `waves_ref`, an email), values with other characters or too long, and values
+ * that look like an id. Never throws; `{}` when there is nothing usable.
+ */
+export function campaignFromInstallReferrer(raw: string | null | undefined): InstallCampaign {
+  const out: InstallCampaign = {};
+  if (!raw) return out;
+  const text = raw.trim();
+  if (!text) return out;
+  const attempt = text.includes('=') ? text : safeDecode(text);
+  for (const pair of attempt.split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq < 0) continue;
+    const key = safeDecode(pair.slice(0, eq)).trim().toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(CAMPAIGN_KEYS, key)) continue;
+    const prop = CAMPAIGN_KEYS[key as keyof typeof CAMPAIGN_KEYS];
+    if (out[prop] !== undefined) continue;
+    const value = campaignValue(pair.slice(eq + 1));
+    if (value) out[prop] = value;
+  }
+  return out;
+}
+
 /**
  * Once per install, turn the Play referrer into a waiting referral code.
  *

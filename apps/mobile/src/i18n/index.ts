@@ -9027,7 +9027,7 @@ const en: UiStrings = {
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
-      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
+      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. On Android, the install also counts which ad or link it came from (its campaign tag, such as meta or diwali_in), with no advertising identifier. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
@@ -13543,7 +13543,7 @@ const ta: UiStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
-      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. நிறுவலுடன், அது எந்த விளம்பரம் அல்லது இணைப்பிலிருந்து வந்தது (அதன் பிரச்சாரக் குறிச்சொல்) என்பதும் எண்ணப்படுகிறது; விளம்பர அடையாளம் இல்லை. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
@@ -17917,7 +17917,7 @@ const hi: UiStrings = {
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
-      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
+      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। इंस्टॉल के साथ यह भी गिना जाता है कि वह किस विज्ञापन या लिंक से आया (उसका कैंपेन टैग), और कोई विज्ञापन पहचानकर्ता नहीं है। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
@@ -22866,7 +22866,7 @@ const ar: UiStrings = {
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
-      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
+      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. ويُحصى مع التثبيت أيضًا الإعلان أو الرابط الذي جاء منه (وسم حملته)، دون أي معرّف إعلاني. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
