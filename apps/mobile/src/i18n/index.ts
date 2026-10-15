@@ -3267,6 +3267,8 @@ export interface UiStrings {
     sharesDecimalPlaces: string;
     splitBetween: string;
     ofCount: string;
+    /** The link over the people list that ticks everyone in. */
+    selectAll: string;
     saveChanges: string;
     /** Bottom-bar Save on a new expense — more than a bare "Save". */
     saveExpense: string;
@@ -7736,6 +7738,7 @@ const en: UiStrings = {
     percent: 'Percent',
     splitBetween: 'Split between',
     ofCount: '{chosen} of {total}',
+    selectAll: 'Select all',
     saveChanges: 'Save changes',
     saveExpense: 'Save expense',
     scanReceipt: 'Scan receipt',
@@ -12172,6 +12175,7 @@ const ta: UiStrings = {
     percent: 'சதவீதம்',
     splitBetween: 'யாருக்கிடையே',
     ofCount: '{total} இல் {chosen}',
+    selectAll: 'எல்லோரையும் தேர்ந்தெடு',
     saveChanges: 'மாற்றங்களைச் சேமி',
     saveExpense: 'செலவைச் சேமி',
     scanReceipt: 'ரசீதை ஸ்கேன் செய்',
@@ -16614,6 +16618,7 @@ const hi: UiStrings = {
     percent: 'प्रतिशत',
     splitBetween: 'किनके बीच',
     ofCount: '{total} में से {chosen}',
+    selectAll: 'सभी चुनें',
     saveChanges: 'बदलाव सेव करें',
     saveExpense: 'खर्च सेव करें',
     scanReceipt: 'बिल स्कैन करें',
@@ -21205,6 +21210,7 @@ const ar: UiStrings = {
     percent: 'نسبة مئوية',
     splitBetween: 'التقسيم بين',
     ofCount: '{chosen} من {total}',
+    selectAll: 'تحديد الكل',
     saveChanges: 'حفظ التغييرات',
     saveExpense: 'احفظ المصروف',
     scanReceipt: 'امسح الفاتورة',

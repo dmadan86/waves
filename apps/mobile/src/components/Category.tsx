@@ -218,6 +218,7 @@ export function CategoryRow({
   subtitle,
   tinted = false,
   dense = false,
+  stacked = false,
 }: {
   value: string | null;
   /** The custom tag's denormalised display, when the value is a custom tag. */
@@ -233,6 +234,8 @@ export function CategoryRow({
   /** The compact "Save an expense" card: a 28pt disc and tighter row, same as
    *  every other fact in that card. See {@link DetailRow}'s own `dense`. */
   dense?: boolean;
+  /** The group add-expense card's stacked row; see {@link DetailRow}'s `stacked`. */
+  stacked?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -254,6 +257,7 @@ export function CategoryRow({
       onPress={onPress}
       accessibilityHint={accessibilityHint}
       dense={dense}
+      stacked={stacked}
     />
   );
 }

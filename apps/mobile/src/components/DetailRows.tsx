@@ -64,6 +64,7 @@ export function DetailRow({
   accessibilityHint,
   tint,
   dense = false,
+  stacked = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   /** When the glyph belongs to the *answer* rather than to the question — a
@@ -111,6 +112,10 @@ export function DetailRow({
    *  card wears it too, for the same reason; the plain expense screen keeps
    *  the roomier row this started as. */
   dense?: boolean;
+  /** The group add-expense card's look: a 40pt tinted disc, the label as a small
+   *  muted caption over the value in bold, and the chevron at the far end. The
+   *  value sits under its label instead of opposite it. Needs `tint`. */
+  stacked?: boolean;
 }) {
   const theme = useTheme();
   const chevron = onPress
@@ -120,9 +125,49 @@ export function DetailRow({
         ? 'chevron-up'
         : 'chevron-down'
     : null;
-  const discSize = dense ? 28 : 44;
+  const discSize = stacked ? 40 : dense ? 28 : 44;
 
-  const content = (
+  const stackedContent = (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        minHeight: 56,
+      }}
+    >
+      <View
+        style={{
+          width: discSize,
+          height: discSize,
+          borderRadius: discSize / 2,
+          backgroundColor: tint?.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={iconColor ?? tint?.ink} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {label}
+        </Text>
+        {value === undefined ? null : (
+          <Text variant="subheading" tone={placeholder ? 'muted' : undefined} numberOfLines={1}>
+            {value}
+          </Text>
+        )}
+      </View>
+      {trailing}
+      {chevron ? (
+        <Ionicons name={chevron} size={iconSize.base} color={theme.color.textFaint} />
+      ) : null}
+    </Row>
+  );
+
+  const content = stacked ? (
+    stackedContent
+  ) : (
     <Row
       style={{
         justifyContent: 'space-between',

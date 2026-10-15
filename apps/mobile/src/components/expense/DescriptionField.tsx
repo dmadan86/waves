@@ -26,6 +26,7 @@ export function DescriptionField({
   hints,
   multiline = false,
   boxed = false,
+  card = false,
   autoFocus = false,
 }: {
   value: string;
@@ -37,6 +38,9 @@ export function DescriptionField({
   multiline?: boolean;
   /** The Save an expense look: a card of its own, the mic set off by a rule. */
   boxed?: boolean;
+  /** The group add-expense look: a soft-shadowed card like its neighbours, the
+   *  note in regular weight and the mic as a round button at the end. */
+  card?: boolean;
   /** Raise the keyboard on arrival (the "Add vendor" hand-off). */
   autoFocus?: boolean;
 }): React.JSX.Element {
@@ -44,30 +48,40 @@ export function DescriptionField({
   return (
     <Row
       style={
-        boxed
+        card
           ? {
               alignItems: multiline ? 'flex-start' : 'center',
               gap: theme.spacing.md,
-              paddingStart: theme.spacing.lg,
-              paddingEnd: theme.spacing.sm,
-              paddingVertical: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: theme.spacing.xs,
               backgroundColor: theme.color.surface,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
+              borderRadius: theme.radius.md,
+              ...theme.shadow.soft,
             }
-          : {
-              alignItems: multiline ? 'flex-start' : 'center',
-              gap: theme.spacing.sm,
-              borderBottomWidth: 1,
-              borderBottomColor: theme.color.border,
-              paddingBottom: theme.spacing.xs,
-            }
+          : boxed
+            ? {
+                alignItems: multiline ? 'flex-start' : 'center',
+                gap: theme.spacing.md,
+                paddingStart: theme.spacing.lg,
+                paddingEnd: theme.spacing.sm,
+                paddingVertical: theme.spacing.sm,
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+              }
+            : {
+                alignItems: multiline ? 'flex-start' : 'center',
+                gap: theme.spacing.sm,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.color.border,
+                paddingBottom: theme.spacing.xs,
+              }
       }
     >
       <Ionicons
-        name="receipt-outline"
-        size={boxed ? iconSize.lg : iconSize.md}
+        name={card ? 'document-text-outline' : 'receipt-outline'}
+        size={boxed || card ? iconSize.lg : iconSize.md}
         color={theme.color.textMuted}
         style={multiline ? { paddingTop: theme.spacing.sm } : undefined}
       />
@@ -83,7 +97,7 @@ export function DescriptionField({
         style={{
           flex: 1,
           fontSize: 17,
-          fontWeight: '600',
+          fontWeight: card ? '400' : '600',
           color: theme.color.text,
           paddingVertical: theme.spacing.sm,
           ...(multiline ? { minHeight: 44 } : null),
