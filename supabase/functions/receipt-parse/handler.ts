@@ -7,22 +7,27 @@
  * correction rather than quietly becoming an expense. "AI proposes, human
  * confirms" only means something if the human is told what to look at.
  *
- * The API key lives here and only here (ADR-008 / TDR §11) — it is never in the
+ * The OpenRouter key lives here and only here (ADR-008 / TDR §11) — it is never in the
  * app bundle, and the client cannot reach the model except through this
  * function, which checks membership and quota first.
  *
  * The request handling lives here as a function over injected boundaries so it
  * can be unit-tested; `index.ts` wires in the real ones.
  *
- * Exact-match cache: the same image (same sha256) parsed with the same model,
- * prompt version and currency hint returns the stored parse instead of paying
- * for the model again. See the quota notes at `handleReceiptParse`.
+ * Models are reached through OpenRouter (one key), tried in order. Requests
+ * are routed only to providers that neither store nor train on the prompt: a
+ * receipt is a record of what somebody bought.
+ *
+ * Exact-match cache: the same image (same sha256) parsed with the same prompt
+ * version and currency hint returns the stored parse instead of paying for the
+ * model again. Whichever model answered, the result is interchangeable, so the
+ * cache key carries a fixed tag, not the model name. See the quota notes at `handleReceiptParse`.
  */
 
 import { checkReceipt, type ParsedReceipt } from '../_shared/core.js';
 import { HttpError, json, requireMembership, type SupabaseClient } from '../_shared/auth.ts';
 
-/** The media type Anthropic is told, keyed off the stored object's extension. */
+/** The media type the model is told, keyed off the stored object's extension. */
 function mediaTypeForPath(path: string): 'image/png' | 'image/webp' | 'image/jpeg' {
   const ext = path.slice(path.lastIndexOf('.') + 1).toLowerCase();
   if (ext === 'png') return 'image/png';
@@ -133,7 +138,26 @@ Combo meals and modifiers printed as separate indented lines under a parent
 item are separate line items if they carry their own price, and part of the
 parent if they do not.`;
 
-export const MODEL = 'claude-opus-5';
+/**
+ * Tried in order through OpenRouter; the first to return a valid parse wins.
+ * Override with `RECEIPT_MODELS` (comma-separated) to change without a deploy.
+ */
+export const RECEIPT_MODELS = ['anthropic/claude-haiku-5.5', 'google/gemini-3.5-flash'];
+
+/**
+ * The `model` column of the parse cache. Constant on purpose: which model
+ * answered must not decide whether an identical photo is a hit.
+ */
+export const CACHE_MODEL_TAG = 'receipt-openrouter';
+
+/** The models to try: the env override when it names any, else the defaults. */
+export function receiptModels(env: (name: string) => string | undefined): string[] {
+  const fromEnv = (env('RECEIPT_MODELS') ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return fromEnv.length > 0 ? fromEnv : RECEIPT_MODELS;
+}
 /**
  * ADR-011: a scan costs real money, so the quota is enforced server-side — and
  * the number now comes from `waves_receipt_scan_quota()`, which reads what the
@@ -218,7 +242,7 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
   {
     if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
 
-    const apiKey = deps.env('ANTHROPIC_API_KEY');
+    const apiKey = deps.env('OPENROUTER_API_KEY');
     if (!apiKey) {
       throw new HttpError(
         503,
@@ -318,11 +342,9 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       }
       if (!cached) {
         content.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: mediaTypeForPath(body.storagePath),
-            data: encodeBase64(bytes),
+          type: 'image_url',
+          image_url: {
+            url: `data:${mediaTypeForPath(body.storagePath)};base64,${encodeBase64(bytes)}`,
           },
         });
       }
@@ -360,68 +382,8 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       text: body.rawText ? TRANSCRIBE_TEXT(currency, body.rawText) : TRANSCRIBE_PHOTO(currency),
     });
 
-    const response = await deps.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 16000,
-        system: SYSTEM_PROMPT,
-        // Transcription, not deliberation: low effort keeps a scan cheap, which
-        // is what lets the free tier be generous (ADR-011).
-        output_config: {
-          effort: 'low',
-          format: { type: 'json_schema', schema: RECEIPT_SCHEMA },
-        },
-        messages: [{ role: 'user', content }],
-      }),
-    });
-
-    if (!response.ok) {
-      const detail = await response.text();
-      console.error('anthropic error', response.status, detail.slice(0, 500));
-
-      // Say *why*, not just that it failed. "The scanner could not read that
-      // just now" told the person nothing and told whoever had to debug it
-      // less — the only copy of the reason was in a log nobody watching a
-      // phone can reach. The upstream type and message are the model's
-      // complaint about the request, never about the key, so they are safe to
-      // pass on.
-      let reason = '';
-      try {
-        const upstream = JSON.parse(detail) as { error?: { type?: string; message?: string } };
-        reason = [upstream.error?.type, upstream.error?.message].filter(Boolean).join(': ');
-      } catch {
-        reason = detail.slice(0, 200);
-      }
-      throw new HttpError(
-        502,
-        'SCAN_FAILED',
-        `The scanner could not read that just now (${response.status}${reason ? ` ${reason}` : ''})`,
-      );
-    }
-
-    const message = (await response.json()) as {
-      content: { type: string; text?: string }[];
-      stop_reason?: string;
-      usage?: { input_tokens?: number; output_tokens?: number };
-    };
-
-    // A refusal is a successful HTTP 200 with an empty content array, so
-    // reading content[0] unconditionally would throw on the one case we most
-    // want to report clearly.
-    if (message.stop_reason === 'refusal') {
-      throw new HttpError(422, 'SCAN_REFUSED', 'The scanner declined to read that image');
-    }
-
-    const text = message.content?.find((block) => block.type === 'text')?.text;
-    if (!text) throw new HttpError(502, 'SCAN_FAILED', 'The scanner returned nothing');
-
-    const parsed = JSON.parse(text) as ParsedReceipt;
+    const attempt = await askModels(deps, apiKey, receiptModels(deps.env), content);
+    const { parsed, model: answeredBy, usage } = attempt;
 
     // The receipt's own checksum. This is what stands between a misread digit
     // and somebody's ledger.
@@ -444,9 +406,10 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       p_raw_text: body.rawText ?? null,
       p_parsed: parsed,
       p_status: status,
-      p_input_tokens: message.usage?.input_tokens ?? 0,
-      p_output_tokens: message.usage?.output_tokens ?? 0,
+      p_input_tokens: usage.prompt_tokens ?? 0,
+      p_output_tokens: usage.completion_tokens ?? 0,
     });
+    console.log(JSON.stringify({ fn: 'receipt-parse', cache: 'miss', model: answeredBy, usage }));
     if (recordError) throw new HttpError(500, 'INTERNAL', recordError.message);
 
     return json({
@@ -459,6 +422,111 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
   }
 }
 
+interface Answer {
+  parsed: ParsedReceipt;
+  model: string;
+  usage: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+/** A model's text as JSON, tolerating a ``` fence around it. */
+function parseJsonText(text: string): unknown {
+  const trimmed = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+  return JSON.parse(trimmed);
+}
+
+/**
+ * Ask each model in turn. Moves on after a non-OK response, a network error or
+ * a body that is not a valid receipt, so the one that answered is known. If all
+ * fail, the last failure is raised in the same shape as before.
+ */
+async function askModels(
+  deps: Deps,
+  apiKey: string,
+  models: readonly string[],
+  content: unknown[],
+): Promise<Answer> {
+  let failure: HttpError = new HttpError(502, 'SCAN_FAILED', 'The scanner returned nothing');
+  for (const model of models) {
+    const request = (lowEffort: boolean) =>
+      deps.fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          'content-type': 'application/json',
+          'x-title': 'Waves receipts',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 16000,
+          // Transcription, not deliberation: low effort keeps a scan cheap,
+          // which is what lets the free tier be generous (ADR-011).
+          ...(lowEffort ? { reasoning: { effort: 'low' } } : {}),
+          // Only providers that neither store nor train on the receipt.
+          provider: { data_collection: 'deny' },
+          response_format: {
+            type: 'json_schema',
+            json_schema: { name: 'receipt', strict: true, schema: RECEIPT_SCHEMA },
+          },
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content },
+          ],
+        }),
+      });
+    try {
+      let response = await request(true);
+      // A model that does not know the effort knob says so with a 400; ask plainly.
+      if (response.status === 400) response = await request(false);
+
+      if (!response.ok) {
+        const detail = await response.text();
+        console.error('openrouter error', model, response.status, detail.slice(0, 500));
+        // Say *why*, not just that it failed: the upstream message is the
+        // provider's complaint about the request, never about the key.
+        let reason = '';
+        try {
+          const upstream = JSON.parse(detail) as {
+            error?: { type?: string; code?: string | number; message?: string };
+          };
+          reason = [upstream.error?.type, upstream.error?.message].filter(Boolean).join(': ');
+        } catch {
+          reason = detail.slice(0, 200);
+        }
+        failure = new HttpError(
+          502,
+          'SCAN_FAILED',
+          `The scanner could not read that just now (${response.status}${reason ? ` ${reason}` : ''})`,
+        );
+        continue;
+      }
+
+      const completion = (await response.json()) as {
+        choices?: { message?: { content?: string | null; refusal?: string | null } }[];
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+      };
+      const text = completion.choices?.[0]?.message?.content;
+      if (!text) {
+        failure = new HttpError(502, 'SCAN_FAILED', 'The scanner returned nothing');
+        continue;
+      }
+      const parsed = parseJsonText(text);
+      if (!isParsedReceipt(parsed)) {
+        console.error('openrouter invalid receipt', model);
+        failure = new HttpError(502, 'SCAN_FAILED', 'The scanner returned something unreadable');
+        continue;
+      }
+      return { parsed, model, usage: completion.usage ?? {} };
+    } catch (error) {
+      console.error('openrouter call failed', model, error instanceof Error ? error.message : error);
+      failure = new HttpError(502, 'SCAN_FAILED', 'The scanner could not read that just now');
+    }
+  }
+  throw failure;
+}
+
 /** Cache read. Any failure is a miss: the cache must never break a scan. */
 async function cacheGet(
   service: SupabaseClient,
@@ -469,7 +537,7 @@ async function cacheGet(
   try {
     const { data, error } = await service.rpc('waves_receipt_cache_get', {
       p_sha256: sha256,
-      p_model: MODEL,
+      p_model: CACHE_MODEL_TAG,
       p_schema_version: version,
       p_currency: currency,
     });
@@ -491,7 +559,7 @@ async function cachePut(
   try {
     await service.rpc('waves_receipt_cache_put', {
       p_sha256: sha256,
-      p_model: MODEL,
+      p_model: CACHE_MODEL_TAG,
       p_schema_version: version,
       p_currency: currency,
       p_result: parsed,

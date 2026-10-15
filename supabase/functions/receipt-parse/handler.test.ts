@@ -9,7 +9,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   handleReceiptParse,
   isParsedReceipt,
-  MODEL,
+  CACHE_MODEL_TAG,
+  RECEIPT_MODELS,
   PROMPT_VERSION,
   sha256Hex,
   type Deps,
@@ -39,6 +40,8 @@ interface Options {
   canAdd?: boolean;
   model?: unknown;
   promptVersion?: string;
+  noKey?: boolean;
+  env?: Record<string, string>;
 }
 
 function setup(options: Options = {}) {
@@ -71,14 +74,15 @@ function setup(options: Options = {}) {
       return { data: null, error: null };
     }),
   };
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn(async (_url?: unknown, _init?: unknown) =>
     Response.json({
-      content: [{ type: 'text', text: JSON.stringify(options.model ?? GOOD) }],
-      usage: { input_tokens: 1000, output_tokens: 200 },
+      choices: [{ message: { content: JSON.stringify(options.model ?? GOOD) } }],
+      usage: { prompt_tokens: 1000, completion_tokens: 200 },
     }),
   );
   const deps = {
-    env: (n: string) => (n === 'ANTHROPIC_API_KEY' ? 'key' : undefined),
+    env: (n: string) =>
+      n === 'OPENROUTER_API_KEY' ? (options.noKey ? undefined : 'key') : options.env?.[n],
     caller,
     service,
     fetch: fetchMock,
@@ -107,7 +111,7 @@ describe('receipt-parse exact-match cache', () => {
     expect(body.quota).toEqual({ used: 1, limit: 20 });
     expect(t.cache.size).toBe(1);
     const [key, value] = [...t.cache.entries()][0]!;
-    expect(key).toBe(`${await sha256Hex(IMAGE)}|${MODEL}|${PROMPT_VERSION}|INR`);
+    expect(key).toBe(`${await sha256Hex(IMAGE)}|${CACHE_MODEL_TAG}|${PROMPT_VERSION}|INR`);
     expect(value).toEqual(GOOD);
     expect(recorded(t.rpcLog).p_cached).toBeUndefined();
     expect(recorded(t.rpcLog).p_input_tokens).toBe(1000);
@@ -179,7 +183,7 @@ describe('receipt-parse exact-match cache', () => {
 
   it('does not store when the model call fails', async () => {
     const t = setup();
-    t.fetchMock.mockResolvedValueOnce(new Response('{"error":{"type":"x"}}', { status: 500 }));
+    t.fetchMock.mockResolvedValue(new Response('{"error":{"type":"x"}}', { status: 500 }));
     await expect(handleReceiptParse(t.request(), t.deps)).rejects.toMatchObject({ status: 502 });
     expect(t.cache.size).toBe(0);
   });
@@ -228,6 +232,92 @@ describe('receipt-parse exact-match cache', () => {
       handleReceiptParse(t.request({ storagePath: 'other-group/r.jpg' }), t.deps),
     ).rejects.toMatchObject({ status: 403 });
     expect(t.rpcLog.some((c) => c.name === 'waves_receipt_cache_get')).toBe(false);
+  });
+});
+
+const sentBody = (call: unknown[]) => JSON.parse((call[1] as { body: string }).body);
+
+describe('receipt-parse on OpenRouter', () => {
+  it('falls back to the second model on a 500 and reports who answered', async () => {
+    const t = setup();
+    t.fetchMock.mockResolvedValueOnce(new Response('{"error":{"message":"boom"}}', { status: 500 }));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const res = await handleReceiptParse(t.request(), t.deps);
+    expect(res.status).toBe(200);
+    expect(t.fetchMock).toHaveBeenCalledTimes(2);
+    expect(sentBody(t.fetchMock.mock.calls[0]!).model).toBe(RECEIPT_MODELS[0]);
+    expect(sentBody(t.fetchMock.mock.calls[1]!).model).toBe(RECEIPT_MODELS[1]);
+    const logged = log.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logged).toContain(RECEIPT_MODELS[1]);
+    log.mockRestore();
+    expect(recorded(t.rpcLog).p_input_tokens).toBe(1000);
+    expect(recorded(t.rpcLog).p_output_tokens).toBe(200);
+  });
+
+  it('falls back when a model returns a body that is not a receipt', async () => {
+    const t = setup();
+    t.fetchMock.mockResolvedValueOnce(
+      Response.json({ choices: [{ message: { content: '```json\n{"merchant":"x"}\n```' } }] }),
+    );
+    const res = await handleReceiptParse(t.request(), t.deps);
+    expect(res.status).toBe(200);
+    expect(t.fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a model once without reasoning on a 400', async () => {
+    const t = setup();
+    t.fetchMock.mockResolvedValueOnce(new Response('{}', { status: 400 }));
+    await handleReceiptParse(t.request(), t.deps);
+    expect(t.fetchMock).toHaveBeenCalledTimes(2);
+    expect(sentBody(t.fetchMock.mock.calls[0]!).reasoning).toEqual({ effort: 'low' });
+    const second = sentBody(t.fetchMock.mock.calls[1]!);
+    expect(second.reasoning).toBeUndefined();
+    expect(second.model).toBe(RECEIPT_MODELS[0]);
+  });
+
+  it('fails with SCAN_FAILED when every model fails', async () => {
+    const t = setup();
+    t.fetchMock.mockResolvedValue(new Response('{"error":{"message":"down"}}', { status: 503 }));
+    await expect(handleReceiptParse(t.request(), t.deps)).rejects.toMatchObject({
+      status: 502,
+      code: 'SCAN_FAILED',
+    });
+    expect(t.cache.size).toBe(0);
+  });
+
+  it('is 503 SCANNING_UNAVAILABLE without OPENROUTER_API_KEY', async () => {
+    const t = setup({ noKey: true });
+    await expect(handleReceiptParse(t.request(), t.deps)).rejects.toMatchObject({
+      status: 503,
+      code: 'SCANNING_UNAVAILABLE',
+    });
+    expect(t.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('respects the RECEIPT_MODELS env override', async () => {
+    const t = setup({ env: { RECEIPT_MODELS: ' vendor/a , ,vendor/b ' } });
+    t.fetchMock.mockResolvedValueOnce(new Response('{}', { status: 500 }));
+    await handleReceiptParse(t.request(), t.deps);
+    expect(sentBody(t.fetchMock.mock.calls[0]!).model).toBe('vendor/a');
+    expect(sentBody(t.fetchMock.mock.calls[1]!).model).toBe('vendor/b');
+  });
+
+  it('sends no-retention routing, a json_schema format and the image as a data URL', async () => {
+    const t = setup();
+    await handleReceiptParse(t.request(), t.deps);
+    const [url, init] = t.fetchMock.mock.calls[0]! as [string, { headers: Record<string, string> }];
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(init.headers.authorization).toBe('Bearer key');
+    const body = sentBody(t.fetchMock.mock.calls[0]!);
+    expect(body.provider).toEqual({ data_collection: 'deny' });
+    expect(body.response_format.type).toBe('json_schema');
+    expect(body.response_format.json_schema).toMatchObject({ name: 'receipt', strict: true });
+    expect(body.messages[0].role).toBe('system');
+    expect(body.messages[1].content[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: 'data:image/jpeg;base64,AQIDBA==' },
+    });
+    expect(body.messages[1].content[1].type).toBe('text');
   });
 });
 
