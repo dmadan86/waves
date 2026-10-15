@@ -373,7 +373,10 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     let failure: HttpError = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
     let answered: {
       model: string;
-      extraction: Extract<ReturnType<typeof validateScreenshotExtraction>, { ok: true }>['extraction'];
+      extraction: Extract<
+        ReturnType<typeof validateScreenshotExtraction>,
+        { ok: true }
+      >['extraction'];
       usage: { prompt_tokens?: number; completion_tokens?: number };
     } | null = null;
 
@@ -485,7 +488,6 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     }
     if (!answered) throw failure;
     const { extraction, model: answeredBy, usage } = answered;
-
 
     console.info(
       JSON.stringify({
