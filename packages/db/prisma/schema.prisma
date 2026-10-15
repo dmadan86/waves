@@ -1463,6 +1463,38 @@ model Referral {
   @@schema("public")
 }
 
+/// The automatic Pro trial's knobs: one row. `launched_at` is the cut-off for
+/// "new account" (no backfill); the pool lasts `voice_days` from the grant.
+/// Service-role only.
+model ProTrialSettings {
+  id            Boolean  @id @default(true)
+  launchedAt    DateTime @default(now()) @map("launched_at") @db.Timestamptz(6)
+  days          Int      @default(15)
+  voiceCommands Int      @default(20) @map("voice_commands")
+  voiceDays     Int      @default(30) @map("voice_days")
+
+  @@map("pro_trial_settings")
+  @@schema("public")
+}
+
+/// One row per person who was offered the automatic Pro trial, written by
+/// `waves_pro_trial_grant`. Deliberately NO foreign key to profiles: the hashed
+/// identity keys must outlive a deleted account so re-signing up earns nothing.
+model ProTrial {
+  profileId    String   @id @map("profile_id") @db.Uuid
+  /// 'granted', or 'skipped_has_plan'.
+  outcome      String   @default("granted")
+  grantedAt    DateTime @default(now()) @map("granted_at") @db.Timestamptz(6)
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+  /// Voice commands used from the trial's pool.
+  voiceUsed    Int      @default(0) @map("voice_used")
+  identityKeys String[] @default([]) @map("identity_keys")
+
+  @@index([identityKeys], map: "pro_trials_identity_idx", type: Gin)
+  @@map("pro_trials")
+  @@schema("public")
+}
+
 /// Who used which code. Written only by `waves_redeem_promo`, which is
 /// SECURITY DEFINER so the client never touches `subscriptions` itself.
 model PromoRedemption {
