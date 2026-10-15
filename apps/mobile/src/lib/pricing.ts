@@ -143,14 +143,22 @@ export function activeProductId(info: CustomerInfoLike | null | undefined): stri
 /**
  * The RevenueCat public SDK key for this platform, or null when the build has
  * none — in which case there is nothing to buy and the paywall stays hidden.
+ *
+ * A Test Store key (`test_…`) counts only in a development build. The SDK
+ * refuses one in a release build: it shows "Wrong API Key" and closes the app.
+ * Treating it as no key leaves a release build that picked one up from a local
+ * `.env` working, just with nothing to sell.
  */
 export function revenueCatApiKey(
   os: string,
   env: { ios?: string | undefined; android?: string | undefined },
+  dev: boolean,
 ): string | null {
   const key = os === 'ios' ? env.ios : os === 'android' ? env.android : undefined;
   const trimmed = key?.trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) return null;
+  if (trimmed.startsWith('test_') && !dev) return null;
+  return trimmed;
 }
 
 /** The yearly plan's saving over twelve monthly payments, as a whole percent. */

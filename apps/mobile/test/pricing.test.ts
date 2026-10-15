@@ -130,11 +130,17 @@ describe('tierFromCustomerInfo', () => {
 describe('revenueCatApiKey', () => {
   it('uses the platform’s key and treats a blank one as none', () => {
     const env = { ios: 'appl_abc', android: ' goog_xyz ' };
-    expect(revenueCatApiKey('ios', env)).toBe('appl_abc');
-    expect(revenueCatApiKey('android', env)).toBe('goog_xyz');
-    expect(revenueCatApiKey('web', env)).toBeNull();
-    expect(revenueCatApiKey('ios', { ios: '  ' })).toBeNull();
-    expect(revenueCatApiKey('android', {})).toBeNull();
+    expect(revenueCatApiKey('ios', env, false)).toBe('appl_abc');
+    expect(revenueCatApiKey('android', env, false)).toBe('goog_xyz');
+    expect(revenueCatApiKey('web', env, false)).toBeNull();
+    expect(revenueCatApiKey('ios', { ios: '  ' }, false)).toBeNull();
+    expect(revenueCatApiKey('android', {}, false)).toBeNull();
+  });
+
+  it('uses a Test Store key only in a development build', () => {
+    const env = { ios: 'test_abc', android: 'test_abc' };
+    expect(revenueCatApiKey('ios', env, true)).toBe('test_abc');
+    expect(revenueCatApiKey('android', env, false)).toBeNull();
   });
 });
 
