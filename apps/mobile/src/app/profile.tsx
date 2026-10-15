@@ -525,6 +525,12 @@ function ProfileForm() {
               label: t.devices.row,
               route: '/settings/devices',
             },
+            {
+              icon: 'sparkles-outline',
+              label: t.connectedApps.row,
+              hint: t.connectedApps.rowHint,
+              route: '/settings/connected-apps',
+            },
           ]}
         />
 

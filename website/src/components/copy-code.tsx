@@ -17,6 +17,7 @@ export function CopyCode({
   copy,
   copied,
   inline = false,
+  compact = false,
 }: {
   code: string;
   label?: string;
@@ -25,6 +26,8 @@ export function CopyCode({
   copied: string;
   /** One-line address style rather than a multi-line block. */
   inline?: boolean;
+  /** Tighter padding and type, for use inside a card. */
+  compact?: boolean;
 }) {
   const [done, setDone] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,12 +51,14 @@ export function CopyCode({
       ) : null}
       <div
         dir="ltr"
-        className="flex items-start gap-2 rounded-2xl bg-surface p-2 ps-4 shadow-[var(--w-shadow-card)]"
+        className={`flex items-start gap-2 bg-surface shadow-[var(--w-shadow-card)] ${
+          compact ? 'rounded-xl p-1.5 ps-3' : 'rounded-2xl p-2 ps-4'
+        }`}
       >
         <pre
-          className={`min-w-0 flex-1 overflow-x-auto font-mono text-[0.82rem] leading-[1.7] text-ink ${
-            inline ? 'py-2.5 whitespace-nowrap' : 'py-2.5 whitespace-pre'
-          }`}
+          className={`min-w-0 flex-1 overflow-x-auto font-mono leading-[1.7] text-ink ${
+            compact ? 'py-1.5 text-[0.76rem]' : 'py-2.5 text-[0.82rem]'
+          } ${inline ? 'whitespace-nowrap' : compact ? 'break-all whitespace-pre-wrap' : 'whitespace-pre'}`}
           tabIndex={0}
         >
           <code>{code}</code>
@@ -62,7 +67,9 @@ export function CopyCode({
           type="button"
           onClick={onCopy}
           aria-label={copyLabel}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-accent-wash px-3.5 text-[0.82rem] font-semibold text-accent transition-colors hover:bg-brand-200"
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-accent-wash font-semibold text-accent transition-colors hover:bg-brand-200 ${
+            compact ? 'h-9 px-3 text-[0.78rem]' : 'h-10 px-3.5 text-[0.82rem]'
+          }`}
         >
           {done ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           <span aria-live="polite">{done ? copied : copy}</span>

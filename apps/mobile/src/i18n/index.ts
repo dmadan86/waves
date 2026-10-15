@@ -1018,6 +1018,23 @@ export interface UiStrings {
     copyShareTitle: string;
   };
   /** The devices screen and the free-tier two-device cap. */
+  /** The connected-apps screen: AI assistants authorised over OAuth, and revoking them. */
+  connectedApps: {
+    title: string;
+    row: string;
+    rowHint: string;
+    intro: string;
+    connectedOn: string;
+    disconnect: string;
+    confirmTitle: string;
+    confirmBody: string;
+    disconnected: string;
+    couldNotDisconnect: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyLink: string;
+    unnamed: string;
+  };
   devices: {
     couldNotSignOut: string;
     signedOutElsewhere: string;
@@ -6023,6 +6040,23 @@ const en: UiStrings = {
     copySaved: 'Saved {file}',
     copyShareTitle: 'Your Waves data',
   },
+  connectedApps: {
+    title: 'Connected apps',
+    row: 'Connected apps',
+    rowHint: 'AI assistants that can reach your Waves',
+    intro:
+      'AI assistants you have allowed to use your Waves. Disconnect one and it loses access straight away.',
+    connectedOn: 'Connected {when}',
+    disconnect: 'Disconnect',
+    confirmTitle: 'Disconnect {name}?',
+    confirmBody: 'It loses access to your Waves straight away. You can connect it again later.',
+    disconnected: '{name} disconnected.',
+    couldNotDisconnect: 'Could not disconnect. Please try again.',
+    emptyTitle: 'No connected apps',
+    emptyBody: 'AI assistants you connect to Waves will show up here.',
+    emptyLink: 'How to connect an assistant',
+    unnamed: 'Unnamed app',
+  },
   devices: {
     couldNotSignOut: 'Could not sign out the other devices. Please try again.',
     signedOutElsewhere:
@@ -10417,6 +10451,23 @@ const ta: UiStrings = {
     copyExcludesPhotos: 'சேமித்த நகலில் உங்கள் பதிவுகள் இருக்கும், படங்கள் இருக்காது.',
     copySaved: '{file} சேமிக்கப்பட்டது',
     copyShareTitle: 'உங்கள் Waves தரவு',
+  },
+  connectedApps: {
+    title: 'இணைக்கப்பட்ட செயலிகள்',
+    row: 'இணைக்கப்பட்ட செயலிகள்',
+    rowHint: 'உங்கள் Waves-ஐ அணுகக்கூடிய AI உதவியாளர்கள்',
+    intro:
+      'உங்கள் Waves-ஐப் பயன்படுத்த நீங்கள் அனுமதித்த AI உதவியாளர்கள். ஒன்றைத் துண்டித்தால் அதன் அணுகல் உடனே நின்றுவிடும்.',
+    connectedOn: 'இணைத்த நாள்: {when}',
+    disconnect: 'துண்டி',
+    confirmTitle: '{name}-ஐத் துண்டிக்கவா?',
+    confirmBody: 'இது உங்கள் Waves-ஐ அணுகுவது உடனே நின்றுவிடும். பிறகு மீண்டும் இணைக்கலாம்.',
+    disconnected: '{name} துண்டிக்கப்பட்டது.',
+    couldNotDisconnect: 'துண்டிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    emptyTitle: 'இணைக்கப்பட்ட செயலிகள் இல்லை',
+    emptyBody: 'Waves-உடன் நீங்கள் இணைக்கும் AI உதவியாளர்கள் இங்கே தோன்றும்.',
+    emptyLink: 'உதவியாளரை இணைப்பது எப்படி',
+    unnamed: 'பெயரில்லாத செயலி',
   },
   devices: {
     couldNotSignOut: 'மற்ற சாதனங்களை வெளியேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -14967,6 +15018,24 @@ const hi: UiStrings = {
     copySaved: '{file} सहेज लिया',
     copyShareTitle: 'आपका Waves डेटा',
   },
+  connectedApps: {
+    title: 'जुड़े हुए ऐप',
+    row: 'जुड़े हुए ऐप',
+    rowHint: 'वे AI असिस्टेंट जो आपके Waves तक पहुँच सकते हैं',
+    intro:
+      'वे AI असिस्टेंट जिन्हें आपने अपना Waves इस्तेमाल करने की अनुमति दी है। किसी को डिस्कनेक्ट करते ही उसकी पहुँच तुरंत बंद हो जाती है।',
+    connectedOn: 'जोड़ा गया: {when}',
+    disconnect: 'डिस्कनेक्ट करें',
+    confirmTitle: '{name} को डिस्कनेक्ट करें?',
+    confirmBody:
+      'इसकी पहुँच आपके Waves तक तुरंत बंद हो जाएगी। आप इसे बाद में फिर से जोड़ सकते हैं।',
+    disconnected: '{name} डिस्कनेक्ट हो गया।',
+    couldNotDisconnect: 'डिस्कनेक्ट नहीं हो सका। कृपया फिर कोशिश करें।',
+    emptyTitle: 'कोई ऐप जुड़ा हुआ नहीं है',
+    emptyBody: 'Waves से जोड़े गए AI असिस्टेंट यहाँ दिखेंगे।',
+    emptyLink: 'असिस्टेंट कैसे जोड़ें',
+    unnamed: 'बिना नाम का ऐप',
+  },
   devices: {
     couldNotSignOut: 'अन्य डिवाइस साइन आउट नहीं हो सके। कृपया फिर कोशिश करें।',
     signedOutElsewhere:
@@ -19423,6 +19492,22 @@ const ar: UiStrings = {
     copyExcludesPhotos: 'النسخة المحفوظة تحمل سجلاتك، لا الصور نفسها.',
     copySaved: 'تم حفظ {file}',
     copyShareTitle: 'بيانات Waves الخاصة بك',
+  },
+  connectedApps: {
+    title: 'التطبيقات المتصلة',
+    row: 'التطبيقات المتصلة',
+    rowHint: 'مساعدو الذكاء الاصطناعي الذين يمكنهم الوصول إلى Waves',
+    intro: 'مساعدو الذكاء الاصطناعي الذين سمحت لهم باستخدام Waves. عند فصل أحدهم يفقد وصوله فورًا.',
+    connectedOn: 'تاريخ الاتصال: {when}',
+    disconnect: 'فصل',
+    confirmTitle: 'فصل {name}؟',
+    confirmBody: 'سيفقد وصوله إلى Waves فورًا. يمكنك ربطه مرة أخرى لاحقًا.',
+    disconnected: 'تم فصل {name}.',
+    couldNotDisconnect: 'تعذّر الفصل. حاول مرة أخرى.',
+    emptyTitle: 'لا توجد تطبيقات متصلة',
+    emptyBody: 'سيظهر هنا مساعدو الذكاء الاصطناعي الذين تربطهم بـ Waves.',
+    emptyLink: 'كيفية ربط مساعد',
+    unnamed: 'تطبيق بلا اسم',
   },
   devices: {
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',

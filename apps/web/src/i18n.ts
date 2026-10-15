@@ -486,6 +486,23 @@ export interface WebStrings {
    * this list is the phones, and the browser is the useful place to read it
    * from: it is where somebody goes when the phone is the thing they have lost.
    */
+  /** The connected-apps screen: AI assistants authorised over OAuth, and revoking them. */
+  connectedApps: {
+    title: string;
+    row: string;
+    rowHint: string;
+    intro: string;
+    connectedOn: string;
+    disconnect: string;
+    confirmTitle: string;
+    confirmBody: string;
+    disconnected: string;
+    couldNotDisconnect: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyLink: string;
+    unnamed: string;
+  };
   devices: {
     title: string;
     row: string;
@@ -1654,6 +1671,23 @@ const en: WebStrings = {
     choicesBody:
       'Export everything you have entered, at any time, in full fidelity and for free. Turn off any notification. Delete your account and the personal data in it. Export and deletion both live in Settings, and the export is offered again on the way out. Write to us with anything you want changed.',
   },
+  connectedApps: {
+    title: 'Connected apps',
+    row: 'Connected apps',
+    rowHint: 'AI assistants that can reach your Waves',
+    intro:
+      'AI assistants you have allowed to use your Waves. Disconnect one and it loses access straight away.',
+    connectedOn: 'Connected {when}',
+    disconnect: 'Disconnect',
+    confirmTitle: 'Disconnect {name}?',
+    confirmBody: 'It loses access to your Waves straight away. You can connect it again later.',
+    disconnected: '{name} disconnected.',
+    couldNotDisconnect: 'Could not disconnect. Please try again.',
+    emptyTitle: 'No connected apps',
+    emptyBody: 'AI assistants you connect to Waves will show up here.',
+    emptyLink: 'How to connect an assistant',
+    unnamed: 'Unnamed app',
+  },
   devices: {
     title: 'Devices',
     row: 'Devices',
@@ -2695,6 +2729,23 @@ const ta: WebStrings = {
       'எல்லாவற்றையும் ஏற்றுமதி செய்யுங்கள், அறிவிப்புகளை நிறுத்துங்கள், கணக்கை நீக்குங்கள்.',
     choicesBody:
       'நீங்கள் உள்ளிட்ட அனைத்தையும் எப்போது வேண்டுமானாலும், முழுமையாக, இலவசமாக ஏற்றுமதி செய்யலாம். எந்த அறிவிப்பையும் நிறுத்தலாம். உங்கள் கணக்கையும் அதிலுள்ள தனிப்பட்ட தரவையும் நீக்கலாம். ஏற்றுமதியும் நீக்கமும் அமைப்புகளில் உள்ளன; வெளியேறும் வழியிலும் ஏற்றுமதி மீண்டும் வழங்கப்படும்.',
+  },
+  connectedApps: {
+    title: 'இணைக்கப்பட்ட செயலிகள்',
+    row: 'இணைக்கப்பட்ட செயலிகள்',
+    rowHint: 'உங்கள் Waves-ஐ அணுகக்கூடிய AI உதவியாளர்கள்',
+    intro:
+      'உங்கள் Waves-ஐப் பயன்படுத்த நீங்கள் அனுமதித்த AI உதவியாளர்கள். ஒன்றைத் துண்டித்தால் அதன் அணுகல் உடனே நின்றுவிடும்.',
+    connectedOn: 'இணைத்த நாள்: {when}',
+    disconnect: 'துண்டி',
+    confirmTitle: '{name}-ஐத் துண்டிக்கவா?',
+    confirmBody: 'இது உங்கள் Waves-ஐ அணுகுவது உடனே நின்றுவிடும். பிறகு மீண்டும் இணைக்கலாம்.',
+    disconnected: '{name} துண்டிக்கப்பட்டது.',
+    couldNotDisconnect: 'துண்டிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    emptyTitle: 'இணைக்கப்பட்ட செயலிகள் இல்லை',
+    emptyBody: 'Waves-உடன் நீங்கள் இணைக்கும் AI உதவியாளர்கள் இங்கே தோன்றும்.',
+    emptyLink: 'உதவியாளரை இணைப்பது எப்படி',
+    unnamed: 'பெயரில்லாத செயலி',
   },
   devices: {
     title: 'சாதனங்கள்',
@@ -3753,6 +3804,24 @@ const hi: WebStrings = {
     choicesBody:
       'जो कुछ आपने डाला है, कभी भी, पूरा और मुफ़्त निर्यात करें। कोई भी सूचना बंद करें। अपना खाता और उसमें रखा निजी डेटा मिटाएँ। निर्यात और खाता मिटाना, दोनों सेटिंग्स में हैं; जाते समय निर्यात फिर से पूछा जाता है।',
   },
+  connectedApps: {
+    title: 'जुड़े हुए ऐप',
+    row: 'जुड़े हुए ऐप',
+    rowHint: 'वे AI असिस्टेंट जो आपके Waves तक पहुँच सकते हैं',
+    intro:
+      'वे AI असिस्टेंट जिन्हें आपने अपना Waves इस्तेमाल करने की अनुमति दी है। किसी को डिस्कनेक्ट करते ही उसकी पहुँच तुरंत बंद हो जाती है।',
+    connectedOn: 'जोड़ा गया: {when}',
+    disconnect: 'डिस्कनेक्ट करें',
+    confirmTitle: '{name} को डिस्कनेक्ट करें?',
+    confirmBody:
+      'इसकी पहुँच आपके Waves तक तुरंत बंद हो जाएगी। आप इसे बाद में फिर से जोड़ सकते हैं।',
+    disconnected: '{name} डिस्कनेक्ट हो गया।',
+    couldNotDisconnect: 'डिस्कनेक्ट नहीं हो सका। कृपया फिर कोशिश करें।',
+    emptyTitle: 'कोई ऐप जुड़ा हुआ नहीं है',
+    emptyBody: 'Waves से जोड़े गए AI असिस्टेंट यहाँ दिखेंगे।',
+    emptyLink: 'असिस्टेंट कैसे जोड़ें',
+    unnamed: 'बिना नाम का ऐप',
+  },
   devices: {
     title: 'डिवाइस',
     row: 'डिवाइस',
@@ -4810,6 +4879,22 @@ const ar: WebStrings = {
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
     choicesBody:
       'تصدير كل ما أدخلته، في أي وقت، كاملًا ومجانًا. إيقاف أي إشعار. حذف حسابك والبيانات الشخصية التي فيه. التصدير والحذف كلاهما في الإعدادات، ويُعرض التصدير مرة أخرى عند المغادرة.',
+  },
+  connectedApps: {
+    title: 'التطبيقات المتصلة',
+    row: 'التطبيقات المتصلة',
+    rowHint: 'مساعدو الذكاء الاصطناعي الذين يمكنهم الوصول إلى Waves',
+    intro: 'مساعدو الذكاء الاصطناعي الذين سمحت لهم باستخدام Waves. عند فصل أحدهم يفقد وصوله فورًا.',
+    connectedOn: 'تاريخ الاتصال: {when}',
+    disconnect: 'فصل',
+    confirmTitle: 'فصل {name}؟',
+    confirmBody: 'سيفقد وصوله إلى Waves فورًا. يمكنك ربطه مرة أخرى لاحقًا.',
+    disconnected: 'تم فصل {name}.',
+    couldNotDisconnect: 'تعذّر الفصل. حاول مرة أخرى.',
+    emptyTitle: 'لا توجد تطبيقات متصلة',
+    emptyBody: 'سيظهر هنا مساعدو الذكاء الاصطناعي الذين تربطهم بـ Waves.',
+    emptyLink: 'كيفية ربط مساعد',
+    unnamed: 'تطبيق بلا اسم',
   },
   devices: {
     title: 'الأجهزة',
