@@ -26,6 +26,7 @@ function makeDeps(over: {
   grant?: Response;
   used?: number;
   pro?: boolean;
+  plus?: boolean;
   mints?: number;
   mintError?: boolean;
 }) {
@@ -57,14 +58,18 @@ function makeDeps(over: {
       rpc: async (name: string, args: Record<string, number>) => {
         if (name !== 'waves_voice_stream_mint') return { data: over.enabled ?? true, error: null };
         if (over.mintError) return { data: null, error: { message: 'down' } };
-        const budget = over.pro ? args.p_pro_budget : args.p_free_budget;
+        const budget = over.pro
+          ? args.p_pro_budget
+          : over.plus
+            ? args.p_plus_budget
+            : args.p_free_budget;
         const used = over.mints ?? 0;
         return {
           data: {
             allowed: used < budget,
             mints: Math.min(used + 1, budget),
             budget,
-            tier: over.pro ? 'pro' : 'free',
+            tier: over.pro ? 'pro' : over.plus ? 'plus' : 'free',
           },
           error: null,
         };
@@ -72,8 +77,8 @@ function makeDeps(over: {
       from: (t: string) => {
         const rows =
           t === 'subscriptions'
-            ? over.pro
-              ? [{ tier: 'pro', status: 'active', current_period_end: null }]
+            ? over.pro || over.plus
+              ? [{ tier: over.pro ? 'pro' : 'plus', status: 'active', current_period_end: null }]
               : []
             : [];
         const q: Record<string, unknown> = {};
@@ -115,6 +120,27 @@ describe('handleVoiceStreamToken', () => {
     expect(free.fetchMock).not.toHaveBeenCalled();
     const pro = makeDeps({ used: 10, pro: true });
     await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
+  });
+
+  it('gives Plus 50 commands and 150 streams a month, Pro 150 and 450', async () => {
+    const plusSpent = makeDeps({ used: 50, plus: true });
+    await expect(handleVoiceStreamToken(request(), plusSpent.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_AGENT_QUOTA',
+    });
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ used: 49, plus: true }).deps),
+    ).resolves.toBeTruthy();
+    // 50 commands is Plus's limit, but well inside Pro's.
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ used: 50, pro: true }).deps),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ mints: 149, plus: true }).deps),
+    ).resolves.toBeTruthy();
+    await expect(
+      handleVoiceStreamToken(request(), makeDeps({ mints: 150, plus: true }).deps),
+    ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
   });
 
   it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 450)', async () => {

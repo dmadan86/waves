@@ -8756,7 +8756,7 @@ const en: UiStrings = {
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
     plansTitle: 'Waves Plus and Pro',
     plansBody:
-      'More scans, bigger transfers and, on Pro, the advanced AI voice. The ledger stays free.',
+      'More scans, bigger transfers and advanced AI voice: 50 commands a month on Plus, 150 on Pro. The ledger stays free.',
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
@@ -8767,7 +8767,7 @@ const en: UiStrings = {
     title: 'Choose your plan',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'The paid features, without AI voice',
+    plusTagline: 'The paid features, plus AI voice (50 commands a month)',
     proTagline: 'Everything in Waves, including advanced AI voice',
     proBadge: 'Everything',
     featureScans: '{scans} receipt scans a month',
@@ -13265,7 +13265,7 @@ const ta: UiStrings = {
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
     plansTitle: 'Waves Plus மற்றும் Pro',
     plansBody:
-      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், Pro-வில் மேம்பட்ட AI குரல். கணக்கேடு இலவசமாகவே இருக்கும்.',
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல் (Plus-இல் மாதம் 50, Pro-வில் 150 கட்டளைகள்). கணக்கேடு இலவசமாகவே இருக்கும்.',
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
@@ -13276,7 +13276,7 @@ const ta: UiStrings = {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'கட்டண அம்சங்கள், AI குரல் இல்லாமல்',
+    plusTagline: 'கட்டண அம்சங்கள், AI குரலுடன் (மாதம் 50 கட்டளைகள்)',
     proTagline: 'Waves-இல் அனைத்தும், மேம்பட்ட AI குரல் உட்பட',
     proBadge: 'அனைத்தும்',
     featureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
@@ -17651,7 +17651,8 @@ const hi: UiStrings = {
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
     plansTitle: 'Waves Plus और Pro',
-    plansBody: 'ज़्यादा स्कैन, बड़े ट्रांसफ़र और Pro पर एडवांस्ड AI वॉइस। लेजर मुफ़्त ही रहेगा।',
+    plansBody:
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (Plus में हर महीने 50, Pro में 150 कमांड)। लेजर मुफ़्त ही रहेगा।',
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
@@ -17662,7 +17663,7 @@ const hi: UiStrings = {
     title: 'अपना प्लान चुनें',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'पेड फ़ीचर, AI वॉइस के बिना',
+    plusTagline: 'पेड फ़ीचर, AI वॉइस के साथ (हर महीने 50 कमांड)',
     proTagline: 'Waves में सब कुछ, एडवांस्ड AI वॉइस समेत',
     proBadge: 'सब कुछ',
     featureScans: 'हर महीने {scans} रसीद स्कैन',
@@ -22584,7 +22585,8 @@ const ar: UiStrings = {
     whatNeverWillBody:
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
     plansTitle: 'Waves Plus وPro',
-    plansBody: 'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم في Pro. يبقى السجل مجانيًا.',
+    plansBody:
+      'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم: 50 أمرًا شهريًا في Plus و150 في Pro. يبقى السجل مجانيًا.',
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
@@ -22595,7 +22597,7 @@ const ar: UiStrings = {
     title: 'اختر خطتك',
     plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'الميزات المدفوعة، بدون الصوت الذكي',
+    plusTagline: 'الميزات المدفوعة، مع الصوت الذكي (50 أمرًا شهريًا)',
     proTagline: 'كل شيء في Waves، بما فيه الصوت الذكي المتقدّم',
     proBadge: 'كل شيء',
     featureScans: '{scans} مسحًا للإيصالات شهريًا',

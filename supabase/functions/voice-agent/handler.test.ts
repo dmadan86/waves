@@ -142,6 +142,41 @@ describe('handleVoiceAgent', () => {
     expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_quota', expect.anything());
   });
 
+  it('passes the per-tier limits (free 10, Plus 50, Pro 150) to the quota reservation', async () => {
+    const { deps, rpc } = makeDeps({});
+    await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), deps);
+    expect(rpc).toHaveBeenCalledWith('waves_voice_agent_quota', {
+      p_profile: ME,
+      p_free_limit: 10,
+      p_pro_limit: 150,
+      p_plus_limit: 50,
+    });
+  });
+
+  it('402s a Plus subscriber at 50 commands, and answers one with 49 used', async () => {
+    const spent = makeDeps({ quota: { used: 50, limit: 50, tier: 'plus', allowed: false } });
+    await expect(handleVoiceAgent(request(), spent.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_AGENT_QUOTA',
+    });
+    const ok = makeDeps({ quota: { used: 50, limit: 50, tier: 'plus', allowed: true } });
+    const res = await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), ok.deps);
+    expect(res.status).toBe(200);
+    expect((await res.json()).quota).toEqual({ used: 50, limit: 50, tier: 'plus' });
+  });
+
+  it('402s a Pro subscriber at 150 commands', async () => {
+    const { deps } = makeDeps({ quota: { used: 150, limit: 150, tier: 'pro', allowed: false } });
+    await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({ status: 402 });
+  });
+
+  it('refuses a free user while the entitlement gate says no (503), spending nothing', async () => {
+    const { deps, fetchMock, rpc } = makeDeps({ enabled: false });
+    await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({ status: 503 });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_quota', expect.anything());
+  });
+
   it('402s when the allowance is used up', async () => {
     const { deps } = makeDeps({ quota: { used: 10, limit: 10, tier: 'free', allowed: false } });
     await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({

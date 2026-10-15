@@ -1,5 +1,5 @@
 /**
- * The advanced-voice contract (Pro): the app records a clip, the `voice-agent`
+ * The advanced-voice contract (Plus and Pro): the app records a clip, the `voice-agent`
  * edge function transcribes it (Deepgram) and turns it into proposed actions
  * (Claude tool use), and the app confirms each write before running it through
  * its own write paths. Nothing here writes on the server — "AI proposes, human
@@ -15,8 +15,9 @@ export const VOICE_AGENT_SCHEMA_VERSION = 1;
 /** Longest clip the function accepts. */
 export const VOICE_AGENT_MAX_CLIP_MS = 60_000;
 
-/** Advanced commands a month on the free tier, and the Pro fair-use cap. */
+/** Advanced commands a month: free tier, Plus, and the Pro fair-use cap. */
 export const VOICE_AGENT_FREE_MONTHLY = 10;
+export const VOICE_AGENT_PLUS_MONTHLY = 50;
 export const VOICE_AGENT_PRO_MONTHLY = 150;
 
 /**
@@ -26,6 +27,7 @@ export const VOICE_AGENT_PRO_MONTHLY = 150;
  * Deepgram minutes but spends no command.
  */
 export const VOICE_STREAM_FREE_MONTHLY = 3 * VOICE_AGENT_FREE_MONTHLY;
+export const VOICE_STREAM_PLUS_MONTHLY = 3 * VOICE_AGENT_PLUS_MONTHLY;
 export const VOICE_STREAM_PRO_MONTHLY = 3 * VOICE_AGENT_PRO_MONTHLY;
 
 export interface VoiceAgentRequest {

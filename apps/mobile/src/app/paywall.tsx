@@ -1,7 +1,7 @@
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
- * Plus (the paid features without the advanced AI voice) and Pro (everything),
+ * Plus (the paid features with 50 advanced AI voice commands a month) and Pro (everything),
  * sold through RevenueCat. The cards come from RevenueCat's current offering
  * ('default'), so every price on screen is the store's own localized string —
  * nothing here is hardcoded. A monthly/yearly switch appears only once the
@@ -16,6 +16,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import type { PurchasesOffering } from 'react-native-purchases';
@@ -25,6 +26,7 @@ import {
   PlanTier,
   PLUS_DEVICE_LIMIT,
   PLUS_MONTHLY_SCANS,
+  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
 import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
@@ -55,7 +57,9 @@ type LoadState =
   | { status: 'error' }
   | { status: 'ready'; offering: PurchasesOffering | null };
 
-const HERO_ART = require('../../assets/images/paywall/paywall-hero.webp') as number;
+/** The lighter end of the hero badge's gradient, and the sparkles' tone. Fixed so both themes read. */
+const BADGE_TINT = '#A58FFF';
+const SPARKLE = '#F5B83D';
 const PRO_TILE = require('../../assets/images/paywall/paywall-pro-tile.webp') as number;
 
 function planName(t: UiStrings, tier: PlanTier): string {
@@ -190,11 +194,11 @@ export default function PaywallScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -theme.spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1, gap: theme.spacing.sm, paddingEnd: theme.spacing.xs }}>
             <Text
               accessibilityRole="header"
-              style={{ fontSize: 30, lineHeight: 34, fontWeight: '800' }}
+              style={{ fontSize: 26, lineHeight: 32, fontWeight: '800' }}
             >
               {heroTitle}
             </Text>
@@ -202,13 +206,7 @@ export default function PaywallScreen() {
               {t.paywall.heroSubtitle}
             </Text>
           </View>
-          <Image
-            source={HERO_ART}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ width: 150, height: 136, marginEnd: -theme.spacing.sm }}
-            resizeMode="contain"
-          />
+          <HeroBadge />
         </View>
 
         {periods.length > 1 ? (
@@ -457,6 +455,66 @@ function PeriodSwitch({
   );
 }
 
+/** A crisp, code-drawn badge: a brand-gradient disc, a white crown, three gold sparkles. */
+function HeroBadge() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 104, height: 104, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <View
+        style={{
+          width: 84,
+          height: 84,
+          borderRadius: 42,
+          shadowColor: theme.color.brand,
+          shadowOpacity: 0.4,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
+          backgroundColor: theme.color.brand,
+        }}
+      >
+        <LinearGradient
+          colors={[theme.color.brand, BADGE_TINT]}
+          start={{ x: 0.1, y: 1 }}
+          end={{ x: 0.9, y: 0 }}
+          style={{
+            flex: 1,
+            borderRadius: 42,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255,255,255,0.35)',
+          }}
+        >
+          <MaterialCommunityIcons name="crown" size={42} color="#FFFFFF" />
+        </LinearGradient>
+      </View>
+      <Ionicons
+        name="sparkles"
+        size={20}
+        color={SPARKLE}
+        style={{ position: 'absolute', top: 2, end: 6 }}
+      />
+      <Ionicons
+        name="sparkles"
+        size={13}
+        color={SPARKLE}
+        style={{ position: 'absolute', top: 24, start: 0 }}
+      />
+      <Ionicons
+        name="sparkles"
+        size={11}
+        color={SPARKLE}
+        style={{ position: 'absolute', bottom: 6, end: 2 }}
+      />
+    </View>
+  );
+}
+
 /** One plan: icon tile, name and price, a radio, then what it includes. */
 function PlanCard({
   card,
@@ -485,6 +543,7 @@ function PlanCard({
         fill(t.paywall.featureScans, { scans: PLUS_MONTHLY_SCANS }),
         fill(t.paywall.featureDevices, { devices: PLUS_DEVICE_LIMIT }),
         t.paywall.featureTransfers,
+        fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PLUS_MONTHLY }),
       ];
 
   return (

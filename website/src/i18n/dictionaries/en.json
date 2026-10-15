@@ -143,7 +143,8 @@
         "features": [
           "300 receipt scans a month",
           "Use on up to 3 devices",
-          "Bigger exports, imports and backups"
+          "Bigger exports, imports and backups",
+          "Advanced AI voice: 50 commands a month"
         ]
       },
       {
@@ -179,7 +180,7 @@
       },
       {
         "q": "What is the difference between Plus and Pro?",
-        "a": "Plus adds 300 receipt scans a month, use on up to 3 devices and bigger exports, imports and backups. Pro includes everything in Plus and adds the advanced AI voice agent with 150 commands a month. In India Plus is ₹49 a month (₹499 a year) and Pro is ₹99 a month (₹999 a year)."
+        "a": "Plus adds 300 receipt scans a month, use on up to 3 devices, bigger exports, imports and backups, and the advanced AI voice agent with 50 commands a month. Pro includes everything in Plus and raises the advanced AI voice allowance to 150 commands a month. In India Plus is ₹49 a month (₹499 a year) and Pro is ₹99 a month (₹999 a year)."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -195,7 +196,7 @@
       },
       {
         "q": "Can I add expenses by voice?",
-        "a": "Yes. Everyone gets a voice allowance. Pro adds the advanced AI voice agent with 150 commands a month."
+        "a": "Yes. Everyone gets a voice allowance. Plus adds the advanced AI voice agent with 50 commands a month, and Pro raises that to 150."
       },
       {
         "q": "What happens when I have no signal?",

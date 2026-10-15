@@ -3022,7 +3022,7 @@ export function useOpenReceipts(groupId: string) {
  * every real STT call.
  */
 /**
- * Is Pro advanced voice on for this person? The server answers
+ * Is Plus/Pro advanced voice on for this person? The server answers
  * (`waves_voice_agent_enabled`): never a guest; an allowlisted profile is on
  * (testers stay on while the plain flag is off); otherwise the `voice_agent`
  * flag must be on AND the person must hold a Pro subscription (active or grace,

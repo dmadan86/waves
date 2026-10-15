@@ -1,5 +1,5 @@
 /**
- * voice-agent — Pro "advanced voice" (A73 phase 1, server half).
+ * voice-agent — Plus and Pro "advanced voice" (A73 phase 1, server half).
  *
  * One request: a short clip in, proposed actions out. Deepgram transcribes it,
  * Claude (tool use) turns the transcript into actions against the caller's own
@@ -14,6 +14,7 @@
 import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_MAX_CLIP_MS,
+  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
   VOICE_AGENT_SCHEMA_VERSION,
   VoiceAgentError,
@@ -261,6 +262,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       p_profile: profileId,
       p_free_limit: VOICE_AGENT_FREE_MONTHLY,
       p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
+      p_plus_limit: VOICE_AGENT_PLUS_MONTHLY,
     }),
   );
   let quotaResult: Awaited<typeof reservation>;

@@ -1,5 +1,5 @@
 /**
- * Pro advanced voice: the atomic monthly quota, its refund, the 'pro' tier and
+ * Plus and Pro advanced voice: the atomic monthly quota, its refund, the 'pro' tier and
  * the flag/allowlist rule (`voice-agent` edge function, phase 1).
  *
  * Per person: a groupmate's subscription never lifts anyone. Usage is
@@ -38,12 +38,16 @@ afterAll(async () => {
   await client.end();
 });
 
-async function reserve(profile: string, free = 3, pro = 5): Promise<Record<string, unknown>> {
-  const { rows } = await client.query(`SELECT public.waves_voice_agent_quota($1, $2, $3) AS q`, [
-    profile,
-    free,
-    pro,
-  ]);
+async function reserve(
+  profile: string,
+  free = 3,
+  pro = 5,
+  plus = 4,
+): Promise<Record<string, unknown>> {
+  const { rows } = await client.query(
+    `SELECT public.waves_voice_agent_quota($1, $2, $3, $4) AS q`,
+    [profile, free, pro, plus],
+  );
   return rows[0].q as Record<string, unknown>;
 }
 
@@ -74,11 +78,35 @@ describe('waves_voice_agent_quota', () => {
     expect(rows[0].count).toBe(3);
   });
 
-  it('gives plus the free allowance and pro (including promo) the pro one', async () => {
+  it('gives plus its own allowance and pro (including promo) the pro one', async () => {
     await subscribe(a, 'plus');
-    expect(await reserve(a)).toMatchObject({ tier: 'plus', limit: 3 });
+    expect(await reserve(a)).toMatchObject({ tier: 'plus', limit: 4 });
     await subscribe(b, 'pro', 'promo', 'NULL');
     expect(await reserve(b)).toMatchObject({ tier: 'pro', limit: 5, allowed: true });
+  });
+
+  it('defaults to 10 free, 50 Plus and 150 Pro commands a month', async () => {
+    const limitOf = async (p: string) =>
+      (
+        (await client.query(`SELECT public.waves_voice_agent_quota($1) AS q`, [p])).rows[0].q as {
+          limit: number;
+        }
+      ).limit;
+    expect(await limitOf(a)).toBe(10);
+    await client.query(`DELETE FROM voice_agent_usage WHERE profile_id = $1`, [a]);
+    await subscribe(a, 'plus');
+    expect(await limitOf(a)).toBe(50);
+    await subscribe(b, 'pro');
+    expect(await limitOf(b)).toBe(150);
+  });
+
+  it('stops a Plus subscriber at the Plus limit, and a free one at the free limit', async () => {
+    await subscribe(a, 'plus');
+    for (let i = 0; i < 4; i += 1) expect((await reserve(a)).allowed).toBe(true);
+    expect(await reserve(a)).toMatchObject({ used: 4, limit: 4, tier: 'plus', allowed: false });
+    expect(await reserve(b, 2)).toMatchObject({ allowed: true });
+    await reserve(b, 2);
+    expect(await reserve(b, 2)).toMatchObject({ tier: 'free', limit: 2, allowed: false });
   });
 
   it('ignores an expired or cancelled pro subscription', async () => {
@@ -90,7 +118,7 @@ describe('waves_voice_agent_quota', () => {
   it('never lets two concurrent calls take the last command', async () => {
     const other = await connect();
     try {
-      await reserve(a, 1, 1);
+      await reserve(a, 1, 1, 1);
       await client.query(`UPDATE voice_agent_usage SET count = 0 WHERE profile_id = $1`, [a]);
       const results = await Promise.all(
         [client, other, client, other].map((c) =>
@@ -150,12 +178,28 @@ describe('waves_voice_agent_enabled', () => {
     expect(await enabled(b)).toBe(false);
   });
 
-  it('is off for free and Plus even at full rollout: cloud voice is Pro', async () => {
+  it('is off for free even at full rollout, on for Plus and Pro', async () => {
     await client.query(
       `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
     );
     expect(await enabled(a)).toBe(false);
     await subscribe(a, 'plus');
+    expect(await enabled(a)).toBe(true);
+    await subscribe(b, 'pro');
+    expect(await enabled(b)).toBe(true);
+  });
+
+  it('counts a Plus in grace, but not a lapsed Plus', async () => {
+    await client.query(
+      `UPDATE feature_flags SET enabled = true, rollout_percent = 100 WHERE key = 'voice_agent'`,
+    );
+    await subscribe(a, 'plus');
+    await client.query(`UPDATE subscriptions SET status = 'grace' WHERE profile_id = $1`, [a]);
+    expect(await enabled(a)).toBe(true);
+    await client.query(
+      `UPDATE subscriptions SET current_period_end = now() - interval '1 day' WHERE profile_id = $1`,
+      [a],
+    );
     expect(await enabled(a)).toBe(false);
   });
 
@@ -228,12 +272,16 @@ describe('waves_voice_agent_enabled', () => {
 });
 
 describe('stream mint budget', () => {
-  async function mint(profile: string, free = 2, pro = 4): Promise<Record<string, unknown>> {
-    const { rows } = await client.query(`SELECT public.waves_voice_stream_mint($1, $2, $3) AS m`, [
-      profile,
-      free,
-      pro,
-    ]);
+  async function mint(
+    profile: string,
+    free = 2,
+    pro = 4,
+    plus = 3,
+  ): Promise<Record<string, unknown>> {
+    const { rows } = await client.query(
+      `SELECT public.waves_voice_stream_mint($1, $2, $3, $4) AS m`,
+      [profile, free, pro, plus],
+    );
     return rows[0].m as Record<string, unknown>;
   }
 
@@ -248,6 +296,12 @@ describe('stream mint budget', () => {
     await subscribe(a, 'pro');
     for (let i = 0; i < 4; i += 1) expect((await mint(a)).allowed).toBe(true);
     expect(await mint(a)).toMatchObject({ allowed: false, mints: 4, tier: 'pro' });
+  });
+
+  it('gives Plus the Plus budget', async () => {
+    await subscribe(a, 'plus');
+    for (let i = 0; i < 3; i += 1) expect((await mint(a)).allowed).toBe(true);
+    expect(await mint(a)).toMatchObject({ allowed: false, mints: 3, tier: 'plus' });
   });
 
   it('is its own meter: mints spend no command and commands spend no mint', async () => {

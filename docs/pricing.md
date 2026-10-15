@@ -6,11 +6,11 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 
 ## The tiers
 
-| Tier | India price | What it adds                                                                     |
-| ---- | ----------- | -------------------------------------------------------------------------------- |
-| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export.   |
-| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers. No AI voice. |
-| Pro  | ₹99 / month | Everything in Plus, plus the advanced AI voice agent (150 commands/month).       |
+| Tier | India price | What it adds                                                                                                   |
+| ---- | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export.                                 |
+| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month). |
+| Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                         |
 
 Yearly plans are ₹429 (Plus, 27% off ₹588) and ₹849 (Pro, 29% off ₹1,188); US is $8.49 and $16.99
 (29% off). Every other market's price is set **in the stores**.
@@ -25,8 +25,11 @@ How the server reads the tiers (migration `20261008120000_revenuecat_webhook`):
   `subscriptions` row with tier `plus` or `pro`. Plus and Pro are both paid.
 - `waves_my_plan()`: `tier` is `'plus'` for any paid row (the device cap and
   older apps read it as "paid"); the new `plan` key is `'plus'` or `'pro'`.
-- `waves_voice_agent_quota` / `waves_voice_stream_mint`: only an active `pro`
-  row gets the Pro allowance. **Plus gets the free voice allowance**, by design.
+- `waves_voice_agent_enabled`: an active or grace, unexpired `plus` or `pro` row
+  turns advanced voice on (free and guests stay off).
+- `waves_voice_agent_quota` / `waves_voice_stream_mint`: an active `pro` row gets
+  150 commands (450 streams) a month, an active `plus` row 50 (150 streams),
+  free 10 (30). Migration `20261015210000_voice_agent_plus`.
 
 ## How a purchase flows
 

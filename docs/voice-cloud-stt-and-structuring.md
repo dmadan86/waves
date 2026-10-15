@@ -344,7 +344,7 @@ Each phase is its own PR; Phases 2–3 are **deploy-gated** on the provider keys
 command (the command is counted when voice-agent uses the words), so mints have
 their own server-enforced budget: `voice_agent_usage.stream_mints`, taken
 atomically by `waves_voice_stream_mint` before the mint, refused with
-**402 `VOICE_STREAM_BUDGET`** past **3 x the command allowance — free 30, Pro 450
+**402 `VOICE_STREAM_BUDGET`** past **3 x the command allowance — free 30, Plus 150, Pro 450
 a UTC month** (`VOICE_STREAM_*_MONTHLY`). Each mint logs
 `{profile: sha256(id)[0..12], tier, mintsThisMonth, budget}` (no names, no
 transcripts), and the stream URL carries `tag=vst-<hash>` so Deepgram's usage API
