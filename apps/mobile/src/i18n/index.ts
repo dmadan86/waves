@@ -4473,6 +4473,7 @@ export interface UiStrings {
     pending: PluralForms;
     loadError: string;
     haveCode: string;
+    paste: string;
     apply: string;
     applied: string;
     unknownCode: string;
@@ -8757,6 +8758,7 @@ const en: UiStrings = {
     },
     loadError: 'Could not load your invite. Try again in a moment.',
     haveCode: 'Got a code from a friend?',
+    paste: 'Paste',
     apply: 'Apply',
     applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
     unknownCode: 'That code does not match anyone.',
@@ -13176,6 +13178,7 @@ const ta: UiStrings = {
     },
     loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
     haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
+    paste: 'ஒட்டு',
     apply: 'பயன்படுத்து',
     applied:
       'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
@@ -17458,6 +17461,7 @@ const hi: UiStrings = {
     },
     loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
     haveCode: 'किसी दोस्त से कोड मिला है?',
+    paste: 'पेस्ट करें',
     apply: 'लागू करें',
     applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
@@ -22298,6 +22302,7 @@ const ar: UiStrings = {
     },
     loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
     haveCode: 'هل لديك رمز من صديق؟',
+    paste: 'لصق',
     apply: 'تطبيق',
     applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',

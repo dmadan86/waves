@@ -12,6 +12,7 @@
 import { useEffect, useRef } from 'react';
 
 import { claimReferral } from '@/data/api';
+import { captureInstallReferrerOnce } from '@/lib/installReferrer';
 import { useAuth } from '@/lib/auth';
 import { pendingReferral } from '@/lib/pendingReferral';
 import { isDefinitiveRefusal } from '@/lib/referral';
@@ -20,6 +21,12 @@ export function PendingReferralClaim() {
   const { session, loading, isGuest } = useAuth();
   const userId = session?.user.id ?? null;
   const triedFor = useRef<string | null>(null);
+
+  // Android, first launch of an install: a code the Play link carried becomes a
+  // waiting code, before any account exists. Never replaces a deep link's.
+  useEffect(() => {
+    void captureInstallReferrerOnce();
+  }, []);
 
   useEffect(() => {
     if (loading || !userId || isGuest) return;

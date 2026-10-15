@@ -15,19 +15,31 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { useStrings } from '@/i18n-context';
+import { APP_STORE_URL, playStoreUrl } from '@/lib/storeLinks';
 
 /** Same alphabet as the database's `referral_codes_shape` (no 0, O, 1, I, L). */
 const CODE_SHAPE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
-
-const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.waves.mobile';
-const APP_STORE_URL = 'https://apps.apple.com/app/id6813446645';
 
 export default function ReferralLandingPage() {
   const { t } = useStrings();
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
+  const [copied, setCopied] = useState(false);
+
+  // iOS has no install referrer: the friend copies the code here and pastes it
+  // into the app. Failure to copy is silent; the code is on screen to read.
+  const copy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // The code is still on screen.
+    }
+  };
 
   if (!CODE_SHAPE.test(code)) {
     return (
@@ -49,13 +61,16 @@ export default function ReferralLandingPage() {
 
         <div>
           <p className="faint">{t.referral.codeLabel}</p>
-          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: 2 }}>{code}</p>
+          <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: 4 }}>{code}</p>
+          <button type="button" className="btn soft" onClick={() => void copy()} aria-live="polite">
+            {copied ? t.referral.codeCopied : t.referral.copyCode}
+          </button>
         </div>
 
         <a className="btn block lg" href={`waves://r/${code}`}>
           {t.referral.openApp}
         </a>
-        <a className="btn soft block" href={PLAY_URL} rel="noopener noreferrer">
+        <a className="btn soft block" href={playStoreUrl(code)} rel="noopener noreferrer">
           {t.referral.googlePlay}
         </a>
         <a className="btn soft block" href={APP_STORE_URL} rel="noopener noreferrer">
