@@ -173,8 +173,11 @@ function safeExponent(currency: string): number {
   }
 }
 
-export function systemPrompt(context: VoiceContext): string {
-  return `You turn one spoken command about shared expenses into tool calls for the Waves app. A person confirms every action before anything is saved.
+/**
+ * The instructions: identical for every request, so they can sit in a cached
+ * prefix (Anthropic prompt caching). Nothing per-person or per-day belongs here.
+ */
+export const STATIC_SYSTEM_PROMPT = `You turn one spoken command about shared expenses into tool calls for the Waves app. A person confirms every action before anything is saved.
 
 Rules:
 - Call one tool per action, in the order spoken. If the command is a question, call answer_question. If it is ambiguous or missing something you cannot safely guess (who paid, how much, which group), call ask_clarification with one short question and no action tools.
@@ -188,10 +191,27 @@ Rules:
 - Pick the group yourself whenever you can: if everyone named is in exactly one group, use it; if several, prefer the one-to-one group with that person, else the CURRENT group. Ask which group only when the people named are in several groups and nothing else decides it.
 - "<amount> for <person>" (e.g. "8000 for Renny") means the speaker paid and that person owes all of it: split.shares lists only that person.
 - Use add_personal only when no other person is named and the speaker says it is just for them, or they have no groups at all.
-- If the message includes an earlier command and your question about it, the new words answer that question: complete the earlier command with them.
+- If the message includes an earlier command and your question about it, the new words answer that question: complete the earlier command with them.`;
 
-Context:
-${contextText(context)}`;
+/** Everything per-request: today's date, the caller's groups, members and balances. */
+export function dynamicContextText(context: VoiceContext): string {
+  return `Context:\n${contextText(context)}`;
+}
+
+export function systemPrompt(context: VoiceContext): string {
+  return `${STATIC_SYSTEM_PROMPT}\n\n${dynamicContextText(context)}`;
+}
+
+/**
+ * Anthropic `system` as blocks: the static instructions behind a cache
+ * breakpoint, then the dynamic context after it (uncached). Caching is
+ * prefix-based, so nothing per-request may come before the breakpoint.
+ */
+export function anthropicSystem(context: VoiceContext) {
+  return [
+    { type: 'text', text: STATIC_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: dynamicContextText(context) },
+  ];
 }
 
 // ── tools ──────────────────────────────────────────────────────────────────
@@ -320,6 +340,11 @@ export const TOOLS = [
     },
   },
 ] as const;
+
+/** TOOLS with a breakpoint on the last definition, which caches every tool before it. */
+export const ANTHROPIC_TOOLS = TOOLS.map((tool, index) =>
+  index === TOOLS.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool,
+);
 
 // ── validation ─────────────────────────────────────────────────────────────
 
@@ -605,4 +630,45 @@ export function deepgramStreamUrl(locale: string, terms: readonly string[], tag?
   // Deepgram usage-API tag (free): lets billed minutes be reconciled per caller.
   if (tag) params.append('tag', tag);
   return `wss://api.deepgram.com/v1/listen?${params.toString()}`;
+}
+
+// ── Anthropic usage and price ──────────────────────────────────────────────
+
+/** The token counts on an Anthropic response's `usage`. */
+export interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+/** USD per million tokens, input and output, for the models the chain asks. */
+const ANTHROPIC_PRICE_PER_MTOK: Record<string, { input: number; output: number }> = {
+  'claude-haiku-4-5-20251001': { input: 1, output: 5 },
+  'claude-sonnet-5-5': { input: 2, output: 10 },
+};
+
+/** A cache read costs 0.1x the input price; a 5-minute cache write 1.25x. */
+export const CACHE_READ_MULTIPLIER = 0.1;
+export const CACHE_WRITE_MULTIPLIER = 1.25;
+
+/**
+ * What one Anthropic response cost, in USD. `input_tokens` is only the part
+ * after the last breakpoint; cache reads and writes are reported (and priced)
+ * separately. Null for a model with no known price.
+ */
+export function anthropicCostUsd(model: string, usage: AnthropicUsage): number | null {
+  const price = ANTHROPIC_PRICE_PER_MTOK[model];
+  if (!price) return null;
+  const fresh = usage.input_tokens ?? 0;
+  const read = usage.cache_read_input_tokens ?? 0;
+  const written = usage.cache_creation_input_tokens ?? 0;
+  const out = usage.output_tokens ?? 0;
+  return (
+    (fresh * price.input +
+      read * price.input * CACHE_READ_MULTIPLIER +
+      written * price.input * CACHE_WRITE_MULTIPLIER +
+      out * price.output) /
+    1_000_000
+  );
 }
