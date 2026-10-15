@@ -22,7 +22,7 @@ export function Kicker({
 }) {
   return (
     <p
-      className={`text-[0.72rem] font-semibold tracking-[0.12em] text-accent uppercase ${className}`}
+      className={`text-[0.72rem] font-semibold tracking-[0.12em] rtl:tracking-normal text-accent uppercase ${className}`}
     >
       {children}
     </p>

@@ -56,6 +56,29 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   for (const item of t.moments.items) line(`- **${item.title}** — ${item.body}`);
   line();
 
+  line(`## ${t.offline.title}`);
+  line();
+  line(t.offline.body);
+  line();
+  for (const item of t.offline.scenarios) line(`- **${item.title}** — ${item.body}`);
+  line();
+  line(`- ${t.offline.points.join('\n- ')}`);
+  line();
+  line(`${t.offline.voiceTitle}. ${t.offline.voiceBody}`);
+  line();
+
+  line(`## ${t.voice.title}`);
+  line();
+  line(t.voice.body);
+  line();
+  for (const ex of t.voice.examples)
+    line(`- “${ex.say}” → ${ex.title} ${ex.amount}, ${ex.lines.join(', ')}`);
+  line();
+  line(`- ${t.voice.points.join('\n- ')}`);
+  line();
+  line(t.voice.planLine);
+  line();
+
   line(`## ${t.pricing.title}`);
   line();
   for (const plan of t.pricing.plans) {
@@ -88,7 +111,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(t.agents.body);
   line();
-  for (const prompt of t.agents.prompts) line(`- “${prompt}”`);
+  for (const ex of t.agents.examples) line(`- “${ex.ask}” → ${ex.reply}`);
   line();
   line(`- ${t.agents.safety.join('\n- ')}`);
   line();

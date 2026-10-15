@@ -276,3 +276,40 @@ export const Spark = (p: IconProps) => (
     <path d="M12 3.5c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z" />
   </Svg>
 );
+
+export const Mic = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" />
+  </Svg>
+);
+
+export const CloudOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 4l16 16M8.2 8.4A5 5 0 0 0 7 18h10.5M17.8 12.2A4 4 0 0 1 17.5 18M10.2 6.3A5.5 5.5 0 0 1 17 9.5" />
+  </Svg>
+);
+
+export const Cloud = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 9.5a4 4 0 0 1 .5 8.5H7Z" />
+  </Svg>
+);
+
+export const Plane = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10.5 13.5 4 12l1.5-1.5 6 .5 4-4.5a1.6 1.6 0 0 1 2.3 2.2L13.5 13l.5 6-1.5 1.5-1.5-6.5Z" />
+  </Svg>
+);
+
+export const Mountain = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m3 19 6.5-11 4 6.5L16 11l5 8H3Z" />
+  </Svg>
+);
+
+export const Cup = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 8h11v6a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8ZM16 9.5h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5v2M12 3.5v2" />
+  </Svg>
+);

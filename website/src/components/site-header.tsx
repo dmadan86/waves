@@ -14,6 +14,8 @@ type Nav = {
   features: string;
   how: string;
   security: string;
+  offline: string;
+  voice: string;
   agents: string;
   pricing: string;
   faq: string;
@@ -76,10 +78,12 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
 
   const links = [
     { href: '#features', label: nav.features },
-    { href: '#how', label: nav.how },
-    { href: '#security', label: nav.security },
+    { href: '#how', label: nav.how, mobileOnly: true },
+    { href: '#offline', label: nav.offline },
+    { href: '#voice', label: nav.voice },
     { href: '#agents', label: nav.agents },
     { href: '#pricing', label: nav.pricing },
+    { href: '#security', label: nav.security, mobileOnly: true },
     { href: '#faq', label: nav.faq },
   ];
 
@@ -120,15 +124,17 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
           </Link>
 
           <nav className="ms-5 hidden items-center gap-1 lg:flex" aria-label="Primary">
-            {links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="inline-flex h-10 items-center rounded-lg px-3 text-[0.86rem] text-ink-2 transition-colors hover:bg-chip hover:text-ink"
-              >
-                {link.label}
-              </a>
-            ))}
+            {links
+              .filter((link) => !link.mobileOnly)
+              .map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex h-10 items-center rounded-lg px-2.5 text-[0.86rem] whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink"
+                >
+                  {link.label}
+                </a>
+              ))}
           </nav>
 
           <div className="ms-auto flex items-center gap-1">
