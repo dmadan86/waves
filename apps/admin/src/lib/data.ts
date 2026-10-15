@@ -881,6 +881,19 @@ export const retentionCohorts = (weeks = 8) =>
 /** Installs, registrations, activations and paid plans per campaign tag. */
 export const campaignStats = (days = 30) =>
   call<CampaignRow>('waves_admin_campaigns', { p_days: days });
+/** One day (UTC) of `waves_admin_ads`: rewarded ads watched to the end and credited. */
+export interface AdsDayRow {
+  day: string;
+  rewards: number | string;
+  voice_rewards: number | string;
+  scan_rewards: number | string;
+  voice_units: number | string;
+  scan_units: number | string;
+  unique_users: number | string;
+  cap_hits: number | string;
+}
+/** Rewarded ads credited per day, by kind, unique people and daily-cap hits. */
+export const adRewards = (days = 30) => call<AdsDayRow>('waves_admin_ads', { p_days: days });
 export const geo = () => call<GeoRow>('waves_admin_geo');
 export const money = () => call<MoneyRow>('waves_admin_money');
 export const aiCost = (days = 30) => call<AiCostRow>('waves_admin_ai_cost', { p_days: days });
