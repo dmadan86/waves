@@ -40,6 +40,8 @@ function fakeSdk(script: Script) {
         if (script.consentFails) throw new Error('network error');
         return { canRequestAds: script.canRequestAds ?? true };
       },
+      requestInfoUpdate: async () => ({ privacyOptionsRequirementStatus: 'NOT_REQUIRED' }),
+      showPrivacyOptionsForm: async () => undefined,
     },
     RewardedAd: {
       createForAdRequest: (unit, options) => {

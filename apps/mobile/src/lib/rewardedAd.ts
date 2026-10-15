@@ -40,6 +40,8 @@ export interface AdsSdk {
   };
   AdsConsent: {
     gatherConsent(): Promise<{ canRequestAds: boolean }>;
+    requestInfoUpdate(): Promise<{ privacyOptionsRequirementStatus?: string }>;
+    showPrivacyOptionsForm(): Promise<unknown>;
   };
   RewardedAd: {
     createForAdRequest(unitId: string, options: Record<string, unknown>): RewardedAdLike;

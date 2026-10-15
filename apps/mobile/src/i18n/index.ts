@@ -1509,6 +1509,10 @@ export interface UiStrings {
     unavailable: string;
     error: string;
     footnote: string;
+    /** Privacy screen row (shown only to people who can be offered ads). */
+    adChoicesRow: string;
+    adChoicesHint: string;
+    adChoicesNone: string;
   };
   voiceConsent: {
     title: string;
@@ -6403,6 +6407,9 @@ const en: UiStrings = {
     error: 'The ad could not load. Please try again.',
     footnote:
       'Optional. Ads are never personalized and never shown on your balances. Plus and Pro have none.',
+    adChoicesRow: 'Ad choices',
+    adChoicesHint: 'Your privacy choices for reward ads',
+    adChoicesNone: 'There are no ad privacy choices to change where you are.',
   },
   voiceConsent: {
     title: "Use Waves' advanced voice?",
@@ -10806,6 +10813,9 @@ const ta: UiStrings = {
     error: 'விளம்பரத்தை ஏற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
     footnote:
       'விருப்பத்தின் பேரில் மட்டும். விளம்பரங்கள் தனிப்பயனாக்கப்படுவதில்லை, உங்கள் இருப்புகளில் காட்டப்படுவதில்லை. Plus, Pro-வில் விளம்பரம் இல்லை.',
+    adChoicesRow: 'விளம்பரத் தேர்வுகள்',
+    adChoicesHint: 'வெகுமதி விளம்பரங்களுக்கான உங்கள் தனியுரிமைத் தேர்வுகள்',
+    adChoicesNone: 'நீங்கள் இருக்கும் இடத்தில் மாற்றக்கூடிய விளம்பரத் தனியுரிமைத் தேர்வுகள் இல்லை.',
   },
   voiceConsent: {
     title: 'Waves-இன் மேம்பட்ட குரலைப் பயன்படுத்தவா?',
@@ -15344,6 +15354,9 @@ const hi: UiStrings = {
     error: 'विज्ञापन लोड नहीं हो सका। फिर कोशिश करें।',
     footnote:
       'पूरी तरह वैकल्पिक। विज्ञापन कभी निजीकृत नहीं होते और आपके बैलेंस पर कभी नहीं दिखते। Plus और Pro में कोई विज्ञापन नहीं।',
+    adChoicesRow: 'विज्ञापन विकल्प',
+    adChoicesHint: 'इनाम वाले विज्ञापनों के लिए आपकी गोपनीयता पसंद',
+    adChoicesNone: 'आप जहाँ हैं वहाँ बदलने लायक कोई विज्ञापन गोपनीयता विकल्प नहीं है।',
   },
   voiceConsent: {
     title: 'Waves की एडवांस्ड वॉइस इस्तेमाल करें?',
@@ -19812,6 +19825,9 @@ const ar: UiStrings = {
     error: 'تعذّر تحميل الإعلان. حاول مرة أخرى.',
     footnote:
       'اختياري تمامًا. الإعلانات لا تُخصَّص لك أبدًا ولا تظهر على أرصدتك. لا إعلانات في Plus وPro.',
+    adChoicesRow: 'خيارات الإعلانات',
+    adChoicesHint: 'خيارات الخصوصية الخاصة بإعلانات المكافأة',
+    adChoicesNone: 'لا توجد خيارات خصوصية للإعلانات يمكن تغييرها في موقعك.',
   },
   voiceConsent: {
     title: 'استخدام الصوت المتقدم في Waves؟',

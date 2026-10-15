@@ -60,3 +60,20 @@ export function defaultRewardedAdDeps(): Omit<RewardedAdDeps, 'onPhase'> {
     sleep: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
   };
 }
+
+/**
+ * Google's "privacy options" form (UMP), where a person in the EEA, UK or
+ * Switzerland can change their ad consent. Loads the SDK only when asked.
+ * 'none': the form is not required where they are, or the SDK is not in this build.
+ */
+export async function openAdPrivacyOptions(): Promise<'shown' | 'none'> {
+  try {
+    const sdk = await loadAdsSdk();
+    const info = await sdk.AdsConsent.requestInfoUpdate();
+    if (info.privacyOptionsRequirementStatus !== 'REQUIRED') return 'none';
+    await sdk.AdsConsent.showPrivacyOptionsForm();
+    return 'shown';
+  } catch {
+    return 'none';
+  }
+}
