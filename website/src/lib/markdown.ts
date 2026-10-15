@@ -1,7 +1,6 @@
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { checkedOnDate, COMPARISON_SOURCES } from './comparison';
-import { CURRENCY_COUNT } from './currencies';
+import { bestYearlySaving, plans, type PlanId } from './plans';
 import { absoluteUrl, site } from './site';
 
 /**
@@ -27,135 +26,61 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line('---');
   line();
 
-  line(`# ${site.name} — ${t.hero.titleLine1} ${t.hero.titleAccent}`);
+  line(`# ${site.name} — ${t.hero.titleStart} ${t.hero.titleAccent}`);
   line();
   line(t.hero.subtitle);
   line();
-  line(`- ${t.hero.facts.join('\n- ')}`);
+  line(`- ${t.hero.trust.join('\n- ')}`);
   line();
 
-  line(`## ${t.custody.claim}`);
+  line(`## ${t.features.label}`);
   line();
-  line(t.custody.body);
-  line();
-  line(`${t.custody.railsLabel}: ${t.custody.rails.join(', ')}.`);
-  line();
-
-  line(`## ${t.features.title}`);
-  line();
-  line(t.features.subtitle);
-  line();
-  for (const item of t.features.items) {
-    line(`### ${item.title}`);
-    line();
-    line(item.body);
-    line();
-    line(`- ${item.points.join('\n- ')}`);
-    line();
-  }
-
-  line(`## ${t.currencies.title}`);
-  line();
-  line(t.currencies.subtitle);
-  line();
-  // The subtitle above already makes the ISO 4217 claim in the page's own
-  // language, so the count only has to be the count.
-  line(t.currencies.count.replace('{n}', String(CURRENCY_COUNT)));
-  line();
-  line(t.currencies.note);
+  for (const item of t.features.items) line(`- **${item.title}** — ${item.body}`);
   line();
 
   line(`## ${t.how.title}`);
   line();
-  for (const step of t.how.steps) {
-    line(`${step.number}. **${step.title}** — ${step.body}`);
+  line(t.how.subtitle);
+  line();
+  t.how.steps.forEach((step, i) => line(`${i + 1}. **${step.title}** — ${step.body}`));
+  line();
+
+  line(`## ${t.showcase.title.join(' ')}`);
+  line();
+  line(t.showcase.body);
+  line();
+
+  line(`## ${t.moments.title}`);
+  line();
+  for (const item of t.moments.items) line(`- **${item.title}** — ${item.body}`);
+  line();
+
+  line(`## ${t.pricing.title}`);
+  line();
+  for (const plan of t.pricing.plans) {
+    const price = plans[plan.id as PlanId];
+    const badge = plan.badge ? ` (${plan.badge})` : '';
+    line(
+      `### ${plan.name}${badge} — ₹${price.monthly}${t.pricing.perMonth} · ₹${price.yearly}${t.pricing.perYear}`,
+    );
+    line();
+    line(plan.tagline);
+    line();
+    for (const feature of plan.features) line(`- ${feature}`);
+    line();
   }
+  line(t.pricing.saveUpTo.replace('{pct}', String(bestYearlySaving)));
   line();
-  line(`### ${t.how.example.label}`);
-  line();
-  line(t.how.example.setup);
-  line();
-  for (const expense of t.how.example.expenses) {
-    line(`- ${expense.what} — ${expense.amount} (${expense.who})`);
-  }
-  line();
-  line(`**${t.how.example.resultLabel}**`);
-  line();
-  for (const payment of t.how.example.payments) {
-    line(`- ${payment.line} — ${payment.amount}`);
-  }
-  line();
-  line(t.how.example.note);
+  line(`${t.pricing.freeNote} ${t.pricing.priceNote}`);
   line();
 
   line(`## ${t.privacy.title}`);
   line();
   line(t.privacy.body);
   line();
-  for (const [heading, items] of [
-    [t.privacy.cantTitle, t.privacy.cant],
-    [t.privacy.doesTitle, t.privacy.does],
-    [t.privacy.wontTitle, t.privacy.wont],
-  ] as const) {
-    line(`### ${heading}`);
-    line();
-    for (const item of items) line(`- **${item.title}** — ${item.body}`);
-    line();
-  }
-  line(t.privacy.footnote);
+  line(`- ${t.privacy.pills.join('\n- ')}`);
   line();
-
-  line(`## ${t.comparison.title}`);
-  line();
-  line(t.comparison.subtitle);
-  line();
-  line(t.comparison.checkedOn.replace('{date}', checkedOnDate(locale)));
-  line();
-  for (const group of t.comparison.groups) {
-    line(`### ${group.caption}`);
-    line();
-    // A machine reading this gets the cells as text, so a tick has to become a
-    // word — `included` and `notIncluded` are the same two words the page
-    // gives a screen reader.
-    const cell = (value: string | boolean, note: string) => {
-      const text =
-        value === true ? t.comparison.included : value === false ? t.comparison.notIncluded : value;
-      return note ? `${text} (${note})` : text;
-    };
-    for (const row of group.rows) {
-      line(
-        `- **${row.label}** — ${t.comparison.columns.waves}: ${cell(row.waves, row.wavesNote)}; ${t.comparison.columns.rival}: ${cell(row.rival, row.rivalNote)}`,
-      );
-    }
-    line();
-  }
-  line(`### ${t.comparison.sameTitle}`);
-  line();
-  line(t.comparison.same);
-  line();
-  line(`### ${t.comparison.sourcesTitle}`);
-  line();
-  line(t.comparison.sourcesBody);
-  line();
-  line(`- ${COMPARISON_SOURCES.join('\n- ')}`);
-  line();
-  line(t.comparison.footnote);
-  line();
-
-  line(`## ${t.pricing.title}`);
-  line();
-  line(t.pricing.subtitle);
-  line();
-  for (const plan of t.pricing.plans) {
-    line(`### ${plan.name} — ${plan.price}${plan.period ? ` ${plan.period}` : ''}`);
-    line();
-    line(plan.tagline);
-    line();
-    if (plan.inherits) line(`- ${plan.inherits}`);
-    line(`- ${plan.features.join('\n- ')}`);
-    line();
-  }
-  line(t.pricing.billedNote);
+  line(`${t.privacy.cta}: ${absoluteUrl(`/${locale}/privacy`)}`);
   line();
 
   line(`## ${t.faq.title}`);
