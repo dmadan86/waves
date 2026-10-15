@@ -32,6 +32,8 @@ import {
 
 import { captureReceipt } from '@/lib/image';
 import { friendlyError } from '@/lib/errors';
+import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { isScanQuotaMessage } from '@/lib/rewardedAdsPure';
 import { receiptProblemText } from '@/lib/problemText';
 import {
   canAddReceipt,
@@ -145,6 +147,9 @@ export default function ItemizeScreen() {
     : receiptCapStatus(receiptCap.data, receiptCap.isLoading);
   const capLocked = capStatus === 'locked';
   const queryClient = useQueryClient();
+  // At the scan limit a Free person may choose to watch one reward ad; the server
+  // decides who is offered it.
+  const adOffer = useRewardedAdOffer();
   /** A bill that has been scanned but not yet handed to the table. */
   const [scanId, setScanId] = useState<string | null>(null);
 
@@ -267,6 +272,9 @@ export default function ItemizeScreen() {
             : t.itemize.scanCheckLines,
       );
     } catch (caught) {
+      if (isScanQuotaMessage((caught as { message?: unknown } | null)?.message)) {
+        void adOffer.offer('scan');
+      }
       setError(friendlyError(caught, t.couldNotScan, 'itemize.scan'));
     } finally {
       setScanning(false);
@@ -847,6 +855,7 @@ export default function ItemizeScreen() {
         />
         {writeExpense.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
       </ScrollView>
+      {adOffer.sheet}
     </Screen>
   );
 }

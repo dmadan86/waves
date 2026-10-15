@@ -1486,6 +1486,30 @@ export interface UiStrings {
    * somebody to go hunting through Android settings for it.
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
+  /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  rewardedAds: {
+    voiceTitle: string;
+    scanTitle: string;
+    voiceBody: string;
+    scanBody: string;
+    watch: string;
+    tryAgain: string;
+    upgrade: string;
+    notNow: string;
+    done: string;
+    preparing: string;
+    confirming: string;
+    creditedVoice: string;
+    creditedScan: string;
+    pending: string;
+    closedEarly: string;
+    noFill: string;
+    offline: string;
+    consent: string;
+    unavailable: string;
+    error: string;
+    footnote: string;
+  };
   voiceConsent: {
     title: string;
     subtitle: string;
@@ -6354,6 +6378,32 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  rewardedAds: {
+    voiceTitle: 'Watch a short ad for {count} more AI voice commands',
+    scanTitle: 'Watch a short ad for {count} more receipt scans',
+    voiceBody:
+      "You have used this month's free AI voice commands. Watch one short ad to get more now, or go on with basic voice.",
+    scanBody:
+      "You have used this month's free receipt scans. Watch one short ad to get more now, or add the items by hand, which is always free.",
+    watch: 'Watch ad',
+    tryAgain: 'Try again',
+    upgrade: 'Upgrade to Plus',
+    notNow: 'Not now',
+    done: 'Done',
+    preparing: 'Getting an ad ready…',
+    confirming: 'Adding your reward…',
+    creditedVoice: '{count} more AI voice commands added',
+    creditedScan: '{count} more receipt scans added',
+    pending: 'Thanks for watching. Your reward is on its way and will show up in a moment.',
+    closedEarly: 'The ad was closed before the end, so no reward this time.',
+    noFill: 'No ad is available right now. Please try again in a little while.',
+    offline: 'You are offline. Connect to the internet and try again.',
+    consent: 'Ads are off because of your privacy choice.',
+    unavailable: 'Ads are not available in this version of Waves.',
+    error: 'The ad could not load. Please try again.',
+    footnote:
+      'Optional. Ads are never personalized and never shown on your balances. Plus and Pro have none.',
+  },
   voiceConsent: {
     title: "Use Waves' advanced voice?",
     subtitle: 'Turn your speech into an expense quickly and easily.',
@@ -9057,7 +9107,7 @@ const en: UiStrings = {
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
-      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Your data is never sold, and there are no ad networks.',
+      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Free accounts can choose to watch a reward ad, served by Google AdMob: non-personalized, only when you tap Watch, and AdMob receives the device and network details it needs to show the ad and prevent fraud. Your data is never sold.',
     retentionTitle: 'How long we keep it',
     retentionBody:
       "Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, from Settings. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like. Some of what you leave behind survives deleting your account, and you should know it before you do. What you added to a shared group stays — the expenses and settlements, the notes and comments on them, and the images you added, whether a receipt, a proof of payment or a trip photo — because it is also the other members' record of who owed whom, and taking it out would silently change somebody else's balance to settle a debt nobody paid. Your name, photo, contact details and payment handles are removed from those groups, where you become an unnamed former member; notifications and activity already written to other people can still carry the name you had at the time. And if you write an answer into the box asking why you are leaving, that answer is kept exactly as you typed it, with the link back to you removed. Nothing is kept for advertising, and nothing is kept because a law obliges us to.",
@@ -9072,9 +9122,10 @@ const en: UiStrings = {
     collapseLabel: 'Show less',
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
-    servicesSummary: 'Supabase for the database, Sentry for crashes, Clarity only if you allow it.',
+    servicesSummary:
+      'Supabase for the database, Sentry for crashes, Clarity only if you allow it, Google AdMob only if you watch a reward ad.',
     analyticsSummary:
-      "No ads, no ad identifier. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
+      "Reward ads only if you choose to watch one, never personalized. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
@@ -10729,6 +10780,32 @@ const ta: UiStrings = {
     onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
+  },
+  rewardedAds: {
+    voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
+    scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
+    voiceBody:
+      'இந்த மாதத்தின் இலவச AI குரல் கட்டளைகளை நீங்கள் பயன்படுத்திவிட்டீர்கள். இப்போதே மேலும் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள், அல்லது அடிப்படைக் குரலுடன் தொடருங்கள்.',
+    scanBody:
+      'இந்த மாதத்தின் இலவச ரசீது ஸ்கேன்களை நீங்கள் பயன்படுத்திவிட்டீர்கள். இப்போதே மேலும் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள், அல்லது பொருட்களைக் கையால் சேர்க்கலாம் — அது எப்போதும் இலவசம்.',
+    watch: 'விளம்பரம் பாருங்கள்',
+    tryAgain: 'மீண்டும் முயலுங்கள்',
+    upgrade: 'Plus-க்கு மேம்படுத்துங்கள்',
+    notNow: 'இப்போது வேண்டாம்',
+    done: 'முடிந்தது',
+    preparing: 'விளம்பரம் தயாராகிறது…',
+    confirming: 'உங்கள் வெகுமதி சேர்க்கப்படுகிறது…',
+    creditedVoice: 'மேலும் {count} AI குரல் கட்டளைகள் சேர்க்கப்பட்டன',
+    creditedScan: 'மேலும் {count} ரசீது ஸ்கேன்கள் சேர்க்கப்பட்டன',
+    pending: 'பார்த்ததற்கு நன்றி. உங்கள் வெகுமதி வந்துகொண்டிருக்கிறது, சிறிது நேரத்தில் தெரியும்.',
+    closedEarly: 'விளம்பரம் முடிவதற்குள் மூடப்பட்டது, எனவே இந்த முறை வெகுமதி இல்லை.',
+    noFill: 'இப்போது காட்ட விளம்பரம் இல்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
+    offline: 'நீங்கள் இணையத்தில் இல்லை. இணைந்து மீண்டும் முயலுங்கள்.',
+    consent: 'உங்கள் தனியுரிமைத் தேர்வின் காரணமாக விளம்பரங்கள் அணைக்கப்பட்டுள்ளன.',
+    unavailable: 'Waves-ன் இந்தப் பதிப்பில் விளம்பரங்கள் இல்லை.',
+    error: 'விளம்பரத்தை ஏற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    footnote:
+      'விருப்பத்தின் பேரில் மட்டும். விளம்பரங்கள் தனிப்பயனாக்கப்படுவதில்லை, உங்கள் இருப்புகளில் காட்டப்படுவதில்லை. Plus, Pro-வில் விளம்பரம் இல்லை.',
   },
   voiceConsent: {
     title: 'Waves-இன் மேம்பட்ட குரலைப் பயன்படுத்தவா?',
@@ -13582,7 +13659,7 @@ const ta: UiStrings = {
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
-      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. உங்கள் தரவு விற்கப்படுவதில்லை, விளம்பர வலையமைப்புகளும் இல்லை.',
+      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம்; அது Google AdMob மூலம் வழங்கப்படுகிறது — தனிப்பயனாக்கப்படாதது, நீங்கள் ‘பாருங்கள்’ என்பதைத் தொட்டால் மட்டுமே; விளம்பரத்தைக் காட்டவும் மோசடியைத் தடுக்கவும் தேவையான சாதன, பிணைய விவரங்களை AdMob பெறும். உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை.',
     retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
     retentionBody:
       'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — அமைப்புகளில் எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம். கணக்கை நீக்கிய பிறகும் நீங்கள் விட்டுச் செல்வதில் சில தொடரும்; நீக்கும் முன் அதைத் தெரிந்து கொள்ளுங்கள். பகிர்ந்த குழுவில் நீங்கள் சேர்த்தவை — செலவுகள், தீர்வுகள், அவற்றின் குறிப்புகளும் கருத்துகளும், நீங்கள் சேர்த்த படங்கள், அது ரசீதாக இருந்தாலும், பணம் கட்டிய சான்றாக இருந்தாலும், பயணப் புகைப்படமாக இருந்தாலும் — அப்படியே இருக்கும், ஏனெனில் அவை மற்ற உறுப்பினர்களின் பதிவும் கூட; அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தீர்ந்தது போல் இன்னொருவரின் இருப்பு அமைதியாக மாறிவிடும். உங்கள் பெயர், புகைப்படம், தொடர்பு விவரங்கள், பணம் பெறும் முகவரி ஆகியவை அந்தக் குழுக்களிலிருந்து நீக்கப்படும்; அங்கே நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள். ஆனால் ஏற்கெனவே மற்றவர்களுக்குச் சென்ற அறிவிப்புகளிலும் செயல்பதிவிலும் அப்போது இருந்த உங்கள் பெயர் இருக்கக்கூடும். ஏன் வெளியேறுகிறீர்கள் என்ற கேள்விக்கு நீங்கள் பதில் எழுதினால், அது நீங்கள் எழுதியபடியே, உங்களுடனான தொடர்பு நீக்கப்பட்டு, வைக்கப்படும். விளம்பரத்திற்காக எதுவும் வைக்கப்படுவதில்லை; சட்டம் கட்டாயப்படுத்துவதால் எதுவும் வைக்கப்படுவதில்லை.',
@@ -13600,9 +13677,9 @@ const ta: UiStrings = {
     protectSummary:
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
-      'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity.',
+      'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity, வெகுமதி விளம்பரம் பார்த்தால் மட்டுமே Google AdMob.',
     analyticsSummary:
-      'விளம்பரம் இல்லை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
+      'நீங்கள் பார்க்க விரும்பினால் மட்டுமே வெகுமதி விளம்பரங்கள், ஒருபோதும் தனிப்பயனாக்கப்படாதவை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
@@ -15241,6 +15318,32 @@ const hi: UiStrings = {
     onDeviceOff: 'यह फ़ोन सेव ऑडियो को टेक्स्ट में नहीं बदल सकता, इसलिए सिर्फ़ ऑडियो रखा जाता है।',
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
+  },
+  rewardedAds: {
+    voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
+    scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
+    voiceBody:
+      'इस महीने के मुफ़्त AI वॉइस कमांड पूरे हो गए हैं। अभी और पाने के लिए एक छोटा विज्ञापन देखें, या बेसिक वॉइस के साथ जारी रखें।',
+    scanBody:
+      'इस महीने के मुफ़्त रसीद स्कैन पूरे हो गए हैं। अभी और पाने के लिए एक छोटा विज्ञापन देखें, या आइटम हाथ से जोड़ें — वह हमेशा मुफ़्त है।',
+    watch: 'विज्ञापन देखें',
+    tryAgain: 'फिर कोशिश करें',
+    upgrade: 'Plus में अपग्रेड करें',
+    notNow: 'अभी नहीं',
+    done: 'हो गया',
+    preparing: 'विज्ञापन तैयार हो रहा है…',
+    confirming: 'आपका इनाम जोड़ा जा रहा है…',
+    creditedVoice: '{count} और AI वॉइस कमांड जुड़ गए',
+    creditedScan: '{count} और रसीद स्कैन जुड़ गए',
+    pending: 'देखने के लिए धन्यवाद। आपका इनाम रास्ते में है, थोड़ी देर में दिख जाएगा।',
+    closedEarly: 'विज्ञापन पूरा होने से पहले बंद हो गया, इसलिए इस बार इनाम नहीं मिला।',
+    noFill: 'अभी कोई विज्ञापन उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।',
+    offline: 'आप ऑफ़लाइन हैं। इंटरनेट से जुड़कर फिर कोशिश करें।',
+    consent: 'आपकी गोपनीयता पसंद के कारण विज्ञापन बंद हैं।',
+    unavailable: 'Waves के इस संस्करण में विज्ञापन उपलब्ध नहीं हैं।',
+    error: 'विज्ञापन लोड नहीं हो सका। फिर कोशिश करें।',
+    footnote:
+      'पूरी तरह वैकल्पिक। विज्ञापन कभी निजीकृत नहीं होते और आपके बैलेंस पर कभी नहीं दिखते। Plus और Pro में कोई विज्ञापन नहीं।',
   },
   voiceConsent: {
     title: 'Waves की एडवांस्ड वॉइस इस्तेमाल करें?',
@@ -17966,7 +18069,7 @@ const hi: UiStrings = {
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
-      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। आपका डेटा कभी बेचा नहीं जाता, और कोई विज्ञापन नेटवर्क नहीं है।',
+      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं, जिसे Google AdMob दिखाता है: निजीकृत नहीं, और सिर्फ़ तब जब आप ‘देखें’ दबाएँ; विज्ञापन दिखाने और धोखाधड़ी रोकने के लिए ज़रूरी डिवाइस और नेटवर्क जानकारी AdMob को मिलती है। आपका डेटा कभी बेचा नहीं जाता।',
     retentionTitle: 'हम इसे कब तक रखते हैं',
     retentionBody:
       'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — सेटिंग्स में कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं। खाता मिटाने के बाद भी आपकी छोड़ी हुई कुछ चीज़ें बनी रहती हैं, और मिटाने से पहले यह जान लेना चाहिए। साझा समूह में आपने जो जोड़ा — ख़र्च और भुगतान, उन पर लिखे नोट और टिप्पणियाँ, और आपकी जोड़ी हुई तस्वीरें, चाहे वह रसीद हो, भुगतान का सबूत हो या यात्रा की फ़ोटो — वह बना रहता है, क्योंकि वह बाक़ी सदस्यों का भी रिकॉर्ड है; उसे हटाने से किसी और का हिसाब चुपचाप बदल जाता, जैसे कोई क़र्ज़ बिना चुकाए चुक गया हो। आपका नाम, फ़ोटो, संपर्क विवरण और भुगतान पता उन समूहों से हटा दिए जाते हैं और वहाँ आप एक अनाम पूर्व सदस्य बन जाते हैं; लेकिन जो सूचनाएँ और गतिविधि पहले ही दूसरों तक पहुँच चुकी हैं, उनमें उस समय का आपका नाम रह सकता है। और अगर आप “क्यों जा रहे हैं” वाले बॉक्स में कुछ लिखते हैं, तो वह जवाब जैसा आपने लिखा वैसा ही रखा जाता है, आपसे उसका नाता हटाकर। विज्ञापन के लिए कुछ नहीं रखा जाता, और किसी क़ानूनी बाध्यता के कारण भी कुछ नहीं रखा जाता।',
@@ -17982,9 +18085,10 @@ const hi: UiStrings = {
     storeSummary:
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
-    servicesSummary: 'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity।',
+    servicesSummary:
+      'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity, और इनाम वाला विज्ञापन देखने पर ही Google AdMob।',
     analyticsSummary:
-      'कोई विज्ञापन नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
+      'इनाम वाले विज्ञापन सिर्फ़ तब जब आप देखना चुनें, कभी निजीकृत नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
@@ -19682,6 +19786,32 @@ const ar: UiStrings = {
     onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
+  },
+  rewardedAds: {
+    voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
+    scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
+    voiceBody:
+      'استخدمت أوامر الصوت المجانية بالذكاء الاصطناعي لهذا الشهر. شاهد إعلانًا قصيرًا لتحصل على المزيد الآن، أو تابع بالصوت الأساسي.',
+    scanBody:
+      'استخدمت عمليات مسح الإيصالات المجانية لهذا الشهر. شاهد إعلانًا قصيرًا لتحصل على المزيد الآن، أو أضف البنود يدويًا، وهذا مجاني دائمًا.',
+    watch: 'شاهد الإعلان',
+    tryAgain: 'حاول مرة أخرى',
+    upgrade: 'الترقية إلى Plus',
+    notNow: 'ليس الآن',
+    done: 'تم',
+    preparing: 'جارٍ تجهيز الإعلان…',
+    confirming: 'جارٍ إضافة مكافأتك…',
+    creditedVoice: 'أُضيفت {count} أوامر صوتية بالذكاء الاصطناعي',
+    creditedScan: 'أُضيفت {count} عمليات مسح إيصال',
+    pending: 'شكرًا على المشاهدة. مكافأتك في الطريق وستظهر بعد قليل.',
+    closedEarly: 'أُغلق الإعلان قبل نهايته، فلا مكافأة هذه المرة.',
+    noFill: 'لا يتوفر إعلان الآن. حاول مجددًا بعد قليل.',
+    offline: 'أنت غير متصل بالإنترنت. اتصل وحاول مرة أخرى.',
+    consent: 'الإعلانات متوقفة بسبب اختيارك في الخصوصية.',
+    unavailable: 'الإعلانات غير متوفرة في هذا الإصدار من Waves.',
+    error: 'تعذّر تحميل الإعلان. حاول مرة أخرى.',
+    footnote:
+      'اختياري تمامًا. الإعلانات لا تُخصَّص لك أبدًا ولا تظهر على أرصدتك. لا إعلانات في Plus وPro.',
   },
   voiceConsent: {
     title: 'استخدام الصوت المتقدم في Waves؟',
@@ -22939,7 +23069,7 @@ const ar: UiStrings = {
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
-      'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. بياناتك لا تُباع أبدًا، ولا توجد شبكات إعلانات.',
+      'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة تعرضه Google AdMob: غير مخصَّص، ولا يظهر إلا عندما تضغط «شاهد»، وتتلقى AdMob بيانات الجهاز والشبكة اللازمة لعرض الإعلان ومنع الاحتيال. بياناتك لا تُباع أبدًا.',
     retentionTitle: 'كم نحتفظ بها',
     retentionBody:
       'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت من الإعدادات. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت. ويبقى بعض ما تتركه خلفك حتى بعد حذف حسابك، ومن حقك معرفته قبل أن تحذف. ما أضفته إلى مجموعة مشتركة — المصروفات والتسويات، والملاحظات والتعليقات عليها، والصور التي أضفتها، سواء كانت إيصالًا أو إثبات دفع أو صورة رحلة — يبقى، لأنه سجلّ بقية الأعضاء أيضًا، وإزالته تغيّر رصيد شخص آخر بصمت وكأن دَينًا سُدّد دون أن يدفعه أحد. أما اسمك وصورتك وبيانات التواصل وعناوين الدفع فتُزال من تلك المجموعات، وتصبح فيها عضوًا سابقًا بلا اسم؛ غير أن الإشعارات وسجل النشاط التي وصلت إلى آخرين من قبل قد تظل تحمل اسمك وقتها. وإذا كتبت شيئًا في خانة سبب المغادرة، فيُحفظ ما كتبته كما هو بعد إزالة ما يربطه بك. لا يُحتفظ بشيء لأغراض إعلانية، ولا يُحتفظ بشيء لأن قانونًا يلزمنا بذلك.',
@@ -22954,9 +23084,10 @@ const ar: UiStrings = {
     collapseLabel: 'إظهار أقل',
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
-    servicesSummary: 'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت.',
+    servicesSummary:
+      'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت، وGoogle AdMob فقط إن شاهدت إعلان مكافأة.',
     analyticsSummary:
-      'لا إعلانات ولا معرّف إعلاني. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
+      'إعلانات المكافأة فقط إن اخترت مشاهدتها، ولا تُخصَّص لك أبدًا. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
