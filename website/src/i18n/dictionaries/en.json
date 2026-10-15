@@ -21,7 +21,9 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "skip": "Skip to content",
-    "agents": "AI agents"
+    "agents": "AI agents",
+    "offline": "Offline",
+    "voice": "AI voice"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -244,7 +246,9 @@
       "terms": "Terms",
       "markdown": "This page as Markdown",
       "deleteAccount": "Delete your account",
-      "agents": "AI agents"
+      "agents": "AI agents",
+      "offline": "Offline",
+      "voice": "AI voice"
     },
     "rights": "All rights reserved."
   },
@@ -266,13 +270,6 @@
     "eyebrow": "Works with your AI assistant",
     "title": "Ask your assistant. Waves keeps the books.",
     "body": "Waves speaks MCP, the open standard that lets AI assistants work with the apps you use. Connect one, and talk to your shared ledger in plain language.",
-    "promptsLabel": "Try asking",
-    "prompts": [
-      "Add ₹1,200 dinner with Ravi and Priya to Goa Trip",
-      "Who owes me in Flat 4B?",
-      "Settle up with Arjun",
-      "What did you change in my groups today?"
-    ],
     "clientsLabel": "Works with",
     "clients": ["Claude", "ChatGPT", "Cursor", "VS Code", "Any MCP client"],
     "safetyTitle": "You stay in control",
@@ -282,7 +279,77 @@
       "It can never move money. Paying stays in your bank app.",
       "Disconnect from your assistant whenever you like."
     ],
-    "cta": "Set it up"
+    "cta": "Set it up",
+    "examplesLabel": "Ask, and watch it happen",
+    "askLabel": "You ask",
+    "toolsLabel": "Uses",
+    "examples": [
+      {
+        "ask": "Who owes me in Goa Trip?",
+        "tools": ["get_balances"],
+        "reply": "You are owed ₹2,000 in Goa Trip.",
+        "rows": [
+          {
+            "k": "Ravi",
+            "v": "₹1,200"
+          },
+          {
+            "k": "Priya",
+            "v": "₹800"
+          }
+        ],
+        "link": ""
+      },
+      {
+        "ask": "Add ₹2,400 cab to Goa Trip, split equally",
+        "tools": ["list_members", "add_expense"],
+        "reply": "Added Cab · ₹2,400 to Goa Trip, paid by you.",
+        "rows": [
+          {
+            "k": "4 people",
+            "v": "₹600 each"
+          }
+        ],
+        "link": ""
+      },
+      {
+        "ask": "Settle up with Arjun",
+        "tools": ["settlement_plan", "record_settlement", "payment_link"],
+        "reply": "You owe Arjun ₹1,350. Recorded, and pending until Arjun confirms. Open the link to pay in your own UPI app.",
+        "rows": [],
+        "link": "upi://pay?pa=arjun@okaxis&pn=Arjun&am=1350.00&cu=INR"
+      },
+      {
+        "ask": "Make a group called Manali with Ravi, Priya and Meera, and give me the invite link",
+        "tools": ["create_group", "add_people", "invite_link"],
+        "reply": "Created Manali with you and 3 others. The invite link is ready to share.",
+        "rows": [],
+        "link": ""
+      },
+      {
+        "ask": "The cab was ₹2,600, not ₹2,400",
+        "tools": ["list_expenses", "edit_expense"],
+        "reply": "Updated Cab to ₹2,600. Each share is now ₹650, and the old version stays in the history.",
+        "rows": [],
+        "link": ""
+      },
+      {
+        "ask": "What did you change in my groups today?",
+        "tools": ["list_agent_writes"],
+        "reply": "Two things today, both by your assistant.",
+        "rows": [
+          {
+            "k": "Added",
+            "v": "Cab · ₹2,400"
+          },
+          {
+            "k": "Created",
+            "v": "Manali"
+          }
+        ],
+        "link": ""
+      }
+    ]
   },
   "mcpPage": {
     "metaTitle": "Connect an AI agent to Waves (MCP)",
@@ -460,5 +527,135 @@
       ]
     ],
     "contact": "Questions about any of this:"
+  },
+  "offline": {
+    "eyebrow": "Works offline",
+    "title": "No signal? Keep splitting.",
+    "body": "Every expense is saved on your phone first, so Waves never waits for the network. Add it, see it, carry on. When you are back online, it syncs by itself and everyone’s balance catches up.",
+    "scenarios": [
+      {
+        "title": "On a flight",
+        "body": "Split the snacks and the cab to the airport before you land."
+      },
+      {
+        "title": "A mountain homestay",
+        "body": "Log dinner and firewood where the signal ends."
+      },
+      {
+        "title": "A basement café",
+        "body": "Add the bill at the table, not later from memory."
+      }
+    ],
+    "demoTitle": "Manali trip",
+    "chipOffline": "Offline · 3 changes waiting",
+    "chipSynced": "Synced",
+    "offlineCaption": "On the trail, no signal",
+    "syncedCaption": "Back at the café, online",
+    "items": [
+      {
+        "title": "Homestay dinner",
+        "amount": "₹1,800",
+        "meta": "You paid · 4 people"
+      },
+      {
+        "title": "Firewood",
+        "amount": "₹300",
+        "meta": "You paid · 4 people"
+      },
+      {
+        "title": "Tea",
+        "amount": "₹120",
+        "meta": "You paid · 4 people"
+      }
+    ],
+    "waiting": "Waiting",
+    "sent": "Sent",
+    "balanceLabel": "Ravi owes you",
+    "balanceAmount": "₹555",
+    "balanceNote": "Up to date for everyone",
+    "pointsTitle": "What happens behind the scenes",
+    "points": [
+      "Saved on your phone first, then sent in order. Nothing is dropped, and a retry never counts twice.",
+      "If the server refuses a change, it stays on your screen with Try again or Discard.",
+      "Receipt photos wait in a queue and upload when you are online.",
+      "Choose to sync on Wi‑Fi only, mobile data, or both."
+    ],
+    "voiceTitle": "Voice works offline too",
+    "voiceBody": "Download a speech language once in Offline voice settings and the mic works with no connection. Basic voice runs on your phone; whether a language is available offline depends on your phone’s speech service."
+  },
+  "voice": {
+    "eyebrow": "AI voice",
+    "title": "Just say it. Waves does the rest.",
+    "body": "Hold the mic and speak the way you talk. Waves works out the amount, who paid and who it is split with, then shows it as a card for you to confirm. Speak in English, Hindi, Tamil or Arabic, or mix them.",
+    "languagesLabel": "Understands",
+    "languages": ["English", "हिन्दी", "தமிழ்", "العربية", "Hinglish"],
+    "sayLabel": "You say",
+    "doesLabel": "Waves does",
+    "confirm": "Confirm",
+    "edit": "Edit",
+    "followUp": {
+      "title": "Not sure? It asks, it never guesses.",
+      "say": "Lunch 600 with Ravi",
+      "ask": "Which group: Goa Trip or Flat 4B?",
+      "answer": "Goa Trip",
+      "done": "Lunch · ₹600 added to Goa Trip"
+    },
+    "points": [
+      "You see what it heard and confirm before anything is saved.",
+      "Names are matched to your groups and members. If a name fits nobody, it asks.",
+      "Other currencies work too: say “40 dirhams” and it keeps the amount in that currency.",
+      "Basic voice runs on your phone for everyone, even offline."
+    ],
+    "planLine": "AI voice on every plan, with more commands on Plus and Pro.",
+    "examples": [
+      {
+        "lang": "en",
+        "tag": "English",
+        "say": "Dinner 1,200 split with Ravi and Priya",
+        "title": "Dinner",
+        "amount": "₹1,200",
+        "lines": ["You paid", "3 people · ₹400 each"]
+      },
+      {
+        "lang": "hi-Latn",
+        "tag": "Hinglish",
+        "say": "Ravi ne 300 diye chai ke liye",
+        "title": "Chai",
+        "amount": "₹300",
+        "lines": ["Ravi paid", "Split equally"]
+      },
+      {
+        "lang": "ta",
+        "tag": "தமிழ்",
+        "say": "டாக்ஸி 480 ரூபாய், ரவி கொடுத்தார், எல்லோரும் சமமாகப் பிரி",
+        "title": "Taxi",
+        "amount": "₹480",
+        "lines": ["Ravi paid", "Goa Trip · 4 people · ₹120 each"]
+      },
+      {
+        "lang": "ar",
+        "tag": "العربية",
+        "say": "عشاء 450 درهم، دفعت أنا، قسّم مع سارة",
+        "title": "Dinner",
+        "amount": "AED 450",
+        "lines": ["You paid", "2 people · AED 225 each"]
+      },
+      {
+        "lang": "en",
+        "tag": "English",
+        "say": "Groceries 850, I paid, split with flat",
+        "title": "Groceries",
+        "amount": "₹850",
+        "lines": ["You paid", "Flat 4B · 5 people · ₹170 each"]
+      },
+      {
+        "lang": "hi",
+        "tag": "हिन्दी",
+        "say": "कॉफ़ी 180, सिर्फ़ मेरे लिए",
+        "title": "Coffee",
+        "amount": "₹180",
+        "lines": ["Personal expense", "Not split"]
+      }
+    ]
   }
 }

@@ -7,12 +7,14 @@ import { Faq } from '@/components/faq';
 import { FeatureStrip } from '@/components/feature-strip';
 import { Hero } from '@/components/hero';
 import { Moments } from '@/components/moments';
+import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
 import { PrivacyBand } from '@/components/privacy-band';
 import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
+import { VoiceBand } from '@/components/voice-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
@@ -112,9 +114,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
         <Moments t={t.moments} />
+        <OfflineBand t={t.offline} />
+        <VoiceBand t={t.voice} />
+        <AgentsBand t={t.agents} locale={locale} />
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
-        <AgentsBand t={t.agents} locale={locale} />
         <Faq t={t.faq} />
         <DownloadBanner t={t.cta} stores={t.stores} />
       </main>
