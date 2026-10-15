@@ -1422,11 +1422,11 @@ model PromoCode {
 /// lazily by `waves_my_referral`; read-only for the owner (RLS).
 model ReferralCode {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profileId String   @unique @map("profile_id") @db.Uuid
+  profileId String   @unique(map: "referral_codes_profile_key") @map("profile_id") @db.Uuid
   code      String   @unique
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, map: "referral_codes_profile_fkey")
   referrals Referral[]
 
   @@map("referral_codes")
@@ -1440,7 +1440,7 @@ model ReferralCode {
 model Referral {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   referrerId   String    @map("referrer_id") @db.Uuid
-  refereeId    String    @unique @map("referee_id") @db.Uuid
+  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
   code         String
   source       String    @default("code")
   status       String    @default("claimed")
@@ -1451,11 +1451,12 @@ model Referral {
   refereeDays  Int       @default(0) @map("referee_days")
   identityKeys String[]  @default([]) @map("identity_keys")
 
-  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
+  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
   referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
 
   @@index([referrerId, status], map: "referrals_referrer_idx")
+  @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
   @@map("referrals")
   @@schema("public")
 }
