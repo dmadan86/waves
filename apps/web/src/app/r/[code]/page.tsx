@@ -61,7 +61,17 @@ export default function ReferralLandingPage() {
 
         <div>
           <p className="faint">{t.referral.codeLabel}</p>
-          <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: 4 }}>{code}</p>
+          <p
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              letterSpacing: 4,
+              lineHeight: 1.2,
+              margin: '4px 0 12px',
+            }}
+          >
+            {code}
+          </p>
           <button type="button" className="btn soft" onClick={() => void copy()} aria-live="polite">
             {copied ? t.referral.codeCopied : t.referral.copyCode}
           </button>
