@@ -16,6 +16,7 @@ type Nav = {
   security: string;
   offline: string;
   voice: string;
+  wearables: string;
   agents: string;
   pricing: string;
   faq: string;
@@ -81,6 +82,7 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
     { href: '#how', label: nav.how, mobileOnly: true },
     { href: '#offline', label: nav.offline },
     { href: '#voice', label: nav.voice },
+    { href: '#wearables', label: nav.wearables, mobileOnly: true },
     { href: '#agents', label: nav.agents },
     { href: '#pricing', label: nav.pricing },
     { href: '#security', label: nav.security, mobileOnly: true },

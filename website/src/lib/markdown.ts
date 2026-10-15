@@ -79,6 +79,26 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(t.voice.planLine);
   line();
 
+  line(`## ${t.wearables.title}`);
+  line();
+  line(t.wearables.body);
+  line();
+  line(
+    t.wearables.chips
+      .map(
+        (c) =>
+          `${c.label} (${c.status === 'soon' ? t.wearables.soonLabel : t.wearables.availableLabel})`,
+      )
+      .join(' · '),
+  );
+  line();
+  for (const ex of t.wearables.examples) line(`- **${ex.title}** (${ex.where}) — ${ex.body}`);
+  line();
+  line(`- ${t.wearables.points.join('\n- ')}`);
+  line();
+  line(t.wearables.soonNote);
+  line();
+
   line(`## ${t.pricing.title}`);
   line();
   for (const plan of t.pricing.plans) {
