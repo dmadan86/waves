@@ -1,0 +1,7 @@
+{
+  "name": "waves-install-referrer",
+  "version": "1.0.0",
+  "description": "Google Play Install Referrer for the Waves app: the referrer string a Play install carried.",
+  "main": "index.ts",
+  "private": true
+}

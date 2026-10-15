@@ -16,6 +16,7 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Clipboard from 'expo-clipboard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, ScrollView, Share, TextInput, View } from 'react-native';
 
@@ -106,6 +107,22 @@ export default function InviteFriendsScreen() {
       }
     },
   });
+
+  // Only on a tap: reading the clipboard unasked shows iOS's paste banner.
+  const paste = async (): Promise<void> => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      const normalized = normalizeReferralCode(text) ?? normalizeReferralCode(text.split(/\s+/)[0]);
+      if (normalized) {
+        setCode(normalized);
+        setNotice(null);
+      } else {
+        setNotice({ tone: 'negative', text: t.referral.unknownCode });
+      }
+    } catch {
+      // Nothing to paste; the field stays as it was.
+    }
+  };
 
   const data = mine.data ?? null;
   const link = data ? referralLink(data.code) : null;
@@ -241,6 +258,7 @@ export default function InviteFriendsScreen() {
                     letterSpacing: 1,
                   }}
                 />
+                <Button label={t.referral.paste} variant="secondary" onPress={() => void paste()} />
                 <Button
                   label={t.referral.apply}
                   variant="secondary"

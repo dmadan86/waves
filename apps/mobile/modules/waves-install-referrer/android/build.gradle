@@ -1,0 +1,20 @@
+// The expo-module-gradle-plugin alone applies com.android.library + Kotlin and
+// wires the `release` software component autolinking expects.
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.wavesinstallreferrer'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.wavesinstallreferrer'
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Play's Install Referrer API: the `referrer=` a Play Store link carried.
+  implementation 'com.android.installreferrer:installreferrer:2.2'
+}
