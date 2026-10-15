@@ -1,8 +1,8 @@
 /**
  * import-screenshot — see handler.ts. This file only wires the real dependencies.
  *
- * Secrets: ANTHROPIC_API_KEY (function env, never in the app). Optional
- * IMPORT_VISION_MODEL to change the model without a deploy.
+ * Secrets: OPENROUTER_API_KEY (function env, never in the app). Optional
+ * IMPORT_VISION_MODEL (comma-separated) to change the models without a deploy.
  */
 
 import { asCaller, asService, errorResponse, serveWithCors } from '../_shared/auth.ts';

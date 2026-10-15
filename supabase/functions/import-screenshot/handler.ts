@@ -8,7 +8,8 @@
  * as something to check, and the person confirms through the normal import
  * write path ("AI proposes, human confirms", ADR-008).
  *
- * The image is never stored. The bytes go to the model and are dropped, and only
+ * The image is never stored. The bytes go to the model (through OpenRouter,
+ * routed only to providers that neither store nor train on them) and are dropped, and only
  * metadata is logged: no image, no extracted description, no name.
  *
  * Order matters and is the point of this file:
@@ -28,12 +29,16 @@ import {
 } from '../_shared/core.js';
 import { HttpError, json, requireMembership, type SupabaseClient } from '../_shared/auth.ts';
 
-export const DEFAULT_MODEL = 'claude-sonnet-5-5';
+/**
+ * Reached through OpenRouter and tried in order; the first valid reading wins.
+ * `IMPORT_VISION_MODEL` (comma-separated) overrides without a deploy.
+ */
+export const DEFAULT_MODELS = ['anthropic/claude-haiku-5.5', 'google/gemini-3.5-flash'];
 export const FEATURE = 'screenshot_import';
 
 /** The whole request body, base64 and JSON framing included. */
 export const MAX_BODY_BYTES = 6 * 1024 * 1024;
-/** Decoded image. Anthropic's limit is 5 MB of base64; stay well under it. */
+/** Decoded image. Keeps the request well inside the providers' image limits. */
 export const MAX_IMAGE_BYTES = 3.75 * 1024 * 1024;
 const MODEL_TIMEOUT_MS = 90_000;
 const MAX_MEMBERS = 60;
@@ -281,7 +286,7 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
   if (request.method !== 'POST') throw fail(405, 'METHOD_NOT_ALLOWED', 'Use POST');
   const started = deps.now();
 
-  const apiKey = deps.env('ANTHROPIC_API_KEY');
+  const apiKey = deps.env('OPENROUTER_API_KEY');
   if (!apiKey) {
     throw fail(503, 'IMPORT_SCAN_UNAVAILABLE', 'Screenshot import is not available right now');
   }
@@ -357,99 +362,139 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     ).catch(() => null);
   };
 
-  // `||`, not `??`: an empty IMPORT_VISION_MODEL= line in an env file means unset.
-  const model = deps.env('IMPORT_VISION_MODEL') || DEFAULT_MODEL;
+  // An empty IMPORT_VISION_MODEL= line in an env file means unset.
+  const configured = (deps.env('IMPORT_VISION_MODEL') ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const models = configured.length > 0 ? configured : DEFAULT_MODELS;
+  const dataUrl = `data:${image.mimeType};base64,${image.base64}`;
   try {
-    let response: Response;
-    try {
-      response = await deps.fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
-        body: JSON.stringify({
-          model,
-          max_tokens: 16000,
-          system: SYSTEM_PROMPT,
-          // Transcription, not deliberation: low effort keeps an import cheap.
-          output_config: {
-            effort: 'low',
-            format: { type: 'json_schema', schema: SCREENSHOT_SCHEMA },
+    let failure: HttpError = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
+    let answered: {
+      model: string;
+      extraction: Extract<ReturnType<typeof validateScreenshotExtraction>, { ok: true }>['extraction'];
+      usage: { prompt_tokens?: number; completion_tokens?: number };
+    } | null = null;
+
+    for (const model of models) {
+      const ask = (lowEffort: boolean): Promise<Response> =>
+        deps.fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${apiKey}`,
+            'content-type': 'application/json',
+            'x-title': 'Waves screenshot import',
           },
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: { type: 'base64', media_type: image.mimeType, data: image.base64 },
-                },
-                { type: 'text', text: userTurn(hints) },
-              ],
+          signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
+          body: JSON.stringify({
+            model,
+            max_tokens: 16000,
+            // Transcription, not deliberation: low effort keeps an import cheap.
+            ...(lowEffort ? { reasoning: { effort: 'low' } } : {}),
+            // Only providers that neither store nor train on the screenshot.
+            provider: { data_collection: 'deny' },
+            response_format: {
+              type: 'json_schema',
+              json_schema: { name: 'screenshot', strict: true, schema: SCREENSHOT_SCHEMA },
             },
-          ],
-        }),
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              {
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: dataUrl } },
+                  { type: 'text', text: userTurn(hints) },
+                ],
+              },
+            ],
+          }),
+        });
+
+      let response: Response;
+      try {
+        response = await ask(true);
+        // A model that does not know the effort knob says so with a 400; ask plainly.
+        if (response.status === 400) response = await ask(false);
+      } catch (error) {
+        console.error('import-screenshot: model call failed', model, (error as Error)?.name);
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner could not read that just now');
+        continue;
+      }
+
+      if (!response.ok) {
+        // The status is enough to debug; the body can echo the request.
+        console.error('import-screenshot: openrouter error', model, response.status);
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner could not read that just now');
+        continue;
+      }
+
+      const completion = (await response.json().catch(() => null)) as {
+        choices?: {
+          finish_reason?: string | null;
+          message?: { content?: string | null; refusal?: string | null };
+        }[];
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+      } | null;
+      const choice = completion?.choices?.[0];
+      if (!choice) {
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
+        continue;
+      }
+
+      // A refusal or a cut-off is about the image, not the model: another model
+      // would meet the same wall, so say so rather than spend a second call.
+      if (choice.message?.refusal || choice.finish_reason === 'content_filter') {
+        throw fail(422, 'IMPORT_SCAN_REFUSED', 'The scanner declined to read that image');
+      }
+      if (choice.finish_reason === 'length') {
+        throw fail(
+          422,
+          'TOO_MANY_ROWS_IN_IMAGE',
+          'There are too many rows in that screenshot; try a shorter piece of it',
+        );
+      }
+
+      const text = choice.message?.content;
+      if (!text) {
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
+        continue;
+      }
+      let extracted: unknown;
+      try {
+        extracted = JSON.parse(
+          text
+            .trim()
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/\s*```$/, ''),
+        );
+      } catch {
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned something unreadable');
+        continue;
+      }
+      const checked = validateScreenshotExtraction(extracted, {
+        members: hints.members,
+        country: hints.country,
       });
-    } catch (error) {
-      console.error('import-screenshot: model call failed', (error as Error)?.name);
-      throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner could not read that just now');
+      if (!checked.ok) {
+        failure = fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned something unreadable');
+        continue;
+      }
+      answered = { model, extraction: checked.extraction, usage: completion?.usage ?? {} };
+      break;
     }
+    if (!answered) throw failure;
+    const { extraction, model: answeredBy, usage } = answered;
 
-    if (!response.ok) {
-      // The status is enough to debug; the body can echo the request.
-      console.error('import-screenshot: anthropic error', response.status);
-      throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner could not read that just now');
-    }
-
-    const message = (await response.json().catch(() => null)) as {
-      content?: { type: string; text?: string }[];
-      stop_reason?: string;
-      model?: string;
-      usage?: { input_tokens?: number; output_tokens?: number };
-    } | null;
-    if (!message) throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
-
-    // A refusal is a successful HTTP 200 with an empty content array.
-    if (message.stop_reason === 'refusal') {
-      throw fail(422, 'IMPORT_SCAN_REFUSED', 'The scanner declined to read that image');
-    }
-    if (message.stop_reason === 'max_tokens') {
-      throw fail(
-        422,
-        'TOO_MANY_ROWS_IN_IMAGE',
-        'There are too many rows in that screenshot; try a shorter piece of it',
-      );
-    }
-
-    const text = message.content?.find((block) => block.type === 'text')?.text;
-    if (!text) throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned nothing');
-    let extracted: unknown;
-    try {
-      extracted = JSON.parse(text);
-    } catch {
-      throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned something unreadable');
-    }
-
-    const checked = validateScreenshotExtraction(extracted, {
-      members: hints.members,
-      country: hints.country,
-    });
-    if (!checked.ok) {
-      throw fail(502, 'IMPORT_SCAN_FAILED', 'The scanner returned something unreadable');
-    }
-    const { extraction } = checked;
 
     console.info(
       JSON.stringify({
         fn: 'import-screenshot',
         profile: profileId,
         group: groupId,
-        model: message.model ?? model,
-        inputTokens: message.usage?.input_tokens ?? 0,
-        outputTokens: message.usage?.output_tokens ?? 0,
+        model: answeredBy,
+        inputTokens: usage.prompt_tokens ?? 0,
+        outputTokens: usage.completion_tokens ?? 0,
         rows: extraction.rows.length,
         durationMs: deps.now() - started,
       }),
@@ -462,7 +507,7 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
       suggestedMembers: extraction.suggestedMembers,
       warnings: extraction.warnings,
       quota: { used: quota.used, limit: quota.limit },
-      model: message.model ?? model,
+      model: answeredBy,
     });
   } catch (error) {
     await refund();

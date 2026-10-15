@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { HttpError } from '../_shared/auth.ts';
 import {
-  DEFAULT_MODEL,
+  DEFAULT_MODELS,
   handleImportScreenshot,
   MAX_IMAGE_BYTES,
   sniffImage,
@@ -50,17 +50,18 @@ const goodRow = {
 function modelReply(over: Record<string, unknown> = {}, extraction?: unknown): Response {
   return new Response(
     JSON.stringify({
-      model: 'claude-sonnet-5-5',
-      stop_reason: 'end_turn',
-      content: [
+      model: 'anthropic/claude-haiku-5.5',
+      choices: [
         {
-          type: 'text',
-          text: JSON.stringify(
-            extraction ?? { imageKind: 'expense_list', currency: 'INR', rows: [goodRow] },
-          ),
+          finish_reason: 'stop',
+          message: {
+            content: JSON.stringify(
+              extraction ?? { imageKind: 'expense_list', currency: 'INR', rows: [goodRow] },
+            ),
+          },
         },
       ],
-      usage: { input_tokens: 1800, output_tokens: 300 },
+      usage: { prompt_tokens: 1800, completion_tokens: 300 },
       ...over,
     }),
   );
@@ -97,7 +98,7 @@ function makeDeps(
   const fetchMock = vi.fn(over.fetchImpl ?? (async () => modelReply()));
   const rateLimit = vi.fn(over.rateLimit ?? (async () => undefined));
   const deps: Deps = {
-    env: (n) => ({ ANTHROPIC_API_KEY: 'key', ...over.env })[n],
+    env: (n) => ({ OPENROUTER_API_KEY: 'key', ...over.env })[n],
     caller: {
       auth: { getUser: async () => ({ data: { user: { id: ME } }, error: null }) },
       rpc: async () => ({
@@ -147,7 +148,7 @@ async function refusal(promise: Promise<Response>): Promise<HttpError> {
 const rpcNames = (rpc: ReturnType<typeof makeDeps>['rpc']) => rpc.mock.calls.map((c) => c[0]);
 
 describe('success', () => {
-  it('returns validated rows, quota and model, and calls Anthropic as the plan says', async () => {
+  it('returns validated rows, quota and model, and calls OpenRouter as the plan says', async () => {
     const { deps, rpc, fetchMock } = makeDeps();
     const res = await handleImportScreenshot(req(goodBody()), deps);
     expect(res.status).toBe(200);
@@ -157,7 +158,7 @@ describe('success', () => {
     expect(out.rows[0]).toMatchObject({ description: 'Dinner at Toit', paidBy: 'Asha' });
     expect(out.suggestedMembers).toEqual({ Asha: 'Asha Rao' });
     expect(out.quota).toEqual({ used: 4, limit: 30 });
-    expect(out.model).toBe('claude-sonnet-5-5');
+    expect(out.model).toBe(DEFAULT_MODELS[0]);
     expect(out.warnings).toEqual([]);
 
     expect(rpcNames(rpc)).toEqual([
@@ -171,23 +172,22 @@ describe('success', () => {
     });
 
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toBe('https://api.anthropic.com/v1/messages');
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
     const headers = (init as RequestInit).headers as Record<string, string>;
-    expect(headers['x-api-key']).toBe('key');
-    expect(headers['anthropic-beta']).toBeUndefined();
+    expect(headers.authorization).toBe('Bearer key');
     const sent = JSON.parse((init as RequestInit).body as string);
-    expect(sent.model).toBe(DEFAULT_MODEL);
+    expect(sent.model).toBe(DEFAULT_MODELS[0]);
     expect(sent.max_tokens).toBe(16000);
-    expect(sent.fallbacks).toBeUndefined();
-    expect(sent.thinking).toBeUndefined();
-    expect(sent.system).toBe(SYSTEM_PROMPT);
-    expect(sent.output_config.effort).toBe('low');
-    expect(sent.output_config.format.type).toBe('json_schema');
-    expect(sent.messages[0].content[0]).toEqual({
-      type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: JPEG },
+    expect(sent.provider).toEqual({ data_collection: 'deny' });
+    expect(sent.reasoning).toEqual({ effort: 'low' });
+    expect(sent.response_format.type).toBe('json_schema');
+    expect(sent.response_format.json_schema).toMatchObject({ name: 'screenshot', strict: true });
+    expect(sent.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
+    expect(sent.messages[1].content[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/jpeg;base64,${JPEG}` },
     });
-    const hintText = sent.messages[0].content[1].text as string;
+    const hintText = sent.messages[1].content[1].text as string;
     expect(hintText).toContain('"today":"2026-10-12"');
     expect(hintText).toContain('"Asha Rao"');
     expect(hintText).toContain('"locale":"en-IN"');
@@ -195,17 +195,45 @@ describe('success', () => {
     expect(hintText).toContain('"defaultCurrency":"INR"');
   });
 
-  it('uses IMPORT_VISION_MODEL when set, and the default when it is empty', async () => {
-    const a = makeDeps({ env: { IMPORT_VISION_MODEL: 'claude-test-model' } });
+  const sentOf = (call: unknown[]) => JSON.parse((call[1] as RequestInit).body as string);
+
+  it('uses IMPORT_VISION_MODEL (comma-separated) when set, and the defaults when empty', async () => {
+    const a = makeDeps({ env: { IMPORT_VISION_MODEL: ' vendor/a , ,vendor/b ' } });
+    a.fetchMock.mockResolvedValueOnce(new Response('{}', { status: 500 }));
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await handleImportScreenshot(req(goodBody()), a.deps);
-    expect(JSON.parse((a.fetchMock.mock.calls[0]![1] as RequestInit).body as string).model).toBe(
-      'claude-test-model',
-    );
+    expect(sentOf(a.fetchMock.mock.calls[0]!).model).toBe('vendor/a');
+    expect(sentOf(a.fetchMock.mock.calls[1]!).model).toBe('vendor/b');
     const b = makeDeps({ env: { IMPORT_VISION_MODEL: '' } });
     await handleImportScreenshot(req(goodBody()), b.deps);
-    expect(JSON.parse((b.fetchMock.mock.calls[0]![1] as RequestInit).body as string).model).toBe(
-      DEFAULT_MODEL,
-    );
+    expect(sentOf(b.fetchMock.mock.calls[0]!).model).toBe(DEFAULT_MODELS[0]);
+  });
+
+  it('falls back to the next model, keeps one reservation, and names who answered', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { deps, rpc, fetchMock } = makeDeps();
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 500 }));
+    const out = await (await handleImportScreenshot(req(goodBody()), deps)).json();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(out.model).toBe(DEFAULT_MODELS[1]);
+    expect(rpcNames(rpc)).not.toContain('waves_ai_usage_refund');
+  });
+
+  it('falls back when a model returns an unreadable reading', async () => {
+    const { deps, fetchMock } = makeDeps();
+    fetchMock.mockResolvedValueOnce(modelReply({}, { nothing: true }));
+    const res = await handleImportScreenshot(req(goodBody()), deps);
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a model once without reasoning on a 400', async () => {
+    const { deps, fetchMock } = makeDeps();
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 400 }));
+    await handleImportScreenshot(req(goodBody()), deps);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(sentOf(fetchMock.mock.calls[1]!).reasoning).toBeUndefined();
+    expect(sentOf(fetchMock.mock.calls[1]!).model).toBe(DEFAULT_MODELS[0]);
   });
 
   it('accepts PNG and WebP and drops summary rows with a warning', async () => {
@@ -410,7 +438,7 @@ describe('model failures give the reservation back', () => {
     expect(refunds[0]![1]).toEqual({ p_profile: ME, p_feature: 'screenshot_import' });
   }
 
-  it('on a provider 5xx', async () => {
+  it('on a provider 5xx from every model', async () => {
     await failed(() => new Response('{"error":{}}', { status: 529 }), 502, 'IMPORT_SCAN_FAILED');
   });
 
@@ -426,24 +454,39 @@ describe('model failures give the reservation back', () => {
 
   it('on a refusal', async () => {
     await failed(
-      () => modelReply({ stop_reason: 'refusal', content: [] }),
+      () =>
+        modelReply({
+          choices: [{ finish_reason: 'stop', message: { content: null, refusal: 'no' } }],
+        }),
       422,
       'IMPORT_SCAN_REFUSED',
     );
   });
 
-  it('on max_tokens, with the too-many-rows code', async () => {
-    await failed(() => modelReply({ stop_reason: 'max_tokens' }), 422, 'TOO_MANY_ROWS_IN_IMAGE');
+  it('on a cut-off reply, with the too-many-rows code', async () => {
+    await failed(
+      () => modelReply({ choices: [{ finish_reason: 'length', message: { content: '{' } }] }),
+      422,
+      'TOO_MANY_ROWS_IN_IMAGE',
+    );
   });
 
   it('on an empty, unparseable or malformed reply', async () => {
-    await failed(() => modelReply({ content: [] }), 502, 'IMPORT_SCAN_FAILED');
+    await failed(() => modelReply({ choices: [] }), 502, 'IMPORT_SCAN_FAILED');
     await failed(
-      () => modelReply({ content: [{ type: 'text', text: '{nope' }] }),
+      () => modelReply({ choices: [{ finish_reason: 'stop', message: { content: '{nope' } }] }),
       502,
       'IMPORT_SCAN_FAILED',
     );
     await failed(() => modelReply({}, { nothing: true }), 502, 'IMPORT_SCAN_FAILED');
+  });
+
+  it('is 503 without OPENROUTER_API_KEY, before any allowance is touched', async () => {
+    const { deps, rpc, fetchMock } = makeDeps({ env: { OPENROUTER_API_KEY: '' } });
+    const e = await refusal(handleImportScreenshot(req(goodBody()), deps));
+    expect([e.status, e.code]).toEqual([503, 'IMPORT_SCAN_UNAVAILABLE']);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('does not refund a success', async () => {
