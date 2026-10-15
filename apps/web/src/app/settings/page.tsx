@@ -109,7 +109,14 @@ function Settings() {
     },
     {
       title: t.settings.sectionSecurity,
-      rows: [{ href: '/settings/devices', title: t.devices.row, hint: t.devices.rowHint }],
+      rows: [
+        { href: '/settings/devices', title: t.devices.row, hint: t.devices.rowHint },
+        {
+          href: '/settings/connected-apps',
+          title: t.connectedApps.row,
+          hint: t.connectedApps.rowHint,
+        },
+      ],
     },
     {
       title: t.settings.sectionHelp,

@@ -57,6 +57,8 @@ type BackendAuth = Pick<
   | 'refreshSession'
   | 'signOut'
   | 'resend'
+  // The OAuth 2.1 server: the AI assistants this account has authorised (list, revoke).
+  | 'oauth'
 >;
 
 /**

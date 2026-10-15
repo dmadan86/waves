@@ -118,6 +118,30 @@ Inspect it locally:
 npx @modelcontextprotocol/inspector node apps/agent-mcp/dist/index.js
 ```
 
+## Self-hosting
+
+There are two things you might mean by running this yourself.
+
+**The stdio server, on your own machine.** This is the supported way. Clone
+the repository, install with `pnpm install`, then follow "Signing in" and "Run"
+above: `pnpm mcp:login` stores a session for your own account, and your MCP
+client starts `node apps/agent-mcp/dist/index.js` (or `pnpm --filter
+@waves/agent-mcp dev`). Set `WAVES_MCP_READONLY=1` to register only the read
+tools. It needs Node 24 or newer and the Supabase URL and publishable key of
+the Waves backend you have an account on. It acts as you, through the same RLS
+and RPCs as the app, so it can do nothing that you cannot.
+
+**The remote endpoint (`/api/mcp`).** This is a route of the Waves web app that
+reuses the same tool registrations (`src/http.ts`, `src/oauth.ts`) and
+authenticates each request with a Supabase Auth OAuth 2.1 token. Running your
+own copy means running the web app against a Supabase project that has the
+OAuth server enabled (`[auth.oauth_server]` in `supabase/config.toml`) and the
+Waves schema, including the agent migrations. That is a full deployment of the
+product, not a standalone service, and there is no separate package for it.
+
+Either way the safety model is unchanged: no raw SQL, no money movement, every
+write recorded in `agent_writes`.
+
 ## Status
 
 The pure parts are unit-tested and now run in CI (`agent MCP tests`), and the
@@ -174,9 +198,10 @@ thing to hand to somebody else — the session on disk is yours, and giving away
 the server gives away your ledger.
 
 Stage 1 is built and switched on — see the section above. What is left before
-handing it to strangers is a run end to end against a throwaway account, and a
-screen in the app where a person can see what their assistants did and
-disconnect one.
+handing it to strangers is a run end to end against a throwaway account. A
+person can already disconnect an assistant: Settings, then Connected apps, in
+the app and on the web (Supabase Auth's OAuth grants, `auth.oauth.listGrants`
+and `revokeGrant`). Seeing what an assistant did is `list_agent_writes`.
 
 After that, `login.ts` and `store.ts` can go: nothing should keep a refresh
 token on disk once there is a flow that does not need one. They stay for now
