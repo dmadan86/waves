@@ -190,6 +190,14 @@ export interface FlagResultRow {
   active_30d: number;
 }
 
+/** Per arm of the `plus_price` test: people, plans-screen installs, Plus subscriptions started. */
+export interface PlusPriceResultRow {
+  variant: string;
+  people: number;
+  premium_viewed_installs: number;
+  plus_started: number;
+}
+
 /**
  * The one place this app reads a table rather than a function.
  *
@@ -631,6 +639,8 @@ export const voiceAttempts = (limit = 200) =>
 
 export const flagResults = (key: string) =>
   call<FlagResultRow>('waves_admin_flag_results', { p_key: key });
+
+export const plusPriceResults = () => call<PlusPriceResultRow>('waves_admin_plus_price_results');
 
 // ─────────────────────────────────────────────────── rate limiting ──
 // The abuse limiter's numbers, made editable. `waves_rate_limit` reads these

@@ -58,6 +58,7 @@ description, a note, a display name or a payment handle.
 | `waves_admin_logins`                                  | Sign-ins per day, while Supabase still has them      |
 | `waves_admin_users`                                   | The signup directory, one page at a time             |
 | `waves_admin_flag_results`                            | People and behaviour per experiment arm              |
+| `waves_admin_plus_price_results`                      | Plans-screen views and Plus starts per price arm     |
 | `waves_admin_campaign_*`                              | Funnel, revenue and email status per campaign        |
 | `waves_admin_feedback`                                | What people wrote in, with no author                 |
 | `waves_admin_voice_attempts`                          | Dictations the parser could not use                  |

@@ -39,6 +39,15 @@ describe('sanitizeProps', () => {
     });
   });
 
+  it('keeps the Plus price arm under variant, and only as a short lowercase word', () => {
+    expect(sanitizeProps({ screen: 'paywall', variant: 'p79' })).toEqual({
+      screen: 'paywall',
+      variant: 'p79',
+    });
+    expect(sanitizeProps({ variant: 'P 79' })).toEqual({});
+    expect(sanitizeProps({ variant: 79 })).toEqual({});
+  });
+
   it('drops keys that are not on the list', () => {
     expect(sanitizeProps({ method: 'phone', phone: '+919999999999', email: 'a@b.co' })).toEqual({
       method: 'phone',

@@ -38,7 +38,7 @@ import {
   type PlanCardModel,
   type PlanPeriod,
 } from '@/lib/pricing';
-import { track } from '@/lib/events';
+import { usePlusPriceVariant, useTrackPremiumViewed } from '@/lib/plusPrice';
 import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
@@ -65,20 +65,21 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  // Counts this screen being opened, once per mount.
-  useEffect(() => {
-    track('premium_viewed', { screen: 'paywall' });
-  }, []);
+  // Counts this screen being opened, once per mount, tagged with the Plus price arm.
+  useTrackPremiumViewed('paywall');
+  const { variant: priceVariant, settled: priceSettled } = usePlusPriceVariant();
 
   useEffect(() => {
+    // Wait for the flag, so the first price shown is the arm's and not a flash of the default.
+    if (!priceSettled) return;
     let active = true;
-    loadOffering()
+    loadOffering(priceVariant)
       .then((offering) => active && setLoad({ status: 'ready', offering }))
       .catch(() => active && setLoad({ status: 'error' }));
     return () => {
       active = false;
     };
-  }, [attempt]);
+  }, [attempt, priceSettled, priceVariant]);
 
   const offering = load.status === 'ready' ? load.offering : null;
   const periods = useMemo(() => periodsInOffering(offering), [offering]);
