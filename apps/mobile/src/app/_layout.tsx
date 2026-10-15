@@ -74,6 +74,7 @@ import { ToastProvider } from '@/lib/toast';
 import { AppStatusProvider } from '@/lib/appStatus';
 import { StoreUpdateProvider } from '@/lib/storeUpdate';
 import { initClarity } from '@/lib/clarity';
+import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
@@ -104,6 +105,9 @@ initClarity();
 // Resume capture only for someone who opted in on a previous run; everyone
 // else stays paused where `initClarity` left them. Async, and it fails to off.
 void applyStoredSessionReplayConsent();
+
+// Counts this install once (first launch only). Fire-and-forget; see `lib/events`.
+trackInstallOnce();
 
 // Arriving while the app is open should still surface: a notification that is
 // silently swallowed because you happened to be looking at the app is the one
@@ -707,6 +711,7 @@ function AuthGate() {
           // Not awaited: the tour is over the moment they say so, and a write
           // that fails costs them one repeat, not a stuck screen.
           void rememberOnboardingSeen(ownerId);
+          track('onboarding_completed');
           // One onboarding, not two: mark the coach tour seen as well so it does
           // not autostart on the Home screen the intro just handed them to.
           tour.finish();

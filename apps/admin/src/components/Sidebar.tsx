@@ -33,6 +33,7 @@ export const NAV: NavSection[] = [
   {
     heading: 'Growth',
     items: [
+      { href: '/kpis', label: 'Activation & retention', icon: Icon.activity },
       { href: '/promotions', label: 'Promotions', icon: Icon.tag },
       { href: '/campaigns', label: 'Campaigns', icon: Icon.send },
     ],

@@ -38,6 +38,7 @@ import {
   type PlanCardModel,
   type PlanPeriod,
 } from '@/lib/pricing';
+import { track } from '@/lib/events';
 import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
@@ -63,6 +64,11 @@ export default function PaywallScreen() {
   const [selected, setSelected] = useState<PaidTier>(PlanTier.Pro);
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+
+  // Counts this screen being opened, once per mount.
+  useEffect(() => {
+    track('premium_viewed', { screen: 'paywall' });
+  }, []);
 
   useEffect(() => {
     let active = true;

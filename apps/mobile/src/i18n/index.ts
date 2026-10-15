@@ -8810,7 +8810,7 @@ const en: UiStrings = {
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
-      'Waves can record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.',
+      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
@@ -8830,7 +8830,8 @@ const en: UiStrings = {
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     servicesSummary: 'Supabase for the database, Sentry for crashes, Clarity only if you allow it.',
-    analyticsSummary: 'No ads, no ad identifier. Screen recording is off unless you turn it on.',
+    analyticsSummary:
+      "No ads, no ad identifier. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
@@ -13199,7 +13200,7 @@ const ta: UiStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
-      'எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
@@ -13222,7 +13223,8 @@ const ta: UiStrings = {
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
       'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity.',
-    analyticsSummary: 'விளம்பரம் இல்லை. நீங்கள் இயக்கும் வரை திரைப் பதிவும் இல்லை.',
+    analyticsSummary:
+      'விளம்பரம் இல்லை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
@@ -17452,7 +17454,7 @@ const hi: UiStrings = {
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
-      'Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
+      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
@@ -17473,7 +17475,8 @@ const hi: UiStrings = {
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary: 'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity।',
-    analyticsSummary: 'कोई विज्ञापन नहीं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
+    analyticsSummary:
+      'कोई विज्ञापन नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
@@ -22277,7 +22280,7 @@ const ar: UiStrings = {
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
-      'يمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
+      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
@@ -22297,7 +22300,8 @@ const ar: UiStrings = {
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     servicesSummary: 'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت.',
-    analyticsSummary: 'لا إعلانات ولا معرّف إعلاني. ولا تسجيل للشاشة ما لم تفعّله.',
+    analyticsSummary:
+      'لا إعلانات ولا معرّف إعلاني. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',
