@@ -2441,3 +2441,25 @@ model ApiAuthorizationCode {
   @@map("api_authorization_codes")
   @@schema("public")
 }
+
+/// Exact-match cache for `receipt-parse`: the parsed JSON for an image, keyed by
+/// the sha256 of its bytes plus model, prompt/schema version and currency hint.
+/// Holds no image and no profile or group id. Service role only (RLS on, no
+/// grants to anon/authenticated); read and written through
+/// `waves_receipt_cache_get` / `waves_receipt_cache_put`, swept after 30 days by
+/// `waves_prune_receipt_parse_cache` (pg_cron).
+model ReceiptParseCache {
+  sha256        String
+  model         String
+  schemaVersion String    @map("schema_version")
+  currency      String    @default("")
+  result        Json
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  hitCount      Int       @default(0) @map("hit_count")
+  lastHitAt     DateTime? @map("last_hit_at") @db.Timestamptz(6)
+
+  @@id([sha256, model, schemaVersion, currency])
+  @@index([createdAt], map: "receipt_parse_cache_created_idx")
+  @@map("receipt_parse_cache")
+  @@schema("public")
+}

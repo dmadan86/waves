@@ -30,6 +30,9 @@ import {
 } from '../_shared/resilience.ts';
 import { chaosFetch, chaosFor } from '../_shared/voiceChaos.ts';
 import {
+  ANTHROPIC_TOOLS,
+  anthropicCostUsd,
+  anthropicSystem,
   buildContext,
   deepgramUrl,
   keyterms,
@@ -37,6 +40,7 @@ import {
   systemPrompt,
   TOOLS,
   userMessage,
+  type AnthropicUsage,
   type Parsed,
   type RawBalance,
   type RawGroup,
@@ -319,6 +323,17 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     let parsed: Parsed | null = null;
     let model = chain[0].model;
     const failures: string[] = [];
+    // Anthropic token counts summed over the steps that answered, with cache
+    // reads and writes kept apart: they are priced differently.
+    const spend = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, steps: 0 };
+    const onUsage = (stepModel: string, usage: AnthropicUsage): void => {
+      spend.steps += 1;
+      spend.input += usage.input_tokens ?? 0;
+      spend.output += usage.output_tokens ?? 0;
+      spend.cacheRead += usage.cache_read_input_tokens ?? 0;
+      spend.cacheWrite += usage.cache_creation_input_tokens ?? 0;
+      spend.costUsd += anthropicCostUsd(stepModel, usage) ?? 0;
+    };
     for (const step of chain) {
       const budget = Math.min(limits.llmAttemptMs, left());
       if (budget < limits.minAttemptMs) {
@@ -327,7 +342,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       }
       if (breaker.isOpen(step.provider)) continue;
       try {
-        const attempt = await ask(outbound, step, context, message, budget);
+        const attempt = await ask(outbound, step, context, message, budget, onUsage);
         breaker.success(step.provider);
         model = step.model;
         parsed = attempt;
@@ -377,6 +392,17 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
         escalated,
         valid: parsed.ok,
         failures,
+        ...(spend.steps > 0
+          ? {
+              anthropic: {
+                inputTokens: spend.input,
+                outputTokens: spend.output,
+                cacheReadTokens: spend.cacheRead,
+                cacheWriteTokens: spend.cacheWrite,
+                costUsd: Number(spend.costUsd.toFixed(6)),
+              },
+            }
+          : {}),
         ...(chaos.size > 0 ? { chaos: [...chaos] } : {}),
         actions: response.actions.map((a) => a.type),
       }),
@@ -556,6 +582,7 @@ async function ask(
   context: VoiceContext,
   transcript: string,
   budgetMs: number,
+  onUsage: (model: string, usage: AnthropicUsage) => void = () => undefined,
 ): Promise<Parsed> {
   const end = Date.now() + budgetMs;
   const post: Post = (url, init) =>
@@ -565,7 +592,7 @@ async function ask(
       ? await askDeepSeek(post, step, context, transcript)
       : step.provider === 'gemini'
         ? await askGemini(post, step, context, transcript)
-        : await askAnthropic(post, step, context, transcript);
+        : await askAnthropic(post, step, context, transcript, onUsage);
   return parseToolCalls(calls, context);
 }
 
@@ -580,6 +607,7 @@ async function askAnthropic(
   step: LlmStep,
   context: VoiceContext,
   transcript: string,
+  onUsage: (model: string, usage: AnthropicUsage) => void = () => undefined,
 ): Promise<ToolCall[]> {
   const response = await post('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -591,8 +619,11 @@ async function askAnthropic(
     body: JSON.stringify({
       model: step.model,
       max_tokens: 2000,
-      system: systemPrompt(context),
-      tools: TOOLS,
+      // Prompt caching is prefix-based (tools, then system, then messages):
+      // the last tool and the static instructions each carry a breakpoint, and
+      // the per-request context follows in its own uncached block.
+      system: anthropicSystem(context),
+      tools: ANTHROPIC_TOOLS,
       // Always a tool: an answer, a question or an action, never free text.
       tool_choice: { type: 'any' },
       messages: [{ role: 'user', content: transcript }],
@@ -601,7 +632,9 @@ async function askAnthropic(
   if (!response.ok || response.body === null) throw providerFailed('anthropic', response);
   const message = response.body as {
     content?: { type: string; name?: string; input?: unknown }[];
+    usage?: AnthropicUsage;
   };
+  if (message.usage) onUsage(step.model, message.usage);
   return (message.content ?? [])
     .filter((block) => block.type === 'tool_use' && typeof block.name === 'string')
     .map((block) => ({ name: block.name as string, input: block.input }));
