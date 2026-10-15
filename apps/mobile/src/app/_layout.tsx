@@ -556,6 +556,7 @@ function AuthGate() {
     const refresh = () => {
       void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
       void queryClient.invalidateQueries({ queryKey: ['myPlan'] });
+      void queryClient.invalidateQueries({ queryKey: ['myProTrial'] });
     };
     refresh();
     const timer = setTimeout(refresh, 5000);

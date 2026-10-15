@@ -678,6 +678,8 @@ export interface UiStrings {
    */
   language: string;
   upgrade: string;
+  /** The dashboard menu's Upgrade row while on the automatic Pro trial. */
+  upgradeTrial: PluralForms;
   /**
    * The words that are on almost every screen.
    *
@@ -1361,6 +1363,7 @@ export interface UiStrings {
     agentAnswer: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
+    agentTrialQuotaLeft: string;
     confirmSubtitle: string;
     confirmUnderstood: string;
     confirmEditHint: string;
@@ -4402,6 +4405,10 @@ export interface UiStrings {
     plusTagline: string;
     proTagline: string;
     proBadge: string;
+    /** The Pro card's badge on the automatic Pro trial. */
+    trialBadge: PluralForms;
+    /** The CTA that buys Pro during the trial. */
+    keepPro: string;
     featureScans: string;
     featureDevices: string;
     featureTransfers: string;
@@ -5680,6 +5687,7 @@ const en: UiStrings = {
   getStarted: 'Get started',
   language: 'Language',
   upgrade: 'Upgrade',
+  upgradeTrial: { one: '{n} day of Pro left', other: '{n} days of Pro left' },
   common: {
     appName: 'Waves',
     back: 'Back',
@@ -6232,6 +6240,7 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{left} of {limit} advanced commands left this month',
+    agentTrialQuotaLeft: '{left} of {limit} Pro trial commands left',
     confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
     confirmUnderstood: 'I understood this',
     confirmEditHint: 'You can edit if something looks wrong.',
@@ -8770,6 +8779,8 @@ const en: UiStrings = {
     plusTagline: 'The paid features, plus AI voice (50 commands a month)',
     proTagline: 'Everything in Waves, including advanced AI voice',
     proBadge: 'Everything',
+    trialBadge: { one: 'Pro trial · {n} day left', other: 'Pro trial · {n} days left' },
+    keepPro: 'Keep Pro',
     featureScans: '{scans} receipt scans a month',
     featureDevices: 'Signed in on up to {devices} devices',
     featureTransfers: 'Bigger exports, imports and backups',
@@ -10037,6 +10048,7 @@ const ta: UiStrings = {
   getStarted: 'தொடங்கலாம்',
   language: 'மொழி',
   upgrade: 'மேம்படுத்தல்',
+  upgradeTrial: { one: 'Pro-வில் {n} நாள் மீதம்', other: 'Pro-வில் {n} நாட்கள் மீதம்' },
   common: {
     appName: 'Waves',
     back: 'பின்',
@@ -10601,6 +10613,7 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
+    agentTrialQuotaLeft: '{limit}-ல் {left} Pro சோதனைக் கட்டளைகள் மீதம்',
     confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
     confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
     confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
@@ -13279,6 +13292,8 @@ const ta: UiStrings = {
     plusTagline: 'கட்டண அம்சங்கள், AI குரலுடன் (மாதம் 50 கட்டளைகள்)',
     proTagline: 'Waves-இல் அனைத்தும், மேம்பட்ட AI குரல் உட்பட',
     proBadge: 'அனைத்தும்',
+    trialBadge: { one: 'Pro சோதனை · {n} நாள் மீதம்', other: 'Pro சோதனை · {n} நாட்கள் மீதம்' },
+    keepPro: 'Pro-வைத் தொடரவும்',
     featureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     featureDevices: '{devices} சாதனங்கள் வரை உள்நுழைவு',
     featureTransfers: 'பெரிய ஏற்றுமதிகள், இறக்குமதிகள், காப்புப் பிரதிகள்',
@@ -14554,6 +14569,7 @@ const hi: UiStrings = {
   getStarted: 'शुरू करें',
   language: 'भाषा',
   upgrade: 'अपग्रेड',
+  upgradeTrial: { one: 'Pro का {n} दिन बाकी', other: 'Pro के {n} दिन बाकी' },
   common: {
     appName: 'Waves',
     back: 'वापस',
@@ -15108,6 +15124,7 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
+    agentTrialQuotaLeft: '{limit} में से {left} Pro ट्रायल कमांड बाकी',
     confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
     confirmUnderstood: 'मैंने यह समझा',
     confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
@@ -17666,6 +17683,8 @@ const hi: UiStrings = {
     plusTagline: 'पेड फ़ीचर, AI वॉइस के साथ (हर महीने 50 कमांड)',
     proTagline: 'Waves में सब कुछ, एडवांस्ड AI वॉइस समेत',
     proBadge: 'सब कुछ',
+    trialBadge: { one: 'Pro ट्रायल · {n} दिन बाकी', other: 'Pro ट्रायल · {n} दिन बाकी' },
+    keepPro: 'Pro जारी रखें',
     featureScans: 'हर महीने {scans} रसीद स्कैन',
     featureDevices: '{devices} डिवाइस तक साइन इन',
     featureTransfers: 'बड़े एक्सपोर्ट, इम्पोर्ट और बैकअप',
@@ -18934,6 +18953,14 @@ const ar: UiStrings = {
   getStarted: 'لنبدأ',
   language: 'اللغة',
   upgrade: 'الترقية',
+  upgradeTrial: {
+    zero: '{n} يوم من Pro متبقٍ',
+    one: 'يوم واحد من Pro متبقٍ',
+    two: 'يومان من Pro متبقيان',
+    few: '{n} أيام من Pro متبقية',
+    many: '{n} يومًا من Pro متبقية',
+    other: '{n} يوم من Pro متبقٍ',
+  },
   common: {
     appName: 'Waves',
     back: 'رجوع',
@@ -19536,6 +19563,7 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
+    agentTrialQuotaLeft: 'تبقّى {left} من {limit} أمرًا في تجربة Pro',
     confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
     confirmUnderstood: 'فهمتُ هذا',
     confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',
@@ -22600,6 +22628,15 @@ const ar: UiStrings = {
     plusTagline: 'الميزات المدفوعة، مع الصوت الذكي (50 أمرًا شهريًا)',
     proTagline: 'كل شيء في Waves، بما فيه الصوت الذكي المتقدّم',
     proBadge: 'كل شيء',
+    trialBadge: {
+      zero: 'تجربة Pro · {n} يوم متبقٍ',
+      one: 'تجربة Pro · يوم واحد متبقٍ',
+      two: 'تجربة Pro · يومان متبقيان',
+      few: 'تجربة Pro · {n} أيام متبقية',
+      many: 'تجربة Pro · {n} يومًا متبقية',
+      other: 'تجربة Pro · {n} يوم متبقٍ',
+    },
+    keepPro: 'احتفظ بـ Pro',
     featureScans: '{scans} مسحًا للإيصالات شهريًا',
     featureDevices: 'تسجيل الدخول على ما يصل إلى {devices} أجهزة',
     featureTransfers: 'تصدير واستيراد ونسخ احتياطي أكبر',

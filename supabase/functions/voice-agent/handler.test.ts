@@ -150,6 +150,7 @@ describe('handleVoiceAgent', () => {
       p_free_limit: 10,
       p_pro_limit: 150,
       p_plus_limit: 50,
+      p_trial_limit: 20,
     });
   });
 
@@ -163,6 +164,18 @@ describe('handleVoiceAgent', () => {
     const res = await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), ok.deps);
     expect(res.status).toBe(200);
     expect((await res.json()).quota).toEqual({ used: 50, limit: 50, tier: 'plus' });
+  });
+
+  it('uses the trial quota: 20 in total, answered with trial: true', async () => {
+    const trial = { used: 20, limit: 20, tier: 'pro', trial: true };
+    const spent = makeDeps({ quota: { ...trial, allowed: false } });
+    await expect(handleVoiceAgent(request(), spent.deps)).rejects.toMatchObject({
+      status: 402,
+      code: 'VOICE_AGENT_QUOTA',
+    });
+    const ok = makeDeps({ quota: { ...trial, used: 19, allowed: true } });
+    const res = await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), ok.deps);
+    expect((await res.json()).quota).toEqual({ used: 19, limit: 20, tier: 'pro', trial: true });
   });
 
   it('402s a Pro subscriber at 150 commands', async () => {

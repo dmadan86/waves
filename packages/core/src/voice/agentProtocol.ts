@@ -18,6 +18,10 @@ export const VOICE_AGENT_MAX_CLIP_MS = 60_000;
 /** Advanced commands a month: free tier, Plus, and the Pro fair-use cap. */
 export const VOICE_AGENT_FREE_MONTHLY = 10;
 export const VOICE_AGENT_PLUS_MONTHLY = 50;
+/** AI voice commands in total for the whole automatic Pro trial (not a month's). */
+export const VOICE_AGENT_TRIAL_COMMANDS = 20;
+/** Days of Pro a new account gets free, with no card. */
+export const PRO_TRIAL_DAYS = 15;
 export const VOICE_AGENT_PRO_MONTHLY = 150;
 
 /**
@@ -28,6 +32,7 @@ export const VOICE_AGENT_PRO_MONTHLY = 150;
  */
 export const VOICE_STREAM_FREE_MONTHLY = 3 * VOICE_AGENT_FREE_MONTHLY;
 export const VOICE_STREAM_PLUS_MONTHLY = 3 * VOICE_AGENT_PLUS_MONTHLY;
+export const VOICE_STREAM_TRIAL_MONTHLY = 3 * VOICE_AGENT_TRIAL_COMMANDS;
 export const VOICE_STREAM_PRO_MONTHLY = 3 * VOICE_AGENT_PRO_MONTHLY;
 
 export interface VoiceAgentRequest {
@@ -160,6 +165,8 @@ export interface VoiceAgentResponse {
     readonly used: number;
     readonly limit: number;
     readonly tier: 'free' | 'plus' | 'pro';
+    /** True when the allowance is the Pro trial's 20 commands in total. */
+    readonly trial?: boolean;
   };
 }
 

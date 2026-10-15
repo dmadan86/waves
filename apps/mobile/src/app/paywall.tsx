@@ -31,7 +31,7 @@ import {
 } from '@waves/core';
 import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
-import { fill, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import {
   chosenCard,
@@ -50,7 +50,9 @@ import { usePlusPriceVariant, useTrackPremiumViewed } from '@/lib/plusPrice';
 import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
+import { trialDaysLeft } from '@/lib/proTrial';
 import { useEntitlement } from '@/lib/useEntitlement';
+import { useProTrial } from '@/lib/useProTrial';
 
 type LoadState =
   | { status: 'loading' }
@@ -110,7 +112,12 @@ export default function PaywallScreen() {
     return best;
   }, [offering]);
 
-  const current = entitlement.tier;
+  // On the automatic Pro trial the person has Pro but has not paid: the cards
+  // treat them as Free, so Pro stays buyable ("Keep Pro"), and the Pro card
+  // says how many days are left instead of "Current plan".
+  const trial = useProTrial();
+  const onTrial = trial !== null && entitlement.tier === PlanTier.Pro;
+  const current = onTrial ? PlanTier.Free : entitlement.tier;
   const chosen = chosenCard(cards, selected);
   const chosenIsCurrent = chosen ? chosen.tier === current : false;
 
@@ -156,11 +163,13 @@ export default function PaywallScreen() {
   const cta = ctaState({ chosen, current, purchasing });
   const ctaLabel = !chosen
     ? fill(t.paywall.continueWith, { plan: t.paywall.proTitle })
-    : cta.kind === 'current'
-      ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
-      : cta.kind === 'busy'
-        ? t.paywall.subscribing
-        : fill(t.paywall.continueWith, { plan: planName(t, chosen.tier) });
+    : onTrial && chosen.tier === PlanTier.Pro && cta.kind === 'continue'
+      ? t.paywall.keepPro
+      : cta.kind === 'current'
+        ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
+        : cta.kind === 'busy'
+          ? t.paywall.subscribing
+          : fill(t.paywall.continueWith, { plan: planName(t, chosen.tier) });
 
   const heroTitle = showUpgradeHero(current) ? t.paywall.heroTitle : t.paywall.title;
   const emptyCopy =
@@ -251,6 +260,9 @@ export default function PaywallScreen() {
                 card={card}
                 active={chosen?.packageId === card.packageId}
                 current={card.tier === current}
+                trialDaysLeft={
+                  onTrial && card.tier === PlanTier.Pro && trial ? trialDaysLeft(trial) : null
+                }
                 onPress={() => setSelected(card.tier)}
               />
             ))}
@@ -520,20 +532,30 @@ function PlanCard({
   card,
   active,
   current,
+  trialDaysLeft: trialDays,
   onPress,
 }: {
   card: PlanCardModel;
   active: boolean;
   current: boolean;
+  /** Days left on the automatic Pro trial, for the Pro card while on it. */
+  trialDaysLeft: number | null;
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const pro = card.tier === PlanTier.Pro;
   const title = pro ? t.paywall.proTitle : t.paywall.plusTitle;
   const tagline = pro ? t.paywall.proTagline : t.paywall.plusTagline;
   const cadence = card.period === 'yearly' ? t.paywall.perYear : t.paywall.perMonth;
-  const badge = current ? t.paywall.currentPlan : pro ? t.paywall.proBadge : null;
+  const badge =
+    trialDays !== null
+      ? plural(locale, trialDays, t.paywall.trialBadge)
+      : current
+        ? t.paywall.currentPlan
+        : pro
+          ? t.paywall.proBadge
+          : null;
   const features = pro
     ? [
         t.paywall.featureEverythingPlus,

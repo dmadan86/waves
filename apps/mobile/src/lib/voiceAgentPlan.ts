@@ -373,6 +373,14 @@ export function expenseWriteFromAction(
 }
 
 /** The "7 of 10 advanced commands left this month" numbers. */
-export function quotaLeft(quota: VoiceAgentResponse['quota']): { left: number; limit: number } {
-  return { left: Math.max(0, quota.limit - quota.used), limit: quota.limit };
+export function quotaLeft(quota: VoiceAgentResponse['quota']): {
+  left: number;
+  limit: number;
+  trial: boolean;
+} {
+  return {
+    left: Math.max(0, quota.limit - quota.used),
+    limit: quota.limit,
+    trial: quota.trial === true,
+  };
 }

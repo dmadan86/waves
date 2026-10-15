@@ -322,7 +322,10 @@ export function VoiceAgentPanel({
       ) : null}
 
       <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
-        {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+        {fill(quota.trial ? t.voice.agentTrialQuotaLeft : t.voice.agentQuotaLeft, {
+          left: String(quota.left),
+          limit: String(quota.limit),
+        })}
       </Text>
       <VoiceEngineBadge info={engine} />
     </View>

@@ -12,9 +12,11 @@ import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
+  VOICE_AGENT_TRIAL_COMMANDS,
   VOICE_STREAM_FREE_MONTHLY,
   VOICE_STREAM_PLUS_MONTHLY,
   VOICE_STREAM_PRO_MONTHLY,
+  VOICE_STREAM_TRIAL_MONTHLY,
   VoiceAgentError,
 } from './core.js';
 
@@ -75,6 +77,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     p_free_budget: VOICE_STREAM_FREE_MONTHLY,
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
     p_plus_budget: VOICE_STREAM_PLUS_MONTHLY,
+    p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
   });
   const mint = mintData as StreamMint | null;
   if (mintError || !mint) {
@@ -108,9 +111,11 @@ export async function hashProfile(profileId: string): Promise<string> {
 }
 
 /**
- * Commands left this calendar month (UTC), read the way waves_voice_agent_quota
- * counts them: an active, unexpired 'pro' subscription gets the Pro allowance,
- * 'plus' the Plus one, everyone else the free one.
+ * Commands left, read the way waves_voice_agent_quota counts them: on the Pro
+ * trial (a live 'trial' row and no purchased plan or other Pro) it is the
+ * trial's 20 in total less pro_trials.voice_used; otherwise this calendar month
+ * (UTC): an active, unexpired 'pro' subscription gets the Pro allowance, 'plus'
+ * the Plus one, everyone else the free one.
  */
 export async function remainingCommands(
   service: SupabaseClient,
@@ -118,10 +123,10 @@ export async function remainingCommands(
   now: Date,
 ): Promise<number> {
   const month = now.toISOString().slice(0, 7);
-  const [subs, usage] = await Promise.all([
+  const [subs, usage, trialRow] = await Promise.all([
     service
       .from('subscriptions')
-      .select('tier, status, current_period_end')
+      .select('tier, status, current_period_end, store')
       .eq('profile_id', profileId)
       .eq('status', 'active'),
     service
@@ -130,17 +135,31 @@ export async function remainingCommands(
       .eq('profile_id', profileId)
       .eq('month', month)
       .maybeSingle(),
+    service.from('pro_trials').select('voice_used').eq('profile_id', profileId).maybeSingle(),
   ]);
-  const rows = (subs.data ?? []) as { tier: string; current_period_end: string | null }[];
-  const live = (tier: string) =>
-    rows.some(
-      (row) =>
-        row.tier === tier &&
-        (row.current_period_end === null || new Date(row.current_period_end) > now),
-    );
-  const limit = live('pro')
+  const rows = (subs.data ?? []) as {
+    tier: string;
+    store?: string;
+    current_period_end: string | null;
+  }[];
+  const live = (row: { current_period_end: string | null }) =>
+    row.current_period_end === null || new Date(row.current_period_end) > now;
+  const trialLive = rows.some((row) => row.store === 'trial' && row.tier === 'pro' && live(row));
+  const purchasedOrPro = rows.some(
+    (row) =>
+      row.store !== 'trial' &&
+      live(row) &&
+      (row.tier === 'pro' || ['play', 'appstore', 'test'].includes(row.store ?? '')),
+  );
+  if (trialLive && !purchasedOrPro) {
+    const used = Number((trialRow.data as { voice_used?: number } | null)?.voice_used ?? 0);
+    return VOICE_AGENT_TRIAL_COMMANDS - used;
+  }
+  const has = (tier: string) =>
+    rows.some((row) => row.store !== 'trial' && row.tier === tier && live(row));
+  const limit = has('pro')
     ? VOICE_AGENT_PRO_MONTHLY
-    : live('plus')
+    : has('plus')
       ? VOICE_AGENT_PLUS_MONTHLY
       : VOICE_AGENT_FREE_MONTHLY;
   const used = Number((usage.data as { count?: number } | null)?.count ?? 0);

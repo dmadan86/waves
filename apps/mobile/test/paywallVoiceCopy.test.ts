@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { VOICE_AGENT_PLUS_MONTHLY, VOICE_AGENT_PRO_MONTHLY } from '@waves/core';
 
-import { fill, STRINGS_BY_LANGUAGE } from '@/i18n';
+import { fill, plural, STRINGS_BY_LANGUAGE } from '@/i18n';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('expo-localization', () => ({ getLocales: () => [] }));
@@ -24,6 +24,24 @@ describe('paywall voice copy', () => {
       expect(fill(t.paywall.featureVoice, { commands: 50 })).toContain('50');
       expect(t.upgradeScreen.plansBody).toContain('50');
       expect(t.upgradeScreen.plansBody).toContain('150');
+    });
+  }
+});
+
+describe('Pro trial copy', () => {
+  for (const [locale, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
+    it(`${locale}: days left in the badge and the menu row, commands left in the voice screen`, () => {
+      for (const n of [1, 2, 3, 11, 15]) {
+        expect(plural(locale, n, t.paywall.trialBadge).length).toBeGreaterThan(3);
+        expect(plural(locale, n, t.upgradeTrial).length).toBeGreaterThan(3);
+      }
+      expect(plural('en', 3, STRINGS_BY_LANGUAGE.en.paywall.trialBadge)).toBe(
+        'Pro trial · 3 days left',
+      );
+      expect(plural('en', 1, STRINGS_BY_LANGUAGE.en.upgradeTrial)).toBe('1 day of Pro left');
+      expect(t.paywall.keepPro.length).toBeGreaterThan(2);
+      expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('15');
+      expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('20');
     });
   }
 });

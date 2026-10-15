@@ -100,8 +100,10 @@ BEGIN
 END
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer) TO service_role;
+-- A new signature gets Supabase's default privileges (anon, authenticated), so
+-- revoke them explicitly: this is SECURITY DEFINER and takes any profile id.
+REVOKE ALL ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer, integer) TO service_role;
 
 -- 3. The live-stream budget: a budget per tier -------------------------------
 DROP FUNCTION IF EXISTS public.waves_voice_stream_mint(uuid, integer, integer);

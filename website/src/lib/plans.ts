@@ -13,6 +13,9 @@ export const plans = {
 /** Advanced AI voice commands a month (mirrors VOICE_AGENT_*_MONTHLY in packages/core). */
 export const voiceCommands = { plus: 50, pro: 150 } as const;
 
+/** Days of Pro a new account gets free, with no card (PRO_TRIAL_DAYS in packages/core). */
+export const proTrialDays = 15;
+
 export type PlanId = keyof typeof plans;
 
 /** The saving of paying yearly rather than twelve months, as a whole percent. */
