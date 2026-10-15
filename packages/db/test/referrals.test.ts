@@ -53,6 +53,8 @@ interface PersonOptions {
   email?: string;
   /** Minutes since the profile was created. Default 0: just signed up. */
   ageMinutes?: number;
+  /** Days since the phone/email was confirmed (the account became real). Default 0: just now. */
+  verifiedDaysAgo?: number;
   /** No confirmed identity at all. */
   unverified?: boolean;
 }
@@ -69,9 +71,14 @@ async function person(options: PersonOptions = {}): Promise<string> {
     options.phone ?? (options.unverified || options.email ? null : `9199${randomDigits(8)}`);
   await client.query(
     `INSERT INTO auth.users (id, phone, phone_confirmed_at, email, email_confirmed_at)
-     VALUES ($1, $2, CASE WHEN $2::text IS NULL THEN NULL ELSE now() END,
-                 $3, CASE WHEN $3::text IS NULL THEN NULL ELSE now() END)`,
-    [id, options.unverified ? null : phone, options.unverified ? null : (options.email ?? null)],
+     VALUES ($1, $2, CASE WHEN $2::text IS NULL THEN NULL ELSE now() - make_interval(days => $4) END,
+                 $3, CASE WHEN $3::text IS NULL THEN NULL ELSE now() - make_interval(days => $4) END)`,
+    [
+      id,
+      options.unverified ? null : phone,
+      options.unverified ? null : (options.email ?? null),
+      options.verifiedDaysAgo ?? 0,
+    ],
   );
   return id;
 }
@@ -223,13 +230,51 @@ describe('code and claim', () => {
     expect(rows[0].n).toBe(1);
   });
 
-  it('accepts a profile up to an hour old and refuses an older one', async () => {
+  it('judges newness by when the account became real, not by the profile age', async () => {
     const referrer = await person();
     const code = await myCode(referrer);
-    const fresh = await person({ ageMinutes: 45 });
-    const old = await person({ ageMinutes: 120 });
-    expect((await claim(fresh, code)).ok).toBe(true);
+    // A guest profile created 3 hours ago that verified a phone just now.
+    const lateSignup = await person({ ageMinutes: 180 });
+    expect((await claim(lateSignup, code)).ok).toBe(true);
+    // Signed up 2 days ago, pastes a code now.
+    const twoDays = await person({ ageMinutes: 3 * 24 * 60, verifiedDaysAgo: 2 });
+    expect((await claim(twoDays, code)).ok).toBe(true);
+    // Verified 8 days ago.
+    const old = await person({ ageMinutes: 9 * 24 * 60, verifiedDaysAgo: 8 });
     expect(await claim(old, code)).toEqual({ ok: false, reason: 'NOT_NEW_USER' });
+  });
+
+  it('falls back to the profile age when nothing is confirmed', async () => {
+    const referrer = await person();
+    const code = await myCode(referrer);
+    const stale = await person({ unverified: true, ageMinutes: 8 * 24 * 60 });
+    expect(await claim(stale, code)).toEqual({ ok: false, reason: 'NOT_NEW_USER' });
+  });
+
+  it('qualifies a guest who browsed for hours before verifying their phone', async () => {
+    const referrer = await person();
+    const friend = await friendUsesWaves(referrer, { ageMinutes: 180 });
+    expect((await referralRow(friend))?.status).toBe('rewarded');
+  });
+
+  it('rejects at qualification only when the account joined over 7 days before the claim', async () => {
+    const referrer = await person();
+    const friend = await person({ unverified: true });
+    expect((await claim(friend, await myCode(referrer))).ok).toBe(true);
+    await client.query(
+      `UPDATE referrals SET claimed_at = now() + interval '8 days' WHERE referee_id = $1`,
+      [friend],
+    );
+    await client.query(
+      `UPDATE auth.users SET phone = $2, phone_confirmed_at = now() WHERE id = $1`,
+      [friend, `9199${randomDigits(8)}`],
+    );
+    const other = await person();
+    const g = await group([friend, other]);
+    await expense(g.groupId, g.members[0]!);
+    const row = await referralRow(friend);
+    expect(row?.status).toBe('rejected');
+    expect(row?.reject_reason).toBe('NOT_NEW_USER');
   });
 
   it('keeps a guest out (and tells the app it can retry once signed up)', async () => {
