@@ -31,10 +31,14 @@ import { PlanTier, RC_DEFAULT_OFFERING } from '@waves/core';
 import { reportHandled } from './observability';
 import { activeProductId, revenueCatApiKey, tierFromCustomerInfo } from './pricing';
 
-const API_KEY = revenueCatApiKey(Platform.OS, {
-  ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
-  android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
-});
+const API_KEY = revenueCatApiKey(
+  Platform.OS,
+  {
+    ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+    android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+  },
+  __DEV__,
+);
 
 /** True when this build can sell anything at all. */
 export function purchasesAvailable(): boolean {
