@@ -128,6 +128,41 @@ In CI this loop lives in `e2e/run-maestro.sh`.
 | `friends-merge-guests.yaml`   | merge the two seeded "Reeya" ghosts, with the irreversible-warning gate              |
 | `leave-group.yaml`            | leave a settled group → gone from Home and stays gone after relaunch                 |
 
+### Billing flows (RevenueCat Test Store) — not in the nightly
+
+| Flow                    | Guards                                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paywall-cancel.yaml`   | dashboard ⋮ → Upgrade → plans load with prices → Monthly/Yearly → Continue with Plus → Cancel in the Test Store dialog → no error, still free |
+| `paywall-purchase.yaml` | the same, then complete the Test Store purchase → Plus is the current plan                                                                    |
+| `paywall-open.yaml`     | the shared preamble of the two (a sub-flow, like `login.yaml`; do not run it alone)                                                           |
+
+These need a build the nightly does not make, so they are **not** in
+`run-maestro.sh` and no workflow runs them. They need:
+
+- the **debug** build, appId `app.waves.mobile.debug`, built with
+  `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` set to the project's **Test Store** public
+  SDK key (`test_...`). A release build refuses a Test Store key on purpose;
+- the `paywall` flag on for the account, on the backend the build points at;
+- a signed-in account on the **free** plan.
+
+The Test Store purchase dialog is RevenueCat's, so the flows match it with
+case-insensitive regexes (`valid purchase`, `cancel`) and fail at the
+Plus-is-active assertion, not on a selector, if it is ever reworded.
+
+```bash
+adb install -r app-debug.apk   # the Test Store build
+# cancel first: it buys nothing. The purchase flow leaves the account on Plus,
+# so use a fresh E2E_EMAIL (or wait for the Test Store subscription to lapse)
+# before running it again.
+for flow in paywall-cancel paywall-purchase; do
+  maestro test --env E2E_EMAIL="$E2E_EMAIL" --env E2E_PASSWORD="$E2E_PASSWORD" "e2e/$flow.yaml"
+done
+```
+
+Whether the dashboard's offerings and products are still wired correctly is a
+separate check that needs no device: `packages/core/test/revenuecat.live.test.ts`
+(weekly, `.github/workflows/revenuecat-contract.yml`).
+
 Each flow mutates the shared staging backend, so CI **reseeds the fixture before
 every flow** (the seed is idempotent). Locally, run one flow at a time and
 reseed between them.
