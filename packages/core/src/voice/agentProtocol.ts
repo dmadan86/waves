@@ -183,6 +183,11 @@ export enum VoiceAgentError {
   QuotaReached = 'VOICE_AGENT_QUOTA',
   /** [402] This month's live-stream token budget used up — listen on the phone. */
   StreamBudget = 'VOICE_STREAM_BUDGET',
+  /**
+   * [403] Live streaming (Deepgram) is for Plus, Pro and the Pro trial. Free listens
+   * on the phone and sends the text to the agent instead — enforced here, not only in the app.
+   */
+  StreamFreeTier = 'VOICE_STREAM_FREE_TIER',
   /** [503] Flag off, or a provider key missing — fall back to basic voice. */
   Unavailable = 'VOICE_AGENT_UNAVAILABLE',
   /** [413] Clip longer than VOICE_AGENT_MAX_CLIP_MS. */

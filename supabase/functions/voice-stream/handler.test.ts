@@ -85,6 +85,8 @@ function makeDeps(
     authFails?: boolean;
     used?: number;
     mints?: number;
+    /** The database refuses Free (outside the trial): reason 'free_tier'. */
+    freeTier?: boolean;
     env?: Record<string, string>;
     /** On voice_agent_allowlist (chaos applies). */
     allowlisted?: boolean;
@@ -137,6 +139,12 @@ function makeDeps(
       rpc: async (name: string, args: Record<string, number>) => {
         rpcCalls.push({ name, args });
         if (name === 'waves_voice_stream_mint') {
+          if (over.freeTier) {
+            return {
+              data: { allowed: false, mints: 0, budget: 0, tier: 'free', reason: 'free_tier' },
+              error: null,
+            };
+          }
           const used = over.mints ?? 0;
           const budget = args.p_free_budget;
           return {
@@ -300,6 +308,15 @@ describe('runRelay: the gate', () => {
       expect.objectContaining({ status: 402, code: 'VOICE_STREAM_BUDGET' }),
     );
     expect(client.closed?.code).toBe(4402);
+    expect(connectUpstream).not.toHaveBeenCalled();
+  });
+
+  it('refuses Free with 4403 VOICE_STREAM_FREE_TIER: no Deepgram socket is opened', async () => {
+    const { client, connectUpstream } = await started({ freeTier: true });
+    expect(client.texts).toContainEqual(
+      expect.objectContaining({ status: 403, code: 'VOICE_STREAM_FREE_TIER' }),
+    );
+    expect(client.closed?.code).toBe(4403);
     expect(connectUpstream).not.toHaveBeenCalled();
   });
 

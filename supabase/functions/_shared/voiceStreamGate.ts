@@ -3,7 +3,8 @@
  * relay the app uses) and `voice-stream-token` (the token mint older builds
  * still call). In order: signed in, flag/allowlist, the key is configured, the
  * rate limit, a peek at this month's command allowance, then one stream mint
- * taken from the monthly stream budget (`waves_voice_stream_mint`). Every
+ * taken from the monthly stream budget (`waves_voice_stream_mint`), which also
+ * refuses Free (outside the Pro trial) with a 403. Every
  * refusal is an HttpError the caller turns into its own wire format.
  */
 
@@ -40,6 +41,8 @@ export interface Admitted {
 
 interface StreamMint {
   readonly allowed: boolean;
+  /** 'free_tier': Free is never streamed (Deepgram is for Plus, Pro and the trial). */
+  readonly reason?: string;
   readonly mints: number;
   readonly budget: number;
   readonly tier: 'free' | 'plus' | 'pro';
@@ -97,6 +100,16 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
       budget: mint.budget,
     }),
   );
+  if (!mint.allowed && mint.reason === 'free_tier') {
+    // Free's commands use the phone's own speech recogniser and reach voice-agent
+    // as text (about a seventh of the cost). The app asks for a stream only when
+    // it thinks the person is not Free; this is the server's own answer.
+    throw new HttpError(
+      403,
+      VoiceAgentError.StreamFreeTier,
+      'Live transcription is not on this plan',
+    );
+  }
   if (!mint.allowed) {
     throw new HttpError(402, VoiceAgentError.StreamBudget, 'Live transcription budget used up');
   }
