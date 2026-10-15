@@ -5,7 +5,7 @@
  * Pinned: an event id is applied once and only once; an older event delivered
  * late cannot undo a newer one; an id that is not one of our profiles is
  * recorded and refused without a write; a transfer moves store rows but not a
- * promo grant; Plus is paid but keeps the free voice allowance, Pro gets Pro's;
+ * promo grant; Plus gets the Plus voice allowance, Pro gets Pro's;
  * and no client can call the function.
  */
 
@@ -198,12 +198,12 @@ describe('Plus and Pro', () => {
     expect(await myPlan(other())).toMatchObject({ tier: 'free', plan: 'free' });
   });
 
-  it('gives Plus the free voice allowance and Pro the Pro one', async () => {
+  it('gives Plus the Plus voice allowance and Pro the Pro one', async () => {
     await apply(upsert({ tier: 'plus' }));
     await apply(upsert({ tier: 'pro' }), { user: other() });
     const quota = async (id: string) =>
-      (await client.query(`SELECT waves_voice_agent_quota($1, 10, 150) AS q`, [id])).rows[0].q;
-    expect(await quota(me())).toMatchObject({ tier: 'plus', limit: 10 });
+      (await client.query(`SELECT waves_voice_agent_quota($1, 10, 150, 50) AS q`, [id])).rows[0].q;
+    expect(await quota(me())).toMatchObject({ tier: 'plus', limit: 50 });
     expect(await quota(other())).toMatchObject({ tier: 'pro', limit: 150 });
   });
 });

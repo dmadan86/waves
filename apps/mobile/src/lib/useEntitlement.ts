@@ -31,7 +31,7 @@ export interface UseEntitlementResult {
   tier: PlanTier;
   /** Plus or Pro. */
   isPaid: boolean;
-  /** Pro: everything, including the advanced voice agent. */
+  /** Pro: everything, with the bigger advanced voice allowance (Plus has a smaller one). */
   isPro: boolean;
   /** True until CustomerInfo has been read once for this account. */
   loading: boolean;

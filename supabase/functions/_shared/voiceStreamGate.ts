@@ -10,9 +10,14 @@
 import { HttpError, type SupabaseClient } from './auth.ts';
 import {
   VOICE_AGENT_FREE_MONTHLY,
+  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
+  PRO_TRIAL_VOICE_DAYS,
+  VOICE_AGENT_TRIAL_COMMANDS,
   VOICE_STREAM_FREE_MONTHLY,
+  VOICE_STREAM_PLUS_MONTHLY,
   VOICE_STREAM_PRO_MONTHLY,
+  VOICE_STREAM_TRIAL_MONTHLY,
   VoiceAgentError,
 } from './core.js';
 
@@ -72,6 +77,8 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     p_profile: profileId,
     p_free_budget: VOICE_STREAM_FREE_MONTHLY,
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
+    p_plus_budget: VOICE_STREAM_PLUS_MONTHLY,
+    p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
   });
   const mint = mintData as StreamMint | null;
   if (mintError || !mint) {
@@ -105,9 +112,11 @@ export async function hashProfile(profileId: string): Promise<string> {
 }
 
 /**
- * Commands left this calendar month (UTC), read the way waves_voice_agent_quota
- * counts them: an active, unexpired 'pro' subscription gets the Pro allowance,
- * everyone else the free one.
+ * Commands left, read the way waves_voice_agent_quota counts them: on the Pro
+ * trial (a live 'trial' row and no purchased plan or other Pro) it is the
+ * trial's 20 in total less pro_trials.voice_used; otherwise this calendar month
+ * (UTC): an active, unexpired 'pro' subscription gets the Pro allowance, 'plus'
+ * the Plus one, everyone else the free one.
  */
 export async function remainingCommands(
   service: SupabaseClient,
@@ -115,10 +124,10 @@ export async function remainingCommands(
   now: Date,
 ): Promise<number> {
   const month = now.toISOString().slice(0, 7);
-  const [subs, usage] = await Promise.all([
+  const [subs, usage, trialRow] = await Promise.all([
     service
       .from('subscriptions')
-      .select('tier, status, current_period_end')
+      .select('tier, status, current_period_end, store')
       .eq('profile_id', profileId)
       .eq('status', 'active'),
     service
@@ -127,14 +136,52 @@ export async function remainingCommands(
       .eq('profile_id', profileId)
       .eq('month', month)
       .maybeSingle(),
+    service
+      .from('pro_trials')
+      .select('voice_used, granted_at, outcome')
+      .eq('profile_id', profileId)
+      .maybeSingle(),
   ]);
-  const rows = (subs.data ?? []) as { tier: string; current_period_end: string | null }[];
-  const pro = rows.some(
+  const rows = (subs.data ?? []) as {
+    tier: string;
+    store?: string;
+    current_period_end: string | null;
+  }[];
+  const live = (row: { current_period_end: string | null }) =>
+    row.current_period_end === null || new Date(row.current_period_end) > now;
+  const trialLive = rows.some((row) => row.store === 'trial' && row.tier === 'pro' && live(row));
+  const purchasedOrPro = rows.some(
     (row) =>
-      row.tier === 'pro' &&
-      (row.current_period_end === null || new Date(row.current_period_end) > now),
+      row.store !== 'trial' &&
+      live(row) &&
+      (row.tier === 'pro' || ['play', 'appstore', 'test'].includes(row.store ?? '')),
   );
-  const limit = pro ? VOICE_AGENT_PRO_MONTHLY : VOICE_AGENT_FREE_MONTHLY;
+  // The trial's pool: 20 commands for 30 days from the grant, for anyone with
+  // no paid plan of their own (also after the 15 Pro days end). Spent, or past
+  // day 30, it is out of the picture and the normal rules apply.
+  const pool = trialRow.data as {
+    voice_used?: number;
+    granted_at?: string;
+    outcome?: string;
+  } | null;
+  const poolOpen =
+    !!pool &&
+    pool.outcome !== 'skipped_has_plan' &&
+    !!pool.granted_at &&
+    now.getTime() < new Date(pool.granted_at).getTime() + PRO_TRIAL_VOICE_DAYS * 86_400_000;
+  const ownPlan = rows.some(
+    (row) => row.store !== 'trial' && live(row) && ['plus', 'pro'].includes(row.tier),
+  );
+  if (poolOpen && ((trialLive && !purchasedOrPro) || !ownPlan)) {
+    return VOICE_AGENT_TRIAL_COMMANDS - Number(pool?.voice_used ?? 0);
+  }
+  const has = (tier: string) =>
+    rows.some((row) => row.store !== 'trial' && row.tier === tier && live(row));
+  const limit = has('pro')
+    ? VOICE_AGENT_PRO_MONTHLY
+    : has('plus')
+      ? VOICE_AGENT_PLUS_MONTHLY
+      : VOICE_AGENT_FREE_MONTHLY;
   const used = Number((usage.data as { count?: number } | null)?.count ?? 0);
   return limit - used;
 }

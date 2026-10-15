@@ -4,8 +4,8 @@
  * runs under vitest (test/pricing.test.ts); `lib/purchases.ts` is the thin
  * native half.
  *
- * Tiers: **Plus** is the paid features without the advanced voice agent,
- * **Pro** is everything. Prices are always the store's own `priceString` —
+ * Tiers: **Plus** is the paid features with 50 advanced voice commands a month,
+ * **Pro** is everything, with 150. Prices are always the store's own `priceString` —
  * Waves never hardcodes what a person is charged (₹49 / ₹99 a month in India
  * are configured in the stores, and every other market's price lives there).
  *

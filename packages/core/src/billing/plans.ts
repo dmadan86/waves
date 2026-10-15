@@ -23,10 +23,15 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
+import {
+  VOICE_AGENT_FREE_MONTHLY,
+  VOICE_AGENT_PLUS_MONTHLY,
+  VOICE_AGENT_PRO_MONTHLY,
+} from '../voice/agentProtocol';
 
 /**
- * Free, Plus (the paid features without advanced voice) and Pro (everything,
- * including the advanced voice agent). Pro is a superset of Plus: anything a
+ * Free, Plus (the paid features, with 50 advanced voice commands a month) and
+ * Pro (everything, with 150 a month). Pro is a superset of Plus: anything a
  * Plus row unlocks, a Pro row unlocks too — ask `isPaidTier`, never
  * `tier === PlanTier.Plus`, for "has this person paid".
  */
@@ -36,9 +41,18 @@ export enum PlanTier {
   Pro = 'pro',
 }
 
-/** Plus and Pro are both paid; only Pro carries the advanced voice allowance. */
+/** Plus and Pro are both paid; both carry advanced voice, Pro with the bigger allowance. */
 export function isPaidTier(tier: PlanTier): boolean {
   return tier === PlanTier.Plus || tier === PlanTier.Pro;
+}
+
+/** Advanced (cloud) voice commands a tier gets each calendar month. */
+export function voiceAgentMonthlyLimit(tier: PlanTier): number {
+  return tier === PlanTier.Pro
+    ? VOICE_AGENT_PRO_MONTHLY
+    : tier === PlanTier.Plus
+      ? VOICE_AGENT_PLUS_MONTHLY
+      : VOICE_AGENT_FREE_MONTHLY;
 }
 
 /** How the tiers order, for "is this an upgrade". */

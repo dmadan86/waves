@@ -233,8 +233,21 @@ describe('expenseWriteFromAction', () => {
 
 describe('quotaLeft', () => {
   it('never goes below zero', () => {
-    expect(quotaLeft({ used: 3, limit: 10, tier: 'free' })).toEqual({ left: 7, limit: 10 });
-    expect(quotaLeft({ used: 12, limit: 10, tier: 'free' })).toEqual({ left: 0, limit: 10 });
+    expect(quotaLeft({ used: 3, limit: 10, tier: 'free' })).toEqual({
+      left: 7,
+      limit: 10,
+      trial: false,
+      until: null,
+    });
+    expect(quotaLeft({ used: 12, limit: 10, tier: 'free' })).toEqual({
+      left: 0,
+      limit: 10,
+      trial: false,
+      until: null,
+    });
+    expect(
+      quotaLeft({ used: 5, limit: 20, tier: 'free', trial: true, until: '2026-11-20T00:00:00Z' }),
+    ).toEqual({ left: 15, limit: 20, trial: true, until: '2026-11-20T00:00:00Z' });
   });
 });
 

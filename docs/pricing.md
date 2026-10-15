@@ -6,11 +6,13 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 
 ## The tiers
 
-| Tier | India price | What it adds                                                                     |
-| ---- | ----------- | -------------------------------------------------------------------------------- |
-| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export.   |
-| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers. No AI voice. |
-| Pro  | ₹99 / month | Everything in Plus, plus the advanced AI voice agent (150 commands/month).       |
+| Tier | India price | What it adds                                                                                                   |
+| ---- | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month.    |
+| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month). |
+| Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                         |
+
+New accounts get 15 days of Pro free, no card needed (see "Pro trial" below).
 
 Yearly plans are ₹429 (Plus, 27% off ₹588) and ₹849 (Pro, 29% off ₹1,188); US is $8.49 and $16.99
 (29% off). Every other market's price is set **in the stores**.
@@ -25,8 +27,12 @@ How the server reads the tiers (migration `20261008120000_revenuecat_webhook`):
   `subscriptions` row with tier `plus` or `pro`. Plus and Pro are both paid.
 - `waves_my_plan()`: `tier` is `'plus'` for any paid row (the device cap and
   older apps read it as "paid"); the new `plan` key is `'plus'` or `'pro'`.
-- `waves_voice_agent_quota` / `waves_voice_stream_mint`: only an active `pro`
-  row gets the Pro allowance. **Plus gets the free voice allowance**, by design.
+- `waves_voice_agent_enabled`: an active or grace, unexpired `plus` or `pro` row
+  turns advanced voice on, and so does any signed-in (non-guest) account: Free gets
+  10 commands a month; guests stay off.
+- `waves_voice_agent_quota` / `waves_voice_stream_mint`: an active `pro` row gets
+  150 commands (450 streams) a month, an active `plus` row 50 (150 streams),
+  free 10 (30). Migration `20261015210000_voice_agent_plus`.
 
 ## How a purchase flows
 
@@ -215,3 +221,34 @@ Net = listed ÷ 1.18 (GST) × 0.85 (15% commission, Small Business Program).
 
 A planning model, not accounting: settlement also moves with exchange rates
 and each subscriber's commission tier.
+
+## Pro trial
+
+New accounts get **15 days of Pro free, no card needed**, granted by the server.
+
+- **Who:** a non-guest account with a confirmed phone or email that became a real
+  account after the trial launched (`pro_trial_settings.launched_at`, the same
+  "joined" moment the referral window uses). No backfill. Accounts that already
+  hold a plan get none.
+- **Once per person:** sha256 identity keys (phone and email, as referrals) are kept
+  in `pro_trials`, which has no foreign key to `profiles`, so deleting and
+  re-creating the account earns nothing.
+- **Grant:** `waves_pro_trial_grant(profile)`, fired by the trigger
+  `waves_pro_trial_on_auth_user` on `auth.users` (insert, or when `is_anonymous`,
+  phone or email change: the moment the account is verified). It writes a
+  `subscriptions` row: tier `pro`, store `trial`, `store_txn_id` `trial:<profile>`,
+  ending 15 days later. Idempotent.
+- **Voice:** the trial's 20 AI voice commands are one pool that lasts **30 days**
+  from the grant (`pro_trials.granted_at` + `pro_trial_settings.voice_days`), though
+  Pro itself lasts 15. Anyone with no paid plan uses the pool, also after the Pro
+  days end; it does not stack with Free's 10. Once the 20 are spent there is nothing
+  more until day 30; after day 30 the normal Free rules apply ("first month 20,
+  then 10 a month"). A paid plan (or referral Plus days) uses its own monthly allowance.
+  After day 30 Free's own 10 commands a month apply (cloud voice is on for every
+  non-guest account); a pool spent early gives nothing more until day 30.
+- **A purchase wins:** while a store purchase (or another Pro) is active the trial
+  row is ignored. Referral Plus days start after the trial ends, as for any coverage.
+- **App:** the paywall shows "Pro trial · N days left" and "Keep Pro"; the dashboard
+  menu's Upgrade row shows "N days of Pro left"; the voice screen shows the trial
+  commands left. When it ends the person falls back to Free (or referral Plus days).
+- Migration `20261015220000_pro_trial`.
