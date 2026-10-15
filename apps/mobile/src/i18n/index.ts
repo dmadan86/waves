@@ -4462,8 +4462,12 @@ export interface UiStrings {
     title: string;
     headline: string;
     body: string;
-    youGet: string;
-    friendGets: string;
+    youGetTitle: string;
+    youGetBody: string;
+    friendGetsTitle: string;
+    friendGetsBody: string;
+    /** Milestone label under a node on the progress path: "{n} days" */
+    milestoneDays: string;
     share: string;
     shareMessage: string;
     /** "{earned} of {cap} days earned" */
@@ -8797,8 +8801,11 @@ const en: UiStrings = {
     title: 'Invite your friends',
     headline: 'Money is easier together.',
     body: 'Share a group with friends and unlock a little more from Waves.',
-    youGet: 'You get 7 days of Plus. After your friend starts using Waves.',
-    friendGets: 'Your friend gets 7 days too. Try premium features together.',
+    youGetTitle: 'You get 7 days of Plus',
+    youGetBody: 'After your friend starts using Waves.',
+    friendGetsTitle: 'Your friend gets 7 days too',
+    friendGetsBody: 'Try premium features together.',
+    milestoneDays: '{n} days',
     share: 'Share invite link',
     shareMessage: 'I use Waves to split expenses with friends. Join me:',
     progress: '{earned} of {cap} days earned',
@@ -13291,10 +13298,11 @@ const ta: UiStrings = {
     title: 'நண்பர்களை அழையுங்கள்',
     headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
-    youGet:
-      'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும் — உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
-    friendGets:
-      'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும். பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
+    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும்',
+    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
+    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
+    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
+    milestoneDays: '{n} நாட்கள்',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
     shareMessage:
       'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
@@ -17658,8 +17666,11 @@ const hi: UiStrings = {
     title: 'दोस्तों को आमंत्रित करें',
     headline: 'पैसों की बात साथ मिलकर आसान होती है।',
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
-    youGet: 'आपको 7 दिन का Plus मिलेगा — आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
-    friendGets: 'आपके दोस्त को भी 7 दिन मिलेंगे। प्रीमियम फ़ीचर साथ में आज़माएँ।',
+    youGetTitle: 'आपको 7 दिन का Plus मिलेगा',
+    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
+    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
+    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
+    milestoneDays: '{n} दिन',
     share: 'आमंत्रण लिंक शेयर करें',
     shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
     progress: '{cap} में से {earned} दिन मिल चुके हैं',
@@ -22573,8 +22584,11 @@ const ar: UiStrings = {
     title: 'ادعُ أصدقاءك',
     headline: 'المال أسهل حين نتشاركه.',
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
-    youGet: 'تحصل على 7 أيام من Plus — بعد أن يبدأ صديقك باستخدام Waves.',
-    friendGets: 'ويحصل صديقك على 7 أيام أيضًا. جرّبا الميزات المميزة معًا.',
+    youGetTitle: 'تحصل على 7 أيام من Plus',
+    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
+    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
+    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
+    milestoneDays: '{n} أيام',
     share: 'شارك رابط الدعوة',
     shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
     progress: 'تم كسب {earned} من {cap} يومًا',

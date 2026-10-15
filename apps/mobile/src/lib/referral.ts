@@ -266,6 +266,19 @@ export function daysFraction(state: Pick<MyReferral, 'daysEarned' | 'daysCap'>):
   return Math.min(1, Math.max(0, state.daysEarned / state.daysCap));
 }
 
+/** The days-earned marks along the progress path, in order. */
+export const REFERRAL_MILESTONES = [0, 10, 20, 30] as const;
+
+export interface ReferralMilestone {
+  value: number;
+  reached: boolean;
+}
+
+/** Which marks on the path are reached: a mark is reached once `daysEarned` is at least its value. */
+export function referralMilestones(daysEarned: number): ReferralMilestone[] {
+  return REFERRAL_MILESTONES.map((value) => ({ value, reached: daysEarned >= value }));
+}
+
 // ── the code waiting for an account ─────────────────────────────────────────
 
 /** Long enough to get through the stores and a first sign-up; short enough not to outlive its welcome. */

@@ -19,6 +19,7 @@ import {
   referralCodeFromInstallReferrer,
   referralCodeFromUrl,
   referralLink,
+  referralMilestones,
   referralShareText,
 } from '@/lib/referral';
 
@@ -179,6 +180,24 @@ describe('days text', () => {
     expect(daysFraction({ daysEarned: 15, daysCap: 30 })).toBe(0.5);
     expect(daysFraction({ daysEarned: 45, daysCap: 30 })).toBe(1);
     expect(daysFraction({ daysEarned: 0, daysCap: 0 })).toBe(0);
+  });
+});
+
+describe('milestones', () => {
+  it('marks nothing but the start before any day is earned', () => {
+    expect(referralMilestones(0).map((m) => m.reached)).toEqual([true, false, false, false]);
+  });
+
+  it('reaches a mark exactly at its value, not before', () => {
+    expect(referralMilestones(9).map((m) => m.reached)).toEqual([true, false, false, false]);
+    expect(referralMilestones(10).map((m) => m.reached)).toEqual([true, true, false, false]);
+    expect(referralMilestones(21).map((m) => m.reached)).toEqual([true, true, true, false]);
+  });
+
+  it('reaches every mark at the cap', () => {
+    const marks = referralMilestones(30);
+    expect(marks.map((m) => m.value)).toEqual([0, 10, 20, 30]);
+    expect(marks.every((m) => m.reached)).toBe(true);
   });
 });
 
