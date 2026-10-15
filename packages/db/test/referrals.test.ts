@@ -540,4 +540,28 @@ describe('access', () => {
     await client.query(`ROLLBACK TO SAVEPOINT t`);
     await client.query(`RESET ROLE`);
   });
+
+  it("never shows a referrer their friend's phone or email", async () => {
+    const referrer = await person();
+    const friend = await friendUsesWaves(referrer, { phone: '919800000077' });
+    const stored = await client.query(`SELECT identity_keys FROM referrals WHERE referee_id = $1`, [
+      friend,
+    ]);
+    expect(stored.rows[0].identity_keys.length).toBeGreaterThan(0);
+    for (const key of stored.rows[0].identity_keys as string[]) {
+      expect(key).toMatch(/^[0-9a-f]{64}$/);
+    }
+
+    await client.query(`SET LOCAL ROLE authenticated`);
+    await asUser(referrer, async () => {
+      const visible = await client.query(`SELECT status FROM referrals`);
+      expect(visible.rows).toHaveLength(1);
+      await client.query(`SAVEPOINT k`);
+      await expect(client.query(`SELECT identity_keys FROM referrals`)).rejects.toThrow(
+        /permission denied/i,
+      );
+      await client.query(`ROLLBACK TO SAVEPOINT k`);
+    });
+    await client.query(`RESET ROLE`);
+  });
 });

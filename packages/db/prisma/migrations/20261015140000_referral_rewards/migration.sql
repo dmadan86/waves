@@ -56,8 +56,10 @@ CREATE TABLE public.referrals (
     qualified_at  timestamp with time zone,
     referrer_days integer DEFAULT 0 NOT NULL,
     referee_days  integer DEFAULT 0 NOT NULL,
-    -- 'phone:<digits>' / 'email:<lowercase>' of the friend's verified identities,
-    -- stamped when the friend is evaluated; the one-reward-per-identity check.
+    -- sha256 of 'phone:<digits>' / 'email:<lowercase>' for the friend's verified
+    -- identities, stamped when the friend is evaluated; the one-reward-per-identity
+    -- check. Hashed so the table never holds a second copy of a phone or email, and
+    -- never granted to clients (see the column-level grant below).
     identity_keys text[] DEFAULT '{}'::text[] NOT NULL,
     CONSTRAINT referrals_pkey PRIMARY KEY (id),
     CONSTRAINT referrals_referee_key UNIQUE (referee_id),
@@ -89,7 +91,10 @@ CREATE POLICY referrals_select_own ON public.referrals FOR SELECT TO authenticat
 REVOKE ALL ON TABLE public.referral_codes FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.referrals FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.referral_codes TO authenticated;
-GRANT SELECT ON TABLE public.referrals TO authenticated;
+-- Column-level: a referrer can see their friend's referral row, never the
+-- identity hashes the abuse check keeps.
+GRANT SELECT (id, referrer_id, referee_id, code, source, status, reject_reason, claimed_at,
+              qualified_at, referrer_days, referee_days) ON TABLE public.referrals TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.referral_codes TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.referrals TO service_role;
 
@@ -120,11 +125,11 @@ BEGIN
 
   IF v_row ->> 'phone_confirmed_at' IS NOT NULL THEN
     v_phone := nullif(regexp_replace(COALESCE(v_row ->> 'phone', ''), '[^0-9]', '', 'g'), '');
-    IF v_phone IS NOT NULL THEN v_keys := v_keys || ('phone:' || v_phone); END IF;
+    IF v_phone IS NOT NULL THEN v_keys := v_keys || encode(sha256(convert_to('phone:' || v_phone, 'UTF8')), 'hex'); END IF;
   END IF;
   IF v_row ->> 'email_confirmed_at' IS NOT NULL THEN
     v_email := nullif(lower(btrim(COALESCE(v_row ->> 'email', ''))), '');
-    IF v_email IS NOT NULL THEN v_keys := v_keys || ('email:' || v_email); END IF;
+    IF v_email IS NOT NULL THEN v_keys := v_keys || encode(sha256(convert_to('email:' || v_email, 'UTF8')), 'hex'); END IF;
   END IF;
 
   RETURN jsonb_build_object('verified', cardinality(v_keys) > 0, 'keys', to_jsonb(v_keys));
