@@ -141,6 +141,43 @@ describe('waves_track_event', () => {
     expect(rows[1].props).toEqual({});
   });
 
+  it('keeps source, medium and campaign tags up to 40 characters', async () => {
+    const install = randomUUID();
+    await track(install, 'app_installed', {
+      source: 'meta',
+      medium: 'paid',
+      campaign: 'diwali_in-2026',
+    });
+    const [row] = await rowsFor(install);
+    expect(row.props).toEqual({ source: 'meta', medium: 'paid', campaign: 'diwali_in-2026' });
+
+    const edge = randomUUID();
+    await track(edge, 'app_installed', { campaign: 'x'.repeat(40), source: 's'.repeat(40) });
+    expect((await rowsFor(edge))[0].props).toEqual({
+      campaign: 'x'.repeat(40),
+      source: 's'.repeat(40),
+    });
+  });
+
+  it('drops campaign tags that are too long, uppercase, spaced, personal or not strings', async () => {
+    const install = randomUUID();
+    await track(install, 'app_installed', {
+      source: 'x'.repeat(41),
+      medium: 'Paid Social',
+      campaign: 'a@b.co',
+      gclid: 'abc',
+    });
+    expect((await rowsFor(install))[0].props).toEqual({});
+
+    const other = randomUUID();
+    await track(other, 'signup_started', {
+      method: 'x'.repeat(33),
+      campaign: 42,
+      medium: ['paid'],
+    });
+    expect((await rowsFor(other))[0].props).toEqual({});
+  });
+
   it('stores nothing in props for a non-object, and a null for a bad platform or version', async () => {
     const install = randomUUID();
     await track(install, 'premium_viewed', ['a', 'b'], 'symbian', 'not a version!');

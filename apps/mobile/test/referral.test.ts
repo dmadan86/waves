@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { redirectSystemPath } from '@/app/+native-intent';
 import {
+  campaignFromInstallReferrer,
   captureInstallReferrer,
   daysEarnedText,
   daysFraction,
@@ -342,5 +343,65 @@ describe('captureInstallReferrer', () => {
       throw new Error('boom');
     };
     expect(await captureInstallReferrer(t.deps)).toBeNull();
+  });
+});
+
+describe('campaignFromInstallReferrer', () => {
+  it('reads an organic Play install', () => {
+    expect(campaignFromInstallReferrer('utm_source=google-play&utm_medium=organic')).toEqual({
+      source: 'google-play',
+      medium: 'organic',
+    });
+  });
+
+  it('reads a paid campaign that also carries a referral code', () => {
+    expect(
+      campaignFromInstallReferrer(
+        'utm_source=meta&utm_medium=paid&utm_campaign=diwali_in&waves_ref=ABCD2345',
+      ),
+    ).toEqual({ source: 'meta', medium: 'paid', campaign: 'diwali_in' });
+  });
+
+  it('lowercases, and forgives one more level of encoding', () => {
+    expect(campaignFromInstallReferrer('UTM_Source=Meta&utm_campaign=Diwali_IN')).toEqual({
+      source: 'meta',
+      campaign: 'diwali_in',
+    });
+    expect(campaignFromInstallReferrer('utm_source%3Dmeta%26utm_medium%3Dpaid')).toEqual({
+      source: 'meta',
+      medium: 'paid',
+    });
+  });
+
+  it('never returns other params, click ids or personal data', () => {
+    const out = campaignFromInstallReferrer(
+      'gclid=Cj0KCQiA1234&fbclid=IwAR0abc&email=a%40b.co&utm_source=google&utm_term=shoes&utm_content=x',
+    );
+    expect(out).toEqual({ source: 'google' });
+  });
+
+  it('drops values with other characters, too long, or that look like an id', () => {
+    expect(campaignFromInstallReferrer('utm_campaign=a%40b.co')).toEqual({});
+    expect(campaignFromInstallReferrer('utm_campaign=two%20words')).toEqual({});
+    expect(campaignFromInstallReferrer(`utm_campaign=${'a'.repeat(41)}`)).toEqual({});
+    expect(campaignFromInstallReferrer(`utm_campaign=${'z'.repeat(40)}`)).toEqual({
+      campaign: 'z'.repeat(40),
+    });
+    expect(
+      campaignFromInstallReferrer('utm_campaign=3f2b8c1e-5d4a-4e7b-9c6a-1b2c3d4e5f60'),
+    ).toEqual({});
+    expect(campaignFromInstallReferrer('utm_source=0123456789abcdef0123')).toEqual({});
+  });
+
+  it('is empty for nothing, junk, or a missing value', () => {
+    expect(campaignFromInstallReferrer(null)).toEqual({});
+    expect(campaignFromInstallReferrer('')).toEqual({});
+    expect(campaignFromInstallReferrer('utm_source')).toEqual({});
+    expect(campaignFromInstallReferrer('utm_source=')).toEqual({});
+    expect(campaignFromInstallReferrer('constructor=1&__proto__=2')).toEqual({});
+  });
+
+  it('keeps the first of a repeated key', () => {
+    expect(campaignFromInstallReferrer('utm_source=a&utm_source=b')).toEqual({ source: 'a' });
   });
 });

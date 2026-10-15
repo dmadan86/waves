@@ -24,6 +24,7 @@ import { Platform } from 'react-native';
 
 import { backend, backendConfigured } from '@/lib/backend';
 import { buildIdentity } from '@/lib/buildIdentity';
+import { installCampaign } from '@/lib/installReferrer';
 
 import { buildPayload, isInstallId, type EventName, type EventProps } from './eventsCore';
 
@@ -78,6 +79,17 @@ export function track(name: EventName, props?: EventProps): void {
 }
 
 /**
+ * Where the install came from. iOS has no install referrer, so it is simply
+ * the App Store (campaign links there are read in App Store Connect's App
+ * Analytics, not in the app). Android carries the Play referrer's utm tag.
+ * Never blocks past the referrer read's own timeout.
+ */
+async function installProps(): Promise<EventProps> {
+  if (Platform.OS === 'ios') return { source: 'app_store' };
+  return installCampaign();
+}
+
+/**
  * `app_installed`, once per install. The flag is only set after the server
  * took the event, so an offline first launch tries again on the next one; the
  * database keeps one per install either way.
@@ -87,7 +99,8 @@ export function trackInstallOnce(): void {
   void (async () => {
     try {
       if ((await AsyncStorage.getItem(INSTALL_SENT_KEY)) === '1') return;
-      if (await send('app_installed')) await AsyncStorage.setItem(INSTALL_SENT_KEY, '1');
+      if (await send('app_installed', await installProps()))
+        await AsyncStorage.setItem(INSTALL_SENT_KEY, '1');
     } catch {
       // Analytics never surfaces an error.
     }

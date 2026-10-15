@@ -139,6 +139,17 @@ export interface RetentionCohortRow {
   d30_retained: number | string;
 }
 
+/** One (source, medium, campaign) line of `waves_admin_campaigns`. */
+export interface CampaignRow {
+  source: string;
+  medium: string;
+  campaign: string;
+  installs: number | string;
+  registrations: number | string;
+  activated: number | string;
+  subscriptions: number | string;
+}
+
 export interface GeoRow {
   country_code: string | null;
   profile_count: number;
@@ -867,6 +878,9 @@ export const kpis = async (days = 30): Promise<KpiRow | null> =>
   (await call<KpiRow>('waves_admin_kpis', { p_days: days }))[0] ?? null;
 export const retentionCohorts = (weeks = 8) =>
   call<RetentionCohortRow>('waves_admin_retention_cohorts', { p_weeks: weeks });
+/** Installs, registrations, activations and paid plans per campaign tag. */
+export const campaignStats = (days = 30) =>
+  call<CampaignRow>('waves_admin_campaigns', { p_days: days });
 export const geo = () => call<GeoRow>('waves_admin_geo');
 export const money = () => call<MoneyRow>('waves_admin_money');
 export const aiCost = (days = 30) => call<AiCostRow>('waves_admin_ai_cost', { p_days: days });
