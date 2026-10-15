@@ -477,3 +477,7 @@ GRANT EXECUTE ON FUNCTION public.waves_voice_agent_quota(uuid, integer, integer,
 GRANT EXECUTE ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer) TO service_role;
 -- The app reads its own status; signed-in only.
 GRANT EXECUTE ON FUNCTION public.waves_my_ads_status() TO authenticated, service_role;
+
+-- Caller model unchanged from the baseline: the signed-in person, for themselves.
+REVOKE EXECUTE ON FUNCTION public.waves_receipt_scan_quota() FROM anon, PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.waves_receipt_scan_quota() TO authenticated, service_role;
