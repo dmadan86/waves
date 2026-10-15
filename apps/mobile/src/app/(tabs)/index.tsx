@@ -40,6 +40,7 @@ import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useHomeHero } from '@/lib/useHomeHero';
+import { useReferralsLive } from '@/lib/useReferralsLive';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
@@ -224,6 +225,9 @@ export default function HomeScreen() {
   // less-used destinations, surfaced from the dashboard rather than only from
   // the profile tab.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Same test the Upgrade screen uses for `plansLive`: the paywall flag is on
+  // and this build can buy. A guest signs up first, so the row waits for that.
+  const canUpgrade = useReferralsLive() && !isGuest;
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // The `section` keys are internal grouping only (not user-visible): they
@@ -234,6 +238,18 @@ export default function HomeScreen() {
       // No "actions" rows: scan to join, scan bill, bank messages and settle up
       // all have homes of their own (Friends' add sheet, the + Expense hold,
       // Review, a group's settle), so the menu is settings and destinations only.
+      // Upgrade leads the menu while plans can be bought, so the paywall is one
+      // tap from the dashboard rather than three under the profile.
+      ...(canUpgrade
+        ? [
+            {
+              icon: 'rocket-outline' as const,
+              label: t.upgrade,
+              route: '/paywall' as const,
+              section: 'account' as const,
+            },
+          ]
+        : []),
       {
         icon: 'person-circle-outline',
         label: t.account.yourAccount,
@@ -288,7 +304,7 @@ export default function HomeScreen() {
         section: 'settings',
       },
     ],
-    [t, tour],
+    [t, tour, canUpgrade],
   );
 
   // A guest tapping "new group" past their limit is sent to sign up rather than
