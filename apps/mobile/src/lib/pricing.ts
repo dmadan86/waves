@@ -16,6 +16,7 @@
 
 import {
   PlanTier,
+  RC_DEFAULT_OFFERING,
   periodFromProductId,
   tierFromEntitlementIds,
   tierFromProductId,
@@ -166,4 +167,43 @@ export function yearlySavingsPercent(monthlyPrice: number, yearlyPrice: number):
   if (!(monthlyPrice > 0)) return 0;
   const savings = 1 - yearlyPrice / (monthlyPrice * 12);
   return Math.max(0, Math.round(savings * 100));
+}
+
+// --- The Plus price test ------------------------------------------------------
+
+/** The feature flag that assigns a person one of the Plus price arms. */
+export const PLUS_PRICE_FLAG = 'plus_price';
+
+/** The arms, as the flag names them. Each maps to the offering `plus_<arm>`. */
+export const PLUS_PRICE_VARIANTS = ['p49', 'p79', 'p99'] as const;
+export type PlusPriceVariant = (typeof PLUS_PRICE_VARIANTS)[number];
+
+export function isPlusPriceVariant(value: unknown): value is PlusPriceVariant {
+  return typeof value === 'string' && (PLUS_PRICE_VARIANTS as readonly string[]).includes(value);
+}
+
+/** The RevenueCat offering id for an arm (`p79` becomes `plus_p79`), or null for no arm. */
+export function plusPriceOfferingId(variant: string | null | undefined): string | null {
+  return isPlusPriceVariant(variant) ? `plus_${variant}` : null;
+}
+
+/** The fields of RevenueCat's `PurchasesOfferings` that picking an offering reads. */
+export interface OfferingsLike<T extends { readonly identifier: string }> {
+  readonly current: T | null;
+  readonly all: Readonly<Record<string, T | undefined>>;
+}
+
+/**
+ * The offering the paywall shows. A person in a Plus price arm gets that arm's
+ * offering; anybody else, or an arm whose offering is not set up in
+ * RevenueCat, gets what the app showed before the test: the current offering,
+ * else 'default'. A missing offering therefore never breaks the paywall.
+ */
+export function selectOffering<T extends { readonly identifier: string }>(
+  offerings: OfferingsLike<T>,
+  variant: string | null | undefined,
+): T | null {
+  const armId = plusPriceOfferingId(variant);
+  const arm = armId ? offerings.all[armId] : undefined;
+  return arm ?? offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
 }

@@ -1626,6 +1626,21 @@ model AppEvent {
   @@schema("public")
 }
 
+/// Hits per client address on `waves_track_event`, for its flood guard. Holds
+/// a salted sha256 of the address, never the address. Disposable: the function
+/// sweeps rows older than two days.
+model AppEventIpHit {
+  id        BigInt   @id @default(autoincrement())
+  ipHash    String   @map("ip_hash")
+  isInstall Boolean  @default(false) @map("is_install")
+  at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([ipHash, at], map: "app_event_ip_hits_ip_hash_at_idx")
+  @@index([at], map: "app_event_ip_hits_at_idx")
+  @@map("app_event_ip_hits")
+  @@schema("public")
+}
+
 /// What somebody bought. Written only by the service role after a store
 /// receipt has been verified — a client that could insert one of these is a
 /// paywall with a door in the back.

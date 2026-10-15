@@ -10,6 +10,9 @@ import { PlanTier } from '@waves/core';
 
 import {
   activeProductId,
+  isPlusPriceVariant,
+  plusPriceOfferingId,
+  selectOffering,
   periodOfPackage,
   periodsInOffering,
   planCardsFromOffering,
@@ -149,5 +152,45 @@ describe('yearlySavingsPercent', () => {
     expect(yearlySavingsPercent(49, 490)).toBe(17);
     expect(yearlySavingsPercent(0, 490)).toBe(0);
     expect(yearlySavingsPercent(49, 999)).toBe(0);
+  });
+});
+
+describe('the Plus price test', () => {
+  const offering = (identifier: string) => ({ identifier, availablePackages: [] });
+  const all = {
+    default: offering('default'),
+    plus_p49: offering('plus_p49'),
+    plus_p79: offering('plus_p79'),
+    plus_p99: offering('plus_p99'),
+  };
+
+  it('knows the three arms and maps each to its offering id', () => {
+    expect(plusPriceOfferingId('p49')).toBe('plus_p49');
+    expect(plusPriceOfferingId('p79')).toBe('plus_p79');
+    expect(plusPriceOfferingId('p99')).toBe('plus_p99');
+    for (const other of [null, undefined, '', 'control', 'p59', 'plus_p49', 'P49']) {
+      expect(plusPriceOfferingId(other)).toBeNull();
+      expect(isPlusPriceVariant(other)).toBe(false);
+    }
+  });
+
+  it("gives each arm its own offering, even when another is RevenueCat's current one", () => {
+    const offerings = { current: all.default, all };
+    expect(selectOffering(offerings, 'p49')).toBe(all.plus_p49);
+    expect(selectOffering(offerings, 'p79')).toBe(all.plus_p79);
+    expect(selectOffering(offerings, 'p99')).toBe(all.plus_p99);
+  });
+
+  it('behaves as before for somebody outside the test', () => {
+    expect(selectOffering({ current: all.plus_p99, all }, null)).toBe(all.plus_p99);
+    expect(selectOffering({ current: null, all }, null)).toBe(all.default);
+    expect(selectOffering({ current: all.default, all }, 'control')).toBe(all.default);
+  });
+
+  it("falls back to current, then default, when the arm's offering is missing", () => {
+    const { plus_p79: _gone, ...rest } = all;
+    expect(selectOffering({ current: all.plus_p49, all: rest }, 'p79')).toBe(all.plus_p49);
+    expect(selectOffering({ current: null, all: rest }, 'p79')).toBe(all.default);
+    expect(selectOffering({ current: null, all: {} }, 'p79')).toBeNull();
   });
 });

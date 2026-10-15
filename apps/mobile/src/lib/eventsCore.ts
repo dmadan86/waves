@@ -23,7 +23,7 @@ export const EVENT_NAMES = [
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** The keys a prop may use, and no others. */
-export const PROP_KEYS = ['method', 'source', 'screen'] as const;
+export const PROP_KEYS = ['method', 'source', 'screen', 'variant'] as const;
 
 export type EventProps = Partial<Record<(typeof PROP_KEYS)[number], string>>;
 

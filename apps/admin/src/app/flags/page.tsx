@@ -15,7 +15,14 @@ import {
   TableScroll,
 } from '@/components/ui';
 import { guardMutation } from '@/lib/csrf';
-import { flagResults, flags, saveFlag, type FlagResultRow } from '@/lib/data';
+import {
+  flagResults,
+  flags,
+  plusPriceResults,
+  saveFlag,
+  type FlagResultRow,
+  type PlusPriceResultRow,
+} from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +44,13 @@ export default async function Flags({
     await Promise.all(
       running.map(async (flag) => [flag.key, await flagResults(flag.key)] as const),
     ),
+  );
+
+  // The Plus price test also reports plans-screen views and subscriptions per arm.
+  const plusPrice = new Map<string, PlusPriceResultRow>(
+    running.some((flag) => flag.key === 'plus_price')
+      ? (await plusPriceResults()).map((row) => [row.variant, row] as const)
+      : [],
   );
 
   async function save(formData: FormData) {
@@ -188,6 +202,19 @@ export default async function Flags({
                           <th scope="col" className="n">
                             Active 30d
                           </th>
+                          {flag.key === 'plus_price' ? (
+                            <>
+                              <th scope="col" className="n">
+                                Viewed plans
+                              </th>
+                              <th scope="col" className="n">
+                                Plus started
+                              </th>
+                              <th scope="col" className="n">
+                                Plus per viewer
+                              </th>
+                            </>
+                          ) : null}
                         </tr>
                       </thead>
                       <tbody>
@@ -209,6 +236,29 @@ export default async function Flags({
                                 : (Number(row.expenses_created) / Number(row.people)).toFixed(2)}
                             </td>
                             <td className="n">{num(row.active_30d)}</td>
+                            {flag.key === 'plus_price' ? (
+                              <>
+                                <td className="n">
+                                  {num(plusPrice.get(row.variant)?.premium_viewed_installs ?? 0)}
+                                </td>
+                                <td className="n">
+                                  {num(plusPrice.get(row.variant)?.plus_started ?? 0)}
+                                </td>
+                                <td className="n">
+                                  {Number(
+                                    plusPrice.get(row.variant)?.premium_viewed_installs ?? 0,
+                                  ) === 0
+                                    ? '—'
+                                    : `${Math.round(
+                                        (Number(plusPrice.get(row.variant)?.plus_started ?? 0) /
+                                          Number(
+                                            plusPrice.get(row.variant)?.premium_viewed_installs,
+                                          )) *
+                                          100,
+                                      )}%`}
+                                </td>
+                              </>
+                            ) : null}
                           </tr>
                         ))}
                       </tbody>
