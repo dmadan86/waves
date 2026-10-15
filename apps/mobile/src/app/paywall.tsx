@@ -439,7 +439,14 @@ function PeriodSwitch({
               {value === 'monthly' ? labels.monthly : labels.yearly}
             </Text>
             {value === 'yearly' && labels.save ? (
-              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              <Text
+                variant="caption"
+                style={{
+                  fontWeight: '700',
+                  color: active ? theme.color.onBrand : theme.color.brand,
+                  opacity: active ? 0.9 : 1,
+                }}
+              >
                 {labels.save}
               </Text>
             ) : null}

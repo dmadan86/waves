@@ -4490,8 +4490,13 @@ export interface UiStrings {
     pending: PluralForms;
     loadError: string;
     haveCode: string;
-    paste: string;
     apply: string;
+    /** Label above the user's own invite code. */
+    yourCode: string;
+    /** Accessibility label of the copy button. */
+    copyCode: string;
+    /** Shown briefly after the code was copied. */
+    codeCopied: string;
     applied: string;
     unknownCode: string;
     ownCode: string;
@@ -8842,8 +8847,10 @@ const en: UiStrings = {
     },
     loadError: 'Could not load your invite. Try again in a moment.',
     haveCode: 'Got a code from a friend?',
-    paste: 'Paste',
     apply: 'Apply',
+    yourCode: 'Your code',
+    copyCode: 'Copy code',
+    codeCopied: 'Copied',
     applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
@@ -13354,8 +13361,10 @@ const ta: UiStrings = {
     },
     loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
     haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
-    paste: 'ஒட்டு',
     apply: 'பயன்படுத்து',
+    yourCode: 'உங்கள் குறியீடு',
+    copyCode: 'குறியீட்டை நகலெடு',
+    codeCopied: 'நகலெடுக்கப்பட்டது',
     applied:
       'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
@@ -17733,8 +17742,10 @@ const hi: UiStrings = {
     },
     loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
     haveCode: 'किसी दोस्त से कोड मिला है?',
-    paste: 'पेस्ट करें',
     apply: 'लागू करें',
+    yourCode: 'आपका कोड',
+    copyCode: 'कोड कॉपी करें',
+    codeCopied: 'कॉपी हो गया',
     applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
@@ -22667,8 +22678,10 @@ const ar: UiStrings = {
     },
     loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
     haveCode: 'هل لديك رمز من صديق؟',
-    paste: 'لصق',
     apply: 'تطبيق',
+    yourCode: 'رمزك',
+    copyCode: 'نسخ الرمز',
+    codeCopied: 'تم النسخ',
     applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
