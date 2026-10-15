@@ -11,7 +11,7 @@ Rules for every function in this directory:
    same predicate the policies use.
 2. **Never trust client-computed money.** Shares are recomputed with
    `@waves/core` and a mismatch is rejected with `SHARE_MISMATCH` (TDR §4).
-3. **Secrets only from the function environment** — `ANTHROPIC_API_KEY`,
+3. **Secrets only from the function environment** — `OPENROUTER_API_KEY`,
    `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`.
    Email delivery is provider-agnostic in shape: `EMAIL_PROVIDER` selects
    `resend` (default) or `sendgrid`, and the key it needs is `RESEND_API_KEY` or
