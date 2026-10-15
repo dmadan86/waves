@@ -26,10 +26,10 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 
-import { PlanTier, RC_DEFAULT_OFFERING } from '@waves/core';
+import { PlanTier } from '@waves/core';
 
 import { reportHandled } from './observability';
-import { activeProductId, revenueCatApiKey, tierFromCustomerInfo } from './pricing';
+import { activeProductId, revenueCatApiKey, selectOffering, tierFromCustomerInfo } from './pricing';
 
 const API_KEY = revenueCatApiKey(
   Platform.OS,
@@ -156,11 +156,17 @@ export async function refreshCustomerInfo(): Promise<void> {
 
 // --- Buying ------------------------------------------------------------------
 
-/** The offering the paywall shows: RevenueCat's current one, else 'default'. */
-export async function loadOffering(): Promise<PurchasesOffering | null> {
+/**
+ * The offering the paywall shows: the Plus price arm's (`plus_p49` / `plus_p79`
+ * / `plus_p99`) when this person is in the test, else RevenueCat's current one,
+ * else 'default'. See `selectOffering`.
+ */
+export async function loadOffering(
+  plusPriceVariant: string | null = null,
+): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   const offerings = await Purchases.getOfferings();
-  return offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
+  return selectOffering(offerings, plusPriceVariant);
 }
 
 export type PurchaseOutcome = 'purchased' | 'cancelled' | 'pending';

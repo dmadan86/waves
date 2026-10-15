@@ -132,6 +132,15 @@ describe('waves_track_event', () => {
     expect(row.props).toEqual({ method: 'phone', screen: 'paywall' });
   });
 
+  it('keeps a short lowercase variant prop, for the Plus price test', async () => {
+    const install = randomUUID();
+    await track(install, 'premium_viewed', { screen: 'paywall', variant: 'p79' });
+    await track(install, 'premium_viewed', { variant: 'P 79!' });
+    const rows = await rowsFor(install);
+    expect(rows[0].props).toEqual({ screen: 'paywall', variant: 'p79' });
+    expect(rows[1].props).toEqual({});
+  });
+
   it('stores nothing in props for a non-object, and a null for a bad platform or version', async () => {
     const install = randomUUID();
     await track(install, 'premium_viewed', ['a', 'b'], 'symbian', 'not a version!');
@@ -158,6 +167,174 @@ describe('waves_track_event', () => {
       [other],
     );
     expect(await track(other, 'premium_viewed')).toBe(true);
+  });
+});
+
+const rand = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo));
+const runPrefix = `${rand(11, 223)}.${rand(0, 255)}`;
+/** An address that is new on every run, so reruns on a used database stay independent. */
+const ip = (n: number) => `${runPrefix}.0.${n}`;
+
+/** One call with the proxy headers PostgREST would have set. */
+async function trackFrom(
+  headers: Record<string, string> | null,
+  installId: string,
+  name = 'premium_viewed',
+): Promise<boolean> {
+  await client.query('BEGIN');
+  try {
+    if (headers) {
+      await client.query(`SELECT set_config('request.headers', $1, true)`, [
+        JSON.stringify(headers),
+      ]);
+    }
+    const ok = await track(installId, name);
+    await client.query('COMMIT');
+    return ok;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+}
+
+const hitsFor = async (ipHash: string) =>
+  Number(
+    (
+      await client.query('SELECT count(*) AS n FROM public.app_event_ip_hits WHERE ip_hash = $1', [
+        ipHash,
+      ])
+    ).rows[0].n,
+  );
+
+const hashOf = async (value: string) =>
+  (
+    await client.query(
+      `SELECT encode(sha256(convert_to('waves-app-events-ip-v1:' || $1, 'UTF8')), 'hex') AS h`,
+      [value],
+    )
+  ).rows[0].h as string;
+
+describe('the per-address flood guard', () => {
+  it('lets 20 installs an hour through from one address and drops the 21st', async () => {
+    const xff = { 'x-forwarded-for': ip(10) };
+    for (let i = 0; i < 20; i++) {
+      expect(await trackFrom(xff, randomUUID(), 'app_installed'), `install ${i}`).toBe(true);
+    }
+    const extra = randomUUID();
+    expect(await trackFrom(xff, extra, 'app_installed')).toBe(false);
+    expect(await rowsFor(extra)).toHaveLength(0);
+    // Other events from the same address are still fine until the total cap.
+    expect(await trackFrom(xff, randomUUID())).toBe(true);
+  });
+
+  it('drops the 301st event of any kind from one address', async () => {
+    const headers = { 'x-forwarded-for': ip(20) };
+    const hash = await hashOf(ip(20));
+    await client.query(
+      `INSERT INTO public.app_event_ip_hits (ip_hash) SELECT $1 FROM generate_series(1, 300)`,
+      [hash],
+    );
+    expect(await trackFrom(headers, randomUUID())).toBe(false);
+    // An older burst does not count.
+    const old = await hashOf(ip(21));
+    await client.query(
+      `INSERT INTO public.app_event_ip_hits (ip_hash, at)
+       SELECT $1, now() - interval '2 hours' FROM generate_series(1, 300)`,
+      [old],
+    );
+    expect(await trackFrom({ 'x-forwarded-for': ip(21) }, randomUUID())).toBe(true);
+  });
+
+  it('keeps different addresses independent', async () => {
+    const a = { 'x-forwarded-for': ip(1) };
+    for (let i = 0; i < 20; i++) await trackFrom(a, randomUUID(), 'app_installed');
+    expect(await trackFrom(a, randomUUID(), 'app_installed')).toBe(false);
+    expect(await trackFrom({ 'x-forwarded-for': ip(2) }, randomUUID(), 'app_installed')).toBe(true);
+  });
+
+  it('prefers cf-connecting-ip, and otherwise the first x-forwarded-for entry', async () => {
+    const cf = ip(50);
+    await trackFrom(
+      { 'cf-connecting-ip': cf, 'x-forwarded-for': '10.9.9.9, 10.8.8.8' },
+      randomUUID(),
+    );
+    expect(await hitsFor(await hashOf(cf))).toBe(1);
+    expect(await hitsFor(await hashOf('10.9.9.9'))).toBe(0);
+
+    await trackFrom({ 'x-forwarded-for': ` ${ip(60)} , 10.8.8.8` }, randomUUID());
+    expect(await hitsFor(await hashOf(ip(60)))).toBe(1);
+  });
+
+  it('applies no per-address limit, and logs nothing, without a usable header', async () => {
+    const before = Number(
+      (await client.query('SELECT count(*) AS n FROM public.app_event_ip_hits')).rows[0].n,
+    );
+    for (const headers of [null, {}, { 'x-forwarded-for': '' }, { 'user-agent': 'x' }]) {
+      expect(await trackFrom(headers, randomUUID(), 'app_installed')).toBe(true);
+    }
+    // Garbage in the setting is "no address", not an error.
+    await client.query('BEGIN');
+    await client.query(`SELECT set_config('request.headers', 'not json', true)`);
+    expect(await track(randomUUID(), 'app_installed')).toBe(true);
+    await client.query('COMMIT');
+    const after = Number(
+      (await client.query('SELECT count(*) AS n FROM public.app_event_ip_hits')).rows[0].n,
+    );
+    expect(after).toBe(before);
+  });
+
+  it('never stores the raw address anywhere', async () => {
+    const addr = ip(99);
+    const install = randomUUID();
+    await trackFrom(
+      { 'x-forwarded-for': addr, 'cf-connecting-ip': addr },
+      install,
+      'app_installed',
+    );
+    const { rows } = await client.query(
+      `SELECT t::text AS dump FROM public.app_event_ip_hits t WHERE ip_hash = $1`,
+      [await hashOf(addr)],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].dump).not.toContain(addr);
+    const all = await client.query(
+      `SELECT (SELECT string_agg(t::text, ' ') FROM public.app_event_ip_hits t) AS h,
+              (SELECT string_agg(e::text, ' ') FROM public.app_events e WHERE install_id = $1) AS e`,
+      [install],
+    );
+    expect(all.rows[0].h).not.toContain(addr);
+    expect(all.rows[0].e).not.toContain(addr);
+  });
+
+  it('sweeps address rows older than two days', async () => {
+    const hash = await hashOf(ip(77));
+    await client.query(
+      `INSERT INTO public.app_event_ip_hits (ip_hash, at) VALUES ($1, now() - interval '3 days')`,
+      [hash],
+    );
+    // The sweep runs on about one call in a hundred; 1000 calls make a miss
+    // astronomically unlikely (0.99^1000).
+    for (let i = 0; i < 1000 && (await hitsFor(hash)) > 0; i++) {
+      await trackFrom({ 'x-forwarded-for': `100.64.${i % 250}.${(i >> 8) + 1}` }, randomUUID());
+    }
+    expect(await hitsFor(hash)).toBe(0);
+  });
+});
+
+describe('the global install ceiling', () => {
+  it('drops installs past 5000 an hour, but not other events', async () => {
+    const marker = randomUUID();
+    await client.query(
+      `INSERT INTO public.app_events (install_id, name, app_version)
+       SELECT gen_random_uuid(), 'app_installed', 'ceiling-test' FROM generate_series(1, 5000)`,
+    );
+    try {
+      const install = randomUUID();
+      expect(await track(install, 'app_installed')).toBe(false);
+      expect(await track(marker, 'premium_viewed')).toBe(true);
+    } finally {
+      await client.query(`DELETE FROM public.app_events WHERE app_version = 'ceiling-test'`);
+    }
   });
 });
 
@@ -202,5 +379,32 @@ describe('the table itself', () => {
     await client.query('DELETE FROM public.profiles WHERE id = $1', [profileId]);
     const [row] = await rowsFor(install);
     expect(row.profile_id).toBeNull();
+  });
+});
+
+describe('the Plus price test', () => {
+  it('ships the plus_price flag off, at 0%, with the three arms', async () => {
+    const { rows } = await client.query(
+      `SELECT enabled, rollout_percent, variants FROM public.feature_flags WHERE key = 'plus_price'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].enabled).toBe(false);
+    expect(rows[0].rollout_percent).toBe(0);
+    expect(rows[0].variants).toEqual(['p49', 'p79', 'p99']);
+  });
+
+  it('counts plans-screen installs per arm, and is closed to anon and signed-in users', async () => {
+    const install = randomUUID();
+    await track(install, 'premium_viewed', { screen: 'paywall', variant: 'p79' });
+    await track(install, 'premium_viewed', { screen: 'upgrade', variant: 'p79' });
+    const { rows } = await client.query(`SELECT * FROM public.waves_admin_plus_price_results()`);
+    const p79 = rows.find((row) => row.variant === 'p79');
+    expect(Number(p79.premium_viewed_installs)).toBeGreaterThanOrEqual(1);
+    for (const role of ['anon', 'authenticated']) {
+      const denied = await asRole(role, null, () =>
+        expectDenied(client.query(`SELECT * FROM public.waves_admin_plus_price_results()`)),
+      );
+      expect(denied, role).toMatch(/permission denied/i);
+    }
   });
 });
