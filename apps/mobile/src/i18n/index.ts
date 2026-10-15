@@ -8764,7 +8764,7 @@ const en: UiStrings = {
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
     alreadyUsed: 'You have already used an invite.',
-    notNew: 'Codes only work for new accounts, within an hour of signing up.',
+    notNew: 'Codes only work for new accounts, within 7 days of signing up.',
     couldNotApply: 'Could not apply the code. Try again in a moment.',
   },
   timeline: {
@@ -13185,8 +13185,7 @@ const ta: UiStrings = {
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
-    notNew:
-      'குறியீடுகள் புதிய கணக்குகளுக்கு, பதிவு செய்த ஒரு மணி நேரத்துக்குள் மட்டுமே வேலை செய்யும்.',
+    notNew: 'குறியீடுகள் புதிய கணக்குகளுக்கு, பதிவு செய்த 7 நாட்களுக்குள் மட்டுமே வேலை செய்யும்.',
     couldNotApply: 'குறியீட்டைப் பயன்படுத்த முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
   },
   timeline: {
@@ -17467,7 +17466,7 @@ const hi: UiStrings = {
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
     alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
-    notNew: 'कोड सिर्फ़ नए खातों पर, साइन अप के एक घंटे के भीतर काम करते हैं।',
+    notNew: 'कोड सिर्फ़ नए खातों पर, साइन अप के 7 दिनों के भीतर काम करते हैं।',
     couldNotApply: 'कोड लागू नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
   },
   timeline: {
@@ -22308,7 +22307,7 @@ const ar: UiStrings = {
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
     alreadyUsed: 'لقد استخدمت دعوة من قبل.',
-    notNew: 'تعمل الرموز مع الحسابات الجديدة فقط، خلال ساعة من التسجيل.',
+    notNew: 'تعمل الرموز مع الحسابات الجديدة فقط، خلال 7 أيام من التسجيل.',
     couldNotApply: 'تعذّر تطبيق الرمز. حاول مجددًا بعد قليل.',
   },
   timeline: {
