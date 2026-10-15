@@ -4,96 +4,92 @@ import { languageNames, locales, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
 import { CopyrightYears } from './copyright-years';
-import { Container } from './ui';
+import { Wordmark } from './logo';
+
+type FooterLink = { label: string; href: string; kind: 'anchor' | 'route' | 'external' };
 
 export function SiteFooter({
   locale,
   t,
+  legal,
   appUrl,
 }: {
   locale: Locale;
   t: Dictionary['footer'];
+  legal: Dictionary['legal'];
   appUrl: string;
 }) {
-  const columns = [
+  const columns: { heading: string; links: FooterLink[] }[] = [
     {
       heading: t.product,
       links: [
-        { label: t.links.features, href: '#features' },
-        { label: t.links.how, href: '#how' },
-        { label: t.links.currencies, href: '#currencies' },
-        { label: t.links.pricing, href: '#pricing' },
-        { label: t.links.faq, href: '#faq' },
-        { label: t.links.webApp, href: appUrl, external: true },
+        { label: t.links.features, href: '#features', kind: 'anchor' },
+        { label: t.links.how, href: '#how', kind: 'anchor' },
+        { label: t.links.security, href: '#security', kind: 'anchor' },
+        { label: t.links.pricing, href: '#pricing', kind: 'anchor' },
+        { label: t.links.faq, href: '#faq', kind: 'anchor' },
       ],
     },
     {
       heading: t.company,
       links: [
-        { label: t.links.contact, href: `mailto:${site.supportEmail}`, external: true },
-        { label: t.links.support, href: `mailto:${site.supportEmail}`, external: true },
+        { label: t.links.webApp, href: appUrl, kind: 'external' },
+        { label: legal.mcpTitle, href: `/${locale}/mcp`, kind: 'route' },
+        { label: t.links.markdown, href: `/${locale}/index.md`, kind: 'external' },
       ],
     },
     {
-      heading: t.legal,
+      heading: t.support,
       links: [
-        { label: t.links.privacy, href: `/${locale}/privacy` },
-        { label: t.links.terms, href: `/${locale}/terms` },
-        { label: t.links.deleteAccount, href: `/${locale}/delete-account` },
-        { label: t.links.markdown, href: `/${locale}/index.md`, external: true },
+        { label: t.links.contact, href: `mailto:${site.supportEmail}`, kind: 'external' },
+        { label: t.links.privacy, href: `/${locale}/privacy`, kind: 'route' },
+        { label: t.links.terms, href: `/${locale}/terms`, kind: 'route' },
+        { label: t.links.deleteAccount, href: `/${locale}/delete-account`, kind: 'route' },
       ],
     },
   ];
+  const cls =
+    'inline-flex min-h-7 items-center text-[0.82rem] text-ink-2 transition-colors hover:text-ink';
 
   return (
-    <footer className="overflow-hidden border-t border-line bg-paper pt-16">
-      <Container>
-        <div className="grid gap-14 lg:grid-cols-[1.2fr_2fr]">
+    <footer className="mt-6 border-t border-line/70 pt-9">
+      <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
+        <div className="grid gap-8 md:grid-cols-[1.3fr_2fr]">
           <div>
-            <Link href={`/${locale}`} className="inline-flex items-center text-ink">
-              <span className="font-pixel text-2xl tracking-[0.02em]">waves</span>
+            <Link href={`/${locale}`} aria-label={site.name}>
+              <Wordmark />
             </Link>
-            <p className="mt-5 max-w-sm text-[0.9rem] leading-relaxed text-ink-2">{t.tagline}</p>
-            <p className="mt-5 font-mono text-[0.68rem] text-ink-3">{t.notABank}</p>
+            <p className="mt-3 max-w-[16rem] text-[0.82rem] leading-relaxed text-ink-2">
+              {t.tagline}
+            </p>
           </div>
-
-          <div className="grid gap-10 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
             {columns.map((column) => (
               <nav key={column.heading} aria-label={column.heading}>
-                <h2 className="font-mono text-[0.66rem] tracking-[0.14em] text-ink-3 uppercase">
-                  {column.heading}
-                </h2>
-                <ul className="mt-4 space-y-1.5">
-                  {column.links.map((link) => {
-                    const cls =
-                      'inline-flex min-h-8 items-center text-[0.84rem] text-ink-2 transition-colors hover:text-ink';
-                    return (
-                      <li key={link.label}>
-                        {'external' in link && link.external ? (
-                          <a href={link.href} className={cls}>
-                            {link.label}
-                          </a>
-                        ) : link.href.startsWith('#') ? (
-                          <a href={link.href} className={cls}>
-                            {link.label}
-                          </a>
-                        ) : (
-                          <Link href={link.href} className={cls}>
-                            {link.label}
-                          </Link>
-                        )}
-                      </li>
-                    );
-                  })}
+                <h2 className="text-[0.82rem] font-semibold text-ink">{column.heading}</h2>
+                <ul className="mt-2.5 space-y-0.5">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      {link.kind === 'route' ? (
+                        <Link href={link.href} className={cls}>
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a href={link.href} className={cls}>
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
                 </ul>
               </nav>
             ))}
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col-reverse items-start justify-between gap-5 border-t border-line py-6 sm:flex-row sm:items-center">
-          <p className="font-mono text-[0.68rem] text-ink-3">
-            © <CopyrightYears from={2025} /> {site.name}. {t.rights}
+        <div className="mt-8 flex flex-col-reverse items-start justify-between gap-3 border-t border-line/70 py-5 sm:flex-row sm:items-center">
+          <p className="text-[0.75rem] text-ink-3">
+            © <CopyrightYears from={2025} /> {site.name}. {t.rights} {t.notABank}
           </p>
           <nav aria-label={t.language} className="flex flex-wrap gap-1">
             {locales.map((l) => (
@@ -110,13 +106,7 @@ export function SiteFooter({
             ))}
           </nav>
         </div>
-      </Container>
-      <p
-        aria-hidden="true"
-        className="mt-8 -mb-[0.16em] w-full text-center font-pixel leading-[0.72] tracking-[-0.04em] text-ink/[0.055] select-none text-[clamp(7rem,28vw,25rem)]"
-      >
-        waves
-      </p>
+      </div>
     </footer>
   );
 }

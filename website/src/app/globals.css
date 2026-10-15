@@ -46,6 +46,7 @@
   --color-accent-ink: var(--w-accent-ink);
   --color-accent-wash: var(--w-accent-wash);
 
+  --color-blue: var(--w-blue);
   --color-up: var(--w-up);
   --color-down: var(--w-down);
 }
@@ -74,7 +75,7 @@
 @layer base {
   :root {
     color-scheme: light;
-    --w-bg: #f5f3fa;
+    --w-bg: #faf8fe;
     --w-paper: #ffffff;
     --w-surface: #ffffff;
     --w-chip: #eeebf8;
@@ -91,6 +92,10 @@
     --w-accent-wash: #ebe6ff;
     --w-up: #2563eb;
     --w-down: #c2415a;
+    --w-blue: #1f63f2;
+    --w-art-blend: multiply;
+    --w-art-plate: transparent;
+    --w-shadow-card: 0 10px 30px rgb(80 60 160 / 0.09), 0 1px 3px rgb(80 60 160 / 0.06);
     --w-shadow-sm: 0 1px 2px rgb(25 18 50 / 0.05), 0 0 0 1px rgb(25 18 50 / 0.06);
     --w-shadow-md: 0 10px 24px rgb(25 18 50 / 0.08), 0 0 0 1px rgb(25 18 50 / 0.05);
     --w-shadow-lg: 0 20px 50px rgb(25 18 50 / 0.13), 0 0 0 1px rgb(25 18 50 / 0.06);
@@ -114,6 +119,10 @@
       --w-accent: #9b84ff;
       --w-accent-ink: #171126;
       --w-accent-wash: #251d42;
+      --w-blue: #7bb0ff;
+      --w-art-blend: normal;
+      --w-art-plate: #f6f3fb;
+      --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
       --w-up: #7bb0ff;
       --w-down: #ff8aa0;
       --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -139,6 +148,10 @@
     --w-accent: #9b84ff;
     --w-accent-ink: #171126;
     --w-accent-wash: #251d42;
+    --w-blue: #7bb0ff;
+    --w-art-blend: normal;
+    --w-art-plate: #f6f3fb;
+    --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
     --w-up: #7bb0ff;
     --w-down: #ff8aa0;
     --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -155,7 +168,7 @@
 
   body {
     background:
-      radial-gradient(circle at 50% -10%, rgb(122 90 248 / 0.1), transparent 34rem), var(--w-bg);
+      radial-gradient(circle at 12% -6%, rgb(122 90 248 / 0.08), transparent 30rem), var(--w-bg);
     color: var(--w-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -343,5 +356,71 @@
   .section-shell {
     position: relative;
     overflow: clip;
+  }
+}
+
+@layer components {
+  /* Illustrations cropped from a light design sit on the page by multiplying
+     their pale ground into it; in dark mode they sit on a light plate instead. */
+  .art-blend {
+    mix-blend-mode: var(--w-art-blend);
+  }
+  .art-plate {
+    background-color: var(--w-art-plate);
+    border-radius: var(--radius-xl);
+  }
+
+  /* The hero scene fades into the page on its inner and lower edges. */
+  .hero-art {
+    -webkit-mask-image:
+      linear-gradient(to bottom, #000 78%, transparent 100%),
+      linear-gradient(to right, transparent 0%, #000 9%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to bottom, #000 78%, transparent 100%),
+      linear-gradient(to right, transparent 0%, #000 9%);
+    mask-composite: intersect;
+  }
+  :where([dir='rtl']) .hero-art {
+    -webkit-mask-image:
+      linear-gradient(to bottom, #000 78%, transparent 100%),
+      linear-gradient(to left, transparent 0%, #000 9%);
+    mask-image:
+      linear-gradient(to bottom, #000 78%, transparent 100%),
+      linear-gradient(to left, transparent 0%, #000 9%);
+  }
+  @media (max-width: 1023px) {
+    .hero-art {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        #000 14%,
+        #000 82%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
+    }
+  }
+
+  .privacy-card {
+    background:
+      radial-gradient(circle at 0% 50%, rgb(120 215 170 / 0.22), transparent 55%),
+      color-mix(in srgb, var(--w-accent) 8%, var(--w-surface));
+  }
+
+  .banner-sky {
+    background: linear-gradient(100deg, #f9e7df 0%, #f6d9e6 38%, #ddd2f7 100%);
+  }
+}
+
+@layer components {
+  .fade-to-end {
+    mask-image: linear-gradient(to right, #000 55%, transparent 100%);
+  }
+  .fade-to-start {
+    mask-image: linear-gradient(to left, #000 70%, transparent 100%);
+  }
+  .fade-edges {
+    mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
   }
 }
