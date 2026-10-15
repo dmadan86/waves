@@ -6,13 +6,28 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 
 ## The tiers
 
-| Tier | India price | What it adds                                                                                                   |
-| ---- | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month.    |
-| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month). |
-| Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                         |
+| Tier | India price | What it adds                                                                                                                     |
+| ---- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month. Optional reward ads. |
+| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month).                   |
+| Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                                           |
 
 New accounts get 15 days of Pro free, no card needed (see "Pro trial" below).
+
+### Reward ads (Free only)
+
+Free is the only plan with ads, and they are optional rewarded videos the person
+chooses to watch; nothing is forced. Plus, Pro and the 15-day trial have no ads.
+Full design, setup and economics are in [ads.md](ads.md).
+
+| Rule        | Value                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------- |
+| Reward      | 1 completed ad = 2 AI voice commands or 2 receipt scans                                |
+| Daily cap   | 3 rewarded ads per day                                                                 |
+| Validity    | The calendar month (UTC) it is earned in; used after the monthly Free allowance        |
+| Where shown | Only on the AI voice limit screen and the receipt-scan limit screen                    |
+| Who         | Free plan, signed in, account at least 7 days old, flag `ads_rewarded` on for them     |
+| Ad type     | Google AdMob rewarded video, non-personalized only; no banners, interstitials or other |
 
 Yearly plans are ₹429 (Plus, 27% off ₹588) and ₹849 (Pro, 29% off ₹1,188); US is $8.49 and $16.99
 (29% off). Every other market's price is set **in the stores**.

@@ -164,13 +164,44 @@ function commit(): string | null {
   }
 }
 
+/**
+ * The AdMob app ids for the rewarded-ads plugin (`react-native-google-mobile-ads`).
+ *
+ * `app.json` carries Google's official TEST app ids, so a clone builds and shows
+ * test ads. A real build sets `ADMOB_ANDROID_APP_ID` / `ADMOB_IOS_APP_ID` (the
+ * `ca-app-pub-…~…` ids from the AdMob console) and they replace the test ones
+ * here, at config time. The rewarded ad UNIT ids are not native config: the app
+ * reads `EXPO_PUBLIC_ADMOB_REWARDED_ANDROID` / `_IOS` at runtime. A new native
+ * build is needed when the app ids change, never for the unit ids.
+ */
+function withAdMobAppIds(config: ExpoConfig): ExpoConfig {
+  const androidAppId = process.env.ADMOB_ANDROID_APP_ID?.trim();
+  const iosAppId = process.env.ADMOB_IOS_APP_ID?.trim();
+  if (!androidAppId && !iosAppId) return config;
+  return {
+    ...config,
+    plugins: (config.plugins ?? []).map((plugin) => {
+      if (!Array.isArray(plugin) || plugin[0] !== 'react-native-google-mobile-ads') return plugin;
+      const options = (plugin[1] ?? {}) as Record<string, unknown>;
+      return [
+        plugin[0],
+        {
+          ...options,
+          ...(androidAppId ? { androidAppId } : {}),
+          ...(iosAppId ? { iosAppId } : {}),
+        },
+      ];
+    }),
+  };
+}
+
 export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   // `app.json` arrives here already parsed, rather than being imported: that is
   // the shape `expo-doctor` recognises as "the dynamic config uses the static
   // one", and importing `./app.json` directly — which worked, and produced
   // identical output — failed that check and read as a project with two
   // configs disagreeing.
-  const config = fromAppJson as ExpoConfig;
+  const config = withAdMobAppIds(fromAppJson as ExpoConfig);
 
   const services = googleServicesFile();
   const androidBase = services

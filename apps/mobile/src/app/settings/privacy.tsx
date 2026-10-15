@@ -18,8 +18,10 @@ import { useBlockedUsers } from '@/data/blocked';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { clarityConfigured } from '@/lib/clarity';
+import { openAdPrivacyOptions } from '@/lib/adsSdk';
 import { router } from '@/lib/navigation';
 import { sessionReplayConsent, setSessionReplayConsent } from '@/lib/sessionReplay';
+import { useAdChoicesVisible } from '@/lib/useAdChoicesVisible';
 import { useToast } from '@/lib/toast';
 
 /**
@@ -81,6 +83,7 @@ export default function PrivacyScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const toast = useToast();
+  const adChoices = useAdChoicesVisible();
   // The controls act on an account a signed-out reader does not have yet, so
   // they are shown only once there is a session (a guest counts — they have
   // data to manage).
@@ -426,6 +429,23 @@ export default function PrivacyScreen() {
                     }
                     onPress={() => router.push('/settings/blocked')}
                   />
+                  {/* Google's consent form for reward ads (EEA, UK, Switzerland). Only for
+                      people who can be offered an ad; the SDK loads when it is tapped. */}
+                  {adChoices ? (
+                    <>
+                      <View style={{ height: 1, backgroundColor: LINE }} />
+                      <ControlRow
+                        icon="options-outline"
+                        title={t.rewardedAds.adChoicesRow}
+                        subtitle={t.rewardedAds.adChoicesHint}
+                        onPress={() => {
+                          void openAdPrivacyOptions().then((result) => {
+                            if (result === 'none') toast.show(t.rewardedAds.adChoicesNone, 'info');
+                          });
+                        }}
+                      />
+                    </>
+                  ) : null}
                   {/* Recording can catch names and amounts, so it is a control in
                       the open, not a footnote. Hidden with no Clarity project,
                       where it would toggle nothing. */}

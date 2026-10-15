@@ -33,6 +33,8 @@ function makeDeps(over: {
   trialAgeDays?: number;
   mints?: number;
   mintError?: boolean;
+  /** The database refuses Free (outside the trial): reason 'free_tier'. */
+  freeTier?: boolean;
 }) {
   const tables: Record<string, unknown[]> = {
     groups: [{ id: 'g1', name: 'Goa', type: 'trip', default_currency: 'INR' }],
@@ -62,6 +64,12 @@ function makeDeps(over: {
       rpc: async (name: string, args: Record<string, number>) => {
         if (name !== 'waves_voice_stream_mint') return { data: over.enabled ?? true, error: null };
         if (over.mintError) return { data: null, error: { message: 'down' } };
+        if (over.freeTier) {
+          return {
+            data: { allowed: false, mints: 0, budget: 0, tier: 'free', reason: 'free_tier' },
+            error: null,
+          };
+        }
         const budget = over.trial
           ? args.p_trial_budget
           : over.pro
@@ -227,6 +235,15 @@ describe('handleVoiceStreamToken', () => {
     await expect(handleVoiceStreamToken(request(), proSpent.deps)).rejects.toMatchObject({
       code: 'VOICE_STREAM_BUDGET',
     });
+  });
+
+  it('refuses Free with 403 VOICE_STREAM_FREE_TIER and never asks Deepgram for a token', async () => {
+    const { deps, fetchMock } = makeDeps({ freeTier: true });
+    await expect(handleVoiceStreamToken(request(), deps)).rejects.toMatchObject({
+      status: 403,
+      code: 'VOICE_STREAM_FREE_TIER',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('fails closed (503) when the stream budget cannot be checked', async () => {
