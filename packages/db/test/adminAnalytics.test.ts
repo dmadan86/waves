@@ -27,6 +27,11 @@ const FUNCTIONS = [
   'waves_admin_money()',
   'waves_admin_ai_cost(30)',
   'waves_admin_logins(30)',
+  'waves_admin_kpis(30)',
+  'waves_admin_retention_cohorts(8)',
+  'waves_admin_campaigns(30)',
+  'waves_admin_creations(current_date)',
+  'waves_admin_activity_days(current_date)',
 ];
 
 beforeAll(async () => {
@@ -153,6 +158,205 @@ describe('the numbers', () => {
     // one nobody can develop against.
     const { rows } = await client.query('SELECT * FROM public.waves_admin_logins(30)');
     expect(Array.isArray(rows)).toBe(true);
+  });
+});
+
+describe('activation, retention and invites', () => {
+  /** The KPI row for a 60-day window, as numbers. */
+  async function kpis(): Promise<Record<string, number | null>> {
+    const { rows } = await client.query('SELECT * FROM public.waves_admin_kpis(60)');
+    const out: Record<string, number | null> = {};
+    for (const [key, value] of Object.entries(rows[0])) {
+      out[key] = value === null ? null : Number(value);
+    }
+    return out;
+  }
+
+  /** Midnight, 40 days ago, plus six hours: a signup time no clock edge can move. */
+  const SIGNUP = `(date_trunc('day', now()) - interval '40 days' + interval '6 hours')`;
+
+  async function expenseAt(groupId: string, memberId: string, at: string): Promise<void> {
+    const { expenseId } = await addEqualSplitExpense(client, {
+      groupId,
+      payers: { [memberId]: 1000n },
+      participants: [memberId],
+      amount: 1000n,
+    });
+    await client.query(`UPDATE public.expenses SET created_at = ${at} WHERE id = $1`, [expenseId]);
+  }
+
+  it('counts activation and day 1, 7 and 30 retention from the right days', async () => {
+    const before = await kpis();
+    const { groupId, profileIds, memberIds } = await seedGroup(client, { memberCount: 3 });
+    await client.query(`UPDATE public.profiles SET created_at = ${SIGNUP} WHERE id = ANY($1)`, [
+      profileIds,
+    ]);
+    const [a, b, c] = profileIds as [string, string, string];
+
+    // A: an expense on day 1, again on day 7 (after the 7-day window), and on day 30.
+    await expenseAt(groupId, memberIds[0]!, `${SIGNUP} + interval '1 day'`);
+    await expenseAt(groupId, memberIds[0]!, `${SIGNUP} + interval '7 days 2 hours'`);
+    await expenseAt(groupId, memberIds[0]!, `${SIGNUP} + interval '30 days 2 hours'`);
+    // B: first expense on day 10 — too late to count as activated.
+    await expenseAt(groupId, memberIds[1]!, `${SIGNUP} + interval '10 days'`);
+    // C: a personal record on day 3 — activated, and nothing else.
+    await client.query(
+      `INSERT INTO public.personal_records (id, owner_user_id, record_kind, created_at)
+       VALUES ($1, $2, 'txn', ${SIGNUP} + interval '3 days')`,
+      [randomUUID(), c],
+    );
+    expect([a, b, c]).toHaveLength(3);
+
+    // D: signed up a moment ago, so too young for any of the measures.
+    await seedGroup(client, { memberCount: 1 });
+
+    const after = await kpis();
+    const delta = (key: string): number => (after[key] ?? 0) - (before[key] ?? 0);
+
+    expect(delta('registrations')).toBe(4);
+    expect(delta('activation_cohort')).toBe(3);
+    expect(delta('activated')).toBe(2);
+    expect(delta('d1_cohort')).toBe(3);
+    expect(delta('d1_retained')).toBe(1);
+    expect(delta('d7_cohort')).toBe(3);
+    expect(delta('d7_retained')).toBe(1);
+    expect(delta('d30_cohort')).toBe(3);
+    expect(delta('d30_retained')).toBe(1);
+  });
+
+  it('does not count a soft-deleted expense as activation', async () => {
+    const before = await kpis();
+    const { groupId, profileIds, memberIds } = await seedGroup(client, { memberCount: 1 });
+    await client.query(`UPDATE public.profiles SET created_at = ${SIGNUP} WHERE id = $1`, [
+      profileIds[0],
+    ]);
+    await expenseAt(groupId, memberIds[0]!, `${SIGNUP} + interval '1 day'`);
+    await client.query(`UPDATE public.expenses SET deleted_at = now() WHERE group_id = $1`, [
+      groupId,
+    ]);
+
+    const after = await kpis();
+    expect((after.activation_cohort ?? 0) - (before.activation_cohort ?? 0)).toBe(1);
+    expect((after.activated ?? 0) - (before.activated ?? 0)).toBe(0);
+  });
+
+  it('counts a settlement as activation, by the member who starts it', async () => {
+    const before = await kpis();
+    const { groupId, profileIds, memberIds } = await seedGroup(client, { memberCount: 2 });
+    await client.query(`UPDATE public.profiles SET created_at = ${SIGNUP} WHERE id = ANY($1)`, [
+      profileIds,
+    ]);
+    await client.query(
+      `INSERT INTO public.settlements
+         (group_id, from_member_id, to_member_id, currency, amount, method, created_at)
+       VALUES ($1, $2, $3, 'INR', 500, 'cash', ${SIGNUP} + interval '2 days')`,
+      [groupId, memberIds[0], memberIds[1]],
+    );
+
+    const after = await kpis();
+    expect((after.activation_cohort ?? 0) - (before.activation_cohort ?? 0)).toBe(2);
+    // Only the payer made something; the person who was paid did not.
+    expect((after.activated ?? 0) - (before.activated ?? 0)).toBe(1);
+  });
+
+  it('returns a ratio only where there is a denominator, and the raw counts beside it', async () => {
+    const { rows } = await client.query('SELECT * FROM public.waves_admin_kpis(1)');
+    const row = rows[0];
+    for (const key of ['activation', 'd1', 'd7', 'd30']) {
+      const cohort = key === 'activation' ? row.activation_cohort : row[`${key}_cohort`];
+      const ratio = key === 'activation' ? row.registration_to_activation : row[key];
+      if (BigInt(cohort) === 0n) expect(ratio, key).toBeNull();
+      else expect(Number(ratio), key).toBeGreaterThanOrEqual(0);
+    }
+    expect(typeof row.installs).toBe('string'); // bigint, exact
+  });
+
+  it('counts install -> registration from app_installed rows', async () => {
+    const before = await kpis();
+    const install = randomUUID();
+    await client.query(
+      `INSERT INTO public.app_events (install_id, name) VALUES ($1, 'app_installed')`,
+      [install],
+    );
+    // Other events from the same install are not installs.
+    await client.query(
+      `INSERT INTO public.app_events (install_id, name) VALUES ($1, 'premium_viewed')`,
+      [install],
+    );
+    const after = await kpis();
+    expect((after.installs ?? 0) - (before.installs ?? 0)).toBe(1);
+  });
+
+  it('counts an invite once when it brought a new person, and not when it did not', async () => {
+    const before = await kpis();
+    const inviteAt = (groupId: string, at: string) =>
+      client.query(
+        `INSERT INTO public.invites (group_id, token_hash, created_by, expires_at, created_at)
+         VALUES ($1, $2, (SELECT profile_id FROM public.group_members WHERE group_id = $1 AND role = 'admin'),
+                 now() + interval '7 days', ${at})`,
+        [groupId, randomUUID()],
+      );
+
+    // Worked: the joiner's profile was made after the invite, and they came in by its link.
+    const g1 = await seedGroup(client, { memberCount: 2 });
+    await inviteAt(g1.groupId, `now() - interval '1 hour'`);
+    await client.query(`UPDATE public.group_members SET joined_via = 'invite_link' WHERE id = $1`, [
+      g1.memberIds[1],
+    ]);
+
+    // Did not: the joiner already had an account from long before the invite.
+    const g2 = await seedGroup(client, { memberCount: 2 });
+    await inviteAt(g2.groupId, `now()`);
+    await client.query(`UPDATE public.group_members SET joined_via = 'invite_link' WHERE id = $1`, [
+      g2.memberIds[1],
+    ]);
+    await client.query(`UPDATE public.profiles SET created_at = ${SIGNUP} WHERE id = $1`, [
+      g2.profileIds[1],
+    ]);
+
+    // Did not: nobody joined.
+    const g3 = await seedGroup(client, { memberCount: 1 });
+    await inviteAt(g3.groupId, `now()`);
+
+    const after = await kpis();
+    expect((after.invites_sent ?? 0) - (before.invites_sent ?? 0)).toBe(3);
+    expect((after.invite_registrations ?? 0) - (before.invite_registrations ?? 0)).toBe(1);
+  });
+
+  it('gives one row per week, oldest first, with young weeks marked ineligible', async () => {
+    const { rows } = await client.query('SELECT * FROM public.waves_admin_retention_cohorts(4)');
+    expect(rows).toHaveLength(4);
+    const weeks = rows.map((row) =>
+      row.week_start instanceof Date ? isoDay(row.week_start) : row.week_start,
+    );
+    expect(weeks).toEqual([...weeks].sort());
+    const newest = rows[3];
+    // The current week cannot have a mature day-30 cohort.
+    expect(BigInt(newest.d30_eligible)).toBe(0n);
+    for (const row of rows) {
+      expect(BigInt(row.d1_retained)).toBeLessThanOrEqual(BigInt(row.d1_eligible));
+      expect(BigInt(row.activated)).toBeLessThanOrEqual(BigInt(row.activation_eligible));
+      expect(BigInt(row.d1_eligible)).toBeLessThanOrEqual(BigInt(row.size));
+    }
+  });
+
+  it('puts a cohort in the week it signed up', async () => {
+    const before = await client.query('SELECT * FROM public.waves_admin_retention_cohorts(8)');
+    const { profileIds } = await seedGroup(client, { memberCount: 2 });
+    await client.query(`UPDATE public.profiles SET created_at = ${SIGNUP} WHERE id = ANY($1)`, [
+      profileIds,
+    ]);
+    const after = await client.query('SELECT * FROM public.waves_admin_retention_cohorts(8)');
+
+    const { rows: target } = await client.query(
+      `SELECT date_trunc('week', ${SIGNUP})::date AS week`,
+    );
+    const key = isoDay(target[0].week);
+    const sizeIn = (rows: Array<Record<string, unknown>>) => {
+      const row = rows.find((r) => isoDay(r.week_start as Date) === key);
+      return row ? Number(row.size) : 0;
+    };
+    expect(sizeIn(after.rows)).toBe(sizeIn(before.rows) + 2);
   });
 });
 

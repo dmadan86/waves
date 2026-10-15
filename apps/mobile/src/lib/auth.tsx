@@ -29,6 +29,7 @@ import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { syncPurchasesUser } from './purchases';
 import { claimCode } from './oauthClaim';
+import { track } from '@/lib/events';
 import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
@@ -646,6 +647,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // refusal rather than a new account. Firebase having verified a number
       // does not make it one.
       async sendOtp(phone) {
+        track('signup_started', { method: 'phone' });
         await sendPhoneCode(phone);
       },
 
@@ -654,6 +656,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       async sendEmailOtp(email, createUser) {
+        track('signup_started', { method: 'email' });
         // A one-time code mailed to the address, the passwordless way in. On the
         // login door `shouldCreateUser` is false so a typo cannot silently mint
         // a new empty account; on sign-up it is true so the code both makes the
@@ -681,6 +684,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       async withPassword(identifier, password, intent, name) {
+        if (intent === 'sign_up') track('signup_started', { method: 'password' });
         const who = readIdentifier(identifier);
         checkPassword(password);
         const method = who.kind === 'email' ? AuthMethod.EmailPassword : AuthMethod.PhonePassword;
@@ -740,6 +744,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       async withGoogle() {
+        track('signup_started', { method: 'google' });
         const action = planAuth(viewerFrom(session), AuthMethod.Google);
         // Native first, and only for a fresh sign-in: Supabase has no id-token
         // form of `linkIdentity`, so a guest upgrading (the ADR-006 common
@@ -766,6 +771,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       async withApple() {
+        track('signup_started', { method: 'apple' });
         const action = planAuth(viewerFrom(session), AuthMethod.Apple);
         // Same shape as Google, and the same reason for the same limit: this is
         // a fresh sign-in only, and everything else falls through.

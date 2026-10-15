@@ -32,13 +32,14 @@ export const AUTH_ROUTES = [
 /**
  * Reachable either way, so they belong to neither guard.
  *
- * `join` carries an invite that may arrive before anybody has an account.
+ * `join` carries an invite that may arrive before anybody has an account, and
+ * `r` is a friend's referral link, which does too.
  * `language` is offered on the welcome screen. The privacy screen is opened
  * from the Terms & Privacy line on the doorways, and its open-source licenses
  * screen from a row inside it — a signed-out reader tapping either must not be
  * thrown back to `/welcome`.
  */
-const OPEN_ROUTES = ['join', 'language'] as const;
+const OPEN_ROUTES = ['join', 'language', 'r'] as const;
 
 /** Sub-routes of `settings` that a signed-out person may open. */
 const OPEN_SETTINGS = ['privacy', 'licenses'] as const;

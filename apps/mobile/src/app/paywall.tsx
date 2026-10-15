@@ -16,7 +16,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import type { PurchasesOffering } from 'react-native-purchases';
 
 import {
@@ -26,18 +27,25 @@ import {
   PLUS_MONTHLY_SCANS,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
-import { Button, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
+import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import {
+  chosenCard,
+  ctaState,
+  defaultSelectedTier,
+  paywallEmptyReason,
   periodsInOffering,
   planCardsFromOffering,
+  showUpgradeHero,
   yearlySavingsPercent,
   type PaidTier,
   type PlanCardModel,
   type PlanPeriod,
 } from '@/lib/pricing';
+import { usePlusPriceVariant, useTrackPremiumViewed } from '@/lib/plusPrice';
+import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
@@ -47,31 +55,40 @@ type LoadState =
   | { status: 'error' }
   | { status: 'ready'; offering: PurchasesOffering | null };
 
+const HERO_ART = require('../../assets/images/paywall/paywall-hero.webp') as number;
+const PRO_TILE = require('../../assets/images/paywall/paywall-pro-tile.webp') as number;
+
 function planName(t: UiStrings, tier: PlanTier): string {
   return tier === PlanTier.Pro ? t.paywall.proTitle : t.paywall.plusTitle;
 }
 
 export default function PaywallScreen() {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, language } = useStrings();
   const toast = useToast();
   const entitlement = useEntitlement();
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [period, setPeriod] = useState<PlanPeriod>('monthly');
-  const [selected, setSelected] = useState<PaidTier>(PlanTier.Pro);
+  const [selected, setSelected] = useState<PaidTier>(defaultSelectedTier());
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
+  // Counts this screen being opened, once per mount, tagged with the Plus price arm.
+  useTrackPremiumViewed('paywall');
+  const { variant: priceVariant, settled: priceSettled } = usePlusPriceVariant();
+
   useEffect(() => {
+    // Wait for the flag, so the first price shown is the arm's and not a flash of the default.
+    if (!priceSettled) return;
     let active = true;
-    loadOffering()
+    loadOffering(priceVariant)
       .then((offering) => active && setLoad({ status: 'ready', offering }))
       .catch(() => active && setLoad({ status: 'error' }));
     return () => {
       active = false;
     };
-  }, [attempt]);
+  }, [attempt, priceSettled, priceVariant]);
 
   const offering = load.status === 'ready' ? load.offering : null;
   const periods = useMemo(() => periodsInOffering(offering), [offering]);
@@ -90,7 +107,7 @@ export default function PaywallScreen() {
   }, [offering]);
 
   const current = entitlement.tier;
-  const chosen = cards.find((card) => card.tier === selected) ?? cards[cards.length - 1];
+  const chosen = chosenCard(cards, selected);
   const chosenIsCurrent = chosen ? chosen.tier === current : false;
 
   const queryClient = useQueryClient();
@@ -132,43 +149,68 @@ export default function PaywallScreen() {
     }
   }, [toast, t, queryClient]);
 
-  const cta = !chosen
-    ? fill(t.paywall.subscribe, { plan: t.paywall.proTitle })
-    : chosenIsCurrent
+  const cta = ctaState({ chosen, current, purchasing });
+  const ctaLabel = !chosen
+    ? fill(t.paywall.continueWith, { plan: t.paywall.proTitle })
+    : cta.kind === 'current'
       ? fill(t.paywall.alreadySubscribed, { plan: planName(t, chosen.tier) })
-      : purchasing
+      : cta.kind === 'busy'
         ? t.paywall.subscribing
-        : fill(t.paywall.subscribe, { plan: planName(t, chosen.tier) });
+        : fill(t.paywall.continueWith, { plan: planName(t, chosen.tier) });
+
+  const heroTitle = showUpgradeHero(current) ? t.paywall.heroTitle : t.paywall.title;
+  const emptyCopy =
+    paywallEmptyReason(load.status === 'error') === 'network'
+      ? t.paywall.unavailable
+      : t.paywall.noPlans;
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
-        }}
-      >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[theme.color.brandSoft, theme.color.bg]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
+      />
+      <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.xs }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+          <Ionicons
+            name={directionalIcon('chevron-back')}
+            size={iconSize.lg}
+            color={theme.color.text}
+          />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.paywall.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.lg,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -theme.spacing.md }}>
+          <View style={{ flex: 1, gap: theme.spacing.sm, paddingEnd: theme.spacing.xs }}>
+            <Text
+              accessibilityRole="header"
+              style={{ fontSize: 30, lineHeight: 34, fontWeight: '800' }}
+            >
+              {heroTitle}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t.paywall.heroSubtitle}
+            </Text>
+          </View>
+          <Image
+            source={HERO_ART}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ width: 150, height: 136, marginEnd: -theme.spacing.sm }}
+            resizeMode="contain"
+          />
+        </View>
+
         {periods.length > 1 ? (
           <PeriodSwitch
             period={period}
@@ -188,7 +230,7 @@ export default function PaywallScreen() {
         ) : load.status === 'error' || cards.length === 0 ? (
           <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Text variant="caption" tone="muted" align="center">
-              {t.paywall.unavailable}
+              {emptyCopy}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -217,7 +259,43 @@ export default function PaywallScreen() {
           </View>
         )}
 
-        <Text variant="caption" tone="muted" align="center">
+        <Text variant="subheading" style={{ fontWeight: '800', marginTop: theme.spacing.xs }}>
+          {t.paywall.freeTitle}
+        </Text>
+        <FreeCard />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t.paywall.redeemTitle}. ${t.paywall.redeemHint}`}
+          onPress={() => router.push('/settings/redeem')}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            backgroundColor: theme.color.surface,
+            borderRadius: theme.radius.lg,
+            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.sm,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Ionicons name="ticket-outline" size={26} color={theme.color.brand} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700' }} tone="brand">
+              {t.paywall.redeemTitle}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t.paywall.redeemHint}
+            </Text>
+          </View>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+
+        <Text variant="micro" tone="muted" align="center">
           {t.paywall.renewNote}
         </Text>
       </ScrollView>
@@ -226,18 +304,38 @@ export default function PaywallScreen() {
         style={{
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
-          paddingBottom: theme.spacing.md,
+          paddingBottom: theme.spacing.sm,
           gap: theme.spacing.sm,
         }}
       >
-        <Button
-          label={cta}
-          variant="brand"
-          size="lg"
-          fullWidth
-          disabled={!chosen || chosenIsCurrent || purchasing}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel}
+          accessibilityState={{ disabled: cta.disabled, busy: purchasing }}
+          disabled={cta.disabled}
           onPress={() => void buy()}
-        />
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm,
+            height: 52,
+            borderRadius: theme.radius.pill,
+            backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
+            opacity: cta.disabled ? 0.5 : 1,
+          })}
+        >
+          <Text tone="onBrand" style={{ fontSize: 17, fontWeight: '700' }}>
+            {ctaLabel}
+          </Text>
+          {cta.kind === 'continue' ? (
+            <Ionicons
+              name={directionalIcon('arrow-forward')}
+              size={iconSize.md}
+              color={theme.color.onBrand}
+            />
+          ) : null}
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
@@ -253,21 +351,31 @@ export default function PaywallScreen() {
           </Text>
         </Pressable>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.lg }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+          }}
+        >
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={t.paywall.terms}
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => openLegal('terms', language)}
             hitSlop={8}
           >
             <Text variant="caption" tone="muted">
               {t.paywall.terms}
             </Text>
           </Pressable>
+          <Text variant="caption" tone="muted">
+            {'•'}
+          </Text>
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={t.paywall.privacy}
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => openLegal('privacy', language)}
             hitSlop={8}
           >
             <Text variant="caption" tone="muted">
@@ -297,9 +405,9 @@ function PeriodSwitch({
       style={{
         flexDirection: 'row',
         alignSelf: 'center',
-        backgroundColor: theme.color.surfaceMuted,
+        backgroundColor: theme.color.surface,
         borderRadius: theme.radius.pill,
-        padding: 3,
+        padding: 4,
       }}
     >
       {(['monthly', 'yearly'] as const).map((value) => {
@@ -313,18 +421,25 @@ function PeriodSwitch({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 6,
+              justifyContent: 'center',
+              gap: 8,
+              minWidth: 110,
               paddingHorizontal: theme.spacing.md,
-              paddingVertical: 6,
+              paddingVertical: 8,
               borderRadius: theme.radius.pill,
-              backgroundColor: active ? theme.color.surface : 'transparent',
+              backgroundColor: active ? theme.color.brand : 'transparent',
             }}
           >
-            <Text variant="caption" style={{ fontWeight: active ? '700' : '500' }}>
+            <Text
+              style={{
+                fontWeight: '700',
+                color: active ? theme.color.onBrand : theme.color.text,
+              }}
+            >
               {value === 'monthly' ? labels.monthly : labels.yearly}
             </Text>
             {value === 'yearly' && labels.save ? (
-              <Text variant="micro" tone="brand" style={{ fontWeight: '800' }}>
+              <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
                 {labels.save}
               </Text>
             ) : null}
@@ -335,7 +450,7 @@ function PeriodSwitch({
   );
 }
 
-/** One plan, in the brand's purple. */
+/** One plan: icon tile, name and price, a radio, then what it includes. */
 function PlanCard({
   card,
   active,
@@ -372,37 +487,59 @@ function PlanCard({
       accessibilityLabel={`${title}, ${card.priceString} ${cadence}. ${tagline}. ${features.join('. ')}`}
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: active ? theme.color.brandSoft : theme.color.surface,
+        backgroundColor: theme.color.surface,
         borderRadius: theme.radius.lg,
         paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        borderWidth: 2,
-        borderColor: active ? theme.color.brand : theme.color.border,
+        paddingVertical: theme.spacing.sm,
+        borderWidth: 1.5,
+        borderColor: active ? theme.color.brand : 'transparent',
         opacity: pressed ? 0.95 : 1,
-        gap: 6,
+        gap: theme.spacing.sm,
       })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <Text variant="subheading" style={{ fontWeight: '800' }}>
-          {title}
-        </Text>
-        {badge ? (
+        {pro ? (
+          <Image source={PRO_TILE} style={{ width: 48, height: 48 }} />
+        ) : (
           <View
             style={{
-              backgroundColor: current ? theme.color.positive : theme.color.brand,
-              borderRadius: theme.radius.pill,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: 2,
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              backgroundColor: theme.color.brandSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Text variant="micro" tone="onBrand" style={{ fontWeight: '800' }}>
-              {badge}
-            </Text>
+            <Ionicons name="wallet-outline" size={24} color={theme.color.brand} />
           </View>
-        ) : null}
-        <View style={{ flex: 1 }} />
+        )}
+        <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text variant="heading" style={{ fontWeight: '800' }}>
+              {title}
+            </Text>
+            {badge ? (
+              <View
+                style={{
+                  backgroundColor: theme.color.brandSoft,
+                  borderRadius: theme.radius.pill,
+                  paddingHorizontal: theme.spacing.sm,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                  {badge}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <Text variant="caption" tone="muted">
+            {tagline}
+          </Text>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.color.text }}>
+          <Text style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}>
             {card.priceString}
           </Text>
           <Text variant="caption" tone="muted">
@@ -411,34 +548,98 @@ function PlanCard({
         </View>
         <View
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: 11,
-            backgroundColor: active ? theme.color.positive : 'transparent',
-            borderWidth: active ? 0 : 2,
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: active ? theme.color.brand : 'transparent',
+            borderWidth: active ? 0 : 1.5,
             borderColor: theme.color.border,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          {active ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+          {active ? <Ionicons name="checkmark" size={16} color={theme.color.onBrand} /> : null}
         </View>
       </View>
 
-      <Text variant="caption" tone="muted">
-        {tagline}
-      </Text>
+      <View style={{ height: 1, backgroundColor: theme.color.border }} />
 
-      <View style={{ gap: 2 }}>
+      <View style={{ gap: 6 }}>
         {features.map((feature) => (
-          <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="checkmark-circle" size={14} color={theme.color.brand} />
-            <Text variant="caption" style={{ flex: 1 }}>
-              {feature}
-            </Text>
+          <View
+            key={feature}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: theme.color.brand,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="checkmark" size={13} color={theme.color.onBrand} />
+            </View>
+            <Text style={{ flex: 1 }}>{feature}</Text>
           </View>
         ))}
       </View>
     </Pressable>
+  );
+}
+
+/** "What stays free?": three things that never need a plan. */
+function FreeCard() {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const items = [
+    { icon: 'people-outline', tint: 'mint', label: t.paywall.freeGroups },
+    { icon: 'document-text-outline', tint: 'sky', label: t.paywall.freeExpenses },
+    { icon: 'pie-chart-outline', tint: 'pink', label: t.paywall.freeBalances },
+  ] as const;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: theme.color.surface,
+        borderRadius: theme.radius.lg,
+        paddingVertical: theme.spacing.md,
+      }}
+    >
+      {items.map((item, i) => (
+        <View
+          key={item.icon}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: theme.spacing.xs,
+            borderStartWidth: i === 0 ? 0 : 1,
+            borderStartColor: theme.color.border,
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: theme.tint[item.tint].bg,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name={item.icon} size={20} color={theme.tint[item.tint].ink} />
+          </View>
+          <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
+            {item.label}
+          </Text>
+          <Text variant="micro" tone="muted" align="center">
+            {t.paywall.alwaysFree}
+          </Text>
+        </View>
+      ))}
+    </View>
   );
 }

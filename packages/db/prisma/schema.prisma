@@ -197,9 +197,13 @@ model Profile {
   usageEvents         UsageEvent[]
   subscriptions       Subscription[]
   promoRedemptions    PromoRedemption[]
+  referralCode        ReferralCode?
+  referralsMade       Referral[]        @relation("ReferralReferrer")
+  referralClaimed     Referral?         @relation("ReferralReferee")
   campaignImpressions CampaignImpression[]
   campaignEmailSends  CampaignEmailSend[]
   feedback            Feedback[]
+  appEvents           AppEvent[]
   purchasedPasses     GroupPass[]
   syncMutations       SyncMutation[]
   memberClaims        MemberClaim[]
@@ -1414,6 +1418,49 @@ model PromoCode {
   @@schema("public")
 }
 
+/// A person's personal invite code (https://wavs.co.in/r/<CODE>). Created
+/// lazily by `waves_my_referral`; read-only for the owner (RLS).
+model ReferralCode {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @unique(map: "referral_codes_profile_key") @map("profile_id") @db.Uuid
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, map: "referral_codes_profile_fkey")
+  referrals Referral[]
+
+  @@map("referral_codes")
+  @@schema("public")
+}
+
+/// One friend brought in by one person. Written only by the referral RPCs and
+/// triggers (SECURITY DEFINER); `status` moves claimed -> rewarded | rejected
+/// exactly once, when the friend is verified and has recorded a genuine expense
+/// in a group of two or more. Days granted are capped at 30 per account.
+model Referral {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId   String    @map("referrer_id") @db.Uuid
+  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code         String
+  source       String    @default("code")
+  status       String    @default("claimed")
+  rejectReason String?   @map("reject_reason")
+  claimedAt    DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
+  referrerDays Int       @default(0) @map("referrer_days")
+  refereeDays  Int       @default(0) @map("referee_days")
+  identityKeys String[]  @default([]) @map("identity_keys")
+
+  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
+  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
+  referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+
+  @@index([referrerId, status], map: "referrals_referrer_idx")
+  @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
+  @@map("referrals")
+  @@schema("public")
+}
+
 /// Who used which code. Written only by `waves_redeem_promo`, which is
 /// SECURITY DEFINER so the client never touches `subscriptions` itself.
 model PromoRedemption {
@@ -1550,6 +1597,47 @@ model Feedback {
 
   @@index([createdAt(sort: Desc)], map: "feedback_recent_idx")
   @@map("feedback")
+  @@schema("public")
+}
+
+/// First-party product analytics: the few app steps the database cannot derive
+/// from its own rows. Written only through waves_track_event; no direct access
+/// for anon or authenticated. `props` holds short enum words and nothing else.
+/// One-install-per-install_id is a partial unique index (name = 'app_installed')
+/// that the datamodel cannot express.
+model AppEvent {
+  id         BigInt   @id @default(autoincrement())
+  installId  String   @map("install_id") @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  /// app_installed | signup_started | onboarding_completed | premium_viewed
+  name       String
+  /// ios | android | web
+  platform   String?
+  appVersion String?  @map("app_version")
+  props      Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([name, occurredAt])
+  @@index([profileId])
+  @@index([installId, occurredAt])
+  @@map("app_events")
+  @@schema("public")
+}
+
+/// Hits per client address on `waves_track_event`, for its flood guard. Holds
+/// a salted sha256 of the address, never the address. Disposable: the function
+/// sweeps rows older than two days.
+model AppEventIpHit {
+  id        BigInt   @id @default(autoincrement())
+  ipHash    String   @map("ip_hash")
+  isInstall Boolean  @default(false) @map("is_install")
+  at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([ipHash, at], map: "app_event_ip_hits_ip_hash_at_idx")
+  @@index([at], map: "app_event_ip_hits_at_idx")
+  @@map("app_event_ip_hits")
   @@schema("public")
 }
 

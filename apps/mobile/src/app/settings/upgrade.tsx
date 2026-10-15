@@ -7,7 +7,8 @@
  *
  * Two states. Where the paywall is live (the `paywall` flag on, and a build
  * with a RevenueCat key), the hero names Plus and Pro, says which one the
- * person is on, and opens `/paywall`. Everywhere else there is nothing to buy,
+ * person is on, and opens `/paywall`; somebody paying through a store also
+ * gets a way to that store's page to change or cancel it. Everywhere else there is nothing to buy,
  * and the screen says so: a price list for something that cannot be bought
  * would teach somebody something that is not true. The three cards' chevrons
  * open the card to its whole sentence either way.
@@ -33,9 +34,17 @@ import {
 import { PlanTier } from '@waves/core';
 
 import { fill, useStrings, type UiStrings } from '@/i18n';
+import { useTrackPremiumViewed } from '@/lib/plusPrice';
 import { useFlagEnabled } from '@/lib/flags';
 import { router } from '@/lib/navigation';
-import { purchasesAvailable } from '@/lib/purchases';
+import {
+  hasStoreSubscription,
+  manageSubscription,
+  purchasesAvailable,
+  useCustomerTier,
+} from '@/lib/purchases';
+import { reportHandled } from '@/lib/observability';
+import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
@@ -91,6 +100,17 @@ export default function UpgradeScreen() {
   const [open, setOpen] = useState<string | null>(null);
   const plansLive = useFlagEnabled('paywall') && purchasesAvailable();
   const { tier, isPaid } = useEntitlement();
+  const { info } = useCustomerTier();
+  const canManage = plansLive && hasStoreSubscription(info);
+  const toast = useToast();
+  // Counts this screen being opened, once per mount, tagged with the Plus price arm.
+  useTrackPremiumViewed('upgrade');
+  const onManage = () => {
+    manageSubscription().catch((error: unknown) => {
+      reportHandled(error, 'purchases.manageSubscription');
+      toast.show(t.paywall.genericError, 'negative');
+    });
+  };
   const heroTitle = !plansLive
     ? t.upgradeScreen.nothingToBuy
     : isPaid
@@ -146,13 +166,29 @@ export default function UpgradeScreen() {
               {plansLive ? t.upgradeScreen.plansBody : t.upgradeScreen.nothingToBuyBody}
             </Text>
             {plansLive ? (
-              <View style={{ alignSelf: 'flex-start', marginTop: 2 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 2,
+                }}
+              >
                 <Button
                   label={t.upgradeScreen.seePlans}
                   variant="brand"
                   size="sm"
                   onPress={() => router.push('/paywall')}
                 />
+                {canManage ? (
+                  <Button
+                    label={t.upgradeScreen.manageSubscription}
+                    variant="ghost"
+                    size="sm"
+                    onPress={onManage}
+                  />
+                ) : null}
               </View>
             ) : null}
           </View>

@@ -1957,6 +1957,8 @@ export interface UiStrings {
   deleteForm: {
     heroTitle: string;
     staysPill: string;
+    subscriptionTitle: string;
+    subscriptionBody: string;
     goesPill: string;
     cannotRecover: string;
     statGroups: string;
@@ -4385,6 +4387,7 @@ export interface UiStrings {
     seePlans: string;
     onPlan: string;
     plansPromise: string;
+    manageSubscription: string;
     whatCosts: string;
   };
   /**
@@ -4425,6 +4428,17 @@ export interface UiStrings {
     purchasePending: string;
     genericError: string;
     terms: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    continueWith: string;
+    noPlans: string;
+    freeTitle: string;
+    freeGroups: string;
+    freeExpenses: string;
+    freeBalances: string;
+    alwaysFree: string;
+    redeemTitle: string;
+    redeemHint: string;
     privacy: string;
   };
   /**
@@ -4449,6 +4463,41 @@ export interface UiStrings {
     exhausted: string;
     alreadyRedeemed: string;
     couldNotRedeem: string;
+  };
+  /**
+   * Invite your friends: the personal link and what it has earned. A useful part
+   * of sharing expenses, not a game; days of Plus follow real use, never an
+   * install, a rating or a review.
+   */
+  referral: {
+    row: string;
+    rowHint: string;
+    title: string;
+    headline: string;
+    body: string;
+    youGetTitle: string;
+    youGetBody: string;
+    friendGetsTitle: string;
+    friendGetsBody: string;
+    /** Milestone label under a node on the progress path: "{n} days" */
+    milestoneDays: string;
+    share: string;
+    shareMessage: string;
+    /** "{earned} of {cap} days earned" */
+    progress: string;
+    /** "... all {cap} days ..." */
+    capReached: string;
+    pending: PluralForms;
+    loadError: string;
+    haveCode: string;
+    paste: string;
+    apply: string;
+    applied: string;
+    unknownCode: string;
+    ownCode: string;
+    alreadyUsed: string;
+    notNew: string;
+    couldNotApply: string;
   };
   /**
    * Taking over a place somebody already holds in a group, and an admin
@@ -4534,6 +4583,57 @@ export interface UiStrings {
     confirmTitle: string;
     confirmBody: string;
     badge: string;
+  };
+  /** Settings → Privacy → Network activity: the on-device list of connections. */
+  netlog: {
+    row: string;
+    rowHint: string;
+    title: string;
+    explainer: string;
+    empty: string;
+    emptyFiltered: string;
+    today: string;
+    yesterday: string;
+    filterAll: string;
+    clear: string;
+    clearTitle: string;
+    clearBody: string;
+    clearConfirm: string;
+    statusFailed: string;
+    statusOffline: string;
+    /** Spoken label for a row: time, purpose, method, address, status. */
+    rowLabel: string;
+    purposes: {
+      sync: string;
+      signIn: string;
+      analytics: string;
+      files: string;
+      exchangeRates: string;
+      serverTask: string;
+      purchases: string;
+      crashReports: string;
+      sessionReplay: string;
+      google: string;
+      maps: string;
+      other: string;
+    };
+    servicesTitle: string;
+    usedFor: string;
+    dataLabel: string;
+    svc: Record<
+      | 'supabase'
+      | 'files'
+      | 'purchases'
+      | 'sentry'
+      | 'firebase'
+      | 'drive'
+      | 'clarity'
+      | 'maps'
+      | 'appStore',
+      { purpose: string; data: string }
+    >;
+    builtinNote: string;
+    unseenNote: string;
   };
   privacy: {
     exportMine: string;
@@ -6635,6 +6735,9 @@ const en: UiStrings = {
   deleteForm: {
     heroTitle: 'This cannot be undone',
     staysPill: 'Remains in your groups',
+    subscriptionTitle: 'Your subscription keeps renewing',
+    subscriptionBody:
+      'Deleting your account does not cancel it. Cancel it in your app store first, or the store keeps charging you.',
     goesPill: 'Permanently deleted',
     cannotRecover: 'Your data will be permanently deleted and cannot be recovered.',
     statGroups: 'Groups you are in',
@@ -8652,6 +8755,7 @@ const en: UiStrings = {
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
+    manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
   },
   paywall: {
@@ -8688,6 +8792,18 @@ const en: UiStrings = {
     genericError: 'That did not go through. Try again in a moment.',
     terms: 'Terms',
     privacy: 'Privacy',
+    heroTitle: 'Upgrade to Waves Pro',
+    heroSubtitle:
+      'More scans, bigger transfers and advanced AI voice. The basics stay free forever.',
+    continueWith: 'Continue with {plan}',
+    noPlans: 'Plans are not available right now.',
+    freeTitle: 'What stays free?',
+    freeGroups: 'Groups & splits',
+    freeExpenses: 'Add & manage expenses',
+    freeBalances: 'View balances & settle up',
+    alwaysFree: 'Always free',
+    redeemTitle: 'Redeem a code',
+    redeemHint: 'If somebody gave you one.',
   },
   promo: {
     clear: 'Clear',
@@ -8704,6 +8820,36 @@ const en: UiStrings = {
     exhausted: 'That code has been used as many times as it allows.',
     alreadyRedeemed: 'You have already used that one.',
     couldNotRedeem: 'The code could not be checked just now. Try again in a moment.',
+  },
+  referral: {
+    row: 'Invite your friends',
+    rowHint: 'Earn days of Plus together',
+    title: 'Invite your friends',
+    headline: 'Money is easier together.',
+    body: 'Share a group with friends and unlock a little more from Waves.',
+    youGetTitle: 'You get 7 days of Plus',
+    youGetBody: 'After your friend starts using Waves.',
+    friendGetsTitle: 'Your friend gets 7 days too',
+    friendGetsBody: 'Try premium features together.',
+    milestoneDays: '{n} days',
+    share: 'Share invite link',
+    shareMessage: 'I use Waves to split expenses with friends. Join me:',
+    progress: '{earned} of {cap} days earned',
+    capReached: 'You have earned all {cap} days. Thank you!',
+    pending: {
+      one: '{n} friend has joined. Waiting for their first shared expense.',
+      other: '{n} friends have joined. Waiting for their first shared expense.',
+    },
+    loadError: 'Could not load your invite. Try again in a moment.',
+    haveCode: 'Got a code from a friend?',
+    paste: 'Paste',
+    apply: 'Apply',
+    applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
+    unknownCode: 'That code does not match anyone.',
+    ownCode: 'That is your own code.',
+    alreadyUsed: 'You have already used an invite.',
+    notNew: 'Codes only work for new accounts, within 7 days of signing up.',
+    couldNotApply: 'Could not apply the code. Try again in a moment.',
   },
   timeline: {
     fullScreen: 'Full screen map',
@@ -8787,6 +8933,84 @@ const en: UiStrings = {
       'They will appear as an anonymous ghost everywhere in the app. Your balances with them do not change, and they are not told.',
     badge: 'Blocked',
   },
+  netlog: {
+    row: 'Network activity',
+    rowHint: 'Every connection this phone made, kept only on it',
+    title: 'Network activity',
+    explainer:
+      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+    empty: 'No connections recorded yet.',
+    emptyFiltered: 'Nothing under this filter.',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    filterAll: 'All',
+    clear: 'Clear',
+    clearTitle: 'Clear this list?',
+    clearBody: 'This empties the list on this phone. It does not change anything Waves does.',
+    clearConfirm: 'Clear',
+    statusFailed: 'failed',
+    statusOffline: 'offline',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'Sync',
+      signIn: 'Sign-in',
+      analytics: 'Analytics',
+      files: 'Files',
+      exchangeRates: 'Exchange rates',
+      serverTask: 'Server task',
+      purchases: 'Purchases',
+      crashReports: 'Crash reports',
+      sessionReplay: 'Session replay',
+      google: 'Google services',
+      maps: 'Maps',
+      other: 'Other',
+    },
+    servicesTitle: 'Services Waves can contact',
+    usedFor: 'Used for',
+    dataLabel: 'Data',
+    svc: {
+      supabase: {
+        purpose: 'Your account, groups and expenses, and exchange rates fetched for you.',
+        data: 'Your account, the groups you are in, their expenses and settlements, and the app events you send.',
+      },
+      files: {
+        purpose: 'Receipts and photos you add, stored in a private bucket.',
+        data: 'The image file you add, uploaded through a short-lived signed link.',
+      },
+      purchases: {
+        purpose: 'Your Plus or Pro subscription.',
+        data: 'Store receipts and your account id.',
+      },
+      sentry: {
+        purpose:
+          'Crash reports, scrubbed before they leave the phone. Only in builds with crash reporting set up.',
+        data: 'What went wrong in the app, with names, amounts and contacts removed.',
+      },
+      firebase: {
+        purpose: 'Phone sign-in, and proof that a request comes from the real app (App Check).',
+        data: 'Your phone number while you verify it, and a device check from the app store.',
+      },
+      drive: {
+        purpose: 'Your own backup, only if you turn on Google Drive backup.',
+        data: 'The backup file, in a private app folder of your Google Drive.',
+      },
+      clarity: {
+        purpose: 'Session replay. Off unless you turn it on in Privacy.',
+        data: 'How you use the app on screen, only while it is on.',
+      },
+      maps: {
+        purpose: 'The map behind a place on an expense.',
+        data: 'The map area being shown, which is roughly where the place is.',
+      },
+      appStore: {
+        purpose: 'Checking whether a newer version of Waves is out (iPhone).',
+        data: "Waves' app id and your country.",
+      },
+    },
+    builtinNote:
+      "Some services (purchases, crash reports, Google sign-in) also connect from their own built-in code, which Waves can't list call by call. They are included in the list above.",
+    unseenNote: 'Images and map tiles drawn by the phone itself, and live voice, are not listed.',
+  },
   privacy: {
     exportMine: 'Export my data',
     row: 'Privacy',
@@ -8806,7 +9030,7 @@ const en: UiStrings = {
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
-      'Waves can record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.',
+      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. On Android, the install also counts which ad or link it came from (its campaign tag, such as meta or diwali_in), with no advertising identifier. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
@@ -8826,7 +9050,8 @@ const en: UiStrings = {
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     servicesSummary: 'Supabase for the database, Sentry for crashes, Clarity only if you allow it.',
-    analyticsSummary: 'No ads, no ad identifier. Screen recording is off unless you turn it on.',
+    analyticsSummary:
+      "No ads, no ad identifier. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
@@ -10893,6 +11118,9 @@ const ta: UiStrings = {
   deleteForm: {
     heroTitle: 'இதைத் திரும்பப் பெற முடியாது',
     staysPill: 'உங்கள் குழுக்களில் இருக்கும்',
+    subscriptionTitle: 'உங்கள் சந்தா தொடர்ந்து புதுப்பிக்கப்படும்',
+    subscriptionBody:
+      'கணக்கை நீக்குவது சந்தாவை ரத்து செய்யாது. முதலில் உங்கள் ஆப் ஸ்டோரில் ரத்து செய்யுங்கள், இல்லையெனில் ஸ்டோர் தொடர்ந்து கட்டணம் வசூலிக்கும்.',
     goesPill: 'நிரந்தரமாக நீக்கப்படும்',
     cannotRecover: 'உங்கள் தரவு நிரந்தரமாக நீக்கப்படும், மீட்க முடியாது.',
     statGroups: 'நீங்கள் உள்ள குழுக்கள்',
@@ -13034,6 +13262,7 @@ const ta: UiStrings = {
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
+    manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
   paywall: {
@@ -13071,6 +13300,18 @@ const ta: UiStrings = {
     genericError: 'அது முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
     terms: 'விதிமுறைகள்',
     privacy: 'தனியுரிமை',
+    heroTitle: 'Waves Pro-விற்கு மேம்படுத்துங்கள்',
+    heroSubtitle:
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல். அடிப்படை வசதிகள் என்றும் இலவசம்.',
+    continueWith: '{plan} உடன் தொடரவும்',
+    noPlans: 'திட்டங்கள் இப்போது கிடைக்கவில்லை.',
+    freeTitle: 'எவை இலவசமாகவே இருக்கும்?',
+    freeGroups: 'குழுக்கள் & பிரிப்பு',
+    freeExpenses: 'செலவுகளைச் சேர்த்து நிர்வகிக்க',
+    freeBalances: 'இருப்புகளைப் பார்த்து தீர்க்க',
+    alwaysFree: 'எப்போதும் இலவசம்',
+    redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
+    redeemHint: 'யாராவது கொடுத்திருந்தால்.',
   },
   promo: {
     clear: 'அழி',
@@ -13089,6 +13330,39 @@ const ta: UiStrings = {
     exhausted: 'அனுமதிக்கப்பட்ட அளவுக்கு அந்தக் குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டுவிட்டது.',
     alreadyRedeemed: 'அதை நீங்கள் ஏற்கனவே பயன்படுத்திவிட்டீர்கள்.',
     couldNotRedeem: 'இப்போது குறியீட்டைச் சரிபார்க்க முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+  },
+  referral: {
+    row: 'நண்பர்களை அழையுங்கள்',
+    rowHint: 'சேர்ந்து Plus நாட்களைப் பெறுங்கள்',
+    title: 'நண்பர்களை அழையுங்கள்',
+    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
+    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும்',
+    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
+    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
+    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
+    milestoneDays: '{n} நாட்கள்',
+    share: 'அழைப்புச் சுட்டியைப் பகிர்',
+    shareMessage:
+      'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
+    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
+    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    pending: {
+      one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+      other:
+        '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+    },
+    loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
+    haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
+    paste: 'ஒட்டு',
+    apply: 'பயன்படுத்து',
+    applied:
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+    unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
+    ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
+    alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
+    notNew: 'குறியீடுகள் புதிய கணக்குகளுக்கு, பதிவு செய்த 7 நாட்களுக்குள் மட்டுமே வேலை செய்யும்.',
+    couldNotApply: 'குறியீட்டைப் பயன்படுத்த முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
   },
   timeline: {
     fullScreen: 'முழுத்திரை வரைபடம்',
@@ -13173,6 +13447,87 @@ const ta: UiStrings = {
       'செயலி முழுவதும் அவர் அடையாளம் தெரியாத பேயாகத் தோன்றுவார். அவருடனான உங்கள் இருப்புகள் மாறாது, அவருக்கு அறிவிக்கப்படாது.',
     badge: 'தடுக்கப்பட்டது',
   },
+  netlog: {
+    row: 'நெட்வொர்க் செயல்பாடு',
+    rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
+    title: 'நெட்வொர்க் செயல்பாடு',
+    explainer:
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+    empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
+    emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    filterAll: 'அனைத்தும்',
+    clear: 'அழி',
+    clearTitle: 'இந்தப் பட்டியலை அழிக்கவா?',
+    clearBody: 'இது இந்த ஃபோனில் உள்ள பட்டியலை காலியாக்கும். Waves செய்யும் எதையும் இது மாற்றாது.',
+    clearConfirm: 'அழி',
+    statusFailed: 'தோல்வி',
+    statusOffline: 'ஆஃப்லைன்',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'ஒத்திசைவு',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பகுப்பாய்வு',
+      files: 'கோப்புகள்',
+      exchangeRates: 'நாணய மாற்று விகிதங்கள்',
+      serverTask: 'சர்வர் பணி',
+      purchases: 'வாங்குதல்கள்',
+      crashReports: 'செயலிழப்பு அறிக்கைகள்',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      google: 'Google சேவைகள்',
+      maps: 'வரைபடங்கள்',
+      other: 'மற்றவை',
+    },
+    servicesTitle: 'Waves தொடர்பு கொள்ளக்கூடிய சேவைகள்',
+    usedFor: 'எதற்காக',
+    dataLabel: 'தரவு',
+    svc: {
+      supabase: {
+        purpose:
+          'உங்கள் கணக்கு, குழுக்கள், செலவுகள், மேலும் உங்களுக்காகப் பெறப்படும் நாணய மாற்று விகிதங்கள்.',
+        data: 'உங்கள் கணக்கு, நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள் மற்றும் தீர்வுகள், நீங்கள் அனுப்பும் செயலி நிகழ்வுகள்.',
+      },
+      files: {
+        purpose:
+          'நீங்கள் சேர்க்கும் ரசீதுகள் மற்றும் புகைப்படங்கள், தனிப்பட்ட சேமிப்பகத்தில் வைக்கப்படும்.',
+        data: 'நீங்கள் சேர்க்கும் படக் கோப்பு, குறுகிய காலம் செல்லுபடியாகும் கையொப்பமிட்ட இணைப்பு வழியாகப் பதிவேற்றப்படும்.',
+      },
+      purchases: {
+        purpose: 'உங்கள் Plus அல்லது Pro சந்தா.',
+        data: 'ஸ்டோர் ரசீதுகளும் உங்கள் கணக்கு அடையாளமும்.',
+      },
+      sentry: {
+        purpose:
+          'செயலிழப்பு அறிக்கைகள், ஃபோனை விட்டுச் செல்லும் முன் தூய்மைப்படுத்தப்படும். செயலிழப்பு அறிக்கை அமைக்கப்பட்ட பதிப்புகளில் மட்டும்.',
+        data: 'செயலியில் என்ன தவறு நடந்தது, பெயர்கள், தொகைகள், தொடர்புகள் நீக்கப்பட்டு.',
+      },
+      firebase: {
+        purpose:
+          'ஃபோன் எண் மூலம் உள்நுழைவு, மேலும் கோரிக்கை உண்மையான செயலியிலிருந்து வருகிறது என்பதற்கான சான்று (App Check).',
+        data: 'சரிபார்க்கும்போது உங்கள் ஃபோன் எண், மற்றும் ஆப் ஸ்டோரிலிருந்து சாதனச் சரிபார்ப்பு.',
+      },
+      drive: {
+        purpose: 'உங்கள் சொந்த காப்புப்பிரதி, Google Drive காப்புப்பிரதியை இயக்கினால் மட்டும்.',
+        data: 'காப்புப்பிரதிக் கோப்பு, உங்கள் Google Drive-இல் உள்ள செயலிக்கான தனிப்பட்ட கோப்புறையில்.',
+      },
+      clarity: {
+        purpose: 'அமர்வு மறுஒளிபரப்பு. தனியுரிமையில் நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்.',
+        data: 'இயங்கும் நேரத்தில் மட்டும், திரையில் செயலியை நீங்கள் பயன்படுத்தும் விதம்.',
+      },
+      maps: {
+        purpose: 'செலவில் உள்ள இடத்தின் பின்னணி வரைபடம்.',
+        data: 'காட்டப்படும் வரைபடப் பகுதி, அதாவது இடம் தோராயமாக எங்கே என்பது.',
+      },
+      appStore: {
+        purpose: 'Waves-இன் புதிய பதிப்பு வந்துள்ளதா எனச் சரிபார்த்தல் (iPhone).',
+        data: 'Waves-இன் செயலி அடையாளமும் உங்கள் நாடும்.',
+      },
+    },
+    builtinNote:
+      'சில சேவைகள் (வாங்குதல்கள், செயலிழப்பு அறிக்கைகள், Google உள்நுழைவு) தங்களுடைய உள்ளமைந்த குறியீட்டிலிருந்தும் இணைகின்றன; அவற்றை Waves ஒவ்வொரு அழைப்பாகப் பட்டியலிட முடியாது. அவை மேலே உள்ள பட்டியலில் சேர்க்கப்பட்டுள்ளன.',
+    unseenNote: 'ஃபோனே வரையும் படங்களும் வரைபடத் துண்டுகளும், நேரடிக் குரலும் பட்டியலில் இல்லை.',
+  },
   privacy: {
     exportMine: 'என் தரவை ஏற்றுமதி செய்',
     row: 'தனியுரிமை',
@@ -13192,7 +13547,7 @@ const ta: UiStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
-      'எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. நிறுவலுடன், அது எந்த விளம்பரம் அல்லது இணைப்பிலிருந்து வந்தது (அதன் பிரச்சாரக் குறிச்சொல்) என்பதும் எண்ணப்படுகிறது; விளம்பர அடையாளம் இல்லை. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
@@ -13215,7 +13570,8 @@ const ta: UiStrings = {
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
       'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity.',
-    analyticsSummary: 'விளம்பரம் இல்லை. நீங்கள் இயக்கும் வரை திரைப் பதிவும் இல்லை.',
+    analyticsSummary:
+      'விளம்பரம் இல்லை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
@@ -15248,6 +15604,9 @@ const hi: UiStrings = {
   deleteForm: {
     heroTitle: 'इसे वापस नहीं किया जा सकता',
     staysPill: 'आपके समूहों में रहता है',
+    subscriptionTitle: 'आपकी सदस्यता नवीनीकृत होती रहेगी',
+    subscriptionBody:
+      'खाता हटाने से सदस्यता रद्द नहीं होती। पहले अपने ऐप स्टोर में इसे रद्द करें, वरना स्टोर शुल्क लेता रहेगा।',
     goesPill: 'स्थायी रूप से हटाया जाएगा',
     cannotRecover: 'आपका डेटा स्थायी रूप से हट जाएगा और वापस नहीं आ सकेगा।',
     statGroups: 'आपके समूह',
@@ -17287,6 +17646,7 @@ const hi: UiStrings = {
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
+    manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
   },
   paywall: {
@@ -17323,6 +17683,18 @@ const hi: UiStrings = {
     genericError: 'यह नहीं हो पाया। कुछ देर में फिर से कोशिश करें।',
     terms: 'शर्तें',
     privacy: 'निजता',
+    heroTitle: 'Waves Pro में अपग्रेड करें',
+    heroSubtitle:
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस। बुनियादी सुविधाएँ हमेशा मुफ़्त रहती हैं।',
+    continueWith: '{plan} के साथ आगे बढ़ें',
+    noPlans: 'प्लान अभी उपलब्ध नहीं हैं।',
+    freeTitle: 'क्या मुफ़्त रहता है?',
+    freeGroups: 'ग्रुप और बँटवारा',
+    freeExpenses: 'खर्चे जोड़ें और सँभालें',
+    freeBalances: 'बैलेंस देखें और हिसाब चुकाएँ',
+    alwaysFree: 'हमेशा मुफ़्त',
+    redeemTitle: 'कोड इस्तेमाल करें',
+    redeemHint: 'अगर किसी ने आपको दिया हो।',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -17339,6 +17711,36 @@ const hi: UiStrings = {
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
     alreadyRedeemed: 'आप उसे पहले ही इस्तेमाल कर चुके हैं।',
     couldNotRedeem: 'अभी कोड जाँचा नहीं जा सका। थोड़ी देर बाद कोशिश करें।',
+  },
+  referral: {
+    row: 'दोस्तों को आमंत्रित करें',
+    rowHint: 'साथ में Plus के दिन पाएँ',
+    title: 'दोस्तों को आमंत्रित करें',
+    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
+    youGetTitle: 'आपको 7 दिन का Plus मिलेगा',
+    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
+    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
+    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
+    milestoneDays: '{n} दिन',
+    share: 'आमंत्रण लिंक शेयर करें',
+    shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
+    progress: '{cap} में से {earned} दिन मिल चुके हैं',
+    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    pending: {
+      one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+      other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+    },
+    loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    haveCode: 'किसी दोस्त से कोड मिला है?',
+    paste: 'पेस्ट करें',
+    apply: 'लागू करें',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
+    unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
+    ownCode: 'यह आपका अपना कोड है।',
+    alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
+    notNew: 'कोड सिर्फ़ नए खातों पर, साइन अप के 7 दिनों के भीतर काम करते हैं।',
+    couldNotApply: 'कोड लागू नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
   },
   timeline: {
     fullScreen: 'फ़ुल स्क्रीन मैप',
@@ -17423,6 +17825,84 @@ const hi: UiStrings = {
       'वे पूरे ऐप में एक गुमनाम भूत के रूप में दिखेंगे। उनके साथ आपका हिसाब नहीं बदलता, और उन्हें बताया नहीं जाता।',
     badge: 'अवरोधित',
   },
+  netlog: {
+    row: 'नेटवर्क गतिविधि',
+    rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
+    title: 'नेटवर्क गतिविधि',
+    explainer:
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+    empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
+    emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
+    today: 'आज',
+    yesterday: 'कल',
+    filterAll: 'सभी',
+    clear: 'साफ़ करें',
+    clearTitle: 'यह सूची साफ़ करें?',
+    clearBody: 'इससे इस फ़ोन की सूची खाली हो जाएगी। Waves जो करता है, उसमें कुछ नहीं बदलता।',
+    clearConfirm: 'साफ़ करें',
+    statusFailed: 'विफल',
+    statusOffline: 'ऑफ़लाइन',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'सिंक',
+      signIn: 'साइन-इन',
+      analytics: 'एनालिटिक्स',
+      files: 'फ़ाइलें',
+      exchangeRates: 'विनिमय दरें',
+      serverTask: 'सर्वर का काम',
+      purchases: 'खरीदारी',
+      crashReports: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      google: 'Google सेवाएँ',
+      maps: 'नक्शे',
+      other: 'अन्य',
+    },
+    servicesTitle: 'जिन सेवाओं से Waves जुड़ सकता है',
+    usedFor: 'किसलिए',
+    dataLabel: 'डेटा',
+    svc: {
+      supabase: {
+        purpose: 'आपका खाता, ग्रुप और खर्चे, और आपके लिए लाई गई विनिमय दरें।',
+        data: 'आपका खाता, आप जिन ग्रुपों में हैं, उनके खर्चे और हिसाब-किताब, और आपके भेजे ऐप इवेंट।',
+      },
+      files: {
+        purpose: 'आपकी जोड़ी गई रसीदें और फ़ोटो, एक निजी बकेट में रखी जाती हैं।',
+        data: 'आपकी जोड़ी गई इमेज फ़ाइल, कुछ देर चलने वाले साइन किए हुए लिंक से अपलोड होती है।',
+      },
+      purchases: {
+        purpose: 'आपकी Plus या Pro सदस्यता।',
+        data: 'स्टोर की रसीदें और आपकी खाता आईडी।',
+      },
+      sentry: {
+        purpose:
+          'क्रैश रिपोर्ट, फ़ोन से निकलने से पहले साफ़ की हुई। सिर्फ़ उन बिल्ड में जिनमें क्रैश रिपोर्टिंग सेट है।',
+        data: 'ऐप में क्या गड़बड़ हुई, नाम, रकम और संपर्क हटाकर।',
+      },
+      firebase: {
+        purpose: 'फ़ोन से साइन-इन, और यह प्रमाण कि अनुरोध असली ऐप से आया है (App Check)।',
+        data: 'सत्यापन के दौरान आपका फ़ोन नंबर, और ऐप स्टोर की ओर से डिवाइस जाँच।',
+      },
+      drive: {
+        purpose: 'आपका अपना बैकअप, सिर्फ़ तब जब आप Google Drive बैकअप चालू करें।',
+        data: 'बैकअप फ़ाइल, आपके Google Drive के निजी ऐप फ़ोल्डर में।',
+      },
+      clarity: {
+        purpose: 'सेशन रीप्ले। जब तक आप गोपनीयता में चालू न करें, बंद रहता है।',
+        data: 'स्क्रीन पर आप ऐप कैसे इस्तेमाल करते हैं, सिर्फ़ जब यह चालू हो।',
+      },
+      maps: {
+        purpose: 'खर्चे में दिए गए स्थान के पीछे का नक्शा।',
+        data: 'दिखाया जा रहा नक्शे का इलाका, यानी स्थान लगभग कहाँ है।',
+      },
+      appStore: {
+        purpose: 'यह जाँच कि Waves का नया संस्करण आया है या नहीं (iPhone)।',
+        data: 'Waves की ऐप आईडी और आपका देश।',
+      },
+    },
+    builtinNote:
+      'कुछ सेवाएँ (खरीदारी, क्रैश रिपोर्ट, Google साइन-इन) अपने अंदर बने कोड से भी जुड़ती हैं, जिन्हें Waves हर कॉल के हिसाब से सूचीबद्ध नहीं कर सकता। वे ऊपर की सूची में शामिल हैं।',
+    unseenNote: 'फ़ोन खुद जो इमेज और नक्शे की टाइलें बनाता है, और लाइव वॉइस, सूची में नहीं हैं।',
+  },
   privacy: {
     exportMine: 'मेरा डेटा एक्सपोर्ट करें',
     row: 'निजता',
@@ -17442,7 +17922,7 @@ const hi: UiStrings = {
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
-      'Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
+      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। इंस्टॉल के साथ यह भी गिना जाता है कि वह किस विज्ञापन या लिंक से आया (उसका कैंपेन टैग), और कोई विज्ञापन पहचानकर्ता नहीं है। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
@@ -17463,7 +17943,8 @@ const hi: UiStrings = {
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary: 'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity।',
-    analyticsSummary: 'कोई विज्ञापन नहीं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
+    analyticsSummary:
+      'कोई विज्ञापन नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
@@ -19561,6 +20042,9 @@ const ar: UiStrings = {
   deleteForm: {
     heroTitle: 'لا يمكن التراجع عن هذا',
     staysPill: 'يبقى في مجموعاتك',
+    subscriptionTitle: 'اشتراكك يستمر في التجديد',
+    subscriptionBody:
+      'حذف حسابك لا يلغي الاشتراك. ألغِه من متجر التطبيقات أولًا، وإلا سيستمر المتجر في تحصيل الرسوم.',
     goesPill: 'يُحذف نهائيًا',
     cannotRecover: 'ستُحذف بياناتك نهائيًا ولا يمكن استعادتها.',
     statGroups: 'المجموعات التي أنت فيها',
@@ -22093,6 +22577,7 @@ const ar: UiStrings = {
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
+    manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
   },
   paywall: {
@@ -22129,6 +22614,17 @@ const ar: UiStrings = {
     genericError: 'لم تنجح العملية. حاول مرة أخرى بعد قليل.',
     terms: 'الشروط',
     privacy: 'الخصوصية',
+    heroTitle: 'الترقية إلى Waves Pro',
+    heroSubtitle: 'مسحات أكثر، ونقل أكبر، وصوت ذكاء اصطناعي متقدم. تبقى الأساسيات مجانية دائمًا.',
+    continueWith: 'المتابعة مع {plan}',
+    noPlans: 'الخطط غير متاحة حاليًا.',
+    freeTitle: 'ما الذي يبقى مجانيًا؟',
+    freeGroups: 'المجموعات والتقسيم',
+    freeExpenses: 'إضافة المصروفات وإدارتها',
+    freeBalances: 'عرض الأرصدة والتسوية',
+    alwaysFree: 'مجاني دائمًا',
+    redeemTitle: 'استخدام رمز',
+    redeemHint: 'إذا أعطاك أحدهم واحدًا.',
   },
   promo: {
     clear: 'مسح',
@@ -22145,6 +22641,40 @@ const ar: UiStrings = {
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
     alreadyRedeemed: 'لقد استخدمته من قبل.',
     couldNotRedeem: 'تعذّر التحقق من الرمز الآن. حاول بعد قليل.',
+  },
+  referral: {
+    row: 'ادعُ أصدقاءك',
+    rowHint: 'اكسبوا أيام Plus معًا',
+    title: 'ادعُ أصدقاءك',
+    headline: 'المال أسهل حين نتشاركه.',
+    body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
+    youGetTitle: 'تحصل على 7 أيام من Plus',
+    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
+    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
+    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
+    milestoneDays: '{n} أيام',
+    share: 'شارك رابط الدعوة',
+    shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
+    progress: 'تم كسب {earned} من {cap} يومًا',
+    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    pending: {
+      zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
+      one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
+      two: 'انضم صديقان. ننتظر أول مصروف مشترك لهما.',
+      few: 'انضم {n} أصدقاء. ننتظر أول مصروف مشترك لهم.',
+      many: 'انضم {n} صديقًا. ننتظر أول مصروف مشترك لهم.',
+      other: 'انضم {n} صديق. ننتظر أول مصروف مشترك لهم.',
+    },
+    loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
+    haveCode: 'هل لديك رمز من صديق؟',
+    paste: 'لصق',
+    apply: 'تطبيق',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
+    unknownCode: 'هذا الرمز لا يطابق أي شخص.',
+    ownCode: 'هذا رمزك الخاص.',
+    alreadyUsed: 'لقد استخدمت دعوة من قبل.',
+    notNew: 'تعمل الرموز مع الحسابات الجديدة فقط، خلال 7 أيام من التسجيل.',
+    couldNotApply: 'تعذّر تطبيق الرمز. حاول مجددًا بعد قليل.',
   },
   timeline: {
     fullScreen: 'خريطة بملء الشاشة',
@@ -22246,6 +22776,84 @@ const ar: UiStrings = {
     confirmBody: 'سيظهر كشبح مجهول في كل مكان في التطبيق. أرصدتك معه لا تتغيّر، ولا يتم إخباره.',
     badge: 'محظور',
   },
+  netlog: {
+    row: 'نشاط الشبكة',
+    rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
+    title: 'نشاط الشبكة',
+    explainer:
+      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+    empty: 'لم يُسجَّل أي اتصال بعد.',
+    emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    filterAll: 'الكل',
+    clear: 'مسح',
+    clearTitle: 'مسح هذه القائمة؟',
+    clearBody: 'سيؤدي هذا إلى إفراغ القائمة على هذا الهاتف. ولا يغيّر شيئًا مما يفعله Waves.',
+    clearConfirm: 'مسح',
+    statusFailed: 'فشل',
+    statusOffline: 'بلا اتصال',
+    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    purposes: {
+      sync: 'المزامنة',
+      signIn: 'تسجيل الدخول',
+      analytics: 'التحليلات',
+      files: 'الملفات',
+      exchangeRates: 'أسعار الصرف',
+      serverTask: 'مهمة على الخادم',
+      purchases: 'المشتريات',
+      crashReports: 'تقارير الأعطال',
+      sessionReplay: 'إعادة تشغيل الجلسة',
+      google: 'خدمات Google',
+      maps: 'الخرائط',
+      other: 'أخرى',
+    },
+    servicesTitle: 'الخدمات التي يمكن لـ Waves الاتصال بها',
+    usedFor: 'الغرض',
+    dataLabel: 'البيانات',
+    svc: {
+      supabase: {
+        purpose: 'حسابك ومجموعاتك ومصاريفك، وأسعار الصرف التي تُجلب لك.',
+        data: 'حسابك والمجموعات التي أنت فيها ومصاريفها وتسوياتها، وأحداث التطبيق التي ترسلها.',
+      },
+      files: {
+        purpose: 'الإيصالات والصور التي تضيفها، وتُحفظ في مستودع خاص.',
+        data: 'ملف الصورة الذي تضيفه، ويُرفع عبر رابط موقّع قصير الأمد.',
+      },
+      purchases: {
+        purpose: 'اشتراكك في Plus أو Pro.',
+        data: 'إيصالات المتجر ومعرّف حسابك.',
+      },
+      sentry: {
+        purpose:
+          'تقارير الأعطال، بعد تنقيتها قبل أن تغادر الهاتف. فقط في الإصدارات التي أُعدّ فيها الإبلاغ عن الأعطال.',
+        data: 'ما الذي حدث من خطأ في التطبيق، بعد حذف الأسماء والمبالغ وجهات الاتصال.',
+      },
+      firebase: {
+        purpose: 'تسجيل الدخول بالهاتف، والتحقق من أن الطلب صادر من التطبيق الحقيقي (App Check).',
+        data: 'رقم هاتفك أثناء التحقق منه، وفحص الجهاز من المتجر.',
+      },
+      drive: {
+        purpose: 'نسختك الاحتياطية الخاصة، فقط إذا فعّلت النسخ الاحتياطي على Google Drive.',
+        data: 'ملف النسخة الاحتياطية، في مجلد خاص بالتطبيق داخل Google Drive الخاص بك.',
+      },
+      clarity: {
+        purpose: 'إعادة تشغيل الجلسة. متوقفة ما لم تفعّلها من الخصوصية.',
+        data: 'كيف تستخدم التطبيق على الشاشة، فقط أثناء تفعيلها.',
+      },
+      maps: {
+        purpose: 'الخريطة خلف المكان المضاف إلى مصروف.',
+        data: 'منطقة الخريطة المعروضة، أي المكان التقريبي الذي يوجد فيه الموقع.',
+      },
+      appStore: {
+        purpose: 'التحقق من صدور إصدار أحدث من Waves (آيفون).',
+        data: 'معرّف تطبيق Waves وبلدك.',
+      },
+    },
+    builtinNote:
+      'بعض الخدمات (المشتريات وتقارير الأعطال وتسجيل الدخول بـ Google) تتصل أيضًا من شيفرتها المدمجة، ولا يستطيع Waves سرد اتصالاتها واحدًا واحدًا. وهي مشمولة في القائمة أعلاه.',
+    unseenNote: 'الصور وبلاطات الخرائط التي يرسمها الهاتف نفسه، والصوت المباشر، غير مدرجة.',
+  },
   privacy: {
     exportMine: 'تصدير بياناتي',
     row: 'الخصوصية',
@@ -22264,7 +22872,7 @@ const ar: UiStrings = {
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
-      'يمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
+      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. ويُحصى مع التثبيت أيضًا الإعلان أو الرابط الذي جاء منه (وسم حملته)، دون أي معرّف إعلاني. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
@@ -22284,7 +22892,8 @@ const ar: UiStrings = {
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     servicesSummary: 'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت.',
-    analyticsSummary: 'لا إعلانات ولا معرّف إعلاني. ولا تسجيل للشاشة ما لم تفعّله.',
+    analyticsSummary:
+      'لا إعلانات ولا معرّف إعلاني. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',

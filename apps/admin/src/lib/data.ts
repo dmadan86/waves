@@ -104,6 +104,52 @@ export interface DailyRow {
   active_profiles: number;
 }
 
+/** One row, as Postgres returns it: bigint counts arrive as numbers or strings, ratios as numeric. */
+export interface KpiRow {
+  installs: number | string;
+  registrations: number | string;
+  install_to_registration: number | string | null;
+  activation_cohort: number | string;
+  activated: number | string;
+  registration_to_activation: number | string | null;
+  d1_cohort: number | string;
+  d1_retained: number | string;
+  d1: number | string | null;
+  d7_cohort: number | string;
+  d7_retained: number | string;
+  d7: number | string | null;
+  d30_cohort: number | string;
+  d30_retained: number | string;
+  d30: number | string | null;
+  invites_sent: number | string;
+  invite_registrations: number | string;
+  invite_to_registration: number | string | null;
+}
+
+export interface RetentionCohortRow {
+  week_start: string;
+  size: number | string;
+  activation_eligible: number | string;
+  activated: number | string;
+  d1_eligible: number | string;
+  d1_retained: number | string;
+  d7_eligible: number | string;
+  d7_retained: number | string;
+  d30_eligible: number | string;
+  d30_retained: number | string;
+}
+
+/** One (source, medium, campaign) line of `waves_admin_campaigns`. */
+export interface CampaignRow {
+  source: string;
+  medium: string;
+  campaign: string;
+  installs: number | string;
+  registrations: number | string;
+  activated: number | string;
+  subscriptions: number | string;
+}
+
 export interface GeoRow {
   country_code: string | null;
   profile_count: number;
@@ -153,6 +199,14 @@ export interface FlagResultRow {
   people: number;
   expenses_created: number;
   active_30d: number;
+}
+
+/** Per arm of the `plus_price` test: people, plans-screen installs, Plus subscriptions started. */
+export interface PlusPriceResultRow {
+  variant: string;
+  people: number;
+  premium_viewed_installs: number;
+  plus_started: number;
 }
 
 /**
@@ -320,6 +374,23 @@ export interface PromoCodeRow {
 }
 
 export const promoCodes = () => call<PromoCodeRow>('waves_admin_promo_codes');
+
+export interface ReferralRow {
+  id: string;
+  referrer_id: string;
+  referrer_name: string;
+  referee_id: string;
+  referee_name: string;
+  source: string;
+  status: string;
+  reject_reason: string | null;
+  claimed_at: string;
+  qualified_at: string | null;
+  referrer_days: number;
+  referee_days: number;
+}
+
+export const referrals = () => call<ReferralRow>('waves_admin_referrals', { p_limit: 100 });
 
 export async function createPromoCode(input: {
   code: string;
@@ -580,6 +651,8 @@ export const voiceAttempts = (limit = 200) =>
 export const flagResults = (key: string) =>
   call<FlagResultRow>('waves_admin_flag_results', { p_key: key });
 
+export const plusPriceResults = () => call<PlusPriceResultRow>('waves_admin_plus_price_results');
+
 // ─────────────────────────────────────────────────── rate limiting ──
 // The abuse limiter's numbers, made editable. `waves_rate_limit` reads these
 // tables on every call; a bucket with no row falls back to the code default in
@@ -800,6 +873,14 @@ export async function upgradeUser(userId: string, days: number): Promise<string>
 }
 
 export const daily = (days = 30) => call<DailyRow>('waves_admin_daily', { p_days: days });
+/** The activation and retention row for signups in the last `days` days. */
+export const kpis = async (days = 30): Promise<KpiRow | null> =>
+  (await call<KpiRow>('waves_admin_kpis', { p_days: days }))[0] ?? null;
+export const retentionCohorts = (weeks = 8) =>
+  call<RetentionCohortRow>('waves_admin_retention_cohorts', { p_weeks: weeks });
+/** Installs, registrations, activations and paid plans per campaign tag. */
+export const campaignStats = (days = 30) =>
+  call<CampaignRow>('waves_admin_campaigns', { p_days: days });
 export const geo = () => call<GeoRow>('waves_admin_geo');
 export const money = () => call<MoneyRow>('waves_admin_money');
 export const aiCost = (days = 30) => call<AiCostRow>('waves_admin_ai_cost', { p_days: days });

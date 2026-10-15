@@ -7,6 +7,12 @@
  * the server must own share computation and authorization (TDR §4).
  */
 
+import {
+  parseClaimOutcome,
+  parseMyReferral,
+  type ClaimOutcome,
+  type MyReferral,
+} from '@/lib/referral';
 import { randomUUID } from 'expo-crypto';
 
 import {
@@ -2088,6 +2094,31 @@ export async function redeemPromoCode(code: string): Promise<PromoOutcome> {
   const { data, error } = await backend.rpc('waves_redeem_promo', { p_code: code });
   if (error) throw new Error(error.message);
   return data as PromoOutcome;
+}
+
+// ────────────────────────────────────── referrals ──
+
+/**
+ * The person's own invite code and progress. The code is created on first call.
+ * Null when the server answers with something this build does not understand
+ * (a guest account, or a newer shape), so the screen shows its retry state
+ * rather than a half-filled card.
+ */
+export async function fetchMyReferral(): Promise<MyReferral | null> {
+  const { data, error } = await backend.rpc('waves_my_referral');
+  if (error) throw new Error(error.message);
+  return parseMyReferral(data);
+}
+
+/**
+ * Claim a friend's code. The server decides everything (self-referral, one per
+ * person, a new account only, and later whether any days are earned), and a
+ * refusal is an ordinary answer, not an exception.
+ */
+export async function claimReferral(code: string): Promise<ClaimOutcome> {
+  const { data, error } = await backend.rpc('waves_claim_referral', { p_code: code });
+  if (error) throw new Error(error.message);
+  return parseClaimOutcome(data);
 }
 
 // ────────────────────────────────────── feedback, and leaving ──
