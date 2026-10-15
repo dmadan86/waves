@@ -360,7 +360,7 @@ BEGIN
 END
 $$;
 
--- 6. The plan the app reads ---------------------------------------------------
+-- 6. The plan the app reads (and no longer anyone else's) ---------------------------------------------------
 -- waves_my_plan from 20261008120000_revenuecat_webhook, plus the trial: its
 -- row counts unless a real purchase or another Pro is active, and the answer
 -- carries trial / trialEndsAt / trialVoiceLimit / trialVoiceUsed while the
@@ -370,7 +370,13 @@ CREATE OR REPLACE FUNCTION public.waves_my_plan(p_profile_id uuid DEFAULT NULL::
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
-  v_profile uuid := COALESCE(p_profile_id, public.waves_current_profile_id());
+  -- A signed-in caller (PostgREST role anon / authenticated) only ever reads
+  -- their OWN plan: p_profile_id is ignored for them. It is honoured for the
+  -- service role and for direct database sessions, which carry no client role.
+  v_role    text := COALESCE(NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', '');
+  v_profile uuid := CASE WHEN v_role IN ('anon', 'authenticated')
+                         THEN public.waves_current_profile_id()
+                         ELSE COALESCE(p_profile_id, public.waves_current_profile_id()) END;
   v_row     record;
   v_plan    text;
   v_trial   timestamptz;

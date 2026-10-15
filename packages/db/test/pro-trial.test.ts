@@ -15,7 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 
-import { connect } from './helpers';
+import { asRole, connect } from './helpers';
 
 let client: Client;
 
@@ -346,6 +346,23 @@ describe('voice on the trial', () => {
     await grant(id);
     const { rows } = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
     expect(rows[0].m).toMatchObject({ budget: 60, tier: 'pro', trial: true, allowed: true });
+  });
+});
+
+describe('waves_my_plan caller scoping', () => {
+  it("gives a signed-in user their own plan even when they pass someone else's id", async () => {
+    const mine = await person();
+    const theirs = await person();
+    await grant(theirs);
+    expect(await plan(theirs)).toMatchObject({ plan: 'pro', trial: true });
+    const seen = await asRole(
+      client,
+      'authenticated',
+      { sub: mine, role: 'authenticated' },
+      async () => (await client.query(`SELECT waves_my_plan($1) AS p`, [theirs])).rows[0].p,
+    );
+    expect(seen).toMatchObject({ plan: 'free' });
+    expect(seen.trial).toBeUndefined();
   });
 });
 
