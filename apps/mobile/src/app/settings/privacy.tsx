@@ -378,6 +378,27 @@ export default function PrivacyScreen() {
               ))}
             </View>
 
+            {/* What this phone has connected to, kept only on it. Local, so it is
+                offered signed out too. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.netlog.row}
+              accessibilityHint={t.netlog.rowHint}
+              onPress={() => router.push('/settings/network-activity')}
+              style={({ pressed }) => [SOFT_CARD, rowCard, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <View style={DISC}>
+                <Ionicons name="pulse-outline" size={21} color={ACCENT} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>{t.netlog.row}</Text>
+                <Text numberOfLines={2} style={{ fontSize: 13, lineHeight: 18, color: MUTED }}>
+                  {t.netlog.rowHint}
+                </Text>
+              </View>
+              <Ionicons name={directionalIcon('chevron-forward')} size={18} color={FAINT} />
+            </Pressable>
+
             {/* Signed in, the controls over other people's view of you: who may
                 find you, who may no longer reach you, and — on a build with a
                 Clarity project — whether your use is recorded. */}
