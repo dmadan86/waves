@@ -213,6 +213,8 @@ model Profile {
   voiceSttUsage       VoiceSttUsage[]
   voiceAgentUsage     VoiceAgentUsage[]
   voiceAgentAllowlist VoiceAgentAllowlist?
+  aiUsage             AiUsage[]
+  screenshotImportAllowlist ScreenshotImportAllowlist?
   voiceAttempts       VoiceAttempt[]
   apiApps             ApiApp[]
   apiTokens           ApiToken[]
@@ -2264,6 +2266,38 @@ model VoiceAgentAllowlist {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("voice_agent_allowlist")
+  @@schema("public")
+}
+
+/// Per-person monthly count of metered AI features, keyed by `feature`
+/// ('screenshot_import' today). Reserved atomically by `waves_ai_usage_reserve`
+/// (via `waves_screenshot_import_quota`), refunded by `waves_ai_usage_refund`;
+/// a person may read their own rows.
+model AiUsage {
+  profileId String   @map("profile_id") @db.Uuid
+  /// 'YYYY-MM' (UTC); a new month is a new key.
+  month     String
+  feature   String
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, month, feature])
+  @@map("ai_usage")
+  @@schema("public")
+}
+
+/// People the `screenshot_import` flag is on for regardless of the flag's own
+/// `enabled`/`rolloutPercent` (see `waves_screenshot_import_enabled`). Service role only.
+model ScreenshotImportAllowlist {
+  profileId String   @id @map("profile_id") @db.Uuid
+  note      String   @default("")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("screenshot_import_allowlist")
   @@schema("public")
 }
 
