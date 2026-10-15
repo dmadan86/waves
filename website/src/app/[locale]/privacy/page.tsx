@@ -6,7 +6,7 @@ import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
 
-const UPDATED = '9 October 2026';
+const UPDATED = '15 October 2026';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -39,9 +39,18 @@ const sections: LegalSection[] = [
   {
     heading: 'What we do not do',
     body: [
-      'We do not sell your data, and we do not share it with advertisers or data brokers. There are no third-party advertising or tracking pixels in the app.',
+      'We do not sell your data, and we do not share it with data brokers. We never share your expenses, groups or balances with advertisers. The only advertising in the app is the optional reward ad described under Advertising below; there are no tracking pixels.',
       'We do not read your SMS, contacts, camera roll or microphone in the background. Where the app offers to read a payment SMS or scan a receipt, it happens on your device, when you ask for it, and only for the item in front of you.',
       'We never take custody of your money. Waves works out who owes whom and hands the amount to your payment app; the payment itself happens between you and that provider.',
+    ],
+  },
+  {
+    heading: 'Advertising',
+    body: [
+      'On the Free plan, when you reach the monthly limit for AI voice commands or receipt scans, you can choose to watch one short rewarded video ad in exchange for extra commands or scans. Ads only appear when you choose to watch one, and only on Free. Plus and Pro see none. We never show ads on balances, groups, expenses or settling up.',
+      'Ads are served by Google AdMob and are non-personalized only. We do not use the advertising ID, we do not ask to track you across other companies\u2019 apps and websites, and we never share your expenses, groups or balances with advertisers.',
+      'To serve an ad and prevent fraud, AdMob receives device and IP-level information, as described in Google\u2019s policy. In the European Economic Area, the United Kingdom and Switzerland, Google\u2019s consent form is shown first, and you can change your choice later.',
+      'When you finish an ad, Google confirms it to our server so the reward can be credited; the app never grants a reward by itself.',
     ],
   },
   {
@@ -55,7 +64,7 @@ const sections: LegalSection[] = [
   {
     heading: 'Who processes it for us',
     body: [
-      'We use a small number of infrastructure providers, each for one job: managed database, authentication and file storage; object storage for shared images; email delivery for invitations and receipts of settlement; Apple and Google push services for notifications; and an error-reporting service for crashes. Product analytics, if enabled, is opt-in and can be turned off in the app at any time.',
+      'We use a small number of providers, each for one job: managed database, authentication and file storage; object storage for shared images; email delivery for invitations and receipts of settlement; Apple and Google push services for notifications; an error-reporting service for crashes; and Google AdMob for the optional reward ads on Free. Product analytics, if enabled, is opt-in and can be turned off in the app at any time.',
       'These providers process data on our instructions and are not permitted to use it for their own purposes.',
       'Exchange rates for bills in a foreign currency come from public rate services: the European Central Bank reference rates (through Frankfurter), the open-source currency-api, and ExchangeRate-API (Rates By Exchange Rate API, exchangerate-api.com). A rate lookup is made by our server and sends only the two currency codes and, for a past bill, its date — never your name, your amounts or anything else about you or your groups. We keep the rates we fetch, by day, so the same lookup does not have to be made again.',
     ],

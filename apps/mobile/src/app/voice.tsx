@@ -105,6 +105,8 @@ import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
+import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { useVoiceStreamsToCloud } from '@/lib/useVoiceRouting';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
 import {
@@ -427,6 +429,15 @@ export default function VoiceScreen() {
         ? 'revoked'
         : 'pending';
   const agentOn = agentServerOn && cloudConsent === 'granted';
+  // Plus, Pro and the Pro trial stream the mic live to Deepgram. Free — including
+  // commands earned with a reward ad — listens on the phone and sends the text to
+  // the agent: the same cloud model at about a seventh of the cost per command.
+  // The server refuses a Free stream too, so this is only what the app asks for.
+  const streamsToCloud = useVoiceStreamsToCloud();
+  const phoneToAgent = agentOn && !streamsToCloud;
+  // At the monthly limit a Free person may choose to watch one reward ad (the
+  // server decides who is offered it; nobody else sees anything).
+  const adOffer = useRewardedAdOffer();
   const agentReady = agentStatusReady && voiceConsent.ready;
   const consentSheetOpen =
     agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
@@ -1119,7 +1130,7 @@ export default function VoiceScreen() {
     // A fresh opening capture that was streamed goes to the advanced agent; "add
     // another", a link-supplied sentence, or a capture that fell back to the
     // on-device recogniser stay on the basic path.
-    if (agentOn && streamed && micMode !== 'append' && !heardFromLink.current) {
+    if (agentOn && (streamed || phoneToAgent) && micMode !== 'append' && !heardFromLink.current) {
       // Fast path: when the instant on-device parser reads the sentence with full
       // confidence, skip the agent (no wait, no allowance spent) and show the
       // ordinary basic review. The speech still came from the cloud engine.
@@ -1131,11 +1142,12 @@ export default function VoiceScreen() {
         localParseIsConfident(parseLocally(transcript, fastContext), fastContext)
       ) {
         if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
-        setEngine(CLOUD);
+        setEngine(streamed ? CLOUD : local('free'));
         runBasic(transcript, alternatives);
         // The stream was used, so the command counts: meter it without waiting.
         // A 402 changes nothing now (the review is up); the next start falls back.
-        void meterVoiceCommand({ transcript, locale, today: today() });
+        // A Free sentence read on the phone cost nothing, so it is not counted.
+        if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
         return;
       }
       if (__DEV__) console.log('[voice] path: agent');
@@ -1154,10 +1166,16 @@ export default function VoiceScreen() {
     setAgentSession(null);
     if (!heard) return;
     setAgentQuotaNote(reason === 'quota');
-    if (reason === 'quota') setEngine(local('quota'));
-    // The call failed or timed out: offline when the phone says so, otherwise
-    // the cloud was unavailable — the badge says which, honestly.
-    else void checkOnline().then((online) => setEngine(engineAfterAgentFailure(reason, online)));
+    if (reason === 'quota') {
+      setEngine(local('quota'));
+      // The natural moment: the monthly limit was just hit. A Free person who is
+      // eligible is offered one reward ad (never forced; the server decides).
+      void adOffer.offer('voice');
+    } else {
+      // The call failed or timed out: offline when the phone says so, otherwise
+      // the cloud was unavailable — the badge says which, honestly.
+      void checkOnline().then((online) => setEngine(engineAfterAgentFailure(reason, online)));
+    }
     runBasic(heard, heardAlternatives);
   };
 
@@ -2320,7 +2338,7 @@ export default function VoiceScreen() {
             <VoiceMicPanel
               key={attempt}
               onDone={handleTranscript}
-              streamLive={agentOn}
+              streamLive={agentOn && streamsToCloud}
               agentReady={agentReady}
               // Once the server has answered, that answer stands (a "not Pro"
               // needs no consent read); before it, the phone's last answer.
@@ -2411,6 +2429,7 @@ export default function VoiceScreen() {
           Sheet, so it presents, dims and dismisses exactly like every other
           sheet, and its scrim is a modal window that covers the system bars
           rather than a layer inside this screen. */}
+      {adOffer.sheet}
       <VoiceConsentSheet
         visible={consentSheetOpen}
         onAllow={voiceConsent.allow}

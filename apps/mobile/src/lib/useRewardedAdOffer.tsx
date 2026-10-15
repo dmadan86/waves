@@ -1,0 +1,162 @@
+/**
+ * Offering a rewarded ad at a natural moment: `offer('voice')` when the AI voice
+ * monthly limit is hit, `offer('scan')` when the receipt-scan limit is hit.
+ *
+ * The server decides whether to offer at all (`waves_my_ads_status`: flag, Free
+ * tier, not the Pro trial, not a guest, account age, the daily cap), so a person
+ * who is not eligible sees nothing and never loads ad code. If eligible, a small
+ * sheet opens; the ad starts only on "Watch", and the reward is whatever the
+ * server says afterwards — the app grants nothing locally.
+ *
+ * Render `sheet` once in the screen that calls `offer`.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { RewardedAdSheet, type AdSheetState } from '@/components/RewardedAdSheet';
+import { fill, useStrings } from '@/i18n';
+import { useViewerId } from '@/lib/auth';
+import { defaultRewardedAdDeps, readAdsStatus } from '@/lib/adsSdk';
+import { router } from '@/lib/navigation';
+import { runRewardedAd } from '@/lib/rewardedAd';
+import { rewardAmount, type AdKind, type AdOutcome, type AdsStatus } from '@/lib/rewardedAdsPure';
+import { useToast } from '@/lib/toast';
+
+/**
+ * After "Not now" the same offer stays quiet for a while: someone at their limit
+ * who speaks three more commands should be asked once, not three times.
+ */
+export const DECLINE_QUIET_MS = 10 * 60_000;
+const declinedAt: Record<AdKind, number> = { voice: 0, scan: 0 };
+
+export interface RewardedAdOffer {
+  /** Open the sheet if the server says this person may be offered an ad now. */
+  offer(kind: AdKind): Promise<void>;
+  /** Render once, anywhere in the screen. */
+  sheet: React.JSX.Element;
+}
+
+export function useRewardedAdOffer(): RewardedAdOffer {
+  const { t } = useStrings();
+  const viewerId = useViewerId();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [kind, setKind] = useState<AdKind>('voice');
+  const [status, setStatus] = useState<AdsStatus | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [state, setState] = useState<AdSheetState>({ step: 'ready' });
+  const mounted = useRef(true);
+  const running = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const offer = useCallback(
+    async (next: AdKind): Promise<void> => {
+      if (!viewerId || running.current) return;
+      if (Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
+      const current = await readAdsStatus().catch(() => null);
+      if (!mounted.current || !current?.eligible) return;
+      setKind(next);
+      setStatus(current);
+      setState({ step: 'ready' });
+      setVisible(true);
+    },
+    [viewerId],
+  );
+
+  const close = useCallback(() => {
+    if (running.current) return;
+    // Closing without a reward (Not now, the backdrop, back) quiets this offer for a while.
+    if (!(state.step === 'result' && state.done)) declinedAt[kind] = Date.now();
+    setVisible(false);
+  }, [kind, state]);
+
+  const message = useCallback(
+    (
+      outcome: AdOutcome,
+    ): { text: string; tone: 'positive' | 'info' | 'warning'; done: boolean } => {
+      const a = t.rewardedAds;
+      switch (outcome) {
+        case 'credited':
+          return {
+            text: fill(kind === 'voice' ? a.creditedVoice : a.creditedScan, {
+              count: status ? rewardAmount(status, kind) : 2,
+            }),
+            tone: 'positive',
+            done: true,
+          };
+        case 'pending':
+          return { text: a.pending, tone: 'info', done: true };
+        case 'closed-early':
+          return { text: a.closedEarly, tone: 'info', done: false };
+        case 'no-fill':
+          return { text: a.noFill, tone: 'info', done: false };
+        case 'offline':
+          return { text: a.offline, tone: 'warning', done: false };
+        case 'consent':
+          return { text: a.consent, tone: 'info', done: false };
+        case 'unavailable':
+          return { text: a.unavailable, tone: 'info', done: false };
+        default:
+          return { text: a.error, tone: 'warning', done: false };
+      }
+    },
+    [kind, status, t.rewardedAds],
+  );
+
+  const watch = useCallback(async (): Promise<void> => {
+    if (!viewerId || running.current) return;
+    running.current = true;
+    setState({ step: 'busy', confirming: false });
+    try {
+      const before = (await readAdsStatus().catch(() => null)) ?? status;
+      const outcome = await runRewardedAd(
+        { profileId: viewerId, kind, baselineUsedToday: before?.usedToday ?? 0 },
+        {
+          ...defaultRewardedAdDeps(),
+          onPhase: (phase) => {
+            if (mounted.current) setState({ step: 'busy', confirming: phase === 'confirming' });
+          },
+        },
+      );
+      if (outcome === 'credited' || outcome === 'pending') {
+        // Whatever the screens cached about the allowance is stale now.
+        void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
+        void queryClient.invalidateQueries({ queryKey: ['voiceAccess'] });
+      }
+      if (!mounted.current) return;
+      const shown = message(outcome);
+      if (outcome === 'credited') toast.show(shown.text);
+      setState({ step: 'result', message: shown.text, tone: shown.tone, done: shown.done });
+    } finally {
+      running.current = false;
+    }
+  }, [kind, message, queryClient, status, toast, viewerId]);
+
+  const upgrade = useCallback(() => {
+    setVisible(false);
+    router.push('/paywall');
+  }, []);
+
+  const sheet = useMemo(
+    () => (
+      <RewardedAdSheet
+        visible={visible}
+        kind={kind}
+        amount={status ? rewardAmount(status, kind) : 2}
+        state={state}
+        onWatch={() => void watch()}
+        onUpgrade={upgrade}
+        onClose={close}
+      />
+    ),
+    [close, kind, state, status, upgrade, visible, watch],
+  );
+
+  return { offer, sheet };
+}

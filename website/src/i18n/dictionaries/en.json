@@ -171,13 +171,13 @@
         "features": ["Everything in Plus", "Advanced AI voice: 150 commands a month"]
       }
     ],
-    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no ads and no card at sign-up. AI voice: 10 commands a month.",
+    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no card at sign-up. AI voice: 10 commands a month. Free has optional reward ads for extra AI voice commands and scans; Plus and Pro have no ads.",
     "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We don't sell your data or show ads.",
+    "body": "Your data belongs to you. We never sell your data. Free has optional reward ads you choose to watch, never on your money screens. Plus and Pro have none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
@@ -204,7 +204,11 @@
       },
       {
         "q": "What do you do with my data?",
-        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and there is no advertising and no data selling. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free has optional reward ads you choose to watch, never on your money screens; Plus and Pro have none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+      },
+      {
+        "q": "Does Waves show ads?",
+        "a": "Only if you choose to, and only on Free. When you reach the monthly limit for AI voice commands or receipt scans, you can watch one short ad to earn 2 more of them, up to 3 ads a day, or upgrade to Plus instead. Nothing is ever forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Plus and Pro have no ads at all."
       },
       {
         "q": "Can I import or export my data?",

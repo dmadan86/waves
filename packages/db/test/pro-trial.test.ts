@@ -423,7 +423,13 @@ describe('voice on the trial', () => {
     expect(later.rows[0].m).toMatchObject({ budget: 60, tier: 'free', trial: true });
     await ageTrial(id, 31);
     const gone = await client.query(`SELECT waves_voice_stream_mint($1) AS m`, [id]);
-    expect(gone.rows[0].m).toMatchObject({ budget: 30, tier: 'free', trial: false });
+    // Free is no longer streamed to Deepgram (migration 20261016090000_rewarded_ads).
+    expect(gone.rows[0].m).toMatchObject({
+      tier: 'free',
+      trial: false,
+      allowed: false,
+      reason: 'free_tier',
+    });
   });
 });
 

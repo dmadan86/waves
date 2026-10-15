@@ -92,7 +92,8 @@ export async function allowSessionReplay(allowed: boolean): Promise<void> {
 
   try {
     // Analytics storage follows the same switch; ads storage is never granted,
-    // because this app has no advertising and its privacy screen says so.
+    // because Clarity is never used for advertising (the only ads are the optional
+    // reward ads on Free, served by AdMob, which Clarity does not touch).
     await sdk.consent(false, allowed);
     await (allowed ? sdk.resume() : sdk.pause());
   } catch {

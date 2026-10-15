@@ -1643,7 +1643,7 @@ const en: WebStrings = {
     servicesSummary:
       'Supabase for the database, Sentry for crashes. No analytics tag, nothing sold.',
     servicesBody:
-      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the page. This site carries no analytics tag: there is no screen recording, no advertising identifier and no ad networks. Your data is never sold.',
+      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the page. This site carries no analytics tag: there is no screen recording, no advertising identifier and no ad networks. In the mobile app, Free accounts can choose to watch a reward ad (Google AdMob, non-personalized); Plus and Pro have none. Your data is never sold.',
     retentionTitle: 'How long we keep it',
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
@@ -2684,7 +2684,7 @@ const ta: WebStrings = {
     servicesSummary:
       'தரவுத்தளத்துக்கு Supabase, செயலிழப்புகளுக்கு Sentry. பகுப்பாய்வு குறியீடு இல்லை, எதுவும் விற்கப்படுவதில்லை.',
     servicesBody:
-      'Waves, Supabase மீது இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் கட்டுப்படுத்தும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் Sentry-க்குச் செல்கின்றன, உங்கள் விவரங்கள் பக்கத்தை விட்டு வெளியேறும் முன் நீக்கப்பட்ட பிறகு. இந்தத் தளத்தில் பகுப்பாய்வு குறியீடு எதுவும் இல்லை: திரைப் பதிவு இல்லை, விளம்பர அடையாளம் இல்லை, விளம்பர வலையமைப்புகள் இல்லை. உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை.',
+      'Waves, Supabase மீது இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் கட்டுப்படுத்தும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் Sentry-க்குச் செல்கின்றன, உங்கள் விவரங்கள் பக்கத்தை விட்டு வெளியேறும் முன் நீக்கப்பட்ட பிறகு. இந்தத் தளத்தில் பகுப்பாய்வு குறியீடு எதுவும் இல்லை: திரைப் பதிவு இல்லை, விளம்பர அடையாளம் இல்லை, விளம்பர வலையமைப்புகள் இல்லை. மொபைல் செயலியில், இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம் (Google AdMob, தனிப்பயனாக்கப்படாதது); Plus, Pro-வில் விளம்பரம் இல்லை. உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை.',
     retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
@@ -3742,7 +3742,7 @@ const hi: WebStrings = {
     servicesSummary:
       'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry. कोई एनालिटिक्स टैग नहीं, कुछ भी बेचा नहीं जाता.',
     servicesBody:
-      'Waves, Supabase पर चलता है — डेटाबेस और साइन-इन, उन सर्वरों पर जो हमारे नियंत्रण में हैं. क्रैश रिपोर्ट Sentry को जाती हैं, आपके ब्योरे पेज छोड़ने से पहले हटा दिए जाने के बाद. इस साइट पर कोई एनालिटिक्स टैग नहीं है: न स्क्रीन रिकॉर्डिंग, न विज्ञापन पहचानकर्ता, न विज्ञापन नेटवर्क. आपका डेटा कभी नहीं बेचा जाता.',
+      'Waves, Supabase पर चलता है — डेटाबेस और साइन-इन, उन सर्वरों पर जो हमारे नियंत्रण में हैं. क्रैश रिपोर्ट Sentry को जाती हैं, आपके ब्योरे पेज छोड़ने से पहले हटा दिए जाने के बाद. इस साइट पर कोई एनालिटिक्स टैग नहीं है: न स्क्रीन रिकॉर्डिंग, न विज्ञापन पहचानकर्ता, न विज्ञापन नेटवर्क. मोबाइल ऐप में मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं (Google AdMob, निजीकृत नहीं); Plus और Pro में कोई विज्ञापन नहीं. आपका डेटा कभी नहीं बेचा जाता.',
     retentionTitle: 'हम इसे कब तक रखते हैं',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
@@ -4800,7 +4800,7 @@ const ar: WebStrings = {
     servicesSummary:
       'قاعدة البيانات على Supabase، وتقارير الأعطال إلى Sentry. لا وسم تحليلات، ولا شيء يُباع.',
     servicesBody:
-      'يعمل Waves على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكم بها. وتذهب تقارير الأعطال إلى Sentry بعد تنظيفها من تفاصيلك قبل مغادرتها الصفحة. لا يحمل هذا الموقع أي وسم تحليلات: لا تسجيل للشاشة، ولا معرِّف إعلاني، ولا شبكات إعلانات. وبياناتك لا تُباع أبدًا.',
+      'يعمل Waves على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكم بها. وتذهب تقارير الأعطال إلى Sentry بعد تنظيفها من تفاصيلك قبل مغادرتها الصفحة. لا يحمل هذا الموقع أي وسم تحليلات: لا تسجيل للشاشة، ولا معرِّف إعلاني، ولا شبكات إعلانات. وفي تطبيق الجوال يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة (Google AdMob، غير مخصَّص)، ولا إعلانات في Plus وPro. وبياناتك لا تُباع أبدًا.',
     retentionTitle: 'كم نحتفظ بها',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',

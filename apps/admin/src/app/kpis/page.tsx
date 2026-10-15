@@ -1,6 +1,7 @@
 import { Badge, Card, Empty, Lede, PageHeader, TableScroll, type Tone } from '@/components/ui';
+import { adsTotals } from '@/lib/ads';
 import { campaignLabel, ofInstalls } from '@/lib/campaigns';
-import { campaignStats, kpis, retentionCohorts, type KpiRow } from '@/lib/data';
+import { adRewards, campaignStats, kpis, retentionCohorts, type KpiRow } from '@/lib/data';
 import {
   KPI_THRESHOLDS,
   kpiStatus,
@@ -84,11 +85,13 @@ const targetText = (key: KpiKey): string => {
 };
 
 export default async function Kpis() {
-  const [row, cohorts, campaigns] = await Promise.all([
+  const [row, cohorts, campaigns, ads] = await Promise.all([
     kpis(30),
     retentionCohorts(8),
     campaignStats(30),
+    adRewards(30),
   ]);
+  const adTotals = adsTotals(ads);
 
   if (!row) {
     return (
@@ -273,6 +276,65 @@ export default async function Kpis() {
                     <td className="n">{ofInstalls(c.registrations, c.installs)}</td>
                     <td className="n">{ofInstalls(c.activated, c.installs)}</td>
                     <td className="n">{ofInstalls(c.subscriptions, c.installs)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
+
+      <h2 className="section">Rewarded ads</h2>
+      <Card
+        bare
+        note={`Ads watched to the end and credited by the server (Google's signed callback), last 30 days, by UTC day. Free plan only, opt-in. Units are the AI voice commands or receipt scans granted. Cap hits are people who watched the daily maximum that day. ${num(adTotals.rewards)} ads in total: ${num(adTotals.voice)} for voice, ${num(adTotals.scan)} for scans; ${num(adTotals.capHits)} cap hits.`}
+      >
+        {ads.length === 0 ? (
+          <Empty title="No rewarded ads yet">
+            Nothing has been credited in this window. The ads_rewarded flag is off until it is
+            opened.
+          </Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">Rewarded ads credited per day</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col" className="n">
+                    Ads
+                  </th>
+                  <th scope="col" className="n">
+                    Voice
+                  </th>
+                  <th scope="col" className="n">
+                    Scans
+                  </th>
+                  <th scope="col" className="n">
+                    Units (voice / scan)
+                  </th>
+                  <th scope="col" className="n">
+                    People
+                  </th>
+                  <th scope="col" className="n">
+                    Cap hits
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ads.map((d) => (
+                  <tr key={d.day}>
+                    <th scope="row" style={{ fontWeight: 600 }}>
+                      {d.day}
+                    </th>
+                    <td className="n">{num(d.rewards)}</td>
+                    <td className="n">{num(d.voice_rewards)}</td>
+                    <td className="n">{num(d.scan_rewards)}</td>
+                    <td className="n">
+                      {num(d.voice_units)} / {num(d.scan_units)}
+                    </td>
+                    <td className="n">{num(d.unique_users)}</td>
+                    <td className="n">{num(d.cap_hits)}</td>
                   </tr>
                 ))}
               </tbody>

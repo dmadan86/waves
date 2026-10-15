@@ -62,6 +62,8 @@ import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
+import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { isScanQuotaMessage } from '@/lib/rewardedAdsPure';
 import { showsDepositRow, showsSubEventRow, showsVendorTools } from '@/lib/eventOrganizer';
 import { receiptProblemText } from '@/lib/problemText';
 import { CurrencyRate } from '@/components/CurrencyRate';
@@ -611,6 +613,9 @@ export default function AddExpenseScreen() {
     : receiptCapStatus(receiptCap.data, receiptCap.isLoading);
   const capLocked = capStatus === 'locked';
   const queryClient = useQueryClient();
+  // At the scan limit a Free person may choose to watch one reward ad; the server
+  // decides who is offered it.
+  const adOffer = useRewardedAdOffer();
 
   const myMemberId = useMemo(
     () => activeMemberId(members.data ?? [], viewerId),
@@ -1590,6 +1595,9 @@ export default function AddExpenseScreen() {
       // the gate before another scan can start from a wrong number.
       await queryClient.invalidateQueries({ queryKey: ['receiptCap', groupId] });
     } catch (caught) {
+      if (isScanQuotaMessage((caught as { message?: unknown } | null)?.message)) {
+        void adOffer.offer('scan');
+      }
       setError(friendlyError(caught, t.couldNotScan, 'expense.scan'));
     } finally {
       setScanning(false);
@@ -2587,6 +2595,7 @@ export default function AddExpenseScreen() {
           setCategoryChosen(true);
         }}
       />
+      {adOffer.sheet}
     </Screen>
   );
 }

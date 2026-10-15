@@ -443,6 +443,12 @@ verify_jwt = false
 [functions.revenuecat-webhook]
 verify_jwt = false
 
+# AdMob's rewarded-ad callback (server-side verification). The caller is Google,
+# which has no Supabase session; the request carries an ECDSA signature that
+# admob-ssv verifies against Google's published keys before doing anything.
+[functions.admob-ssv]
+verify_jwt = false
+
 # `voice-stream` is the live-transcription relay: a WebSocket. Browsers and
 # React Native cannot set an Authorization header on the upgrade, so the app
 # sends its access token as a `jwt-<token>` subprotocol and the function checks

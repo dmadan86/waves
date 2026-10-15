@@ -288,10 +288,22 @@ describe('stream mint budget', () => {
     return rows[0].m as Record<string, unknown>;
   }
 
+  it('refuses Free outright: Deepgram streaming is for Plus, Pro and the trial', async () => {
+    expect(await mint(a)).toMatchObject({ allowed: false, tier: 'free', reason: 'free_tier' });
+    const { rows } = await client.query(
+      `SELECT stream_mints FROM voice_agent_usage WHERE profile_id = $1`,
+      [a],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
   it('counts mints up to the budget, then refuses without counting', async () => {
-    expect(await mint(a)).toMatchObject({ allowed: true, mints: 1, budget: 2, tier: 'free' });
+    await subscribe(a, 'plus');
+    await subscribe(b, 'plus');
+    expect(await mint(a)).toMatchObject({ allowed: true, mints: 1, budget: 3, tier: 'plus' });
     expect(await mint(a)).toMatchObject({ allowed: true, mints: 2 });
-    expect(await mint(a)).toMatchObject({ allowed: false, mints: 2 });
+    expect(await mint(a)).toMatchObject({ allowed: true, mints: 3 });
+    expect(await mint(a)).toMatchObject({ allowed: false, mints: 3 });
     expect(await mint(b)).toMatchObject({ allowed: true, mints: 1 });
   });
 
@@ -308,6 +320,7 @@ describe('stream mint budget', () => {
   });
 
   it('is its own meter: mints spend no command and commands spend no mint', async () => {
+    await subscribe(a, 'plus');
     await mint(a);
     await reserve(a);
     const { rows } = await client.query(
@@ -318,13 +331,15 @@ describe('stream mint budget', () => {
   });
 
   it('cannot be overspent by concurrent mints', async () => {
+    await subscribe(a, 'plus');
     const results = await Promise.all(
       Array.from({ length: 6 }, async () => {
         const c = await connect();
         try {
-          const { rows } = await c.query(`SELECT public.waves_voice_stream_mint($1, 3, 3) AS m`, [
-            a,
-          ]);
+          const { rows } = await c.query(
+            `SELECT public.waves_voice_stream_mint($1, 3, 3, 3) AS m`,
+            [a],
+          );
           return (rows[0].m as { allowed: boolean }).allowed;
         } finally {
           await c.end();
