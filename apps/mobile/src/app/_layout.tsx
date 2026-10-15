@@ -2,6 +2,10 @@
 // renders, so relative time works app-wide. Side-effect import, must be first.
 import '@/lib/intlPolyfill';
 
+// Wraps `fetch` for the on-device network log (Settings → Privacy → Network
+// activity). Before anything that creates a client holding on to `fetch`.
+import '@/lib/netLogInstall';
+
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
@@ -894,6 +898,7 @@ function AuthGate() {
         <Stack.Screen name="join" />
         <Stack.Screen name="r/[code]" />
         <Stack.Screen name="settings/privacy" />
+        <Stack.Screen name="settings/network-activity" />
         <Stack.Screen name="settings/licenses" />
         {/* Dev-only screen, and deliberately still reachable after sign-out so
               the e2e suite can prove private local state was removed. */}

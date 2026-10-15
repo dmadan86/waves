@@ -4567,6 +4567,57 @@ export interface UiStrings {
     confirmBody: string;
     badge: string;
   };
+  /** Settings → Privacy → Network activity: the on-device list of connections. */
+  netlog: {
+    row: string;
+    rowHint: string;
+    title: string;
+    explainer: string;
+    empty: string;
+    emptyFiltered: string;
+    today: string;
+    yesterday: string;
+    filterAll: string;
+    clear: string;
+    clearTitle: string;
+    clearBody: string;
+    clearConfirm: string;
+    statusFailed: string;
+    statusOffline: string;
+    /** Spoken label for a row: time, purpose, method, address, status. */
+    rowLabel: string;
+    purposes: {
+      sync: string;
+      signIn: string;
+      analytics: string;
+      files: string;
+      exchangeRates: string;
+      serverTask: string;
+      purchases: string;
+      crashReports: string;
+      sessionReplay: string;
+      google: string;
+      maps: string;
+      other: string;
+    };
+    servicesTitle: string;
+    usedFor: string;
+    dataLabel: string;
+    svc: Record<
+      | 'supabase'
+      | 'files'
+      | 'purchases'
+      | 'sentry'
+      | 'firebase'
+      | 'drive'
+      | 'clarity'
+      | 'maps'
+      | 'appStore',
+      { purpose: string; data: string }
+    >;
+    builtinNote: string;
+    unseenNote: string;
+  };
   privacy: {
     exportMine: string;
     row: string;
@@ -8848,6 +8899,84 @@ const en: UiStrings = {
     confirmBody:
       'They will appear as an anonymous ghost everywhere in the app. Your balances with them do not change, and they are not told.',
     badge: 'Blocked',
+  },
+  netlog: {
+    row: 'Network activity',
+    rowHint: 'Every connection this phone made, kept only on it',
+    title: 'Network activity',
+    explainer:
+      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+    empty: 'No connections recorded yet.',
+    emptyFiltered: 'Nothing under this filter.',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    filterAll: 'All',
+    clear: 'Clear',
+    clearTitle: 'Clear this list?',
+    clearBody: 'This empties the list on this phone. It does not change anything Waves does.',
+    clearConfirm: 'Clear',
+    statusFailed: 'failed',
+    statusOffline: 'offline',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'Sync',
+      signIn: 'Sign-in',
+      analytics: 'Analytics',
+      files: 'Files',
+      exchangeRates: 'Exchange rates',
+      serverTask: 'Server task',
+      purchases: 'Purchases',
+      crashReports: 'Crash reports',
+      sessionReplay: 'Session replay',
+      google: 'Google services',
+      maps: 'Maps',
+      other: 'Other',
+    },
+    servicesTitle: 'Services Waves can contact',
+    usedFor: 'Used for',
+    dataLabel: 'Data',
+    svc: {
+      supabase: {
+        purpose: 'Your account, groups and expenses, and exchange rates fetched for you.',
+        data: 'Your account, the groups you are in, their expenses and settlements, and the app events you send.',
+      },
+      files: {
+        purpose: 'Receipts and photos you add, stored in a private bucket.',
+        data: 'The image file you add, uploaded through a short-lived signed link.',
+      },
+      purchases: {
+        purpose: 'Your Plus or Pro subscription.',
+        data: 'Store receipts and your account id.',
+      },
+      sentry: {
+        purpose:
+          'Crash reports, scrubbed before they leave the phone. Only in builds with crash reporting set up.',
+        data: 'What went wrong in the app, with names, amounts and contacts removed.',
+      },
+      firebase: {
+        purpose: 'Phone sign-in, and proof that a request comes from the real app (App Check).',
+        data: 'Your phone number while you verify it, and a device check from the app store.',
+      },
+      drive: {
+        purpose: 'Your own backup, only if you turn on Google Drive backup.',
+        data: 'The backup file, in a private app folder of your Google Drive.',
+      },
+      clarity: {
+        purpose: 'Session replay. Off unless you turn it on in Privacy.',
+        data: 'How you use the app on screen, only while it is on.',
+      },
+      maps: {
+        purpose: 'The map behind a place on an expense.',
+        data: 'The map area being shown, which is roughly where the place is.',
+      },
+      appStore: {
+        purpose: 'Checking whether a newer version of Waves is out (iPhone).',
+        data: "Waves' app id and your country.",
+      },
+    },
+    builtinNote:
+      "Some services (purchases, crash reports, Google sign-in) also connect from their own built-in code, which Waves can't list call by call. They are included in the list above.",
+    unseenNote: 'Images and map tiles drawn by the phone itself, and live voice, are not listed.',
   },
   privacy: {
     exportMine: 'Export my data',
@@ -13271,6 +13400,87 @@ const ta: UiStrings = {
       'செயலி முழுவதும் அவர் அடையாளம் தெரியாத பேயாகத் தோன்றுவார். அவருடனான உங்கள் இருப்புகள் மாறாது, அவருக்கு அறிவிக்கப்படாது.',
     badge: 'தடுக்கப்பட்டது',
   },
+  netlog: {
+    row: 'நெட்வொர்க் செயல்பாடு',
+    rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
+    title: 'நெட்வொர்க் செயல்பாடு',
+    explainer:
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+    empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
+    emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    filterAll: 'அனைத்தும்',
+    clear: 'அழி',
+    clearTitle: 'இந்தப் பட்டியலை அழிக்கவா?',
+    clearBody: 'இது இந்த ஃபோனில் உள்ள பட்டியலை காலியாக்கும். Waves செய்யும் எதையும் இது மாற்றாது.',
+    clearConfirm: 'அழி',
+    statusFailed: 'தோல்வி',
+    statusOffline: 'ஆஃப்லைன்',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'ஒத்திசைவு',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பகுப்பாய்வு',
+      files: 'கோப்புகள்',
+      exchangeRates: 'நாணய மாற்று விகிதங்கள்',
+      serverTask: 'சர்வர் பணி',
+      purchases: 'வாங்குதல்கள்',
+      crashReports: 'செயலிழப்பு அறிக்கைகள்',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      google: 'Google சேவைகள்',
+      maps: 'வரைபடங்கள்',
+      other: 'மற்றவை',
+    },
+    servicesTitle: 'Waves தொடர்பு கொள்ளக்கூடிய சேவைகள்',
+    usedFor: 'எதற்காக',
+    dataLabel: 'தரவு',
+    svc: {
+      supabase: {
+        purpose:
+          'உங்கள் கணக்கு, குழுக்கள், செலவுகள், மேலும் உங்களுக்காகப் பெறப்படும் நாணய மாற்று விகிதங்கள்.',
+        data: 'உங்கள் கணக்கு, நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள் மற்றும் தீர்வுகள், நீங்கள் அனுப்பும் செயலி நிகழ்வுகள்.',
+      },
+      files: {
+        purpose:
+          'நீங்கள் சேர்க்கும் ரசீதுகள் மற்றும் புகைப்படங்கள், தனிப்பட்ட சேமிப்பகத்தில் வைக்கப்படும்.',
+        data: 'நீங்கள் சேர்க்கும் படக் கோப்பு, குறுகிய காலம் செல்லுபடியாகும் கையொப்பமிட்ட இணைப்பு வழியாகப் பதிவேற்றப்படும்.',
+      },
+      purchases: {
+        purpose: 'உங்கள் Plus அல்லது Pro சந்தா.',
+        data: 'ஸ்டோர் ரசீதுகளும் உங்கள் கணக்கு அடையாளமும்.',
+      },
+      sentry: {
+        purpose:
+          'செயலிழப்பு அறிக்கைகள், ஃபோனை விட்டுச் செல்லும் முன் தூய்மைப்படுத்தப்படும். செயலிழப்பு அறிக்கை அமைக்கப்பட்ட பதிப்புகளில் மட்டும்.',
+        data: 'செயலியில் என்ன தவறு நடந்தது, பெயர்கள், தொகைகள், தொடர்புகள் நீக்கப்பட்டு.',
+      },
+      firebase: {
+        purpose:
+          'ஃபோன் எண் மூலம் உள்நுழைவு, மேலும் கோரிக்கை உண்மையான செயலியிலிருந்து வருகிறது என்பதற்கான சான்று (App Check).',
+        data: 'சரிபார்க்கும்போது உங்கள் ஃபோன் எண், மற்றும் ஆப் ஸ்டோரிலிருந்து சாதனச் சரிபார்ப்பு.',
+      },
+      drive: {
+        purpose: 'உங்கள் சொந்த காப்புப்பிரதி, Google Drive காப்புப்பிரதியை இயக்கினால் மட்டும்.',
+        data: 'காப்புப்பிரதிக் கோப்பு, உங்கள் Google Drive-இல் உள்ள செயலிக்கான தனிப்பட்ட கோப்புறையில்.',
+      },
+      clarity: {
+        purpose: 'அமர்வு மறுஒளிபரப்பு. தனியுரிமையில் நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்.',
+        data: 'இயங்கும் நேரத்தில் மட்டும், திரையில் செயலியை நீங்கள் பயன்படுத்தும் விதம்.',
+      },
+      maps: {
+        purpose: 'செலவில் உள்ள இடத்தின் பின்னணி வரைபடம்.',
+        data: 'காட்டப்படும் வரைபடப் பகுதி, அதாவது இடம் தோராயமாக எங்கே என்பது.',
+      },
+      appStore: {
+        purpose: 'Waves-இன் புதிய பதிப்பு வந்துள்ளதா எனச் சரிபார்த்தல் (iPhone).',
+        data: 'Waves-இன் செயலி அடையாளமும் உங்கள் நாடும்.',
+      },
+    },
+    builtinNote:
+      'சில சேவைகள் (வாங்குதல்கள், செயலிழப்பு அறிக்கைகள், Google உள்நுழைவு) தங்களுடைய உள்ளமைந்த குறியீட்டிலிருந்தும் இணைகின்றன; அவற்றை Waves ஒவ்வொரு அழைப்பாகப் பட்டியலிட முடியாது. அவை மேலே உள்ள பட்டியலில் சேர்க்கப்பட்டுள்ளன.',
+    unseenNote: 'ஃபோனே வரையும் படங்களும் வரைபடத் துண்டுகளும், நேரடிக் குரலும் பட்டியலில் இல்லை.',
+  },
   privacy: {
     exportMine: 'என் தரவை ஏற்றுமதி செய்',
     row: 'தனியுரிமை',
@@ -17551,6 +17761,84 @@ const hi: UiStrings = {
     confirmBody:
       'वे पूरे ऐप में एक गुमनाम भूत के रूप में दिखेंगे। उनके साथ आपका हिसाब नहीं बदलता, और उन्हें बताया नहीं जाता।',
     badge: 'अवरोधित',
+  },
+  netlog: {
+    row: 'नेटवर्क गतिविधि',
+    rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
+    title: 'नेटवर्क गतिविधि',
+    explainer:
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+    empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
+    emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
+    today: 'आज',
+    yesterday: 'कल',
+    filterAll: 'सभी',
+    clear: 'साफ़ करें',
+    clearTitle: 'यह सूची साफ़ करें?',
+    clearBody: 'इससे इस फ़ोन की सूची खाली हो जाएगी। Waves जो करता है, उसमें कुछ नहीं बदलता।',
+    clearConfirm: 'साफ़ करें',
+    statusFailed: 'विफल',
+    statusOffline: 'ऑफ़लाइन',
+    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    purposes: {
+      sync: 'सिंक',
+      signIn: 'साइन-इन',
+      analytics: 'एनालिटिक्स',
+      files: 'फ़ाइलें',
+      exchangeRates: 'विनिमय दरें',
+      serverTask: 'सर्वर का काम',
+      purchases: 'खरीदारी',
+      crashReports: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      google: 'Google सेवाएँ',
+      maps: 'नक्शे',
+      other: 'अन्य',
+    },
+    servicesTitle: 'जिन सेवाओं से Waves जुड़ सकता है',
+    usedFor: 'किसलिए',
+    dataLabel: 'डेटा',
+    svc: {
+      supabase: {
+        purpose: 'आपका खाता, ग्रुप और खर्चे, और आपके लिए लाई गई विनिमय दरें।',
+        data: 'आपका खाता, आप जिन ग्रुपों में हैं, उनके खर्चे और हिसाब-किताब, और आपके भेजे ऐप इवेंट।',
+      },
+      files: {
+        purpose: 'आपकी जोड़ी गई रसीदें और फ़ोटो, एक निजी बकेट में रखी जाती हैं।',
+        data: 'आपकी जोड़ी गई इमेज फ़ाइल, कुछ देर चलने वाले साइन किए हुए लिंक से अपलोड होती है।',
+      },
+      purchases: {
+        purpose: 'आपकी Plus या Pro सदस्यता।',
+        data: 'स्टोर की रसीदें और आपकी खाता आईडी।',
+      },
+      sentry: {
+        purpose:
+          'क्रैश रिपोर्ट, फ़ोन से निकलने से पहले साफ़ की हुई। सिर्फ़ उन बिल्ड में जिनमें क्रैश रिपोर्टिंग सेट है।',
+        data: 'ऐप में क्या गड़बड़ हुई, नाम, रकम और संपर्क हटाकर।',
+      },
+      firebase: {
+        purpose: 'फ़ोन से साइन-इन, और यह प्रमाण कि अनुरोध असली ऐप से आया है (App Check)।',
+        data: 'सत्यापन के दौरान आपका फ़ोन नंबर, और ऐप स्टोर की ओर से डिवाइस जाँच।',
+      },
+      drive: {
+        purpose: 'आपका अपना बैकअप, सिर्फ़ तब जब आप Google Drive बैकअप चालू करें।',
+        data: 'बैकअप फ़ाइल, आपके Google Drive के निजी ऐप फ़ोल्डर में।',
+      },
+      clarity: {
+        purpose: 'सेशन रीप्ले। जब तक आप गोपनीयता में चालू न करें, बंद रहता है।',
+        data: 'स्क्रीन पर आप ऐप कैसे इस्तेमाल करते हैं, सिर्फ़ जब यह चालू हो।',
+      },
+      maps: {
+        purpose: 'खर्चे में दिए गए स्थान के पीछे का नक्शा।',
+        data: 'दिखाया जा रहा नक्शे का इलाका, यानी स्थान लगभग कहाँ है।',
+      },
+      appStore: {
+        purpose: 'यह जाँच कि Waves का नया संस्करण आया है या नहीं (iPhone)।',
+        data: 'Waves की ऐप आईडी और आपका देश।',
+      },
+    },
+    builtinNote:
+      'कुछ सेवाएँ (खरीदारी, क्रैश रिपोर्ट, Google साइन-इन) अपने अंदर बने कोड से भी जुड़ती हैं, जिन्हें Waves हर कॉल के हिसाब से सूचीबद्ध नहीं कर सकता। वे ऊपर की सूची में शामिल हैं।',
+    unseenNote: 'फ़ोन खुद जो इमेज और नक्शे की टाइलें बनाता है, और लाइव वॉइस, सूची में नहीं हैं।',
   },
   privacy: {
     exportMine: 'मेरा डेटा एक्सपोर्ट करें',
@@ -22409,6 +22697,84 @@ const ar: UiStrings = {
     confirmTitle: 'حظر {name}؟',
     confirmBody: 'سيظهر كشبح مجهول في كل مكان في التطبيق. أرصدتك معه لا تتغيّر، ولا يتم إخباره.',
     badge: 'محظور',
+  },
+  netlog: {
+    row: 'نشاط الشبكة',
+    rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
+    title: 'نشاط الشبكة',
+    explainer:
+      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+    empty: 'لم يُسجَّل أي اتصال بعد.',
+    emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    filterAll: 'الكل',
+    clear: 'مسح',
+    clearTitle: 'مسح هذه القائمة؟',
+    clearBody: 'سيؤدي هذا إلى إفراغ القائمة على هذا الهاتف. ولا يغيّر شيئًا مما يفعله Waves.',
+    clearConfirm: 'مسح',
+    statusFailed: 'فشل',
+    statusOffline: 'بلا اتصال',
+    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    purposes: {
+      sync: 'المزامنة',
+      signIn: 'تسجيل الدخول',
+      analytics: 'التحليلات',
+      files: 'الملفات',
+      exchangeRates: 'أسعار الصرف',
+      serverTask: 'مهمة على الخادم',
+      purchases: 'المشتريات',
+      crashReports: 'تقارير الأعطال',
+      sessionReplay: 'إعادة تشغيل الجلسة',
+      google: 'خدمات Google',
+      maps: 'الخرائط',
+      other: 'أخرى',
+    },
+    servicesTitle: 'الخدمات التي يمكن لـ Waves الاتصال بها',
+    usedFor: 'الغرض',
+    dataLabel: 'البيانات',
+    svc: {
+      supabase: {
+        purpose: 'حسابك ومجموعاتك ومصاريفك، وأسعار الصرف التي تُجلب لك.',
+        data: 'حسابك والمجموعات التي أنت فيها ومصاريفها وتسوياتها، وأحداث التطبيق التي ترسلها.',
+      },
+      files: {
+        purpose: 'الإيصالات والصور التي تضيفها، وتُحفظ في مستودع خاص.',
+        data: 'ملف الصورة الذي تضيفه، ويُرفع عبر رابط موقّع قصير الأمد.',
+      },
+      purchases: {
+        purpose: 'اشتراكك في Plus أو Pro.',
+        data: 'إيصالات المتجر ومعرّف حسابك.',
+      },
+      sentry: {
+        purpose:
+          'تقارير الأعطال، بعد تنقيتها قبل أن تغادر الهاتف. فقط في الإصدارات التي أُعدّ فيها الإبلاغ عن الأعطال.',
+        data: 'ما الذي حدث من خطأ في التطبيق، بعد حذف الأسماء والمبالغ وجهات الاتصال.',
+      },
+      firebase: {
+        purpose: 'تسجيل الدخول بالهاتف، والتحقق من أن الطلب صادر من التطبيق الحقيقي (App Check).',
+        data: 'رقم هاتفك أثناء التحقق منه، وفحص الجهاز من المتجر.',
+      },
+      drive: {
+        purpose: 'نسختك الاحتياطية الخاصة، فقط إذا فعّلت النسخ الاحتياطي على Google Drive.',
+        data: 'ملف النسخة الاحتياطية، في مجلد خاص بالتطبيق داخل Google Drive الخاص بك.',
+      },
+      clarity: {
+        purpose: 'إعادة تشغيل الجلسة. متوقفة ما لم تفعّلها من الخصوصية.',
+        data: 'كيف تستخدم التطبيق على الشاشة، فقط أثناء تفعيلها.',
+      },
+      maps: {
+        purpose: 'الخريطة خلف المكان المضاف إلى مصروف.',
+        data: 'منطقة الخريطة المعروضة، أي المكان التقريبي الذي يوجد فيه الموقع.',
+      },
+      appStore: {
+        purpose: 'التحقق من صدور إصدار أحدث من Waves (آيفون).',
+        data: 'معرّف تطبيق Waves وبلدك.',
+      },
+    },
+    builtinNote:
+      'بعض الخدمات (المشتريات وتقارير الأعطال وتسجيل الدخول بـ Google) تتصل أيضًا من شيفرتها المدمجة، ولا يستطيع Waves سرد اتصالاتها واحدًا واحدًا. وهي مشمولة في القائمة أعلاه.',
+    unseenNote: 'الصور وبلاطات الخرائط التي يرسمها الهاتف نفسه، والصوت المباشر، غير مدرجة.',
   },
   privacy: {
     exportMine: 'تصدير بياناتي',
