@@ -165,6 +165,19 @@ export interface WebStrings {
     takenSwitch: string;
     takenStay: string;
   };
+  /** A friend's personal link: what Waves is, and where to get it. */
+  referral: {
+    heading: string;
+    body: string;
+    perk: string;
+    codeLabel: string;
+    openApp: string;
+    googlePlay: string;
+    appStore: string;
+    useOnWeb: string;
+    enterCode: string;
+    linkBroken: string;
+  };
   /** The group, in a browser: less than the app, and enough for a trip. */
   group: {
     loading: string;
@@ -1395,6 +1408,19 @@ const en: WebStrings = {
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },
+  referral: {
+    heading: 'A friend invited you to Waves',
+    body: 'Money is easier together. Waves keeps shared expenses clear, so nobody has to keep the score.',
+    perk: 'Start using Waves with your friend and you both get 7 days of Plus.',
+    codeLabel: "Your friend's code",
+    openApp: 'Open in Waves',
+    googlePlay: 'Get it on Google Play',
+    appStore: 'Download on the App Store',
+    useOnWeb: 'Or continue in your browser',
+    enterCode:
+      'Signed up after installing? Open Invite your friends in your profile and enter this code.',
+    linkBroken: 'This invite link does not look right. Ask your friend to send it again.',
+  },
   group: {
     loading: 'Loading…',
     notYours: 'Not your group',
@@ -2408,6 +2434,20 @@ const ta: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'ஒரு நண்பர் உங்களை Waves-க்கு அழைத்துள்ளார்',
+    body: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது. பகிர்ந்த செலவுகளை Waves தெளிவாக வைத்திருக்கும்; யாரும் கணக்கு வைத்துக்கொள்ள வேண்டியதில்லை.',
+    perk: 'உங்கள் நண்பருடன் Waves-ஐப் பயன்படுத்தத் தொடங்கினால் இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+    codeLabel: 'உங்கள் நண்பரின் குறியீடு',
+    openApp: 'Waves-இல் திற',
+    googlePlay: 'Google Play-இல் பெறுங்கள்',
+    appStore: 'App Store-இல் பதிவிறக்குங்கள்',
+    useOnWeb: 'அல்லது உலாவியிலேயே தொடருங்கள்',
+    enterCode:
+      'நிறுவிய பிறகு பதிவு செய்தீர்களா? உங்கள் சுயவிவரத்தில் "நண்பர்களை அழையுங்கள்" என்பதைத் திறந்து இந்தக் குறியீட்டை உள்ளிடுங்கள்.',
+    linkBroken:
+      'இந்த அழைப்புச் சுட்டி சரியாகத் தெரியவில்லை. உங்கள் நண்பரிடம் மீண்டும் அனுப்பச் சொல்லுங்கள்.',
   },
   group: {
     loading: 'ஏற்றுகிறது…',
@@ -3462,6 +3502,19 @@ const hi: WebStrings = {
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
   },
+  referral: {
+    heading: 'एक दोस्त ने आपको Waves पर बुलाया है',
+    body: 'पैसों की बात साथ मिलकर आसान होती है। Waves साझा खर्चों को साफ़ रखता है, ताकि किसी को हिसाब याद न रखना पड़े।',
+    perk: 'अपने दोस्त के साथ Waves इस्तेमाल करना शुरू करें, और आप दोनों को 7 दिन का Plus मिलेगा।',
+    codeLabel: 'आपके दोस्त का कोड',
+    openApp: 'Waves में खोलें',
+    googlePlay: 'Google Play पर पाएँ',
+    appStore: 'App Store से डाउनलोड करें',
+    useOnWeb: 'या ब्राउज़र में ही जारी रखें',
+    enterCode:
+      'इंस्टॉल करने के बाद साइन अप किया? अपनी प्रोफ़ाइल में "दोस्तों को आमंत्रित करें" खोलें और यह कोड डालें।',
+    linkBroken: 'यह आमंत्रण लिंक सही नहीं लग रहा। अपने दोस्त से इसे दोबारा भेजने को कहें।',
+  },
   group: {
     loading: 'लोड हो रहा है…',
     notYours: 'यह आपका समूह नहीं',
@@ -4475,6 +4528,18 @@ const ar: WebStrings = {
     takenLeftBehindUnknown: 'Anything you added as a guest stays with the guest.',
     takenSwitch: 'Switch to my account',
     takenStay: 'Stay as a guest',
+  },
+  referral: {
+    heading: 'دعاك صديق إلى Waves',
+    body: 'المال أسهل حين نتشاركه. يُبقي Waves المصاريف المشتركة واضحة، فلا يحتاج أحد إلى تتبّع الحساب.',
+    perk: 'ابدأ استخدام Waves مع صديقك وتحصلان معًا على 7 أيام من Plus.',
+    codeLabel: 'رمز صديقك',
+    openApp: 'افتح في Waves',
+    googlePlay: 'احصل عليه من Google Play',
+    appStore: 'نزّله من App Store',
+    useOnWeb: 'أو تابع في المتصفح',
+    enterCode: 'سجّلت بعد التثبيت؟ افتح «ادعُ أصدقاءك» في ملفك الشخصي وأدخل هذا الرمز.',
+    linkBroken: 'رابط الدعوة هذا لا يبدو صحيحًا. اطلب من صديقك إرساله مرة أخرى.',
   },
   group: {
     loading: 'جارٍ التحميل…',
