@@ -29,7 +29,7 @@ import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { syncPurchasesUser } from './purchases';
 import { claimCode } from './oauthClaim';
-import { track } from './events';
+import { track } from '@/lib/events';
 import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
 import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
