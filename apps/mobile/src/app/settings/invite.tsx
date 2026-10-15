@@ -14,14 +14,14 @@
  * used would be a promise about nothing.
  */
 
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -41,6 +41,7 @@ import {
   iconSize,
   Row,
   Screen,
+  Skeleton,
   Text,
   useTabBarClearance,
   useTheme,
@@ -129,19 +130,18 @@ export default function InviteFriendsScreen() {
     },
   });
 
-  // Only on a tap: reading the clipboard unasked shows iOS's paste banner.
-  const paste = async (): Promise<void> => {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), 1800);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  const copyCode = async (value: string): Promise<void> => {
     try {
-      const text = await Clipboard.getStringAsync();
-      const normalized = normalizeReferralCode(text) ?? normalizeReferralCode(text.split(/\s+/)[0]);
-      if (normalized) {
-        setCode(normalized);
-        setNotice(null);
-      } else {
-        setNotice({ tone: 'negative', text: t.referral.unknownCode });
-      }
+      await Clipboard.setStringAsync(value);
+      setCopied(true);
     } catch {
-      // Nothing to paste; the field stays as it was.
+      // Copy is a convenience; the share button still works.
     }
   };
 
@@ -179,9 +179,9 @@ export default function InviteFriendsScreen() {
             importantForAccessibility="no"
             accessible={false}
             resizeMode="contain"
-            style={{ position: 'absolute', end: 0, bottom: 0, width: 229, height: 213 }}
+            style={{ position: 'absolute', end: 0, bottom: 0, width: 138, height: 128 }}
           />
-          <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
+          <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
             <IconButton label={t.common.back} onPress={() => router.back()}>
               <Ionicons
                 name={directionalIcon('chevron-back')}
@@ -189,14 +189,14 @@ export default function InviteFriendsScreen() {
                 color={theme.color.text}
               />
             </IconButton>
-            <View style={{ maxWidth: '56%', gap: 6, marginTop: 4 }}>
-              <Text style={{ fontSize: 30, lineHeight: 35, fontWeight: '800' }}>
+            <View style={{ maxWidth: '62%', gap: theme.spacing.xs }}>
+              <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}>
                 {t.referral.title}{' '}
                 <View accessibilityElementsHidden importantForAccessibility="no">
                   <Sparkle color={theme.color.brand} />
                 </View>
               </Text>
-              <View style={{ gap: 4, marginTop: 6 }}>
+              <View style={{ gap: 2 }}>
                 <Text variant="subheading" style={{ fontWeight: '700' }}>
                   {t.referral.headline}
                 </Text>
@@ -205,13 +205,12 @@ export default function InviteFriendsScreen() {
                 </Text>
               </View>
             </View>
-            <View style={{ height: 20 }} />
           </View>
         </View>
 
         {!live ? null : (
-          <View style={{ paddingHorizontal: theme.spacing.lg, gap: 12 }}>
-            <View style={[panel(theme), { paddingVertical: 4 }]}>
+          <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}>
+            <View style={[panel(theme), { paddingVertical: 0 }]}>
               <BenefitRow
                 art={TILE_GIFT}
                 title={t.referral.youGetTitle}
@@ -221,7 +220,7 @@ export default function InviteFriendsScreen() {
                 style={{
                   height: StyleSheet.hairlineWidth,
                   backgroundColor: theme.color.border,
-                  marginStart: 68,
+                  marginStart: 60,
                 }}
               />
               <BenefitRow
@@ -232,9 +231,55 @@ export default function InviteFriendsScreen() {
             </View>
 
             {mine.isPending ? (
-              <ActivityIndicator color={theme.color.brand} />
+              <Skeleton height={40} radius={theme.radius.lg} />
             ) : data ? (
               <>
+                {data.code ? (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                      height: 40,
+                      paddingStart: theme.spacing.md,
+                      paddingEnd: theme.spacing.xs,
+                      borderRadius: theme.radius.lg,
+                      backgroundColor: theme.color.surface,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: theme.color.border,
+                    }}
+                  >
+                    <Text variant="caption" tone="muted">
+                      {t.referral.yourCode}
+                    </Text>
+                    <Text
+                      selectable
+                      style={{
+                        flex: 1,
+                        fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+                        fontWeight: '700',
+                        letterSpacing: 2,
+                      }}
+                    >
+                      {data.code}
+                    </Text>
+                    {copied ? (
+                      <Text variant="caption" tone="brand" accessibilityLiveRegion="polite">
+                        {t.referral.codeCopied}
+                      </Text>
+                    ) : null}
+                    <IconButton
+                      label={t.referral.copyCode}
+                      onPress={() => void copyCode(data.code)}
+                    >
+                      <Ionicons
+                        name={copied ? 'checkmark' : 'copy-outline'}
+                        size={iconSize.md}
+                        color={copied ? theme.color.brand : theme.color.text}
+                      />
+                    </IconButton>
+                  </View>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t.referral.share}
@@ -250,7 +295,7 @@ export default function InviteFriendsScreen() {
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0.5 }}
                     style={{
-                      height: 52,
+                      height: 48,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -271,16 +316,21 @@ export default function InviteFriendsScreen() {
                   </LinearGradient>
                 </Pressable>
 
-                <View style={[panel(theme), { padding: 16, gap: 12, overflow: 'hidden' }]}>
+                <View
+                  style={[
+                    panel(theme),
+                    { padding: theme.spacing.md, gap: theme.spacing.sm, overflow: 'hidden' },
+                  ]}
+                >
                   <Image
                     source={GIFT_ART}
                     accessibilityIgnoresInvertColors
                     importantForAccessibility="no"
                     accessible={false}
                     resizeMode="contain"
-                    style={{ position: 'absolute', top: 0, end: 0, width: 130, height: 59 }}
+                    style={{ position: 'absolute', top: 0, end: 0, width: 88, height: 40 }}
                   />
-                  <Text variant="subheading" style={{ marginTop: 8 }}>
+                  <Text variant="subheading">
                     {daysEarnedText(data, {
                       progress: t.referral.progress,
                       capReached: t.referral.capReached,
@@ -291,15 +341,15 @@ export default function InviteFriendsScreen() {
                     accessibilityRole="progressbar"
                     accessibilityValue={{ min: 0, max: data.daysCap, now: data.daysEarned }}
                     style={{
-                      height: 14,
-                      borderRadius: 7,
+                      height: 10,
+                      borderRadius: 5,
                       overflow: 'hidden',
                       backgroundColor: theme.color.brandSoft,
                     }}
                   >
                     <View
                       style={{
-                        height: 14,
+                        height: 10,
                         width: `${Math.round(fraction * 100)}%`,
                         backgroundColor: theme.color.brand,
                       }}
@@ -313,12 +363,12 @@ export default function InviteFriendsScreen() {
                     {referralMilestones(data.daysEarned).map((mark, index) => (
                       <Fragment key={mark.value}>
                         {index > 0 ? <DashedLine color={theme.color.border} /> : null}
-                        <View style={{ width: 52, alignItems: 'center', gap: 4 }}>
+                        <View style={{ width: 48, alignItems: 'center', gap: 2 }}>
                           <View
                             style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 15,
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: mark.reached
@@ -350,13 +400,13 @@ export default function InviteFriendsScreen() {
               <Callout tone="warning">{t.referral.loadError}</Callout>
             )}
 
-            <View style={{ gap: 8, marginTop: 6 }}>
+            <View style={{ gap: theme.spacing.sm }}>
               <Text variant="subheading">{t.referral.haveCode}</Text>
               <Row style={{ gap: 8 }}>
                 <View
                   style={{
                     flex: 1,
-                    height: 44,
+                    height: 40,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
@@ -387,7 +437,7 @@ export default function InviteFriendsScreen() {
                     maxLength={12}
                     style={{
                       flex: 1,
-                      height: 44,
+                      height: 40,
                       padding: 0,
                       color: theme.color.text,
                       fontSize: 16,
@@ -395,12 +445,6 @@ export default function InviteFriendsScreen() {
                     }}
                   />
                 </View>
-                <Button
-                  label={t.referral.paste}
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => void paste()}
-                />
                 <Button
                   label={t.referral.apply}
                   variant="brand"
@@ -420,7 +464,7 @@ export default function InviteFriendsScreen() {
           importantForAccessibility="no"
           accessible={false}
           resizeMode="cover"
-          style={{ width: '100%', height: 88, marginTop: 8 }}
+          style={{ width: '100%', height: 56, marginTop: 4 }}
         />
       </ScrollView>
     </Screen>
@@ -437,14 +481,22 @@ function panel(theme: Theme): ViewStyle {
 }
 
 function BenefitRow({ art, title, body }: { art: number; title: string; body: string }) {
+  const theme = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        padding: theme.spacing.sm,
+      }}
+    >
       <Image
         source={art}
         accessibilityIgnoresInvertColors
         importantForAccessibility="no"
         accessible={false}
-        style={{ width: 52, height: 52, borderRadius: 14 }}
+        style={{ width: 40, height: 40, borderRadius: 12 }}
       />
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="subheading" style={{ fontWeight: '700' }}>
@@ -461,7 +513,7 @@ function BenefitRow({ art, title, body }: { art: number; title: string; body: st
 /** The dashed line joining two marks, level with the middle of the circles. */
 function DashedLine({ color }: { color: string }) {
   return (
-    <View style={{ flex: 1, height: 2, marginTop: 14, overflow: 'hidden' }}>
+    <View style={{ flex: 1, height: 2, marginTop: 11, overflow: 'hidden' }}>
       <View
         style={{
           height: 4,
