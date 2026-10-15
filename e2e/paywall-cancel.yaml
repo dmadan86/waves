@@ -1,0 +1,37 @@
+# Maestro flow: start a Test Store purchase and cancel it. Backing out of the
+# store sheet is not an error: no toast, no "did not go through", still free.
+#
+# Same needs as paywall-purchase.yaml (debug build `app.waves.mobile.debug` with
+# the Test Store key, `paywall` flag on, free account). It buys nothing, so it
+# leaves the account free: run it BEFORE paywall-purchase.yaml.
+#
+# The Test Store dialog has a "Cancel" button. The selector is a case-insensitive
+# match on that word, exact first and then any button containing it. Deliberately
+# no `back` fallback: if the exact tap already closed the dialog, a back press
+# would pop the paywall itself and fail the assertions below for the wrong reason.
+#
+#   maestro test --env E2E_EMAIL=… --env E2E_PASSWORD=… e2e/paywall-cancel.yaml
+appId: app.waves.mobile.debug
+---
+- runFlow: paywall-open.yaml
+
+- tapOn: 'Continue with Plus'
+
+- extendedWaitUntil:
+    visible: '(?i).*(test|valid).*purchase.*'
+    timeout: 20000
+- tapOn:
+    text: '(?i)^cancel$'
+    optional: true
+- tapOn:
+    text: '(?i)^cancel.{0,12}$'
+    optional: true
+
+# Back on the paywall, nothing bought and nothing said about it.
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: 'Continue with Plus'
+- assertNotVisible: 'That did not go through.*'
+- assertNotVisible: 'Welcome to Waves.*'
+- assertNotVisible: 'You are on Waves.*'
+- assertNotVisible: 'Current plan'

@@ -1,0 +1,56 @@
+# Reusable preamble for the paywall flows (paywall-purchase, paywall-cancel):
+# sign in, open the paywall from the dashboard menu, and check the plans loaded.
+#
+# Not a flow to run on its own, like login.yaml. It needs the BILLING build:
+#
+#   - the DEBUG build, appId `app.waves.mobile.debug` (a release build refuses a
+#     Test Store key, see `revenueCatApiKey` in apps/mobile/src/lib/pricing.ts),
+#     built with EXPO_PUBLIC_REVENUECAT_ANDROID_KEY set to the project's Test
+#     Store public SDK key (`test_...`);
+#   - the `paywall` feature flag ON for the signed-in account on the backend the
+#     build points at (otherwise the dashboard menu has no "Upgrade" row);
+#   - a signed-in, non-guest account that is on the FREE plan.
+#
+# The nightly build has no RevenueCat key, so these flows are not in
+# e2e/run-maestro.sh. See "Billing flows" in e2e/README-e2e.md.
+appId: app.waves.mobile.debug
+---
+- runFlow: login.yaml
+
+# Dashboard → ⋮ (its accessibility label is "Settings") → Upgrade.
+- tapOn: 'Settings'
+- extendedWaitUntil:
+    visible: 'Upgrade'
+    timeout: 10000
+- tapOn: 'Upgrade'
+
+# The paywall: the hero, then the plans. "Loading prices…" gives way to cards
+# whose labels read "<Plan>, <store price> /mo. …" — the price is the store's own
+# string, so assert on its shape (a digit), never on a hardcoded amount.
+- extendedWaitUntil:
+    visible: 'Upgrade to Waves Pro'
+    timeout: 20000
+- extendedWaitUntil:
+    visible: 'Plus, .*[0-9].*/mo.*'
+    timeout: 30000
+- assertVisible: 'Pro, .*[0-9].*/mo.*'
+# "Plans could not be loaded" is the failure this exists to catch: an offering
+# with only RevenueCat's sample products, or no network.
+- assertNotVisible: 'Plans could not be loaded.*'
+- assertNotVisible: 'Plans are not available right now.'
+
+# Monthly ⇄ Yearly: the same two plans, priced per year.
+- assertVisible: 'Monthly'
+- tapOn: 'Yearly'
+- extendedWaitUntil:
+    visible: 'Plus, .*[0-9].*/yr.*'
+    timeout: 10000
+- assertVisible: 'Pro, .*[0-9].*/yr.*'
+- tapOn: 'Monthly'
+- extendedWaitUntil:
+    visible: 'Plus, .*[0-9].*/mo.*'
+    timeout: 10000
+
+# Pro is preselected; choose Plus and check the button follows.
+- tapOn: 'Plus, .*[0-9].*/mo.*'
+- assertVisible: 'Continue with Plus'
