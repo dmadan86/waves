@@ -15,12 +15,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "@sentry/nextjs": "^11.6.0",
+    "@sentry/nextjs": "^11.7.0",
     "@supabase/supabase-js": "^2.117.3",
     "@waves/agent-mcp": "workspace:*",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
-    "lucide-react": "^1.53.0",
+    "lucide-react": "^1.55.0",
     "next": "^16.4.0",
     "qrcode.react": "^4.2.0",
     "react": "19.3.0",
@@ -29,7 +29,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/react": "~19.3.0",
     "@types/react-dom": "~19.3.0",
     "eslint": "^10.12.0",
