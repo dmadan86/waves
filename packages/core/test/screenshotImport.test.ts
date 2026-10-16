@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 
 import { CategoryId } from '../src/category/categories';
 import {
-  PLUS_MONTHLY_SCREENSHOT_IMPORTS,
   PRO_MONTHLY_SCREENSHOT_IMPORTS,
   suggestMember,
   validateScreenshotExtraction,
@@ -45,7 +44,6 @@ function run(raw: unknown, options = {}) {
 
 describe('plan constants', () => {
   it('match the plan', () => {
-    expect(PLUS_MONTHLY_SCREENSHOT_IMPORTS).toBe(30);
     expect(PRO_MONTHLY_SCREENSHOT_IMPORTS).toBe(100);
   });
 });

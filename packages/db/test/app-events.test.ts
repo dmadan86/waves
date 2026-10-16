@@ -132,7 +132,7 @@ describe('waves_track_event', () => {
     expect(row.props).toEqual({ method: 'phone', screen: 'paywall' });
   });
 
-  it('keeps a short lowercase variant prop, for the Plus price test', async () => {
+  it('keeps a short lowercase variant prop (older apps still send one)', async () => {
     const install = randomUUID();
     await track(install, 'premium_viewed', { screen: 'paywall', variant: 'p79' });
     await track(install, 'premium_viewed', { variant: 'P 79!' });
@@ -425,29 +425,20 @@ describe('the table itself', () => {
   });
 });
 
-describe('the Plus price test', () => {
-  it('ships the plus_price flag off, at 0%, with the three arms', async () => {
+describe('the retired Plus price test', () => {
+  it('leaves the plus_price flag off at 0% (the row stays so history keeps meaning)', async () => {
     const { rows } = await client.query(
-      `SELECT enabled, rollout_percent, variants FROM public.feature_flags WHERE key = 'plus_price'`,
+      `SELECT enabled, rollout_percent FROM public.feature_flags WHERE key = 'plus_price'`,
     );
     expect(rows).toHaveLength(1);
     expect(rows[0].enabled).toBe(false);
     expect(rows[0].rollout_percent).toBe(0);
-    expect(rows[0].variants).toEqual(['p49', 'p79', 'p99']);
   });
 
-  it('counts plans-screen installs per arm, and is closed to anon and signed-in users', async () => {
-    const install = randomUUID();
-    await track(install, 'premium_viewed', { screen: 'paywall', variant: 'p79' });
-    await track(install, 'premium_viewed', { screen: 'upgrade', variant: 'p79' });
-    const { rows } = await client.query(`SELECT * FROM public.waves_admin_plus_price_results()`);
-    const p79 = rows.find((row) => row.variant === 'p79');
-    expect(Number(p79.premium_viewed_installs)).toBeGreaterThanOrEqual(1);
-    for (const role of ['anon', 'authenticated']) {
-      const denied = await asRole(role, null, () =>
-        expectDenied(client.query(`SELECT * FROM public.waves_admin_plus_price_results()`)),
-      );
-      expect(denied, role).toMatch(/permission denied/i);
-    }
+  it('drops the per-arm read-out function', async () => {
+    const { rows } = await client.query(
+      `SELECT count(*)::int AS n FROM pg_proc WHERE proname = 'waves_admin_plus_price_results'`,
+    );
+    expect(rows[0].n).toBe(0);
   });
 });

@@ -38,9 +38,9 @@ function device(over: Partial<DeviceSession> = {}): DeviceSession {
 }
 
 describe('deviceLimitFor', () => {
-  it('gives free two and plus more', () => {
+  it('gives free two and Pro more', () => {
     expect(deviceLimitFor(PlanTier.Free)).toBe(2);
-    expect(deviceLimitFor(PlanTier.Plus)).toBeGreaterThan(2);
+    expect(deviceLimitFor(PlanTier.Pro)).toBeGreaterThan(2);
   });
 });
 
@@ -102,9 +102,9 @@ describe('deviceLimitStatus', () => {
     expect(deviceLimitStatus(rows, PlanTier.Free, NOW).overLimit).toBe(true);
   });
 
-  it('does not flag three phones on plus', () => {
+  it('does not flag three phones on Pro', () => {
     const rows = [device({ deviceId: 'a' }), device({ deviceId: 'b' }), device({ deviceId: 'c' })];
-    expect(deviceLimitStatus(rows, PlanTier.Plus, NOW).overLimit).toBe(false);
+    expect(deviceLimitStatus(rows, PlanTier.Pro, NOW).overLimit).toBe(false);
   });
 
   it('a freed slot brings a would-be-third back under the limit', () => {

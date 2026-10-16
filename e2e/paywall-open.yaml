@@ -31,26 +31,23 @@ appId: app.waves.mobile.debug
     visible: 'Upgrade to Waves Pro'
     timeout: 20000
 - extendedWaitUntil:
-    visible: 'Plus, .*[0-9].*/mo.*'
+    visible: 'Pro, .*[0-9].*/mo.*'
     timeout: 30000
-- assertVisible: 'Pro, .*[0-9].*/mo.*'
 # "Plans could not be loaded" is the failure this exists to catch: an offering
 # with only RevenueCat's sample products, or no network.
 - assertNotVisible: 'Plans could not be loaded.*'
 - assertNotVisible: 'Plans are not available right now.'
 
-# Monthly ⇄ Yearly: the same two plans, priced per year.
+# Monthly ⇄ Yearly: the same plan, priced per year.
 - assertVisible: 'Monthly'
 - tapOn: 'Yearly'
 - extendedWaitUntil:
-    visible: 'Plus, .*[0-9].*/yr.*'
+    visible: 'Pro, .*[0-9].*/yr.*'
     timeout: 10000
-- assertVisible: 'Pro, .*[0-9].*/yr.*'
 - tapOn: 'Monthly'
 - extendedWaitUntil:
-    visible: 'Plus, .*[0-9].*/mo.*'
+    visible: 'Pro, .*[0-9].*/mo.*'
     timeout: 10000
 
-# Pro is preselected; choose Plus and check the button follows.
-- tapOn: 'Plus, .*[0-9].*/mo.*'
-- assertVisible: 'Continue with Plus'
+# Pro is the only plan and is preselected; the button names it.
+- assertVisible: 'Continue with Pro'

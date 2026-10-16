@@ -23,41 +23,40 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
-import {
-  VOICE_AGENT_FREE_MONTHLY,
-  VOICE_AGENT_PLUS_MONTHLY,
-  VOICE_AGENT_PRO_MONTHLY,
-} from '../voice/agentProtocol';
+import { VOICE_AGENT_FREE_MONTHLY, VOICE_AGENT_PRO_MONTHLY } from '../voice/agentProtocol';
 
 /**
- * Free, Plus (the paid features, with 50 advanced voice commands a month) and
- * Pro (everything, with 150 a month). Pro is a superset of Plus: anything a
- * Plus row unlocks, a Pro row unlocks too — ask `isPaidTier`, never
- * `tier === PlanTier.Plus`, for "has this person paid".
+ * Free and Pro. Pro is everything paid: the scan and screenshot-import
+ * allowances, more devices, and 100 advanced voice commands a month.
+ *
+ * Plus was a middle tier until it was retired; every Plus subscriber is Pro
+ * (see `planTierFromString`). The string 'plus' still arrives from older
+ * servers, apps and store rows and is read as Pro — nothing ever grants it.
+ * Ask `isPaidTier` for "has this person paid".
  */
 export enum PlanTier {
   Free = 'free',
-  Plus = 'plus',
   Pro = 'pro',
 }
 
-/** Plus and Pro are both paid; both carry advanced voice, Pro with the bigger allowance. */
+/** Read a tier name from the wire, the database or a store. The retired 'plus' is Pro. */
+export function planTierFromString(value: unknown): PlanTier {
+  return value === 'pro' || value === 'plus' ? PlanTier.Pro : PlanTier.Free;
+}
+
+/** Pro is the only paid tier. */
 export function isPaidTier(tier: PlanTier): boolean {
-  return tier === PlanTier.Plus || tier === PlanTier.Pro;
+  return tier === PlanTier.Pro;
 }
 
 /** Advanced (cloud) voice commands a tier gets each calendar month. */
 export function voiceAgentMonthlyLimit(tier: PlanTier): number {
-  return tier === PlanTier.Pro
-    ? VOICE_AGENT_PRO_MONTHLY
-    : tier === PlanTier.Plus
-      ? VOICE_AGENT_PLUS_MONTHLY
-      : VOICE_AGENT_FREE_MONTHLY;
+  return tier === PlanTier.Pro ? VOICE_AGENT_PRO_MONTHLY : VOICE_AGENT_FREE_MONTHLY;
 }
 
 /** How the tiers order, for "is this an upgrade". */
 export function tierRank(tier: PlanTier): number {
-  return tier === PlanTier.Pro ? 2 : tier === PlanTier.Plus ? 1 : 0;
+  return tier === PlanTier.Pro ? 1 : 0;
 }
 
 export enum BillingPeriod {
@@ -84,14 +83,13 @@ export interface Price {
 
 /** Scans a month. The database enforces these; see the note at the top. */
 export const FREE_MONTHLY_SCANS = 20;
-export const PLUS_MONTHLY_SCANS = 300;
+export const PRO_MONTHLY_SCANS = 300;
 
 /**
  * Screenshot imports a month (the `import-screenshot` function; each image is
  * one model call). Paid only. The database enforces these through
  * `waves_screenshot_import_quota`, and the function passes them in.
  */
-export const PLUS_MONTHLY_SCREENSHOT_IMPORTS = 30;
 export const PRO_MONTHLY_SCREENSHOT_IMPORTS = 100;
 
 /**
@@ -208,13 +206,12 @@ export function readEntitlement(value: unknown): Entitlement {
   const row = value as Record<string, unknown>;
 
   // `tier` is 'plus' for any paid row (older servers and the device-cap SQL read
-  // it as "paid"); `plan` says which paid tier. Either naming 'pro' means Pro.
+  // it as "paid"); `plan` is 'pro'. Plus is retired: either naming a paid tier
+  // means Pro.
   const tier =
-    row.plan === 'pro' || row.tier === 'pro'
+    planTierFromString(row.plan) === PlanTier.Pro || planTierFromString(row.tier) === PlanTier.Pro
       ? PlanTier.Pro
-      : row.tier === 'plus' || row.plan === 'plus'
-        ? PlanTier.Plus
-        : PlanTier.Free;
+      : PlanTier.Free;
   const source =
     row.source === 'subscription' || row.source === 'lifetime' || row.source === 'trip_pass'
       ? row.source
@@ -231,7 +228,7 @@ export function readEntitlement(value: unknown): Entitlement {
       Number.isFinite(limit) && limit > 0
         ? Math.floor(limit)
         : isPaidTier(tier)
-          ? PLUS_MONTHLY_SCANS
+          ? PRO_MONTHLY_SCANS
           : FREE_MONTHLY_SCANS,
   };
 }

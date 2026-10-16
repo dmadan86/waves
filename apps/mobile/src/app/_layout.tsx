@@ -535,7 +535,7 @@ function AuthGate() {
   // is not toured twice back-to-back (the intro, then the coach-marks). The
   // coach tour stays available on demand from the Home overflow menu.
   const tour = useTour();
-  // The paywall sells Plus and Pro through RevenueCat. Its route exists only
+  // The paywall sells Pro through RevenueCat. Its route exists only
   // where the `paywall` flag turns it on AND the build carries a RevenueCat
   // key — a build with no key has nothing to sell, so a deep link cannot reach
   // a screen that could only fail.

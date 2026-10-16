@@ -108,7 +108,7 @@ function pkg(identifier: string, productId: string, packageType = 'CUSTOM') {
   };
 }
 
-function offering(identifier: string, packages = [pkg('$rc_monthly', 'waves_plus_monthly')]) {
+function offering(identifier: string, packages = [pkg('$rc_monthly', 'waves_pro_monthly')]) {
   return { identifier, availablePackages: packages };
 }
 
@@ -164,7 +164,7 @@ describe('the RevenueCat user follows the signed-in profile', () => {
     await p.syncPurchasesUser(ME);
     expect(sdk.configure).toHaveBeenCalledTimes(1);
     expect(sdk.addCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
-    expect(p.useCustomerTier()).toMatchObject({ tier: PlanTier.Plus, loading: false });
+    expect(p.useCustomerTier()).toMatchObject({ tier: PlanTier.Pro, loading: false });
   });
 
   it('does nothing for a signed-out launch: purchases need an account', async () => {
@@ -249,7 +249,7 @@ describe('the RevenueCat user follows the signed-in profile', () => {
     });
     for (const listener of rn.appStateListeners) listener('active');
     await vi.waitFor(() => expect(sdk.logIn).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(p.useCustomerTier().tier).toBe(PlanTier.Plus));
+    await vi.waitFor(() => expect(p.useCustomerTier().tier).toBe(PlanTier.Pro));
   });
 
   it('does not retry on a background state change', async () => {
@@ -305,10 +305,10 @@ describe('the tier a store product or entitlement gives', () => {
     return p.useCustomerTier().tier;
   };
 
-  it('is Plus for the plus entitlement and Pro for pro, whatever the store id looks like', async () => {
-    expect(await tierFor({ plus: 'waves_plus_monthly:monthly' })).toBe(PlanTier.Plus); // Play
-    expect(await tierFor({ plus: 'waves_plus_yearly' })).toBe(PlanTier.Plus); // App Store
-    expect(await tierFor({ plus: 'monthly' })).toBe(PlanTier.Plus); // Test Store
+  it('is Pro for the pro entitlement and the retired plus one, whatever the store id looks like', async () => {
+    expect(await tierFor({ plus: 'waves_plus_monthly:monthly' })).toBe(PlanTier.Pro); // Play
+    expect(await tierFor({ plus: 'waves_plus_yearly' })).toBe(PlanTier.Pro); // App Store
+    expect(await tierFor({ plus: 'monthly' })).toBe(PlanTier.Pro); // Test Store
     expect(await tierFor({ pro: 'waves_pro_yearly:yearly' })).toBe(PlanTier.Pro);
     expect(await tierFor({})).toBe(PlanTier.Free);
   });
@@ -340,7 +340,7 @@ describe('the offering the paywall gets', () => {
     expect(await p.loadOffering()).toBeNull();
   });
 
-  it('is the plus_price arm for somebody in the test, and falls back when it is missing', async () => {
+  it('ignores the retired plus_price arm offerings, even when RevenueCat still has them', async () => {
     const dflt = offering(RC_DEFAULT_OFFERING);
     const arm = offering('plus_p79', [pkg('$rc_monthly', 'waves_plus_monthly_p79')]);
     const p = await withKey();
@@ -349,12 +349,7 @@ describe('the offering the paywall gets', () => {
       current: dflt,
       all: { default: dflt, plus_p79: arm },
     });
-    expect(await p.loadOffering('p79')).toBe(arm);
-    // An arm whose offering is not set up in RevenueCat never breaks the paywall.
-    expect(await p.loadOffering('p49')).toBe(dflt);
-    // Not an arm at all.
-    expect(await p.loadOffering('control')).toBe(dflt);
-    expect(await p.loadOffering(null)).toBe(dflt);
+    expect(await p.loadOffering()).toBe(dflt);
   });
 
   it('lets a failed fetch reach the caller, which shows the retry state', async () => {
@@ -377,7 +372,7 @@ describe('buying', () => {
     await p.syncPurchasesUser(ME);
     expect(await p.purchase(plusMonthly as never)).toBe('purchased');
     expect(sdk.purchasePackage).toHaveBeenCalledWith(plusMonthly, null, null);
-    expect(p.useCustomerTier().tier).toBe(PlanTier.Plus);
+    expect(p.useCustomerTier().tier).toBe(PlanTier.Pro);
   });
 
   it('returns cancelled, without throwing, when the person backs out of the store sheet', async () => {

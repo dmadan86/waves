@@ -32,7 +32,7 @@ function when(iso: string | null): string {
 
 function kind(u: AdminUserListRow): { label: string; tone: Tone } {
   if (u.is_anonymous) return { label: 'guest', tone: 'neutral' };
-  if (u.is_plus) return { label: 'plus', tone: 'accent' };
+  if (u.is_plus) return { label: 'pro', tone: 'accent' };
   return { label: 'free', tone: 'ok' };
 }
 
@@ -250,7 +250,7 @@ export default async function Users({
                                 min={1}
                                 max={3650}
                                 defaultValue={365}
-                                aria-label={`Days of Plus to grant ${u.display_name ?? u.id}`}
+                                aria-label={`Days of Pro to grant ${u.display_name ?? u.id}`}
                                 style={{ width: '4.5rem' }}
                               />
                               <button

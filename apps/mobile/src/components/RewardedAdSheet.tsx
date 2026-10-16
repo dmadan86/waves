@@ -1,7 +1,7 @@
 /**
  * The small sheet offered at the two natural moments for a Free person: the AI
  * voice monthly limit and the receipt-scan limit. "Watch a short ad for 2 more
- * AI voice commands" / "Upgrade to Plus" / "Not now". Nothing starts until the
+ * AI voice commands" / "Upgrade to Pro" / "Not now". Nothing starts until the
  * Watch button is tapped, and nothing is forced. Presentational only: the flow
  * lives in `useRewardedAdOffer`.
  */

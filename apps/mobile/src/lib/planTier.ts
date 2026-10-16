@@ -3,11 +3,11 @@
  * without the SDK (see useEntitlement).
  */
 
-import { PlanTier, tierRank } from '@waves/core';
+import { planTierFromString, tierRank, type PlanTier } from '@waves/core';
 
-/** `waves_my_plan`'s `plan` field as a tier; anything unexpected is Free. */
+/** `waves_my_plan`'s `plan` field as a tier; the retired 'plus' is Pro, anything unexpected is Free. */
 export function tierFromServerPlan(plan: unknown): PlanTier {
-  return plan === 'pro' ? PlanTier.Pro : plan === 'plus' ? PlanTier.Plus : PlanTier.Free;
+  return planTierFromString(plan);
 }
 
 /** The higher of two tiers. */

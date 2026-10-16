@@ -108,7 +108,7 @@ export function ExamplesSheet({
 }
 
 /**
- * Screenshot import is a Plus feature. Until it ships, the card opens this: what
+ * Screenshot import is a Pro feature. Until it ships, the card opens this: what
  * it will do, a way to the plans, and the free road that works today.
  */
 export function UpsellSheet({

@@ -156,23 +156,17 @@ export async function refreshCustomerInfo(): Promise<void> {
 
 // --- Buying ------------------------------------------------------------------
 
-/**
- * The offering the paywall shows: the Plus price arm's (`plus_p49` / `plus_p79`
- * / `plus_p99`) when this person is in the test, else RevenueCat's current one,
- * else 'default'. See `selectOffering`.
- */
-export async function loadOffering(
-  plusPriceVariant: string | null = null,
-): Promise<PurchasesOffering | null> {
+/** The offering the paywall shows: RevenueCat's current one, else 'default'. See `selectOffering`. */
+export async function loadOffering(): Promise<PurchasesOffering | null> {
   if (!configured) return null;
   const offerings = await Purchases.getOfferings();
-  return selectOffering(offerings, plusPriceVariant);
+  return selectOffering(offerings);
 }
 
 export type PurchaseOutcome = 'purchased' | 'cancelled' | 'pending';
 
 /**
- * Buy one package. On Android, an existing Plus/Pro subscription is replaced
+ * Buy one package. On Android, an existing (Pro, or legacy Plus) subscription is replaced
  * (upgrade/downgrade in place) rather than stacked; on iOS the subscription
  * group does that by itself.
  */

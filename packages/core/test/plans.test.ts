@@ -8,9 +8,11 @@ import {
   BillingPeriod,
   FREE_ENTITLEMENT,
   FREE_MONTHLY_SCANS,
-  PLUS_MONTHLY_SCANS,
+  isPaidTier,
+  PRO_MONTHLY_SCANS,
   PlanTier,
   PRICED_COUNTRIES,
+  planTierFromString,
   priceFor,
   readEntitlement,
   voiceAgentMonthlyLimit,
@@ -91,7 +93,7 @@ describe('reading what the server said', () => {
         scanLimit: 300,
       }),
     ).toEqual({
-      tier: 'plus',
+      tier: 'pro',
       until: '2027-01-01T00:00:00Z',
       source: 'subscription',
       scanLimit: 300,
@@ -101,15 +103,15 @@ describe('reading what the server said', () => {
   it('never guesses upward', () => {
     // The failure mode of guessing the other way is giving away what somebody
     // else paid for. This one is a paywall that clears on the next good call.
-    for (const bad of [null, undefined, 'plus', 42, {}, { tier: 'PLUS' }, { tier: 'premium' }]) {
+    for (const bad of [null, undefined, 'pro', 42, {}, { tier: 'PLUS' }, { tier: 'premium' }]) {
       expect(readEntitlement(bad), JSON.stringify(bad)).toEqual(FREE_ENTITLEMENT);
     }
   });
 
   it('fills in a sensible limit when the server did not send one', () => {
-    expect(readEntitlement({ tier: 'plus' }).scanLimit).toBe(PLUS_MONTHLY_SCANS);
+    expect(readEntitlement({ tier: 'plus' }).scanLimit).toBe(PRO_MONTHLY_SCANS);
     expect(readEntitlement({ tier: 'free' }).scanLimit).toBe(FREE_MONTHLY_SCANS);
-    expect(readEntitlement({ tier: 'plus', scanLimit: -5 }).scanLimit).toBe(PLUS_MONTHLY_SCANS);
+    expect(readEntitlement({ tier: 'plus', scanLimit: -5 }).scanLimit).toBe(PRO_MONTHLY_SCANS);
     expect(readEntitlement({ tier: 'plus', scanLimit: '90' }).scanLimit).toBe(90);
   });
 
@@ -122,11 +124,19 @@ describe('reading what the server said', () => {
 });
 
 describe('advanced voice allowance', () => {
-  it('is 10 for free, 50 for Plus and 150 for Pro, streams at 3x', () => {
+  it('is 10 for free and 100 for Pro, streams at 3x', () => {
     expect(voiceAgentMonthlyLimit(PlanTier.Free)).toBe(10);
-    expect(voiceAgentMonthlyLimit(PlanTier.Plus)).toBe(50);
-    expect(voiceAgentMonthlyLimit(PlanTier.Pro)).toBe(150);
-    expect(voice.VOICE_STREAM_PLUS_MONTHLY).toBe(150);
-    expect(voice.VOICE_STREAM_PRO_MONTHLY).toBe(450);
+    expect(voiceAgentMonthlyLimit(PlanTier.Pro)).toBe(100);
+    expect(voice.VOICE_STREAM_PRO_MONTHLY).toBe(300);
+    expect('VOICE_AGENT_PLUS_MONTHLY' in voice).toBe(false);
+  });
+
+  it('has two tiers: Plus is gone and the string reads as Pro', () => {
+    expect(Object.values(PlanTier).sort()).toEqual(['free', 'pro']);
+    expect(planTierFromString('plus')).toBe(PlanTier.Pro);
+    expect(planTierFromString('pro')).toBe(PlanTier.Pro);
+    expect(planTierFromString('free')).toBe(PlanTier.Free);
+    expect(planTierFromString('premium')).toBe(PlanTier.Free);
+    expect(isPaidTier(planTierFromString('plus'))).toBe(true);
   });
 });

@@ -130,11 +130,11 @@ In CI this loop lives in `e2e/run-maestro.sh`.
 
 ### Billing flows (RevenueCat Test Store) — not in the nightly
 
-| Flow                    | Guards                                                                                                                                        |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paywall-cancel.yaml`   | dashboard ⋮ → Upgrade → plans load with prices → Monthly/Yearly → Continue with Plus → Cancel in the Test Store dialog → no error, still free |
-| `paywall-purchase.yaml` | the same, then complete the Test Store purchase → Plus is the current plan                                                                    |
-| `paywall-open.yaml`     | the shared preamble of the two (a sub-flow, like `login.yaml`; do not run it alone)                                                           |
+| Flow                    | Guards                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paywall-cancel.yaml`   | dashboard ⋮ → Upgrade → plans load with prices → Monthly/Yearly → Continue with Pro → Cancel in the Test Store dialog → no error, still free |
+| `paywall-purchase.yaml` | the same, then complete the Test Store purchase → Pro is the current plan                                                                    |
+| `paywall-open.yaml`     | the shared preamble of the two (a sub-flow, like `login.yaml`; do not run it alone)                                                          |
 
 These need a build the nightly does not make, so they are **not** in
 `run-maestro.sh` and no workflow runs them. They need:
@@ -147,11 +147,11 @@ These need a build the nightly does not make, so they are **not** in
 
 The Test Store purchase dialog is RevenueCat's, so the flows match it with
 case-insensitive regexes (`valid purchase`, `cancel`) and fail at the
-Plus-is-active assertion, not on a selector, if it is ever reworded.
+Pro-is-active assertion, not on a selector, if it is ever reworded.
 
 ```bash
 adb install -r app-debug.apk   # the Test Store build
-# cancel first: it buys nothing. The purchase flow leaves the account on Plus,
+# cancel first: it buys nothing. The purchase flow leaves the account on Pro,
 # so use a fresh E2E_EMAIL (or wait for the Test Store subscription to lapse)
 # before running it again.
 for flow in paywall-cancel paywall-purchase; do

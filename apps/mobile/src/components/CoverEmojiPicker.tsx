@@ -261,7 +261,7 @@ export function CoverEmojiPicker({
  * the one that is already up says the same thing more simply — the list of
  * ways in, and the grid you reach through it.
  *
- * The photo half stays gated exactly as it was (a photo is a Plus feature, an
+ * The photo half stays gated exactly as it was (a photo is a Pro feature, an
  * icon is free): when the gate is locked the row says so and leads to the
  * upgrade screen instead of the camera roll, and while the answer is still in
  * flight the row is disabled rather than acting on a guess.

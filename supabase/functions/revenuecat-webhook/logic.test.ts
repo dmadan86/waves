@@ -39,7 +39,7 @@ function upsert(over: Partial<RcEvent> = {}): UpsertAction {
 }
 
 describe('mapEvent', () => {
-  it('INITIAL_PURCHASE writes an active Plus row keyed by the original transaction', () => {
+  it('INITIAL_PURCHASE of a retired Plus product writes an active Pro row keyed by the original transaction', () => {
     const mapped = mapEvent(event());
     expect(mapped).toMatchObject({
       eventId: 'evt-1',
@@ -49,7 +49,7 @@ describe('mapEvent', () => {
     });
     expect(mapped.action).toEqual({
       kind: 'upsert',
-      tier: 'plus',
+      tier: 'pro',
       period: 'monthly',
       status: 'active',
       current_period_end: new Date(NOW + 30 * DAY).toISOString(),
@@ -268,13 +268,14 @@ describe('stores and product ids', () => {
 
   it.each([
     // Google Play reports <productId>:<basePlanId>
-    ['waves_plus_monthly:monthly', 'plus', 'monthly'],
-    ['waves_plus_yearly:yearly', 'plus', 'yearly'],
+    // Plus is retired: its products still map, to Pro
+    ['waves_plus_monthly:monthly', 'pro', 'monthly'],
+    ['waves_plus_yearly:yearly', 'pro', 'yearly'],
     ['waves_pro_monthly:monthly', 'pro', 'monthly'],
     ['waves_pro_yearly:yearly', 'pro', 'yearly'],
     // App Store and Test Store use the plain id
-    ['waves_plus_monthly', 'plus', 'monthly'],
-    ['waves_plus_yearly', 'plus', 'yearly'],
+    ['waves_plus_monthly', 'pro', 'monthly'],
+    ['waves_plus_yearly', 'pro', 'yearly'],
     ['waves_pro_monthly', 'pro', 'monthly'],
     ['waves_pro_yearly', 'pro', 'yearly'],
   ] as const)('reads %s as %s %s with no entitlement on the event', (product_id, tier, period) => {
@@ -284,7 +285,7 @@ describe('stores and product ids', () => {
   it('prefers the entitlement RevenueCat attached over the product id', () => {
     expect(upsert({ product_id: 'waves_plus_monthly', entitlement_ids: ['pro'] }).tier).toBe('pro');
     expect(upsert({ product_id: 'x', entitlement_ids: null, entitlement_id: 'plus' }).tier).toBe(
-      'plus',
+      'pro',
     );
   });
 
@@ -337,23 +338,23 @@ describe('product changes', () => {
       tier: 'pro',
       period: 'yearly',
     });
-    // ...and the renewal that follows is a Plus row on the same transaction.
+    // ...and the renewal that follows is still a Pro row on the same transaction.
     expect(
       upsert({ type: 'RENEWAL', product_id: 'waves_plus_monthly', entitlement_ids: ['plus'] }),
-    ).toMatchObject({ tier: 'plus', store_txn_id: 'GPA.1234-5678' });
+    ).toMatchObject({ tier: 'pro', store_txn_id: 'GPA.1234-5678' });
   });
 
   it('same tier, different period: stays that tier, takes the old product’s period', () => {
     expect(change('waves_plus_monthly', 'waves_plus_yearly')).toMatchObject({
-      tier: 'plus',
+      tier: 'pro',
       period: 'monthly',
     });
   });
 
   it('a change to something unknown, or with no new product, changes nothing', () => {
-    expect(change('waves_plus_monthly', 'something_else')).toMatchObject({ tier: 'plus' });
+    expect(change('waves_plus_monthly', 'something_else')).toMatchObject({ tier: 'pro' });
     expect(change('waves_plus_monthly', '', { new_product_id: null })).toMatchObject({
-      tier: 'plus',
+      tier: 'pro',
     });
   });
 });
