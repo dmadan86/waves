@@ -4,10 +4,10 @@
  * runs under vitest (test/pricing.test.ts); `lib/purchases.ts` is the thin
  * native half.
  *
- * Tiers: **Plus** is the paid features with 50 advanced voice commands a month,
- * **Pro** is everything, with 150. Prices are always the store's own `priceString` —
- * Waves never hardcodes what a person is charged (₹49 / ₹99 a month in India
- * are configured in the stores, and every other market's price lives there).
+ * Tiers: Free and **Pro** (Plus was retired; a Plus subscriber is Pro). Prices are
+ * always the store's own `priceString` — Waves never hardcodes what a person is
+ * charged (₹79 a month / ₹699 a year in India are configured in the stores, and
+ * every other market's price lives there).
  *
  * What the app reads here is for display only. The server decides what a
  * person gets from `subscriptions`, which RevenueCat's webhook writes
@@ -17,16 +17,17 @@
 import {
   PlanTier,
   RC_DEFAULT_OFFERING,
+  isRetiredPlusProduct,
   periodFromProductId,
   tierFromEntitlementIds,
   tierFromProductId,
 } from '@waves/core';
 
-export type PaidTier = PlanTier.Plus | PlanTier.Pro;
+export type PaidTier = PlanTier.Pro;
 export type PlanPeriod = 'monthly' | 'yearly';
 
-/** Paywall order: the cheaper plan first, Pro last (it is the one with more on it). */
-export const PAID_TIERS: readonly PaidTier[] = [PlanTier.Plus, PlanTier.Pro];
+/** The one paid tier. */
+export const PAID_TIERS: readonly PaidTier[] = [PlanTier.Pro];
 
 /** The fields of RevenueCat's `PurchasesStoreProduct` the paywall reads. */
 export interface StoreProductLike {
@@ -65,7 +66,7 @@ export interface PlanCardModel {
   /** The RevenueCat package identifier, which is what gets purchased. */
   readonly packageId: string;
   readonly productId: string;
-  /** Localized by the store, e.g. "₹49.00". */
+  /** Localized by the store, e.g. "₹79.00". */
   readonly priceString: string;
   readonly price: number;
   readonly currency: string;
@@ -73,8 +74,14 @@ export interface PlanCardModel {
 
 /** The tier a package sells, from its product id or, failing that, its package id. */
 export function tierOfPackage(pkg: PackageLike): PaidTier | null {
+  // A retired Plus product reads as Pro for a subscriber who already has it, but it
+  // is not for sale: a leftover Plus package in an old offering must not appear as
+  // a Pro card (it would sell the old product under the new name).
+  if (isRetiredPlusProduct(pkg.product.identifier) || isRetiredPlusProduct(pkg.identifier)) {
+    return null;
+  }
   const tier = tierFromProductId(pkg.product.identifier) ?? tierFromProductId(pkg.identifier);
-  return tier === PlanTier.Plus || tier === PlanTier.Pro ? tier : null;
+  return tier === PlanTier.Pro ? tier : null;
 }
 
 /** The billing period of a package: RevenueCat's package type, else the ids. */
@@ -85,8 +92,7 @@ export function periodOfPackage(pkg: PackageLike): PlanPeriod | null {
 }
 
 /**
- * The paywall's cards for one billing period: at most one Plus and one Pro, in
- * that order. A tier the offering does not sell for that period has no card.
+ * The paywall's cards for one billing period: at most one Pro card. A tier the offering does not sell for that period has no card.
  */
 export function planCardsFromOffering(
   offering: OfferingLike | null | undefined,
@@ -130,7 +136,7 @@ export function tierFromCustomerInfo(info: CustomerInfoLike | null | undefined):
 
 /**
  * The store product behind the person's current paid entitlement, if any —
- * Android needs it to turn a Plus → Pro purchase into an upgrade of the same
+ * Android needs it to turn a change of product into an upgrade of the same
  * subscription rather than a second one.
  */
 export function activeProductId(info: CustomerInfoLike | null | undefined): string | null {
@@ -169,24 +175,6 @@ export function yearlySavingsPercent(monthlyPrice: number, yearlyPrice: number):
   return Math.max(0, Math.round(savings * 100));
 }
 
-// --- The Plus price test ------------------------------------------------------
-
-/** The feature flag that assigns a person one of the Plus price arms. */
-export const PLUS_PRICE_FLAG = 'plus_price';
-
-/** The arms, as the flag names them. Each maps to the offering `plus_<arm>`. */
-export const PLUS_PRICE_VARIANTS = ['p49', 'p79', 'p99'] as const;
-export type PlusPriceVariant = (typeof PLUS_PRICE_VARIANTS)[number];
-
-export function isPlusPriceVariant(value: unknown): value is PlusPriceVariant {
-  return typeof value === 'string' && (PLUS_PRICE_VARIANTS as readonly string[]).includes(value);
-}
-
-/** The RevenueCat offering id for an arm (`p79` becomes `plus_p79`), or null for no arm. */
-export function plusPriceOfferingId(variant: string | null | undefined): string | null {
-  return isPlusPriceVariant(variant) ? `plus_${variant}` : null;
-}
-
 /** The fields of RevenueCat's `PurchasesOfferings` that picking an offering reads. */
 export interface OfferingsLike<T extends { readonly identifier: string }> {
   readonly current: T | null;
@@ -194,28 +182,23 @@ export interface OfferingsLike<T extends { readonly identifier: string }> {
 }
 
 /**
- * The offering the paywall shows. A person in a Plus price arm gets that arm's
- * offering; anybody else, or an arm whose offering is not set up in
- * RevenueCat, gets what the app showed before the test: the current offering,
- * else 'default'. A missing offering therefore never breaks the paywall.
+ * The offering the paywall shows: the current one, else 'default'. (The Plus
+ * price-test arms `plus_p49` / `plus_p79` / `plus_p99` are retired and ignored.)
  */
 export function selectOffering<T extends { readonly identifier: string }>(
   offerings: OfferingsLike<T>,
-  variant: string | null | undefined,
 ): T | null {
-  const armId = plusPriceOfferingId(variant);
-  const arm = armId ? offerings.all[armId] : undefined;
-  return arm ?? offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
+  return offerings.current ?? offerings.all[RC_DEFAULT_OFFERING] ?? null;
 }
 
 // --- Paywall presentation -----------------------------------------------------
 
-/** Which plan the paywall starts on: Pro, the one with more on it, for everyone. */
+/** Which plan the paywall starts on: Pro, the only paid one. */
 export function defaultSelectedTier(): PaidTier {
   return PlanTier.Pro;
 }
 
-/** The card the buy button acts on: the selected one, else the last (Pro). */
+/** The card the buy button acts on: the selected one, else the last (Pro, the only one). */
 export function chosenCard(
   cards: readonly PlanCardModel[],
   selected: PaidTier,

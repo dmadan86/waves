@@ -15,7 +15,7 @@ appId: app.waves.mobile.debug
 ---
 - runFlow: paywall-open.yaml
 
-- tapOn: 'Continue with Plus'
+- tapOn: 'Continue with Pro'
 
 - extendedWaitUntil:
     visible: '(?i).*(test|valid).*purchase.*'
@@ -30,7 +30,7 @@ appId: app.waves.mobile.debug
 # Back on the paywall, nothing bought and nothing said about it.
 - waitForAnimationToEnd:
     timeout: 3000
-- assertVisible: 'Continue with Plus'
+- assertVisible: 'Continue with Pro'
 - assertNotVisible: 'That did not go through.*'
 - assertNotVisible: 'Welcome to Waves.*'
 - assertNotVisible: 'You are on Waves.*'

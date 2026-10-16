@@ -10,7 +10,7 @@ describe('streamsToCloud', () => {
   it('streams for Plus and Pro, from the server or from the store', () => {
     expect(streamsToCloud({ plan: 'plus' }, PlanTier.Free, NOW)).toBe(true);
     expect(streamsToCloud({ plan: 'pro' }, PlanTier.Free, NOW)).toBe(true);
-    expect(streamsToCloud({ plan: 'free' }, PlanTier.Plus, NOW)).toBe(true);
+    expect(streamsToCloud({ plan: 'free' }, PlanTier.Pro, NOW)).toBe(true);
     expect(streamsToCloud(null, PlanTier.Pro, NOW)).toBe(true);
   });
 

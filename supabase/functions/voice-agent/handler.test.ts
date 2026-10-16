@@ -142,28 +142,27 @@ describe('handleVoiceAgent', () => {
     expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_quota', expect.anything());
   });
 
-  it('passes the per-tier limits (free 10, Plus 50, Pro 150) to the quota reservation', async () => {
+  it('passes the per-tier limits (free 10, Pro 100) to the quota reservation', async () => {
     const { deps, rpc } = makeDeps({});
     await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), deps);
     expect(rpc).toHaveBeenCalledWith('waves_voice_agent_quota', {
       p_profile: ME,
       p_free_limit: 10,
-      p_pro_limit: 150,
-      p_plus_limit: 50,
+      p_pro_limit: 100,
       p_trial_limit: 20,
     });
   });
 
-  it('402s a Plus subscriber at 50 commands, and answers one with 49 used', async () => {
-    const spent = makeDeps({ quota: { used: 50, limit: 50, tier: 'plus', allowed: false } });
+  it('402s a Pro subscriber at 100 commands, and answers one with 99 used', async () => {
+    const spent = makeDeps({ quota: { used: 100, limit: 100, tier: 'pro', allowed: false } });
     await expect(handleVoiceAgent(request(), spent.deps)).rejects.toMatchObject({
       status: 402,
       code: 'VOICE_AGENT_QUOTA',
     });
-    const ok = makeDeps({ quota: { used: 50, limit: 50, tier: 'plus', allowed: true } });
+    const ok = makeDeps({ quota: { used: 100, limit: 100, tier: 'pro', allowed: true } });
     const res = await handleVoiceAgent(request({ meterOnly: true, transcript: 'dinner' }), ok.deps);
     expect(res.status).toBe(200);
-    expect((await res.json()).quota).toEqual({ used: 50, limit: 50, tier: 'plus' });
+    expect((await res.json()).quota).toEqual({ used: 100, limit: 100, tier: 'pro' });
   });
 
   it('uses the trial pool (20, open for 30 days, even after Pro ends): trial and until are reported', async () => {
@@ -183,11 +182,6 @@ describe('handleVoiceAgent', () => {
       trial: true,
       until,
     });
-  });
-
-  it('402s a Pro subscriber at 150 commands', async () => {
-    const { deps } = makeDeps({ quota: { used: 150, limit: 150, tier: 'pro', allowed: false } });
-    await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({ status: 402 });
   });
 
   it('refuses a free user while the entitlement gate says no (503), spending nothing', async () => {

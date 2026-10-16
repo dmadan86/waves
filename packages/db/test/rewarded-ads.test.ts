@@ -170,13 +170,70 @@ describe('eligibility', () => {
     }
   });
 
-  it('refuses Plus and Pro, bought or promo', async () => {
+  it('refuses Pro, bought or promo, and a legacy Plus row', async () => {
     const plus = await person();
     const pro = await person();
     await subscribe(plus, 'plus', 'play');
     await subscribe(pro, 'pro', 'promo');
     expect(await eligibility(plus)).toMatchObject({ eligible: false, reason: 'paid' });
     expect(await eligibility(pro)).toMatchObject({ eligible: false, reason: 'paid' });
+  });
+
+  it('refuses a Plus row that somehow survived as plus (the trigger bypassed)', async () => {
+    const legacy = await person();
+    // A replica-role session fires no user triggers: this is the pre-migration shape.
+    await client.query('BEGIN');
+    try {
+      await client.query(`SET LOCAL session_replication_role = replica`);
+      await client.query(
+        `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store, store_txn_id)
+         VALUES ($1::uuid, 'plus', 'monthly', 'active', now() + interval '20 days', 'play', 'legacy:' || $1::text)`,
+        [legacy],
+      );
+      const { rows } = await client.query(`SELECT tier FROM subscriptions WHERE profile_id = $1`, [
+        legacy,
+      ]);
+      expect(rows[0].tier).toBe('plus');
+      expect(await eligibility(legacy)).toMatchObject({ eligible: false, reason: 'paid' });
+      expect(await grant(legacy)).toMatchObject({ outcome: 'ineligible', reason: 'paid' });
+    } finally {
+      await client.query('ROLLBACK');
+    }
+  });
+
+  it('never offers an ad to anyone paid or on the trial, as the app asks (waves_my_ads_status)', async () => {
+    const free = await person();
+    const bought = await person();
+    const promo = await person();
+    const referral = await person();
+    const legacyPlus = await person();
+    const trial = await person();
+    await subscribe(bought, 'pro', 'appstore');
+    await subscribe(promo, 'pro', 'promo');
+    await subscribe(legacyPlus, 'plus', 'play');
+    await subscribe(trial, 'pro', 'trial');
+    await client.query(
+      `INSERT INTO pro_trials (profile_id, outcome, granted_at, expires_at)
+       VALUES ($1, 'granted', now(), now() + interval '15 days')`,
+      [trial],
+    );
+    await client.query(`SELECT public.waves_referral_grant($1, 7, $2)`, [
+      referral,
+      `referral:test:${referral}`,
+    ]);
+    const status = (profile: string) =>
+      asRole(client, 'authenticated', { sub: profile, role: 'authenticated' }, async () => {
+        const { rows } = await client.query(`SELECT public.waves_my_ads_status() AS s`);
+        return rows[0].s as { eligible: boolean; reason: string | null };
+      });
+    expect(await status(free)).toMatchObject({ eligible: true });
+    for (const [who, profile] of Object.entries({ bought, promo, referral, legacyPlus, trial })) {
+      const s = await status(profile);
+      expect(s.eligible, `${who} must not be offered an ad`).toBe(false);
+      expect(['paid', 'trial'], who).toContain(s.reason);
+      // And the server will not credit one either.
+      expect(await grant(profile), who).toMatchObject({ outcome: 'ineligible' });
+    }
   });
 
   it('refuses during the Pro trial and its voice pool', async () => {
@@ -329,11 +386,11 @@ describe('voice credit', () => {
     expect(await voice(a)).toMatchObject({ used: 11, allowed: true });
   });
 
-  it('does not lift Plus', async () => {
+  it('does not lift Pro (a legacy Plus row is Pro)', async () => {
     const a = await person();
     await grant(a, 'voice');
     await subscribe(a, 'plus', 'play');
-    expect(await voice(a)).toMatchObject({ tier: 'plus', limit: 50 });
+    expect(await voice(a)).toMatchObject({ tier: 'pro', limit: 100 });
   });
 });
 
@@ -379,7 +436,7 @@ describe('Deepgram streaming is not for Free', () => {
     (await client.query(`SELECT public.waves_voice_stream_mint($1) AS m`, [profile])).rows[0]
       .m as Record<string, unknown>;
 
-  it('refuses Free with a reason, and Plus and the trial still stream', async () => {
+  it('refuses Free with a reason, and Pro (even a legacy Plus row) and the trial still stream', async () => {
     const free = await person();
     const plus = await person();
     const trial = await person();
@@ -391,7 +448,7 @@ describe('Deepgram streaming is not for Free', () => {
       [trial],
     );
     expect(await mint(free)).toMatchObject({ allowed: false, reason: 'free_tier', tier: 'free' });
-    expect(await mint(plus)).toMatchObject({ allowed: true, tier: 'plus' });
+    expect(await mint(plus)).toMatchObject({ allowed: true, tier: 'pro' });
     expect(await mint(trial)).toMatchObject({ allowed: true, tier: 'pro', trial: true });
   });
 });

@@ -1,6 +1,6 @@
 # Advanced voice: failure modes
 
-What the Plus and Pro advanced-voice pipeline does when a dependency fails, and where
+What the Pro advanced-voice pipeline does when a dependency fails, and where
 that is handled. The rules every row must keep:
 
 - **Never hang.** Every outbound call has a budget; nothing waits on the network

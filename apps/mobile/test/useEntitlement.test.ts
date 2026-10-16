@@ -62,8 +62,8 @@ describe('useEntitlement tier', () => {
   });
 
   it('follows the store when the server has not answered yet', () => {
-    state.store = { tier: PlanTier.Plus, info: null, loading: false };
-    expect(useEntitlement()).toMatchObject({ tier: PlanTier.Plus, isPaid: true, isPro: false });
+    state.store = { tier: PlanTier.Pro, info: null, loading: false };
+    expect(useEntitlement()).toMatchObject({ tier: PlanTier.Pro, isPaid: true, isPro: true });
   });
 
   it('follows the server for a plan the stores never saw (a promo row)', () => {
@@ -72,11 +72,11 @@ describe('useEntitlement tier', () => {
   });
 
   it('takes the higher of the two', () => {
-    state.store = { tier: PlanTier.Plus, info: null, loading: false };
+    state.store = { tier: PlanTier.Pro, info: null, loading: false };
     state.serverData = PlanTier.Pro;
     expect(useEntitlement().tier).toBe(PlanTier.Pro);
     state.store = { tier: PlanTier.Pro, info: null, loading: false };
-    state.serverData = PlanTier.Plus;
+    state.serverData = PlanTier.Pro;
     expect(useEntitlement().tier).toBe(PlanTier.Pro);
   });
 
@@ -98,7 +98,7 @@ describe('the server query', () => {
 
   it.each([
     [{ plan: 'pro' }, PlanTier.Pro],
-    [{ plan: 'plus' }, PlanTier.Plus],
+    [{ plan: 'plus' }, PlanTier.Pro],
     [{ plan: 'free' }, PlanTier.Free],
     [{ plan: 'gold' }, PlanTier.Free],
     [{}, PlanTier.Free],

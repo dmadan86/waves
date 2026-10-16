@@ -1,4 +1,4 @@
-# Waves pricing: Free, Plus and Pro
+# Waves pricing: Free and Pro
 
 What the paywall (`apps/mobile/src/app/paywall.tsx`, behind the `paywall`
 flag) sells, how a purchase reaches the server, and the setup checklist for
@@ -6,18 +6,41 @@ RevenueCat, App Store Connect, Play Console and Supabase.
 
 ## The tiers
 
-| Tier | India price | What it adds                                                                                                                     |
-| ---- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Free | ₹0          | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month. Optional reward ads. |
-| Plus | ₹49 / month | The paid features: 300 scans/month, more devices, bigger transfers, and advanced AI voice (50 commands/month).                   |
-| Pro  | ₹99 / month | Everything in Plus, with the advanced AI voice allowance raised to 150 commands/month.                                           |
+| Tier | India price              | What it adds                                                                                                                       |
+| ---- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Free | ₹0                       | The whole ledger, forever (ADR-011): groups, expenses, splits, settle, export. AI voice: 10 commands/month. Optional reward ads.   |
+| Pro  | ₹79 / month, ₹699 / year | 300 scans/month, 100 screenshot imports/month, more devices, bigger transfers, and advanced AI voice (100 commands/month). No ads. |
+
+Plus was retired (October 2026). Every existing Plus subscriber is Pro for free:
+`subscriptions.tier = 'plus'` rows were rewritten to `'pro'`, a trigger writes `'pro'` for
+any later `'plus'` insert, and `waves_my_plan().plan` is `'pro'` for every paid row. The
+string `plus` is still accepted on the wire (an old app, an old RevenueCat entitlement or
+product id) and read as Pro; nothing grants it. `waves_my_plan().tier` stays `'plus'` for a
+paid row because older apps and the device-cap SQL read it as "paid".
 
 New accounts get 15 days of Pro free, no card needed (see "Pro trial" below).
+
+### Display prices by market
+
+The stores hold the real price for every country; these are the figures to configure,
+scaled down from the previous Pro prices (₹99 / ₹849 in India, $1.99 / $16.99 in the US;
+about -20% monthly and -18% yearly) and rounded to store price points. Those two are the
+only Pro prices the repo records; every other storefront follows the US price (below).
+
+| Market | Monthly | Yearly | Yearly saving vs 12 months |
+| ------ | ------- | ------ | -------------------------- |
+| India  | ₹79     | ₹699   | 26%                        |
+| US     | $1.49   | $13.99 | 22%                        |
+
+Other storefronts: equalize from the US price in App Store Connect (Apple's equalization
+already keeps each country's previous Pro ratio); in Play Console apply the same
+-20% / -18% step to each country's current Pro price and round to the nearest local price point.
 
 ### Reward ads (Free only)
 
 Free is the only plan with ads, and they are optional rewarded videos the person
-chooses to watch; nothing is forced. Plus, Pro and the 15-day trial have no ads.
+chooses to watch; nothing is forced. Pro (including legacy Plus) and the 15-day trial have no ads;
+`waves_ads_eligibility` refuses them with reason `paid` or `trial`.
 Full design, setup and economics are in [ads.md](ads.md).
 
 | Rule        | Value                                                                                  |
@@ -29,8 +52,7 @@ Full design, setup and economics are in [ads.md](ads.md).
 | Who         | Free plan, signed in, account at least 7 days old, flag `ads_rewarded` on for them     |
 | Ad type     | Google AdMob rewarded video, non-personalized only; no banners, interstitials or other |
 
-Yearly plans are ₹429 (Plus, 27% off ₹588) and ₹849 (Pro, 29% off ₹1,188); US is $8.49 and $16.99
-(29% off). Every other market's price is set **in the stores**.
+The yearly plan is ₹699 (26% off ₹948). Every other market's price is set **in the stores**.
 The app never hardcodes a charged price: the paywall shows RevenueCat's
 `priceString`, which is the store's own localized price. Yearly cards and a
 Monthly/Yearly switch appear by themselves once the offering has yearly
@@ -39,15 +61,15 @@ packages.
 How the server reads the tiers (migration `20261008120000_revenuecat_webhook`):
 
 - `waves_profile_is_paid(profile)`: an `active` or `grace`, unexpired
-  `subscriptions` row with tier `plus` or `pro`. Plus and Pro are both paid.
+  `subscriptions` row with tier `plus` or `pro` (a legacy `plus` row is Pro).
 - `waves_my_plan()`: `tier` is `'plus'` for any paid row (the device cap and
-  older apps read it as "paid"); the new `plan` key is `'plus'` or `'pro'`.
+  older apps read it as "paid"); the `plan` key is `'pro'` (or `'free'`).
 - `waves_voice_agent_enabled`: an active or grace, unexpired `plus` or `pro` row
   turns advanced voice on, and so does any signed-in (non-guest) account: Free gets
   10 commands a month; guests stay off.
-- `waves_voice_agent_quota` / `waves_voice_stream_mint`: an active `pro` row gets
-  150 commands (450 streams) a month, an active `plus` row 50 (150 streams),
-  free 10 (30). Migration `20261015210000_voice_agent_plus`.
+- `waves_voice_agent_quota` / `waves_voice_stream_mint`: an active paid row gets
+  100 commands (300 streams) a month, free 10 (30). Migration
+  `20261016120000_two_tiers_free_and_pro`.
 
 ## How a purchase flows
 
@@ -75,7 +97,7 @@ app ── Purchases.purchasePackage ──▶ store ──▶ RevenueCat
 
 One `subscriptions` row per store subscription, keyed by `store_txn_id` =
 RevenueCat's `original_transaction_id`. Tier comes from the event's
-`entitlement_ids` (`pro` beats `plus`), else from the product id.
+`entitlement_ids`, else from the product id; a retired `plus` entitlement or product is stored as `pro`.
 
 | Event                                                  | Row                                                                           |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
@@ -117,51 +139,40 @@ RevenueCat does not retry it forever. Only a database failure answers 5xx
 Product ids are the same on both stores (`packages/core/src/billing/revenuecat.ts`):
 
 ```
-waves_plus_monthly    ₹49
-waves_pro_monthly     ₹99
-waves_plus_yearly    ₹429  ($8.49)
-waves_pro_yearly     ₹849  ($16.99)
+waves_pro_monthly    ₹79
+waves_pro_yearly    ₹699
 ```
+
+`waves_plus_monthly` / `waves_plus_yearly` are retired: stop selling them (archive or
+remove from the offering) but **keep them in RevenueCat and the stores** while any
+subscriber is still on them, and keep them attached to an entitlement the app reads
+(`plus` is read as Pro). Existing Plus subscribers stay on their Plus product at the Plus
+price, and are Pro from the moment the migration runs.
 
 **App Store Connect** → app → Monetization → Subscriptions:
 
-1. Create **one subscription group**, e.g. "Waves", holding every Plus and Pro
-   product, so a person is on at most one and switching is an upgrade or
-   downgrade, not a second subscription.
-2. In the group, rank **Pro above Plus** (group level order: Pro monthly/yearly
-   at level 1, Plus at level 2), so Plus → Pro is an immediate upgrade.
-3. Create `waves_plus_monthly` (1 month) and `waves_pro_monthly` (1 month),
-   plus `waves_plus_yearly` and `waves_pro_yearly` (1 year). Set India to
-   ₹49 / ₹99 monthly and ₹429 / ₹849 yearly, USA to $0.99 / $1.99 monthly and
-   $8.49 / $16.99 yearly; equalize the other storefronts from the USA price.
-4. Fill in display names, descriptions and the review screenshot; submit them
-   with the app version that ships this paywall.
-5. Agreements, Tax and Banking must be active (Paid Apps agreement).
+1. One subscription group, e.g. "Waves", holding the Pro products. Keep the retired Plus
+   products in the group at a lower level so nobody ends up with two.
+2. Set `waves_pro_monthly` and `waves_pro_yearly` to ₹79 / ₹699 (India) and the US price
+   $1.49 / $13.99; equalize the other storefronts from the USA price (see the table above).
+   An existing subscriber is not moved to a new price without their consent; for a price
+   decrease Apple applies it automatically.
+3. Remove the Plus products from sale (Remove from Sale), do not delete them.
 
 **Play Console** → app → Monetize → Products → Subscriptions:
 
-1. Create subscription `waves_plus_monthly` with one auto-renewing base plan
-   (e.g. `monthly`, 1 month), India ₹49; activate it.
-2. Create `waves_pro_monthly` the same way at ₹99.
-3. Yearly base plans (`yearly`) on `waves_plus_yearly` / `waves_pro_yearly`: IN ₹429 / ₹849, US $8.49 / $16.99; the app
-   picks them up from the offering with no release.
-4. Play needs an uploaded build with the billing library (any internal-testing
-   build of this branch) before subscriptions can be created.
+1. `waves_pro_monthly` base plan `monthly`: ₹79; base plan `yearly` on `waves_pro_yearly`: ₹699.
+   Other countries from the table above.
+2. Deactivate the Plus base plans for new purchases; existing subscriptions continue.
 
 ### 3. Entitlements and offering (RevenueCat)
 
-1. Product catalog → **Products**: import the four store products (both apps).
-2. **Entitlements**: create `plus` and `pro`.
-   - `plus` ← `waves_plus_monthly` (+ `waves_plus_yearly` later)
-   - `pro` ← `waves_pro_monthly` (+ `waves_pro_yearly` later)
-   - Attach Pro products to `pro` only; the app and server treat Pro as a
-     superset of Plus.
-3. **Offerings**: create `default`, mark it **current**, add packages:
-   - `plus_monthly` → `waves_plus_monthly` (both stores)
-   - `pro_monthly` → `waves_pro_monthly` (both stores)
-   - later `plus_annual`, `pro_annual` (custom identifiers containing
-     `monthly` / `annual` are how the app tells periods apart; `$rc_monthly` /
-     `$rc_annual` also work but only fit one tier each).
+1. **Entitlements**: `pro` ← `waves_pro_monthly`, `waves_pro_yearly`. Keep `plus` attached
+   to the Plus products so current subscribers still resolve (the app and server read it
+   as Pro).
+2. **Offerings**: `default` (current) contains only `pro_monthly` and `pro_annual`
+   (custom identifiers containing `monthly` / `annual`, or `$rc_monthly` / `$rc_annual`).
+   Remove the Plus packages and the price-test offerings `plus_p49`, `plus_p79`, `plus_p99`.
 
 ### 4. Webhook
 
@@ -214,7 +225,7 @@ paywall route is reachable.
   entitlement and the event history; then in SQL:
   `select tier, status, current_period_end, store from subscriptions where profile_id = '<id>';`
   and `select waves_my_plan('<id>');`.
-- Walk: buy Plus → `plus active`; upgrade to Pro → `pro`; cancel in the store
+- Walk: buy Pro → `pro active`; cancel in the store
   → still `active` until expiry; let it lapse → `expired`; restore on a second
   device signed in to the same Waves account → same tier.
 
@@ -231,8 +242,7 @@ Net = listed ÷ 1.18 (GST) × 0.85 (15% commission, Small Business Program).
 
 | Plan | Listed | Net to Waves |
 | ---- | ------ | ------------ |
-| Plus | ₹49    | ₹35.30       |
-| Pro  | ₹99    | ₹71.31       |
+| Pro  | ₹79    | ₹56.65       |
 
 A planning model, not accounting: settlement also moves with exchange rates
 and each subscriber's commission tier.
@@ -258,12 +268,12 @@ New accounts get **15 days of Pro free, no card needed**, granted by the server.
   Pro itself lasts 15. Anyone with no paid plan uses the pool, also after the Pro
   days end; it does not stack with Free's 10. Once the 20 are spent there is nothing
   more until day 30; after day 30 the normal Free rules apply ("first month 20,
-  then 10 a month"). A paid plan (or referral Plus days) uses its own monthly allowance.
+  then 10 a month"). A paid plan (or referral Pro days) uses its own monthly allowance.
   After day 30 Free's own 10 commands a month apply (cloud voice is on for every
   non-guest account); a pool spent early gives nothing more until day 30.
 - **A purchase wins:** while a store purchase (or another Pro) is active the trial
   row is ignored. Referral Plus days start after the trial ends, as for any coverage.
 - **App:** the paywall shows "Pro trial · N days left" and "Keep Pro"; the dashboard
   menu's Upgrade row shows "N days of Pro left"; the voice screen shows the trial
-  commands left. When it ends the person falls back to Free (or referral Plus days).
+  commands left. When it ends the person falls back to Free (or referral Pro days).
 - Migration `20261015220000_pro_trial`.

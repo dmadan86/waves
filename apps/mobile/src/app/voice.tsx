@@ -429,7 +429,7 @@ export default function VoiceScreen() {
         ? 'revoked'
         : 'pending';
   const agentOn = agentServerOn && cloudConsent === 'granted';
-  // Plus, Pro and the Pro trial stream the mic live to Deepgram. Free — including
+  // Pro and the Pro trial stream the mic live to Deepgram. Free — including
   // commands earned with a reward ad — listens on the phone and sends the text to
   // the agent: the same cloud model at about a seventh of the cost per command.
   // The server refuses a Free stream too, so this is only what the app asks for.

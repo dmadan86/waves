@@ -11,12 +11,10 @@
 import { HttpError, type SupabaseClient } from './auth.ts';
 import {
   VOICE_AGENT_FREE_MONTHLY,
-  VOICE_AGENT_PLUS_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
   PRO_TRIAL_VOICE_DAYS,
   VOICE_AGENT_TRIAL_COMMANDS,
   VOICE_STREAM_FREE_MONTHLY,
-  VOICE_STREAM_PLUS_MONTHLY,
   VOICE_STREAM_PRO_MONTHLY,
   VOICE_STREAM_TRIAL_MONTHLY,
   VoiceAgentError,
@@ -41,11 +39,11 @@ export interface Admitted {
 
 interface StreamMint {
   readonly allowed: boolean;
-  /** 'free_tier': Free is never streamed (Deepgram is for Plus, Pro and the trial). */
+  /** 'free_tier': Free is never streamed (Deepgram is for Pro and the trial). */
   readonly reason?: string;
   readonly mints: number;
   readonly budget: number;
-  readonly tier: 'free' | 'plus' | 'pro';
+  readonly tier: 'free' | 'pro';
 }
 
 export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Admitted> {
@@ -80,7 +78,6 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     p_profile: profileId,
     p_free_budget: VOICE_STREAM_FREE_MONTHLY,
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
-    p_plus_budget: VOICE_STREAM_PLUS_MONTHLY,
     p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
   });
   const mint = mintData as StreamMint | null;
@@ -128,8 +125,8 @@ export async function hashProfile(profileId: string): Promise<string> {
  * Commands left, read the way waves_voice_agent_quota counts them: on the Pro
  * trial (a live 'trial' row and no purchased plan or other Pro) it is the
  * trial's 20 in total less pro_trials.voice_used; otherwise this calendar month
- * (UTC): an active, unexpired 'pro' subscription gets the Pro allowance, 'plus'
- * the Plus one, everyone else the free one.
+ * (UTC): an active, unexpired 'pro' (or legacy 'plus', which is Pro) subscription
+ * gets the Pro allowance, everyone else the free one.
  */
 export async function remainingCommands(
   service: SupabaseClient,
@@ -188,13 +185,7 @@ export async function remainingCommands(
   if (poolOpen && ((trialLive && !purchasedOrPro) || !ownPlan)) {
     return VOICE_AGENT_TRIAL_COMMANDS - Number(pool?.voice_used ?? 0);
   }
-  const has = (tier: string) =>
-    rows.some((row) => row.store !== 'trial' && row.tier === tier && live(row));
-  const limit = has('pro')
-    ? VOICE_AGENT_PRO_MONTHLY
-    : has('plus')
-      ? VOICE_AGENT_PLUS_MONTHLY
-      : VOICE_AGENT_FREE_MONTHLY;
+  const limit = ownPlan ? VOICE_AGENT_PRO_MONTHLY : VOICE_AGENT_FREE_MONTHLY;
   const used = Number((usage.data as { count?: number } | null)?.count ?? 0);
   return limit - used;
 }

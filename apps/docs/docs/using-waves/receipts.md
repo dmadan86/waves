@@ -88,7 +88,7 @@ Two ceilings apply, and both are stated on screen when you meet them.
 **Storage usage** in Settings shows where you stand — _{used} of {cap}_ — and
 what your plan includes.
 
-Both limits are lifted by **Plus**, and Plus is not on sale: it is granted by a
+Both limits are lifted by **Pro**, and Pro is not on sale: it is granted by a
 redeem code, and the upgrade screen says so —
 [What costs money](../getting-started/what-waves-is.md#what-costs-money).
 Storing your own images in your own cloud lifts them too, and costs nothing.

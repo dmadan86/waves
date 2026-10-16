@@ -1,5 +1,5 @@
 /**
- * The advanced-voice contract (Plus and Pro): the app records a clip, the `voice-agent`
+ * The advanced-voice contract (Pro, and Free's small allowance): the app records a clip, the `voice-agent`
  * edge function transcribes it (Deepgram) and turns it into proposed actions
  * (Claude tool use), and the app confirms each write before running it through
  * its own write paths. Nothing here writes on the server — "AI proposes, human
@@ -15,9 +15,8 @@ export const VOICE_AGENT_SCHEMA_VERSION = 1;
 /** Longest clip the function accepts. */
 export const VOICE_AGENT_MAX_CLIP_MS = 60_000;
 
-/** Advanced commands a month: free tier, Plus, and the Pro fair-use cap. */
+/** Advanced commands a month: the free tier, and the Pro fair-use cap. */
 export const VOICE_AGENT_FREE_MONTHLY = 10;
-export const VOICE_AGENT_PLUS_MONTHLY = 50;
 /**
  * AI voice commands in the automatic trial's pool (not a month's). The pool lasts
  * PRO_TRIAL_VOICE_DAYS from the grant, longer than the Pro days themselves.
@@ -27,7 +26,7 @@ export const VOICE_AGENT_TRIAL_COMMANDS = 20;
 export const PRO_TRIAL_DAYS = 15;
 /** How long, from the grant, the trial's voice pool stays usable. */
 export const PRO_TRIAL_VOICE_DAYS = 30;
-export const VOICE_AGENT_PRO_MONTHLY = 150;
+export const VOICE_AGENT_PRO_MONTHLY = 100;
 
 /**
  * Live streams a month (one per `voice-stream` connect, or per
@@ -36,7 +35,6 @@ export const VOICE_AGENT_PRO_MONTHLY = 150;
  * Deepgram minutes but spends no command.
  */
 export const VOICE_STREAM_FREE_MONTHLY = 3 * VOICE_AGENT_FREE_MONTHLY;
-export const VOICE_STREAM_PLUS_MONTHLY = 3 * VOICE_AGENT_PLUS_MONTHLY;
 export const VOICE_STREAM_TRIAL_MONTHLY = 3 * VOICE_AGENT_TRIAL_COMMANDS;
 export const VOICE_STREAM_PRO_MONTHLY = 3 * VOICE_AGENT_PRO_MONTHLY;
 
@@ -169,7 +167,7 @@ export interface VoiceAgentResponse {
   readonly quota: {
     readonly used: number;
     readonly limit: number;
-    readonly tier: 'free' | 'plus' | 'pro';
+    readonly tier: 'free' | 'pro';
     /** True when the allowance is the Pro trial's 20 commands in total. */
     readonly trial?: boolean;
     /** With `trial`: when the pool stops being usable (ISO time). */
@@ -184,7 +182,7 @@ export enum VoiceAgentError {
   /** [402] This month's live-stream token budget used up — listen on the phone. */
   StreamBudget = 'VOICE_STREAM_BUDGET',
   /**
-   * [403] Live streaming (Deepgram) is for Plus, Pro and the Pro trial. Free listens
+   * [403] Live streaming (Deepgram) is for Pro and the Pro trial. Free listens
    * on the phone and sends the text to the agent instead — enforced here, not only in the app.
    */
   StreamFreeTier = 'VOICE_STREAM_FREE_TIER',

@@ -36,6 +36,7 @@
 
 import {
   baseProductId,
+  isRetiredPlusProduct,
   isCurrencyCode,
   minorUnitExponent,
   periodFromProductId,
@@ -76,7 +77,7 @@ export type SubscriptionStatus = 'active' | 'grace' | 'expired' | 'cancelled' | 
 
 export interface UpsertAction {
   kind: 'upsert';
-  tier: 'plus' | 'pro';
+  tier: 'pro';
   period: 'monthly' | 'yearly' | 'lifetime';
   status: SubscriptionStatus;
   current_period_end: string | null;
@@ -148,12 +149,14 @@ function iso(ms: number | null | undefined): string | null {
     : null;
 }
 
-function asPaid(tier: PlanTier | null): 'plus' | 'pro' | null {
-  return tier === PlanTier.Pro ? 'pro' : tier === PlanTier.Plus ? 'plus' : null;
+// Plus is retired: the core mapping already reads a Plus entitlement or product as
+// Pro, so every paid event becomes a 'pro' row. Nothing writes 'plus'.
+function asPaid(tier: PlanTier | null): 'pro' | null {
+  return tier === PlanTier.Pro ? 'pro' : null;
 }
 
 /** The tier an event's own product grants: the entitlements RevenueCat attached, else the id. */
-export function tierOf(event: RcEvent): 'plus' | 'pro' | null {
+export function tierOf(event: RcEvent): 'pro' | null {
   const ids = event.entitlement_ids ?? (event.entitlement_id ? [event.entitlement_id] : []);
   const fromEntitlements = tierFromEntitlementIds(ids);
   if (fromEntitlements !== PlanTier.Free) return asPaid(fromEntitlements);
@@ -233,9 +236,13 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
   let productId = event.product_id ?? null;
   if (type === 'PRODUCT_CHANGE') {
     const next = asPaid(tierFromProductId(event.new_product_id));
-    const rank = (t: 'plus' | 'pro' | null) =>
-      tierRank(t === 'pro' ? PlanTier.Pro : t === 'plus' ? PlanTier.Plus : PlanTier.Free);
-    if (next && rank(next) > rank(tier)) {
+    const rank = (t: 'pro' | null) => tierRank(t === 'pro' ? PlanTier.Pro : PlanTier.Free);
+    // An upgrade to a higher tier applies now. With Plus retired both products are
+    // Pro, so the move that is an upgrade is off a retired Plus product onto a
+    // current Pro one: that applies now too, with the new product's period.
+    const leavesRetiredPlus =
+      isRetiredPlusProduct(event.product_id) && !isRetiredPlusProduct(event.new_product_id);
+    if (next && (rank(next) > rank(tier) || leavesRetiredPlus)) {
       tier = next;
       productId = event.new_product_id ?? productId;
     }

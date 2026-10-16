@@ -15,8 +15,6 @@ import {
   paywallEmptyReason,
   showUpgradeHero,
   activeProductId,
-  isPlusPriceVariant,
-  plusPriceOfferingId,
   selectOffering,
   periodOfPackage,
   periodsInOffering,
@@ -46,31 +44,22 @@ function pkg(
 const OFFERING: OfferingLike = {
   identifier: 'default',
   availablePackages: [
-    // Out of order on purpose: the cards must still come out Plus, then Pro.
-    pkg('pro_monthly', 'waves_pro_monthly', '₹99.00', 99),
+    // A leftover Plus package, listed first on purpose: it must never become the Pro card.
     pkg('plus_monthly', 'waves_plus_monthly:monthly', '₹49.00', 49),
+    pkg('pro_monthly', 'waves_pro_monthly', '₹79.00', 79),
   ],
 };
 
 describe('planCardsFromOffering', () => {
-  it('makes a Plus card then a Pro card with the store’s own prices', () => {
+  it('makes one Pro card with the store’s own price, and skips a retired Plus package', () => {
     expect(planCardsFromOffering(OFFERING, 'monthly')).toEqual([
-      {
-        tier: PlanTier.Plus,
-        period: 'monthly',
-        packageId: 'plus_monthly',
-        productId: 'waves_plus_monthly:monthly',
-        priceString: '₹49.00',
-        price: 49,
-        currency: 'INR',
-      },
       {
         tier: PlanTier.Pro,
         period: 'monthly',
         packageId: 'pro_monthly',
         productId: 'waves_pro_monthly',
-        priceString: '₹99.00',
-        price: 99,
+        priceString: '₹79.00',
+        price: 79,
         currency: 'INR',
       },
     ]);
@@ -88,15 +77,19 @@ describe('planCardsFromOffering', () => {
       identifier: 'default',
       availablePackages: [
         ...OFFERING.availablePackages,
-        { ...pkg('$rc_annual', 'waves_plus_yearly', '₹429.00', 429), packageType: 'ANNUAL' },
-        pkg('pro_annual', 'waves_pro_y', '₹849.00', 849),
+        { ...pkg('$rc_annual', 'waves_pro_yearly', '₹699.00', 699), packageType: 'ANNUAL' },
       ],
     };
     expect(periodsInOffering(withAnnual)).toEqual(['monthly', 'yearly']);
     expect(planCardsFromOffering(withAnnual, 'yearly').map((c) => c.packageId)).toEqual([
       '$rc_annual',
-      'pro_annual',
     ]);
+    // ...or by a custom package id.
+    const custom: OfferingLike = {
+      identifier: 'default',
+      availablePackages: [pkg('pro_annual', 'waves_pro_y', '₹699.00', 699)],
+    };
+    expect(planCardsFromOffering(custom, 'yearly').map((c) => c.packageId)).toEqual(['pro_annual']);
   });
 
   it('ignores a package for a product Waves does not sell', () => {
@@ -119,8 +112,8 @@ describe('tierFromCustomerInfo', () => {
     expect(tierFromCustomerInfo(info({}))).toBe(PlanTier.Free);
   });
 
-  it('is Plus for the plus entitlement and Pro whenever pro is active', () => {
-    expect(tierFromCustomerInfo(info({ plus: { isActive: true } }))).toBe(PlanTier.Plus);
+  it('is Pro for the pro entitlement, and for the retired plus one', () => {
+    expect(tierFromCustomerInfo(info({ plus: { isActive: true } }))).toBe(PlanTier.Pro);
     expect(tierFromCustomerInfo(info({ pro: { isActive: true } }))).toBe(PlanTier.Pro);
     expect(tierFromCustomerInfo(info({ plus: { isActive: true }, pro: { isActive: true } }))).toBe(
       PlanTier.Pro,
@@ -155,69 +148,26 @@ describe('revenueCatApiKey', () => {
 
 describe('yearlySavingsPercent', () => {
   it('compares a year against twelve months', () => {
+    expect(yearlySavingsPercent(79, 699)).toBe(26);
     expect(yearlySavingsPercent(49, 429)).toBe(27);
-    expect(yearlySavingsPercent(99, 849)).toBe(29);
     expect(yearlySavingsPercent(0, 490)).toBe(0);
     expect(yearlySavingsPercent(49, 999)).toBe(0);
   });
 });
 
-describe('the Plus price test', () => {
-  const offering = (identifier: string) => ({ identifier, availablePackages: [] });
-  const all = {
-    default: offering('default'),
-    plus_p49: offering('plus_p49'),
-    plus_p79: offering('plus_p79'),
-    plus_p99: offering('plus_p99'),
-  };
-
-  it('knows the three arms and maps each to its offering id', () => {
-    expect(plusPriceOfferingId('p49')).toBe('plus_p49');
-    expect(plusPriceOfferingId('p79')).toBe('plus_p79');
-    expect(plusPriceOfferingId('p99')).toBe('plus_p99');
-    for (const other of [null, undefined, '', 'control', 'p59', 'plus_p49', 'P49']) {
-      expect(plusPriceOfferingId(other)).toBeNull();
-      expect(isPlusPriceVariant(other)).toBe(false);
-    }
-  });
-
-  it("gives each arm its own offering, even when another is RevenueCat's current one", () => {
-    const offerings = { current: all.default, all };
-    expect(selectOffering(offerings, 'p49')).toBe(all.plus_p49);
-    expect(selectOffering(offerings, 'p79')).toBe(all.plus_p79);
-    expect(selectOffering(offerings, 'p99')).toBe(all.plus_p99);
-  });
-
-  it('behaves as before for somebody outside the test', () => {
-    expect(selectOffering({ current: all.plus_p99, all }, null)).toBe(all.plus_p99);
-    expect(selectOffering({ current: null, all }, null)).toBe(all.default);
-    expect(selectOffering({ current: all.default, all }, 'control')).toBe(all.default);
-  });
-
-  it("falls back to current, then default, when the arm's offering is missing", () => {
-    const { plus_p79: _gone, ...rest } = all;
-    expect(selectOffering({ current: all.plus_p49, all: rest }, 'p79')).toBe(all.plus_p49);
-    expect(selectOffering({ current: null, all: rest }, 'p79')).toBe(all.default);
-    expect(selectOffering({ current: null, all: {} }, 'p79')).toBeNull();
-  });
-});
-
 describe('paywall presentation', () => {
-  const cards = [{ tier: PlanTier.Plus }, { tier: PlanTier.Pro }] as unknown as Parameters<
-    typeof chosenCard
-  >[0];
+  const cards = [{ tier: PlanTier.Pro }] as unknown as Parameters<typeof chosenCard>[0];
 
   it('starts on Pro', () => {
     expect(defaultSelectedTier()).toBe(PlanTier.Pro);
   });
   it('falls back to the last card when the selected tier has none', () => {
-    expect(chosenCard(cards, PlanTier.Plus)?.tier).toBe(PlanTier.Plus);
-    expect(chosenCard([cards[0]!], PlanTier.Pro)?.tier).toBe(PlanTier.Plus);
+    expect(chosenCard(cards, PlanTier.Pro)?.tier).toBe(PlanTier.Pro);
     expect(chosenCard([], PlanTier.Pro)).toBeUndefined();
   });
   it('disables the button for the current plan, while buying and with no card', () => {
     const pro = { tier: PlanTier.Pro as PaidTier };
-    expect(ctaState({ chosen: pro, current: PlanTier.Plus, purchasing: false })).toEqual({
+    expect(ctaState({ chosen: pro, current: PlanTier.Free, purchasing: false })).toEqual({
       kind: 'continue',
       disabled: false,
     });
@@ -235,11 +185,21 @@ describe('paywall presentation', () => {
   });
   it('shows the upgrade hero except for Pro', () => {
     expect(showUpgradeHero(PlanTier.Free)).toBe(true);
-    expect(showUpgradeHero(PlanTier.Plus)).toBe(true);
     expect(showUpgradeHero(PlanTier.Pro)).toBe(false);
   });
   it('blames the network only when loading failed', () => {
     expect(paywallEmptyReason(true)).toBe('network');
     expect(paywallEmptyReason(false)).toBe('no-plans');
+  });
+});
+
+describe('selectOffering', () => {
+  const offering = (identifier: string) => ({ identifier, availablePackages: [] });
+  const all = { default: offering('default'), other: offering('other') };
+
+  it('is the current offering, else default, else nothing', () => {
+    expect(selectOffering({ current: all.other, all })).toBe(all.other);
+    expect(selectOffering({ current: null, all })).toBe(all.default);
+    expect(selectOffering({ current: null, all: {} })).toBeNull();
   });
 });

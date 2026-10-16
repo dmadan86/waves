@@ -105,7 +105,9 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
     const price = plans[plan.id as PlanId];
     const badge = plan.badge ? ` (${plan.badge})` : '';
     line(
-      `### ${plan.name}${badge} — ₹${price.monthly}${t.pricing.perMonth} · ₹${price.yearly}${t.pricing.perYear}`,
+      price.monthly === 0
+        ? `### ${plan.name}${badge} — ₹0`
+        : `### ${plan.name}${badge} — ₹${price.monthly}${t.pricing.perMonth} · ₹${price.yearly}${t.pricing.perYear}`,
     );
     line();
     line(plan.tagline);

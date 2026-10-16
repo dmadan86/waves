@@ -32,7 +32,7 @@ import { isPaidTier, type PlanTier } from '../billing/plans';
 export const FREE_DEVICE_LIMIT = 2;
 /** Paid is not "unlimited" — an account signed in on many phones is a shared
  *  password, not a subscriber. Three covers a phone, a tablet, and a spare. */
-export const PLUS_DEVICE_LIMIT = 3;
+export const PRO_DEVICE_LIMIT = 3;
 /** A device silent longer than this has given its slot back. */
 export const DEVICE_ACTIVE_WINDOW_DAYS = 14;
 /** The devices view looks back a quarter and no further (the request was three
@@ -60,7 +60,7 @@ export interface DeviceSession {
 }
 
 export function deviceLimitFor(tier: PlanTier): number {
-  return isPaidTier(tier) ? PLUS_DEVICE_LIMIT : FREE_DEVICE_LIMIT;
+  return isPaidTier(tier) ? PRO_DEVICE_LIMIT : FREE_DEVICE_LIMIT;
 }
 
 /**

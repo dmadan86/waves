@@ -2943,7 +2943,7 @@ export interface UiStrings {
     groupDescription: string;
     descriptionPlaceholder: string;
     /** The cover sheet, reached by tapping the group's mark: pick one of the
-     *  drawn marks, put a photo from the phone in its place (a Plus feature),
+     *  drawn marks, put a photo from the phone in its place (a Pro feature),
      *  or drop a photo already set. */
     changeCover: string;
     chooseIcon: string;
@@ -4073,7 +4073,7 @@ export interface UiStrings {
     sourceSplitwiseHint: string;
     sourceShotTitle: string;
     sourceShotHint: string;
-    plusBadge: string;
+    proBadge: string;
     seeExamples: string;
     nothingAdded: string;
     /** The line under `nothingAdded` on the first step. */
@@ -4441,15 +4441,13 @@ export interface UiStrings {
     whatCosts: string;
   };
   /**
-   * The paywall (`/paywall`, behind the `paywall` route flag): Plus and Pro
-   * cards priced from the store through RevenueCat, a monthly/yearly switch
+   * The paywall (`/paywall`, behind the `paywall` route flag): the Pro
+   * card priced from the store through RevenueCat, a monthly/yearly switch
    * once yearly plans exist, and the restore-purchases row both stores require.
    */
   paywall: {
     title: string;
-    plusTitle: string;
     proTitle: string;
-    plusTagline: string;
     proTagline: string;
     proBadge: string;
     /** The Pro card's badge on the automatic Pro trial. */
@@ -4459,7 +4457,6 @@ export interface UiStrings {
     featureScans: string;
     featureDevices: string;
     featureTransfers: string;
-    featureEverythingPlus: string;
     featureVoice: string;
     perMonth: string;
     perYear: string;
@@ -4521,7 +4518,7 @@ export interface UiStrings {
   };
   /**
    * Invite your friends: the personal link and what it has earned. A useful part
-   * of sharing expenses, not a game; days of Plus follow real use, never an
+   * of sharing expenses, not a game; days of Pro follow real use, never an
    * install, a rating or a review.
    */
   referral: {
@@ -6425,7 +6422,7 @@ const en: UiStrings = {
       "You have used this month's free receipt scans. Watch one short ad to get more now, or add the items by hand, which is always free.",
     watch: 'Watch ad',
     tryAgain: 'Try again',
-    upgrade: 'Upgrade to Plus',
+    upgrade: 'Upgrade to Pro',
     notNow: 'Not now',
     done: 'Done',
     preparing: 'Getting an ad ready…',
@@ -6440,7 +6437,7 @@ const en: UiStrings = {
     unavailable: 'Ads are not available in this version of Waves.',
     error: 'The ad could not load. Please try again.',
     footnote:
-      'Optional. Ads are never personalized and never shown on your balances. Plus and Pro have none.',
+      'Optional. Ads are never personalized and never shown on your balances. Pro has none.',
     adChoicesRow: 'Ad choices',
     adChoicesHint: 'Your privacy choices for reward ads',
     adChoicesNone: 'There are no ad privacy choices to change where you are.',
@@ -7081,7 +7078,7 @@ const en: UiStrings = {
     people: 'Friends',
   },
   groupPhoto: {
-    paidHint: 'Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.',
+    paidHint: 'Group photos are a Pro feature. Pick an icon, or upgrade to add a photo.',
   },
   quickExpense: {
     notePlaceholder: 'Add a note (optional)',
@@ -7557,7 +7554,7 @@ const en: UiStrings = {
     chooseIcon: 'Choose an icon',
     chooseIconHint: 'One of the drawn marks',
     usePhotoHint: 'A picture from this phone',
-    photoIsPaid: 'Photos come with Plus',
+    photoIsPaid: 'Photos come with Pro',
     removePhoto: 'Remove photo',
     removePhotoHint: 'Go back to the icon',
     simplifyDebts: 'Fewer repayments',
@@ -8500,7 +8497,7 @@ const en: UiStrings = {
     sourceSplitwiseHint: 'In Splitwise: open your group, then export as spreadsheet',
     sourceShotTitle: 'Screenshot',
     sourceShotHint: 'A photo of a list, a bank app or a chat',
-    plusBadge: 'PLUS',
+    proBadge: 'PRO',
     seeExamples: 'See CSV examples and get a template',
     nothingAdded: 'Nothing is added until you review it.',
     nothingAddedBody: 'We’ll show you a preview to confirm before anything is imported.',
@@ -8516,7 +8513,7 @@ const en: UiStrings = {
     errNoRows: 'We couldn’t find any expenses in this file.',
     upsellTitle: 'Snap a list, we’ll type it in',
     upsellBody:
-      'Screenshot import comes with Waves Plus. Photos of lists, bank apps and chats become expenses you check before anything is added.',
+      'Screenshot import comes with Waves Pro. Photos of lists, bank apps and chats become expenses you check before anything is added.',
     seePlans: 'See plans',
     useCsv: 'Use a CSV instead (free)',
     examplesTitle: 'CSV examples',
@@ -8858,9 +8855,9 @@ const en: UiStrings = {
     whatNeverWill: 'What never will',
     whatNeverWillBody:
       'The ledger. Groups, expenses, splits, balances, settling up, and getting all of it back out again — {free}. A ledger you can only half read is not a ledger.',
-    plansTitle: 'Waves Plus and Pro',
+    plansTitle: 'Waves Pro',
     plansBody:
-      'More scans, bigger transfers and advanced AI voice: 50 commands a month on Plus, 150 on Pro. The ledger stays free.',
+      'More scans, bigger transfers and advanced AI voice: 100 commands a month. The ledger stays free.',
     seePlans: 'See plans',
     onPlan: 'You are on Waves {plan}',
     plansPromise: 'The ledger is never locked.',
@@ -8869,9 +8866,7 @@ const en: UiStrings = {
   },
   paywall: {
     title: 'Choose your plan',
-    plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'The paid features, with AI voice',
     proTagline: 'Everything in Waves, including advanced AI voice',
     proBadge: 'Everything',
     trialBadge: { one: 'Pro trial · {n} day left', other: 'Pro trial · {n} days left' },
@@ -8879,7 +8874,6 @@ const en: UiStrings = {
     featureScans: '{scans} receipt scans a month',
     featureDevices: 'Signed in on up to {devices} devices',
     featureTransfers: 'Bigger exports, imports and backups',
-    featureEverythingPlus: 'Everything in Plus',
     featureVoice: 'Advanced AI voice: {commands} commands a month',
     perMonth: '/mo',
     perYear: '/yr',
@@ -8926,7 +8920,7 @@ const en: UiStrings = {
     placeholder: 'WAVES2026',
     redeem: 'Redeem',
     granted: 'Done',
-    grantedBody: 'Plus is on until {until}. Nothing was charged, and nothing renews.',
+    grantedBody: 'Pro is on until {until}. Nothing was charged, and nothing renews.',
     unknownCode: 'No code like that. Check the spelling — letters and numbers only.',
     expired: 'That code has passed its date.',
     exhausted: 'That code has been used as many times as it allows.',
@@ -8935,11 +8929,11 @@ const en: UiStrings = {
   },
   referral: {
     row: 'Invite your friends',
-    rowHint: 'Earn days of Plus together',
+    rowHint: 'Earn days of Pro together',
     title: 'Invite your friends',
     headline: 'Money is easier together.',
     body: 'Share a group with friends and unlock a little more from Waves.',
-    youGetTitle: 'You get 7 days of Plus',
+    youGetTitle: 'You get 7 days of Pro',
     youGetBody: 'After your friend starts using Waves.',
     friendGetsTitle: 'Your friend gets 7 days too',
     friendGetsBody: 'Try premium features together.',
@@ -8958,7 +8952,7 @@ const en: UiStrings = {
     yourCode: 'Your code',
     copyCode: 'Copy code',
     codeCopied: 'Copied',
-    applied: 'Done. When you record your first shared expense, you both get 7 days of Plus.',
+    applied: 'Done. When you record your first shared expense, you both get 7 days of Pro.',
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
     alreadyUsed: 'You have already used an invite.',
@@ -9092,7 +9086,7 @@ const en: UiStrings = {
         data: 'The image file you add, uploaded through a short-lived signed link.',
       },
       purchases: {
-        purpose: 'Your Plus or Pro subscription.',
+        purpose: 'Your Pro subscription.',
         data: 'Store receipts and your account id.',
       },
       sentry: {
@@ -10848,7 +10842,7 @@ const ta: UiStrings = {
       'இந்த மாதத்தின் இலவச ரசீது ஸ்கேன்களை நீங்கள் பயன்படுத்திவிட்டீர்கள். இப்போதே மேலும் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள், அல்லது பொருட்களைக் கையால் சேர்க்கலாம் — அது எப்போதும் இலவசம்.',
     watch: 'விளம்பரம் பாருங்கள்',
     tryAgain: 'மீண்டும் முயலுங்கள்',
-    upgrade: 'Plus-க்கு மேம்படுத்துங்கள்',
+    upgrade: 'Pro-க்கு மேம்படுத்துங்கள்',
     notNow: 'இப்போது வேண்டாம்',
     done: 'முடிந்தது',
     preparing: 'விளம்பரம் தயாராகிறது…',
@@ -10863,7 +10857,7 @@ const ta: UiStrings = {
     unavailable: 'Waves-ன் இந்தப் பதிப்பில் விளம்பரங்கள் இல்லை.',
     error: 'விளம்பரத்தை ஏற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
     footnote:
-      'விருப்பத்தின் பேரில் மட்டும். விளம்பரங்கள் தனிப்பயனாக்கப்படுவதில்லை, உங்கள் இருப்புகளில் காட்டப்படுவதில்லை. Plus, Pro-வில் விளம்பரம் இல்லை.',
+      'விருப்பத்தின் பேரில் மட்டும். விளம்பரங்கள் தனிப்பயனாக்கப்படுவதில்லை, உங்கள் இருப்புகளில் காட்டப்படுவதில்லை. Pro-வில் விளம்பரம் இல்லை.',
     adChoicesRow: 'விளம்பரத் தேர்வுகள்',
     adChoicesHint: 'வெகுமதி விளம்பரங்களுக்கான உங்கள் தனியுரிமைத் தேர்வுகள்',
     adChoicesNone: 'நீங்கள் இருக்கும் இடத்தில் மாற்றக்கூடிய விளம்பரத் தனியுரிமைத் தேர்வுகள் இல்லை.',
@@ -11530,7 +11524,7 @@ const ta: UiStrings = {
   },
   groupPhoto: {
     paidHint:
-      'குழு புகைப்படங்கள் Plus அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
+      'குழு புகைப்படங்கள் Pro அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
   },
   quickExpense: {
     notePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
@@ -12032,7 +12026,7 @@ const ta: UiStrings = {
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
     chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
     usePhotoHint: 'இந்த ஃபோனிலிருந்து ஒரு படம்',
-    photoIsPaid: 'புகைப்படங்கள் Plus-உடன் வரும்',
+    photoIsPaid: 'புகைப்படங்கள் Pro-உடன் வரும்',
     removePhoto: 'புகைப்படத்தை நீக்கு',
     removePhotoHint: 'மீண்டும் ஐகானுக்குச் செல்',
     simplifyDebts: 'குறைந்த திருப்பிச் செலுத்தல்கள்',
@@ -13034,7 +13028,7 @@ const ta: UiStrings = {
     sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
     sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
     sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படம்',
-    plusBadge: 'PLUS',
+    proBadge: 'PRO',
     seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
     nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
     nothingAddedBody: 'இறக்குமதி செய்யும் முன் உறுதிப்படுத்த ஒரு முன்னோட்டத்தைக் காட்டுவோம்.',
@@ -13053,7 +13047,7 @@ const ta: UiStrings = {
     errNoRows: 'இந்தக் கோப்பில் செலவுகள் எதுவும் கிடைக்கவில்லை.',
     upsellTitle: 'பட்டியலைப் படம் எடுங்கள், நாங்கள் தட்டச்சு செய்கிறோம்',
     upsellBody:
-      'ஸ்கிரீன்ஷாட் இறக்குமதி Waves Plus-ல் உண்டு. பட்டியல்கள், வங்கி ஆப்கள், அரட்டைகளின் படங்கள் செலவுகளாக மாறும்; எதுவும் சேர்க்கும் முன் நீங்கள் சரிபார்ப்பீர்கள்.',
+      'ஸ்கிரீன்ஷாட் இறக்குமதி Waves Pro-ல் உண்டு. பட்டியல்கள், வங்கி ஆப்கள், அரட்டைகளின் படங்கள் செலவுகளாக மாறும்; எதுவும் சேர்க்கும் முன் நீங்கள் சரிபார்ப்பீர்கள்.',
     seePlans: 'திட்டங்களைப் பாருங்கள்',
     useCsv: 'அதற்கு பதிலாக CSV பயன்படுத்துங்கள் (இலவசம்)',
     examplesTitle: 'CSV எடுத்துக்காட்டுகள்',
@@ -13420,9 +13414,9 @@ const ta: UiStrings = {
     whatNeverWill: 'எதற்கு ஒருபோதும் இல்லை',
     whatNeverWillBody:
       'கணக்கு. குழுக்கள், செலவுகள், பிரிவுகள், இருப்புகள், தீர்த்தல், அனைத்தையும் திரும்பப் பெறுதல் — {free}. பாதி மட்டுமே படிக்கக்கூடிய கணக்கு கணக்கே அல்ல.',
-    plansTitle: 'Waves Plus மற்றும் Pro',
+    plansTitle: 'Waves Pro',
     plansBody:
-      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல் (Plus-இல் மாதம் 50, Pro-வில் 150 கட்டளைகள்). கணக்கேடு இலவசமாகவே இருக்கும்.',
+      'அதிக ஸ்கேன்கள், பெரிய பரிமாற்றங்கள், மேம்பட்ட AI குரல் (மாதம் 100 கட்டளைகள்). கணக்கேடு இலவசமாகவே இருக்கும்.',
     seePlans: 'திட்டங்களைப் பார்',
     onPlan: 'நீங்கள் Waves {plan}-இல் உள்ளீர்கள்',
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
@@ -13431,9 +13425,7 @@ const ta: UiStrings = {
   },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
-    plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'கட்டண அம்சங்கள், AI குரலுடன்',
     proTagline: 'Waves-இல் அனைத்தும், மேம்பட்ட AI குரல் உட்பட',
     proBadge: 'அனைத்தும்',
     trialBadge: { one: 'Pro சோதனை · {n} நாள் மீதம்', other: 'Pro சோதனை · {n} நாட்கள் மீதம்' },
@@ -13441,7 +13433,6 @@ const ta: UiStrings = {
     featureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     featureDevices: '{devices} சாதனங்கள் வரை உள்நுழைவு',
     featureTransfers: 'பெரிய ஏற்றுமதிகள், இறக்குமதிகள், காப்புப் பிரதிகள்',
-    featureEverythingPlus: 'Plus-இல் உள்ள அனைத்தும்',
     featureVoice: 'மேம்பட்ட AI குரல்: மாதத்திற்கு {commands} கட்டளைகள்',
     perMonth: '/மாதம்',
     perYear: '/ஆண்டு',
@@ -13491,7 +13482,7 @@ const ta: UiStrings = {
     redeem: 'பயன்படுத்து',
     granted: 'முடிந்தது',
     grantedBody:
-      '{until} வரை Plus இயங்கும். எதுவும் வசூலிக்கப்படவில்லை, தானாகப் புதுப்பிக்கவும் ஆகாது.',
+      '{until} வரை Pro இயங்கும். எதுவும் வசூலிக்கப்படவில்லை, தானாகப் புதுப்பிக்கவும் ஆகாது.',
     unknownCode: 'அப்படி ஒரு குறியீடு இல்லை. எழுத்துகளையும் எண்களையும் சரிபாருங்கள்.',
     expired: 'அந்தக் குறியீட்டின் காலம் முடிந்துவிட்டது.',
     exhausted: 'அனுமதிக்கப்பட்ட அளவுக்கு அந்தக் குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டுவிட்டது.',
@@ -13500,11 +13491,11 @@ const ta: UiStrings = {
   },
   referral: {
     row: 'நண்பர்களை அழையுங்கள்',
-    rowHint: 'சேர்ந்து Plus நாட்களைப் பெறுங்கள்',
+    rowHint: 'சேர்ந்து Pro நாட்களைப் பெறுங்கள்',
     title: 'நண்பர்களை அழையுங்கள்',
     headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
-    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Plus கிடைக்கும்',
+    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Pro கிடைக்கும்',
     youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
     friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
     friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
@@ -13526,7 +13517,7 @@ const ta: UiStrings = {
     copyCode: 'குறியீட்டை நகலெடு',
     codeCopied: 'நகலெடுக்கப்பட்டது',
     applied:
-      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Plus கிடைக்கும்.',
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Pro கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
@@ -13663,7 +13654,7 @@ const ta: UiStrings = {
         data: 'நீங்கள் சேர்க்கும் படக் கோப்பு, குறுகிய காலம் செல்லுபடியாகும் கையொப்பமிட்ட இணைப்பு வழியாகப் பதிவேற்றப்படும்.',
       },
       purchases: {
-        purpose: 'உங்கள் Plus அல்லது Pro சந்தா.',
+        purpose: 'உங்கள் Pro சந்தா.',
         data: 'ஸ்டோர் ரசீதுகளும் உங்கள் கணக்கு அடையாளமும்.',
       },
       sentry: {
@@ -15407,7 +15398,7 @@ const hi: UiStrings = {
       'इस महीने के मुफ़्त रसीद स्कैन पूरे हो गए हैं। अभी और पाने के लिए एक छोटा विज्ञापन देखें, या आइटम हाथ से जोड़ें — वह हमेशा मुफ़्त है।',
     watch: 'विज्ञापन देखें',
     tryAgain: 'फिर कोशिश करें',
-    upgrade: 'Plus में अपग्रेड करें',
+    upgrade: 'Pro में अपग्रेड करें',
     notNow: 'अभी नहीं',
     done: 'हो गया',
     preparing: 'विज्ञापन तैयार हो रहा है…',
@@ -15422,7 +15413,7 @@ const hi: UiStrings = {
     unavailable: 'Waves के इस संस्करण में विज्ञापन उपलब्ध नहीं हैं।',
     error: 'विज्ञापन लोड नहीं हो सका। फिर कोशिश करें।',
     footnote:
-      'पूरी तरह वैकल्पिक। विज्ञापन कभी निजीकृत नहीं होते और आपके बैलेंस पर कभी नहीं दिखते। Plus और Pro में कोई विज्ञापन नहीं।',
+      'पूरी तरह वैकल्पिक। विज्ञापन कभी निजीकृत नहीं होते और आपके बैलेंस पर कभी नहीं दिखते। Pro में कोई विज्ञापन नहीं।',
     adChoicesRow: 'विज्ञापन विकल्प',
     adChoicesHint: 'इनाम वाले विज्ञापनों के लिए आपकी गोपनीयता पसंद',
     adChoicesNone: 'आप जहाँ हैं वहाँ बदलने लायक कोई विज्ञापन गोपनीयता विकल्प नहीं है।',
@@ -16065,7 +16056,7 @@ const hi: UiStrings = {
     people: 'दोस्त',
   },
   groupPhoto: {
-    paidHint: 'ग्रुप फ़ोटो एक Plus सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
+    paidHint: 'ग्रुप फ़ोटो एक Pro सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
   quickExpense: {
     notePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
@@ -16543,7 +16534,7 @@ const hi: UiStrings = {
     chooseIcon: 'आइकन चुनें',
     chooseIconHint: 'बने-बनाए चिह्नों में से एक',
     usePhotoHint: 'इसी फ़ोन से एक तस्वीर',
-    photoIsPaid: 'फ़ोटो Plus के साथ आती हैं',
+    photoIsPaid: 'फ़ोटो Pro के साथ आती हैं',
     removePhoto: 'फ़ोटो हटाएँ',
     removePhotoHint: 'वापस आइकन पर जाएँ',
     simplifyDebts: 'कम भुगतान',
@@ -17494,7 +17485,7 @@ const hi: UiStrings = {
     sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
     sourceShotTitle: 'स्क्रीनशॉट',
     sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो',
-    plusBadge: 'PLUS',
+    proBadge: 'PRO',
     seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
     nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
     nothingAddedBody: 'इम्पोर्ट से पहले हम एक झलक दिखाएँगे, ताकि आप पुष्टि कर सकें।',
@@ -17512,7 +17503,7 @@ const hi: UiStrings = {
     errNoRows: 'इस फ़ाइल में कोई खर्च नहीं मिला।',
     upsellTitle: 'लिस्ट की फ़ोटो लें, टाइप हम करेंगे',
     upsellBody:
-      'स्क्रीनशॉट इम्पोर्ट Waves Plus में मिलता है। लिस्ट, बैंक ऐप और चैट की फ़ोटो खर्च बन जाती हैं, और कुछ जुड़ने से पहले आप उन्हें जाँचते हैं।',
+      'स्क्रीनशॉट इम्पोर्ट Waves Pro में मिलता है। लिस्ट, बैंक ऐप और चैट की फ़ोटो खर्च बन जाती हैं, और कुछ जुड़ने से पहले आप उन्हें जाँचते हैं।',
     seePlans: 'प्लान देखें',
     useCsv: 'इसकी जगह CSV इस्तेमाल करें (मुफ़्त)',
     examplesTitle: 'CSV के उदाहरण',
@@ -17860,9 +17851,9 @@ const hi: UiStrings = {
     whatNeverWill: 'किसके कभी नहीं',
     whatNeverWillBody:
       'हिसाब। समूह, खर्च, बँटवारा, बकाया, निपटान, और यह सब वापस बाहर निकालना — {free}। जो हिसाब आप आधा ही पढ़ सकें, वह हिसाब नहीं।',
-    plansTitle: 'Waves Plus और Pro',
+    plansTitle: 'Waves Pro',
     plansBody:
-      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (Plus में हर महीने 50, Pro में 150 कमांड)। लेजर मुफ़्त ही रहेगा।',
+      'ज़्यादा स्कैन, बड़े ट्रांसफ़र और एडवांस्ड AI वॉइस (हर महीने 100 कमांड)। लेजर मुफ़्त ही रहेगा।',
     seePlans: 'प्लान देखें',
     onPlan: 'आप Waves {plan} पर हैं',
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
@@ -17871,9 +17862,7 @@ const hi: UiStrings = {
   },
   paywall: {
     title: 'अपना प्लान चुनें',
-    plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'पेड फ़ीचर, AI वॉइस के साथ',
     proTagline: 'Waves में सब कुछ, एडवांस्ड AI वॉइस समेत',
     proBadge: 'सब कुछ',
     trialBadge: { one: 'Pro ट्रायल · {n} दिन बाकी', other: 'Pro ट्रायल · {n} दिन बाकी' },
@@ -17881,7 +17870,6 @@ const hi: UiStrings = {
     featureScans: 'हर महीने {scans} रसीद स्कैन',
     featureDevices: '{devices} डिवाइस तक साइन इन',
     featureTransfers: 'बड़े एक्सपोर्ट, इम्पोर्ट और बैकअप',
-    featureEverythingPlus: 'Plus की हर चीज़',
     featureVoice: 'एडवांस्ड AI वॉइस: हर महीने {commands} कमांड',
     perMonth: '/महीना',
     perYear: '/वर्ष',
@@ -17928,7 +17916,7 @@ const hi: UiStrings = {
     placeholder: 'WAVES2026',
     redeem: 'इस्तेमाल करें',
     granted: 'हो गया',
-    grantedBody: '{until} तक Plus चालू है। कुछ नहीं लिया गया, और कुछ अपने आप नहीं बढ़ेगा।',
+    grantedBody: '{until} तक Pro चालू है। कुछ नहीं लिया गया, और कुछ अपने आप नहीं बढ़ेगा।',
     unknownCode: 'ऐसा कोई कोड नहीं। वर्तनी जाँच लें — सिर्फ़ अक्षर और अंक।',
     expired: 'उस कोड की तारीख़ निकल चुकी है।',
     exhausted: 'वह कोड जितनी बार चल सकता था, उतनी बार चल चुका।',
@@ -17937,11 +17925,11 @@ const hi: UiStrings = {
   },
   referral: {
     row: 'दोस्तों को आमंत्रित करें',
-    rowHint: 'साथ में Plus के दिन पाएँ',
+    rowHint: 'साथ में Pro के दिन पाएँ',
     title: 'दोस्तों को आमंत्रित करें',
     headline: 'पैसों की बात साथ मिलकर आसान होती है।',
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
-    youGetTitle: 'आपको 7 दिन का Plus मिलेगा',
+    youGetTitle: 'आपको 7 दिन का Pro मिलेगा',
     youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
     friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
     friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
@@ -17960,7 +17948,7 @@ const hi: UiStrings = {
     yourCode: 'आपका कोड',
     copyCode: 'कोड कॉपी करें',
     codeCopied: 'कॉपी हो गया',
-    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Plus मिलेगा।',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Pro मिलेगा।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
     alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
@@ -18095,7 +18083,7 @@ const hi: UiStrings = {
         data: 'आपकी जोड़ी गई इमेज फ़ाइल, कुछ देर चलने वाले साइन किए हुए लिंक से अपलोड होती है।',
       },
       purchases: {
-        purpose: 'आपकी Plus या Pro सदस्यता।',
+        purpose: 'आपकी Pro सदस्यता।',
         data: 'स्टोर की रसीदें और आपकी खाता आईडी।',
       },
       sentry: {
@@ -19894,7 +19882,7 @@ const ar: UiStrings = {
       'استخدمت عمليات مسح الإيصالات المجانية لهذا الشهر. شاهد إعلانًا قصيرًا لتحصل على المزيد الآن، أو أضف البنود يدويًا، وهذا مجاني دائمًا.',
     watch: 'شاهد الإعلان',
     tryAgain: 'حاول مرة أخرى',
-    upgrade: 'الترقية إلى Plus',
+    upgrade: 'الترقية إلى Pro',
     notNow: 'ليس الآن',
     done: 'تم',
     preparing: 'جارٍ تجهيز الإعلان…',
@@ -19909,7 +19897,7 @@ const ar: UiStrings = {
     unavailable: 'الإعلانات غير متوفرة في هذا الإصدار من Waves.',
     error: 'تعذّر تحميل الإعلان. حاول مرة أخرى.',
     footnote:
-      'اختياري تمامًا. الإعلانات لا تُخصَّص لك أبدًا ولا تظهر على أرصدتك. لا إعلانات في Plus وPro.',
+      'اختياري تمامًا. الإعلانات لا تُخصَّص لك أبدًا ولا تظهر على أرصدتك. لا إعلانات في Pro.',
     adChoicesRow: 'خيارات الإعلانات',
     adChoicesHint: 'خيارات الخصوصية الخاصة بإعلانات المكافأة',
     adChoicesNone: 'لا توجد خيارات خصوصية للإعلانات يمكن تغييرها في موقعك.',
@@ -20618,7 +20606,7 @@ const ar: UiStrings = {
     people: 'أصدقاء',
   },
   groupPhoto: {
-    paidHint: 'صور المجموعة ميزة Plus. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
+    paidHint: 'صور المجموعة ميزة Pro. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
   quickExpense: {
     notePlaceholder: 'أضف ملاحظة (اختياري)',
@@ -21167,7 +21155,7 @@ const ar: UiStrings = {
     chooseIcon: 'اختر أيقونة',
     chooseIconHint: 'أحد الرموز المرسومة',
     usePhotoHint: 'صورة من هذا الهاتف',
-    photoIsPaid: 'الصور تأتي مع Plus',
+    photoIsPaid: 'الصور تأتي مع Pro',
     removePhoto: 'إزالة الصورة',
     removePhotoHint: 'العودة إلى الأيقونة',
     simplifyDebts: 'مدفوعات أقل',
@@ -22344,7 +22332,7 @@ const ar: UiStrings = {
     sourceSplitwiseHint: 'في Splitwise: مجموعتك ثم «Export as spreadsheet»',
     sourceShotTitle: 'لقطة شاشة',
     sourceShotHint: 'صورة لقائمة أو تطبيق بنكي أو محادثة',
-    plusBadge: 'PLUS',
+    proBadge: 'PRO',
     seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
     nothingAdded: 'لن يُضاف شيء حتى تراجعه.',
     nothingAddedBody: 'سنعرض لك معاينة لتأكيدها قبل استيراد أي شيء.',
@@ -22359,7 +22347,7 @@ const ar: UiStrings = {
     errNoRows: 'لم نعثر على أي مصاريف في هذا الملف.',
     upsellTitle: 'صوّر القائمة ونحن نكتبها',
     upsellBody:
-      'استيراد لقطات الشاشة متاح مع Waves Plus. صور القوائم والتطبيقات البنكية والمحادثات تتحول إلى مصاريف تراجعها قبل إضافة أي شيء.',
+      'استيراد لقطات الشاشة متاح مع Waves Pro. صور القوائم والتطبيقات البنكية والمحادثات تتحول إلى مصاريف تراجعها قبل إضافة أي شيء.',
     seePlans: 'عرض الباقات',
     useCsv: 'استخدم CSV بدلًا من ذلك (مجانًا)',
     examplesTitle: 'أمثلة CSV',
@@ -22853,9 +22841,8 @@ const ar: UiStrings = {
     whatNeverWill: 'وما لن يكلّف أبدًا',
     whatNeverWillBody:
       'الدفتر. المجموعات والمصاريف والتقسيمات والأرصدة والتسوية، وإخراج كل ذلك مرة أخرى — {free}. الدفتر الذي لا تقرأ منه إلا نصفه ليس دفترًا.',
-    plansTitle: 'Waves Plus وPro',
-    plansBody:
-      'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم: 50 أمرًا شهريًا في Plus و150 في Pro. يبقى السجل مجانيًا.',
+    plansTitle: 'Waves Pro',
+    plansBody: 'مسح أكثر، ونقل أكبر، والصوت الذكي المتقدّم: 100 أمر شهريًا. يبقى السجل مجانيًا.',
     seePlans: 'عرض الخطط',
     onPlan: 'أنت على Waves {plan}',
     plansPromise: 'السجل لا يُقفل أبدًا.',
@@ -22864,9 +22851,7 @@ const ar: UiStrings = {
   },
   paywall: {
     title: 'اختر خطتك',
-    plusTitle: 'Plus',
     proTitle: 'Pro',
-    plusTagline: 'الميزات المدفوعة، مع الصوت الذكي',
     proTagline: 'كل شيء في Waves، بما فيه الصوت الذكي المتقدّم',
     proBadge: 'كل شيء',
     trialBadge: {
@@ -22881,7 +22866,6 @@ const ar: UiStrings = {
     featureScans: '{scans} مسحًا للإيصالات شهريًا',
     featureDevices: 'تسجيل الدخول على ما يصل إلى {devices} أجهزة',
     featureTransfers: 'تصدير واستيراد ونسخ احتياطي أكبر',
-    featureEverythingPlus: 'كل ما في Plus',
     featureVoice: 'الصوت الذكي المتقدّم: {commands} أمرًا شهريًا',
     perMonth: '/شهر',
     perYear: '/سنة',
@@ -22927,7 +22911,7 @@ const ar: UiStrings = {
     placeholder: 'WAVES2026',
     redeem: 'استخدام',
     granted: 'تم',
-    grantedBody: 'Plus مفعّل حتى {until}. لم يُخصم شيء، ولا شيء يتجدد تلقائيًا.',
+    grantedBody: 'Pro مفعّل حتى {until}. لم يُخصم شيء، ولا شيء يتجدد تلقائيًا.',
     unknownCode: 'لا يوجد رمز كهذا. راجع الحروف والأرقام.',
     expired: 'انتهى تاريخ هذا الرمز.',
     exhausted: 'استُخدم هذا الرمز بالعدد المسموح به.',
@@ -22936,11 +22920,11 @@ const ar: UiStrings = {
   },
   referral: {
     row: 'ادعُ أصدقاءك',
-    rowHint: 'اكسبوا أيام Plus معًا',
+    rowHint: 'اكسبوا أيام Pro معًا',
     title: 'ادعُ أصدقاءك',
     headline: 'المال أسهل حين نتشاركه.',
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
-    youGetTitle: 'تحصل على 7 أيام من Plus',
+    youGetTitle: 'تحصل على 7 أيام من Pro',
     youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
     friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
     friendGetsBody: 'جرّبا الميزات المميزة معًا.',
@@ -22963,7 +22947,7 @@ const ar: UiStrings = {
     yourCode: 'رمزك',
     copyCode: 'نسخ الرمز',
     codeCopied: 'تم النسخ',
-    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Plus.',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Pro.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
     alreadyUsed: 'لقد استخدمت دعوة من قبل.',
@@ -23115,7 +23099,7 @@ const ar: UiStrings = {
         data: 'ملف الصورة الذي تضيفه، ويُرفع عبر رابط موقّع قصير الأمد.',
       },
       purchases: {
-        purpose: 'اشتراكك في Plus أو Pro.',
+        purpose: 'اشتراكك في Pro.',
         data: 'إيصالات المتجر ومعرّف حسابك.',
       },
       sentry: {

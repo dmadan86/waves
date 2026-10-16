@@ -44,20 +44,6 @@ const API = 'https://api.revenuecat.com';
 /** The packages the paywall needs, and what each must sell. */
 const PACKAGES = [
   {
-    lookupKey: '$rc_monthly',
-    tier: PlanTier.Plus,
-    period: 'monthly',
-    entitlement: RC_ENTITLEMENT_PLUS,
-    productId: RC_PRODUCT_IDS.plusMonthly,
-  },
-  {
-    lookupKey: '$rc_annual',
-    tier: PlanTier.Plus,
-    period: 'yearly',
-    entitlement: RC_ENTITLEMENT_PLUS,
-    productId: RC_PRODUCT_IDS.plusYearly,
-  },
-  {
     lookupKey: 'pro_monthly',
     tier: PlanTier.Pro,
     period: 'monthly',
@@ -179,9 +165,8 @@ describe.skipIf(!SECRET)('RevenueCat dashboard configuration (live)', () => {
       // per-package checks below hold it to the same standard as the others.
     });
 
-    it('has the plus and pro entitlements the app and webhook read', () => {
+    it('has the pro entitlement (and the retired plus one while subscribers remain)', () => {
       const keys = rc.entitlements.map((e) => e.lookup_key);
-      expect(keys).toContain(RC_ENTITLEMENT_PLUS);
       expect(keys).toContain(RC_ENTITLEMENT_PRO);
       expect(RC_ENTITLEMENT_PLUS).toBe('plus');
       expect(RC_ENTITLEMENT_PRO).toBe('pro');
@@ -194,7 +179,7 @@ describe.skipIf(!SECRET)('RevenueCat dashboard configuration (live)', () => {
       expect(rc.offering!.is_current).toBe(true);
     });
 
-    it('has exactly the four packages the paywall reads', () => {
+    it('has exactly the two packages the paywall reads', () => {
       expect(rc.packages.map((p) => p.lookup_key).sort()).toEqual(
         PACKAGES.map((p) => p.lookupKey).sort(),
       );

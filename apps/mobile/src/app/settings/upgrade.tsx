@@ -6,8 +6,8 @@
  * features to be taken away and sold back.
  *
  * Two states. Where the paywall is live (the `paywall` flag on, and a build
- * with a RevenueCat key), the hero names Plus and Pro, says which one the
- * person is on, and opens `/paywall`; somebody paying through a store also
+ * with a RevenueCat key), the hero names Pro, says whether the
+ * person is on it, and opens `/paywall`; somebody paying through a store also
  * gets a way to that store's page to change or cancel it. Everywhere else there is nothing to buy,
  * and the screen says so: a price list for something that cannot be bought
  * would teach somebody something that is not true. The three cards' chevrons
@@ -31,10 +31,8 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { PlanTier } from '@waves/core';
-
 import { fill, useStrings, type UiStrings } from '@/i18n';
-import { useTrackPremiumViewed } from '@/lib/plusPrice';
+import { useTrackPremiumViewed } from '@/lib/premiumViewed';
 import { useFlagEnabled } from '@/lib/flags';
 import { router } from '@/lib/navigation';
 import {
@@ -99,11 +97,11 @@ export default function UpgradeScreen() {
   const { dark, ink, muted, accent, line } = useUpgradeInks();
   const [open, setOpen] = useState<string | null>(null);
   const plansLive = useFlagEnabled('paywall') && purchasesAvailable();
-  const { tier, isPaid } = useEntitlement();
+  const { isPaid } = useEntitlement();
   const { info } = useCustomerTier();
   const canManage = plansLive && hasStoreSubscription(info);
   const toast = useToast();
-  // Counts this screen being opened, once per mount, tagged with the Plus price arm.
+  // Counts this screen being opened, once per mount.
   useTrackPremiumViewed('upgrade');
   const onManage = () => {
     manageSubscription().catch((error: unknown) => {
@@ -114,9 +112,7 @@ export default function UpgradeScreen() {
   const heroTitle = !plansLive
     ? t.upgradeScreen.nothingToBuy
     : isPaid
-      ? fill(t.upgradeScreen.onPlan, {
-          plan: tier === PlanTier.Pro ? t.paywall.proTitle : t.paywall.plusTitle,
-        })
+      ? fill(t.upgradeScreen.onPlan, { plan: t.paywall.proTitle })
       : t.upgradeScreen.plansTitle;
 
   return (

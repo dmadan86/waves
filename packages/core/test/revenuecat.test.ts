@@ -14,14 +14,15 @@ describe('RevenueCat ids', () => {
   it('reads the highest tier from entitlement ids', () => {
     expect(tierFromEntitlementIds([])).toBe(PlanTier.Free);
     expect(tierFromEntitlementIds(null)).toBe(PlanTier.Free);
-    expect(tierFromEntitlementIds(['plus'])).toBe(PlanTier.Plus);
+    // Plus is retired: its entitlement still reads, as Pro.
+    expect(tierFromEntitlementIds(['plus'])).toBe(PlanTier.Pro);
     expect(tierFromEntitlementIds(['pro'])).toBe(PlanTier.Pro);
     expect(tierFromEntitlementIds(['plus', 'pro'])).toBe(PlanTier.Pro);
     expect(tierFromEntitlementIds(['premium'])).toBe(PlanTier.Free);
   });
 
   it('reads the tier and period from a product id, including Play base plans', () => {
-    expect(tierFromProductId(RC_PRODUCT_IDS.plusMonthly)).toBe(PlanTier.Plus);
+    expect(tierFromProductId('waves_plus_monthly')).toBe(PlanTier.Pro); // retired product, read as Pro
     expect(tierFromProductId(RC_PRODUCT_IDS.proYearly)).toBe(PlanTier.Pro);
     expect(tierFromProductId('waves_pro_monthly:monthly-base')).toBe(PlanTier.Pro);
     expect(tierFromProductId('waves_promo')).toBeNull();
@@ -35,18 +36,18 @@ describe('RevenueCat ids', () => {
 });
 
 describe('Pro', () => {
-  it('is paid, ranks above Plus, and gets the paid device limit', () => {
+  it('is paid, ranks above Free, and gets the paid device limit', () => {
     expect(isPaidTier(PlanTier.Pro)).toBe(true);
-    expect(isPaidTier(PlanTier.Plus)).toBe(true);
     expect(isPaidTier(PlanTier.Free)).toBe(false);
-    expect(tierRank(PlanTier.Pro)).toBeGreaterThan(tierRank(PlanTier.Plus));
-    expect(deviceLimitFor(PlanTier.Pro)).toBe(deviceLimitFor(PlanTier.Plus));
+    expect(tierRank(PlanTier.Pro)).toBeGreaterThan(tierRank(PlanTier.Free));
+    expect(deviceLimitFor(PlanTier.Pro)).toBeGreaterThan(deviceLimitFor(PlanTier.Free));
   });
 
   it('is read from waves_my_plan’s plan key, and from a bare tier', () => {
     expect(readEntitlement({ tier: 'plus', plan: 'pro' }).tier).toBe(PlanTier.Pro);
     expect(readEntitlement({ tier: 'pro' }).tier).toBe(PlanTier.Pro);
-    expect(readEntitlement({ tier: 'plus', plan: 'plus' }).tier).toBe(PlanTier.Plus);
+    // A server or app still saying 'plus' means a paid row, which is Pro.
+    expect(readEntitlement({ tier: 'plus', plan: 'plus' }).tier).toBe(PlanTier.Pro);
     expect(readEntitlement({ tier: 'plus', plan: 'pro' }).source).toBe('subscription');
   });
 });

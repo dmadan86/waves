@@ -26,6 +26,7 @@ function makeDeps(over: {
   grant?: Response;
   used?: number;
   pro?: boolean;
+  /** A legacy 'plus' subscription row: Pro in everything but the stored name. */
   plus?: boolean;
   trial?: boolean;
   trialUsed?: number;
@@ -72,18 +73,16 @@ function makeDeps(over: {
         }
         const budget = over.trial
           ? args.p_trial_budget
-          : over.pro
+          : over.pro || over.plus
             ? args.p_pro_budget
-            : over.plus
-              ? args.p_plus_budget
-              : args.p_free_budget;
+            : args.p_free_budget;
         const used = over.mints ?? 0;
         return {
           data: {
             allowed: used < budget,
             mints: Math.min(used + 1, budget),
             budget,
-            tier: over.pro || over.trial ? 'pro' : over.plus ? 'plus' : 'free',
+            tier: over.pro || over.trial || over.plus ? 'pro' : 'free',
           },
           error: null,
         };
@@ -158,25 +157,23 @@ describe('handleVoiceStreamToken', () => {
     await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
   });
 
-  it('gives Plus 50 commands and 150 streams a month, Pro 150 and 450', async () => {
-    const plusSpent = makeDeps({ used: 50, plus: true });
-    await expect(handleVoiceStreamToken(request(), plusSpent.deps)).rejects.toMatchObject({
-      status: 402,
-      code: 'VOICE_AGENT_QUOTA',
-    });
-    await expect(
-      handleVoiceStreamToken(request(), makeDeps({ used: 49, plus: true }).deps),
-    ).resolves.toBeTruthy();
-    // 50 commands is Plus's limit, but well inside Pro's.
-    await expect(
-      handleVoiceStreamToken(request(), makeDeps({ used: 50, pro: true }).deps),
-    ).resolves.toBeTruthy();
-    await expect(
-      handleVoiceStreamToken(request(), makeDeps({ mints: 149, plus: true }).deps),
-    ).resolves.toBeTruthy();
-    await expect(
-      handleVoiceStreamToken(request(), makeDeps({ mints: 150, plus: true }).deps),
-    ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
+  it('gives Pro (and a legacy Plus row) 100 commands and 300 streams a month', async () => {
+    for (const tier of [{ pro: true }, { plus: true }]) {
+      const spent = makeDeps({ used: 100, ...tier });
+      await expect(handleVoiceStreamToken(request(), spent.deps)).rejects.toMatchObject({
+        status: 402,
+        code: 'VOICE_AGENT_QUOTA',
+      });
+      await expect(
+        handleVoiceStreamToken(request(), makeDeps({ used: 99, ...tier }).deps),
+      ).resolves.toBeTruthy();
+      await expect(
+        handleVoiceStreamToken(request(), makeDeps({ mints: 299, ...tier }).deps),
+      ).resolves.toBeTruthy();
+      await expect(
+        handleVoiceStreamToken(request(), makeDeps({ mints: 300, ...tier }).deps),
+      ).rejects.toMatchObject({ code: 'VOICE_STREAM_BUDGET' });
+    }
   });
 
   it('on the Pro trial the stream gate allows 20 commands in total and a 60-stream budget', async () => {
@@ -219,7 +216,7 @@ describe('handleVoiceStreamToken', () => {
     ).resolves.toBeTruthy();
   });
 
-  it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 450)', async () => {
+  it('402s VOICE_STREAM_BUDGET past 3x the command allowance, before minting (free 30, Pro 300)', async () => {
     const free = makeDeps({ mints: 30 });
     await expect(handleVoiceStreamToken(request(), free.deps)).rejects.toMatchObject({
       status: 402,
@@ -229,9 +226,9 @@ describe('handleVoiceStreamToken', () => {
     await expect(
       handleVoiceStreamToken(request(), makeDeps({ mints: 29 }).deps),
     ).resolves.toBeTruthy();
-    const pro = makeDeps({ mints: 449, pro: true });
+    const pro = makeDeps({ mints: 299, pro: true });
     await expect(handleVoiceStreamToken(request(), pro.deps)).resolves.toBeTruthy();
-    const proSpent = makeDeps({ mints: 450, pro: true });
+    const proSpent = makeDeps({ mints: 300, pro: true });
     await expect(handleVoiceStreamToken(request(), proSpent.deps)).rejects.toMatchObject({
       code: 'VOICE_STREAM_BUDGET',
     });

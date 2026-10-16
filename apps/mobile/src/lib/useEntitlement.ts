@@ -29,9 +29,9 @@ import { purchasesAvailable, refreshCustomerInfo, useCustomerTier } from '@/lib/
 
 export interface UseEntitlementResult {
   tier: PlanTier;
-  /** Plus or Pro. */
+  /** Pro (the only paid tier). */
   isPaid: boolean;
-  /** Pro: everything, with the bigger advanced voice allowance (Plus has a smaller one). */
+  /** Pro: everything, with 100 advanced voice commands a month. */
   isPro: boolean;
   /** True until CustomerInfo has been read once for this account. */
   loading: boolean;

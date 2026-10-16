@@ -1,7 +1,7 @@
 # Maestro flow (ADR-014): group photos are a paid feature, icons are free.
 #
 # On a free account, opening "new group" and tapping the photo must not reach a
-# picker — instead the icon (cover emoji) path stays, and the "Plus feature" hint
+# picker — instead the icon (cover emoji) path stays, and the "Pro feature" hint
 # explains why. The photo-tap and hint steps are optional so the flow still
 # passes if the paid-gate RPC answers differently under a seed with a paying
 # member (in which case the picker is allowed and there is no hint). Seed a free
@@ -22,7 +22,7 @@ appId: app.waves.mobile
 # On a free account the photo is locked: the hint is shown and tapping the photo
 # does not open a picker.
 - assertVisible:
-    text: 'Plus feature'
+    text: 'Pro feature'
     optional: true
 
 # The icon path still works: pick a mark, name the group, create it. The tiles

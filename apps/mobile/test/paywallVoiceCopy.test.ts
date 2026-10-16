@@ -1,10 +1,10 @@
 /**
- * Plus includes advanced AI voice (50 commands a month), Pro has 150: the
- * copy must say so in every locale and never call voice Pro-only.
+ * Pro has 100 advanced AI voice commands a month: the copy must say so in
+ * every locale, and no Plus copy is left.
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { VOICE_AGENT_PLUS_MONTHLY, VOICE_AGENT_PRO_MONTHLY } from '@waves/core';
+import { VOICE_AGENT_PRO_MONTHLY } from '@waves/core';
 
 import { fill, plural, STRINGS_BY_LANGUAGE } from '@/i18n';
 
@@ -12,18 +12,18 @@ vi.mock('react', async () => (await import('./support/fakeReact')).reactModule()
 vi.mock('expo-localization', () => ({ getLocales: () => [] }));
 
 describe('paywall voice copy', () => {
-  it('uses 50 for Plus and 150 for Pro', () => {
-    expect(VOICE_AGENT_PLUS_MONTHLY).toBe(50);
-    expect(VOICE_AGENT_PRO_MONTHLY).toBe(150);
+  it('uses 100 for Pro', () => {
+    expect(VOICE_AGENT_PRO_MONTHLY).toBe(100);
   });
 
   for (const [locale, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
-    it(`${locale}: the Plus tagline is short and the voice line carries the count`, () => {
-      expect(t.paywall.plusTagline).not.toContain('50');
+    it(`${locale}: the voice line carries the count, and no Plus copy is left`, () => {
       expect(t.paywall.featureVoice).toContain('{commands}');
-      expect(fill(t.paywall.featureVoice, { commands: 50 })).toContain('50');
-      expect(t.upgradeScreen.plansBody).toContain('50');
-      expect(t.upgradeScreen.plansBody).toContain('150');
+      expect(fill(t.paywall.featureVoice, { commands: 100 })).toContain('100');
+      expect(t.upgradeScreen.plansBody).toContain('100');
+      expect(t.upgradeScreen.plansBody).not.toContain('150');
+      expect(JSON.stringify(t.paywall)).not.toMatch(/\bPlus\b/);
+      expect(t.upgradeScreen.plansTitle).not.toMatch(/\bPlus\b/);
     });
   }
 });

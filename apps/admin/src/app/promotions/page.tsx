@@ -90,7 +90,7 @@ export default async function Promotions({
             </Field>
             <button type="submit" className="btn">
               {Icon.plus}
-              <span>Grant Plus</span>
+              <span>Grant Pro</span>
             </button>
           </form>
         </Card>
@@ -170,7 +170,7 @@ export default async function Promotions({
 
       <h2 className="section">Referrals</h2>
       <Lede>
-        Friends who joined through a personal link or a group invite. Both sides get 7 days of Plus
+        Friends who joined through a personal link or a group invite. Both sides get 7 days of Pro
         (30 per account at most) once the friend is verified and has recorded a real expense in a
         group of two or more, granted as <code>store = &lsquo;promo&rsquo;</code> rows like the
         above.

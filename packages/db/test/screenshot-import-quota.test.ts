@@ -38,10 +38,11 @@ afterAll(async () => {
   await client.end();
 });
 
-async function reserve(profile: string, plus = 3, pro = 5): Promise<Record<string, unknown>> {
+async function reserve(profile: string, pro = 5): Promise<Record<string, unknown>> {
+  // The middle argument is the retired Plus limit: ignored, passed to prove it.
   const { rows } = await client.query(
-    `SELECT public.waves_screenshot_import_quota($1, $2, $3) AS q`,
-    [profile, plus, pro],
+    `SELECT public.waves_screenshot_import_quota($1, 99, $2) AS q`,
+    [profile, pro],
   );
   return rows[0].q as Record<string, unknown>;
 }
@@ -70,12 +71,12 @@ describe('the seeded flag', () => {
 });
 
 describe('waves_screenshot_import_quota', () => {
-  it('reserves one at a time up to the Plus allowance, then refuses without reserving', async () => {
+  it('reserves one at a time up to the Pro allowance, then refuses without reserving', async () => {
     await subscribe(a, 'plus');
-    expect(await reserve(a)).toEqual({ used: 1, limit: 3, tier: 'plus', allowed: true });
-    await reserve(a);
-    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'plus', allowed: true });
-    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'plus', allowed: false });
+    expect(await reserve(a, 3)).toEqual({ used: 1, limit: 3, tier: 'pro', allowed: true });
+    await reserve(a, 3);
+    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: true });
+    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: false });
     const { rows } = await client.query(
       `SELECT count FROM ai_usage WHERE profile_id = $1 AND feature = 'screenshot_import'`,
       [a],
@@ -90,17 +91,12 @@ describe('waves_screenshot_import_quota', () => {
     expect(await reserve(b)).toMatchObject({ tier: 'pro', limit: 5, used: 2 });
   });
 
-  it('gives an allowlisted person with no subscription the Plus allowance', async () => {
-    expect(await reserve(a)).toMatchObject({ tier: 'plus', limit: 3, allowed: true });
-  });
-
-  it('ignores an expired Pro subscription', async () => {
-    await subscribe(a, 'pro', 'play', `now() - interval '1 day'`);
-    expect(await reserve(a)).toMatchObject({ tier: 'plus', limit: 3 });
+  it('gives an allowlisted person with no subscription the Pro allowance (never a Plus one)', async () => {
+    expect(await reserve(a)).toMatchObject({ tier: 'pro', limit: 5, allowed: true });
   });
 
   it('refuses outright when the limit is zero', async () => {
-    expect(await reserve(a, 0, 0)).toMatchObject({ used: 0, allowed: false });
+    expect(await reserve(a, 0)).toMatchObject({ used: 0, allowed: false });
   });
 
   it('never lets two concurrent calls take the last use', async () => {

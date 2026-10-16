@@ -12,8 +12,8 @@ limit can earn a little more instead of stopping. Off by default (flag
 | Reward         | 1 completed ad = 2 AI voice commands or 2 receipt scans. The voice limit screen offers voice, the scan limit screen offers scans.                                                                                                                                                                                              |
 | Daily cap      | 3 rewarded ads per day.                                                                                                                                                                                                                                                                                                        |
 | Validity       | Valid for the calendar month (UTC) in which they are earned. Used after the monthly Free allowance (10 voice commands, 20 receipt scans).                                                                                                                                                                                      |
-| Eligibility    | Free plan only. Not Plus or Pro, not the 15-day Pro trial, not guests, account at least 7 days old, and flag `ads_rewarded` on for the user.                                                                                                                                                                                   |
-| Placement      | Only when a Free user hits the AI voice limit or the receipt-scan limit: a small sheet with "Watch a short ad for 2 more AI voice commands", "Upgrade to Plus" and "Not now".                                                                                                                                                  |
+| Eligibility    | Free plan only. Not Pro (including legacy Plus), not the 15-day Pro trial, not guests, account at least 7 days old, and flag `ads_rewarded` on for the user.                                                                                                                                                                   |
+| Placement      | Only when a Free user hits the AI voice limit or the receipt-scan limit: a small sheet with "Watch a short ad for 2 more AI voice commands", "Upgrade to Pro" and "Not now".                                                                                                                                                   |
 | Never shown on | Balances, groups, expenses, settle-up, the paywall, widgets, the watch or notifications.                                                                                                                                                                                                                                       |
 | Privacy        | Google AdMob, non-personalized ads only (`requestNonPersonalizedAdsOnly`, `npa=1`). No advertising-ID tracking, no ATT prompt on iOS. Google UMP consent is used where legally required (EEA, UK, Switzerland). AdMob receives the device and IP-level information needed to serve ads and prevent fraud, per Google's policy. |
 
@@ -86,7 +86,7 @@ add `5224354917` (Android) and `1712485313` (iOS) to the secret, put yourself on
 
 - Free (including ad-granted) AI voice commands use the phone's own speech
   recognition and send the text to the cloud model.
-- Deepgram live streaming is for Plus, Pro and the trial. `waves_voice_stream_mint` refuses
+- Deepgram live streaming is for Pro and the trial. `waves_voice_stream_mint` refuses
   Free (403 `VOICE_STREAM_FREE_TIER` from `voice-stream` and `voice-stream-token`), so
   this is enforced on the server, not only in the app.
 - A sentence the phone's own parser reads with full confidence is not sent to the model
