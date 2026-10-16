@@ -627,6 +627,9 @@ export function Popup({
   // keyboard's height and the card centres in what is left, rather than staying
   // in the middle of a screen whose bottom half is covered.
   const keyboard = useKeyboardInset();
+  // The window now runs under the navigation bar too (below), so the centring
+  // box keeps clear of it itself — whichever is taller, the bar or the keyboard.
+  const insets = useSafeAreaInsets();
 
   if (!mounted) return null;
 
@@ -643,6 +646,9 @@ export function Popup({
       supportedOrientations={MODAL_ORIENTATIONS}
       transparent
       statusBarTranslucent
+      // The same sentence as the Sheet's: without it the scrim stops short of
+      // the navigation bar and leaves an undimmed strip of the screen below.
+      navigationBarTranslucent
       visible={mounted}
       animationType="none"
       onRequestClose={onClose}
@@ -664,7 +670,7 @@ export function Popup({
             alignItems: 'center',
             justifyContent: 'center',
             padding: theme.spacing.xl,
-            paddingBottom: theme.spacing.xl + keyboard,
+            paddingBottom: theme.spacing.xl + Math.max(keyboard, insets.bottom),
           }}
         >
           <Animated.View
