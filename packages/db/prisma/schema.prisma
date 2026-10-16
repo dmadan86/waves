@@ -1404,7 +1404,7 @@ model FeatureFlag {
 /// codes is not about a person, it is the giveaway itself.
 model PromoCode {
   code           String    @id
-  tier           String    @default("plus")
+  tier           String    @default("pro")
   /// How long the grant lasts, in days — not an end date, so one code means the
   /// same thing to somebody redeeming it today and in a month.
   days           Int       @default(30)
@@ -1733,7 +1733,7 @@ model AppEventIpHit {
 model Subscription {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   profileId        String    @map("profile_id") @db.Uuid
-  tier             String    @default("plus")
+  tier             String    @default("pro")
   period           String
   status           String    @default("active")
   /// NULL only for a lifetime purchase, which is the one thing here that is

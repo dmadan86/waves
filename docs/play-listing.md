@@ -87,7 +87,7 @@ English, Tamil, Hindi and Arabic, with full right-to-left layout.
 
 PRIVATE BY DEFAULT
 No ads on your money screens. Free has optional reward ads you choose to watch
-(never personalized); Plus and Pro have none. No data sold, ever. No tracking pixels. Receipt
+(never personalized); Pro has none. No data sold, ever. No tracking pixels. Receipt
 photos can stay on your device or go to your own Google Drive, Dropbox or
 OneDrive instead of our servers — you choose, per photo. You can export
 everything, and delete your account, from inside the app.
@@ -198,5 +198,5 @@ section, which says Waves is not directed at under-13s.
 
 **Optional reward ads on Free only** (docs/ads.md). Google AdMob, non-personalized ads only, shown
 only when the person taps to watch one at the AI voice or receipt-scan limit; never on balances,
-groups, expenses or settle-up. Plus and Pro have none. Update the Data safety form and the
+groups, expenses or settle-up. Pro has none. Update the Data safety form and the
 App Store privacy labels before the flag is turned on (checklist in docs/ads.md).

@@ -1,5 +1,5 @@
 /**
- * The last answer this phone saw to "is Plus/Pro advanced voice on for me?", kept in
+ * The last answer this phone saw to "is advanced voice on for me?", kept in
  * AsyncStorage per signed-in account.
  *
  * The live answer is a server round trip, and the QueryClient is not persisted,

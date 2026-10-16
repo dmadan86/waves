@@ -22,11 +22,7 @@
  * Dependencies are injected so the whole flow can be driven in a test.
  */
 
-import {
-  PLUS_MONTHLY_SCREENSHOT_IMPORTS,
-  PRO_MONTHLY_SCREENSHOT_IMPORTS,
-  validateScreenshotExtraction,
-} from '../_shared/core.js';
+import { PRO_MONTHLY_SCREENSHOT_IMPORTS, validateScreenshotExtraction } from '../_shared/core.js';
 import { HttpError, json, requireMembership, type SupabaseClient } from '../_shared/auth.ts';
 
 /**
@@ -320,7 +316,7 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     throw fail(503, 'IMPORT_SCAN_UNAVAILABLE', 'Screenshot import is not available right now');
   }
   if (enabled !== true) {
-    throw fail(402, 'SCREENSHOT_IMPORT_PAID', 'Screenshot import is part of Waves Plus');
+    throw fail(402, 'SCREENSHOT_IMPORT_PAID', 'Screenshot import is part of Waves Pro');
   }
 
   await deps.rateLimit(profileId);
@@ -333,7 +329,6 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     'waves_screenshot_import_quota',
     {
       p_profile: profileId,
-      p_plus_limit: PLUS_MONTHLY_SCREENSHOT_IMPORTS,
       p_pro_limit: PRO_MONTHLY_SCREENSHOT_IMPORTS,
     },
   );

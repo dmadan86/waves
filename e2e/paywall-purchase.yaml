@@ -1,13 +1,13 @@
-# Maestro flow: buy Plus through RevenueCat's Test Store.
+# Maestro flow: buy Pro through RevenueCat's Test Store.
 #
 # Paywall opened from the dashboard menu, plans load with prices, Monthly/Yearly
-# switch (all in paywall-open.yaml), then: choose Plus → Continue with Plus →
-# complete the Test Store purchase dialog → the app says Plus is active.
+# switch (all in paywall-open.yaml), then: Continue with Pro →
+# complete the Test Store purchase dialog → the app says Pro is active.
 #
 # NEEDS (see paywall-open.yaml): the DEBUG build `app.waves.mobile.debug` built
 # with the RevenueCat TEST STORE public key in EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 # the `paywall` flag on, and a FREE account. A Test Store purchase is a real
-# purchase as far as RevenueCat is concerned, so this account is Plus afterwards:
+# purchase as far as RevenueCat is concerned, so this account is Pro afterwards:
 # run paywall-cancel.yaml first (it leaves the account free), and use a fresh
 # E2E_EMAIL, or wait for the Test Store subscription to lapse, before running this
 # one again.
@@ -17,7 +17,7 @@
 # purchase" button and a "Cancel" button. Selectors are therefore case-insensitive
 # regexes on the part that matters ("valid" / "purchase"), and the tap is
 # optional-chained over the variants we have seen, so a reworded dialog fails at
-# the "Welcome to Waves Plus" / "Current plan" assertion below rather than on a
+# the "Welcome to Waves Pro" / "Current plan" assertion below rather than on a
 # selector nobody remembers choosing.
 #
 #   maestro test --env E2E_EMAIL=… --env E2E_PASSWORD=… e2e/paywall-purchase.yaml
@@ -25,8 +25,8 @@ appId: app.waves.mobile.debug
 ---
 - runFlow: paywall-open.yaml
 
-# Buy Plus (the button reads "Continue with Plus" once the Plus card is chosen).
-- tapOn: 'Continue with Plus'
+# Buy Pro (the button reads "Continue with Pro").
+- tapOn: 'Continue with Pro'
 
 # --- RevenueCat Test Store purchase dialog -------------------------------------
 - extendedWaitUntil:
@@ -47,20 +47,20 @@ appId: app.waves.mobile.debug
 # Success: a toast, then the paywall closes back to the dashboard. The toast is
 # brief, so it is optional; the dashboard and the re-opened paywall are the proof.
 - assertVisible:
-    text: 'Welcome to Waves Plus.'
+    text: 'Welcome to Waves Pro.'
     optional: true
 - extendedWaitUntil:
     visible: 'Your groups'
     timeout: 30000
 
-# Plus is active: the paywall now marks it as the current plan, and the button
-# for it is disabled with "You are on Waves Plus."
+# Pro is active: the paywall now marks it as the current plan, and the button
+# for it is disabled with "You are on Waves Pro."
 - tapOn: 'Settings'
 - tapOn: 'Upgrade'
 - extendedWaitUntil:
-    visible: 'Plus, .*[0-9].*/mo.*'
+    visible: 'Pro, .*[0-9].*/mo.*'
     timeout: 20000
-- tapOn: 'Plus, .*[0-9].*/mo.*'
-- assertVisible: 'You are on Waves Plus.'
+- tapOn: 'Pro, .*[0-9].*/mo.*'
+- assertVisible: 'You are on Waves Pro.'
 - assertVisible: 'Current plan'
 - assertNotVisible: 'That did not go through.*'

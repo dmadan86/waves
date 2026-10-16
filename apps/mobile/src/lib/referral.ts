@@ -3,7 +3,7 @@
  *
  * A person shares `https://app.wavs.co.in/r/<CODE>`. The friend signs up, the
  * code is claimed (`waves_claim_referral`), and once the friend has used Waves
- * for real the server grants both of them 7 days of Plus. Everything the server
+ * for real the server grants both of them 7 days of Pro. Everything the server
  * decides stays on the server; this module only reads and writes the strings
  * around it, so it can be tested without a device and imported from
  * `+native-intent`, which runs before the app exists.

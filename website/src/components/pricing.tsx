@@ -10,7 +10,7 @@ import { Kicker, SectionTitle } from './ui';
 type Period = 'monthly' | 'yearly';
 
 const tile: Record<PlanId, { Icon: typeof Wallet; color: string }> = {
-  plus: { Icon: Wallet, color: '#6f6ae8' },
+  free: { Icon: Wallet, color: '#6f6ae8' },
   pro: { Icon: Crown, color: '#f59e0b' },
 };
 
@@ -124,7 +124,7 @@ export function Pricing({ t }: { t: Dictionary['pricing'] }) {
                   <span className="text-[0.85rem] text-ink-3">
                     {period === 'monthly' ? t.perMonth : t.perYear}
                   </span>
-                  {period === 'yearly' ? (
+                  {period === 'yearly' && amount > 0 ? (
                     <span className="ms-2 text-[0.75rem] text-ink-3">{t.billedYearly}</span>
                   ) : null}
                 </p>

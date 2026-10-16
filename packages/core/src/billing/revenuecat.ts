@@ -7,13 +7,14 @@
  * from here so a product renamed in one place cannot quietly grant the wrong
  * tier in the other.
  *
- * Tiers: **Plus** is the paid features with 50 advanced voice commands a month;
- * **Pro** is everything, with 150. A person holding both entitlements is Pro.
+ * Tiers: Free and **Pro**. Plus was retired; its entitlement id and products are
+ * still recognised so an existing Plus subscriber is Pro, but nothing sells them.
  */
 
 import { PlanTier } from './plans';
 
 /** RevenueCat entitlement identifiers (Project → Entitlements). */
+/** Retired. Still read, as Pro, for subscribers who bought it before it was removed. */
 export const RC_ENTITLEMENT_PLUS = 'plus';
 export const RC_ENTITLEMENT_PRO = 'pro';
 
@@ -26,8 +27,6 @@ export const RC_DEFAULT_OFFERING = 'default';
  * `<productId>:<basePlanId>` (the suffix is stripped before matching).
  */
 export const RC_PRODUCT_IDS = {
-  plusMonthly: 'waves_plus_monthly',
-  plusYearly: 'waves_plus_yearly',
   proMonthly: 'waves_pro_monthly',
   proYearly: 'waves_pro_yearly',
 } as const;
@@ -42,21 +41,33 @@ export function baseProductId(productId: string): string {
 export function tierFromEntitlementIds(ids: readonly string[] | null | undefined): PlanTier {
   const set = new Set((ids ?? []).map((id) => id.trim().toLowerCase()));
   if (set.has(RC_ENTITLEMENT_PRO)) return PlanTier.Pro;
-  if (set.has(RC_ENTITLEMENT_PLUS)) return PlanTier.Plus;
+  if (set.has(RC_ENTITLEMENT_PLUS)) return PlanTier.Pro;
   return PlanTier.Free;
 }
 
 /**
  * The tier a product id sells, or null for one Waves does not recognise.
- * Matches on a whole `pro` / `plus` word, so `waves_pro_monthly` and
- * `waves_plus_yearly:annual` both resolve and `waves_promo` does not.
+ * Matches on a whole `pro` / `plus` word (a retired Plus product is Pro), so
+ * `waves_pro_monthly` and `waves_plus_yearly:annual` both resolve and `waves_promo` does not.
  */
 export function tierFromProductId(productId: string | null | undefined): PlanTier | null {
   if (!productId) return null;
   const words = baseProductId(productId).split(/[^a-z0-9]+/);
   if (words.includes('pro')) return PlanTier.Pro;
-  if (words.includes('plus')) return PlanTier.Plus;
+  if (words.includes('plus')) return PlanTier.Pro;
   return null;
+}
+
+/**
+ * True for a retired `waves_plus_*` product. It still reads as Pro (an existing
+ * subscriber keeps what they bought), but nothing sells it: the paywall must not
+ * show one as a Pro card, and a move off one onto Pro applies at once.
+ */
+export function isRetiredPlusProduct(productId: string | null | undefined): boolean {
+  if (!productId) return false;
+  return baseProductId(productId)
+    .split(/[^a-z0-9]+/)
+    .includes('plus');
 }
 
 /** 'monthly' / 'yearly' from a product id, or null when it does not say. */

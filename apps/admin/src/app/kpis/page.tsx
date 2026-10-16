@@ -262,7 +262,7 @@ export default async function Kpis() {
                     Activated
                   </th>
                   <th scope="col" className="n">
-                    Plus / Pro
+                    Pro
                   </th>
                 </tr>
               </thead>

@@ -88,7 +88,7 @@ function makeDeps(
       return {
         data:
           over.quota === undefined
-            ? { used: 4, limit: 30, tier: 'plus', allowed: true }
+            ? { used: 4, limit: 100, tier: 'pro', allowed: true }
             : over.quota,
         error: null,
       };
@@ -157,7 +157,7 @@ describe('success', () => {
     expect(out.rows).toHaveLength(1);
     expect(out.rows[0]).toMatchObject({ description: 'Dinner at Toit', paidBy: 'Asha' });
     expect(out.suggestedMembers).toEqual({ Asha: 'Asha Rao' });
-    expect(out.quota).toEqual({ used: 4, limit: 30 });
+    expect(out.quota).toEqual({ used: 4, limit: 100 });
     expect(out.model).toBe(DEFAULT_MODELS[0]);
     expect(out.warnings).toEqual([]);
 
@@ -167,7 +167,6 @@ describe('success', () => {
     ]);
     expect(rpc.mock.calls[1]![1]).toEqual({
       p_profile: ME,
-      p_plus_limit: 30,
       p_pro_limit: 100,
     });
 
@@ -334,12 +333,12 @@ describe('gating order', () => {
 
   it('429s with used and limit when the quota is spent, and never calls the model', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
-      quota: { used: 30, limit: 30, tier: 'plus', allowed: false },
+      quota: { used: 100, limit: 100, tier: 'pro', allowed: false },
     });
     const res = await handleImportScreenshot(req(goodBody()), deps);
     expect(res.status).toBe(429);
     const out = await res.json();
-    expect(out).toMatchObject({ code: 'SCREENSHOT_QUOTA_REACHED', used: 30, limit: 30 });
+    expect(out).toMatchObject({ code: 'SCREENSHOT_QUOTA_REACHED', used: 100, limit: 100 });
     expect(fetchMock).not.toHaveBeenCalled();
     // A refused reservation reserved nothing, so there is nothing to give back.
     expect(rpcNames(rpc)).not.toContain('waves_ai_usage_refund');

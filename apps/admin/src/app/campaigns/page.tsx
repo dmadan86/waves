@@ -353,7 +353,7 @@ export default async function Campaigns({
             <input type="text" name="name" placeholder="Diwali 2026" />
           </Field>
           <Field label="Title">
-            <input type="text" name="title" placeholder="Two months of Plus, free" required />
+            <input type="text" name="title" placeholder="Two months of Pro, free" required />
           </Field>
           <Field label="Body" full>
             <input type="text" name="body" placeholder="Because you have been here a while" />

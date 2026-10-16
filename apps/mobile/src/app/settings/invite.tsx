@@ -1,14 +1,14 @@
 /**
  * "Invite your friends": a personal link, and what it has earned so far.
  *
- * A useful part of sharing expenses, not a game. The friend gets 7 days of Plus
+ * A useful part of sharing expenses, not a game. The friend gets 7 days of Pro
  * and so do you, once they have actually used Waves (a verified account and a
  * real expense in a group of two or more); an install on its own earns nothing,
  * and nothing here asks for a rating or a review. The server decides all of it
  * (`waves_my_referral`, `waves_claim_referral`); this screen shows the link, the
  * share sheet, "X of 30 days earned" and how many friends are still on their way.
  *
- * Hidden entirely where Plus cannot be bought (the same `plansLive` condition
+ * Hidden entirely where Pro cannot be bought (the same `plansLive` condition
  * as the upgrade screen: the row that leads here is not drawn, and the screen
  * itself shows nothing if reached anyway), because a reward in days of a plan that cannot be
  * used would be a promise about nothing.

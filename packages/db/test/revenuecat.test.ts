@@ -1,11 +1,11 @@
 /**
- * The RevenueCat webhook's write path, `waves_revenuecat_apply`, and the Plus /
- * Pro reading of "paid" that migration 20261008120000 settles.
+ * The RevenueCat webhook's write path, `waves_revenuecat_apply`, and the Pro
+ * reading of "paid" (a Plus row is stored as Pro since 20261016120000).
  *
  * Pinned: an event id is applied once and only once; an older event delivered
  * late cannot undo a newer one; an id that is not one of our profiles is
  * recorded and refused without a write; a transfer moves store rows but not a
- * promo grant; Plus gets the Plus voice allowance, Pro gets Pro's;
+ * promo grant; every paid row, Plus included, gets the Pro voice allowance;
  * and no client can call the function.
  */
 
@@ -179,8 +179,8 @@ describe('waves_revenuecat_apply', () => {
   });
 });
 
-describe('Plus and Pro', () => {
-  it('counts Plus and Pro, active or in grace, as paid; a free row is not', async () => {
+describe('Pro (Plus retired)', () => {
+  it('counts Pro (and a legacy Plus), active or in grace, as paid; a free row is not', async () => {
     expect(await isPaid(me())).toBe(false);
     await apply(upsert({ tier: 'free' }));
     expect(await isPaid(me())).toBe(false);
@@ -190,21 +190,26 @@ describe('Plus and Pro', () => {
     expect(await isPaid(other())).toBe(true);
   });
 
-  it('says which paid plan in waves_my_plan, keeping tier=plus for older readers', async () => {
+  it('says plan=pro for every paid row in waves_my_plan, keeping tier=plus for older readers', async () => {
     await apply(upsert({ tier: 'plus' }));
-    expect(await myPlan(me())).toMatchObject({ tier: 'plus', plan: 'plus', scanLimit: 300 });
+    expect(await myPlan(me())).toMatchObject({ tier: 'plus', plan: 'pro', scanLimit: 300 });
     await apply(upsert({ tier: 'pro' }));
     expect(await myPlan(me())).toMatchObject({ tier: 'plus', plan: 'pro' });
     expect(await myPlan(other())).toMatchObject({ tier: 'free', plan: 'free' });
   });
 
-  it('gives Plus the Plus voice allowance and Pro the Pro one', async () => {
+  it('gives a Plus event and a Pro event the same Pro voice allowance (100)', async () => {
     await apply(upsert({ tier: 'plus' }));
     await apply(upsert({ tier: 'pro' }), { user: other() });
     const quota = async (id: string) =>
-      (await client.query(`SELECT waves_voice_agent_quota($1, 10, 150, 50) AS q`, [id])).rows[0].q;
-    expect(await quota(me())).toMatchObject({ tier: 'plus', limit: 50 });
-    expect(await quota(other())).toMatchObject({ tier: 'pro', limit: 150 });
+      (await client.query(`SELECT waves_voice_agent_quota($1, 10, 100) AS q`, [id])).rows[0].q;
+    expect(await quota(me())).toMatchObject({ tier: 'pro', limit: 100 });
+    expect(await quota(other())).toMatchObject({ tier: 'pro', limit: 100 });
+    const stored = await client.query(
+      `SELECT DISTINCT tier FROM subscriptions WHERE profile_id = ANY($1::uuid[])`,
+      [group.profileIds],
+    );
+    expect(stored.rows).toEqual([{ tier: 'pro' }]);
   });
 });
 
@@ -289,10 +294,10 @@ describe('a subscription through its life', () => {
     }
   });
 
-  it('a Plus to Pro product change upgrades the same row; the downgrade lands on renewal', async () => {
+  it('a Plus to Pro product change keeps one row, and Plus is Pro throughout', async () => {
     const sub = subscription({ tier: 'plus', price_minor: 4900 });
     await apply(sub({}), { at: ago(10) });
-    expect(await myPlan(me())).toMatchObject({ plan: 'plus' });
+    expect(await myPlan(me())).toMatchObject({ plan: 'pro' });
 
     await apply(sub({ tier: 'pro', price_minor: null }), { type: 'PRODUCT_CHANGE', at: ago(5) });
     const [row] = await rowsFor(me());
@@ -302,20 +307,21 @@ describe('a subscription through its life', () => {
     // The earlier price is kept when a later event carries none.
     expect(row!.price_minor).toBe('4900');
 
-    // Pro to Plus: the event keeps the Pro row; the renewal then writes Plus.
+    // A renewal that still names Plus is stored as Pro: nothing writes Plus.
     await apply(sub({ tier: 'pro' }), { type: 'PRODUCT_CHANGE', at: ago(4) });
     expect(await myPlan(me())).toMatchObject({ plan: 'pro' });
     await apply(sub({ tier: 'plus' }), { type: 'RENEWAL', at: ago(1) });
-    expect(await myPlan(me())).toMatchObject({ plan: 'plus' });
+    expect(await myPlan(me())).toMatchObject({ plan: 'pro' });
+    expect((await rowsFor(me()))[0]!.tier).toBe('pro');
   });
 
-  it('holding Plus on one store and Pro on another is Pro; losing Pro leaves Plus', async () => {
+  it('holding Plus on one store and Pro on another is Pro; losing one leaves the other Pro', async () => {
     await apply(upsert({ tier: 'plus', store: 'play' }));
     const pro = subscription({ tier: 'pro', store: 'appstore' });
     await apply(pro({}));
     expect(await myPlan(me())).toMatchObject({ plan: 'pro' });
     await apply(pro({ status: 'expired' }), { type: 'EXPIRATION' });
-    expect(await myPlan(me())).toMatchObject({ plan: 'plus' });
+    expect(await myPlan(me())).toMatchObject({ plan: 'pro' });
   });
 
   it('a lifetime row with no end date is paid and reported as lifetime', async () => {

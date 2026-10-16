@@ -35,7 +35,7 @@ Those numbers do not appear in the Campaigns table here.
 Admin > KPIs > Campaigns shows, for the last 30 days, per source / medium /
 campaign: installs, registered (the install later got a non-guest account),
 activated (the account made an expense, settlement or personal record within 7
-days; only accounts at least 7 days old count) and paid Plus/Pro plans (comped
+days; only accounts at least 7 days old count) and paid Pro plans (comped
 grants excluded).
 
 Cost per activated user = ad spend (from the ad platform) / activated (from

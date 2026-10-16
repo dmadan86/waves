@@ -250,7 +250,7 @@ describe('the trigger on auth.users', () => {
 });
 
 describe('when the trial ends or a purchase arrives', () => {
-  it('falls back to Free on expiry, or to the referral Plus days that follow it', async () => {
+  it('falls back to Free on expiry, or to the referral Pro days that follow it', async () => {
     const id = await person();
     await grant(id);
     // Referral days start where the coverage ends: after the trial.
@@ -267,7 +267,7 @@ describe('when the trial ends or a purchase arrives', () => {
       [id],
     );
     const after = await plan(id);
-    expect(after).toMatchObject({ plan: 'plus' });
+    expect(after).toMatchObject({ plan: 'pro' });
     expect(after.trial).toBeUndefined();
 
     const solo = await person();
@@ -293,13 +293,13 @@ describe('when the trial ends or a purchase arrives', () => {
     const p = await plan(id);
     expect(p).toMatchObject({ plan: 'pro' });
     expect(p.trial).toBeUndefined();
-    expect(await quota(id)).toMatchObject({ tier: 'pro', limit: 150, allowed: true });
+    expect(await quota(id)).toMatchObject({ tier: 'pro', limit: 100, allowed: true });
 
     const plusBuyer = await person();
     await grant(plusBuyer);
     await subscribe(plusBuyer, 'plus', 'appstore');
-    expect(await plan(plusBuyer)).toMatchObject({ plan: 'plus' });
-    expect(await quota(plusBuyer)).toMatchObject({ tier: 'plus', limit: 50 });
+    expect(await plan(plusBuyer)).toMatchObject({ plan: 'pro' });
+    expect(await quota(plusBuyer)).toMatchObject({ tier: 'pro', limit: 100 });
   });
 });
 
@@ -405,7 +405,7 @@ describe('voice on the trial', () => {
     await ageTrial(id, 20);
     await subscribe(id, 'plus', 'play');
     const q = await quota(id);
-    expect(q).toMatchObject({ tier: 'plus', limit: 50, allowed: true });
+    expect(q).toMatchObject({ tier: 'pro', limit: 100, allowed: true });
     expect(q.trial).toBeUndefined();
     const { rows } = await client.query(`SELECT voice_used FROM pro_trials WHERE profile_id = $1`, [
       id,

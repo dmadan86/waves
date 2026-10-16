@@ -341,7 +341,7 @@ function ProfileForm() {
               hint: t.account.upgradeHint,
               route: '/settings/upgrade',
             },
-            // Invite-and-earn only where Plus can be bought (the upgrade
+            // Invite-and-earn only where Pro can be bought (the upgrade
             // screen's `plansLive`): the reward is days of a plan.
             ...(referralsLive && !isGuest
               ? [

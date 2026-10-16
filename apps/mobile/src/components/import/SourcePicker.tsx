@@ -128,7 +128,7 @@ export function SourcePicker({
     wash: string | null;
     art: (keyof typeof Ionicons.glyphMap)[];
     chips?: string[];
-    plus?: boolean;
+    pro?: boolean;
     /** Draw the spreadsheet mark instead of `icon`. */
     sheetGlyph?: boolean;
   }[] = [
@@ -160,7 +160,7 @@ export function SourcePicker({
       disc: { fill: theme.tint.pink.bg, ink: theme.color.negative },
       wash: theme.tint.pink.bg,
       art: ['phone-portrait-outline', 'image-outline'],
-      plus: true,
+      pro: true,
     },
   ];
 
@@ -201,7 +201,7 @@ export function SourcePicker({
         <Pressable
           key={row.choice}
           accessibilityRole="button"
-          accessibilityLabel={`${row.title}. ${row.hint}${row.plus ? `. ${t.groupImport.plusBadge}` : ''}`}
+          accessibilityLabel={`${row.title}. ${row.hint}${row.pro ? `. ${t.groupImport.proBadge}` : ''}`}
           accessibilityState={{ disabled: busy }}
           disabled={busy}
           onPress={() => onChoose(row.choice)}
@@ -288,7 +288,7 @@ export function SourcePicker({
                   <Text variant="subheading" numberOfLines={1} style={{ flexShrink: 1 }}>
                     {row.title}
                   </Text>
-                  {row.plus ? <Badge label={t.groupImport.plusBadge} tone="brand" /> : null}
+                  {row.pro ? <Badge label={t.groupImport.proBadge} tone="brand" /> : null}
                 </View>
                 <Text variant="caption" tone="muted" numberOfLines={2}>
                   {row.hint}

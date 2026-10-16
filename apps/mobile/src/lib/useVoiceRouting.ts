@@ -6,7 +6,7 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { streamsToCloud } from '@/lib/voiceRoutingPure';
 
 /**
- * Whether this person's mic streams live to Deepgram (Plus, Pro, the Pro trial)
+ * Whether this person's mic streams live to Deepgram (Pro, the Pro trial)
  * or listens on the phone and sends the text to the agent (Free, including
  * commands earned with a reward ad). Not known yet reads as "streams": the
  * server refuses a stream for Free anyway, and a paid person must never be

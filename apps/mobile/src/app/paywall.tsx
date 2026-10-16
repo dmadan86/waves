@@ -1,8 +1,8 @@
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
- * Plus (the paid features with 50 advanced AI voice commands a month) and Pro (everything),
- * sold through RevenueCat. The cards come from RevenueCat's current offering
+ * Free and Pro: one Pro card (monthly or yearly), sold through RevenueCat. The
+ * card comes from RevenueCat's current offering
  * ('default'), so every price on screen is the store's own localized string —
  * nothing here is hardcoded. A monthly/yearly switch appears only once the
  * offering sells yearly plans.
@@ -24,9 +24,8 @@ import type { PurchasesOffering } from 'react-native-purchases';
 import {
   isPaidTier,
   PlanTier,
-  PLUS_DEVICE_LIMIT,
-  PLUS_MONTHLY_SCANS,
-  VOICE_AGENT_PLUS_MONTHLY,
+  PRO_DEVICE_LIMIT,
+  PRO_MONTHLY_SCANS,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
 import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
@@ -46,7 +45,7 @@ import {
   type PlanCardModel,
   type PlanPeriod,
 } from '@/lib/pricing';
-import { usePlusPriceVariant, useTrackPremiumViewed } from '@/lib/plusPrice';
+import { useTrackPremiumViewed } from '@/lib/premiumViewed';
 import { openLegal } from '@/lib/legal';
 import { loadOffering, purchase, restore } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
@@ -64,8 +63,8 @@ const BADGE_TINT = '#A58FFF';
 const SPARKLE = '#F5B83D';
 const PRO_TILE = require('../../assets/images/paywall/paywall-pro-tile.webp') as number;
 
-function planName(t: UiStrings, tier: PlanTier): string {
-  return tier === PlanTier.Pro ? t.paywall.proTitle : t.paywall.plusTitle;
+function planName(t: UiStrings, _tier: PlanTier): string {
+  return t.paywall.proTitle;
 }
 
 export default function PaywallScreen() {
@@ -80,21 +79,18 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  // Counts this screen being opened, once per mount, tagged with the Plus price arm.
+  // Counts this screen being opened, once per mount.
   useTrackPremiumViewed('paywall');
-  const { variant: priceVariant, settled: priceSettled } = usePlusPriceVariant();
 
   useEffect(() => {
-    // Wait for the flag, so the first price shown is the arm's and not a flash of the default.
-    if (!priceSettled) return;
     let active = true;
-    loadOffering(priceVariant)
+    loadOffering()
       .then((offering) => active && setLoad({ status: 'ready', offering }))
       .catch(() => active && setLoad({ status: 'error' }));
     return () => {
       active = false;
     };
-  }, [attempt, priceSettled, priceVariant]);
+  }, [attempt]);
 
   const offering = load.status === 'ready' ? load.offering : null;
   const periods = useMemo(() => periodsInOffering(offering), [offering]);
@@ -545,8 +541,8 @@ function PlanCard({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const pro = card.tier === PlanTier.Pro;
-  const title = pro ? t.paywall.proTitle : t.paywall.plusTitle;
-  const tagline = pro ? t.paywall.proTagline : t.paywall.plusTagline;
+  const title = t.paywall.proTitle;
+  const tagline = t.paywall.proTagline;
   const cadence = card.period === 'yearly' ? t.paywall.perYear : t.paywall.perMonth;
   const badge =
     trialDays !== null
@@ -556,17 +552,12 @@ function PlanCard({
         : pro
           ? t.paywall.proBadge
           : null;
-  const features = pro
-    ? [
-        t.paywall.featureEverythingPlus,
-        fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }),
-      ]
-    : [
-        fill(t.paywall.featureScans, { scans: PLUS_MONTHLY_SCANS }),
-        fill(t.paywall.featureDevices, { devices: PLUS_DEVICE_LIMIT }),
-        t.paywall.featureTransfers,
-        fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PLUS_MONTHLY }),
-      ];
+  const features = [
+    fill(t.paywall.featureScans, { scans: PRO_MONTHLY_SCANS }),
+    fill(t.paywall.featureDevices, { devices: PRO_DEVICE_LIMIT }),
+    t.paywall.featureTransfers,
+    fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }),
+  ];
 
   return (
     <Pressable

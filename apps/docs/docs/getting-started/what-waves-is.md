@@ -72,20 +72,20 @@ of it back out again:
 
 > A ledger you can only half read is not a ledger.
 
-There is a paid tier called **Plus**, and today there is nothing to buy:
+There is a paid tier called **Pro**, and today there is nothing to buy:
 
 > **Nothing to buy yet.** This is the door, not the shop. When there is
 > something worth paying for it will be here, with the price on it and no
 > surprises.
 
-Plus is currently granted only by a redeem code — **Settings → Redeem a code** —
+Pro is currently granted only by a redeem code — **Settings → Redeem a code** —
 which is handed out by hand, "for a support case, a thank-you, or a trial".
 
 Four things are capped on the free plan, and each says so where you meet it:
 
 | Cap               | Where you meet it                                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Group photo**   | Group cover. The two dozen drawn icons are free; a photo is Plus.                                                  |
+| **Group photo**   | Group cover. The two dozen drawn icons are free; a photo is Pro.                                                   |
 | **Receipts**      | A per-group limit on scanned bills. See [Receipts](../using-waves/receipts.md#limits-on-the-free-plan).            |
 | **Cloud storage** | A total size for photos and receipts, shown under **Storage usage**.                                               |
 | **Devices**       | _"The free plan covers two devices at a time. A device you have not opened in a while stops counting on its own."_ |

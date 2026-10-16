@@ -152,15 +152,15 @@
     "planLabel": "Plan",
     "plans": [
       {
-        "id": "plus",
-        "name": "Plus",
-        "tagline": "For everyday use",
+        "id": "free",
+        "name": "Free",
+        "tagline": "Everything that matters, forever",
         "badge": "",
         "features": [
-          "300 receipt scans a month",
-          "Use on up to 3 devices",
-          "Bigger exports, imports and backups",
-          "Advanced AI voice: 50 commands a month"
+          "Unlimited groups, expenses and splits",
+          "Settle up and export, no limits",
+          "20 receipt scans a month",
+          "AI voice: 10 commands a month"
         ]
       },
       {
@@ -168,16 +168,21 @@
         "name": "Pro",
         "tagline": "Everything you need",
         "badge": "Recommended",
-        "features": ["Everything in Plus", "Advanced AI voice: 150 commands a month"]
+        "features": [
+          "300 receipt scans a month",
+          "Use on up to 3 devices",
+          "Bigger exports, imports and backups",
+          "Advanced AI voice: 100 commands a month"
+        ]
       }
     ],
-    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no card at sign-up. AI voice: 10 commands a month. Free has optional reward ads for extra AI voice commands and scans; Plus and Pro have no ads.",
+    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no card at sign-up. AI voice: 10 commands a month. Free has optional reward ads for extra AI voice commands and scans; Pro has no ads.",
     "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We never sell your data. Free has optional reward ads you choose to watch, never on your money screens. Plus and Pro have none.",
+    "body": "Your data belongs to you. We never sell your data. Free has optional reward ads you choose to watch, never on your money screens. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
@@ -192,11 +197,11 @@
     "items": [
       {
         "q": "Is Waves really free?",
-        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier. Plus exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. There is no card at sign-up and no trial that expires."
+        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier. Pro exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. There is no card at sign-up and no trial that expires."
       },
       {
-        "q": "What is the difference between Plus and Pro?",
-        "a": "Plus adds 300 receipt scans a month, use on up to 3 devices, bigger exports, imports and backups, and the advanced AI voice agent with 50 commands a month. Pro includes everything in Plus and raises the advanced AI voice allowance to 150 commands a month. In India Plus is ₹49 a month (₹499 a year) and Pro is ₹99 a month (₹999 a year)."
+        "q": "What does Pro add?",
+        "a": "Pro adds 300 receipt scans a month, use on up to 3 devices, bigger exports, imports and backups, and the advanced AI voice agent with 100 commands a month. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -204,19 +209,19 @@
       },
       {
         "q": "What do you do with my data?",
-        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free has optional reward ads you choose to watch, never on your money screens; Plus and Pro have none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free has optional reward ads you choose to watch, never on your money screens; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
         "q": "Does Waves show ads?",
-        "a": "Only if you choose to, and only on Free. When you reach the monthly limit for AI voice commands or receipt scans, you can watch one short ad to earn 2 more of them, up to 3 ads a day, or upgrade to Plus instead. Nothing is ever forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Plus and Pro have no ads at all."
+        "a": "Only if you choose to, and only on Free. When you reach the monthly limit for AI voice commands or receipt scans, you can watch one short ad to earn 2 more of them, up to 3 ads a day, or upgrade to Pro instead. Nothing is ever forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Pro has no ads at all."
       },
       {
         "q": "Can I import or export my data?",
-        "a": "Yes. Exporting your ledger is part of the free plan, and your data is yours to take with you. Plus raises the limits for bigger exports, imports and backups."
+        "a": "Yes. Exporting your ledger is part of the free plan, and your data is yours to take with you. Pro raises the limits for bigger exports, imports and backups."
       },
       {
         "q": "Can I add expenses by voice?",
-        "a": "Yes. Everyone gets a voice allowance. Plus adds the advanced AI voice agent with 50 commands a month, and Pro raises that to 150."
+        "a": "Yes. Everyone gets a voice allowance. Pro adds the advanced AI voice agent with 100 commands a month."
       },
       {
         "q": "What happens when I have no signal?",
@@ -638,7 +643,7 @@
       "Other currencies work too: say “40 dirhams” and it keeps the amount in that currency.",
       "Basic voice runs on your phone for everyone, even offline."
     ],
-    "planLine": "AI voice on every plan, with more commands on Plus and Pro.",
+    "planLine": "AI voice on every plan, with more commands on Pro.",
     "examples": [
       {
         "lang": "en",

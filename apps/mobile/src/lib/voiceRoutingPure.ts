@@ -2,7 +2,7 @@
  * Who streams to Deepgram and who listens on the phone — pure, so it is tested
  * apart from the screen.
  *
- * Plus, Pro and the Pro trial stream the mic live to Deepgram (the cloud engine).
+ * Pro and the Pro trial stream the mic live to Deepgram (the cloud engine).
  * Free — including the commands earned by watching a reward ad — uses the
  * phone's own speech recogniser and sends the transcript as text to the
  * `voice-agent` function, which is about a seventh of the cost per command. The

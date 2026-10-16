@@ -27,7 +27,7 @@ Sport, Favourite, Friends.
 
 A photo from your phone is also possible, but:
 
-> Group photos are a Plus feature. Pick an icon, or upgrade to add a photo.
+> Group photos are a Pro feature. Pick an icon, or upgrade to add a photo.
 
 The icons are free, there are two dozen of them, and they translate — a photo
 does not.
