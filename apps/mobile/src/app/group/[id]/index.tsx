@@ -912,6 +912,18 @@ export default function GroupScreen() {
   // at all until the rest arrived.
   const listRef = useRef<FlashListRef<FeedItem>>(null);
   const windowed = expandedTab !== tab;
+  // The list mounts only once the push has finished sliding. Mounting it in the
+  // first frame kept the JS thread busy for ~400 ms, so the row's press stayed
+  // lit and the slide dropped to two frames.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setSettled(true));
+    const fallback = setTimeout(() => setSettled(true), 600);
+    return () => {
+      task.cancel();
+      clearTimeout(fallback);
+    };
+  }, []);
   useEffect(() => {
     if (expandedTab === tab) return undefined;
     const task = InteractionManager.runAfterInteractions(() => setExpandedTab(tab));
@@ -1472,6 +1484,8 @@ export default function GroupScreen() {
           // both, so a date range or "only mine" set on one carries to the
           // other.
           <TimelineBody lockedGroupId={groupId} fixedView={tab === Tab.Map ? 'map' : 'timeline'} />
+        ) : !settled ? (
+          <View style={{ flex: 1 }} />
         ) : (
           <FlashList
             ref={listRef}
