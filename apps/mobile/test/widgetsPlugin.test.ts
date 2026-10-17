@@ -17,17 +17,14 @@ type Widget = {
   info: { cellsW: number; cellsH: number };
 };
 
-const { WIDGETS, COMPACT, SEARCH, GRID, LINKS, VOICE, RETIRED, STRINGS, tapsOf } = _internals as {
+const { WIDGETS, SEARCH, VOICE, RETIRED, STRINGS, tapsOf } = _internals as {
   WIDGETS: Widget[];
-  COMPACT: Widget & { buttons: Tap[] };
   SEARCH: Widget & {
     pill: Tap;
     mic: Tap;
     more: Tap;
     chips: (Tap & { category: string })[];
   };
-  GRID: Widget & { settings: Tap; tiles: (Tap & { title: string })[] };
-  LINKS: Record<string, string>;
   VOICE: string;
   RETIRED: { className: string; key: string }[];
   STRINGS: Record<string, string>;
@@ -57,19 +54,10 @@ function emptyManifest(receiver: unknown[] = []) {
   };
 }
 
-describe('withWavesWidgets — the three widgets', () => {
-  it('ships exactly the compact, search and action-grid widgets', () => {
-    expect(WIDGETS.map((w) => w.key)).toEqual(['compact', 'search', 'home']);
-    expect(WIDGETS.map((w) => [w.info.cellsW, w.info.cellsH])).toEqual([
-      [4, 1],
-      [4, 2],
-      [4, 2],
-    ]);
-  });
-
-  it('compact: photo, voice and manual, with the card opening quick add', () => {
-    expect(COMPACT.buttons.map((b) => b.target)).toEqual([LINKS.photo, VOICE, LINKS.manual]);
-    expect(tapsOf(COMPACT)[0]).toMatchObject({ id: 'widget_root', target: 'waves:///capture' });
+describe('withWavesWidgets — the search widget', () => {
+  it('ships exactly the search widget', () => {
+    expect(WIDGETS.map((w) => w.key)).toEqual(['search']);
+    expect(WIDGETS.map((w) => [w.info.cellsW, w.info.cellsH])).toEqual([[4, 2]]);
   });
 
   it('search: the pill opens quick add, the mic opens voice, chips preset a category', () => {
@@ -87,19 +75,12 @@ describe('withWavesWidgets — the three widgets', () => {
     expect(SEARCH.more.target).toBe('waves:///capture');
   });
 
-  it('grid: Photo, Voice, Scan and Manual, and a gear that opens settings', () => {
-    expect(GRID.tiles.map((t) => [t.title, t.target])).toEqual([
-      ['waves_widget_photo', 'waves:///capture?gallery=1'],
-      ['waves_widget_voice', VOICE],
-      ['waves_widget_scan', 'waves:///capture?scan=1'],
-      ['waves_widget_manual', 'waves:///capture'],
-    ]);
-    expect(GRID.settings.target).toBe('waves:///profile');
-  });
-
-  it('keeps the old 4x2 home widget name, so a placed one redraws instead of breaking', () => {
-    expect(GRID.className).toBe('WavesHomeWidget');
-    expect(GRID.key).toBe('home');
+  it('retires the compact and action-grid widgets, so a placed one is removed, not broken', () => {
+    const retired = RETIRED.map((w) => w.className);
+    expect(retired).toContain('WavesCompactWidget');
+    expect(retired).toContain('WavesHomeWidget');
+    expect(WIDGETS.map((w) => w.className)).not.toContain('WavesCompactWidget');
+    expect(WIDGETS.map((w) => w.className)).not.toContain('WavesHomeWidget');
   });
 
   it('never reuses a PendingIntent request code', () => {
@@ -112,7 +93,7 @@ describe('withWavesWidgets — manifest', () => {
   it('adds one exported receiver per widget, each wired to its provider xml', () => {
     const out = addReceivers(emptyManifest());
     const receivers = out.manifest.application[0].receiver as Receiver[];
-    expect(receivers).toHaveLength(3);
+    expect(receivers).toHaveLength(WIDGETS.length);
 
     for (const widget of WIDGETS) {
       const receiver = receivers.find((r) => r.$['android:name'] === `.widget.${widget.className}`);
@@ -132,10 +113,10 @@ describe('withWavesWidgets — manifest', () => {
     const manifest = emptyManifest();
     addReceivers(manifest);
     const out = addReceivers(manifest);
-    expect(out.manifest.application[0].receiver).toHaveLength(3);
+    expect(out.manifest.application[0].receiver).toHaveLength(WIDGETS.length);
   });
 
-  it('drops the retired 1x1 receivers a non-clean prebuild would otherwise keep', () => {
+  it('drops the retired receivers a non-clean prebuild would otherwise keep', () => {
     const stale = RETIRED.map((w) => ({ $: { 'android:name': `.widget.${w.className}` } }));
     const other = { $: { 'android:name': '.SomethingElse' } };
     const out = addReceivers(emptyManifest([...stale, other]));
@@ -166,6 +147,8 @@ describe('withWavesWidgets — emitted native sources', () => {
   writeFileSync(join(main, 'res', 'layout', 'widget_quick.xml'), '<LinearLayout />');
   mkdirSync(kotlinDir, { recursive: true });
   writeFileSync(join(kotlinDir, 'QuickExpenseWidget.kt'), '// stale');
+  writeFileSync(join(kotlinDir, 'WavesHomeWidget.kt'), '// stale');
+  writeFileSync(join(main, 'res', 'layout', 'widget_home.xml'), '<LinearLayout />');
   writeNativeSources(root, PKG);
   const read = (p: string) => readFileSync(join(main, p), 'utf8');
 
@@ -180,6 +163,8 @@ describe('withWavesWidgets — emitted native sources', () => {
   it('removes the retired widgets left behind by an older prebuild', () => {
     expect(existsSync(join(main, 'res', 'layout', 'widget_quick.xml'))).toBe(false);
     expect(existsSync(join(kotlinDir, 'QuickExpenseWidget.kt'))).toBe(false);
+    expect(existsSync(join(kotlinDir, 'WavesHomeWidget.kt'))).toBe(false);
+    expect(existsSync(join(main, 'res', 'layout', 'widget_home.xml'))).toBe(false);
   });
 
   it('each provider info sizes its cells, previews its own layout, and describes itself', () => {
@@ -240,7 +225,6 @@ describe('withWavesWidgets — emitted native sources', () => {
       }
     }
     expect(strings).toContain('What did you spend on?');
-    expect(strings).toContain('Capture expenses, anywhere');
   });
 
   it('every @drawable and @color it names is emitted, in light and dark', () => {
