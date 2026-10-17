@@ -68,6 +68,7 @@
  * to be said *in that modal*, as an inline `Callout`, and those five sites do.
  */
 
+import type { ImageSourcePropType } from 'react-native';
 import {
   createContext,
   useCallback,
@@ -123,6 +124,10 @@ export interface ConfirmOptions {
   /** Defaults to the app's "Cancel". */
   readonly cancelLabel?: string;
   readonly tone?: DialogTone;
+  /** A hero illustration above the title; draws the dialog centred. */
+  readonly art?: ImageSourcePropType;
+  /** An Ionicons glyph drawn before the confirm label. */
+  readonly confirmIcon?: string;
 }
 
 /** One door and nothing to decide — but more than a sentence's worth to say. */
@@ -238,10 +243,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
           moreRows: options.moreRows,
           note: options.note,
           tone: options.tone,
+          art: options.art,
           actions: [
             {
               id: DIALOG_CONFIRM,
               label: options.confirmLabel,
+              icon: options.confirmIcon,
               tone: options.tone === 'danger' ? 'danger' : 'primary',
             },
             { id: DIALOG_CANCEL, label: options.cancelLabel ?? t.common.cancel, tone: 'quiet' },

@@ -145,6 +145,8 @@ function ExitChip({
   );
 }
 
+const ARCHIVE_ART = require('../../../../assets/images/archive-group-art.webp') as number;
+
 export default function GroupSettingsScreen() {
   const theme = useTheme();
   // This screen renders under the persistent bottom nav, so it must pad for the
@@ -510,6 +512,8 @@ export default function GroupSettingsScreen() {
       title: t.group.archiveQuestion,
       body: t.group.archiveBody,
       confirmLabel: t.group.archive,
+      confirmIcon: 'file-tray-stacked-outline',
+      art: ARCHIVE_ART,
     });
     if (ok) {
       updateGroup.mutate(

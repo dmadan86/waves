@@ -43,7 +43,7 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AccessibilityInfo, ScrollView, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Image, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import {
   Button,
@@ -129,7 +129,7 @@ function DialogMark() {
  * row of an action list is just the first of several peers. The caller names
  * the weight; this only spells it.
  */
-function variantFor(action: DialogAction): ButtonVariant {
+function variantFor(action: DialogAction, illustrated = false): ButtonVariant {
   switch (action.tone) {
     case 'danger':
       return 'danger';
@@ -141,7 +141,8 @@ function variantFor(action: DialogAction): ButtonVariant {
       return 'ghost';
     case 'primary':
     default:
-      return 'primary';
+      // An illustrated dialog asks in the brand colour, as its mockup does.
+      return illustrated ? 'brand' : 'primary';
   }
 }
 
@@ -165,6 +166,8 @@ function DialogContent({
   const { locale } = useStrings();
   const tone = request.tone ?? 'neutral';
   const rows = request.rows ?? [];
+  const art = request.art;
+  const centred = art !== undefined;
 
   /**
    * Say what is being asked, once, when it arrives.
@@ -193,10 +196,25 @@ function DialogContent({
       // Android reads a live region without being asked; iOS is told above.
       accessibilityLiveRegion="assertive"
     >
+      {art ? (
+        <Image
+          source={art}
+          accessible={false}
+          resizeMode="contain"
+          style={{
+            alignSelf: 'center',
+            width: '100%',
+            height: 160,
+            marginBottom: theme.spacing.md,
+          }}
+        />
+      ) : null}
       <Row style={{ gap: theme.spacing.md, marginBottom: theme.spacing.lg }}>
         {tone === 'danger' ? <DialogMark /> : null}
         <View style={{ flex: 1 }}>
-          <Text variant="title">{request.title}</Text>
+          <Text variant="title" style={centred ? { textAlign: 'center' } : undefined}>
+            {request.title}
+          </Text>
         </View>
       </Row>
 
@@ -209,7 +227,7 @@ function DialogContent({
         contentContainerStyle={{ gap: theme.spacing.md, paddingBottom: theme.spacing.xs }}
       >
         {request.body ? (
-          <Text variant="body" tone="muted">
+          <Text variant="body" tone="muted" style={centred ? { textAlign: 'center' } : undefined}>
             {request.body}
           </Text>
         ) : null}
@@ -270,7 +288,7 @@ function DialogContent({
           <Button
             key={action.id}
             label={action.label}
-            variant={variantFor(action)}
+            variant={variantFor(action, centred)}
             icon={
               action.icon ? (
                 <Ionicons
@@ -280,7 +298,13 @@ function DialogContent({
                   // red on the one that takes something away, brand on a peer.
                   // A single neutral grey across all three would make the
                   // destructive row look like the others until you read it.
-                  color={action.tone === 'dangerQuiet' ? theme.color.negative : theme.color.brand}
+                  color={
+                    action.tone === 'dangerQuiet'
+                      ? theme.color.negative
+                      : centred && variantFor(action, true) === 'brand'
+                        ? theme.color.onBrand
+                        : theme.color.brand
+                  }
                 />
               ) : undefined
             }
