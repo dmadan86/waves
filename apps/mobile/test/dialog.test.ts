@@ -63,6 +63,19 @@ describe('confirm', () => {
     expect(surface()).toMatchObject({ slot: null, visible: false });
   });
 
+  it('passes art and a confirm icon through to the request', () => {
+    const { value, surface } = mount();
+    void value().confirm({
+      title: 'Archive?',
+      confirmLabel: 'Archive',
+      confirmIcon: 'archive-outline',
+      art: 7,
+    });
+    const request = surface().slot!.request as Slot['request'] & { art?: number };
+    expect(request.art).toBe(7);
+    expect(request.actions[0]).toMatchObject({ icon: 'archive-outline' });
+  });
+
   it('reads a cancel or a dismissal as no, and uses a custom cancel label', async () => {
     const { value, surface } = mount();
     const answer = value().confirm({ title: 'Leave?', confirmLabel: 'Leave', cancelLabel: 'Stay' });
