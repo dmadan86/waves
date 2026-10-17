@@ -3211,13 +3211,7 @@ export interface UiStrings {
     /** A ghost — no account, so no contact to withhold or to show. */
     notOnWaves: string;
     inviteA11y: string;
-    pay: string;
-    markPaid: string;
-    markPaidTitle: string;
-    markPaidBody: string;
     remindA11y: string;
-    payA11y: string;
-    markPaidA11y: string;
     settleUpA11y: string;
     call: string;
     message: string;
@@ -3251,6 +3245,28 @@ export interface UiStrings {
     visibilityNobody: string;
     visibilityNobodyHint: string;
     discoveryFootnote: string;
+    contactInfo: string;
+    paymentHistory: string;
+    paymentHistoryBody: string;
+    viewAllGroups: string;
+    viewAllGroupsBody: string;
+    total: string;
+    /** Said beside an amount that is the group simplified suggestion rather than the direct balance. */
+    afterSimplifying: string;
+    onWaves: string;
+    moreOptions: string;
+    pairSubtitle: string;
+    /** Carries `{on}` and `{all}`: some of the shared groups simplify, some do not. */
+    simplifyMixed: string;
+    /** Under a Settle up card whose total spans several groups, each settled in its own. */
+    settleOneByOne: string;
+    settlePayment: string;
+    or: string;
+    viewDetails: string;
+    fullLedger: string;
+    fullLedgerBody: string;
+    pickGroupTitle: string;
+    pickGroupBody: string;
   };
   /** Adding and editing an expense, and reading one off a bill. */
   expense: {
@@ -7802,13 +7818,7 @@ const en: UiStrings = {
     noContact: 'No phone or email on this account.',
     notOnWaves: 'Not on Waves yet',
     inviteA11y: 'Invite {name} to Waves',
-    pay: 'Pay',
-    markPaid: 'Mark as paid',
-    markPaidTitle: 'Mark as paid to {name}?',
-    markPaidBody: 'This records a payment you have already made. Waves does not move money.',
     remindA11y: 'Remind {name} to settle up',
-    payA11y: 'Pay {name}',
-    markPaidA11y: 'Mark {name} as paid',
     settleUpA11y: 'Settle up with {name}',
     call: 'Call',
     message: 'Message',
@@ -7842,6 +7852,25 @@ const en: UiStrings = {
     visibilityNobodyHint: 'Your phone and email stay hidden, even from group-mates.',
     discoveryFootnote:
       'Somebody who found you by typing your number will see that number — they already had it. None of this ever changes who owes what.',
+    contactInfo: 'Contact information',
+    paymentHistory: 'Payment history',
+    paymentHistoryBody: 'View all transactions with {name}',
+    viewAllGroups: 'View in all groups',
+    viewAllGroupsBody: 'See where you both are added',
+    total: 'Total',
+    afterSimplifying: 'after simplifying',
+    onWaves: 'On Waves',
+    moreOptions: 'More options',
+    pairSubtitle: 'You and {name}',
+    simplifyMixed: 'Simplify is on in {on} of {all} groups',
+    settleOneByOne: 'Settle one group at a time',
+    settlePayment: 'Settle this payment to balance up',
+    or: 'OR',
+    viewDetails: 'View details (optional)',
+    fullLedger: 'Full ledger',
+    fullLedgerBody: 'See all transactions between you and {name}.',
+    pickGroupTitle: 'Choose a group',
+    pickGroupBody: 'Each group keeps its own record.',
   },
   expense: {
     edit: 'Edit expense',
@@ -12351,13 +12380,7 @@ const ta: UiStrings = {
     noContact: 'இந்தக் கணக்கில் தொலைபேசி எண்ணோ மின்னஞ்சலோ இல்லை.',
     notOnWaves: 'இன்னும் Waves-இல் இல்லை',
     inviteA11y: '{name}-ஐ Waves-க்கு அழை',
-    pay: 'செலுத்து',
-    markPaid: 'செலுத்தியதாகக் குறி',
-    markPaidTitle: '{name}-க்கு செலுத்தியதாகக் குறிக்கவா?',
-    markPaidBody: 'நீங்கள் ஏற்கெனவே செலுத்திய தொகையை இது பதிவு செய்கிறது. Waves பணத்தை நகர்த்தாது.',
     remindA11y: '{name}-ஐ கணக்கு தீர்க்க நினைவூட்டு',
-    payA11y: '{name}-க்கு செலுத்து',
-    markPaidA11y: '{name}-க்கு செலுத்தியதாகக் குறி',
     settleUpA11y: '{name}-உடன் கணக்கு தீர்',
     call: 'அழை',
     message: 'செய்தி',
@@ -12395,6 +12418,25 @@ const ta: UiStrings = {
       'குழுவினரிடமிருந்து கூட உங்கள் தொலைபேசியும் மின்னஞ்சலும் மறைந்தே இருக்கும்.',
     discoveryFootnote:
       'உங்கள் எண்ணைத் தட்டச்சு செய்து உங்களைக் கண்டறிந்தவர் அந்த எண்ணைப் பார்ப்பார் — அது ஏற்கனவே அவரிடம் இருந்தது. இவை எதுவும் யார் யாருக்குக் கடன் என்பதை மாற்றாது.',
+    contactInfo: 'தொடர்புத் தகவல்',
+    paymentHistory: 'பணம் செலுத்திய வரலாறு',
+    paymentHistoryBody: '{name} உடனான அனைத்துப் பரிவர்த்தனைகளையும் பார்க்கவும்',
+    viewAllGroups: 'அனைத்துக் குழுக்களிலும் பார்க்க',
+    viewAllGroupsBody: 'நீங்கள் இருவரும் எங்கெல்லாம் இருக்கிறீர்கள் எனப் பாருங்கள்',
+    total: 'மொத்தம்',
+    afterSimplifying: 'எளிமைப்படுத்திய பின்',
+    onWaves: 'Waves-ல் உள்ளார்',
+    moreOptions: 'மேலும் விருப்பங்கள்',
+    pairSubtitle: 'நீங்களும் {name}-உம்',
+    simplifyMixed: '{all} குழுக்களில் {on}-ல் எளிமைப்படுத்தல் இயக்கத்தில் உள்ளது',
+    settleOneByOne: 'ஒரு நேரத்தில் ஒரு குழுவைத் தீர்க்கவும்',
+    settlePayment: 'இந்தக் கட்டணத்தைத் தீர்த்து சமநிலைப்படுத்துங்கள்',
+    or: 'அல்லது',
+    viewDetails: 'விவரங்களைப் பார்க்க (விருப்பம்)',
+    fullLedger: 'முழு கணக்கேடு',
+    fullLedgerBody: 'நீங்களும் {name}-உம் இடையிலான அனைத்துப் பரிவர்த்தனைகளையும் பார்க்கவும்.',
+    pickGroupTitle: 'ஒரு குழுவைத் தேர்ந்தெடுக்கவும்',
+    pickGroupBody: 'ஒவ்வொரு குழுவும் தனக்கான பதிவை வைத்திருக்கும்.',
   },
   expense: {
     edit: 'செலவைத் திருத்து',
@@ -16926,13 +16968,7 @@ const hi: UiStrings = {
     noContact: 'इस खाते पर कोई फ़ोन नंबर या ईमेल नहीं है।',
     notOnWaves: 'अभी Waves पर नहीं हैं',
     inviteA11y: '{name} को Waves पर बुलाएँ',
-    pay: 'भुगतान करें',
-    markPaid: 'चुकाया हुआ चिह्नित करें',
-    markPaidTitle: '{name} को चुकाया हुआ चिह्नित करें?',
-    markPaidBody: 'यह वह भुगतान दर्ज करता है जो आप कर चुके हैं। Waves पैसे नहीं भेजता।',
     remindA11y: '{name} को हिसाब चुकाने की याद दिलाएँ',
-    payA11y: '{name} को भुगतान करें',
-    markPaidA11y: '{name} को चुकाया हुआ चिह्नित करें',
     settleUpA11y: '{name} के साथ हिसाब चुकाएँ',
     call: 'कॉल',
     message: 'संदेश',
@@ -16966,6 +17002,25 @@ const hi: UiStrings = {
     visibilityNobodyHint: 'आपका फ़ोन और ईमेल छिपे रहते हैं, समूह वालों से भी।',
     discoveryFootnote:
       'जिसने आपका नंबर लिखकर आपको खोजा, उसे वह नंबर दिखेगा — वह उसके पास पहले से था। इनमें से कुछ भी यह नहीं बदलता कि किस पर कितना बाक़ी है।',
+    contactInfo: 'संपर्क जानकारी',
+    paymentHistory: 'भुगतान इतिहास',
+    paymentHistoryBody: '{name} के साथ सभी लेन-देन देखें',
+    viewAllGroups: 'सभी समूहों में देखें',
+    viewAllGroupsBody: 'देखें कि आप दोनों कहाँ जुड़े हैं',
+    total: 'कुल',
+    afterSimplifying: 'सरल करने के बाद',
+    onWaves: 'Waves पर है',
+    moreOptions: 'और विकल्प',
+    pairSubtitle: 'आप और {name}',
+    simplifyMixed: '{all} में से {on} समूहों में सरलीकरण चालू है',
+    settleOneByOne: 'एक बार में एक समूह चुकाएँ',
+    settlePayment: 'यह भुगतान निपटाकर हिसाब बराबर करें',
+    or: 'या',
+    viewDetails: 'विवरण देखें (वैकल्पिक)',
+    fullLedger: 'पूरा खाता',
+    fullLedgerBody: 'आपके और {name} के बीच सभी लेन-देन देखें।',
+    pickGroupTitle: 'समूह चुनें',
+    pickGroupBody: 'हर समूह का अपना रिकॉर्ड होता है।',
   },
   expense: {
     edit: 'खर्च बदलें',
@@ -21644,13 +21699,7 @@ const ar: UiStrings = {
     noContact: 'لا يوجد هاتف أو بريد على هذا الحساب.',
     notOnWaves: 'ليس على Waves بعد',
     inviteA11y: 'ادعُ {name} إلى Waves',
-    pay: 'ادفع',
-    markPaid: 'تحديد كمدفوع',
-    markPaidTitle: 'تحديد المبلغ كمدفوع لـ {name}؟',
-    markPaidBody: 'يسجّل هذا دفعة أجريتها بالفعل. لا ينقل Waves الأموال.',
     remindA11y: 'ذكّر {name} بالتسوية',
-    payA11y: 'ادفع لـ {name}',
-    markPaidA11y: 'حدد {name} كمدفوع',
     settleUpA11y: 'تسوية الحساب مع {name}',
     call: 'اتصال',
     message: 'رسالة',
@@ -21683,6 +21732,25 @@ const ar: UiStrings = {
     visibilityNobodyHint: 'يبقى هاتفك وبريدك مخفيين، حتى عن أفراد مجموعاتك.',
     discoveryFootnote:
       'من عثر عليك بكتابة رقمك سيرى ذلك الرقم — فقد كان لديه أصلًا. ولا شيء من هذا يغيّر أبدًا من يدين لمن.',
+    contactInfo: 'معلومات التواصل',
+    paymentHistory: 'سجل المدفوعات',
+    paymentHistoryBody: 'عرض كل المعاملات مع {name}',
+    viewAllGroups: 'العرض في كل المجموعات',
+    viewAllGroupsBody: 'اطلع على المجموعات التي تجمعكما',
+    total: 'الإجمالي',
+    afterSimplifying: 'بعد التبسيط',
+    onWaves: 'على Waves',
+    moreOptions: 'خيارات أخرى',
+    pairSubtitle: 'أنت و{name}',
+    simplifyMixed: 'التبسيط مفعّل في {on} من {all} مجموعات',
+    settleOneByOne: 'سوِّ مجموعة واحدة في كل مرة',
+    settlePayment: 'سوِّ هذه الدفعة لتتوازن الحسابات',
+    or: 'أو',
+    viewDetails: 'عرض التفاصيل (اختياري)',
+    fullLedger: 'السجل الكامل',
+    fullLedgerBody: 'اطلع على كل المعاملات بينك وبين {name}.',
+    pickGroupTitle: 'اختر مجموعة',
+    pickGroupBody: 'لكل مجموعة سجلها الخاص.',
   },
   expense: {
     edit: 'تعديل المصروف',

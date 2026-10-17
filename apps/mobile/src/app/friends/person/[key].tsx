@@ -1,24 +1,19 @@
 /**
  * One person: who they are, and what stands between you across every group.
  *
- * The Friends list rolls a person up into a single balance. When that person is
- * in more than one group the sum has no single group to open, so the row there
- * used to be a dead end. This is where it goes instead.
+ * Three things on this screen are decided elsewhere on purpose, so that it can
+ * never disagree with the screen it leads to:
  *
- * It used to be *only* that — a balance, split back out per group. Two problems
- * came with that. The first is that `waves_person_group_balances` ends in
- * `HAVING sum(n.net) <> 0`, so the moment a person settles up they vanish from
- * their own screen; the balance is not the person. The second is that nothing
- * here ever said who this actually was: two people called Priya in two groups
- * were two identical rows and two identical screens.
+ * - the figures are `pairBalances` (core), through `usePairPerson` — the same
+ *   per-group amounts and the same total the Who-pays-whom screen draws;
+ * - the groups are named by the one labeller every screen uses (`groupLabel`),
+ *   so an unnamed group reads the same here, on the chips and on the pair screen;
+ * - Remind is the shared channel sheet (`useRemind`), never a one-off popup.
  *
- * So identity comes from its own call (`waves_person_profile`), which survives
- * being square, and the balance is one section inside it rather than the whole
- * page. The contact details on that call are not ours: the server sends them
- * only when the person has said group-mates may see them, and the screen is
- * careful to distinguish "they have not told us" from "they have told us not to
- * tell you" — a vague sentence covering both would be the sort of hedge that
- * makes people assume the worse one.
+ * Identity comes from its own call (`waves_person_profile`), which survives
+ * being square: the balance is one card on the page, not the page. The contact
+ * details on that call are not ours — the server sends them only when the person
+ * has said group-mates may see them — and a card with nothing on it is not drawn.
  *
  * A person blocked on this device is shown as the app's anonymous ghost
  * everywhere, and that has to include here: no avatar, no number, no address,
@@ -26,62 +21,53 @@
  */
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useQuery } from '@tanstack/react-query';
-import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
-import { Linking, Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StatusBar, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { type CurrencyCode } from '@waves/core';
 import {
   Avatar,
-  Badge,
   Button,
   Card,
   Divider,
-  directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
+  MODAL_ORIENTATIONS,
   MoneyText,
   Row,
   Screen,
-  SectionHeader,
   Text,
   useTabBarClearance,
   useTheme,
-  MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
-import {
-  fetchPersonGroupBalances,
-  fetchPersonProfile,
-  type PersonGroupBalanceRow,
-  type PersonProfileRow,
-} from '@/data/api';
-import { useBlockedUsers } from '@/data/blocked';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { OverflowMenu } from '@/components/OverflowMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { ViewerButton } from '@/components/ViewerButton';
 import { ZoomableGallery } from '@/components/ZoomableGallery';
-import { currencyTotals, directionGroups, type CurrencyTotal } from '@/lib/friendsTotals';
-import { PersonActions } from '@/components/person/PersonActions';
-import { actionTarget, isUnregistered } from '@/lib/personActions';
-import { personAvatarPath } from '@/lib/personDetail';
+import { ContactCard } from '@/components/person/ContactCard';
+import { OwesCard } from '@/components/person/OwesCard';
+import {
+  GroupChip,
+  HeroCircleButton,
+  HERO_TEXT_SHADOW,
+  NavRow,
+  PairGroupCard,
+  PairHero,
+  PairSheet,
+  PickGroupSheet,
+} from '@/components/person/pairParts';
+import { useBlockedUsers } from '@/data/blocked';
+import { directionGroups } from '@/lib/friendsTotals';
 import { fill, plural, useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { router } from '@/lib/navigation';
+import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
 
-/**
- * A person's balance in one group: the group, and one net per currency in it,
- * biggest first so the row's lead figure is the one that matters.
- */
-interface GroupBlock {
-  groupId: string;
-  groupName: string | null;
-  coverEmoji: string | null;
-  lines: CurrencyTotal[];
-}
+/** Group chips shown under the name before the rest collapse into "+N". */
+const MAX_CHIPS = 3;
 
 export default function PersonDetailScreen() {
   const theme = useTheme();
@@ -91,44 +77,17 @@ export default function PersonDetailScreen() {
   const insets = useSafeAreaInsets();
   const { key, name } = useLocalSearchParams<{ key: string; name?: string }>();
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pick, setPick] = useState<'group' | 'history' | null>(null);
 
-  const who = useQuery({
-    queryKey: ['person', key, 'profile'],
-    queryFn: () => fetchPersonProfile(key),
-    enabled: Boolean(key),
-  });
+  const person = usePairPerson(key ?? '', name);
+  const { profile, groups, totals, title, realName, masked, blocked, ready, photo } = person;
+  const { block, unblock } = useBlockedUsers();
 
-  const person = useQuery({
-    queryKey: ['person', key, 'groups'],
-    queryFn: () => fetchPersonGroupBalances(key),
-    enabled: Boolean(key),
-  });
-
-  const rows = useMemo(() => person.data ?? [], [person.data]);
-  const profile = who.data ?? null;
-
-  // Only a person with an account can be blocked, and for one the `person_key`
-  // in the route *is* their profile id (the list keys them on it), so `key` is
-  // the block key. A ghost or a merged-ghost person_key is not a profile id and
-  // nothing elsewhere keys off it, so those are left un-blockable.
-  const { isBlocked, block, unblock, ready } = useBlockedUsers();
-  const isRealPerson = profile ? !profile.is_ghost : rows.some((row) => !row.is_ghost);
-  // Independent of `isRealPerson`: a ghost's key is never in the block set, so
-  // this stays false for one regardless — and asking directly means a block is
-  // honoured before the rest has loaded, not only after.
-  const blocked = isBlocked(key);
-  const realName =
-    profile?.display_name ??
-    rows.find((row) => !row.is_ghost)?.display_name ??
-    name ??
-    t.misc.someone;
-  // Until the block store has hydrated we cannot know whether this person is
-  // blocked, so show the generic label rather than risk flashing a real name
-  // that a block would have masked.
-  const title =
-    !ready || blocked
-      ? t.misc.someone
-      : (profile?.display_name ?? name ?? rows[0]?.display_name ?? '');
+  // A person with an account can be blocked; the `person_key` in the route is
+  // their profile id. A guest's key is not a profile id and nothing elsewhere
+  // keys off it, so those are left un-blockable.
+  const canBlock = person.isRealPerson && !profile?.is_you;
 
   const confirmBlock = async (): Promise<void> => {
     const ok = await confirm({
@@ -137,388 +96,282 @@ export default function PersonDetailScreen() {
       confirmLabel: t.blocked.action,
       tone: 'danger',
     });
-    if (ok) block({ id: key, name: realName, avatarUrl: profile?.avatar_url ?? null });
+    if (ok) block({ id: key ?? '', name: realName, avatarUrl: profile?.avatar_url ?? null });
   };
 
-  // One block per group (a group can carry two currencies), and the per-currency
-  // total across all of them — the figure the Friends list showed, restated here
-  // with the groups it was summed from underneath it.
-  //
-  // Both go through `currencyTotals`, which is the same arithmetic the Friends
-  // list uses and brings two things this screen was doing without: an order (the
-  // biggest figure leads, rather than whatever the server's `ORDER BY currency`
-  // happened to put first), and no zeroes. The rows arrive non-zero *per group*,
-  // so a person you are owed ₹500 by on a trip and owe ₹500 to at home netted to
-  // nothing across the two — and the headline announced "Owes you ₹0".
-  const { groups, totals } = useMemo(() => {
-    const byGroup = new Map<string, PersonGroupBalanceRow[]>();
-    for (const row of rows) {
-      const lines = byGroup.get(row.group_id) ?? [];
-      lines.push(row);
-      byGroup.set(row.group_id, lines);
-    }
-    return {
-      groups: [...byGroup.values()].flatMap<GroupBlock>((lines) => {
-        const head = lines[0];
-        if (!head) return [];
-        return [
-          {
-            groupId: head.group_id,
-            groupName: head.group_name,
-            coverEmoji: head.cover_emoji,
-            lines: currencyTotals(lines),
-          },
-        ];
-      }),
-      totals: currencyTotals(rows),
-    };
-  }, [rows]);
+  const owingGroups = useMemo(() => groups.filter((group) => group.lines.length > 0), [groups]);
+  const loading = person.loading;
+  const empty = !loading && !profile && groups.length === 0;
+  const groupCount = groups.length > 0 ? groups.length : (profile?.shared_groups ?? 0);
+  const inviteGroupId = (owingGroups[0] ?? groups[0])?.groupId ?? null;
+  const lead = directionGroups(totals)[0]?.head;
 
-  const unregistered = isUnregistered(profile, rows);
-  // The one group a Remind / Pay / Settle up is aimed at: where the headline
-  // direction is biggest. Computed from the same totals the card shows.
-  const headTotal = directionGroups(totals)[0]?.head;
-  const target = actionTarget(groups, headTotal);
-  const inviteGroupId = target?.groupId ?? groups[0]?.groupId ?? null;
-
-  const loading = who.isLoading || person.isLoading;
-  const failed = who.isError && person.isError;
-
-  // A blocked person is the app's anonymous ghost everywhere, so their photo is
-  // never even signed for — not merely hidden once it has been fetched.
-  const masked = !ready || blocked;
-  const photo = useAvatarUrl(personAvatarPath(profile, masked));
+  const openSettle = (): void =>
+    router.push(
+      `/friends/person/${encodeURIComponent(key ?? '')}/settle?name=${encodeURIComponent(title)}`,
+    );
+  // History and "all groups" live inside a group, so with one group they go
+  // straight there and with several the person picks which.
+  const goGroup = (group: PairGroupRow, to: 'group' | 'history'): void =>
+    router.push(to === 'group' ? `/group/${group.groupId}` : `/group/${group.groupId}/settle`);
+  const via = (to: 'group' | 'history'): void => {
+    const [only] = groups;
+    if (groups.length === 1 && only) goGroup(only, to);
+    else setPick(to);
+  };
 
   return (
-    <Screen>
-      {/* The bar carries the face and the name, the way WhatsApp's contact info
-          and this app's own dashboard greeting do. The name used to be said
-          twice — centred here, then again under a portrait in the card below —
-          and between them they cost the first screenful before a single balance
-          appeared. One title, at the top, with the person's face in it. */}
-      <Row
-        style={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          gap: theme.spacing.sm,
-          alignItems: 'center',
-        }}
-      >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        {/* Tapping the face opens it full-screen, as it does in WhatsApp,
-            Telegram and Signal. Only when there is something to open: a set of
-            initials enlarged to fill a black screen is a tap that punishes
-            curiosity. */}
-        {photo ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.person.viewPhoto}
-            onPress={() => setPhotoOpen(true)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            <Avatar name={title} size={40} photoUrl={photo} />
-          </Pressable>
-        ) : (
-          // Somebody who has not joined wears the ghost mark here too, as they
-          // do in the Friends list and on a group's balances.
-          <Avatar
-            name={masked ? t.misc.someone : title}
-            size={40}
-            ghost={masked || Boolean(profile?.is_ghost)}
-          />
-        )}
-        <View style={{ flex: 1 }}>
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-            <Text variant="heading" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {title}
-            </Text>
-            {profile?.is_you ? <Badge label={t.person.you} /> : null}
-          </Row>
-          {profile ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {plural(locale, profile.shared_groups, t.person.sharedGroups).replace(
-                '{n}',
-                String(profile.shared_groups),
-              )}
-            </Text>
-          ) : null}
-        </View>
-        {isRealPerson && !profile?.is_you ? (
-          <IconButton
-            label={blocked ? t.blocked.unblock : t.blocked.action}
-            onPress={blocked ? () => unblock(key) : () => void confirmBlock()}
-          >
-            <Ionicons
-              name={blocked ? 'person-add-outline' : 'person-remove-outline'}
-              size={iconSize.md}
-              color={blocked ? theme.color.brand : theme.color.negative}
-            />
-          </IconButton>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-      </Row>
+    <Screen edges={[]}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          paddingBottom: clearance,
-          gap: theme.spacing.lg,
-        }}
+        contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        {loading ? (
-          <PeopleSkeleton />
-        ) : failed ? (
-          <EmptyState
-            title={t.loadError}
-            body={t.loadErrorBody}
-            action={
-              <Button
-                label={t.retry}
-                variant="secondary"
-                onPress={() => {
-                  void who.refetch();
-                  void person.refetch();
-                }}
-              />
-            }
-          />
-        ) : !profile && rows.length === 0 ? (
-          // The server returns nothing for somebody you no longer share a group
-          // with — the same answer it gives for a key that resolves to nobody,
-          // deliberately, so this screen cannot be used to probe for people.
-          <EmptyState title={t.person.notFound} body={t.person.notFoundBody} />
-        ) : (
-          <>
-            {unregistered && !blocked && ready ? (
-              <InvitePrompt
-                label={t.person.notOnWaves}
-                action={t.people.invite}
-                actionLabel={fill(t.person.inviteA11y, { name: realName })}
-                onInvite={
-                  inviteGroupId ? () => router.push(`/group/${inviteGroupId}/invite`) : null
-                }
+        <PairHero>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <HeroCircleButton
+              icon="chevron-back"
+              label={t.common.back}
+              onPress={() => router.back()}
+            />
+            {canBlock ? (
+              <HeroCircleButton
+                icon="ellipsis-vertical"
+                label={t.person.moreOptions}
+                onPress={() => setMenuOpen(true)}
               />
             ) : null}
-            {profile && !profile.is_ghost && !blocked && ready ? (
-              <ContactCard profile={profile} />
-            ) : null}
-
-            {totals.length > 0 ? (
-              // Each direction said once, however many currencies it holds —
-              // the rule the dashboard headline and the Friends hero already
-              // follow. One row per currency meant reading "Owes you" three
-              // times down a card whose whole job is to state two facts.
-              <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-                {directionGroups(totals).map((group) => (
-                  <View key={group.owed ? 'owed' : 'owing'} style={{ gap: 2 }}>
-                    <Row
-                      style={{
-                        justifyContent: 'space-between',
-                        // Baseline, not centre: the label is body-sized and the
-                        // amount is a heading, so it is the line the eye reads
-                        // across that has to match, not the boxes' middles.
-                        alignItems: 'baseline',
-                        gap: theme.spacing.md,
-                      }}
-                    >
-                      <Text variant="subheading" tone="muted">
-                        {group.owed ? t.tabs.owesYou : t.tabs.youOweThem}
-                      </Text>
-                      <MoneyText
-                        amount={group.head.net}
-                        currency={group.head.currency}
-                        locale={locale}
-                        variant="title"
-                        style={{ fontSize: 30, lineHeight: 36 }}
-                        mode="balance"
-                        numberOfLines={1}
-                      />
-                    </Row>
-                    {group.rest.length > 0 ? (
-                      // The same direction's other currencies, small and under
-                      // the figure they belong to. Wrapped, not clipped: six
-                      // currencies costs a second line here, not six headlines.
-                      <Row
-                        style={{
-                          justifyContent: 'flex-end',
-                          flexWrap: 'wrap',
-                          columnGap: theme.spacing.sm,
-                        }}
-                      >
-                        {group.rest.map((total) => (
-                          <MoneyText
-                            key={total.currency}
-                            amount={total.net}
-                            currency={total.currency}
-                            locale={locale}
-                            variant="caption"
-                            mode="balance"
-                            numberOfLines={1}
-                          />
-                        ))}
-                      </Row>
-                    ) : null}
-                  </View>
-                ))}
-                {target && headTotal && !blocked && ready ? (
-                  <PersonActions
-                    personKey={key}
-                    name={realName}
-                    target={target}
-                    currency={headTotal.currency}
-                    owed={headTotal.net > 0n}
-                  />
-                ) : null}
-              </Card>
-            ) : (
-              // Square, not broken — and now the person is still here to say so
-              // to, which is the whole reason identity got its own call.
-              //
-              // Two different kinds of square, and they must not share a
-              // sentence: nothing outstanding anywhere, or an amount in one
-              // group answered by the opposite amount in another. "All settled"
-              // over a list of live figures reads as a contradiction, and the
-              // person checking is checking precisely because they can see one.
-              <Card>
-                <Text tone="muted">
-                  {groups.length > 0 ? t.person.squareOverall : t.allSettled}
+          </Row>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <View>
+              {/* Tapping the face opens it full-screen, as WhatsApp, Telegram and
+                  Signal do — only when there is a photo to open. */}
+              {photo ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.person.viewPhoto}
+                  onPress={() => setPhotoOpen(true)}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                >
+                  <Avatar name={title} size={64} photoUrl={photo} />
+                </Pressable>
+              ) : (
+                <Avatar
+                  name={masked ? t.misc.someone : title}
+                  size={64}
+                  ghost={masked || Boolean(profile?.is_ghost) || person.unregistered}
+                />
+              )}
+              {/* On Waves: a person with an account, and not somebody blocked
+                  here. Guests added by name carry none. */}
+              {person.isRealPerson && !masked ? (
+                <View
+                  accessibilityLabel={t.person.onWaves}
+                  style={{
+                    position: 'absolute',
+                    end: 2,
+                    bottom: 2,
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: theme.color.positive,
+                    borderWidth: 2,
+                    borderColor: theme.color.surface,
+                  }}
+                />
+              ) : null}
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text
+                variant="title"
+                numberOfLines={1}
+                style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+              >
+                {title}
+                {profile?.is_you ? ` (${t.person.you})` : ''}
+              </Text>
+              {groupCount > 0 ? (
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+                >
+                  {plural(locale, groupCount, t.person.sharedGroups)}
                 </Text>
-              </Card>
-            )}
+              ) : null}
+            </View>
+          </Row>
+          {groups.length > 0 ? (
+            <Row style={{ flexWrap: 'wrap', gap: theme.spacing.xs }}>
+              {groups.slice(0, MAX_CHIPS).map((group) => (
+                <GroupChip key={group.groupId} group={group} />
+              ))}
+              {groups.length > MAX_CHIPS ? (
+                <View
+                  style={{
+                    height: 28,
+                    paddingHorizontal: theme.spacing.sm,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.surface,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text variant="caption">{`+${groups.length - MAX_CHIPS}`}</Text>
+                </View>
+              ) : null}
+            </Row>
+          ) : null}
+        </PairHero>
 
-            {groups.length > 0 ? (
-              <View style={{ gap: theme.spacing.md }}>
-                <SectionHeader
-                  title={
-                    groups.length === 1
-                      ? t.tabs.inOneGroup
-                      : t.tabs.acrossGroups.other.replace('{n}', String(groups.length))
+        <PairSheet>
+          {loading ? (
+            <PeopleSkeleton />
+          ) : empty ? (
+            // The server returns nothing for somebody you no longer share a group
+            // with — the same answer it gives for a key that resolves to nobody,
+            // deliberately, so this screen cannot be used to probe for people.
+            <EmptyState
+              title={t.person.notFound}
+              body={t.person.notFoundBody}
+              action={
+                <Button label={t.retry} variant="secondary" onPress={() => person.refetch()} />
+              }
+            />
+          ) : (
+            <>
+              {person.unregistered && !blocked && ready ? (
+                <InvitePrompt
+                  label={t.person.notOnWaves}
+                  action={t.people.invite}
+                  actionLabel={fill(t.person.inviteA11y, { name: realName })}
+                  onInvite={
+                    inviteGroupId ? () => router.push(`/group/${inviteGroupId}/invite`) : null
                   }
                 />
-                <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
-                  {groups.map((group, index) => {
-                    // The group's biggest figure leads on the row's own line,
-                    // level with its name and its emoji; anything else it holds
-                    // hangs underneath. Stacking every currency inside the row
-                    // instead centred the name against the middle of the stack,
-                    // so a two-currency group read with its name beside the
-                    // second amount and its emoji beside neither.
-                    const [head, ...rest] = group.lines;
-                    return (
-                      <View key={group.groupId}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={group.groupName ?? undefined}
-                          onPress={() => router.push(`/group/${group.groupId}`)}
-                          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                        >
-                          <Row
-                            style={{
-                              minHeight: 56,
-                              paddingTop: theme.spacing.xs,
-                              // The row's own bottom padding, unless the extra
-                              // currencies below are carrying it. Said here
-                              // rather than left to an empty wrapper: a group
-                              // holding one currency used to render a `Row` with
-                              // no children whose only job was its padding, and
-                              // padding is not a thing to express as a component.
-                              paddingBottom: rest.length > 0 ? 0 : theme.spacing.xs,
-                              alignItems: 'center',
-                            }}
-                          >
-                            <View
-                              style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: theme.radius.pill,
-                                backgroundColor: theme.color.surfaceMuted,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Text style={{ fontSize: 20 }}>{group.coverEmoji ?? '👥'}</Text>
-                            </View>
-                            <Text
-                              variant="subheading"
-                              numberOfLines={1}
-                              style={{ flex: 1, marginHorizontal: theme.spacing.md }}
-                            >
-                              {group.groupName ?? t.tabs.group}
-                            </Text>
-                            {/* Capped and clipped: a long figure in a wide
-                                currency must not wrap and grow the row, which
-                                is the same thing that broke the Friends list. */}
-                            {head ? (
-                              <View style={{ alignItems: 'flex-end', maxWidth: '42%' }}>
-                                <MoneyText
-                                  amount={head.net}
-                                  currency={head.currency}
-                                  locale={locale}
-                                  variant="subheading"
-                                  mode="balance"
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                />
-                              </View>
-                            ) : null}
-                            <Ionicons
-                              name={directionalIcon('chevron-forward')}
-                              size={iconSize.md}
-                              color={theme.color.textFaint}
-                              style={{ marginLeft: theme.spacing.sm }}
-                            />
-                          </Row>
-                          {rest.length > 0 ? (
-                            <Row
-                              style={{
-                                justifyContent: 'flex-end',
-                                flexWrap: 'wrap',
-                                columnGap: theme.spacing.sm,
-                                paddingBottom: theme.spacing.sm,
-                                // Clear of the chevron column, so the small
-                                // figures end where the big one above them does.
-                                paddingEnd: iconSize.md + theme.spacing.sm,
-                              }}
-                            >
-                              {rest.map((line) => (
-                                <MoneyText
-                                  key={line.currency}
-                                  amount={line.net}
-                                  currency={line.currency}
-                                  locale={locale}
-                                  variant="caption"
-                                  mode="balance"
-                                  numberOfLines={1}
-                                />
-                              ))}
-                            </Row>
-                          ) : null}
-                        </Pressable>
-                        {index < groups.length - 1 ? <Divider /> : null}
-                      </View>
-                    );
-                  })}
+              ) : null}
+
+              {profile && !profile.is_ghost && !blocked && ready ? (
+                <ContactCard profile={profile} />
+              ) : null}
+
+              {totals.length > 0 ? (
+                <OwesCard
+                  name={realName}
+                  totals={totals}
+                  groups={groups}
+                  canAct={!blocked && ready}
+                  onSettle={openSettle}
+                />
+              ) : (
+                // Square, not broken. Two different kinds, which must not share a
+                // sentence: nothing outstanding anywhere, or an amount in one
+                // group answered by the opposite amount in another.
+                <Card style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={iconSize.xl}
+                    color={theme.color.positive}
+                  />
+                  <Text style={{ flex: 1 }}>
+                    {owingGroups.length > 0 ? t.person.squareOverall : t.allSettled}
+                  </Text>
                 </Card>
-              </View>
-            ) : null}
-          </>
-        )}
+              )}
+
+              {owingGroups.length > 0 ? (
+                <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.md }}>
+                  <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <Text variant="subheading">
+                      {owingGroups.length === 1
+                        ? t.tabs.inOneGroup
+                        : t.tabs.acrossGroups.other.replace('{n}', String(owingGroups.length))}
+                    </Text>
+                    {owingGroups.length > 1 && lead ? (
+                      <Row style={{ alignItems: 'baseline', gap: theme.spacing.xs }}>
+                        <Text variant="caption" tone="muted">
+                          {t.person.total}
+                        </Text>
+                        <MoneyText
+                          amount={lead.net}
+                          currency={lead.currency as CurrencyCode}
+                          locale={locale}
+                          variant="subheading"
+                          mode="balance"
+                          numberOfLines={1}
+                        />
+                      </Row>
+                    ) : null}
+                  </Row>
+                  {owingGroups.map((group) => (
+                    <PairGroupCard
+                      key={group.groupId}
+                      group={group}
+                      onPress={() => router.push(`/group/${group.groupId}`)}
+                    />
+                  ))}
+                </Card>
+              ) : null}
+
+              {groups.length > 0 ? (
+                <Card
+                  style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.md }}
+                >
+                  <NavRow
+                    icon="stats-chart-outline"
+                    title={t.person.paymentHistory}
+                    body={fill(t.person.paymentHistoryBody, { name: realName })}
+                    onPress={() => via('history')}
+                  />
+                  <Divider />
+                  <NavRow
+                    icon="people-outline"
+                    title={t.person.viewAllGroups}
+                    body={t.person.viewAllGroupsBody}
+                    onPress={() => via('group')}
+                  />
+                </Card>
+              ) : null}
+            </>
+          )}
+        </PairSheet>
       </ScrollView>
 
-      {/* The face, full-screen: the gesture WhatsApp, Telegram and Signal all
-          answer, on the same dark immersive viewer the receipts already use — so
-          pinch-zoom, the floating close button and the black backdrop behave
-          identically wherever a picture opens in this app. Mounted only while
-          open, because a Modal that starts hidden never presents on Android. */}
+      <PickGroupSheet
+        visible={pick !== null}
+        onClose={() => setPick(null)}
+        groups={groups}
+        name={realName}
+        onPick={(group) => {
+          const to = pick ?? 'group';
+          setPick(null);
+          goGroup(group, to);
+        }}
+      />
+
+      {menuOpen ? (
+        <OverflowMenu
+          visible
+          onClose={() => setMenuOpen(false)}
+          items={[
+            blocked
+              ? {
+                  icon: 'person-add-outline',
+                  label: t.blocked.unblock,
+                  onPress: () => unblock(key ?? ''),
+                }
+              : {
+                  icon: 'person-remove-outline',
+                  label: t.blocked.action,
+                  tone: 'danger',
+                  onPress: () => void confirmBlock(),
+                },
+          ]}
+        />
+      ) : null}
+
+      {/* The face, full-screen, on the same dark immersive viewer the receipts
+          use. Mounted only while open, because a Modal that starts hidden never
+          presents on Android. */}
       {photoOpen && photo ? (
         <Modal
           supportedOrientations={MODAL_ORIENTATIONS}
@@ -546,8 +399,6 @@ export default function PersonDetailScreen() {
                   label={t.common.close}
                   onPress={() => setPhotoOpen(false)}
                 />
-                {/* Whose face it is, over the picture — the one thing the viewer
-                  has to say, and the reason the bar is not just a close button. */}
                 <Text variant="subheading" numberOfLines={1} style={{ flex: 1, color: '#FFFFFF' }}>
                   {title}
                 </Text>
@@ -561,137 +412,9 @@ export default function PersonDetailScreen() {
 }
 
 /**
- * Contact, or the honest reason there is none.
- *
- * Three different silences, and they are not interchangeable: a ghost has no
- * account at all, an account can be holding nothing, and an account can be
- * holding something its owner has asked us not to pass on. The third is the
- * only one that is a decision, and saying so is what makes the setting on the
- * other side of it worth having.
- */
-function ContactCard({ profile }: { profile: PersonProfileRow }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const copy = async (value: string): Promise<void> => {
-    await Clipboard.setStringAsync(value);
-    setCopied(value);
-  };
-
-  if (profile.contact_withheld) {
-    return (
-      <Card>
-        <Text tone="muted">{fill(t.person.contactWithheld, { name: profile.display_name })}</Text>
-      </Card>
-    );
-  }
-
-  const hasContact = Boolean(profile.phone || profile.email || profile.payment_handle);
-  if (!hasContact) {
-    return (
-      <Card>
-        <Text tone="muted">{t.person.noContact}</Text>
-      </Card>
-    );
-  }
-
-  return (
-    <View style={{ gap: theme.spacing.md }}>
-      <SectionHeader title={t.person.contact} />
-      <Card style={{ gap: theme.spacing.md }}>
-        {profile.phone ? (
-          <ContactLine
-            label={t.person.phone}
-            value={profile.phone}
-            copied={copied === profile.phone}
-            onCopy={() => void copy(profile.phone as string)}
-            actionIcon="call-outline"
-            actionLabel={t.person.call}
-            onAction={() => void Linking.openURL(`tel:${profile.phone as string}`)}
-          />
-        ) : null}
-        {profile.phone && profile.email ? <Divider /> : null}
-        {profile.email ? (
-          <ContactLine
-            label={t.person.email}
-            value={profile.email}
-            copied={copied === profile.email}
-            onCopy={() => void copy(profile.email as string)}
-            actionIcon="mail-outline"
-            actionLabel={t.person.message}
-            onAction={() => void Linking.openURL(`mailto:${profile.email as string}`)}
-          />
-        ) : null}
-        {profile.payment_handle ? (
-          <>
-            <Divider />
-            <ContactLine
-              label={t.person.paidVia}
-              value={profile.payment_handle}
-              copied={copied === profile.payment_handle}
-              onCopy={() => void copy(profile.payment_handle as string)}
-            />
-          </>
-        ) : null}
-      </Card>
-    </View>
-  );
-}
-
-function ContactLine({
-  label,
-  value,
-  copied,
-  onCopy,
-  actionIcon,
-  actionLabel,
-  onAction,
-}: {
-  label: string;
-  value: string;
-  copied: boolean;
-  onCopy: () => void;
-  actionIcon?: 'call-outline' | 'mail-outline';
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-
-  return (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="caption" tone="muted">
-          {label}
-        </Text>
-        {/* A phone number is Latin digits inside whatever script the rest of the
-            screen is in, so it is isolated the way every other number in this
-            app is — otherwise a leading '+' walks to the wrong end in Arabic. */}
-        <Text numberOfLines={1} style={{ writingDirection: 'ltr' }}>
-          {value}
-        </Text>
-      </View>
-      <IconButton label={copied ? t.person.copied : t.person.copy} onPress={onCopy}>
-        <Ionicons
-          name={copied ? 'checkmark' : 'copy-outline'}
-          size={iconSize.md}
-          color={copied ? theme.color.positive : theme.color.textMuted}
-        />
-      </IconButton>
-      {actionIcon && onAction ? (
-        <IconButton label={actionLabel ?? ''} onPress={onAction}>
-          <Ionicons name={actionIcon} size={iconSize.md} color={theme.color.brand} />
-        </IconButton>
-      ) : null}
-    </Row>
-  );
-}
-
-/**
- * One line for somebody without an account, instead of a card announcing there
- * is "nothing to show" above the balances that are plainly there. Says the one
- * thing that is true — they are not on Waves — and offers the way to change it.
+ * One line for somebody without an account. Says the one thing that is true —
+ * they are not on Waves — and offers the way to change it. Reminding them is not
+ * its job: that is Remind on the card below, the same channel sheet everywhere.
  */
 function InvitePrompt({
   label,
