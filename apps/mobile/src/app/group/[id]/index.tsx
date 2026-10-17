@@ -2,7 +2,6 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import {
-  AccessibilityInfo,
   InteractionManager,
   Pressable,
   RefreshControl,
@@ -40,7 +39,7 @@ import {
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
-import { sendNudge, useNudge } from '@/lib/nudge';
+import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
 import { MissingRatesCard } from '@/components/MissingRates';
 import { personKeyOf } from '@/data/peopleBalances';
@@ -51,7 +50,10 @@ import {
   BalanceDirection,
   copyFor,
   deadLettered,
+  format,
   formatParts,
+  money,
+  type CurrencyCode,
   moneyAccessibilityLabel,
   paidBy,
   type MemberId,
@@ -137,44 +139,81 @@ const PLAN_HIDDEN = true;
 const SWITCH_WINDOW = 24;
 
 /**
- * The nudge on a balances row, for somebody who owes this group money.
+ * Remind on a balances row, for somebody who owes this group money.
  *
- * The same one-a-day server rule the Friends tab leans on (ADR-010), and the
- * same manner: once tapped it stops offering, and a rate limit reads as "already
- * nudged today" rather than as an error. Nobody should be told off for asking.
+ * Opens the same channel sheet as everywhere else (`useRemind`): Waves push for
+ * a member on Waves, WhatsApp / SMS / Share for anybody. The Waves push keeps
+ * the server's one-a-day rule and reads a rate limit as "already nudged today"
+ * rather than an error. `requested` lets the row's screen-reader action open
+ * the same sheet.
  */
 function RemindChip({
   groupId,
-  memberId,
+  member,
   currency,
+  amount,
+  name,
+  groupName,
+  joinToken,
+  requested,
+  onRequestHandled,
 }: {
   groupId: string;
-  memberId: MemberId;
+  member: MemberRow;
   currency: string;
+  /** What they owe, positive. */
+  amount: bigint;
+  name: string;
+  groupName: string;
+  joinToken: string | null;
+  requested: boolean;
+  onRequestHandled: () => void;
 }) {
-  const { t } = useStrings();
-  const nudge = useNudge({ groupId, memberId, currency });
-  const note = nudge.outcome?.label ?? null;
+  const { t, locale } = useStrings();
+  const remind = useRemind({
+    groupId,
+    memberId: member.id,
+    currency,
+    joined: !isGhost(member),
+    phone: member.invite_phone ?? null,
+    joinToken,
+    name,
+    groupName,
+    amountText: format(money(amount, currency as CurrencyCode), { locale }),
+  });
+  const { open } = remind;
+  useEffect(() => {
+    if (!requested) return;
+    onRequestHandled();
+    open();
+  }, [requested, onRequestHandled, open]);
+  const note = remind.outcome?.label ?? (remind.reminded ? t.people.reminded : null);
 
   if (note) {
     return (
-      <Text variant="micro" tone="muted">
-        {note}
-      </Text>
+      <>
+        <Text variant="micro" tone="muted">
+          {note}
+        </Text>
+        {remind.sheet}
+      </>
     );
   }
 
   return (
-    <Pressable
-      onPress={nudge.send}
-      disabled={nudge.pending}
-      accessibilityRole="button"
-      accessibilityLabel={t.people.remind}
-      hitSlop={10}
-      style={({ pressed }) => ({ opacity: pressed || nudge.pending ? 0.6 : 1 })}
-    >
-      <Badge label={t.people.remind} tone="brand" />
-    </Pressable>
+    <>
+      <Pressable
+        onPress={remind.open}
+        disabled={remind.pending}
+        accessibilityRole="button"
+        accessibilityLabel={t.people.remind}
+        hitSlop={10}
+        style={({ pressed }) => ({ opacity: pressed || remind.pending ? 0.6 : 1 })}
+      >
+        <Badge label={t.people.remind} tone="brand" />
+      </Pressable>
+      {remind.sheet}
+    </>
   );
 }
 
@@ -674,6 +713,8 @@ export default function GroupScreen() {
   const { queue, rejected } = useSync();
 
   const { group, members, everyone, expenses, settlements } = useGroup(groupId);
+  const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
+  const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
@@ -1075,7 +1116,6 @@ export default function GroupScreen() {
       const personKey = personKeyFor(member);
       const canRemind = canRemindFromBalanceRow({
         balance,
-        isGhost: isGhost(member),
         memberId: member.id,
         myMemberId: ledger.myMemberId,
       });
@@ -1158,7 +1198,17 @@ export default function GroupScreen() {
                   same affordance as a custom action on the row below, because a
                   nested accessible button can be hidden by an accessible parent. */}
               {canRemind ? (
-                <RemindChip groupId={groupId} memberId={member.id} currency={currency} />
+                <RemindChip
+                  groupId={groupId}
+                  member={member}
+                  currency={currency}
+                  amount={-balance}
+                  name={shownName}
+                  groupName={groupLabel(groupData, members.data, viewerId)}
+                  joinToken={groupData.join_token ?? null}
+                  requested={a11yRemindId === member.id}
+                  onRequestHandled={clearA11yRemind}
+                />
               ) : null}
             </View>
             {/* A fixed slot at the trailing edge, on every row whether or not it
@@ -1189,11 +1239,8 @@ export default function GroupScreen() {
               }
               onAccessibilityAction={(event) => {
                 if (event.nativeEvent.actionName === 'remind') {
-                  // Said aloud either way: a screen reader has no badge to
-                  // watch change.
-                  void sendNudge({ groupId, memberId: member.id, currency }, t).then((result) =>
-                    AccessibilityInfo.announceForAccessibility(result.label),
-                  );
+                  // The same channel sheet the chip opens.
+                  setA11yRemindId(member.id);
                 }
               }}
               onPress={() =>

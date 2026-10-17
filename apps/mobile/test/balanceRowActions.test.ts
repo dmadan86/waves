@@ -7,7 +7,6 @@ describe('balance row accessibility actions', () => {
     expect(
       canRemindFromBalanceRow({
         balance: -50000n,
-        isGhost: false,
         memberId: 'financer-member',
         myMemberId: 'user-member',
       }),
@@ -18,7 +17,6 @@ describe('balance row accessibility actions', () => {
     expect(
       canRemindFromBalanceRow({
         balance: 50000n,
-        isGhost: false,
         memberId: 'rider-member',
         myMemberId: 'user-member',
       }),
@@ -29,21 +27,19 @@ describe('balance row accessibility actions', () => {
     expect(
       canRemindFromBalanceRow({
         balance: -50000n,
-        isGhost: false,
         memberId: 'user-member',
         myMemberId: 'user-member',
       }),
     ).toBe(false);
   });
 
-  it('does not offer remind for ghost rows that have no delivery target', () => {
+  it('offers remind for ghost rows too: the sheet picks a channel that reaches them', () => {
     expect(
       canRemindFromBalanceRow({
         balance: -50000n,
-        isGhost: true,
         memberId: 'ghost-member',
         myMemberId: 'user-member',
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
