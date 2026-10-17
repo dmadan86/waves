@@ -38,6 +38,7 @@ import {
 } from '@waves/ui';
 
 import { DetailRow, DetailRows } from '@/components/DetailRows';
+import { DictateButton } from '@/components/DictateButton';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { friendlyError } from '@/lib/errors';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -685,9 +686,17 @@ export default function NewGroupScreen() {
     `${ghost.email ?? ''}|${ghost.phone ?? ''}|${ghost.name}`;
 
   const addTypedGhost = (): void => {
-    const name = ghostName.trim();
-    if (!name) return;
-    setGhosts((current) => [...current, { name, email: null, phone: null }]);
+    // Spoken lists arrive as one line ("Anu, Ravi and Priya"), so a comma or a
+    // standalone "and" separates people; typing one name works as before.
+    const names = ghostName
+      .split(/,|\s+and\s+|\s*&\s*/i)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (names.length === 0) return;
+    setGhosts((current) => [
+      ...current,
+      ...names.map((name) => ({ name, email: null, phone: null })),
+    ]);
     setGhostName('');
   };
 
@@ -815,6 +824,10 @@ export default function NewGroupScreen() {
                     fontSize: 16,
                     color: ink(theme),
                     paddingVertical: 0,
+                    // Android pads a TextInput for ascenders; without these the
+                    // placeholder sits low in the box instead of centred.
+                    includeFontPadding: false,
+                    textAlignVertical: 'center',
                   }}
                 />
                 {name.length > 0 ? (
@@ -850,6 +863,10 @@ export default function NewGroupScreen() {
                     fontSize: 16,
                     color: ink(theme),
                     paddingVertical: 0,
+                    // Android pads a TextInput for ascenders; without these the
+                    // placeholder sits low in the box instead of centred.
+                    includeFontPadding: false,
+                    textAlignVertical: 'center',
                   }}
                 />
                 {description.length > 0 ? (
@@ -953,8 +970,12 @@ export default function NewGroupScreen() {
                   fontSize: 15,
                   color: ink(theme),
                   paddingVertical: 0,
+                  includeFontPadding: false,
+                  textAlignVertical: 'center',
                 }}
               />
+              {/* Say the names instead of typing them: "Anu, Ravi and Priya". */}
+              <DictateButton compact value={ghostName} onChange={setGhostName} />
               {ghostName.trim() ? (
                 <Pressable
                   accessibilityRole="button"
