@@ -161,8 +161,9 @@ export interface TableParseOptions {
 export type TableParseResult =
   | {
       readonly ok: true;
-      readonly profile: BankProfileId;
-      readonly bank: string;
+      /** The bank, or `generic` for a layout read from its headers alone. */
+      readonly profile: BankProfileId | 'generic';
+      readonly bank: string | null;
       readonly rows: StatementRow[];
       /** Lines under the header that were not transactions (totals, notes, blanks). */
       readonly skipped: number;
@@ -200,19 +201,125 @@ function readAmount(cell: string | undefined): bigint | null {
   return parsed.minor < 0n ? -parsed.minor : parsed.minor;
 }
 
-/** Read a statement table whose bank is one of the five. */
+interface LayoutMatch {
+  readonly id: BankProfileId | 'generic';
+  readonly bank: string | null;
+  readonly headerRow: number;
+  readonly columns: Readonly<Partial<Record<keyof ColumnNames, number>>>;
+}
+
+/** Header words of banks that are not one of the five, by the role they play. */
+const GENERIC_HEADERS: Readonly<Record<keyof ColumnNames, readonly string[]>> = {
+  date: [
+    'date',
+    'txndate',
+    'trandate',
+    'transactiondate',
+    'postingdate',
+    'valuedate',
+    'bookingdate',
+  ],
+  description: [
+    'description',
+    'narration',
+    'particulars',
+    'details',
+    'remarks',
+    'transactionremarks',
+    'transactiondetails',
+    'transactiondescription',
+  ],
+  ref: [
+    'chqrefno',
+    'refno',
+    'chequeno',
+    'chqno',
+    'chequenumber',
+    'reference',
+    'referenceno',
+    'utr',
+  ],
+  debit: [
+    'debit',
+    'withdrawal',
+    'withdrawals',
+    'withdrawalamt',
+    'withdrawalamount',
+    'dr',
+    'debitamount',
+    'moneyout',
+    'paidout',
+  ],
+  credit: [
+    'credit',
+    'deposit',
+    'deposits',
+    'depositamt',
+    'depositamount',
+    'cr',
+    'creditamount',
+    'moneyin',
+    'paidin',
+  ],
+  amount: ['amount'],
+  drcr: ['drcr', 'crdr', 'type'],
+  balance: ['balance', 'closingbalance', 'runningbalance', 'bal', 'availablebalance'],
+};
+
+/**
+ * A bank that is not one of the five, recognised by the words in its header
+ * alone: a date, a description, and either separate debit and credit columns or
+ * one amount with a Dr/Cr marker. Anything less is not guessed at.
+ */
+export function detectGenericLayout(table: TableRead): LayoutMatch | null {
+  const limit = Math.min(table.rows.length, HEADER_SEARCH_ROWS);
+  for (let headerRow = 0; headerRow < limit; headerRow += 1) {
+    const squashed = table.rows[headerRow]!.map((cell) => squashHeader(cell));
+    const columns: Partial<Record<keyof ColumnNames, number>> = {};
+    for (const role of Object.keys(GENERIC_HEADERS) as (keyof ColumnNames)[]) {
+      const at = squashed.findIndex(
+        (name, i) => GENERIC_HEADERS[role].includes(name) && !Object.values(columns).includes(i),
+      );
+      if (at >= 0) columns[role] = at;
+    }
+    const split = columns.debit !== undefined && columns.credit !== undefined;
+    const marked = columns.amount !== undefined && columns.drcr !== undefined;
+    if (columns.date !== undefined && columns.description !== undefined && (split || marked)) {
+      return { id: 'generic', bank: null, headerRow, columns };
+    }
+  }
+  return null;
+}
+
+/** Read a statement table whose bank is one of the five, or whose headers say enough. */
 export function parseStatementTable(
   table: TableRead,
   options: TableParseOptions = {},
 ): TableParseResult {
-  const match = detectBankProfile(table);
-  if (!match) return { ok: false, reason: 'unknown_layout' };
-  const { profile, headerRow, columns } = match;
+  const bank = detectBankProfile(table);
+  if (bank) {
+    return readRows(
+      table,
+      { id: bank.profile.id, bank: bank.profile.bank, ...bank },
+      { ...options, order: 'dmy', confidence: 0.95 },
+    );
+  }
+  const generic = detectGenericLayout(table);
+  if (generic) return readRows(table, generic, { ...options, order: undefined, confidence: 0.8 });
+  return { ok: false, reason: 'unknown_layout' };
+}
+
+function readRows(
+  table: TableRead,
+  match: LayoutMatch,
+  options: TableParseOptions & { order: 'dmy' | undefined; confidence: number },
+): TableParseResult {
+  const { headerRow, columns } = match;
 
   const body = table.rows.slice(headerRow + 1);
   const dates = resolveDates(
     body.map((row) => row[columns.date ?? -1] ?? ''),
-    { order: 'dmy', allowSerial: true, today: options.today },
+    { order: options.order, allowSerial: true, today: options.today, country: 'IN' },
   );
 
   const rows: StatementRow[] = [];
@@ -268,7 +375,7 @@ export function parseStatementTable(
       direction,
       ref: referenceFor(columns.ref !== undefined ? cells[columns.ref] : null, description),
       balance: readBalance(columns.balance !== undefined ? cells[columns.balance] : undefined),
-      confidence: 0.95,
+      confidence: options.confidence,
       warnings: amount === 0n ? ['zero_amount'] : [],
     });
   });
@@ -277,8 +384,8 @@ export function parseStatementTable(
   const checked = applyBalanceCheck(rows);
   return {
     ok: true,
-    profile: profile.id,
-    bank: profile.bank,
+    profile: match.id,
+    bank: match.bank,
     rows: checked.rows,
     skipped,
     balanceChecked: checked.checked,

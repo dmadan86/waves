@@ -54,6 +54,9 @@ export default function LocalPrivacyAuditScreen() {
             pendingReceiptFiles:{audit.pendingReceiptFiles}
           </Text>
           <Text testID="local-privacy-cached-files">cachedImageFiles:{audit.cachedImageFiles}</Text>
+          <Text testID="local-privacy-picked-files">
+            pickedDocumentFiles:{audit.pickedDocumentFiles}
+          </Text>
         </Card>
       </ScrollView>
     </Screen>

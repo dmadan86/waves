@@ -816,6 +816,7 @@ function AuthGate() {
               folder beside the tab group is exactly right and collides with
               nothing. */}
           <Stack.Screen name="captures/paste" options={slide} />
+          <Stack.Screen name="captures/statement" options={slide} />
           <Stack.Screen name="captures/messages" options={slide} />
           {/* Activity, out of the tab group and onto this stack — the mirror
               image of the move `captures` made the other way (see

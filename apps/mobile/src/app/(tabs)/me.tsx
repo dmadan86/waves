@@ -340,6 +340,14 @@ function MeLedger() {
       onPress: () => router.push('/personal/spending'),
     },
     {
+      key: 'statement',
+      tint: 'sky',
+      icon: 'document-text-outline',
+      title: t.statementImport.title,
+      subtitle: t.statementImport.tileSub,
+      onPress: () => router.push('/captures/statement'),
+    },
+    {
       key: 'categories',
       tint: 'coral',
       icon: 'pricetags-outline',
