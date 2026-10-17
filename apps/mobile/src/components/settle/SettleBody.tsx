@@ -81,7 +81,8 @@ import {
   type PlanTransfer,
   type SettleHero,
 } from '@/lib/settlePlan';
-import { memberNameById } from '@/lib/memberName';
+import { hasLeft, memberNameById } from '@/lib/memberName';
+import { OwedRemind, OwedStatus, owedRowModel } from '@/lib/settleRow';
 
 export function SettleBody({
   groupId,
@@ -138,12 +139,13 @@ export function SettleBody({
   );
   const summary = useMemo(() => summariseSettlePlan(split, currency), [split, currency]);
 
-  const nameOf = (memberId: string): string => {
+  const nameOf = (memberId: string, bare = false): string => {
     return memberNameById(lookup, memberId, {
       viewerId: null,
       blocked: blockedIds,
       someone: t.misc.someone,
       leftLabel: t.misc.memberLeft,
+      bare,
     });
   };
   const fmt = (value: bigint, code: string = currency): string =>
@@ -396,7 +398,8 @@ export function SettleBody({
             <CardHeader title={t.misc.settleOweYouTitle} />
             {owedPeople.map((debts) => {
               const person = personFor(debts.memberId);
-              const name = nameOf(debts.memberId);
+              // Who left says so on the status line, not as a "(left)" on the name.
+              const name = nameOf(debts.memberId, true);
               return (
                 <OwedPersonRow
                   key={debts.memberId}
@@ -871,14 +874,15 @@ function FilterChip({
 }
 
 /**
- * One person on a settle row: avatar, name with a muted status line, what they
- * owe or are owed (one amount per currency, stacked), and at most one action.
- * The row itself keeps its old job (mark as received / paid) so the buttons add
- * to it rather than replace it. `footer` sits under the name, for an action too
- * wide to share the line with the amounts.
+ * One person on a settle row, laid out the same for everyone: avatar, then the
+ * name with what they owe on the right (one amount per currency, stacked), then
+ * a one-line status with the row's one action (a Remind pill) at its end. The
+ * action sits on the status line, not the name's, so it never squeezes the name
+ * or the amount. The row keeps its old job (mark as received / paid), so the
+ * action adds to it rather than replacing it.
  *
- * The status line wraps rather than truncates: "Tap to mark recei…" said
- * nothing, and stacked amounts leave the middle column narrower than it was.
+ * The status line may wrap when it is long, but it never truncates:
+ * "Tap to mark recei…" said nothing.
  */
 function PersonTile({
   name,
@@ -890,7 +894,6 @@ function PersonTile({
   direction,
   locale,
   action,
-  footer,
   onPress,
   disabled,
   accessibilityLabel,
@@ -905,7 +908,6 @@ function PersonTile({
   direction: BalanceDirection;
   locale: string;
   action?: ReactNode;
-  footer?: ReactNode;
   onPress: () => void;
   disabled: boolean;
   accessibilityLabel: string;
@@ -913,55 +915,56 @@ function PersonTile({
   const theme = useTheme();
   // The tappable part and the action are siblings: nesting a button inside a
   // button hides the inner one from a screen reader.
+  const dim = ({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.7 : 1 });
   return (
     <Tile>
       <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          disabled={disabled}
-          onPress={onPress}
-          style={({ pressed }) => ({
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
-          <View style={{ flex: 1 }}>
-            <Text variant="subheading" numberOfLines={1}>
+        <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            disabled={disabled}
+            onPress={onPress}
+            style={(state) => [
+              { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
+              dim(state),
+            ]}
+          >
+            <Text variant="subheading" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
               {name}
             </Text>
-            <Text variant="caption" tone="muted">
-              {status ?? hint}
-            </Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            {amounts.map((amount) => (
-              <MoneyText
-                key={amount.currency}
-                amount={amount.minor}
-                currency={amount.currency as CurrencyCode}
-                locale={locale}
-                mode="balance"
-                direction={direction}
-                // Money owed to me wears the brand colour, as the design has it;
-                // money I owe keeps the red the rest of the app reads as "out".
-                tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
-              />
-            ))}
-          </View>
-        </Pressable>
-        {action}
-      </Row>
-      {footer ? (
-        // Under the name: the avatar's 40pt plus the row's gap.
-        <View style={{ paddingStart: 40 + theme.spacing.md, paddingTop: theme.spacing.xs }}>
-          {footer}
+            <View style={{ alignItems: 'flex-end' }}>
+              {amounts.map((amount) => (
+                <MoneyText
+                  key={amount.currency}
+                  amount={amount.minor}
+                  currency={amount.currency as CurrencyCode}
+                  locale={locale}
+                  mode="balance"
+                  direction={direction}
+                  // Money owed to me wears the brand colour, as the design has it;
+                  // money I owe keeps the red the rest of the app reads as "out".
+                  tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
+                />
+              ))}
+            </View>
+          </Pressable>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            <Pressable
+              accessible={false}
+              disabled={disabled}
+              onPress={onPress}
+              style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
+            >
+              <Text variant="caption" tone="muted">
+                {status ?? hint}
+              </Text>
+            </Pressable>
+            {action}
+          </Row>
         </View>
-      ) : null}
+      </Row>
     </Tile>
   );
 }
@@ -1011,6 +1014,7 @@ function OwedPersonRow({
   const { t } = useStrings();
   const { confirm } = useDialog();
   const joined = Boolean(member && !isGhost(member));
+  const left = hasLeft(member);
   const lead = amounts[0];
   const nudge = useNudge({ groupId, memberId, currency: lead?.currency ?? '' });
   const ghostReminder = useGhostReminder({
@@ -1036,12 +1040,12 @@ function OwedPersonRow({
       : channel === GhostChannel.Email
         ? t.ghostRemind.remindEmail
         : t.people.remind;
-  const ghostIcon =
-    channel === GhostChannel.WhatsApp
-      ? 'logo-whatsapp'
-      : channel === GhostChannel.Email
-        ? 'mail-outline'
-        : 'share-outline';
+  const remindIcon = {
+    [OwedRemind.Push]: 'notifications-outline',
+    [OwedRemind.WhatsApp]: 'logo-whatsapp',
+    [OwedRemind.Email]: 'mail-outline',
+    [OwedRemind.Share]: 'share-outline',
+  } as const;
 
   const remindGhost = (): void =>
     ghostReminder.send((link) => ({
@@ -1070,49 +1074,33 @@ function OwedPersonRow({
     if (yes) remindGhost();
   };
 
-  const status = joined
-    ? (nudge.outcome?.label ?? (pending ? t.misc.settleStatusPending : null))
-    : ghostReminder.reminded
-      ? t.people.reminded
-      : member && channel === GhostChannel.WhatsApp
-        ? t.ghostRemind.statusWhatsApp
-        : t.notJoinedYet;
+  const row = owedRowModel({
+    joined,
+    hasMember: Boolean(member),
+    left,
+    pending,
+    nudged: Boolean(nudge.outcome),
+    reminded: ghostReminder.reminded,
+    channel,
+  });
+  const status =
+    row.status === OwedStatus.Feedback
+      ? (nudge.outcome?.label ?? t.people.reminded)
+      : row.status === OwedStatus.Pending
+        ? t.misc.settleStatusPending
+        : row.status === OwedStatus.Left
+          ? t.misc.settleLeftOwes
+          : row.status === OwedStatus.NotOnWaves
+            ? t.notJoinedYet
+            : null;
 
-  const action =
-    joined && !nudge.outcome ? (
-      <Button
-        label={t.people.remind}
-        variant="secondary"
-        size="sm"
-        icon={
-          <Ionicons name="notifications-outline" size={iconSize.base} color={theme.color.brand} />
-        }
-        accessibilityLabel={remindA11y}
-        disabled={nudge.pending}
-        onPress={nudge.send}
-      />
-    ) : null;
-
-  // The off-app reminder's label says where it goes, so it is too wide for
-  // the amounts' line and sits under the name, with the (i) beside it.
-  const footer =
-    !joined && member && !ghostReminder.reminded ? (
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-        <Button
-          label={ghostLabel}
-          variant="secondary"
-          size="sm"
-          icon={
-            <Ionicons
-              name={ghostIcon as 'logo-whatsapp'}
-              size={iconSize.base}
-              color={theme.color.brand}
-            />
-          }
-          accessibilityLabel={`${ghostLabel}. ${remindA11y}`}
-          disabled={ghostReminder.pending}
-          onPress={remindGhost}
-        />
+  // One Remind pill, the same size and place on every row; only its icon (and
+  // the a11y label) says whether it is an app nudge or goes out by WhatsApp,
+  // mail or the share sheet. The (i) sits right before it, on the rows that
+  // have one.
+  const action = row.remind ? (
+    <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+      {row.info ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={fill(t.ghostRemind.infoA11y, { name })}
@@ -1125,8 +1113,22 @@ function OwedPersonRow({
             color={theme.color.textMuted}
           />
         </Pressable>
-      </Row>
-    ) : null;
+      ) : null}
+      <Button
+        label={t.people.remind}
+        variant="secondary"
+        size="sm"
+        icon={
+          <Ionicons name={remindIcon[row.remind]} size={iconSize.base} color={theme.color.brand} />
+        }
+        accessibilityLabel={
+          row.remind === OwedRemind.Push ? remindA11y : `${ghostLabel}. ${remindA11y}`
+        }
+        disabled={row.remind === OwedRemind.Push ? nudge.pending : ghostReminder.pending}
+        onPress={row.remind === OwedRemind.Push ? nudge.send : remindGhost}
+      />
+    </Row>
+  ) : null;
 
   return (
     <PersonTile
@@ -1138,11 +1140,10 @@ function OwedPersonRow({
       amounts={amounts}
       direction={BalanceDirection.OwedToYou}
       locale={locale}
-      accessibilityLabel={`${name}, ${amountText}. ${t.misc.settleReceivedHint}`}
+      accessibilityLabel={`${name}, ${amountText}. ${left ? `${t.misc.settleLeftOwes}. ` : ''}${t.misc.settleReceivedHint}`}
       onPress={onPress}
       disabled={disabled}
       action={action}
-      footer={footer}
     />
   );
 }
