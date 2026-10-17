@@ -3,19 +3,20 @@
  *
  * Tapping Remind never guesses a channel: it opens a compact sheet that lists
  * how this reminder can go (`remindOptions` in `settleRow.ts`) and the person
- * picks. Waves is the in-app push (`useNudge`, with the server's one-a-day
- * limit read back as the row's own "Already nudged today"); WhatsApp, SMS and
+ * picks. Waves is the in-app push (`useNudge`; the server's one-a-day limit is
+ * read when the sheet opens and shown on the option, and still enforced on send); WhatsApp, SMS and
  * Share leave the app with a message that carries the amount and the group's
  * join link. The channel last used for a member is remembered on the device and
  * listed first with a tag; nothing is ever sent without a tap in the sheet.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Linking, Platform, Pressable, Share, View } from 'react-native';
 import { iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
-import { ensureGroupJoinToken, groupJoinLink } from '@/data/api';
+import { ensureGroupJoinToken, fetchMyNudgeTimes, groupJoinLink } from '@/data/api';
 import { isDemoGroupId } from '@/demo/ids';
 import { fill, useStrings } from '@/i18n';
 import { channelPlan, ghostReminderMessage } from '@/lib/ghostReminder';
@@ -23,6 +24,7 @@ import { useNudge, type NudgeTarget } from '@/lib/nudge';
 import type { NudgeOutcome } from '@/lib/nudgeOutcome';
 import {
   parseRemindChannel,
+  nudgedWithinWindow,
   RemindChannel,
   remindOptions,
   RemindUnavailable,
@@ -163,7 +165,21 @@ export function useRemind(target: RemindTarget): UseRemind {
     }
   };
 
+  // Whether Waves would refuse a nudge today, read when the sheet opens so the
+  // option can say so before the tap. Advisory: if the read fails or is slow
+  // the option stays enabled and the server's answer after the tap still wins.
+  const nudgeTimes = useQuery({
+    queryKey: ['nudge-times', target.groupId],
+    queryFn: () => fetchMyNudgeTimes(target.groupId),
+    enabled: visible && target.joined && target.memberId !== '',
+    staleTime: 0,
+    retry: 0,
+  });
+  const nudgedToday =
+    nudge.outcome?.ok === true || nudgedWithinWindow(nudgeTimes.data?.get(target.memberId) ?? null);
+
   const options = remindOptions({
+    nudgedToday,
     joined: target.joined,
     hasPhone: Boolean(target.phone && target.phone.replace(/\D/g, '')),
     lastUsed,
@@ -200,7 +216,11 @@ export function useRemind(target: RemindTarget): UseRemind {
         {options.map((option) => {
           const label = labels[option.channel];
           const reason =
-            option.reason === RemindUnavailable.NotOnWaves ? t.remindSheet.notOnWaves : null;
+            option.reason === RemindUnavailable.NotOnWaves
+              ? t.remindSheet.notOnWaves
+              : option.reason === RemindUnavailable.NudgedToday
+                ? t.remindSheet.nudgedToday
+                : null;
           return (
             <Pressable
               key={option.channel}
@@ -229,7 +249,7 @@ export function useRemind(target: RemindTarget): UseRemind {
                   {label}
                 </Text>
                 {reason ? (
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                  <Text variant="caption" tone="muted" numberOfLines={2}>
                     {reason}
                   </Text>
                 ) : null}

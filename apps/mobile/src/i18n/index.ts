@@ -316,6 +316,7 @@ export interface UiStrings {
     sms: string;
     share: string;
     lastUsed: string;
+    nudgedToday: string;
   };
   /** Which amount a row's tap or Pay is about, when a person has several. */
   settlePickAmount: string;
@@ -1382,6 +1383,9 @@ export interface UiStrings {
     /** Clarification with tappable options: the primary button, and the way to answer by speaking. */
     agentContinue: string;
     agentTypeInstead: string;
+    agentTypePlaceholder: string;
+    agentTypeSend: string;
+    agentTypeMic: string;
     /** Accessibility hint on an option row. */
     agentOptionHint: string;
     agentNothingToDo: string;
@@ -5444,6 +5448,7 @@ const en: UiStrings = {
     sms: 'SMS',
     share: 'Share…',
     lastUsed: 'Last used',
+    nudgedToday: 'Already reminded today · try again tomorrow',
   },
   settlePickAmount: 'Which amount?',
   scansLeft: 'scans left',
@@ -6306,6 +6311,9 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentContinue: 'Continue',
     agentTypeInstead: 'Type instead',
+    agentTypePlaceholder: 'Type your answer',
+    agentTypeSend: 'Send answer',
+    agentTypeMic: 'Answer by voice',
     agentOptionHint: 'Double tap to choose this answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{percent}% of your advanced commands left this month',
@@ -9848,6 +9856,7 @@ const ta: UiStrings = {
     sms: 'SMS',
     share: 'பகிர்…',
     lastUsed: 'கடைசியாகப் பயன்படுத்தியது',
+    nudgedToday: 'இன்று ஏற்கனவே நினைவூட்டப்பட்டது · நாளை மீண்டும் முயலவும்',
   },
   settlePickAmount: 'எந்தத் தொகை?',
   scansLeft: 'ஸ்கேன் மீதம்',
@@ -10726,6 +10735,9 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentContinue: 'தொடர்க',
     agentTypeInstead: 'பதிலாக தட்டச்சு செய்',
+    agentTypePlaceholder: 'உங்கள் பதிலை தட்டச்சு செய்யுங்கள்',
+    agentTypeSend: 'பதிலை அனுப்பு',
+    agentTypeMic: 'குரலில் பதிலளி',
     agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
@@ -14421,6 +14433,7 @@ const hi: UiStrings = {
     sms: 'SMS',
     share: 'शेयर करें…',
     lastUsed: 'पिछली बार',
+    nudgedToday: 'आज पहले ही याद दिलाया · कल फिर कोशिश करें',
   },
   settlePickAmount: 'कौन-सी रकम?',
   scansLeft: 'स्कैन बाकी',
@@ -15286,6 +15299,9 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentContinue: 'जारी रखें',
     agentTypeInstead: 'इसके बजाय टाइप करें',
+    agentTypePlaceholder: 'अपना जवाब टाइप करें',
+    agentTypeSend: 'जवाब भेजें',
+    agentTypeMic: 'बोलकर जवाब दें',
     agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
@@ -18851,6 +18867,7 @@ const ar: UiStrings = {
     sms: 'رسالة نصية',
     share: 'مشاركة…',
     lastUsed: 'آخر استخدام',
+    nudgedToday: 'تم التذكير اليوم · جرّب غدًا',
   },
   settlePickAmount: 'أي مبلغ؟',
   scansLeft: 'عمليات مسح متبقية',
@@ -19775,6 +19792,9 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentContinue: 'متابعة',
     agentTypeInstead: 'اكتب بدلاً من ذلك',
+    agentTypePlaceholder: 'اكتب إجابتك',
+    agentTypeSend: 'إرسال الإجابة',
+    agentTypeMic: 'أجب بالصوت',
     agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',
