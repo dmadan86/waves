@@ -26,6 +26,27 @@ export enum RemindChannel {
 
 export enum RemindUnavailable {
   NotOnWaves = 'not_on_waves',
+  /** The one in-app nudge a day to this person has gone already. */
+  NudgedToday = 'nudged_today',
+}
+
+/** The server refuses a second nudge to the same person inside this window. */
+export const NUDGE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether an in-app nudge to this person would be refused right now, from the
+ * time of the last one. Mirrors the server's rule (`reminders` trigger:
+ * a second nudge less than a day after the last) so the sheet can say so up
+ * front; the server stays the judge. Unknown or unreadable means "allowed".
+ */
+export function nudgedWithinWindow(
+  lastNudgedAt: string | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  if (!lastNudgedAt) return false;
+  const last = Date.parse(lastNudgedAt);
+  if (Number.isNaN(last)) return false;
+  return now < last + NUDGE_WINDOW_MS;
 }
 
 export interface RemindOption {
@@ -49,7 +70,7 @@ export function parseRemindChannel(value: string | null | undefined): RemindChan
 
 /**
  * Which channels the Remind sheet lists, in order. Waves is always listed but
- * disabled (with its reason) for someone not on Waves; SMS needs a phone;
+ * disabled (with its reason) for someone not on Waves or already nudged today; SMS needs a phone;
  * WhatsApp and Share are always there. Usable channels come first with the
  * last-used one leading; the disabled one goes last.
  */
@@ -57,16 +78,23 @@ export function remindOptions(input: {
   readonly joined: boolean;
   readonly hasPhone: boolean;
   readonly lastUsed: RemindChannel | null;
+  /** The in-app nudge to them already went today. */
+  readonly nudgedToday?: boolean;
 }): RemindOption[] {
-  const { joined, hasPhone, lastUsed } = input;
+  const { joined, hasPhone, lastUsed, nudgedToday = false } = input;
   const options: RemindOption[] = DEFAULT_ORDER.filter(
     (channel) => channel !== RemindChannel.Sms || hasPhone,
   ).map((channel) => {
-    const enabled = channel !== RemindChannel.Waves || joined;
+    const isWaves = channel === RemindChannel.Waves;
+    const enabled = !isWaves || (joined && !nudgedToday);
     return {
       channel,
       enabled,
-      reason: enabled ? null : RemindUnavailable.NotOnWaves,
+      reason: enabled
+        ? null
+        : !joined
+          ? RemindUnavailable.NotOnWaves
+          : RemindUnavailable.NudgedToday,
       lastUsed: enabled && channel === lastUsed,
     };
   });

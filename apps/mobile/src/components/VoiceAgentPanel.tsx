@@ -18,6 +18,7 @@ import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@w
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
+import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
@@ -37,7 +38,7 @@ import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
-import { clarifyOptionViews } from '@/lib/voiceClarifyPure';
+import { clarifyOptionViews, typedFollowUp } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
@@ -278,7 +279,14 @@ export function VoiceAgentPanel({
               answer,
             )
           }
-          onTypeInstead={() =>
+          onTyped={(typed) => {
+            const follow = typedFollowUp(typed, plan.transcript || transcript, plan.clarify ?? '');
+            if (follow) {
+              const { answer, ...followUp } = follow;
+              onAnswer(followUp, answer);
+            }
+          }}
+          onVoice={() =>
             onRetry({ transcript: plan.transcript || transcript, question: plan.clarify ?? '' })
           }
         />
@@ -287,20 +295,34 @@ export function VoiceAgentPanel({
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="subheading">{t.voice.agentClarifyTitle}</Text>
             <Text tone="muted">{plan.clarify ?? t.voice.agentNothingToDo}</Text>
-            <Button
-              label={plan.clarify ? t.voice.agentAnswer : t.voice.agentTryAgain}
-              variant="secondary"
-              onPress={() =>
-                onRetry(
-                  plan.clarify
-                    ? {
-                        transcript: plan.transcript || transcript,
-                        question: plan.clarify,
-                      }
-                    : undefined,
-                )
-              }
-            />
+            {plan.clarify ? (
+              <VoiceTypedAnswer
+                autoFocus={false}
+                onSubmit={(typed) => {
+                  const follow = typedFollowUp(
+                    typed,
+                    plan.transcript || transcript,
+                    plan.clarify ?? '',
+                  );
+                  if (follow) {
+                    const { answer, ...followUp } = follow;
+                    onAnswer(followUp, answer);
+                  }
+                }}
+                onVoice={() =>
+                  onRetry({
+                    transcript: plan.transcript || transcript,
+                    question: plan.clarify ?? '',
+                  })
+                }
+              />
+            ) : (
+              <Button
+                label={t.voice.agentTryAgain}
+                variant="secondary"
+                onPress={() => onRetry(undefined)}
+              />
+            )}
           </View>
         </Card>
       ) : null}
