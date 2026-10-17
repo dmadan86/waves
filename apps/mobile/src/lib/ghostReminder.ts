@@ -11,6 +11,8 @@
  * to the system share sheet when none of them opens.
  */
 
+import { RemindChannel } from '@/lib/settleRow';
+
 /** How a reminder to someone not on Waves leaves the app. */
 export enum GhostChannel {
   WhatsApp = 'whatsapp',
@@ -97,5 +99,30 @@ export function ghostReminderPlan(
   if (channel === GhostChannel.Email) {
     return [mailtoUrl(cleanEmail(contact.email), subject, message)];
   }
+  return [];
+}
+
+/**
+ * The URLs to try for one chosen channel; the caller opens the first that
+ * opens and otherwise shows the share sheet with the same message.
+ *
+ * WhatsApp with a phone goes straight to that chat (on Android a phone without
+ * WhatsApp falls to the share sheet, since wa.me would only open a download
+ * page; iOS has the universal link). Without a phone it opens WhatsApp's own
+ * contact picker with the text filled in. SMS needs a phone. Share is the sheet.
+ */
+export function channelPlan(
+  channel: RemindChannel,
+  phone: string | null | undefined,
+  message: string,
+  os: string,
+): string[] {
+  const hasPhone = phoneDigits(phone) !== '';
+  if (channel === RemindChannel.WhatsApp) {
+    if (!hasPhone) return [`whatsapp://send?text=${encodeURIComponent(message)}`];
+    const app = whatsappAppUrl(phone as string, message);
+    return os === 'android' ? [app] : [app, whatsappWebUrl(phone as string, message)];
+  }
+  if (channel === RemindChannel.Sms && hasPhone) return [smsUrl(phone as string, message, os)];
   return [];
 }
