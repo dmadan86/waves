@@ -51,9 +51,14 @@ export type IntlProfileId =
   | 'commbank'
   | 'westpac'
   | 'anz'
-  | 'nab';
+  | 'nab'
+  | 'emirates_nbd'
+  | 'adcb'
+  | 'fab'
+  | 'mashreq'
+  | 'dib';
 
-export type StatementCurrency = 'USD' | 'GBP' | 'AUD' | 'INR';
+export type StatementCurrency = 'USD' | 'GBP' | 'AUD' | 'AED' | 'INR';
 
 interface IntlColumns {
   readonly date: readonly string[];
@@ -74,7 +79,7 @@ interface IntlColumns {
 export interface IntlProfile {
   readonly id: IntlProfileId;
   readonly bank: string;
-  readonly country: 'US' | 'GB' | 'AU';
+  readonly country: 'US' | 'GB' | 'AU' | 'AE';
   readonly currency: StatementCurrency;
   readonly order: ImportDateOrder;
   /** Squashed header names that must all be present. */
@@ -319,13 +324,126 @@ export const INTL_PROFILES: readonly IntlProfile[] = [
       balance: ['balance'],
     },
   },
+  {
+    id: 'emirates_nbd',
+    bank: 'Emirates NBD',
+    country: 'AE',
+    currency: 'AED',
+    order: 'dmy',
+    required: [
+      'date|التاريخ',
+      'narration|البيان',
+      'chequeno|رقمالشيك',
+      'debit|مدين',
+      'credit|دائن',
+      'balance|الرصيد',
+    ],
+    columns: {
+      date: ['date|التاريخ'],
+      description: ['narration|البيان'],
+      debit: ['debit|مدين'],
+      credit: ['credit|دائن'],
+      balance: ['balance|الرصيد'],
+      ref: ['chequeno|رقمالشيك'],
+    },
+  },
+  {
+    id: 'adcb',
+    bank: 'ADCB',
+    country: 'AE',
+    currency: 'AED',
+    order: 'dmy',
+    required: [
+      'transactiondate|تاريخالمعاملة',
+      'valuedate|تاريخالقيمة',
+      'description|التفاصيل',
+      'debit|مدين',
+      'credit|دائن',
+      'balance|الرصيد',
+    ],
+    columns: {
+      date: ['transactiondate|تاريخالمعاملة'],
+      description: ['description|التفاصيل'],
+      debit: ['debit|مدين'],
+      credit: ['credit|دائن'],
+      balance: ['balance|الرصيد'],
+    },
+  },
+  {
+    id: 'fab',
+    bank: 'First Abu Dhabi Bank',
+    country: 'AE',
+    currency: 'AED',
+    order: 'dmy',
+    required: [
+      'bookingdate|تاريخالقيد',
+      'valuedate|تاريخالقيمة',
+      'description|التفاصيل',
+      'referencenumber|الرقمالمرجعي',
+      'debit|مدين',
+      'credit|دائن',
+      'balance|الرصيد',
+    ],
+    columns: {
+      date: ['bookingdate|تاريخالقيد'],
+      description: ['description|التفاصيل'],
+      ref: ['referencenumber|الرقمالمرجعي'],
+      debit: ['debit|مدين'],
+      credit: ['credit|دائن'],
+      balance: ['balance|الرصيد'],
+    },
+  },
+  {
+    id: 'mashreq',
+    bank: 'Mashreq',
+    country: 'AE',
+    currency: 'AED',
+    order: 'dmy',
+    required: [
+      'date|التاريخ',
+      'description|الوصف',
+      'referenceno|رقمالمرجع',
+      'withdrawals|سحوبات',
+      'deposits|إيداعات',
+      'balance|الرصيد',
+    ],
+    columns: {
+      date: ['date|التاريخ'],
+      description: ['description|الوصف'],
+      ref: ['referenceno|رقمالمرجع'],
+      debit: ['withdrawals|سحوبات'],
+      credit: ['deposits|إيداعات'],
+      balance: ['balance|الرصيد'],
+    },
+  },
+  {
+    id: 'dib',
+    bank: 'Dubai Islamic Bank',
+    country: 'AE',
+    currency: 'AED',
+    order: 'dmy',
+    required: [
+      'transactiondate|تاريخالعملية',
+      'description|التفاصيل',
+      'debit|مدين',
+      'credit|دائن',
+      'balance|الرصيد',
+    ],
+    columns: {
+      date: ['transactiondate|تاريخالعملية'],
+      description: ['description|التفاصيل'],
+      debit: ['debit|مدين'],
+      credit: ['credit|دائن'],
+      balance: ['balance|الرصيد'],
+    },
+  },
 ];
 
 /** The bare-data layouts, by the shape of their rows. */
 interface Headerless {
   readonly id: IntlProfileId;
   readonly bank: string;
-  readonly country: 'US' | 'GB' | 'AU';
+  readonly country: 'US' | 'GB' | 'AU' | 'AE';
   readonly currency: StatementCurrency;
   readonly order: ImportDateOrder;
   readonly width: number;
@@ -387,6 +505,19 @@ const HEADERLESS: readonly Headerless[] = [
 ];
 
 const HEADER_SEARCH_ROWS = 40;
+
+/**
+ * Does a squashed header cell name this column? A name may carry an Arabic
+ * alternative (`date|التاريخ`). UAE statements are often bilingual, with both
+ * words in one cell ("Date / التاريخ"), so a cell naming both also counts.
+ */
+function cellMatches(cell: string, name: string): boolean {
+  const [english, rawArabic] = name.split('|');
+  if (!rawArabic) return cell === english;
+  // Folded the way the header was, so a hamza or a diacritic cannot split a match.
+  const arabic = squashHeader(rawArabic);
+  return cell === english || cell === arabic || (cell.includes(english!) && cell.includes(arabic));
+}
 const DATE_LIKE =
   /^(?:\d{1,2}[-/. ]\d{1,2}[-/. ]\d{2,4}|\d{1,2}[-/. ](?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-/. ,]+\d{2,4}|\d{4}-\d{2}-\d{2})/i;
 const NUMBER_LIKE = /^[-+(]?[$£€]?\s?[\d,]+(?:\.\d{1,2})?\)?(?:\s?(?:cr|dr))?$/i;
@@ -459,17 +590,18 @@ function matchHeader(table: TableRead): Layout | null {
   for (let headerRow = 0; headerRow < limit; headerRow += 1) {
     const squashed = table.rows[headerRow]!.map((cell) => squashHeader(cell));
     for (const profile of INTL_PROFILES) {
-      if (!profile.required.every((name) => squashed.includes(name))) continue;
+      if (!profile.required.every((name) => squashed.some((cell) => cellMatches(cell, name))))
+        continue;
       const find = (names: readonly string[] | undefined): number | undefined => {
         for (const name of names ?? []) {
-          const at = squashed.indexOf(name);
+          const at = squashed.findIndex((cell) => cellMatches(cell, name));
           if (at >= 0) return at;
         }
         return undefined;
       };
       const c = profile.columns;
       const description = c.description
-        .map((name) => squashed.indexOf(name))
+        .map((name) => squashed.findIndex((cell) => cellMatches(cell, name)))
         .filter((at) => at >= 0);
       const date = find(c.date);
       if (date === undefined || description.length === 0) continue;
@@ -569,6 +701,8 @@ export function currencyForStatementCountry(country: string | null | undefined):
       return 'GBP';
     case 'AU':
       return 'AUD';
+    case 'AE':
+      return 'AED';
     default:
       return 'INR';
   }

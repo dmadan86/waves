@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   decodeBytes,
+  currencyForStatementCountry,
   looksLikeOfx,
   parseOfx,
   parseStatementTable,
@@ -80,6 +81,17 @@ const CASES: Case[] = [
   { file: 'westpac.csv', profile: 'westpac', currency: 'AUD', order: 'dmy', balances: false },
   { file: 'anz.csv', profile: 'anz', currency: 'AUD', order: 'dmy', balances: false },
   { file: 'nab.csv', profile: 'nab', currency: 'AUD', order: 'dmy', balances: true },
+  {
+    file: 'emirates_nbd.csv',
+    profile: 'emirates_nbd',
+    currency: 'AED',
+    order: 'dmy',
+    balances: true,
+  },
+  { file: 'adcb.csv', profile: 'adcb', currency: 'AED', order: 'dmy', balances: true },
+  { file: 'fab.csv', profile: 'fab', currency: 'AED', order: 'dmy', balances: true },
+  { file: 'mashreq.csv', profile: 'mashreq', currency: 'AED', order: 'dmy', balances: true },
+  { file: 'dib.csv', profile: 'dib', currency: 'AED', order: 'dmy', balances: true },
 ];
 
 describe.each(CASES)('$file', ({ file, profile, currency, order, balances }) => {
@@ -108,6 +120,28 @@ describe.each(CASES)('$file', ({ file, profile, currency, order, balances }) => 
     } else {
       expect(result.rows.every((r) => r.balance === null)).toBe(true);
     }
+  });
+});
+
+describe('the UAE', () => {
+  const parse = (file: string) => {
+    const result = parseStatementTable(readTable(read(file)), { today: '2026-10-17' });
+    if (!result.ok) throw new Error(result.reason);
+    return result;
+  };
+
+  it('reads the bilingual header (FAB) and the Arabic-only one (Mashreq) as well as English', () => {
+    expect(parse('fab.csv').profile).toBe('fab');
+    expect(parse('mashreq.csv').profile).toBe('mashreq');
+  });
+
+  it('takes the bank reference column as the reference, and AED markers in amounts', () => {
+    expect(parse('fab.csv').rows[0]!.ref).toBe('FAB202610017' + '7');
+    expect(parse('emirates_nbd.csv').rows[2]!.amount).toBe('120050');
+  });
+
+  it('the UAE has its own currency and day-first default', () => {
+    expect(currencyForStatementCountry('AE')).toBe('AED');
   });
 });
 

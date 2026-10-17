@@ -424,6 +424,7 @@ describe('statementRegion', () => {
     ['GB', 'GBP', 'dmy'],
     ['UK', 'GBP', 'dmy'],
     ['AU', 'AUD', 'dmy'],
+    ['AE', 'AED', 'dmy'],
     ['IN', 'INR', 'dmy'],
     ['us', 'USD', 'mdy'],
   ])('%s is %s, dates %s by default', (country, currency, order) => {
