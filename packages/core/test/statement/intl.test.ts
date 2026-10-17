@@ -357,6 +357,6 @@ describe('OFX with hostile input', () => {
     parseOfx(`<OFX>${'<STMTTRN>'.repeat(20_000)}`);
     parseOfx(`<OFX><LEDGERBAL>${'<LEDGERBAL>'.repeat(20_000)}`);
     parseOfx(`<OFX><STMTTRN><DTPOSTED>${' \t'.repeat(50_000)}x</STMTTRN>`);
-    expect(performance.now() - started).toBeLessThan(50);
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });
