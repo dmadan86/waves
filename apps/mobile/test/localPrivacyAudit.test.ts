@@ -66,6 +66,7 @@ describe('localPrivacyAudit', () => {
       receiptQueuePresent: true,
       pendingReceiptFiles: 1,
       cachedImageFiles: 2,
+      pickedDocumentFiles: 0,
     });
   });
 
@@ -81,6 +82,7 @@ describe('localPrivacyAudit', () => {
       receiptQueuePresent: false,
       pendingReceiptFiles: 0,
       cachedImageFiles: 0,
+      pickedDocumentFiles: 0,
     });
     exists.mockRestore();
   });
@@ -101,6 +103,7 @@ describe('localPrivacyAudit', () => {
       receiptQueuePresent: false,
       pendingReceiptFiles: 0,
       cachedImageFiles: 0,
+      pickedDocumentFiles: 0,
     });
   });
 });

@@ -44,6 +44,7 @@ import { SMS_LOW_CONFIDENCE } from '@waves/core';
 import { groupByDay } from '@/data/activity';
 import type { CaptureRow } from '@/data/types';
 import { foldCaptureBatches, type CaptureInboxItem } from '@/lib/captureFeed';
+import { isSmsDerived } from '@/lib/smsLocalDrafts';
 
 /**
  * A row in the Review list: a day heading, or a draft (alone, or a spoken batch
@@ -79,7 +80,7 @@ export function doubtsAbout(capture: { parsed?: unknown }): ReviewDoubt[] {
   const parsed = capture.parsed;
   if (!parsed || typeof parsed !== 'object') return [];
   const blob = parsed as { source?: unknown; confidence?: unknown; dateInferred?: unknown };
-  if (blob.source !== 'sms') return [];
+  if (!isSmsDerived(blob)) return [];
   const doubts: ReviewDoubt[] = [];
   if (blob.dateInferred === true) doubts.push('date-inferred');
   if (typeof blob.confidence === 'number' && blob.confidence < SMS_LOW_CONFIDENCE) {
@@ -101,9 +102,7 @@ export type ReviewTabId = 'found' | 'added';
  * writes it, and a draft with no `parsed` blob at all is a typed one.
  */
 export function tabFor(capture: { parsed?: unknown }): ReviewTabId {
-  const parsed = capture.parsed;
-  if (!parsed || typeof parsed !== 'object') return 'added';
-  return (parsed as { source?: unknown }).source === 'sms' ? 'found' : 'added';
+  return isSmsDerived(capture.parsed) ? 'found' : 'added';
 }
 
 /**

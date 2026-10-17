@@ -26,11 +26,18 @@ import type { MirrorCapture, QueuedMutation } from '@waves/core';
 
 import type { CaptureRow } from '@/data/types';
 
-/** True when a capture's `parsed` blob says a bank message made it. */
+/**
+ * Sources whose drafts are made on this phone from something the person's bank
+ * wrote, and so never leave it as a capture: a bank message (`sms`) and an
+ * imported bank statement (`statement`). Both live in the device draft store.
+ */
+export const DEVICE_DRAFT_SOURCES: readonly string[] = ['sms', 'statement'];
+
+/** True when a capture's `parsed` blob says a bank message or statement made it. */
 export function isSmsDerived(parsed: unknown): boolean {
-  return (
-    !!parsed && typeof parsed === 'object' && (parsed as { source?: unknown }).source === 'sms'
-  );
+  if (!parsed || typeof parsed !== 'object') return false;
+  const source = (parsed as { source?: unknown }).source;
+  return typeof source === 'string' && DEVICE_DRAFT_SOURCES.includes(source);
 }
 
 /** The fields `serialiseCapture` writes — the capture-create payload. */

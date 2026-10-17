@@ -55,6 +55,22 @@ describe('profiles', () => {
     expect(parseStatementTable(table)).toEqual({ ok: false, reason: 'unknown_layout' });
   });
 
+  it('reads a bank outside the five from its header words alone, at lower confidence', () => {
+    const csv =
+      'Transaction Date,Details,Money Out,Money In,Running Balance\n' +
+      '13/10/2026,UPI/P2M/627412345678/CAFE,120.00,,880.00\n' +
+      '14/10/2026,SALARY,,1000.00,1880.00\n';
+    const result = parseStatementTable(readTable(csv), { today: '2026-10-17' });
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.profile).toBe('generic');
+    expect(result.bank).toBeNull();
+    expect(result.rows.map((r) => [r.date, r.direction, r.amount, r.confidence])).toEqual([
+      ['2026-10-13', 'debit', '12000', 0.8],
+      ['2026-10-14', 'credit', '100000', 0.8],
+    ]);
+    expect(result.balanceFailed).toBe(0);
+  });
+
   it('does not take a Splitwise export for a bank', () => {
     const table = readTable(
       'Date,Description,Category,Cost,Currency,Asha\n2026-10-01,Dinner,Food,500.00,INR,250.00\n',

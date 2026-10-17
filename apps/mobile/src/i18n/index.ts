@@ -3869,6 +3869,59 @@ export interface UiStrings {
    * phone reads for itself — searched, narrowed by date, ticked in batches. The
    * two were one screen and should not have been.
    */
+  statementImport: {
+    title: string;
+    tileSub: string;
+    intro: string;
+    chooseFile: string;
+    choosePhoto: string;
+    supported: string;
+    consent: string;
+    pdfNotYet: string;
+    freeNote: string;
+    previewsLeft: string;
+    noPreviewsLeft: string;
+    reading: string;
+    readingPage: string;
+    passwordTitle: string;
+    passwordHint: string;
+    passwordLabel: string;
+    passwordSubmit: string;
+    wrongPassword: string;
+    previewHeading: string;
+    previewLocked: string;
+    unlock: string;
+    summary: string;
+    moneyOut: string;
+    moneyIn: string;
+    noteBalance: string;
+    noteLow: string;
+    noteLikelyDup: string;
+    notePossibleDup: string;
+    noteNoDate: string;
+    add: string;
+    added: string;
+    enriched: string;
+    openReview: string;
+    another: string;
+    tickAll: string;
+    untickAll: string;
+    errUnreadable: string;
+    errEmpty: string;
+    errTooLarge: string;
+    errUnknown: string;
+    errTooManyRows: string;
+    errQuota: string;
+    errUnavailable: string;
+    errRate: string;
+    errDense: string;
+    errRefused: string;
+    errExpired: string;
+    errGeneric: string;
+    errFreePhoto: string;
+    errNothingFound: string;
+    errPdfNotPdf: string;
+  };
   smsInbox: {
     title: string;
     /** The promise, stated where it cannot be missed rather than in fine print. */
@@ -8323,6 +8376,62 @@ const en: UiStrings = {
       continue: 'Continue',
     },
   },
+  statementImport: {
+    title: 'Import a statement',
+    tileSub: 'From your bank, as a file',
+    intro:
+      'Bring in a bank statement as drafts you check in Review. Nothing is added until you say so.',
+    chooseFile: 'Choose a file',
+    choosePhoto: 'Choose a screenshot',
+    supported: 'CSV, Excel, PDF, or a screenshot of a statement page.',
+    consent:
+      'Waves reads this statement with AI. Account numbers are hidden first and nothing is kept.',
+    pdfNotYet:
+      'PDF statements are not supported in this version yet. Download the CSV or Excel version from your bank, or use a screenshot.',
+    freeNote: 'Free shows a preview of your statement. Pro imports it.',
+    previewsLeft: '{n} previews left this month',
+    noPreviewsLeft: 'You have used your previews this month.',
+    reading: 'Reading your statement',
+    readingPage: 'Reading page {done} of {total}',
+    passwordTitle: 'This PDF is locked',
+    passwordHint: "Often your date of birth or part of your customer ID. Check the bank's email.",
+    passwordLabel: 'Password',
+    passwordSubmit: 'Unlock',
+    wrongPassword: 'That password did not open the file.',
+    previewHeading: '{n} transactions · {amount} spent',
+    previewLocked: 'See every transaction and add them to Review with Pro.',
+    unlock: 'Import with Pro',
+    summary: '{added} added to Review · {skipped} duplicates skipped',
+    moneyOut: 'Money out',
+    moneyIn: 'Money in',
+    noteBalance: "The balance doesn't add up here",
+    noteLow: 'Hard to read, check it',
+    noteLikelyDup: 'Looks like one you already have',
+    notePossibleDup: 'Might be one you already have',
+    noteNoDate: 'No date found, today is used',
+    add: 'Add {n} to Review',
+    added: '{n} added to Review. They stay on this phone until you use them.',
+    enriched: '{n} matched a bank message and were updated.',
+    openReview: 'Open Review',
+    another: 'Import another',
+    tickAll: 'Tick all',
+    untickAll: 'Untick all',
+    errUnreadable: 'That file could not be read.',
+    errEmpty: 'That file has nothing in it.',
+    errTooLarge: 'That file is too large. The limit is 10 MB.',
+    errUnknown: 'Waves does not recognise this layout yet. Try the PDF or a screenshot with Pro.',
+    errTooManyRows: 'That statement has more than 5,000 transactions. Try a shorter period.',
+    errQuota: 'You have used all {limit} statement imports this month.',
+    errUnavailable: 'Statement import is not available right now. Try again later.',
+    errRate: 'Too many requests. Wait a moment and try again.',
+    errDense: 'Those pages are too dense to read. Try a shorter statement.',
+    errRefused: 'The reader declined to read that file.',
+    errExpired: 'This import took too long. Start it again.',
+    errGeneric: 'Something went wrong reading that statement. You have not been charged an import.',
+    errFreePhoto: 'Reading a screenshot comes with Waves Pro.',
+    errNothingFound: 'No transactions were found in that file.',
+    errPdfNotPdf: 'That file is not a PDF.',
+  },
   smsInbox: {
     title: 'Bank messages',
     onDevice: 'Read on this phone. Never uploaded.',
@@ -9158,7 +9267,7 @@ const en: UiStrings = {
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
-      'Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Free accounts can choose to watch a reward ad, served by Google AdMob: non-personalized, only when you tap Watch, and AdMob receives the device and network details it needs to show the ad and prevent fraud. Your data is never sold.',
+      "Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Free accounts can choose to watch a reward ad, served by Google AdMob: non-personalized, only when you tap Watch, and AdMob receives the device and network details it needs to show the ad and prevent fraud. Your data is never sold. Bank statements you choose to import are read with AI: the file is opened on your phone, account numbers are hidden first, the pages are sent to our AI provider (OpenRouter, only to providers that don't store them or train on them), and nothing is kept. Bank messages (SMS) still never leave this phone.",
     retentionTitle: 'How long we keep it',
     retentionBody:
       "Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, from Settings. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like. Some of what you leave behind survives deleting your account, and you should know it before you do. What you added to a shared group stays — the expenses and settlements, the notes and comments on them, and the images you added, whether a receipt, a proof of payment or a trip photo — because it is also the other members' record of who owed whom, and taking it out would silently change somebody else's balance to settle a debt nobody paid. Your name, photo, contact details and payment handles are removed from those groups, where you become an unnamed former member; notifications and activity already written to other people can still carry the name you had at the time. And if you write an answer into the box asking why you are leaving, that answer is kept exactly as you typed it, with the link back to you removed. Nothing is kept for advertising, and nothing is kept because a law obliges us to.",
@@ -12849,6 +12958,67 @@ const ta: UiStrings = {
       continue: 'தொடரவும்',
     },
   },
+  statementImport: {
+    title: 'கணக்கு விவரத்தை இறக்குமதி செய்',
+    tileSub: 'உங்கள் வங்கியிலிருந்து, கோப்பாக',
+    intro:
+      'வங்கி கணக்கு விவரத்தை Review-வில் சரிபார்க்க வரைவுகளாக கொண்டுவாருங்கள். நீங்கள் சொல்லாவிட்டால் எதுவும் சேர்க்கப்படாது.',
+    chooseFile: 'கோப்பைத் தேர்ந்தெடு',
+    choosePhoto: 'ஸ்கிரீன்ஷாட்டைத் தேர்ந்தெடு',
+    supported: 'CSV, Excel, PDF அல்லது கணக்கு விவரப் பக்கத்தின் ஸ்கிரீன்ஷாட்.',
+    consent:
+      'Waves இந்த கணக்கு விவரத்தை AI மூலம் படிக்கிறது. கணக்கு எண்கள் முதலில் மறைக்கப்படும், எதுவும் சேமிக்கப்படாது.',
+    pdfNotYet:
+      'PDF கணக்கு விவரங்கள் இந்த பதிப்பில் இன்னும் ஆதரிக்கப்படவில்லை. உங்கள் வங்கியிலிருந்து CSV அல்லது Excel பதிவிறக்கிக் கொள்ளுங்கள், அல்லது ஸ்கிரீன்ஷாட் பயன்படுத்துங்கள்.',
+    freeNote: 'இலவசம் உங்கள் கணக்கு விவரத்தின் முன்னோட்டத்தை காட்டும். Pro இதை இறக்குமதி செய்யும்.',
+    previewsLeft: 'இந்த மாதம் {n} முன்னோட்டங்கள் மீதமுள்ளன',
+    noPreviewsLeft: 'இந்த மாதம் உங்கள் முன்னோட்டங்கள் தீர்ந்துவிட்டன.',
+    reading: 'உங்கள் கணக்கு விவரம் படிக்கப்படுகிறது',
+    readingPage: 'பக்கம் {done} / {total} படிக்கப்படுகிறது',
+    passwordTitle: 'இந்த PDF பூட்டப்பட்டுள்ளது',
+    passwordHint:
+      'பெரும்பாலும் உங்கள் பிறந்த தேதி அல்லது வாடிக்கையாளர் ஐடியின் பகுதி. வங்கியின் மின்னஞ்சலைப் பார்க்கவும்.',
+    passwordLabel: 'கடவுச்சொல்',
+    passwordSubmit: 'திற',
+    wrongPassword: 'அந்த கடவுச்சொல் கோப்பைத் திறக்கவில்லை.',
+    previewHeading: '{n} பரிவர்த்தனைகள் · {amount} செலவு',
+    previewLocked: 'Pro-வுடன் அனைத்து பரிவர்த்தனைகளையும் பார்த்து Review-வில் சேர்க்கலாம்.',
+    unlock: 'Pro-வுடன் இறக்குமதி செய்',
+    summary: '{added} Review-வில் சேர்க்கப்பட்டன · {skipped} நகல்கள் தவிர்க்கப்பட்டன',
+    moneyOut: 'செலவு',
+    moneyIn: 'வரவு',
+    noteBalance: 'இங்கே இருப்பு பொருந்தவில்லை',
+    noteLow: 'படிக்க கடினம், சரிபார்க்கவும்',
+    noteLikelyDup: 'ஏற்கனவே உள்ளதைப் போல் தெரிகிறது',
+    notePossibleDup: 'ஏற்கனவே உள்ளதாக இருக்கலாம்',
+    noteNoDate: 'தேதி இல்லை, இன்றைய தேதி பயன்படுகிறது',
+    add: '{n}-ஐ Review-வில் சேர்',
+    added:
+      '{n} Review-வில் சேர்க்கப்பட்டன. நீங்கள் பயன்படுத்தும் வரை அவை இந்த தொலைபேசியில்லே இருக்கும்.',
+    enriched: '{n} வங்கி செய்தியுடன் பொருந்தி புதுப்பிக்கப்பட்டன.',
+    openReview: 'Review-ஐ திற',
+    another: 'மற்றொன்றை இறக்குமதி செய்',
+    tickAll: 'அனைத்தையும் தேர்வுசெய்',
+    untickAll: 'அனைத்தையும் நீக்கு',
+    errUnreadable: 'அந்த கோப்பைப் படிக்க முடியவில்லை.',
+    errEmpty: 'அந்த கோப்பில் எதுவும் இல்லை.',
+    errTooLarge: 'அந்த கோப்பு மிகப் பெரியது. எல்லை 10 MB.',
+    errUnknown:
+      'இந்த வடிவம் Waves-க்கு இன்னும் தெரியவில்லை. Pro-வுடன் PDF அல்லது ஸ்கிரீன்ஷாட் முயற்சிக்கவும்.',
+    errTooManyRows:
+      'அந்த கணக்கு விவரத்தில் 5,000-க்கும் அதிகமான பரிவர்த்தனைகள் உள்ளன. குறுகிய காலத்தை முயற்சிக்கவும்.',
+    errQuota: 'இந்த மாதம் {limit} கணக்கு விவர இறக்குமதிகளையும் பயன்படுத்திவிட்டீர்கள்.',
+    errUnavailable: 'கணக்கு விவர இறக்குமதி இப்போது கிடைக்கவில்லை. பிறகு முயற்சிக்கவும்.',
+    errRate: 'மிக அதிக கோரிக்கைகள். சிறிது நேரம் காத்திருந்து முயற்சிக்கவும்.',
+    errDense: 'அந்த பக்கங்கள் படிக்க மிக அடர்த்தி. குறுகிய கணக்கு விவரத்தை முயற்சிக்கவும்.',
+    errRefused: 'அந்த கோப்பைப் படிக்க முடியாது என மறுக்கப்பட்டது.',
+    errExpired: 'இந்த இறக்குமதிக்கு மிக நேரம் ஆனது. மீண்டும் தொடங்கவும்.',
+    errGeneric:
+      'அந்த கணக்கு விவரத்தைப் படிக்கும்போது ஏதோ தவறு நடந்தது. உங்கள் இறக்குமதி கணக்கில் சேர்க்கப்படவில்லை.',
+    errFreePhoto: 'ஸ்கிரீன்ஷாட்டைப் படிப்பது Waves Pro-வுடன் வருகிறது.',
+    errNothingFound: 'அந்த கோப்பில் பரிவர்த்தனைகள் எதுவும் கிடைக்கவில்லை.',
+    errPdfNotPdf: 'அந்த கோப்பு PDF அல்ல.',
+  },
   smsInbox: {
     title: 'வங்கிச் செய்திகள்',
     onDevice: 'இந்த ஃபோனில் மட்டும் படிக்கப்படுகிறது. எங்கும் பதிவேற்றப்படுவதில்லை.',
@@ -13732,7 +13902,7 @@ const ta: UiStrings = {
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
-      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம்; அது Google AdMob மூலம் வழங்கப்படுகிறது — தனிப்பயனாக்கப்படாதது, நீங்கள் ‘பாருங்கள்’ என்பதைத் தொட்டால் மட்டுமே; விளம்பரத்தைக் காட்டவும் மோசடியைத் தடுக்கவும் தேவையான சாதன, பிணைய விவரங்களை AdMob பெறும். உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை.',
+      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம்; அது Google AdMob மூலம் வழங்கப்படுகிறது — தனிப்பயனாக்கப்படாதது, நீங்கள் ‘பாருங்கள்’ என்பதைத் தொட்டால் மட்டுமே; விளம்பரத்தைக் காட்டவும் மோசடியைத் தடுக்கவும் தேவையான சாதன, பிணைய விவரங்களை AdMob பெறும். உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை. நீங்கள் இறக்குமதி செய்யத் தேர்ந்தெடுக்கும் வங்கி கணக்கு விவரங்கள் AI மூலம் படிக்கப்படுகின்றன: கோப்பு உங்கள் தொலைபேசியிலேயே திறக்கப்படுகிறது, கணக்கு எண்கள் முதலில் மறைக்கப்படுகின்றன, பக்கங்கள் எங்கள் AI வழங்குநருக்கு (OpenRouter; சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டும்) அனுப்பப்படுகின்றன, எதுவும் சேமிக்கப்படுவதில்லை. வங்கி SMS செய்திகள் இன்னும் ஒருபோதும் இந்தத் தொலைபேசியை விட்டு வெளியே செல்லாது.',
     retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
     retentionBody:
       'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — அமைப்புகளில் எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம். கணக்கை நீக்கிய பிறகும் நீங்கள் விட்டுச் செல்வதில் சில தொடரும்; நீக்கும் முன் அதைத் தெரிந்து கொள்ளுங்கள். பகிர்ந்த குழுவில் நீங்கள் சேர்த்தவை — செலவுகள், தீர்வுகள், அவற்றின் குறிப்புகளும் கருத்துகளும், நீங்கள் சேர்த்த படங்கள், அது ரசீதாக இருந்தாலும், பணம் கட்டிய சான்றாக இருந்தாலும், பயணப் புகைப்படமாக இருந்தாலும் — அப்படியே இருக்கும், ஏனெனில் அவை மற்ற உறுப்பினர்களின் பதிவும் கூட; அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தீர்ந்தது போல் இன்னொருவரின் இருப்பு அமைதியாக மாறிவிடும். உங்கள் பெயர், புகைப்படம், தொடர்பு விவரங்கள், பணம் பெறும் முகவரி ஆகியவை அந்தக் குழுக்களிலிருந்து நீக்கப்படும்; அங்கே நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள். ஆனால் ஏற்கெனவே மற்றவர்களுக்குச் சென்ற அறிவிப்புகளிலும் செயல்பதிவிலும் அப்போது இருந்த உங்கள் பெயர் இருக்கக்கூடும். ஏன் வெளியேறுகிறீர்கள் என்ற கேள்விக்கு நீங்கள் பதில் எழுதினால், அது நீங்கள் எழுதியபடியே, உங்களுடனான தொடர்பு நீக்கப்பட்டு, வைக்கப்படும். விளம்பரத்திற்காக எதுவும் வைக்கப்படுவதில்லை; சட்டம் கட்டாயப்படுத்துவதால் எதுவும் வைக்கப்படுவதில்லை.',
@@ -17323,6 +17493,62 @@ const hi: UiStrings = {
       continue: 'जारी रखें',
     },
   },
+  statementImport: {
+    title: 'स्टेटमेंट इम्पोर्ट करें',
+    tileSub: 'आपके बैंक से, फ़ाइल के रूप में',
+    intro:
+      'बैंक स्टेटमेंट को ड्राफ़्ट के रूप में लाएँ, जिन्हें आप Review में जाँचते हैं। आपके कहे बिना कुछ नहीं जुड़ता।',
+    chooseFile: 'फ़ाइल चुनें',
+    choosePhoto: 'स्क्रीनशॉट चुनें',
+    supported: 'CSV, Excel, PDF, या स्टेटमेंट के पन्ने का स्क्रीनशॉट।',
+    consent:
+      'Waves इस स्टेटमेंट को AI से पढ़ता है। खाता नंबर पहले छिपा दिए जाते हैं और कुछ भी सहेजा नहीं जाता।',
+    pdfNotYet:
+      'PDF स्टेटमेंट अभी इस वर्ज़न में समर्थित नहीं हैं। अपने बैंक से CSV या Excel वर्ज़न डाउनलोड करें, या स्क्रीनशॉट इस्तेमाल करें।',
+    freeNote: 'Free में आपके स्टेटमेंट का प्रीव्यू दिखता है। Pro उसे इम्पोर्ट करता है।',
+    previewsLeft: 'इस महीने {n} प्रीव्यू बाकी हैं',
+    noPreviewsLeft: 'इस महीने के आपके प्रीव्यू खत्म हो गए हैं।',
+    reading: 'आपका स्टेटमेंट पढ़ा जा रहा है',
+    readingPage: 'पन्ना {done} / {total} पढ़ा जा रहा है',
+    passwordTitle: 'यह PDF लॉक है',
+    passwordHint: 'अक्सर आपकी जन्मतिथि या कस्टमर ID का हिस्सा। बैंक का ईमेल देखें।',
+    passwordLabel: 'पासवर्ड',
+    passwordSubmit: 'खोलें',
+    wrongPassword: 'इस पासवर्ड से फ़ाइल नहीं खुली।',
+    previewHeading: '{n} लेनदेन · {amount} खर्च',
+    previewLocked: 'Pro के साथ हर लेनदेन देखें और उन्हें Review में जोड़ें।',
+    unlock: 'Pro के साथ इम्पोर्ट करें',
+    summary: '{added} Review में जोड़े गए · {skipped} डुप्लिकेट छोड़े गए',
+    moneyOut: 'खर्च',
+    moneyIn: 'आमदनी',
+    noteBalance: 'यहाँ बैलेंस मेल नहीं खाता',
+    noteLow: 'पढ़ना मुश्किल, जाँच लें',
+    noteLikelyDup: 'यह पहले से मौजूद लगता है',
+    notePossibleDup: 'शायद पहले से मौजूद हो',
+    noteNoDate: 'तारीख नहीं मिली, आज की तारीख ली गई',
+    add: '{n} को Review में जोड़ें',
+    added: '{n} Review में जोड़े गए। इस्तेमाल करने तक ये इसी फ़ोन पर रहते हैं।',
+    enriched: '{n} बैंक संदेश से मेल खाए और अपडेट हुए।',
+    openReview: 'Review खोलें',
+    another: 'एक और इम्पोर्ट करें',
+    tickAll: 'सभी चुनें',
+    untickAll: 'सभी हटाएँ',
+    errUnreadable: 'वह फ़ाइल पढ़ी नहीं जा सकी।',
+    errEmpty: 'उस फ़ाइल में कुछ नहीं है।',
+    errTooLarge: 'वह फ़ाइल बहुत बड़ी है। सीमा 10 MB है।',
+    errUnknown: 'Waves अभी इस लेआउट को नहीं पहचानता। Pro के साथ PDF या स्क्रीनशॉट आज़माएँ।',
+    errTooManyRows: 'उस स्टेटमेंट में 5,000 से ज़्यादा लेनदेन हैं। कम अवधि आज़माएँ।',
+    errQuota: 'आपने इस महीने के सभी {limit} स्टेटमेंट इम्पोर्ट इस्तेमाल कर लिए हैं।',
+    errUnavailable: 'स्टेटमेंट इम्पोर्ट अभी उपलब्ध नहीं है। बाद में फिर कोशिश करें।',
+    errRate: 'बहुत ज़्यादा अनुरोध। थोड़ा रुककर फिर कोशिश करें।',
+    errDense: 'वे पन्ने पढ़ने के लिए बहुत घने हैं। छोटा स्टेटमेंट आज़माएँ।',
+    errRefused: 'पाठक ने उस फ़ाइल को पढ़ने से मना कर दिया।',
+    errExpired: 'यह इम्पोर्ट बहुत देर तक चला। इसे फिर शुरू करें।',
+    errGeneric: 'उस स्टेटमेंट को पढ़ते समय कुछ गड़बड़ हुई। आपका कोई इम्पोर्ट नहीं गिना गया।',
+    errFreePhoto: 'स्क्रीनशॉट पढ़ना Waves Pro के साथ आता है।',
+    errNothingFound: 'उस फ़ाइल में कोई लेनदेन नहीं मिला।',
+    errPdfNotPdf: 'वह फ़ाइल PDF नहीं है।',
+  },
   smsInbox: {
     title: 'बैंक संदेश',
     onDevice: 'इसी फ़ोन पर पढ़े जाते हैं। कहीं अपलोड नहीं होते।',
@@ -18167,7 +18393,7 @@ const hi: UiStrings = {
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
-      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं, जिसे Google AdMob दिखाता है: निजीकृत नहीं, और सिर्फ़ तब जब आप ‘देखें’ दबाएँ; विज्ञापन दिखाने और धोखाधड़ी रोकने के लिए ज़रूरी डिवाइस और नेटवर्क जानकारी AdMob को मिलती है। आपका डेटा कभी बेचा नहीं जाता।',
+      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं, जिसे Google AdMob दिखाता है: निजीकृत नहीं, और सिर्फ़ तब जब आप ‘देखें’ दबाएँ; विज्ञापन दिखाने और धोखाधड़ी रोकने के लिए ज़रूरी डिवाइस और नेटवर्क जानकारी AdMob को मिलती है। आपका डेटा कभी बेचा नहीं जाता। आपके चुने हुए बैंक स्टेटमेंट AI से पढ़े जाते हैं: फ़ाइल आपके फ़ोन पर खुलती है, खाता नंबर पहले छिपा दिए जाते हैं, पन्ने हमारे AI प्रोवाइडर (OpenRouter, सिर्फ़ उन प्रोवाइडर को जो इन्हें न सेव करते हैं, न इनसे ट्रेनिंग करते हैं) को भेजे जाते हैं, और कुछ भी सहेजा नहीं जाता। बैंक संदेश (SMS) अब भी इस फ़ोन से बाहर कभी नहीं जाते।',
     retentionTitle: 'हम इसे कब तक रखते हैं',
     retentionBody:
       'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — सेटिंग्स में कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं। खाता मिटाने के बाद भी आपकी छोड़ी हुई कुछ चीज़ें बनी रहती हैं, और मिटाने से पहले यह जान लेना चाहिए। साझा समूह में आपने जो जोड़ा — ख़र्च और भुगतान, उन पर लिखे नोट और टिप्पणियाँ, और आपकी जोड़ी हुई तस्वीरें, चाहे वह रसीद हो, भुगतान का सबूत हो या यात्रा की फ़ोटो — वह बना रहता है, क्योंकि वह बाक़ी सदस्यों का भी रिकॉर्ड है; उसे हटाने से किसी और का हिसाब चुपचाप बदल जाता, जैसे कोई क़र्ज़ बिना चुकाए चुक गया हो। आपका नाम, फ़ोटो, संपर्क विवरण और भुगतान पता उन समूहों से हटा दिए जाते हैं और वहाँ आप एक अनाम पूर्व सदस्य बन जाते हैं; लेकिन जो सूचनाएँ और गतिविधि पहले ही दूसरों तक पहुँच चुकी हैं, उनमें उस समय का आपका नाम रह सकता है। और अगर आप “क्यों जा रहे हैं” वाले बॉक्स में कुछ लिखते हैं, तो वह जवाब जैसा आपने लिखा वैसा ही रखा जाता है, आपसे उसका नाता हटाकर। विज्ञापन के लिए कुछ नहीं रखा जाता, और किसी क़ानूनी बाध्यता के कारण भी कुछ नहीं रखा जाता।',
@@ -22087,6 +22313,60 @@ const ar: UiStrings = {
       continue: 'متابعة',
     },
   },
+  statementImport: {
+    title: 'استيراد كشف حساب',
+    tileSub: 'من بنكك، كملف',
+    intro: 'أحضر كشف حسابك البنكي كمسودات تراجعها في المراجعة. لا يُضاف شيء حتى توافق.',
+    chooseFile: 'اختر ملفًا',
+    choosePhoto: 'اختر لقطة شاشة',
+    supported: 'CSV أو Excel أو PDF أو لقطة شاشة لصفحة من الكشف.',
+    consent: 'يقرأ Waves هذا الكشف بالذكاء الاصطناعي. تُخفى أرقام الحسابات أولًا ولا يُحفظ شيء.',
+    pdfNotYet:
+      'ملفات PDF غير مدعومة في هذا الإصدار بعد. نزّل نسخة CSV أو Excel من بنكك أو استخدم لقطة شاشة.',
+    freeNote: 'تعرض الخطة المجانية معاينة لكشفك. وتقوم Pro باستيراده.',
+    previewsLeft: 'تبقّت {n} معاينات هذا الشهر',
+    noPreviewsLeft: 'استخدمت معاينات هذا الشهر.',
+    reading: 'جارٍ قراءة كشفك',
+    readingPage: 'جارٍ قراءة الصفحة {done} من {total}',
+    passwordTitle: 'ملف PDF هذا مقفل',
+    passwordHint: 'غالبًا تاريخ ميلادك أو جزء من رقم العميل. راجع بريد البنك.',
+    passwordLabel: 'كلمة المرور',
+    passwordSubmit: 'فتح',
+    wrongPassword: 'لم تفتح كلمة المرور هذه الملف.',
+    previewHeading: '{n} معاملات · {amount} مصروفات',
+    previewLocked: 'شاهد كل المعاملات وأضفها إلى المراجعة مع Pro.',
+    unlock: 'استورد مع Pro',
+    summary: 'أُضيف {added} إلى المراجعة · تم تخطي {skipped} مكررة',
+    moneyOut: 'الصادر',
+    moneyIn: 'الوارد',
+    noteBalance: 'الرصيد لا يتطابق هنا',
+    noteLow: 'صعب القراءة، تحقق منه',
+    noteLikelyDup: 'يبدو أنه موجود لديك',
+    notePossibleDup: 'قد يكون موجودًا لديك',
+    noteNoDate: 'لا يوجد تاريخ، استُخدم اليوم',
+    add: 'أضف {n} إلى المراجعة',
+    added: 'أُضيف {n} إلى المراجعة. تبقى على هذا الهاتف حتى تستخدمها.',
+    enriched: 'تطابق {n} مع رسالة بنكية وتم تحديثها.',
+    openReview: 'افتح المراجعة',
+    another: 'استورد كشفًا آخر',
+    tickAll: 'تحديد الكل',
+    untickAll: 'إلغاء تحديد الكل',
+    errUnreadable: 'تعذّرت قراءة هذا الملف.',
+    errEmpty: 'لا شيء في هذا الملف.',
+    errTooLarge: 'هذا الملف كبير جدًا. الحد 10 ميغابايت.',
+    errUnknown: 'لا يتعرف Waves على هذا التنسيق بعد. جرّب PDF أو لقطة شاشة مع Pro.',
+    errTooManyRows: 'يحتوي هذا الكشف على أكثر من 5,000 معاملة. جرّب فترة أقصر.',
+    errQuota: 'استخدمت كل عمليات استيراد الكشوف الـ {limit} هذا الشهر.',
+    errUnavailable: 'استيراد الكشوف غير متاح الآن. حاول لاحقًا.',
+    errRate: 'طلبات كثيرة. انتظر قليلًا ثم حاول مجددًا.',
+    errDense: 'هذه الصفحات كثيفة جدًا للقراءة. جرّب كشفًا أقصر.',
+    errRefused: 'رفض القارئ قراءة هذا الملف.',
+    errExpired: 'استغرق هذا الاستيراد وقتًا طويلًا. ابدأه من جديد.',
+    errGeneric: 'حدث خطأ أثناء قراءة هذا الكشف. لم يُحتسب عليك أي استيراد.',
+    errFreePhoto: 'قراءة لقطة الشاشة تأتي مع Waves Pro.',
+    errNothingFound: 'لم يُعثر على معاملات في هذا الملف.',
+    errPdfNotPdf: 'هذا الملف ليس PDF.',
+  },
   smsInbox: {
     title: 'رسائل البنك',
     onDevice: 'تُقرأ على هذا الهاتف. ولا تُرفَع إلى أي مكان.',
@@ -23191,7 +23471,7 @@ const ar: UiStrings = {
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
-      'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة تعرضه Google AdMob: غير مخصَّص، ولا يظهر إلا عندما تضغط «شاهد»، وتتلقى AdMob بيانات الجهاز والشبكة اللازمة لعرض الإعلان ومنع الاحتيال. بياناتك لا تُباع أبدًا.',
+      'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة تعرضه Google AdMob: غير مخصَّص، ولا يظهر إلا عندما تضغط «شاهد»، وتتلقى AdMob بيانات الجهاز والشبكة اللازمة لعرض الإعلان ومنع الاحتيال. بياناتك لا تُباع أبدًا. تُقرأ كشوف الحساب البنكية التي تختار استيرادها بالذكاء الاصطناعي: يُفتح الملف على هاتفك، وتُخفى أرقام الحسابات أولًا، وتُرسل الصفحات إلى مزوّد الذكاء الاصطناعي لدينا (OpenRouter، ولا يرسلها إلا إلى مزوّدين لا يحفظونها ولا يستخدمونها للتدريب)، ولا يُحفظ شيء. أما الرسائل البنكية (SMS) فلا تغادر هذا الهاتف أبدًا.',
     retentionTitle: 'كم نحتفظ بها',
     retentionBody:
       'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت من الإعدادات. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت. ويبقى بعض ما تتركه خلفك حتى بعد حذف حسابك، ومن حقك معرفته قبل أن تحذف. ما أضفته إلى مجموعة مشتركة — المصروفات والتسويات، والملاحظات والتعليقات عليها، والصور التي أضفتها، سواء كانت إيصالًا أو إثبات دفع أو صورة رحلة — يبقى، لأنه سجلّ بقية الأعضاء أيضًا، وإزالته تغيّر رصيد شخص آخر بصمت وكأن دَينًا سُدّد دون أن يدفعه أحد. أما اسمك وصورتك وبيانات التواصل وعناوين الدفع فتُزال من تلك المجموعات، وتصبح فيها عضوًا سابقًا بلا اسم؛ غير أن الإشعارات وسجل النشاط التي وصلت إلى آخرين من قبل قد تظل تحمل اسمك وقتها. وإذا كتبت شيئًا في خانة سبب المغادرة، فيُحفظ ما كتبته كما هو بعد إزالة ما يربطه بك. لا يُحتفظ بشيء لأغراض إعلانية، ولا يُحتفظ بشيء لأن قانونًا يلزمنا بذلك.',

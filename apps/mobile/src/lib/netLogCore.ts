@@ -148,6 +148,12 @@ function functionPurpose(name: string): NetPurpose {
     case 'phone-verify':
     case 'auth-email-send':
       return 'sign-in';
+    // Named so it is a decision, not an accident of the default: reading a
+    // statement or a screenshot is a server task (the pages go to the AI
+    // reader and nothing is kept), never "sync".
+    case 'parse-statement':
+    case 'import-screenshot':
+      return 'server-task';
     default:
       return 'server-task';
   }

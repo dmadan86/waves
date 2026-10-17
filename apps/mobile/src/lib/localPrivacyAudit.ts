@@ -11,6 +11,12 @@ export interface LocalPrivacyAudit {
   readonly receiptQueuePresent: boolean;
   readonly pendingReceiptFiles: number;
   readonly cachedImageFiles: number;
+  /**
+   * Files the document picker copied into the cache (an imported bank statement
+   * among them). The statement import deletes its copy as soon as it has read it,
+   * so this should be 0 at rest.
+   */
+  readonly pickedDocumentFiles: number;
 }
 
 function countDirectoryFiles(root: string | Directory, name: string): number {
@@ -34,5 +40,6 @@ export async function localPrivacyAudit(): Promise<LocalPrivacyAudit> {
     receiptQueuePresent: receiptQueue !== null,
     pendingReceiptFiles: countDirectoryFiles(Paths.document, 'pending-receipts'),
     cachedImageFiles: countDirectoryFiles(Paths.cache, 'receipt-image-cache'),
+    pickedDocumentFiles: countDirectoryFiles(Paths.cache, 'DocumentPicker'),
   };
 }
