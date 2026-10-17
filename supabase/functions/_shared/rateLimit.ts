@@ -64,6 +64,13 @@ export const LIMITS = {
    * retry loop spending a month of imports in seconds.
    */
   'import-screenshot': { limit: 10, windowSeconds: 60 },
+  /**
+   * Statement import: each call is a model request over a few pages, and a
+   * 60-page file is twelve of them in a row. The monthly file quota
+   * (`waves_statement_import_quota`) is the billing gate; this stops a stuck
+   * retry loop spending a month of reads in seconds.
+   */
+  'parse-statement': { limit: 20, windowSeconds: 60 },
   'voice-stream-token': { limit: 12, windowSeconds: 60 },
   /** One per mic press, like the token it replaces. */
   'voice-stream': { limit: 12, windowSeconds: 60 },

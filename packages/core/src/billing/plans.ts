@@ -93,6 +93,37 @@ export const PRO_MONTHLY_SCANS = 300;
 export const PRO_MONTHLY_SCREENSHOT_IMPORTS = 100;
 
 /**
+ * Bank statements a month (the `parse-statement` function; one file is one
+ * import, however many requests its pages take). Paid only. The database
+ * enforces it through `waves_statement_import_quota`, and the function passes
+ * it in.
+ */
+export const PRO_MONTHLY_STATEMENT_IMPORTS = 30;
+
+/**
+ * Free people get a teaser, not an import: a statement is read on the phone
+ * (no model, no cost to us) and shown as "N transactions, ₹X spent" with its
+ * first three rows, this many times a month. The counter is on the device; a
+ * Free import is never sent to the server, so there is nothing to enforce there.
+ */
+export const FREE_MONTHLY_STATEMENT_PREVIEWS = 2;
+
+/** Statement import (AI reading, rows into Review) is part of Pro. */
+export function canImportStatements(tier: PlanTier): boolean {
+  return isPaidTier(tier);
+}
+
+/** Statement files a tier may fully import in a calendar month. */
+export function statementImportMonthlyLimit(tier: PlanTier): number {
+  return canImportStatements(tier) ? PRO_MONTHLY_STATEMENT_IMPORTS : 0;
+}
+
+/** Statement previews (the on-device teaser) a tier gets in a calendar month. */
+export function statementPreviewMonthlyLimit(tier: PlanTier): number {
+  return canImportStatements(tier) ? Number.POSITIVE_INFINITY : FREE_MONTHLY_STATEMENT_PREVIEWS;
+}
+
+/**
  * Prices per country, in minor units.
  *
  * Not a conversion of one number — each market is priced at what it will bear.
