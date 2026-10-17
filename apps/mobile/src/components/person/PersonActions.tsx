@@ -6,8 +6,8 @@
  * So the caller hands in the one group the headline is aimed at (see
  * `actionTarget`) and this reuses the group flows as they are:
  *
- * - they owe you  -> Remind (`useNudge`, the same one-a-day gentle reminder as
- *   the Friends list and the group balances);
+ * - they owe you  -> Remind, which opens the channel sheet (`useRemind`: Waves
+ *   push, WhatsApp, SMS or Share), the same one everywhere;
  * - you owe them -> Pay (their stored rail, handed off the way the group's
  *   Settle tab does it) and Mark as paid (records the settlement directly);
  * - both          -> Settle up, which opens that group's settle screen.
@@ -35,12 +35,10 @@ import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
-import { GhostChannel, ghostReminderMessage } from '@/lib/ghostReminder';
-import { useNudge } from '@/lib/nudge';
 import { findPersonMember, type ActionTarget } from '@/lib/personActions';
 import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { useAddRate } from '@/lib/useAddRate';
-import { useGhostReminder } from '@/lib/useGhostReminder';
+import { useRemind } from '@/lib/useRemind';
 
 export function PersonActions({
   personKey,
@@ -70,7 +68,6 @@ export function PersonActions({
   const member = findPersonMember(members.data ?? [], personKey);
   const myMemberId = ledger.myMemberId;
   const payable = member ? payableAt(member) : null;
-  const nudge = useNudge({ groupId: target.groupId, memberId: member?.id ?? '', currency });
   // Until the group has loaded, whether it converts is unknown: hold every
   // money action rather than guess. Once loaded, a debt outside the group
   // currency in a converting group is rate-less and only offers "Add rate".
@@ -79,44 +76,20 @@ export function PersonActions({
     groupCurrency !== null &&
     isRatelessTransfer({ currency }, groupCurrency, ledger.convertsToGroupCurrency);
   const actionable = groupCurrency !== null && !rateless;
-  // A guest has no account to notify, so a reminder to one would only fail.
-  const canRemind = actionable && owed && Boolean(member) && Boolean(member?.profile_id);
-  // Someone not on Waves gets the reminder outside the app instead: WhatsApp to
-  // their phone, mail to their email, else the share sheet, with the group's
-  // join link in it (see `useGhostReminder`).
-  const canRemindGhost = actionable && owed && Boolean(member) && !member?.profile_id;
-  const ghostReminder = useGhostReminder({
+  // Everyone owing can be reminded; the sheet offers the channels that work for
+  // them (Waves for an account, WhatsApp / SMS / Share for anybody).
+  const canRemind = actionable && owed && Boolean(member);
+  const remind = useRemind({
     groupId: target.groupId,
     memberId: member?.id ?? '',
+    currency,
+    joined: Boolean(member?.profile_id),
     phone: member?.invite_phone ?? null,
-    email: member?.invite_email ?? null,
     joinToken: group.data?.join_token ?? null,
+    name,
+    groupName: groupLabel(group.data, members.data ?? [], profile?.id),
+    amountText: format(money(target.amount, currency as CurrencyCode), { locale }),
   });
-  const ghostLabel =
-    ghostReminder.channel === GhostChannel.WhatsApp
-      ? t.ghostRemind.remindWhatsApp
-      : ghostReminder.channel === GhostChannel.Email
-        ? t.ghostRemind.remindEmail
-        : t.people.remind;
-  const ghostIcon =
-    ghostReminder.channel === GhostChannel.WhatsApp
-      ? 'logo-whatsapp'
-      : ghostReminder.channel === GhostChannel.Email
-        ? 'mail-outline'
-        : 'share-outline';
-  const remindGhost = (): void => {
-    const groupName = groupLabel(group.data, members.data ?? [], profile?.id);
-    const amount = format(money(target.amount, currency as CurrencyCode), { locale });
-    ghostReminder.send((link) => ({
-      message: ghostReminderMessage(link ? t.ghostRemind.message : t.ghostRemind.messageNoLink, {
-        name,
-        amount,
-        group: groupName,
-        link: link ?? '',
-      }),
-      subject: fill(t.ghostRemind.emailSubject, { group: groupName }),
-    }));
-  };
   const canPay = actionable && !owed && Boolean(member) && Boolean(myMemberId);
 
   const record = async (): Promise<void> => {
@@ -214,7 +187,7 @@ export function PersonActions({
             }
           />
         ) : null}
-        {canRemind && !nudge.outcome ? (
+        {canRemind && !remind.reminded ? (
           <Button
             size="sm"
             variant="brand"
@@ -227,25 +200,8 @@ export function PersonActions({
                 color={theme.color.onBrand}
               />
             }
-            disabled={nudge.pending}
-            onPress={nudge.send}
-          />
-        ) : null}
-        {canRemindGhost && !ghostReminder.reminded ? (
-          <Button
-            size="sm"
-            variant="brand"
-            label={ghostLabel}
-            accessibilityLabel={`${ghostLabel}. ${fill(t.person.remindA11y, { name })}`}
-            icon={
-              <Ionicons
-                name={ghostIcon as 'logo-whatsapp'}
-                size={iconSize.sm}
-                color={theme.color.onBrand}
-              />
-            }
-            disabled={ghostReminder.pending}
-            onPress={remindGhost}
+            disabled={remind.pending}
+            onPress={remind.open}
           />
         ) : null}
         {canPay && payable ? (
@@ -277,18 +233,18 @@ export function PersonActions({
           onPress={() => router.push(`/group/${target.groupId}/settle`)}
         />
       </Row>
-      {canRemindGhost && ghostReminder.reminded ? (
-        <Text variant="caption" tone="positive" accessibilityLiveRegion="polite">
-          {t.people.reminded}
-        </Text>
-      ) : null}
-      {nudge.outcome ? (
+      {remind.sheet}
+      {remind.outcome ? (
         <Text
           variant="caption"
-          tone={nudge.outcome.ok ? 'positive' : 'negative'}
+          tone={remind.outcome.ok ? 'positive' : 'negative'}
           accessibilityLiveRegion="polite"
         >
-          {nudge.outcome.label}
+          {remind.outcome.label}
+        </Text>
+      ) : remind.reminded ? (
+        <Text variant="caption" tone="positive" accessibilityLiveRegion="polite">
+          {t.people.reminded}
         </Text>
       ) : null}
     </View>

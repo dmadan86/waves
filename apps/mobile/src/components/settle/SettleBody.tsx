@@ -68,9 +68,7 @@ import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { groupDebtsByPerson, joinAmounts, type PersonAmount } from '@/lib/debtsByPerson';
-import { GhostChannel, ghostReminderMessage } from '@/lib/ghostReminder';
-import { useNudge } from '@/lib/nudge';
-import { useGhostReminder } from '@/lib/useGhostReminder';
+import { useRemind } from '@/lib/useRemind';
 import { convertedCaption, isRatelessTransfer } from '@/lib/settleCurrency';
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useAddRate } from '@/lib/useAddRate';
@@ -82,7 +80,7 @@ import {
   type SettleHero,
 } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
-import { OwedRemind, OwedStatus, owedRowModel } from '@/lib/settleRow';
+import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 
 export function SettleBody({
   groupId,
@@ -973,15 +971,12 @@ function PersonTile({
  * Someone who owes me, and the one reminder they get however many currencies
  * they owe in.
  *
- * On Waves: the in-app nudge, sent once. `waves_nudge_to_settle` takes a
- * currency and its one-a-day limit is per pair, not per currency, so a second
- * call would only ever come back "already nudged today"; the nudge goes about
- * the first amount (the group's currency when they owe in it) and opens the
- * group, where every amount is.
- *
- * Not on Waves: no account means no push, so the reminder leaves the app —
- * WhatsApp to their phone, mail to their email, else the share sheet — with
- * every amount and the group's join link in the message. The (i) says why.
+ * One Remind pill for everybody; it opens the channel sheet (`useRemind`):
+ * Waves push for members on Waves, WhatsApp, SMS or Share otherwise. The push is
+ * sent once: `waves_nudge_to_settle` takes a currency and its one-a-day limit is
+ * per pair, not per currency, so it goes about the first amount (the group's
+ * currency when they owe in it) and opens the group, where every amount is. The
+ * off-app message names every amount and carries the group's join link.
  */
 function OwedPersonRow({
   groupId,
@@ -1012,19 +1007,9 @@ function OwedPersonRow({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { confirm } = useDialog();
   const joined = Boolean(member && !isGhost(member));
   const left = hasLeft(member);
   const lead = amounts[0];
-  const nudge = useNudge({ groupId, memberId, currency: lead?.currency ?? '' });
-  const ghostReminder = useGhostReminder({
-    groupId,
-    memberId,
-    phone: member?.invite_phone ?? null,
-    email: member?.invite_email ?? null,
-    joinToken,
-  });
-
   const amountText = joinAmounts(
     amounts.map((amount) =>
       format(money(amount.minor, amount.currency as CurrencyCode), { locale }),
@@ -1033,59 +1018,28 @@ function OwedPersonRow({
     t.ghostRemind.comma,
   );
   const remindA11y = fill(t.misc.settleRemindA11y, { name, amount: amountText });
-  const channel = ghostReminder.channel;
-  const ghostLabel =
-    channel === GhostChannel.WhatsApp
-      ? t.ghostRemind.remindWhatsApp
-      : channel === GhostChannel.Email
-        ? t.ghostRemind.remindEmail
-        : t.people.remind;
-  const remindIcon = {
-    [OwedRemind.Push]: 'notifications-outline',
-    [OwedRemind.WhatsApp]: 'logo-whatsapp',
-    [OwedRemind.Email]: 'mail-outline',
-    [OwedRemind.Share]: 'share-outline',
-  } as const;
-
-  const remindGhost = (): void =>
-    ghostReminder.send((link) => ({
-      message: ghostReminderMessage(link ? t.ghostRemind.message : t.ghostRemind.messageNoLink, {
-        name,
-        amount: amountText,
-        group: groupName,
-        link: link ?? '',
-      }),
-      subject: fill(t.ghostRemind.emailSubject, { group: groupName }),
-    }));
-
-  const explain = async (): Promise<void> => {
-    const how =
-      channel === GhostChannel.WhatsApp
-        ? t.ghostRemind.explainWhatsApp
-        : channel === GhostChannel.Email
-          ? t.ghostRemind.explainEmail
-          : t.ghostRemind.explainShare;
-    const yes = await confirm({
-      title: t.ghostRemind.explainTitle,
-      body: `${fill(t.ghostRemind.explainLead, { name })} ${how}`,
-      confirmLabel: ghostLabel,
-      cancelLabel: t.common.close,
-    });
-    if (yes) remindGhost();
-  };
+  const remind = useRemind({
+    groupId,
+    memberId,
+    currency: lead?.currency ?? '',
+    joined,
+    phone: member?.invite_phone ?? null,
+    joinToken,
+    name,
+    groupName,
+    amountText,
+  });
 
   const row = owedRowModel({
     joined,
     hasMember: Boolean(member),
     left,
     pending,
-    nudged: Boolean(nudge.outcome),
-    reminded: ghostReminder.reminded,
-    channel,
+    reminded: remind.reminded,
   });
   const status =
     row.status === OwedStatus.Feedback
-      ? (nudge.outcome?.label ?? t.people.reminded)
+      ? (remind.outcome?.label ?? t.people.reminded)
       : row.status === OwedStatus.Pending
         ? t.misc.settleStatusPending
         : row.status === OwedStatus.Left
@@ -1094,40 +1048,23 @@ function OwedPersonRow({
             ? t.notJoinedYet
             : null;
 
-  // One Remind pill, the same size and place on every row; only its icon (and
-  // the a11y label) says whether it is an app nudge or goes out by WhatsApp,
-  // mail or the share sheet. The (i) sits right before it, on the rows that
-  // have one.
+  // One Remind pill, identical on every row; which channel it uses is picked
+  // in the sheet it opens.
   const action = row.remind ? (
-    <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-      {row.info ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={fill(t.ghostRemind.infoA11y, { name })}
-          hitSlop={10}
-          onPress={() => void explain()}
-        >
-          <Ionicons
-            name="information-circle-outline"
-            size={iconSize.lg}
-            color={theme.color.textMuted}
-          />
-        </Pressable>
-      ) : null}
+    <>
       <Button
         label={t.people.remind}
         variant="secondary"
         size="sm"
         icon={
-          <Ionicons name={remindIcon[row.remind]} size={iconSize.base} color={theme.color.brand} />
+          <Ionicons name="notifications-outline" size={iconSize.base} color={theme.color.brand} />
         }
-        accessibilityLabel={
-          row.remind === OwedRemind.Push ? remindA11y : `${ghostLabel}. ${remindA11y}`
-        }
-        disabled={row.remind === OwedRemind.Push ? nudge.pending : ghostReminder.pending}
-        onPress={row.remind === OwedRemind.Push ? nudge.send : remindGhost}
+        accessibilityLabel={remindA11y}
+        disabled={remind.pending}
+        onPress={remind.open}
       />
-    </Row>
+      {remind.sheet}
+    </>
   ) : null;
 
   return (
