@@ -1,0 +1,6 @@
+Transaction ID,Date,Time,Type,Name,Emoji,Category,Amount,Currency,Local amount,Local currency,Notes and #tags,Address,Receipt,Description,Category split,Money Out,Money In
+tx_0000100000ABCDEF,01/10/2026,10:00:00,Card payment,STARBUCKS STORE 1234,,General,-4.50,GBP,-4.50,GBP,,,,,,-4.50,
+tx_0000100001ABCDEF,02/10/2026,10:00:00,Card payment,PAYROLL ACME INC,,General,2500.00,GBP,2500.00,GBP,,,,,,,2500.00
+tx_0000100002ABCDEF,03/10/2026,10:00:00,Card payment,RENT OCT,,General,-1200.50,GBP,-1200.50,GBP,,,,,,-1200.50,
+tx_0000100003ABCDEF,05/10/2026,10:00:00,Card payment,AMAZON MKTPLACE,,General,-62.35,GBP,-62.35,GBP,,,,,,-62.35,
+tx_0000100004ABCDEF,13/10/2026,10:00:00,Card payment,ATM WITHDRAWAL,,General,-20.00,GBP,-20.00,GBP,,,,,,-20.00,

@@ -102,6 +102,31 @@ describe('numbers inside the table are masked to their last four', () => {
   });
 });
 
+describe('US, UK and Australian identifiers', () => {
+  const run = (line: string) =>
+    redactStatementText([`Date Description Debit Credit Balance\n${line}`]).pages[0]!;
+
+  it('masks routing numbers, sort codes and BSBs when labelled, and the account beside them', () => {
+    expect(run('10/01/2026 ACH Routing 021000021 Account 123456789 10.00 90.00')).not.toMatch(
+      /021000021|123456789/,
+    );
+    expect(run('01/10/2026 FPO Sort code 20-00-00 Account 12345678 10.00 90.00')).not.toMatch(
+      /20-00-00|12345678/,
+    );
+    expect(run('01/10/2026 BSB 032-000 Account 123456 10.00 90.00')).not.toMatch(/032-000|123456/);
+  });
+
+  it('masks a social security number and a UK IBAN', () => {
+    expect(run('10/01/2026 IRS 123-45-6789 10.00 90.00')).toContain('XXX-XX-XXXX');
+    expect(run('01/10/2026 PAY GB29 NWBK 6016 1331 9268 19 10.00 90.00')).not.toContain('6016');
+  });
+
+  it('keeps amounts, dates and the narration', () => {
+    const out = run('10/01/2026 STARBUCKS #1234 $4.50 995.50');
+    expect(out).toContain('STARBUCKS #1234 $4.50 995.50');
+  });
+});
+
 describe('page furniture', () => {
   it('cuts a repeated page header and footer but keeps a wrapped narration', () => {
     const page = [

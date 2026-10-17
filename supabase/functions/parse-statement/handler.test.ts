@@ -266,6 +266,51 @@ describe('success', () => {
   });
 });
 
+describe('other countries', () => {
+  it('passes the country\u2019s day/month order as a default, and tells the model the statement wins', async () => {
+    const { deps, fetchMock } = makeDeps();
+    const body = goodBody({
+      hints: {
+        currency: 'USD',
+        today: '2026-10-12',
+        locale: 'en-US',
+        country: 'US',
+        dateOrder: 'mdy',
+      },
+    });
+    await handleParseStatement(req(body), deps);
+    const sent = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    const userText = (sent.messages[1].content as { text: string }[]).map((p) => p.text).join('\n');
+    expect(userText).toContain('"dateOrder":"mdy"');
+    expect(userText).toContain('"defaultCurrency":"USD"');
+    expect(sent.messages[0].content).toMatch(/MM\/DD\/YYYY/);
+    expect(sent.messages[0].content).toMatch(/follow the statement over the hint/);
+    expect(sent.messages[0].content).toMatch(/do not guess/);
+  });
+
+  it('ignores a dateOrder it does not know', async () => {
+    const { deps, fetchMock } = makeDeps();
+    await handleParseStatement(req(goodBody({ hints: { dateOrder: 'ymd' } })), deps);
+    const sent = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    expect(JSON.stringify(sent.messages[1].content)).toContain('dateOrder\\":null');
+  });
+
+  it('a row with a date the model could not settle comes back flagged, not guessed', async () => {
+    const { deps } = makeDeps({
+      fetchImpl: async () =>
+        modelReply({
+          currency: 'GBP',
+          openingBalance: null,
+          rows: [{ ...goodRow, date: null, dateText: '03/04/2026', balance: null }],
+        }),
+    });
+    const out = await (await handleParseStatement(req(goodBody()), deps)).json();
+    expect(out.currency).toBe('GBP');
+    expect(out.rows[0].date).toBeNull();
+    expect(out.rows[0].warnings).toContain('bad_date');
+  });
+});
+
 describe('one file is one use', () => {
   async function firstContinuation() {
     const first = makeDeps();

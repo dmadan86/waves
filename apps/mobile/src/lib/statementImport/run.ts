@@ -34,6 +34,8 @@ export interface StatementHints {
   readonly locale: string | null;
   readonly country: string | null;
   readonly bank: string | null;
+  /** The country's usual day/month order: a default for the reader, never a verdict. */
+  readonly dateOrder: 'dmy' | 'mdy' | null;
 }
 
 export interface ParseRequest {

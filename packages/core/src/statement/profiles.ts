@@ -17,10 +17,11 @@
  */
 
 import { parseLooseAmount } from '../import/amount';
-import { resolveDates } from '../import/date';
+import { resolveDates, type ImportDateOrder } from '../import/date';
 import { squashHeader } from '../import/layout';
 import type { TableRead } from '../import/table';
 import { applyBalanceCheck } from './balance';
+import { parseIntlGeneric, parseIntlNamed, type IntlProfileId } from './intl';
 import { referenceFor } from './narration';
 import type { StatementRow } from './types';
 
@@ -155,20 +156,29 @@ export function detectBankProfile(table: TableRead): ProfileMatch | null {
 export interface TableParseOptions {
   /** `YYYY-MM-DD`, for two-digit years. */
   readonly today?: string;
-  readonly currency?: 'INR';
+  /** The person's country (ISO 3166-1 alpha-2): decides day/month order only when the file itself cannot. */
+  readonly country?: string | null;
+  /** Force the day/month order for a file whose bank is not known. The person's choice. */
+  readonly order?: ImportDateOrder;
 }
 
 export type TableParseResult =
   | {
       readonly ok: true;
       /** The bank, or `generic` for a layout read from its headers alone. */
-      readonly profile: BankProfileId | 'generic';
+      readonly profile: BankProfileId | IntlProfileId | 'generic';
       readonly bank: string | null;
       readonly rows: StatementRow[];
       /** Lines under the header that were not transactions (totals, notes, blanks). */
       readonly skipped: number;
       readonly balanceChecked: number;
       readonly balanceFailed: number;
+      /** ISO 4217 the statement is in. */
+      readonly currency: string;
+      /** How dates were read; null when the file mixes both. */
+      readonly dateOrder: ImportDateOrder | null;
+      /** The order was a guess (nothing in the file settled it): the app should ask. */
+      readonly dateAmbiguous: boolean;
     }
   | { readonly ok: false; readonly reason: 'unknown_layout' | 'no_transactions' };
 
@@ -284,7 +294,10 @@ export function detectGenericLayout(table: TableRead): LayoutMatch | null {
   return null;
 }
 
-/** Read a statement table whose bank is one of the five, or whose headers say enough. */
+/**
+ * Read a statement table: one of the five Indian banks, then the US / UK /
+ * Australian layouts, then any file whose headers say enough.
+ */
 export function parseStatementTable(
   table: TableRead,
   options: TableParseOptions = {},
@@ -297,22 +310,32 @@ export function parseStatementTable(
       { ...options, order: 'dmy', confidence: 0.95 },
     );
   }
+  // Before the generic layout, whose Dr/Cr reading would take Chase's "Type" column for one.
+  const named = parseIntlNamed(table, options);
+  if (named) return named;
   const generic = detectGenericLayout(table);
-  if (generic) return readRows(table, generic, { ...options, order: undefined, confidence: 0.8 });
-  return { ok: false, reason: 'unknown_layout' };
+  if (generic) {
+    return readRows(table, generic, { ...options, order: options.order, confidence: 0.8 });
+  }
+  return parseIntlGeneric(table, options) ?? { ok: false, reason: 'unknown_layout' };
 }
 
 function readRows(
   table: TableRead,
   match: LayoutMatch,
-  options: TableParseOptions & { order: 'dmy' | undefined; confidence: number },
+  options: TableParseOptions & { confidence: number },
 ): TableParseResult {
   const { headerRow, columns } = match;
 
   const body = table.rows.slice(headerRow + 1);
   const dates = resolveDates(
     body.map((row) => row[columns.date ?? -1] ?? ''),
-    { order: options.order, allowSerial: true, today: options.today, country: 'IN' },
+    {
+      order: options.order,
+      allowSerial: true,
+      today: options.today,
+      country: options.country ?? 'IN',
+    },
   );
 
   const rows: StatementRow[] = [];
@@ -383,5 +406,8 @@ function readRows(
     skipped,
     balanceChecked: checked.checked,
     balanceFailed: checked.failed,
+    currency: 'INR',
+    dateOrder: dates.order,
+    dateAmbiguous: dates.ambiguous,
   };
 }

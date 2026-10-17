@@ -3917,6 +3917,10 @@ export interface UiStrings {
     errFreePhoto: string;
     errNothingFound: string;
     errPdfNotPdf: string;
+    dateAmbiguous: string;
+    orderDmy: string;
+    orderMdy: string;
+    readAsOther: string;
   };
   smsInbox: {
     title: string;
@@ -8378,7 +8382,7 @@ const en: UiStrings = {
       'Bring in a bank statement as drafts you check in Review. Nothing is added until you say so.',
     chooseFile: 'Choose a file',
     choosePhoto: 'Choose a screenshot',
-    supported: 'CSV, Excel, PDF, or a screenshot of a statement page.',
+    supported: 'CSV, Excel, OFX or QFX, PDF, or a screenshot of a statement page.',
     consent:
       'Waves reads this statement with AI. Account numbers are hidden first and nothing is kept.',
     pdfNotYet:
@@ -8426,6 +8430,11 @@ const en: UiStrings = {
     errFreePhoto: 'Reading a screenshot comes with Waves Pro.',
     errNothingFound: 'No transactions were found in that file.',
     errPdfNotPdf: 'That file is not a PDF.',
+    dateAmbiguous:
+      'Some dates in this file could be read as day/month or month/day. Waves used {order}. Check a few rows, or switch.',
+    orderDmy: 'day/month',
+    orderMdy: 'month/day',
+    readAsOther: 'Read as {order}',
   },
   smsInbox: {
     title: 'Bank messages',
@@ -12959,7 +12968,7 @@ const ta: UiStrings = {
       'வங்கி கணக்கு விவரத்தை Review-வில் சரிபார்க்க வரைவுகளாக கொண்டுவாருங்கள். நீங்கள் சொல்லாவிட்டால் எதுவும் சேர்க்கப்படாது.',
     chooseFile: 'கோப்பைத் தேர்ந்தெடு',
     choosePhoto: 'ஸ்கிரீன்ஷாட்டைத் தேர்ந்தெடு',
-    supported: 'CSV, Excel, PDF அல்லது கணக்கு விவரப் பக்கத்தின் ஸ்கிரீன்ஷாட்.',
+    supported: 'CSV, Excel, OFX அல்லது QFX, PDF, அல்லது கணக்கு விவரப் பக்கத்தின் ஸ்கிரீன்ஷாட்.',
     consent:
       'Waves இந்த கணக்கு விவரத்தை AI மூலம் படிக்கிறது. கணக்கு எண்கள் முதலில் மறைக்கப்படும், எதுவும் சேமிக்கப்படாது.',
     pdfNotYet:
@@ -13012,6 +13021,11 @@ const ta: UiStrings = {
     errFreePhoto: 'ஸ்கிரீன்ஷாட்டைப் படிப்பது Waves Pro-வுடன் வருகிறது.',
     errNothingFound: 'அந்த கோப்பில் பரிவர்த்தனைகள் எதுவும் கிடைக்கவில்லை.',
     errPdfNotPdf: 'அந்த கோப்பு PDF அல்ல.',
+    dateAmbiguous:
+      'இந்தக் கோப்பில் சில தேதிகளை நாள்/மாதம் அல்லது மாதம்/நாள் என இரு விதமாகப் படிக்கலாம். Waves {order} எனப் படித்தது. சில வரிசைகளைச் சரிபார்க்கவும், அல்லது மாற்றவும்.',
+    orderDmy: 'நாள்/மாதம்',
+    orderMdy: 'மாதம்/நாள்',
+    readAsOther: '{order} எனப் படி',
   },
   smsInbox: {
     title: 'வங்கிச் செய்திகள்',
@@ -17491,7 +17505,7 @@ const hi: UiStrings = {
       'बैंक स्टेटमेंट को ड्राफ़्ट के रूप में लाएँ, जिन्हें आप Review में जाँचते हैं। आपके कहे बिना कुछ नहीं जुड़ता।',
     chooseFile: 'फ़ाइल चुनें',
     choosePhoto: 'स्क्रीनशॉट चुनें',
-    supported: 'CSV, Excel, PDF, या स्टेटमेंट के पन्ने का स्क्रीनशॉट।',
+    supported: 'CSV, Excel, OFX या QFX, PDF, या स्टेटमेंट के पन्ने का स्क्रीनशॉट।',
     consent:
       'Waves इस स्टेटमेंट को AI से पढ़ता है। खाता नंबर पहले छिपा दिए जाते हैं और कुछ भी सहेजा नहीं जाता।',
     pdfNotYet:
@@ -17539,6 +17553,11 @@ const hi: UiStrings = {
     errFreePhoto: 'स्क्रीनशॉट पढ़ना Waves Pro के साथ आता है।',
     errNothingFound: 'उस फ़ाइल में कोई लेनदेन नहीं मिला।',
     errPdfNotPdf: 'वह फ़ाइल PDF नहीं है।',
+    dateAmbiguous:
+      'इस फ़ाइल की कुछ तारीखें दिन/महीना या महीना/दिन, दोनों तरह पढ़ी जा सकती हैं। Waves ने {order} इस्तेमाल किया। कुछ पंक्तियाँ जाँचें, या बदलें।',
+    orderDmy: 'दिन/महीना',
+    orderMdy: 'महीना/दिन',
+    readAsOther: '{order} के रूप में पढ़ें',
   },
   smsInbox: {
     title: 'बैंक संदेश',
@@ -22305,7 +22324,7 @@ const ar: UiStrings = {
     intro: 'أحضر كشف حسابك البنكي كمسودات تراجعها في المراجعة. لا يُضاف شيء حتى توافق.',
     chooseFile: 'اختر ملفًا',
     choosePhoto: 'اختر لقطة شاشة',
-    supported: 'CSV أو Excel أو PDF أو لقطة شاشة لصفحة من الكشف.',
+    supported: 'CSV أو Excel أو OFX أو QFX أو PDF أو لقطة شاشة لصفحة من الكشف.',
     consent: 'يقرأ Waves هذا الكشف بالذكاء الاصطناعي. تُخفى أرقام الحسابات أولًا ولا يُحفظ شيء.',
     pdfNotYet:
       'ملفات PDF غير مدعومة في هذا الإصدار بعد. نزّل نسخة CSV أو Excel من بنكك أو استخدم لقطة شاشة.',
@@ -22352,6 +22371,11 @@ const ar: UiStrings = {
     errFreePhoto: 'قراءة لقطة الشاشة تأتي مع Waves Pro.',
     errNothingFound: 'لم يُعثر على معاملات في هذا الملف.',
     errPdfNotPdf: 'هذا الملف ليس PDF.',
+    dateAmbiguous:
+      'يمكن قراءة بعض التواريخ في هذا الملف كيوم/شهر أو شهر/يوم. استخدم Waves {order}. تحقق من بعض الصفوف أو بدّل.',
+    orderDmy: 'يوم/شهر',
+    orderMdy: 'شهر/يوم',
+    readAsOther: 'اقرأ كـ {order}',
   },
   smsInbox: {
     title: 'رسائل البنك',
