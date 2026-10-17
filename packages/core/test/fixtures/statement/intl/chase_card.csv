@@ -1,0 +1,6 @@
+Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+10/01/2026,10/01/2026,STARBUCKS STORE 1234,Shopping,Sale,-4.50,
+10/02/2026,10/02/2026,PAYROLL ACME INC,Shopping,Payment,2500.00,
+10/03/2026,10/03/2026,RENT OCT,Shopping,Sale,-1200.50,
+10/05/2026,10/05/2026,AMAZON MKTPLACE,Shopping,Sale,-62.35,
+10/13/2026,10/13/2026,ATM WITHDRAWAL,Shopping,Sale,-20.00,

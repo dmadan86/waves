@@ -43,6 +43,8 @@ export interface PdfTextOptions {
   readonly today?: string;
   /** Overrides the "Opening Balance" the text itself may carry. Signed minor units. */
   readonly openingBalance?: string | null;
+  /** Day/month order of the statement's dates. Defaults to day-first; a US statement passes `mdy`. */
+  readonly order?: 'dmy' | 'mdy';
 }
 
 export interface PdfTextResult {
@@ -150,7 +152,7 @@ export function parseStatementText(
 
   const resolved = resolveDates(
     raws.map((r) => r.dateText),
-    { order: 'dmy', today: options.today },
+    { order: options.order ?? 'dmy', today: options.today },
   );
 
   const openingBalance =

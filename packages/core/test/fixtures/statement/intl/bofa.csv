@@ -1,0 +1,13 @@
+Description,,Summary Amt.
+Beginning balance as of 10/01/2026,,"1,000.00"
+Total credits,,"2,500.00"
+Total debits,,"-1,291.85"
+Ending balance as of 10/13/2026,,"2,208.15"
+
+Date,Description,Amount,Running Bal.
+10/01/2026,Beginning balance as of 10/01/2026,,"1,000.00"
+10/01/2026,STARBUCKS STORE 1234,"-4.50","995.50"
+10/02/2026,PAYROLL ACME INC,"2,500.00","3,495.50"
+10/03/2026,RENT OCT,"-1,200.50","2,295.00"
+10/05/2026,AMAZON MKTPLACE,"-62.35","2,232.65"
+10/13/2026,ATM WITHDRAWAL,"-20.00","2,212.65"

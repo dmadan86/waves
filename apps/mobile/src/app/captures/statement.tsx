@@ -23,14 +23,19 @@ import * as FileSystem from 'expo-file-system';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import {
+  decodeBytes,
   format,
+  looksLikeOfx,
   money,
+  parseOfx,
   parseStatementTable,
   planStatementImport,
   previewStatement,
   STATEMENT_MAX_FILE_BYTES,
   STATEMENT_MAX_PAGES,
   type ExistingExpense,
+  type ImportDateOrder,
+  type TableRead,
   type StatementItem,
   type StatementPlan,
   type StatementRow,
@@ -59,12 +64,20 @@ import {
   type ReadFailure,
   type StatementPageInput,
 } from '@/lib/statementImport/run';
+import { otherOrder, statementRegion } from '@/lib/statementImport/region';
 import { tableToPages } from '@/lib/statementImport/tablePages';
 
 type Stage =
   | { name: 'pick' }
   | { name: 'working'; label: string }
-  | { name: 'preview'; count: number; spent: bigint; first: StatementRow[]; left: number }
+  | {
+      name: 'preview';
+      count: number;
+      spent: bigint;
+      first: StatementRow[];
+      left: number;
+      currency: string;
+    }
   | { name: 'review' }
   | { name: 'saving' }
   | {
@@ -112,6 +125,8 @@ function StatementImport(): React.JSX.Element {
   const { session } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const { isPaid } = useEntitlement();
+  const { profile } = useAuth();
+  const region = useMemo(() => statementRegion(profile?.country_code), [profile?.country_code]);
   const ledger = usePersonalLedger();
   const clearance = useBottomClearance(theme.spacing.xl);
 
@@ -120,6 +135,9 @@ function StatementImport(): React.JSX.Element {
   const [plan, setPlan] = useState<StatementPlan | null>(null);
   const [currency, setCurrency] = useState('INR');
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
+  // The file's table, kept for the one question a file can leave open: which way round its dates are.
+  const [source, setSource] = useState<{ table: TableRead; order: ImportDateOrder } | null>(null);
+  const [dateAmbiguous, setDateAmbiguous] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -142,6 +160,8 @@ function StatementImport(): React.JSX.Element {
     setError(null);
     setPlan(null);
     setTicked(new Set());
+    setSource(null);
+    setDateAmbiguous(false);
   }, []);
 
   /** Rows to the review step: merge with what Review already holds, then show. */
@@ -158,14 +178,14 @@ function StatementImport(): React.JSX.Element {
         const key = dedupeKeyOf(draft.parsed);
         if (key) draftKeys.add(key);
       }
-      const cur = rowsCurrency ?? 'INR';
+      const cur = rowsCurrency ?? region.currency;
       const next = planStatementImport(rows, { currency: cur, draftKeys, existing });
       setCurrency(cur);
       setPlan(next);
       setTicked(new Set(next.items.filter((i) => i.ticked).map((i) => i.key)));
       setStage({ name: 'review' });
     },
-    [existing, ownerId, s.errNothingFound],
+    [existing, ownerId, region.currency, s.errNothingFound],
   );
 
   const readWithAi = useCallback(
@@ -175,11 +195,12 @@ function StatementImport(): React.JSX.Element {
         pages,
         importId: randomId(),
         hints: {
-          currency: 'INR',
+          currency: region.currency,
           today,
           locale,
-          country: null,
+          country: region.country,
           bank: null,
+          dateOrder: region.dateOrder,
         },
         call: callParseStatement,
         onProgress: (done, total) =>
@@ -200,7 +221,7 @@ function StatementImport(): React.JSX.Element {
       }
       await showPlan(outcome.rows, outcome.currency);
     },
-    [locale, s, showPlan, today],
+    [locale, region, s, showPlan, today],
   );
 
   const pickFile = useCallback(async () => {
@@ -214,6 +235,8 @@ function StatementImport(): React.JSX.Element {
           'application/vnd.ms-excel',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/octet-stream',
+          'application/x-ofx',
+          'application/vnd.intu.qfx',
           ...(PDF_READING_AVAILABLE ? ['application/pdf'] : []),
         ],
         copyToCacheDirectory: true,
@@ -227,7 +250,7 @@ function StatementImport(): React.JSX.Element {
         setError(s.pdfNotYet);
         return;
       }
-      if (kind !== 'csv' && kind !== 'xlsx') {
+      if (kind !== 'csv' && kind !== 'xlsx' && kind !== 'ofx') {
         setError(s.errUnreadable);
         return;
       }
@@ -245,32 +268,70 @@ function StatementImport(): React.JSX.Element {
         // Best-effort cleanup; the bytes are already in memory.
       }
 
-      let table;
-      try {
-        table = tableFromBytes(bytes, asset.name, asset.mimeType).table;
-      } catch (caught) {
-        setStage({ name: 'pick' });
-        if (caught instanceof GroupImportFileError) {
-          setError(
-            caught.failure === 'too_large'
-              ? s.errTooLarge
-              : caught.failure === 'empty'
-                ? s.errEmpty
-                : caught.failure === 'too_many_rows'
-                  ? s.errTooManyRows
-                  : s.errUnreadable,
-          );
-        } else setError(s.errUnreadable);
-        return;
-      }
+      // What the phone could read itself, whatever the file was.
+      type Read = {
+        rows: StatementRow[];
+        currency: string;
+        ambiguous: boolean;
+        order: ImportDateOrder;
+        table: TableRead | null;
+      };
+      let read: Read | null = null;
+      let failure: 'unknown_layout' | 'no_transactions' | null = null;
+      let table: TableRead | null = null;
 
-      const parsed = parseStatementTable(table, { today });
+      if (kind === 'ofx') {
+        const ofx = parseOfx(decodeBytes(bytes).text, region.currency as never);
+        if (ofx.ok) {
+          read = {
+            rows: ofx.rows,
+            currency: ofx.currency,
+            ambiguous: false,
+            order: region.dateOrder,
+            table: null,
+          };
+        } else failure = ofx.reason === 'not_ofx' ? 'unknown_layout' : 'no_transactions';
+      } else {
+        try {
+          table = tableFromBytes(bytes, asset.name, asset.mimeType).table;
+        } catch (caught) {
+          setStage({ name: 'pick' });
+          if (caught instanceof GroupImportFileError) {
+            setError(
+              caught.failure === 'too_large'
+                ? s.errTooLarge
+                : caught.failure === 'empty'
+                  ? s.errEmpty
+                  : caught.failure === 'too_many_rows'
+                    ? s.errTooManyRows
+                    : s.errUnreadable,
+            );
+          } else setError(s.errUnreadable);
+          return;
+        }
+        // An OFX saved under a .csv name is still OFX.
+        if (looksLikeOfx(decodeBytes(bytes.subarray(0, 4096)).text)) {
+          setStage({ name: 'pick' });
+          setError(s.errUnreadable);
+          return;
+        }
+        const parsed = parseStatementTable(table, { today, country: region.country });
+        if (parsed.ok) {
+          read = {
+            rows: parsed.rows,
+            currency: parsed.currency,
+            ambiguous: parsed.dateAmbiguous,
+            order: parsed.dateOrder ?? region.dateOrder,
+            table,
+          };
+        } else failure = parsed.reason;
+      }
 
       if (!isPaid) {
         // Free: a teaser, read on this phone, never sent anywhere.
-        if (!parsed.ok) {
+        if (!read) {
           setStage({ name: 'pick' });
-          setError(parsed.reason === 'unknown_layout' ? s.errUnknown : s.errNothingFound);
+          setError(failure === 'unknown_layout' ? s.errUnknown : s.errNothingFound);
           return;
         }
         const left = await statementPreviewsLeft();
@@ -281,22 +342,30 @@ function StatementImport(): React.JSX.Element {
           return;
         }
         await spendStatementPreview();
-        const preview = previewStatement(parsed.rows);
+        const preview = previewStatement(read.rows);
         setStage({
           name: 'preview',
           count: preview.count,
           spent: preview.spentMinor,
           first: [...preview.first],
           left: left - 1,
+          currency: read.currency,
         });
         return;
       }
 
-      if (parsed.ok) {
-        await showPlan(parsed.rows, 'INR');
+      if (read) {
+        setSource(read.table ? { table: read.table, order: read.order } : null);
+        setDateAmbiguous(read.ambiguous);
+        await showPlan(read.rows, read.currency);
         return;
       }
       // Pro, and the layout is not one we read ourselves: the reader takes it.
+      if (!table) {
+        setStage({ name: 'pick' });
+        setError(s.errNothingFound);
+        return;
+      }
       const pages = tableToPages(table.rows);
       if (pages.length === 0 || pages.length > STATEMENT_MAX_PAGES * 4) {
         setStage({ name: 'pick' });
@@ -308,7 +377,7 @@ function StatementImport(): React.JSX.Element {
       setStage({ name: 'pick' });
       setError(s.errGeneric);
     }
-  }, [isPaid, readWithAi, s, showPlan, today]);
+  }, [isPaid, readWithAi, region, s, showPlan, today]);
 
   const pickPhoto = useCallback(async () => {
     setError(null);
@@ -330,6 +399,17 @@ function StatementImport(): React.JSX.Element {
       setError(s.errGeneric);
     }
   }, [isPaid, readWithAi, s]);
+
+  /** The person says the dates run the other way: read the same table again. */
+  const switchOrder = useCallback(async () => {
+    if (!source) return;
+    const order = otherOrder(source.order);
+    const parsed = parseStatementTable(source.table, { today, country: region.country, order });
+    if (!parsed.ok) return;
+    setSource({ table: source.table, order });
+    setDateAmbiguous(true);
+    await showPlan(parsed.rows, parsed.currency);
+  }, [region.country, showPlan, source, today]);
 
   const toggle = useCallback((key: string) => {
     setTicked((current) => {
@@ -479,7 +559,7 @@ function StatementImport(): React.JSX.Element {
           <Text variant="title">
             {fill(s.previewHeading, {
               n: stage.count,
-              amount: format(money(stage.spent, 'INR'), { locale }),
+              amount: format(money(stage.spent, stage.currency as never), { locale }),
             })}
           </Text>
           <Card padded={false}>
@@ -574,6 +654,22 @@ function StatementImport(): React.JSX.Element {
                   skipped: plan.summary.duplicatesSkipped,
                 })}
               </Text>
+            ) : null}
+            {dateAmbiguous && source ? (
+              <Callout tone="warning">
+                {fill(s.dateAmbiguous, {
+                  order: source.order === 'dmy' ? s.orderDmy : s.orderMdy,
+                })}
+              </Callout>
+            ) : null}
+            {dateAmbiguous && source ? (
+              <Button
+                label={fill(s.readAsOther, {
+                  order: otherOrder(source.order) === 'dmy' ? s.orderDmy : s.orderMdy,
+                })}
+                variant="secondary"
+                onPress={() => void switchOrder()}
+              />
             ) : null}
             <Row style={{ justifyContent: 'flex-end' }}>
               <Button

@@ -77,7 +77,7 @@ function maskToLastFour(digits: string): string {
 }
 
 const LABELLED_NUMBER = new RegExp(
-  '\\b(a\\/c|acct|account|a\\/c\\.?\\s*no|card|customer\\s*id|cust\\.?\\s*id|crn|cif|folio)' +
+  '\\b(a\\/c|acct|account|a\\/c\\.?\\s*no|card|customer\\s*id|cust\\.?\\s*id|crn|cif|folio|routing|aba|sort\\s*code|bsb|member\\s*id)' +
     '(\\s*(?:no\\.?|number|num|#)?\\s*[:.\\-]?\\s*)' +
     '((?:[xX*]+[\\s-]*)?\\d[\\d\\s-]{4,22}\\d)',
   'gi',
@@ -86,6 +86,10 @@ const CARD_SHAPED = /(?<![\d-])(?:\d{4}[ -]){3}\d{4}(?![\d-])|(?<!\d)\d{16}(?!\d
 const MOBILE = /(?<![\d.])(?:\+91[ -]?|91[ -]|0)?([6-9]\d{9})(?!\d)/g;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
 const PAN = /\b[A-Z]{5}\d{4}[A-Z]\b/g;
+/** US social security number. */
+const SSN = /(?<![\d-])\d{3}-\d{2}-\d{4}(?![\d-])/g;
+/** A UK IBAN, which is an account number with a country on it. */
+const IBAN = /\b[A-Z]{2}\d{2}\s?[A-Z]{4}(?:\s?\d{4}){3}\s?\d{2}\b/g;
 const AADHAAR = /(?<![\d-])\d{4}[ -]\d{4}[ -]\d{4}(?![\d-])/g;
 
 /**
@@ -125,6 +129,14 @@ function maskLine(line: string, secrets: readonly RegExp[], count: { n: number }
   out = out.replace(
     PAN,
     hit(() => 'XXXXXXXXXX'),
+  );
+  out = out.replace(
+    SSN,
+    hit(() => 'XXX-XX-XXXX'),
+  );
+  out = out.replace(
+    IBAN,
+    hit((value: string) => maskToLastFour(value)),
   );
   out = out.replace(
     AADHAAR,

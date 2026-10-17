@@ -6,7 +6,7 @@
  * enough that the name has to win, as the group import found).
  */
 
-export type StatementFileKind = 'pdf' | 'csv' | 'xlsx' | 'image';
+export type StatementFileKind = 'pdf' | 'csv' | 'xlsx' | 'image' | 'ofx';
 
 export function statementFileKind(
   name: string,
@@ -15,10 +15,12 @@ export function statementFileKind(
   const lower = name.toLowerCase();
   const mime = (mimeType ?? '').toLowerCase();
   if (/\.pdf$/.test(lower)) return 'pdf';
+  if (/\.(ofx|qfx)$/.test(lower)) return 'ofx';
   if (/\.xlsx?$/.test(lower)) return 'xlsx';
   if (/\.(csv|tsv|txt)$/.test(lower)) return 'csv';
   if (/\.(jpe?g|png|webp|heic|heif)$/.test(lower)) return 'image';
   if (mime === 'application/pdf') return 'pdf';
+  if (/ofx|qfx/.test(mime)) return 'ofx';
   if (mime.startsWith('image/')) return 'image';
   if (/spreadsheetml|ms-excel/.test(mime) && !/csv/.test(mime)) return 'xlsx';
   if (/csv|text\/plain/.test(mime)) return 'csv';
