@@ -7672,7 +7672,7 @@ const en: UiStrings = {
     leave: 'Leave',
     archiveQuestion: 'Archive this group?',
     archiveBody:
-      'It disappears from your list but nothing is deleted, and anyone can unarchive it.',
+      'It will be removed from your group list, but nothing is deleted. All expenses, payments and members are safely kept, and anyone can unarchive it later.',
     archive: 'Archive',
     deleteGroup: 'Delete group',
     deleteQuestion: 'Delete this group?',
@@ -12225,7 +12225,7 @@ const ta: UiStrings = {
     leave: 'விலகு',
     archiveQuestion: 'இந்தக் குழுவைக் காப்பகப்படுத்தவா?',
     archiveBody:
-      'இது உங்கள் பட்டியலிலிருந்து மறையும், ஆனால் எதுவும் அழிக்கப்படாது, யார் வேண்டுமானாலும் மீண்டும் கொண்டுவரலாம்.',
+      'இது உங்கள் குழுப் பட்டியலிலிருந்து நீக்கப்படும், ஆனால் எதுவும் அழிக்கப்படாது. அனைத்து செலவுகள், கட்டணங்கள், உறுப்பினர்கள் பாதுகாப்பாக இருக்கும், யார் வேண்டுமானாலும் பின்னர் மீண்டும் கொண்டுவரலாம்.',
     archive: 'காப்பகப்படுத்து',
     deleteGroup: 'குழுவை அழி',
     deleteQuestion: 'இந்தக் குழுவை அழிக்கவா?',
@@ -16818,7 +16818,8 @@ const hi: UiStrings = {
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
     leave: 'छोड़ें',
     archiveQuestion: 'यह समूह संग्रहित करें?',
-    archiveBody: 'यह आपकी सूची से हट जाएगा पर मिटेगा कुछ नहीं, और कोई भी इसे वापस ला सकता है।',
+    archiveBody:
+      'यह आपकी समूह सूची से हट जाएगा, पर कुछ भी मिटेगा नहीं। सभी खर्च, भुगतान और सदस्य सुरक्षित रहेंगे, और कोई भी इसे बाद में वापस ला सकता है।',
     archive: 'संग्रहित करें',
     deleteGroup: 'समूह हटाएँ',
     deleteQuestion: 'यह समूह हटाएँ?',
@@ -21523,7 +21524,8 @@ const ar: UiStrings = {
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
     leave: 'مغادرة',
     archiveQuestion: 'أرشفة هذه المجموعة؟',
-    archiveBody: 'تختفي من قائمتك دون حذف أي شيء، ويمكن لأي أحد إعادتها.',
+    archiveBody:
+      'ستُزال من قائمة مجموعاتك دون حذف أي شيء. تبقى كل المصروفات والمدفوعات والأعضاء محفوظة، ويمكن لأي أحد إعادتها لاحقًا.',
     archive: 'أرشفة',
     deleteGroup: 'حذف المجموعة',
     deleteQuestion: 'حذف هذه المجموعة؟',

@@ -17,6 +17,7 @@
  * standing up the tree it exists to keep honest.
  */
 
+import type { ImageSourcePropType } from 'react-native';
 import type { CurrencyCode } from '@waves/core';
 
 /**
@@ -128,6 +129,11 @@ export interface DialogRequest {
   /** The last word before the doors, drawn as a callout in the tone's colour. */
   readonly note?: string;
   readonly tone?: DialogTone;
+  /**
+   * A hero illustration above the title. Presence switches the dialog to the
+   * centred "illustrated" layout: centred title and body, brand confirm door.
+   */
+  readonly art?: ImageSourcePropType;
   /** At least one door, each naming what it does. Never an "OK". */
   readonly actions: readonly DialogAction[];
   /**
