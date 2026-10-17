@@ -2,8 +2,8 @@
  * The agent's question, with tappable answers. The agent could not settle
  * which of several amounts, groups or people was meant, so it offers 2-4
  * choices: each a tinted row (round icon, bold label, secondary line, radio), a
- * primary Continue that stays off until one is picked, and "Type instead" for
- * answering in the person's own words.
+ * primary Continue that stays off until one is picked, and "Type instead", which
+ * opens an inline field (with a mic to go back to speaking).
  *
  * Nothing here animates, so reduced motion needs no special case. Selection is
  * state in this card only; Continue hands the chosen option's `answer` up.
@@ -16,6 +16,7 @@ import { Image, Pressable, View } from 'react-native';
 import type { VoiceClarifyOption } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { useStrings } from '@/i18n';
 import { clarifyOptionViews } from '@/lib/voiceClarifyPure';
 
@@ -30,20 +31,24 @@ export interface VoiceClarifyCardProps {
   options: readonly VoiceClarifyOption[];
   /** Continue: the chosen option's answer text. */
   onContinue: (answer: string) => void;
-  /** Answer in the person's own words instead. */
-  onTypeInstead: () => void;
+  /** The person typed an answer in their own words. */
+  onTyped: (text: string) => void;
+  /** Back to the mic from the typing field. */
+  onVoice: () => void;
 }
 
 export function VoiceClarifyCard({
   question,
   options,
   onContinue,
-  onTypeInstead,
+  onTyped,
+  onVoice,
 }: VoiceClarifyCardProps) {
   const theme = useTheme();
   const { t } = useStrings();
   const views = clarifyOptionViews(options);
   const [selected, setSelected] = useState<number | null>(null);
+  const [typing, setTyping] = useState(false);
   const chosen = selected === null ? undefined : views[selected];
 
   return (
@@ -172,27 +177,35 @@ export function VoiceClarifyCard({
         </Text>
       </Pressable>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.voice.agentTypeInstead}
-        onPress={onTypeInstead}
-        style={({ pressed }) => ({
-          alignSelf: 'center',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.xs,
-          paddingHorizontal: theme.spacing.lg,
-          height: 40,
-          borderRadius: theme.radius.pill,
-          backgroundColor: theme.color.brandSoft,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <Ionicons name="chatbox-ellipses-outline" size={iconSize.base} color={theme.color.brand} />
-        <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
-          {t.voice.agentTypeInstead}
-        </Text>
-      </Pressable>
+      {typing ? (
+        <VoiceTypedAnswer onSubmit={onTyped} onVoice={onVoice} />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.voice.agentTypeInstead}
+          onPress={() => setTyping(true)}
+          style={({ pressed }) => ({
+            alignSelf: 'center',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            paddingHorizontal: theme.spacing.lg,
+            height: 40,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.brandSoft,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons
+            name="chatbox-ellipses-outline"
+            size={iconSize.base}
+            color={theme.color.brand}
+          />
+          <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
+            {t.voice.agentTypeInstead}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }

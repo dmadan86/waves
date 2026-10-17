@@ -22,7 +22,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -2004,392 +2012,405 @@ export default function VoiceScreen() {
           that list keeps its pinned Save bar there, and a picture behind the
           figures being checked would only be in the way. */}
       {phase === 'review' || phase === 'agent' ? null : <VoiceFooterScene />}
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
-        // Capturing is one still screen — the mic, what to say, the scene at the
-        // foot — so it does not scroll or bounce while it fits. It only scrolls
-        // when it has to: the review's list, or a phone too short to show the
-        // capture surface whole, where clipping it would hide the mic.
-        scrollEnabled={phase === 'review' || contentHeight > viewportHeight + 1}
-        bounces={phase === 'review'}
-        overScrollMode={phase === 'review' ? 'auto' : 'never'}
-        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
-        onContentSizeChange={(_width, height) => setContentHeight(height)}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          // The review's pinned bar carries the inset itself; the agent's buttons
-          // sit at the end of the scroll, so they need the system bar cleared.
-          paddingBottom: phase === 'review' ? theme.spacing.lg : clearance,
-          gap: phase === 'review' || phase === 'agent' ? theme.spacing.sm : theme.spacing.xl,
-          // Fill the viewport when the capture surface is shorter than it, so the
-          // mic panel's own footer (the offline-voice offer) can sit at the foot of
-          // the screen rather than tucked under the mic. `flexGrow` only ever sets a
-          // *minimum* — a panel taller than the window still scrolls, where `flex`
-          // would have squeezed it. The review lays itself out and keeps its own
-          // pinned action bar, so it is left alone.
-          ...(phase === 'review' ? null : { flexGrow: 1 }),
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
       >
-        <Row
-          style={{
-            paddingTop: phase === 'review' ? theme.spacing.xs : theme.spacing.md,
-            justifyContent: 'space-between',
-            alignItems: 'center',
+        <ScrollView
+          style={{ flex: 1 }}
+          // Capturing is one still screen — the mic, what to say, the scene at the
+          // foot — so it does not scroll or bounce while it fits. It only scrolls
+          // when it has to: the review's list, or a phone too short to show the
+          // capture surface whole, where clipping it would hide the mic.
+          scrollEnabled={phase === 'review' || contentHeight > viewportHeight + 1}
+          bounces={phase === 'review'}
+          overScrollMode={phase === 'review' ? 'auto' : 'never'}
+          onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+          onContentSizeChange={(_width, height) => setContentHeight(height)}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.xl,
+            // The review's pinned bar carries the inset itself; the agent's buttons
+            // sit at the end of the scroll, so they need the system bar cleared.
+            paddingBottom: phase === 'review' ? theme.spacing.lg : clearance,
+            gap: phase === 'review' || phase === 'agent' ? theme.spacing.sm : theme.spacing.xl,
+            // Fill the viewport when the capture surface is shorter than it, so the
+            // mic panel's own footer (the offline-voice offer) can sit at the foot of
+            // the screen rather than tucked under the mic. `flexGrow` only ever sets a
+            // *minimum* — a panel taller than the window still scrolls, where `flex`
+            // would have squeezed it. The review lays itself out and keeps its own
+            // pinned action bar, so it is left alone.
+            ...(phase === 'review' ? null : { flexGrow: 1 }),
           }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* The Activity screen's header shape — a left-aligned brand glyph and a
+          <Row
+            style={{
+              paddingTop: phase === 'review' ? theme.spacing.xs : theme.spacing.md,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            {/* The Activity screen's header shape — a left-aligned brand glyph and a
               big bold title — so the review reads as the same family of screen.
               Here the glyph is the mic that started the capture. */}
-          <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-            <Ionicons
-              name="mic"
-              size={phase === 'review' ? iconSize.lg : iconSize.xl}
-              color={theme.color.brand}
-            />
-            <Text variant={phase === 'review' ? 'heading' : 'title'}>
-              {phase === 'review'
-                ? t.voice.review
-                : phase === 'answer'
-                  ? t.voice.ansTitle
-                  : t.voice.title}
-            </Text>
-          </Row>
-          {/* Just the ✕. Speaking another expense is one job with one home — the
+            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+              <Ionicons
+                name="mic"
+                size={phase === 'review' ? iconSize.lg : iconSize.xl}
+                color={theme.color.brand}
+              />
+              <Text variant={phase === 'review' ? 'heading' : 'title'}>
+                {phase === 'review'
+                  ? t.voice.review
+                  : phase === 'answer'
+                    ? t.voice.ansTitle
+                    : t.voice.title}
+              </Text>
+            </Row>
+            {/* Just the ✕. Speaking another expense is one job with one home — the
               "+ Add another" pill under the list — so the header carries no second
               mic competing with it. */}
-          <IconButton label={t.common.close} onPress={dismiss}>
-            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-          </IconButton>
-        </Row>
+            <IconButton label={t.common.close} onPress={dismiss}>
+              <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+            </IconButton>
+          </Row>
 
-        {error ? <Callout tone="negative">{error}</Callout> : null}
-        {agentQuotaNote && phase !== 'agent' ? (
-          <Text variant="caption" tone="muted">
-            {t.voice.agentQuotaFallback}
-          </Text>
-        ) : null}
-        {phase === 'agent' ? (
-          <View style={{ marginTop: -theme.spacing.xs }}>
-            <Text tone="muted" variant="caption">
-              {t.voice.confirmSubtitle}
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+          {agentQuotaNote && phase !== 'agent' ? (
+            <Text variant="caption" tone="muted">
+              {t.voice.agentQuotaFallback}
             </Text>
-          </View>
-        ) : null}
-        {/* On the agent screen the engine's pill lives behind the allowance's (i). */}
-        {phase !== 'listening' && phase !== 'agent' ? (
-          <View style={{ alignItems: 'center' }}>
-            <VoiceEngineBadge info={engine} />
-          </View>
-        ) : null}
+          ) : null}
+          {phase === 'agent' ? (
+            <View style={{ marginTop: -theme.spacing.xs }}>
+              <Text tone="muted" variant="caption">
+                {t.voice.confirmSubtitle}
+              </Text>
+            </View>
+          ) : null}
+          {/* On the agent screen the engine's pill lives behind the allowance's (i). */}
+          {phase !== 'listening' && phase !== 'agent' ? (
+            <View style={{ alignItems: 'center' }}>
+              <VoiceEngineBadge info={engine} />
+            </View>
+          ) : null}
 
-        {phase === 'agent' && agentSession ? (
-          <VoiceAgentPanel
-            key={agentRun}
-            transcript={agentSession.transcript}
-            groupId={launchGroupId}
-            today={today()}
-            onFallback={agentFellBack}
-            followUp={agentFollowUp}
-            engine={engine}
-            onAnswer={(followUp, answer) => {
-              // A tapped option is the spoken answer, with no clip in between.
-              setAgentFollowUp(followUp);
-              setAgentSession({ transcript: answer, alternatives: [] });
-              setAgentRun((current) => current + 1);
-            }}
-            onRetry={(followUp) => {
-              setAgentFollowUp(followUp ?? null);
-              setAgentSession(null);
-              setAttempt((current) => current + 1);
-              setPhase('listening');
-            }}
-            onClose={() => router.back()}
-          />
-        ) : phase === 'thinking' ? (
-          <View
-            style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}
-          >
-            <VoiceMicOrb working />
-            <Text variant="heading">{t.voice.thinking}</Text>
-          </View>
-        ) : phase === 'review' ? (
-          <View style={{ gap: theme.spacing.md }}>
-            {/* Confirmation, not an edit form. Each expense reads as a quiet
+          {phase === 'agent' && agentSession ? (
+            <VoiceAgentPanel
+              key={agentRun}
+              transcript={agentSession.transcript}
+              groupId={launchGroupId}
+              today={today()}
+              onFallback={agentFellBack}
+              followUp={agentFollowUp}
+              engine={engine}
+              onAnswer={(followUp, answer) => {
+                // A tapped option is the spoken answer, with no clip in between.
+                setAgentFollowUp(followUp);
+                setAgentSession({ transcript: answer, alternatives: [] });
+                setAgentRun((current) => current + 1);
+              }}
+              onRetry={(followUp) => {
+                setAgentFollowUp(followUp ?? null);
+                setAgentSession(null);
+                setAttempt((current) => current + 1);
+                setPhase('listening');
+              }}
+              onClose={() => router.back()}
+            />
+          ) : phase === 'thinking' ? (
+            <View
+              style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}
+            >
+              <VoiceMicOrb working />
+              <Text variant="heading">{t.voice.thinking}</Text>
+            </View>
+          ) : phase === 'review' ? (
+            <View style={{ gap: theme.spacing.md }}>
+              {/* Confirmation, not an edit form. Each expense reads as a quiet
                 summary line — what we heard, and the amount — inside one grouped
                 card, the way a receipt lists what it charged. Tapping a line opens
                 it to correct the amount or the note; it is closed again by
                 default. The parser is not put on trial the moment you land here. */}
-            {amountQuestion ? (
-              <AmountChooser
-                question={amountQuestion.question}
-                onAnswer={answerAmount}
-                theme={theme}
-              />
-            ) : currencyQuestion ? (
-              <AmountChooser question={currencyQuestion} onAnswer={answerCurrency} theme={theme} />
-            ) : null}
-            <Card padded={false} style={{ overflow: 'hidden' }}>
-              {drafts.map((draft, index) => (
-                <View key={draft.key}>
-                  {index > 0 ? <Divider /> : null}
-                  <DraftRow
-                    draft={draft}
-                    // The currency the row shows is the one Save will persist:
-                    // the spoken one, else the group's, else the default.
-                    currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
-                    onEdit={editDraft}
-                    onRemove={removeDraft}
-                    fallbackNote={t.voice.anExpense}
-                    editLabel={t.common.edit}
-                    doneLabel={t.common.done}
-                    removeLabel={t.captures.delete}
-                    amountLabel={t.captures.amount}
-                    noteLabel={t.captures.description}
-                    notePlaceholder={t.captures.descriptionPlaceholder}
-                    theme={theme}
-                  />
-                </View>
-              ))}
-            </Card>
+              {amountQuestion ? (
+                <AmountChooser
+                  question={amountQuestion.question}
+                  onAnswer={answerAmount}
+                  theme={theme}
+                />
+              ) : currencyQuestion ? (
+                <AmountChooser
+                  question={currencyQuestion}
+                  onAnswer={answerCurrency}
+                  theme={theme}
+                />
+              ) : null}
+              <Card padded={false} style={{ overflow: 'hidden' }}>
+                {drafts.map((draft, index) => (
+                  <View key={draft.key}>
+                    {index > 0 ? <Divider /> : null}
+                    <DraftRow
+                      draft={draft}
+                      // The currency the row shows is the one Save will persist:
+                      // the spoken one, else the group's, else the default.
+                      currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
+                      onEdit={editDraft}
+                      onRemove={removeDraft}
+                      fallbackNote={t.voice.anExpense}
+                      editLabel={t.common.edit}
+                      doneLabel={t.common.done}
+                      removeLabel={t.captures.delete}
+                      amountLabel={t.captures.amount}
+                      noteLabel={t.captures.description}
+                      notePlaceholder={t.captures.descriptionPlaceholder}
+                      theme={theme}
+                    />
+                  </View>
+                ))}
+              </Card>
 
-            {/* Speak again and append — another expense (or several) onto the
+              {/* Speak again and append — another expense (or several) onto the
                 batch, keeping the ones already here and the chosen destination.
                 The one and only "add another"; the header carries no rival mic.
                 A slim inline text-button, not a tall box: it is one more line
                 under the list, not a second card competing with it. */}
-            <Pressable
-              onPress={startAddMore}
-              accessibilityRole="button"
-              accessibilityLabel={t.voice.addMore}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: theme.spacing.xs,
-                paddingVertical: theme.spacing.sm,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
-              <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                {t.voice.addMore}
-              </Text>
-            </Pressable>
+              <Pressable
+                onPress={startAddMore}
+                accessibilityRole="button"
+                accessibilityLabel={t.voice.addMore}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing.xs,
+                  paddingVertical: theme.spacing.sm,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
+                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                  {t.voice.addMore}
+                </Text>
+              </Pressable>
 
-            {/* A group that was named but is not clearly one of theirs: say so and
+              {/* A group that was named but is not clearly one of theirs: say so and
                 offer the candidates, instead of filing it somewhere on a guess. */}
-            {groupPending && intent ? (
-              <Callout tone="warning">
-                {intent.groupSource === 'ambiguous'
-                  ? t.voice.whichGroup
-                  : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
-              </Callout>
-            ) : null}
-            {groupPending && intent?.groupSource === 'ambiguous' ? (
-              <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
-                {(intent.groupHint?.candidates ?? []).map((candidate) => (
-                  <Pressable
-                    key={candidate.id}
-                    onPress={() => chooseGroup(candidate.id)}
-                    accessibilityRole="button"
-                    style={({ pressed }) => ({
-                      paddingVertical: theme.spacing.xs,
-                      paddingHorizontal: theme.spacing.md,
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: theme.color.warning,
-                      opacity: pressed ? 0.6 : 1,
-                    })}
-                  >
-                    <Text variant="caption" style={{ fontWeight: '600' }}>
-                      {candidate.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </Row>
-            ) : null}
+              {groupPending && intent ? (
+                <Callout tone="warning">
+                  {intent.groupSource === 'ambiguous'
+                    ? t.voice.whichGroup
+                    : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
+                </Callout>
+              ) : null}
+              {groupPending && intent?.groupSource === 'ambiguous' ? (
+                <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
+                  {(intent.groupHint?.candidates ?? []).map((candidate) => (
+                    <Pressable
+                      key={candidate.id}
+                      onPress={() => chooseGroup(candidate.id)}
+                      accessibilityRole="button"
+                      style={({ pressed }) => ({
+                        paddingVertical: theme.spacing.xs,
+                        paddingHorizontal: theme.spacing.md,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: theme.color.warning,
+                        opacity: pressed ? 0.6 : 1,
+                      })}
+                    >
+                      <Text variant="caption" style={{ fontWeight: '600' }}>
+                        {candidate.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </Row>
+              ) : null}
 
-            {/* One opinionated destination row: "Save to · <where> · Change",
+              {/* One opinionated destination row: "Save to · <where> · Change",
                 all on one line. No chips, no badges, no tabs out here — the
                 taxonomy of groups and people only appears once the reader taps
                 Change and the picker sheet opens. The answer to "where does
                 this go?" is one line, not a card's worth of it. */}
-            <Card
-              padded={false}
-              style={{
-                overflow: 'hidden',
-                ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
-              }}
-            >
-              <Pressable
-                onPress={() => setPickerOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.sm,
-                  paddingVertical: theme.spacing.sm,
-                  paddingHorizontal: theme.spacing.md,
-                  opacity: pressed ? 0.6 : 1,
-                })}
+              <Card
+                padded={false}
+                style={{
+                  overflow: 'hidden',
+                  ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
+                }}
               >
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
+                <Pressable
+                  onPress={() => setPickerOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme.color.buttonPrimary,
-                  }}
+                    gap: theme.spacing.sm,
+                    paddingVertical: theme.spacing.sm,
+                    paddingHorizontal: theme.spacing.md,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
                 >
-                  {current.emoji ? (
-                    <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
-                  ) : (
-                    <Ionicons name={current.icon} size={iconSize.xs} color={theme.color.onBrand} />
-                  )}
-                </View>
-                <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
-                  <Text tone="muted">{t.voice.saveTo}</Text>
-                  <Text tone="faint"> · </Text>
-                  <Text style={{ fontWeight: '600' }}>{current.label}</Text>
-                </Text>
-                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                  {t.voice.change}
-                </Text>
-              </Pressable>
-            </Card>
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.buttonPrimary,
+                    }}
+                  >
+                    {current.emoji ? (
+                      <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
+                    ) : (
+                      <Ionicons
+                        name={current.icon}
+                        size={iconSize.xs}
+                        color={theme.color.onBrand}
+                      />
+                    )}
+                  </View>
+                  <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
+                    <Text tone="muted">{t.voice.saveTo}</Text>
+                    <Text tone="faint"> · </Text>
+                    <Text style={{ fontWeight: '600' }}>{current.label}</Text>
+                  </Text>
+                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                    {t.voice.change}
+                  </Text>
+                </Pressable>
+              </Card>
 
-            {/* What was understood about who paid and who shares: one compact card,
+              {/* What was understood about who paid and who shares: one compact card,
                 each line tappable to correct. A name nobody matched shows as a
                 question, never a default, and holds Save until it is answered. */}
-            {who ? (
-              <WhoCard
-                who={who}
-                members={targetMembers}
-                currency={destCurrency ?? dc}
-                onOpen={() => setWhoOpen(true)}
-                onPick={pickName}
-                t={t}
-                theme={theme}
-              />
-            ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
-              <Callout tone={payerElsewhere ? 'warning' : 'info'}>
-                {payerElsewhere
-                  ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
-                  : t.voice.needGroupForSplit}
-              </Callout>
-            ) : null}
+              {who ? (
+                <WhoCard
+                  who={who}
+                  members={targetMembers}
+                  currency={destCurrency ?? dc}
+                  onOpen={() => setWhoOpen(true)}
+                  onPick={pickName}
+                  t={t}
+                  theme={theme}
+                />
+              ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
+                <Callout tone={payerElsewhere ? 'warning' : 'info'}>
+                  {payerElsewhere
+                    ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
+                    : t.voice.needGroupForSplit}
+                </Callout>
+              ) : null}
 
-            {/* One place for the whole batch (A43) — read once when the review
+              {/* One place for the whole batch (A43) — read once when the review
                 opens and pinned by default; the reader can clear or move it. It
                 rides onto every expense saved from this review. Compact: one
                 line until tapped, the way the expense screen's own Location row
                 folds its map away. */}
-            <LocationField
-              value={location}
-              onChange={handleLocationChange}
-              busy={locating}
-              compact
-            />
-          </View>
-        ) : phase === 'committing' ? (
-          // The Undo window. A confident command is about to write itself; the
-          // banner says what and where, a spinner marks the wait, and Undo is the
-          // one escape — no other choice competes with it here.
-          <View
-            style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
-          >
-            {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
-            <Text variant="title" style={{ textAlign: 'center' }}>
-              {autoBanner?.label ?? ''}
-            </Text>
-            {autoBanner?.needsConfirm ? (
-              <Button
-                label={t.voice.autoConfirm}
-                onPress={() => runAutoCommit(autoBanner.fallback)}
+              <LocationField
+                value={location}
+                onChange={handleLocationChange}
+                busy={locating}
+                compact
               />
-            ) : null}
-            {/* Gone once the write has started (Confirm pressed, or the timer
+            </View>
+          ) : phase === 'committing' ? (
+            // The Undo window. A confident command is about to write itself; the
+            // banner says what and where, a spinner marks the wait, and Undo is the
+            // one escape — no other choice competes with it here.
+            <View
+              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
+            >
+              {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
+              <Text variant="title" style={{ textAlign: 'center' }}>
+                {autoBanner?.label ?? ''}
+              </Text>
+              {autoBanner?.needsConfirm ? (
+                <Button
+                  label={t.voice.autoConfirm}
+                  onPress={() => runAutoCommit(autoBanner.fallback)}
+                />
+              ) : null}
+              {/* Gone once the write has started (Confirm pressed, or the timer
                 fired): an Undo then would reset the screen while the save still
                 lands. */}
-            {autoBanner ? (
-              <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
-            ) : null}
-          </View>
-        ) : phase === 'answer' ? (
-          // A read-only answer to a spoken balance question. One line, and a mic
-          // to ask another — nothing to save, nothing to undo.
-          <View
-            style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
-          >
-            {(() => {
-              const line = answerLine();
-              return 'loading' in line ? (
-                <ActivityIndicator color={theme.color.brand} />
-              ) : (
-                <Text variant="title" style={{ textAlign: 'center' }}>
-                  {line.text}
-                </Text>
-              );
-            })()}
-            <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
-          </View>
-        ) : (
-          // Listening — the mic panel owns the whole capture surface, the miss
-          // included. A heard-but-amountless try comes back as `missed`; the mic
-          // is the retry, and tapping it (via `onListen`) clears the miss. No
-          // warning banner and no separate button stacked around it.
-          <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
-            <VoiceMicPanel
-              key={attempt}
-              onDone={handleTranscript}
-              streamLive={agentOn && streamsToCloud}
-              agentReady={agentReady}
-              // Once the server has answered, that answer stands (a "not Pro"
-              // needs no consent read); before it, the phone's last answer.
-              agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
-              cloudConsent={agentServerOn ? cloudConsent : 'granted'}
-              onEngine={setEngine}
-              groupId={launchGroupId}
-              hints={hints}
-              groupNames={groupNames}
-              missed={noAmount}
-              autoStart={!noAmount}
-              endSignal={hold.ended}
-              onEndConsumed={() => pushToTalk.take()}
-              onListen={() => {
-                // A capture the reader actually started — mark it live so its
-                // transcript is accepted (and a dismissed one's is not).
-                captureActive.current = true;
-                heardFromLink.current = false;
-                setAgentQuotaNote(false);
-                setNoAmount(false);
-              }}
-            />
-            {/* Only while a finger is actually on the bar's mic. It says the one
+              {autoBanner ? (
+                <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
+              ) : null}
+            </View>
+          ) : phase === 'answer' ? (
+            // A read-only answer to a spoken balance question. One line, and a mic
+            // to ask another — nothing to save, nothing to undo.
+            <View
+              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
+            >
+              {(() => {
+                const line = answerLine();
+                return 'loading' in line ? (
+                  <ActivityIndicator color={theme.color.brand} />
+                ) : (
+                  <Text variant="title" style={{ textAlign: 'center' }}>
+                    {line.text}
+                  </Text>
+                );
+              })()}
+              <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
+            </View>
+          ) : (
+            // Listening — the mic panel owns the whole capture surface, the miss
+            // included. A heard-but-amountless try comes back as `missed`; the mic
+            // is the retry, and tapping it (via `onListen`) clears the miss. No
+            // warning banner and no separate button stacked around it.
+            <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+              <VoiceMicPanel
+                key={attempt}
+                onDone={handleTranscript}
+                streamLive={agentOn && streamsToCloud}
+                agentReady={agentReady}
+                // Once the server has answered, that answer stands (a "not Pro"
+                // needs no consent read); before it, the phone's last answer.
+                agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
+                cloudConsent={agentServerOn ? cloudConsent : 'granted'}
+                onEngine={setEngine}
+                groupId={launchGroupId}
+                hints={hints}
+                groupNames={groupNames}
+                missed={noAmount}
+                autoStart={!noAmount}
+                endSignal={hold.ended}
+                onEndConsumed={() => pushToTalk.take()}
+                onListen={() => {
+                  // A capture the reader actually started — mark it live so its
+                  // transcript is accepted (and a dismissed one's is not).
+                  captureActive.current = true;
+                  heardFromLink.current = false;
+                  setAgentQuotaNote(false);
+                  setNoAmount(false);
+                }}
+              />
+              {/* Only while a finger is actually on the bar's mic. It says the one
                 thing a held button has to say and the tapped one does not: there
                 is a way out that is not "finish the sentence". The chevron points
                 the way the finger should go, which is the way the language runs
                 backwards — leftwards in English, rightwards in Arabic. */}
-            {hold.holding ? (
-              <Row gap={theme.spacing.xs} style={{ justifyContent: 'center' }}>
-                <Ionicons
-                  name={isRtl() ? 'chevron-forward' : 'chevron-back'}
-                  size={iconSize.sm}
-                  color={theme.color.textMuted}
-                />
-                <Text variant="caption" tone="muted">
-                  {t.voice.slideToCancel}
-                </Text>
-              </Row>
-            ) : null}
-          </View>
-        )}
-      </ScrollView>
+              {hold.holding ? (
+                <Row gap={theme.spacing.xs} style={{ justifyContent: 'center' }}>
+                  <Ionicons
+                    name={isRtl() ? 'chevron-forward' : 'chevron-back'}
+                    size={iconSize.sm}
+                    color={theme.color.textMuted}
+                  />
+                  <Text variant="caption" tone="muted">
+                    {t.voice.slideToCancel}
+                  </Text>
+                </Row>
+              ) : null}
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Sticky action bar: the running total on the left, Save on the right —
           anchored to the foot so it is reachable no matter how the list grows,

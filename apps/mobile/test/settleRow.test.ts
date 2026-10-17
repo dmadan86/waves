@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   leftWithBalance,
+  NUDGE_WINDOW_MS,
+  nudgedWithinWindow,
   OwedStatus,
   owedRowModel,
   parseRemindChannel,
@@ -138,5 +140,42 @@ describe('leftWithBalance', () => {
   });
   it('is zero when nobody left with a balance', () => {
     expect(leftWithBalance(members, new Map())).toBe(0);
+  });
+});
+
+describe('nudge availability', () => {
+  const now = Date.parse('2026-10-17T12:00:00Z');
+  it('is allowed with no earlier nudge or an unreadable time', () => {
+    expect(nudgedWithinWindow(null, now)).toBe(false);
+    expect(nudgedWithinWindow(undefined, now)).toBe(false);
+    expect(nudgedWithinWindow('not a date', now)).toBe(false);
+  });
+  it('is blocked inside a day of the last nudge, allowed from exactly a day on', () => {
+    expect(nudgedWithinWindow(new Date(now - 60_000).toISOString(), now)).toBe(true);
+    expect(nudgedWithinWindow(new Date(now - NUDGE_WINDOW_MS + 1).toISOString(), now)).toBe(true);
+    expect(nudgedWithinWindow(new Date(now - NUDGE_WINDOW_MS).toISOString(), now)).toBe(false);
+  });
+  it('disables Waves with the nudged-today reason, last, for a member on Waves', () => {
+    const options = remindOptions({
+      joined: true,
+      hasPhone: false,
+      lastUsed: RemindChannel.Waves,
+      nudgedToday: true,
+    });
+    const waves = options[options.length - 1];
+    expect(waves.channel).toBe(RemindChannel.Waves);
+    expect(waves.enabled).toBe(false);
+    expect(waves.reason).toBe(RemindUnavailable.NudgedToday);
+    expect(waves.lastUsed).toBe(false);
+    expect(options.slice(0, -1).every((o) => o.enabled)).toBe(true);
+  });
+  it('keeps not-on-Waves as the reason when both apply', () => {
+    const waves = remindOptions({
+      joined: false,
+      hasPhone: false,
+      lastUsed: null,
+      nudgedToday: true,
+    }).find((o) => o.channel === RemindChannel.Waves);
+    expect(waves?.reason).toBe(RemindUnavailable.NotOnWaves);
   });
 });

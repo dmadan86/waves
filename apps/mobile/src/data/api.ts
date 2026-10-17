@@ -1871,6 +1871,19 @@ export async function nudgeToSettle(input: {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * When the caller last nudged each person in a group, by member id. Read-only
+ * and advisory: it lets the Remind sheet show the one-a-day limit before the
+ * tap. `waves_nudge_to_settle` still enforces it.
+ */
+export async function fetchMyNudgeTimes(groupId: string): Promise<Map<string, string>> {
+  if (isDemoGroupId(groupId)) return new Map();
+  const { data, error } = await backend.rpc('waves_my_nudge_times', { p_group_id: groupId });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as { to_member_id: string; last_nudged_at: string }[];
+  return new Map(rows.map((row) => [row.to_member_id, row.last_nudged_at]));
+}
+
 // ─────────────────────────────────────────────── where the money went ──
 
 /**

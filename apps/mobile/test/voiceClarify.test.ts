@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { clarifyFollowUp, clarifyOptionViews } from '../src/lib/voiceClarifyPure';
+import { clarifyFollowUp, clarifyOptionViews, typedFollowUp } from '../src/lib/voiceClarifyPure';
+
+describe('typedFollowUp', () => {
+  it('builds the same payload a spoken answer does, from trimmed text', () => {
+    expect(typedFollowUp('  the  500 one ', 'add 500', 'Which one?')).toEqual({
+      transcript: 'add 500',
+      question: 'Which one?',
+      answer: 'the 500 one',
+    });
+  });
+  it('sends nothing for blank text', () => {
+    expect(typedFollowUp('   ', 'add 500', 'Which one?')).toBeNull();
+  });
+});
 
 const two = [
   { label: '₹500', detail: 'Breakfast', icon: 'food', answer: '500 rupees for Breakfast' },
