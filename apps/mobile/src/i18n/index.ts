@@ -3921,6 +3921,7 @@ export interface UiStrings {
     errFreePhoto: string;
     errNothingFound: string;
     errPdfNotPdf: string;
+    errPdfTooManyPages: string;
     dateAmbiguous: string;
     orderDmy: string;
     orderMdy: string;
@@ -8435,6 +8436,7 @@ const en: UiStrings = {
     errFreePhoto: 'Reading a screenshot comes with Waves Pro.',
     errNothingFound: 'No transactions were found in that file.',
     errPdfNotPdf: 'That file is not a PDF.',
+    errPdfTooManyPages: 'That PDF has more than 60 pages. Try a shorter period.',
     dateAmbiguous:
       'Some dates in this file could be read as day/month or month/day. Waves used {order}. Check a few rows, or switch.',
     orderDmy: 'day/month',
@@ -13027,6 +13029,7 @@ const ta: UiStrings = {
     errFreePhoto: 'ஸ்கிரீன்ஷாட்டைப் படிப்பது Waves Pro-வுடன் வருகிறது.',
     errNothingFound: 'அந்த கோப்பில் பரிவர்த்தனைகள் எதுவும் கிடைக்கவில்லை.',
     errPdfNotPdf: 'அந்த கோப்பு PDF அல்ல.',
+    errPdfTooManyPages: 'அந்த PDF-இல் 60 பக்கங்களுக்கு மேல் உள்ளன. குறைந்த காலத்தை முயற்சிக்கவும்.',
     dateAmbiguous:
       'இந்தக் கோப்பில் சில தேதிகளை நாள்/மாதம் அல்லது மாதம்/நாள் என இரு விதமாகப் படிக்கலாம். Waves {order} எனப் படித்தது. சில வரிசைகளைச் சரிபார்க்கவும், அல்லது மாற்றவும்.',
     orderDmy: 'நாள்/மாதம்',
@@ -17562,6 +17565,7 @@ const hi: UiStrings = {
     errFreePhoto: 'स्क्रीनशॉट पढ़ना Waves Pro के साथ आता है।',
     errNothingFound: 'उस फ़ाइल में कोई लेनदेन नहीं मिला।',
     errPdfNotPdf: 'वह फ़ाइल PDF नहीं है।',
+    errPdfTooManyPages: 'उस PDF में 60 से ज़्यादा पन्ने हैं। कम अवधि आज़माएँ।',
     dateAmbiguous:
       'इस फ़ाइल की कुछ तारीखें दिन/महीना या महीना/दिन, दोनों तरह पढ़ी जा सकती हैं। Waves ने {order} इस्तेमाल किया। कुछ पंक्तियाँ जाँचें, या बदलें।',
     orderDmy: 'दिन/महीना',
@@ -22385,6 +22389,7 @@ const ar: UiStrings = {
     errFreePhoto: 'قراءة لقطة الشاشة تأتي مع Waves Pro.',
     errNothingFound: 'لم يُعثر على معاملات في هذا الملف.',
     errPdfNotPdf: 'هذا الملف ليس PDF.',
+    errPdfTooManyPages: 'يحتوي ملف PDF هذا على أكثر من 60 صفحة. جرّب فترة أقصر.',
     dateAmbiguous:
       'يمكن قراءة بعض التواريخ في هذا الملف كيوم/شهر أو شهر/يوم. استخدم Waves {order}. تحقق من بعض الصفوف أو بدّل.',
     orderDmy: 'يوم/شهر',

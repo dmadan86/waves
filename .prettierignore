@@ -24,3 +24,6 @@ apps/docs/docs/api/reference
 # undo that on every run — and the file is mostly a 99-point polyline that reads
 # better as the renderer lays it out than as one number per line.
 apps/mobile/assets/brand/wave-mark.json
+
+# Written by apps/mobile/scripts/build-pdf-reader.mjs: pdf.js inlined as one string.
+apps/mobile/src/lib/statementImport/pdfReaderHtml.generated.ts
