@@ -172,14 +172,21 @@ export type TableParseResult =
     }
   | { readonly ok: false; readonly reason: 'unknown_layout' | 'no_transactions' };
 
-const TRAILING_DRCR = /\s*(cr|dr)\.?$/i;
+/** Strip a trailing Cr/Dr marker by hand: linear, no backtracking on long whitespace runs. */
+export function stripDrCr(input: string): string {
+  let end = input.length;
+  if (input.charCodeAt(end - 1) === 46) end -= 1; // '.'
+  const tail = input.slice(Math.max(0, end - 2), end).toLowerCase();
+  if (tail !== 'cr' && tail !== 'dr') return input;
+  return input.slice(0, end - 2).trimEnd();
+}
 
 /** A balance cell: "1,234.50", "1,234.50 Cr", "1,234.50 Dr" (overdrawn). Signed minor units. */
 function readBalance(cell: string | undefined): string | null {
   const text = (cell ?? '').trim();
   if (text === '') return null;
   const overdrawn = /dr\.?$/i.test(text);
-  const parsed = parseLooseAmount(text.replace(TRAILING_DRCR, ''), 'INR', 'dot');
+  const parsed = parseLooseAmount(stripDrCr(text), 'INR', 'dot');
   if (!parsed.ok) return null;
   const minor = overdrawn ? -parsed.minor : parsed.minor;
   return minor.toString();
@@ -187,7 +194,7 @@ function readBalance(cell: string | undefined): string | null {
 
 /** An unsigned amount cell, or null when empty or unreadable. */
 function readAmount(cell: string | undefined): bigint | null {
-  const text = (cell ?? '').trim().replace(TRAILING_DRCR, '');
+  const text = stripDrCr((cell ?? '').trim());
   if (text === '' || /^[-–—]+$/.test(text)) return null;
   const parsed = parseLooseAmount(text, 'INR', 'dot');
   if (!parsed.ok) return null;
