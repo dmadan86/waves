@@ -383,6 +383,9 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
+          ...(parsed.clarify && parsed.clarifyOptions
+            ? { clarifyOptions: parsed.clarifyOptions }
+            : {}),
           quota: {
             used,
             limit: quota.limit,

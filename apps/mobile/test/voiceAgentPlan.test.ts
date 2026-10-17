@@ -236,18 +236,34 @@ describe('quotaLeft', () => {
     expect(quotaLeft({ used: 3, limit: 10, tier: 'free' })).toEqual({
       left: 7,
       limit: 10,
+      percent: 70,
       trial: false,
       until: null,
     });
     expect(quotaLeft({ used: 12, limit: 10, tier: 'free' })).toEqual({
       left: 0,
       limit: 10,
+      percent: 0,
       trial: false,
       until: null,
     });
     expect(
       quotaLeft({ used: 5, limit: 20, tier: 'free', trial: true, until: '2026-11-20T00:00:00Z' }),
-    ).toEqual({ left: 15, limit: 20, trial: true, until: '2026-11-20T00:00:00Z' });
+    ).toEqual({
+      left: 15,
+      limit: 20,
+      percent: 75,
+      trial: true,
+      until: '2026-11-20T00:00:00Z',
+    });
+  });
+
+  it('rounds the percentage down, and is never 0% while one command remains', () => {
+    expect(quotaLeft({ used: 24, limit: 100, tier: 'free' }).percent).toBe(76);
+    expect(quotaLeft({ used: 1, limit: 3, tier: 'free' }).percent).toBe(66);
+    expect(quotaLeft({ used: 99, limit: 1000, tier: 'pro' }).percent).toBe(90);
+    expect(quotaLeft({ used: 999, limit: 1000, tier: 'pro' }).percent).toBe(1);
+    expect(quotaLeft({ used: 100, limit: 100, tier: 'pro' }).percent).toBe(0);
   });
 });
 

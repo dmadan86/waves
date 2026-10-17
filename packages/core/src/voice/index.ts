@@ -18,6 +18,7 @@ export {
   VoiceAgentError,
   type VoiceAgentAction,
   type VoiceAgentRequest,
+  type VoiceClarifyOption,
   type VoiceAgentResponse,
   type VoiceSplitMode as VoiceAgentSplitMode,
   type VoiceSplitShare,
