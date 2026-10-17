@@ -156,6 +156,7 @@ import {
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
+import { isSmsDerived } from '@/lib/smsLocalDrafts';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { useSmsMessages } from '@/lib/smsMessages';
@@ -218,10 +219,7 @@ const CLOCK_TICK = 60_000;
  */
 
 function wasFound(capture: CaptureRow): boolean {
-  const parsed = capture.parsed;
-  return (
-    !!parsed && typeof parsed === 'object' && (parsed as { source?: unknown }).source === 'sms'
-  );
+  return isSmsDerived(capture.parsed);
 }
 
 /**
@@ -2222,6 +2220,11 @@ export default function CapturesScreen() {
               iPad, no tier of the API) there is only ever one thing this
               screen can be asked to do, so it gets the one button rather
               than a second that would open onto nothing. */}
+          <HeroRoundButton
+            icon="document-text-outline"
+            label={t.statementImport.title}
+            onPress={() => router.push('/captures/statement')}
+          />
           {smsReader ? (
             <>
               <HeroRoundButton

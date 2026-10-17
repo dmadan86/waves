@@ -107,6 +107,7 @@ describe('purposeFor', () => {
     ['abc.supabase.co', '/functions/v1/sync', 'sync'],
     ['abc.supabase.co', '/functions/v1/phone-verify', 'sign-in'],
     ['abc.supabase.co', '/functions/v1/receipt-parse', 'server-task'],
+    ['abc.supabase.co', '/functions/v1/parse-statement', 'server-task'],
     ['abc.supabase.co', '/functions/v1/anything-new', 'server-task'],
     ['db.example.com', '/rest/v1/groups', 'sync'],
     ['api.revenuecat.com', '/v1/subscribers/…', 'purchases'],
