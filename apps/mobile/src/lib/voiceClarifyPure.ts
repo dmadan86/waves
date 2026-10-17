@@ -55,3 +55,17 @@ export function clarifyFollowUp(
   if (!chosen) return null;
   return { transcript, question, answer: chosen.answer };
 }
+
+/**
+ * The follow-up a typed answer sends: the same `{transcript, question}` plus
+ * the answer the voice path would have produced, or null for blank input.
+ */
+export function typedFollowUp(
+  typed: string,
+  transcript: string,
+  question: string,
+): { transcript: string; question: string; answer: string } | null {
+  const answer = typed.replace(/\s+/g, ' ').trim();
+  if (!answer) return null;
+  return { transcript, question, answer };
+}
