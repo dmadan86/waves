@@ -41,6 +41,7 @@ import {
   materialiseSettlements,
   MutationKind,
   nextSortOrder,
+  pairBalances,
   openCaptures,
   openPlanItems,
   mutedGroupIds,
@@ -54,6 +55,8 @@ import {
   type ExpenseSnapshot,
   type MemberId,
   type MirrorCategoryTag,
+  type PairBalances,
+  type PairGroupInput,
   type SettlementSnapshot,
   type SettlementTransitionPayload,
   type Transfer,
@@ -116,6 +119,7 @@ import {
 import {
   aggregatePeopleBalances,
   countOthersInGroup,
+  personKeyOf,
   type PersonContribution,
 } from './peopleBalances';
 import { buildMergeCandidates, type MergeCandidate, type MergeableMember } from './mergePeople';
@@ -137,7 +141,7 @@ import {
   type RecentActivityRow,
 } from './recentActivity';
 import { useBlockedUsers } from './blocked';
-import { groupLabel, isGhost, isViewer, SettlementStatus } from './types';
+import { groupLabel, GroupType, isGhost, isViewer, SettlementStatus } from './types';
 import { timeOfDay, type TimelineEntry } from '@/lib/timeline';
 import type {
   ActivityRow,
@@ -1023,6 +1027,141 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
   }, [mirror, queue, profileId, demoActive]);
 
   return useLocalRead(rows);
+}
+
+/** One group you share with a person: what the pair screens draw about it. */
+export interface PairGroupMeta {
+  groupId: string;
+  /** The group's own name, or the member-derived label for an unnamed one. */
+  name: string;
+  coverEmoji: string | null;
+  type: GroupType;
+  photoPath: string | null;
+  memberCount: number;
+  startDate: string | null;
+  endDate: string | null;
+  simplify: boolean;
+  /** The other person's active member row here (falls back to any row of theirs). */
+  otherMemberId: string;
+  viewerMemberId: string;
+  /** What this group calls the other person, for a screen that has no profile yet. */
+  otherName: string;
+  /** Every row of them here is a guest added by name. */
+  otherIsGhost: boolean;
+}
+
+export interface PairView {
+  pair: PairBalances;
+  /** Every group you share with them, square or not, in the pair's order first. */
+  groups: PairGroupMeta[];
+}
+
+/**
+ * What one person owes you, group by group — the single source both the person
+ * screen and the Who-pays-whom screen draw from (`pairBalances` in core).
+ *
+ * Built from the same mirror and the same pairwise edges `usePeopleBalances`
+ * sums for the Friends list; a group with Simplify on additionally carries the
+ * plan its own ledger proposes, so the pair can be told the amount that group
+ * will actually ask for. The other person is every member row whose
+ * `personKeyOf` is `personKey` — a merged ghost has several.
+ */
+export function usePairBalances(profileId: string | null, personKey: string): LocalRead<PairView> {
+  const { mirror, queue } = useSync();
+  const demoActive = useDemoActive(profileId, false);
+
+  const view = useMemo<PairView>(() => {
+    const empty: PairView = { pair: { groups: [], totals: [] }, groups: [] };
+    if (!profileId || !personKey) return empty;
+    const mergeByMember = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
+    const inputs: PairGroupInput[] = [];
+    const metas = new Map<string, PairGroupMeta>();
+
+    const all: GroupRow[] = [
+      ...(materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[]),
+      ...(demoActive ? [demoGroupRow()] : []),
+    ];
+    for (const group of all) {
+      const isDemo = group.id === DEMO_GROUP_ID;
+      const members = isDemo
+        ? demoMembers(profileId)
+        : (materialiseMembers(mirror, queue, {
+            groupId: group.id,
+            includeLeft: true,
+          }) as unknown as MemberRow[]);
+      const me = members.find((member) => isViewer(member, profileId) && member.left_at === null);
+      if (!me) continue;
+      const others = members.filter(
+        (member) =>
+          member.id !== me.id &&
+          personKeyOf({
+            profileId: member.profile_id,
+            mergePersonId: mergeByMember.get(member.id)?.person_id ?? null,
+            memberId: member.id,
+          }) === personKey,
+      );
+      if (others.length === 0) continue;
+
+      const snapshots = (
+        isDemo
+          ? demoExpenses()
+          : (materialiseExpenses(mirror, queue, { groupId: group.id }) as unknown as ExpenseRow[])
+      )
+        .map((expense) => toSnapshot(expense as unknown as ExpenseRow))
+        .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+      const ledgerSnapshots = ledgerSnapshotsOf(snapshots, group);
+      const settlements = toSettlementSnapshots(
+        (isDemo
+          ? demoSettlements()
+          : (materialiseSettlements(mirror, queue, {
+              groupId: group.id,
+            }) as unknown as SettlementRow[])) as unknown as SettlementRow[],
+      );
+      const simplifies = group.simplify_debts === true;
+      inputs.push({
+        groupId: group.id,
+        simplify: simplifies,
+        viewerMemberId: me.id,
+        otherMemberIds: others.map((member) => member.id),
+        edges: computePairwiseBalances(ledgerSnapshots, settlements),
+        suggested: simplifies ? simplify(computeNetBalances(ledgerSnapshots, settlements)) : null,
+      });
+      metas.set(group.id, {
+        groupId: group.id,
+        name: groupLabel(group, members, profileId),
+        coverEmoji: group.cover_emoji,
+        type: group.type,
+        photoPath: group.photo_path,
+        memberCount: members.filter((member) => member.left_at === null).length,
+        startDate: group.start_date,
+        endDate: group.end_date,
+        simplify: simplifies,
+        otherMemberId: (others.find((member) => member.left_at === null) ?? others[0]).id,
+        viewerMemberId: me.id,
+        otherName: (() => {
+          const head = others.find((member) => member.left_at === null) ?? others[0];
+          return (
+            head?.profile?.display_name ??
+            mergeByMember.get(head?.id ?? '')?.display_name ??
+            head?.ghost_name ??
+            ''
+          );
+        })(),
+        otherIsGhost: others.every((member) => isGhost(member)),
+      });
+    }
+
+    const pair = pairBalances(inputs);
+    const ordered = [
+      ...pair.groups.flatMap((entry) => metas.get(entry.groupId) ?? []),
+      ...[...metas.values()].filter(
+        (meta) => !pair.groups.some((entry) => entry.groupId === meta.groupId),
+      ),
+    ];
+    return { pair, groups: ordered };
+  }, [mirror, queue, profileId, personKey, demoActive]);
+
+  return useLocalRead(view);
 }
 
 /**
