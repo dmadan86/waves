@@ -288,13 +288,14 @@ export interface UiStrings {
   members: string;
   /** "3 members" under a group. `members` on its own is a heading, not a count. */
   memberCount: PluralForms;
+  /** Header: members who left the group but still have a balance. */
+  memberLeftCount: string;
   /** Drafts waiting against a group — caught, not yet an expense. */
   draftCount: PluralForms;
   notJoinedYet: string;
   /** Reminding someone who is not on Waves (no account, so no push). */
   ghostRemind: {
     /** Status when we have their phone: the reminder goes by WhatsApp. */
-    statusWhatsApp: string;
     remindWhatsApp: string;
     remindEmail: string;
     /** {name} {amount} {group} {link} */
@@ -3529,6 +3530,7 @@ export interface UiStrings {
     settleYouOweTitle: string;
     settleStatusPending: string;
     settleTapReceived: string;
+    settleLeftOwes: string;
     settleTapPaid: string;
     settlePendingTitle: string;
     settlePendingBody: string;
@@ -5423,10 +5425,10 @@ const en: UiStrings = {
   settleConfirmTheyPay: 'You will be asked to confirm once they mark it paid.',
   members: 'Members',
   memberCount: { one: '{n} member', other: '{n} members' },
+  memberLeftCount: '{n} left',
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'Not on Waves yet',
   ghostRemind: {
-    statusWhatsApp: 'Not on Waves · reminders go by WhatsApp',
     remindWhatsApp: 'Remind on WhatsApp',
     remindEmail: 'Remind by email',
     message:
@@ -8001,6 +8003,7 @@ const en: UiStrings = {
     settleYouOweTitle: 'People you owe',
     settleStatusPending: 'pending',
     settleTapReceived: 'Tap to mark received',
+    settleLeftOwes: 'Left the group · still owes you',
     settleTapPaid: 'Tap to mark paid',
     settlePendingTitle: 'Payment pending',
     settlePendingBody: 'This payment is already marked and waiting to be confirmed.',
@@ -9828,10 +9831,10 @@ const ta: UiStrings = {
     'அவர் செலுத்தியதாகக் குறித்ததும் நீங்கள் உறுதிப்படுத்தக் கேட்கப்படுவீர்கள்.',
   members: 'உறுப்பினர்கள்',
   memberCount: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+  memberLeftCount: '{n} வெளியேறினர்',
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'இன்னும் Waves-ல் இல்லை',
   ghostRemind: {
-    statusWhatsApp: 'Waves-ல் இல்லை · நினைவூட்டல் WhatsApp-ல்',
     remindWhatsApp: 'WhatsApp-ல் நினைவூட்டு',
     remindEmail: 'மின்னஞ்சலில் நினைவூட்டு',
     message:
@@ -12501,6 +12504,7 @@ const ta: UiStrings = {
     settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
     settleStatusPending: 'நிலுவையில்',
     settleTapReceived: 'தட்டி: பெற்றது',
+    settleLeftOwes: 'குழுவிலிருந்து வெளியேறினார் · இன்னும் தர வேண்டும்',
     settleTapPaid: 'தட்டி: செலுத்தியது',
     settlePendingTitle: 'கட்டணம் நிலுவையில்',
     settlePendingBody:
@@ -14404,10 +14408,10 @@ const hi: UiStrings = {
   settleConfirmTheyPay: 'जब वे इसे चुकाया हुआ चिह्नित करेंगे, तब आपसे पुष्टि माँगी जाएगी।',
   members: 'सदस्य',
   memberCount: { one: '{n} सदस्य', other: '{n} सदस्य' },
+  memberLeftCount: '{n} छोड़ चुके',
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'अभी Waves पर नहीं',
   ghostRemind: {
-    statusWhatsApp: 'Waves पर नहीं · रिमाइंडर WhatsApp से जाएगा',
     remindWhatsApp: 'WhatsApp पर याद दिलाएँ',
     remindEmail: 'ईमेल से याद दिलाएँ',
     message:
@@ -16995,6 +16999,7 @@ const hi: UiStrings = {
     settleYouOweTitle: 'जिन्हें आपको चुकाना है',
     settleStatusPending: 'लंबित',
     settleTapReceived: 'टैप करें: मिला',
+    settleLeftOwes: 'ग्रुप छोड़ा · अब भी आपको देना है',
     settleTapPaid: 'टैप करें: चुकाया',
     settlePendingTitle: 'भुगतान लंबित है',
     settlePendingBody: 'यह भुगतान पहले ही दर्ज हो चुका है और पुष्टि की प्रतीक्षा में है।',
@@ -18834,10 +18839,10 @@ const ar: UiStrings = {
     many: '{n} عضوًا',
     other: '{n} عضو',
   },
+  memberLeftCount: '{n} غادروا',
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'ليس على Waves بعد',
   ghostRemind: {
-    statusWhatsApp: 'ليس على Waves · التذكير عبر واتساب',
     remindWhatsApp: 'ذكّر عبر واتساب',
     remindEmail: 'ذكّر بالبريد',
     message:
@@ -21677,6 +21682,7 @@ const ar: UiStrings = {
     settleYouOweTitle: 'من تدين لهم',
     settleStatusPending: 'قيد الانتظار',
     settleTapReceived: 'اضغط: تم الاستلام',
+    settleLeftOwes: 'غادر المجموعة · لا يزال مدينًا لك',
     settleTapPaid: 'اضغط: تم الدفع',
     settlePendingTitle: 'الدفع قيد الانتظار',
     settlePendingBody: 'تم تحديد هذا الدفع بالفعل وهو بانتظار التأكيد.',

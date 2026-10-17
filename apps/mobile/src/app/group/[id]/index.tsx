@@ -74,6 +74,7 @@ import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
+import { leftWithBalance } from '@/lib/settleRow';
 import { router } from '@/lib/navigation';
 
 import { CategoryBadge } from '@/components/Category';
@@ -1234,6 +1235,7 @@ export default function GroupScreen() {
           pendingForMe={pendingForMe}
           heroGradient={heroGradient}
           nameOf={nameOf}
+          leftOwing={leftWithBalance(everyone.data ?? [], ledger.balances)}
           onOpenMenu={() => setMenuOpen(true)}
         />
         {/* The faces of the page, pinned between the hero and the list.
