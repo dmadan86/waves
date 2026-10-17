@@ -100,6 +100,7 @@ export function GroupHero({
   pendingForMe,
   heroGradient,
   nameOf,
+  leftOwing = 0,
   onOpenMenu,
 }: {
   groupId: string;
@@ -116,6 +117,8 @@ export function GroupHero({
   pendingForMe: readonly SettlementRow[];
   heroGradient: readonly string[];
   nameOf: (memberId: string | null) => string;
+  /** Members who left but still have a balance: "2 members · 1 left". */
+  leftOwing?: number;
   onOpenMenu: () => void;
 }) {
   const theme = useTheme();
@@ -283,6 +286,7 @@ export function GroupHero({
                 style={{ color: ink, opacity: 0.9, flexShrink: 1, fontSize: 12 }}
               >
                 {plural(locale, members?.length ?? 0, t.memberCount)}
+                {leftOwing > 0 ? ` · ${fill(t.memberLeftCount, { n: leftOwing })}` : ''}
                 {` · ${startedOn}`}
               </Text>
             </Row>
