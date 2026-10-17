@@ -53,6 +53,13 @@ a Splitwise export and rebuild the group's history from it, and can read bank
 SMS messages on the phone to suggest expenses — read on the device, and confirmed
 by you before anything is recorded.
 
+Pro can also import a bank statement (a CSV, Excel, OFX or QFX file, or a
+screenshot of a page). The file is opened on the phone, account and card numbers
+are masked to their last four digits and your name and address are left out
+before anything is sent, and the remaining pages are read by an AI provider
+(OpenRouter, which only uses model providers that do not store the pages or train
+on them). Nothing is kept. Bank SMS messages still never leave the phone.
+
 ## Why this exists
 
 An export you cannot get out is not a record, it is a hostage. Waves keeps

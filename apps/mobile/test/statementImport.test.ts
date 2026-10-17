@@ -17,6 +17,7 @@ import {
 import type { CaptureRow } from '@/data/types';
 import { applyStatementPlan, draftDescription, draftPayload } from '@/lib/statementImport/drafts';
 import { looksLikePdf, statementFileKind } from '@/lib/statementImport/fileKind';
+import { otherOrder, statementRegion } from '@/lib/statementImport/region';
 import { PDF_READING_AVAILABLE, readPdfText } from '@/lib/statementImport/pdfReader';
 import { previewsLeft } from '@/lib/statementImport/previews';
 import {
@@ -53,6 +54,8 @@ describe('file kinds', () => {
     ['Screenshot_1.png', null, 'image'],
     ['download', 'application/pdf', 'pdf'],
     ['download', 'image/jpeg', 'image'],
+    ['export.QFX', null, 'ofx'],
+    ['export.ofx', 'application/x-ofx', 'ofx'],
     ['notes.docx', 'application/zip', null],
   ])('%s (%s) is %s', (name, mime, kind) => {
     expect(statementFileKind(name, mime)).toBe(kind);
@@ -107,7 +110,14 @@ describe('chunkPages', () => {
   });
 });
 
-const hints = { currency: 'INR', today: '2026-10-17', locale: 'en-IN', country: 'IN', bank: null };
+const hints = {
+  currency: 'INR',
+  today: '2026-10-17',
+  locale: 'en-IN',
+  country: 'IN',
+  bank: null,
+  dateOrder: 'dmy' as const,
+};
 const ok = (rows: StatementRow[], over: Partial<Extract<ParseCallResult, { kind: 'ok' }>> = {}) =>
   ({
     kind: 'ok',
@@ -405,5 +415,34 @@ describe('an unrecognised spreadsheet, as pages for the reader', () => {
 
   it('has nothing to send when no row has a date', () => {
     expect(tableToPages([['a', 'b', 'c']])).toEqual([]);
+  });
+});
+
+describe('statementRegion', () => {
+  it.each([
+    ['US', 'USD', 'mdy'],
+    ['GB', 'GBP', 'dmy'],
+    ['UK', 'GBP', 'dmy'],
+    ['AU', 'AUD', 'dmy'],
+    ['AE', 'AED', 'dmy'],
+    ['IN', 'INR', 'dmy'],
+    ['us', 'USD', 'mdy'],
+  ])('%s is %s, dates %s by default', (country, currency, order) => {
+    expect(statementRegion(country)).toMatchObject({ currency, dateOrder: order });
+  });
+
+  it('falls back to the phone\u2019s region, then to India, and never invents a country', () => {
+    expect(statementRegion(null, 'AU').currency).toBe('AUD');
+    expect(statementRegion(null, null)).toEqual({
+      country: null,
+      currency: 'INR',
+      dateOrder: 'dmy',
+    });
+    expect(statementRegion('', 'x').country).toBeNull();
+  });
+
+  it('flips the order for the switch', () => {
+    expect(otherOrder('dmy')).toBe('mdy');
+    expect(otherOrder('mdy')).toBe('dmy');
   });
 });

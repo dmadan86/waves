@@ -128,7 +128,9 @@ Direction: debit when money left the account (withdrawal, Dr, paid), credit when
 
 ref is the transaction's own reference when one is printed: a UPI reference or RRN (12 digits), an IMPS reference, a NEFT or RTGS UTR (letters then digits), or a cheque number. Return it as printed, without spaces. Leave it null when there is none; never invent one.
 
-Dates: return ISO YYYY-MM-DD. Indian statements are day-first. A two-digit year is 20xx. If a date cannot be read, return null and put what is printed in dateText.
+Dates: return ISO YYYY-MM-DD. The order of day and month differs by country (India, the UK and Australia write DD/MM/YYYY, the United States writes MM/DD/YYYY), and the hint dateOrder is only the person's country default. Decide from the statement itself first: a printed statement period or header ("Statement period 01/10/2026 to 31/10/2026"), a date whose first or second part is above 12, month names, or dates running in order down the page. If the statement settles it, follow the statement over the hint. If it cannot be settled, do not guess: return date null and put what is printed in dateText. A two-digit year is 20xx.
+
+Amounts: ignore currency symbols and prefixes ($, £, ₹, A$, US$, AUD), thousand separators (1,200.50 or 1,20,050.50) and spaces. A minus sign, parentheses, or a trailing DR mean debit; a plus sign or a trailing CR mean credit. Some statements have one signed amount column, others have separate debit and credit (or withdrawal and deposit, "money out" and "money in") columns, and some text extractions lose the columns: use whichever is there. Return currency as the ISO code the statement is in; a bare $ is the hint's currency unless the statement says otherwise.
 
 Keep scripts as printed: narrations in Tamil, Hindi, Arabic or any other script, often mixed with English, are returned in the script they are printed in.
 
@@ -159,6 +161,8 @@ interface Hints {
   locale: string | null;
   country: string | null;
   bank: string | null;
+  /** The country's usual day/month order: a default for the model, never a verdict. */
+  dateOrder: 'dmy' | 'mdy' | null;
 }
 
 type Page =
@@ -253,6 +257,7 @@ function parseHints(raw: unknown, nowMs: number): Hints {
     locale: text(hints.locale, 20),
     country: country ? country.toUpperCase() : null,
     bank: text(hints.bank, 40),
+    dateOrder: hints.dateOrder === 'dmy' || hints.dateOrder === 'mdy' ? hints.dateOrder : null,
   };
 }
 
@@ -270,6 +275,7 @@ function userContent(pages: readonly Page[], hints: Hints): unknown[] {
           locale: hints.locale,
           country: hints.country,
           bank: hints.bank,
+          dateOrder: hints.dateOrder,
         }),
       ].join('\n'),
     },
