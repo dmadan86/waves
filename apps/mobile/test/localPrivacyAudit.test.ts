@@ -83,7 +83,6 @@ describe('localPrivacyAudit', () => {
       pendingReceiptFiles: 0,
       cachedImageFiles: 0,
       pickedDocumentFiles: 0,
-      pickedDocumentFiles: 0,
     });
     exists.mockRestore();
   });
