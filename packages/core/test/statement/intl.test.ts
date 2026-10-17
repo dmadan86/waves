@@ -350,3 +350,13 @@ describe('outside India', () => {
     expect(plan.summary.added).toBe(5);
   });
 });
+
+describe('OFX with hostile input', () => {
+  it('stays linear on 100k unterminated blocks and whitespace runs', () => {
+    const started = performance.now();
+    parseOfx(`<OFX>${'<STMTTRN>'.repeat(20_000)}`);
+    parseOfx(`<OFX><LEDGERBAL>${'<LEDGERBAL>'.repeat(20_000)}`);
+    parseOfx(`<OFX><STMTTRN><DTPOSTED>${' \t'.repeat(50_000)}x</STMTTRN>`);
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+});

@@ -35,9 +35,35 @@ export function looksLikeOfx(text: string): boolean {
   return /OFXHEADER\s*:/i.test(head) || /<OFX[\s>]/i.test(head);
 }
 
+/** The text after the first `marker`, up to the next tag or line break. Scanned, not backtracked. */
+function textAfter(block: string, marker: RegExp): string {
+  const found = marker.exec(block);
+  if (!found) return '';
+  const rest = block.slice(found.index + found[0].length).trimStart();
+  const end = rest.search(/[<\r\n]/);
+  return (end < 0 ? rest : rest.slice(0, end)).trim();
+}
+
+/** Each `<STMTTRN>` block, ended by its close tag, the next block, or the end of the list. */
+function transactionBlocks(text: string): string[] {
+  const open = /<STMTTRN>/gi;
+  const stop = /<\/STMTTRN>|<\/BANKTRANLIST>|<STMTTRN>/gi;
+  const blocks: string[] = [];
+  let start: RegExpExecArray | null;
+  while ((start = open.exec(text)) !== null) {
+    stop.lastIndex = start.index + start[0].length;
+    const found = stop.exec(text);
+    if (!found) break;
+    const end =
+      found[0].toUpperCase() === '</STMTTRN>' ? found.index + found[0].length : found.index;
+    blocks.push(text.slice(start.index, end));
+    open.lastIndex = end;
+  }
+  return blocks;
+}
+
 function leaf(block: string, tag: string): string | null {
-  const match = new RegExp(`<${tag}>\\s*([^<\\r\\n]*)`, 'i').exec(block);
-  const value = match?.[1]?.trim();
+  const value = textAfter(block, new RegExp(`<${tag}>`, 'i'));
   return value ? decodeEntities(value) : null;
 }
 
@@ -68,9 +94,7 @@ export function parseOfx(text: string, fallbackCurrency: CurrencyCode = 'USD'): 
 
   const rows: StatementRow[] = [];
   let skipped = 0;
-  const blocks =
-    text.match(/<STMTTRN>[\s\S]*?(?:<\/STMTTRN>|(?=<STMTTRN>)|(?=<\/BANKTRANLIST>))/gi) ?? [];
-  for (const block of blocks) {
+  for (const block of transactionBlocks(text)) {
     const date = ofxDate(leaf(block, 'DTPOSTED'));
     const parsed = parseLooseAmount(leaf(block, 'TRNAMT') ?? '', currency, 'dot');
     if (!date || !parsed.ok) {
@@ -102,7 +126,8 @@ export function parseOfx(text: string, fallbackCurrency: CurrencyCode = 'USD'): 
   }
   if (rows.length === 0) return { ok: false, reason: 'no_transactions' };
 
-  const ledger = /<LEDGERBAL>[\s\S]*?<BALAMT>\s*([^<\r\n]*)/i.exec(text)?.[1] ?? '';
+  const ledgerAt = text.search(/<LEDGERBAL>/i);
+  const ledger = ledgerAt < 0 ? '' : textAfter(text.slice(ledgerAt), /<BALAMT>/i);
   const closing = parseLooseAmount(ledger, currency, 'dot');
   return {
     ok: true,
