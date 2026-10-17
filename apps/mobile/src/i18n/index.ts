@@ -1378,6 +1378,11 @@ export interface UiStrings {
     agentTryAgain: string;
     /** After the assistant asks something: speak the answer. */
     agentAnswer: string;
+    /** Clarification with tappable options: the primary button, and the way to answer by speaking. */
+    agentContinue: string;
+    agentTypeInstead: string;
+    /** Accessibility hint on an option row. */
+    agentOptionHint: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
     agentTrialQuotaLeft: string;
@@ -6300,10 +6305,13 @@ const en: UiStrings = {
     agentClarifyTitle: "I didn't quite get that",
     agentTryAgain: 'Try again',
     agentAnswer: 'Answer',
+    agentContinue: 'Continue',
+    agentTypeInstead: 'Type instead',
+    agentOptionHint: 'Double tap to choose this answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
-    agentQuotaLeft: '{left} of {limit} advanced commands left this month',
-    agentTrialQuotaLeft: '{left} of {limit} Pro trial commands left',
-    agentTrialQuotaLeftUntil: '{left} of {limit} trial voice commands left · until {date}',
+    agentQuotaLeft: '{percent}% of your advanced commands left this month',
+    agentTrialQuotaLeft: '{percent}% of your Pro trial commands left',
+    agentTrialQuotaLeftUntil: '{percent}% of your trial voice commands left · until {date}',
     confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
     confirmUnderstood: 'I understood this',
     confirmEditHint: 'You can edit if something looks wrong.',
@@ -10719,10 +10727,13 @@ const ta: UiStrings = {
     agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
     agentTryAgain: 'மீண்டும் முயல்',
     agentAnswer: 'பதில் சொல்',
+    agentContinue: 'தொடர்க',
+    agentTypeInstead: 'பதிலாக தட்டச்சு செய்',
+    agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
-    agentQuotaLeft: 'இந்த மாதம் {limit}-ல் {left} மேம்பட்ட கட்டளைகள் மீதம்',
-    agentTrialQuotaLeft: '{limit}-ல் {left} Pro சோதனைக் கட்டளைகள் மீதம்',
-    agentTrialQuotaLeftUntil: '{limit}-ல் {left} சோதனைக் குரல் கட்டளைகள் மீதம் · {date} வரை',
+    agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
+    agentTrialQuotaLeft: 'உங்கள் Pro சோதனைக் கட்டளைகளில் {percent}% மீதம்',
+    agentTrialQuotaLeftUntil: 'உங்கள் சோதனைக் குரல் கட்டளைகளில் {percent}% மீதம் · {date} வரை',
     confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
     confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
     confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
@@ -15276,10 +15287,13 @@ const hi: UiStrings = {
     agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
     agentTryAgain: 'फिर कोशिश करें',
     agentAnswer: 'जवाब दें',
+    agentContinue: 'जारी रखें',
+    agentTypeInstead: 'इसके बजाय टाइप करें',
+    agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
-    agentQuotaLeft: 'इस महीने {limit} में से {left} एडवांस्ड कमांड बाकी',
-    agentTrialQuotaLeft: '{limit} में से {left} Pro ट्रायल कमांड बाकी',
-    agentTrialQuotaLeftUntil: '{limit} में से {left} ट्रायल वॉइस कमांड बाकी · {date} तक',
+    agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
+    agentTrialQuotaLeft: 'आपके Pro ट्रायल कमांड का {percent}% बाकी',
+    agentTrialQuotaLeftUntil: 'आपके ट्रायल वॉइस कमांड का {percent}% बाकी · {date} तक',
     confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
     confirmUnderstood: 'मैंने यह समझा',
     confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
@@ -19760,10 +19774,13 @@ const ar: UiStrings = {
     agentClarifyTitle: 'لم أفهم تمامًا',
     agentTryAgain: 'حاول مرة أخرى',
     agentAnswer: 'أجب',
+    agentContinue: 'متابعة',
+    agentTypeInstead: 'اكتب بدلاً من ذلك',
+    agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
-    agentQuotaLeft: 'تبقّى {left} من {limit} أوامر متقدمة هذا الشهر',
-    agentTrialQuotaLeft: 'تبقّى {left} من {limit} أمرًا في تجربة Pro',
-    agentTrialQuotaLeftUntil: 'تبقّى {left} من {limit} أمرًا صوتيًا في التجربة · حتى {date}',
+    agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',
+    agentTrialQuotaLeft: 'تبقّى {percent}% من أوامر تجربة Pro',
+    agentTrialQuotaLeftUntil: 'تبقّى {percent}% من أوامرك الصوتية في التجربة · حتى {date}',
     confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
     confirmUnderstood: 'فهمتُ هذا',
     confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',

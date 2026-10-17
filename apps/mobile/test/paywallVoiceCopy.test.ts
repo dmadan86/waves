@@ -48,14 +48,13 @@ describe('Pro trial copy', () => {
       );
       expect(plural('en', 1, STRINGS_BY_LANGUAGE.en.upgradeTrial)).toBe('1 day of Pro left');
       expect(t.paywall.keepPro.length).toBeGreaterThan(2);
-      expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('15');
-      expect(fill(t.voice.agentTrialQuotaLeft, { left: '15', limit: '20' })).toContain('20');
+      expect(fill(t.voice.agentTrialQuotaLeft, { percent: '75' })).toContain('75%');
+      expect(fill(t.voice.agentQuotaLeft, { percent: '76' })).toContain('76%');
       const until = fill(t.voice.agentTrialQuotaLeftUntil, {
-        left: '15',
-        limit: '20',
+        percent: '75',
         date: '20 Nov',
       });
-      expect(until).toContain('15');
+      expect(until).toContain('75%');
       expect(until).toContain('20 Nov');
     });
   }

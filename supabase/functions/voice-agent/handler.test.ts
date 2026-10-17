@@ -229,6 +229,28 @@ describe('handleVoiceAgent', () => {
     expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_refund', expect.anything());
   });
 
+  it('passes clarification options through, and omits them when absent', async () => {
+    const options = [
+      { label: '₹500', detail: 'Breakfast', answer: '500 rupees for Breakfast' },
+      { label: '$3,030.30', detail: 'Goa (split in group)', answer: '3030.30 dollars' },
+    ];
+    const run = async (input: unknown) => {
+      const { deps } = makeDeps({
+        fetchImpl: (url) =>
+          url.includes('deepgram')
+            ? deepgram('I had 500 rupees for breakfast and Goa trip. Split, $3,030.30.')
+            : claude({ name: 'ask_clarification', input }),
+      });
+      return (await handleVoiceAgent(request(), deps)).json();
+    };
+    const withOptions = await run({ question: 'Which amount?', options });
+    expect(withOptions.clarify).toBe('Which amount?');
+    expect(withOptions.clarifyOptions).toEqual(options);
+    const plain = await run({ question: 'Which amount?' });
+    expect(plain.clarify).toBe('Which amount?');
+    expect('clarifyOptions' in plain).toBe(false);
+  });
+
   it('escalates to the stronger model when the first answer is invalid', async () => {
     let claudeCalls = 0;
     const { deps, fetchMock } = makeDeps({

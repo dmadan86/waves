@@ -104,7 +104,16 @@ describe('buildContext / contextText / keyterms', () => {
   it('builds distinct keyterms, current group first, capped by words', () => {
     const terms = keyterms(context());
     expect(terms[0]).toBe('Goa trip');
-    expect(terms).toEqual(['Goa trip', 'Madan', 'Anu', 'Ravi', 'Flat 4B', 'Sam']);
+    expect(terms).toEqual([
+      'Goa trip',
+      'Madan',
+      'Anu',
+      'Ravi',
+      'Flat 4B',
+      'Sam',
+      'rupees',
+      'split',
+    ]);
     const capped = keyterms(context(), 4);
     expect(capped.join(' ').split(' ').length).toBeLessThanOrEqual(4);
   });
@@ -315,5 +324,90 @@ describe('userMessage', () => {
     ).toBe(
       'Earlier command: 8000 for Renny\nYou asked: Which group?\nTheir answer:\nthe Renny group',
     );
+  });
+});
+
+describe('misheard amounts and tappable clarification', () => {
+  const heard = 'I had 500 rupees for breakfast and Goa trip. Split, $3,030.30.';
+
+  it('teaches the model the "<amount> for <thing> in <group>" shape and transcription artifacts', () => {
+    const prompt = systemPrompt(context());
+    expect(prompt).toContain('"<amount> for <thing> in/and/at <group name>"');
+    expect(prompt).toContain('ONE expense in that group');
+    expect(prompt).toContain('transcription artifact');
+    expect(prompt).toContain('head-counts');
+    expect(prompt).toContain('Ask only when it is genuinely ambiguous');
+    // The static block stays free of anything per-person.
+    expect(prompt).toContain('GROUP g-goa "Goa trip"');
+    expect(heard).toContain('$3,030.30');
+  });
+
+  it('accepts the one expense the model should return for that sentence', () => {
+    const r = parseToolCalls(
+      call(
+        'add_expense',
+        expense({
+          groupId: 'g-goa',
+          description: 'Breakfast',
+          amountMinor: '50000',
+          split: {
+            mode: 'equal',
+            shares: [{ memberId: 'm-me' }, { memberId: 'm-anu' }, { memberId: 'm-ravi' }],
+          },
+        }),
+      ),
+      context(),
+    );
+    expect(r).toMatchObject({
+      ok: true,
+      actions: [{ type: 'add_expense', groupId: 'g-goa', amountMinor: '50000', currency: 'INR' }],
+    });
+  });
+
+  it('keeps 2-4 valid options with a clarification, trimming and ignoring unknown icons', () => {
+    const r = parseToolCalls(
+      call('ask_clarification', {
+        question: 'Which amount should I use?',
+        options: [
+          {
+            label: ' ₹500 ',
+            detail: 'Breakfast',
+            icon: 'food',
+            answer: '500 rupees for Breakfast',
+          },
+          {
+            label: '$3,030.30',
+            detail: 'Goa trip (split in group)',
+            icon: 'bogus',
+            answer: '3030.30 dollars',
+          },
+        ],
+      }),
+      context(),
+    );
+    expect(r).toEqual({
+      ok: true,
+      actions: [],
+      clarify: 'Which amount should I use?',
+      clarifyOptions: [
+        { label: '₹500', detail: 'Breakfast', icon: 'food', answer: '500 rupees for Breakfast' },
+        { label: '$3,030.30', detail: 'Goa trip (split in group)', answer: '3030.30 dollars' },
+      ],
+    });
+  });
+
+  it('stays backwards compatible and drops bad option lists instead of failing', () => {
+    const opt = (n: number) => ({ label: `L${n}`, answer: `A${n}` });
+    const ask = (options?: unknown) =>
+      parseToolCalls(call('ask_clarification', { question: 'Which?', options }), context());
+    expect(ask()).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    expect(ask([opt(1)])).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    expect(ask([1, 2, 3, 4, 5].map(opt))).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    expect(ask([opt(1), { label: 'x' }])).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    expect(ask([opt(1), opt(1)])).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    expect(ask('nope')).toEqual({ ok: true, actions: [], clarify: 'Which?' });
+    const long = ask([{ label: 'x'.repeat(100), answer: 'y'.repeat(500) }, opt(2)]);
+    expect(long).toMatchObject({ ok: true });
+    if (long.ok) expect(long.clarifyOptions?.[0]?.label).toHaveLength(40);
   });
 });

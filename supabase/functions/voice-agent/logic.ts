@@ -12,6 +12,7 @@
 import {
   minorUnitExponent,
   type VoiceAgentAction,
+  type VoiceClarifyOption,
   type VoiceSplitMode,
   type VoiceSplitShare,
 } from '../_shared/core.js';
@@ -25,6 +26,17 @@ const MAX_MEMBERS_PER_GROUP = 40;
 export const MAX_KEYTERM_WORDS = 100;
 
 export const GROUP_TYPES = ['trip', 'home', 'couple', 'friends', 'event', 'other'] as const;
+export const CLARIFY_ICONS = [
+  'amount',
+  'food',
+  'trip',
+  'group',
+  'person',
+  'date',
+  'other',
+] as const;
+const MIN_OPTIONS = 2;
+const MAX_OPTIONS = 4;
 const SPLIT_MODES: readonly VoiceSplitMode[] = ['equal', 'exact', 'percent', 'shares'];
 
 // ── context ────────────────────────────────────────────────────────────────
@@ -119,6 +131,8 @@ export function buildContext(input: {
   return { groups, currentGroupId: current, today: input.today };
 }
 
+const FILLER_KEYTERMS = ['rupees', 'split'] as const;
+
 /** Group and member names to bias transcription, capped at about 100 words. */
 export function keyterms(context: VoiceContext, maxWords = MAX_KEYTERM_WORDS): string[] {
   const seen = new Set<string>();
@@ -143,6 +157,9 @@ export function keyterms(context: VoiceContext, maxWords = MAX_KEYTERM_WORDS): s
     add(g.name);
     for (const m of g.members) add(m.name);
   }
+  // Words the transcript tends to mangle into amounts ("split three" ->
+  // "$3,030.30") or a foreign currency. Last, so names win under the cap.
+  for (const word of FILLER_KEYTERMS) add(word);
   return terms;
 }
 
@@ -191,6 +208,9 @@ Rules:
 - Pick the group yourself whenever you can: if everyone named is in exactly one group, use it; if several, prefer the one-to-one group with that person, else the CURRENT group. Ask which group only when the people named are in several groups and nothing else decides it.
 - "<amount> for <person>" (e.g. "8000 for Renny") means the speaker paid and that person owes all of it: split.shares lists only that person.
 - Use add_personal only when no other person is named and the speaker says it is just for them, or they have no groups at all.
+- "<amount> for <thing> in/and/at <group name>" (e.g. "500 rupees for breakfast in Goa trip") is ONE expense in that group: the amount belongs to the thing, the group name only says where. Never read a group name as a second item or a second amount.
+- The transcript comes from speech recognition and can be wrong. A number right after "split" or similar filler, or a figure in a currency the speaker never named that does not fit the group's currency (e.g. "$3,030.30" after "Split,"), is most likely a transcription artifact of something like "split three ways" or "split equally". Prefer the amount spoken with a currency word that matches the group ("500 rupees" in a rupee group) and ignore the artifact. "split N ways", "split between N" and "split, 3" are head-counts: hints about who shares it, never amounts.
+- Ask only when it is genuinely ambiguous after the rules above. When you do ask which of several concrete values, groups or people was meant, also pass options (2-4): label is the value itself, detail says what it is, answer is the words to send back so the choice is complete on its own (e.g. "500 rupees for Breakfast"). Leave options out for open questions.
 - If the message includes an earlier command and your question about it, the new words answer that question: complete the earlier command with them.`;
 
 /** Everything per-request: today's date, the caller's groups, members and balances. */
@@ -335,7 +355,30 @@ export const TOOLS = [
     description: 'Ask one short question when the command is ambiguous. Use instead of guessing.',
     input_schema: {
       type: 'object',
-      properties: { question: str('The question') },
+      properties: {
+        question: str('The question'),
+        options: {
+          type: 'array',
+          description:
+            '2-4 tappable answers when asking which of several concrete values, groups or people. Omit for open questions.',
+          minItems: 2,
+          maxItems: 4,
+          items: {
+            type: 'object',
+            properties: {
+              label: str('Bold line: the amount, group or person, e.g. ₹500'),
+              detail: str('Secondary line, e.g. Breakfast or Goa trip (split in group)'),
+              icon: {
+                type: 'string',
+                enum: [...CLARIFY_ICONS],
+                description: 'Icon hint',
+              },
+              answer: str('Text sent back as the answer, a complete reply on its own'),
+            },
+            required: ['label', 'answer'],
+          },
+        },
+      },
       required: ['question'],
     },
   },
@@ -351,7 +394,13 @@ export const ANTHROPIC_TOOLS = TOOLS.map((tool, index) =>
 export type ToolCall = { name: string; input: unknown };
 
 export type Parsed =
-  | { ok: true; actions: VoiceAgentAction[]; answer?: string; clarify?: string }
+  | {
+      ok: true;
+      actions: VoiceAgentAction[];
+      answer?: string;
+      clarify?: string;
+      clarifyOptions?: VoiceClarifyOption[];
+    }
   | { ok: false; reason: string };
 
 class Invalid extends Error {}
@@ -366,23 +415,65 @@ export function parseToolCalls(calls: readonly ToolCall[], context: VoiceContext
     const actions: VoiceAgentAction[] = [];
     let answer: string | undefined;
     let clarify: string | undefined;
+    let clarifyOptions: VoiceClarifyOption[] | undefined;
     for (const call of calls) {
       const input = asRecord(call.input);
       if (call.name === 'answer_question') {
         answer = text(input.text, 'text', 600);
       } else if (call.name === 'ask_clarification') {
         clarify = text(input.question, 'question', 300);
+        clarifyOptions = clarifyOptionsOf(input.options);
       } else {
         actions.push(validateAction(call.name, input, context));
       }
     }
-    if (clarify) return { ok: true, actions: [], clarify };
+    if (clarify) {
+      return {
+        ok: true,
+        actions: [],
+        clarify,
+        ...(clarifyOptions ? { clarifyOptions } : {}),
+      };
+    }
     if (actions.length === 0 && !answer) return { ok: false, reason: 'nothing to return' };
     return { ok: true, actions, ...(answer ? { answer } : {}) };
   } catch (error) {
     if (error instanceof Invalid) return { ok: false, reason: error.message };
     throw error;
   }
+}
+
+/**
+ * Tappable answers are a nicety: a malformed list is dropped (the person just
+ * speaks or types instead) rather than failing the whole turn.
+ */
+function clarifyOptionsOf(value: unknown): VoiceClarifyOption[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const options: VoiceClarifyOption[] = [];
+  const seen = new Set<string>();
+  for (const raw of value) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+    const o = raw as Record<string, unknown>;
+    const label = typeof o.label === 'string' ? o.label.trim().slice(0, 40) : '';
+    const answer = typeof o.answer === 'string' ? o.answer.trim().slice(0, 200) : '';
+    if (!label || !answer) return undefined;
+    const key = answer.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const detail = typeof o.detail === 'string' ? o.detail.trim().slice(0, 60) : '';
+    const icon =
+      typeof o.icon === 'string' && (CLARIFY_ICONS as readonly string[]).includes(o.icon)
+        ? o.icon
+        : undefined;
+    options.push({
+      label,
+      ...(detail ? { detail } : {}),
+      ...(icon ? { icon } : {}),
+      answer,
+    });
+  }
+  if (options.length < MIN_OPTIONS || options.length > MAX_OPTIONS) return undefined;
+  return options;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

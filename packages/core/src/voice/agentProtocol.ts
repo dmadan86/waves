@@ -155,6 +155,18 @@ export type VoiceAgentAction =
       readonly name: string;
     };
 
+/** One tappable answer to a clarifying question ("₹500 · Breakfast"). */
+export interface VoiceClarifyOption {
+  /** The bold line: an amount, a group or a person. */
+  readonly label: string;
+  /** The secondary line ("Breakfast", "Goa trip (split in group)"). */
+  readonly detail?: string;
+  /** A hint for the icon: amount, food, trip, group, person, date, other. */
+  readonly icon?: string;
+  /** What is sent back as the follow-up answer when this option is chosen. */
+  readonly answer: string;
+}
+
 export interface VoiceAgentResponse {
   readonly schemaVersion: typeof VOICE_AGENT_SCHEMA_VERSION;
   readonly transcript: string;
@@ -164,6 +176,8 @@ export interface VoiceAgentResponse {
   readonly answer?: string;
   /** Asked when the request is ambiguous; no actions are proposed with it. */
   readonly clarify?: string;
+  /** With `clarify`: 2-4 concrete answers the person can tap instead of speaking. */
+  readonly clarifyOptions?: readonly VoiceClarifyOption[];
   readonly quota: {
     readonly used: number;
     readonly limit: number;

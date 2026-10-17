@@ -449,6 +449,8 @@ export default function VoiceScreen() {
     transcript: string;
     question: string;
   } | null>(null);
+  // Bumped when a tapped option answers the question, so the panel starts afresh.
+  const [agentRun, setAgentRun] = useState(0);
   const [agentSession, setAgentSession] = useState<{
     transcript: string;
     alternatives: readonly string[];
@@ -2084,12 +2086,19 @@ export default function VoiceScreen() {
 
         {phase === 'agent' && agentSession ? (
           <VoiceAgentPanel
+            key={agentRun}
             transcript={agentSession.transcript}
             groupId={launchGroupId}
             today={today()}
             onFallback={agentFellBack}
             followUp={agentFollowUp}
             engine={engine}
+            onAnswer={(followUp, answer) => {
+              // A tapped option is the spoken answer, with no clip in between.
+              setAgentFollowUp(followUp);
+              setAgentSession({ transcript: answer, alternatives: [] });
+              setAgentRun((current) => current + 1);
+            }}
             onRetry={(followUp) => {
               setAgentFollowUp(followUp ?? null);
               setAgentSession(null);
