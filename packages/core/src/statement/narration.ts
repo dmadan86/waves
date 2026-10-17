@@ -130,8 +130,7 @@ export function parseNarration(text: string): Narration {
     };
   }
   if (/\b(?:CHQ|CHEQUE|CLG|CLEARING)\b/.test(upper)) {
-    const number =
-      /\b(?:CHQ|CHEQUE)\s*(?:NO\.?|NUMBER|#)?\s*:?\s*(\d{6})\b/.exec(upper)?.[1] ?? null;
+    const number = chequeNumber(upper);
     return { kind: 'cheque', ref: number, counterparty: null };
   }
   if (/\bATM\b|\bATW\b|\bNWD\b|\bCASH WDL\b|\bCASH WITHDRAWAL\b/.test(upper)) {
@@ -164,4 +163,33 @@ export function referenceFor(
     return rrn ?? printed;
   }
   return parseNarration(narration).ref;
+}
+
+const SPACE = new Set([' ', '\t', '\n', '\r', '\f', '\v', '\u00a0']);
+
+function skipSpace(text: string, from: number): number {
+  let i = from;
+  while (i < text.length && SPACE.has(text.charAt(i))) i += 1;
+  return i;
+}
+
+/** "CHQ NO: 123456" / "CHEQUE #123456": scanned by hand so whitespace runs cost linear time. */
+function chequeNumber(upper: string): string | null {
+  const head = /\b(?:CHQ|CHEQUE)/g;
+  let m: RegExpExecArray | null;
+  while ((m = head.exec(upper)) !== null) {
+    let i = skipSpace(upper, m.index + m[0].length);
+    for (const label of ['NUMBER', 'NO.', 'NO', '#']) {
+      if (upper.startsWith(label, i)) {
+        i += label.length;
+        break;
+      }
+    }
+    i = skipSpace(upper, i);
+    if (upper.charAt(i) === ':') i += 1;
+    i = skipSpace(upper, i);
+    const digits = /^\d{6}\b/.exec(upper.slice(i, i + 7));
+    if (digits) return digits[0].slice(0, 6);
+  }
+  return null;
 }

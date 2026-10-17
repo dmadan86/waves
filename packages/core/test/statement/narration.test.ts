@@ -80,3 +80,13 @@ describe('the shared key with SMS drafts', () => {
     expect(`ref:${row}`).toBe(smsKey);
   });
 });
+
+describe('pathological whitespace', () => {
+  it('parses a cheque narration padded with 100k spaces and tabs in linear time', () => {
+    const pad = ' \t'.repeat(50_000);
+    const started = performance.now();
+    expect(parseNarration(`CHQ${pad}NO${pad}: 123456`).ref).toBe('123456');
+    expect(parseNarration(`CHQ${pad}x`).ref).toBeNull();
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+});
