@@ -5,14 +5,16 @@
  * and the ticked rows land in Review as drafts on this phone. Nothing is posted
  * here: Review's own confirm flow is the only way a row becomes an expense.
  *
- *   Pro   a spreadsheet of one of the five big banks is read on the phone; a
- *         screenshot (and, once the app can open them, a PDF) is read by AI
- *         after account numbers are hidden. Nothing is kept.
+ *   Pro   a spreadsheet of one of the five big banks, or a PDF with a text
+ *         layer, is read on the phone; anything else (a screenshot, a scanned
+ *         PDF, a layout we do not know) is read by AI after account numbers are
+ *         hidden. Nothing is kept.
  *   Free  a spreadsheet is read on the phone and previewed: how many
  *         transactions, how much spent, the first three rows. Then the paywall.
  *
- * The password of a protected PDF would be typed and used on this phone only;
- * see `lib/statementImport/pdfReader.ts` for why PDFs are not offered yet.
+ * The password of a protected PDF is typed and used on this phone only, inside
+ * the PDF reader (`lib/statementImport/pdfReader.ts`); it is never sent, stored
+ * or logged, and is cleared from the field as soon as it has been used.
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -20,7 +22,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 
 import {
   decodeBytes,
@@ -28,9 +30,11 @@ import {
   looksLikeOfx,
   money,
   parseOfx,
+  parseStatementText,
   parseStatementTable,
   planStatementImport,
   previewStatement,
+  redactStatementText,
   STATEMENT_MAX_FILE_BYTES,
   STATEMENT_MAX_PAGES,
   type ExistingExpense,
@@ -56,8 +60,9 @@ import { dedupeKeyOf } from '@/lib/smsLocalDrafts';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { callParseStatement } from '@/lib/statementImport/client';
 import { applyStatementPlan, draftDescription } from '@/lib/statementImport/drafts';
-import { statementFileKind } from '@/lib/statementImport/fileKind';
-import { PDF_READING_AVAILABLE } from '@/lib/statementImport/pdfReader';
+import { looksLikePdf, statementFileKind } from '@/lib/statementImport/fileKind';
+import { PDF_READING_AVAILABLE, type PdfReadResult } from '@/lib/statementImport/pdfReader';
+import { usePdfReader, type PdfReader } from '@/lib/statementImport/usePdfReader';
 import { statementPreviewsLeft, spendStatementPreview } from '@/lib/statementImport/previews';
 import {
   readStatementPages,
@@ -78,6 +83,7 @@ type Stage =
       left: number;
       currency: string;
     }
+  | { name: 'password'; wrong: boolean }
   | { name: 'review' }
   | { name: 'saving' }
   | {
@@ -86,6 +92,15 @@ type Stage =
       enriched: number;
       skipped: number;
     };
+
+/** What the phone could read itself, whatever the file was. */
+type LocalRead = {
+  rows: StatementRow[];
+  currency: string;
+  ambiguous: boolean;
+  order: ImportDateOrder;
+  table: TableRead | null;
+};
 
 function randomId(): string {
   const bytes = new Uint8Array(12);
@@ -118,7 +133,18 @@ export default function StatementImportScreen(): React.JSX.Element {
   return <StatementImport />;
 }
 
+/** The reader's hidden WebView sits beside the screen, so it survives every stage change. */
 function StatementImport(): React.JSX.Element {
+  const pdf = usePdfReader();
+  return (
+    <>
+      <StatementImportBody pdf={pdf} />
+      {pdf.element}
+    </>
+  );
+}
+
+function StatementImportBody({ pdf }: { pdf: PdfReader }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const s = t.statementImport;
@@ -138,6 +164,8 @@ function StatementImport(): React.JSX.Element {
   // The file's table, kept for the one question a file can leave open: which way round its dates are.
   const [source, setSource] = useState<{ table: TableRead; order: ImportDateOrder } | null>(null);
   const [dateAmbiguous, setDateAmbiguous] = useState(false);
+  // Typed on the password screen; cleared the moment it is used or abandoned.
+  const [password, setPassword] = useState('');
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -158,6 +186,7 @@ function StatementImport(): React.JSX.Element {
   const reset = useCallback(() => {
     setStage({ name: 'pick' });
     setError(null);
+    setPassword('');
     setPlan(null);
     setTicked(new Set());
     setSource(null);
@@ -224,6 +253,139 @@ function StatementImport(): React.JSX.Element {
     [locale, region, s, showPlan, today],
   );
 
+  /** What was read on the phone, if anything, to the free preview, the plan, or the AI reader. */
+  const finishRead = useCallback(
+    async (
+      read: LocalRead | null,
+      failure: 'unknown_layout' | 'no_transactions' | null,
+      aiPages: StatementPageInput[],
+    ) => {
+      if (!isPaid) {
+        // Free: a teaser, read on this phone, never sent anywhere.
+        if (!read) {
+          setStage({ name: 'pick' });
+          setError(failure === 'unknown_layout' ? s.errUnknown : s.errNothingFound);
+          return;
+        }
+        const left = await statementPreviewsLeft();
+        if (left <= 0) {
+          setStage({ name: 'pick' });
+          setError(s.noPreviewsLeft);
+          router.push('/paywall');
+          return;
+        }
+        await spendStatementPreview();
+        const preview = previewStatement(read.rows);
+        setStage({
+          name: 'preview',
+          count: preview.count,
+          spent: preview.spentMinor,
+          first: [...preview.first],
+          left: left - 1,
+          currency: read.currency,
+        });
+        return;
+      }
+
+      if (read) {
+        setSource(read.table ? { table: read.table, order: read.order } : null);
+        setDateAmbiguous(read.ambiguous);
+        await showPlan(read.rows, read.currency);
+        return;
+      }
+      // Pro, and the layout is not one we read ourselves: the reader takes it.
+      if (aiPages.length === 0 || aiPages.length > STATEMENT_MAX_PAGES * 4) {
+        setStage({ name: 'pick' });
+        setError(aiPages.length === 0 ? s.errNothingFound : s.errTooManyRows);
+        return;
+      }
+      await readWithAi(aiPages);
+    },
+    [isPaid, readWithAi, s, showPlan],
+  );
+
+  /** A PDF read (or not): to the password screen, an error, or the same road as any other file. */
+  const afterPdf = useCallback(
+    async (result: PdfReadResult) => {
+      if (!result.ok) {
+        if (result.reason === 'password_needed' || result.reason === 'wrong_password') {
+          setStage({ name: 'password', wrong: result.reason === 'wrong_password' });
+          return;
+        }
+        setStage({ name: 'pick' });
+        setError(result.reason === 'too_many_pages' ? s.errPdfTooManyPages : s.errUnreadable);
+        return;
+      }
+      const scanned = result.pages.some((page) => page.kind === 'image');
+      let read: LocalRead | null = null;
+      let failure: 'unknown_layout' | 'no_transactions' | null = 'unknown_layout';
+      // A page that is a picture cannot be read on the phone, and rows from the other
+      // pages alone would be a statement with a hole in it: so a scan goes to the reader whole.
+      if (!scanned) {
+        const parsed = parseStatementText(
+          result.pages.map((page) => (page.kind === 'text' ? page.text : '')),
+          { today, order: region.dateOrder },
+        );
+        if (parsed.rows.length > 0) {
+          read = {
+            rows: parsed.rows,
+            currency: region.currency,
+            ambiguous: false,
+            order: region.dateOrder,
+            table: null,
+          };
+          failure = null;
+        } else failure = parsed.unreadable > 0 ? 'unknown_layout' : 'no_transactions';
+      }
+      // For the reader: header and account numbers dropped from the text, scans as pictures.
+      const masked = redactStatementText(
+        result.pages.map((page) => (page.kind === 'text' ? page.text : '')),
+      ).pages;
+      const aiPages: StatementPageInput[] = [];
+      result.pages.forEach((page, index) => {
+        if (page.kind === 'image') {
+          aiPages.push({
+            kind: 'image',
+            page: index + 1,
+            base64: page.base64,
+            mimeType: page.mimeType,
+          });
+        } else if ((masked[index] ?? '').trim() !== '') {
+          aiPages.push({ kind: 'text', page: index + 1, text: masked[index]! });
+        }
+      });
+      if (!isPaid && scanned) {
+        // A scan can only be read by the reader, which is Pro.
+        setStage({ name: 'pick' });
+        setError(s.errFreePhoto);
+        router.push('/paywall');
+        return;
+      }
+      await finishRead(read, failure, aiPages);
+    },
+    [finishRead, isPaid, region.currency, region.dateOrder, s, today],
+  );
+
+  /** The password the person typed, used once and gone. */
+  const submitPassword = useCallback(async () => {
+    const typed = password;
+    setPassword('');
+    if (typed === '') return;
+    setStage({ name: 'working', label: s.reading });
+    try {
+      await afterPdf(await pdf.unlock(typed));
+    } catch {
+      setStage({ name: 'pick' });
+      setError(s.errGeneric);
+    }
+  }, [afterPdf, password, pdf, s]);
+
+  const cancelPassword = useCallback(() => {
+    pdf.cancel();
+    setPassword('');
+    reset();
+  }, [pdf, reset]);
+
   const pickFile = useCallback(async () => {
     setError(null);
     try {
@@ -246,11 +408,11 @@ function StatementImport(): React.JSX.Element {
       if (!asset) return;
 
       const kind = statementFileKind(asset.name, asset.mimeType);
-      if (kind === 'pdf') {
+      if (kind === 'pdf' && !PDF_READING_AVAILABLE) {
         setError(s.pdfNotYet);
         return;
       }
-      if (kind !== 'csv' && kind !== 'xlsx' && kind !== 'ofx') {
+      if (kind !== 'pdf' && kind !== 'csv' && kind !== 'xlsx' && kind !== 'ofx') {
         setError(s.errUnreadable);
         return;
       }
@@ -268,15 +430,17 @@ function StatementImport(): React.JSX.Element {
         // Best-effort cleanup; the bytes are already in memory.
       }
 
-      // What the phone could read itself, whatever the file was.
-      type Read = {
-        rows: StatementRow[];
-        currency: string;
-        ambiguous: boolean;
-        order: ImportDateOrder;
-        table: TableRead | null;
-      };
-      let read: Read | null = null;
+      if (kind === 'pdf') {
+        if (!looksLikePdf(bytes)) {
+          setStage({ name: 'pick' });
+          setError(s.errPdfNotPdf);
+          return;
+        }
+        await afterPdf(await pdf.read(bytes));
+        return;
+      }
+
+      let read: LocalRead | null = null;
       let failure: 'unknown_layout' | 'no_transactions' | null = null;
       let table: TableRead | null = null;
 
@@ -327,57 +491,12 @@ function StatementImport(): React.JSX.Element {
         } else failure = parsed.reason;
       }
 
-      if (!isPaid) {
-        // Free: a teaser, read on this phone, never sent anywhere.
-        if (!read) {
-          setStage({ name: 'pick' });
-          setError(failure === 'unknown_layout' ? s.errUnknown : s.errNothingFound);
-          return;
-        }
-        const left = await statementPreviewsLeft();
-        if (left <= 0) {
-          setStage({ name: 'pick' });
-          setError(s.noPreviewsLeft);
-          router.push('/paywall');
-          return;
-        }
-        await spendStatementPreview();
-        const preview = previewStatement(read.rows);
-        setStage({
-          name: 'preview',
-          count: preview.count,
-          spent: preview.spentMinor,
-          first: [...preview.first],
-          left: left - 1,
-          currency: read.currency,
-        });
-        return;
-      }
-
-      if (read) {
-        setSource(read.table ? { table: read.table, order: read.order } : null);
-        setDateAmbiguous(read.ambiguous);
-        await showPlan(read.rows, read.currency);
-        return;
-      }
-      // Pro, and the layout is not one we read ourselves: the reader takes it.
-      if (!table) {
-        setStage({ name: 'pick' });
-        setError(s.errNothingFound);
-        return;
-      }
-      const pages = tableToPages(table.rows);
-      if (pages.length === 0 || pages.length > STATEMENT_MAX_PAGES * 4) {
-        setStage({ name: 'pick' });
-        setError(pages.length === 0 ? s.errNothingFound : s.errTooManyRows);
-        return;
-      }
-      await readWithAi(pages);
+      await finishRead(read, failure, table ? tableToPages(table.rows) : []);
     } catch {
       setStage({ name: 'pick' });
       setError(s.errGeneric);
     }
-  }, [isPaid, readWithAi, region, s, showPlan, today]);
+  }, [afterPdf, finishRead, pdf, region, s, today]);
 
   const pickPhoto = useCallback(async () => {
     setError(null);
@@ -471,6 +590,60 @@ function StatementImport(): React.JSX.Element {
   };
 
   // -- Stages ---------------------------------------------------------------
+
+  if (stage.name === 'password') {
+    return (
+      <Screen edges={['top']}>
+        <View
+          style={{
+            paddingHorizontal: theme.spacing.xl,
+            paddingBottom: clearance,
+            gap: theme.spacing.lg,
+          }}
+        >
+          <View style={{ paddingTop: theme.spacing.md, gap: theme.spacing.xs }}>
+            <Text variant="title" style={{ fontWeight: '800' }}>
+              {s.passwordTitle}
+            </Text>
+            <Text tone="muted">{s.passwordHint}</Text>
+          </View>
+          {stage.wrong ? <Callout tone="negative">{s.wrongPassword}</Callout> : null}
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            importantForAutofill="no"
+            textContentType="none"
+            accessibilityLabel={s.passwordLabel}
+            placeholder={s.passwordLabel}
+            placeholderTextColor={theme.color.textFaint}
+            returnKeyType="done"
+            onSubmitEditing={() => void submitPassword()}
+            style={{
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              borderRadius: theme.radius.lg,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: Platform.OS === 'ios' ? theme.spacing.md : theme.spacing.sm,
+              fontSize: 16,
+              color: theme.color.text,
+              backgroundColor: theme.color.surface,
+            }}
+          />
+          <Button
+            label={s.passwordSubmit}
+            disabled={password === ''}
+            onPress={() => void submitPassword()}
+          />
+          <Button label={t.common.cancel} variant="ghost" onPress={cancelPassword} />
+        </View>
+      </Screen>
+    );
+  }
 
   if (stage.name === 'working' || stage.name === 'saving') {
     return (

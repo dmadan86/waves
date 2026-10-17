@@ -18,7 +18,7 @@ import type { CaptureRow } from '@/data/types';
 import { applyStatementPlan, draftDescription, draftPayload } from '@/lib/statementImport/drafts';
 import { looksLikePdf, statementFileKind } from '@/lib/statementImport/fileKind';
 import { otherOrder, statementRegion } from '@/lib/statementImport/region';
-import { PDF_READING_AVAILABLE, readPdfText } from '@/lib/statementImport/pdfReader';
+import { PDF_READING_AVAILABLE } from '@/lib/statementImport/pdfReader';
 import { previewsLeft } from '@/lib/statementImport/previews';
 import {
   chunkPages,
@@ -68,12 +68,8 @@ describe('file kinds', () => {
 });
 
 describe('PDF reading', () => {
-  it('is not available yet, and says so rather than failing late', async () => {
-    expect(PDF_READING_AVAILABLE).toBe(false);
-    expect(await readPdfText(new Uint8Array([0x25]), 'secret')).toEqual({
-      ok: false,
-      reason: 'unsupported',
-    });
+  it('is offered on the phone (the reader itself is tested in pdfReader.test.ts)', () => {
+    expect(PDF_READING_AVAILABLE).toBe(true);
   });
 });
 
