@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { detectBankProfile, parseStatementTable, readTable } from '../../src';
+import { stripDrCr } from '../../src/statement/profiles';
 import { EXPECTED, EXPECTED_DATES, statementTable, statementText } from './fixtures';
 
 const BANKS = [
@@ -90,5 +91,17 @@ describe('profiles', () => {
     const result = parseStatementTable(readTable(csv), { today: '2026-10-17' });
     if (!result.ok) throw new Error(result.reason);
     expect(result.rows[0]!.balance).toBe('-10000');
+  });
+});
+
+describe('stripDrCr', () => {
+  it('strips the marker and survives 100k tabs in linear time', () => {
+    expect(stripDrCr('1,234.50 Cr')).toBe('1,234.50');
+    expect(stripDrCr('99 DR.')).toBe('99');
+    expect(stripDrCr('99')).toBe('99');
+    const hostile = `1${'\t'.repeat(100_000)}x`;
+    const started = performance.now();
+    expect(stripDrCr(hostile)).toBe(hostile);
+    expect(performance.now() - started).toBeLessThan(50);
   });
 });
