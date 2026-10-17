@@ -17,6 +17,7 @@ import { View } from 'react-native';
 import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
+import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
@@ -36,6 +37,7 @@ import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
+import { clarifyOptionViews } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
@@ -65,6 +67,8 @@ export interface VoiceAgentPanelProps {
   /** Open the mic again. After a clarifying question, `followUp` carries what
    *  was said and asked, so the next clip is read as the answer. */
   onRetry: (followUp?: { transcript: string; question: string }) => void;
+  /** A tapped option answers the question: send `answer` as the reply. */
+  onAnswer: (followUp: { transcript: string; question: string }, answer: string) => void;
   /** This clip answers the agent's earlier question. */
   followUp?: { transcript: string; question: string } | null;
   /** Which engine heard the clip, for the pill behind the allowance's (i). */
@@ -134,6 +138,7 @@ export function VoiceAgentPanel({
   today,
   onFallback,
   onRetry,
+  onAnswer,
   followUp,
   engine = null,
   onClose,
@@ -263,7 +268,21 @@ export function VoiceAgentPanel({
         </Card>
       ) : null}
 
-      {plan.clarify || nothing ? (
+      {plan.clarify && clarifyOptionViews(plan.clarifyOptions).length > 0 ? (
+        <VoiceClarifyCard
+          question={plan.clarify}
+          options={plan.clarifyOptions}
+          onContinue={(answer) =>
+            onAnswer(
+              { transcript: plan.transcript || transcript, question: plan.clarify ?? '' },
+              answer,
+            )
+          }
+          onTypeInstead={() =>
+            onRetry({ transcript: plan.transcript || transcript, question: plan.clarify ?? '' })
+          }
+        />
+      ) : plan.clarify || nothing ? (
         <Card>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="subheading">{t.voice.agentClarifyTitle}</Text>
@@ -329,8 +348,7 @@ export function VoiceAgentPanel({
               : t.voice.agentTrialQuotaLeft
             : t.voice.agentQuotaLeft,
           {
-            left: String(quota.left),
-            limit: String(quota.limit),
+            percent: String(quota.percent),
             date: quota.until ? shortDate(quota.until, locale) : '',
           },
         )}
@@ -357,7 +375,7 @@ function ConfirmExpense({
   transcript: string;
   local: AgentLocalData;
   today: string;
-  quota: { left: number; limit: number };
+  quota: { percent: number };
   engine: VoiceEngineInfo | null;
   onEdited: () => void;
   onDiscard: () => void;

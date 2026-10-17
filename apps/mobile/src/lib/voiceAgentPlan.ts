@@ -19,6 +19,7 @@ import {
   type SplitParams,
   type VoiceAgentAction,
   type VoiceAgentResponse,
+  type VoiceClarifyOption,
 } from '@waves/core';
 
 export interface AgentLocalMember {
@@ -95,6 +96,8 @@ export interface AgentPlan {
   cards: AgentCard[];
   answer: string | null;
   clarify: string | null;
+  /** Tappable answers to `clarify`, when the agent offered them. */
+  clarifyOptions: VoiceClarifyOption[];
   quota: VoiceAgentResponse['quota'];
 }
 
@@ -222,6 +225,7 @@ export function planVoiceAgentActions(
     cards,
     answer: response.answer?.trim() ? response.answer.trim() : null,
     clarify: response.clarify?.trim() ? response.clarify.trim() : null,
+    clarifyOptions: response.clarify?.trim() ? [...(response.clarifyOptions ?? [])] : [],
     quota: response.quota,
   };
 }
@@ -372,17 +376,27 @@ export function expenseWriteFromAction(
   }
 }
 
-/** The "7 of 10 advanced commands left this month" numbers. */
+/** Whole percent of the allowance left: rounded down, never 0 while one remains. */
+export function percentLeft(left: number, limit: number): number {
+  if (left <= 0 || limit <= 0) return 0;
+  return Math.min(100, Math.max(1, Math.floor((left * 100) / limit)));
+}
+
+/** The "76% of your advanced commands left this month" numbers. */
 export function quotaLeft(quota: VoiceAgentResponse['quota']): {
   left: number;
   limit: number;
+  /** Whole percent left, rounded down; 1 while any remain, 0 only at none. */
+  percent: number;
   trial: boolean;
   /** With `trial`: when the pool closes. */
   until: string | null;
 } {
+  const left = Math.max(0, quota.limit - quota.used);
   return {
-    left: Math.max(0, quota.limit - quota.used),
+    left,
     limit: quota.limit,
+    percent: percentLeft(left, quota.limit),
     trial: quota.trial === true,
     until: quota.trial === true && quota.until ? quota.until : null,
   };

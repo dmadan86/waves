@@ -52,7 +52,7 @@ export interface VoiceConfirmCardProps {
   action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
-  quota: { left: number; limit: number };
+  quota: { percent: number };
   engine: VoiceEngineInfo | null;
   busy: boolean;
   failed: boolean;
@@ -275,7 +275,7 @@ export function VoiceConfirmCard({
   const allowance = (
     <Row gap={theme.spacing.xs} style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
       <Text variant="caption" tone="muted">
-        {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+        {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
       </Text>
       <VoiceEngineBadge info={engine} />
     </Row>
@@ -284,7 +284,7 @@ export function VoiceConfirmCard({
     <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
       <Row gap={theme.spacing.xs}>
         <Text variant="caption" tone="muted">
-          {fill(t.voice.agentQuotaLeft, { left: String(quota.left), limit: String(quota.limit) })}
+          {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
         </Text>
         <Ionicons
           name="information-circle-outline"
