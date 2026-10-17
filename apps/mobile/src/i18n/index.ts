@@ -295,27 +295,28 @@ export interface UiStrings {
   notJoinedYet: string;
   /** Reminding someone who is not on Waves (no account, so no push). */
   ghostRemind: {
-    /** Status when we have their phone: the reminder goes by WhatsApp. */
-    remindWhatsApp: string;
-    remindEmail: string;
     /** {name} {amount} {group} {link} */
     message: string;
     /** No join link could be made: the same, without it. {name} {amount} {group} */
     messageNoLink: string;
-    /** {group} */
-    emailSubject: string;
     /** Joins the last of several amounts: "€25 and ₹2,952". */
     and: string;
     /** Between the others: "a, b and c". */
     comma: string;
+  };
+  /** The Remind sheet: how this reminder should go. */
+  remindSheet: {
     /** {name} */
-    infoA11y: string;
-    explainTitle: string;
-    /** {name} */
-    explainLead: string;
-    explainWhatsApp: string;
-    explainEmail: string;
-    explainShare: string;
+    title: string;
+    /** {amount} */
+    owes: string;
+    waves: string;
+    notOnWaves: string;
+    whatsapp: string;
+    sms: string;
+    share: string;
+    lastUsed: string;
+    nudgedToday: string;
   };
   /** Which amount a row's tap or Pay is about, when a person has several. */
   settlePickAmount: string;
@@ -1382,6 +1383,9 @@ export interface UiStrings {
     /** Clarification with tappable options: the primary button, and the way to answer by speaking. */
     agentContinue: string;
     agentTypeInstead: string;
+    agentTypePlaceholder: string;
+    agentTypeSend: string;
+    agentTypeMic: string;
     /** Accessibility hint on an option row. */
     agentOptionHint: string;
     agentNothingToDo: string;
@@ -5482,24 +5486,22 @@ const en: UiStrings = {
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'Not on Waves yet',
   ghostRemind: {
-    remindWhatsApp: 'Remind on WhatsApp',
-    remindEmail: 'Remind by email',
     message:
       'Hi {name}, a reminder: you owe {amount} in {group} on Waves. Join to see the details and settle up: {link}',
     messageNoLink: 'Hi {name}, a reminder: you owe {amount} in {group} on Waves.',
-    emailSubject: 'A reminder from {group} on Waves',
     and: 'and',
     comma: ', ',
-    infoA11y: 'Why {name} cannot get app reminders',
-    explainTitle: 'Not on Waves yet',
-    explainLead:
-      "{name} was added by name and doesn't use Waves yet, so they can't get app notifications.",
-    explainWhatsApp:
-      'Remind them on WhatsApp — the message includes a link to join and see what they owe.',
-    explainEmail:
-      'Remind them by email — the message includes a link to join and see what they owe.',
-    explainShare:
-      'Send them a reminder from any app — the message includes a link to join and see what they owe.',
+  },
+  remindSheet: {
+    title: 'Remind {name}',
+    owes: '{amount} owed',
+    waves: 'Notify in Waves',
+    notOnWaves: 'Not on Waves yet',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    share: 'Share…',
+    lastUsed: 'Last used',
+    nudgedToday: 'Already reminded today · try again tomorrow',
   },
   settlePickAmount: 'Which amount?',
   scansLeft: 'scans left',
@@ -6362,6 +6364,9 @@ const en: UiStrings = {
     agentAnswer: 'Answer',
     agentContinue: 'Continue',
     agentTypeInstead: 'Type instead',
+    agentTypePlaceholder: 'Type your answer',
+    agentTypeSend: 'Send answer',
+    agentTypeMic: 'Answer by voice',
     agentOptionHint: 'Double tap to choose this answer',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{percent}% of your advanced commands left this month',
@@ -7183,7 +7188,7 @@ const en: UiStrings = {
     sectionReady: 'Ready',
     tabFound: 'Found for you',
     tabSms: 'SMS',
-    tabBankMessages: 'Bank messages',
+    tabBankMessages: 'Bank SMS',
     tabAdded: 'Added by you',
     heroWaiting: 'Waiting on you',
     heroCaughtUp: 'All caught up',
@@ -9944,25 +9949,23 @@ const ta: UiStrings = {
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'இன்னும் Waves-ல் இல்லை',
   ghostRemind: {
-    remindWhatsApp: 'WhatsApp-ல் நினைவூட்டு',
-    remindEmail: 'மின்னஞ்சலில் நினைவூட்டு',
     message:
       'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும். விவரங்களைப் பார்த்துச் செலுத்த சேரவும்: {link}',
     messageNoLink:
       'வணக்கம் {name}, ஒரு நினைவூட்டல்: Waves-ல் {group} குழுவில் நீங்கள் {amount} தர வேண்டும்.',
-    emailSubject: 'Waves-ல் {group} குழுவிலிருந்து ஒரு நினைவூட்டல்',
     and: 'மற்றும்',
     comma: ', ',
-    infoA11y: '{name}க்கு ஏன் செயலி நினைவூட்டல் வராது',
-    explainTitle: 'இன்னும் Waves-ல் இல்லை',
-    explainLead:
-      '{name} பெயரால் சேர்க்கப்பட்டவர், இன்னும் Waves பயன்படுத்தவில்லை; அதனால் அவருக்குச் செயலி அறிவிப்புகள் வராது.',
-    explainWhatsApp:
-      'WhatsApp-ல் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
-    explainEmail:
-      'மின்னஞ்சலில் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
-    explainShare:
-      'எந்தச் செயலியிலிருந்தும் நினைவூட்டுங்கள் — செய்தியில் சேர்ந்து தாம் தர வேண்டியதைப் பார்க்க ஒரு இணைப்பு இருக்கும்.',
+  },
+  remindSheet: {
+    title: '{name}க்கு நினைவூட்டு',
+    owes: '{amount} தர வேண்டும்',
+    waves: 'Waves-ல் அறிவி',
+    notOnWaves: 'இன்னும் Waves-ல் இல்லை',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    share: 'பகிர்…',
+    lastUsed: 'கடைசியாகப் பயன்படுத்தியது',
+    nudgedToday: 'இன்று ஏற்கனவே நினைவூட்டப்பட்டது · நாளை மீண்டும் முயலவும்',
   },
   settlePickAmount: 'எந்தத் தொகை?',
   scansLeft: 'ஸ்கேன் மீதம்',
@@ -10841,6 +10844,9 @@ const ta: UiStrings = {
     agentAnswer: 'பதில் சொல்',
     agentContinue: 'தொடர்க',
     agentTypeInstead: 'பதிலாக தட்டச்சு செய்',
+    agentTypePlaceholder: 'உங்கள் பதிலை தட்டச்சு செய்யுங்கள்',
+    agentTypeSend: 'பதிலை அனுப்பு',
+    agentTypeMic: 'குரலில் பதிலளி',
     agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
@@ -11689,7 +11695,7 @@ const ta: UiStrings = {
     sectionReady: 'தயார்',
     tabFound: 'கண்டறியப்பட்டவை',
     tabSms: 'எஸ்எம்எஸ்',
-    tabBankMessages: 'வங்கிச் செய்திகள்',
+    tabBankMessages: 'வங்கி SMS',
     tabAdded: 'நீங்கள் சேர்த்தவை',
     heroWaiting: 'உங்கள் கவனத்திற்கு',
     heroCaughtUp: 'எல்லாம் முடிந்தது',
@@ -14582,22 +14588,22 @@ const hi: UiStrings = {
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'अभी Waves पर नहीं',
   ghostRemind: {
-    remindWhatsApp: 'WhatsApp पर याद दिलाएँ',
-    remindEmail: 'ईमेल से याद दिलाएँ',
     message:
       'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं। विवरण देखने और चुकाने के लिए जुड़ें: {link}',
     messageNoLink: 'नमस्ते {name}, एक रिमाइंडर: Waves पर {group} में आपको {amount} देने हैं।',
-    emailSubject: 'Waves पर {group} से एक रिमाइंडर',
     and: 'और',
     comma: ', ',
-    infoA11y: '{name} को ऐप रिमाइंडर क्यों नहीं मिल सकते',
-    explainTitle: 'अभी Waves पर नहीं',
-    explainLead:
-      '{name} को नाम से जोड़ा गया था और वे अभी Waves इस्तेमाल नहीं करते, इसलिए उन्हें ऐप सूचनाएँ नहीं मिल सकतीं।',
-    explainWhatsApp:
-      'उन्हें WhatsApp पर याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
-    explainEmail: 'उन्हें ईमेल से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
-    explainShare: 'किसी भी ऐप से याद दिलाएँ — संदेश में जुड़ने और बकाया देखने का लिंक होगा।',
+  },
+  remindSheet: {
+    title: '{name} को याद दिलाएं',
+    owes: '{amount} बकाया',
+    waves: 'Waves में सूचित करें',
+    notOnWaves: 'अभी Waves पर नहीं',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    share: 'शेयर करें…',
+    lastUsed: 'पिछली बार',
+    nudgedToday: 'आज पहले ही याद दिलाया · कल फिर कोशिश करें',
   },
   settlePickAmount: 'कौन-सी रकम?',
   scansLeft: 'स्कैन बाकी',
@@ -15463,6 +15469,9 @@ const hi: UiStrings = {
     agentAnswer: 'जवाब दें',
     agentContinue: 'जारी रखें',
     agentTypeInstead: 'इसके बजाय टाइप करें',
+    agentTypePlaceholder: 'अपना जवाब टाइप करें',
+    agentTypeSend: 'जवाब भेजें',
+    agentTypeMic: 'बोलकर जवाब दें',
     agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
@@ -16286,7 +16295,7 @@ const hi: UiStrings = {
     sectionReady: 'तैयार',
     tabFound: 'आपके लिए मिले',
     tabSms: 'एसएमएस',
-    tabBankMessages: 'बैंक संदेश',
+    tabBankMessages: 'बैंक SMS',
     tabAdded: 'आपने जोड़े',
     heroWaiting: 'आपके इंतज़ार में',
     heroCaughtUp: 'सब हो गया',
@@ -19069,20 +19078,22 @@ const ar: UiStrings = {
   draftCount: { one: '{n} draft', other: '{n} drafts' },
   notJoinedYet: 'ليس على Waves بعد',
   ghostRemind: {
-    remindWhatsApp: 'ذكّر عبر واتساب',
-    remindEmail: 'ذكّر بالبريد',
     message:
       'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves. انضم لترى التفاصيل وتسدّد: {link}',
     messageNoLink: 'مرحبًا {name}، تذكير: عليك {amount} في {group} على Waves.',
-    emailSubject: 'تذكير من {group} على Waves',
     and: 'و',
     comma: '، ',
-    infoA11y: 'لماذا لا تصل تذكيرات التطبيق إلى {name}',
-    explainTitle: 'ليس على Waves بعد',
-    explainLead: 'أُضيف {name} بالاسم ولا يستخدم Waves بعد، لذا لا تصله إشعارات التطبيق.',
-    explainWhatsApp: 'ذكّره عبر واتساب — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
-    explainEmail: 'ذكّره بالبريد — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
-    explainShare: 'ذكّره من أي تطبيق — تتضمن الرسالة رابطًا للانضمام ورؤية ما عليه.',
+  },
+  remindSheet: {
+    title: 'تذكير {name}',
+    owes: 'المبلغ المستحق: {amount}',
+    waves: 'إشعار داخل Waves',
+    notOnWaves: 'ليس على Waves بعد',
+    whatsapp: 'واتساب',
+    sms: 'رسالة نصية',
+    share: 'مشاركة…',
+    lastUsed: 'آخر استخدام',
+    nudgedToday: 'تم التذكير اليوم · جرّب غدًا',
   },
   settlePickAmount: 'أي مبلغ؟',
   scansLeft: 'عمليات مسح متبقية',
@@ -20007,6 +20018,9 @@ const ar: UiStrings = {
     agentAnswer: 'أجب',
     agentContinue: 'متابعة',
     agentTypeInstead: 'اكتب بدلاً من ذلك',
+    agentTypePlaceholder: 'اكتب إجابتك',
+    agentTypeSend: 'إرسال الإجابة',
+    agentTypeMic: 'أجب بالصوت',
     agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',

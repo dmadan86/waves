@@ -4,6 +4,7 @@ import {
   GhostChannel,
   ghostChannel,
   ghostReminderMessage,
+  channelPlan,
   ghostReminderPlan,
   mailtoUrl,
   phoneDigits,
@@ -11,6 +12,7 @@ import {
   whatsappAppUrl,
   whatsappWebUrl,
 } from '../src/lib/ghostReminder';
+import { RemindChannel } from '../src/lib/settleRow';
 
 const MESSAGE = 'Hi Matt, you owe €25.00 & ₹2,952.50: https://waves.app/j/abc?x=1';
 const ENCODED = encodeURIComponent(MESSAGE);
@@ -102,5 +104,37 @@ describe('ghostReminderMessage', () => {
         link: 'https://x/j/1',
       }),
     ).toBe('Hi Matt, €25.00 in Goa: https://x/j/1');
+  });
+});
+
+describe('channelPlan', () => {
+  const phone = '+91 98765 43210';
+
+  it('sends WhatsApp straight to the number, with the web link as the iOS fallback', () => {
+    expect(channelPlan(RemindChannel.WhatsApp, phone, MESSAGE, 'ios')).toEqual([
+      whatsappAppUrl(phone, MESSAGE),
+      whatsappWebUrl(phone, MESSAGE),
+    ]);
+    expect(channelPlan(RemindChannel.WhatsApp, phone, MESSAGE, 'android')).toEqual([
+      whatsappAppUrl(phone, MESSAGE),
+    ]);
+  });
+
+  it('opens WhatsApp with just the text when there is no number', () => {
+    expect(channelPlan(RemindChannel.WhatsApp, null, MESSAGE, 'ios')).toEqual([
+      `whatsapp://send?text=${ENCODED}`,
+    ]);
+  });
+
+  it('composes an SMS only with a number', () => {
+    expect(channelPlan(RemindChannel.Sms, phone, MESSAGE, 'android')).toEqual([
+      smsUrl(phone, MESSAGE, 'android'),
+    ]);
+    expect(channelPlan(RemindChannel.Sms, '', MESSAGE, 'android')).toEqual([]);
+  });
+
+  it('leaves Share and the in-app push to the share sheet / nudge (no URLs)', () => {
+    expect(channelPlan(RemindChannel.Share, phone, MESSAGE, 'ios')).toEqual([]);
+    expect(channelPlan(RemindChannel.Waves, phone, MESSAGE, 'ios')).toEqual([]);
   });
 });

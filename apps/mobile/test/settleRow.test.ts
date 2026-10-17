@@ -1,71 +1,124 @@
 import { describe, expect, it } from 'vitest';
 
-import { GhostChannel } from '../src/lib/ghostReminder';
-import { leftWithBalance, OwedRemind, OwedStatus, owedRowModel } from '../src/lib/settleRow';
+import {
+  leftWithBalance,
+  NUDGE_WINDOW_MS,
+  nudgedWithinWindow,
+  OwedStatus,
+  owedRowModel,
+  parseRemindChannel,
+  RemindChannel,
+  remindOptions,
+  RemindUnavailable,
+} from '../src/lib/settleRow';
 
 const base = {
   joined: true,
   hasMember: true,
   left: false,
   pending: false,
-  nudged: false,
   reminded: false,
-  channel: GhostChannel.Share,
 };
 
 describe('owedRowModel', () => {
-  it('gives someone on Waves the app nudge and no (i)', () => {
-    expect(owedRowModel(base)).toEqual({
-      status: OwedStatus.Tap,
-      remind: OwedRemind.Push,
-      info: false,
-    });
-  });
-
-  it('drops the pill once the nudge has answered, and says so', () => {
-    expect(owedRowModel({ ...base, nudged: true })).toEqual({
-      status: OwedStatus.Feedback,
-      remind: null,
-      info: false,
-    });
-  });
-
-  it('picks the pill icon from the ghost channel, with the (i)', () => {
-    const ghost = { ...base, joined: false };
-    expect(owedRowModel({ ...ghost, channel: GhostChannel.WhatsApp }).remind).toBe(
-      OwedRemind.WhatsApp,
-    );
-    expect(owedRowModel({ ...ghost, channel: GhostChannel.Email }).remind).toBe(OwedRemind.Email);
-    expect(owedRowModel({ ...ghost, channel: GhostChannel.Share })).toEqual({
+  it('gives every kind of member the same Remind pill', () => {
+    expect(owedRowModel(base)).toEqual({ status: OwedStatus.Tap, remind: true });
+    expect(owedRowModel({ ...base, joined: false })).toEqual({
       status: OwedStatus.NotOnWaves,
-      remind: OwedRemind.Share,
-      info: true,
+      remind: true,
     });
   });
 
-  it('words every left member the same, whatever the channel', () => {
-    const wa = owedRowModel({ ...base, joined: false, left: true, channel: GhostChannel.WhatsApp });
-    const share = owedRowModel({ ...base, joined: false, left: true, channel: GhostChannel.Share });
-    const account = owedRowModel({ ...base, left: true });
-    expect(wa.status).toBe(OwedStatus.Left);
-    expect(share.status).toBe(OwedStatus.Left);
-    expect(account.status).toBe(OwedStatus.Left);
-  });
-
-  it('shows feedback after an off-app reminder and no second pill', () => {
-    expect(owedRowModel({ ...base, joined: false, reminded: true })).toEqual({
+  it('drops the pill once a reminder went out, and says so', () => {
+    expect(owedRowModel({ ...base, reminded: true })).toEqual({
       status: OwedStatus.Feedback,
-      remind: null,
-      info: false,
+      remind: false,
     });
+    expect(owedRowModel({ ...base, joined: false, reminded: true }).status).toBe(
+      OwedStatus.Feedback,
+    );
+  });
+
+  it('words every left member the same', () => {
+    expect(owedRowModel({ ...base, joined: false, left: true }).status).toBe(OwedStatus.Left);
+    expect(owedRowModel({ ...base, left: true }).status).toBe(OwedStatus.Left);
   });
 
   it('offers no reminder to a ghost with no member row', () => {
-    expect(owedRowModel({ ...base, joined: false, hasMember: false }).remind).toBeNull();
+    expect(owedRowModel({ ...base, joined: false, hasMember: false }).remind).toBe(false);
   });
 
   it('shows pending ahead of left for a member on Waves', () => {
     expect(owedRowModel({ ...base, pending: true, left: true }).status).toBe(OwedStatus.Pending);
+  });
+});
+
+describe('remindOptions', () => {
+  const channels = (input: Parameters<typeof remindOptions>[0]): RemindChannel[] =>
+    remindOptions(input).map((option) => option.channel);
+
+  it('lists all but SMS for someone on Waves, whose phone is not known', () => {
+    const options = remindOptions({ joined: true, hasPhone: false, lastUsed: null });
+    expect(options.map((o) => o.channel)).toEqual([
+      RemindChannel.Waves,
+      RemindChannel.WhatsApp,
+      RemindChannel.Share,
+    ]);
+    expect(options.every((o) => o.enabled && o.reason === null)).toBe(true);
+  });
+
+  it('disables Waves with its reason for someone not on Waves, and puts it last', () => {
+    const options = remindOptions({ joined: false, hasPhone: true, lastUsed: null });
+    expect(options.map((o) => o.channel)).toEqual([
+      RemindChannel.WhatsApp,
+      RemindChannel.Sms,
+      RemindChannel.Share,
+      RemindChannel.Waves,
+    ]);
+    const waves = options[3];
+    expect(waves.enabled).toBe(false);
+    expect(waves.reason).toBe(RemindUnavailable.NotOnWaves);
+  });
+
+  it('skips SMS when there is no phone number', () => {
+    expect(channels({ joined: false, hasPhone: false, lastUsed: null })).not.toContain(
+      RemindChannel.Sms,
+    );
+  });
+
+  it('leads with the last-used channel and tags it', () => {
+    const options = remindOptions({ joined: true, hasPhone: true, lastUsed: RemindChannel.Sms });
+    expect(options[0].channel).toBe(RemindChannel.Sms);
+    expect(options.filter((o) => o.lastUsed)).toHaveLength(1);
+    expect(options.slice(1).map((o) => o.channel)).toEqual([
+      RemindChannel.Waves,
+      RemindChannel.WhatsApp,
+      RemindChannel.Share,
+    ]);
+  });
+
+  it('does not promote or tag a last-used channel that is unavailable now', () => {
+    const options = remindOptions({
+      joined: false,
+      hasPhone: true,
+      lastUsed: RemindChannel.Waves,
+    });
+    expect(options[0].channel).toBe(RemindChannel.WhatsApp);
+    expect(options.some((o) => o.lastUsed)).toBe(false);
+  });
+
+  it('ignores a last-used SMS when the phone is gone', () => {
+    const options = remindOptions({ joined: true, hasPhone: false, lastUsed: RemindChannel.Sms });
+    expect(options[0].channel).toBe(RemindChannel.Waves);
+    expect(options.some((o) => o.lastUsed)).toBe(false);
+  });
+});
+
+describe('parseRemindChannel', () => {
+  it('reads a stored channel and rejects anything else', () => {
+    expect(parseRemindChannel('sms')).toBe(RemindChannel.Sms);
+    expect(parseRemindChannel('email')).toBeNull();
+    expect(parseRemindChannel(null)).toBeNull();
   });
 });
 
@@ -87,5 +140,42 @@ describe('leftWithBalance', () => {
   });
   it('is zero when nobody left with a balance', () => {
     expect(leftWithBalance(members, new Map())).toBe(0);
+  });
+});
+
+describe('nudge availability', () => {
+  const now = Date.parse('2026-10-17T12:00:00Z');
+  it('is allowed with no earlier nudge or an unreadable time', () => {
+    expect(nudgedWithinWindow(null, now)).toBe(false);
+    expect(nudgedWithinWindow(undefined, now)).toBe(false);
+    expect(nudgedWithinWindow('not a date', now)).toBe(false);
+  });
+  it('is blocked inside a day of the last nudge, allowed from exactly a day on', () => {
+    expect(nudgedWithinWindow(new Date(now - 60_000).toISOString(), now)).toBe(true);
+    expect(nudgedWithinWindow(new Date(now - NUDGE_WINDOW_MS + 1).toISOString(), now)).toBe(true);
+    expect(nudgedWithinWindow(new Date(now - NUDGE_WINDOW_MS).toISOString(), now)).toBe(false);
+  });
+  it('disables Waves with the nudged-today reason, last, for a member on Waves', () => {
+    const options = remindOptions({
+      joined: true,
+      hasPhone: false,
+      lastUsed: RemindChannel.Waves,
+      nudgedToday: true,
+    });
+    const waves = options[options.length - 1];
+    expect(waves.channel).toBe(RemindChannel.Waves);
+    expect(waves.enabled).toBe(false);
+    expect(waves.reason).toBe(RemindUnavailable.NudgedToday);
+    expect(waves.lastUsed).toBe(false);
+    expect(options.slice(0, -1).every((o) => o.enabled)).toBe(true);
+  });
+  it('keeps not-on-Waves as the reason when both apply', () => {
+    const waves = remindOptions({
+      joined: false,
+      hasPhone: false,
+      lastUsed: null,
+      nudgedToday: true,
+    }).find((o) => o.channel === RemindChannel.Waves);
+    expect(waves?.reason).toBe(RemindUnavailable.NotOnWaves);
   });
 });

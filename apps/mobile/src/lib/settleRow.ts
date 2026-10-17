@@ -1,11 +1,9 @@
 /**
  * What a "People who owe you" row says and offers, decided in one place so every
  * kind of member reads the same way: avatar, name, one status line, the amount,
- * and one Remind pill (a bell for someone on Waves, the channel's icon for
- * someone who is not).
+ * and one Remind pill, identical for everyone. The channel is picked in the
+ * sheet the pill opens; `remindOptions` says which channels that sheet offers.
  */
-
-import { GhostChannel } from '@/lib/ghostReminder';
 
 export enum OwedStatus {
   /** A reminder was just sent: its own words ("Reminded", "Already nudged today"). */
@@ -18,11 +16,93 @@ export enum OwedStatus {
   Tap = 'tap',
 }
 
-export enum OwedRemind {
-  Push = 'push',
+/** The ways a reminder can go; the person picks one in the Remind sheet. */
+export enum RemindChannel {
+  Waves = 'waves',
   WhatsApp = 'whatsapp',
-  Email = 'email',
+  Sms = 'sms',
   Share = 'share',
+}
+
+export enum RemindUnavailable {
+  NotOnWaves = 'not_on_waves',
+  /** The one in-app nudge a day to this person has gone already. */
+  NudgedToday = 'nudged_today',
+}
+
+/** The server refuses a second nudge to the same person inside this window. */
+export const NUDGE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether an in-app nudge to this person would be refused right now, from the
+ * time of the last one. Mirrors the server's rule (`reminders` trigger:
+ * a second nudge less than a day after the last) so the sheet can say so up
+ * front; the server stays the judge. Unknown or unreadable means "allowed".
+ */
+export function nudgedWithinWindow(
+  lastNudgedAt: string | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  if (!lastNudgedAt) return false;
+  const last = Date.parse(lastNudgedAt);
+  if (Number.isNaN(last)) return false;
+  return now < last + NUDGE_WINDOW_MS;
+}
+
+export interface RemindOption {
+  readonly channel: RemindChannel;
+  readonly enabled: boolean;
+  readonly reason: RemindUnavailable | null;
+  /** The channel this person used last time for this member. */
+  readonly lastUsed: boolean;
+}
+
+const DEFAULT_ORDER = [
+  RemindChannel.Waves,
+  RemindChannel.WhatsApp,
+  RemindChannel.Sms,
+  RemindChannel.Share,
+] as const;
+
+export function parseRemindChannel(value: string | null | undefined): RemindChannel | null {
+  return DEFAULT_ORDER.find((channel) => channel === value) ?? null;
+}
+
+/**
+ * Which channels the Remind sheet lists, in order. Waves is always listed but
+ * disabled (with its reason) for someone not on Waves or already nudged today; SMS needs a phone;
+ * WhatsApp and Share are always there. Usable channels come first with the
+ * last-used one leading; the disabled one goes last.
+ */
+export function remindOptions(input: {
+  readonly joined: boolean;
+  readonly hasPhone: boolean;
+  readonly lastUsed: RemindChannel | null;
+  /** The in-app nudge to them already went today. */
+  readonly nudgedToday?: boolean;
+}): RemindOption[] {
+  const { joined, hasPhone, lastUsed, nudgedToday = false } = input;
+  const options: RemindOption[] = DEFAULT_ORDER.filter(
+    (channel) => channel !== RemindChannel.Sms || hasPhone,
+  ).map((channel) => {
+    const isWaves = channel === RemindChannel.Waves;
+    const enabled = !isWaves || (joined && !nudgedToday);
+    return {
+      channel,
+      enabled,
+      reason: enabled
+        ? null
+        : !joined
+          ? RemindUnavailable.NotOnWaves
+          : RemindUnavailable.NudgedToday,
+      lastUsed: enabled && channel === lastUsed,
+    };
+  });
+  const rank = (option: RemindOption): number => (option.enabled ? (option.lastUsed ? 0 : 1) : 2);
+  return options
+    .map((option, index) => ({ option, index }))
+    .sort((a, b) => rank(a.option) - rank(b.option) || a.index - b.index)
+    .map(({ option }) => option);
 }
 
 export interface OwedRowInput {
@@ -32,31 +112,19 @@ export interface OwedRowInput {
   readonly hasMember: boolean;
   readonly left: boolean;
   readonly pending: boolean;
-  /** The in-app nudge came back with a message (sent, or already sent today). */
-  readonly nudged: boolean;
-  /** The off-app reminder was just handed to WhatsApp, mail or the share sheet. */
+  /** A reminder was just sent, over any channel. */
   readonly reminded: boolean;
-  readonly channel: GhostChannel;
 }
 
 export interface OwedRowModel {
   readonly status: OwedStatus;
-  /** Which Remind pill the row carries; null when none (already reminded). */
-  readonly remind: OwedRemind | null;
-  /** The (i) that says why this person gets no app reminder. */
-  readonly info: boolean;
-}
-
-function ghostRemind(channel: GhostChannel): OwedRemind {
-  if (channel === GhostChannel.WhatsApp) return OwedRemind.WhatsApp;
-  if (channel === GhostChannel.Email) return OwedRemind.Email;
-  return OwedRemind.Share;
+  /** Whether the row carries the Remind pill (the same one for everybody). */
+  readonly remind: boolean;
 }
 
 export function owedRowModel(input: OwedRowInput): OwedRowModel {
-  const { joined, hasMember, left, pending, nudged, reminded, channel } = input;
-  const feedback = joined ? nudged : reminded;
-  const status = feedback
+  const { joined, hasMember, left, pending, reminded } = input;
+  const status = reminded
     ? OwedStatus.Feedback
     : pending && joined
       ? OwedStatus.Pending
@@ -65,11 +133,7 @@ export function owedRowModel(input: OwedRowInput): OwedRowModel {
         : !joined
           ? OwedStatus.NotOnWaves
           : OwedStatus.Tap;
-  if (joined) {
-    return { status, remind: nudged ? null : OwedRemind.Push, info: false };
-  }
-  if (!hasMember || reminded) return { status, remind: null, info: false };
-  return { status, remind: ghostRemind(channel), info: true };
+  return { status, remind: hasMember && !reminded };
 }
 
 /**
