@@ -21,6 +21,56 @@ public final class WavesShareModule: Module {
   public func definition() -> ModuleDefinition {
     Name("WavesShare")
 
+    // Incoming shares. The Share Extension (targets/share) drops the image in
+    // the App Group container and opens `waves://share-receipt`; the app polls
+    // here (cold start and every return to the foreground). The file is moved
+    // into Caches so the share is consumed exactly once. No live event: iOS
+    // always brings the app forward through the foreground poll.
+    Events("onShare")
+
+    AsyncFunction("getInitialShare") { () -> [String: String]? in
+      guard let bundleId = Bundle.main.bundleIdentifier,
+        let container = FileManager.default.containerURL(
+          forSecurityApplicationGroupIdentifier: "group.\(bundleId)")
+      else { return nil }
+      let fm = FileManager.default
+      let incoming = container.appendingPathComponent("incoming", isDirectory: true)
+      guard
+        let files = try? fm.contentsOfDirectory(
+          at: incoming, includingPropertiesForKeys: [.contentModificationDateKey]),
+        let newest = files.max(by: {
+          let a = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+          let b = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+          return a < b
+        })
+      else { return nil }
+      let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("incoming-share", isDirectory: true)
+      try? fm.createDirectory(at: caches, withIntermediateDirectories: true)
+      if let old = try? fm.contentsOfDirectory(at: caches, includingPropertiesForKeys: nil) {
+        old.forEach { try? fm.removeItem(at: $0) }
+      }
+      let ext = newest.pathExtension.lowercased()
+      let id = UUID().uuidString
+      let target = caches.appendingPathComponent("\(id).\(ext.isEmpty ? "jpg" : ext)")
+      do { try fm.moveItem(at: newest, to: target) } catch { return nil }
+      // Anything else left behind is stale.
+      if let rest = try? fm.contentsOfDirectory(at: incoming, includingPropertiesForKeys: nil) {
+        rest.forEach { try? fm.removeItem(at: $0) }
+      }
+      let mime: String
+      switch ext {
+      case "png": mime = "image/png"
+      case "heic", "heif": mime = "image/heic"
+      case "webp": mime = "image/webp"
+      case "gif": mime = "image/gif"
+      default: mime = "image/jpeg"
+      }
+      return ["id": id, "uri": target.absoluteString, "mimeType": mime]
+    }
+
+    AsyncFunction("clearShare") { (_: String) in }
+
     AsyncFunction("shareImageWithText") { (options: [String: String]) -> String in
       guard let fileUri = options["fileUri"], let url = URL(string: fileUri) else {
         return "unavailable"

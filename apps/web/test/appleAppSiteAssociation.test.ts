@@ -18,7 +18,9 @@ const appJson = JSON.parse(
 ) as {
   expo: {
     ios: { bundleIdentifier: string; appleTeamId: string; associatedDomains?: string[] };
-    android: { intentFilters: { data: { host: string; path?: string; pathPrefix?: string }[] }[] };
+    android: {
+      intentFilters: { data: { host?: string; path?: string; pathPrefix?: string }[] }[];
+    };
   };
 };
 
@@ -46,15 +48,20 @@ describe('apple-app-site-association', () => {
   });
 
   it('claims the same paths as the Android intent filter', () => {
+    // Link claims only: the share-sheet filters (SEND, image/*) carry no host.
     const android = appJson.expo.android.intentFilters
       .flatMap((filter) => filter.data)
+      .filter((d) => d.host)
       .map((d) => (d.path ? d.path : `${d.pathPrefix}*`));
     expect(android.sort()).toEqual(['/g', '/g/*', '/join', '/join/*', '/r/*'].sort());
   });
 
   it('is declared by the app for the same host', () => {
     const hosts = new Set(
-      appJson.expo.android.intentFilters.flatMap((filter) => filter.data).map((d) => d.host),
+      appJson.expo.android.intentFilters
+        .flatMap((filter) => filter.data)
+        .filter((d) => d.host)
+        .map((d) => d.host),
     );
     expect(appJson.expo.ios.associatedDomains).toEqual([...hosts].map((h) => `applinks:${h}`));
   });

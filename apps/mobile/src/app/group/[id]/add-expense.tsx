@@ -82,6 +82,8 @@ import {
 import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
+import { shareDecodeMode } from '@/lib/sharedReceipt';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { tripRateFor } from '@/lib/tripRates';
 import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
@@ -317,6 +319,7 @@ export default function AddExpenseScreen() {
     currency: handedCurrency,
     quick,
     receipt: handedReceiptKey,
+    shared,
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
@@ -365,6 +368,8 @@ export default function AddExpenseScreen() {
     quick?: string;
     /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
     receipt?: string;
+    /** '1' when the photo came from the system share sheet: Pro reads it on arrival. */
+    shared?: string;
     /** Event "Pay balance" (Vendors tab): the sub-event the vendor was tagged with. */
     subEventId?: string;
     /** Event "Pay balance": the vendor advance this payment settles. Once this
@@ -564,10 +569,15 @@ export default function AddExpenseScreen() {
   // `lib/receiptHandoff`): into this new expense's held receipts, the same place
   // a photo added here goes — shown from the device at once, sent on save,
   // discarded if the add is abandoned.
+  // A shared photo (`shared=1`) is held back here: the effect below reads it
+  // when the person is Pro, and attaches it otherwise.
+  const sharedPhoto = useRef<PickedImage | null>(
+    shared === '1' && !expenseId ? peekHandedReceipt(handedReceiptKey) : null,
+  );
   useEffect(() => {
     const handed = peekHandedReceipt(handedReceiptKey);
     dropHandedReceipt(handedReceiptKey);
-    if (!handed || expenseId) return;
+    if (!handed || expenseId || sharedPhoto.current) return;
     void enqueueReceipt({
       expenseId: targetExpenseId,
       groupId,
@@ -612,6 +622,32 @@ export default function AddExpenseScreen() {
     ? 'allowed'
     : receiptCapStatus(receiptCap.data, receiptCap.isLoading);
   const capLocked = capStatus === 'locked';
+  const { isPro, loading: tierLoading } = useEntitlement();
+  // A photo shared in from another app: Pro reads it as soon as the tier and
+  // the receipt cap are known (the loading state is the scan's own); anyone
+  // else gets it attached to the new expense, unread. Once per arrival.
+  const sharedMode = shareDecodeMode({ tierLoading, isPro, capStatus });
+  useEffect(() => {
+    const photo = sharedPhoto.current;
+    if (!photo || sharedMode === 'wait') return;
+    sharedPhoto.current = null;
+    if (sharedMode === 'decode') {
+      // decodePhoto is declared with the scan below; an effect runs after it exists.
+      // eslint-disable-next-line react-hooks/immutability
+      void decodePhoto(photo);
+      return;
+    }
+    void enqueueReceipt({
+      expenseId: targetExpenseId,
+      groupId,
+      visibility: 'group',
+      sourceUri: photo.uri,
+      contentType: photo.mimeType,
+      held: true,
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the mode settles
+  }, [sharedMode]);
+
   const queryClient = useQueryClient();
   // At the scan limit a Free person may choose to watch one reward ad; the server
   // decides who is offered it.
@@ -1547,6 +1583,15 @@ export default function AddExpenseScreen() {
       picked = null;
     }
     if (!picked) return;
+    await decodePhoto(picked);
+  };
+
+  /**
+   * Reads a bill already in hand, exactly as a fresh scan does: on-device OCR
+   * first, the image only when that fails, then the amount, merchant and items.
+   * Shared by the camera scan and a photo shared in from another app.
+   */
+  const decodePhoto = async (picked: PickedImage): Promise<void> => {
     setScanning(true);
     try {
       // Read the text on the phone first: the photograph never leaves the
