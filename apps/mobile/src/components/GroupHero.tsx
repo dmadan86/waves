@@ -88,6 +88,12 @@ function daysToConfirm(initiatedIso: string, now: number = Date.now()): number {
  * summary that opens the full review list for many. Rendered above the feed and
  * pinned, so the list scrolls under it rather than carrying it off the top.
  */
+// The last measured hero height. The scene is only drawn once the hero has a
+// height, so a cold first frame showed the flat sky and the scenery popped in a
+// pass later. Seeding from the previous open puts the scenery in the first frame
+// (onLayout still corrects it if this group's hero is a different size).
+let lastHeroHeight = 0;
+
 export function GroupHero({
   groupId,
   group,
@@ -146,7 +152,7 @@ export function GroupHero({
   const [heroPage, setHeroPage] = useState(0);
   // The hero's measured height. The scene is sized from it in points: an
   // absolutely placed image sized by its edges lays out at zero on Android.
-  const [heroHeight, setHeroHeight] = useState(0);
+  const [heroHeight, setHeroHeight] = useState(lastHeroHeight);
   const heroDeckRef = useRef<ScrollView>(null);
 
   const busy = confirmSettlement.isPending || disputeSettlement.isPending;
@@ -203,7 +209,11 @@ export function GroupHero({
       <View
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
-        onLayout={(event) => setHeroHeight(Math.round(event.nativeEvent.layout.height))}
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          lastHeroHeight = next;
+          setHeroHeight(next);
+        }}
       />
       {/* The scene (`HeroScene`, the dashboard's dusk hills) fills the hero; it
           is drawn a little taller than the hero so its page-colour fade falls
