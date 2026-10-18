@@ -89,7 +89,7 @@ minimumReleaseAgeExclude:
 # the app's own pin was silently ignored — which `expo doctor` then reported as
 # a version mismatch the app's package.json appeared to have already fixed.
 overrides:
-  expo-constants: 57.0.20
+  expo-constants: 57.0.22
   # GHSA-vcc3-ghjq-m6fr: decode-uri-component <=0.4.2 decodes malformed
   # percent-encoding in exponential time. It reaches us through expo-router's
   # query-string@7, which parses every deep link, so a crafted link could hang
