@@ -133,10 +133,15 @@ describe('isAcceptableShareUri', () => {
     expect(isAcceptableShareUri('content', 'androidx-startup', pkg, pkg)).toBe(false);
   });
 
-  it('rejects userinfo tricks, unresolved providers and a missing authority', () => {
+  it('rejects userinfo tricks and a missing authority', () => {
     expect(isAcceptableShareUri('content', `x@${pkg}.provider`, pkg, photos)).toBe(false);
-    expect(isAcceptableShareUri('content', 'media', pkg, null)).toBe(false);
     expect(isAcceptableShareUri('content', '', pkg, photos)).toBe(false);
     expect(isAcceptableShareUri('content', null, pkg, photos)).toBe(false);
+  });
+
+  it('allows a provider hidden by package visibility (unresolved, so not ours)', () => {
+    expect(
+      isAcceptableShareUri('content', 'com.google.android.apps.photos.contentprovider', pkg, null),
+    ).toBe(true);
   });
 });
