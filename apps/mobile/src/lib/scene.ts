@@ -153,6 +153,8 @@ export function sceneForHero(hero: HomeHero | null): Scene | null {
       return Scene.Evening;
     case 'sunset':
       return Scene.Sunset;
+    case 'dusk':
+      return Scene.Evening;
     case 'night':
       return Scene.Night;
   }
