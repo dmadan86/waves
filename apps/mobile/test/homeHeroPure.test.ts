@@ -24,7 +24,9 @@ describe('slotFor boundaries', () => {
     [16, 0, 'evening'],
     [17, 59, 'evening'],
     [18, 0, 'sunset'],
-    [19, 59, 'sunset'],
+    [18, 59, 'sunset'],
+    [19, 0, 'dusk'],
+    [19, 59, 'dusk'],
     [20, 0, 'night'],
     [23, 59, 'night'],
     [0, 0, 'night'],
@@ -62,7 +64,8 @@ describe('selectHomeHero', () => {
     expect(selectHomeHero(at(10, 0, 10), { regionCode: 'gb' })).toBe('autumn');
     expect(selectHomeHero(at(7, 0, 2), { regionCode: 'GB' })).toBe('morning');
     expect(selectHomeHero(at(17, 0, 9), { regionCode: 'GB' })).toBe('evening');
-    expect(selectHomeHero(at(19, 0, 9), { regionCode: 'GB' })).toBe('sunset');
+    expect(selectHomeHero(at(18, 30, 9), { regionCode: 'GB' })).toBe('sunset');
+    expect(selectHomeHero(at(19, 30, 9), { regionCode: 'GB' })).toBe('dusk');
     expect(selectHomeHero(at(22, 0, 3), { regionCode: 'GB' })).toBe('night');
   });
 
@@ -112,7 +115,7 @@ describe('msUntilNextBoundary', () => {
 describe('heroForPickedScene', () => {
   it('reads every photograph as itself, so a picked one wins over the clock', () => {
     for (const hero of HOME_HEROES) expect(heroForPickedScene(hero)).toBe(hero);
-    expect(HOME_HEROES).toHaveLength(9);
+    expect(HOME_HEROES).toHaveLength(10);
     expect(heroForPickedScene('rainy')).toBe('rainy');
     expect(heroForPickedScene('autumn')).toBe('autumn');
     expect(heroForPickedScene('spring')).toBe('spring');

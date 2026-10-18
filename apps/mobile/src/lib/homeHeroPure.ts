@@ -3,7 +3,7 @@
  * the rule is tested without a clock, a device or a native module.
  *
  *   05:00–09:00 morning · 09:00–12:00 late-morning · 12:00–16:00 afternoon ·
- *   16:00–18:00 evening · 18:00–20:00 sunset · 20:00–05:00 night
+ *   16:00–18:00 evening · 18:00–19:00 sunset · 19:00–20:00 dusk · 20:00–05:00 night
  *
  * Two variants sit over the daytime slots, and only when the context is
  * reliable:
@@ -21,6 +21,7 @@ export type HomeHero =
   | 'afternoon'
   | 'evening'
   | 'sunset'
+  | 'dusk'
   | 'night'
   | 'rainy'
   | 'autumn'
@@ -29,7 +30,7 @@ export type HomeHero =
 export type Hemisphere = 'north' | 'south';
 
 /** Hours (local) at which the time-of-day slot changes. */
-export const HERO_BOUNDARY_HOURS = [5, 9, 12, 16, 18, 20] as const;
+export const HERO_BOUNDARY_HOURS = [5, 9, 12, 16, 18, 19, 20] as const;
 
 /** Countries lying wholly or overwhelmingly south of the equator, with real seasons. */
 const SOUTHERN = new Set([
@@ -100,7 +101,7 @@ export function hemisphereForRegion(regionCode: string | null | undefined): Hemi
 }
 
 export type HomeHeroSlot =
-  'morning' | 'late-morning' | 'afternoon' | 'evening' | 'sunset' | 'night';
+  'morning' | 'late-morning' | 'afternoon' | 'evening' | 'sunset' | 'dusk' | 'night';
 
 export function slotFor(date: Date): HomeHeroSlot {
   const h = date.getHours();
@@ -108,7 +109,8 @@ export function slotFor(date: Date): HomeHeroSlot {
   if (h >= 9 && h < 12) return 'late-morning';
   if (h >= 12 && h < 16) return 'afternoon';
   if (h >= 16 && h < 18) return 'evening';
-  if (h >= 18 && h < 20) return 'sunset';
+  if (h >= 18 && h < 19) return 'sunset';
+  if (h >= 19 && h < 20) return 'dusk';
   return 'night';
 }
 
@@ -158,6 +160,7 @@ export const HOME_HEROES: readonly HomeHero[] = [
   'afternoon',
   'evening',
   'sunset',
+  'dusk',
   'night',
   'rainy',
   'autumn',
