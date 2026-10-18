@@ -48,6 +48,9 @@ function draftTitle(capture: CaptureRow, fallback: string): string {
   return said === '' ? fallback : said;
 }
 
+/** The brand disc the clock sits in; the draft rows indent past it. */
+const ICON_DISC = 48;
+
 export function GroupDrafts({
   groupId,
   captures,
@@ -62,11 +65,24 @@ export function GroupDrafts({
   if (captures.length === 0) return null;
 
   return (
-    <Card style={{ gap: theme.spacing.sm }}>
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-        <Ionicons name="time-outline" size={iconSize.md} color={theme.color.brand} />
+    <Card flat style={{ gap: theme.spacing.sm, backgroundColor: theme.color.brandSoft }}>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+        <View
+          style={{
+            width: ICON_DISC,
+            height: ICON_DISC,
+            borderRadius: ICON_DISC / 2,
+            backgroundColor: theme.color.brand,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="time-outline" size={iconSize.md} color={theme.color.onBrand} />
+        </View>
         <View style={{ flex: 1 }}>
-          <Text variant="subheading">{t.group.draftsHere}</Text>
+          <Text variant="subheading" style={{ fontWeight: '700' }}>
+            {t.group.draftsHere}
+          </Text>
           <Text variant="caption" tone="muted">
             {t.group.draftsHereHint}
           </Text>
@@ -75,7 +91,11 @@ export function GroupDrafts({
 
       {captures.map((capture, index) => (
         <View key={capture.id}>
-          {index > 0 ? <Divider /> : null}
+          {index > 0 ? (
+            <View style={{ marginLeft: ICON_DISC + theme.spacing.md }}>
+              <Divider />
+            </View>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             // A label on the row hides the text inside it, so everything the
@@ -96,6 +116,8 @@ export function GroupDrafts({
               gap: theme.spacing.sm,
               // A row a thumb can find, on a card that is mostly text.
               minHeight: 44,
+              // Aligned under the title and subtitle, not under the disc.
+              paddingLeft: ICON_DISC + theme.spacing.md,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -103,7 +125,7 @@ export function GroupDrafts({
               <Text variant="body" numberOfLines={1}>
                 {draftTitle(capture, t.expense.untitled)}
               </Text>
-              <Text variant="micro" tone="faint">
+              <Text variant="micro" tone="muted">
                 {showDate(capture.expense_date, locale)}
               </Text>
             </View>
@@ -114,11 +136,13 @@ export function GroupDrafts({
               currency={capture.currency}
               locale={locale}
               variant="body"
+              fadeFraction={false}
+              style={{ fontWeight: '700' }}
             />
             <Ionicons
               name={directionalIcon('chevron-forward')}
               size={iconSize.sm}
-              color={theme.color.textFaint}
+              color={theme.color.brand}
               // Decorative: the row already says where it goes.
               accessibilityElementsHidden
               importantForAccessibility="no"
