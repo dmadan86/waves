@@ -1,5 +1,5 @@
 /**
- * Home's header scenery: one of nine bundled photographs (`lib/homeHeroPure`),
+ * Home's header scenery: one of ten bundled photographs (`lib/homeHeroPure`),
  * all cut to the same 2.25:1 frame so a change of scene is the same view
  * changing with the hour or the season.
  *
@@ -23,9 +23,11 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 export const HOME_HERO_PHOTOS: Readonly<Record<HomeHero, number>> = {
   morning: require('../../../assets/images/home-hero/morning.webp') as number,
   'late-morning': require('../../../assets/images/home-hero/late-morning.webp') as number,
-  afternoon: require('../../../assets/images/home-hero/afternoon.webp') as number,
+  // Midday and afternoon share one terrace picture.
+  afternoon: require('../../../assets/images/home-hero/late-morning.webp') as number,
   evening: require('../../../assets/images/home-hero/evening.webp') as number,
   sunset: require('../../../assets/images/home-hero/sunset.webp') as number,
+  dusk: require('../../../assets/images/home-hero/dusk.webp') as number,
   night: require('../../../assets/images/home-hero/night.webp') as number,
   rainy: require('../../../assets/images/home-hero/rainy.webp') as number,
   autumn: require('../../../assets/images/home-hero/autumn.webp') as number,
@@ -39,6 +41,25 @@ export const HERO_SCRIM_COLORS = [
   'rgba(8, 12, 32, 0)',
 ] as const;
 export const HERO_SCRIM_LOCATIONS = [0, 0.6, 1] as const;
+
+/** Bright skies (morning, midday, afternoon and the pale seasons) get a heavier
+ *  scrim so the white greeting reads; the deep scenes keep the lighter one. */
+export const HERO_SCRIM_BRIGHT_COLORS = [
+  'rgba(8, 12, 32, 0.6)',
+  'rgba(8, 12, 32, 0.3)',
+  'rgba(8, 12, 32, 0)',
+] as const;
+const BRIGHT_HEROES: ReadonlySet<HomeHero> = new Set<HomeHero>([
+  'morning',
+  'late-morning',
+  'afternoon',
+  'spring',
+  'rainy',
+  'autumn',
+]);
+export function scrimColorsFor(hero: HomeHero): readonly [string, string, string] {
+  return BRIGHT_HEROES.has(hero) ? HERO_SCRIM_BRIGHT_COLORS : HERO_SCRIM_COLORS;
+}
 
 /** Every photograph's size (they share one 2.25:1 frame). */
 const PHOTO_W = 1440;
@@ -96,7 +117,7 @@ export function HomeHeroBackground({
       />
       <LinearGradient
         pointerEvents="none"
-        colors={HERO_SCRIM_COLORS}
+        colors={scrimColorsFor(hero)}
         locations={HERO_SCRIM_LOCATIONS}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, height: scrimHeight }}
       />

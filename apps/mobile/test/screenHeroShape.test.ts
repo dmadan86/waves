@@ -40,12 +40,14 @@ describe('every hero is a deliberate shape, not a drift from the shared one', ()
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
   });
 
-  it("the group hero wears Home's dusk scene, with its figure stacked under its label", () => {
-    // The group screen follows its own design: the scenic hero (`HeroScene`, as
-    // on Home and Groups) with "You are owed" over a large figure, rather than
+  it("the group hero wears Home's terrace photo, with its figure stacked under its label", () => {
+    // The group screen follows its own design: Home's time-of-day terrace
+    // photograph (`HOME_HERO_PHOTOS`) with "You are owed" over a large figure, rather than
     // the shared one-line "Label: figure". A deliberate shape, pinned here.
     const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(/import \{ HeroScene \} from '@\/components\/home\/HeroScene';/);
+    expect(hero).toMatch(
+      /import \{ HOME_HERO_PHOTOS \} from '@\/components\/home\/HomeHeroBackground';/,
+    );
     expect(hero).not.toMatch(/<HeroFigureLine\b/);
   });
 

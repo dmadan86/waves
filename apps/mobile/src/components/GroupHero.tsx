@@ -3,6 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   I18nManager,
   Platform,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,10 +37,10 @@ import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroPillButton } from '@/components/ScreenHero';
-import { HeroScene } from '@/components/home/HeroScene';
+import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { useHeroScene } from '@/lib/heroScenePreference';
-import { HERO_THEMES } from '@/lib/scene';
+import { useHomeHero } from '@/lib/useHomeHero';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useBlockedUsers } from '@/data/blocked';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
@@ -177,11 +178,16 @@ export function GroupHero({
     });
   };
 
+  // Home's photographs share one 1440x640 frame.
+  const photoScale = Math.max(windowW / 1440, heroHeight / 640);
+  const photoW = 1440 * photoScale;
+  const photoH = 640 * photoScale;
   const { blockedIds } = useBlockedUsers();
-  const scene = useHeroScene();
-  // A light scene (morning, winter) puts dark ink on the hero, like the Groups screen.
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
-  const ink = darkInk ? theme.color.text : theme.color.onBrand;
+  // The same terrace photograph Home wears for the hour (or the person's pick).
+  // Every photo is busy or bright, so the ink is always light, over a scrim.
+  const hero = useHomeHero();
+  const darkInk = false;
+  const ink = theme.color.onBrand;
   const pillInk = theme.color.brand;
   const shownMembers = members.slice(0, MAX_FACES);
   const extraMembers = Math.max(0, members.length - shownMembers.length);
@@ -202,7 +208,7 @@ export function GroupHero({
         borderBottomRightRadius: theme.radius.xxl,
         gap: theme.spacing.xs,
         overflow: 'hidden',
-        backgroundColor: HERO_THEMES[scene].sky[0],
+        backgroundColor: '#1B1340',
       }}
     >
       {/* Measures the hero for the scene behind it; draws nothing. */}
@@ -215,9 +221,9 @@ export function GroupHero({
           setHeroHeight(next);
         }}
       />
-      {/* The scene (`HeroScene`, the dashboard's dusk hills) fills the hero; it
-          is drawn a little taller than the hero so its page-colour fade falls
-          below the rounded foot, which clips it. */}
+      {/* The photograph, `cover`-fitted by hand (the explicit-size Image renders
+          bundled photos in release builds) and anchored to the bottom, with a
+          shade top and bottom so the name, balance and actions read on it. */}
       {heroHeight > 0 ? (
         <View
           pointerEvents="none"
@@ -225,17 +231,21 @@ export function GroupHero({
           importantForAccessibility="no-hide-descendants"
           style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
         >
-          <HeroScene
-            scene={scene}
-            width={windowW}
-            height={heroHeight + 30}
-            horizon={heroHeight - 6}
-            headerBottom={insets.top + TILE + theme.spacing.sm}
-            pageColor={theme.color.bg}
-            // The scene is seen whole here: no top shade, no haze band —
-            // both read as a tinted box on a header this short.
-            shade={false}
-            haze={false}
+          <Image
+            source={HOME_HERO_PHOTOS[hero]}
+            accessibilityIgnoresInvertColors
+            style={{
+              position: 'absolute',
+              width: photoW,
+              height: photoH,
+              left: (windowW - photoW) / 2,
+              top: heroHeight - photoH,
+            }}
+          />
+          <LinearGradient
+            colors={['rgba(8, 12, 32, 0.5)', 'rgba(8, 12, 32, 0.22)', 'rgba(8, 12, 32, 0.5)']}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
           />
         </View>
       ) : null}
