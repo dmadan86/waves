@@ -48,7 +48,9 @@ export function createShareDedupe(cap = 32): { accept: (id: string) => boolean }
  * is trusted: `file://` and every other scheme could point at Waves' private
  * files, and a provider of our own package would serve them. `resolvedPackage`
  * is the package that really serves the authority (PackageManager's
- * resolveContentProvider), null when it cannot be resolved. The native side
+ * resolveContentProvider), null when Android 11+ package visibility hides it —
+ * an app always sees its own providers, so an unresolved one is someone else's
+ * (the gallery, Photos, WhatsApp) and is allowed. The native side
  * (WavesShareModule.kt) applies the same rules.
  */
 export function isAcceptableShareUri(
@@ -60,6 +62,6 @@ export function isAcceptableShareUri(
   if (scheme !== 'content') return false;
   if (!authority || authority.includes('@')) return false;
   if (authority.startsWith(packageName)) return false;
-  if (!resolvedPackage || resolvedPackage === packageName) return false;
+  if (resolvedPackage === packageName) return false;
   return true;
 }
