@@ -23,6 +23,9 @@
       "bundleIdentifier": "app.wavs.mobile",
       "appleTeamId": "JBAY4E524Q",
       "associatedDomains": ["applinks:app.wavs.co.in"],
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.app.wavs.mobile"]
+      },
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -77,6 +80,16 @@
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "SEND",
+          "data": [{ "mimeType": "image/*" }],
+          "category": ["DEFAULT"]
+        },
+        {
+          "action": "SEND_MULTIPLE",
+          "data": [{ "mimeType": "image/*" }],
+          "category": ["DEFAULT"]
         }
       ],
       "googleServicesFile": "./google-services.json"

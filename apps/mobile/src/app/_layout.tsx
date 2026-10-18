@@ -47,6 +47,7 @@ import { PhoneLinkPrompt } from '@/components/PhoneLinkPrompt';
 import { TourOverlay } from '@/components/TourOverlay';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { StatusBanner, UpdateGate } from '@/components/AppStatus';
+import { SharedReceiptHandler } from '@/lib/SharedReceiptHandler';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { markLaunchReady } from '@/lib/launchReady';
 import { AutoBackup } from '@/lib/backup/AutoBackup';
@@ -310,6 +311,11 @@ function RootLayout() {
                                 read from the mirror, which must not be touched
                                 while the app is still locked. */}
                                             <CaptureNudge />
+                                            {/* Renders nothing: opens add-expense with a photo
+                                another app shared to Waves. Inside the lock
+                                because it reads the group list from the mirror,
+                                and the photo waits there until the app is open. */}
+                                            <SharedReceiptHandler />
                                             {/* Renders nothing: it reads the bank
                                 messages this phone is allowed to read, on a
                                 permission somebody already granted, and keeps
