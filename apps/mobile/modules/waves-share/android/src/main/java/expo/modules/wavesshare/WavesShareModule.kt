@@ -2,6 +2,8 @@ package expo.modules.wavesshare
 
 import android.content.ClipData
 import android.content.Intent
+import android.content.ContentResolver
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
@@ -61,9 +63,18 @@ class WavesShareModule : Module() {
     intent.action = Intent.ACTION_MAIN
     intent.removeExtra(Intent.EXTRA_STREAM)
     if (source == null) return null
+    // A sender controls this URI. Only another app's content:// provider is
+    // trusted: file:// (and any other scheme) could name our private files, and
+    // one of our own providers (WavesShareFileProvider, expo's) would hand them
+    // over. Mirrors isAcceptableShareUri in incoming.ts.
+    if (source.scheme != ContentResolver.SCHEME_CONTENT) return null
+    val authority = source.authority ?: return null
+    if (authority.startsWith(context.packageName)) return null
 
     return try {
-      val resolved = context.contentResolver.getType(source) ?: intent.type ?: ""
+      // The provider's own answer only; the sender-supplied intent.type is not
+      // evidence of anything.
+      val resolved = context.contentResolver.getType(source) ?: return null
       if (!resolved.startsWith("image/")) return null
       val ext =
         when (resolved.lowercase()) {
@@ -78,7 +89,7 @@ class WavesShareModule : Module() {
       dir.listFiles()?.forEach { it.delete() }
       val id = UUID.randomUUID().toString()
       val target = File(dir, "$id.$ext")
-      val limit = 40L * 1024 * 1024
+      val limit = 25L * 1024 * 1024
       context.contentResolver.openInputStream(source)?.use { input ->
         target.outputStream().use { output ->
           val buffer = ByteArray(64 * 1024)
@@ -95,6 +106,13 @@ class WavesShareModule : Module() {
           }
         }
       } ?: return null
+      // The bytes must really be an image, whatever the provider claimed.
+      val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+      BitmapFactory.decodeFile(target.absolutePath, bounds)
+      if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+        target.delete()
+        return null
+      }
       mapOf("id" to id, "uri" to "file://${target.absolutePath}", "mimeType" to resolved.lowercase())
     } catch (_: Exception) {
       null

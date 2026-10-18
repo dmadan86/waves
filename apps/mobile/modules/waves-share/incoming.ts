@@ -42,3 +42,19 @@ export function createShareDedupe(cap = 32): { accept: (id: string) => boolean }
     },
   };
 }
+
+/**
+ * Whether a shared URI may be copied. Only another app's `content://` provider
+ * is trusted: `file://` and every other scheme could point at Waves' private
+ * files, and a provider of our own package would serve them. The native side
+ * (WavesShareModule.kt) applies the same rule.
+ */
+export function isAcceptableShareUri(
+  scheme: string | null | undefined,
+  authority: string | null | undefined,
+  packageName: string,
+): boolean {
+  if (scheme !== 'content') return false;
+  if (!authority) return false;
+  return !authority.startsWith(packageName);
+}

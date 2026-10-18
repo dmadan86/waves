@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { createShareDedupe, parseIncomingShare } from '../modules/waves-share/incoming';
+import {
+  createShareDedupe,
+  isAcceptableShareUri,
+  parseIncomingShare,
+} from '../modules/waves-share/incoming';
 import { isShareLaunchUrl, shareDecodeMode, shareRoute } from '../src/lib/sharedReceipt';
 
 describe('parseIncomingShare', () => {
@@ -106,5 +110,31 @@ describe('isShareLaunchUrl', () => {
   it('leaves real routes alone', () => {
     expect(isShareLaunchUrl('waves:///capture')).toBe(false);
     expect(isShareLaunchUrl('/group/1')).toBe(false);
+  });
+});
+
+describe('isAcceptableShareUri', () => {
+  const pkg = 'app.waves.mobile';
+
+  it('accepts another app content provider', () => {
+    expect(
+      isAcceptableShareUri('content', 'com.google.android.apps.photos.contentprovider', pkg),
+    ).toBe(true);
+    expect(isAcceptableShareUri('content', 'media', pkg)).toBe(true);
+  });
+
+  it('rejects file and other schemes', () => {
+    expect(isAcceptableShareUri('file', '', pkg)).toBe(false);
+    expect(isAcceptableShareUri('http', 'example.com', pkg)).toBe(false);
+    expect(isAcceptableShareUri(null, 'media', pkg)).toBe(false);
+  });
+
+  it('rejects our own providers and a missing authority', () => {
+    expect(isAcceptableShareUri('content', 'app.waves.mobile.wavesshare.fileprovider', pkg)).toBe(
+      false,
+    );
+    expect(isAcceptableShareUri('content', 'app.waves.mobile.fileprovider', pkg)).toBe(false);
+    expect(isAcceptableShareUri('content', '', pkg)).toBe(false);
+    expect(isAcceptableShareUri('content', null, pkg)).toBe(false);
   });
 });
