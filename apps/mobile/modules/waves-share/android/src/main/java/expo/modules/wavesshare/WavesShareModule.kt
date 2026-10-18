@@ -73,9 +73,11 @@ class WavesShareModule : Module() {
     if (authority.contains('@')) return null
     if (authority.startsWith(context.packageName)) return null
     // Resolve who really serves it: our own providers do not all carry our
-    // package name (androidx, firebase, expo), and an unknown one is refused.
-    val provider = context.packageManager.resolveContentProvider(authority, 0) ?: return null
-    if (provider.packageName == context.packageName) return null
+    // package name (androidx, firebase, expo). An app always sees its own
+    // providers, so a null here means a provider hidden by Android 11+ package
+    // visibility (the gallery, Photos, WhatsApp) — someone else's, so allowed.
+    val provider = context.packageManager.resolveContentProvider(authority, 0)
+    if (provider != null && provider.packageName == context.packageName) return null
 
     return try {
       // The provider's own answer only; the sender-supplied intent.type is not
