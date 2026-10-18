@@ -10,6 +10,10 @@
 import { requireOptionalNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
+import { parseIncomingShare, type IncomingShare } from './incoming';
+
+export type { IncomingShare } from './incoming';
+
 export type ShareTarget = 'whatsapp' | 'email' | 'any';
 export type ShareImageResult = 'shared' | 'unavailable' | 'cancelled';
 
@@ -29,6 +33,9 @@ interface WavesShareNative {
     subject: string;
     target: ShareTarget;
   }) => Promise<ShareImageResult>;
+  getInitialShare?: () => Promise<unknown>;
+  clearShare?: (id: string) => Promise<void>;
+  addListener?: (event: 'onShare', listener: (payload: unknown) => void) => { remove: () => void };
 }
 
 function load(): WavesShareNative | null {
@@ -51,4 +58,37 @@ export async function shareImageWithText(
   const native = load();
   if (!native) return 'unavailable';
   return native.shareImageWithText({ ...options, subject: options.subject ?? '' });
+}
+
+/**
+ * An image another app shared to Waves (the share sheet), copied into the app
+ * cache. Null when nothing is waiting, or on a binary without the receiver.
+ * Reading does not consume it: call `clearShare` once it has been routed.
+ */
+export async function getInitialShare(): Promise<IncomingShare | null> {
+  const native = load();
+  if (!native?.getInitialShare) return null;
+  try {
+    return parseIncomingShare(await native.getInitialShare());
+  } catch {
+    return null;
+  }
+}
+
+/** Tells the native side this share is done, so it is not offered again. */
+export async function clearShare(id: string): Promise<void> {
+  try {
+    await load()?.clearShare?.(id);
+  } catch {
+    // Best effort: the JS dedupe still stops a second expense.
+  }
+}
+
+/** Shares that arrive while the app is already running. Returns the unsubscribe. */
+export function addShareListener(listener: (share: IncomingShare) => void): () => void {
+  const subscription = load()?.addListener?.('onShare', (payload) => {
+    const share = parseIncomingShare(payload);
+    if (share) listener(share);
+  });
+  return () => subscription?.remove();
 }

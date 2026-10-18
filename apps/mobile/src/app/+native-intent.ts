@@ -2,6 +2,7 @@ import { CategoryId } from '@waves/core';
 
 import { tokenFromScan } from '@/lib/inviteLink';
 import { referralCodeFromUrl } from '@/lib/referral';
+import { isShareLaunchUrl } from '@/lib/sharedReceipt';
 
 /**
  * Rewrite incoming native deep links before expo-router tries to match them.
@@ -50,6 +51,11 @@ export function redirectSystemPath({
     ) {
       return initial ? '/' : null;
     }
+    // A photo shared to Waves: Android may report the content:// stream as the
+    // launch link, and iOS opens `waves://share-receipt` after the Share
+    // Extension has parked the file. Neither is a screen; the share is read
+    // natively and routed by SharedReceiptHandler.
+    if (isShareLaunchUrl(path)) return initial ? '/' : null;
     // A friend's referral link (`https://app.wavs.co.in/r/<CODE>` or
     // `waves://r/<CODE>`): sent to the screen that remembers the code. A path
     // that is not shaped like ours is left to fall through unchanged.

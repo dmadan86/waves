@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -64,6 +64,8 @@ import {
   type MemberRow,
 } from '@/data/types';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
+import { shareDecodeMode } from '@/lib/sharedReceipt';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { usePersonalOffered } from '@/lib/guestGuard';
@@ -387,9 +389,12 @@ export default function CaptureScreen() {
     rawText: rawTextParam,
     parsed: parsedParam,
     receipt: handedReceiptKey,
+    shared,
   } = useLocalSearchParams<{
     /** Quick expense "Advanced": the key of a photo it parked (`lib/receiptHandoff`). */
     receipt?: string;
+    /** '1' when the photo came from the system share sheet: Pro reads it on arrival. */
+    shared?: string;
     scan?: string;
     /** Nonce: open the photo library straight away (the home widget's Photo tile). */
     gallery?: string;
@@ -592,6 +597,14 @@ export default function CaptureScreen() {
     // A photo exists now: on the camera-first entry, reveal the form (with the
     // shot and its OCR) — this is the moment the person confirmed "okay".
     if (opts?.scanEntry) setAwaitingScan(false);
+    await decodePhoto(picked);
+  };
+
+  /**
+   * Keeps a bill already in hand and reads it, as a fresh scan does. Shared by
+   * the camera scan and a photo shared in from another app.
+   */
+  const decodePhoto = async (picked: PickedImage): Promise<void> => {
     setPhoto(picked);
     setScanning(true);
     try {
@@ -615,6 +628,20 @@ export default function CaptureScreen() {
       setScanning(false);
     }
   };
+
+  // A photo shared in from another app is already attached (the handed receipt
+  // above). Pro has it read as soon as the tier is known, with the same
+  // scanning state as the camera; anyone else keeps it attached, unread. There
+  // is no group yet, so no receipt cap applies here.
+  const { isPro, loading: tierLoading } = useEntitlement();
+  const sharedPending = useRef(shared === '1' && photo != null);
+  const sharedMode = shareDecodeMode({ tierLoading, isPro, capStatus: 'allowed' });
+  useEffect(() => {
+    if (!sharedPending.current || sharedMode === 'wait') return;
+    sharedPending.current = false;
+    if (sharedMode === 'decode' && photo) void decodePhoto(photo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the mode settles
+  }, [sharedMode]);
 
   // "Straight to the camera": when opened from the dashboard scanner icon, fire
   // the capture once for this nonce. The module-level `consumedScans` set is
