@@ -115,26 +115,28 @@ describe('isShareLaunchUrl', () => {
 
 describe('isAcceptableShareUri', () => {
   const pkg = 'app.waves.mobile';
+  const photos = 'com.google.android.apps.photos';
 
   it('accepts another app content provider', () => {
-    expect(
-      isAcceptableShareUri('content', 'com.google.android.apps.photos.contentprovider', pkg),
-    ).toBe(true);
-    expect(isAcceptableShareUri('content', 'media', pkg)).toBe(true);
+    expect(isAcceptableShareUri('content', `${photos}.contentprovider`, pkg, photos)).toBe(true);
+    expect(isAcceptableShareUri('content', 'media', pkg, 'com.android.providers.media')).toBe(true);
   });
 
   it('rejects file and other schemes', () => {
-    expect(isAcceptableShareUri('file', '', pkg)).toBe(false);
-    expect(isAcceptableShareUri('http', 'example.com', pkg)).toBe(false);
-    expect(isAcceptableShareUri(null, 'media', pkg)).toBe(false);
+    expect(isAcceptableShareUri('file', '', pkg, photos)).toBe(false);
+    expect(isAcceptableShareUri('http', 'example.com', pkg, photos)).toBe(false);
+    expect(isAcceptableShareUri(null, 'media', pkg, photos)).toBe(false);
   });
 
-  it('rejects our own providers and a missing authority', () => {
-    expect(isAcceptableShareUri('content', 'app.waves.mobile.wavesshare.fileprovider', pkg)).toBe(
-      false,
-    );
-    expect(isAcceptableShareUri('content', 'app.waves.mobile.fileprovider', pkg)).toBe(false);
-    expect(isAcceptableShareUri('content', '', pkg)).toBe(false);
-    expect(isAcceptableShareUri('content', null, pkg)).toBe(false);
+  it('rejects our own providers by prefix or by resolved package', () => {
+    expect(isAcceptableShareUri('content', `${pkg}.wavesshare.fileprovider`, pkg, pkg)).toBe(false);
+    expect(isAcceptableShareUri('content', 'androidx-startup', pkg, pkg)).toBe(false);
+  });
+
+  it('rejects userinfo tricks, unresolved providers and a missing authority', () => {
+    expect(isAcceptableShareUri('content', `x@${pkg}.provider`, pkg, photos)).toBe(false);
+    expect(isAcceptableShareUri('content', 'media', pkg, null)).toBe(false);
+    expect(isAcceptableShareUri('content', '', pkg, photos)).toBe(false);
+    expect(isAcceptableShareUri('content', null, pkg, photos)).toBe(false);
   });
 });

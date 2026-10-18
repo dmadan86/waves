@@ -69,7 +69,13 @@ class WavesShareModule : Module() {
     // over. Mirrors isAcceptableShareUri in incoming.ts.
     if (source.scheme != ContentResolver.SCHEME_CONTENT) return null
     val authority = source.authority ?: return null
+    // `content://x@our.package.provider/` parses with authority "x@our...".
+    if (authority.contains('@')) return null
     if (authority.startsWith(context.packageName)) return null
+    // Resolve who really serves it: our own providers do not all carry our
+    // package name (androidx, firebase, expo), and an unknown one is refused.
+    val provider = context.packageManager.resolveContentProvider(authority, 0) ?: return null
+    if (provider.packageName == context.packageName) return null
 
     return try {
       // The provider's own answer only; the sender-supplied intent.type is not
