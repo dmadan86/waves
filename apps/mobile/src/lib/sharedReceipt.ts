@@ -7,8 +7,6 @@
  * (Android ACTION_SEND intent, iOS Share Extension + App Group).
  */
 
-import type { DestinationKey } from '@/lib/recentDestinations';
-
 /** What the add screens do with a shared photo. */
 export type ShareDecodeMode = 'wait' | 'decode' | 'attach';
 
@@ -31,26 +29,13 @@ export function shareDecodeMode(input: {
 }
 
 /**
- * Where a shared photo opens: add-expense in the group used last (the quick-add
- * sheet's own default), else the quick-add draft form, whose group stays on
- * "Decide later" until the person picks one. `groupIds` is what still resolves
- * (a deleted or archived group must not catch a share).
+ * Where a shared photo opens: always the quick-add draft form, with the group on
+ * "Decide later". A share says nothing about which group the bill belongs to, so
+ * none is picked for the person — they choose it on the form (picking one hands
+ * the draft, photo included, to that group's add-expense).
  */
-export function shareRoute(input: {
-  receiptKey: string;
-  recents: readonly DestinationKey[];
-  groupIds: ReadonlySet<string>;
-}): string {
-  const key = encodeURIComponent(input.receiptKey);
-  for (const destination of input.recents) {
-    const groupId = destination.startsWith('group:') ? destination.slice('group:'.length) : null;
-    if (groupId && input.groupIds.has(groupId)) {
-      return `/group/${groupId}/add-expense?receipt=${key}&shared=1`;
-    }
-    // The newest destination is the private ledger: no group to default to.
-    if (destination === 'personal') break;
-  }
-  return `/capture?receipt=${key}&shared=1`;
+export function shareRoute(input: { receiptKey: string }): string {
+  return `/capture?receipt=${encodeURIComponent(input.receiptKey)}&shared=1`;
 }
 
 /**

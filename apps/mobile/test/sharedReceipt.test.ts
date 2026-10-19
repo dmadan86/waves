@@ -75,27 +75,12 @@ describe('shareDecodeMode', () => {
 });
 
 describe('shareRoute', () => {
-  const groupIds = new Set(['g1', 'g2']);
-
-  it('opens add-expense in the last used group that still exists', () => {
-    expect(
-      shareRoute({ receiptKey: 'rk1', recents: ['group:gone', 'group:g2', 'group:g1'], groupIds }),
-    ).toBe('/group/g2/add-expense?receipt=rk1&shared=1');
+  it('always opens the draft form with no group picked', () => {
+    expect(shareRoute({ receiptKey: 'rk1' })).toBe('/capture?receipt=rk1&shared=1');
   });
 
-  it('falls to the quick-add draft form with no usable group', () => {
-    expect(shareRoute({ receiptKey: 'rk1', recents: [], groupIds })).toBe(
-      '/capture?receipt=rk1&shared=1',
-    );
-    expect(shareRoute({ receiptKey: 'rk1', recents: ['group:gone'], groupIds })).toBe(
-      '/capture?receipt=rk1&shared=1',
-    );
-  });
-
-  it('does not skip past a private-ledger destination', () => {
-    expect(shareRoute({ receiptKey: 'rk1', recents: ['personal', 'group:g1'], groupIds })).toBe(
-      '/capture?receipt=rk1&shared=1',
-    );
+  it('encodes the receipt key', () => {
+    expect(shareRoute({ receiptKey: 'a b/c' })).toBe('/capture?receipt=a%20b%2Fc&shared=1');
   });
 });
 
