@@ -11,6 +11,9 @@
  * rather than reviving the old one; a group expense has a real restore.
  */
 
+import { canUnlink, syncedOutstanding, type PersonalLoan } from '@waves/core';
+
+import type { SyncedLoanNets } from '@/data/hooks';
 import type { TypedResult } from '@/lib/assistantCorrections';
 import { toPersonalData, type SavedState } from '@/lib/followUpApply';
 import { undoMove, type MoveSnapshot } from '@/lib/personalHandoff';
@@ -51,7 +54,12 @@ export type UndoEntry =
       readonly carried?: Readonly<Record<string, unknown>>;
     }
   /** My copy of a duplicate removed. */
-  | { readonly kind: 'duplicate'; readonly previous: SavedState }
+  | {
+      readonly kind: 'duplicate';
+      readonly previous: SavedState;
+      /** The full personal record, read BEFORE it was deleted (a delete hides it). */
+      readonly carried?: Readonly<Record<string, unknown>>;
+    }
   /**
    * A personal entry moved into a group from the add-expense form (a split, a
    * trip). `previous` is that entry as the panel held it; the snapshot says
@@ -90,7 +98,39 @@ export interface UndoDeps {
    * The group expense a loan was shared as (a synced loan), looked up when the
    * undo runs because sharing can happen after the answer. Null: not shared.
    */
-  sharedLoanExpense?(loanId: string): { groupId: string; expenseId: string } | null;
+  sharedLoanExpense?(
+    loanId: string,
+  ): { groupId: string; expenseId: string; settled?: boolean } | null;
+}
+
+/* ───────────────────── retries: stable ids and finished steps ───────────────────── */
+
+/**
+ * A failed undo is retried with the very same entry. Everything a retry must not
+ * repeat is remembered against that entry object: the id a personal record was
+ * restored under (a fresh id per attempt would restore it again each time), and
+ * the steps that already went through.
+ */
+interface Progress {
+  restoreId?: string;
+  revived?: SavedState;
+  steps: Set<string>;
+}
+const progressOf = new WeakMap<object, Progress>();
+function progress(key: object): Progress {
+  let p = progressOf.get(key);
+  if (!p) {
+    p = { steps: new Set() };
+    progressOf.set(key, p);
+  }
+  return p;
+}
+
+/** The undo cannot be done; the message says why. */
+export class UndoRefused extends Error {
+  constructor(readonly reason: 'settled') {
+    super(`UNDO_REFUSED: ${reason}`);
+  }
 }
 
 /** Remove the just-saved expense: a group one is soft-deleted (restorable from Activity). */
@@ -108,19 +148,28 @@ export async function restoreRemoved(
   state: SavedState,
   deps: UndoDeps,
   carried?: Readonly<Record<string, unknown>>,
+  /** What a retry is remembered against; defaults to the state itself. */
+  key: object = state,
 ): Promise<SavedState> {
+  const done = progress(key);
+  // A history entry is undone once; a bare state can be removed and restored many times.
+  const remembered = key !== state;
+  if (remembered && done.revived) return done.revived;
   if (state.kind === 'group') {
     if (!state.groupId) throw new Error('group expense without a group');
     await deps.restoreGroupExpense(state.groupId, state.id);
+    if (remembered) done.revived = state;
     return state;
   }
-  const id = deps.newId();
-  const revived: SavedState = { ...state, id };
+  // One id per restoration: a retry upserts the same record, never a second one.
+  done.restoreId ??= deps.newId();
+  const revived: SavedState = { ...state, id: done.restoreId };
   await deps.upsertPersonal({
-    recordId: id,
+    recordId: done.restoreId,
     recordKind: 'txn',
     data: toPersonalData(revived, carried),
   });
+  if (remembered) done.revived = revived;
   return revived;
 }
 
@@ -143,18 +192,32 @@ export async function undoEntry(entry: UndoEntry, deps: UndoDeps): Promise<UndoO
     }
     case 'move': {
       // Bring the old entry back first, then remove the new one: nothing is lost if a step fails.
-      const revived = await restoreRemoved(entry.previous, deps, entry.carried);
-      await removeSaved(entry.current, deps);
+      const steps = progress(entry).steps;
+      const revived = await restoreRemoved(entry.previous, deps, entry.carried, entry);
+      if (!steps.has('removed')) {
+        await removeSaved(entry.current, deps);
+        steps.add('removed');
+      }
       return { state: revived, what: 'correction' };
     }
     case 'lend': {
       // A shared loan is also a debt in a 1:1 group: take that out first, so a
       // failure leaves the loan (and its link) in place to retry, never an
       // orphan debt the other person can still see.
-      const shared = deps.sharedLoanExpense?.(entry.loanId) ?? null;
-      if (shared) await deps.deleteGroupExpense(shared.groupId, shared.expenseId);
-      const revived = await restoreRemoved(entry.previous, deps, entry.carried);
-      await deps.deletePersonal(entry.loanId);
+      const steps = progress(entry).steps;
+      if (!steps.has('debt')) {
+        const shared = deps.sharedLoanExpense?.(entry.loanId) ?? null;
+        // Once the other person has repaid part of it, removing the expense
+        // would rewrite a balance they already acted on: refuse instead.
+        if (shared?.settled) throw new UndoRefused('settled');
+        if (shared) await deps.deleteGroupExpense(shared.groupId, shared.expenseId);
+        steps.add('debt');
+      }
+      const revived = await restoreRemoved(entry.previous, deps, entry.carried, entry);
+      if (!steps.has('loan')) {
+        await deps.deletePersonal(entry.loanId);
+        steps.add('loan');
+      }
       return { state: revived, what: 'handoff' };
     }
     case 'handoff': {
@@ -167,7 +230,7 @@ export async function undoEntry(entry: UndoEntry, deps: UndoDeps): Promise<UndoO
       return { state: entry.previous, what: 'handoff' };
     }
     case 'duplicate': {
-      const revived = await restoreRemoved(entry.previous, deps);
+      const revived = await restoreRemoved(entry.previous, deps, entry.carried, entry);
       return { state: revived, what: 'handoff' };
     }
   }
@@ -220,17 +283,46 @@ export async function restoreSaved(
   }
 }
 
+export type UndoLastResult =
+  | { readonly ok: true; readonly outcome: UndoOutcome; readonly rest: UndoEntry[] }
+  | { readonly ok: false; readonly refused?: 'settled' };
+
+/** Like {@link undoLast}, but says WHY when the undo was refused (so the panel can tell the person). */
+export async function undoLastDetailed(
+  history: readonly UndoEntry[],
+  deps: UndoDeps,
+): Promise<UndoLastResult> {
+  const { entry, rest } = popHistory(history);
+  if (!entry) return { ok: false };
+  try {
+    const outcome = await undoEntry(entry, deps);
+    return outcome ? { ok: true, outcome, rest } : { ok: false };
+  } catch (error) {
+    return error instanceof UndoRefused ? { ok: false, refused: error.reason } : { ok: false };
+  }
+}
+
 /** Take back the newest step; returns the shorter history and the state to hold, or null on failure. */
 export async function undoLast(
   history: readonly UndoEntry[],
   deps: UndoDeps,
 ): Promise<{ outcome: UndoOutcome; rest: UndoEntry[] } | null> {
-  const { entry, rest } = popHistory(history);
-  if (!entry) return null;
-  try {
-    const outcome = await undoEntry(entry, deps);
-    return outcome ? { outcome, rest } : null;
-  } catch {
-    return null;
-  }
+  const done = await undoLastDetailed(history, deps);
+  return done.ok ? { outcome: done.outcome, rest: done.rest } : null;
+}
+
+/**
+ * Whether the debt a loan was shared as can still be taken back out: the same
+ * rule as unsharing a loan (`canUnlink`), read off the group balance.
+ */
+export function sharedDebtSettled(
+  loan: PersonalLoan | undefined,
+  nets: SyncedLoanNets,
+  loans: readonly PersonalLoan[],
+): boolean {
+  if (!loan?.synced) return false;
+  // Until the group is on this device the principal is the honest figure (nothing settled).
+  if (!nets.groups.has(loan.synced.groupId)) return false;
+  const left = syncedOutstanding(loans, nets.nets).get(loan.id) ?? 0n;
+  return !canUnlink(loan, new Map([[loan.id, left]]));
 }

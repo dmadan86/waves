@@ -1879,6 +1879,7 @@ export interface UiStrings {
     change: string;
     unchanged: string;
     couldNotUndo: string;
+    undoLoanSettled: string;
     couldNotChange: string;
     needsConnection: string;
     couldNotUse: string;
@@ -7116,6 +7117,8 @@ const en: UiStrings = {
     change: 'Change',
     unchanged: 'Nothing to change',
     couldNotUndo: "Couldn't undo that. Try again?",
+    undoLoanSettled:
+      "Some of this loan has already been repaid in the group, so it can't be undone here. Settle the rest instead.",
     couldNotChange: "Couldn't change that. Try again?",
     needsConnection: 'Typing needs a connection',
     couldNotUse: "I couldn't use that",
@@ -11898,6 +11901,8 @@ const ta: UiStrings = {
     change: 'மாற்று',
     unchanged: 'மாற்ற எதுவுமில்லை',
     couldNotUndo: 'செயல்தவிர்க்க முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    undoLoanSettled:
+      'இந்தக் கடனில் ஒரு பகுதி குழுவில் ஏற்கெனவே திருப்பிச் செலுத்தப்பட்டுவிட்டது, அதனால் இங்கே செயல்தவிர்க்க முடியாது. மீதியைத் தீர்த்துவிடுங்கள்.',
     couldNotChange: 'மாற்ற முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
     needsConnection: 'தட்டச்சுக்கு இணைய இணைப்பு தேவை',
     couldNotUse: 'இதைப் பயன்படுத்த முடியவில்லை',
@@ -16817,6 +16822,8 @@ const hi: UiStrings = {
     change: 'बदलें',
     unchanged: 'बदलने को कुछ नहीं',
     couldNotUndo: 'पूर्ववत नहीं हो सका। फिर कोशिश करें?',
+    undoLoanSettled:
+      'इस कर्ज़ का कुछ हिस्सा ग्रुप में पहले ही चुका दिया गया है, इसलिए इसे यहाँ पूर्ववत नहीं किया जा सकता। बाकी का हिसाब चुकता करें।',
     couldNotChange: 'बदल नहीं सका। फिर कोशिश करें?',
     needsConnection: 'टाइप करने के लिए इंटरनेट चाहिए',
     couldNotUse: 'मैं इसे समझ नहीं पाया',
@@ -21668,6 +21675,8 @@ const ar: UiStrings = {
     change: 'تغيير',
     unchanged: 'لا شيء لتغييره',
     couldNotUndo: 'تعذّر التراجع. حاول مرة أخرى؟',
+    undoLoanSettled:
+      'سُدّد جزء من هذا الدَّين في المجموعة بالفعل، لذا لا يمكن التراجع عنه هنا. سوِّ الباقي بدلًا من ذلك.',
     couldNotChange: 'تعذّر التغيير. حاول مرة أخرى؟',
     needsConnection: 'الكتابة تحتاج إلى اتصال',
     couldNotUse: 'لم أستطع استخدام ذلك',
