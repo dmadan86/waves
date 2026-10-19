@@ -193,6 +193,10 @@ const labels = (r: ReturnType<typeof mount>): string[] =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The clock is part of the scorer (a spend after midnight asks about the date),
+  // so the tests pin it to mid-afternoon on the day they are written for.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 21, 15, 0, 0));
   world.place = null;
   world.placeGate = null;
   world.online = true;
@@ -305,6 +309,7 @@ describe('VoiceFollowUps', () => {
 
   it('MC-FU-07 nothing to ask: a visible Saved beat for 1.2 s, then close', async () => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 21, 15, 0, 0));
     const r = mount(personal({ amount: 5000n }));
     await vi.advanceTimersByTimeAsync(10);
     expect(textOf(tree(r))).toContain('Saved ✓');
