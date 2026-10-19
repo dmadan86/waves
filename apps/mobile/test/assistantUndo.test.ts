@@ -248,7 +248,10 @@ describe('undo of a shared loan and of a hand-off (CR-28)', () => {
 
   it('CR-28g a private lend never touches a group, and a failed group delete keeps the loan', async () => {
     const plain = fakeDeps({ sharedLoanExpense: () => null });
-    await undoLast(pushHistory([], { kind: 'lend', previous: personal(), loanId: 'l' }), plain.deps);
+    await undoLast(
+      pushHistory([], { kind: 'lend', previous: personal(), loanId: 'l' }),
+      plain.deps,
+    );
     expect(plain.calls).toEqual(['upP fresh', 'delP l']);
 
     const failing = fakeDeps({

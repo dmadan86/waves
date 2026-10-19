@@ -47,8 +47,7 @@ vi.mock('@/data/personal', () => ({
   }),
 }));
 
-const { useShareLoan, useUnshareLoan, ShareLoanError } =
-  await import('@/data/syncedLoans');
+const { useShareLoan, useUnshareLoan, ShareLoanError } = await import('@/data/syncedLoans');
 
 type Opts<I, O> = { mutationFn: (input: I) => Promise<O> };
 
