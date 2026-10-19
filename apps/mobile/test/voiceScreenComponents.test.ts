@@ -75,10 +75,8 @@ const preview: ExpensePreview = {
   amountText: '800',
   currency: 'INR',
   category: 'food',
-  categoryLabel: 'Food',
-  splitWith: ['You', 'Ravi'],
-  splitType: 'Equally',
 };
+const splitText = 'Split equally with: You, Ravi';
 // fakeReact is shallow: render the card's Line and Chip helpers explicitly.
 function expand(tree: unknown): unknown {
   if (Array.isArray(tree)) return tree.map(expand);
@@ -201,8 +199,18 @@ it('VC-11: suggestionWords removes surrounding curly quotes and keeps internal w
   expect(suggestionWords('“Ravi’s coffee”')).toBe('Ravi’s coffee');
   expect(suggestionWords('Coffee')).toBe('Coffee');
 });
-it('VC-12: preview shows description, money, category and split chips', () => {
-  const shallow = renderHook(() => ExpensePreviewCard({ preview, locale: 'en-IN' })).result.current;
+it('VC-12: preview keeps description, money and one tappable split line, nothing else', () => {
+  const onEdit = vi.fn();
+  const onSplit = vi.fn();
+  const onPaidBy = vi.fn();
+  const shallow = renderHook(() =>
+    ExpensePreviewCard({
+      preview,
+      locale: 'en-IN',
+      onEdit,
+      split: { text: splitText, paidBy: 'Paid by Ravi', onPress: onSplit, onPaidBy },
+    }),
+  ).result.current;
   expect(nodes(shallow, 'MoneyText')[0].props).toMatchObject({
     amount: 80000n,
     currency: 'INR',
@@ -210,62 +218,44 @@ it('VC-12: preview shows description, money, category and split chips', () => {
   });
   expect(nodes(shallow, 'CategoryBadge')[0].props.category).toBe('food');
   const tree = expand(shallow);
-  for (const label of [
-    'Dinner',
-    'Food',
-    'You',
-    'Ravi',
-    'Equally',
-    words.category,
-    words.splitWith,
-    words.splitType,
-  ])
-    expect(textOf(tree)).toContain(label);
-  expect(
-    nodes(tree, 'Text').filter((n) => ['Food', 'You', 'Ravi'].includes(String(n.props.children))),
-  ).toHaveLength(3);
-});
-it('VC-13: optional category, participants and null split type omit their lines', () => {
-  const tree = expand(
-    renderHook(() =>
-      ExpensePreviewCard({
-        preview: { ...preview, categoryLabel: null, splitWith: null, splitType: null },
-        locale: 'en-IN',
-      }),
-    ).result.current,
-  );
-  for (const label of [words.category, words.splitWith, words.splitType])
+  for (const label of ['Dinner', splitText, 'Paid by Ravi']) expect(textOf(tree)).toContain(label);
+  // No category line, participant chips or split-type line to repeat the split.
+  for (const label of [words.category, 'Equally', 'Change split', 'Food'])
     expect(textOf(tree)).not.toContain(label);
-  const empty = renderHook(() =>
-    ExpensePreviewCard({
-      preview: { ...preview, splitWith: [], splitType: null },
-      locale: 'en-IN',
-    }),
-  ).result.current;
-  expect(named(empty, 'Line').map((n) => n.props.label)).toEqual([words.category]);
+  const buttons = nodes(tree, 'Pressable');
+  expect(buttons).toHaveLength(3);
+  buttons.forEach(press);
+  expect([onEdit, onSplit, onPaidBy].map((fn) => fn.mock.calls.length)).toEqual([1, 1, 1]);
+});
+it('VC-13: no split line without a split; the split line is read-only without a handler', () => {
+  const none = expand(
+    renderHook(() => ExpensePreviewCard({ preview, locale: 'en-IN', split: null })).result.current,
+  );
+  expect(textOf(none)).not.toContain('Split');
+  const plain = expand(
+    renderHook(() => ExpensePreviewCard({ preview, locale: 'en-IN', split: { text: splitText } }))
+      .result.current,
+  );
+  expect(textOf(plain)).toContain(splitText);
+  expect(nodes(plain, 'Pressable').every((n) => n.props.disabled === true)).toBe(true);
 });
 it.each([
   { kind: 'permission', message: 'Denied', settings: true },
   { kind: 'permission', message: 'Denied', settings: false },
   { kind: 'error', message: 'Failed' },
-] as const)('VC-14: recovery action for %j opens settings or retries', (problem) => {
+] as const)('VC-14: one recovery action for %j opens settings or retries', (problem) => {
   const onRetry = vi.fn();
   const onOpenSettings = vi.fn();
-  const onType = vi.fn();
   const settings = problem.kind === 'permission' && problem.settings;
-  const tree = renderHook(() => VoiceErrorState({ problem, onRetry, onOpenSettings, onType }))
-    .result.current;
+  const tree = renderHook(() => VoiceErrorState({ problem, onRetry, onOpenSettings })).result
+    .current;
+  // One explanation and one primary action: typing is the header's keypad, not a second button here.
   const buttons = nodes(tree, 'Button');
+  expect(buttons).toHaveLength(1);
   expect(buttons[0].props.label).toBe(settings ? words.openSettings : words.retry);
   press(buttons[0]);
   expect(settings ? onOpenSettings : onRetry).toHaveBeenCalledTimes(1);
   expect(settings ? onRetry : onOpenSettings).not.toHaveBeenCalled();
-  expect(buttons[1].props.label).toBe(words.typeInstead);
-  press(buttons[1]);
-  expect(onType).toHaveBeenCalledTimes(1);
-  const noType = renderHook(() => VoiceErrorState({ problem, onRetry, onOpenSettings })).result
-    .current;
-  expect(nodes(noType, 'Button')).toHaveLength(1);
 });
 it('VC-15: text containers grow on small screens without fixed heights', () => {
   const trees = [

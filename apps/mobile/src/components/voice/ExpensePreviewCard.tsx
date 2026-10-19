@@ -1,12 +1,11 @@
 /**
- * The heard expense as a structured card, built only from what the parser
- * actually returned: description and amount, category, who it is split with
- * and — only when the sentence said so or the product's default applies (an
- * equal split between several people) — the split type.
+ * The heard expense, kept to what matters: its description and amount, and one
+ * plain line for who shares it ("Split equally with: You, Ravi, Priya"). Tapping
+ * the top opens the amount and words to correct; tapping the split line opens
+ * the people. Category, date and place live under the screen's one Details row.
  *
  * Everything here is data the screen computed; the card decides nothing. Its
- * actions (Add expense, Edit) live in the screen's sticky bar so they stay in
- * reach however long the review grows.
+ * action (Add) lives in the screen's footer so it stays in reach.
  */
 
 import { Pressable, View } from 'react-native';
@@ -14,7 +13,6 @@ import { Pressable, View } from 'react-native';
 import { MoneyText, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
-import { useStrings } from '@/i18n';
 
 export interface ExpensePreview {
   description: string;
@@ -24,46 +22,45 @@ export interface ExpensePreview {
   amountText: string;
   currency: string;
   category: string | null;
-  categoryLabel: string | null;
-  /** Names in the split, "You" first; null when no split applies yet. */
-  splitWith: readonly string[] | null;
-  /** "Equally", "Exact · …", "All on Ravi" — null when nothing confirmed it. */
-  splitType: string | null;
 }
 
-function Chip({ label }: { label: string }) {
+/** The split as one tappable line, with who paid beneath it when it was not you. */
+export function SplitLine({
+  text,
+  paidBy,
+  onPress,
+  onPaidBy,
+}: {
+  text: string;
+  paidBy?: string | null;
+  onPress?: () => void;
+  onPaidBy?: () => void;
+}) {
   const theme = useTheme();
-  return (
-    <View
-      style={{
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 4,
-        borderRadius: theme.radius.pill,
-        backgroundColor: theme.color.brandSoft,
-        maxWidth: '100%',
-      }}
+  const row = (label: string, press: (() => void) | undefined, muted: boolean) => (
+    <Pressable
+      onPress={press}
+      disabled={!press}
+      accessibilityRole={press ? 'button' : 'text'}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        justifyContent: 'center',
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
       <Text
-        variant="caption"
-        style={{ fontWeight: '600', color: theme.color.text }}
-        numberOfLines={1}
+        variant={muted ? 'caption' : 'body'}
+        tone={muted ? 'muted' : undefined}
+        style={press && !muted ? { color: theme.color.brand, fontWeight: '600' } : undefined}
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
-}
-
-function Line({ label, children }: { label: string; children: React.ReactNode }) {
-  const theme = useTheme();
   return (
-    <View style={{ gap: 4 }}>
-      <Text variant="caption" tone="muted">
-        {label}
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-        {children}
-      </View>
+    <View>
+      {row(text, onPress, false)}
+      {paidBy ? row(paidBy, onPaidBy, true) : null}
     </View>
   );
 }
@@ -71,27 +68,44 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
 export function ExpensePreviewCard({
   preview,
   locale,
-  onEditSplit,
+  onEdit,
+  split,
 }: {
   preview: ExpensePreview;
   locale: string;
-  /** Opens who-paid-and-split over the screen; the split line is a button then. */
-  onEditSplit?: () => void;
+  /** Tap the amount and words to correct them. */
+  onEdit?: () => void;
+  /** The split line, when one applies. */
+  split?: {
+    text: string;
+    paidBy?: string | null;
+    onPress?: () => void;
+    onPaidBy?: () => void;
+  } | null;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
   return (
     <View
       accessibilityRole="summary"
       style={{
-        gap: theme.spacing.md,
+        gap: theme.spacing.xs,
         padding: theme.spacing.lg,
         borderRadius: theme.radius.lg,
         backgroundColor: theme.color.surface,
         ...theme.shadow.soft,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+      <Pressable
+        onPress={onEdit}
+        disabled={!onEdit}
+        accessibilityRole={onEdit ? 'button' : undefined}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
         <CategoryBadge category={preview.category} description={preview.description} size={44} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="subheading" numberOfLines={2}>
@@ -109,43 +123,8 @@ export function ExpensePreviewCard({
             <Text variant="title">{`${preview.amountText} ${preview.currency}`.trim()}</Text>
           )}
         </View>
-      </View>
-      {preview.categoryLabel ? (
-        <Line label={t.voiceScreen.category}>
-          <Chip label={preview.categoryLabel} />
-        </Line>
-      ) : null}
-      {preview.splitWith && preview.splitWith.length > 0 ? (
-        <Line label={t.voiceScreen.splitWith}>
-          {preview.splitWith.map((name, index) => (
-            <Chip key={`${name}-${index}`} label={name} />
-          ))}
-        </Line>
-      ) : null}
-      {preview.splitType ? (
-        <Line label={t.voiceScreen.splitType}>
-          <Text variant="body" style={{ fontWeight: '600' }}>
-            {preview.splitType}
-          </Text>
-        </Line>
-      ) : null}
-      {onEditSplit ? (
-        <Pressable
-          onPress={onEditSplit}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={({ pressed }) => ({
-            alignSelf: 'flex-start',
-            minHeight: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text tone="brand" style={{ fontWeight: '600' }}>
-            {t.voiceScreen.editSplit}
-          </Text>
-        </Pressable>
-      ) : null}
+      </Pressable>
+      {split ? <SplitLine {...split} /> : null}
     </View>
   );
 }

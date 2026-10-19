@@ -1,9 +1,10 @@
 /**
  * The advanced voice flow (Pro, behind the `voice_agent` flag): the sentence the mic
  * just streamed goes to the `voice-agent` function, and what comes back is shown
- * as one confirmation card per proposed action — nothing is written until a
- * person taps Confirm. Each confirmed action runs through the same hooks the rest
- * of the app writes with, so the offline queue and sync behave as everywhere else.
+ * as one plain list (one row per proposed action, tap to fix, ✕ to drop) — nothing
+ * is written until a person taps the screen's one Add button. Each added action
+ * runs through the same hooks the rest of the app writes with, so the offline
+ * queue and sync behave as everywhere else.
  *
  * If the agent cannot be reached or the allowance is spent, the panel hands the
  * transcript back to the screen (`onFallback`), which carries on with
@@ -12,12 +13,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
 import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
-import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
+import { sanitiseMinorInput } from '@waves/core';
+import { Card, Divider, IconButton, iconSize, Text, useTheme } from '@waves/ui';
 
-import { SavedActions } from '@/components/voice/SavedActions';
+import { DraftRow } from '@/components/voice/DraftRow';
+import { useReportFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
@@ -45,6 +49,13 @@ import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { clarifyOptionViews, otherGroupChoices, typedFollowUp } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
+import {
+  editedAction,
+  listFooter,
+  rowEditFrom,
+  type CardStatus,
+  type RowEdit,
+} from '@/lib/voiceAgentListPure';
 import type { AgentFailure } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
@@ -94,9 +105,9 @@ export interface VoiceAgentPanelProps {
   onSavedBarEvent?: (event: SavedBarEvent) => void;
   /** Where the panel is (reading, proposal, question, saved), for the stage above it. */
   onStage?: (stage: AgentStage) => void;
+  /** The screen's footer button for this panel: Add, or Done and Add another. */
+  onFooter?: (spec: FooterSpec | null) => void;
 }
-
-type CardStatus = 'pending' | 'running' | 'done' | 'failed' | 'discarded';
 
 function agentText(t: UiStrings): VoiceAgentText {
   const v = t.voice;
@@ -165,6 +176,7 @@ export function VoiceAgentPanel({
   onResolved,
   onSavedBarEvent,
   onStage,
+  onFooter,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -226,18 +238,26 @@ export function VoiceAgentPanel({
   const [handoff, setHandoff] = useState<UndoEntry | null>(null);
 
   const toast = useToast();
-  // Everything handled — a Done button closes the screen.
-  const settled =
-    plan !== null &&
-    plan.cards.length > 0 &&
-    plan.cards.every((card) => ['done', 'discarded'].includes(statusOf(card.key)));
-  const anyDone = plan?.cards.some((card) => statusOf(card.key) === 'done') ?? false;
+  const rows = (plan?.cards ?? []).map((card) => ({
+    problem: card.problem,
+    status: statusOf(card.key),
+  }));
+  const footer = listFooter(rows);
+  const anyDone = rows.some((row) => row.status === 'done');
+  // One proposed expense and nothing else: the confirmation card, with its fields
+  // editable in place. Anything more (several actions, a settle-up, an answer or
+  // a question) is the list below.
+  const first =
+    plan && !plan.answer && !plan.clarify && followUpsAllowed(plan.cards)
+      ? plan.cards[0]
+      : undefined;
+  const solo = first && confirmable(first.action) ? first.action : null;
 
   // Tell the screen where this panel is, so the stage above it (mic, status line,
   // transcript) says the same thing without being rebuilt.
   const stage: AgentStage = !plan
     ? 'working'
-    : savedFollowUp || (settled && anyDone)
+    : savedFollowUp || (footer.kind === 'done' && anyDone)
       ? 'saved'
       : plan.clarify
         ? 'question'
@@ -250,76 +270,87 @@ export function VoiceAgentPanel({
     stageRef.current?.(stage);
   }, [stage]);
 
+  // The one action under the panel. The confirmation card reports its own Add;
+  // otherwise it is Add / Add all for the list, then Done and Add another.
+  const finish = (): void => {
+    if (anyDone) toast.show(t.voice.agentDone);
+    onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
+    onClose();
+  };
+  const another = (resolved: boolean): FooterSpec['secondary'] =>
+    onAddAnother
+      ? {
+          label: t.voiceScreen.addAnother,
+          onPress: () => {
+            if (resolved) onResolved?.('confirmed', 'group');
+            onAddAnother();
+          },
+        }
+      : undefined;
+  const spec: FooterSpec = savedFollowUp
+    ? { primary: { label: t.voiceScreen.done, onPress: onClose }, secondary: another(false) }
+    : plan?.clarify || solo
+      ? {}
+      : footer.kind === 'add'
+        ? {
+            primary: {
+              label: footer.count > 1 ? t.voiceScreen.addAll : t.voiceScreen.addExpense,
+              disabled: footer.disabled,
+              onPress: () => setConfirmAllSeq((current) => current + 1),
+            },
+          }
+        : footer.kind === 'done'
+          ? {
+              primary: { label: t.voiceScreen.done, onPress: finish },
+              secondary: footer.addAnother ? another(true) : undefined,
+            }
+          : {};
+  useReportFooter(solo && !savedFollowUp ? undefined : onFooter, spec);
+
   // The stage above already says "Understanding…" with its busy mic: no second wait.
   if (!plan) return null;
 
-  const pending = plan.cards.filter(
-    (card) => !card.problem && statusOf(card.key) === 'pending',
-  ).length;
   const nothing = plan.cards.length === 0 && !plan.answer && !plan.clarify;
   // A question about the person's own spend is answered here from the ledger,
   // whatever the server said: it cannot see the personal ledger at all.
   const moneyQuery = plan.cards.length === 0 ? answerer.parse(plan.transcript || transcript) : null;
 
-  // One proposed expense and nothing else: the confirmation screen, with its
-  // fields editable in place. Anything more (several actions, a settle-up, an
-  // answer or a question) keeps the card list below.
-  const only = followUpsAllowed(plan.cards) ? plan.cards[0] : undefined;
-  if (
-    only &&
-    (only.action.type === 'add_expense' || only.action.type === 'add_personal') &&
-    !plan.answer &&
-    !plan.clarify
-  ) {
+  if (solo && first) {
     if (savedFollowUp) {
-      return (
-        <View style={{ gap: theme.spacing.md }}>
-          {renderAfterSave ? (
-            renderAfterSave(savedFollowUp.state)
-          ) : (
-            <VoiceFollowUps
-              initial={savedFollowUp.state}
+      return renderAfterSave ? (
+        renderAfterSave(savedFollowUp.state)
+      ) : (
+        <VoiceFollowUps
+          initial={savedFollowUp.state}
+          groupWrite={savedFollowUp.write}
+          local={local}
+          today={today}
+          onClose={onClose}
+          onUndoable={setHandoff}
+          renderSavedBar={(bar) => (
+            <AssistantSavedBar
+              context={bar}
+              controls={bar.controls}
               groupWrite={savedFollowUp.write}
               local={local}
               today={today}
-              onClose={onClose}
-              onUndoable={setHandoff}
-              renderSavedBar={(bar) => (
-                <AssistantSavedBar
-                  context={bar}
-                  controls={bar.controls}
-                  groupWrite={savedFollowUp.write}
-                  local={local}
-                  today={today}
-                  externalEntry={handoff}
-                  onEvent={onSavedBarEvent}
-                />
-              )}
+              externalEntry={handoff}
+              onEvent={onSavedBarEvent}
             />
           )}
-          <SavedActions onDone={onClose} onAddAnother={onAddAnother} />
-        </View>
+        />
       );
     }
-    return statusOf(only.key) === 'discarded' ? (
-      <View style={{ gap: theme.spacing.md }}>
-        <Button label={t.voice.agentDone} onPress={onClose} />
-      </View>
-    ) : (
+    return (
       <ConfirmExpense
-        action={only.action}
+        action={solo}
         transcript={plan.transcript || transcript}
         local={local}
         today={today}
-        onDiscard={() => {
-          setCardStatus(only.key, 'discarded');
-          onResolved?.('discarded', only.action.type === 'add_personal' ? 'personal' : 'group');
-          onClose();
-        }}
-        onRetry={() => onRetry()}
+        onFooter={onFooter}
         onAdded={(saved) => {
-          setCardStatus(only.key, 'done');
-          onResolved?.('confirmed', only.action.type === 'add_personal' ? 'personal' : 'group');
+          setCardStatus(first.key, 'done');
+          onResolved?.('confirmed', solo.type === 'add_personal' ? 'personal' : 'group');
           // Pro-only by construction: this panel exists only where the agent does.
           setSavedFollowUp(saved);
         }}
@@ -331,13 +362,7 @@ export function VoiceAgentPanel({
     <View style={{ gap: theme.spacing.md }}>
       {moneyQuery ? (
         <AssistantMoneyAnswer query={moneyQuery} onNavigate={onClose} />
-      ) : plan.answer ? (
-        <Card>
-          <Text variant="subheading">{plan.answer}</Text>
-        </Card>
-      ) : null}
-
-      {!moneyQuery && plan.clarify && clarifyOptionViews(plan.clarifyOptions).length > 0 ? (
+      ) : plan.clarify && clarifyOptionViews(plan.clarifyOptions).length > 0 ? (
         <VoiceClarifyCard
           question={plan.clarify}
           options={plan.clarifyOptions}
@@ -360,7 +385,7 @@ export function VoiceAgentPanel({
             )
           }
         />
-      ) : (plan.clarify || nothing) && !moneyQuery ? (
+      ) : plan.clarify || nothing ? (
         <Card>
           <View style={{ gap: theme.spacing.sm }}>
             <Text accessibilityRole="header" style={{ fontWeight: '700' }}>
@@ -387,82 +412,58 @@ export function VoiceAgentPanel({
                   })
                 }
               />
-            ) : (
-              <Button
-                label={t.voice.agentTryAgain}
-                variant="secondary"
-                onPress={() => onRetry(undefined)}
-              />
-            )}
+            ) : null}
           </View>
         </Card>
-      ) : null}
-
-      {plan.cards.length > 0 ? (
-        <Card padded={false} style={{ overflow: 'hidden' }}>
-          {plan.cards.map((card, index) => (
-            <View key={card.key}>
-              {index > 0 ? <Divider /> : null}
-              <AgentActionCard
-                card={card}
-                local={local}
-                today={today}
-                status={statusOf(card.key)}
-                onStatus={(next) => setCardStatus(card.key, next)}
-                confirmAllSeq={confirmAllSeq}
-                text={t.voice}
-                transcript={plan.transcript || transcript}
-                onRetry={() => onRetry()}
-              />
-            </View>
-          ))}
+      ) : plan.answer ? (
+        <Card>
+          <Text variant="subheading">{plan.answer}</Text>
         </Card>
       ) : null}
 
-      {pending > 1 ? (
-        <Button
-          label={t.voice.agentConfirmAll}
-          onPress={() => setConfirmAllSeq((current) => current + 1)}
-        />
-      ) : null}
-      {settled ? (
-        <SavedActions
-          onDone={() => {
-            if (anyDone) toast.show(t.voice.agentDone);
-            onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
-            onClose();
-          }}
-          onAddAnother={
-            anyDone && onAddAnother
-              ? () => {
-                  onResolved?.('confirmed', 'group');
-                  onAddAnother();
-                }
-              : undefined
-          }
-        />
+      {/* A question open means nothing else is shown until it is answered. */}
+      {!plan.clarify && plan.cards.some((card) => statusOf(card.key) !== 'discarded') ? (
+        <Card padded={false} style={{ overflow: 'hidden' }}>
+          {plan.cards
+            .filter((card) => statusOf(card.key) !== 'discarded')
+            .map((card, index) => (
+              <View key={card.key}>
+                {index > 0 ? <Divider /> : null}
+                <AgentRow
+                  card={card}
+                  local={local}
+                  today={today}
+                  status={statusOf(card.key)}
+                  onStatus={(next) => setCardStatus(card.key, next)}
+                  confirmAllSeq={confirmAllSeq}
+                />
+              </View>
+            ))}
+        </Card>
       ) : null}
     </View>
   );
 }
 
-/** Writes the confirmed expense, the same way the card list's Confirm does. */
+function confirmable(action: VoiceAgentAction): action is ConfirmableAction {
+  return action.type === 'add_expense' || action.type === 'add_personal';
+}
+
+/** Writes the confirmed expense, the same way the list's Add does. */
 function ConfirmExpense({
   action,
   transcript,
   local,
   today,
-  onDiscard,
   onAdded,
-  onRetry,
+  onFooter,
 }: {
   action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
   today: string;
-  onDiscard: () => void;
   onAdded: (saved: { state: SavedState; write: AgentExpenseWrite | null }) => void;
-  onRetry: () => void;
+  onFooter?: (spec: FooterSpec | null) => void;
 }) {
   // Minted once, so a retry after a failure reuses the id and appends no duplicate.
   const [expenseId] = useState(() => randomUUID());
@@ -502,22 +503,23 @@ function ConfirmExpense({
       failed={failed}
       onGroupChange={(next) => setGroupId(next ?? '')}
       onAdd={(resolved) => void add(resolved)}
-      onDiscard={onDiscard}
-      onRetry={onRetry}
+      onFooter={onFooter}
     />
   );
 }
 
-function AgentActionCard({
+/**
+ * One proposed action as a plain row: "₹8,000 · Groceries" for an expense (tap to
+ * fix the amount or words, ✕ to drop it), the one-line summary for anything else.
+ * It writes itself when the list's Add button bumps `confirmAllSeq`.
+ */
+function AgentRow({
   card,
   local,
   today,
   status,
   onStatus,
   confirmAllSeq,
-  text,
-  transcript,
-  onRetry,
 }: {
   card: AgentCard;
   local: AgentLocalData;
@@ -525,15 +527,23 @@ function AgentActionCard({
   status: CardStatus;
   onStatus: (next: CardStatus) => void;
   confirmAllSeq: number;
-  text: UiStrings['voice'];
-  transcript: string;
-  onRetry: () => void;
 }) {
   const theme = useTheme();
-  const action: VoiceAgentAction = card.action;
+  const { t, locale } = useStrings();
+  const youLabel = t.voice.agentYou;
+
+  // The amount and words a person has fixed in place; null until they touch the row.
+  const [edit, setEdit] = useState<RowEdit | null>(null);
+  const proposed = card.action;
+  const expense = confirmable(proposed) ? proposed : null;
+  const value = edit ?? (expense ? rowEditFrom(expense, local, youLabel) : null);
+  const edited =
+    expense && edit ? editedAction(expense, local, youLabel, t.voice.anExpense, edit) : null;
+  const invalid = expense !== null && edit !== null && edited === null;
+  const action: VoiceAgentAction = edited ?? proposed;
   const actionGroupId = 'groupId' in action ? action.groupId : '';
 
-  // Minted once per card, so a retry after a failure reuses the same ids and
+  // Minted once per row, so a retry after a failure reuses the same ids and
   // appends no duplicate (the same pattern the basic review uses).
   const [expenseId] = useState(() => randomUUID());
   const [newGroupId] = useState(() => randomUUID());
@@ -547,8 +557,8 @@ function AgentActionCard({
 
   const group = local.groups.find((candidate) => candidate.id === actionGroupId);
 
-  const run = useCallback(async (): Promise<void> => {
-    if (card.problem) return;
+  const run = async (): Promise<void> => {
+    if (card.problem || invalid) return;
     onStatus('running');
     try {
       switch (action.type) {
@@ -615,107 +625,86 @@ function AgentActionCard({
     } catch {
       onStatus('failed');
     }
-    // The mutation hooks are stable per render; the action and ids are fixed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, group, today]);
-
-  // Edit opens the card in the confirmation card, in place (see below).
-  const [editing, setEditing] = useState(false);
-  // "Confirm all" bumps the sequence; every card still waiting runs itself.
+  };
+  // The list's Add bumps the sequence; every row still waiting (or that failed) runs itself.
+  const runRef = useRef(run);
+  useEffect(() => {
+    runRef.current = run;
+  });
   const lastSeq = useRef(0);
   useEffect(() => {
     if (confirmAllSeq === lastSeq.current) return;
     lastSeq.current = confirmAllSeq;
-    // A card open for editing is confirmed from its own editor, never in bulk
-    // with the values it had before the edit.
-    if (status === 'pending' && !card.problem && !editing) void run();
-  }, [confirmAllSeq, status, card.problem, run, editing]);
+    if (status === 'pending' || status === 'failed') void runRef.current();
+  }, [confirmAllSeq, status]);
 
-  // Edit opens this card's proposal in the confirmation card, in place: every
-  // field (amount, words, category, date, people, payer and split) is fixed
-  // right here, and its Confirm writes it. No trip to another screen.
-  const edit = (): void => setEditing(true);
-  const editable = action.type === 'add_expense' || action.type === 'add_personal';
+  const done = status === 'done';
+  const busy = status === 'running';
+  const caption = card.problem
+    ? { text: t.voice.agentProblem, negative: true }
+    : invalid
+      ? { text: t.voice.confirmNeedAmount, negative: true }
+      : status === 'failed'
+        ? { text: t.voice.agentCouldNotRun, negative: true }
+        : null;
 
-  const finished = status === 'done' || status === 'discarded';
-  const [headline, ...rest] = card.segments;
-
-  if (editing && !finished && (action.type === 'add_expense' || action.type === 'add_personal')) {
+  if (expense && value) {
     return (
-      <View style={{ padding: theme.spacing.sm }}>
-        <ConfirmExpense
-          action={action}
-          transcript={transcript}
-          local={local}
-          today={today}
-          onDiscard={() => {
-            setEditing(false);
-            onStatus('discarded');
-          }}
-          onAdded={() => {
-            setEditing(false);
-            onStatus('done');
-          }}
-          onRetry={onRetry}
-        />
-      </View>
+      <DraftRow
+        draft={{
+          key: card.key,
+          amount: value.amountText,
+          note: value.description,
+          category: (edited ?? expense).category ?? null,
+        }}
+        currency={expense.currency}
+        locale={locale}
+        locked={done || busy}
+        onEdit={(_key, patch) =>
+          setEdit({
+            amountText:
+              patch.amount !== undefined
+                ? sanitiseMinorInput(patch.amount, expense.currency)
+                : value.amountText,
+            description: patch.note ?? value.description,
+          })
+        }
+        onRemove={() => onStatus('discarded')}
+        fallbackNote={t.voice.anExpense}
+        editLabel={t.common.edit}
+        removeLabel={t.captures.delete}
+        amountLabel={t.captures.amount}
+        noteLabel={t.captures.description}
+        notePlaceholder={t.captures.descriptionPlaceholder}
+        caption={caption}
+      />
     );
   }
 
+  const [headline, ...rest] = card.segments;
   return (
-    <View
-      style={{
-        gap: theme.spacing.sm,
-        padding: theme.spacing.md,
-        opacity: status === 'discarded' ? 0.45 : 1,
-      }}
-    >
-      <Text variant="subheading">{headline}</Text>
-      {rest.length > 0 ? (
-        <Text variant="caption" tone="muted">
-          {rest.join(' · ')}
-        </Text>
-      ) : null}
-      {card.problem && !finished ? (
-        <Text variant="caption" tone="negative">
-          {text.agentProblem}
-        </Text>
-      ) : null}
-      {status === 'failed' ? (
-        <Text variant="caption" tone="negative">
-          {text.agentCouldNotRun}
-        </Text>
-      ) : null}
-      {status === 'done' ? (
-        <Text variant="caption" tone="muted">
-          {text.agentDone}
-        </Text>
-      ) : null}
-      {finished ? null : (
-        <Row gap={theme.spacing.sm}>
-          <Button
-            label={text.agentConfirm}
-            size="sm"
-            onPress={() => void run()}
-            disabled={card.problem || status === 'running'}
-          />
-          {editable ? (
-            <Button
-              label={text.agentEdit}
-              size="sm"
-              variant="secondary"
-              onPress={edit}
-              disabled={status === 'running'}
-            />
-          ) : null}
-          <Button
-            label={text.agentDiscard}
-            size="sm"
-            variant="secondary"
-            onPress={() => onStatus('discarded')}
-            disabled={status === 'running'}
-          />
-        </Row>
+    <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flex: 1, gap: 2, padding: theme.spacing.md }}>
+        <Text style={{ fontWeight: '600' }}>{headline}</Text>
+        {rest.length > 0 ? (
+          <Text variant="caption" tone="muted">
+            {rest.join(' · ')}
+          </Text>
+        ) : null}
+        {caption ? (
+          <Text variant="caption" tone="negative">
+            {caption.text}
+          </Text>
+        ) : null}
+      </View>
+      {done ? (
+        <View style={{ padding: theme.spacing.md }}>
+          <Ionicons name="checkmark-circle" size={iconSize.md} color={theme.color.brand} />
+        </View>
+      ) : busy ? null : (
+        <IconButton label={t.captures.delete} onPress={() => onStatus('discarded')}>
+          <Ionicons name="close" size={iconSize.md} color={theme.color.textFaint} />
+        </IconButton>
       )}
     </View>
   );

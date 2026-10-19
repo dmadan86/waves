@@ -51,8 +51,10 @@ describe('a linked-in transcript', () => {
     expect(listen).toContain('heardFromLink.current = false;');
   });
 
-  it('offers a Confirm button while held', () => {
-    expect(voice).toMatch(/needsConfirm \? \(\s*<Button\s+label=\{t\.voice\.autoConfirm\}/);
+  it('offers a Confirm button in the footer while held', () => {
+    expect(voice).toMatch(
+      /autoBanner\?\.needsConfirm\s*\?\s*\{\s*primary:\s*\{\s*label: t\.voice\.autoConfirm/,
+    );
   });
 });
 

@@ -1418,20 +1418,13 @@ export interface UiStrings {
     youSaid: string;
     editHeard: string;
     suggestionsTitle: string;
-    previewTitle: string;
     category: string;
     splitWith: string;
-    splitType: string;
-    splitEqually: string;
     justYou: string;
     addExpense: string;
-    edit: string;
     retry: string;
     openSettings: string;
     permissionBody: string;
-    typeInstead: string;
-    splitSheetTitle: string;
-    editSplit: string;
     date: string;
     savedTitle: string;
     savedTo: string;
@@ -1441,6 +1434,11 @@ export interface UiStrings {
     savedMembers: string;
     addAnother: string;
     done: string;
+    splitEquallyWith: string;
+    paidByName: string;
+    splitDifferently: string;
+    details: string;
+    addAll: string;
   };
   voice: {
     /** Mic label + screen title. */
@@ -1499,8 +1497,6 @@ export interface UiStrings {
     /** The brief confirmation after a save, shown wherever the reader lands.
         '{n}' is how many were written. */
     savedCount: PluralForms;
-    /** A bare count of the drafts in the review, shown by the total. `{n}`. */
-    count: PluralForms;
     /** The Save button when no group is chosen: the batch is kept as a draft
         (the capture inbox) rather than written into a group. */
     saveDraft: string;
@@ -1542,14 +1538,8 @@ export interface UiStrings {
     autoUndo: string;
     /** Paid by label on the review. */
     paidBy: string;
-    /** Split label on the review. */
-    splitLabel: string;
     /** The speaker, in a list of people. */
     youLabel: string;
-    /** Summary: equal split across the whole group. */
-    splitEveryone: string;
-    /** Summary: equal split. {names} is a comma list. */
-    splitEqual: string;
     /** Summary: exact amounts. {names} is a comma list with amounts. */
     splitExact: string;
     /** Summary: percentages. {names} is a comma list with percentages. */
@@ -1558,17 +1548,7 @@ export interface UiStrings {
     splitFullOn: string;
     /** Prompt when nobody could be matched as the payer. */
     whoPaid: string;
-    /** What was heard when a name was matched by sound. {heard}. */
-    heardAs: string;
-    /** Title of the who-paid sheet. */
-    whoTitle: string;
-    /** Section: who paid. */
-    whoPaidSection: string;
-    /** Section: who shares. */
-    whoSharesSection: string;
-    /** Hint: changing people resets to an equal split. */
-    whoResets: string;
-    /** Hint: a spoken name nobody matched. {name}. */
+    /** Question: a spoken name nobody matched. {name}. */
     whoUnknown: string;
     /** Question: one member fits a heard name but not surely enough to fill in. {name}. */
     didYouMean: string;
@@ -1659,14 +1639,10 @@ export interface UiStrings {
     /** Shown while the advanced voice agent reads the clip. */
     agentUnderstanding: string;
     agentHeard: string;
-    agentConfirm: string;
-    agentConfirmAll: string;
     agentEdit: string;
-    agentDiscard: string;
     agentDone: string;
     agentCouldNotRun: string;
     agentProblem: string;
-    agentTryAgain: string;
     /** After the assistant asks something: speak the answer. */
     agentAnswer: string;
     agentTypePlaceholder: string;
@@ -6848,20 +6824,13 @@ const en: UiStrings = {
     youSaid: 'You said',
     editHeard: 'Edit text',
     suggestionsTitle: 'Try saying',
-    previewTitle: 'Expense ready',
     category: 'Category',
     splitWith: 'Split with',
-    splitType: 'Split',
-    splitEqually: 'Equally',
     justYou: 'Just you',
     addExpense: 'Add expense',
-    edit: 'Edit',
     retry: 'Try again',
     openSettings: 'Open settings',
     permissionBody: 'Allow microphone access to speak an expense, or type it instead.',
-    typeInstead: 'Type instead',
-    splitSheetTitle: 'Who paid and how to split',
-    editSplit: 'Change split',
     date: 'Date',
     savedTitle: 'Added',
     savedTo: 'Added to {where}',
@@ -6871,6 +6840,11 @@ const en: UiStrings = {
     savedMembers: 'Added {name} to {group}',
     addAnother: 'Add another',
     done: 'Done',
+    splitEquallyWith: 'Split equally with: {names}',
+    paidByName: 'Paid by {name}',
+    splitDifferently: 'Split differently',
+    details: 'Details',
+    addAll: 'Add all',
   },
   voice: {
     speakExpense: 'Speak an expense',
@@ -6906,7 +6880,6 @@ const en: UiStrings = {
     thinking: 'Making sense of that…',
     save: { one: 'Save {n} expense', other: 'Save {n} expenses' },
     savedCount: { one: '{n} expense saved', other: '{n} expenses saved' },
-    count: { one: '{n} expense', other: '{n} expenses' },
     saveDraft: 'Save to inbox',
     draftNeedsAmounts: 'Enter an amount for each expense, or remove it, to keep this draft.',
     people: 'People',
@@ -6927,20 +6900,12 @@ const en: UiStrings = {
     autoAddingPerson: 'Adding {name} to {group}',
     autoUndo: 'Undo',
     paidBy: 'Paid by',
-    splitLabel: 'Split',
     youLabel: 'You',
-    splitEveryone: 'Equally between everyone',
-    splitEqual: 'Equally · {names}',
     splitExact: 'Exact · {names}',
     splitPercent: 'By percent · {names}',
     splitFullOn: 'All on {names}',
     whoPaid: 'Who paid?',
-    heardAs: 'Heard “{heard}”',
-    whoTitle: 'Who paid and who shares',
-    whoPaidSection: 'Paid by',
-    whoSharesSection: 'Shared between',
-    whoResets: 'Changing who shares splits it equally.',
-    whoUnknown: 'Who is “{name}”? Pick them below.',
+    whoUnknown: 'Who is “{name}”?',
     didYouMean: 'Did you mean {name}?',
     didYouMeanYes: 'Yes',
     whichOf: '{names} or {last}?',
@@ -7006,14 +6971,10 @@ const en: UiStrings = {
     sqChipLast30: 'Last 30 days',
     agentUnderstanding: 'Understanding…',
     agentHeard: 'Heard',
-    agentConfirm: 'Confirm',
-    agentConfirmAll: 'Confirm all',
     agentEdit: 'Edit',
-    agentDiscard: 'Discard',
     agentDone: 'Done',
     agentCouldNotRun: "Couldn't do that. Try again.",
     agentProblem: "Couldn't match this to your people or groups.",
-    agentTryAgain: 'Try again',
     agentAnswer: 'Answer',
     agentTypePlaceholder: 'Type your answer',
     agentTypeSend: 'Send answer',
@@ -11693,20 +11654,13 @@ const ta: UiStrings = {
     youSaid: 'நீங்கள் சொன்னது',
     editHeard: 'உரையைத் திருத்து',
     suggestionsTitle: 'இப்படிச் சொல்லிப் பாருங்கள்',
-    previewTitle: 'செலவு தயார்',
     category: 'வகை',
     splitWith: 'யாருடன் பகிர்வது',
-    splitType: 'பகிர்வு',
-    splitEqually: 'சமமாக',
     justYou: 'நீங்கள் மட்டும்',
     addExpense: 'செலவைச் சேர்',
-    edit: 'திருத்து',
     retry: 'மீண்டும் முயலவும்',
     openSettings: 'அமைப்புகளைத் திற',
     permissionBody: 'செலவைச் சொல்ல மைக்ரோஃபோன் அனுமதி தாருங்கள், அல்லது தட்டச்சு செய்யுங்கள்.',
-    typeInstead: 'தட்டச்சு செய்',
-    splitSheetTitle: 'யார் செலுத்தினார், எப்படிப் பகிர்வது',
-    editSplit: 'பகிர்வை மாற்று',
     date: 'தேதி',
     savedTitle: 'சேர்த்தாகிவிட்டது',
     savedTo: '{where} இல் சேர்க்கப்பட்டது',
@@ -11716,6 +11670,11 @@ const ta: UiStrings = {
     savedMembers: '{name} ஐ {group} இல் சேர்த்தோம்',
     addAnother: 'இன்னொன்றைச் சேர்',
     done: 'முடிந்தது',
+    splitEquallyWith: 'சமமாகப் பகிர்வது: {names}',
+    paidByName: '{name} செலுத்தினார்',
+    splitDifferently: 'வேறு விதமாகப் பகிர்',
+    details: 'விவரங்கள்',
+    addAll: 'அனைத்தையும் சேர்',
   },
   voice: {
     speakExpense: 'செலவைப் பேசு',
@@ -11752,7 +11711,6 @@ const ta: UiStrings = {
     thinking: 'புரிந்துகொள்கிறது…',
     save: { one: '{n} செலவைச் சேமி', other: '{n} செலவுகளைச் சேமி' },
     savedCount: { one: '{n} செலவு சேமிக்கப்பட்டது', other: '{n} செலவுகள் சேமிக்கப்பட்டன' },
-    count: { one: '{n} செலவு', other: '{n} செலவுகள்' },
     saveDraft: 'இன்பாக்ஸில் சேமி',
     draftNeedsAmounts:
       'இந்த வரைவைச் சேமிக்க ஒவ்வொரு செலவுக்கும் தொகையை உள்ளிடவும், அல்லது அதை நீக்கவும்.',
@@ -11774,20 +11732,12 @@ const ta: UiStrings = {
     autoAddingPerson: '{group} இல் {name} சேர்க்கிறது',
     autoUndo: 'செயல்தவிர்',
     paidBy: 'செலுத்தியவர்',
-    splitLabel: 'பிரிப்பு',
     youLabel: 'நீங்கள்',
-    splitEveryone: 'அனைவரும் சமமாக',
-    splitEqual: 'சமமாக · {names}',
     splitExact: 'சரியான தொகை · {names}',
     splitPercent: 'சதவீதம் · {names}',
     splitFullOn: 'முழுவதும் {names} மீது',
     whoPaid: 'யார் செலுத்தினார்?',
-    heardAs: 'கேட்டது “{heard}”',
-    whoTitle: 'யார் செலுத்தினார், யார் பகிர்கிறார்',
-    whoPaidSection: 'செலுத்தியவர்',
-    whoSharesSection: 'பகிர்பவர்கள்',
-    whoResets: 'பகிர்பவர்களை மாற்றினால் சமமாகப் பிரிக்கப்படும்.',
-    whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
+    whoUnknown: '“{name}” யார்?',
     didYouMean: '{name} என்று சொன்னீர்களா?',
     didYouMeanYes: 'ஆம்',
     whichOf: '{names} அல்லது {last}?',
@@ -11854,14 +11804,10 @@ const ta: UiStrings = {
     sqChipLast30: 'கடந்த 30 நாட்கள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
     agentHeard: 'கேட்டது',
-    agentConfirm: 'உறுதிப்படுத்து',
-    agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
     agentEdit: 'திருத்து',
-    agentDiscard: 'நீக்கு',
     agentDone: 'முடிந்தது',
     agentCouldNotRun: 'இதைச் செய்ய முடியவில்லை. மீண்டும் முயலுங்கள்.',
     agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
-    agentTryAgain: 'மீண்டும் முயல்',
     agentAnswer: 'பதில் சொல்',
     agentTypePlaceholder: 'உங்கள் பதிலை தட்டச்சு செய்யுங்கள்',
     agentTypeSend: 'பதிலை அனுப்பு',
@@ -16686,20 +16632,13 @@ const hi: UiStrings = {
     youSaid: 'आपने कहा',
     editHeard: 'टेक्स्ट बदलें',
     suggestionsTitle: 'ऐसे बोलकर देखें',
-    previewTitle: 'खर्च तैयार है',
     category: 'श्रेणी',
     splitWith: 'किसके साथ बाँटें',
-    splitType: 'बँटवारा',
-    splitEqually: 'बराबर',
     justYou: 'सिर्फ़ आप',
     addExpense: 'खर्च जोड़ें',
-    edit: 'बदलें',
     retry: 'फिर से कोशिश करें',
     openSettings: 'सेटिंग्स खोलें',
     permissionBody: 'खर्च बोलने के लिए माइक्रोफ़ोन की अनुमति दें, या उसे टाइप करें।',
-    typeInstead: 'टाइप करें',
-    splitSheetTitle: 'किसने भुगतान किया और कैसे बाँटें',
-    editSplit: 'बँटवारा बदलें',
     date: 'तारीख़',
     savedTitle: 'जोड़ दिया',
     savedTo: '{where} में जोड़ दिया',
@@ -16709,6 +16648,11 @@ const hi: UiStrings = {
     savedMembers: '{name} को {group} में जोड़ा',
     addAnother: 'एक और जोड़ें',
     done: 'हो गया',
+    splitEquallyWith: 'इनके साथ बराबर बाँटें: {names}',
+    paidByName: '{name} ने भुगतान किया',
+    splitDifferently: 'अलग तरह से बाँटें',
+    details: 'विवरण',
+    addAll: 'सभी जोड़ें',
   },
   voice: {
     speakExpense: 'खर्च बोलें',
@@ -16744,7 +16688,6 @@ const hi: UiStrings = {
     thinking: 'समझा जा रहा है…',
     save: { one: '{n} खर्च सहेजें', other: '{n} खर्च सहेजें' },
     savedCount: { one: '{n} खर्च सहेजा गया', other: '{n} खर्च सहेजे गए' },
-    count: { one: '{n} खर्च', other: '{n} खर्च' },
     saveDraft: 'इनबॉक्स में सहेजें',
     draftNeedsAmounts: 'यह ड्राफ़्ट रखने के लिए हर खर्च में राशि भरें, या उसे हटाएँ।',
     people: 'लोग',
@@ -16765,20 +16708,12 @@ const hi: UiStrings = {
     autoAddingPerson: '{group} में {name} जोड़ रहे हैं',
     autoUndo: 'पूर्ववत करें',
     paidBy: 'भुगतान किसने किया',
-    splitLabel: 'बँटवारा',
     youLabel: 'आप',
-    splitEveryone: 'सबमें बराबर',
-    splitEqual: 'बराबर · {names}',
     splitExact: 'सटीक रकम · {names}',
     splitPercent: 'प्रतिशत · {names}',
     splitFullOn: 'पूरा {names} पर',
     whoPaid: 'किसने भुगतान किया?',
-    heardAs: 'सुना “{heard}”',
-    whoTitle: 'किसने भुगतान किया और कौन बाँटेगा',
-    whoPaidSection: 'भुगतान किसने किया',
-    whoSharesSection: 'इनके बीच बँटेगा',
-    whoResets: 'लोग बदलने पर बराबर बँटवारा हो जाएगा।',
-    whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
+    whoUnknown: '“{name}” कौन है?',
     didYouMean: 'क्या आपका मतलब {name} था?',
     didYouMeanYes: 'हाँ',
     whichOf: '{names} या {last}?',
@@ -16844,14 +16779,10 @@ const hi: UiStrings = {
     sqChipLast30: 'पिछले 30 दिन',
     agentUnderstanding: 'समझा जा रहा है…',
     agentHeard: 'सुना',
-    agentConfirm: 'पुष्टि करें',
-    agentConfirmAll: 'सभी की पुष्टि करें',
     agentEdit: 'बदलें',
-    agentDiscard: 'हटाएँ',
     agentDone: 'हो गया',
     agentCouldNotRun: 'यह नहीं हो सका। फिर कोशिश करें।',
     agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
-    agentTryAgain: 'फिर कोशिश करें',
     agentAnswer: 'जवाब दें',
     agentTypePlaceholder: 'अपना जवाब टाइप करें',
     agentTypeSend: 'जवाब भेजें',
@@ -21593,20 +21524,13 @@ const ar: UiStrings = {
     youSaid: 'قلتَ',
     editHeard: 'عدّل النص',
     suggestionsTitle: 'جرّب أن تقول',
-    previewTitle: 'المصروف جاهز',
     category: 'الفئة',
     splitWith: 'التقسيم مع',
-    splitType: 'التقسيم',
-    splitEqually: 'بالتساوي',
     justYou: 'أنت فقط',
     addExpense: 'أضف المصروف',
-    edit: 'تعديل',
     retry: 'حاول مرة أخرى',
     openSettings: 'افتح الإعدادات',
     permissionBody: 'اسمح بالوصول إلى الميكروفون لتقول مصروفًا، أو اكتبه بدلًا من ذلك.',
-    typeInstead: 'اكتب بدلًا من ذلك',
-    splitSheetTitle: 'من دفع وكيف يُقسَّم',
-    editSplit: 'غيّر التقسيم',
     date: 'التاريخ',
     savedTitle: 'تمت الإضافة',
     savedTo: 'أُضيف إلى {where}',
@@ -21616,6 +21540,11 @@ const ar: UiStrings = {
     savedMembers: 'أُضيف {name} إلى {group}',
     addAnother: 'أضف آخر',
     done: 'تم',
+    splitEquallyWith: 'تقسيم بالتساوي مع: {names}',
+    paidByName: 'دفع {name}',
+    splitDifferently: 'قسّم بشكل مختلف',
+    details: 'التفاصيل',
+    addAll: 'إضافة الكل',
   },
   voice: {
     speakExpense: 'انطق مصروفًا',
@@ -21651,14 +21580,6 @@ const ar: UiStrings = {
     thinking: 'جارٍ الفهم…',
     save: { one: 'حفظ مصروف', other: 'حفظ {n} مصاريف' },
     savedCount: { one: 'تم حفظ مصروف', other: 'تم حفظ {n} مصاريف' },
-    count: {
-      zero: 'لا مصاريف',
-      one: 'مصروف واحد',
-      two: 'مصروفان',
-      few: '{n} مصاريف',
-      many: '{n} مصروفًا',
-      other: '{n} مصروف',
-    },
     saveDraft: 'الحفظ في الوارد',
     draftNeedsAmounts: 'أدخل مبلغًا لكل مصروف، أو احذفه، للاحتفاظ بهذه المسودة.',
     people: 'الأشخاص',
@@ -21679,20 +21600,12 @@ const ar: UiStrings = {
     autoAddingPerson: 'إضافة {name} إلى {group}',
     autoUndo: 'تراجع',
     paidBy: 'دفع',
-    splitLabel: 'التقسيم',
     youLabel: 'أنت',
-    splitEveryone: 'بالتساوي بين الجميع',
-    splitEqual: 'بالتساوي · {names}',
     splitExact: 'مبالغ محددة · {names}',
     splitPercent: 'بالنسبة المئوية · {names}',
     splitFullOn: 'كامل المبلغ على {names}',
     whoPaid: 'من دفع؟',
-    heardAs: 'سُمع “{heard}”',
-    whoTitle: 'من دفع ومن يشارك',
-    whoPaidSection: 'دفع',
-    whoSharesSection: 'مقسوم بين',
-    whoResets: 'تغيير المشاركين يقسم المبلغ بالتساوي.',
-    whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
+    whoUnknown: 'من هو “{name}”؟',
     didYouMean: 'هل تقصد {name}؟',
     didYouMeanYes: 'نعم',
     whichOf: '{names} أو {last}؟',
@@ -21758,14 +21671,10 @@ const ar: UiStrings = {
     sqChipLast30: 'آخر 30 يومًا',
     agentUnderstanding: 'جارٍ الفهم…',
     agentHeard: 'سمعتُ',
-    agentConfirm: 'تأكيد',
-    agentConfirmAll: 'تأكيد الكل',
     agentEdit: 'تعديل',
-    agentDiscard: 'تجاهل',
     agentDone: 'تم',
     agentCouldNotRun: 'تعذّر تنفيذ ذلك. حاول مرة أخرى.',
     agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
-    agentTryAgain: 'حاول مرة أخرى',
     agentAnswer: 'أجب',
     agentTypePlaceholder: 'اكتب إجابتك',
     agentTypeSend: 'إرسال الإجابة',

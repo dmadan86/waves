@@ -18,11 +18,14 @@ describe('voice screen strings', () => {
         'suggestionsTitle',
         'category',
         'splitWith',
-        'splitType',
+        'splitEquallyWith',
+        'paidByName',
+        'splitDifferently',
+        'details',
+        'addAll',
         'permissionBody',
         'openSettings',
         'retry',
-        'typeInstead',
       ]),
     );
   });

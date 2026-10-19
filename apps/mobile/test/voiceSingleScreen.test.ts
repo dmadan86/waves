@@ -46,15 +46,17 @@ describe('one screen, start to saved', () => {
 
   it('SS-03: a save lands on the success state with Add another and Done', () => {
     expect(files.voice).toContain("setPhase('saved')");
+    expect(files.voice).toContain('primary: { label: t.voiceScreen.done, onPress: finishVoice }');
     expect(files.voice).toContain(
-      '<SavedActions onDone={finishVoice} onAddAnother={addAnother} />',
+      'secondary: { label: t.voiceScreen.addAnother, onPress: addAnother }',
     );
     expect(files.voice).toContain('<VoiceFollowUps');
     expect(files.panel).toContain('onAddAnother');
   });
 
-  it('SS-04: Edit on an agent card opens the confirmation card in place', () => {
-    expect(files.panel).toContain('const edit = (): void => setEditing(true);');
+  it('SS-04: a tap on an agent row fixes it in place; the lone expense keeps the split sheet', () => {
+    expect(files.panel).toContain('<DraftRow');
+    expect(files.panel).toContain('editedAction(');
     expect(files.confirm).toContain('<VoiceSplitSheet');
   });
 
@@ -248,9 +250,9 @@ describe('confirmation split override', () => {
     );
   });
 
-  it('SS-14: a card open for editing is left out of Confirm all', () => {
+  it('SS-14: the one Add reaches every row still waiting or failed, and no other', () => {
     expect(src('components/VoiceAgentPanel.tsx')).toContain(
-      "if (status === 'pending' && !card.problem && !editing) void run();",
+      "if (status === 'pending' || status === 'failed') void runRef.current();",
     );
   });
 });

@@ -274,8 +274,6 @@ export interface VoiceCaptureProps {
    *  and `canPick` allows the row. */
   onSuggestion?: (suggestion: Suggestion) => void;
   canPick?: (suggestion: Suggestion) => boolean;
-  /** Leave the mic for the typed composer (offered on an error). */
-  onTypeInstead?: () => void;
 }
 
 function recognitionAvailable(): boolean {
@@ -411,7 +409,6 @@ export function VoiceCapture({
   heard = '',
   onSuggestion,
   canPick,
-  onTypeInstead,
 }: VoiceCaptureProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -1338,7 +1335,6 @@ export function VoiceCapture({
           problem={problem}
           onRetry={() => void start()}
           onOpenSettings={() => void Linking.openSettings()}
-          onType={onTypeInstead}
         />
       ) : null}
 
