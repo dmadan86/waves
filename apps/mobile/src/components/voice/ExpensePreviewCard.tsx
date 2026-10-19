@@ -9,7 +9,7 @@
  * reach however long the review grows.
  */
 
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { MoneyText, Text, useTheme } from '@waves/ui';
 
@@ -71,9 +71,12 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
 export function ExpensePreviewCard({
   preview,
   locale,
+  onEditSplit,
 }: {
   preview: ExpensePreview;
   locale: string;
+  /** Opens who-paid-and-split over the screen; the split line is a button then. */
+  onEditSplit?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -125,6 +128,23 @@ export function ExpensePreviewCard({
             {preview.splitType}
           </Text>
         </Line>
+      ) : null}
+      {onEditSplit ? (
+        <Pressable
+          onPress={onEditSplit}
+          accessibilityRole="button"
+          hitSlop={8}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-start',
+            minHeight: 44,
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text tone="brand" style={{ fontWeight: '600' }}>
+            {t.voiceScreen.editSplit}
+          </Text>
+        </Pressable>
       ) : null}
     </View>
   );

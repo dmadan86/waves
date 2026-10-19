@@ -1399,6 +1399,17 @@ export interface UiStrings {
     openSettings: string;
     permissionBody: string;
     typeInstead: string;
+    splitSheetTitle: string;
+    editSplit: string;
+    date: string;
+    savedTitle: string;
+    savedTo: string;
+    savedForLater: string;
+    savedSettled: string;
+    savedReminded: string;
+    savedMembers: string;
+    addAnother: string;
+    done: string;
   };
   voice: {
     /** Mic label + screen title. */
@@ -6808,6 +6819,17 @@ const en: UiStrings = {
     openSettings: 'Open settings',
     permissionBody: 'Allow microphone access to speak an expense, or type it instead.',
     typeInstead: 'Type instead',
+    splitSheetTitle: 'Who paid and how to split',
+    editSplit: 'Change split',
+    date: 'Date',
+    savedTitle: 'Added',
+    savedTo: 'Added to {where}',
+    savedForLater: 'Saved for later in Unassigned',
+    savedSettled: 'Settled up with {name}',
+    savedReminded: 'Reminder sent to {name}',
+    savedMembers: 'Added {name} to {group}',
+    addAnother: 'Add another',
+    done: 'Done',
   },
   voice: {
     speakExpense: 'Speak an expense',
@@ -11624,6 +11646,17 @@ const ta: UiStrings = {
     openSettings: 'அமைப்புகளைத் திற',
     permissionBody: 'செலவைச் சொல்ல மைக்ரோஃபோன் அனுமதி தாருங்கள், அல்லது தட்டச்சு செய்யுங்கள்.',
     typeInstead: 'தட்டச்சு செய்',
+    splitSheetTitle: 'யார் செலுத்தினார், எப்படிப் பகிர்வது',
+    editSplit: 'பகிர்வை மாற்று',
+    date: 'தேதி',
+    savedTitle: 'சேர்த்தாகிவிட்டது',
+    savedTo: '{where} இல் சேர்க்கப்பட்டது',
+    savedForLater: 'பின்னர் பார்க்க ஒதுக்கப்படாதவற்றில் சேமிக்கப்பட்டது',
+    savedSettled: '{name} உடன் கணக்கு தீர்க்கப்பட்டது',
+    savedReminded: '{name} க்கு நினைவூட்டல் அனுப்பப்பட்டது',
+    savedMembers: '{name} ஐ {group} இல் சேர்த்தோம்',
+    addAnother: 'இன்னொன்றைச் சேர்',
+    done: 'முடிந்தது',
   },
   voice: {
     speakExpense: 'செலவைப் பேசு',
@@ -16589,6 +16622,17 @@ const hi: UiStrings = {
     openSettings: 'सेटिंग्स खोलें',
     permissionBody: 'खर्च बोलने के लिए माइक्रोफ़ोन की अनुमति दें, या उसे टाइप करें।',
     typeInstead: 'टाइप करें',
+    splitSheetTitle: 'किसने भुगतान किया और कैसे बाँटें',
+    editSplit: 'बँटवारा बदलें',
+    date: 'तारीख़',
+    savedTitle: 'जोड़ दिया',
+    savedTo: '{where} में जोड़ दिया',
+    savedForLater: 'बाद के लिए ‘अनअसाइन्ड’ में सहेजा',
+    savedSettled: '{name} के साथ हिसाब बराबर किया',
+    savedReminded: '{name} को याद दिलाया गया',
+    savedMembers: '{name} को {group} में जोड़ा',
+    addAnother: 'एक और जोड़ें',
+    done: 'हो गया',
   },
   voice: {
     speakExpense: 'खर्च बोलें',
@@ -21468,6 +21512,17 @@ const ar: UiStrings = {
     openSettings: 'افتح الإعدادات',
     permissionBody: 'اسمح بالوصول إلى الميكروفون لتقول مصروفًا، أو اكتبه بدلًا من ذلك.',
     typeInstead: 'اكتب بدلًا من ذلك',
+    splitSheetTitle: 'من دفع وكيف يُقسَّم',
+    editSplit: 'غيّر التقسيم',
+    date: 'التاريخ',
+    savedTitle: 'تمت الإضافة',
+    savedTo: 'أُضيف إلى {where}',
+    savedForLater: 'حُفظ لوقت لاحق في غير المصنّف',
+    savedSettled: 'تمت التسوية مع {name}',
+    savedReminded: 'أُرسل تذكير إلى {name}',
+    savedMembers: 'أُضيف {name} إلى {group}',
+    addAnother: 'أضف آخر',
+    done: 'تم',
   },
   voice: {
     speakExpense: 'انطق مصروفًا',

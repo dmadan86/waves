@@ -127,7 +127,15 @@ export function captureReducer(state: CaptureState, event: CaptureEvent): Captur
 }
 
 /** The screen's own phases, as `voice.tsx` names them. */
-export type VoicePhase = 'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent';
+export type VoicePhase =
+  | 'listening'
+  | 'thinking'
+  | 'review'
+  | 'committing'
+  | 'answer'
+  | 'agent'
+  /** Saved, and still on the voice screen: the success state. */
+  | 'saved';
 
 export interface VoiceFlowInput {
   readonly phase: VoicePhase;
@@ -147,6 +155,8 @@ export interface VoiceFlowInput {
 export function voiceFlowState(input: VoiceFlowInput): VoiceFlowState {
   if (input.saved) return 'success';
   switch (input.phase) {
+    case 'saved':
+      return 'success';
     case 'thinking':
     case 'agent':
       return 'processing';

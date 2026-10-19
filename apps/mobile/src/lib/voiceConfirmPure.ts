@@ -146,6 +146,18 @@ export type ConfirmResolution =
  * `initial` is what the fields held on arrival, so an untouched field leaves the
  * proposal's own payer and split exactly as the agent returned them.
  */
+/**
+ * Who paid and how it splits, as set in the split sheet. It holds for the group
+ * it was set in; an exact split set for one amount falls back to an equal split
+ * of the same people when the amount changes after.
+ */
+export interface SplitOverride {
+  readonly groupId: string;
+  readonly amountMinor: string;
+  readonly paidByMemberId: string;
+  readonly split: AddExpenseAction['split'];
+}
+
 export function resolveConfirm(
   original: ConfirmableAction,
   initial: ConfirmFields,
@@ -153,6 +165,7 @@ export function resolveConfirm(
   local: AgentLocalData,
   youLabel: string,
   fallbackNote: string,
+  override: SplitOverride | null = null,
 ): ConfirmResolution {
   const amountMinor =
     fields.amountText === initial.amountText
@@ -179,6 +192,27 @@ export function resolveConfirm(
   if (!group) return { ok: false, reason: 'group' };
 
   const proposed = original.type === 'add_expense' ? original : null;
+  if (override && override.groupId === group.id) {
+    const split: AddExpenseAction['split'] =
+      override.split.mode === 'exact' && override.amountMinor !== amountMinor
+        ? {
+            mode: 'equal',
+            shares: override.split.shares.map((share) => ({ memberId: share.memberId })),
+          }
+        : override.split;
+    return {
+      ok: true,
+      action: {
+        ...(proposed ?? {}),
+        type: 'add_expense',
+        ...common,
+        category: fields.category ?? undefined,
+        groupId: group.id,
+        paidByMemberId: override.paidByMemberId,
+        split,
+      },
+    };
+  }
   const sameGroup = proposed !== null && group.id === proposed.groupId;
   const samePeople = norm(fields.personText) === norm(initial.personText);
   let paidByMemberId = proposed?.paidByMemberId ?? '';
