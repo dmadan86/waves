@@ -1111,7 +1111,10 @@ export function materialisePersonalRecords(
           record_kind: payload.recordKind,
           data: { ...payload.data },
           created_at: existing?.created_at ?? mutation.clientCreatedAt,
-          deleted_at: existing?.deleted_at ?? null,
+          // The server clears `deleted_at` on every upsert (an edit after a
+          // remove un-deletes the record), so the overlay does too: an offline
+          // undo that re-upserts the original id must show at once.
+          deleted_at: null,
           pending: true,
         });
         break;

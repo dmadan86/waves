@@ -264,6 +264,7 @@ describe('saved bar controls', () => {
       'addFilled',
       'hold',
       'popFilled',
+      'registerExecutor',
       'replaceSaved',
       'stop',
     ]);
@@ -473,5 +474,54 @@ describe('typed answers are read on the phone first', () => {
     await typeInto(r, 'make it 8000');
     expect(world.upsert).not.toHaveBeenCalled();
     expect(textOf(tree(r))).toContain('Nothing to change');
+  });
+});
+
+describe('the follow-up composer applies the whole reply (review finding 6)', () => {
+  const typeAnswer = async (r: ReturnType<typeof mount>, text: string) => {
+    await press(r, 'Type instead');
+    const typed = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
+    await act(async () => {
+      (typed.props.onSubmit as (t: string) => void)(text);
+    });
+    await flush();
+  };
+
+  it('MC-FU-10 without a bar, amount, date and description from the model are written, not dropped', async () => {
+    world.place = { lat: 12.9, lng: 77.6, name: 'Blue Tokai', countryCode: 'IN' };
+    world.send.mockResolvedValue({
+      kind: 'ok',
+      response: {
+        update: { expenseId: 'p1', amountMinor: '120000', description: 'Team lunch', place: 'Taj' },
+      },
+    });
+    const r = mount(personal());
+    await flush();
+    await typeAnswer(r, 'the new place near the lake');
+    const call = world.upsert.mock.calls.at(-1)![0] as { data: Record<string, unknown> };
+    const decoded = decodeTxn('p1', call.data);
+    expect(decoded.amount).toBe(120000n);
+    expect(decoded.place).toBe('Taj');
+    expect(textOf(tree(r))).not.toContain("couldn't use");
+  });
+
+  it('MC-FU-11 with a bar, the reply goes through the bar executor (history, moves, delete)', async () => {
+    world.place = { lat: 12.9, lng: 77.6, name: 'Blue Tokai', countryCode: 'IN' };
+    const response = { update: { expenseId: 'p1', amountMinor: '120000' } };
+    world.send.mockResolvedValue({ kind: 'ok', response });
+    let context: SavedBarContext | null = null;
+    const r = mount(personal(), null, {
+      renderSavedBar: (c: SavedBarContext) => {
+        context = c;
+        return { type: 'SavedBar', props: { headline: c.headline }, key: null };
+      },
+    });
+    await flush();
+    const executor = vi.fn(async () => ({ kind: 'unchanged' }) as never);
+    (context as unknown as SavedBarContext).controls.registerExecutor(executor);
+    await typeAnswer(r, 'the new place near the lake');
+    expect(executor).toHaveBeenCalledWith(response);
+    // The follow-up card wrote nothing itself: the executor owns the writes.
+    expect(world.upsert).not.toHaveBeenCalled();
   });
 });

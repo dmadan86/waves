@@ -37,6 +37,7 @@ import {
   scheduleFor,
   NEW_SESSION,
   type FilledKind,
+  type VoiceAgentResponse,
   type FollowUpEnvironment,
   type FollowUpKind,
   type FollowUpQuestion,
@@ -46,10 +47,12 @@ import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import {
+  applyAgentResponse,
   applyCorrectionFields,
   changedFields,
   correctionLine,
   readLocally,
+  type TypedResult,
 } from '@/lib/assistantCorrections';
 import { hapticSelect } from '@/lib/assistantHaptics';
 import { UNDO_RING_MS, type UndoEntry } from '@/lib/assistantUndo';
@@ -129,6 +132,12 @@ export interface SavedBarControls {
   stop(): void;
   /** The person is working on it: do not close the panel by itself. */
   hold(): void;
+  /**
+   * The bar offers the executor that applies an agent reply to the expense (the
+   * one typed corrections use), so an answer typed in the follow-up composer gets
+   * the same amount, date, move, delete and undo history. Returns a way to drop it.
+   */
+  registerExecutor(run: (response: VoiceAgentResponse) => Promise<TypedResult>): () => void;
 }
 
 export interface SavedBarContext {
@@ -249,6 +258,9 @@ export function VoiceFollowUps({
 
   const upsert = useUpsertPersonalRecord();
   const removePersonal = useDeletePersonalRecord();
+  const personalLedger = usePersonalLedger();
+  // The saved bar's executor for an agent reply (see `registerExecutor`).
+  const executorBox = useRef<((response: VoiceAgentResponse) => Promise<TypedResult>) | null>(null);
   const writeExpense = useWriteExpense(initial.groupId ?? '');
   const removeExpense = useDeleteExpense(initial.groupId ?? '');
   const createGroupRecurring = useCreateGroupRecurring(initial.groupId ?? '');
@@ -570,24 +582,58 @@ export function VoiceFollowUps({
       },
     });
     setBusy(false);
-    const update = result.kind === 'ok' ? result.response.update : undefined;
-    if (!update || update.expenseId !== saved.id) {
+    const response = result.kind === 'ok' ? result.response : null;
+    const update = response?.update;
+    const viaBar = executorBox.current;
+    if (!response || (!update && !response.delete)) {
       setNotice(f.couldNotUse);
       return;
     }
-    const plan = planUpdate(update, saved);
-    let next = saved;
-    for (const answer of plan.answers) next = applyAnswer(next, answer);
-    if (plan.answers.length > 0) {
-      if (!(await persist(next))) return;
-      setFilled((list) => [...list, ...plan.answers.map(filledBy)]);
+    // The same executor typed corrections use: amount, date, description,
+    // currency, payer, a move or a delete are applied (and undoable), not only
+    // the follow-up answers. Without a saved bar the answers alone are written.
+    const outcome: TypedResult = viaBar
+      ? await viaBar(response)
+      : await applyAgentResponse(
+          {
+            text,
+            state: saved,
+            today,
+            locale,
+            local,
+            strings: t.corrections,
+            online: true,
+            newId: () => saved.id,
+            places: history.stats.recentPlaces,
+            placeCoords: history.placeCoords,
+            categories: Object.keys(t.categories),
+            categoryLabel,
+          },
+          { persist, move: async () => false, send: async () => ({ kind: 'error' }) },
+          response,
+        );
+    if (outcome.kind === 'undo') {
+      setTyping(false);
+      return;
+    }
+    const applied = outcome.kind === 'corrected' || outcome.kind === 'answered';
+    const moved = outcome.kind === 'corrected' && outcome.moved;
+    const plan = update ? planUpdate(update, saved) : null;
+    const handoff = !moved && plan && (plan.wantsReceipt || plan.splitWith);
+    if (!applied && !handoff) {
+      // The bar already said why; without one, say it here.
+      if (!viaBar) setNotice(outcome.kind === 'failed' ? f.couldNotSave : f.couldNotUse);
+      return;
+    }
+    if (!viaBar && outcome.kind === 'answered') {
+      setFilled((list) => [...list, ...outcome.answers.map(filledBy)]);
     }
     setTyping(false);
     if (question) respond(question.kind, 'answered');
-    if (plan.wantsReceipt && saved.groupId) {
+    if (plan && handoff && plan.wantsReceipt && saved.groupId) {
       setHandedOff(true);
       router.push(`/group/${saved.groupId}/expense/${saved.id}`);
-    } else if (plan.splitWith) {
+    } else if (plan && handoff && plan.splitWith) {
       const gid = plan.splitWith.groupId;
       setHandedOff(true);
       router.push({
@@ -597,7 +643,7 @@ export function VoiceFollowUps({
           ...plan.splitWith.memberIds.map((memberId) => ({ memberId })),
         ]),
       });
-    } else {
+    } else if (!viaBar) {
       setNotice(f.gotIt);
     }
   };
@@ -773,8 +819,13 @@ export function VoiceFollowUps({
           yes(f.duplicateSame, async () => {
             setBusy(true);
             try {
+              // The full record is read BEFORE the delete hides it, for the undo.
+              const carried =
+                saved.kind === 'personal'
+                  ? personalLedger.txns.find((txn) => txn.id === saved.id)?.carried
+                  : undefined;
               await removeExpense.mutateAsync(saved.id);
-              onUndoable?.({ kind: 'duplicate', previous: saved });
+              onUndoable?.({ kind: 'duplicate', previous: saved, carried });
               setFilled((list) => [...list, 'duplicate']);
               respond('duplicate', 'answered');
               // The expense is gone: there is nothing left to ask about.
@@ -830,8 +881,9 @@ export function VoiceFollowUps({
                 status: 'active',
               }),
             });
+            const carried = personalLedger.txns.find((txn) => txn.id === saved.id)?.carried;
             await removePersonal.mutateAsync(saved.id);
-            onUndoable?.({ kind: 'lend', previous: saved, loanId });
+            onUndoable?.({ kind: 'lend', previous: saved, loanId, carried });
             setFilled((list) => [...list, 'lend']);
             respond('lend', 'answered');
             setSession((s) => ({ ...s, stopped: true }));
@@ -878,8 +930,14 @@ export function VoiceFollowUps({
         setSession((s) => ({ ...s, stopped: true }));
       },
       hold: () => setHeld(true),
+      registerExecutor: (run) => {
+        executorBox.current = run;
+        return () => {
+          if (executorBox.current === run) executorBox.current = null;
+        };
+      },
     }),
-    [onSavedStateChange],
+    [onSavedStateChange, executorBox],
   );
 
   // ── render ───────────────────────────────────────────────────────────────
@@ -892,6 +950,8 @@ export function VoiceFollowUps({
   return (
     <View style={{ gap: theme.spacing.md }}>
       {renderSavedBar ? (
+        // `controls` only touches the executor box inside callbacks, never while rendering.
+        // eslint-disable-next-line react-hooks/refs
         renderSavedBar({
           state: saved,
           headline: fill(f.added, { amount: amountLabel, where: whereLabel }),

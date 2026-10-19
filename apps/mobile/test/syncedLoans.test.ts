@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
   deletes: [] as string[],
   groups: new Set<string>(),
   n: 0,
+  failUpsertOnce: false,
 }));
 
 vi.mock('@tanstack/react-query', () => ({ useMutation: (options: unknown) => options }));
@@ -36,6 +37,10 @@ vi.mock('@/data/hooks', () => ({
 vi.mock('@/data/personal', () => ({
   useUpsertPersonalRecord: () => ({
     mutateAsync: async (input: (typeof state.upserts)[number]) => {
+      if (state.failUpsertOnce) {
+        state.failUpsertOnce = false;
+        throw new Error('offline write failed');
+      }
       state.upserts.push(input);
       return input.recordId ?? 'new';
     },
@@ -69,6 +74,7 @@ beforeEach(() => {
   state.deletes = [];
   state.groups = new Set();
   state.n = 0;
+  state.failUpsertOnce = false;
 });
 
 describe('useShareLoan', () => {
@@ -117,6 +123,33 @@ describe('useShareLoan', () => {
     expect(link.groupId).toBe('g9');
     expect(link.expenseId).not.toBe('e0');
     expect(state.calls[0]?.scope).toBe('g9');
+  });
+
+  it('LG-13 a retry after the link failed to save reconciles the same expense and group', async () => {
+    const share = useShareLoan([LOAN]) as unknown as Opts<
+      { loan: PersonalLoan; person?: { name: string } },
+      { groupId: string; expenseId: string; myMemberId: string; otherMemberId: string }
+    >;
+    // First attempt: the expense is queued but saving the link throws.
+    const realUpsert = state.upserts;
+    state.failUpsertOnce = true;
+    await expect(share.mutationFn({ loan: LOAN, person: { name: 'ravi' } })).rejects.toThrow();
+    const firstCalls = [...state.calls];
+    state.calls = [];
+    state.upserts = realUpsert;
+    const link = await share.mutationFn({ loan: LOAN, person: { name: 'ravi' } });
+
+    const expenses = [...firstCalls, ...state.calls].filter(
+      (c) => c.kind === MutationKind.ExpenseCreate,
+    );
+    expect(expenses).toHaveLength(2);
+    // Same expense id both times, so the retry is an upsert of the first, not a second debt.
+    expect(expenses[0]?.payload.expenseId).toBe(expenses[1]?.payload.expenseId);
+    expect(expenses[1]?.payload.expenseId).toBe(link.expenseId);
+    const groups = [...firstCalls, ...state.calls].filter(
+      (c) => c.kind === MutationKind.GroupCreate,
+    );
+    expect(new Set(groups.map((g) => g.scope)).size).toBe(1);
   });
 
   it('LG-12 refuses a loan that is already shared, or has no amount', async () => {

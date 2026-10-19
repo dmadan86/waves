@@ -430,3 +430,38 @@ describe('multi-expense rule (CR-29)', () => {
     expect(followUpsAllowed([])).toBe(false);
   });
 });
+
+describe('a move combined with another answer (review finding 1)', () => {
+  it('CR-MV-01 "move this to Flat and mark it cash" is one undoable move, not a plain edit', async () => {
+    const send = vi.fn(async () =>
+      okResponse({ update: { expenseId: 'p1', groupId: 'g-home', paymentMethod: 'cash' } }),
+    );
+    const { deps, move, persist } = depsOf({ send: send as unknown as TypedDeps['send'] });
+    const source = personal();
+    const result = await runTypedMessage(ctxFor('move this to Flat 4B, paid cash', source), deps);
+    expect(move).toHaveBeenCalledTimes(1);
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(result.kind).toBe('corrected');
+    if (result.kind !== 'corrected') return;
+    expect(result.moved).toBe(true);
+    expect(result.previous).toBe(source); // the source snapshot
+    expect(result.next.groupId).toBe('g-home'); // the destination
+    expect(result.next.paymentMethod).toBe('cash'); // with the answer applied
+    const entry = historyEntryFor(result);
+    expect(entry?.kind).toBe('move');
+  });
+
+  it('CR-MV-02 if the extra answer cannot be saved the move is still reported, so it stays undoable', async () => {
+    const send = vi.fn(async () =>
+      okResponse({ update: { expenseId: 'p1', groupId: 'g-home', paymentMethod: 'cash' } }),
+    );
+    const persist = vi.fn(async () => false);
+    const { deps } = depsOf({ send: send as unknown as TypedDeps['send'], persist });
+    const result = await runTypedMessage(
+      ctxFor('move this to Flat 4B, paid cash', personal()),
+      deps,
+    );
+    expect(result.kind).toBe('corrected');
+    if (result.kind === 'corrected') expect(result.moved).toBe(true);
+  });
+});

@@ -22,11 +22,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { MutationKind, format, money } from '@waves/core';
+import { MutationKind, format, money, type VoiceAgentResponse } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 import type { SavedBarControls } from '@/components/VoiceFollowUps';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
+import { useSyncedLoanNets } from '@/data/hooks';
+import { useViewerId } from '@/lib/auth';
 import {
   useDeletePersonalRecord,
   useUpsertPersonalRecord,
@@ -35,6 +37,7 @@ import {
 import { serialiseExpense } from '@/data/serialiseExpense';
 import { fill, useStrings } from '@/i18n';
 import {
+  applyAgentResponse,
   runTypedMessage,
   type MovePlan,
   type TypedDeps,
@@ -45,13 +48,15 @@ import {
   historyEntryFor,
   pushHistory,
   restoreSaved,
-  undoLast,
+  sharedDebtSettled,
+  undoLastDetailed,
   undoSaved,
   type UndoDeps,
   type UndoEntry,
 } from '@/lib/assistantUndo';
 import { filledBy, toGroupWrite, toPersonalData, type SavedState } from '@/lib/followUpApply';
 import { hapticLight } from '@/lib/assistantHaptics';
+import { runMove, type MoveProgress } from '@/lib/assistantMove';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { forgetMove, lastRememberedMove } from '@/lib/personalHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
@@ -185,6 +190,11 @@ export function AssistantSavedBar({
   const upsert = useUpsertPersonalRecord();
   const removePersonal = useDeletePersonalRecord();
   const ledger = usePersonalLedger();
+  const viewerId = useViewerId();
+  const loanNets = useSyncedLoanNets(
+    viewerId,
+    ledger.loans.flatMap((loan) => (loan.synced ? [loan.synced] : [])),
+  );
 
   const state = context.state;
   const [ringOn, setRingOn] = useState(true);
@@ -199,6 +209,12 @@ export function AssistantSavedBar({
   // The write each move left behind, so undoing the move can take it back.
   const baseBeforeMove = useRef<(AgentExpenseWrite | null)[]>([]);
   const pendingBase = useRef<AgentExpenseWrite | null>(null);
+  // A move that wrote its destination but could not remove the source: the retry resumes it.
+  const moveProgress = useRef<MoveProgress | null>(null);
+  // The id a move's new entry gets, stable per source and target until the move completes.
+  const moveIds = useRef(new Map<string, string>());
+  // The full personal record read just before a delete hid it, for Restore.
+  const removedCarried = useRef<Readonly<Record<string, unknown>> | undefined>(undefined);
 
   useEffect(() => {
     const timer = setTimeout(() => setRingOn(false), UNDO_RING_MS);
@@ -272,12 +288,19 @@ export function AssistantSavedBar({
       persist,
       newId: () => randomUUID(),
       sharedLoanExpense: (loanId) => {
-        const link = ledger.loans.find((loan) => loan.id === loanId)?.synced;
-        return link ? { groupId: link.groupId, expenseId: link.expenseId } : null;
+        const loan = ledger.loans.find((l) => l.id === loanId);
+        const link = loan?.synced;
+        return link
+          ? {
+              groupId: link.groupId,
+              expenseId: link.expenseId,
+              settled: sharedDebtSettled(loan, loanNets, ledger.loans),
+            }
+          : null;
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mutate, persist, ledger.loans],
+    [mutate, persist, ledger.loans, loanNets],
   );
 
   const carriedFor = (s: SavedState): Readonly<Record<string, unknown>> | undefined =>
@@ -285,27 +308,43 @@ export function AssistantSavedBar({
 
   const doMove: TypedDeps['move'] = useCallback(
     async (plan: MovePlan, from: SavedState): Promise<boolean> => {
-      try {
-        // Save the new entry first, then remove the old one: nothing is lost if the second step fails.
-        pendingBase.current = baseRef.current;
-        if (plan.kind === 'toGroup') {
-          await writeGroup(plan.groupId, plan.write, true);
-          baseRef.current = plan.write;
-        } else {
-          await upsert.mutateAsync({ recordId: plan.recordId, recordKind: 'txn', data: plan.data });
-          baseRef.current = null;
-        }
-        await undoSaved(from, undoDeps).then((r) => {
+      // The base is switched only once both writes went through, so a half-done
+      // move that is retried (or abandoned) leaves the old base in place.
+      pendingBase.current = baseRef.current;
+      return runMove(moveProgress, plan, from, {
+        writeDestination: async (p) => {
+          if (p.kind === 'toGroup') await writeGroup(p.groupId, p.write, true);
+          else await upsert.mutateAsync({ recordId: p.recordId, recordKind: 'txn', data: p.data });
+        },
+        removeSource: async (source) => {
+          const r = await undoSaved(source, undoDeps);
           if (!r.ok) throw new Error('could not remove the original');
-        });
-        return true;
-      } catch {
-        return false;
-      }
+        },
+        removeDestination: async (d) => {
+          if (d.kind === 'group') await undoDeps.deleteGroupExpense(d.groupId, d.id);
+          else await undoDeps.deletePersonal(d.id);
+        },
+        completed: (p) => {
+          baseRef.current = p.kind === 'toGroup' ? p.write : null;
+          for (const key of [...moveIds.current.keys()]) {
+            if (key.startsWith(`${from.id}>`)) moveIds.current.delete(key);
+          }
+        },
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [writeGroup, undoDeps],
   );
+
+  const moveIdFor = (target: string | null): string => {
+    const key = `${state.id}>${target ?? 'personal'}`;
+    let id = moveIds.current.get(key);
+    if (!id) {
+      id = randomUUID();
+      moveIds.current.set(key, id);
+    }
+    return id;
+  };
 
   const placesAndCategories = useMemo(() => {
     const places: string[] = [];
@@ -321,6 +360,9 @@ export function AssistantSavedBar({
       case 'corrected': {
         const entry = historyEntryFor(result, carried);
         if (entry) setHistory((h) => pushHistory(h, entry));
+        if (result.answers && result.answers.length > 0) {
+          controls.addFilled(result.answers.map(filledBy));
+        }
         setLine(result.line);
         setNotice(null);
         controls.replaceSaved(result.next);
@@ -370,6 +412,20 @@ export function AssistantSavedBar({
     }
   };
 
+  const contextFor = (text: string, online: boolean) => ({
+    text,
+    state,
+    today,
+    locale,
+    local,
+    strings: c,
+    online,
+    newId: moveIdFor,
+    places: placesAndCategories.places,
+    categories: placesAndCategories.categories,
+    categoryLabel: (id: string) => (t.categories as Record<string, string>)[id] ?? id,
+  });
+
   const submit = async (text: string): Promise<void> => {
     if (busy) return;
     setBusy(true);
@@ -378,38 +434,48 @@ export function AssistantSavedBar({
     const carried = carriedFor(state);
     try {
       const online = await checkOnline();
-      const result = await runTypedMessage(
-        {
-          text,
-          state,
-          today,
-          locale,
-          local,
-          strings: c,
-          online,
-          newId: () => randomUUID(),
-          places: placesAndCategories.places,
-          categories: placesAndCategories.categories,
-          categoryLabel: (id) => (t.categories as Record<string, string>)[id] ?? id,
-        },
-        {
-          persist,
-          move: doMove,
-          send: (message) =>
-            sendVoiceTranscript({
-              transcript: message,
-              groupId: state.groupId,
-              locale,
-              today,
-              savedExpense: { id: state.id, kind: state.kind, groupId: state.groupId },
-            }),
-        },
-      );
+      const result = await runTypedMessage(contextFor(text, online), {
+        persist,
+        move: doMove,
+        send: (message) =>
+          sendVoiceTranscript({
+            transcript: message,
+            groupId: state.groupId,
+            locale,
+            today,
+            savedExpense: { id: state.id, kind: state.kind, groupId: state.groupId },
+          }),
+      });
       settle(result, carried);
     } finally {
       setBusy(false);
     }
   };
+
+  // The follow-up composer hands the agent's reply here, so a typed answer there
+  // is applied by the same executor (amount, date, move, delete, undo history).
+  const applyModelResponse = async (response: VoiceAgentResponse): Promise<TypedResult> => {
+    const carried = carriedFor(state);
+    const result = await applyAgentResponse(
+      contextFor('', true),
+      {
+        persist,
+        move: doMove,
+        send: async () => ({ kind: 'error' }),
+      },
+      response,
+    );
+    settle(result, carried);
+    return result;
+  };
+  const executorRef = useRef(applyModelResponse);
+  useEffect(() => {
+    executorRef.current = applyModelResponse;
+  });
+  useEffect(
+    () => controls.registerExecutor((response) => executorRef.current(response)),
+    [controls],
+  );
 
   // After a hand-off the expense is already gone from where it was: Undo takes the hand-off back.
   const top = history[history.length - 1]?.kind;
@@ -424,11 +490,27 @@ export function AssistantSavedBar({
     }
     setBusy(true);
     try {
+      // Read before the delete hides the record: Restore needs every field of it.
+      const carried = carriedFor(state);
+      // A move that wrote its destination but not the removal: take that copy out too.
+      const stranded = moveProgress.current;
+      if (stranded && stranded.sourceId === state.id && stranded.destWritten) {
+        try {
+          const d = stranded.destination;
+          if (d.kind === 'group') await undoDeps.deleteGroupExpense(d.groupId, d.id);
+          else await undoDeps.deletePersonal(d.id);
+          moveProgress.current = null;
+        } catch {
+          setNotice(c.couldNotUndo);
+          return;
+        }
+      }
       const out = await undoSaved(state, undoDeps);
       if (!out.ok) {
         setNotice(c.couldNotUndo);
         return;
       }
+      removedCarried.current = carried;
       setRemoved(out.removed);
       setLine(null);
       setTyping(false);
@@ -445,11 +527,12 @@ export function AssistantSavedBar({
     setBusy(true);
     try {
       const undoingMove = history[history.length - 1]?.kind === 'move';
-      const done = await undoLast(history, undoDeps);
-      if (!done) {
-        setNotice(c.couldNotUndo);
+      const attempt = await undoLastDetailed(history, undoDeps);
+      if (!attempt.ok) {
+        setNotice(attempt.refused === 'settled' ? c.undoLoanSettled : c.couldNotUndo);
         return;
       }
+      const done = attempt;
       setHistory(done.rest);
       if (undoingMove) baseRef.current = baseBeforeMove.current.pop() ?? null;
       if (done.outcome.what === 'answer') controls.popFilled();
@@ -469,7 +552,7 @@ export function AssistantSavedBar({
     if (!removed || busy) return;
     setBusy(true);
     try {
-      const out = await restoreSaved(removed, undoDeps, carriedFor(removed));
+      const out = await restoreSaved(removed, undoDeps, removedCarried.current);
       if (!out.ok) {
         setNotice(c.couldNotUndo);
         return;

@@ -9,6 +9,7 @@ import {
   restoreSaved,
   ringFraction,
   undoLast,
+  undoLastDetailed,
   undoPhase,
   undoSaved,
   type UndoDeps,
@@ -303,5 +304,97 @@ describe('undo of a shared loan and of a hand-off (CR-28)', () => {
     );
     expect(out).toBeNull();
     expect(calls).toEqual([]);
+  });
+});
+
+describe('retrying a failed undo (review findings 3, 4, 7)', () => {
+  const counter = () => {
+    let n = 0;
+    return () => `id-${++n}`;
+  };
+
+  it('UR-01 a retry restores the personal entry under the SAME id, not a new one each time', async () => {
+    const upserts: string[] = [];
+    let failDelete = true;
+    const { deps } = fakeDeps({
+      newId: counter(),
+      upsertPersonal: vi.fn(async (i) => void upserts.push(i.recordId)),
+      deleteGroupExpense: vi.fn(async () => {
+        if (failDelete) throw new Error('offline');
+      }),
+    });
+    const history = pushHistory([], {
+      kind: 'move',
+      previous: personal(),
+      current: group({ id: 'new-e', groupId: 'g2' }),
+    });
+    expect(await undoLast(history, deps)).toBeNull();
+    failDelete = false;
+    const done = await undoLast(history, deps);
+    expect(upserts).toHaveLength(1); // restore step is not repeated
+    expect(done?.outcome.state.id).toBe(upserts[0]);
+  });
+
+  it('UR-02 a lend undo that failed at the last step does not restore twice or delete the shared debt twice', async () => {
+    const upserts: string[] = [];
+    const shared = vi.fn(async () => undefined);
+    let failLoan = true;
+    const { deps } = fakeDeps({
+      newId: counter(),
+      sharedLoanExpense: () => ({ groupId: 'g9', expenseId: 'e9' }),
+      deleteGroupExpense: shared,
+      upsertPersonal: vi.fn(async (i) => void upserts.push(i.recordId)),
+      deletePersonal: vi.fn(async () => {
+        if (failLoan) throw new Error('offline');
+      }),
+    });
+    const history = pushHistory([], { kind: 'lend', previous: personal(), loanId: 'loan-7' });
+    expect(await undoLast(history, deps)).toBeNull();
+    failLoan = false;
+    const done = await undoLast(history, deps);
+    expect(done?.outcome.state.id).toBe(upserts[0]);
+    expect(upserts).toHaveLength(1);
+    expect(shared).toHaveBeenCalledTimes(1);
+  });
+
+  it('UR-03 a failed Restore retried keeps one id', async () => {
+    const ids: string[] = [];
+    let fail = true;
+    const { deps } = fakeDeps({
+      newId: counter(),
+      upsertPersonal: vi.fn(async (i) => {
+        ids.push(i.recordId);
+        if (fail) throw new Error('x');
+      }),
+    });
+    const removed = personal();
+    expect((await restoreSaved(removed, deps)).ok).toBe(false);
+    fail = false;
+    expect((await restoreSaved(removed, deps)).ok).toBe(true);
+    expect(new Set(ids).size).toBe(1);
+  });
+
+  it('UR-04 undo of a lend whose shared debt was already settled is refused, and nothing is touched', async () => {
+    const { deps, calls } = fakeDeps({
+      sharedLoanExpense: () => ({ groupId: 'g9', expenseId: 'e9', settled: true }),
+    });
+    const history = pushHistory([], { kind: 'lend', previous: personal(), loanId: 'loan-7' });
+    const out = await undoLastDetailed(history, deps);
+    expect(out).toEqual({ ok: false, refused: 'settled' });
+    expect(calls).toEqual([]);
+    expect(await undoLast(history, deps)).toBeNull();
+  });
+
+  it('UR-05 a duplicate undo restores the full record it snapshotted before the delete', async () => {
+    const upsert = vi.fn(async () => undefined);
+    const { deps } = fakeDeps({ upsertPersonal: upsert });
+    const history = pushHistory([], {
+      kind: 'duplicate',
+      previous: personal(),
+      carried: { futureField: 'keep-me' },
+    });
+    await undoLast(history, deps);
+    const call = upsert.mock.calls[0] as unknown as [{ data: Record<string, unknown> }];
+    expect(call[0].data.futureField).toBe('keep-me');
   });
 });

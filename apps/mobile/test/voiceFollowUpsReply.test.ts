@@ -67,6 +67,9 @@ vi.mock('@/data/personal', () => ({
     mutateAsync: (...args: unknown[]) => world.upsert(...args),
   }),
 }));
+vi.mock('@/data/groupRecurring', () => ({
+  useCreateGroupRecurring: () => ({ mutateAsync: async () => 'rule' }),
+}));
 vi.mock('@/data/types', () => ({ isViewer: () => false }));
 vi.mock('@/i18n', () => ({
   fill: (template: string, values: Record<string, unknown>) =>
