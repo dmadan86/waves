@@ -16,6 +16,7 @@ import {
   type Deps,
 } from './handler.ts';
 import { fixtureContext, fixtures } from './evals/harness.ts';
+import { followupMeter } from '../_shared/test/voiceFollowupMeter.ts';
 import { parseToolCalls, STATIC_SYSTEM_PROMPT, TOOLS } from './logic.ts';
 
 const personal = fixtureContext('followup:personal');
@@ -233,18 +234,28 @@ function table(rows: unknown[]) {
   return q;
 }
 
-function makeDeps(calls: Call[], now = () => 0) {
-  const rpc = vi.fn(async (name: string) =>
+const GROUP_EXPENSE_ID = '6f1c1c7e-2f4e-4c9a-9a52-0b6f3d6a7e11';
+
+function makeDeps(
+  calls: Call[],
+  now = () => 0,
+  over: { tier?: 'free' | 'pro'; expenses?: unknown[] } = {},
+) {
+  const meter = followupMeter({ tier: over.tier });
+  const rpc = vi.fn(async (name: string, args?: Record<string, unknown>) =>
     name === 'waves_voice_agent_enabled'
       ? { data: true, error: null }
       : name === 'waves_voice_agent_quota'
         ? { data: { used: 3, limit: 100, tier: 'pro', allowed: true }, error: null }
-        : { data: 0, error: null },
+        : name === 'waves_voice_agent_followup'
+          ? { data: meter(args ?? {}), error: null }
+          : { data: 0, error: null },
   );
   const rows: Record<string, unknown[]> = {
     groups: fixtures.groups,
     group_members: fixtures.members,
     group_balances: fixtures.balances,
+    expenses: over.expenses ?? [{ id: GROUP_EXPENSE_ID }],
   };
   const fetchMock = vi.fn(llm(calls));
   const deps = {
@@ -335,7 +346,7 @@ describe('handler: corrections and undo', () => {
     expect(JSON.stringify(log)).not.toContain('80000');
   });
 
-  it('CR-30e a follow-up costs no command: no quota reservation, no refund', async () => {
+  it('CR-30e a follow-up costs no command: no command reservation, no refund, the follow-up meter is asked', async () => {
     const { deps, rpc } = makeDeps([
       { name: 'update_expense', input: { expenseId: pid, date: '2026-10-20' } },
     ]);
@@ -343,6 +354,7 @@ describe('handler: corrections and undo', () => {
     const names = rpc.mock.calls.map(([n]) => n);
     expect(names).not.toContain('waves_voice_agent_quota');
     expect(names).not.toContain('waves_voice_agent_refund');
+    expect(names).toContain('waves_voice_agent_followup');
   });
 
   it('CR-30f a normal command is still metered', async () => {
@@ -352,11 +364,7 @@ describe('handler: corrections and undo', () => {
   });
 
   it('CR-30g the fourth follow-up for one expense in ten minutes is capped; another expense is not', async () => {
-    let time = 0;
-    const { deps, fetchMock } = makeDeps(
-      [{ name: 'answer_question', input: { text: 'Ok' } }],
-      () => time,
-    );
+    const { deps, fetchMock } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
     const saved = { ...fixtures.saved.personal, id: 'cap-me' };
     for (let i = 0; i < FOLLOWUP_PER_EXPENSE; i++) await post(deps, { savedExpense: saved });
     await expect(post(deps, { savedExpense: saved })).rejects.toMatchObject({
@@ -367,14 +375,11 @@ describe('handler: corrections and undo', () => {
     await expect(
       post(deps, { savedExpense: { ...saved, id: 'someone-else' } }),
     ).resolves.toBeTruthy();
-    // Ten minutes later the same expense may be asked about again.
-    time = 10 * 60_000 + 1;
-    await expect(post(deps, { savedExpense: saved })).resolves.toBeTruthy();
   });
 
   it('CR-30h a follow-up on a group expense is told about that group only', async () => {
     const { deps, fetchMock } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
-    await post(deps, { savedExpense: fixtures.saved.group });
+    await post(deps, { savedExpense: { ...fixtures.saved.group, id: GROUP_EXPENSE_ID } });
     const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     const text = JSON.stringify(sent.messages);
     expect(text).toContain('g-goa');
@@ -389,5 +394,89 @@ describe('handler: corrections and undo', () => {
         followUp: { transcript: 'a', question: 'b' },
       }),
     ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('FM-01 a Free person with a savedExpense is refused before any provider is called', async () => {
+    const { deps, fetchMock, rpc } = makeDeps(
+      [{ name: 'answer_question', input: { text: 'Ok' } }],
+      () => 0,
+      { tier: 'free' },
+    );
+    await expect(post(deps, { savedExpense: fixtures.saved.personal })).rejects.toMatchObject({
+      status: 403,
+      code: 'VOICE_AGENT_FOLLOWUP_PRO',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(rpc.mock.calls.map(([n]) => n)).not.toContain('waves_voice_agent_quota');
+  });
+
+  it('FM-02 the plan is the database answer: the response reports it, never a fixed tier', async () => {
+    const { deps } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    const body = await post(deps, { savedExpense: fixtures.saved.personal });
+    expect(body.quota).toEqual({ used: 1, limit: 300, tier: 'pro' });
+  });
+
+  it('FM-03 the follow-up meter is asked with the verified caller, the expense id and the caps', async () => {
+    const { deps, rpc } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    await post(deps, { savedExpense: fixtures.saved.personal });
+    expect(rpc).toHaveBeenCalledWith('waves_voice_agent_followup', {
+      p_profile: fixtures.meProfileId,
+      p_expense_id: fixtures.saved.personal.id,
+      p_month_limit: 300,
+      p_expense_limit: 3,
+      p_window_seconds: 600,
+    });
+  });
+
+  it('FM-04 a Pro person is capped at 300 follow-ups a month', async () => {
+    const { deps, fetchMock } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    for (let i = 0; i < 300; i++) {
+      await post(deps, { savedExpense: { ...fixtures.saved.personal, id: `exp-${i}` } });
+    }
+    await expect(
+      post(deps, { savedExpense: { ...fixtures.saved.personal, id: 'exp-301' } }),
+    ).rejects.toMatchObject({ status: 429, code: 'VOICE_AGENT_FOLLOWUP_CAP' });
+    expect(fetchMock).toHaveBeenCalledTimes(300);
+  });
+
+  it('FM-05 a group expense in a group the caller is not in is refused before the meter or a provider', async () => {
+    const { deps, fetchMock, rpc } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    await expect(
+      post(deps, {
+        savedExpense: { kind: 'group', id: GROUP_EXPENSE_ID, groupId: 'g-someone-elses' },
+      }),
+    ).rejects.toMatchObject({ status: 403, code: 'BAD_SAVED_EXPENSE' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(rpc.mock.calls.map(([n]) => n)).not.toContain('waves_voice_agent_followup');
+  });
+
+  it('FM-06 a group expense id that is not in that group (or not an id) is refused', async () => {
+    const none = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }], () => 0, {
+      expenses: [],
+    });
+    await expect(
+      post(none.deps, { savedExpense: { ...fixtures.saved.group, id: GROUP_EXPENSE_ID } }),
+    ).rejects.toMatchObject({ status: 403, code: 'BAD_SAVED_EXPENSE' });
+    const { deps, fetchMock } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    await expect(
+      post(deps, { savedExpense: { ...fixtures.saved.group, id: 'not-a-uuid' } }),
+    ).rejects.toMatchObject({ status: 403, code: 'BAD_SAVED_EXPENSE' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("FM-07 a real group expense in the caller's group goes through", async () => {
+    const { deps } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    const body = await post(deps, {
+      savedExpense: { ...fixtures.saved.group, id: GROUP_EXPENSE_ID },
+    });
+    expect(body.answer).toBe('Ok');
+  });
+
+  it('FM-08 a normal command is unaffected: still metered by the command allowance', async () => {
+    const { deps, rpc } = makeDeps([{ name: 'answer_question', input: { text: 'Hi' } }]);
+    await post(deps, {});
+    const names = rpc.mock.calls.map(([n]) => n);
+    expect(names).toContain('waves_voice_agent_quota');
+    expect(names).not.toContain('waves_voice_agent_followup');
   });
 });
