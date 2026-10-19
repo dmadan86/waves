@@ -194,6 +194,8 @@ export function planMove(
   target: string | null,
   local: AgentLocalData,
   newId: string,
+  /** Who shares the new group entry; default is the whole group. You are always in. */
+  participantIds?: readonly string[],
 ): MovePlan | null {
   if (target === state.groupId) return null;
   if (target === null) {
@@ -215,7 +217,14 @@ export function planMove(
   const group = local.groups.find((g) => g.id === target);
   const me = group?.members.find((m) => m.isViewer);
   if (!group || !me || group.members.length === 0) return null;
-  const participants = group.members.map((m) => m.id);
+  const participants = participantIds
+    ? [
+        ...new Set([
+          me.id,
+          ...participantIds.filter((id) => group.members.some((m) => m.id === id)),
+        ]),
+      ]
+    : group.members.map((m) => m.id);
   const shares = computeShares({
     amount: state.amount,
     currency: state.currency,
