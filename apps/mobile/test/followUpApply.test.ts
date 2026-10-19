@@ -36,7 +36,14 @@ const personal = (over: Partial<SavedState> = {}): SavedState => ({
   ...over,
 });
 const group = (over: Partial<SavedState> = {}): SavedState =>
-  personal({ kind: 'group', id: 'g-e1', groupId: 'g1', payers: { m1: 800000n }, participants: ['m1', 'm2'], ...over });
+  personal({
+    kind: 'group',
+    id: 'g-e1',
+    groupId: 'g1',
+    payers: { m1: 800000n },
+    participants: ['m1', 'm2'],
+    ...over,
+  });
 
 const write: AgentExpenseWrite = {
   expenseId: 'g-e1',
@@ -98,7 +105,12 @@ describe('writes', () => {
       method: 'card',
     });
     const txn = decodeTxn('p1', toPersonalData(s));
-    expect(txn).toMatchObject({ amount: 800000n, place: 'Mall', paymentMethod: 'card', note: 'shoes' });
+    expect(txn).toMatchObject({
+      amount: 800000n,
+      place: 'Mall',
+      paymentMethod: 'card',
+      note: 'shoes',
+    });
   });
   it('a group write carries the answers on top of the original', () => {
     const s = applyAnswer(
@@ -126,12 +138,22 @@ describe('savedStateFrom / factsFor', () => {
       'p9',
       '2026-10-19',
     );
-    expect(s).toMatchObject({ kind: 'personal', description: 'misc', categoryStated: false, date: '2026-10-19' });
+    expect(s).toMatchObject({
+      kind: 'personal',
+      description: 'misc',
+      categoryStated: false,
+      date: '2026-10-19',
+    });
   });
   it('facts: receipts only for a group, payer is me', () => {
     expect(factsFor(personal(), null, null, null).canAttachReceipt).toBe(false);
     const facts = factsFor(group(), { name: 'Goa', members: [] }, 'm1', 'm1');
-    expect(facts).toMatchObject({ canAttachReceipt: true, payerIsMe: true, splitParticipantCount: 2, groupName: 'Goa' });
+    expect(facts).toMatchObject({
+      canAttachReceipt: true,
+      payerIsMe: true,
+      splitParticipantCount: 2,
+      groupName: 'Goa',
+    });
     expect(factsFor(personal({ place: 'x' }), null, null, null).hasPlace).toBe(true);
   });
 });
@@ -147,7 +169,10 @@ describe('deviceCurrencyFor', () => {
 
 describe('planUpdate', () => {
   it('turns a typed answer into answers, a receipt intent, or a share', () => {
-    const p = planUpdate({ expenseId: 'g-e1', place: 'Taj', paymentMethod: 'card', wantsReceipt: true }, group());
+    const p = planUpdate(
+      { expenseId: 'g-e1', place: 'Taj', paymentMethod: 'card', wantsReceipt: true },
+      group(),
+    );
     expect(p.answers).toEqual([
       { kind: 'place', name: 'Taj' },
       { kind: 'payment', method: 'credit' },
@@ -155,7 +180,9 @@ describe('planUpdate', () => {
     expect(p.wantsReceipt).toBe(true);
   });
   it('a personal entry has no receipt, a group expense cannot be shared from here', () => {
-    expect(planUpdate({ expenseId: 'p1', wantsReceipt: true }, personal()).wantsReceipt).toBe(false);
+    expect(planUpdate({ expenseId: 'p1', wantsReceipt: true }, personal()).wantsReceipt).toBe(
+      false,
+    );
     const split = { groupId: 'g1', memberIds: ['m2'] };
     expect(planUpdate({ expenseId: 'p1', splitWith: split }, personal()).splitWith).toEqual(split);
     expect(planUpdate({ expenseId: 'g-e1', splitWith: split }, group()).splitWith).toBeNull();

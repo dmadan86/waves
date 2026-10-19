@@ -43,7 +43,12 @@ describe('buildFollowUpHistory', () => {
     expect(stats.recentGroupExpenses[0]).toMatchObject({ byOther: true, authorName: 'Ravi' });
   });
   it('marks my own as not byOther, and leaves out the just-saved expense', () => {
-    const mine = grp({ expenses: [exp({ id: 'saved', authorMemberId: 'me' }), exp({ id: 'y', authorMemberId: 'me' })] });
+    const mine = grp({
+      expenses: [
+        exp({ id: 'saved', authorMemberId: 'me' }),
+        exp({ id: 'y', authorMemberId: 'me' }),
+      ],
+    });
     const { stats } = build([mine]);
     expect(stats.recentGroupExpenses.map((e) => [e.expenseId, e.byOther])).toEqual([['y', false]]);
   });
@@ -67,7 +72,14 @@ describe('buildFollowUpHistory', () => {
     const h = buildFollowUpHistory({
       groups: [],
       personal: [
-        { amountMinor: 100n, currency: 'INR', category: 'food', note: 'x', date: '2026-10-01', place: 'Cafe' },
+        {
+          amountMinor: 100n,
+          currency: 'INR',
+          category: 'food',
+          note: 'x',
+          date: '2026-10-01',
+          place: 'Cafe',
+        },
       ],
       recurringNotes: ['Netflix 2026'],
       nowMs: NOW,
