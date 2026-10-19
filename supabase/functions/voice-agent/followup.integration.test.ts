@@ -22,9 +22,9 @@ const claude = (calls: Call[], usage?: Record<string, number>) =>
 /** Route actual provider URLs, retaining each provider's native tool-call shape. */
 function scriptedLlm(calls: Call[], transcript = 'at Blue Tokai'): FetchImpl {
   return (url) => {
-    if (url.includes('deepgram.com')) return deepgram(transcript);
-    if (url.includes('anthropic.com')) return claude(calls);
-    if (url.includes('generativelanguage') || url.includes('gemini'))
+    if (hostOf(url).endsWith('deepgram.com')) return deepgram(transcript);
+    if (hostOf(url).endsWith('anthropic.com')) return claude(calls);
+    if (hostOf(url).startsWith('generativelanguage.'))
       return new Response(
         JSON.stringify({
           candidates: [
@@ -36,7 +36,7 @@ function scriptedLlm(calls: Call[], transcript = 'at Blue Tokai'): FetchImpl {
           ],
         }),
       );
-    if (url.includes('openrouter.ai') || url.includes('deepseek.com'))
+    if (hostOf(url).endsWith('openrouter.ai') || hostOf(url).endsWith('deepseek.com'))
       return new Response(
         JSON.stringify({
           choices: [
@@ -220,7 +220,9 @@ describe('follow-up handler integration', () => {
     const { deps } = makeDeps({
       limits: { llmAttemptMs: 25, minAttemptMs: 5 },
       fetchImpl: (url, init) =>
-        url.includes('openrouter') ? hang(url, init) : scriptedLlm([update()])(url, init),
+        hostOf(url).endsWith('openrouter.ai')
+          ? hang(url, init)
+          : scriptedLlm([update()])(url, init),
     });
     expect((await run(deps, { savedExpense: saved })).update.place).toBe('Blue Tokai');
     expect(logs()[0]).toMatchObject({ escalated: true, failures: ['openrouter:timeout'] });
@@ -453,7 +455,7 @@ describe('follow-up handler integration', () => {
     const { deps, fetchMock } = makeDeps({
       env: { VOICE_LLM_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'ds', OPENROUTER_API_KEY: '' },
       fetchImpl: (url, init) =>
-        url.includes('deepseek')
+        hostOf(url).endsWith('deepseek.com')
           ? new Response(
               JSON.stringify({
                 choices: [
@@ -477,7 +479,7 @@ describe('follow-up handler integration', () => {
   it('EH-24 non-JSON 200 counts toward breaker failure', async () => {
     const { deps } = makeDeps({
       fetchImpl: (url, init) =>
-        url.includes('openrouter')
+        hostOf(url).endsWith('openrouter.ai')
           ? new Response('<html>bad</html>')
           : scriptedLlm([answer])(url, init),
     });
@@ -524,3 +526,7 @@ describe('follow-up handler integration', () => {
     expect(body).not.toHaveProperty('unknownFutureField');
   });
 });
+
+function hostOf(url: string): string {
+  return new URL(url).hostname;
+}

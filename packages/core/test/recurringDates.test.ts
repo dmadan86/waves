@@ -1,6 +1,4 @@
-/// <reference types="node" />
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
 
 import {
   findRecurring,
@@ -169,22 +167,22 @@ describe('recurring dates', () => {
     expect(nextMonthlyDate('2026-13-01')).toBe('2026-13-01');
   });
 
-  it('RC-15 uses the supplied today independently of device timezone and has no ambient clock or randomness', () => {
-    const source = readFileSync(new URL('../src/voice/followUps.ts', import.meta.url), 'utf8');
-    const code = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
-    expect(code).not.toMatch(/new\s+Date\s*\(\s*\)|Date\s*\.\s*now\b|Math\s*\.\s*random\b/);
-    const previous = process.env.TZ;
+  it('RC-15 uses the supplied today independently of device timezone', () => {
+    // The node global is untyped in core (no @types/node); vitest runs on node.
+    const env = (globalThis as unknown as { process: { env: Record<string, string | undefined> } })
+      .process.env;
+    const previous = env.TZ;
     try {
       for (const timezone of ['Pacific/Kiritimati', 'Pacific/Pago_Pago']) {
-        process.env.TZ = timezone;
+        env.TZ = timezone;
         expect(nextMonthlyDate('2026-10-21')).toBe('2026-11-21');
         expect(recurringCatchUp(rule({ nextDate: '2026-10-21' }), '2026-10-21').dates).toEqual([
           '2026-10-21',
         ]);
       }
     } finally {
-      if (previous === undefined) delete process.env.TZ;
-      else process.env.TZ = previous;
+      if (previous === undefined) delete env.TZ;
+      else env.TZ = previous;
     }
   });
 

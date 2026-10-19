@@ -84,8 +84,8 @@ function makeDeps(
   const fetchMock = vi.fn(
     over.fetchImpl ??
       ((url: string) => {
-        if (url.includes('api.deepgram.com')) return deepgram('at Blue Tokai');
-        if (url.includes('api.anthropic.com'))
+        if (hostOf(url).endsWith('api.deepgram.com')) return deepgram('at Blue Tokai');
+        if (hostOf(url).endsWith('api.anthropic.com'))
           return claude({
             name: 'update_expense',
             input: { expenseId: fixtures.saved.personal.id, place: 'Blue Tokai' },
@@ -477,3 +477,7 @@ describe('tool validation and injection boundaries', () => {
     expect(keyterms(context, 1000).slice(-2)).toEqual(['rupees', 'split']);
   });
 });
+
+function hostOf(url: string): string {
+  return new URL(url).hostname;
+}

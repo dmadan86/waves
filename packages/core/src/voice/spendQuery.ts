@@ -270,15 +270,26 @@ export function parseSpendQuery(text: string, today: string): SpendQuery | null 
   }
   const query: SpendQuery = { metric, period, periodKey, assumedPeriod };
   // Capture clauses up to the next preposition; period words were removed above.
-  const clauses = /\b(on|at|from|in|for|with)\s+(.+?)(?=\s+\b(?:on|at|from|in|for|with)\b|$)/g;
-  let residual = t;
-  for (const match of t.matchAll(clauses)) {
-    const prep = match[1]!;
-    const value = match[2]!
+  // Walks words rather than using a lazy regex, which is polynomial on long input.
+  const words = t.split(/\s+/).filter(Boolean);
+  const isPrep = (w: string): boolean => CLAUSE_PREPS.has(w.replace(/[^\p{L}]/gu, ''));
+  const kept: string[] = [];
+  for (let i = 0; i < words.length;) {
+    const prep = words[i]!.replace(/[^\p{L}]/gu, '');
+    if (!isPrep(words[i]!) || i + 1 >= words.length || isPrep(words[i + 1]!)) {
+      kept.push(words[i]!);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < words.length && !isPrep(words[j]!)) j++;
+    const value = words
+      .slice(i + 1, j)
+      .join(' ')
       .replace(/\b(?:my|the)\b/g, '')
       .replace(/\bbudget(?: left| remaining)?\b/g, '')
       .trim();
-    residual = residual.replace(match[0], ' ');
+    i = j;
     if (!value) continue;
     if (prep === 'with') query.person = value;
     else if (prep === 'in' || prep === 'for') {
@@ -291,6 +302,7 @@ export function parseSpendQuery(text: string, today: string): SpendQuery | null 
       else query.merchant = value;
     }
   }
+  const residual = kept.join(' ');
   query.category ??= category(residual);
   if (!query.category && !query.merchant) {
     const raw = /\b(?:on|for)\s+([\p{L}\p{M}-]+)\b/u.exec(t);
@@ -300,6 +312,8 @@ export function parseSpendQuery(text: string, today: string): SpendQuery | null 
   }
   return query;
 }
+
+const CLAUSE_PREPS = new Set(['on', 'at', 'from', 'in', 'for', 'with']);
 
 const amount = (minor: bigint, currency: string): string =>
   format(money(minor, currency), { locale: 'en-IN' }).replace(/\.0+(?=\D*$)/, '');
