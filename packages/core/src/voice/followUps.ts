@@ -212,6 +212,8 @@ export interface FollowUpPrefs {
   readonly learned: Readonly<Record<string, Learned>>;
   /** Groups that already got the trip wrap-up question. */
   readonly wrapUpShown: readonly string[];
+  /** Keys this version does not know (written by a newer build) survive a round trip. */
+  readonly [extra: string]: unknown;
 }
 
 export const DEFAULT_PREFS: FollowUpPrefs = {
@@ -334,7 +336,7 @@ export function setEnabled(prefs: FollowUpPrefs, enabled: boolean): FollowUpPref
 
 /** "Reset muted": every type is asked again and what was learned is forgotten. */
 export function resetMuted(prefs: FollowUpPrefs): FollowUpPrefs {
-  return { ...DEFAULT_PREFS, enabled: prefs.enabled, wrapUpShown: prefs.wrapUpShown };
+  return { ...prefs, ...DEFAULT_PREFS, enabled: prefs.enabled, wrapUpShown: prefs.wrapUpShown };
 }
 
 /**
@@ -352,6 +354,8 @@ export function learningFor(
   if (seen.no >= 3 && seen.yes === 0) return { blocked: true, delta: -100 };
   return { blocked: false, delta: Math.max(-30, Math.min(12, seen.yes * 6 - seen.no * 8)) };
 }
+
+const PREF_KEYS: readonly string[] = ['enabled', 'muted', 'skips', 'learned', 'wrapUpShown'];
 
 /** Total: anything unreadable becomes the defaults, a bad field is dropped. */
 export function parsePrefs(raw: string | null | undefined): FollowUpPrefs {
@@ -392,7 +396,11 @@ export function parsePrefs(raw: string | null | undefined): FollowUpPrefs {
     const wrapUpShown = Array.isArray(value.wrapUpShown)
       ? value.wrapUpShown.filter((g): g is string => typeof g === 'string').slice(-100)
       : [];
-    return { enabled: value.enabled !== false, muted, skips, learned, wrapUpShown };
+    const extras: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (!PREF_KEYS.includes(k)) extras[k] = v;
+    }
+    return { ...extras, enabled: value.enabled !== false, muted, skips, learned, wrapUpShown };
   } catch {
     return DEFAULT_PREFS;
   }
@@ -437,7 +445,8 @@ export function detectOtherPayer(
   members: readonly GroupMemberFact[],
 ): GroupMemberFact | null {
   const text = description.toLowerCase();
-  if (!/\b(paid|pays|covered|treat|treated|treats|bought|picked up)\b/.test(text)) return null;
+  // "dinner by Anu" names a payer without a verb, so "by <name>" opens the gate too.
+  if (!/\b(paid|pays|covered|treat|treated|treats|bought|picked up|by)\b/.test(text)) return null;
   for (const member of members) {
     if (member.isMe) continue;
     const first = member.name.trim().split(/\s+/)[0]?.toLowerCase();
@@ -530,7 +539,12 @@ function escapeRegExp(value: string): string {
 function parseDay(iso: string): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return null;
-  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  // Date.UTC rolls 2026-13-01 into 2027; a date that does not exist is not a date.
+  if (mo < 1 || mo > 12 || d < 1 || d > new Date(Date.UTC(y, mo, 0)).getUTCDate()) return null;
+  return Date.UTC(y, mo - 1, d);
 }
 
 export function addDaysIso(iso: string, days: number): string {

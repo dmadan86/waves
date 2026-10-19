@@ -92,7 +92,17 @@ export function addToDate(date: string, cadence: Cadence, interval: number): str
  */
 export function stepOccurrence(rule: PersonalRecurring, date: string): string {
   if (rule.cadence !== 'semimonthly' || rule.secondDay === null) {
-    return addToDate(date, rule.cadence, rule.interval);
+    const next = addToDate(date, rule.cadence, rule.interval);
+    if (rule.cadence === 'weekly') return next;
+    // A rule anchored on the 31st that was clamped to the 28th last month goes
+    // back to the 31st when the month has one (31, 28, 31, 30, 31), not 28 forever.
+    const from = parseYmd(date);
+    const to = parseYmd(next);
+    const anchor = parseYmd(rule.anchorDate);
+    if (from && to && anchor && from.d < anchor.d && from.d === daysInMonth(from.y, from.m)) {
+      return fmtYmd(to.y, to.m, Math.min(anchor.d, daysInMonth(to.y, to.m)));
+    }
+    return next;
   }
   const p = parseYmd(date);
   const anchor = parseYmd(rule.anchorDate);
