@@ -223,6 +223,8 @@ export interface WebStrings {
     amountIn: string;
     notAnAmount: string;
     whoPaid: string;
+    /** The tick on the form: a tag for an expense the spender will claim back from work. */
+    workExpense: string;
     you: string;
     splitBetween: string;
     splitEquallyNote: string;
@@ -820,6 +822,8 @@ export interface WebStrings {
     confirmDelete: string;
     restore: string;
     deletedBadge: string;
+    /** The small tag on a work expense (to claim). */
+    workBadge: string;
     disputes: string;
     reasonPlaceholder: string;
     raiseDispute: string;
@@ -1482,6 +1486,7 @@ const en: WebStrings = {
     amountIn: 'Amount in {currency}',
     notAnAmount: 'That is not an amount.',
     whoPaid: 'Who paid',
+    workExpense: 'Work expense (to claim)',
     you: 'You',
     splitBetween: 'Split between',
     splitEquallyNote: 'Split equally. For exact shares or an itemised bill, use the app.',
@@ -1917,6 +1922,7 @@ const en: WebStrings = {
     confirmDelete: 'Tap again to delete',
     restore: 'Restore',
     deletedBadge: 'Deleted',
+    workBadge: 'Work',
     disputes: 'Disagreements',
     reasonPlaceholder: "What's wrong with it? (optional)",
     raiseDispute: 'Flag as wrong',
@@ -2529,6 +2535,7 @@ const ta: WebStrings = {
     amountIn: '{currency} இல் தொகை',
     notAnAmount: 'அது ஒரு தொகை அல்ல.',
     whoPaid: 'யார் கொடுத்தார்கள்',
+    workExpense: 'பணி செலவு (திரும்பப் பெற)',
     you: 'நீங்கள்',
     splitBetween: 'யாருக்கிடையே',
     splitEquallyNote:
@@ -2988,6 +2995,7 @@ const ta: WebStrings = {
     confirmDelete: 'நீக்க மீண்டும் தட்டவும்',
     restore: 'மீட்டமை',
     deletedBadge: 'நீக்கப்பட்டது',
+    workBadge: 'பணி',
     disputes: 'கருத்து வேறுபாடுகள்',
     reasonPlaceholder: 'என்ன தவறு? (விருப்பம்)',
     raiseDispute: 'தவறு எனக் குறி',
@@ -3614,6 +3622,7 @@ const hi: WebStrings = {
     amountIn: '{currency} में रकम',
     notAnAmount: 'यह रकम नहीं है।',
     whoPaid: 'किसने दिया',
+    workExpense: 'कार्य खर्च (दावा करना है)',
     you: 'आप',
     splitBetween: 'किनके बीच',
     splitEquallyNote: 'बराबर बाँटा गया। सटीक हिस्सों या चीज़-वार बिल के लिए ऐप इस्तेमाल करें।',
@@ -4051,6 +4060,7 @@ const hi: WebStrings = {
     confirmDelete: 'हटाने के लिए फिर से टैप करें',
     restore: 'बहाल करें',
     deletedBadge: 'हटाया गया',
+    workBadge: 'कार्य',
     disputes: 'असहमति',
     reasonPlaceholder: 'इसमें क्या ग़लत है? (वैकल्पिक)',
     raiseDispute: 'ग़लत बताएँ',
@@ -4673,6 +4683,7 @@ const ar: WebStrings = {
     amountIn: 'المبلغ بـ {currency}',
     notAnAmount: 'هذا ليس مبلغًا.',
     whoPaid: 'من دفع',
+    workExpense: 'مصروف عمل (للمطالبة به)',
     you: 'أنت',
     splitBetween: 'التقسيم بين',
     splitEquallyNote: 'قُسّم بالتساوي. للحصص المحددة أو فاتورة بالأصناف، استخدم التطبيق.',
@@ -5143,6 +5154,7 @@ const ar: WebStrings = {
     confirmDelete: 'اضغط مرة أخرى للحذف',
     restore: 'استعادة',
     deletedBadge: 'محذوف',
+    workBadge: 'عمل',
     disputes: 'اعتراضات',
     reasonPlaceholder: 'ما الخطأ فيه؟ (اختياري)',
     raiseDispute: 'وسمه كخطأ',

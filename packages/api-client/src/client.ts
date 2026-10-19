@@ -106,7 +106,7 @@ const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, category_meta, expense_date, currency, amount,
-    split_type, split_params, location, receipt_id, receipt_share_url, fx,
+    split_type, split_params, location, receipt_id, receipt_share_url, fx, reimbursable,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -1688,6 +1688,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           payers: input.payers,
           expectedShares: input.expectedShares,
           notes: input.notes ?? null,
+          reimbursable: input.reimbursable,
           paymentMethod: input.paymentMethod ?? null,
           categoryMeta: input.categoryMeta ?? null,
           location: input.location ?? null,
@@ -1720,6 +1721,8 @@ export interface WriteExpenseInput {
   payers: Record<string, bigint>;
   expectedShares?: Record<string, bigint>;
   notes?: string | null;
+  /** "Work expense (to claim)". Leave it out to keep what the expense has. */
+  reimbursable?: boolean | null;
   /** How the money moved: cash | upi | credit | debit | forex. */
   paymentMethod?: PaymentMethod | null;
   /** Denormalised custom-tag display (extends TDR §8); null for a built-in. */

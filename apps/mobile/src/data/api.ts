@@ -603,6 +603,8 @@ export interface WriteExpenseInput {
   notes?: string | null;
   /** "Paid to". Leave it out to keep what the expense already has; '' clears. */
   payee?: string | null;
+  /** "Work expense (to claim)". Leave it out to keep what the expense has. */
+  reimbursable?: boolean;
   /** How the money moved: cash | credit | debit | forex. Optional. */
   paymentMethod?: PaymentMethod | null;
   /** Denormalised custom-tag display (extends TDR §8); null for a built-in. */
@@ -660,6 +662,7 @@ export async function writeExpense(input: WriteExpenseInput): Promise<WriteExpen
       expectedShares: input.expectedShares,
       notes: input.notes ?? null,
       payee: input.payee,
+      reimbursable: input.reimbursable,
       paymentMethod: input.paymentMethod ?? null,
       categoryMeta: input.categoryMeta ?? null,
       location: input.location ?? null,
@@ -746,6 +749,8 @@ export interface ExpenseVersionAudit {
   notes: string | null;
   /** "Paid to"; null when unset. */
   payee: string | null;
+  /** "Work expense (to claim)". */
+  reimbursable: boolean;
   payment_method: string | null;
   /** Time of day, a UTC instant. Null on rows from before it was editable. */
   occurred_at: string | null;
@@ -768,7 +773,7 @@ export async function fetchExpenseVersions(expenseId: string): Promise<ExpenseVe
       .select(
         'id, version_no, description, amount, currency, created_at, author_member_id, split_type, ' +
           'category, category_meta, expense_date, location, ' +
-          'notes, payee, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
+          'notes, payee, reimbursable, payment_method, occurred_at, receipt_id, is_deposit, balance_due_minor, ' +
           'balance_due_date, sub_event_id, split_params, ' +
           'payers:expense_payers ( member_id, amount ), ' +
           'shares:expense_shares ( member_id, amount )',

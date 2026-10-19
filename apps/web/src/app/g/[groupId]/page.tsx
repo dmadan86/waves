@@ -572,7 +572,10 @@ function ExpenseRow({
     <Link className="item expense-row" href={`/g/${groupId}/expense/${expense.id}`}>
       <span className="grow">
         <span className="title">{version.description}</span>
-        <span className="meta">{total}</span>
+        <span className="meta">
+          {total}
+          {version.reimbursable ? ` · ${t.expense.workBadge}` : ''}
+        </span>
       </span>
       <span className="row-right">
         {stake !== null && stake !== 0n ? (

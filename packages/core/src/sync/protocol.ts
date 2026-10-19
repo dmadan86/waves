@@ -157,6 +157,9 @@ export interface ExpenseCreatePayload {
   /** "Paid to": who outside the group the money went to. Absent (an older
    *  build) keeps what the server already has; '' clears it. */
   readonly payee?: string | null;
+  /** "Work expense (to claim)". Absent (an older build) keeps what the server
+   *  already has; true/false replaces it. */
+  readonly reimbursable?: boolean | null;
 }
 
 /** The four ways an expense is paid for; optional everywhere it appears. */

@@ -85,12 +85,17 @@ describe('applyAnswer', () => {
     expect(applyAnswer(group(), { kind: 'payer', memberId: 'm2' }).payers).toEqual({ m2: 800000n });
     expect(applyAnswer(personal(), { kind: 'payer', memberId: 'm2' })).toEqual(personal());
   });
-  it('work tags the note once, per kind', () => {
+  it('work sets the real flag, on a personal entry and a group expense alike', () => {
     const p = applyAnswer(applyAnswer(personal(), { kind: 'work' }), { kind: 'work' });
     expect(p.reimbursable).toBe(true);
     expect(p.description).toBe('shoes');
     expect(decodeTxn('p1', toPersonalData(p)).reimbursable).toBe(true);
-    expect(applyAnswer(group(), { kind: 'work' }).notes).toBe('Work expense');
+    const g = applyAnswer(group(), { kind: 'work' });
+    expect(g.reimbursable).toBe(true);
+    // No more "Work expense" line in the notes.
+    expect(g.notes).toBeNull();
+    expect(toGroupWrite(write, g).reimbursable).toBe(true);
+    expect(toGroupWrite(write, group()).reimbursable).toBe(false);
   });
   it('a blank place changes nothing', () => {
     const s = personal();

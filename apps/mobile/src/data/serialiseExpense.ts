@@ -49,6 +49,8 @@ export function serialiseExpense(
     // Left out (undefined) when the caller does not know it, so an edit keeps
     // the payee the expense already has; '' clears it.
     payee: input.payee,
+    // Same: undefined keeps the stored flag, true/false replaces it.
+    reimbursable: input.reimbursable,
     paymentMethod: input.paymentMethod ?? null,
     categoryMeta: input.categoryMeta ?? null,
     location: input.location ?? null,

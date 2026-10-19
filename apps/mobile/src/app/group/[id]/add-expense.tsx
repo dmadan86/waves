@@ -87,6 +87,7 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { tripRateFor } from '@/lib/tripRates';
 import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
+import { useDeletePersonalRecord, usePersonalRecords } from '@/data/personal';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
@@ -145,6 +146,7 @@ import {
   releaseHeldReceipts,
 } from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
+import { moveAfterSave, rememberMove } from '@/lib/personalHandoff';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
@@ -216,6 +218,8 @@ interface ExpenseDraft {
   location?: ExpenseLocation | null;
   /** "Paid to". Optional: a draft from an older build has none. */
   payee?: string | null;
+  /** "Work expense (to claim)". Optional: a draft from an older build has none. */
+  reimbursable?: boolean;
 }
 
 /**
@@ -323,9 +327,13 @@ export default function AddExpenseScreen() {
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
+    movePersonal,
   } = useLocalSearchParams<{
     id: string;
     expenseId?: string;
+    /** A personal entry this expense replaces (split / move to trip): deleted
+     *  only once the save below succeeded, never before (decision D7). */
+    movePersonal?: string;
     captureId?: string;
     /** '1' when opened from the voice quick-add — seeds amount/description like a capture. */
     voice?: string;
@@ -392,6 +400,8 @@ export default function AddExpenseScreen() {
   const groupFxRates = useGroupFxRates(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
   const { mutate } = useSync();
+  const personalRecords = usePersonalRecords();
+  const removePersonal = useDeletePersonalRecord();
   const assignCapture = useAssignCapture();
   const guard = useGuestGuard();
 
@@ -513,6 +523,8 @@ export default function AddExpenseScreen() {
    */
   const [payee, setPayee] = useState<string | null>(null);
   const [pickingPayee, setPickingPayee] = useState(false);
+  /** "Work expense (to claim)": a tag on the expense, never part of the split. */
+  const [reimbursable, setReimbursable] = useState(false);
   /**
    * Names to bias the recogniser towards. "You" and "Someone" are placeholders
    * this screen prints, not things anybody says out loud, so they would only
@@ -838,6 +850,7 @@ export default function AddExpenseScreen() {
       setCategoryChosen(draft.categoryChosen ?? false);
       setLocation(draft.location ?? null);
       setPayee(draft.payee !== undefined ? draft.payee : (version?.payee ?? null));
+      setReimbursable(draft.reimbursable ?? version?.reimbursable === true);
     } else if (version) {
       // The saved version as an edit starts from it — the same seeding the
       // expense screen's pop-ups use (lib/expenseEdit), so the two write the same
@@ -872,6 +885,7 @@ export default function AddExpenseScreen() {
       setPaymentMethod(seeded.paymentMethod);
       setLocation(seeded.location);
       setPayee(seeded.payee);
+      setReimbursable(seeded.reimbursable);
       setSubEventId(seeded.subEventId);
       setIsDeposit(seeded.isDeposit);
       setBalanceDueMinor(seeded.balanceDueMinor);
@@ -1276,6 +1290,7 @@ export default function AddExpenseScreen() {
       categoryChosen,
       location,
       payee,
+      reimbursable,
     },
     { enabled: seededFor !== null && !draftsPaused },
   );
@@ -1391,40 +1406,61 @@ export default function AddExpenseScreen() {
       // through from the version being edited (the write nulls whatever it is
       // not given), `expectedShares` is seeded with this expense's id, and
       // `baseVersionNo` lets the server spot a concurrent edit (TDR §4.4).
-      await mutate(
-        expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
-        groupId,
-        expenseWritePayload({
-          expenseId: targetExpenseId,
-          state: {
-            amount,
-            description,
-            category,
-            categoryMeta,
-            // A chosen day wins outright. Untouched, a capture keeps the day it
-            // was caught, a saved expense keeps the day it has, and only a new
-            // one is today's (expenseDateFor).
-            expenseDate,
-            occurredAt,
-            currency,
-            fx,
-            splitKind,
-            participants,
-            weights,
-            percents,
-            exacts,
-            payers,
-            paymentMethod,
-            location,
-            payee,
-            subEventId: effectiveSubEventId,
-            isDeposit: effectiveIsDeposit,
-            balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
-            balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
-          },
-          editing: editing?.currentVersion,
-        }),
-      );
+      const writeExpense = (): Promise<unknown> =>
+        mutate(
+          expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
+          groupId,
+          expenseWritePayload({
+            expenseId: targetExpenseId,
+            state: {
+              amount,
+              description,
+              category,
+              categoryMeta,
+              // A chosen day wins outright. Untouched, a capture keeps the day it
+              // was caught, a saved expense keeps the day it has, and only a new
+              // one is today's (expenseDateFor).
+              expenseDate,
+              occurredAt,
+              currency,
+              fx,
+              splitKind,
+              participants,
+              weights,
+              percents,
+              exacts,
+              payers,
+              paymentMethod,
+              location,
+              payee,
+              reimbursable,
+              subEventId: effectiveSubEventId,
+              isDeposit: effectiveIsDeposit,
+              balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
+              balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
+            },
+            editing: editing?.currentVersion,
+          }),
+        );
+      const movedFrom = !expenseId && movePersonal ? movePersonal : null;
+      if (movedFrom) {
+        // Split / move to trip: the personal entry goes only after the group
+        // save succeeded; a failed save throws before the delete is reached.
+        const record = personalRecords.find((r) => r.id === movedFrom);
+        const result = await moveAfterSave(writeExpense, () =>
+          removePersonal.mutateAsync(movedFrom),
+        );
+        if (record && result.removed) {
+          rememberMove({
+            personalId: movedFrom,
+            data: record.data,
+            groupId,
+            expenseId: targetExpenseId,
+          });
+        }
+      } else {
+        await writeExpense();
+      }
       // Paying a vendor's balance: the advance it settles is rewritten with its
       // balance cleared (a new version of that expense, via the ordinary edit
       // path), so the Vendors tab shows the vendor as paid off.
@@ -2447,6 +2483,17 @@ export default function AddExpenseScreen() {
                 value={payee ?? t.expense.payee.add}
                 placeholder={!payee}
                 onPress={() => setPickingPayee(true)}
+              />
+
+              {/* A tag, not a split: the spender will claim this back from work. */}
+              <DetailRow
+                icon="briefcase-outline"
+                tint={theme.tint.sky}
+                dense
+                label={t.expense.reimbursable.row}
+                value={reimbursable ? t.expense.reimbursable.yes : t.expense.reimbursable.no}
+                placeholder={!reimbursable}
+                onPress={() => setReimbursable((on) => !on)}
               />
 
               {/* What it was paid in, as a named row rather than only as the

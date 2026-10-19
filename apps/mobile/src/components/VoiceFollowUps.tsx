@@ -354,6 +354,7 @@ export function VoiceFollowUps({
       paidByMemberId: paidBy,
       split: split ? { mode: 'equal', shares: split } : null,
     }),
+    ...(saved.kind === 'personal' ? { movePersonal: saved.id } : {}),
     quick: '1',
   });
 

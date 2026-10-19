@@ -199,6 +199,9 @@ export interface ExpenseVersionRow {
   /** "Paid to": who outside the group the money went to; null when unset.
    *  Optional because a row mirrored before it existed does not carry it. */
   payee?: string | null;
+  /** "Work expense (to claim)". Optional because a row mirrored before it
+   *  existed does not carry it (read as false). */
+  reimbursable?: boolean;
 }
 
 export interface ExpenseRow {

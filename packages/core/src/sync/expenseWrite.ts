@@ -132,6 +132,9 @@ export interface ExpenseWriteBodyInput {
   /** "Paid to": who outside the group the money went to (a landlord, a
    *  rental firm). Null/absent keeps what the server already has; '' clears. */
   readonly payee?: string | null;
+  /** "Work expense (to claim)". Null/absent keeps what the server already has;
+   *  true/false replaces it. */
+  readonly reimbursable?: boolean | null;
   /** Idempotency key: a retry after a flaky network must not double-post. */
   readonly clientMutationId: string;
 }
@@ -163,6 +166,7 @@ export interface ExpenseWriteBody {
   readonly balanceDueDate: string | null;
   readonly occurredAt: string | null;
   readonly payee: string | null;
+  readonly reimbursable: boolean | null;
   readonly clientMutationId: string;
 }
 
@@ -205,6 +209,7 @@ export function buildExpenseWriteBody(input: ExpenseWriteBodyInput): ExpenseWrit
     balanceDueDate: input.balanceDueDate ?? null,
     occurredAt: input.occurredAt ?? null,
     payee: input.payee ?? null,
+    reimbursable: input.reimbursable ?? null,
     clientMutationId: input.clientMutationId,
   };
 }
@@ -258,6 +263,8 @@ export interface ApplyExpenseArgsInput {
   /** "Paid to": who outside the group the money went to (a landlord, a
    *  rental firm). Null/absent keeps what the server already has; '' clears. */
   readonly payee?: string | null;
+  /** "Work expense (to claim)". Null/absent keeps what the server already has. */
+  readonly reimbursable?: boolean | null;
 }
 
 /** The named arguments passed to `waves_apply_expense`. `p_source` is left to
@@ -290,6 +297,7 @@ export interface ApplyExpenseRpcArgs {
   readonly p_balance_due_date: string | null;
   readonly p_occurred_at: string | null;
   readonly p_payee: string | null;
+  readonly p_reimbursable: boolean | null;
 }
 
 /** A client-supplied time of day as a canonical UTC ISO instant, or null when
@@ -338,5 +346,6 @@ export function buildApplyExpenseArgs(input: ApplyExpenseArgsInput): ApplyExpens
     p_balance_due_date: input.balanceDueDate ?? null,
     p_occurred_at: normaliseOccurredAt(input.occurredAt),
     p_payee: payeeArgument(input.payee),
+    p_reimbursable: input.reimbursable ?? null,
   };
 }

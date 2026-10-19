@@ -3559,6 +3559,8 @@ export interface UiStrings {
       splitDetails: string;
       /** "Paid to" — who outside the group the money went to. */
       payee: string;
+      /** The work / reimbursable tag switched on or off. */
+      reimbursable: string;
     };
     /**
      * "Paid to": who outside the group the money went to (a landlord, a rental
@@ -3576,6 +3578,15 @@ export interface UiStrings {
       used: string;
       /** The tail of a ledger row's subtitle: "You paid ₹1,000 · to {payee}". */
       to: string;
+    };
+    /** "Work expense (to claim)": a tag on a group expense the spender will claim back. */
+    reimbursable: {
+      /** The row on the add / edit form and the expense detail. */
+      row: string;
+      /** The small chip on a ledger row. */
+      chip: string;
+      yes: string;
+      no: string;
     };
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
@@ -8184,6 +8195,7 @@ const en: UiStrings = {
       subEvent: 'Event part',
       splitDetails: 'Split details updated',
       payee: 'Paid to',
+      reimbursable: 'Work expense',
     },
     payee: {
       label: 'Paid to',
@@ -8193,6 +8205,12 @@ const en: UiStrings = {
       clear: 'Clear',
       used: 'Used before',
       to: 'to {payee}',
+    },
+    reimbursable: {
+      row: 'Work expense (to claim)',
+      chip: 'Work',
+      yes: 'Yes',
+      no: 'No',
     },
   },
   misc: {
@@ -12831,6 +12849,7 @@ const ta: UiStrings = {
       subEvent: 'நிகழ்வின் பகுதி',
       splitDetails: 'பிரிப்பு விவரங்கள் புதுப்பிக்கப்பட்டன',
       payee: 'பணம் பெற்றவர்',
+      reimbursable: 'பணி செலவு',
     },
     payee: {
       label: 'பணம் பெற்றவர்',
@@ -12840,6 +12859,12 @@ const ta: UiStrings = {
       clear: 'அழி',
       used: 'முன்பு பயன்படுத்தியவை',
       to: '{payee}-க்கு',
+    },
+    reimbursable: {
+      row: 'பணி செலவு (திரும்பப் பெற)',
+      chip: 'பணி',
+      yes: 'ஆம்',
+      no: 'இல்லை',
     },
   },
   misc: {
@@ -17488,6 +17513,7 @@ const hi: UiStrings = {
       subEvent: 'आयोजन का हिस्सा',
       splitDetails: 'बँटवारे का विवरण अपडेट हुआ',
       payee: 'किसको भुगतान',
+      reimbursable: 'कार्य खर्च',
     },
     payee: {
       label: 'किसको भुगतान',
@@ -17497,6 +17523,12 @@ const hi: UiStrings = {
       clear: 'हटाएँ',
       used: 'पहले इस्तेमाल किए',
       to: '{payee} को',
+    },
+    reimbursable: {
+      row: 'कार्य खर्च (दावा करना है)',
+      chip: 'कार्य',
+      yes: 'हाँ',
+      no: 'नहीं',
     },
   },
   misc: {
@@ -22320,6 +22352,7 @@ const ar: UiStrings = {
       subEvent: 'جزء من الفعالية',
       splitDetails: 'تم تحديث تفاصيل التقسيم',
       payee: 'المدفوع له',
+      reimbursable: 'مصروف عمل',
     },
     payee: {
       label: 'المدفوع له',
@@ -22329,6 +22362,12 @@ const ar: UiStrings = {
       clear: 'مسح',
       used: 'مستخدم من قبل',
       to: 'إلى {payee}',
+    },
+    reimbursable: {
+      row: 'مصروف عمل (للمطالبة به)',
+      chip: 'عمل',
+      yes: 'نعم',
+      no: 'لا',
     },
   },
   misc: {

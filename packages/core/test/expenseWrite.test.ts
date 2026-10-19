@@ -52,6 +52,7 @@ const APPLY_EXPENSE_KEYS = [
   'p_balance_due_date',
   'p_occurred_at',
   'p_payee',
+  'p_reimbursable',
 ].sort();
 
 /** A representative custom-tag snapshot reused across the cases. */
@@ -158,6 +159,7 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     expect(args.p_occurred_at).toBeNull();
     // Not sent is null, so the server carries the old payee forward.
     expect(args.p_payee).toBeNull();
+    expect(args.p_reimbursable).toBeNull();
   });
 
   it('carries a vendor deposit through: sub-event, the flag and the balance due (event-organizer.md)', () => {
@@ -188,6 +190,13 @@ describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
     );
     expect(buildApplyExpenseArgs(baseArgs({ payee: '' })).p_payee).toBe('');
     expect(buildApplyExpenseArgs(baseArgs({ payee: null })).p_payee).toBeNull();
+  });
+
+  it('passes the work tag as a real boolean, and keeps false apart from "not sent"', () => {
+    expect(buildApplyExpenseArgs(baseArgs({ reimbursable: true })).p_reimbursable).toBe(true);
+    expect(buildApplyExpenseArgs(baseArgs({ reimbursable: false })).p_reimbursable).toBe(false);
+    expect(buildApplyExpenseArgs(baseArgs({ reimbursable: null })).p_reimbursable).toBeNull();
+    expect(buildApplyExpenseArgs(baseArgs()).p_reimbursable).toBeNull();
   });
 });
 
@@ -237,6 +246,7 @@ describe('buildExpenseWriteBody — the client → edge contract', () => {
     expect(body.balanceDueDate).toBeNull();
     expect(body.occurredAt).toBeNull();
     expect(body.payee).toBeNull();
+    expect(body.reimbursable).toBeNull();
   });
 
   it('carries the vendor-deposit fields and stringifies the balance (event-organizer.md)', () => {

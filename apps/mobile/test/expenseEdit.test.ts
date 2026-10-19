@@ -113,6 +113,7 @@ function editorPayloadBeforeExtraction(
     expenseDate: state.expenseDate,
     occurredAt: state.occurredAt,
     payee: state.payee ?? '',
+    reimbursable: state.reimbursable,
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,
@@ -143,6 +144,23 @@ describe('occurredAt', () => {
     expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).occurredAt).toBe(
       '2026-09-01T14:30:00.000Z',
     );
+  });
+});
+
+describe('reimbursable ("Work expense (to claim)")', () => {
+  it('is carried from the saved version into the write', () => {
+    const saved = { ...version(), reimbursable: true };
+    const state = editStateFromVersion(saved, 'm-z');
+    expect(state.reimbursable).toBe(true);
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).reimbursable).toBe(true);
+  });
+
+  it('is always sent, as false when off, so switching it off reaches the server', () => {
+    const saved = { ...version(), reimbursable: true };
+    const state = { ...editStateFromVersion(saved, 'm-z'), reimbursable: false };
+    expect(expenseWritePayload({ expenseId: 'e', state, editing: saved }).reimbursable).toBe(false);
+    // A version mirrored before the column existed opens as not reimbursable.
+    expect(editStateFromVersion(version(), 'm-z').reimbursable).toBe(false);
   });
 });
 

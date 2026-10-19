@@ -511,6 +511,8 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                   paidLineWithRate,
                   // "Paid to", only when set: "You paid ₹1,000 · to Car rental".
                   version?.payee ? fill(t.expense.payee.to, { payee: version.payee }) : null,
+                  // The work tag, only when set: "You paid ₹500 · Work".
+                  version?.reimbursable ? t.expense.reimbursable.chip : null,
                   expense.deleted_at ? t.expense.deleted : null,
                   (version?.version_no ?? 1) > 1
                     ? plural(locale, version!.version_no - 1, t.expense.editedTimes)
