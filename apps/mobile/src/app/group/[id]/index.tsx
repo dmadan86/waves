@@ -74,7 +74,10 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
-import { useMarkGroupSeen } from '@/lib/useGroupUnread';
+import { useGroupBaseline, useMarkGroupSeen } from '@/lib/useGroupUnread';
+import { newMarksSince, type NewKind } from '@/lib/groupNew';
+import { NewDot, NewPill, newTint } from '@/components/NewMark';
+import { UNREAD_GREEN } from '@/components/UnreadDot';
 import { canRemindFromBalanceRow } from '@/lib/balanceRowActions';
 import { leftWithBalance } from '@/lib/settleRow';
 import { router } from '@/lib/navigation';
@@ -303,6 +306,8 @@ type FeedItem =
       readonly kind: 'expense';
       readonly key: string;
       readonly expense: ExpenseRow;
+      /** Added or edited by someone else since the reader last opened the group. */
+      readonly mark: NewKind | null;
       readonly isFirst: boolean;
       readonly isLast: boolean;
     }
@@ -331,6 +336,7 @@ type FeedItem =
  */
 const ExpenseFeedRow = memo(function ExpenseFeedRow({
   expense,
+  mark,
   isFirst,
   isLast,
   myMemberId,
@@ -343,6 +349,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   nameOf,
 }: {
   expense: ExpenseRow;
+  mark: NewKind | null;
   isFirst: boolean;
   isLast: boolean;
   myMemberId: MemberId | null;
@@ -455,6 +462,11 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
       : null;
   const rowLabel = [
     title,
+    mark === 'new'
+      ? t.expense.fresh.newA11y
+      : mark === 'edited'
+        ? t.expense.fresh.editedA11y
+        : null,
     version ? directionLabel : null,
     stakeHere ? formatParts(stakeHere, { locale }).text : null,
     amountA11y,
@@ -473,10 +485,14 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
           : '#2563EB'
         : theme.color.negative;
   return (
-    <CardRow isFirst={isFirst} isLast={isLast} theme={theme}>
+    <CardRow isFirst={isFirst} isLast={isLast} theme={theme} tint={mark !== null}>
       <Row style={{ alignItems: 'center' }}>
         <Pressable
-          onPress={() => router.push(`/group/${groupId}/expense/${expense.id}`)}
+          onPress={() =>
+            router.push(
+              `/group/${groupId}/expense/${expense.id}${mark ? `?${mark === 'new' ? 'new' : 'edited'}=1` : ''}`,
+            )
+          }
           accessibilityRole="button"
           accessibilityLabel={rowLabel}
           style={({ pressed }) => ({
@@ -503,9 +519,18 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                 or payer name ellipsize here rather than shoving the amount and
                 date off the row. */}
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={{ fontSize: 15, lineHeight: 20, fontWeight: '700' }}>
-                {title}
-              </Text>
+              <Row style={{ alignItems: 'center', gap: 6 }}>
+                {mark ? <NewDot /> : null}
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', flexShrink: 1 }}
+                >
+                  {title}
+                </Text>
+                {mark ? (
+                  <NewPill label={mark === 'new' ? t.expense.fresh.new : t.expense.fresh.edited} />
+                ) : null}
+              </Row>
               <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 12 }}>
                 {[
                   paidLineWithRate,
@@ -621,11 +646,14 @@ function CardRow({
   isFirst,
   isLast,
   theme,
+  tint = false,
   children,
 }: {
   isFirst: boolean;
   isLast: boolean;
   theme: ReturnType<typeof useTheme>;
+  /** A faint green wash: the row is news to the reader. */
+  tint?: boolean;
   children: React.ReactNode;
 }) {
   const radius = theme.radius.lg;
@@ -647,6 +675,19 @@ function CardRow({
         overflow: 'hidden',
       }}
     >
+      {tint ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: newTint(theme.scheme),
+          }}
+        />
+      ) : null}
       {children}
     </View>
   );
@@ -693,6 +734,9 @@ export default function GroupScreen() {
   // Opening the group reads its news: the unread dot on its Home and Groups
   // rows goes out (and stays out for what lands while it is open).
   useMarkGroupSeen(groupId || null);
+  // When the reader last opened this group, as it stood before this visit marked
+  // it seen: what "new" is measured from, held for the whole visit.
+  const lastSeenAt = useGroupBaseline(groupId || null);
   const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
   const [menuOpen, setMenuOpen] = useState(false);
   // The Expenses tab's filters: who paid, which month, and a text search.
@@ -714,7 +758,7 @@ export default function GroupScreen() {
   // ambient offline / syncing states are the header glyph's job now (below).
   const { queue, rejected } = useSync();
 
-  const { group, members, everyone, expenses, settlements } = useGroup(groupId);
+  const { group, members, everyone, expenses, settlements, activity } = useGroup(groupId);
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
   const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
@@ -849,6 +893,14 @@ export default function GroupScreen() {
   // The month sections flattened into one recyclable list: a heading item per
   // month, then its expense rows. FlashList mounts only what is on screen, so a
   // group with a thousand bills opens as fast as one with ten.
+  // Expenses someone else added or edited since the last visit (never the
+  // reader's own), by expense id.
+  const newMarks = useMemo(() => {
+    const mine = new Set(
+      (everyone.data ?? []).filter((m) => isViewer(m, viewerId)).map((m) => String(m.id)),
+    );
+    return newMarksSince(activity.data ?? [], (id) => mine.has(id), lastSeenAt);
+  }, [activity.data, everyone.data, viewerId, lastSeenAt]);
   const feedItems: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
     for (const section of expenseSections) {
@@ -860,13 +912,40 @@ export default function GroupScreen() {
           kind: 'expense',
           key: expense.id,
           expense,
+          mark: newMarks.get(expense.id)?.kind ?? null,
           isFirst: index === 0,
           isLast: index === section.rows.length - 1,
         }),
       );
     }
     return items;
-  }, [expenseSections]);
+  }, [expenseSections, newMarks]);
+  // The "N new" pill: how many marked rows the feed holds, where the first
+  // one is, and which rows are on screen — so it shows only while that first
+  // one is out of sight, and tapping it scrolls there.
+  const firstNewIndex = useMemo(
+    () => feedItems.findIndex((item) => item.kind === 'expense' && item.mark !== null),
+    [feedItems],
+  );
+  const newCount = useMemo(
+    () => feedItems.filter((item) => item.kind === 'expense' && item.mark !== null).length,
+    [feedItems],
+  );
+  const [viewable, setViewable] = useState<{ first: number; last: number } | null>(null);
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: readonly { index: number | null }[] }) => {
+      const indexes = viewableItems.map((v) => v.index).filter((i): i is number => i !== null);
+      setViewable(
+        indexes.length ? { first: Math.min(...indexes), last: Math.max(...indexes) } : null,
+      );
+    },
+    [],
+  );
+  const showNewPill =
+    tab === Tab.Expenses &&
+    firstNewIndex >= 0 &&
+    viewable !== null &&
+    (firstNewIndex < viewable.first || firstNewIndex > viewable.last);
   // The Balances and Activity tabs ride the same virtualized list as Expenses,
   // one FeedItem per row, so switching to them renders only the handful of rows
   // on screen — not every member and every activity entry at once, which is what
@@ -1108,6 +1187,7 @@ export default function GroupScreen() {
       return (
         <ExpenseFeedRow
           expense={item.expense}
+          mark={item.mark}
           isFirst={item.isFirst}
           isLast={item.isLast}
           myMemberId={ledger.myMemberId}
@@ -1494,298 +1574,334 @@ export default function GroupScreen() {
         ) : !settled ? (
           <View style={{ flex: 1 }} />
         ) : (
-          <FlashList
-            ref={listRef}
-            // Bounce stays on: on iOS it is what pull-to-refresh pulls.
-            bounces
-            overScrollMode={emptyExpenses ? 'never' : 'auto'}
-            data={listData}
-            // Not the tab: switching tabs already hands `data` a different array,
-            // and naming it here only made every mounted cell re-render a second
-            // time for the same switch.
-            //
-            // A Balances row's destination is not in its `data` item — it comes
-            // from who you are in this group and from the ghost merges on the
-            // phone — so those go in here too, or a recycled row keeps whatever
-            // tappability it was drawn with. `myMemberId` arrives a beat after
-            // the members do, and a merge that syncs in mid-scroll only ever adds
-            // a row, so its size is enough to notice one landing.
-            extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
-            keyExtractor={(item) => item.key}
-            getItemType={(item) => item.kind}
-            renderItem={renderFeedItem}
-            // Belt-and-suspenders on top of the allocation-light, memoized row:
-            // render well beyond the viewport so a fast fling down a long ledger
-            // never outruns recycling and flashes blank rows (default is 250px,
-            // which a hard fling clears in a frame). ~2500px ≈ three dozen rows
-            // ahead — cheap now that each row barely costs anything to draw, and
-            // 1500 was still being outrun by a hard fling on a long ledger.
-            drawDistance={2500}
-            contentContainerStyle={{
-              // The same side margin as Home's group list and this screen's tabs.
-              paddingHorizontal: theme.spacing.lg,
-              paddingBottom: clearance,
-            }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={pull.refreshing}
-                onRefresh={pull.onRefresh}
-                tintColor={theme.color.brand}
-              />
-            }
-            ListHeaderComponent={
-              // Alerts, shared receipts and pending settlements — everything that
-              // is about the group rather than about one tab. It scrolls under the
-              // pinned tab bar. The stack used to open on 20pt of top margin plus a
-              // 20pt gap plus each card's own padding, which pushed the first
-              // expense most of a thumb below the tabs on a screen where nothing
-              // was wrong. Now it follows the screen standard: the first card sits
-              // `lg` under the tabs, cards are separate sections `xl` apart, and
-              // the list starts `xl` below the last one. With no cards the header
-              // takes no room at all and the rows start `lg` under the tabs.
-              <View
-                style={{
-                  // The balances heading is a header item too, but sits close
-                  // above its rows rather than a whole section away.
-                  marginBottom: hasHeaderCards
-                    ? theme.spacing.xl
-                    : tab === Tab.Balances
-                      ? theme.spacing.sm
-                      : 0,
-                }}
-              >
-                <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
-                  <ImportProgressBanner groupId={groupId} />
-                  {/* The demo trip says what it is before anything else on the
+          <>
+            <FlashList
+              ref={listRef}
+              // Bounce stays on: on iOS it is what pull-to-refresh pulls.
+              bounces
+              overScrollMode={emptyExpenses ? 'never' : 'auto'}
+              data={listData}
+              // Not the tab: switching tabs already hands `data` a different array,
+              // and naming it here only made every mounted cell re-render a second
+              // time for the same switch.
+              //
+              // A Balances row's destination is not in its `data` item — it comes
+              // from who you are in this group and from the ghost merges on the
+              // phone — so those go in here too, or a recycled row keeps whatever
+              // tappability it was drawn with. `myMemberId` arrives a beat after
+              // the members do, and a merge that syncs in mid-scroll only ever adds
+              // a row, so its size is enough to notice one landing.
+              extraData={`${locale}|${ledger.myMemberId ?? ''}|${mergePersonIds.size}|${theme.scheme}`}
+              keyExtractor={(item) => item.key}
+              onViewableItemsChanged={onViewableItemsChanged}
+              getItemType={(item) => item.kind}
+              renderItem={renderFeedItem}
+              // Belt-and-suspenders on top of the allocation-light, memoized row:
+              // render well beyond the viewport so a fast fling down a long ledger
+              // never outruns recycling and flashes blank rows (default is 250px,
+              // which a hard fling clears in a frame). ~2500px ≈ three dozen rows
+              // ahead — cheap now that each row barely costs anything to draw, and
+              // 1500 was still being outrun by a hard fling on a long ledger.
+              drawDistance={2500}
+              contentContainerStyle={{
+                // The same side margin as Home's group list and this screen's tabs.
+                paddingHorizontal: theme.spacing.lg,
+                paddingBottom: clearance,
+              }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={pull.refreshing}
+                  onRefresh={pull.onRefresh}
+                  tintColor={theme.color.brand}
+                />
+              }
+              ListHeaderComponent={
+                // Alerts, shared receipts and pending settlements — everything that
+                // is about the group rather than about one tab. It scrolls under the
+                // pinned tab bar. The stack used to open on 20pt of top margin plus a
+                // 20pt gap plus each card's own padding, which pushed the first
+                // expense most of a thumb below the tabs on a screen where nothing
+                // was wrong. Now it follows the screen standard: the first card sits
+                // `lg` under the tabs, cards are separate sections `xl` apart, and
+                // the list starts `xl` below the last one. With no cards the header
+                // takes no room at all and the rows start `lg` under the tabs.
+                <View
+                  style={{
+                    // The balances heading is a header item too, but sits close
+                    // above its rows rather than a whole section away.
+                    marginBottom: hasHeaderCards
+                      ? theme.spacing.xl
+                      : tab === Tab.Balances
+                        ? theme.spacing.sm
+                        : 0,
+                  }}
+                >
+                  <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                    <ImportProgressBanner groupId={groupId} />
+                    {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
-                  {groupData.isDemo ? (
-                    <Card
-                      style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}
-                    >
-                      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                        <Ionicons
-                          name="flask-outline"
-                          size={iconSize.md}
-                          color={theme.color.textMuted}
-                        />
-                        <Text variant="subheading" style={{ flex: 1 }}>
-                          {t.demo.bannerTitle}
-                        </Text>
-                      </Row>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t.demo.removeAction}
-                        hitSlop={8}
-                        onPress={() =>
-                          void removeDemo().then((removed) => {
-                            if (removed) router.replace('/');
-                          })
-                        }
-                        style={({ pressed }) => ({
-                          alignSelf: 'flex-start',
-                          minHeight: 44,
-                          justifyContent: 'center',
-                          opacity: pressed ? 0.6 : 1,
-                        })}
+                    {groupData.isDemo ? (
+                      <Card
+                        style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}
                       >
-                        <Text variant="caption" tone="negative" style={{ fontWeight: '600' }}>
-                          {t.demo.removeAction}
-                        </Text>
-                      </Pressable>
-                    </Card>
-                  ) : null}
+                        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                          <Ionicons
+                            name="flask-outline"
+                            size={iconSize.md}
+                            color={theme.color.textMuted}
+                          />
+                          <Text variant="subheading" style={{ flex: 1 }}>
+                            {t.demo.bannerTitle}
+                          </Text>
+                        </Row>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t.demo.removeAction}
+                          hitSlop={8}
+                          onPress={() =>
+                            void removeDemo().then((removed) => {
+                              if (removed) router.replace('/');
+                            })
+                          }
+                          style={({ pressed }) => ({
+                            alignSelf: 'flex-start',
+                            minHeight: 44,
+                            justifyContent: 'center',
+                            opacity: pressed ? 0.6 : 1,
+                          })}
+                        >
+                          <Text variant="caption" tone="negative" style={{ fontWeight: '600' }}>
+                            {t.demo.removeAction}
+                          </Text>
+                        </Pressable>
+                      </Card>
+                    ) : null}
 
-                  {/* Only the banners that need a decision survive inline — they
+                    {/* Only the banners that need a decision survive inline — they
               carry the retry / discard buttons the header glyph cannot. Offline,
               queued and in-flight now read from the glyph in the header,
               matching the dashboard. */}
-                  {stalledHere ? <SyncBanner groupId={groupId} /> : null}
+                    {stalledHere ? <SyncBanner groupId={groupId} /> : null}
 
-                  {/* Drafts kept for this group — money caught but not an expense
+                    {/* Drafts kept for this group — money caught but not an expense
               yet, usually waiting on a rate. Above everything else on purpose:
               the only thing a draft needs is somebody to come back and finish
               it, and nobody comes back to a row below a month of expenses. */}
-                  <GroupDrafts groupId={groupId} captures={groupDrafts} />
+                    <GroupDrafts groupId={groupId} captures={groupDrafts} />
 
-                  {/* The balance cross-check (ADR-004) used to raise a red card
+                    {/* The balance cross-check (ADR-004) used to raise a red card
             here. It no longer says anything: the ledger below is the source of
             truth, the disagreement was always this device holding a stale
             snapshot of the server's copy, and there was nothing the reader
             could do about it but doubt their own money. `useGroupLedger` now
             refetches and reports it to us instead. */}
 
-                  {/* The one-time nudge to plan a fresh trip. Dates and budget were
+                    {/* The one-time nudge to plan a fresh trip. Dates and budget were
             moved off the create screen to keep it short; this is where a trip
             gets offered them, once, on its own group. Later dismisses it for
             this visit; the param is gone next time regardless. */}
-                  {showTripNudge ? (
-                    <Card style={{ gap: theme.spacing.md }}>
-                      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                        <Ionicons name="airplane" size={iconSize.md} color={theme.color.brand} />
-                        <Text variant="subheading" style={{ flex: 1 }}>
-                          {t.extras.tripWelcomeTitle}
-                        </Text>
-                      </Row>
-                      <Text variant="caption" tone="muted">
-                        {t.extras.tripWelcomeBody}
-                      </Text>
-                      <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                        <Button
-                          label={t.extras.tripWelcomeAddDates}
-                          size="sm"
-                          onPress={() => router.push(`/group/${groupId}/settings`)}
-                        />
-                        {PLAN_HIDDEN ? null : (
-                          <Button
-                            label={t.extras.tripWelcomeSetBudget}
-                            size="sm"
-                            variant="secondary"
-                            onPress={() => router.push(`/group/${groupId}/plan`)}
-                          />
-                        )}
-                        <Button
-                          label={t.extras.tripWelcomeLater}
-                          size="sm"
-                          variant="ghost"
-                          onPress={() => setTripNudgeDismissed(true)}
-                        />
-                      </Row>
-                    </Card>
-                  ) : null}
-
-                  {/* A bill somebody at this table scanned and shared. Without this the
-            second person has no way to reach it, and the claims CRDT is
-            plumbing with no tap. */}
-                  {(openReceipts.data ?? []).map((receipt) => (
-                    <Pressable
-                      key={receipt.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={fill(t.expense.splitBillA11y, {
-                        merchant: receipt.parsed?.merchant ?? t.expense.aBill,
-                      })}
-                      onPress={() => router.push(`/group/${groupId}/itemize?receipt=${receipt.id}`)}
-                    >
-                      <Card style={{ gap: theme.spacing.sm }}>
-                        <Row style={{ gap: theme.spacing.sm }}>
-                          <Ionicons
-                            name="receipt-outline"
-                            size={iconSize.md}
-                            color={theme.color.brand}
-                          />
-                          <Text variant="subheading" style={{ flex: 1 }} numberOfLines={1}>
-                            {receipt.parsed?.merchant ?? t.expense.aBill}
+                    {showTripNudge ? (
+                      <Card style={{ gap: theme.spacing.md }}>
+                        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+                          <Ionicons name="airplane" size={iconSize.md} color={theme.color.brand} />
+                          <Text variant="subheading" style={{ flex: 1 }}>
+                            {t.extras.tripWelcomeTitle}
                           </Text>
-                          <Ionicons
-                            name={directionalIcon('chevron-forward')}
-                            size={iconSize.md}
-                            color={theme.color.textFaint}
-                          />
                         </Row>
                         <Text variant="caption" tone="muted">
-                          {receipt.claimed === 0
-                            ? plural(locale, receipt.items, t.expense.receiptClaimedNone)
-                            : fill(t.expense.receiptClaimedSome, {
-                                claimed: receipt.claimed,
-                                items: receipt.items,
-                              })}
+                          {t.extras.tripWelcomeBody}
                         </Text>
+                        <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+                          <Button
+                            label={t.extras.tripWelcomeAddDates}
+                            size="sm"
+                            onPress={() => router.push(`/group/${groupId}/settings`)}
+                          />
+                          {PLAN_HIDDEN ? null : (
+                            <Button
+                              label={t.extras.tripWelcomeSetBudget}
+                              size="sm"
+                              variant="secondary"
+                              onPress={() => router.push(`/group/${groupId}/plan`)}
+                            />
+                          )}
+                          <Button
+                            label={t.extras.tripWelcomeLater}
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => setTripNudgeDismissed(true)}
+                          />
+                        </Row>
                       </Card>
-                    </Pressable>
-                  ))}
+                    ) : null}
 
-                  {/* The "they paid you" claims now ride the hero deck above as
+                    {/* A bill somebody at this table scanned and shared. Without this the
+            second person has no way to reach it, and the claims CRDT is
+            plumbing with no tap. */}
+                    {(openReceipts.data ?? []).map((receipt) => (
+                      <Pressable
+                        key={receipt.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={fill(t.expense.splitBillA11y, {
+                          merchant: receipt.parsed?.merchant ?? t.expense.aBill,
+                        })}
+                        onPress={() =>
+                          router.push(`/group/${groupId}/itemize?receipt=${receipt.id}`)
+                        }
+                      >
+                        <Card style={{ gap: theme.spacing.sm }}>
+                          <Row style={{ gap: theme.spacing.sm }}>
+                            <Ionicons
+                              name="receipt-outline"
+                              size={iconSize.md}
+                              color={theme.color.brand}
+                            />
+                            <Text variant="subheading" style={{ flex: 1 }} numberOfLines={1}>
+                              {receipt.parsed?.merchant ?? t.expense.aBill}
+                            </Text>
+                            <Ionicons
+                              name={directionalIcon('chevron-forward')}
+                              size={iconSize.md}
+                              color={theme.color.textFaint}
+                            />
+                          </Row>
+                          <Text variant="caption" tone="muted">
+                            {receipt.claimed === 0
+                              ? plural(locale, receipt.items, t.expense.receiptClaimedNone)
+                              : fill(t.expense.receiptClaimedSome, {
+                                  claimed: receipt.claimed,
+                                  items: receipt.items,
+                                })}
+                          </Text>
+                        </Card>
+                      </Pressable>
+                    ))}
+
+                    {/* The "they paid you" claims now ride the hero deck above as
                   swipeable slides (confirm / reject up there), so the body no
                   longer carries a full-page confirmation card. */}
 
-                  {/* My own recorded payments, waiting on the payee. The place to
+                    {/* My own recorded payments, waiting on the payee. The place to
                   back the claim with a screenshot, and an acknowledgement that
                   it is in flight. */}
-                  {pendingByMe.map((settlement) => (
-                    <PendingPaymentCard
-                      key={settlement.id}
-                      groupId={groupId}
-                      groupName={groupLabel(groupData, members.data, viewerId)}
-                      settlement={settlement}
-                      payee={lookup.get(settlement.to_member_id)}
-                      payeeName={nameOf(settlement.to_member_id)}
-                      locale={locale}
-                    />
-                  ))}
-                  {/* The balances' own heading, with the one door to settling
+                    {pendingByMe.map((settlement) => (
+                      <PendingPaymentCard
+                        key={settlement.id}
+                        groupId={groupId}
+                        groupName={groupLabel(groupData, members.data, viewerId)}
+                        settlement={settlement}
+                        payee={lookup.get(settlement.to_member_id)}
+                        payeeName={nameOf(settlement.to_member_id)}
+                        locale={locale}
+                      />
+                    ))}
+                    {/* The balances' own heading, with the one door to settling
                       everything at once: the Settle up tab is that flow. */}
-                  {tab === Tab.Balances ? (
-                    <Row
-                      style={{
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <Text
-                        variant="caption"
-                        tone="muted"
-                        style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                      >
-                        {t.group.groupBalances}
-                      </Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t.group.settleUpAll}
-                        onPress={() => setTab(Tab.Settle)}
-                        hitSlop={8}
-                        style={({ pressed }) => ({
-                          flexDirection: 'row',
+                    {tab === Tab.Balances ? (
+                      <Row
+                        style={{
                           alignItems: 'center',
-                          gap: theme.spacing.xs,
-                          opacity: pressed ? 0.6 : 1,
-                        })}
+                          justifyContent: 'space-between',
+                        }}
                       >
-                        <Ionicons
-                          name="people-outline"
-                          size={iconSize.md}
-                          color={theme.color.brand}
-                        />
-                        <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                          {t.group.settleUpAll}
+                        <Text
+                          variant="caption"
+                          tone="muted"
+                          style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
+                        >
+                          {t.group.groupBalances}
                         </Text>
-                        <Ionicons
-                          name={directionalIcon('chevron-forward')}
-                          size={iconSize.sm}
-                          color={theme.color.brand}
-                        />
-                      </Pressable>
-                    </Row>
-                  ) : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t.group.settleUpAll}
+                          onPress={() => setTab(Tab.Settle)}
+                          hitSlop={8}
+                          style={({ pressed }) => ({
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: theme.spacing.xs,
+                            opacity: pressed ? 0.6 : 1,
+                          })}
+                        >
+                          <Ionicons
+                            name="people-outline"
+                            size={iconSize.md}
+                            color={theme.color.brand}
+                          />
+                          <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                            {t.group.settleUpAll}
+                          </Text>
+                          <Ionicons
+                            name={directionalIcon('chevron-forward')}
+                            size={iconSize.sm}
+                            color={theme.color.brand}
+                          />
+                        </Pressable>
+                      </Row>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            }
-            ListEmptyComponent={
-              tab === Tab.Expenses && !showEmptyAddCta(visibleExpenses.length) ? (
-                <Text tone="muted" style={{ textAlign: 'center', paddingTop: theme.spacing.xl }}>
-                  {t.group.noExpenseMatches}
+              }
+              ListEmptyComponent={
+                tab === Tab.Expenses && !showEmptyAddCta(visibleExpenses.length) ? (
+                  <Text tone="muted" style={{ textAlign: 'center', paddingTop: theme.spacing.xl }}>
+                    {t.group.noExpenseMatches}
+                  </Text>
+                ) : tab === Tab.Expenses && showEmptyAddCta(visibleExpenses.length) ? (
+                  // An empty list that only describes itself leaves the one thing to
+                  // do on the screen to a floating button in the corner. The way out
+                  // of an empty state belongs inside it.
+                  <EmptyStateCta
+                    title={t.nothingYet}
+                    body={t.nothingYetBody}
+                    action={t.addExpense}
+                    onAdd={() => router.push(`/group/${groupId}/add-expense`)}
+                    secondary={
+                      canImport
+                        ? {
+                            label: t.groupImport.emptyLink,
+                            onPress: () => router.push(`/group/${groupId}/import`),
+                          }
+                        : undefined
+                    }
+                  />
+                ) : null
+              }
+            />
+            {showNewPill ? (
+              <Pressable
+                onPress={() =>
+                  void listRef.current?.scrollToIndex({
+                    index: Math.min(firstNewIndex, listData.length - 1),
+                    animated: true,
+                    viewOffset: theme.spacing.lg,
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`${fill(t.expense.fresh.count, { n: String(newCount) })}. ${t.expense.fresh.jump}`}
+                hitSlop={8}
+                style={{
+                  position: 'absolute',
+                  top: theme.spacing.sm,
+                  alignSelf: 'center',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
+                  backgroundColor: UNREAD_GREEN,
+                }}
+              >
+                <Ionicons name="arrow-down" size={12} color="#052E16" />
+                <Text variant="micro" style={{ color: '#052E16', fontWeight: '700' }}>
+                  {fill(t.expense.fresh.count, { n: String(newCount) })}
                 </Text>
-              ) : tab === Tab.Expenses && showEmptyAddCta(visibleExpenses.length) ? (
-                // An empty list that only describes itself leaves the one thing to
-                // do on the screen to a floating button in the corner. The way out
-                // of an empty state belongs inside it.
-                <EmptyStateCta
-                  title={t.nothingYet}
-                  body={t.nothingYetBody}
-                  action={t.addExpense}
-                  onAdd={() => router.push(`/group/${groupId}/add-expense`)}
-                  secondary={
-                    canImport
-                      ? {
-                          label: t.groupImport.emptyLink,
-                          onPress: () => router.push(`/group/${groupId}/import`),
-                        }
-                      : undefined
-                  }
-                />
-              ) : null
-            }
-          />
+              </Pressable>
+            ) : null}
+          </>
         )}
 
         {/* No FAB: adding an expense now lives on the hero's white pill, the
