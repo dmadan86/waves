@@ -31,3 +31,4 @@ export {
 export * from './amounts';
 export * from './followUps';
 export * from './spendQuery';
+export * from './corrections';

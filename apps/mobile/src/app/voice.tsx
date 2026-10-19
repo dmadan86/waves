@@ -2277,6 +2277,13 @@ export default function VoiceScreen() {
               engine={engine}
               renderAfterSave={isPro ? undefined : renderFreeAfterSave}
               aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
+              onSavedBarEvent={(event) => {
+                if (event.name === 'assistant_correction') {
+                  trackAssistant('assistant_correction', { field: event.field, path: event.path });
+                } else {
+                  trackAssistant('assistant_undo', { what: event.what });
+                }
+              }}
               onResolved={(outcome, scope) => {
                 reportCommand(outcome, scope, 'agent');
                 if (outcome === 'confirmed') hapticSuccess();
