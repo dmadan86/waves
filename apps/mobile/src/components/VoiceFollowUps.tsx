@@ -11,7 +11,7 @@
  * mounts inside `VoiceAgentPanel`, so it exists exactly where the agent does.
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -82,10 +82,12 @@ import { useFollowUpPrefs } from '@/lib/followUpPrefs';
 import { currentPlaceIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
+import { useVoiceReply } from '@/lib/useVoiceReply';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
+import { FOLLOW_UP_TURN_CAP, matchChip } from '@/lib/voiceReplyPure';
 import { findSplittableReceipt, handoverFor, itemizeParams } from '@/lib/splitByItem';
 import { handoverKey } from '@/lib/handover';
 import { syncEngine, useSync } from '@/sync';
@@ -97,6 +99,11 @@ export interface VoiceFollowUpsProps {
   local: AgentLocalData;
   today: string;
   onClose: () => void;
+  /**
+   * An answer was taken: typed or spoken, and whether a chip matched on the
+   * phone or the model was asked. Optional; nothing is emitted without it.
+   */
+  onAnswerSource?: (source: 'typed' | 'voice', via: 'chip' | 'model') => void;
   /** Called with the new state each time an answer is written, so a parent
    *  (e.g. an undo bar) can follow the expense without editing this file. */
   onSavedStateChange?: (state: SavedState) => void;
@@ -136,6 +143,8 @@ interface Chip {
   readonly label: string;
   readonly onPress: () => void;
   readonly primary?: boolean;
+  /** Opens the free-text answer, so it is not a spoken answer's target. */
+  readonly freeText?: boolean;
 }
 
 /** Rows from the local mirror, shaped for the pure history builder. Read once. */
@@ -218,6 +227,7 @@ export function VoiceFollowUps({
   local,
   today,
   onClose,
+  onAnswerSource,
   onSavedStateChange,
   renderSavedBar,
   onUndoable,
@@ -263,6 +273,18 @@ export function VoiceFollowUps({
       live = false;
     };
   }, []);
+  // Model turns spent on this expense, typed and spoken together (D1: three).
+  const [turnsUsed, setTurnsUsed] = useState(0);
+  const turnsRef = useRef(0);
+  const answerRef = useRef<(text: string) => void>(() => undefined);
+  const canType = online && turnsUsed < FOLLOW_UP_TURN_CAP;
+  const voice = useVoiceReply({
+    onTranscript: (text) => answerRef.current(text),
+    groupId: initial.groupId ?? null,
+    locale,
+    online,
+    turnsUsed,
+  });
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
 
   // Where the phone is — only when permission was already granted; nothing here prompts.
@@ -340,6 +362,31 @@ export function VoiceFollowUps({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.kind]);
 
+  const startVoice = (): void => {
+    setNotice(null);
+    setTyping(false);
+    voice.start();
+  };
+  const voiceNote =
+    voice.problem === 'denied'
+      ? f.micDenied
+      : voice.problem === 'empty'
+        ? f.noSpeech
+        : voice.problem === 'failed'
+          ? f.voiceFailed
+          : null;
+  const limitNote = !online
+    ? f.typingOffline
+    : turnsUsed >= FOLLOW_UP_TURN_CAP
+      ? f.turnsUsed
+      : null;
+  // The last result stays visible; when it used the final turn, say why the
+  // mic and the typed field are gone.
+  const caption =
+    notice && limitNote && notice !== limitNote
+      ? `${notice} ${limitNote}`
+      : (notice ?? voiceNote ?? limitNote);
+
   const ready = env !== null && prefsHandle.ready;
   const finished = ready && question === null;
 
@@ -403,6 +450,7 @@ export function VoiceFollowUps({
   ): void => {
     setNotice(null);
     setTyping(false);
+    voice.cancel();
     setSession((s) => advanceSession(s, kind, outcome));
     if (outcome === 'answered') prefsHandle.update((p) => recordAnswer(p, kind, category));
     else if (outcome === 'skipped') prefsHandle.update((p) => recordSkip(p, kind, category));
@@ -445,8 +493,23 @@ export function VoiceFollowUps({
   const myMemberIn = (groupId: string): string | null =>
     local.groups.find((g) => g.id === groupId)?.members.find((m) => m.isViewer)?.id ?? null;
 
-  const submitTyped = async (text: string): Promise<void> => {
+  /**
+   * One path for every free-text answer, typed or spoken: a chip the words name
+   * is pressed on the phone, then the local readers, and only what is left costs
+   * a model turn, up to {@link FOLLOW_UP_TURN_CAP} per expense.
+   */
+  const submitAnswer = async (text: string, source: 'typed' | 'voice'): Promise<void> => {
     if (busy) return;
+    if (question) {
+      const chips = chipsFor(question);
+      const at = matchChip(text, chips);
+      const chip = at >= 0 ? chips[at] : undefined;
+      if (chip && !chip.freeText) {
+        onAnswerSource?.(source, 'chip');
+        chip.onPress();
+        return;
+      }
+    }
     // Most typed answers are a place, a payment word, a number or a day: read on
     // the phone first, so they cost no agent turn and work offline.
     const reading = readLocally({
@@ -460,6 +523,7 @@ export function VoiceFollowUps({
       categories: Object.keys(t.categories),
       categoryLabel,
     });
+    if (reading) onAnswerSource?.(source, 'chip');
     if (reading?.kind === 'answer' && question) {
       setTyping(false);
       await answerWith(question.kind, reading.answer);
@@ -476,6 +540,13 @@ export function VoiceFollowUps({
       }
       return;
     }
+    if (turnsRef.current >= FOLLOW_UP_TURN_CAP) {
+      setNotice(f.turnsUsed);
+      return;
+    }
+    turnsRef.current += 1;
+    setTurnsUsed(turnsRef.current);
+    onAnswerSource?.(source, 'model');
     setBusy(true);
     setNotice(null);
     const result = await sendVoiceTranscript({
@@ -546,7 +617,9 @@ export function VoiceFollowUps({
               }),
             ),
           ),
-          ...(online ? [{ label: f.placeElse, onPress: () => setTyping(true) }] : []),
+          ...(online
+            ? [{ label: f.placeElse, onPress: () => setTyping(true), freeText: true }]
+            : []),
         ];
       case 'receipt':
         return [
@@ -588,7 +661,9 @@ export function VoiceFollowUps({
               }),
             ),
           ),
-          ...(online ? [{ label: f.splitSomeone, onPress: () => setTyping(true) }] : []),
+          ...(online
+            ? [{ label: f.splitSomeone, onPress: () => setTyping(true), freeText: true }]
+            : []),
           no(),
         ];
       case 'payment':
@@ -753,6 +828,10 @@ export function VoiceFollowUps({
     }
   };
 
+  useEffect(() => {
+    answerRef.current = (text) => void submitAnswer(text, 'voice');
+  });
+
   const controls: SavedBarControls = useMemo(
     () => ({
       replaceSaved: (next) => {
@@ -852,15 +931,25 @@ export function VoiceFollowUps({
               </Pressable>
             ))}
           </View>
-          {typing ? <VoiceTypedAnswer onSubmit={(text) => void submitTyped(text)} /> : null}
-          {!online ? (
-            <Text variant="caption" tone="muted">
-              {f.typingOffline}
-            </Text>
+          {voice.phase !== 'idle' ? (
+            <ListeningRow
+              transcribing={voice.phase === 'transcribing'}
+              heard={voice.live}
+              listeningLabel={f.listening}
+              workingLabel={f.transcribing}
+              stopLabel={f.stopListening}
+              onStop={voice.stop}
+            />
           ) : null}
-          {notice ? (
+          {(typing || voice.problem === 'denied') && canType ? (
+            <VoiceTypedAnswer
+              onSubmit={(text) => void submitAnswer(text, 'typed')}
+              onVoice={voice.off === null ? startVoice : undefined}
+            />
+          ) : null}
+          {caption ? (
             <Text variant="caption" tone="muted">
-              {notice}
+              {caption}
             </Text>
           ) : null}
           <View
@@ -874,8 +963,11 @@ export function VoiceFollowUps({
           >
             <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
               <SmallLink label={f.skip} onPress={() => respond(question.kind, 'skipped')} />
-              {!typing && online ? (
+              {!typing && canType ? (
                 <SmallLink label={f.typeInstead} onPress={() => setTyping(true)} />
+              ) : null}
+              {voice.off === null && voice.phase === 'idle' ? (
+                <MicLink label={f.voiceAnswer} onPress={startVoice} />
               ) : null}
             </View>
             <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
@@ -913,6 +1005,77 @@ export function VoiceFollowUps({
 
       {!ready ? <Button label={f.done} variant="secondary" onPress={onClose} /> : null}
     </View>
+  );
+}
+
+/** The mic is open: what is heard so far (or a plain label), and a way to end it. */
+function ListeningRow({
+  transcribing,
+  heard,
+  listeningLabel,
+  workingLabel,
+  stopLabel,
+  onStop,
+}: {
+  transcribing: boolean;
+  heard: string;
+  listeningLabel: string;
+  workingLabel: string;
+  stopLabel: string;
+  onStop: () => void;
+}) {
+  const theme = useTheme();
+  const label = transcribing ? workingLabel : listeningLabel;
+  return (
+    <View
+      accessible
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={label}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        minHeight: 40,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.pill,
+        borderWidth: 1,
+        borderColor: theme.color.brand,
+        backgroundColor: theme.color.brandSoft,
+      }}
+    >
+      <Ionicons name="mic" size={iconSize.base} color={theme.color.brand} />
+      <Text numberOfLines={1} style={{ flex: 1, color: theme.color.brand }}>
+        {heard && !transcribing ? heard : label}
+      </Text>
+      {transcribing ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={stopLabel}
+          onPress={onStop}
+          hitSlop={8}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+            {stopLabel}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function MicLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={10}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <Ionicons name="mic-outline" size={iconSize.base} color={theme.color.brand} />
+    </Pressable>
   );
 }
 

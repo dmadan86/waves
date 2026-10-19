@@ -1284,6 +1284,14 @@ export interface UiStrings {
     handedOff: string;
     gotIt: string;
     couldNotUse: string;
+    voiceAnswer: string;
+    listening: string;
+    stopListening: string;
+    transcribing: string;
+    micDenied: string;
+    noSpeech: string;
+    voiceFailed: string;
+    turnsUsed: string;
     couldNotSave: string;
     reimbursableRow: string;
     reimbursableTag: string;
@@ -6586,6 +6594,14 @@ const en: UiStrings = {
     handedOff: 'Opened it for you',
     gotIt: 'Got it',
     couldNotUse: "I couldn't use that",
+    voiceAnswer: 'Answer by voice',
+    listening: 'Listening…',
+    stopListening: 'Done speaking',
+    transcribing: 'Working it out…',
+    micDenied: 'Microphone is off. Type your answer instead.',
+    noSpeech: "Didn't catch that. Tap the mic to try again.",
+    voiceFailed: "Couldn't hear that. Tap the mic to try again.",
+    turnsUsed: "That's all the questions for this expense. Pick a choice.",
     couldNotSave: "Couldn't save that. Try again?",
     reimbursableRow: 'Work expense (to claim)',
     reimbursableTag: 'Work',
@@ -11290,6 +11306,14 @@ const ta: UiStrings = {
     handedOff: 'உங்களுக்காகத் திறந்தேன்',
     gotIt: 'சரி',
     couldNotUse: 'இதை என்னால் பயன்படுத்த முடியவில்லை',
+    voiceAnswer: 'குரலில் பதில் சொல்லுங்கள்',
+    listening: 'கேட்டுக்கொண்டிருக்கிறது…',
+    stopListening: 'பேசி முடித்தேன்',
+    transcribing: 'புரிந்துகொள்கிறது…',
+    micDenied: 'மைக்ரோஃபோன் அணைந்துள்ளது. பதிலை தட்டச்சு செய்யுங்கள்.',
+    noSpeech: 'கேட்கவில்லை. மைக்கை தட்டி மீண்டும் முயலுங்கள்.',
+    voiceFailed: 'கேட்க முடியவில்லை. மைக்கை தட்டி மீண்டும் முயலுங்கள்.',
+    turnsUsed: 'இந்தச் செலவுக்கான கேள்விகள் முடிந்தன. ஒரு விருப்பத்தைத் தேர்ந்தெடுங்கள்.',
     couldNotSave: 'சேமிக்க முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
     reimbursableRow: 'அலுவலகச் செலவு (கோர வேண்டும்)',
     reimbursableTag: 'அலுவலகம்',
@@ -16144,6 +16168,14 @@ const hi: UiStrings = {
     handedOff: 'आपके लिए खोल दिया',
     gotIt: 'ठीक है',
     couldNotUse: 'मैं इसे समझ नहीं पाया',
+    voiceAnswer: 'बोलकर जवाब दें',
+    listening: 'सुन रहा है…',
+    stopListening: 'बोल लिया',
+    transcribing: 'समझ रहा है…',
+    micDenied: 'माइक्रोफ़ोन बंद है। जवाब टाइप करें।',
+    noSpeech: 'सुनाई नहीं दिया। माइक दबाकर फिर कोशिश करें।',
+    voiceFailed: 'सुन नहीं पाया। माइक दबाकर फिर कोशिश करें।',
+    turnsUsed: 'इस खर्च के सवाल पूरे हो गए। कोई विकल्प चुनें।',
     couldNotSave: 'सहेज नहीं पाया। फिर कोशिश करें?',
     reimbursableRow: 'ऑफ़िस का खर्च (क्लेम करना है)',
     reimbursableTag: 'ऑफ़िस',
@@ -20913,6 +20945,14 @@ const ar: UiStrings = {
     handedOff: 'فتحته لك',
     gotIt: 'حسنًا',
     couldNotUse: 'لم أستطع استخدام ذلك',
+    voiceAnswer: 'أجب بالصوت',
+    listening: 'جارٍ الاستماع…',
+    stopListening: 'انتهيت من الكلام',
+    transcribing: 'جارٍ الفهم…',
+    micDenied: 'الميكروفون متوقف. اكتب إجابتك بدلاً من ذلك.',
+    noSpeech: 'لم أسمع ذلك. اضغط على الميكروفون وحاول مرة أخرى.',
+    voiceFailed: 'تعذّر سماع ذلك. اضغط على الميكروفون وحاول مرة أخرى.',
+    turnsUsed: 'انتهت أسئلة هذا المصروف. اختر أحد الخيارات.',
     couldNotSave: 'تعذّر الحفظ. حاول مجددًا؟',
     reimbursableRow: 'مصروف عمل (للمطالبة)',
     reimbursableTag: 'عمل',
