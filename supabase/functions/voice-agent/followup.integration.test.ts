@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { followupMeter } from '../_shared/test/voiceFollowupMeter.ts';
 import { HttpError } from '../_shared/auth.ts';
 import { breaker, clearContextCache, handleVoiceAgent, type Deps, type Limits } from './handler.ts';
 import { fixtureContext, fixtures, WS2_LANDED } from './evals/harness.ts';
@@ -8,6 +9,7 @@ type Call = { name: string; input: unknown };
 type FetchImpl = (url: string, init: RequestInit) => Response | Promise<Response>;
 const answer: Call = { name: 'answer_question', input: { text: 'Done.' } };
 const saved = fixtures.saved.personal;
+const GROUP_EXPENSE_ID = '6f1c1c7e-2f4e-4c9a-9a52-0b6f3d6a7e11';
 const update = (id = saved.id): Call => ({
   name: 'update_expense',
   input: { expenseId: id, place: 'Blue Tokai' },
@@ -68,11 +70,15 @@ function makeDeps(
     allowlisted?: boolean;
     limits?: Partial<Limits>;
     now?: () => number;
+    followupTier?: 'free' | 'pro';
+    expenses?: unknown[];
   } = {},
 ) {
   const events: string[] = [];
-  const rpc = vi.fn(async (name: string) => {
+  const meter = followupMeter({ tier: over.followupTier });
+  const rpc = vi.fn(async (name: string, args?: Record<string, unknown>) => {
     events.push(name);
+    if (name === 'waves_voice_agent_followup') return { data: meter(args ?? {}), error: null };
     if (name === 'waves_voice_agent_enabled') return { data: over.enabled ?? true, error: null };
     if (name === 'waves_voice_agent_quota')
       return {
@@ -85,6 +91,7 @@ function makeDeps(
     groups: fixtures.groups,
     group_members: fixtures.members,
     group_balances: fixtures.balances,
+    expenses: over.expenses ?? [{ id: GROUP_EXPENSE_ID }],
   };
   const from = vi.fn((name: string) => {
     events.push(`from:${name}`);
@@ -173,9 +180,11 @@ describe('follow-up handler integration', () => {
       const body = await run(deps, { savedExpense: saved });
       expect(body.update).toEqual({ expenseId: saved.id, place: 'Blue Tokai' });
       expect(body.actions).toEqual([]);
-      // D1: an unmetered follow-up reports no spend of the allowance.
-      expect(body.quota.used).toBe(0);
+      // D1: outside the monthly command allowance, but admitted and counted by the
+      // database's follow-up meter, which also reports the plan.
+      expect(body.quota).toMatchObject({ used: 1, limit: 300, tier: 'pro' });
       expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_quota')).toBe(false);
+      expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_followup')).toBe(true);
       const p = payloads(fetchMock)[0];
       expect(p.messages[0].content).toContain(
         `expenseId ${fixtureContext('followup:personal').saved!.id}`,
@@ -183,7 +192,7 @@ describe('follow-up handler integration', () => {
       expect(p.messages[1].content).toBe('at Blue Tokai');
     },
   );
-  it('EH-02 adding a personal expense in a follow-up is rejected; nothing was metered, so nothing is refunded', async () => {
+  it('EH-02 adding a personal expense in a follow-up is rejected; it never took a command, so nothing is refunded', async () => {
     const { deps, rpc } = makeDeps({
       fetchImpl: scriptedLlm([
         {
@@ -199,6 +208,7 @@ describe('follow-up handler integration', () => {
     );
     expect(refunds(rpc)).toHaveLength(0);
     expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_quota')).toBe(false);
+    expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_followup')).toBe(true);
     expect(logs()[0].valid).toBe(false);
   });
   it('EH-03 cached context never retains the previous saved expense', async () => {
@@ -414,7 +424,7 @@ describe('follow-up handler integration', () => {
     'EH-20 saved group context excludes other groups and their members',
     async () => {
       const { deps, fetchMock } = makeDeps({ fetchImpl: scriptedLlm([answer]) });
-      await run(deps, { savedExpense: { ...fixtures.saved.group, id: 'eh20-group' } });
+      await run(deps, { savedExpense: { ...fixtures.saved.group, id: GROUP_EXPENSE_ID } });
       const context = payloads(fetchMock)[0].messages[0].content.split('Context:\n').at(-1);
       expect(context).toContain('GROUP g-goa');
       expect(context).toContain('m-anu');

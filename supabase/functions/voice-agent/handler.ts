@@ -192,6 +192,8 @@ interface Quota {
   /** With `trial`: when the pool closes. */
   until?: string;
   allowed: boolean;
+  /** For a refused follow-up: free_tier, expense_cap or month_cap. */
+  reason?: string;
 }
 
 export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Response> {
@@ -249,16 +251,22 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   // on, and a refused quota simply never uses the context.
   const meterOnly = body.meterOnly === true && Boolean(spoken);
   // A follow-up about an expense just saved (a correction, an undo, a place) is
-  // not a new command: it is not metered, so it cannot be refunded either. It
-  // is capped instead, per expense and per month (D1).
+  // not a new command, so it is outside the monthly allowance (D1). It is not
+  // free: the database admits it only for a paid plan (or the Pro trial) and
+  // caps it per month and per expense, so it is never refunded either.
   const unmetered = body.savedExpense !== undefined && !meterOnly;
-  if (unmetered && body.savedExpense) {
-    enforceFollowUpCaps(profileId, body.savedExpense.id, deps.now());
-  }
   const contextLoad = meterOnly
     ? Promise.resolve(null as unknown as VoiceContext)
     : loadContext(deps.caller, profileId, body);
   contextLoad.catch(() => undefined);
+  if (unmetered && body.savedExpense) {
+    const groups = (
+      await raceDeadline(contextLoad, dbDeadline(), () =>
+        unavailable('Advanced voice is unavailable just now'),
+      )
+    ).groups;
+    await verifySavedExpense(deps.caller, body.savedExpense, groups, dbDeadline(), unavailable);
+  }
   // At most once per request, whichever failure path gets there first. An
   // unmetered follow-up never took a command, so it has nothing to give back.
   let refunded = unmetered;
@@ -270,10 +278,15 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     ).catch(() => null);
   };
   const reservation = unmetered
-    ? Promise.resolve({
-        data: { used: 0, limit: 0, tier: 'pro', allowed: true } as Quota,
-        error: null,
-      })
+    ? Promise.resolve(
+        deps.service.rpc('waves_voice_agent_followup', {
+          p_profile: profileId,
+          p_expense_id: body.savedExpense?.id,
+          p_month_limit: FOLLOWUP_PER_MONTH,
+          p_expense_limit: FOLLOWUP_PER_EXPENSE,
+          p_window_seconds: FOLLOWUP_WINDOW_SECONDS,
+        }),
+      )
     : Promise.resolve(
         deps.service.rpc('waves_voice_agent_quota', {
           p_profile: profileId,
@@ -301,6 +314,12 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   if (quotaError || !quotaData) throw unavailable('Advanced voice is not available');
   const quota = quotaData as Quota;
   if (!quota.allowed) {
+    if (unmetered) {
+      if (quota.reason === 'free_tier') {
+        throw new HttpError(403, 'VOICE_AGENT_FOLLOWUP_PRO', 'Follow-ups are part of Pro');
+      }
+      throw new HttpError(429, 'VOICE_AGENT_FOLLOWUP_CAP', 'Too many follow-ups just now');
+    }
     throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
   }
   if (meterOnly) {
@@ -531,44 +550,50 @@ export function loadContext(
   return value;
 }
 
-/** Test seam: forget every cached context (and the follow-up counters). */
+/** Test seam: forget every cached context. */
 export function clearContextCache(): void {
   contextCache.clear();
-  followUpTurns.clear();
-  followUpMonth.clear();
 }
 
-/** At most this many LLM follow-up turns per saved expense within the window. */
+/** Follow-up caps, enforced in the database (`waves_voice_agent_followup`). */
 export const FOLLOWUP_PER_EXPENSE = 3;
-export const FOLLOWUP_WINDOW_MS = 10 * 60_000;
-/** A fair-use ceiling on follow-up turns per person per month. */
+export const FOLLOWUP_WINDOW_SECONDS = 10 * 60;
 export const FOLLOWUP_PER_MONTH = 300;
-const followUpTurns = new Map<string, number[]>();
-const followUpMonth = new Map<string, number>();
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Follow-up turns are free of the command allowance, so something else has to
- * stop a loop of them: three per expense in ten minutes, 300 a month. Counted
- * per warm instance (a nicety, not a ledger), and before any provider spend.
+ * A group expense the turn is about must be one the caller can see: a real,
+ * live expense in a group they belong to (read as the caller, so row-level
+ * security decides). A personal record lives in an encrypted blob the server
+ * cannot read, so for those the database cap is the guard.
  */
-function enforceFollowUpCaps(profileId: string, expenseId: string, nowMs: number): void {
-  const month = `${profileId}|${new Date(nowMs).toISOString().slice(0, 7)}`;
-  if ((followUpMonth.get(month) ?? 0) >= FOLLOWUP_PER_MONTH) {
-    throw new HttpError(429, 'VOICE_AGENT_FOLLOWUP_CAP', 'Monthly fair-use limit reached');
-  }
-  const key = `${profileId}|${expenseId}`;
-  const recent = (followUpTurns.get(key) ?? []).filter((at) => nowMs - at < FOLLOWUP_WINDOW_MS);
-  if (recent.length >= FOLLOWUP_PER_EXPENSE) {
-    followUpTurns.set(key, recent);
-    throw new HttpError(429, 'VOICE_AGENT_FOLLOWUP_CAP', 'Too many follow-ups for this expense');
-  }
-  followUpTurns.set(key, [...recent, nowMs]);
-  followUpMonth.set(month, (followUpMonth.get(month) ?? 0) + 1);
-  if (followUpTurns.size > 2000) {
-    for (const [k, times] of followUpTurns) {
-      if (times.every((at) => nowMs - at >= FOLLOWUP_WINDOW_MS)) followUpTurns.delete(k);
-    }
-  }
+async function verifySavedExpense(
+  caller: SupabaseClient,
+  saved: NonNullable<VoiceAgentRequest['savedExpense']>,
+  callerGroups: readonly { readonly id: string }[],
+  deadlineMs: number,
+  unavailable: (message: string) => HttpError,
+): Promise<void> {
+  if (saved.kind !== 'group') return;
+  const refuse = () => new HttpError(403, 'BAD_SAVED_EXPENSE', 'That expense is not one of yours');
+  // The group must be one of the caller's own, and the id must be an id.
+  if (!callerGroups.some((g) => g.id === saved.groupId) || !UUID.test(saved.id)) throw refuse();
+  const { data, error } = await raceDeadline(
+    Promise.resolve(
+      caller
+        .from('expenses')
+        .select('id')
+        .eq('id', saved.id)
+        .eq('group_id', saved.groupId)
+        .is('deleted_at', null)
+        .limit(1),
+    ),
+    deadlineMs,
+    () => unavailable('Advanced voice is unavailable just now'),
+  );
+  if (error) throw unavailable('Advanced voice is unavailable just now');
+  if (!Array.isArray(data) || data.length === 0) throw refuse();
 }
 
 /**
