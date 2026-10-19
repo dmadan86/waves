@@ -251,8 +251,8 @@ describe('typed corrections (MC-CR, CR-25)', () => {
   });
 
   it('CR-30b delete_expense from the agent is an undo, only for the saved id', async () => {
-    const mine = vi.fn(async () => okResponse({ remove: { expenseId: 'p1' } }));
-    const other = vi.fn(async () => okResponse({ remove: { expenseId: 'zzz' } }));
+    const mine = vi.fn(async () => okResponse({ delete: { expenseId: 'p1' } }));
+    const other = vi.fn(async () => okResponse({ delete: { expenseId: 'zzz' } }));
     const a = depsOf({ send: mine as unknown as TypedDeps['send'] });
     expect(await runTypedMessage(ctxFor('get rid of the thing', personal()), a.deps)).toEqual({ kind: 'undo', path: 'llm' });
     const b = depsOf({ send: other as unknown as TypedDeps['send'] });

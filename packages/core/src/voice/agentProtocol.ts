@@ -240,7 +240,7 @@ export interface VoiceAgentResponse {
   /** For a follow-up turn: what to change on the just-saved expense. */
   readonly update?: VoiceExpenseUpdate;
   /** For a follow-up turn: "undo" / "delete that" — remove the just-saved expense. */
-  readonly remove?: { readonly expenseId: string };
+  readonly delete?: { readonly expenseId: string };
   readonly quota: {
     readonly used: number;
     readonly limit: number;

@@ -248,12 +248,20 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   // caller's groups load alongside it — both are reads the person is waiting
   // on, and a refused quota simply never uses the context.
   const meterOnly = body.meterOnly === true && Boolean(spoken);
+  // A follow-up about an expense just saved (a correction, an undo, a place) is
+  // not a new command: it is not metered, so it cannot be refunded either. It
+  // is capped instead, per expense and per month (D1).
+  const unmetered = body.savedExpense !== undefined && !meterOnly;
+  if (unmetered && body.savedExpense) {
+    enforceFollowUpCaps(profileId, body.savedExpense.id, deps.now());
+  }
   const contextLoad = meterOnly
     ? Promise.resolve(null as unknown as VoiceContext)
     : loadContext(deps.caller, profileId, body);
   contextLoad.catch(() => undefined);
-  // At most once per request, whichever failure path gets there first.
-  let refunded = false;
+  // At most once per request, whichever failure path gets there first. An
+  // unmetered follow-up never took a command, so it has nothing to give back.
+  let refunded = unmetered;
   const refund = async (): Promise<void> => {
     if (refunded) return;
     refunded = true;
@@ -261,14 +269,19 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
       deps.service.rpc('waves_voice_agent_refund', { p_profile: profileId }),
     ).catch(() => null);
   };
-  const reservation = Promise.resolve(
-    deps.service.rpc('waves_voice_agent_quota', {
-      p_profile: profileId,
-      p_free_limit: VOICE_AGENT_FREE_MONTHLY,
-      p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
-      p_trial_limit: VOICE_AGENT_TRIAL_COMMANDS,
-    }),
-  );
+  const reservation = unmetered
+    ? Promise.resolve({
+        data: { used: 0, limit: 0, tier: 'pro', allowed: true } as Quota,
+        error: null,
+      })
+    : Promise.resolve(
+        deps.service.rpc('waves_voice_agent_quota', {
+          p_profile: profileId,
+          p_free_limit: VOICE_AGENT_FREE_MONTHLY,
+          p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
+          p_trial_limit: VOICE_AGENT_TRIAL_COMMANDS,
+        }),
+      );
   let quotaResult: Awaited<typeof reservation>;
   try {
     quotaResult = await raceDeadline(reservation, dbDeadline(), () =>
@@ -313,7 +326,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
     // A follow-up turn is read against the expense just saved (never cached:
     // the cached context is shared across requests).
     const context: VoiceContext = body.savedExpense
-      ? { ...loaded, saved: body.savedExpense }
+      ? followUpContext(loaded, body.savedExpense)
       : loaded;
     const transcript =
       spoken ||
@@ -388,6 +401,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
           ...(parsed.update ? { update: parsed.update } : {}),
+          ...(parsed.delete ? { delete: parsed.delete } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
           ...(parsed.clarify && parsed.clarifyOptions
             ? { clarifyOptions: parsed.clarifyOptions }
@@ -438,6 +452,10 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           : {}),
         ...(chaos.size > 0 ? { chaos: [...chaos] } : {}),
         actions: response.actions.map((a) => a.type),
+        ...(response.update
+          ? { updateFields: Object.keys(response.update).filter((key) => key !== 'expenseId') }
+          : {}),
+        ...(response.delete ? { deleted: true } : {}),
       }),
     );
     return json(response);
@@ -468,6 +486,8 @@ function parseBody(raw: unknown): VoiceAgentRequest {
     typeof b.locale !== 'string' ||
     typeof b.today !== 'string' ||
     !/^\d{4}-\d{2}-\d{2}$/.test(b.today) ||
+    // A turn answers either the agent's question or a saved expense, never both.
+    (b.followUp !== undefined && b.savedExpense !== undefined) ||
     (b.followUp !== undefined &&
       (typeof b.followUp?.transcript !== 'string' || typeof b.followUp?.question !== 'string')) ||
     (b.savedExpense !== undefined &&
@@ -511,9 +531,55 @@ export function loadContext(
   return value;
 }
 
-/** Test seam: forget every cached context. */
+/** Test seam: forget every cached context (and the follow-up counters). */
 export function clearContextCache(): void {
   contextCache.clear();
+  followUpTurns.clear();
+  followUpMonth.clear();
+}
+
+/** At most this many LLM follow-up turns per saved expense within the window. */
+export const FOLLOWUP_PER_EXPENSE = 3;
+export const FOLLOWUP_WINDOW_MS = 10 * 60_000;
+/** A fair-use ceiling on follow-up turns per person per month. */
+export const FOLLOWUP_PER_MONTH = 300;
+const followUpTurns = new Map<string, number[]>();
+const followUpMonth = new Map<string, number>();
+
+/**
+ * Follow-up turns are free of the command allowance, so something else has to
+ * stop a loop of them: three per expense in ten minutes, 300 a month. Counted
+ * per warm instance (a nicety, not a ledger), and before any provider spend.
+ */
+function enforceFollowUpCaps(profileId: string, expenseId: string, nowMs: number): void {
+  const month = `${profileId}|${new Date(nowMs).toISOString().slice(0, 7)}`;
+  if ((followUpMonth.get(month) ?? 0) >= FOLLOWUP_PER_MONTH) {
+    throw new HttpError(429, 'VOICE_AGENT_FOLLOWUP_CAP', 'Monthly fair-use limit reached');
+  }
+  const key = `${profileId}|${expenseId}`;
+  const recent = (followUpTurns.get(key) ?? []).filter((at) => nowMs - at < FOLLOWUP_WINDOW_MS);
+  if (recent.length >= FOLLOWUP_PER_EXPENSE) {
+    followUpTurns.set(key, recent);
+    throw new HttpError(429, 'VOICE_AGENT_FOLLOWUP_CAP', 'Too many follow-ups for this expense');
+  }
+  followUpTurns.set(key, [...recent, nowMs]);
+  followUpMonth.set(month, (followUpMonth.get(month) ?? 0) + 1);
+  if (followUpTurns.size > 2000) {
+    for (const [k, times] of followUpTurns) {
+      if (times.every((at) => nowMs - at >= FOLLOWUP_WINDOW_MS)) followUpTurns.delete(k);
+    }
+  }
+}
+
+/**
+ * What a follow-up turn is told about: for a group expense only that group, so
+ * the model cannot be talked into naming a group or person the turn is not
+ * about; for a personal one all of the caller's groups (it may be shared).
+ */
+function followUpContext(loaded: VoiceContext, saved: NonNullable<VoiceAgentRequest['savedExpense']>): VoiceContext {
+  const groups =
+    saved.kind === 'group' ? loaded.groups.filter((g) => g.id === saved.groupId) : loaded.groups;
+  return { ...loaded, groups, saved };
 }
 
 async function loadContextFresh(

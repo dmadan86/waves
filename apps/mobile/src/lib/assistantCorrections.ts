@@ -463,7 +463,7 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
   const result = await deps.send(ctx.text);
   if (result.kind !== 'ok') return { kind: 'unusable' };
   const response = result.response;
-  if (response.remove && response.remove.expenseId === ctx.state.id) {
+  if (response.delete && response.delete.expenseId === ctx.state.id) {
     return { kind: 'undo', path: 'llm' };
   }
   const update = response.update;
