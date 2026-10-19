@@ -20,6 +20,7 @@ import {
   advanceSession,
   dedupeFilled,
   encodeLoan,
+  deterministicId,
   encodeRecurring,
   format,
   markWrapUpShown,
@@ -51,6 +52,7 @@ import {
 } from '@/lib/assistantCorrections';
 import { hapticSelect } from '@/lib/assistantHaptics';
 import { UNDO_RING_MS, type UndoEntry } from '@/lib/assistantUndo';
+import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { useDeleteExpense, useOpenReceipts, useWriteExpense } from '@/data/hooks';
 import {
   usePersonalLedger,
@@ -66,6 +68,7 @@ import {
   deviceCurrencyFor,
   factsFor,
   filledBy,
+  groupRecurringFor,
   paymentChoices,
   planUpdate,
   toGroupWrite,
@@ -237,6 +240,8 @@ export function VoiceFollowUps({
   const removePersonal = useDeletePersonalRecord();
   const writeExpense = useWriteExpense(initial.groupId ?? '');
   const removeExpense = useDeleteExpense(initial.groupId ?? '');
+  const createGroupRecurring = useCreateGroupRecurring(initial.groupId ?? '');
+  const { mirror, queue } = useSync();
 
   const [saved, setSaved] = useState<SavedState>(initial);
   // A bill already scanned for this group with the same total and its lines read:
@@ -639,6 +644,27 @@ export function VoiceFollowUps({
           yes(f.recurringYes, async () => {
             setBusy(true);
             try {
+              // A group expense repeats as a group rule (the server posts each
+              // one for everybody); a personal one stays a personal reminder.
+              if (saved.kind === 'group') {
+                const version = (
+                  materialiseExpenses(mirror, queue, {
+                    groupId: saved.groupId ?? '',
+                  }) as unknown as ExpenseRow[]
+                ).find((row) => row.id === saved.id)?.currentVersion;
+                const plan = groupRecurringFor(saved, version ?? null);
+                if (!plan) {
+                  setNotice(f.couldNotSave);
+                  return;
+                }
+                await createGroupRecurring.mutateAsync({
+                  ruleId: deterministicId(`recurring:${saved.id}`),
+                  ...plan,
+                });
+                setFilled((list) => [...list, 'recurring']);
+                respond('recurring', 'answered');
+                return;
+              }
               await upsert.mutateAsync({
                 recordKind: 'recurring',
                 data: encodeRecurring({

@@ -173,6 +173,17 @@ export function describeActivity(
     }
     case 'import_undone':
       return labels.importUndoneSentence(who);
+    // Repeating group expenses: the rule's name rides the payload.
+    case 'recurring_created':
+      return `${who} set ${description ?? 'an expense'} to repeat`;
+    case 'recurring_edited':
+      return `${who} changed the repeating ${description ?? 'expense'}`;
+    case 'recurring_paused':
+      return `${who} paused the repeating ${description ?? 'expense'}`;
+    case 'recurring_resumed':
+      return `${who} resumed the repeating ${description ?? 'expense'}`;
+    case 'recurring_stopped':
+      return `${who} stopped the repeating ${description ?? 'expense'}`;
     default:
       // An unknown verb is a row written by a newer build than this one. Say
       // what is known rather than dropping it — a feed with holes in it is
@@ -253,6 +264,16 @@ export function activityHeadline(
       return labels.importUndoneHeadline;
     case 'auto_archived':
       return 'Group archived';
+    case 'recurring_created':
+      return `Repeating ${what}`;
+    case 'recurring_edited':
+      return `Changed repeating ${what}`;
+    case 'recurring_paused':
+      return `Paused repeating ${what}`;
+    case 'recurring_resumed':
+      return `Resumed repeating ${what}`;
+    case 'recurring_stopped':
+      return `Stopped repeating ${what}`;
     // Its own verb rather than the plain 'deleted' above, which is about an
     // expense and would render this as "Deleted expense". The row is written
     // into the group it is about, so almost nobody will ever see it — it exists
@@ -332,6 +353,14 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
       return 'cloud-upload-outline';
     case 'import_undone':
       return 'arrow-undo-outline';
+    case 'recurring_created':
+    case 'recurring_edited':
+    case 'recurring_resumed':
+      return 'repeat-outline';
+    case 'recurring_paused':
+      return 'pause-outline';
+    case 'recurring_stopped':
+      return 'stop-circle-outline';
     default:
       return 'ellipse-outline';
   }
@@ -364,6 +393,7 @@ export function verbTint(verb: string): ActivityTint {
     case 'cancelled':
     case 'rejected_dispute':
     case 'import_undone':
+    case 'recurring_stopped':
       return 'coral';
     case 'added':
     case 'joined':

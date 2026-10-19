@@ -90,19 +90,12 @@ export function addToDate(date: string, cadence: Cadence, interval: number): str
  * the month it lands in — a rule on the 15th and the 31st fires on the 15th and
  * the 28th in February, which is what a payroll actually does.
  */
-export function stepOccurrence(rule: PersonalRecurring, date: string): string {
+export function stepOccurrence(
+  rule: Pick<PersonalRecurring, 'cadence' | 'interval' | 'secondDay' | 'anchorDate'>,
+  date: string,
+): string {
   if (rule.cadence !== 'semimonthly' || rule.secondDay === null) {
-    const next = addToDate(date, rule.cadence, rule.interval);
-    if (rule.cadence === 'weekly') return next;
-    // A rule anchored on the 31st that was clamped to the 28th last month goes
-    // back to the 31st when the month has one (31, 28, 31, 30, 31), not 28 forever.
-    const from = parseYmd(date);
-    const to = parseYmd(next);
-    const anchor = parseYmd(rule.anchorDate);
-    if (from && to && anchor && from.d < anchor.d && from.d === daysInMonth(from.y, from.m)) {
-      return fmtYmd(to.y, to.m, Math.min(anchor.d, daysInMonth(to.y, to.m)));
-    }
-    return next;
+    return anchoredStep(rule, date) ?? addToDate(date, rule.cadence, rule.interval);
   }
   const p = parseYmd(date);
   const anchor = parseYmd(rule.anchorDate);
@@ -117,6 +110,52 @@ export function stepOccurrence(rule: PersonalRecurring, date: string): string {
   const y = p.m === 12 ? p.y + 1 : p.y;
   const m = p.m === 12 ? 1 : p.m + 1;
   return fmtYmd(y, m, clamp(y, m, lo));
+}
+
+/**
+ * The first occurrence strictly after `date`, counted from the anchor
+ * (`anchor + k * interval`) rather than from `date` itself — the anchor's day of
+ * month is remembered, so a rule on the 31st goes 31, 28 (29), 31, 30, 31 instead
+ * of settling on 28 after February, and a Feb 29 yearly rule comes back to
+ * Feb 29 in leap years. Null when the anchor or date is malformed, the date is
+ * before the anchor, or the date is not on the rule's grid (the caller then
+ * steps from the date as it always did).
+ * Walks at most a few steps from a closed-form estimate.
+ */
+function anchoredStep(
+  rule: Pick<PersonalRecurring, 'cadence' | 'interval' | 'anchorDate'>,
+  date: string,
+): string | null {
+  return nextOnGrid(rule, date, true);
+}
+
+/**
+ * The first anchor-grid occurrence strictly after `date`. With `onGridOnly`, null
+ * unless `date` is itself on the grid (the personal ledger's conservative rule);
+ * without it any date works (a group rule resuming from today).
+ */
+export function nextOnGrid(
+  rule: Pick<PersonalRecurring, 'cadence' | 'interval' | 'anchorDate'>,
+  date: string,
+  onGridOnly = false,
+): string | null {
+  const p = parseYmd(date);
+  const a = parseYmd(rule.anchorDate);
+  if (!p || !a || date < rule.anchorDate || rule.cadence === 'semimonthly') return null;
+  const step = rule.interval > 0 ? Math.floor(rule.interval) : 1;
+  const months = (p.y - a.y) * 12 + (p.m - a.m);
+  const estimate =
+    rule.cadence === 'weekly'
+      ? Math.floor(dayDelta(rule.anchorDate, date) / (7 * step))
+      : Math.floor(months / (rule.cadence === 'yearly' ? 12 * step : step));
+  const at = (k: number): string =>
+    k <= 0 ? rule.anchorDate : addToDate(rule.anchorDate, rule.cadence, step * k);
+  let k = Math.max(0, estimate - 1);
+  while (at(k) <= date) k += 1;
+  // Only when `date` is itself one of the rule's occurrences. A date off the
+  // grid (an edited next date, a hand-set start) keeps stepping from itself, as
+  // it always has.
+  return !onGridOnly || (k > 0 && at(k - 1) === date) ? at(k) : null;
 }
 
 /** The YYYY-MM a date falls in. */

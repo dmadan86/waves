@@ -22,6 +22,7 @@ import {
 } from '@waves/ui';
 
 import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
+import { useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
@@ -208,6 +209,9 @@ export default function HomeScreen() {
   // The ref makes this fire exactly once — without it the effect would re-run
   // each time the tour advances (its value changes) and snap back to step one.
   // It remembers itself when finished; "Take the tour again" in the menu replays.
+  // Repeating group expenses that came due while the app was closed.
+  useRecurringCatchUp();
+
   const tourStarted = useRef(false);
   useEffect(() => {
     if (tourStarted.current) return;

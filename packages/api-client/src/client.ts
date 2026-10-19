@@ -54,6 +54,7 @@ import {
   type ProfileRow,
   type NotificationRow,
   type PersonBalanceRow,
+  type GroupRecurringRow,
   type PlanItemRow,
   type MemberBudgetRow,
   type CategoryTagRecord,
@@ -110,6 +111,11 @@ const EXPENSE_COLUMNS = `
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
+`;
+
+const GROUP_RECURRING_COLUMNS = `
+  id, group_id, created_by, description, category, currency, amount, cadence, interval,
+  second_day, anchor_date, next_date, end_date, status, last_generated_on
 `;
 
 const PLAN_ITEM_COLUMNS = `
@@ -483,6 +489,32 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .eq('group_id', groupId)
           .order('created_at', { ascending: false }),
       );
+    },
+
+    /** The group's repeating expenses (rules), newest first. */
+    groupRecurring(groupId: string): Promise<GroupRecurringRow[]> {
+      return read<GroupRecurringRow>(
+        supabase
+          .from('group_recurring_expenses')
+          .select(GROUP_RECURRING_COLUMNS)
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false }),
+      );
+    },
+
+    /**
+     * Pause, resume or stop a repeating expense. `stopped` is final. Any live
+     * member may; the RPC checks membership itself. Editing the amount or split
+     * is a phone action, where the split maths and the offline queue live.
+     */
+    async setGroupRecurringStatus(
+      ruleId: string,
+      status: 'active' | 'paused' | 'stopped',
+    ): Promise<void> {
+      await rpc<null>('waves_update_group_recurring_expense', {
+        p_id: ruleId,
+        p_patch: { status },
+      });
     },
 
     /**
