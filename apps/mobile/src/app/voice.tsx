@@ -2241,9 +2241,26 @@ export default function VoiceScreen() {
             {/* Just the ✕. Speaking another expense is one job with one home — the
               "+ Add another" pill under the list — so the header carries no second
               mic competing with it. */}
-            <IconButton label={t.common.close} onPress={dismiss}>
-              <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-            </IconButton>
+            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+              {/* Typing lives up here beside ✕ rather than as a pill under the
+                examples: the capture screen has to fit one phone height, and a
+                pill at the foot ended up under the system navigation bar. */}
+              {phase === 'listening' && !typedMode ? (
+                <IconButton
+                  label={t.assistant.composerTypeInstead}
+                  onPress={() => {
+                    hapticSelect();
+                    captureActive.current = false;
+                    setTypedMode(true);
+                  }}
+                >
+                  <Ionicons name="keypad-outline" size={iconSize.lg} color={theme.color.text} />
+                </IconButton>
+              ) : null}
+              <IconButton label={t.common.close} onPress={dismiss}>
+                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+              </IconButton>
+            </Row>
           </Row>
 
           {error ? <Callout tone="negative">{error}</Callout> : null}
@@ -2605,38 +2622,6 @@ export default function VoiceScreen() {
                       setNoAmount(false);
                     }}
                   />
-                  <Pressable
-                    onPress={() => {
-                      hapticSelect();
-                      captureActive.current = false;
-                      setTypedMode(true);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={t.assistant.composerTypeInstead}
-                    hitSlop={8}
-                    style={({ pressed }) => ({
-                      alignSelf: 'center',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: theme.spacing.xs,
-                      minHeight: 40,
-                      paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.pill,
-                      borderWidth: 1,
-                      borderColor: theme.color.border,
-                      backgroundColor: theme.color.surface,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <Ionicons
-                      name="keypad-outline"
-                      size={iconSize.base}
-                      color={theme.color.brand}
-                    />
-                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                      {t.assistant.composerTypeInstead}
-                    </Text>
-                  </Pressable>
                 </>
               )}
               {/* Only while a finger is actually on the bar's mic. It says the one
