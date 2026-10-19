@@ -1027,3 +1027,91 @@ describe('thumbnails — `<path>.thumb.jpg`, authorised as their original', () =
     );
   });
 });
+
+describe('personal receipts are owner-only (personal ledger entries)', () => {
+  const MINE = 'personal/user-1/f1.jpg';
+  const THEIRS = 'personal/user-2/f1.jpg';
+  const paid = () =>
+    client({ user: { id: 'user-1' }, rpc: { waves_can_upload_group_photo: { data: true } } });
+  const free = () =>
+    client({ user: { id: 'user-1' }, rpc: { waves_can_upload_group_photo: { data: false } } });
+
+  it.each(['get', 'delete'])('refuses %s of another person’s personal receipt', async (action) => {
+    const { deps, sign, r2fetch } = makeDeps({ caller: paid() });
+    const response = await handleR2Sign(post({ action, bucket: 'receipts', path: THEIRS }), deps);
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('NOT_OWNER');
+    expect(sign).not.toHaveBeenCalled();
+    expect(r2fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(['put', 'commit', 'release'])(
+    'refuses %s under another person’s personal prefix',
+    async (action) => {
+      const { deps, sign } = makeDeps({ caller: paid() });
+      const response = await handleR2Sign(
+        post({
+          action,
+          bucket: 'receipts',
+          path: THEIRS,
+          contentType: 'image/jpeg',
+          contentLength: 10,
+        }),
+        deps,
+      );
+      expect(response.status).toBe(403);
+      expect((await response.json()).code).toBe('NOT_OWNER');
+      expect(sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it('authorises a thumbnail as its original, so another person’s thumbnail is refused too', async () => {
+    const { deps } = makeDeps({ caller: paid() });
+    const response = await handleR2Sign(
+      post({ action: 'get', bucket: 'receipts', path: 'personal/user-2/f1.jpg.thumb.jpg' }),
+      deps,
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('NOT_OWNER');
+  });
+
+  it('refuses traversal out of the owner prefix', async () => {
+    const { deps } = makeDeps({ caller: paid() });
+    const response = await handleR2Sign(
+      post({ action: 'get', bucket: 'receipts', path: 'personal/user-1/../user-2/f1.jpg' }),
+      deps,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it('keeps writing a personal receipt a paid feature', async () => {
+    const { deps, sign } = makeDeps({ caller: free() });
+    const response = await handleR2Sign(
+      post({
+        action: 'put',
+        bucket: 'receipts',
+        path: MINE,
+        contentType: 'image/jpeg',
+        contentLength: 10,
+      }),
+      deps,
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('STORAGE_PAID_ONLY');
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  it('lets the owner read and delete their own receipt with no group lookup', async () => {
+    const { deps, service } = makeDeps({ caller: paid() });
+    const got = await handleR2Sign(post({ action: 'get', bucket: 'receipts', path: MINE }), deps);
+    expect(got.status).toBe(200);
+    const removed = await handleR2Sign(
+      post({ action: 'delete', bucket: 'receipts', path: MINE }),
+      deps,
+    );
+    expect(removed.status).toBe(200);
+    // Owner-only by path: no uploader or admin lookup is needed (or made).
+    expect(service.from).not.toHaveBeenCalledWith('expenses');
+    expect(service.rpc).not.toHaveBeenCalledWith('is_group_admin', expect.anything());
+  });
+});

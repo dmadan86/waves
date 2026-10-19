@@ -43,7 +43,7 @@ import {
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
-import { useDeleteExpense, useWriteExpense } from '@/data/hooks';
+import { useDeleteExpense, useOpenReceipts, useWriteExpense } from '@/data/hooks';
 import {
   usePersonalLedger,
   useDeletePersonalRecord,
@@ -76,7 +76,9 @@ import { useToast } from '@/lib/toast';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
-import { useSync } from '@/sync';
+import { findSplittableReceipt, handoverFor, itemizeParams } from '@/lib/splitByItem';
+import { handoverKey } from '@/lib/handover';
+import { syncEngine, useSync } from '@/sync';
 
 export interface VoiceFollowUpsProps {
   initial: SavedState;
@@ -191,6 +193,9 @@ export function VoiceFollowUps({
   const removeExpense = useDeleteExpense(initial.groupId ?? '');
 
   const [saved, setSaved] = useState<SavedState>(initial);
+  // A bill already scanned for this group with the same total and its lines read:
+  // the only case "Split by item" is offered.
+  const openReceipts = useOpenReceipts(initial.kind === 'group' ? (initial.groupId ?? '') : '');
   const [session, setSession] = useState<FollowUpSession>(NEW_SESSION);
   const [filled, setFilled] = useState<FilledKind[]>([]);
   const [env, setEnv] = useState<FollowUpEnvironment | null>(null);
@@ -279,6 +284,8 @@ export function VoiceFollowUps({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
 
+  const splittable =
+    saved.kind === 'group' ? findSplittableReceipt(openReceipts.data, saved.amount) : null;
   const category = saved.category;
   const amountLabel = format(money(saved.amount, saved.currency), { locale });
   const whereLabel = saved.kind === 'group' ? (group?.name ?? '') : f.wherePersonal;
@@ -443,6 +450,20 @@ export function VoiceFollowUps({
           yes(f.receiptPick, () =>
             handOff('receipt', () => router.push(`/group/${saved.groupId}/expense/${saved.id}`)),
           ),
+          ...(splittable && saved.groupId
+            ? [
+                yes(f.splitByItem, () => {
+                  const groupId = saved.groupId as string;
+                  handOff('receipt', () => {
+                    void syncEngine.saveDraft(handoverKey(groupId), handoverFor(splittable));
+                    router.push({
+                      pathname: '/group/[id]/itemize',
+                      params: itemizeParams(groupId, saved.id),
+                    });
+                  });
+                }),
+              ]
+            : []),
           no(),
         ];
       case 'split':

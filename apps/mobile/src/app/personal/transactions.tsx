@@ -430,6 +430,14 @@ function PersonalTransactionsScreenBody() {
                 {txn.reimbursable ? (
                   <Text style={{ fontSize: 12, color: muted }}>{t.followUps.reimbursableTag}</Text>
                 ) : null}
+                {txn.receiptKey ? (
+                  <Ionicons
+                    name="receipt-outline"
+                    size={14}
+                    color={muted}
+                    accessibilityLabel={t.personalReceipt.attached}
+                  />
+                ) : null}
               </View>
               <Ionicons
                 name={directionalIcon('chevron-forward')}

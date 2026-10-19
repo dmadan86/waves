@@ -70,6 +70,8 @@ export interface EntryDraft {
   readonly paymentMethod?: string | null;
   /** A work spend to claim back. */
   readonly reimbursable?: boolean;
+  /** The receipt photo kept for this entry (`personal/<owner>/…`), if any. */
+  readonly receiptKey?: string | null;
 }
 
 /** Exactly the upsert the ledger takes — see `useUpsertPersonalRecord`. */
@@ -119,6 +121,7 @@ export function entryRecord(
         recurringId: draft.recurringId,
         paymentMethod: draft.paymentMethod ?? null,
         ...(draft.reimbursable ? { reimbursable: true } : {}),
+        ...(draft.receiptKey ? { receiptKey: draft.receiptKey } : {}),
         // Carried through so editing a txn here never drops a field a newer
         // version of the app wrote — see personal/types.ts. The form rebuilds
         // the payload from its own state, so without this the round trip is

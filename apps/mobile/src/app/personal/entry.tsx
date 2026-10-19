@@ -78,6 +78,7 @@ import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
+import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
@@ -91,6 +92,8 @@ import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { useSync } from '@/sync';
+import { useViewerId } from '@/lib/auth';
+import { removePersonalReceipt, staleReceiptKeys } from '@/lib/personalReceipt';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
@@ -234,6 +237,12 @@ function EntryForm({
   // A work spend to claim back (the agent's "Claim this from work?" sets it too).
   const [reimbursable, setReimbursable] = useState<boolean>(editingTxn?.reimbursable === true);
 
+  // The receipt photo. `savedReceipt` is what the stored entry holds; the form's
+  // own value only reaches the ledger on Save.
+  const ownerId = useViewerId();
+  const savedReceipt = editingTxn?.receiptKey ?? null;
+  const [receiptKey, setReceiptKey] = useState<string | null>(savedReceipt);
+
   // A repayment carries the loan it settles through from the loans screen; kept
   // as-is on an edit so the link survives.
   const loanId = editingTxn?.loanId ?? paramLoanId;
@@ -264,6 +273,7 @@ function EntryForm({
           recurringId: editingTxn?.recurringId ?? null,
           paymentMethod: loanId ? null : paymentMethod,
           reimbursable: kind === 'expense' && !loanId && reimbursable,
+          receiptKey: repeat || loanId ? null : receiptKey,
         },
         // Belt and braces: neither a repayment nor an existing transaction can
         // reach a repeat state at all, and a save is the wrong place to find
@@ -271,7 +281,15 @@ function EntryForm({
         canRepeat || editingRule !== undefined ? repeat : null,
         { txn: editingTxn, rule: editingRule },
       ),
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: () => {
+          // The photo the entry no longer points at goes with the save.
+          for (const stale of staleReceiptKeys(ownerId, savedReceipt, receiptKey)) {
+            void removePersonalReceipt(ownerId, stale);
+          }
+          router.back();
+        },
+      },
     );
   };
 
@@ -283,7 +301,16 @@ function EntryForm({
       confirmLabel: t.common.delete,
       tone: 'danger',
     });
-    if (ok) remove.mutate(editing.id, { onSuccess: () => router.back() });
+    if (ok) {
+      remove.mutate(editing.id, {
+        onSuccess: () => {
+          // Deleting the entry deletes its receipt (and any unsaved replacement).
+          void removePersonalReceipt(ownerId, savedReceipt);
+          if (receiptKey !== savedReceipt) void removePersonalReceipt(ownerId, receiptKey);
+          router.back();
+        },
+      });
+    }
   };
 
   const title = editingRule
@@ -396,6 +423,15 @@ function EntryForm({
                   label={t.followUps.reimbursableRow}
                   value={reimbursable ? t.followUps.yes : t.followUps.no}
                   onPress={() => setReimbursable((on) => !on)}
+                />
+              )}
+
+              {/* A photo of the bill, for a single entry. Private to the owner. */}
+              {repeat || loanId || editingRule ? null : (
+                <PersonalReceiptRow
+                  value={receiptKey}
+                  savedKey={savedReceipt}
+                  onChange={setReceiptKey}
                 />
               )}
             </DetailRows>

@@ -29,3 +29,26 @@ describe('personal txn: reimbursable and place', () => {
     expect(edited.place).toBe('Taj');
   });
 });
+
+describe('personal txn: receiptKey', () => {
+  const key = 'personal/user-1/t.jpg';
+  it('is written only when set and round-trips', () => {
+    expect('receiptKey' in encodeTxn(base)).toBe(false);
+    expect('receiptKey' in encodeTxn({ ...base, receiptKey: null })).toBe(false);
+    const data = encodeTxn({ ...base, receiptKey: key });
+    expect(data.receiptKey).toBe(key);
+    expect(decodeTxn('t', data).receiptKey).toBe(key);
+    expect(decodeTxn('t', encodeTxn(base)).receiptKey).toBeUndefined();
+  });
+  it('survives an edit that rebuilds the blob, and clears when removed', () => {
+    const decoded = decodeTxn('t', encodeTxn({ ...base, receiptKey: key }));
+    expect(encodeTxn({ ...decoded, note: 'edited' }).receiptKey).toBe(key);
+    expect('receiptKey' in encodeTxn({ ...decoded, receiptKey: null })).toBe(false);
+    expect(decoded.carried).toBeUndefined();
+  });
+  it('an older app that does not know the field keeps it through carried', () => {
+    const blob = { ...encodeTxn(base), receiptKey: key, futureField: 1 };
+    const decoded = decodeTxn('t', blob);
+    expect(decoded.carried).toEqual({ futureField: 1 });
+  });
+});
