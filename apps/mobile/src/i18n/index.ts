@@ -1202,6 +1202,7 @@ export interface UiStrings {
     receiptAsk: string;
     receiptScan: string;
     receiptPick: string;
+    splitByItem: string;
     splitAsk: string;
     splitSomeone: string;
     paymentAsk: string;
@@ -5171,6 +5172,24 @@ export interface UiStrings {
   };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
+  personalReceipt: {
+    title: string;
+    add: string;
+    attached: string;
+    saving: string;
+    addTitle: string;
+    camera: string;
+    library: string;
+    remove: string;
+    removeTitle: string;
+    removeBody: string;
+    replace: string;
+    private: string;
+    unavailable: string;
+    paidOnly: string;
+    storageFull: string;
+    couldNotAdd: string;
+  };
   personal: {
     /** The Personal tab's first-visit intro cards, and their skip. */
     introCards: readonly { title: string; body: string }[];
@@ -6365,6 +6384,7 @@ const en: UiStrings = {
     receiptAsk: "Got a receipt? I'll keep it with the expense.",
     receiptScan: 'Scan',
     receiptPick: 'Pick photo',
+    splitByItem: 'Split by item',
     splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
     splitSomeone: 'Someone else',
     paymentAsk: 'How did you pay?',
@@ -9735,6 +9755,24 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalReceipt: {
+    title: 'Receipt',
+    add: 'Add',
+    attached: 'Attached',
+    saving: 'Saving…',
+    addTitle: 'Add a receipt',
+    camera: 'Take a photo',
+    library: 'Choose from library',
+    remove: 'Remove',
+    removeTitle: 'Remove this receipt?',
+    removeBody: 'The photo is deleted from Waves. The entry stays.',
+    replace: 'Replace photo',
+    private: 'Only you can see this',
+    unavailable: 'Could not load the photo',
+    paidOnly: 'Keeping receipts on Waves needs Plus.',
+    storageFull: 'You have reached your storage limit.',
+    couldNotAdd: 'Could not add the receipt. Try again.',
+  },
   personal: {
     introCards: [
       {
@@ -10935,6 +10973,7 @@ const ta: UiStrings = {
     receiptAsk: "Got a receipt? I'll keep it with the expense.",
     receiptScan: 'Scan',
     receiptPick: 'Pick photo',
+    splitByItem: 'பொருள் வாரியாகப் பிரி',
     splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
     splitSomeone: 'Someone else',
     paymentAsk: 'How did you pay?',
@@ -14475,6 +14514,24 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalReceipt: {
+    title: 'ரசீது',
+    add: 'சேர்',
+    attached: 'இணைக்கப்பட்டது',
+    saving: 'சேமிக்கிறது…',
+    addTitle: 'ரசீதைச் சேர்',
+    camera: 'புகைப்படம் எடு',
+    library: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    remove: 'நீக்கு',
+    removeTitle: 'இந்த ரசீதை நீக்கவா?',
+    removeBody: 'புகைப்படம் Waves-இல் இருந்து அழிக்கப்படும். பதிவு அப்படியே இருக்கும்.',
+    replace: 'புகைப்படத்தை மாற்று',
+    private: 'இதை உங்களால் மட்டுமே பார்க்க முடியும்',
+    unavailable: 'புகைப்படத்தை ஏற்ற முடியவில்லை',
+    paidOnly: 'ரசீதுகளை Waves-இல் சேமிக்க Plus தேவை.',
+    storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
+    couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
+  },
   personal: {
     introCards: [
       {
@@ -15656,6 +15713,7 @@ const hi: UiStrings = {
     receiptAsk: "Got a receipt? I'll keep it with the expense.",
     receiptScan: 'Scan',
     receiptPick: 'Pick photo',
+    splitByItem: 'आइटम के हिसाब से बाँटें',
     splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
     splitSomeone: 'Someone else',
     paymentAsk: 'How did you pay?',
@@ -19047,6 +19105,24 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalReceipt: {
+    title: 'रसीद',
+    add: 'जोड़ें',
+    attached: 'जुड़ी है',
+    saving: 'सहेज रहे हैं…',
+    addTitle: 'रसीद जोड़ें',
+    camera: 'फ़ोटो लें',
+    library: 'गैलरी से चुनें',
+    remove: 'हटाएँ',
+    removeTitle: 'यह रसीद हटाएँ?',
+    removeBody: 'फ़ोटो Waves से मिट जाएगी। एंट्री बनी रहेगी।',
+    replace: 'फ़ोटो बदलें',
+    private: 'इसे सिर्फ़ आप देख सकते हैं',
+    unavailable: 'फ़ोटो लोड नहीं हो सकी',
+    paidOnly: 'Waves पर रसीदें रखने के लिए Plus चाहिए।',
+    storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
+    couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
+  },
   personal: {
     introCards: [
       {
@@ -20292,6 +20368,7 @@ const ar: UiStrings = {
     receiptAsk: "Got a receipt? I'll keep it with the expense.",
     receiptScan: 'Scan',
     receiptPick: 'Pick photo',
+    splitByItem: 'التقسيم حسب الصنف',
     splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
     splitSomeone: 'Someone else',
     paymentAsk: 'How did you pay?',
@@ -24235,6 +24312,24 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalReceipt: {
+    title: 'الإيصال',
+    add: 'إضافة',
+    attached: 'مرفق',
+    saving: 'جارٍ الحفظ…',
+    addTitle: 'إضافة إيصال',
+    camera: 'التقاط صورة',
+    library: 'اختيار من المعرض',
+    remove: 'حذف',
+    removeTitle: 'حذف هذا الإيصال؟',
+    removeBody: 'ستُحذف الصورة من Waves. يبقى القيد كما هو.',
+    replace: 'استبدال الصورة',
+    private: 'أنت وحدك من يراه',
+    unavailable: 'تعذّر تحميل الصورة',
+    paidOnly: 'حفظ الإيصالات على Waves يتطلب Plus.',
+    storageFull: 'لقد بلغت حد التخزين.',
+    couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
+  },
   personal: {
     introCards: [
       {

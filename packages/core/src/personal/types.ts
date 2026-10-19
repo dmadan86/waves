@@ -81,6 +81,12 @@ export interface PersonalTxn {
   readonly place?: string | null;
   /** A work spend to claim back. Never changes a total; it only marks the entry. */
   readonly reimbursable?: boolean;
+  /** The object key of a receipt photo kept for this entry, in the private
+   *  `receipts` bucket under `personal/<owner id>/…`. Only the owner can be
+   *  signed a URL for it (r2-sign). Absent when there is none. Lives in the
+   *  blob, not a column, so it needs no migration and the server never sees
+   *  which entries have one. */
+  readonly receiptKey?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -180,6 +186,7 @@ const KNOWN_TXN = [
   'paymentMethod',
   'place',
   'reimbursable',
+  'receiptKey',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -251,6 +258,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
   const paymentMethod = str(data.paymentMethod);
   const place = str(data.place);
   const reimbursable = data.reimbursable === true;
+  const receiptKey = str(data.receiptKey);
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -266,6 +274,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     ...(paymentMethod !== null ? { paymentMethod } : {}),
     ...(place !== null ? { place } : {}),
     ...(reimbursable ? { reimbursable } : {}),
+    ...(receiptKey !== null ? { receiptKey } : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -343,6 +352,7 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       ...(txn.paymentMethod ? { paymentMethod: txn.paymentMethod } : {}),
       ...(txn.place ? { place: txn.place } : {}),
       ...(txn.reimbursable ? { reimbursable: true } : {}),
+      ...(txn.receiptKey ? { receiptKey: txn.receiptKey } : {}),
     },
     txn.carried,
   );

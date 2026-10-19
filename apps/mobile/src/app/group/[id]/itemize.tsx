@@ -10,6 +10,7 @@ import {
   currencySymbol,
   format,
   minorUnitScale,
+  receiptToItemDraft,
   type ItemizedParams,
   type MemberId,
   type ParsedReceipt,
@@ -45,7 +46,13 @@ import {
 import { router } from '@/lib/navigation';
 import { receiptCapStatus, receiptTapAction } from '@/lib/receiptCapGate';
 import { recogniseReceipt } from '@/lib/ocr';
-import { useGroup, useItemClaims, useReceipt, useWriteExpense } from '@/data/hooks';
+import {
+  useDeleteExpense,
+  useGroup,
+  useItemClaims,
+  useReceipt,
+  useWriteExpense,
+} from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
@@ -92,7 +99,11 @@ export default function ItemizeScreen() {
   const theme = useTheme();
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
-  const { id, receipt: receiptParam } = useLocalSearchParams<{ id: string; receipt?: string }>();
+  const {
+    id,
+    receipt: receiptParam,
+    replaces,
+  } = useLocalSearchParams<{ id: string; receipt?: string; replaces?: string }>();
   const groupId = id ?? '';
 
   // Identity for "which member am I", from the session rather than the profile:
@@ -104,6 +115,7 @@ export default function ItemizeScreen() {
 
   const { group, members } = useGroup(groupId);
   const writeExpense = useWriteExpense(groupId);
+  const deleteExpense = useDeleteExpense(groupId);
 
   // Arriving with `?receipt=` means somebody else scanned this and shared it;
   // there is nothing to correct and nothing to publish, only lines to claim.
@@ -182,17 +194,22 @@ export default function ItemizeScreen() {
    * a misread line is just editing — there is no separate "AI mode" to leave.
    */
   const fillFromReceipt = (parsed: ParsedReceipt): void => {
+    // Which lines count, and where tax, service, tip and discounts go, is the
+    // core helper's call, so the voice follow-up and this screen agree.
+    const draft = receiptToItemDraft(parsed);
     setItems(
-      parsed.items.map((item, index) => ({
+      draft.items.map((item, index) => ({
         key: `scan-${index}-${randomUUID()}`,
         label: item.label,
-        total: BigInt(item.total),
+        total: item.total,
         claimers: [],
       })),
     );
-    const taxes = parsed.taxes.reduce((sum, tax) => sum + tax.amount, 0);
-    if (taxes > 0) setTaxText(toMajor(BigInt(taxes)));
-    if (parsed.tip) setTipText(toMajor(BigInt(parsed.tip)));
+    // The form has one "tax" field, so service and discounts ride in it: they
+    // are prorated by the same item subtotals, which is what the engine does.
+    const charges = draft.taxes + draft.serviceCharge - draft.discounts;
+    if (charges > 0n) setTaxText(toMajor(charges));
+    if (draft.tip > 0n) setTipText(toMajor(draft.tip));
     if (parsed.merchant) {
       setDescription((current) => (current.trim() ? current : (parsed.merchant ?? '')));
     }
@@ -496,7 +513,12 @@ export default function ItemizeScreen() {
         participants,
         payers: { [myMemberId]: grandTotal },
         expectedShares: preview ? Object.fromEntries(preview) : undefined,
+        // The bill this was split from stays attached to the expense.
+        receiptId: sharedId ?? scanId,
       });
+      // Split by item from a voice follow-up replaces the entry that was saved
+      // by voice. It goes only now that the itemised one is safely written.
+      if (replaces) await deleteExpense.mutateAsync(replaces).catch(() => undefined);
       router.back();
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'itemize.save'));
