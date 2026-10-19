@@ -13,6 +13,7 @@
 
 import type { TypedResult } from '@/lib/assistantCorrections';
 import { toPersonalData, type SavedState } from '@/lib/followUpApply';
+import { undoMove, type MoveSnapshot } from '@/lib/personalHandoff';
 
 /** How long the ring runs on the first Undo (D2); after it the link stays. */
 export const UNDO_RING_MS = 6000;
@@ -50,7 +51,13 @@ export type UndoEntry =
       readonly carried?: Readonly<Record<string, unknown>>;
     }
   /** My copy of a duplicate removed. */
-  | { readonly kind: 'duplicate'; readonly previous: SavedState };
+  | { readonly kind: 'duplicate'; readonly previous: SavedState }
+  /**
+   * A personal entry moved into a group from the add-expense form (a split, a
+   * trip). `previous` is that entry as the panel held it; the snapshot says
+   * which group expense replaced it.
+   */
+  | { readonly kind: 'handoff'; readonly previous: SavedState; readonly snapshot: MoveSnapshot };
 
 export function pushHistory(history: readonly UndoEntry[], entry: UndoEntry): UndoEntry[] {
   return [...history, entry].slice(-HISTORY_MAX);
@@ -79,6 +86,11 @@ export interface UndoDeps {
   persist(next: SavedState): Promise<boolean>;
   /** A fresh id. */
   newId(): string;
+  /**
+   * The group expense a loan was shared as (a synced loan), looked up when the
+   * undo runs because sharing can happen after the answer. Null: not shared.
+   */
+  sharedLoanExpense?(loanId: string): { groupId: string; expenseId: string } | null;
 }
 
 /** Remove the just-saved expense: a group one is soft-deleted (restorable from Activity). */
@@ -136,9 +148,23 @@ export async function undoEntry(entry: UndoEntry, deps: UndoDeps): Promise<UndoO
       return { state: revived, what: 'correction' };
     }
     case 'lend': {
+      // A shared loan is also a debt in a 1:1 group: take that out first, so a
+      // failure leaves the loan (and its link) in place to retry, never an
+      // orphan debt the other person can still see.
+      const shared = deps.sharedLoanExpense?.(entry.loanId) ?? null;
+      if (shared) await deps.deleteGroupExpense(shared.groupId, shared.expenseId);
       const revived = await restoreRemoved(entry.previous, deps, entry.carried);
       await deps.deletePersonal(entry.loanId);
       return { state: revived, what: 'handoff' };
+    }
+    case 'handoff': {
+      // Entry back first (same id, same data), then the group expense goes.
+      await undoMove(entry.snapshot, {
+        restorePersonal: (recordId, data) =>
+          deps.upsertPersonal({ recordId, recordKind: 'txn', data: { ...data } }),
+        deleteExpense: deps.deleteGroupExpense,
+      });
+      return { state: entry.previous, what: 'handoff' };
     }
     case 'duplicate': {
       const revived = await restoreRemoved(entry.previous, deps);

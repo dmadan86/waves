@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, View } from 'react-native';
 import Animated, {
@@ -52,6 +53,7 @@ import {
 import { filledBy, toGroupWrite, toPersonalData, type SavedState } from '@/lib/followUpApply';
 import { hapticLight } from '@/lib/assistantHaptics';
 import { useReducedMotion } from '@/lib/reducedMotion';
+import { forgetMove, lastRememberedMove } from '@/lib/personalHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { checkOnline } from '@/lib/voiceStream';
@@ -212,6 +214,17 @@ export function AssistantSavedBar({
     }
   }, [externalEntry]);
 
+  // The form that split this entry or moved it to a trip leaves a snapshot
+  // behind; back on this screen, that move becomes one more undo step.
+  useFocusEffect(
+    useCallback(() => {
+      const move = lastRememberedMove();
+      if (!move || state.kind !== 'personal' || move.personalId !== state.id) return;
+      forgetMove();
+      setHistory((h) => pushHistory(h, { kind: 'handoff', previous: state, snapshot: move }));
+    }, [state]),
+  );
+
   const amountOf = (s: SavedState): string => format(money(s.amount, s.currency), { locale });
 
   const writeGroup = useCallback(
@@ -258,9 +271,13 @@ export function AssistantSavedBar({
       upsertPersonal: (input) => upsert.mutateAsync(input),
       persist,
       newId: () => randomUUID(),
+      sharedLoanExpense: (loanId) => {
+        const link = ledger.loans.find((loan) => loan.id === loanId)?.synced;
+        return link ? { groupId: link.groupId, expenseId: link.expenseId } : null;
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mutate, persist],
+    [mutate, persist, ledger.loans],
   );
 
   const carriedFor = (s: SavedState): Readonly<Record<string, unknown>> | undefined =>
