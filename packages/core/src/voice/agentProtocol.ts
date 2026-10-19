@@ -66,6 +66,50 @@ export interface VoiceAgentRequest {
    * quota}`, or 402 when the allowance is spent.
    */
   readonly meterOnly?: boolean;
+  /**
+   * Set when this turn is a free-text answer to a follow-up question about an
+   * expense the person has just saved. The model may then only call
+   * `update_expense`, and only for this id.
+   */
+  readonly savedExpense?: VoiceSavedExpense;
+}
+
+/** The expense a follow-up turn is about. The app saved it; nothing here writes. */
+export interface VoiceSavedExpense {
+  readonly id: string;
+  readonly kind: 'personal' | 'group';
+  /** The group, for a group expense. */
+  readonly groupId?: string | null;
+  /** What was asked, so a bare "at Taj" is read as the answer. */
+  readonly question?: string;
+}
+
+/** How a saved expense was paid: the union of the personal and group lists. */
+export const VOICE_PAYMENT_METHODS = [
+  'cash',
+  'upi',
+  'card',
+  'credit',
+  'debit',
+  'bank',
+  'wallet',
+] as const;
+
+/**
+ * Changes to the just-saved expense that a follow-up answer asks for. Every
+ * field is optional; the app applies the ones it supports for that expense and
+ * the person sees what changed.
+ */
+export interface VoiceExpenseUpdate {
+  readonly expenseId: string;
+  readonly place?: string;
+  readonly note?: string;
+  readonly category?: string;
+  readonly paymentMethod?: string;
+  /** The person wants to add a receipt: the app opens the receipt flow. */
+  readonly wantsReceipt?: boolean;
+  /** Share it with these members of one of their groups (hands off to that group). */
+  readonly splitWith?: { readonly groupId: string; readonly memberIds: readonly string[] };
 }
 
 /**
@@ -178,6 +222,8 @@ export interface VoiceAgentResponse {
   readonly clarify?: string;
   /** With `clarify`: 2-4 concrete answers the person can tap instead of speaking. */
   readonly clarifyOptions?: readonly VoiceClarifyOption[];
+  /** For a follow-up turn: what to change on the just-saved expense. */
+  readonly update?: VoiceExpenseUpdate;
   readonly quota: {
     readonly used: number;
     readonly limit: number;

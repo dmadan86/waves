@@ -22,6 +22,9 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
+import { resetMuted as resetMutedFollowUps, setEnabled as setFollowUpsEnabled } from '@waves/core';
+import { useFollowUpPrefs } from '@/lib/followUpPrefs';
+import { useToast } from '@/lib/toast';
 import { SkeletonList } from '@/components/Skeletons';
 import { useSettledTotals, useVoiceAgentEnabled } from '@/data/hooks';
 import { useDemoActive } from '@/demo/useDemoActive';
@@ -169,6 +172,8 @@ function ProfileForm() {
   const voiceAgentOn = useVoiceAgentEnabled();
   const showVoiceRecorder = voiceAgentOn || __DEV__;
   const voiceConsent = useVoiceConsent(session?.user?.id);
+  const followUps = useFollowUpPrefs(session?.user?.id);
+  const toast = useToast();
   const [consentSheet, setConsentSheet] = useState(false);
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
@@ -421,6 +426,32 @@ function ProfileForm() {
                         if (on) setConsentSheet(true);
                         else voiceConsent.revoke();
                       },
+                    },
+                  },
+                ]
+              : []),
+            // Pro voice agent only (the same flag): the short questions it asks
+            // after adding an expense, and a way to un-mute the ones turned off.
+            ...(showVoiceRecorder
+              ? [
+                  {
+                    icon: 'chatbubble-ellipses-outline' as const,
+                    label: t.followUps.settingsRow,
+                    hint: t.followUps.settingsHint,
+                    toggle: {
+                      value: followUps.prefs.enabled,
+                      disabled: !followUps.ready,
+                      onChange: (on: boolean) =>
+                        followUps.update((p) => setFollowUpsEnabled(p, on)),
+                    },
+                  },
+                  {
+                    icon: 'refresh-outline' as const,
+                    label: t.followUps.resetRow,
+                    hint: t.followUps.resetHint,
+                    onPress: () => {
+                      followUps.update(resetMutedFollowUps);
+                      toast.show(t.followUps.resetDone);
                     },
                   },
                 ]

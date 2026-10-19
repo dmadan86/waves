@@ -76,6 +76,11 @@ export interface PersonalTxn {
    *  'other'. Absent on entries written before the field existed, and on ones
    *  where nobody said; the ledger's arithmetic never reads it. */
   readonly paymentMethod?: string | null;
+  /** Where it happened, as a name ("Phoenix Mall"). Set by the voice agent's
+   *  follow-up question; absent otherwise. Never part of any total. */
+  readonly place?: string | null;
+  /** A work spend to claim back. Never changes a total; it only marks the entry. */
+  readonly reimbursable?: boolean;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -173,6 +178,8 @@ const KNOWN_TXN = [
   'loanId',
   'recurringId',
   'paymentMethod',
+  'place',
+  'reimbursable',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -242,6 +249,8 @@ function withCarried(
 
 export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTxn {
   const paymentMethod = str(data.paymentMethod);
+  const place = str(data.place);
+  const reimbursable = data.reimbursable === true;
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -255,6 +264,8 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     // Only when the blob has one, so an entry without it decodes exactly as it
     // did before the field existed.
     ...(paymentMethod !== null ? { paymentMethod } : {}),
+    ...(place !== null ? { place } : {}),
+    ...(reimbursable ? { reimbursable } : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -330,6 +341,8 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       // Written only when set, so an entry that never had one stays byte-for-byte
       // the blob it always was.
       ...(txn.paymentMethod ? { paymentMethod: txn.paymentMethod } : {}),
+      ...(txn.place ? { place: txn.place } : {}),
+      ...(txn.reimbursable ? { reimbursable: true } : {}),
     },
     txn.carried,
   );

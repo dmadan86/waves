@@ -6,6 +6,7 @@ export * from './plan';
 // of both is a TS2308 ambiguity). Import the original from './agentProtocol'.
 export {
   VOICE_AGENT_FREE_MONTHLY,
+  VOICE_PAYMENT_METHODS,
   VOICE_AGENT_MAX_CLIP_MS,
   VOICE_AGENT_PRO_MONTHLY,
   VOICE_AGENT_TRIAL_COMMANDS,
@@ -18,6 +19,8 @@ export {
   VoiceAgentError,
   type VoiceAgentAction,
   type VoiceAgentRequest,
+  type VoiceExpenseUpdate,
+  type VoiceSavedExpense,
   type VoiceClarifyOption,
   type VoiceAgentResponse,
   type VoiceSplitMode as VoiceAgentSplitMode,
@@ -26,3 +29,4 @@ export {
   type VoiceStreamTokenResponse,
 } from './agentProtocol';
 export * from './amounts';
+export * from './followUps';

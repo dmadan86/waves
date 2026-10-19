@@ -307,9 +307,14 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
   }
 
   try {
-    const context = await raceDeadline(contextLoad, Math.min(limits.dbMs, left()), () =>
+    const loaded = await raceDeadline(contextLoad, Math.min(limits.dbMs, left()), () =>
       unavailable('Advanced voice is unavailable just now'),
     );
+    // A follow-up turn is read against the expense just saved (never cached:
+    // the cached context is shared across requests).
+    const context: VoiceContext = body.savedExpense
+      ? { ...loaded, saved: body.savedExpense }
+      : loaded;
     const transcript =
       spoken ||
       (await transcribe(
@@ -382,6 +387,7 @@ export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Re
           transcript,
           actions: parsed.actions,
           ...(parsed.answer ? { answer: parsed.answer } : {}),
+          ...(parsed.update ? { update: parsed.update } : {}),
           ...(parsed.clarify ? { clarify: parsed.clarify } : {}),
           ...(parsed.clarify && parsed.clarifyOptions
             ? { clarifyOptions: parsed.clarifyOptions }
@@ -463,7 +469,13 @@ function parseBody(raw: unknown): VoiceAgentRequest {
     typeof b.today !== 'string' ||
     !/^\d{4}-\d{2}-\d{2}$/.test(b.today) ||
     (b.followUp !== undefined &&
-      (typeof b.followUp?.transcript !== 'string' || typeof b.followUp?.question !== 'string'))
+      (typeof b.followUp?.transcript !== 'string' || typeof b.followUp?.question !== 'string')) ||
+    (b.savedExpense !== undefined &&
+      (typeof b.savedExpense?.id !== 'string' ||
+        b.savedExpense.id.length === 0 ||
+        b.savedExpense.id.length > 64 ||
+        (b.savedExpense.kind !== 'personal' && b.savedExpense.kind !== 'group') ||
+        (b.savedExpense.question !== undefined && typeof b.savedExpense.question !== 'string')))
   ) {
     throw new HttpError(400, 'BAD_REQUEST', 'Malformed voice request');
   }

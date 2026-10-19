@@ -1186,6 +1186,82 @@ export interface UiStrings {
     resetUsage: string;
   };
   /** Speak-an-expense quick add, reached from the bar's mic. */
+  followUps: {
+    added: string;
+    wherePersonal: string;
+    skip: string;
+    dontAsk: string;
+    done: string;
+    typeInstead: string;
+    yes: string;
+    no: string;
+    working: string;
+    placeHere: string;
+    placeAsk: string;
+    placeElse: string;
+    receiptAsk: string;
+    receiptScan: string;
+    receiptPick: string;
+    splitAsk: string;
+    splitSomeone: string;
+    paymentAsk: string;
+    payCash: string;
+    payUpi: string;
+    payCard: string;
+    payCredit: string;
+    payDebit: string;
+    tripAsk: string;
+    tripMove: string;
+    tripNo: string;
+    attendanceAsk: string;
+    attendanceEveryone: string;
+    attendancePick: string;
+    payerAsk: string;
+    payerYes: string;
+    payerNo: string;
+    recurringAsk: string;
+    recurringYes: string;
+    duplicateAsk: string;
+    duplicateSame: string;
+    duplicateDifferent: string;
+    currencyAsk: string;
+    currencyKeep: string;
+    categoryAsk: string;
+    dateAsk: string;
+    dateYes: string;
+    dateNo: string;
+    lendAsk: string;
+    lendYes: string;
+    lendNo: string;
+    wrapupAsk: string;
+    wrapupYes: string;
+    wrapupNo: string;
+    workAsk: string;
+    workYes: string;
+    saved: string;
+    savedWith: string;
+    itemPlace: string;
+    itemPayment: string;
+    itemCategory: string;
+    itemDate: string;
+    itemPayer: string;
+    itemCurrency: string;
+    itemRecurring: string;
+    itemLend: string;
+    itemWork: string;
+    removedDuplicate: string;
+    handedOff: string;
+    gotIt: string;
+    couldNotUse: string;
+    couldNotSave: string;
+    reimbursableRow: string;
+    reimbursableTag: string;
+    settingsRow: string;
+    settingsHint: string;
+    resetRow: string;
+    resetHint: string;
+    resetDone: string;
+  };
   voice: {
     /** Mic label + screen title. */
     speakExpense: string;
@@ -6273,6 +6349,82 @@ const en: UiStrings = {
     usedOfLimit: '{used} / {limit} tokens used',
     resetUsage: 'Reset',
   },
+  followUps: {
+    added: 'Added {amount} to {where} ✓',
+    wherePersonal: 'Personal',
+    skip: 'Skip',
+    dontAsk: "Don't ask this again",
+    done: 'Done',
+    typeInstead: 'Type instead',
+    yes: 'Yes',
+    no: 'No',
+    working: 'Updating…',
+    placeHere: "Where was this — {place} (you're here now)?",
+    placeAsk: 'Where was this?',
+    placeElse: 'Somewhere else',
+    receiptAsk: "Got a receipt? I'll keep it with the expense.",
+    receiptScan: 'Scan',
+    receiptPick: 'Pick photo',
+    splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
+    splitSomeone: 'Someone else',
+    paymentAsk: 'How did you pay?',
+    payCash: 'Cash',
+    payUpi: 'UPI',
+    payCard: 'Card',
+    payCredit: 'Credit card',
+    payDebit: 'Debit card',
+    tripAsk: 'Was this for {trip}?',
+    tripMove: 'Move to {trip}',
+    tripNo: 'No, personal',
+    attendanceAsk: 'Was everyone there?',
+    attendanceEveryone: 'Everyone',
+    attendancePick: 'Pick people',
+    payerAsk: 'Did {name} pay for this?',
+    payerYes: '{name} paid',
+    payerNo: 'No, I did',
+    recurringAsk: 'This looks monthly — repeat it every month?',
+    recurringYes: 'Repeat monthly',
+    duplicateAsk: '{name} already added {amount} “{description}” — same bill?',
+    duplicateSame: 'Same, remove mine',
+    duplicateDifferent: 'Different',
+    currencyAsk: 'Was this in {currency}?',
+    currencyKeep: 'Keep {currency}',
+    categoryAsk: 'What kind of spend was this?',
+    dateAsk: 'Was this yesterday?',
+    dateYes: 'Yes, yesterday',
+    dateNo: 'No, today',
+    lendAsk: 'Should {name} pay you back?',
+    lendYes: 'Yes, {name} owes me',
+    lendNo: 'No, it was a gift',
+    wrapupAsk: '{trip} looks finished. Settle up now?',
+    wrapupYes: 'Settle up',
+    wrapupNo: 'Not yet',
+    workAsk: 'Claim this from work?',
+    workYes: 'Yes, tag it',
+    saved: 'Saved ✓',
+    savedWith: 'Saved with {items}',
+    itemPlace: 'place',
+    itemPayment: 'payment method',
+    itemCategory: 'category',
+    itemDate: 'date',
+    itemPayer: 'payer',
+    itemCurrency: 'currency',
+    itemRecurring: 'monthly repeat',
+    itemLend: 'loan',
+    itemWork: 'work tag',
+    removedDuplicate: 'Removed the duplicate',
+    handedOff: 'Opened it for you',
+    gotIt: 'Got it',
+    couldNotUse: "I couldn't use that",
+    couldNotSave: "Couldn't save that. Try again?",
+    reimbursableRow: 'Work expense (to claim)',
+    reimbursableTag: 'Work',
+    settingsRow: 'Follow-up questions',
+    settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
+    resetRow: 'Reset muted questions',
+    resetHint: 'Ask every kind of follow-up again',
+    resetDone: 'Follow-up questions reset',
+  },
   voice: {
     speakExpense: 'Speak an expense',
     micHint: 'Tap to open, or hold and talk',
@@ -10766,6 +10918,82 @@ const ta: UiStrings = {
     usedTokens: '{used} டோக்கன்கள் பயன்படுத்தப்பட்டன',
     usedOfLimit: '{used} / {limit} டோக்கன்கள் பயன்படுத்தப்பட்டன',
     resetUsage: 'மீட்டமை',
+  },
+  followUps: {
+    added: 'Added {amount} to {where} ✓',
+    wherePersonal: 'Personal',
+    skip: 'Skip',
+    dontAsk: "Don't ask this again",
+    done: 'Done',
+    typeInstead: 'Type instead',
+    yes: 'Yes',
+    no: 'No',
+    working: 'Updating…',
+    placeHere: "Where was this — {place} (you're here now)?",
+    placeAsk: 'Where was this?',
+    placeElse: 'Somewhere else',
+    receiptAsk: "Got a receipt? I'll keep it with the expense.",
+    receiptScan: 'Scan',
+    receiptPick: 'Pick photo',
+    splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
+    splitSomeone: 'Someone else',
+    paymentAsk: 'How did you pay?',
+    payCash: 'Cash',
+    payUpi: 'UPI',
+    payCard: 'Card',
+    payCredit: 'Credit card',
+    payDebit: 'Debit card',
+    tripAsk: 'Was this for {trip}?',
+    tripMove: 'Move to {trip}',
+    tripNo: 'No, personal',
+    attendanceAsk: 'Was everyone there?',
+    attendanceEveryone: 'Everyone',
+    attendancePick: 'Pick people',
+    payerAsk: 'Did {name} pay for this?',
+    payerYes: '{name} paid',
+    payerNo: 'No, I did',
+    recurringAsk: 'This looks monthly — repeat it every month?',
+    recurringYes: 'Repeat monthly',
+    duplicateAsk: '{name} already added {amount} “{description}” — same bill?',
+    duplicateSame: 'Same, remove mine',
+    duplicateDifferent: 'Different',
+    currencyAsk: 'Was this in {currency}?',
+    currencyKeep: 'Keep {currency}',
+    categoryAsk: 'What kind of spend was this?',
+    dateAsk: 'Was this yesterday?',
+    dateYes: 'Yes, yesterday',
+    dateNo: 'No, today',
+    lendAsk: 'Should {name} pay you back?',
+    lendYes: 'Yes, {name} owes me',
+    lendNo: 'No, it was a gift',
+    wrapupAsk: '{trip} looks finished. Settle up now?',
+    wrapupYes: 'Settle up',
+    wrapupNo: 'Not yet',
+    workAsk: 'Claim this from work?',
+    workYes: 'Yes, tag it',
+    saved: 'Saved ✓',
+    savedWith: 'Saved with {items}',
+    itemPlace: 'place',
+    itemPayment: 'payment method',
+    itemCategory: 'category',
+    itemDate: 'date',
+    itemPayer: 'payer',
+    itemCurrency: 'currency',
+    itemRecurring: 'monthly repeat',
+    itemLend: 'loan',
+    itemWork: 'work tag',
+    removedDuplicate: 'Removed the duplicate',
+    handedOff: 'Opened it for you',
+    gotIt: 'Got it',
+    couldNotUse: "I couldn't use that",
+    couldNotSave: "Couldn't save that. Try again?",
+    reimbursableRow: 'Work expense (to claim)',
+    reimbursableTag: 'Work',
+    settingsRow: 'Follow-up questions',
+    settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
+    resetRow: 'Reset muted questions',
+    resetHint: 'Ask every kind of follow-up again',
+    resetDone: 'Follow-up questions reset',
   },
   voice: {
     speakExpense: 'செலவைப் பேசு',
@@ -15412,6 +15640,82 @@ const hi: UiStrings = {
     usedOfLimit: '{used} / {limit} टोकन इस्तेमाल हुए',
     resetUsage: 'रीसेट',
   },
+  followUps: {
+    added: 'Added {amount} to {where} ✓',
+    wherePersonal: 'Personal',
+    skip: 'Skip',
+    dontAsk: "Don't ask this again",
+    done: 'Done',
+    typeInstead: 'Type instead',
+    yes: 'Yes',
+    no: 'No',
+    working: 'Updating…',
+    placeHere: "Where was this — {place} (you're here now)?",
+    placeAsk: 'Where was this?',
+    placeElse: 'Somewhere else',
+    receiptAsk: "Got a receipt? I'll keep it with the expense.",
+    receiptScan: 'Scan',
+    receiptPick: 'Pick photo',
+    splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
+    splitSomeone: 'Someone else',
+    paymentAsk: 'How did you pay?',
+    payCash: 'Cash',
+    payUpi: 'UPI',
+    payCard: 'Card',
+    payCredit: 'Credit card',
+    payDebit: 'Debit card',
+    tripAsk: 'Was this for {trip}?',
+    tripMove: 'Move to {trip}',
+    tripNo: 'No, personal',
+    attendanceAsk: 'Was everyone there?',
+    attendanceEveryone: 'Everyone',
+    attendancePick: 'Pick people',
+    payerAsk: 'Did {name} pay for this?',
+    payerYes: '{name} paid',
+    payerNo: 'No, I did',
+    recurringAsk: 'This looks monthly — repeat it every month?',
+    recurringYes: 'Repeat monthly',
+    duplicateAsk: '{name} already added {amount} “{description}” — same bill?',
+    duplicateSame: 'Same, remove mine',
+    duplicateDifferent: 'Different',
+    currencyAsk: 'Was this in {currency}?',
+    currencyKeep: 'Keep {currency}',
+    categoryAsk: 'What kind of spend was this?',
+    dateAsk: 'Was this yesterday?',
+    dateYes: 'Yes, yesterday',
+    dateNo: 'No, today',
+    lendAsk: 'Should {name} pay you back?',
+    lendYes: 'Yes, {name} owes me',
+    lendNo: 'No, it was a gift',
+    wrapupAsk: '{trip} looks finished. Settle up now?',
+    wrapupYes: 'Settle up',
+    wrapupNo: 'Not yet',
+    workAsk: 'Claim this from work?',
+    workYes: 'Yes, tag it',
+    saved: 'Saved ✓',
+    savedWith: 'Saved with {items}',
+    itemPlace: 'place',
+    itemPayment: 'payment method',
+    itemCategory: 'category',
+    itemDate: 'date',
+    itemPayer: 'payer',
+    itemCurrency: 'currency',
+    itemRecurring: 'monthly repeat',
+    itemLend: 'loan',
+    itemWork: 'work tag',
+    removedDuplicate: 'Removed the duplicate',
+    handedOff: 'Opened it for you',
+    gotIt: 'Got it',
+    couldNotUse: "I couldn't use that",
+    couldNotSave: "Couldn't save that. Try again?",
+    reimbursableRow: 'Work expense (to claim)',
+    reimbursableTag: 'Work',
+    settingsRow: 'Follow-up questions',
+    settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
+    resetRow: 'Reset muted questions',
+    resetHint: 'Ask every kind of follow-up again',
+    resetDone: 'Follow-up questions reset',
+  },
   voice: {
     speakExpense: 'खर्च बोलें',
     micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
@@ -19971,6 +20275,82 @@ const ar: UiStrings = {
     usedTokens: 'استُخدم {used} رمزًا',
     usedOfLimit: 'استُخدم {used} / {limit} رمز',
     resetUsage: 'إعادة تعيين',
+  },
+  followUps: {
+    added: 'Added {amount} to {where} ✓',
+    wherePersonal: 'Personal',
+    skip: 'Skip',
+    dontAsk: "Don't ask this again",
+    done: 'Done',
+    typeInstead: 'Type instead',
+    yes: 'Yes',
+    no: 'No',
+    working: 'Updating…',
+    placeHere: "Where was this — {place} (you're here now)?",
+    placeAsk: 'Where was this?',
+    placeElse: 'Somewhere else',
+    receiptAsk: "Got a receipt? I'll keep it with the expense.",
+    receiptScan: 'Scan',
+    receiptPick: 'Pick photo',
+    splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
+    splitSomeone: 'Someone else',
+    paymentAsk: 'How did you pay?',
+    payCash: 'Cash',
+    payUpi: 'UPI',
+    payCard: 'Card',
+    payCredit: 'Credit card',
+    payDebit: 'Debit card',
+    tripAsk: 'Was this for {trip}?',
+    tripMove: 'Move to {trip}',
+    tripNo: 'No, personal',
+    attendanceAsk: 'Was everyone there?',
+    attendanceEveryone: 'Everyone',
+    attendancePick: 'Pick people',
+    payerAsk: 'Did {name} pay for this?',
+    payerYes: '{name} paid',
+    payerNo: 'No, I did',
+    recurringAsk: 'This looks monthly — repeat it every month?',
+    recurringYes: 'Repeat monthly',
+    duplicateAsk: '{name} already added {amount} “{description}” — same bill?',
+    duplicateSame: 'Same, remove mine',
+    duplicateDifferent: 'Different',
+    currencyAsk: 'Was this in {currency}?',
+    currencyKeep: 'Keep {currency}',
+    categoryAsk: 'What kind of spend was this?',
+    dateAsk: 'Was this yesterday?',
+    dateYes: 'Yes, yesterday',
+    dateNo: 'No, today',
+    lendAsk: 'Should {name} pay you back?',
+    lendYes: 'Yes, {name} owes me',
+    lendNo: 'No, it was a gift',
+    wrapupAsk: '{trip} looks finished. Settle up now?',
+    wrapupYes: 'Settle up',
+    wrapupNo: 'Not yet',
+    workAsk: 'Claim this from work?',
+    workYes: 'Yes, tag it',
+    saved: 'Saved ✓',
+    savedWith: 'Saved with {items}',
+    itemPlace: 'place',
+    itemPayment: 'payment method',
+    itemCategory: 'category',
+    itemDate: 'date',
+    itemPayer: 'payer',
+    itemCurrency: 'currency',
+    itemRecurring: 'monthly repeat',
+    itemLend: 'loan',
+    itemWork: 'work tag',
+    removedDuplicate: 'Removed the duplicate',
+    handedOff: 'Opened it for you',
+    gotIt: 'Got it',
+    couldNotUse: "I couldn't use that",
+    couldNotSave: "Couldn't save that. Try again?",
+    reimbursableRow: 'Work expense (to claim)',
+    reimbursableTag: 'Work',
+    settingsRow: 'Follow-up questions',
+    settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
+    resetRow: 'Reset muted questions',
+    resetHint: 'Ask every kind of follow-up again',
+    resetDone: 'Follow-up questions reset',
   },
   voice: {
     speakExpense: 'انطق مصروفًا',

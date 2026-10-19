@@ -231,6 +231,9 @@ function EntryForm({
     editingTxn ? (editingTxn.paymentMethod ?? null) : 'cash',
   );
 
+  // A work spend to claim back (the agent's "Claim this from work?" sets it too).
+  const [reimbursable, setReimbursable] = useState<boolean>(editingTxn?.reimbursable === true);
+
   // A repayment carries the loan it settles through from the loans screen; kept
   // as-is on an edit so the link survives.
   const loanId = editingTxn?.loanId ?? paramLoanId;
@@ -260,6 +263,7 @@ function EntryForm({
           loanId,
           recurringId: editingTxn?.recurringId ?? null,
           paymentMethod: loanId ? null : paymentMethod,
+          reimbursable: kind === 'expense' && !loanId && reimbursable,
         },
         // Belt and braces: neither a repayment nor an existing transaction can
         // reach a repeat state at all, and a save is the wrong place to find
@@ -382,6 +386,16 @@ function EntryForm({
                     paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
                   }
                   onPress={() => setPicking('method')}
+                />
+              )}
+
+              {/* A work spend to claim back: only a one-off expense can be one. */}
+              {repeat || loanId || kind !== 'expense' ? null : (
+                <DetailRow
+                  icon="briefcase-outline"
+                  label={t.followUps.reimbursableRow}
+                  value={reimbursable ? t.followUps.yes : t.followUps.no}
+                  onPress={() => setReimbursable((on) => !on)}
                 />
               )}
             </DetailRows>
