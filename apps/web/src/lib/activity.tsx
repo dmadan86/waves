@@ -16,6 +16,7 @@ import {
   Handshake,
   Pencil,
   Receipt,
+  Repeat,
   Sparkles,
   Trash2,
   Undo2,
@@ -66,6 +67,16 @@ export function describeActivity(entry: ActivityRow, myProfileId: string | null)
         typeof payload?.name === 'string' && payload.name.trim() ? payload.name.trim() : null;
       return name ? `${who} created ${name}` : `${who} created the group`;
     }
+    case 'recurring_created':
+      return `${who} set ${description ?? 'an expense'} to repeat`;
+    case 'recurring_edited':
+      return `${who} changed the repeating ${description ?? 'expense'}`;
+    case 'recurring_paused':
+      return `${who} paused the repeating ${description ?? 'expense'}`;
+    case 'recurring_resumed':
+      return `${who} resumed the repeating ${description ?? 'expense'}`;
+    case 'recurring_stopped':
+      return `${who} stopped the repeating ${description ?? 'expense'}`;
     default:
       return `${who} ${entry.verb} ${entry.object_type}`;
   }
@@ -113,6 +124,12 @@ function iconForVerb(verb: string): LucideIcon {
       return UserPlus;
     case 'created':
       return Sparkles;
+    case 'recurring_created':
+    case 'recurring_edited':
+    case 'recurring_paused':
+    case 'recurring_resumed':
+    case 'recurring_stopped':
+      return Repeat;
     default:
       return Dot;
   }

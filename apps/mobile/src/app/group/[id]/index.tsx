@@ -1026,6 +1026,11 @@ export default function GroupScreen() {
     // The hero's QR used to open this; the hero's corner is Activity now.
     { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
+    {
+      icon: 'repeat-outline',
+      label: t.groupRecurring.rowNone,
+      route: `/group/${groupId}/recurring`,
+    },
     ...(!PLAN_HIDDEN && groupData.type === 'trip'
       ? [
           {

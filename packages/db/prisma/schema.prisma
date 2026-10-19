@@ -339,6 +339,7 @@ model Group {
   usageEvents        UsageEvent[]
   passes             GroupPass[]
   planItems          TripPlanItem[]
+  recurringExpenses  GroupRecurringExpense[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -408,6 +409,7 @@ model GroupMember {
   settlementsGot     Settlement[]        @relation("SettlementTo")
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
+  recurringExpenses  GroupRecurringExpense[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
@@ -2602,5 +2604,60 @@ model ReceiptParseCache {
   @@id([sha256, model, schemaVersion, currency])
   @@index([createdAt], map: "receipt_parse_cache_created_idx")
   @@map("receipt_parse_cache")
+  @@schema("public")
+}
+
+/// A repeating group expense (a flat's monthly rent). The server generator
+/// (`waves_generate_recurring_expenses`) posts one real expense per occurrence
+/// through `waves_apply_expense`, idempotently — see the
+/// `20261021130000_group_recurring_expenses` migration. Written only through
+/// `waves_create_group_recurring_expense` / `waves_update_group_recurring_expense`.
+model GroupRecurringExpense {
+  id              String    @id @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  /// The member the generated expenses are recorded as written by.
+  createdBy       String    @map("created_by") @db.Uuid
+  description     String
+  category        String?
+  currency        String    @db.Char(3)
+  amount          BigInt
+  splitType       String    @map("split_type")
+  splitParams     Json      @map("split_params")
+  /// [{ memberId, amount }] in minor units, summing to `amount`.
+  payers          Json
+  shares          Json
+  notes           String?
+  /// weekly | semimonthly | monthly | yearly
+  cadence         String
+  interval        Int       @default(1)
+  secondDay       Int?      @map("second_day")
+  anchorDate      DateTime  @map("anchor_date") @db.Date
+  nextDate        DateTime  @map("next_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  /// active | paused | stopped
+  status          String    @default("active")
+  lastGeneratedOn DateTime? @map("last_generated_on") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq      BigInt    @default(0) @map("updated_seq")
+
+  group  Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author GroupMember @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([groupId, updatedSeq])
+  @@index([nextDate], map: "group_recurring_expenses_due_idx")
+  @@map("group_recurring_expenses")
+  @@schema("public")
+}
+
+/// Internal to `waves_generate_recurring_expenses`: "this transaction is posting
+/// as member M", read by `waves_assert_expense_caller`. No grants, RLS on —
+/// only SECURITY DEFINER code touches it. Rows live for one write.
+model WavesRecurringAuthoring {
+  txid     BigInt
+  memberId String @map("member_id") @db.Uuid
+
+  @@id([txid, memberId])
+  @@map("waves_recurring_authoring")
   @@schema("public")
 }
