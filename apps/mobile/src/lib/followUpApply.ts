@@ -155,7 +155,8 @@ export function toGroupWrite(
   // the split is rebuilt around the state, so shares always add up to the total.
   const rescaled = rescaleWrite(base, {
     amount: state.amount,
-    currency: state.currency,
+    // A group expense keeps its own currency: a relabel there needs a rate.
+    currency: base.currency,
     description: state.description,
     participants: state.participants,
   });

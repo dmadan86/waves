@@ -65,7 +65,9 @@ export function applyCorrectionFields(state: SavedState, fields: CorrectionField
       payers: next.payers ? scaleAmounts(next.payers, state.amount, fields.amountMinor) : null,
     };
   }
-  if (fields.currency) next = { ...next, currency: fields.currency.toUpperCase() };
+  // A group expense keeps its group's currency; relabelling it would need a rate.
+  if (fields.currency && state.kind === 'personal')
+    next = { ...next, currency: fields.currency.toUpperCase() };
   if (fields.date) next = { ...next, date: fields.date };
   if (fields.description) {
     const description = fields.description.trim().slice(0, 120);
