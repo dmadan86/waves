@@ -657,3 +657,15 @@ describe('history stats', () => {
 });
 
 export type _Unused = FollowUpKind;
+
+describe('prefs keep what they do not understand', () => {
+  it('unknown top-level keys survive parse, a skip, and a reset', () => {
+    const raw = JSON.stringify({ enabled: false, muted: ['place'], futureThing: { a: 1 }, v: 2 });
+    const parsed = parsePrefs(raw);
+    const back = JSON.parse(JSON.stringify(recordSkip(parsed, 'split', 'food')));
+    expect(back.futureThing).toEqual({ a: 1 });
+    expect(back.v).toBe(2);
+    expect(back.enabled).toBe(false);
+    expect(JSON.parse(JSON.stringify(resetMuted(parsed))).futureThing).toEqual({ a: 1 });
+  });
+});
