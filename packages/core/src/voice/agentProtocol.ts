@@ -110,6 +110,21 @@ export interface VoiceExpenseUpdate {
   readonly wantsReceipt?: boolean;
   /** Share it with these members of one of their groups (hands off to that group). */
   readonly splitWith?: { readonly groupId: string; readonly memberIds: readonly string[] };
+  /** A corrected amount, in minor units as decimal text ("80000"). */
+  readonly amountMinor?: string;
+  /** A corrected ISO currency code; relabels, never converts. */
+  readonly currency?: string;
+  /** A corrected date, YYYY-MM-DD. */
+  readonly date?: string;
+  /** A corrected description. */
+  readonly description?: string;
+  /**
+   * Move the expense to this group of the caller's; null moves a group expense
+   * to the personal ledger. The app saves the new entry, then removes the old.
+   */
+  readonly groupId?: string | null;
+  /** The members of the expense's group who share it. */
+  readonly participants?: readonly string[];
 }
 
 /**
@@ -224,6 +239,8 @@ export interface VoiceAgentResponse {
   readonly clarifyOptions?: readonly VoiceClarifyOption[];
   /** For a follow-up turn: what to change on the just-saved expense. */
   readonly update?: VoiceExpenseUpdate;
+  /** For a follow-up turn: "undo" / "delete that" — remove the just-saved expense. */
+  readonly remove?: { readonly expenseId: string };
   readonly quota: {
     readonly used: number;
     readonly limit: number;
