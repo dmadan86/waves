@@ -112,7 +112,13 @@ describe('the list has one footer button', () => {
     expect(listFooter([row('pending'), row('failed'), row('pending', true)])).toMatchObject({
       kind: 'add',
       count: 2,
+      disabled: true,
     });
+  });
+
+  it('AL-07b: a bad amount holds Add until it is fixed or dropped - never silently skipped', () => {
+    expect(listFooter([row('pending'), row('pending', true)]).disabled).toBe(true);
+    expect(listFooter([row('pending'), row('discarded', true)]).disabled).toBe(false);
   });
 
   it('AL-08: nothing to add, or a write in flight, disables it - never a second write', () => {

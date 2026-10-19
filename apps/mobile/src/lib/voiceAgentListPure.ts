@@ -59,7 +59,7 @@ export interface ListFooter {
 /**
  * The one primary action under the list. Rows dropped with ✕ are out of it; once
  * every row is added or dropped it becomes Done. A failed row stays in, so the
- * same button retries it.
+ * same button retries it. A row with a bad amount disables it until fixed.
  */
 export function listFooter(rows: readonly { problem: boolean; status: CardStatus }[]): ListFooter {
   if (rows.length === 0) return { kind: 'none', count: 0, disabled: true, addAnother: false };
@@ -76,5 +76,10 @@ export function listFooter(rows: readonly { problem: boolean; status: CardStatus
     (row) => !row.problem && (row.status === 'pending' || row.status === 'failed'),
   ).length;
   const running = rows.some((row) => row.status === 'running');
-  return { kind: 'add', count, disabled: count === 0 || running, addAnother: false };
+  // A row still waiting with a bad amount holds the button: it is fixed or
+  // dropped with ✕, never silently left out of "Add all".
+  const blocked = rows.some(
+    (row) => row.problem && (row.status === 'pending' || row.status === 'failed'),
+  );
+  return { kind: 'add', count, disabled: count === 0 || running || blocked, addAnother: false };
 }
