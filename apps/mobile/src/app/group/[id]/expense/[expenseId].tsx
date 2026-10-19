@@ -941,6 +941,16 @@ export default function ExpenseDetailScreen() {
                     accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
                   />
                 ) : null}
+                {/* The work tag, only drawn when set; a tap opens the editor. */}
+                {version.reimbursable ? (
+                  <DetailRow
+                    icon="briefcase-outline"
+                    label={t.expense.reimbursable.row}
+                    value={t.expense.reimbursable.yes}
+                    onPress={inlineEditable ? () => openEditor() : undefined}
+                    accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
+                  />
+                ) : null}
                 {/* Event organizer: the sub-event this bill belongs to, and the
                     vendor advance. Only drawn when set; a tap opens the plan,
                     where the budget and upcoming vendor balances live. */}

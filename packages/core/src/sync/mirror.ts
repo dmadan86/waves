@@ -205,6 +205,9 @@ export interface MirrorExpense extends MirrorRow {
     /** "Paid to", or null; optional because a row mirrored before it existed
      *  does not carry the column. */
     readonly payee?: string | null;
+    /** "Work expense (to claim)"; optional because a row mirrored before it
+     *  existed does not carry the column (read as false). */
+    readonly reimbursable?: boolean;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -319,6 +322,8 @@ function applyPending(
           // An older queued payload has no payee: keep the one the version it
           // replaces carries, exactly as the server will.
           payee: resolvePayee(payload.payee, existing?.currentVersion?.payee),
+          // Same carry-forward: a payload that does not say keeps the old flag.
+          reimbursable: payload.reimbursable ?? existing?.currentVersion?.reimbursable ?? false,
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,

@@ -40,7 +40,7 @@ export interface SavedState {
   /** Group: who paid how much. */
   readonly payers: Readonly<Record<string, bigint>> | null;
   readonly hasReceipt: boolean;
-  /** Personal: marked as a work spend to claim back. */
+  /** Marked as a work spend to claim back (a real flag on personal and group alike). */
   readonly reimbursable: boolean;
   /** Group: the member ids sharing it. */
   readonly participants: readonly string[];
@@ -59,8 +59,6 @@ export type FollowUpAnswer =
   | { readonly kind: 'payer'; readonly memberId: string }
   | { readonly kind: 'work' }
   | { readonly kind: 'note'; readonly text: string };
-
-const WORK_TAG = 'Work expense';
 
 function appendNote(existing: string | null, addition: string): string {
   const current = existing?.trim() ?? '';
@@ -101,11 +99,9 @@ export function applyAnswer(state: SavedState, answer: FollowUpAnswer): SavedSta
       return { ...state, payers: { [answer.memberId]: state.amount } };
     }
     case 'work':
-      // A personal entry carries a real flag; a group expense, shared with others
-      // who have no such field, keeps the tag as a line in its notes.
-      return state.kind === 'personal'
-        ? { ...state, reimbursable: true }
-        : { ...state, notes: appendNote(state.notes, WORK_TAG) };
+      // A real flag on both: `expense_versions.reimbursable` for a group
+      // expense, the ledger blob's `reimbursable` for a personal one.
+      return { ...state, reimbursable: true };
     case 'note':
       return state.kind === 'personal'
         ? { ...state, description: appendNote(state.description, answer.text.trim().slice(0, 200)) }
@@ -152,6 +148,7 @@ export function toGroupWrite(
   notes: string | null;
   paymentMethod: 'cash' | 'upi' | 'credit' | 'debit' | 'forex' | null;
   location: ExpenseLocation | null;
+  reimbursable: boolean;
 } {
   return {
     ...base,
@@ -161,6 +158,7 @@ export function toGroupWrite(
     notes: state.notes,
     paymentMethod: toGroupPayment(state.paymentMethod),
     location: state.location,
+    reimbursable: state.reimbursable,
   };
 }
 

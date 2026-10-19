@@ -60,6 +60,8 @@ export interface ExpenseEditState {
   occurredAt: string | null;
   /** "Paid to": who outside the group the money went to, or null. */
   payee: string | null;
+  /** "Work expense (to claim)". */
+  reimbursable: boolean;
   /** The currency the bill was paid in — never converted by an edit. */
   currency: string;
   fx: FxRecord | null;
@@ -136,6 +138,7 @@ export function editStateFromVersion(
     expenseDate: version.expense_date,
     occurredAt: version.occurred_at ?? null,
     payee: version.payee ?? null,
+    reimbursable: version.reimbursable === true,
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
     splitKind: splitKindOf(version.split_type),
@@ -330,6 +333,8 @@ export function expenseWritePayload(input: {
     // Always sent: '' is "no payee" and clears one an earlier version had. An
     // absent field means "this build does not know about it" and keeps it.
     payee: cleanPayee(state.payee) ?? '',
+    // Always sent: the form shows the real value, so false is a decision too.
+    reimbursable: state.reimbursable,
     currency: state.currency,
     amount: state.amount.toString(),
     fx: state.fx,
