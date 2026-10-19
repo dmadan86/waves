@@ -304,3 +304,12 @@ export function savedStateFrom(
     participants: [],
   };
 }
+
+/** The longest chip label shown; the full text stays in the accessibility label. */
+export const CHIP_MAX_CHARS = 24;
+
+/** A chip label cut to {@link CHIP_MAX_CHARS} with an ellipsis. */
+export function chipLabel(label: string, max: number = CHIP_MAX_CHARS): string {
+  const chars = [...label.trim()];
+  return chars.length <= max ? chars.join('') : `${chars.slice(0, max - 1).join('')}…`;
+}
