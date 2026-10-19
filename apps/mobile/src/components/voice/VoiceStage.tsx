@@ -69,7 +69,7 @@ export interface VoiceStageProps {
   transcript: string;
   final: boolean;
   onEditTranscript?: () => void;
-  /** The sentence is read and a card follows: drop the prompt and the wave's room. */
+  /** The sentence is read and a card follows: drop the wave's room. */
   compact?: boolean;
   /** Under the transcript: suggestions, the error card, the engine pill. */
   children?: ReactNode;
@@ -92,16 +92,15 @@ export function VoiceStage({
   const open = micMode === 'stop';
   return (
     <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      {compact ? null : (
-        <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
-          <Text variant="heading" align="center" accessibilityRole="header">
-            {t.voiceScreen.headline}
-          </Text>
-          <Text variant="body" tone="muted" align="center">
-            {t.voiceScreen.subline}
-          </Text>
-        </View>
-      )}
+      {/* Kept through every step, so the page never changes under the person. */}
+      <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
+        <Text variant="heading" align="center" accessibilityRole="header">
+          {t.voiceScreen.headline}
+        </Text>
+        <Text variant="body" tone="muted" align="center">
+          {t.voiceScreen.subline}
+        </Text>
+      </View>
       <FloatingMicrophone
         mode={micMode}
         level={level}

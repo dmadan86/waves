@@ -2533,9 +2533,7 @@ export default function VoiceScreen() {
       {/* The desk scene along the foot, under everything. Not on the review:
           that list keeps its pinned Save bar there, and a picture behind the
           figures being checked would only be in the way. */}
-      {phase === 'listening' || phase === 'thinking' || phase === 'saved' ? (
-        <VoiceSceneBackdrop />
-      ) : null}
+      {phase !== 'review' && phase !== 'agent' ? <VoiceSceneBackdrop /> : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -2634,12 +2632,6 @@ export default function VoiceScreen() {
               </Text>
             </View>
           ) : null}
-          {/* On the agent screen the engine's pill lives behind the allowance's (i). */}
-          {phase !== 'listening' && phase !== 'agent' ? (
-            <View style={{ alignItems: 'center' }}>
-              <VoiceEngineBadge info={engine} />
-            </View>
-          ) : null}
 
           {/* One stage for the whole flow: the mic, the status line and what was
               heard stay put while the cards below it come and go. The listening
@@ -2659,7 +2651,11 @@ export default function VoiceScreen() {
                     : undefined
                 }
                 compact={stageState !== 'processing'}
-              />
+              >
+                {/* Small and last under what was heard, where the mic panel keeps it
+                    while listening. The agent's card carries its own. */}
+                {phase !== 'agent' ? <VoiceEngineBadge info={engine} /> : null}
+              </VoiceStage>
             </View>
           ) : null}
 
@@ -2990,32 +2986,43 @@ export default function VoiceScreen() {
               </View>,
             )
           ) : phase === 'committing' ? (
-            // The Undo window. A confident command is about to write itself; the
-            // banner says what and where, a spinner marks the wait, and Undo is the
-            // one escape — no other choice competes with it here.
+            // The Undo window, as one small card under what was heard: what is about
+            // to be written and Undo beside it. The stage's status line already says
+            // "Adding…", so the card carries no spinner of its own.
             card(
               <View
                 style={{
-                  alignItems: 'center',
-                  gap: theme.spacing.lg,
-                  paddingTop: theme.spacing.md,
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.md,
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.surface,
                 }}
               >
-                {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
-                <Text variant="title" style={{ textAlign: 'center' }}>
-                  {autoBanner?.label ?? ''}
-                </Text>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={iconSize.lg}
+                    color={theme.color.brand}
+                  />
+                  <Text style={{ flex: 1, fontWeight: '700' }}>{autoBanner?.label ?? ''}</Text>
+                  {/* Gone once the write has started (Confirm pressed, or the timer
+                  fired): an Undo then would reset the screen while the save still
+                  lands. */}
+                  {autoBanner ? (
+                    <Button
+                      label={t.voice.autoUndo}
+                      variant="secondary"
+                      size="sm"
+                      onPress={cancelAutoCommit}
+                    />
+                  ) : null}
+                </Row>
                 {autoBanner?.needsConfirm ? (
                   <Button
                     label={t.voice.autoConfirm}
+                    fullWidth
                     onPress={() => runAutoCommit(autoBanner.fallback)}
                   />
-                ) : null}
-                {/* Gone once the write has started (Confirm pressed, or the timer
-                fired): an Undo then would reset the screen while the save still
-                lands. */}
-                {autoBanner ? (
-                  <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
                 ) : null}
               </View>,
             )
