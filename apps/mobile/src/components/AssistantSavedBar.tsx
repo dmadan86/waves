@@ -21,9 +21,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { MutationKind, format, money, type FilledKind } from '@waves/core';
+import { MutationKind, format, money } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import type { SavedBarControls } from '@/components/VoiceFollowUps';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import {
   useDeletePersonalRecord,
@@ -54,18 +55,6 @@ import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { checkOnline } from '@/lib/voiceStream';
 import { useSync } from '@/sync';
-
-/** What the follow-up panel lets the bar do to the expense it is following. */
-export interface SavedBarControls {
-  /** Hold this state as the saved expense (after a correction, an undo or a move). */
-  replaceSaved(next: SavedState): void;
-  /** Add to the closing line's "Saved with ..." items. */
-  addFilled(kinds: readonly FilledKind[]): void;
-  /** Drop the newest closing-line item (an answer was undone). */
-  popFilled(): void;
-  /** Ask nothing more about this expense. */
-  stop(): void;
-}
 
 export interface AssistantBarContext {
   readonly state: SavedState;
@@ -309,10 +298,10 @@ export function AssistantSavedBar({
     return { places, categories: Object.keys(t.categories) };
   }, [ledger.txns, t.categories]);
 
-  const settle = (result: TypedResult): void => {
+  const settle = (result: TypedResult, carried?: Readonly<Record<string, unknown>>): void => {
     switch (result.kind) {
       case 'corrected': {
-        const entry = historyEntryFor(result, carriedFor(result.previous));
+        const entry = historyEntryFor(result, carried);
         if (entry) setHistory((h) => pushHistory(h, entry));
         setLine(result.line);
         setNotice(null);
@@ -372,6 +361,8 @@ export function AssistantSavedBar({
     if (busy) return;
     setBusy(true);
     setNotice(null);
+    // Read before a move deletes the record: its unknown fields must survive an undo.
+    const carried = carriedFor(state);
     try {
       const online = await checkOnline();
       const result = await runTypedMessage(
@@ -401,14 +392,22 @@ export function AssistantSavedBar({
             }),
         },
       );
-      settle(result);
+      settle(result, carried);
     } finally {
       setBusy(false);
     }
   };
 
+  // After a hand-off the expense is already gone from where it was: Undo takes the hand-off back.
+  const top = history[history.length - 1]?.kind;
+  const handedOffNow = top === 'lend' || top === 'duplicate';
+
   async function doUndo(): Promise<void> {
     if (busy) return;
+    if (handedOffNow) {
+      await doUndoLast();
+      return;
+    }
     setBusy(true);
     try {
       const out = await undoSaved(state, undoDeps);
@@ -536,7 +535,13 @@ export function AssistantSavedBar({
         <VoiceTypedAnswer autoFocus onSubmit={(text) => void submit(text)} />
       ) : (
         <View style={{ flexDirection: 'row' }}>
-          <Link label={c.change} onPress={() => setTyping(true)} />
+          <Link
+            label={c.change}
+            onPress={() => {
+              controls.hold();
+              setTyping(true);
+            }}
+          />
         </View>
       )}
 

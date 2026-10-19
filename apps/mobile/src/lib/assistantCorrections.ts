@@ -427,11 +427,16 @@ export function fieldsFromUpdate(update: VoiceExpenseUpdate): CorrectionFields {
   };
 }
 
-/**
- * One typed or spoken message about the expense just saved. Corrections and
- * simple answers are settled on the phone; the rest is one agent turn.
- */
-export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promise<TypedResult> {
+/** What the phone alone can make of a typed or spoken message about the saved expense. */
+export type LocalReading =
+  | { readonly kind: 'undo' }
+  | { readonly kind: 'undoAnswer' }
+  | { readonly kind: 'fields'; readonly fields: CorrectionFields }
+  | { readonly kind: 'answer'; readonly answer: FollowUpAnswer };
+
+export function readLocally(
+  ctx: Pick<TypedContext, 'text' | 'state' | 'today' | 'locale' | 'local'> & LocalMatchContext,
+): LocalReading | null {
   const members = ctx.local.groups.find((g) => g.id === ctx.state.groupId)?.members ?? [];
   const parsed = parseCorrection(
     ctx.text,
@@ -443,25 +448,41 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
       members: members.map((m) => ({ id: m.id, name: m.name, isMe: m.isViewer })),
     },
   );
-  if (parsed?.kind === 'undo') return { kind: 'undo', path: 'device' };
+  if (parsed?.kind === 'undo') return { kind: 'undo' };
   if (parsed?.kind === 'undoAnswer') return { kind: 'undoAnswer' };
-  if (parsed?.kind === 'update') {
-    const moves = 'groupId' in parsed.fields;
+  if (parsed?.kind === 'update') return { kind: 'fields', fields: parsed.fields };
+  const answer = matchLocalAnswer(ctx.text, ctx.state, ctx);
+  return answer ? { kind: 'answer', answer } : null;
+}
+
+/**
+ * One typed or spoken message about the expense just saved. Corrections and
+ * simple answers are settled on the phone; the rest is one agent turn.
+ */
+export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promise<TypedResult> {
+  const reading = readLocally(ctx);
+  if (reading?.kind === 'undo') return { kind: 'undo', path: 'device' };
+  if (reading?.kind === 'undoAnswer') return { kind: 'undoAnswer' };
+  if (reading?.kind === 'fields') {
     return commit(
       ctx,
       deps,
-      parsed.fields,
-      { move: moves, groupId: parsed.fields.groupId ?? null },
+      reading.fields,
+      { move: 'groupId' in reading.fields, groupId: reading.fields.groupId ?? null },
       'device',
     );
   }
-
-  const local = matchLocalAnswer(ctx.text, ctx.state, ctx);
-  if (local) {
-    const next = applyAnswer(ctx.state, local);
+  if (reading?.kind === 'answer') {
+    const next = applyAnswer(ctx.state, reading.answer);
     if (next === ctx.state) return { kind: 'unchanged' };
     if (!(await deps.persist(next))) return { kind: 'failed' };
-    return { kind: 'answered', previous: ctx.state, next, answers: [local], path: 'device' };
+    return {
+      kind: 'answered',
+      previous: ctx.state,
+      next,
+      answers: [reading.answer],
+      path: 'device',
+    };
   }
 
   if (!ctx.online) return { kind: 'offline' };

@@ -43,6 +43,13 @@ import {
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
+import {
+  applyCorrectionFields,
+  changedFields,
+  correctionLine,
+  readLocally,
+} from '@/lib/assistantCorrections';
+import { UNDO_RING_MS, type UndoEntry } from '@/lib/assistantUndo';
 import { useDeleteExpense, useOpenReceipts, useWriteExpense } from '@/data/hooks';
 import {
   usePersonalLedger,
@@ -92,8 +99,24 @@ export interface VoiceFollowUpsProps {
   /** Called with the new state each time an answer is written, so a parent
    *  (e.g. an undo bar) can follow the expense without editing this file. */
   onSavedStateChange?: (state: SavedState) => void;
-  /** Rendered right under the "Added ... ✓" line, e.g. an undo bar. */
+  /** Rendered in place of the "Added ... ✓" line, e.g. an undo bar. */
   renderSavedBar?: (context: SavedBarContext) => ReactNode;
+  /** A hand-off that moved the expense elsewhere (a lend, a duplicate removed), so it can be undone. */
+  onUndoable?: (entry: UndoEntry) => void;
+}
+
+/** What a saved bar may do to the expense being followed. */
+export interface SavedBarControls {
+  /** Hold this state as the saved expense (after a correction, an undo or a move). */
+  replaceSaved(next: SavedState): void;
+  /** Add to the closing line's "Saved with ..." items. */
+  addFilled(kinds: readonly FilledKind[]): void;
+  /** Drop the newest closing-line item (an answer was undone). */
+  popFilled(): void;
+  /** Ask nothing more about this expense. */
+  stop(): void;
+  /** The person is working on it: do not close the panel by itself. */
+  hold(): void;
 }
 
 export interface SavedBarContext {
@@ -102,6 +125,7 @@ export interface SavedBarContext {
   readonly headline: string;
   /** What has been filled in so far, in the order it was. */
   readonly filled: readonly FilledKind[];
+  readonly controls: SavedBarControls;
 }
 
 /** How long "Saved ✓" stays up when there is nothing to ask. */
@@ -195,6 +219,7 @@ export function VoiceFollowUps({
   onClose,
   onSavedStateChange,
   renderSavedBar,
+  onUndoable,
 }: VoiceFollowUpsProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -218,6 +243,8 @@ export function VoiceFollowUps({
   const openReceipts = useOpenReceipts(initial.kind === 'group' ? (initial.groupId ?? '') : '');
   const [session, setSession] = useState<FollowUpSession>(NEW_SESSION);
   const [filled, setFilled] = useState<FilledKind[]>([]);
+  // A saved bar is in use (a correction, an undo): the panel stays until Done.
+  const [held, setHeld] = useState(false);
   const [env, setEnv] = useState<FollowUpEnvironment | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -316,13 +343,18 @@ export function VoiceFollowUps({
   const finished = ready && question === null;
 
   // Nothing worth asking: a visible "Saved ✓" beat, then close as before.
-  const emptyBeat = finished && session.asked.length === 0 && filled.length === 0 && !handedOff;
+  const emptyBeat =
+    finished && session.asked.length === 0 && filled.length === 0 && !handedOff && !held;
   useEffect(() => {
     if (!emptyBeat) return undefined;
-    const timer = setTimeout(() => {
-      toast.show(t.voice.agentDone);
-      onClose();
-    }, SAVED_BEAT_MS);
+    // With an undo bar the beat is the undo window: closing sooner would take Undo away.
+    const timer = setTimeout(
+      () => {
+        toast.show(t.voice.agentDone);
+        onClose();
+      },
+      renderSavedBar ? UNDO_RING_MS : SAVED_BEAT_MS,
+    );
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emptyBeat]);
@@ -414,6 +446,35 @@ export function VoiceFollowUps({
 
   const submitTyped = async (text: string): Promise<void> => {
     if (busy) return;
+    // Most typed answers are a place, a payment word, a number or a day: read on
+    // the phone first, so they cost no agent turn and work offline.
+    const reading = readLocally({
+      text,
+      state: saved,
+      today,
+      locale,
+      local,
+      places: Object.keys(history.placeCoords),
+      placeCoords: history.placeCoords,
+      categories: Object.keys(t.categories),
+      categoryLabel,
+    });
+    if (reading?.kind === 'answer' && question) {
+      setTyping(false);
+      await answerWith(question.kind, reading.answer);
+      return;
+    }
+    if (reading?.kind === 'fields' && !('groupId' in reading.fields)) {
+      const next = applyCorrectionFields(saved, reading.fields);
+      const changed = changedFields(saved, next);
+      if (changed.length === 0) {
+        setNotice(t.corrections.unchanged);
+      } else if (await persist(next)) {
+        setTyping(false);
+        setNotice(correctionLine(next, changed, { strings: t.corrections, locale, local }));
+      }
+      return;
+    }
     setBusy(true);
     setNotice(null);
     const result = await sendVoiceTranscript({
@@ -610,6 +671,7 @@ export function VoiceFollowUps({
             setBusy(true);
             try {
               await removeExpense.mutateAsync(saved.id);
+              onUndoable?.({ kind: 'duplicate', previous: saved });
               setFilled((list) => [...list, 'duplicate']);
               respond('duplicate', 'answered');
               // The expense is gone: there is nothing left to ask about.
@@ -652,7 +714,7 @@ export function VoiceFollowUps({
             setBusy(true);
             try {
               // Money lent is not money spent: it becomes a loan and leaves the expenses.
-              await upsert.mutateAsync({
+              const loanId = await upsert.mutateAsync({
                 recordKind: 'loan',
                 data: encodeLoan({
                   direction: 'lent',
@@ -665,6 +727,7 @@ export function VoiceFollowUps({
                 }),
               });
               await removePersonal.mutateAsync(saved.id);
+              onUndoable?.({ kind: 'lend', previous: saved, loanId });
               setFilled((list) => [...list, 'lend']);
               respond('lend', 'answered');
               setSession((s) => ({ ...s, stopped: true }));
@@ -689,6 +752,24 @@ export function VoiceFollowUps({
     }
   };
 
+  const controls: SavedBarControls = useMemo(
+    () => ({
+      replaceSaved: (next) => {
+        setHeld(true);
+        setSaved(next);
+        onSavedStateChange?.(next);
+      },
+      addFilled: (kinds) => setFilled((list) => [...list, ...kinds]),
+      popFilled: () => setFilled((list) => list.slice(0, -1)),
+      stop: () => {
+        setHeld(true);
+        setSession((s) => ({ ...s, stopped: true }));
+      },
+      hold: () => setHeld(true),
+    }),
+    [onSavedStateChange],
+  );
+
   // ── render ───────────────────────────────────────────────────────────────
 
   const items = dedupeFilled(filled)
@@ -698,17 +779,20 @@ export function VoiceFollowUps({
 
   return (
     <View style={{ gap: theme.spacing.md }}>
-      <Text variant="subheading">{fill(f.added, { amount: amountLabel, where: whereLabel })}</Text>
+      {renderSavedBar ? (
+        renderSavedBar({
+          state: saved,
+          headline: fill(f.added, { amount: amountLabel, where: whereLabel }),
+          filled,
+          controls,
+        })
+      ) : (
+        <Text variant="subheading">
+          {fill(f.added, { amount: amountLabel, where: whereLabel })}
+        </Text>
+      )}
 
-      {renderSavedBar
-        ? renderSavedBar({
-            state: saved,
-            headline: fill(f.added, { amount: amountLabel, where: whereLabel }),
-            filled,
-          })
-        : null}
-
-      {emptyBeat ? (
+      {emptyBeat && !renderSavedBar ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
           <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
           <Text tone="muted">{f.saved}</Text>
@@ -808,7 +892,7 @@ export function VoiceFollowUps({
         </View>
       ) : null}
 
-      {finished && (session.asked.length > 0 || filled.length > 0 || handedOff) ? (
+      {finished && (session.asked.length > 0 || filled.length > 0 || handedOff || held) ? (
         <View style={{ gap: theme.spacing.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
             <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />

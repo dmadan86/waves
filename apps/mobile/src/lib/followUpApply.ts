@@ -18,6 +18,7 @@ import {
   type VoiceExpenseUpdate,
 } from '@waves/core';
 
+import { rescaleWrite } from '@/lib/assistantRescale';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentExpenseWrite } from '@/lib/voiceAgentPlan';
 
@@ -150,11 +151,19 @@ export function toGroupWrite(
   location: ExpenseLocation | null;
   reimbursable: boolean;
 } {
+  // A correction can change the amount, currency, description or who shares it:
+  // the split is rebuilt around the state, so shares always add up to the total.
+  const rescaled = rescaleWrite(base, {
+    amount: state.amount,
+    currency: state.currency,
+    description: state.description,
+    participants: state.participants,
+  });
   return {
-    ...base,
+    ...rescaled,
     category: state.category,
     expenseDate: state.date,
-    payers: state.payers ? { ...state.payers } : base.payers,
+    payers: state.payers ? { ...state.payers } : rescaled.payers,
     notes: state.notes,
     paymentMethod: toGroupPayment(state.paymentMethod),
     location: state.location,
