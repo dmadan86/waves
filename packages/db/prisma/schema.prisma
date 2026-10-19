@@ -2610,7 +2610,7 @@ model ReceiptParseCache {
 /// A repeating group expense (a flat's monthly rent). The server generator
 /// (`waves_generate_recurring_expenses`) posts one real expense per occurrence
 /// through `waves_apply_expense`, idempotently — see the
-/// `20261021110000_group_recurring_expenses` migration. Written only through
+/// `20261021130000_group_recurring_expenses` migration. Written only through
 /// `waves_create_group_recurring_expense` / `waves_update_group_recurring_expense`.
 model GroupRecurringExpense {
   id              String    @id @db.Uuid
