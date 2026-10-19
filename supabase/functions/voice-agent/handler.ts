@@ -30,6 +30,7 @@ import {
   type DeadlineResponse,
 } from '../_shared/resilience.ts';
 import { chaosFetch, chaosFor } from '../_shared/voiceChaos.ts';
+import { withVoiceStub } from '../_shared/voiceStub.ts';
 import {
   ANTHROPIC_TOOLS,
   anthropicCostUsd,
@@ -196,7 +197,13 @@ interface Quota {
   reason?: string;
 }
 
-export async function handleVoiceAgent(request: Request, deps: Deps): Promise<Response> {
+export async function handleVoiceAgent(request: Request, realDeps: Deps): Promise<Response> {
+  // Staging-only canned model for the E2E flows; refused on production
+  // (_shared/voiceStub.ts). A no-op unless VOICE_AGENT_STUB=1.
+  const stubbed = withVoiceStub(realDeps.env, realDeps.fetch);
+  const deps: Deps = stubbed.active
+    ? { ...realDeps, env: stubbed.env, fetch: stubbed.fetch }
+    : realDeps;
   if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
   const started = deps.now();
   const limits: Limits = { ...LIMITS, ...deps.limits };

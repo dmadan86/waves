@@ -1,0 +1,39 @@
+# E2E-12. The "I'll ask one or two quick things" card shows with the first
+# follow-up, "Got it" dismisses it, and the next expense does not show it again.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+
+# First expense: the intro is there.
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: "I'll ask one or two quick things.*"
+    timeout: 15000
+- assertVisible: 'How did you pay\?'
+- tapOn: 'Got it'
+- assertNotVisible: "I'll ask one or two quick things.*"
+- tapOn: 'Skip'
+
+# Second expense: the question comes, the intro does not.
+- runFlow: assistant-close.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'How did you pay\?'
+    timeout: 15000
+- assertNotVisible: "I'll ask one or two quick things.*"

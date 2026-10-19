@@ -1,0 +1,19 @@
+# Sub-flow (like login.yaml; do not run it alone): opens the assistant on the
+# typed composer.
+#
+# The composer is the input in every assistant flow, because an emulator has no
+# microphone. `source=typed` is the link the composer's own entry points use, so
+# it lands straight on the composer with the mic never mounted (no permission
+# dialog, no streaming). The first visit also shows the cloud-voice consent
+# sheet; "Allow" is tapped when it is there and ignored when it is not.
+appId: app.waves.mobile
+---
+- openLink: waves:///voice?source=typed
+- runFlow:
+    when:
+      visible: 'Allow'
+    commands:
+      - tapOn: 'Allow'
+- extendedWaitUntil:
+    visible: 'Say what you spent'
+    timeout: 20000

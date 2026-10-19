@@ -22,6 +22,22 @@
  *
  * Run:  node e2e/seed-e2e.mjs
  *
+ * Optional extras, for the Waves Assistant flows (`e2e/assistant-*.yaml`), via
+ * `E2E_SEED_EXTRAS` (comma list; unset leaves the fixture exactly as above):
+ *
+ *   assistant   the login user becomes Pro on the voice agent: on
+ *               `voice_agent_allowlist` and holding an active Pro row in
+ *               `subscriptions`. Goa trip gains a fourth ghost, "Ravi" (so
+ *               "Ravi paid" resolves). A second group, "Flat 4B" (home), holds
+ *               the login user, Sam and Priya and one ₹900 "Groceries" the login
+ *               user paid, so Sam and Priya each owe ₹300 ("who owes me").
+ *   duplicate   a ₹1,200 "Dinner" in Goa trip added by the ghost Priya just now,
+ *               the bill the assistant's duplicate question catches. Kept
+ *               apart because it turns every ~₹1,200 Goa add into a duplicate.
+ *
+ * The voice-agent answers come from the staging-only stub
+ * (`supabase/functions/_shared/voiceStub.ts`, VOICE_AGENT_STUB=1).
+ *
  * It is idempotent: it deletes any prior fixture (the group, then the user) and
  * rebuilds it, so a re-run always lands the same known state.
  */
@@ -61,6 +77,13 @@ const GROUP_NAME = 'Goa trip';
 const EXPENSE_DESC = 'Beach shack dinner';
 const AMOUNT_MINOR = 120000n; // ₹1200.00 in paise
 const GHOSTS = ['Priya', 'Sam', 'Dev'];
+
+const EXTRAS = new Set(
+  (process.env.E2E_SEED_EXTRAS ?? '')
+    .split(',')
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 const die = (msg, error) => {
   console.error(msg, error?.message ?? error ?? '');
@@ -273,6 +296,73 @@ async function seedMergeGroup(userId, groupName, ghostName) {
   });
 }
 
+/**
+ * The login user as a Pro voice-agent user: the allowlist makes
+ * `waves_voice_agent_enabled` true whatever the rollout flag says, and an active
+ * Pro row makes `waves_my_plan` (the app's entitlement) and the voice quota say
+ * Pro. `promo` is a store the table's check constraint has always allowed.
+ */
+async function seedProVoice(userId) {
+  await upsert('voice_agent_allowlist', { profile_id: userId, note: 'e2e assistant flows' });
+  const end = new Date();
+  end.setFullYear(end.getFullYear() + 1);
+  await insert('subscriptions', {
+    profile_id: userId,
+    tier: 'pro',
+    period: 'yearly',
+    status: 'active',
+    current_period_end: end.toISOString(),
+    store: 'promo',
+  });
+}
+
+/** Flat 4B: the login user, Sam and Priya; the login user paid ₹900, split three ways. */
+async function seedFlat(userId) {
+  const groupId = randomUUID();
+  await insert('groups', {
+    id: groupId,
+    name: 'Flat 4B',
+    type: 'home',
+    default_currency: 'INR',
+    created_by: userId,
+  });
+  const me = randomUUID();
+  await insert('group_members', {
+    id: me,
+    group_id: groupId,
+    profile_id: userId,
+    role: 'admin',
+    joined_via: 'creator',
+  });
+  const others = [];
+  for (const name of ['Sam', 'Priya']) {
+    const id = randomUUID();
+    others.push(id);
+    await insert('group_members', {
+      id,
+      group_id: groupId,
+      ghost_name: name,
+      joined_via: 'ghost',
+    });
+  }
+  await insertExpense({
+    groupId,
+    payer: me,
+    amount: 90000n,
+    shareMembers: [me, ...others],
+    description: 'Groceries',
+    category: 'groceries',
+    date: '2026-08-03',
+  });
+}
+
+/** Local calendar day, which is what the app calls "today". */
+function today() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 async function seed() {
   // The login user + its profile.
   const { data: created, error: userErr } = await db.auth.admin.createUser({
@@ -334,6 +424,31 @@ async function seed() {
     date: '2026-08-01',
   });
 
+  // Assistant extras (E2E_SEED_EXTRAS), see the header.
+  if (EXTRAS.has('assistant')) {
+    await seedProVoice(userId);
+    const ravi = randomUUID();
+    ghostIds.Ravi = ravi;
+    await insert('group_members', {
+      id: ravi,
+      group_id: groupId,
+      ghost_name: 'Ravi',
+      joined_via: 'ghost',
+    });
+    await seedFlat(userId);
+  }
+  if (EXTRAS.has('duplicate')) {
+    await insertExpense({
+      groupId,
+      payer: ghostIds.Priya,
+      amount: AMOUNT_MINOR,
+      shareMembers: GHOSTS.map((n) => ghostIds[n]),
+      description: 'Dinner',
+      category: 'food',
+      date: today(),
+    });
+  }
+
   // The mergeable pair for friends-merge-guests: the same ghost "Reeya" in two
   // groups, each with a balance so she appears twice on Friends and can be
   // merged. Kept separate from Goa trip, whose focus balance stays zero.
@@ -341,7 +456,8 @@ async function seed() {
   await seedMergeGroup(userId, 'Diwali dinner', 'Reeya');
 
   console.log(
-    `✓ seeded ${EMAIL}: "${GROUP_NAME}" (${GHOSTS.length} ghosts, "${EXPENSE_DESC}" ₹1200) + a mergeable "Reeya" in two groups`,
+    `✓ seeded ${EMAIL}: "${GROUP_NAME}" (${GHOSTS.length} ghosts, "${EXPENSE_DESC}" ₹1200) + a mergeable "Reeya" in two groups` +
+      (EXTRAS.size > 0 ? ` + extras: ${[...EXTRAS].join(', ')}` : ''),
   );
 }
 

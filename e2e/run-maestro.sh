@@ -42,6 +42,28 @@ FLOWS=(
   welcome-door
 )
 
+# The Waves Assistant flows (docs/assistant-qa-checklist.md has the manual half).
+# Each is `flow:seed-extras`; the extras are E2E_SEED_EXTRAS for seed-e2e.mjs.
+# They need the staging voice-agent function to run with VOICE_AGENT_STUB=1
+# (supabase/functions/_shared/voiceStub.ts), and they are the flows that need
+# the corrections build (correction, undo). The sub-flows assistant-open,
+# assistant-say, assistant-intro and assistant-close are not listed: like
+# login.yaml they only run inside another flow.
+ASSISTANT_FLOWS=(
+  assistant-personal-add:assistant
+  assistant-group-add-payer:assistant
+  assistant-skip-twice:assistant
+  assistant-mute:assistant
+  assistant-correction:assistant
+  assistant-undo:assistant
+  assistant-duplicate:assistant,duplicate
+  assistant-offline:assistant
+  assistant-clarify:assistant
+  assistant-balance-question:assistant
+  assistant-settings-toggle:assistant
+  assistant-intro-once:assistant
+)
+
 status=0
 for flow in "${FLOWS[@]}"; do
   echo "::group::seed + ${flow}"
@@ -52,5 +74,21 @@ for flow in "${FLOWS[@]}"; do
     "e2e/${flow}.yaml" || status=1
   echo "::endgroup::"
 done
+
+# Off by default so the nightly stays what it was: set E2E_ASSISTANT=1 (or run the
+# workflow with it) once the staging stub is on.
+if [ "${E2E_ASSISTANT:-0}" = "1" ]; then
+  for entry in "${ASSISTANT_FLOWS[@]}"; do
+    flow="${entry%%:*}"
+    extras="${entry#*:}"
+    echo "::group::seed (${extras}) + ${flow}"
+    E2E_SEED_EXTRAS="${extras}" node e2e/seed-e2e.mjs
+    maestro test \
+      --env E2E_EMAIL="${E2E_EMAIL}" \
+      --env E2E_PASSWORD="${E2E_PASSWORD}" \
+      "e2e/${flow}.yaml" || status=1
+    echo "::endgroup::"
+  done
+fi
 
 exit "${status}"
