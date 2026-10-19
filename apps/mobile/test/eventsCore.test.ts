@@ -13,12 +13,22 @@ import {
 const ID = '3f2b8c1e-5d4a-4e7b-9c6a-1b2c3d4e5f60';
 
 describe('event names', () => {
-  it('are exactly the four the database cannot derive', () => {
+  it('are the four the database cannot derive, then the ten assistant steps', () => {
     expect([...EVENT_NAMES]).toEqual([
       'app_installed',
       'signup_started',
       'onboarding_completed',
       'premium_viewed',
+      'assistant_opened',
+      'assistant_command',
+      'assistant_followup_shown',
+      'assistant_followup_answered',
+      'assistant_followup_skipped',
+      'assistant_followup_muted',
+      'assistant_correction',
+      'assistant_undo',
+      'assistant_question_answered',
+      'assistant_teaser_viewed',
     ]);
   });
 

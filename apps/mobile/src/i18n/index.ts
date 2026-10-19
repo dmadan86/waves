@@ -1185,6 +1185,36 @@ export interface UiStrings {
     usedOfLimit: string;
     resetUsage: string;
   };
+  /** The assistant's own chrome: intro card, Free teaser, typed composer. */
+  assistant: {
+    introBody: string;
+    introAction: string;
+    /** `{question}` is one of the teaser questions below. */
+    teaserLine: string;
+    teaserPlace: string;
+    teaserReceipt: string;
+    teaserPayment: string;
+    teaserCta: string;
+    teaserDismiss: string;
+    composerPlaceholder: string;
+    composerLabel: string;
+    composerSend: string;
+    composerTypeInstead: string;
+    composerUseMic: string;
+    proSheetTitle: string;
+    proSheetBody: string;
+    proSheetCta: string;
+    proSheetLater: string;
+    planRowTitle: string;
+    planRowPill: string;
+    personalScope: string;
+    openPersonalAssistant: string;
+    completeRow: string;
+    completeRowHint: string;
+    completeSheetTitle: string;
+    /** The 4th "Try saying…" example, in quotes like its siblings. */
+    tryWhoOwes: string;
+  };
   /** Speak-an-expense quick add, reached from the bar's mic. */
   followUps: {
     added: string;
@@ -6419,6 +6449,35 @@ const en: UiStrings = {
     usedOfLimit: '{used} / {limit} tokens used',
     resetUsage: 'Reset',
   },
+  assistant: {
+    introBody:
+      "I'll ask one or two quick things so the expense is complete. Skip anything; “Don't ask this again” mutes it for good.",
+    introAction: 'Got it',
+    teaserLine: 'Pro would ask: {question}',
+    teaserPlace: 'Where was this?',
+    teaserReceipt: 'Got a receipt?',
+    teaserPayment: 'How did you pay?',
+    teaserCta: 'See Pro',
+    teaserDismiss: 'Dismiss',
+    composerPlaceholder: 'Ask or add… e.g. 800 lunch with Anu',
+    composerLabel: 'Type a command or a question',
+    composerSend: 'Send',
+    composerTypeInstead: 'Type instead',
+    composerUseMic: 'Use the mic',
+    proSheetTitle: 'Corrections by chat are Pro',
+    proSheetBody:
+      'Change an amount, date or place by typing it, and undo with one word. It comes with Pro.',
+    proSheetCta: 'See Pro',
+    proSheetLater: 'Not now',
+    planRowTitle: 'Assistant follow-ups',
+    planRowPill: 'AI',
+    personalScope: 'Adding to Personal',
+    openPersonalAssistant: 'Ask the assistant',
+    completeRow: 'Complete this expense',
+    completeRowHint: 'Add the place, how you paid or a receipt',
+    completeSheetTitle: 'Complete this expense',
+    tryWhoOwes: '“Who owes me?”',
+  },
   followUps: {
     added: 'Added {amount} to {where} ✓',
     wherePersonal: 'Personal',
@@ -11053,6 +11112,35 @@ const ta: UiStrings = {
     usedTokens: '{used} டோக்கன்கள் பயன்படுத்தப்பட்டன',
     usedOfLimit: '{used} / {limit} டோக்கன்கள் பயன்படுத்தப்பட்டன',
     resetUsage: 'மீட்டமை',
+  },
+  assistant: {
+    introBody:
+      'செலவு முழுமையாக இருக்க ஒன்றிரண்டு சிறு கேள்விகள் கேட்பேன். எதை வேண்டுமானாலும் தவிர்க்கலாம்; “இதை மீண்டும் கேட்காதே” என்றால் அது எப்போதும் நிறுத்தப்படும்.',
+    introAction: 'புரிந்தது',
+    teaserLine: 'Pro கேட்கும்: {question}',
+    teaserPlace: 'இது எங்கே நடந்தது?',
+    teaserReceipt: 'ரசீது இருக்கிறதா?',
+    teaserPayment: 'எப்படி பணம் செலுத்தினீர்கள்?',
+    teaserCta: 'Pro பார்க்க',
+    teaserDismiss: 'மூடு',
+    composerPlaceholder: 'கேளுங்கள் அல்லது சேர்க்கவும்… எ.கா. அனுவுடன் மதிய உணவு 800',
+    composerLabel: 'கட்டளை அல்லது கேள்வியை தட்டச்சு செய்யுங்கள்',
+    composerSend: 'அனுப்பு',
+    composerTypeInstead: 'தட்டச்சு செய்ய',
+    composerUseMic: 'மைக் பயன்படுத்து',
+    proSheetTitle: 'அரட்டை மூலம் திருத்தம் Pro-வில் உள்ளது',
+    proSheetBody:
+      'தொகை, தேதி அல்லது இடத்தை தட்டச்சு செய்து மாற்றலாம், ஒரே சொல்லில் செயல்தவிர்க்கலாம். இது Pro-வுடன் வரும்.',
+    proSheetCta: 'Pro பார்க்க',
+    proSheetLater: 'இப்போது வேண்டாம்',
+    planRowTitle: 'உதவியாளர் பின்தொடர் கேள்விகள்',
+    planRowPill: 'AI',
+    personalScope: 'தனிப்பட்டதில் சேர்க்கிறீர்கள்',
+    openPersonalAssistant: 'உதவியாளரிடம் கேளுங்கள்',
+    completeRow: 'இந்தச் செலவை முழுமையாக்குங்கள்',
+    completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
+    completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
+    tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
   },
   followUps: {
     added: 'Added {amount} to {where} ✓',
@@ -15840,6 +15928,34 @@ const hi: UiStrings = {
     usedOfLimit: '{used} / {limit} टोकन इस्तेमाल हुए',
     resetUsage: 'रीसेट',
   },
+  assistant: {
+    introBody:
+      'खर्च पूरा दर्ज हो, इसके लिए मैं एक-दो छोटे सवाल पूछूँगा। कोई भी सवाल छोड़ सकते हैं; “यह दोबारा न पूछें” उसे हमेशा के लिए बंद कर देता है।',
+    introAction: 'समझ गया',
+    teaserLine: 'Pro पूछता: {question}',
+    teaserPlace: 'यह कहाँ हुआ था?',
+    teaserReceipt: 'क्या रसीद है?',
+    teaserPayment: 'भुगतान कैसे किया?',
+    teaserCta: 'Pro देखें',
+    teaserDismiss: 'हटाएँ',
+    composerPlaceholder: 'पूछें या जोड़ें… जैसे अनु के साथ लंच 800',
+    composerLabel: 'कमांड या सवाल लिखें',
+    composerSend: 'भेजें',
+    composerTypeInstead: 'लिखकर बताएँ',
+    composerUseMic: 'माइक इस्तेमाल करें',
+    proSheetTitle: 'चैट से सुधार Pro में है',
+    proSheetBody: 'रकम, तारीख या जगह लिखकर बदलें, और एक शब्द से वापस करें। यह Pro के साथ मिलता है।',
+    proSheetCta: 'Pro देखें',
+    proSheetLater: 'अभी नहीं',
+    planRowTitle: 'असिस्टेंट के फ़ॉलो-अप',
+    planRowPill: 'AI',
+    personalScope: 'निजी में जोड़ रहे हैं',
+    openPersonalAssistant: 'असिस्टेंट से पूछें',
+    completeRow: 'यह खर्च पूरा करें',
+    completeRowHint: 'जगह, भुगतान का तरीका या रसीद जोड़ें',
+    completeSheetTitle: 'यह खर्च पूरा करें',
+    tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
+  },
   followUps: {
     added: 'Added {amount} to {where} ✓',
     wherePersonal: 'Personal',
@@ -20540,6 +20656,34 @@ const ar: UiStrings = {
     usedTokens: 'استُخدم {used} رمزًا',
     usedOfLimit: 'استُخدم {used} / {limit} رمز',
     resetUsage: 'إعادة تعيين',
+  },
+  assistant: {
+    introBody:
+      'سأطرح عليك سؤالاً أو اثنين سريعين ليكتمل المصروف. يمكنك تخطي أي سؤال، وخيار «لا تسأل عن هذا مجدداً» يوقفه نهائياً.',
+    introAction: 'فهمت',
+    teaserLine: 'سيسأل Pro: {question}',
+    teaserPlace: 'أين كان هذا؟',
+    teaserReceipt: 'هل لديك إيصال؟',
+    teaserPayment: 'كيف دفعت؟',
+    teaserCta: 'عرض Pro',
+    teaserDismiss: 'إغلاق',
+    composerPlaceholder: 'اسأل أو أضف… مثل ٨٠٠ غداء مع أنو',
+    composerLabel: 'اكتب أمراً أو سؤالاً',
+    composerSend: 'إرسال',
+    composerTypeInstead: 'اكتب بدلاً من ذلك',
+    composerUseMic: 'استخدم الميكروفون',
+    proSheetTitle: 'التصحيح بالمحادثة ضمن Pro',
+    proSheetBody: 'غيّر مبلغاً أو تاريخاً أو مكاناً بكتابته، وتراجع بكلمة واحدة. يأتي مع Pro.',
+    proSheetCta: 'عرض Pro',
+    proSheetLater: 'ليس الآن',
+    planRowTitle: 'أسئلة المساعد التكميلية',
+    planRowPill: 'AI',
+    personalScope: 'الإضافة إلى الشخصي',
+    openPersonalAssistant: 'اسأل المساعد',
+    completeRow: 'أكمل هذا المصروف',
+    completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
+    completeSheetTitle: 'أكمل هذا المصروف',
+    tryWhoOwes: '«من يدين لي؟»',
   },
   followUps: {
     added: 'Added {amount} to {where} ✓',

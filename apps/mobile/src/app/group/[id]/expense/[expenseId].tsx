@@ -39,6 +39,8 @@ import {
 } from '@waves/core';
 
 import { builtinCategoryLabel, CategoryRow } from '@/components/Category';
+import { useEntitlement } from '@/lib/useEntitlement';
+import { AssistantCompleteRow } from '@/components/AssistantCompleteRow';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
@@ -149,6 +151,7 @@ function MemberAvatar({
 export default function ExpenseDetailScreen() {
   const theme = useTheme();
   const goBack = useGoBack();
+  const { isPro } = useEntitlement();
   const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -897,6 +900,17 @@ export default function ExpenseDetailScreen() {
                   onPress={changeOn('category')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
+                {/* Pro: the assistant's questions, over a bill that is missing its
+                    place, payment or receipt. Draws nothing otherwise. */}
+                {!deleted ? (
+                  <AssistantCompleteRow
+                    groupId={groupId}
+                    expenseId={expense.id}
+                    version={version}
+                    hasLegacyReceipt={receiptUri !== null}
+                    isPro={isPro}
+                  />
+                ) : null}
                 <DetailRow
                   icon="wallet-outline"
                   label={t.paidBy}

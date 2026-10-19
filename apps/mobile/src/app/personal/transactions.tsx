@@ -215,6 +215,16 @@ function PersonalTransactionsScreenBody() {
             </Text>
           ) : null}
         </View>
+        {/* The assistant, already pointed at the private ledger: what is said or
+            typed there stays personal. */}
+        <IconButton
+          label={t.assistant.openPersonalAssistant}
+          onPress={() =>
+            router.push({ pathname: '/voice', params: { scope: 'personal', source: 'personal' } })
+          }
+        >
+          <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
+        </IconButton>
         <IconButton
           label={t.personal.add}
           onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
