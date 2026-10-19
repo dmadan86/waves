@@ -10,10 +10,10 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { randomUUID } from 'expo-crypto';
 
 import {
   cleanCounterpart,
+  deterministicId,
   encodeLoan,
   MutationKind,
   reusableLink,
@@ -44,6 +44,21 @@ export class ShareLoanError extends Error {
   constructor(readonly reason: NonNullable<ReturnType<typeof shareBlocker>>) {
     super(`LOAN_NOT_SHAREABLE: ${reason}`);
   }
+}
+
+/**
+ * Every id a share writes is derived from the loan's id, never drawn at random.
+ * The expense is queued before the link is saved on the loan, so a retry after a
+ * failure in between must write the SAME expense (and group, and members), not
+ * book the debt a second time.
+ */
+export function sharedLoanIds(loanId: string) {
+  return {
+    expenseId: deterministicId(`synced-loan:expense:${loanId}`),
+    groupId: deterministicId(`synced-loan:group:${loanId}`),
+    myMemberId: deterministicId(`synced-loan:me:${loanId}`),
+    otherMemberId: deterministicId(`synced-loan:other:${loanId}`),
+  };
 }
 
 /** The loan's personal record with a new link (or none). */
@@ -82,13 +97,12 @@ export function useShareLoan(loans: readonly PersonalLoan[]) {
       const name = cleanCounterpart(input.person?.name ?? loan.counterpart);
 
       let link = reusableLink(loans, name, loan.currency, (id) => known.groups.has(id));
-      const expenseId = randomUUID();
+      const ids = sharedLoanIds(loan.id);
+      const expenseId = ids.expenseId;
       if (link) {
         link = { ...link, expenseId };
       } else {
-        const groupId = randomUUID();
-        const myMemberId = randomUUID();
-        const otherMemberId = randomUUID();
+        const { groupId, myMemberId, otherMemberId } = ids;
         await mutate(MutationKind.GroupCreate, groupId, {
           name,
           type: GroupType.Other,

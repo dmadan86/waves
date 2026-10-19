@@ -18,6 +18,7 @@ import {
   parseCorrection,
   type CorrectionField,
   type CorrectionFields,
+  type VoiceAgentResponse,
   type VoiceExpenseUpdate,
 } from '@waves/core';
 
@@ -334,8 +335,12 @@ export interface TypedContext extends LocalMatchContext {
   readonly local: AgentLocalData;
   readonly strings: CorrectionStrings;
   readonly online: boolean;
-  /** A fresh id, for the new entry of a move. */
-  readonly newId: () => string;
+  /**
+   * An id for the new entry of a move to `target` (a group id, or null for
+   * Personal). It must be STABLE for the same source and target until the move
+   * completes, so a retry after a half-done move reuses the entry already written.
+   */
+  readonly newId: (target: string | null) => string;
   /** The question on screen, so a bare "at Taj" is read as its answer. */
   readonly question?: string;
 }
@@ -359,6 +364,8 @@ export type TypedResult =
       readonly path: 'device' | 'llm';
       /** The old entry is gone and `next` has a new id (a move). */
       readonly moved: boolean;
+      /** Other answers that came with the correction (a move AND "paid cash"). */
+      readonly answers?: readonly FollowUpAnswer[];
     }
   | {
       readonly kind: 'answered';
@@ -383,7 +390,7 @@ async function commit(
 ): Promise<TypedResult> {
   const applied = applyCorrectionFields(ctx.state, fields);
   if (target.move) {
-    const plan = planMove(applied, target.groupId, ctx.local, ctx.newId());
+    const plan = planMove(applied, target.groupId, ctx.local, ctx.newId(target.groupId));
     if (!plan) return { kind: 'unchanged' };
     if (!(await deps.move(plan, applied))) return { kind: 'failed' };
     // Moving re-seats the payer and the split by itself; only what was asked is named.
@@ -490,7 +497,20 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
   if (!ctx.online) return { kind: 'offline' };
   const result = await deps.send(ctx.text);
   if (result.kind !== 'ok') return { kind: 'unusable' };
-  const response = result.response;
+  return applyAgentResponse(ctx, deps, result.response);
+}
+
+/**
+ * What the agent's reply asks of the saved expense: a delete, or an update whose
+ * fields, move and answers are applied through the same writes a typed
+ * correction uses. Shared by the saved bar and the follow-up composer, so a
+ * reply is treated the same wherever it was asked for.
+ */
+export async function applyAgentResponse(
+  ctx: TypedContext,
+  deps: TypedDeps,
+  response: VoiceAgentResponse,
+): Promise<TypedResult> {
   if (response.delete && response.delete.expenseId === ctx.state.id) {
     return { kind: 'undo', path: 'llm' };
   }
@@ -502,6 +522,7 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
   const hasFields = correctionFieldNames(fields).length > 0;
   const moves = update.groupId !== undefined;
   let working = ctx.state;
+  let committed: Extract<TypedResult, { kind: 'corrected' }> | null = null;
   if (hasFields || moves) {
     const outcome = await commit(
       ctx,
@@ -516,6 +537,7 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
       return outcome;
     } else {
       working = outcome.next;
+      committed = outcome;
     }
   }
   const sharing =
@@ -531,11 +553,20 @@ export async function runTypedMessage(ctx: TypedContext, deps: TypedDeps): Promi
     for (const answer of plan.answers) next = applyAnswer(next, answer);
     if (sharing.length > 0) next = { ...next, participants: sharing };
     if (next !== working) {
-      if (!(await deps.persist(next))) return { kind: 'failed' };
+      const saved = await deps.persist(next);
+      const movedOutcome = committed?.moved ? committed : null;
+      if (movedOutcome) {
+        // The move already happened and the old entry is gone: it must stay
+        // undoable, with the source snapshot, so report it even when the extra
+        // answer could not be saved.
+        if (!saved) return movedOutcome;
+        return { ...movedOutcome, next, answers: plan.answers };
+      }
+      if (!saved) return { kind: 'failed' };
       return { kind: 'answered', previous: ctx.state, next, answers: plan.answers, path: 'llm' };
     }
   }
-  return { kind: 'unusable' };
+  return committed ?? { kind: 'unusable' };
 }
 
 /**
