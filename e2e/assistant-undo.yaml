@@ -1,0 +1,43 @@
+# E2E-06. Undo takes the expense back out, the ledger is empty, Restore puts it
+# back. Needs the corrections work (WS2): "Undo" on the saved line, then
+# "Removed ... Restore" in its place.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*250.*Personal.*'
+    timeout: 15000
+
+# Undo: the line becomes "Removed ..." with Restore beside it.
+- tapOn: 'Undo'
+- extendedWaitUntil:
+    visible: 'Removed.*'
+    timeout: 10000
+- assertVisible: 'Restore'
+
+# The ledger no longer has it (the voice screen stays on the stack underneath).
+- openLink: waves:///personal/transactions
+- extendedWaitUntil:
+    visible: 'Transactions'
+    timeout: 15000
+- assertNotVisible: '.*250.*'
+- back
+
+# Restore: it is back, in the ledger too.
+- tapOn: 'Restore'
+- extendedWaitUntil:
+    visible: 'Restored.*'
+    timeout: 10000
+- openLink: waves:///personal/transactions
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 15000

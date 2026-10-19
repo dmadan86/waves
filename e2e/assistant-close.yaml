@@ -1,0 +1,10 @@
+# Sub-flow (do not run it alone): "Done" closes the assistant once a chain has
+# ended. Tapped when it is on screen, ignored when the screen already closed
+# itself, so a flow can open the assistant again whatever state it was left in.
+appId: app.waves.mobile
+---
+- runFlow:
+    when:
+      visible: 'Done'
+    commands:
+      - tapOn: 'Done'
