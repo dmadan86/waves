@@ -1809,6 +1809,30 @@ export interface UiStrings {
     empty: string;
     footnote: string;
   };
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: string;
+    changedDate: string;
+    changedName: string;
+    changedCurrency: string;
+    changedGroup: string;
+    changedPayer: string;
+    personalName: string;
+    undo: string;
+    restore: string;
+    removed: string;
+    restored: string;
+    undone: string;
+    change: string;
+    unchanged: string;
+    couldNotUndo: string;
+    couldNotChange: string;
+    needsConnection: string;
+    couldNotUse: string;
+    undoA11y: string;
+    restoreA11y: string;
+    updated: string;
+  };
   /** Notification preferences, and what the phone will and will not allow. */
   notifications: {
     title: string;
@@ -6953,6 +6977,30 @@ const en: UiStrings = {
     footnote:
       'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
   },
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: 'Changed to {amount}',
+    changedDate: 'Dated {date}',
+    changedName: 'Renamed to {name}',
+    changedCurrency: 'Now in {currency}',
+    changedGroup: 'Moved to {where}',
+    changedPayer: '{name} paid',
+    personalName: 'Personal',
+    undo: 'Undo',
+    restore: 'Restore',
+    removed: 'Removed {amount} {description}',
+    restored: 'Restored ✓',
+    undone: 'Undone ✓',
+    change: 'Change',
+    unchanged: 'Nothing to change',
+    couldNotUndo: 'Couldn\'t undo that. Try again?',
+    couldNotChange: 'Couldn\'t change that. Try again?',
+    needsConnection: 'Typing needs a connection',
+    couldNotUse: 'I couldn\'t use that',
+    undoA11y: 'Undo {amount} {description}',
+    restoreA11y: 'Restore {amount} {description}',
+    updated: 'Updated ✓',
+  },
   notifications: {
     title: 'Notifications',
     importantTitle: 'Only the important stuff',
@@ -11637,6 +11685,30 @@ const ta: UiStrings = {
       'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
     footnote:
       'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
+  },
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: '{amount} ஆக மாற்றப்பட்டது',
+    changedDate: 'தேதி {date}',
+    changedName: 'பெயர் {name} ஆக மாற்றப்பட்டது',
+    changedCurrency: 'இப்போது {currency} இல்',
+    changedGroup: '{where} க்கு மாற்றப்பட்டது',
+    changedPayer: '{name} செலுத்தினார்',
+    personalName: 'தனிப்பட்டது',
+    undo: 'செயல்தவிர்',
+    restore: 'மீட்டெடு',
+    removed: '{amount} {description} நீக்கப்பட்டது',
+    restored: 'மீட்டெடுக்கப்பட்டது ✓',
+    undone: 'செயல்தவிர்க்கப்பட்டது ✓',
+    change: 'மாற்று',
+    unchanged: 'மாற்ற எதுவுமில்லை',
+    couldNotUndo: 'செயல்தவிர்க்க முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    couldNotChange: 'மாற்ற முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    needsConnection: 'தட்டச்சுக்கு இணைய இணைப்பு தேவை',
+    couldNotUse: 'இதைப் பயன்படுத்த முடியவில்லை',
+    undoA11y: 'செயல்தவிர்: {amount} {description}',
+    restoreA11y: 'மீட்டெடு: {amount} {description}',
+    updated: 'புதுப்பிக்கப்பட்டது ✓',
   },
   notifications: {
     title: 'அறிவிப்புகள்',
@@ -16461,6 +16533,30 @@ const hi: UiStrings = {
     footnote:
       'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
   },
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: '{amount} कर दिया',
+    changedDate: 'तारीख {date}',
+    changedName: 'नाम बदलकर {name} किया',
+    changedCurrency: 'अब {currency} में',
+    changedGroup: '{where} में ले गए',
+    changedPayer: '{name} ने भुगतान किया',
+    personalName: 'निजी',
+    undo: 'पूर्ववत करें',
+    restore: 'वापस लाएं',
+    removed: '{amount} {description} हटाया',
+    restored: 'वापस आ गया ✓',
+    undone: 'पूर्ववत हो गया ✓',
+    change: 'बदलें',
+    unchanged: 'बदलने को कुछ नहीं',
+    couldNotUndo: 'पूर्ववत नहीं हो सका। फिर कोशिश करें?',
+    couldNotChange: 'बदल नहीं सका। फिर कोशिश करें?',
+    needsConnection: 'टाइप करने के लिए इंटरनेट चाहिए',
+    couldNotUse: 'मैं इसे समझ नहीं पाया',
+    undoA11y: 'पूर्ववत करें: {amount} {description}',
+    restoreA11y: 'वापस लाएं: {amount} {description}',
+    updated: 'अपडेट हो गया ✓',
+  },
   notifications: {
     title: 'सूचनाएँ',
     importantTitle: 'सिर्फ़ ज़रूरी बातें',
@@ -21216,6 +21312,30 @@ const ar: UiStrings = {
       'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
     footnote:
       'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
+  },
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: 'تم التغيير إلى {amount}',
+    changedDate: 'التاريخ {date}',
+    changedName: 'تمت إعادة التسمية إلى {name}',
+    changedCurrency: 'الآن بعملة {currency}',
+    changedGroup: 'نُقل إلى {where}',
+    changedPayer: 'دفع {name}',
+    personalName: 'شخصي',
+    undo: 'تراجع',
+    restore: 'استعادة',
+    removed: 'حُذف {amount} {description}',
+    restored: 'تمت الاستعادة ✓',
+    undone: 'تم التراجع ✓',
+    change: 'تغيير',
+    unchanged: 'لا شيء لتغييره',
+    couldNotUndo: 'تعذّر التراجع. حاول مرة أخرى؟',
+    couldNotChange: 'تعذّر التغيير. حاول مرة أخرى؟',
+    needsConnection: 'الكتابة تحتاج إلى اتصال',
+    couldNotUse: 'لم أستطع استخدام ذلك',
+    undoA11y: 'تراجع: {amount} {description}',
+    restoreA11y: 'استعادة: {amount} {description}',
+    updated: 'تم التحديث ✓',
   },
   notifications: {
     title: 'الإشعارات',
