@@ -65,6 +65,17 @@ export class NotUploaderError extends Error {
   }
 }
 
+/**
+ * `r2-sign` refused a personal receipt write because keeping receipts on Waves
+ * is a paid feature (STORAGE_PAID_ONLY). The caller offers the upgrade.
+ */
+export class StoragePaidOnlyError extends Error {
+  constructor(message = 'Storing receipts on Waves is a paid feature') {
+    super(message);
+    this.name = 'StoragePaidOnlyError';
+  }
+}
+
 /** `r2-sign` answered 404 NOT_FOUND: the object does not exist (yet). */
 export class ObjectNotFoundError extends Error {
   constructor(message = 'No such object') {
@@ -92,6 +103,7 @@ async function asStorageError(error: unknown): Promise<Error> {
       if (parsed.code === 'STORAGE_CAP') return new StorageCapError(parsed.message);
       if (parsed.code === 'NOT_FOUND') return new ObjectNotFoundError(parsed.message);
       if (parsed.code === 'NOT_UPLOADER') return new NotUploaderError(parsed.message);
+      if (parsed.code === 'STORAGE_PAID_ONLY') return new StoragePaidOnlyError(parsed.message);
       if (parsed.message) return new Error(parsed.message);
     } catch {
       // Not JSON — fall through to the generic message below.
