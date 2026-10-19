@@ -69,3 +69,51 @@ export function typedFollowUp(
   if (!answer) return null;
   return { transcript, question, answer };
 }
+
+/** A group the reader belongs to, as the "Another group" list needs it. */
+export interface ClarifyGroup {
+  readonly name: string;
+  /** "Trip", "3 people": the secondary line, if any. */
+  readonly detail?: string | null;
+}
+
+/**
+ * The reader's other groups when the agent asked which group: every named
+ * group not already offered, sorted by name. Empty unless at least one offered
+ * option is one of the reader's groups, so an amount or person question never
+ * grows a group list.
+ */
+export function otherGroupChoices(
+  views: readonly ClarifyOptionView[],
+  groups: readonly ClarifyGroup[],
+): ClarifyOptionView[] {
+  const key = (s: string) => s.trim().toLocaleLowerCase();
+  const named = groups.filter((group) => group.name.trim());
+  const names = new Set(named.map((group) => key(group.name)));
+  const offered = new Set(views.flatMap((view) => [key(view.label), key(view.answer)]));
+  if (![...offered].some((name) => names.has(name))) return [];
+  const seen = new Set<string>();
+  const rest: ClarifyOptionView[] = [];
+  for (const group of named) {
+    const name = group.name.trim();
+    if (offered.has(key(name)) || seen.has(key(name))) continue;
+    seen.add(key(name));
+    rest.push({
+      label: name,
+      detail: group.detail?.trim() || null,
+      answer: name,
+      ...LOOKS.group!,
+    });
+  }
+  return rest.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** The choices matching a search, by any word of the name. Blank: all of them. */
+export function filterGroupChoices(
+  choices: readonly ClarifyOptionView[],
+  query: string,
+): ClarifyOptionView[] {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q) return [...choices];
+  return choices.filter((choice) => choice.label.toLocaleLowerCase().includes(q));
+}

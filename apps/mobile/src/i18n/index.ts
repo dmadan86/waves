@@ -1703,6 +1703,9 @@ export interface UiStrings {
     agentTypeMic: string;
     /** Accessibility hint on an option row. */
     agentOptionHint: string;
+    agentOtherGroup: string;
+    agentSearchGroups: string;
+    agentNoGroupMatch: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
     agentTrialQuotaLeft: string;
@@ -7083,6 +7086,9 @@ const en: UiStrings = {
     agentTypeSend: 'Send answer',
     agentTypeMic: 'Answer by voice',
     agentOptionHint: 'Double tap to choose this answer',
+    agentOtherGroup: 'Another group',
+    agentSearchGroups: 'Search your groups',
+    agentNoGroupMatch: 'No group by that name',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{percent}% of your advanced commands left this month',
     agentTrialQuotaLeft: '{percent}% of your Pro trial commands left',
@@ -11963,6 +11969,9 @@ const ta: UiStrings = {
     agentTypeSend: 'பதிலை அனுப்பு',
     agentTypeMic: 'குரலில் பதிலளி',
     agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
+    agentOtherGroup: 'வேறு குழு',
+    agentSearchGroups: 'உங்கள் குழுக்களைத் தேடுங்கள்',
+    agentNoGroupMatch: 'அந்தப் பெயரில் குழு இல்லை',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
     agentTrialQuotaLeft: 'உங்கள் Pro சோதனைக் கட்டளைகளில் {percent}% மீதம்',
@@ -16985,6 +16994,9 @@ const hi: UiStrings = {
     agentTypeSend: 'जवाब भेजें',
     agentTypeMic: 'बोलकर जवाब दें',
     agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
+    agentOtherGroup: 'कोई और ग्रुप',
+    agentSearchGroups: 'अपने ग्रुप खोजें',
+    agentNoGroupMatch: 'इस नाम का कोई ग्रुप नहीं',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
     agentTrialQuotaLeft: 'आपके Pro ट्रायल कमांड का {percent}% बाकी',
@@ -21931,6 +21943,9 @@ const ar: UiStrings = {
     agentTypeSend: 'إرسال الإجابة',
     agentTypeMic: 'أجب بالصوت',
     agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
+    agentOtherGroup: 'مجموعة أخرى',
+    agentSearchGroups: 'ابحث في مجموعاتك',
+    agentNoGroupMatch: 'لا توجد مجموعة بهذا الاسم',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',
     agentTrialQuotaLeft: 'تبقّى {percent}% من أوامر تجربة Pro',

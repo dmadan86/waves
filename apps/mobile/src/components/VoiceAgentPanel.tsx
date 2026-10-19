@@ -42,7 +42,7 @@ import { followUpsAllowed } from '@/lib/assistantCorrections';
 import type { UndoEntry } from '@/lib/assistantUndo';
 import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
-import { clarifyOptionViews, typedFollowUp } from '@/lib/voiceClarifyPure';
+import { clarifyOptionViews, otherGroupChoices, typedFollowUp } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
 import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
 import {
@@ -385,6 +385,18 @@ export function VoiceAgentPanel({
         <VoiceClarifyCard
           question={plan.clarify}
           options={plan.clarifyOptions}
+          moreChoices={otherGroupChoices(
+            clarifyOptionViews(plan.clarifyOptions),
+            local.groups.map((group) => ({
+              name: group.name,
+              // Who else is in it, so two groups with similar names tell apart.
+              detail: group.members
+                .filter((member) => !member.isViewer && member.name)
+                .map((member) => member.name)
+                .slice(0, 3)
+                .join(', '),
+            })),
+          )}
           onContinue={(answer) =>
             onAnswer(
               { transcript: plan.transcript || transcript, question: plan.clarify ?? '' },
