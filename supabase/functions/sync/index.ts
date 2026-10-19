@@ -224,7 +224,7 @@ const EXPENSE_SELECT = `
     fx, receipt_id,
     location, created_at,
     sub_event_id, is_deposit, balance_due_minor, balance_due_date,
-    occurred_at, payee,
+    occurred_at, payee, reimbursable,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -750,6 +750,7 @@ export class SyncSession {
       balanceDueDate?: string | null;
       occurredAt?: string | null;
       payee?: string | null;
+      reimbursable?: boolean | null;
     };
 
     const amount = parseMinor(payload.amount, 'amount');
@@ -840,6 +841,8 @@ export class SyncSession {
         // Absent on a payload queued by an older build: null, so the server
         // carries the previous payee forward instead of wiping it.
         payee: typeof payload.payee === 'string' ? payload.payee : null,
+        // Absent (or null) keeps the flag the expense already has.
+        reimbursable: typeof payload.reimbursable === 'boolean' ? payload.reimbursable : null,
       }),
     );
     if (error) throw error;

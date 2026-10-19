@@ -653,6 +653,10 @@ model ExpenseVersion {
   /// forward by waves_apply_expense when an edit from an older client sends
   /// none; a newer client clears it with ''.
   payee            String?
+  /// "Work expense (to claim)": the spender will claim it back from an employer.
+  /// Never part of a balance. Carried forward by waves_apply_expense when an
+  /// edit from an older client sends none (p_reimbursable NULL).
+  reimbursable     Boolean       @default(false)
   /// The import this version came in with (`import_batches`), set on version 1
   /// of an imported expense only; edits carry none. What Undo import acts on.
   importBatchId    String?       @map("import_batch_id") @db.Uuid
