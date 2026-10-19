@@ -30,3 +30,4 @@ export {
 } from './agentProtocol';
 export * from './amounts';
 export * from './followUps';
+export * from './spendQuery';

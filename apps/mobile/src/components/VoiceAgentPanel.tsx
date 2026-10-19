@@ -17,6 +17,7 @@ import { View } from 'react-native';
 import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 
+import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
@@ -56,6 +57,7 @@ import {
   type VoiceAgentText,
 } from '@/lib/voiceAgentPlan';
 import { useToast } from '@/lib/toast';
+import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 import { useSync } from '@/sync';
 
 export type AgentFallbackReason = AgentFailure;
@@ -151,6 +153,7 @@ export function VoiceAgentPanel({
   const { t, locale } = useStrings();
   const viewerId = useViewerId();
   const local = useAgentLocalData(viewerId);
+  const answerer = useAssistantAnswerer();
   const text = useMemo(() => agentText(t), [t]);
 
   const [response, setResponse] = useState<Awaited<ReturnType<typeof sendVoiceTranscript>> | null>(
@@ -227,6 +230,9 @@ export function VoiceAgentPanel({
   ).length;
   const quota = quotaLeft(plan.quota);
   const nothing = plan.cards.length === 0 && !plan.answer && !plan.clarify;
+  // A question about the person's own spend is answered here from the ledger,
+  // whatever the server said: it cannot see the personal ledger at all.
+  const moneyQuery = plan.cards.length === 0 ? answerer.parse(plan.transcript || transcript) : null;
 
   // One proposed expense and nothing else: the confirmation screen, with its
   // fields editable in place. Anything more (several actions, a settle-up, an
@@ -282,13 +288,15 @@ export function VoiceAgentPanel({
         {t.voice.agentHeard}: “{plan.transcript || transcript}”
       </Text>
 
-      {plan.answer ? (
+      {moneyQuery ? (
+        <AssistantMoneyAnswer query={moneyQuery} onNavigate={onClose} />
+      ) : plan.answer ? (
         <Card>
           <Text variant="subheading">{plan.answer}</Text>
         </Card>
       ) : null}
 
-      {plan.clarify && clarifyOptionViews(plan.clarifyOptions).length > 0 ? (
+      {!moneyQuery && plan.clarify && clarifyOptionViews(plan.clarifyOptions).length > 0 ? (
         <VoiceClarifyCard
           question={plan.clarify}
           options={plan.clarifyOptions}
@@ -309,7 +317,7 @@ export function VoiceAgentPanel({
             onRetry({ transcript: plan.transcript || transcript, question: plan.clarify ?? '' })
           }
         />
-      ) : plan.clarify || nothing ? (
+      ) : (plan.clarify || nothing) && !moneyQuery ? (
         <Card>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="subheading">{t.voice.agentClarifyTitle}</Text>
