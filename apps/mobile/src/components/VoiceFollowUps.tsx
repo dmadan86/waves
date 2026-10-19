@@ -454,7 +454,7 @@ export function VoiceFollowUps({
       today,
       locale,
       local,
-      places: Object.keys(history.placeCoords),
+      places: history.stats.recentPlaces,
       placeCoords: history.placeCoords,
       categories: Object.keys(t.categories),
       categoryLabel,
