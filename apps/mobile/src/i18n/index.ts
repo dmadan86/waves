@@ -1438,6 +1438,46 @@ export interface UiStrings {
     ansGroupSettled: string;
     /** A spoken name that matched no contact. '{name}'. */
     ansNoPerson: string;
+    /** On-device money answers ("how much did I spend on food"): {amount} {when} {category} {count} {what} {date} {left} {limit} {over} {group} {month} {year}. */
+    sqSumAll: string;
+    sqSumCat: string;
+    sqNothingAll: string;
+    sqNothingCat: string;
+    sqBiggest: string;
+    sqCountAll: string;
+    sqCountCat: string;
+    sqBudgetLeft: string;
+    sqBudgetOver: string;
+    sqNoBudgetCat: string;
+    sqNoBudgetAny: string;
+    sqSetOne: string;
+    sqOverall: string;
+    sqNoGroup: string;
+    sqShow: string;
+    sqAnd: string;
+    sqInGroup: string;
+    sqWhenToday: string;
+    sqWhenYesterday: string;
+    sqWhenThisWeek: string;
+    sqWhenLastWeek: string;
+    sqWhenThisMonth: string;
+    sqWhenLastMonth: string;
+    sqWhenThisYear: string;
+    sqWhenLastYear: string;
+    sqWhenLast7: string;
+    sqWhenLast30: string;
+    sqWhenInMonth: string;
+    sqWhenInYear: string;
+    sqChipToday: string;
+    sqChipYesterday: string;
+    sqChipThisWeek: string;
+    sqChipLastWeek: string;
+    sqChipThisMonth: string;
+    sqChipLastMonth: string;
+    sqChipThisYear: string;
+    sqChipLastYear: string;
+    sqChipLast7: string;
+    sqChipLast30: string;
     /** The button on the answer card that reopens the mic for another question. */
     askAgain: string;
     /** Shown while the advanced voice agent reads the clip. */
@@ -6519,6 +6559,45 @@ const en: UiStrings = {
     ansGroupOwe: 'In {group}, you owe {amount}',
     ansGroupSettled: "You're all settled up in {group}",
     ansNoPerson: "Couldn't find {name}",
+    sqSumAll: 'You spent {amount} {when}',
+    sqSumCat: 'You spent {amount} on {category} {when}',
+    sqNothingAll: 'Nothing spent {when}',
+    sqNothingCat: 'Nothing on {category} {when}',
+    sqBiggest: 'Biggest: {amount} {what} on {date}',
+    sqCountAll: 'Expenses {when}: {count}',
+    sqCountCat: 'Expenses on {category} {when}: {count}',
+    sqBudgetLeft: '{left} left of your {limit} {category} budget {when}',
+    sqBudgetOver: '{over} over your {limit} {category} budget {when}',
+    sqNoBudgetCat: 'No {category} budget set',
+    sqNoBudgetAny: 'No overall budget set',
+    sqSetOne: 'Set one',
+    sqOverall: 'overall',
+    sqNoGroup: "Couldn't find a group called {group}",
+    sqShow: 'Show in Spending',
+    sqAnd: '{a} and {b}',
+    sqInGroup: 'in {group}',
+    sqWhenToday: 'today',
+    sqWhenYesterday: 'yesterday',
+    sqWhenThisWeek: 'this week',
+    sqWhenLastWeek: 'last week',
+    sqWhenThisMonth: 'this month',
+    sqWhenLastMonth: 'last month',
+    sqWhenThisYear: 'this year',
+    sqWhenLastYear: 'last year',
+    sqWhenLast7: 'in the last 7 days',
+    sqWhenLast30: 'in the last 30 days',
+    sqWhenInMonth: 'in {month}',
+    sqWhenInYear: 'in {year}',
+    sqChipToday: 'Today',
+    sqChipYesterday: 'Yesterday',
+    sqChipThisWeek: 'This week',
+    sqChipLastWeek: 'Last week',
+    sqChipThisMonth: 'This month',
+    sqChipLastMonth: 'Last month',
+    sqChipThisYear: 'This year',
+    sqChipLastYear: 'Last year',
+    sqChipLast7: 'Last 7 days',
+    sqChipLast30: 'Last 30 days',
     askAgain: 'Ask again',
     agentUnderstanding: 'Understanding…',
     agentUnderstandingHint: 'Just a moment, I’m listening.',
@@ -11092,6 +11171,45 @@ const ta: UiStrings = {
     ansGroupOwe: '{group} இல், நீங்கள் {amount} தர வேண்டும்',
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
     ansNoPerson: '{name} கிடைக்கவில்லை',
+    sqSumAll: '{when} நீங்கள் {amount} செலவழித்தீர்கள்',
+    sqSumCat: '{when} {category}க்கு நீங்கள் {amount} செலவழித்தீர்கள்',
+    sqNothingAll: '{when} செலவு எதுவும் இல்லை',
+    sqNothingCat: '{when} {category} செலவு எதுவும் இல்லை',
+    sqBiggest: 'மிகப் பெரியது: {amount} {what}, {date}',
+    sqCountAll: '{when} செலவுகள்: {count}',
+    sqCountCat: '{when} {category} செலவுகள்: {count}',
+    sqBudgetLeft: '{when} உங்கள் {limit} {category} பட்ஜெட்டில் {left} மீதம்',
+    sqBudgetOver: '{when} உங்கள் {limit} {category} பட்ஜெட்டை {over} மீறிவிட்டீர்கள்',
+    sqNoBudgetCat: '{category} பட்ஜெட் அமைக்கப்படவில்லை',
+    sqNoBudgetAny: 'மொத்த பட்ஜெட் அமைக்கப்படவில்லை',
+    sqSetOne: 'அமைக்கவும்',
+    sqOverall: 'மொத்த',
+    sqNoGroup: '{group} என்ற குழு கிடைக்கவில்லை',
+    sqShow: 'செலவுகளில் காட்டு',
+    sqAnd: '{a} மற்றும் {b}',
+    sqInGroup: '{group} இல்',
+    sqWhenToday: 'இன்று',
+    sqWhenYesterday: 'நேற்று',
+    sqWhenThisWeek: 'இந்த வாரம்',
+    sqWhenLastWeek: 'கடந்த வாரம்',
+    sqWhenThisMonth: 'இந்த மாதம்',
+    sqWhenLastMonth: 'கடந்த மாதம்',
+    sqWhenThisYear: 'இந்த ஆண்டு',
+    sqWhenLastYear: 'கடந்த ஆண்டு',
+    sqWhenLast7: 'கடந்த 7 நாட்களில்',
+    sqWhenLast30: 'கடந்த 30 நாட்களில்',
+    sqWhenInMonth: '{month} மாதத்தில்',
+    sqWhenInYear: '{year} ஆண்டில்',
+    sqChipToday: 'இன்று',
+    sqChipYesterday: 'நேற்று',
+    sqChipThisWeek: 'இந்த வாரம்',
+    sqChipLastWeek: 'கடந்த வாரம்',
+    sqChipThisMonth: 'இந்த மாதம்',
+    sqChipLastMonth: 'கடந்த மாதம்',
+    sqChipThisYear: 'இந்த ஆண்டு',
+    sqChipLastYear: 'கடந்த ஆண்டு',
+    sqChipLast7: 'கடந்த 7 நாட்கள்',
+    sqChipLast30: 'கடந்த 30 நாட்கள்',
     askAgain: 'மீண்டும் கேள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
     agentUnderstandingHint: 'ஒரு நொடி, கேட்டுக்கொண்டிருக்கிறேன்.',
@@ -15810,6 +15928,45 @@ const hi: UiStrings = {
     ansGroupOwe: '{group} में, आप {amount} देते हैं',
     ansGroupSettled: '{group} में सब हिसाब बराबर है',
     ansNoPerson: '{name} नहीं मिला',
+    sqSumAll: '{when} आपने {amount} खर्च किए',
+    sqSumCat: '{when} {category} पर आपने {amount} खर्च किए',
+    sqNothingAll: '{when} कोई खर्च नहीं',
+    sqNothingCat: '{when} {category} पर कुछ नहीं',
+    sqBiggest: 'सबसे बड़ा: {amount} {what}, {date}',
+    sqCountAll: '{when} खर्चे: {count}',
+    sqCountCat: '{when} {category} पर खर्चे: {count}',
+    sqBudgetLeft: '{when} आपके {limit} के {category} बजट में से {left} बचे हैं',
+    sqBudgetOver: '{when} आपके {limit} के {category} बजट से {over} ज़्यादा हो गया',
+    sqNoBudgetCat: '{category} का बजट सेट नहीं है',
+    sqNoBudgetAny: 'कुल बजट सेट नहीं है',
+    sqSetOne: 'सेट करें',
+    sqOverall: 'कुल',
+    sqNoGroup: '{group} नाम का ग्रुप नहीं मिला',
+    sqShow: 'खर्च में दिखाएं',
+    sqAnd: '{a} और {b}',
+    sqInGroup: '{group} में',
+    sqWhenToday: 'आज',
+    sqWhenYesterday: 'कल',
+    sqWhenThisWeek: 'इस हफ़्ते',
+    sqWhenLastWeek: 'पिछले हफ़्ते',
+    sqWhenThisMonth: 'इस महीने',
+    sqWhenLastMonth: 'पिछले महीने',
+    sqWhenThisYear: 'इस साल',
+    sqWhenLastYear: 'पिछले साल',
+    sqWhenLast7: 'पिछले 7 दिनों में',
+    sqWhenLast30: 'पिछले 30 दिनों में',
+    sqWhenInMonth: '{month} में',
+    sqWhenInYear: '{year} में',
+    sqChipToday: 'आज',
+    sqChipYesterday: 'कल',
+    sqChipThisWeek: 'इस हफ़्ते',
+    sqChipLastWeek: 'पिछले हफ़्ते',
+    sqChipThisMonth: 'इस महीने',
+    sqChipLastMonth: 'पिछले महीने',
+    sqChipThisYear: 'इस साल',
+    sqChipLastYear: 'पिछले साल',
+    sqChipLast7: 'पिछले 7 दिन',
+    sqChipLast30: 'पिछले 30 दिन',
     askAgain: 'फिर पूछें',
     agentUnderstanding: 'समझा जा रहा है…',
     agentUnderstandingHint: 'बस एक पल, मैं सुन रहा हूँ।',
@@ -20453,6 +20610,45 @@ const ar: UiStrings = {
     ansGroupOwe: 'في {group}، عليك {amount}',
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
     ansNoPerson: 'تعذر العثور على {name}',
+    sqSumAll: '{when} أنفقت {amount}',
+    sqSumCat: '{when} أنفقت {amount} على {category}',
+    sqNothingAll: 'لا إنفاق {when}',
+    sqNothingCat: 'لا شيء على {category} {when}',
+    sqBiggest: 'الأكبر: {amount} {what} في {date}',
+    sqCountAll: 'المصروفات {when}: {count}',
+    sqCountCat: 'مصروفات {category} {when}: {count}',
+    sqBudgetLeft: 'تبقى {left} من ميزانية {category} البالغة {limit} {when}',
+    sqBudgetOver: 'تجاوزت ميزانية {category} البالغة {limit} بمقدار {over} {when}',
+    sqNoBudgetCat: 'لم تُحدد ميزانية {category}',
+    sqNoBudgetAny: 'لم تُحدد ميزانية إجمالية',
+    sqSetOne: 'حددها',
+    sqOverall: 'الإجمالية',
+    sqNoGroup: 'تعذر العثور على مجموعة باسم {group}',
+    sqShow: 'اعرض في الإنفاق',
+    sqAnd: '{a} و{b}',
+    sqInGroup: 'في {group}',
+    sqWhenToday: 'اليوم',
+    sqWhenYesterday: 'أمس',
+    sqWhenThisWeek: 'هذا الأسبوع',
+    sqWhenLastWeek: 'الأسبوع الماضي',
+    sqWhenThisMonth: 'هذا الشهر',
+    sqWhenLastMonth: 'الشهر الماضي',
+    sqWhenThisYear: 'هذه السنة',
+    sqWhenLastYear: 'السنة الماضية',
+    sqWhenLast7: 'في آخر 7 أيام',
+    sqWhenLast30: 'في آخر 30 يومًا',
+    sqWhenInMonth: 'في {month}',
+    sqWhenInYear: 'في {year}',
+    sqChipToday: 'اليوم',
+    sqChipYesterday: 'أمس',
+    sqChipThisWeek: 'هذا الأسبوع',
+    sqChipLastWeek: 'الأسبوع الماضي',
+    sqChipThisMonth: 'هذا الشهر',
+    sqChipLastMonth: 'الشهر الماضي',
+    sqChipThisYear: 'هذه السنة',
+    sqChipLastYear: 'السنة الماضية',
+    sqChipLast7: 'آخر 7 أيام',
+    sqChipLast30: 'آخر 30 يومًا',
     askAgain: 'اسأل مرة أخرى',
     agentUnderstanding: 'جارٍ الفهم…',
     agentUnderstandingHint: 'لحظة واحدة، أنا أستمع.',

@@ -47,6 +47,7 @@ import {
   resolveIntentPeople,
   type ExpenseLocation,
   type LearnedName,
+  type SpendQuery,
   type SplitParams,
   type VoiceAmountReading,
   type VoiceIntent,
@@ -108,6 +109,7 @@ import {
   type PersonChoice,
 } from '@/components/DestinationPicker';
 import type { VoiceDoneInfo } from '@/components/VoiceCapture';
+import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
@@ -125,6 +127,7 @@ import {
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
+import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
 import { LocationField } from '@/components/LocationField';
 import { CategoryBadge } from '@/components/Category';
@@ -469,7 +472,10 @@ export default function VoiceScreen() {
   // balance, or "couldn't find X"); `group` is answered live from the group's
   // ledger once it loads, since that read is async.
   const [answer, setAnswer] = useState<
-    { kind: 'text'; text: string } | { kind: 'group'; groupName: string; currency: string } | null
+    | { kind: 'text'; text: string }
+    | { kind: 'group'; groupName: string; currency: string }
+    | { kind: 'spend'; query: SpendQuery }
+    | null
   >(null);
   // The group a balance question is about — read by the ledger hook below.
   const [queryGroupId, setQueryGroupId] = useState('');
@@ -644,6 +650,9 @@ export default function VoiceScreen() {
   // The ledger behind a spoken "what's my balance in <group>". Empty id (no such
   // question pending) reads nothing, so it stays inert until one is asked.
   const queryLedger = useGroupLedger(queryGroupId, viewerId);
+  // "How much did I spend on food this month": answered on the phone, from the
+  // personal ledger plus my share of group expenses.
+  const moneyAnswerer = useAssistantAnswerer();
 
   // A confident command writes itself after this many ms, unless Undo is tapped.
   const AUTO_COMMIT_MS = 4000;
@@ -1091,6 +1100,17 @@ export default function VoiceScreen() {
     return true;
   };
 
+  // A spoken question about the person's own spend. The server cannot see the
+  // personal ledger, so this is answered here, offline, before the agent is
+  // asked (and without spending an allowance). Returns true when it took it.
+  const tryMoneyQuestion = (transcript: string): boolean => {
+    const query = moneyAnswerer.parse(transcript);
+    if (!query) return false;
+    setAnswer({ kind: 'spend', query });
+    setPhase('answer');
+    return true;
+  };
+
   // What the fast path may resolve names against: the same 1:1 contacts the
   // settle/remind/balance paths use, and the members of the launch group (the
   // only group whose members are loaded before one is chosen).
@@ -1137,6 +1157,12 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
+    // A money question is never an expense and never needs the agent.
+    if (micMode !== 'append' && !agentFollowUp && tryMoneyQuestion(transcript)) {
+      // The cloud engine heard it, so the command counts like any fast-path one.
+      if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
+      return;
+    }
     // A fresh opening capture that was streamed goes to the advanced agent; "add
     // another", a link-supplied sentence, or a capture that fell back to the
     // on-device recogniser stay on the basic path.
@@ -1197,7 +1223,10 @@ export default function VoiceScreen() {
     // or an answer card), so there is nothing more to interpret here.
     if (
       mode !== 'append' &&
-      (tryMoneyIntent(transcript) || tryAddMember(transcript) || tryBalanceQuery(transcript))
+      (tryMoneyQuestion(transcript) ||
+        tryMoneyIntent(transcript) ||
+        tryAddMember(transcript) ||
+        tryBalanceQuery(transcript))
     )
       return;
     setPhase('thinking');
@@ -1977,6 +2006,7 @@ export default function VoiceScreen() {
   const answerLine = (): { text: string } | { loading: true } => {
     if (!answer) return { text: '' };
     if (answer.kind === 'text') return { text: answer.text };
+    if (answer.kind === 'spend') return { text: '' };
     if (queryLedger.loading) return { loading: true };
     const balance = queryLedger.myBalance;
     const amount = (minor: bigint): string =>
@@ -2064,7 +2094,9 @@ export default function VoiceScreen() {
                 {phase === 'review'
                   ? t.voice.review
                   : phase === 'answer'
-                    ? t.voice.ansTitle
+                    ? answer?.kind === 'spend'
+                      ? t.personal.spendingTitle
+                      : t.voice.ansTitle
                     : t.voice.title}
               </Text>
             </Row>
@@ -2346,7 +2378,14 @@ export default function VoiceScreen() {
             <View
               style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
             >
-              {(() => {
+              {answer?.kind === 'spend' ? (
+                <View style={{ alignSelf: 'stretch' }}>
+                  <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
+                </View>
+              ) : null}
+              {answer?.kind === 'spend'
+                ? null
+                : (() => {
                 const line = answerLine();
                 return 'loading' in line ? (
                   <ActivityIndicator color={theme.color.brand} />
