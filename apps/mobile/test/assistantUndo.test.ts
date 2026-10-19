@@ -37,7 +37,14 @@ const personal = (over: Partial<SavedState> = {}): SavedState => ({
   ...over,
 });
 const group = (over: Partial<SavedState> = {}): SavedState =>
-  personal({ kind: 'group', id: 'e1', groupId: 'g1', payers: { m1: 800000n }, participants: ['m1'], ...over });
+  personal({
+    kind: 'group',
+    id: 'e1',
+    groupId: 'g1',
+    payers: { m1: 800000n },
+    participants: ['m1'],
+    ...over,
+  });
 
 function fakeDeps(over: Partial<UndoDeps> = {}) {
   const calls: string[] = [];
@@ -91,7 +98,9 @@ describe('Undo and Restore on the saved bar (CR-26, MC-SB)', () => {
   });
 
   it('MC-SB-01b a failed delete reports failure and the caller keeps the expense', async () => {
-    const { deps } = fakeDeps({ deleteGroupExpense: vi.fn(async () => Promise.reject(new Error('offline'))) });
+    const { deps } = fakeDeps({
+      deleteGroupExpense: vi.fn(async () => Promise.reject(new Error('offline'))),
+    });
     expect(await undoSaved(group(), deps)).toEqual({ ok: false });
   });
 
@@ -123,7 +132,9 @@ describe('Undo and Restore on the saved bar (CR-26, MC-SB)', () => {
   });
 
   it('MC-SB-02c a failed restore reports failure', async () => {
-    const { deps } = fakeDeps({ restoreGroupExpense: vi.fn(async () => Promise.reject(new Error('x'))) });
+    const { deps } = fakeDeps({
+      restoreGroupExpense: vi.fn(async () => Promise.reject(new Error('x'))),
+    });
     expect(await restoreSaved(group(), deps)).toEqual({ ok: false });
   });
 });

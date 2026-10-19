@@ -576,7 +576,10 @@ function enforceFollowUpCaps(profileId: string, expenseId: string, nowMs: number
  * the model cannot be talked into naming a group or person the turn is not
  * about; for a personal one all of the caller's groups (it may be shared).
  */
-function followUpContext(loaded: VoiceContext, saved: NonNullable<VoiceAgentRequest['savedExpense']>): VoiceContext {
+function followUpContext(
+  loaded: VoiceContext,
+  saved: NonNullable<VoiceAgentRequest['savedExpense']>,
+): VoiceContext {
   const groups =
     saved.kind === 'group' ? loaded.groups.filter((g) => g.id === saved.groupId) : loaded.groups;
   return { ...loaded, groups, saved };

@@ -9,11 +9,7 @@
  */
 
 import { KNOWN_MINOR_UNIT_EXPONENTS } from '../money/currency';
-import {
-  decimalToMinor,
-  foldSpokenAmountWords,
-  spokenNumberValue,
-} from './amounts';
+import { decimalToMinor, foldSpokenAmountWords, spokenNumberValue } from './amounts';
 import {
   resolveSpokenGroup,
   resolveSpokenName,
@@ -122,13 +118,49 @@ const UNDO_ANSWER_RE =
 /* ─────────────────────────────── dates ─────────────────────────────── */
 
 const WEEKDAYS: Readonly<Record<string, number>> = {
-  sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3,
-  thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6,
+  sunday: 0,
+  sun: 0,
+  monday: 1,
+  mon: 1,
+  tuesday: 2,
+  tue: 2,
+  tues: 2,
+  wednesday: 3,
+  wed: 3,
+  thursday: 4,
+  thu: 4,
+  thur: 4,
+  thurs: 4,
+  friday: 5,
+  fri: 5,
+  saturday: 6,
+  sat: 6,
 };
 const MONTHS: Readonly<Record<string, number>> = {
-  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5,
-  jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9,
-  oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
+  jan: 1,
+  january: 1,
+  feb: 2,
+  february: 2,
+  mar: 3,
+  march: 3,
+  apr: 4,
+  april: 4,
+  may: 5,
+  jun: 6,
+  june: 6,
+  jul: 7,
+  july: 7,
+  aug: 8,
+  august: 8,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  oct: 10,
+  october: 10,
+  nov: 11,
+  november: 11,
+  dec: 12,
+  december: 12,
 };
 const MONTH_RE = Object.keys(MONTHS)
   .sort((a, b) => b.length - a.length)
@@ -151,7 +183,10 @@ function readDate(text: string, today: string): DateRead | null {
   if (!t) return null;
   let m: RegExpExecArray | null;
 
-  m = /(?<![\p{L}])(?:the\s+)?day\s+before\s+yesterday(?![\p{L}])|(?<![\p{L}])parso(?![\p{L}])|परसों/iu.exec(text);
+  m =
+    /(?<![\p{L}])(?:the\s+)?day\s+before\s+yesterday(?![\p{L}])|(?<![\p{L}])parso(?![\p{L}])|परसों/iu.exec(
+      text,
+    );
   if (m) {
     const date = addDays(today, -2);
     return date ? { date, rest: cut(text, m.index, m.index + m[0].length) } : null;
@@ -159,7 +194,10 @@ function readDate(text: string, today: string): DateRead | null {
   // "kal" is yesterday or tomorrow in Hindi; only the past tense settles it.
   m = /(?<![\p{L}])(?:yesterday|yday|last\s+night|कल)(?![\p{L}])/iu.exec(text);
   if (!m) {
-    m = /(?<![\p{L}])kal(?=\s+(?:tha|thi|the|ko|ki\s+baat|hua|kiya|gaya|gayi|liya)(?![\p{L}]))/iu.exec(text);
+    m =
+      /(?<![\p{L}])kal(?=\s+(?:tha|thi|the|ko|ki\s+baat|hua|kiya|gaya|gayi|liya)(?![\p{L}]))/iu.exec(
+        text,
+      );
   }
   if (m) {
     const date = addDays(today, -1);
@@ -220,7 +258,8 @@ function readDate(text: string, today: string): DateRead | null {
   if (m?.[1]) {
     const dayOfMonth = Number(m[1]);
     let date = iso(t.y, t.m, dayOfMonth);
-    if (date && date > today) date = t.m === 1 ? iso(t.y - 1, 12, dayOfMonth) : iso(t.y, t.m - 1, dayOfMonth);
+    if (date && date > today)
+      date = t.m === 1 ? iso(t.y - 1, 12, dayOfMonth) : iso(t.y, t.m - 1, dayOfMonth);
     if (date) return { date, rest: cut(text, m.index, m.index + m[0].length) };
   }
   return null;
@@ -229,9 +268,10 @@ function readDate(text: string, today: string): DateRead | null {
 /* ─────────────────────────────── currency ─────────────────────────────── */
 
 function readCurrency(text: string): { currency: string; rest: string } | null {
-  const m = /(?<![\p{L}])(?:in|into|as|currency\s+(?:was|is)?)\s+([A-Za-z]{3})(?![\p{L}])|(?<![\p{L}])([A-Za-z]{3})\s+(?:mein|me)(?![\p{L}])/iu.exec(
-    text,
-  );
+  const m =
+    /(?<![\p{L}])(?:in|into|as|currency\s+(?:was|is)?)\s+([A-Za-z]{3})(?![\p{L}])|(?<![\p{L}])([A-Za-z]{3})\s+(?:mein|me)(?![\p{L}])/iu.exec(
+      text,
+    );
   const code = (m?.[1] ?? m?.[2])?.toUpperCase();
   if (!m || !code || !(code in KNOWN_MINOR_UNIT_EXPONENTS)) return null;
   return { currency: code, rest: cut(text, m.index, m.index + m[0].length) };
@@ -247,9 +287,19 @@ function adjacentCurrency(text: string): string | null {
 /* ─────────────────────────────── amount ─────────────────────────────── */
 
 const SCALE: Readonly<Record<string, bigint>> = {
-  k: 1000n, thousand: 1000n, hazaar: 1000n, hazar: 1000n, lakh: 100000n, lac: 100000n,
-  lakhs: 100000n, lacs: 100000n, crore: 10000000n, crores: 10000000n, cr: 10000000n,
-  m: 1000000n, million: 1000000n,
+  k: 1000n,
+  thousand: 1000n,
+  hazaar: 1000n,
+  hazar: 1000n,
+  lakh: 100000n,
+  lac: 100000n,
+  lakhs: 100000n,
+  lacs: 100000n,
+  crore: 10000000n,
+  crores: 10000000n,
+  cr: 10000000n,
+  m: 1000000n,
+  million: 1000000n,
 };
 
 const WORD_NUMBER_RE =
@@ -313,16 +363,15 @@ function chooseNumber(text: string, nums: readonly Num[]): Num | null {
 const AMOUNT_CUE =
   /(?<![\p{L}])(?:make|made|change|changed|set|update|amount|price|cost|costs|it'?s|its|it\s+was|that\s+was|was|should\s+be|actually|sorry|rather|instead|nahi|nahin|nhi|not|no|bana|banao|kar\s+do|karo|tha|thi|hai|only|total|came\s+to|rs|inr|rupees?|₹)(?![\p{L}])|₹|नहीं/iu;
 
-function readAmount(
-  text: string,
-  currency: string,
-): { minor: bigint; rest: string } | null {
+function readAmount(text: string, currency: string): { minor: bigint; rest: string } | null {
   const folded = foldSpokenAmountWords(text);
   const nums = numbersIn(folded);
   if (nums.length === 0) return null;
   const only = folded.replace(/[^\p{L}\p{N}₹.,]/gu, ' ').trim();
-  const bare = nums.length === 1 && only.replace(/₹|rs\.?|rupees?|inr/giu, '').replace(/\s/g, '') ===
-    folded.slice(nums[0]?.start ?? 0, nums[0]?.end ?? 0).replace(/\s/g, '');
+  const bare =
+    nums.length === 1 &&
+    only.replace(/₹|rs\.?|rupees?|inr/giu, '').replace(/\s/g, '') ===
+      folded.slice(nums[0]?.start ?? 0, nums[0]?.end ?? 0).replace(/\s/g, '');
   if (!bare && !AMOUNT_CUE.test(folded)) return null;
   const chosen = chooseNumber(folded, nums);
   if (!chosen) return null;
@@ -453,7 +502,11 @@ export function parseCorrection(
     return null;
   }
   // A bare date word inside a longer sentence is not a correction.
-  if (fields.date !== undefined && fields.amountMinor === undefined && rest.split(/\s+/).length > 6) {
+  if (
+    fields.date !== undefined &&
+    fields.amountMinor === undefined &&
+    rest.split(/\s+/).length > 6
+  ) {
     return null;
   }
   return Object.keys(fields).length > 0 ? { kind: 'update', fields } : null;

@@ -384,11 +384,13 @@ export const TOOLS = [
         currency: str('A corrected ISO 4217 code; relabels only, never converts'),
         date: str('A corrected date, YYYY-MM-DD, resolved against today'),
         description: str('A corrected short description'),
-        groupId: str('Move it to this group id from the context, or "personal" for the personal ledger'),
+        groupId: str(
+          'Move it to this group id from the context, or "personal" for the personal ledger',
+        ),
         participants: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Member ids of the expense\'s group who share it',
+          description: "Member ids of the expense's group who share it",
         },
         splitWith: {
           type: 'object',
@@ -756,7 +758,11 @@ function validateUpdate(input: Record<string, unknown>, context: VoiceContext): 
   if (input.participants !== undefined && input.participants !== null) {
     const home = target ?? (saved.kind === 'group' ? groupOf(context, saved.groupId) : undefined);
     if (!home) bad('participants need a group');
-    if (!Array.isArray(input.participants) || input.participants.length === 0 || input.participants.length > 40) {
+    if (
+      !Array.isArray(input.participants) ||
+      input.participants.length === 0 ||
+      input.participants.length > 40
+    ) {
       bad('participants needs 1-40 members');
     }
     const ids: string[] = [];

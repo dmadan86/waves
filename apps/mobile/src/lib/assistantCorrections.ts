@@ -73,7 +73,9 @@ export function applyCorrectionFields(state: SavedState, fields: CorrectionField
       next = {
         ...next,
         description,
-        category: next.categoryStated ? next.category : (guessCategory(description) ?? next.category),
+        category: next.categoryStated
+          ? next.category
+          : (guessCategory(description) ?? next.category),
       };
     }
   }
@@ -91,7 +93,10 @@ export function changedFields(before: SavedState, after: SavedState): Correction
   if (before.description !== after.description) out.push('description');
   if (before.currency !== after.currency) out.push('currency');
   if (before.groupId !== after.groupId) out.push('groupId');
-  if (JSON.stringify(Object.keys(before.payers ?? {})) !== JSON.stringify(Object.keys(after.payers ?? {}))) {
+  if (
+    JSON.stringify(Object.keys(before.payers ?? {})) !==
+    JSON.stringify(Object.keys(after.payers ?? {}))
+  ) {
     out.push('payerMemberId');
   }
   return out;
@@ -244,13 +249,14 @@ export function planMove(
 
 /* ───────────────────────────── local answer matchers ───────────────────────────── */
 
-const PAYMENT_WORDS: ReadonlyArray<readonly [RegExp, 'upi' | 'cash' | 'card' | 'credit' | 'debit']> = [
-  [/^(?:by |via |with |through )?(?:upi|gpay|google pay|phonepe|phone pe|paytm|bhim)$/i, 'upi'],
-  [/^(?:by |in |with )?cash$/i, 'cash'],
-  [/^(?:by |with |on )?(?:a )?credit(?: card)?$/i, 'credit'],
-  [/^(?:by |with |on )?(?:a )?debit(?: card)?$/i, 'debit'],
-  [/^(?:by |with |on )?(?:a )?card$/i, 'card'],
-];
+const PAYMENT_WORDS: readonly (readonly [RegExp, 'upi' | 'cash' | 'card' | 'credit' | 'debit'])[] =
+  [
+    [/^(?:by |via |with |through )?(?:upi|gpay|google pay|phonepe|phone pe|paytm|bhim)$/i, 'upi'],
+    [/^(?:by |in |with )?cash$/i, 'cash'],
+    [/^(?:by |with |on )?(?:a )?credit(?: card)?$/i, 'credit'],
+    [/^(?:by |with |on )?(?:a )?debit(?: card)?$/i, 'debit'],
+    [/^(?:by |with |on )?(?:a )?card$/i, 'card'],
+  ];
 
 export interface LocalMatchContext {
   /** Places this person has been recorded at, most recent first. */
@@ -284,8 +290,7 @@ export function matchLocalAnswer(
   for (const [pattern, method] of PAYMENT_WORDS) {
     if (!pattern.test(text)) continue;
     // A group has credit/debit, a personal entry has card; map to what this one keeps.
-    const mapped =
-      method === 'card' && !allowed.includes('card') ? 'credit' : method;
+    const mapped = method === 'card' && !allowed.includes('card') ? 'credit' : method;
     const final = allowed.includes(mapped)
       ? mapped
       : mapped === 'credit' || mapped === 'debit'

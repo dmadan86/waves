@@ -25,7 +25,11 @@ import { MutationKind, format, money, type FilledKind } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
-import { useDeletePersonalRecord, useUpsertPersonalRecord, usePersonalLedger } from '@/data/personal';
+import {
+  useDeletePersonalRecord,
+  useUpsertPersonalRecord,
+  usePersonalLedger,
+} from '@/data/personal';
 import { serialiseExpense } from '@/data/serialiseExpense';
 import { fill, useStrings } from '@/i18n';
 import {
@@ -71,7 +75,11 @@ export interface AssistantBarContext {
 
 /** A tally the panel can forward to telemetry; the bar has no opinion about where it goes. */
 export type SavedBarEvent =
-  | { readonly name: 'assistant_correction'; readonly field: string; readonly path: 'device' | 'llm' }
+  | {
+      readonly name: 'assistant_correction';
+      readonly field: string;
+      readonly path: 'device' | 'llm';
+    }
   | { readonly name: 'assistant_undo'; readonly what: 'expense' | 'answer' | 'handoff' };
 
 export interface AssistantSavedBarProps {
@@ -102,7 +110,14 @@ function UndoRing({ color, track, still }: { color: string; track: string; still
   const props = useAnimatedProps(() => ({ strokeDashoffset: CIRCUMFERENCE * progress.value }));
   return (
     <Svg width={RING} height={RING} accessibilityElementsHidden importantForAccessibility="no">
-      <Circle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke={track} strokeWidth={STROKE} fill="none" />
+      <Circle
+        cx={RING / 2}
+        cy={RING / 2}
+        r={RADIUS}
+        stroke={track}
+        strokeWidth={STROKE}
+        fill="none"
+      />
       <AnimatedCircle
         cx={RING / 2}
         cy={RING / 2}
@@ -151,7 +166,10 @@ function Link({
       })}
     >
       {children}
-      <Text variant="micro" style={{ color: brand ? theme.color.brand : theme.color.textMuted, fontWeight: '700' }}>
+      <Text
+        variant="micro"
+        style={{ color: brand ? theme.color.brand : theme.color.textMuted, fontWeight: '700' }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -219,7 +237,11 @@ export function AssistantSavedBar({
     async (next: SavedState): Promise<boolean> => {
       try {
         if (next.kind === 'personal') {
-          await upsert.mutateAsync({ recordId: next.id, recordKind: 'txn', data: toPersonalData(next) });
+          await upsert.mutateAsync({
+            recordId: next.id,
+            recordKind: 'txn',
+            data: toPersonalData(next),
+          });
         } else {
           const base = baseRef.current;
           if (!base || !next.groupId) return false;
@@ -302,7 +324,14 @@ export function AssistantSavedBar({
         for (const field of result.fields) {
           onEvent?.({
             name: 'assistant_correction',
-            field: field === 'amountMinor' ? 'amount' : field === 'groupId' ? 'group' : field === 'payerMemberId' ? 'payer' : field,
+            field:
+              field === 'amountMinor'
+                ? 'amount'
+                : field === 'groupId'
+                  ? 'group'
+                  : field === 'payerMemberId'
+                    ? 'payer'
+                    : field,
             path: result.path,
           });
         }
@@ -491,7 +520,9 @@ export function AssistantSavedBar({
       </View>
 
       {line ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <Text variant="caption" tone="muted" style={{ flex: 1 }}>
             {line}
           </Text>

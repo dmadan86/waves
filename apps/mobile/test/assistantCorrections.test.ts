@@ -108,7 +108,9 @@ function depsOf(over: Partial<TypedDeps> = {}) {
   return { persist, move, send, deps: { persist, move, send, ...over } as TypedDeps };
 }
 
-const okResponse = (extra: Partial<VoiceAgentResponse>): { kind: 'ok'; response: VoiceAgentResponse } => ({
+const okResponse = (
+  extra: Partial<VoiceAgentResponse>,
+): { kind: 'ok'; response: VoiceAgentResponse } => ({
   kind: 'ok',
   response: {
     schemaVersion: 1,
@@ -184,14 +186,23 @@ describe('typed corrections (MC-CR, CR-25)', () => {
   });
 
   it('CR-25f a renamed expense re-guesses the category only when it was not stated', async () => {
-    expect(applyCorrectionFields(personal({ categoryStated: true, category: 'travel' }), { description: 'Dinner' }).category).toBe('travel');
-    expect(applyCorrectionFields(personal({ category: 'shopping' }), { description: 'Dinner' }).description).toBe('Dinner');
+    expect(
+      applyCorrectionFields(personal({ categoryStated: true, category: 'travel' }), {
+        description: 'Dinner',
+      }).category,
+    ).toBe('travel');
+    expect(
+      applyCorrectionFields(personal({ category: 'shopping' }), { description: 'Dinner' })
+        .description,
+    ).toBe('Dinner');
   });
 
   it('CR-25g undo and "undo the place" are recognised without a network call', async () => {
     const { deps, send } = depsOf();
     expect((await runTypedMessage(ctxFor('undo', personal()), deps)).kind).toBe('undo');
-    expect((await runTypedMessage(ctxFor('undo the place', personal()), deps)).kind).toBe('undoAnswer');
+    expect((await runTypedMessage(ctxFor('undo the place', personal()), deps)).kind).toBe(
+      'undoAnswer',
+    );
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -215,7 +226,9 @@ describe('typed corrections (MC-CR, CR-25)', () => {
   });
 
   it('MC-CR-03 text the parsers miss goes to the agent', async () => {
-    const send = vi.fn(async () => okResponse({ update: { expenseId: 'p1', note: 'with the team' } }));
+    const send = vi.fn(async () =>
+      okResponse({ update: { expenseId: 'p1', note: 'with the team' } }),
+    );
     const { deps, persist } = depsOf({ send: send as unknown as TypedDeps['send'] });
     const result = await runTypedMessage(ctxFor('it was with the whole team', personal()), deps);
     expect(send).toHaveBeenCalledTimes(1);
@@ -226,7 +239,10 @@ describe('typed corrections (MC-CR, CR-25)', () => {
 
   it('MC-CR-03b offline, unread text asks for a connection instead of failing silently', async () => {
     const { deps, send } = depsOf();
-    const result = await runTypedMessage(ctxFor('the usual place', personal(), { online: false }), deps);
+    const result = await runTypedMessage(
+      ctxFor('the usual place', personal(), { online: false }),
+      deps,
+    );
     expect(result.kind).toBe('offline');
     expect(send).not.toHaveBeenCalled();
   });
@@ -242,9 +258,14 @@ describe('typed corrections (MC-CR, CR-25)', () => {
   });
 
   it('CR-30 (client) a model correction of the amount applies with no extra work', async () => {
-    const send = vi.fn(async () => okResponse({ update: { expenseId: 'p1', amountMinor: '80000' } }));
+    const send = vi.fn(async () =>
+      okResponse({ update: { expenseId: 'p1', amountMinor: '80000' } }),
+    );
     const { deps, persist } = depsOf({ send: send as unknown as TypedDeps['send'] });
-    const result = await runTypedMessage(ctxFor('the bill was lower than I said', personal({ amount: 900000n })), deps);
+    const result = await runTypedMessage(
+      ctxFor('the bill was lower than I said', personal({ amount: 900000n })),
+      deps,
+    );
     expect(result.kind).toBe('corrected');
     if (result.kind === 'corrected') expect(result.path).toBe('llm');
     expect(persist.mock.calls[0]?.[0]?.amount).toBe(80000n);
@@ -254,9 +275,14 @@ describe('typed corrections (MC-CR, CR-25)', () => {
     const mine = vi.fn(async () => okResponse({ delete: { expenseId: 'p1' } }));
     const other = vi.fn(async () => okResponse({ delete: { expenseId: 'zzz' } }));
     const a = depsOf({ send: mine as unknown as TypedDeps['send'] });
-    expect(await runTypedMessage(ctxFor('get rid of the thing', personal()), a.deps)).toEqual({ kind: 'undo', path: 'llm' });
+    expect(await runTypedMessage(ctxFor('get rid of the thing', personal()), a.deps)).toEqual({
+      kind: 'undo',
+      path: 'llm',
+    });
     const b = depsOf({ send: other as unknown as TypedDeps['send'] });
-    expect((await runTypedMessage(ctxFor('get rid of the thing', personal()), b.deps)).kind).toBe('unusable');
+    expect((await runTypedMessage(ctxFor('get rid of the thing', personal()), b.deps)).kind).toBe(
+      'unusable',
+    );
   });
 
   it('CR-30c fieldsFromUpdate reads only well-formed minor units', () => {
@@ -305,7 +331,9 @@ describe('moving between ledgers', () => {
 
   it('CR-16n a failed move leaves the old entry alone', async () => {
     const { deps } = depsOf({ move: vi.fn(async () => false) });
-    expect((await runTypedMessage(ctxFor('move to Flat 4B', personal()), deps)).kind).toBe('failed');
+    expect((await runTypedMessage(ctxFor('move to Flat 4B', personal()), deps)).kind).toBe(
+      'failed',
+    );
   });
 
   it('CR-16o a target the caller is not in cannot be planned', () => {
@@ -344,7 +372,12 @@ describe('group amount changes keep the split whole', () => {
   });
   it('CR-25j an unchanged amount returns the same write; a new member set becomes equal', () => {
     expect(rescaleWrite(base, { amount: 900n, currency: 'INR', description: 'Dinner' })).toBe(base);
-    const fewer = rescaleWrite(base, { amount: 900n, currency: 'INR', description: 'Dinner', participants: ['a', 'b'] });
+    const fewer = rescaleWrite(base, {
+      amount: 900n,
+      currency: 'INR',
+      description: 'Dinner',
+      participants: ['a', 'b'],
+    });
     expect(fewer.splitParams).toEqual({ kind: 'equal' });
     expect(Object.keys(fewer.expectedShares).sort()).toEqual(['a', 'b']);
   });
@@ -353,7 +386,9 @@ describe('group amount changes keep the split whole', () => {
     expect(next.payers).toEqual({ 'm-me': 100000n });
   });
   it('CR-25l a payer correction makes that member the one who paid it all', () => {
-    expect(applyCorrectionFields(group(), { payerMemberId: 'm-ravi' }).payers).toEqual({ 'm-ravi': 800000n });
+    expect(applyCorrectionFields(group(), { payerMemberId: 'm-ravi' }).payers).toEqual({
+      'm-ravi': 800000n,
+    });
     expect(applyCorrectionFields(personal(), { payerMemberId: 'm-ravi' }).payers).toBeNull();
   });
 });
@@ -366,7 +401,10 @@ describe('matchLocalAnswer', () => {
     expect(matchLocalAnswer('', personal(), ctx)).toBeNull();
   });
   it('an unambiguous place prefix matches but a short one does not', () => {
-    expect(matchLocalAnswer('phoenix', personal(), ctx)).toEqual({ kind: 'place', name: 'Phoenix Mall' });
+    expect(matchLocalAnswer('phoenix', personal(), ctx)).toEqual({
+      kind: 'place',
+      name: 'Phoenix Mall',
+    });
     expect(matchLocalAnswer('ph', personal(), ctx)).toBeNull();
   });
   it('a stored place brings its coordinates', () => {

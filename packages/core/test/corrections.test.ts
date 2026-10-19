@@ -197,7 +197,11 @@ describe('parseCorrection: undo and unrelated text', () => {
   });
   it('CR-24b a long sentence that merely mentions a day is not a correction', () => {
     expect(
-      parseCorrection('we went to the new cafe near the lake last friday with everyone', personal, ctx),
+      parseCorrection(
+        'we went to the new cafe near the lake last friday with everyone',
+        personal,
+        ctx,
+      ),
     ).toBeNull();
   });
   it('CR-24c correctionFieldNames lists only what changed', () => {

@@ -123,10 +123,7 @@ export interface UndoOutcome {
  * Take back the newest history entry. Null when there is nothing to undo or a
  * write failed (nothing is changed then; the caller keeps the entry).
  */
-export async function undoEntry(
-  entry: UndoEntry,
-  deps: UndoDeps,
-): Promise<UndoOutcome | null> {
+export async function undoEntry(entry: UndoEntry, deps: UndoDeps): Promise<UndoOutcome | null> {
   switch (entry.kind) {
     case 'edit': {
       if (!(await deps.persist(entry.previous))) return null;
@@ -166,9 +163,7 @@ export function historyEntryFor(
 
 /* ───────────────────────── the Undo / Restore buttons ───────────────────────── */
 
-export type Removal =
-  | { readonly ok: true; readonly removed: SavedState }
-  | { readonly ok: false };
+export type Removal = { readonly ok: true; readonly removed: SavedState } | { readonly ok: false };
 
 /**
  * Undo on the saved bar: remove the expense. Always available (the ring is only
@@ -184,8 +179,7 @@ export async function undoSaved(state: SavedState, deps: UndoDeps): Promise<Remo
 }
 
 export type Restoration =
-  | { readonly ok: true; readonly state: SavedState }
-  | { readonly ok: false };
+  { readonly ok: true; readonly state: SavedState } | { readonly ok: false };
 
 /** Restore on the "Removed ... Restore" line. Never throws. */
 export async function restoreSaved(

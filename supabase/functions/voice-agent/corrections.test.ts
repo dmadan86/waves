@@ -29,10 +29,30 @@ const rejected = (parsed: ReturnType<typeof parseToolCalls>) => expect(parsed.ok
 
 describe('correction fields', () => {
   it('TV-UPD-09 amountMinor takes digits only, within the cap', () => {
-    expect(upd({ amountMinor: '80000' })).toMatchObject({ ok: true, update: { amountMinor: '80000' } });
-    expect(upd({ amountMinor: 80000 })).toMatchObject({ ok: true, update: { amountMinor: '80000' } });
-    expect(upd({ amountMinor: ' 0800 ' })).toMatchObject({ ok: true, update: { amountMinor: '800' } });
-    for (const bad of ['-1', '1e3', '800.00', '', '0', '999999999999999999', '1000000000000', 'abc', {}, [1]]) {
+    expect(upd({ amountMinor: '80000' })).toMatchObject({
+      ok: true,
+      update: { amountMinor: '80000' },
+    });
+    expect(upd({ amountMinor: 80000 })).toMatchObject({
+      ok: true,
+      update: { amountMinor: '80000' },
+    });
+    expect(upd({ amountMinor: ' 0800 ' })).toMatchObject({
+      ok: true,
+      update: { amountMinor: '800' },
+    });
+    for (const bad of [
+      '-1',
+      '1e3',
+      '800.00',
+      '',
+      '0',
+      '999999999999999999',
+      '1000000000000',
+      'abc',
+      {},
+      [1],
+    ]) {
       // '' is "not given", so with nothing else it changes nothing; the rest are malformed.
       rejected(upd({ amountMinor: bad }));
     }
@@ -46,12 +66,18 @@ describe('correction fields', () => {
   });
 
   it('TV-UPD-11 a move needs a group the caller is in, and personal only from a group expense', () => {
-    expect(upd({ groupId: 'g-london' })).toMatchObject({ ok: true, update: { groupId: 'g-london' } });
+    expect(upd({ groupId: 'g-london' })).toMatchObject({
+      ok: true,
+      update: { groupId: 'g-london' },
+    });
     rejected(upd({ groupId: "g-goa'; DROP TABLE" }));
     rejected(upd({ groupId: 'g-evil' }));
     rejected(upd({ groupId: null }));
     rejected(upd({ groupId: 'personal' }));
-    expect(upd({ groupId: null }, group, gid)).toMatchObject({ ok: true, update: { groupId: null } });
+    expect(upd({ groupId: null }, group, gid)).toMatchObject({
+      ok: true,
+      update: { groupId: null },
+    });
     expect(upd({ groupId: 'personal' }, group, gid)).toMatchObject({
       ok: true,
       update: { groupId: null },
@@ -123,7 +149,11 @@ describe('delete_expense', () => {
   const del = (input: unknown, ctx = personal) =>
     parseToolCalls([{ name: 'delete_expense', input }], ctx);
   it('TV-DEL-01 only in a follow-up, only for the saved id', () => {
-    expect(del({ expenseId: pid })).toMatchObject({ ok: true, actions: [], delete: { expenseId: pid } });
+    expect(del({ expenseId: pid })).toMatchObject({
+      ok: true,
+      actions: [],
+      delete: { expenseId: pid },
+    });
     rejected(del({ expenseId: pid }, fixtureContext('default')));
     rejected(del({ expenseId: 'other' }));
     rejected(del({}));
@@ -159,7 +189,14 @@ describe('delete_expense', () => {
     const props = Object.keys(
       (update?.input_schema as { properties: Record<string, unknown> }).properties,
     );
-    for (const field of ['amountMinor', 'currency', 'date', 'description', 'groupId', 'participants']) {
+    for (const field of [
+      'amountMinor',
+      'currency',
+      'date',
+      'description',
+      'groupId',
+      'participants',
+    ]) {
       expect(props).toContain(field);
     }
   });
@@ -212,7 +249,9 @@ function makeDeps(calls: Call[], now = () => 0) {
   const fetchMock = vi.fn(llm(calls));
   const deps = {
     caller: {
-      auth: { getUser: async () => ({ data: { user: { id: fixtures.meProfileId } }, error: null }) },
+      auth: {
+        getUser: async () => ({ data: { user: { id: fixtures.meProfileId } }, error: null }),
+      },
       from: (name: string) => table(rows[name] ?? []),
     },
     service: { rpc, from: vi.fn() },
@@ -285,7 +324,10 @@ describe('handler: corrections and undo', () => {
 
   it('CR-30d the log names the fields an update changed, never the values', async () => {
     const { deps } = makeDeps([
-      { name: 'update_expense', input: { expenseId: pid, amountMinor: '80000', date: '2026-10-20' } },
+      {
+        name: 'update_expense',
+        input: { expenseId: pid, amountMinor: '80000', date: '2026-10-20' },
+      },
     ]);
     await post(deps, { savedExpense: fixtures.saved.personal });
     const log = JSON.parse(String(vi.mocked(console.log).mock.calls.at(-1)?.[0]));
