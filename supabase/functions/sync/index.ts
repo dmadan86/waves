@@ -684,6 +684,7 @@ export class SyncSession {
               : Number(mutation.payload.secondDay),
           p_anchor_date: requireString(mutation.payload.anchorDate, 'anchorDate'),
           p_end_date: optionalText(mutation.payload.endDate, 'endDate'),
+          p_skip_first: mutation.payload.skipFirst === true,
         });
       case 'group_recurring.update': {
         const patch = mutation.payload.patch;

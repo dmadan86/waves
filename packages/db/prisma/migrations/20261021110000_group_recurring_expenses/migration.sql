@@ -261,7 +261,10 @@ CREATE FUNCTION public.waves_create_group_recurring_expense(
   p_interval integer,
   p_second_day integer,
   p_anchor_date date,
-  p_end_date date DEFAULT NULL
+  p_end_date date DEFAULT NULL,
+  -- The first occurrence is the expense the person has just added by hand:
+  -- start the rule at the one after it, so that date is not posted twice.
+  p_skip_first boolean DEFAULT false
 ) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -269,6 +272,8 @@ CREATE FUNCTION public.waves_create_group_recurring_expense(
 DECLARE
   v_me uuid;
   v_id uuid;
+  v_next date := p_anchor_date;
+  v_cadence_second integer := CASE WHEN p_cadence = 'semimonthly' THEN p_second_day END;
 BEGIN
   IF NOT public.is_group_member(p_group_id) THEN
     RAISE EXCEPTION 'NOT_A_MEMBER: you are not in that group' USING ERRCODE = 'insufficient_privilege';
@@ -289,15 +294,23 @@ BEGIN
   END IF;
   PERFORM public.waves_assert_recurring_template(p_group_id, p_amount, p_payers, p_shares);
 
+  IF p_skip_first THEN
+    v_next := public.waves_recurring_next(p_cadence, GREATEST(COALESCE(p_interval, 1), 1),
+                v_cadence_second, p_anchor_date, p_anchor_date);
+  END IF;
+
   INSERT INTO public.group_recurring_expenses
     (id, group_id, created_by, description, category, currency, amount, split_type, split_params,
-     payers, shares, notes, cadence, "interval", second_day, anchor_date, next_date, end_date)
+     payers, shares, notes, cadence, "interval", second_day, anchor_date, next_date, end_date,
+     last_generated_on, status)
   VALUES
     (COALESCE(p_id, gen_random_uuid()), p_group_id, v_me, btrim(p_description), p_category,
      upper(p_currency), p_amount, p_split_type, p_split_params, p_payers, p_shares,
      NULLIF(btrim(p_notes), ''), p_cadence, GREATEST(COALESCE(p_interval, 1), 1),
-     CASE WHEN p_cadence = 'semimonthly' THEN p_second_day END,
-     p_anchor_date, p_anchor_date, p_end_date)
+     v_cadence_second,
+     p_anchor_date, v_next, p_end_date,
+     CASE WHEN p_skip_first THEN p_anchor_date END,
+     CASE WHEN p_skip_first AND p_end_date IS NOT NULL AND v_next > p_end_date THEN 'stopped' ELSE 'active' END)
   RETURNING id INTO v_id;
 
   RETURN v_id;
@@ -595,8 +608,8 @@ GRANT EXECUTE ON FUNCTION public.waves_recurring_derived_id(text, uuid, date) TO
 REVOKE ALL ON FUNCTION public.waves_assert_recurring_template(uuid, bigint, jsonb, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_assert_recurring_template(uuid, bigint, jsonb, jsonb) TO service_role;
 
-REVOKE ALL ON FUNCTION public.waves_create_group_recurring_expense(uuid, uuid, text, text, character, bigint, text, jsonb, jsonb, jsonb, text, text, integer, integer, date, date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.waves_create_group_recurring_expense(uuid, uuid, text, text, character, bigint, text, jsonb, jsonb, jsonb, text, text, integer, integer, date, date) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.waves_create_group_recurring_expense(uuid, uuid, text, text, character, bigint, text, jsonb, jsonb, jsonb, text, text, integer, integer, date, date, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_create_group_recurring_expense(uuid, uuid, text, text, character, bigint, text, jsonb, jsonb, jsonb, text, text, integer, integer, date, date, boolean) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.waves_update_group_recurring_expense(uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_update_group_recurring_expense(uuid, jsonb) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.waves_generate_my_recurring_expenses(date) FROM PUBLIC, anon;

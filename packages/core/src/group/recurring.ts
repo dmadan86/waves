@@ -275,6 +275,8 @@ export interface GroupRecurringWhen {
   readonly secondDay?: number | null;
   readonly anchorDate: string;
   readonly endDate?: string | null;
+  /** True when the first occurrence is the expense being saved right now. */
+  readonly skipFirst?: boolean;
 }
 
 function lines(
@@ -333,6 +335,7 @@ export function buildGroupRecurringCreate(
     secondDay: schedule.secondDay,
     anchorDate: when.anchorDate,
     endDate: when.endDate ?? null,
+    skipFirst: when.skipFirst ?? false,
   };
 }
 

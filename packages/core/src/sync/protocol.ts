@@ -367,6 +367,9 @@ export interface GroupRecurringCreatePayload {
   readonly secondDay?: number | null;
   readonly anchorDate: string;
   readonly endDate?: string | null;
+  /** The first occurrence is an expense the person just added by hand, so the
+   *  rule starts at the one after it (that date must not be posted twice). */
+  readonly skipFirst?: boolean;
 }
 
 /**

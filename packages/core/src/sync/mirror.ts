@@ -58,7 +58,7 @@ import type {
 } from './protocol';
 import type { QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
-import { firstOccurrenceOnOrAfter } from '../group/recurring';
+import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
 export type MirrorRow = Readonly<Record<string, unknown>>;
@@ -1481,10 +1481,20 @@ export function materialiseGroupRecurring(
         interval: payload.interval,
         second_day: payload.cadence === 'semimonthly' ? (payload.secondDay ?? null) : null,
         anchor_date: payload.anchorDate,
-        next_date: payload.anchorDate,
+        next_date: payload.skipFirst
+          ? nextOccurrenceAfter(
+              {
+                cadence: payload.cadence,
+                interval: payload.interval,
+                secondDay: payload.secondDay ?? null,
+                anchorDate: payload.anchorDate,
+              },
+              payload.anchorDate,
+            )
+          : payload.anchorDate,
         end_date: payload.endDate ?? null,
         status: 'active',
-        last_generated_on: null,
+        last_generated_on: payload.skipFirst ? payload.anchorDate : null,
         created_at: mutation.clientCreatedAt,
         pending: true,
       });
