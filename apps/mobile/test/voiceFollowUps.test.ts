@@ -104,6 +104,10 @@ vi.mock('@/lib/navigation', () => ({ router: { push: world.push } }));
 vi.mock('@/lib/toast', () => ({ useToast: () => ({ show: world.toast }) }));
 vi.mock('@/lib/voiceAgent', () => ({ sendVoiceTranscript: world.send }));
 vi.mock('@/lib/voiceStream', () => ({ checkOnline: async () => world.online }));
+// The card's mic is covered in voiceFollowUpsReply.test.ts; here no recorder exists.
+vi.mock('@/lib/voiceReplyEngine', () => ({
+  deviceReplyEngine: { supported: () => false, start: () => ({ stop() {}, cancel() {} }) },
+}));
 vi.mock('@/sync', () => ({ useSync: () => ({ mirror: {}, queue: {} }) }));
 vi.mock('@waves/core', async (original) => ({
   ...(await original<typeof import('@waves/core')>()),
