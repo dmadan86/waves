@@ -1264,6 +1264,7 @@ export interface UiStrings {
     lendAsk: string;
     lendYes: string;
     lendNo: string;
+    lendShare: string;
     wrapupAsk: string;
     wrapupYes: string;
     wrapupNo: string;
@@ -5452,6 +5453,21 @@ export interface UiStrings {
     principal: string;
     outstanding: string;
     recordPayment: string;
+    shareWith: string;
+    shareTitle: string;
+    shareBody: string;
+    shareAction: string;
+    shareWho: string;
+    pickContact: string;
+    visibleTo: string;
+    settleUp: string;
+    stopSharing: string;
+    stopSharingBody: string;
+    cannotStopSharing: string;
+    shareFailed: string;
+    shareToggle: string;
+    deleteSharedBody: string;
+    deleteSharedKept: string;
     closeLoan: string;
     reopenLoan: string;
     paidOff: string;
@@ -6566,6 +6582,7 @@ const en: UiStrings = {
     lendAsk: 'Should {name} pay you back?',
     lendYes: 'Yes, {name} owes me',
     lendNo: 'No, it was a gift',
+    lendShare: 'Yes, and show it to {name}',
     wrapupAsk: '{trip} looks finished. Settle up now?',
     wrapupYes: 'Settle up',
     wrapupNo: 'Not yet',
@@ -10169,6 +10186,24 @@ const en: UiStrings = {
     principal: 'Amount',
     outstanding: 'Outstanding',
     recordPayment: 'Record payment',
+    shareWith: 'Share with {name}',
+    shareTitle: 'Share this loan',
+    shareBody:
+      '{name} will see it as a balance between you and can settle it with you. If they are not on Waves yet, they see it when they join.',
+    shareAction: 'Share',
+    shareWho: 'Who is it with?',
+    pickContact: 'Pick from contacts',
+    visibleTo: 'Visible to {name}',
+    settleUp: 'Settle up',
+    stopSharing: 'Stop sharing',
+    stopSharingBody: 'This takes the debt off their side. Your private loan stays.',
+    cannotStopSharing:
+      'Part of this is already repaid, so it cannot be unshared. Settle the rest instead.',
+    shareFailed: 'Could not share this loan. Try again.',
+    shareToggle: 'Also show this to {name}',
+    deleteSharedBody: 'This also removes the debt from their side.',
+    deleteSharedKept:
+      'Part of this is already repaid, so the debt stays in your balance with {name}.',
     closeLoan: 'Close',
     reopenLoan: 'Reopen',
     paidOff: 'Paid off',
@@ -11270,6 +11305,7 @@ const ta: UiStrings = {
     lendAsk: '{name} உங்களுக்குத் திருப்பித் தர வேண்டுமா?',
     lendYes: 'ஆம், {name} எனக்குத் தர வேண்டும்',
     lendNo: 'இல்லை, அது பரிசு',
+    lendShare: 'ஆம், {name}-க்கும் காட்டு',
     wrapupAsk: '{trip} முடிந்தது போல் தெரிகிறது. இப்போது கணக்கைத் தீர்க்கவா?',
     wrapupYes: 'கணக்கைத் தீர்',
     wrapupNo: 'இன்னும் இல்லை',
@@ -15044,6 +15080,25 @@ const ta: UiStrings = {
     principal: 'தொகை',
     outstanding: 'நிலுவைத் தொகை',
     recordPayment: 'கட்டணத்தைப் பதிவு செய்',
+    shareWith: '{name} உடன் பகிர்',
+    shareTitle: 'இந்தக் கடனைப் பகிர்',
+    shareBody:
+      'உங்கள் இருவருக்கும் இடையிலான கணக்காக {name} இதைப் பார்ப்பார்; உங்களுடன் தீர்த்துக்கொள்ளலாம். அவர் இன்னும் Waves-இல் இல்லையெனில், சேர்ந்ததும் தெரியும்.',
+    shareAction: 'பகிர்',
+    shareWho: 'யாருடன்?',
+    pickContact: 'தொடர்புகளிலிருந்து தேர்வு',
+    visibleTo: '{name}-க்குத் தெரியும்',
+    settleUp: 'கணக்கைத் தீர்',
+    stopSharing: 'பகிர்வை நிறுத்து',
+    stopSharingBody:
+      'அவர் பக்கத்திலிருந்து இந்தக் கடன் நீக்கப்படும். உங்கள் தனிப்பட்ட கடன் இருக்கும்.',
+    cannotStopSharing:
+      'இதில் ஒரு பகுதி ஏற்கெனவே திருப்பிச் செலுத்தப்பட்டதால் பகிர்வை நிறுத்த முடியாது. மீதியைத் தீர்க்கவும்.',
+    shareFailed: 'இந்தக் கடனைப் பகிர முடியவில்லை. மீண்டும் முயலவும்.',
+    shareToggle: 'இதை {name}-க்கும் காட்டு',
+    deleteSharedBody: 'அவர் பக்கத்திலிருந்தும் இந்தக் கடன் நீக்கப்படும்.',
+    deleteSharedKept:
+      'இதில் ஒரு பகுதி ஏற்கெனவே செலுத்தப்பட்டதால், கடன் {name} உடனான உங்கள் இருப்பில் இருக்கும்.',
     closeLoan: 'மூடு',
     reopenLoan: 'மீண்டும் திற',
     paidOff: 'அடைக்கப்பட்டது',
@@ -16124,6 +16179,7 @@ const hi: UiStrings = {
     lendAsk: 'क्या {name} आपको पैसे लौटाएगा?',
     lendYes: 'हाँ, {name} पर बकाया है',
     lendNo: 'नहीं, यह तोहफ़ा था',
+    lendShare: 'हाँ, और {name} को भी दिखाएँ',
     wrapupAsk: '{trip} खत्म लगता है। अभी हिसाब चुकाएँ?',
     wrapupYes: 'हिसाब चुकाएँ',
     wrapupNo: 'अभी नहीं',
@@ -19745,6 +19801,24 @@ const hi: UiStrings = {
     principal: 'राशि',
     outstanding: 'बकाया',
     recordPayment: 'भुगतान दर्ज करें',
+    shareWith: '{name} के साथ साझा करें',
+    shareTitle: 'यह उधार साझा करें',
+    shareBody:
+      '{name} इसे आप दोनों के बीच के हिसाब के रूप में देखेंगे और आपके साथ चुका सकेंगे। अगर वे अभी Waves पर नहीं हैं, तो जुड़ते ही दिखेगा।',
+    shareAction: 'साझा करें',
+    shareWho: 'यह किसके साथ है?',
+    pickContact: 'संपर्कों से चुनें',
+    visibleTo: '{name} को दिखता है',
+    settleUp: 'हिसाब चुकाएँ',
+    stopSharing: 'साझा करना बंद करें',
+    stopSharingBody: 'इससे उनकी ओर से यह कर्ज़ हट जाएगा। आपका निजी उधार बना रहेगा।',
+    cannotStopSharing:
+      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए साझा करना बंद नहीं हो सकता। बाकी चुका दें।',
+    shareFailed: 'यह उधार साझा नहीं हो सका। फिर कोशिश करें।',
+    shareToggle: 'यह {name} को भी दिखाएँ',
+    deleteSharedBody: 'इससे उनकी ओर से भी यह कर्ज़ हट जाएगा।',
+    deleteSharedKept:
+      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
     closeLoan: 'बंद करें',
     reopenLoan: 'फिर खोलें',
     paidOff: 'चुका दिया',
@@ -20893,6 +20967,7 @@ const ar: UiStrings = {
     lendAsk: 'هل يجب أن يردّ {name} المبلغ لك؟',
     lendYes: 'نعم، {name} مدين لي',
     lendNo: 'لا، كان هدية',
+    lendShare: 'نعم، وأظهره لـ {name} أيضًا',
     wrapupAsk: 'يبدو أن {trip} انتهت. هل نسوّي الحسابات الآن؟',
     wrapupYes: 'سوِّ الحسابات',
     wrapupNo: 'ليس بعد',
@@ -25080,6 +25155,22 @@ const ar: UiStrings = {
     principal: 'المبلغ',
     outstanding: 'المتبقي',
     recordPayment: 'تسجيل دفعة',
+    shareWith: 'مشاركة مع {name}',
+    shareTitle: 'مشاركة هذا القرض',
+    shareBody:
+      'سيرى {name} هذا كرصيد بينكما ويمكنه تسويته معك. إذا لم يكن على Waves بعد، سيظهر له عند انضمامه.',
+    shareAction: 'مشاركة',
+    shareWho: 'مع من؟',
+    pickContact: 'اختيار من جهات الاتصال',
+    visibleTo: 'ظاهر لـ {name}',
+    settleUp: 'تسوية الحساب',
+    stopSharing: 'إيقاف المشاركة',
+    stopSharingBody: 'سيُزال الدين من جهته. يبقى قرضك الخاص.',
+    cannotStopSharing: 'تم سداد جزء منه، لذا لا يمكن إيقاف المشاركة. سوِّ الباقي بدلًا من ذلك.',
+    shareFailed: 'تعذّرت مشاركة هذا القرض. حاول مرة أخرى.',
+    shareToggle: 'أظهر هذا لـ {name} أيضًا',
+    deleteSharedBody: 'سيُزال الدين أيضًا من جهته.',
+    deleteSharedKept: 'تم سداد جزء منه، لذا يبقى الدين في رصيدك مع {name}.',
     closeLoan: 'إغلاق',
     reopenLoan: 'إعادة فتح',
     paidOff: 'مسدَّد',

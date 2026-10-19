@@ -234,3 +234,71 @@ describe('undoing a move and a hand-off (CR-28)', () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe('undo of a shared loan and of a hand-off (CR-28)', () => {
+  it('CR-28f undo of a shared lend removes the 1:1 group debt first, then restores the entry and drops the loan', async () => {
+    const { deps, calls } = fakeDeps({
+      sharedLoanExpense: (id) => (id === 'loan-7' ? { groupId: 'g9', expenseId: 'e9' } : null),
+    });
+    const history = pushHistory([], { kind: 'lend', previous: personal(), loanId: 'loan-7' });
+    const done = await undoLast(history, deps);
+    expect(done?.outcome.what).toBe('handoff');
+    expect(calls).toEqual(['delG g9 e9', 'upP fresh', 'delP loan-7']);
+  });
+
+  it('CR-28g a private lend never touches a group, and a failed group delete keeps the loan', async () => {
+    const plain = fakeDeps({ sharedLoanExpense: () => null });
+    await undoLast(pushHistory([], { kind: 'lend', previous: personal(), loanId: 'l' }), plain.deps);
+    expect(plain.calls).toEqual(['upP fresh', 'delP l']);
+
+    const failing = fakeDeps({
+      sharedLoanExpense: () => ({ groupId: 'g9', expenseId: 'e9' }),
+      deleteGroupExpense: vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    });
+    const out = await undoLast(
+      pushHistory([], { kind: 'lend', previous: personal(), loanId: 'l' }),
+      failing.deps,
+    );
+    expect(out).toBeNull();
+    expect(failing.calls).toEqual([]);
+  });
+
+  it('CR-28h undo of a split / move-to-trip hand-off restores the entry under its own id first, then deletes the group expense', async () => {
+    const { deps, calls } = fakeDeps();
+    const upsert = vi.mocked(deps.upsertPersonal);
+    const history = pushHistory([], {
+      kind: 'handoff',
+      previous: personal(),
+      snapshot: {
+        personalId: 'p1',
+        data: { kind: 'expense', amount: '8000.00', place: 'x' },
+        groupId: 'g1',
+        expenseId: 'e1',
+      },
+    });
+    const done = await undoLast(history, deps);
+    expect(calls).toEqual(['upP p1', 'delG g1 e1']);
+    expect(upsert.mock.calls[0]?.[0].data).toMatchObject({ place: 'x' });
+    expect(done?.outcome.state.id).toBe('p1');
+  });
+
+  it('CR-28i if the entry cannot be restored the group expense is left alone', async () => {
+    const { deps, calls } = fakeDeps({
+      upsertPersonal: vi.fn(async () => {
+        throw new Error('nope');
+      }),
+    });
+    const out = await undoLast(
+      pushHistory([], {
+        kind: 'handoff',
+        previous: personal(),
+        snapshot: { personalId: 'p1', data: {}, groupId: 'g1', expenseId: 'e1' },
+      }),
+      deps,
+    );
+    expect(out).toBeNull();
+    expect(calls).toEqual([]);
+  });
+});
