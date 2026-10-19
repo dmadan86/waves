@@ -427,6 +427,9 @@ function PersonalTransactionsScreenBody() {
                   {signed(txn.amount, txn.currency, income)}
                 </Text>
                 {method ? <Text style={{ fontSize: 12, color: muted }}>{method}</Text> : null}
+                {txn.reimbursable ? (
+                  <Text style={{ fontSize: 12, color: muted }}>{t.followUps.reimbursableTag}</Text>
+                ) : null}
               </View>
               <Ionicons
                 name={directionalIcon('chevron-forward')}

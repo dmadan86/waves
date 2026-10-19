@@ -20,6 +20,7 @@ import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
+import { VoiceFollowUps } from '@/components/VoiceFollowUps';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
@@ -37,6 +38,7 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
+import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { clarifyOptionViews, typedFollowUp } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
@@ -49,6 +51,7 @@ import {
   type AgentCard,
   type AgentLocalData,
   type AgentLocalGroup,
+  type AgentExpenseWrite,
   type AgentPlan,
   type VoiceAgentText,
 } from '@/lib/voiceAgentPlan';
@@ -193,6 +196,11 @@ export function VoiceAgentPanel({
     setStatus((current) => ({ ...current, [key]: next }));
   }, []);
   const [confirmAllSeq, setConfirmAllSeq] = useState(0);
+  // Set once the single confirmed expense is saved: the follow-up questions take over.
+  const [savedFollowUp, setSavedFollowUp] = useState<{
+    state: SavedState;
+    write: AgentExpenseWrite | null;
+  } | null>(null);
 
   const toast = useToast();
   // Everything handled — a Done button closes the screen.
@@ -230,6 +238,17 @@ export function VoiceAgentPanel({
     !plan.answer &&
     !plan.clarify
   ) {
+    if (savedFollowUp) {
+      return (
+        <VoiceFollowUps
+          initial={savedFollowUp.state}
+          groupWrite={savedFollowUp.write}
+          local={local}
+          today={today}
+          onClose={onClose}
+        />
+      );
+    }
     return statusOf(only.key) === 'discarded' ? (
       <View style={{ gap: theme.spacing.md }}>
         <Button label={t.voice.agentDone} onPress={onClose} />
@@ -248,10 +267,10 @@ export function VoiceAgentPanel({
           onClose();
         }}
         onRetry={() => onRetry()}
-        onAdded={() => {
+        onAdded={(saved) => {
           setCardStatus(only.key, 'done');
-          toast.show(t.voice.agentDone);
-          onClose();
+          // Pro-only by construction: this panel exists only where the agent does.
+          setSavedFollowUp(saved);
         }}
       />
     );
@@ -401,7 +420,7 @@ function ConfirmExpense({
   engine: VoiceEngineInfo | null;
   onEdited: () => void;
   onDiscard: () => void;
-  onAdded: () => void;
+  onAdded: (saved: { state: SavedState; write: AgentExpenseWrite | null }) => void;
   onRetry: () => void;
 }) {
   // Minted once, so a retry after a failure reuses the id and appends no duplicate.
@@ -416,6 +435,7 @@ function ConfirmExpense({
     setBusy(true);
     setFailed(false);
     try {
+      let groupWrite: AgentExpenseWrite | null = null;
       if (resolved.type === 'add_personal') {
         await upsertPersonal.mutateAsync(personalWriteFromAction(resolved, expenseId, today));
       } else {
@@ -423,8 +443,9 @@ function ConfirmExpense({
         const write = expenseWriteFromAction(resolved, group, expenseId, today);
         if (!write) throw new Error('expense does not hold together');
         await writeExpense.mutateAsync(write);
+        groupWrite = write;
       }
-      onAdded();
+      onAdded({ state: savedStateFrom(resolved, groupWrite, expenseId, today), write: groupWrite });
     } catch {
       setFailed(true);
       setBusy(false);

@@ -13,6 +13,7 @@ import {
   VOICE_AGENT_SCHEMA_VERSION,
   type VoiceAgentRequest,
   type VoiceAgentResponse,
+  type VoiceSavedExpense,
 } from '@waves/core';
 
 import { backend } from '@/lib/backend';
@@ -84,6 +85,8 @@ export function sendVoiceTranscript(input: {
   today: string;
   /** This sentence answers the agent's last question. */
   followUp?: { transcript: string; question: string } | null;
+  /** This sentence answers a follow-up question about an expense just saved. */
+  savedExpense?: VoiceSavedExpense | null;
 }): Promise<VoiceAgentResult> {
   return callVoiceAgent({
     schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
@@ -92,6 +95,7 @@ export function sendVoiceTranscript(input: {
     locale: input.locale,
     today: input.today,
     ...(input.followUp ? { followUp: input.followUp } : {}),
+    ...(input.savedExpense ? { savedExpense: input.savedExpense } : {}),
   });
 }
 
