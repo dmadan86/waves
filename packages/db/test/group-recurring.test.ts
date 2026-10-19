@@ -670,3 +670,61 @@ describe('the generator bypass cannot be forged by a client', () => {
     ).toBe(0);
   });
 });
+
+describe('the activity feed', () => {
+  const verbs = async (id: string): Promise<string[]> =>
+    (
+      await client.query(
+        `SELECT verb FROM activity_log WHERE object_id = $1 AND object_type = 'recurring_expense' ORDER BY created_at, id`,
+        [id],
+      )
+    ).rows.map((r) => r.verb as string);
+  const patch = (profile: string, id: string, body: object) =>
+    as(profile, () =>
+      client.query(`SELECT waves_update_group_recurring_expense($1, $2::jsonb)`, [
+        id,
+        JSON.stringify(body),
+      ]),
+    );
+
+  it('records the creation, the edit, pause, resume and stop, each by the member who did it', async () => {
+    const id = await createRule({ by: alice, anchor: '2027-02-01' });
+    await patch(group.profileIds[bob]!, id, { description: 'Flat rent' });
+    await patch(group.profileIds[cara]!, id, { status: 'paused' });
+    await patch(group.profileIds[alice]!, id, { status: 'active' });
+    await patch(group.profileIds[bob]!, id, { status: 'stopped' });
+    expect(await verbs(id)).toEqual([
+      'recurring_created',
+      'recurring_edited',
+      'recurring_paused',
+      'recurring_resumed',
+      'recurring_stopped',
+    ]);
+    const { rows } = await client.query(
+      `SELECT verb, actor_member_id, payload ->> 'description' AS d FROM activity_log
+        WHERE object_id = $1 ORDER BY created_at, id`,
+      [id],
+    );
+    expect(rows.map((r) => r.actor_member_id)).toEqual([
+      group.memberIds[alice],
+      group.memberIds[bob],
+      group.memberIds[cara],
+      group.memberIds[alice],
+      group.memberIds[bob],
+    ]);
+    expect(rows[1].d).toBe('Flat rent');
+  });
+
+  it('a schedule edit is logged as an edit; a patch that changes only the status is not', async () => {
+    const id = await createRule({ anchor: '2027-02-01' });
+    await patch(group.profileIds[alice]!, id, { cadence: 'monthly', interval: 3 });
+    await patch(group.profileIds[alice]!, id, { status: 'paused' });
+    expect(await verbs(id)).toEqual(['recurring_created', 'recurring_edited', 'recurring_paused']);
+  });
+
+  it('a refused change leaves no line behind', async () => {
+    const id = await createRule({ anchor: '2027-02-01' });
+    await expectDenied(patch(other.profileIds[0]!, id, { status: 'stopped' }));
+    expect(await verbs(id)).toEqual(['recurring_created']);
+  });
+});

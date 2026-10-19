@@ -313,6 +313,10 @@ BEGIN
      CASE WHEN p_skip_first AND p_end_date IS NOT NULL AND v_next > p_end_date THEN 'stopped' ELSE 'active' END)
   RETURNING id INTO v_id;
 
+  INSERT INTO public.activity_log (group_id, actor_member_id, verb, object_type, object_id, payload)
+  VALUES (p_group_id, v_me, 'recurring_created', 'recurring_expense', v_id,
+          jsonb_build_object('description', btrim(p_description)));
+
   RETURN v_id;
 END
 $$;
@@ -338,6 +342,7 @@ DECLARE
   v_payers       jsonb;
   v_shares       jsonb;
   v_schedule_changed boolean;
+  v_actor        uuid;
 BEGIN
   SELECT * INTO r FROM public.group_recurring_expenses WHERE id = p_id FOR UPDATE;
   IF NOT FOUND OR NOT public.is_group_member(r.group_id) THEN
@@ -412,6 +417,27 @@ BEGIN
                        ELSE created_by END,
     updated_at  = now()
   WHERE id = p_id;
+
+  -- The feed says who changed a shared rule. What changed is one of five verbs:
+  -- edited (anything but the status), then paused / resumed / stopped. A patch
+  -- that changes nothing writes nothing.
+  v_actor := public.waves_my_member_id(r.group_id);
+  IF p_patch ?| ARRAY['description','category','currency','amount','split_type','split_params',
+                      'payers','shares','notes','cadence','interval','second_day','anchor_date','end_date']
+     OR v_schedule_changed THEN
+    INSERT INTO public.activity_log (group_id, actor_member_id, verb, object_type, object_id, payload)
+    VALUES (r.group_id, v_actor, 'recurring_edited', 'recurring_expense', p_id,
+            jsonb_build_object('description', COALESCE(NULLIF(btrim(p_patch ->> 'description'), ''), r.description)));
+  END IF;
+  IF v_status IS DISTINCT FROM r.status THEN
+    INSERT INTO public.activity_log (group_id, actor_member_id, verb, object_type, object_id, payload)
+    VALUES (r.group_id, v_actor,
+            CASE v_status WHEN 'paused' THEN 'recurring_paused'
+                          WHEN 'stopped' THEN 'recurring_stopped'
+                          ELSE 'recurring_resumed' END,
+            'recurring_expense', p_id,
+            jsonb_build_object('description', COALESCE(NULLIF(btrim(p_patch ->> 'description'), ''), r.description)));
+  END IF;
 END
 $$;
 

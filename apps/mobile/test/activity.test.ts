@@ -844,3 +844,24 @@ describe('the import lines in every language', () => {
     expect(english.importedHeadline.one).toContain('{n}');
   });
 });
+
+describe('repeating group expenses in the feed', () => {
+  it.each([
+    ['recurring_created', 'Ravi set Rent to repeat', 'Repeating Rent'],
+    ['recurring_edited', 'Ravi changed the repeating Rent', 'Changed repeating Rent'],
+    ['recurring_paused', 'Ravi paused the repeating Rent', 'Paused repeating Rent'],
+    ['recurring_resumed', 'Ravi resumed the repeating Rent', 'Resumed repeating Rent'],
+    ['recurring_stopped', 'Ravi stopped the repeating Rent', 'Stopped repeating Rent'],
+  ])('%s reads as a sentence, a headline and gets its own icon', (verb, sentence, headline) => {
+    const entry = row({ verb, object_type: 'recurring_expense', payload: { description: 'Rent' } });
+    expect(describeActivity(entry, 'me')).toBe(sentence);
+    expect(activityHeadline(entry)).toBe(headline);
+    expect(verbIcon(verb)).not.toBe('ellipse-outline');
+  });
+
+  it('a nameless payload still reads sensibly', () => {
+    expect(
+      describeActivity(row({ verb: 'recurring_paused', object_type: 'recurring_expense' }), 'me'),
+    ).toBe('Ravi paused the repeating expense');
+  });
+});
