@@ -14,7 +14,7 @@ import type { PickedImage } from '@/lib/image';
 import { attachReceipt, runOnce } from '@/lib/assistantInline';
 import { useQuickReceipt, type QuickReceipt } from '@/lib/quickReceipt';
 
-export type InlineReceiptStatus = 'idle' | 'uploading' | 'attached' | 'failed';
+export type InlineReceiptStatus = 'idle' | 'uploading' | 'attached' | 'failed' | 'removeFailed';
 
 export interface InlineReceipt {
   readonly picker: QuickReceipt;
@@ -85,7 +85,7 @@ export function useInlineReceipt(input: {
         setStatus('idle');
         onRemoved();
       } catch {
-        setStatus('failed');
+        setStatus('removeFailed');
       }
     });
   }, [groupId, expenseId, picker, onRemoved]);

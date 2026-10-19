@@ -635,8 +635,10 @@ export function VoiceFollowUps({
     else setSheetError(f.couldNotSave);
   };
 
-  const moveIdFor = (groupId: string): string => {
-    const key = `${saved.id}>${groupId}`;
+  // The id is per (expense, destination, people): a changed pick after a half-done move
+  // is a different entry, so the earlier one is taken back out instead of silently kept.
+  const moveIdFor = (groupId: string, people: readonly string[] = []): string => {
+    const key = `${saved.id}>${groupId}>${[...people].sort().join(',')}`;
     let id = moveIds.current.get(key);
     if (!id) {
       id = randomUUID();
@@ -648,7 +650,7 @@ export function VoiceFollowUps({
   const groupName = (id: string): string => local.groups.find((g) => g.id === id)?.name ?? '';
 
   const onSheetMove = (request: InlineSheetRequest, groupId: string, memberIds: string[]): void => {
-    const plan = planSplitMove(saved, local, groupId, memberIds, moveIdFor(groupId));
+    const plan = planSplitMove(saved, local, groupId, memberIds, moveIdFor(groupId, memberIds));
     if (!plan) {
       setSheetError(f.couldNotSave);
       return;

@@ -86,14 +86,14 @@ it('IN-R-04 removal calls API, clears photo and reports idle', async () => {
   expect(removed).toHaveBeenCalledOnce();
   r.unmount();
 });
-it('IN-R-05 removal failure keeps photo and reports failed', async () => {
+it('IN-R-05 removal failure keeps photo and reports removeFailed', async () => {
   w.remove.mockRejectedValue(Error());
   w.picker.receipt = image;
   const r = mount();
   await flush();
   r.result.current.remove();
   await flush();
-  expect(r.result.current.status).toBe('failed');
+  expect(r.result.current.status).toBe('removeFailed');
   expect(w.picker.clear).not.toHaveBeenCalled();
   expect(removed).not.toHaveBeenCalled();
   r.unmount();

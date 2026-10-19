@@ -1292,6 +1292,7 @@ export interface UiStrings {
     attached: string;
     attachFailed: string;
     removeReceipt: string;
+    removeFailed: string;
     receiptDone: string;
     loanSharing: string;
     loanShared: string;
@@ -6761,6 +6762,7 @@ const en: UiStrings = {
     attached: 'Attached ✓',
     attachFailed: "Couldn't attach the receipt.",
     removeReceipt: 'Remove',
+    removeFailed: "Couldn't remove the receipt.",
     receiptDone: 'Receipt attached ✓',
     loanSharing: 'Sharing with {name}…',
     loanShared: 'Shared with {name} ✓ They can see it and settle it.',
@@ -11637,6 +11639,7 @@ const ta: UiStrings = {
     attached: 'இணைக்கப்பட்டது ✓',
     attachFailed: 'ரசீதை இணைக்க முடியவில்லை.',
     removeReceipt: 'நீக்கு',
+    removeFailed: 'ரசீதை நீக்க முடியவில்லை.',
     receiptDone: 'ரசீது இணைக்கப்பட்டது ✓',
     loanSharing: '{name} உடன் பகிர்கிறது…',
     loanShared: '{name} உடன் பகிரப்பட்டது ✓ அவர்கள் பார்த்து தீர்த்துக்கொள்ளலாம்.',
@@ -16661,6 +16664,7 @@ const hi: UiStrings = {
     attached: 'जुड़ गई ✓',
     attachFailed: 'रसीद नहीं जुड़ सकी।',
     removeReceipt: 'हटाएँ',
+    removeFailed: 'रसीद हटाई नहीं जा सकी।',
     receiptDone: 'रसीद जुड़ गई ✓',
     loanSharing: '{name} के साथ साझा कर रहे हैं…',
     loanShared: '{name} के साथ साझा हो गया ✓ वे इसे देख और चुका सकते हैं।',
@@ -21599,6 +21603,7 @@ const ar: UiStrings = {
     attached: 'تم الإرفاق ✓',
     attachFailed: 'تعذّر إرفاق الإيصال.',
     removeReceipt: 'إزالة',
+    removeFailed: 'تعذّرت إزالة الإيصال.',
     receiptDone: 'تم إرفاق الإيصال ✓',
     loanSharing: 'جارٍ المشاركة مع {name}…',
     loanShared: 'تمت المشاركة مع {name} ✓ يمكنه رؤيته وتسويته.',
