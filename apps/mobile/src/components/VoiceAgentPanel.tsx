@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
@@ -23,7 +23,6 @@ import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
 import { AssistantSavedBar, type SavedBarEvent } from '@/components/AssistantSavedBar';
 import { VoiceFollowUps } from '@/components/VoiceFollowUps';
-import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
 import { nudgeToSettle } from '@/data/api';
@@ -38,6 +37,7 @@ import { GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
+import type { AgentStage } from '@/lib/voiceFlowPure';
 import { followUpsAllowed } from '@/lib/assistantCorrections';
 import type { UndoEntry } from '@/lib/assistantUndo';
 import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
@@ -96,6 +96,8 @@ export interface VoiceAgentPanelProps {
   onResolved?: (outcome: 'confirmed' | 'discarded', scope: 'personal' | 'group') => void;
   /** A correction or undo on the saved bar, for telemetry. */
   onSavedBarEvent?: (event: SavedBarEvent) => void;
+  /** Where the panel is (reading, proposal, question, saved), for the stage above it. */
+  onStage?: (stage: AgentStage) => void;
 }
 
 type CardStatus = 'pending' | 'running' | 'done' | 'failed' | 'discarded';
@@ -168,6 +170,7 @@ export function VoiceAgentPanel({
   aboveFollowUps,
   onResolved,
   onSavedBarEvent,
+  onStage,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -255,14 +258,31 @@ export function VoiceAgentPanel({
     </Row>
   );
 
+  // Tell the screen where this panel is, so the stage above it (mic, status line,
+  // transcript) says the same thing without being rebuilt.
+  const stage: AgentStage = !plan
+    ? 'working'
+    : savedFollowUp || (settled && anyDone)
+      ? 'saved'
+      : plan.clarify
+        ? 'question'
+        : 'ready';
+  const stageRef = useRef(onStage);
+  useEffect(() => {
+    stageRef.current = onStage;
+  });
+  useEffect(() => {
+    stageRef.current?.(stage);
+  }, [stage]);
+
   if (!plan) {
+    // The stage above already says "Understanding…"; this is just the wait.
     return (
-      <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.xxl }}>
-        <VoiceMicOrb working />
-        <Text variant="heading" style={{ marginTop: theme.spacing.lg }}>
-          {t.voice.agentUnderstanding}
+      <View style={{ alignItems: 'center', paddingTop: theme.spacing.md }}>
+        <ActivityIndicator color={theme.color.brand} />
+        <Text tone="muted" variant="caption" style={{ marginTop: theme.spacing.xs }}>
+          {t.voice.agentUnderstandingHint}
         </Text>
-        <Text tone="muted">{t.voice.agentUnderstandingHint}</Text>
       </View>
     );
   }
@@ -353,10 +373,6 @@ export function VoiceAgentPanel({
 
   return (
     <View style={{ gap: theme.spacing.md }}>
-      <Text variant="caption" tone="muted">
-        {t.voice.agentHeard}: “{plan.transcript || transcript}”
-      </Text>
-
       {moneyQuery ? (
         <AssistantMoneyAnswer query={moneyQuery} onNavigate={onClose} />
       ) : plan.answer ? (

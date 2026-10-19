@@ -66,11 +66,11 @@ export interface VoiceStageProps {
   onMicPress: () => void;
   reduceMotion: boolean;
   level?: SharedValue<number> | null;
-  /** Shown (and its room kept) only while the mic is open. */
-  levels?: SharedValue<readonly number[]> | null;
   transcript: string;
   final: boolean;
   onEditTranscript?: () => void;
+  /** The sentence is read and a card follows: drop the prompt and the wave's room. */
+  compact?: boolean;
   /** Under the transcript: suggestions, the error card, the engine pill. */
   children?: ReactNode;
 }
@@ -81,10 +81,10 @@ export function VoiceStage({
   onMicPress,
   reduceMotion,
   level,
-  levels,
   transcript,
   final,
   onEditTranscript,
+  compact = false,
   children,
 }: VoiceStageProps) {
   const theme = useTheme();
@@ -92,14 +92,16 @@ export function VoiceStage({
   const open = micMode === 'stop';
   return (
     <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
-        <Text variant="heading" align="center" accessibilityRole="header">
-          {t.voiceScreen.headline}
-        </Text>
-        <Text variant="body" tone="muted" align="center">
-          {t.voiceScreen.subline}
-        </Text>
-      </View>
+      {compact ? null : (
+        <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
+          <Text variant="heading" align="center" accessibilityRole="header">
+            {t.voiceScreen.headline}
+          </Text>
+          <Text variant="body" tone="muted" align="center">
+            {t.voiceScreen.subline}
+          </Text>
+        </View>
+      )}
       <FloatingMicrophone
         mode={micMode}
         level={level}
@@ -109,10 +111,12 @@ export function VoiceStage({
       />
       <View style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: -theme.spacing.sm }}>
         <VoiceStatus status={status} text={statusText(t, status)} />
-        {/* The bars' room is kept while the mic is open, so they appear in place. */}
-        <View style={{ height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
-          {open && levels ? <AudioWaveform levels={levels} /> : null}
-        </View>
+        {/* The wave's room is kept while the mic is open, so it appears in place. */}
+        {compact ? null : (
+          <View style={{ height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
+            {open && level ? <AudioWaveform level={level} reduceMotion={reduceMotion} /> : null}
+          </View>
+        )}
       </View>
       <LiveTranscript text={transcript} final={final} reserve={open} onEdit={onEditTranscript} />
       {children}

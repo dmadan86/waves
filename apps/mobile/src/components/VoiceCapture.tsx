@@ -57,10 +57,8 @@ import {
 } from '@/components/voice/VoiceSuggestions';
 import {
   captureReducer,
-  EMPTY_LEVELS,
   initialCapture,
   micButtonMode,
-  pushLevel,
   showSuggestions,
   voiceFlowState,
   voiceStatusKey,
@@ -464,25 +462,12 @@ export function VoiceCapture({
   // waveform rides this so it answers the actual voice instead of looping on a
   // fixed clock; it stays 0 when the mic is shut.
   const level = useSharedValue(0);
-  // The last couple of seconds of that loudness, thinned to one reading per
-  // LEVEL_MIN_GAP_MS, for the bar waveform. A shared value: writing it moves
-  // the bars on the UI thread and re-renders nothing.
-  const levels = useSharedValue<readonly number[]>(EMPTY_LEVELS.values);
-  const levelHistory = useRef(EMPTY_LEVELS);
   const sampleLevel = useCallback(
     (value: number): void => {
       level.set(withTiming(value, { duration: 90 }));
-      const next = pushLevel(levelHistory.current, value, Date.now());
-      if (next === levelHistory.current) return;
-      levelHistory.current = next;
-      levels.set(next.values);
     },
-    [level, levels],
+    [level],
   );
-  const resetLevels = useCallback((): void => {
-    levelHistory.current = EMPTY_LEVELS;
-    levels.set(EMPTY_LEVELS.values);
-  }, [levels]);
 
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
@@ -859,7 +844,6 @@ export function VoiceCapture({
       latest.current = '';
       latestAlternatives.current = [];
       level.set(0);
-      resetLevels();
       gotResult.current = false;
 
       // Claim the recogniser first, and wait here for any previous session's
@@ -982,7 +966,6 @@ export function VoiceCapture({
         // Back to "getting ready" until the recogniser itself is open.
         dispatch({ type: 'start' });
         level.set(0);
-        resetLevels();
       }
       if (!mounted.current) return give();
       // A push-to-talk cancel that landed while the token was in flight.
@@ -1123,7 +1106,6 @@ export function VoiceCapture({
       onListen,
       beginStream,
       dropCapture,
-      resetLevels,
       sampleLevel,
       session,
       stopListening,
@@ -1353,7 +1335,6 @@ export function VoiceCapture({
       onMicPress={toggle}
       reduceMotion={reduceMotion}
       level={level}
-      levels={levels}
       transcript={shownTranscript}
       final={shownFinal}
     >

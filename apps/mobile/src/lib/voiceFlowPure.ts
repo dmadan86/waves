@@ -137,6 +137,14 @@ export type VoicePhase =
   /** Saved, and still on the voice screen: the success state. */
   | 'saved';
 
+/**
+ * Where the Pro agent's panel is, as it reports it to the screen: reading the
+ * sentence, a proposal ready to confirm, a question it needs answered, or the
+ * expense saved. It lets the stage above the panel say the same thing the panel
+ * is doing without the screen reaching into it.
+ */
+export type AgentStage = 'working' | 'ready' | 'question' | 'saved';
+
 export interface VoiceFlowInput {
   readonly phase: VoicePhase;
   /** The mic panel's state while it is on screen (the listening phase). */
@@ -150,6 +158,8 @@ export interface VoiceFlowInput {
   /** The preview has a question that must be answered before it can be saved:
    *  an amount read two ways, a currency, a group or a person not yet matched. */
   readonly needsAnswer?: boolean;
+  /** The agent panel's stage while `phase` is `agent` (absent: still reading). */
+  readonly agent?: AgentStage;
 }
 
 export function voiceFlowState(input: VoiceFlowInput): VoiceFlowState {
@@ -158,8 +168,11 @@ export function voiceFlowState(input: VoiceFlowInput): VoiceFlowState {
     case 'saved':
       return 'success';
     case 'thinking':
-    case 'agent':
       return 'processing';
+    case 'agent':
+      if (input.agent === 'saved') return 'success';
+      if (input.agent === 'question') return 'clarification_required';
+      return input.agent === 'ready' ? 'preview' : 'processing';
     case 'committing':
       return 'saving';
     case 'answer':
@@ -235,41 +248,37 @@ export function micButtonMode(state: VoiceFlowState): 'start' | 'stop' | 'busy' 
   return 'start';
 }
 
+/**
+ * The status line of the one stage that stays on screen after the sentence is
+ * heard. Same as {@link voiceStatusKey}, except a read-only answer to a question
+ * is not an "expense ready".
+ */
+export function stageStatusKey(input: VoiceFlowInput): VoiceStatusKey {
+  if (input.phase === 'answer' && !input.saved) return 'ready';
+  return voiceStatusKey(voiceFlowState(input), input);
+}
+
+/** What the stage's mic offers once the sentence has been read. A saved
+ *  expense is not busy: the mic is the quick way to speak the next one. */
+export function stageMicMode(state: VoiceFlowState): 'start' | 'stop' | 'busy' | 'retry' {
+  return state === 'success' ? 'start' : micButtonMode(state);
+}
+
+/** What tapping the stage's mic does after the sentence is read: nothing while
+ *  it works, add to a reviewed batch, or start over from a saved/agent card. */
+export type StageMicTap = 'none' | 'append' | 'fresh';
+
+export function stageMicTap(phase: VoicePhase, state: VoiceFlowState): StageMicTap {
+  if (state === 'processing' || state === 'saving') return 'none';
+  if (phase === 'review') return 'append';
+  return 'fresh';
+}
+
 /** Suggestions are for the moment before speaking: hidden while the mic is open,
  *  while a sentence is read, and once a preview has replaced them. */
 export function showSuggestions(state: VoiceFlowState, transcript: string): boolean {
   if (transcript.trim()) return false;
   return state === 'idle' || state === 'no_speech';
-}
-
-/**
- * How many recent loudness readings the waveform keeps, and the least time
- * between two of them. The recogniser meters at ~10 Hz and the stream per audio
- * chunk (faster); both are thinned to this so the bars move at a calm, even
- * rate and the screen never re-renders per packet.
- */
-export const LEVEL_BARS = 18;
-export const LEVEL_MIN_GAP_MS = 80;
-
-export interface LevelHistory {
-  readonly values: readonly number[];
-  readonly at: number;
-}
-
-export const EMPTY_LEVELS: LevelHistory = {
-  values: Array.from({ length: LEVEL_BARS }, () => 0),
-  at: Number.NEGATIVE_INFINITY,
-};
-
-/**
- * Push one real loudness reading (0…1) onto the history, or return the same
- * history (by identity) when it came too soon after the last. Never invents a
- * value: with no readings the bars stay flat.
- */
-export function pushLevel(history: LevelHistory, value: number, now: number): LevelHistory {
-  if (now - history.at < LEVEL_MIN_GAP_MS) return history;
-  const clean = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
-  return { values: [...history.values.slice(1), clean], at: now };
 }
 
 /**

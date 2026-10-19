@@ -8,10 +8,9 @@ import {
   statusAnnouncement,
   micButtonMode,
   showSuggestions,
-  pushLevel,
-  EMPTY_LEVELS,
-  LEVEL_BARS,
-  LEVEL_MIN_GAP_MS,
+  stageMicMode,
+  stageMicTap,
+  stageStatusKey,
   singleFlight,
   type CaptureState,
   type VoiceFlowInput,
@@ -205,17 +204,40 @@ it('VF-15: starting status and announcements only announce nonempty changes', ()
   expect(statusAnnouncement('Processing', '')).toBeNull();
   expect(statusAnnouncement(null, '')).toBeNull();
 });
-it('VF-16: levels stay real, clamp, throttle by identity and retain a fixed history length', () => {
-  expect(EMPTY_LEVELS.values).toEqual(Array(LEVEL_BARS).fill(0));
-  let history = pushLevel(EMPTY_LEVELS, 0.4, 0);
-  expect(history.values).toEqual([...Array(LEVEL_BARS - 1).fill(0), 0.4]);
-  expect(pushLevel(history, 0.9, LEVEL_MIN_GAP_MS - 1)).toBe(history);
-  for (const [index, value] of [2, -1, NaN, 0.7].entries()) {
-    history = pushLevel(history, value, (index + 1) * LEVEL_MIN_GAP_MS);
-    expect(history.values).toHaveLength(LEVEL_BARS);
-    expect(history.values.at(-1)).toBe([1, 0, 0, 0.7][index]);
+it('VF-18: the stage status follows the phase and the agent panel, never leaving the screen', () => {
+  const status = (input: VoiceFlowInput) => stageStatusKey(input);
+  expect(status({ phase: 'thinking' })).toBe('processing');
+  expect(status({ phase: 'review' })).toBe('expenseReady');
+  expect(status({ phase: 'review', needsAnswer: true })).toBe('check');
+  expect(status({ phase: 'review', saving: true })).toBe('saving');
+  expect(status({ phase: 'committing' })).toBe('saving');
+  expect(status({ phase: 'saved' })).toBe('saved');
+  // A read-only answer is not an expense.
+  expect(status({ phase: 'answer' })).toBe('ready');
+  expect(status({ phase: 'agent' })).toBe('processing');
+  expect(status({ phase: 'agent', agent: 'working' })).toBe('processing');
+  expect(status({ phase: 'agent', agent: 'ready' })).toBe('expenseReady');
+  expect(status({ phase: 'agent', agent: 'question' })).toBe('check');
+  expect(status({ phase: 'agent', agent: 'saved' })).toBe('saved');
+});
+it('VF-19: the stage mic is busy while it works; a tap after the card speaks again in place', () => {
+  for (const phase of ['thinking', 'committing'] as const) {
+    const state = voiceFlowState({ phase });
+    expect(stageMicMode(state)).toBe('busy');
+    expect(stageMicTap(phase, state)).toBe('none');
   }
-  expect(history.values.slice(-5)).toEqual([0.4, 1, 0, 0, 0.7]);
+  expect(stageMicTap('agent', voiceFlowState({ phase: 'agent', agent: 'working' }))).toBe('none');
+  const review = voiceFlowState({ phase: 'review' });
+  expect(stageMicMode(review)).toBe('start');
+  expect(stageMicTap('review', review)).toBe('append');
+  expect(stageMicTap('review', voiceFlowState({ phase: 'review', saving: true }))).toBe('none');
+  const agent = voiceFlowState({ phase: 'agent', agent: 'ready' });
+  expect(stageMicMode(agent)).toBe('start');
+  expect(stageMicTap('agent', agent)).toBe('fresh');
+  const saved = voiceFlowState({ phase: 'saved' });
+  expect(stageMicMode(saved)).toBe('start');
+  expect(stageMicTap('saved', saved)).toBe('fresh');
+  expect(stageMicTap('answer', voiceFlowState({ phase: 'answer' }))).toBe('fresh');
 });
 it('VF-17: singleFlight refuses a double tap and allows another job after resolution', async () => {
   let finish!: () => void;

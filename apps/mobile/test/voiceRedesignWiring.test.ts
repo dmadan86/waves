@@ -22,7 +22,9 @@ describe('voice screen redesign wiring', () => {
   });
 
   it('VW-02: the review state is derived from the existing phase, not a parallel copy', () => {
-    expect(voice).toContain("phase: 'review' as const, saving, needsAnswer: whoBlocked");
+    expect(voice).toContain(
+      'const stageInput = { phase, saving, needsAnswer: whoBlocked, agent: agentStage }',
+    );
     expect(voice).not.toMatch(/useState<VoiceFlowState>/);
   });
 
@@ -33,11 +35,13 @@ describe('voice screen redesign wiring', () => {
       expect(capture).not.toContain(gone);
   });
 
-  it('VW-04: the waveform is fed by real levels only — no animation clock drives it', () => {
+  it('VW-04: the wave rides the eased input level and honours reduced motion', () => {
     const wave = src('components/voice/AudioWaveform.tsx');
-    expect(wave).not.toMatch(/withRepeat|setInterval|requestAnimationFrame|Math\.random/);
-    expect(capture).toContain('pushLevel(levelHistory.current, value, Date.now())');
-    expect(capture).not.toMatch(/withRepeat/);
+    expect(wave).not.toMatch(/setInterval|requestAnimationFrame|Math\.random/);
+    expect(wave).toContain('duration: 2400');
+    expect(wave).toContain('reduceMotion ? <StaticWave');
+    expect(capture).toContain('level.set(withTiming(value, { duration: 90 }))');
+    expect(capture).not.toMatch(/levelHistory|pushLevel/);
   });
 
   it('VW-05: leaving while recording releases the mic and cancels the stream', () => {
@@ -55,6 +59,18 @@ describe('voice screen redesign wiring', () => {
 
   it('VW-07: "Who owes me?" is a button only where the assistant can answer it', () => {
     expect(voice).toContain("suggestion.kind === 'expense' || agentOn");
+  });
+
+  it('VW-09: one stage stays mounted after the sentence; cards arrive under it', () => {
+    expect(voice).toContain("phase !== 'listening' ? (");
+    expect(voice).toContain('stageStatusKey(stageInput)');
+    expect(voice).toContain('onStage={setAgentStage}');
+    expect(voice).toContain('scrollRef.current?.scrollTo');
+    expect(voice).not.toContain('<VoiceStatus');
+    expect(voice).not.toContain('<LiveTranscript');
+    expect(voice).not.toContain('t.voice.ansTitle');
+    expect(src('components/voice/StageAppear.tsx')).toContain('if (reduceMotion)');
+    expect(src('components/VoiceAgentPanel.tsx')).not.toContain('VoiceMicOrb');
   });
 
   it('VW-08: Home’s time-of-day scene replaces the old desk footer', () => {

@@ -33,6 +33,7 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -174,13 +175,19 @@ import { logVoiceAttempt } from '@/lib/voiceLog';
 import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { ExpensePreviewCard, type ExpensePreview } from '@/components/voice/ExpensePreviewCard';
-import { LiveTranscript } from '@/components/voice/LiveTranscript';
 import { VoiceSceneBackdrop } from '@/components/voice/VoiceSceneBackdrop';
-import { statusText, VoiceStage } from '@/components/voice/VoiceStage';
-import { VoiceStatus } from '@/components/voice/VoiceStatus';
+import { StageAppear } from '@/components/voice/StageAppear';
+import { VoiceStage } from '@/components/voice/VoiceStage';
 import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { singleFlight, voiceFlowState, voiceStatusKey } from '@/lib/voiceFlowPure';
+import {
+  singleFlight,
+  stageMicMode,
+  stageMicTap,
+  stageStatusKey,
+  voiceFlowState,
+  type AgentStage,
+} from '@/lib/voiceFlowPure';
 import { AssistantComposer } from '@/components/AssistantComposer';
 import { AssistantIntro } from '@/components/AssistantIntro';
 import { AssistantTeaser } from '@/components/AssistantTeaser';
@@ -498,6 +505,12 @@ export default function VoiceScreen() {
   // The last sentence handed to be read — spoken or typed — so the processing
   // step and the preview can show what was heard, and Edit can correct it.
   const [heardText, setHeardText] = useState('');
+  // Where the Pro agent's panel is, reported by it, for the stage above it.
+  const [agentStage, setAgentStage] = useState<AgentStage>('working');
+  // The cards under the stage scroll into view as they arrive (see revealCard).
+  const scrollRef = useRef<ScrollView>(null);
+  const cardBox = useRef({ y: 0, h: 0 });
+  const wantReveal = useRef(false);
   // The single expense's editor is open (the preview's Edit).
   const [editingDraft, setEditingDraft] = useState(false);
   // The whole flow stays on this screen: a save lands here, on a compact
@@ -2245,8 +2258,21 @@ export default function VoiceScreen() {
       : plural(locale, drafts.length, t.voice.save);
 
   // The review's state, read from the screen's own phase and flags.
-  const reviewFlow = { phase: 'review' as const, saving, needsAnswer: whoBlocked };
-  const reviewStatus = voiceStatusKey(voiceFlowState(reviewFlow), reviewFlow);
+  // The stage that stays on screen once the sentence is heard (mic, status,
+  // transcript) reads the same flow, whichever card is under it.
+  const stageInput = { phase, saving, needsAnswer: whoBlocked, agent: agentStage };
+  const stageState = voiceFlowState(stageInput);
+  const stageTap = stageMicTap(phase, stageState);
+  // Tapping the mic speaks the next sentence in place: onto the reviewed batch,
+  // or fresh after a card or an answer.
+  const onStageMic = (): void => {
+    hapticSelect();
+    if (stageTap === 'append') startAddMore();
+    else if (stageTap === 'fresh') {
+      if (phase === 'answer') askAgain();
+      else addAnother();
+    }
+  };
   // A single expense into one of the reader's groups can have its payer and
   // split set in full, in the sheet; opening it shows the plan if none yet.
   const canEditSplit =
@@ -2467,6 +2493,41 @@ export default function VoiceScreen() {
     );
   };
 
+  // Scroll the arriving card into view, never so far that the stage's status
+  // line and transcript leave the top. Runs when the card (re)lays out, since
+  // its height is only known then; the flag lapses if no layout follows.
+  const revealCard = (): void => {
+    const { y, h } = cardBox.current;
+    if (!wantReveal.current || h <= 0) return;
+    wantReveal.current = false;
+    const needed = y + h - viewportHeight + theme.spacing.md;
+    const target = Math.min(Math.max(needed, 0), Math.max(y - 120, 0));
+    scrollRef.current?.scrollTo({ y: target, animated: !reduceMotion });
+  };
+  const cardKey = phase === 'agent' ? `agent-${agentStage}` : phase;
+  useEffect(() => {
+    if (phase === 'listening') {
+      wantReveal.current = false;
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      return;
+    }
+    if (phase === 'thinking' || (phase === 'agent' && agentStage === 'working')) return;
+    wantReveal.current = true;
+    const timer = setTimeout(() => {
+      wantReveal.current = false;
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [cardKey, phase, agentStage]);
+  const onCardLayout = (event: LayoutChangeEvent): void => {
+    cardBox.current = { y: event.nativeEvent.layout.y, h: event.nativeEvent.layout.height };
+    revealCard();
+  };
+  const card = (children: ReactNode): ReactNode => (
+    <StageAppear id={cardKey} reduceMotion={reduceMotion} onLayout={onCardLayout}>
+      {children}
+    </StageAppear>
+  );
+
   return (
     <Screen>
       {/* The desk scene along the foot, under everything. Not on the review:
@@ -2480,6 +2541,7 @@ export default function VoiceScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
           // Capturing is one still screen — the mic, what to say, the scene at the
           // foot — so it does not scroll or bounce while it fits. It only scrolls
@@ -2531,11 +2593,7 @@ export default function VoiceScreen() {
                 <Ionicons name="mic" size={iconSize.md} color={theme.color.brand} />
               </View>
               <Text variant="heading" accessibilityRole="header" style={{ flexShrink: 1 }}>
-                {phase === 'answer'
-                  ? answer?.kind === 'spend'
-                    ? t.personal.spendingTitle
-                    : t.voice.ansTitle
-                  : t.voice.title}
+                {t.voice.title}
               </Text>
             </Row>
             {/* Just the ✕. Speaking another expense is one job with one home — the
@@ -2583,390 +2641,415 @@ export default function VoiceScreen() {
             </View>
           ) : null}
 
-          {phase === 'agent' && agentSession ? (
-            <VoiceAgentPanel
-              key={agentRun}
-              transcript={agentSession.transcript}
-              groupId={launchGroupId}
-              today={today()}
-              onFallback={agentFellBack}
-              followUp={agentFollowUp}
-              engine={engine}
-              renderAfterSave={isPro ? undefined : renderFreeAfterSave}
-              aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
-              onSavedBarEvent={(event) => {
-                if (event.name === 'assistant_correction') {
-                  trackAssistant('assistant_correction', { field: event.field, path: event.path });
-                } else {
-                  trackAssistant('assistant_undo', { what: event.what });
-                }
-              }}
-              onResolved={(outcome, scope) => {
-                reportCommand(outcome, scope, 'agent');
-                if (outcome === 'confirmed') hapticSuccess();
-              }}
-              onAnswer={(followUp, answer) => {
-                // A tapped option is the spoken answer, with no clip in between.
-                reportCommand('clarified', 'group', 'agent');
-                setAgentFollowUp(followUp);
-                setAgentSession({ transcript: answer, alternatives: [] });
-                setAgentRun((current) => current + 1);
-              }}
-              onRetry={(followUp) => {
-                setAgentFollowUp(followUp ?? null);
-                setAgentSession(null);
-                setAttempt((current) => current + 1);
-                setPhase('listening');
-              }}
-              onClose={finishVoice}
-              onAddAnother={addAnother}
-            />
-          ) : phase === 'thinking' ? (
-            // The same frame the mic panel draws, so listening → understanding
-            // changes the words and the mic's glyph, never the layout.
+          {/* One stage for the whole flow: the mic, the status line and what was
+              heard stay put while the cards below it come and go. The listening
+              phase draws the same frame inside the mic panel. */}
+          {phase !== 'listening' ? (
             <View style={{ paddingTop: theme.spacing.md }}>
               <VoiceStage
-                status={voiceStatusKey(voiceFlowState({ phase }), { phase })}
-                micMode="busy"
-                onMicPress={() => {}}
+                status={stageStatusKey(stageInput)}
+                micMode={stageMicMode(stageState)}
+                onMicPress={onStageMic}
                 reduceMotion={reduceMotion}
                 transcript={heardText}
                 final
+                onEditTranscript={
+                  phase === 'review' || phase === 'agent' || phase === 'saved'
+                    ? editHeard
+                    : undefined
+                }
+                compact={stageState !== 'processing'}
               />
             </View>
-          ) : phase === 'review' ? (
-            <View style={{ gap: theme.spacing.md }}>
-              {/* Where things stand — "Expense ready", or "Check one detail" while
-                a question holds Add expense — announced as it changes. */}
-              <VoiceStatus status={reviewStatus} text={statusText(t, reviewStatus)} />
-              {/* What was heard, word for word, with Edit to correct it. */}
-              {heardText ? <LiveTranscript text={heardText} final onEdit={editHeard} /> : null}
-              {/* Confirmation, not an edit form. Each expense reads as a quiet
+          ) : null}
+
+          {phase === 'agent' && agentSession ? (
+            card(
+              <VoiceAgentPanel
+                key={agentRun}
+                transcript={agentSession.transcript}
+                groupId={launchGroupId}
+                today={today()}
+                onFallback={agentFellBack}
+                followUp={agentFollowUp}
+                engine={engine}
+                renderAfterSave={isPro ? undefined : renderFreeAfterSave}
+                aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
+                onSavedBarEvent={(event) => {
+                  if (event.name === 'assistant_correction') {
+                    trackAssistant('assistant_correction', {
+                      field: event.field,
+                      path: event.path,
+                    });
+                  } else {
+                    trackAssistant('assistant_undo', { what: event.what });
+                  }
+                }}
+                onResolved={(outcome, scope) => {
+                  reportCommand(outcome, scope, 'agent');
+                  if (outcome === 'confirmed') hapticSuccess();
+                }}
+                onAnswer={(followUp, answer) => {
+                  // A tapped option is the spoken answer, with no clip in between.
+                  reportCommand('clarified', 'group', 'agent');
+                  setAgentFollowUp(followUp);
+                  setAgentSession({ transcript: answer, alternatives: [] });
+                  setAgentRun((current) => current + 1);
+                }}
+                onRetry={(followUp) => {
+                  setAgentFollowUp(followUp ?? null);
+                  setAgentSession(null);
+                  setAttempt((current) => current + 1);
+                  setPhase('listening');
+                }}
+                onClose={finishVoice}
+                onAddAnother={addAnother}
+                onStage={setAgentStage}
+              />,
+            )
+          ) : phase === 'thinking' ? null : phase === 'review' ? (
+            card(
+              <View style={{ gap: theme.spacing.md }}>
+                {/* Confirmation, not an edit form. Each expense reads as a quiet
                 summary line — what we heard, and the amount — inside one grouped
                 card, the way a receipt lists what it charged. Tapping a line opens
                 it to correct the amount or the note; it is closed again by
                 default. The parser is not put on trial the moment you land here. */}
-              {amountQuestion || currencyQuestion ? (
-                // An amount or currency that could be read two ways is asked,
-                // never picked: Add expense waits for the answer.
-                <ClarifyCard title={t.voiceScreen.checkTitle} theme={theme}>
-                  {amountQuestion ? (
-                    <AmountChooser
-                      question={amountQuestion.question}
-                      onAnswer={answerAmount}
-                      theme={theme}
-                    />
-                  ) : currencyQuestion ? (
-                    <AmountChooser
-                      question={currencyQuestion}
-                      onAnswer={answerCurrency}
-                      theme={theme}
-                    />
-                  ) : null}
-                </ClarifyCard>
-              ) : null}
-              {preview && !editingDraft ? (
-                <ExpensePreviewCard
-                  preview={preview}
-                  locale={locale}
-                  onEditSplit={canEditSplit ? openSplit : undefined}
-                />
-              ) : (
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  {drafts.map((draft, index) => (
-                    <View key={draft.key}>
-                      {index > 0 ? <Divider /> : null}
-                      <DraftRow
-                        editing={drafts.length === 1 && editingDraft ? true : undefined}
-                        onEditingChange={
-                          drafts.length === 1 ? (open) => setEditingDraft(open) : undefined
-                        }
-                        draft={draft}
-                        // The currency the row shows is the one Save will persist:
-                        // the spoken one, else the group's, else the default.
-                        currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
-                        onEdit={editDraft}
-                        onRemove={removeDraft}
-                        fallbackNote={t.voice.anExpense}
-                        editLabel={t.common.edit}
-                        doneLabel={t.common.done}
-                        removeLabel={t.captures.delete}
-                        amountLabel={t.captures.amount}
-                        noteLabel={t.captures.description}
-                        notePlaceholder={t.captures.descriptionPlaceholder}
+                {amountQuestion || currencyQuestion ? (
+                  // An amount or currency that could be read two ways is asked,
+                  // never picked: Add expense waits for the answer.
+                  <ClarifyCard title={t.voiceScreen.checkTitle} theme={theme}>
+                    {amountQuestion ? (
+                      <AmountChooser
+                        question={amountQuestion.question}
+                        onAnswer={answerAmount}
                         theme={theme}
                       />
-                    </View>
-                  ))}
-                </Card>
-              )}
-              {/* The single expense's Edit, past amount and words: category and
-                date, each in a picker over this screen. */}
-              {preview && editingDraft && drafts[0] ? (
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  <VoiceDetailRows
-                    category={preview.category}
-                    categoryLabel={preview.categoryLabel}
-                    onCategory={(key) => editDraft(drafts[0]?.key ?? '', { category: key })}
-                    date={voiceExpenseDate}
-                    onDate={setVoiceExpenseDate}
+                    ) : currencyQuestion ? (
+                      <AmountChooser
+                        question={currencyQuestion}
+                        onAnswer={answerCurrency}
+                        theme={theme}
+                      />
+                    ) : null}
+                  </ClarifyCard>
+                ) : null}
+                {preview && !editingDraft ? (
+                  <ExpensePreviewCard
+                    preview={preview}
+                    locale={locale}
+                    onEditSplit={canEditSplit ? openSplit : undefined}
                   />
-                  {canEditSplit ? (
-                    <Pressable
-                      onPress={openSplit}
-                      accessibilityRole="button"
-                      style={({ pressed }) => ({
-                        minHeight: 48,
-                        justifyContent: 'center',
-                        paddingHorizontal: theme.spacing.md,
-                        opacity: pressed ? 0.6 : 1,
-                      })}
-                    >
-                      <Text tone="brand" style={{ fontWeight: '600' }}>
-                        {t.voiceScreen.editSplit}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </Card>
-              ) : null}
+                ) : (
+                  <Card padded={false} style={{ overflow: 'hidden' }}>
+                    {drafts.map((draft, index) => (
+                      <View key={draft.key}>
+                        {index > 0 ? <Divider /> : null}
+                        <DraftRow
+                          editing={drafts.length === 1 && editingDraft ? true : undefined}
+                          onEditingChange={
+                            drafts.length === 1 ? (open) => setEditingDraft(open) : undefined
+                          }
+                          draft={draft}
+                          // The currency the row shows is the one Save will persist:
+                          // the spoken one, else the group's, else the default.
+                          currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
+                          onEdit={editDraft}
+                          onRemove={removeDraft}
+                          fallbackNote={t.voice.anExpense}
+                          editLabel={t.common.edit}
+                          doneLabel={t.common.done}
+                          removeLabel={t.captures.delete}
+                          amountLabel={t.captures.amount}
+                          noteLabel={t.captures.description}
+                          notePlaceholder={t.captures.descriptionPlaceholder}
+                          theme={theme}
+                        />
+                      </View>
+                    ))}
+                  </Card>
+                )}
+                {/* The single expense's Edit, past amount and words: category and
+                date, each in a picker over this screen. */}
+                {preview && editingDraft && drafts[0] ? (
+                  <Card padded={false} style={{ overflow: 'hidden' }}>
+                    <VoiceDetailRows
+                      category={preview.category}
+                      categoryLabel={preview.categoryLabel}
+                      onCategory={(key) => editDraft(drafts[0]?.key ?? '', { category: key })}
+                      date={voiceExpenseDate}
+                      onDate={setVoiceExpenseDate}
+                    />
+                    {canEditSplit ? (
+                      <Pressable
+                        onPress={openSplit}
+                        accessibilityRole="button"
+                        style={({ pressed }) => ({
+                          minHeight: 48,
+                          justifyContent: 'center',
+                          paddingHorizontal: theme.spacing.md,
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Text tone="brand" style={{ fontWeight: '600' }}>
+                          {t.voiceScreen.editSplit}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </Card>
+                ) : null}
 
-              {/* Speak again and append — another expense (or several) onto the
+                {/* Speak again and append — another expense (or several) onto the
                 batch, keeping the ones already here and the chosen destination.
                 The one and only "add another"; the header carries no rival mic.
                 A slim inline text-button, not a tall box: it is one more line
                 under the list, not a second card competing with it. */}
-              <Pressable
-                onPress={startAddMore}
-                accessibilityRole="button"
-                accessibilityLabel={t.voice.addMore}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: theme.spacing.xs,
-                  paddingVertical: theme.spacing.sm,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
-                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                  {t.voice.addMore}
-                </Text>
-              </Pressable>
+                <Pressable
+                  onPress={startAddMore}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.voice.addMore}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: theme.spacing.xs,
+                    paddingVertical: theme.spacing.sm,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
+                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                    {t.voice.addMore}
+                  </Text>
+                </Pressable>
 
-              {/* A group that was named but is not clearly one of theirs: say so and
+                {/* A group that was named but is not clearly one of theirs: say so and
                 offer the candidates, instead of filing it somewhere on a guess. */}
-              {groupPending && intent ? (
-                <Callout tone="warning">
-                  {intent.groupSource === 'ambiguous'
-                    ? t.voice.whichGroup
-                    : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
-                </Callout>
-              ) : null}
-              {groupPending && intent?.groupSource === 'ambiguous' ? (
-                <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
-                  {(intent.groupHint?.candidates ?? []).map((candidate) => (
-                    <Pressable
-                      key={candidate.id}
-                      onPress={() => chooseGroup(candidate.id)}
-                      accessibilityRole="button"
-                      style={({ pressed }) => ({
-                        paddingVertical: theme.spacing.xs,
-                        paddingHorizontal: theme.spacing.md,
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: theme.color.warning,
-                        opacity: pressed ? 0.6 : 1,
-                      })}
-                    >
-                      <Text variant="caption" style={{ fontWeight: '600' }}>
-                        {candidate.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </Row>
-              ) : null}
+                {groupPending && intent ? (
+                  <Callout tone="warning">
+                    {intent.groupSource === 'ambiguous'
+                      ? t.voice.whichGroup
+                      : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
+                  </Callout>
+                ) : null}
+                {groupPending && intent?.groupSource === 'ambiguous' ? (
+                  <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
+                    {(intent.groupHint?.candidates ?? []).map((candidate) => (
+                      <Pressable
+                        key={candidate.id}
+                        onPress={() => chooseGroup(candidate.id)}
+                        accessibilityRole="button"
+                        style={({ pressed }) => ({
+                          paddingVertical: theme.spacing.xs,
+                          paddingHorizontal: theme.spacing.md,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          borderColor: theme.color.warning,
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Text variant="caption" style={{ fontWeight: '600' }}>
+                          {candidate.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </Row>
+                ) : null}
 
-              {/* One opinionated destination row: "Save to · <where> · Change",
+                {/* One opinionated destination row: "Save to · <where> · Change",
                 all on one line. No chips, no badges, no tabs out here — the
                 taxonomy of groups and people only appears once the reader taps
                 Change and the picker sheet opens. The answer to "where does
                 this go?" is one line, not a card's worth of it. */}
-              <Card
-                padded={false}
-                style={{
-                  overflow: 'hidden',
-                  ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
-                }}
-              >
-                <Pressable
-                  onPress={() => setPickerOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingVertical: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.md,
-                    opacity: pressed ? 0.6 : 1,
-                  })}
+                <Card
+                  padded={false}
+                  style={{
+                    overflow: 'hidden',
+                    ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
+                  }}
                 >
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
+                  <Pressable
+                    onPress={() => setPickerOpen(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.buttonPrimary,
-                    }}
+                      gap: theme.spacing.sm,
+                      paddingVertical: theme.spacing.sm,
+                      paddingHorizontal: theme.spacing.md,
+                      opacity: pressed ? 0.6 : 1,
+                    })}
                   >
-                    {current.emoji ? (
-                      <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
-                    ) : (
-                      <Ionicons
-                        name={current.icon}
-                        size={iconSize.xs}
-                        color={theme.color.onBrand}
-                      />
-                    )}
-                  </View>
-                  <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
-                    <Text tone="muted">{t.voice.saveTo}</Text>
-                    <Text tone="faint"> · </Text>
-                    <Text style={{ fontWeight: '600' }}>{current.label}</Text>
-                  </Text>
-                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                    {t.voice.change}
-                  </Text>
-                </Pressable>
-              </Card>
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.buttonPrimary,
+                      }}
+                    >
+                      {current.emoji ? (
+                        <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
+                      ) : (
+                        <Ionicons
+                          name={current.icon}
+                          size={iconSize.xs}
+                          color={theme.color.onBrand}
+                        />
+                      )}
+                    </View>
+                    <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
+                      <Text tone="muted">{t.voice.saveTo}</Text>
+                      <Text tone="faint"> · </Text>
+                      <Text style={{ fontWeight: '600' }}>{current.label}</Text>
+                    </Text>
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                      {t.voice.change}
+                    </Text>
+                  </Pressable>
+                </Card>
 
-              {/* What was understood about who paid and who shares: one compact card,
+                {/* What was understood about who paid and who shares: one compact card,
                 each line tappable to correct. A name nobody matched shows as a
                 question, never a default, and holds Save until it is answered. */}
-              {who ? (
-                <WhoCard
-                  who={who}
-                  members={targetMembers}
-                  currency={destCurrency ?? dc}
-                  onOpen={() => setWhoOpen(true)}
-                  onPick={pickName}
-                  t={t}
-                  theme={theme}
-                />
-              ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
-                <Callout tone={payerElsewhere ? 'warning' : 'info'}>
-                  {payerElsewhere
-                    ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
-                    : t.voice.needGroupForSplit}
-                </Callout>
-              ) : null}
+                {who ? (
+                  <WhoCard
+                    who={who}
+                    members={targetMembers}
+                    currency={destCurrency ?? dc}
+                    onOpen={() => setWhoOpen(true)}
+                    onPick={pickName}
+                    t={t}
+                    theme={theme}
+                  />
+                ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
+                  <Callout tone={payerElsewhere ? 'warning' : 'info'}>
+                    {payerElsewhere
+                      ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
+                      : t.voice.needGroupForSplit}
+                  </Callout>
+                ) : null}
 
-              {/* One place for the whole batch (A43) — read once when the review
+                {/* One place for the whole batch (A43) — read once when the review
                 opens and pinned by default; the reader can clear or move it. It
                 rides onto every expense saved from this review. Compact: one
                 line until tapped, the way the expense screen's own Location row
                 folds its map away. */}
-              <LocationField
-                value={location}
-                onChange={handleLocationChange}
-                busy={locating}
-                compact
-              />
-            </View>
+                <LocationField
+                  value={location}
+                  onChange={handleLocationChange}
+                  busy={locating}
+                  compact
+                />
+              </View>,
+            )
           ) : phase === 'saved' && savedResult ? (
             // Saved, and still here: a compact confirmation, then — for one
             // expense — the follow-up questions, answered in place. Add another
             // and Done sit in the bar at the foot.
-            <View style={{ gap: theme.spacing.md }}>
-              <VoiceStatus status="saved" text={t.voiceScreen.statusSaved} />
-              {savedResult.kind === 'expense' && !isPro ? (
-                renderFreeAfterSave(savedResult.state)
-              ) : savedResult.kind === 'expense' ? (
-                <View style={{ gap: theme.spacing.md }}>
-                  <AssistantIntro viewerId={viewerId} />
-                  <VoiceFollowUps
-                    initial={savedResult.state}
-                    groupWrite={savedResult.write}
-                    local={agentLocal}
-                    today={today()}
-                    onClose={finishVoice}
-                    onUndoable={setSavedHandoff}
-                    renderSavedBar={(bar) => (
-                      <AssistantSavedBar
-                        context={bar}
-                        controls={bar.controls}
-                        groupWrite={savedResult.write}
-                        local={agentLocal}
-                        today={today()}
-                        externalEntry={savedHandoff}
-                        onEvent={(event) => {
-                          if (event.name === 'assistant_correction')
-                            trackAssistant('assistant_correction', {
-                              field: event.field,
-                              path: event.path,
-                            });
-                          else trackAssistant('assistant_undo', { what: event.what });
-                        }}
-                      />
-                    )}
-                  />
-                </View>
-              ) : (
-                <SavedLine line={savedResult.line} theme={theme} />
-              )}
-            </View>
+            card(
+              <View style={{ gap: theme.spacing.md }}>
+                {savedResult.kind === 'expense' && !isPro ? (
+                  renderFreeAfterSave(savedResult.state)
+                ) : savedResult.kind === 'expense' ? (
+                  <View style={{ gap: theme.spacing.md }}>
+                    <AssistantIntro viewerId={viewerId} />
+                    <VoiceFollowUps
+                      initial={savedResult.state}
+                      groupWrite={savedResult.write}
+                      local={agentLocal}
+                      today={today()}
+                      onClose={finishVoice}
+                      onUndoable={setSavedHandoff}
+                      renderSavedBar={(bar) => (
+                        <AssistantSavedBar
+                          context={bar}
+                          controls={bar.controls}
+                          groupWrite={savedResult.write}
+                          local={agentLocal}
+                          today={today()}
+                          externalEntry={savedHandoff}
+                          onEvent={(event) => {
+                            if (event.name === 'assistant_correction')
+                              trackAssistant('assistant_correction', {
+                                field: event.field,
+                                path: event.path,
+                              });
+                            else trackAssistant('assistant_undo', { what: event.what });
+                          }}
+                        />
+                      )}
+                    />
+                  </View>
+                ) : (
+                  <SavedLine line={savedResult.line} theme={theme} />
+                )}
+              </View>,
+            )
           ) : phase === 'committing' ? (
             // The Undo window. A confident command is about to write itself; the
             // banner says what and where, a spinner marks the wait, and Undo is the
             // one escape — no other choice competes with it here.
-            <View
-              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
-            >
-              {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
-              <Text variant="title" style={{ textAlign: 'center' }}>
-                {autoBanner?.label ?? ''}
-              </Text>
-              {autoBanner?.needsConfirm ? (
-                <Button
-                  label={t.voice.autoConfirm}
-                  onPress={() => runAutoCommit(autoBanner.fallback)}
-                />
-              ) : null}
-              {/* Gone once the write has started (Confirm pressed, or the timer
+            card(
+              <View
+                style={{
+                  alignItems: 'center',
+                  gap: theme.spacing.lg,
+                  paddingTop: theme.spacing.md,
+                }}
+              >
+                {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
+                <Text variant="title" style={{ textAlign: 'center' }}>
+                  {autoBanner?.label ?? ''}
+                </Text>
+                {autoBanner?.needsConfirm ? (
+                  <Button
+                    label={t.voice.autoConfirm}
+                    onPress={() => runAutoCommit(autoBanner.fallback)}
+                  />
+                ) : null}
+                {/* Gone once the write has started (Confirm pressed, or the timer
                 fired): an Undo then would reset the screen while the save still
                 lands. */}
-              {autoBanner ? (
-                <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
-              ) : null}
-            </View>
+                {autoBanner ? (
+                  <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
+                ) : null}
+              </View>,
+            )
           ) : phase === 'answer' ? (
             // A read-only answer to a spoken balance question. One line, and a mic
             // to ask another — nothing to save, nothing to undo.
-            <View
-              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
-            >
-              {answer?.kind === 'spend' ? (
-                <View style={{ alignSelf: 'stretch' }}>
-                  <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
-                </View>
-              ) : null}
-              {answer?.kind === 'spend'
-                ? null
-                : (() => {
-                    const line = answerLine();
-                    return 'loading' in line ? (
-                      <ActivityIndicator color={theme.color.brand} />
-                    ) : (
-                      <Text variant="title" style={{ textAlign: 'center' }}>
-                        {line.text}
-                      </Text>
-                    );
-                  })()}
-              <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
-            </View>
+            card(
+              <View
+                style={{
+                  alignItems: 'center',
+                  gap: theme.spacing.lg,
+                  paddingTop: theme.spacing.md,
+                }}
+              >
+                {answer?.kind === 'spend' ? (
+                  <View style={{ alignSelf: 'stretch' }}>
+                    <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
+                  </View>
+                ) : null}
+                {answer?.kind === 'spend'
+                  ? null
+                  : (() => {
+                      const line = answerLine();
+                      return 'loading' in line ? (
+                        <ActivityIndicator color={theme.color.brand} />
+                      ) : (
+                        <Text variant="title" style={{ textAlign: 'center' }}>
+                          {line.text}
+                        </Text>
+                      );
+                    })()}
+                <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
+              </View>,
+            )
           ) : (
             // Listening — the mic panel owns the whole capture surface, the miss
             // included. A heard-but-amountless try comes back as `missed`; the mic
