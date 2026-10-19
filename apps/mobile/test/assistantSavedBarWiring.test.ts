@@ -17,7 +17,7 @@ import { UNDO_RING_MS } from '../src/lib/assistantUndo';
 import type { SavedState } from '../src/lib/followUpApply';
 import type { AgentExpenseWrite, AgentLocalData } from '../src/lib/voiceAgentPlan';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
-import { inlineWorld, resetInlineWorld } from './support/inlineStubs';
+import { resetInlineWorld } from './support/inlineStubs';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
@@ -125,7 +125,9 @@ vi.mock('@/components/assistant/inline/useInlineReceipt', async () => ({
 vi.mock('@/components/assistant/inline/InlineReceiptStatus', () => ({
   InlineReceiptStatus: 'InlineReceiptStatus',
 }));
-vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({ InlineLoanShare: 'InlineLoanShare' }));
+vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({
+  InlineLoanShare: 'InlineLoanShare',
+}));
 vi.mock('@/components/assistant/inline/InlineSettle', () => ({ InlineSettle: 'InlineSettle' }));
 vi.mock('@/components/assistant/inline/InlineSheetHost', () => ({
   InlineSheetHost: 'InlineSheetHost',

@@ -120,7 +120,9 @@ vi.mock('@/components/assistant/inline/useInlineReceipt', async () => ({
 vi.mock('@/components/assistant/inline/InlineReceiptStatus', () => ({
   InlineReceiptStatus: 'InlineReceiptStatus',
 }));
-vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({ InlineLoanShare: 'InlineLoanShare' }));
+vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({
+  InlineLoanShare: 'InlineLoanShare',
+}));
 vi.mock('@/components/assistant/inline/InlineSettle', () => ({ InlineSettle: 'InlineSettle' }));
 vi.mock('@/components/assistant/inline/InlineSheetHost', () => ({
   InlineSheetHost: 'InlineSheetHost',

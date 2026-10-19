@@ -35,10 +35,7 @@ export function cryptoModule() {
   return { randomUUID: () => `uuid-${++inlineWorld.uuid}` };
 }
 
-export function useInlineReceiptStub(input: {
-  onAttached: () => void;
-  onRemoved: () => void;
-}) {
+export function useInlineReceiptStub(input: { onAttached: () => void; onRemoved: () => void }) {
   inlineWorld.receiptCallbacks = input;
   return {
     picker: { receipt: null, busy: false, cameraOpen: false },
