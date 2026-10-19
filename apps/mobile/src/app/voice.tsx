@@ -2531,15 +2531,15 @@ export default function VoiceScreen() {
               {answer?.kind === 'spend'
                 ? null
                 : (() => {
-                const line = answerLine();
-                return 'loading' in line ? (
-                  <ActivityIndicator color={theme.color.brand} />
-                ) : (
-                  <Text variant="title" style={{ textAlign: 'center' }}>
-                    {line.text}
-                  </Text>
-                );
-              })()}
+                    const line = answerLine();
+                    return 'loading' in line ? (
+                      <ActivityIndicator color={theme.color.brand} />
+                    ) : (
+                      <Text variant="title" style={{ textAlign: 'center' }}>
+                        {line.text}
+                      </Text>
+                    );
+                  })()}
               <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
             </View>
           ) : (

@@ -20,6 +20,8 @@ import {
 } from '../src/lib/assistantIntro';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
 
+import { AssistantIntro } from '../src/components/AssistantIntro';
+
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
@@ -44,8 +46,6 @@ vi.mock('@/i18n', async (importOriginal) => {
     useStrings: () => ({ t: actual.STRINGS_BY_LANGUAGE.en, locale: 'en-IN', language: 'en' }),
   };
 });
-
-import { AssistantIntro } from '../src/components/AssistantIntro';
 
 const en = STRINGS_BY_LANGUAGE.en;
 

@@ -5,10 +5,10 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { STRINGS_BY_LANGUAGE } from '../src/i18n';
+
 vi.mock('react-native', () => ({}));
 vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
-
-import { STRINGS_BY_LANGUAGE } from '../src/i18n';
 
 const en = STRINGS_BY_LANGUAGE.en.assistant;
 const KEYS = Object.keys(en) as (keyof typeof en)[];

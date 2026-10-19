@@ -19,6 +19,8 @@ import {
 } from '../src/lib/assistantTeaser';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
 
+import { AssistantProSheet, AssistantTeaser } from '../src/components/AssistantTeaser';
+
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
@@ -50,8 +52,6 @@ vi.mock('@/i18n', async (importOriginal) => {
     useStrings: () => ({ t: actual.STRINGS_BY_LANGUAGE.en, locale: 'en-IN', language: 'en' }),
   };
 });
-
-import { AssistantProSheet, AssistantTeaser } from '../src/components/AssistantTeaser';
 
 const en = STRINGS_BY_LANGUAGE.en;
 const DAY = 24 * 60 * 60 * 1000;

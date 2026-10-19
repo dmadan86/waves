@@ -8,9 +8,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ track: vi.fn() }));
-vi.mock('@/lib/events', () => ({ track: h.track }));
-
 import { EVENT_NAMES, buildPayload, isEventName, sanitizeProps } from '../src/lib/eventsCore';
 import {
   ASSISTANT_PROP_VALUES,
@@ -21,6 +18,9 @@ import {
   trackAssistantPremiumViewed,
   type AssistantEventName,
 } from '../src/lib/assistantTelemetry';
+
+const h = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock('@/lib/events', () => ({ track: h.track }));
 
 const ID = '3f2b8c1e-5d4a-4e7b-9c6a-1b2c3d4e5f60';
 const EVENTS = Object.keys(ASSISTANT_PROP_VALUES) as AssistantEventName[];
