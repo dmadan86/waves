@@ -3,6 +3,7 @@ import { decodeTxn } from '@waves/core';
 
 import {
   applyAnswer,
+  chipLabel,
   deviceCurrencyFor,
   factsFor,
   paymentChoices,
@@ -191,5 +192,76 @@ describe('planUpdate', () => {
     const split = { groupId: 'g1', memberIds: ['m2'] };
     expect(planUpdate({ expenseId: 'p1', splitWith: split }, personal()).splitWith).toEqual(split);
     expect(planUpdate({ expenseId: 'g-e1', splitWith: split }, group()).splitWith).toBeNull();
+  });
+});
+
+describe('MC-FU-16..20 (pure helpers)', () => {
+  it('MC-FU-16 savedStateFrom: add_personal guesses a category; add_expense uses the write', () => {
+    const p = savedStateFrom(
+      { type: 'add_personal', description: 'pizza', amountMinor: '45000', currency: 'INR' },
+      null,
+      'p1',
+      '2026-10-21',
+    );
+    expect(p).toMatchObject({ kind: 'personal', category: 'food', categoryStated: false });
+    const g = savedStateFrom(
+      {
+        type: 'add_expense',
+        groupId: 'g1',
+        description: 'dinner',
+        amountMinor: '800000',
+        currency: 'INR',
+        paidByMemberId: 'm1',
+        split: { mode: 'equal', shares: [{ memberId: 'm1' }, { memberId: 'm2' }] },
+      },
+      write,
+      'g-e1',
+      '2026-10-21',
+    );
+    expect(g).toMatchObject({
+      kind: 'group',
+      groupId: 'g1',
+      category: 'food',
+      categoryStated: true,
+      payers: { m1: 800000n },
+      participants: ['m1', 'm2'],
+    });
+  });
+
+  it('MC-FU-17 toGroupPayment maps card to credit, keeps forex, drops wallet', () => {
+    expect(toGroupPayment('card')).toBe('credit');
+    expect(toGroupPayment('forex')).toBe('forex');
+    expect(toGroupPayment('wallet')).toBeNull();
+    expect(toGroupWrite(write, group({ paymentMethod: 'wallet' })).paymentMethod).toBeNull();
+  });
+
+  it('MC-FU-18 a place on a group is a pin with coordinates, a note without, and never twice', () => {
+    const pinned = applyAnswer(group(), { kind: 'place', name: 'Taj', coords: { lat: 1, lng: 2 } });
+    expect(pinned.location).toEqual({ lat: 1, lng: 2, name: 'Taj' });
+    expect(pinned.notes).toBeNull();
+    const noted = applyAnswer(group(), { kind: 'place', name: 'Taj' });
+    expect(noted.notes).toBe('At Taj');
+    expect(applyAnswer(noted, { kind: 'place', name: 'Taj' }).notes).toBe('At Taj');
+  });
+
+  it('MC-FU-19 work: a personal entry is flagged, a group expense is noted', () => {
+    expect(applyAnswer(personal(), { kind: 'work' }).reimbursable).toBe(true);
+    expect(applyAnswer(group(), { kind: 'work' }).notes).toBe('Work expense');
+  });
+
+  it('MC-FU-20 planUpdate ignores splitWith for a group and wantsReceipt for personal', () => {
+    const split = { groupId: 'g1', memberIds: ['m2'] };
+    expect(planUpdate({ expenseId: 'g-e1', splitWith: split }, group()).splitWith).toBeNull();
+    expect(planUpdate({ expenseId: 'p1', wantsReceipt: true }, personal()).wantsReceipt).toBe(
+      false,
+    );
+  });
+});
+
+describe('chipLabel', () => {
+  it('cuts at 24 characters with an ellipsis and leaves short labels alone', () => {
+    expect(chipLabel('Blue Tokai')).toBe('Blue Tokai');
+    expect(chipLabel('The Very Long Named Cafe And Roastery')).toBe('The Very Long Named Caf…');
+    expect([...chipLabel('x'.repeat(40))]).toHaveLength(24);
   });
 });

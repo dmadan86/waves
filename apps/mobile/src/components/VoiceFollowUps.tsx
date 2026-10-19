@@ -11,7 +11,7 @@
  * mounts inside `VoiceAgentPanel`, so it exists exactly where the agent does.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -54,6 +54,7 @@ import { fill, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import {
   applyAnswer,
+  chipLabel,
   deviceCurrencyFor,
   factsFor,
   filledBy,
@@ -74,6 +75,7 @@ import { currentPlaceIfGranted } from '@/lib/location';
 import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
+import { checkOnline } from '@/lib/voiceStream';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { findSplittableReceipt, handoverFor, itemizeParams } from '@/lib/splitByItem';
@@ -87,7 +89,23 @@ export interface VoiceFollowUpsProps {
   local: AgentLocalData;
   today: string;
   onClose: () => void;
+  /** Called with the new state each time an answer is written, so a parent
+   *  (e.g. an undo bar) can follow the expense without editing this file. */
+  onSavedStateChange?: (state: SavedState) => void;
+  /** Rendered right under the "Added ... ✓" line, e.g. an undo bar. */
+  renderSavedBar?: (context: SavedBarContext) => ReactNode;
 }
+
+export interface SavedBarContext {
+  readonly state: SavedState;
+  /** "Added ₹8,000 to Personal ✓" */
+  readonly headline: string;
+  /** What has been filled in so far, in the order it was. */
+  readonly filled: readonly FilledKind[];
+}
+
+/** How long "Saved ✓" stays up when there is nothing to ask. */
+export const SAVED_BEAT_MS = 1200;
 
 interface Chip {
   readonly label: string;
@@ -175,6 +193,8 @@ export function VoiceFollowUps({
   local,
   today,
   onClose,
+  onSavedStateChange,
+  renderSavedBar,
 }: VoiceFollowUpsProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -203,6 +223,18 @@ export function VoiceFollowUps({
   const [notice, setNotice] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [handedOff, setHandedOff] = useState(false);
+  const [wrapUpOnScreen, setWrapUpOnScreen] = useState<string | null>(null);
+  // Typing and the mic need the network; the chips work from the phone alone.
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    let live = true;
+    void checkOnline().then((ok) => {
+      if (live) setOnline(ok);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
 
   // Where the phone is — only when permission was already granted; nothing here prompts.
@@ -246,7 +278,11 @@ export function VoiceFollowUps({
         myMemberId,
       ),
       history: history.stats,
-      prefs,
+      // The wrap-up is marked shown the moment it appears; it must stay on
+      // screen until it is answered, so the group being asked is not excluded yet.
+      prefs: wrapUpOnScreen
+        ? { ...prefs, wrapUpShown: prefs.wrapUpShown.filter((g) => g !== wrapUpOnScreen) }
+        : prefs,
       session,
       env,
     });
@@ -261,12 +297,16 @@ export function VoiceFollowUps({
     history,
     prefs,
     session,
+    wrapUpOnScreen,
   ]);
 
   // The trip wrap-up is asked once per group, so it is marked the moment it shows.
   useEffect(() => {
     if (question?.kind === 'wrapup' && saved.groupId) {
       const id = saved.groupId;
+      // Remembers which group's wrap-up is showing, once, as it appears.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWrapUpOnScreen(id);
       prefsHandle.update((p) => markWrapUpShown(p, id));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -275,14 +315,17 @@ export function VoiceFollowUps({
   const ready = env !== null && prefsHandle.ready;
   const finished = ready && question === null;
 
-  // Nothing worth asking at all: carry on exactly as before follow-ups existed.
+  // Nothing worth asking: a visible "Saved ✓" beat, then close as before.
+  const emptyBeat = finished && session.asked.length === 0 && filled.length === 0 && !handedOff;
   useEffect(() => {
-    if (finished && session.asked.length === 0 && filled.length === 0 && !handedOff) {
+    if (!emptyBeat) return undefined;
+    const timer = setTimeout(() => {
       toast.show(t.voice.agentDone);
       onClose();
-    }
+    }, SAVED_BEAT_MS);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished]);
+  }, [emptyBeat]);
 
   const splittable =
     saved.kind === 'group' ? findSplittableReceipt(openReceipts.data, saved.amount) : null;
@@ -307,6 +350,7 @@ export function VoiceFollowUps({
           await writeExpense.mutateAsync(toGroupWrite(groupWrite, next));
         }
         setSaved(next);
+        onSavedStateChange?.(next);
         return true;
       } catch {
         setNotice(f.couldNotSave);
@@ -317,7 +361,7 @@ export function VoiceFollowUps({
     },
     // The mutation hooks are stable per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [groupWrite, f.couldNotSave],
+    [groupWrite, f.couldNotSave, onSavedStateChange],
   );
 
   const respond = (
@@ -440,7 +484,7 @@ export function VoiceFollowUps({
               }),
             ),
           ),
-          { label: f.placeElse, onPress: () => setTyping(true) },
+          ...(online ? [{ label: f.placeElse, onPress: () => setTyping(true) }] : []),
         ];
       case 'receipt':
         return [
@@ -482,7 +526,7 @@ export function VoiceFollowUps({
               }),
             ),
           ),
-          { label: f.splitSomeone, onPress: () => setTyping(true) },
+          ...(online ? [{ label: f.splitSomeone, onPress: () => setTyping(true) }] : []),
           no(),
         ];
       case 'payment':
@@ -656,6 +700,21 @@ export function VoiceFollowUps({
     <View style={{ gap: theme.spacing.md }}>
       <Text variant="subheading">{fill(f.added, { amount: amountLabel, where: whereLabel })}</Text>
 
+      {renderSavedBar
+        ? renderSavedBar({
+            state: saved,
+            headline: fill(f.added, { amount: amountLabel, where: whereLabel }),
+            filled,
+          })
+        : null}
+
+      {emptyBeat ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+          <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
+          <Text tone="muted">{f.saved}</Text>
+        </View>
+      ) : null}
+
       {question ? (
         <View
           style={{
@@ -668,17 +727,23 @@ export function VoiceFollowUps({
           }}
         >
           <Text>{questionText(question, f, { saved, group, amountLabel, categoryLabel })}</Text>
+          {questionReason(question, f, { saved, group, amountLabel, categoryLabel }) ? (
+            <Text variant="micro" tone="faint">
+              {questionReason(question, f, { saved, group, amountLabel, categoryLabel })}
+            </Text>
+          ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
             {chipsFor(question).map((chip) => (
               <Pressable
                 key={chip.label}
                 accessibilityRole="button"
                 accessibilityLabel={chip.label}
+                hitSlop={4}
                 disabled={busy}
                 onPress={chip.onPress}
                 style={({ pressed }) => ({
                   paddingHorizontal: theme.spacing.md,
-                  height: 36,
+                  height: 40,
                   justifyContent: 'center',
                   borderRadius: theme.radius.pill,
                   backgroundColor: chip.primary ? theme.color.brandSoft : theme.color.bg,
@@ -694,12 +759,17 @@ export function VoiceFollowUps({
                     fontWeight: '700',
                   }}
                 >
-                  {chip.label}
+                  {chipLabel(chip.label)}
                 </Text>
               </Pressable>
             ))}
           </View>
           {typing ? <VoiceTypedAnswer onSubmit={(text) => void submitTyped(text)} /> : null}
+          {!online ? (
+            <Text variant="caption" tone="muted">
+              {f.typingOffline}
+            </Text>
+          ) : null}
           {notice ? (
             <Text variant="caption" tone="muted">
               {notice}
@@ -716,7 +786,9 @@ export function VoiceFollowUps({
           >
             <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
               <SmallLink label={f.skip} onPress={() => respond(question.kind, 'skipped')} />
-              {!typing ? <SmallLink label={f.typeInstead} onPress={() => setTyping(true)} /> : null}
+              {!typing && online ? (
+                <SmallLink label={f.typeInstead} onPress={() => setTyping(true)} />
+              ) : null}
             </View>
             <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
               <SmallLink
@@ -829,7 +901,7 @@ function itemLabel(kind: FilledKind, f: UiStrings['followUps']): string {
 }
 
 /** The question in the person's own terms: place names, people, trips. */
-function questionText(
+export function questionText(
   q: FollowUpQuestion,
   f: UiStrings['followUps'],
   ctx: {
@@ -879,5 +951,61 @@ function questionText(
       return fill(f.wrapupAsk, { trip: q.trip?.name ?? ctx.group?.name ?? '' });
     case 'work':
       return f.workAsk;
+  }
+}
+
+export interface QuestionContext {
+  saved: SavedState;
+  group: { name: string; members?: readonly unknown[] } | null;
+  amountLabel: string;
+  categoryLabel: (id: string) => string;
+}
+
+/**
+ * Why this is being asked, in one short line ("You're at a place right now"):
+ * the reason a person can read to trust or mute the question. Empty when there
+ * is nothing useful to say (payment).
+ */
+export function questionReason(
+  q: FollowUpQuestion,
+  f: UiStrings['followUps'],
+  ctx: QuestionContext,
+): string {
+  switch (q.kind) {
+    case 'place':
+      return q.hereNow ? f.reasonPlace : '';
+    case 'receipt':
+      return f.reasonReceipt;
+    case 'split':
+      return fill(f.reasonSplit, {
+        category: ctx.categoryLabel(ctx.saved.category ?? 'other').toLowerCase(),
+        name: q.partners[0]?.name ?? '',
+      });
+    case 'payer':
+      return fill(f.reasonPayer, { name: firstName(q.payer?.name ?? '') });
+    case 'attendance':
+      return fill(f.reasonAttendance, { count: ctx.saved.participants.length });
+    case 'trip':
+      return fill(f.reasonTrip, { trip: q.trip?.name ?? '' });
+    case 'wrapup':
+      return fill(f.reasonWrapup, { trip: q.trip?.name ?? ctx.group?.name ?? '' });
+    case 'recurring':
+      return fill(f.reasonRecurring, { day: q.dayOfMonth ?? '' });
+    case 'duplicate':
+      return f.reasonDuplicate;
+    case 'currency':
+      return fill(f.reasonCurrency, { currency: q.currency ?? '' });
+    case 'category':
+      return f.reasonCategory;
+    case 'date':
+      return /\b(yesterday|last night|yday|last evening)\b/i.test(ctx.saved.description)
+        ? f.reasonDateWords
+        : f.reasonDateNight;
+    case 'lend':
+      return fill(f.reasonLend, { name: q.person ?? '' });
+    case 'work':
+      return f.reasonWork;
+    case 'payment':
+      return '';
   }
 }
