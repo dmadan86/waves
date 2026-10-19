@@ -1362,6 +1362,44 @@ export interface UiStrings {
     reasonLend: string;
     reasonWork: string;
   };
+  /** The Speak-an-expense capture surface (voice.tsx, VoiceCapture). */
+  voiceScreen: {
+    headline: string;
+    subline: string;
+    statusReady: string;
+    statusStarting: string;
+    statusListening: string;
+    statusProcessing: string;
+    statusNoSpeech: string;
+    statusNoAmount: string;
+    statusPermission: string;
+    statusError: string;
+    statusExpenseReady: string;
+    statusCheck: string;
+    statusSaving: string;
+    statusSaved: string;
+    micStart: string;
+    micStop: string;
+    micRetry: string;
+    micBusy: string;
+    hearing: string;
+    youSaid: string;
+    editHeard: string;
+    suggestionsTitle: string;
+    previewTitle: string;
+    category: string;
+    splitWith: string;
+    splitType: string;
+    splitEqually: string;
+    justYou: string;
+    addExpense: string;
+    edit: string;
+    checkTitle: string;
+    retry: string;
+    openSettings: string;
+    permissionBody: string;
+    typeInstead: string;
+  };
   voice: {
     /** Mic label + screen title. */
     speakExpense: string;
@@ -6734,6 +6772,43 @@ const en: UiStrings = {
     reasonLend: 'Your words say you gave money to {name}',
     reasonWork: 'Work-type spend above your usual',
   },
+  voiceScreen: {
+    headline: 'Just say it naturally',
+    subline: 'I’ll understand and organize your expense.',
+    statusReady: 'Ready to listen',
+    statusStarting: 'Getting the mic ready…',
+    statusListening: 'Listening…',
+    statusProcessing: 'Understanding your expense…',
+    statusNoSpeech: 'Couldn’t hear that',
+    statusNoAmount: 'Heard you, but no amount',
+    statusPermission: 'Microphone access needed',
+    statusError: 'Something went wrong',
+    statusExpenseReady: 'Expense ready',
+    statusCheck: 'Check one detail',
+    statusSaving: 'Adding…',
+    statusSaved: 'Added',
+    micStart: 'Start listening',
+    micStop: 'Stop listening',
+    micRetry: 'Try again',
+    micBusy: 'Working on it',
+    hearing: 'Hearing',
+    youSaid: 'You said',
+    editHeard: 'Edit text',
+    suggestionsTitle: 'Try saying',
+    previewTitle: 'Expense ready',
+    category: 'Category',
+    splitWith: 'Split with',
+    splitType: 'Split',
+    splitEqually: 'Equally',
+    justYou: 'Just you',
+    addExpense: 'Add expense',
+    edit: 'Edit',
+    checkTitle: 'Check before adding',
+    retry: 'Try again',
+    openSettings: 'Open settings',
+    permissionBody: 'Allow microphone access to speak an expense, or type it instead.',
+    typeInstead: 'Type instead',
+  },
   voice: {
     speakExpense: 'Speak an expense',
     micHint: 'Tap to open, or hold and talk',
@@ -11512,6 +11587,43 @@ const ta: UiStrings = {
     reasonDateNight: 'நள்ளிரவு தாண்டிவிட்டது',
     reasonLend: '{name}-க்குப் பணம் கொடுத்ததாக உங்கள் சொற்கள் கூறுகின்றன',
     reasonWork: 'வழக்கத்தை விட அதிகமான அலுவலகவகைச் செலவு',
+  },
+  voiceScreen: {
+    headline: 'இயல்பாகச் சொல்லுங்கள்',
+    subline: 'நான் புரிந்துகொண்டு உங்கள் செலவை ஒழுங்குபடுத்துகிறேன்.',
+    statusReady: 'கேட்கத் தயார்',
+    statusStarting: 'மைக் தயாராகிறது…',
+    statusListening: 'கேட்கிறேன்…',
+    statusProcessing: 'உங்கள் செலவைப் புரிந்துகொள்கிறேன்…',
+    statusNoSpeech: 'கேட்கவில்லை',
+    statusNoAmount: 'கேட்டேன், ஆனால் தொகை இல்லை',
+    statusPermission: 'மைக்ரோஃபோன் அனுமதி தேவை',
+    statusError: 'ஏதோ தவறு நடந்தது',
+    statusExpenseReady: 'செலவு தயார்',
+    statusCheck: 'ஒரு விவரத்தைச் சரிபாருங்கள்',
+    statusSaving: 'சேர்க்கிறேன்…',
+    statusSaved: 'சேர்த்தாகிவிட்டது',
+    micStart: 'கேட்கத் தொடங்கு',
+    micStop: 'கேட்பதை நிறுத்து',
+    micRetry: 'மீண்டும் முயலவும்',
+    micBusy: 'செயலில் உள்ளது',
+    hearing: 'கேட்கிறேன்',
+    youSaid: 'நீங்கள் சொன்னது',
+    editHeard: 'உரையைத் திருத்து',
+    suggestionsTitle: 'இப்படிச் சொல்லிப் பாருங்கள்',
+    previewTitle: 'செலவு தயார்',
+    category: 'வகை',
+    splitWith: 'யாருடன் பகிர்வது',
+    splitType: 'பகிர்வு',
+    splitEqually: 'சமமாக',
+    justYou: 'நீங்கள் மட்டும்',
+    addExpense: 'செலவைச் சேர்',
+    edit: 'திருத்து',
+    checkTitle: 'சேர்ப்பதற்கு முன் சரிபாருங்கள்',
+    retry: 'மீண்டும் முயலவும்',
+    openSettings: 'அமைப்புகளைத் திற',
+    permissionBody: 'செலவைச் சொல்ல மைக்ரோஃபோன் அனுமதி தாருங்கள், அல்லது தட்டச்சு செய்யுங்கள்.',
+    typeInstead: 'தட்டச்சு செய்',
   },
   voice: {
     speakExpense: 'செலவைப் பேசு',
@@ -16441,6 +16553,43 @@ const hi: UiStrings = {
     reasonLend: 'आपके शब्दों के अनुसार आपने {name} को पैसे दिए',
     reasonWork: 'आपके सामान्य से ज़्यादा ऑफ़िस-जैसा खर्च',
   },
+  voiceScreen: {
+    headline: 'बस सहज रूप से बोलिए',
+    subline: 'मैं समझकर आपका खर्च व्यवस्थित कर दूँगा।',
+    statusReady: 'सुनने के लिए तैयार',
+    statusStarting: 'माइक तैयार हो रहा है…',
+    statusListening: 'सुन रहा हूँ…',
+    statusProcessing: 'आपका खर्च समझ रहा हूँ…',
+    statusNoSpeech: 'सुनाई नहीं दिया',
+    statusNoAmount: 'सुना, पर कोई रकम नहीं मिली',
+    statusPermission: 'माइक्रोफ़ोन की अनुमति चाहिए',
+    statusError: 'कुछ गड़बड़ हो गई',
+    statusExpenseReady: 'खर्च तैयार है',
+    statusCheck: 'एक बात जाँच लें',
+    statusSaving: 'जोड़ रहा हूँ…',
+    statusSaved: 'जोड़ दिया',
+    micStart: 'सुनना शुरू करें',
+    micStop: 'सुनना बंद करें',
+    micRetry: 'फिर से कोशिश करें',
+    micBusy: 'काम चल रहा है',
+    hearing: 'सुन रहा हूँ',
+    youSaid: 'आपने कहा',
+    editHeard: 'टेक्स्ट बदलें',
+    suggestionsTitle: 'ऐसे बोलकर देखें',
+    previewTitle: 'खर्च तैयार है',
+    category: 'श्रेणी',
+    splitWith: 'किसके साथ बाँटें',
+    splitType: 'बँटवारा',
+    splitEqually: 'बराबर',
+    justYou: 'सिर्फ़ आप',
+    addExpense: 'खर्च जोड़ें',
+    edit: 'बदलें',
+    checkTitle: 'जोड़ने से पहले जाँचें',
+    retry: 'फिर से कोशिश करें',
+    openSettings: 'सेटिंग्स खोलें',
+    permissionBody: 'खर्च बोलने के लिए माइक्रोफ़ोन की अनुमति दें, या उसे टाइप करें।',
+    typeInstead: 'टाइप करें',
+  },
   voice: {
     speakExpense: 'खर्च बोलें',
     micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
@@ -21282,6 +21431,43 @@ const ar: UiStrings = {
     reasonDateNight: 'تجاوزنا منتصف الليل',
     reasonLend: 'كلامك يقول إنك أعطيت {name} مالًا',
     reasonWork: 'مصروف من نوع العمل أعلى من المعتاد',
+  },
+  voiceScreen: {
+    headline: 'قلها ببساطة',
+    subline: 'سأفهم مصروفك وأنظّمه.',
+    statusReady: 'جاهز للاستماع',
+    statusStarting: 'جارٍ تجهيز الميكروفون…',
+    statusListening: 'أستمع…',
+    statusProcessing: 'أفهم مصروفك…',
+    statusNoSpeech: 'لم أسمع ذلك',
+    statusNoAmount: 'سمعتك، لكن بلا مبلغ',
+    statusPermission: 'يلزم إذن الميكروفون',
+    statusError: 'حدث خطأ ما',
+    statusExpenseReady: 'المصروف جاهز',
+    statusCheck: 'راجع تفصيلًا واحدًا',
+    statusSaving: 'جارٍ الإضافة…',
+    statusSaved: 'تمت الإضافة',
+    micStart: 'ابدأ الاستماع',
+    micStop: 'أوقف الاستماع',
+    micRetry: 'حاول مرة أخرى',
+    micBusy: 'جارٍ العمل',
+    hearing: 'أسمع',
+    youSaid: 'قلتَ',
+    editHeard: 'عدّل النص',
+    suggestionsTitle: 'جرّب أن تقول',
+    previewTitle: 'المصروف جاهز',
+    category: 'الفئة',
+    splitWith: 'التقسيم مع',
+    splitType: 'التقسيم',
+    splitEqually: 'بالتساوي',
+    justYou: 'أنت فقط',
+    addExpense: 'أضف المصروف',
+    edit: 'تعديل',
+    checkTitle: 'راجع قبل الإضافة',
+    retry: 'حاول مرة أخرى',
+    openSettings: 'افتح الإعدادات',
+    permissionBody: 'اسمح بالوصول إلى الميكروفون لتقول مصروفًا، أو اكتبه بدلًا من ذلك.',
+    typeInstead: 'اكتب بدلًا من ذلك',
   },
   voice: {
     speakExpense: 'انطق مصروفًا',
