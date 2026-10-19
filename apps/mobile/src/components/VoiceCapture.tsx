@@ -1832,7 +1832,7 @@ export function VoiceCapture({
   );
 }
 
-/** The "Try saying…" card: a heading and three example sentences, each with a
+/** The "Try saying…" card: a heading and four example sentences, each with a
  *  glyph for what it is about. Read-only — the mic is the way in.
  *
  *  The sentences are drawn fresh each time the screen opens, fitted to the
@@ -1870,6 +1870,8 @@ function TrySaying({
       }),
     },
     { icon: 'cafe-outline', text: fill(t.voice.tryJustMe, { amount: example.coffee }) },
+    // A question, not an expense: the assistant answers balances too.
+    { icon: 'people-outline', text: t.assistant.tryWhoOwes },
   ];
   return (
     <View

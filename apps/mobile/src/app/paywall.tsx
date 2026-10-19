@@ -557,6 +557,8 @@ function PlanCard({
     fill(t.paywall.featureDevices, { devices: PRO_DEVICE_LIMIT }),
     t.paywall.featureTransfers,
     fill(t.paywall.featureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }),
+    // The assistant's follow-up questions: where, who paid, a receipt.
+    t.assistant.planRowTitle,
   ];
 
   return (
@@ -661,7 +663,23 @@ function PlanCard({
             >
               <Ionicons name="checkmark" size={13} color={theme.color.onBrand} />
             </View>
-            <Text style={{ flex: 1 }}>{feature}</Text>
+            <Text style={feature === t.assistant.planRowTitle ? undefined : { flex: 1 }}>
+              {feature}
+            </Text>
+            {feature === t.assistant.planRowTitle ? (
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Text variant="micro" style={{ color: theme.color.brand }}>
+                  {t.assistant.planRowPill}
+                </Text>
+              </View>
+            ) : null}
           </View>
         ))}
       </View>

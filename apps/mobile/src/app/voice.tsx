@@ -18,7 +18,15 @@
  * shows a message instead of crashing.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
@@ -90,7 +98,7 @@ import {
 import { nudgeToSettle } from '@/data/api';
 import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
-import { isRtl, plural, useStrings } from '@/i18n';
+import { fill, isRtl, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useBottomClearance } from '@/lib/clearance';
@@ -157,6 +165,14 @@ import { logVoiceAttempt } from '@/lib/voiceLog';
 import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { VoiceFooterScene } from '@/components/VoiceFooterScene';
+import { AssistantComposer } from '@/components/AssistantComposer';
+import { AssistantIntro } from '@/components/AssistantIntro';
+import { AssistantTeaser } from '@/components/AssistantTeaser';
+import { transcriptRoute } from '@/lib/assistantComposerPure';
+import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
+import { trackAssistant, type AssistantScope } from '@/lib/assistantTelemetry';
+import { useEntitlement } from '@/lib/useEntitlement';
+import type { SavedState } from '@/lib/followUpApply';
 
 /** One editable line on the review screen. */
 interface Draft {
@@ -366,8 +382,17 @@ export default function VoiceScreen() {
   // spoken expense lands in that group by default rather than the unassigned
   // inbox. The reader can still switch the destination on the review; and a
   // sentence that names a different group ("…for the Goa trip") still wins.
-  const params = useLocalSearchParams<{ group?: string; heard?: string; hn?: string }>();
+  const params = useLocalSearchParams<{
+    group?: string;
+    heard?: string;
+    hn?: string;
+    /** `personal`: opened from the private ledger, so a spoken expense stays private. */
+    scope?: string;
+    /** How the screen was reached, for the opened event (`typed` opens the composer). */
+    source?: string;
+  }>();
   const launchGroupId = typeof params.group === 'string' ? params.group : null;
+  const launchPersonal = params.scope === 'personal' && !launchGroupId;
   // A transcript captured by the home-screen voice widget's own recogniser and
   // handed in on the deep link — the mic already ran outside the app, so this
   // screen skips listening and goes straight to interpreting it (see the effect
@@ -433,6 +458,47 @@ export default function VoiceScreen() {
   // keeps this visit on the on-device voice.
   const voiceConsent = useVoiceConsent(viewerId);
   const [consentDeclined, setConsentDeclined] = useState(false);
+  // The typed composer replaces the mic on this same screen: a keyboard glyph
+  // under the mic opens it, and its mic glyph brings the mic back.
+  const [typedMode, setTypedMode] = useState(params.source === 'typed');
+  const [typedDraft, setTypedDraft] = useState('');
+  const lastTyped = useRef('');
+  // Free sees a once-a-week teaser where Pro would be asked a follow-up.
+  // Not yet known counts as Pro: a paid person is never shown a teaser because a
+  // read was slow.
+  const entitlement = useEntitlement();
+  const isPro = entitlement.isPro || entitlement.loading;
+  // Which path read the last command, for the `assistant_command` event.
+  const commandPath = useRef<'fast' | 'agent'>('fast');
+  const reportCommand = (
+    outcome: 'confirmed' | 'discarded' | 'clarified' | 'failed',
+    scope: AssistantScope,
+    path: 'fast' | 'agent' = commandPath.current,
+  ): void => trackAssistant('assistant_command', { path, outcome, scope });
+  // One `assistant_opened` per visit: how the person got here, as an enum word.
+  const openedReported = useRef(false);
+  useEffect(() => {
+    if (openedReported.current) return;
+    openedReported.current = true;
+    const pushed = pushToTalk.getSnapshot();
+    const fromParam =
+      params.source === 'typed' || params.source === 'quick' || params.source === 'personal'
+        ? params.source
+        : null;
+    trackAssistant('assistant_opened', {
+      source:
+        fromParam ??
+        (launchPersonal
+          ? 'personal'
+          : widgetHeard
+            ? 'quick'
+            : pushed.holding || pushed.ended
+              ? 'hold'
+              : 'mic'),
+    });
+    // Once per visit, from whatever the route said at the start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const cloudConsent: VoiceCloudConsent =
     voiceConsent.state === 'granted'
       ? 'granted'
@@ -520,6 +586,11 @@ export default function VoiceScreen() {
   // expenses — not a wall of group rows — are the first thing on the review.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [noAmount, setNoAmount] = useState(false);
+  // The words were typed but held no amount: put them back to be fixed, as the
+  // mic would have offered another try.
+  useEffect(() => {
+    if (noAmount && typedMode && lastTyped.current) setTypedDraft(lastTyped.current);
+  }, [noAmount, typedMode]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // Remounts the mic to start a fresh utterance after a miss.
@@ -712,6 +783,8 @@ export default function VoiceScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     autoTimer.current = null;
     const fallback = autoBanner?.fallback ?? 'review';
+    hapticLight();
+    reportCommand('discarded', dest.kind === 'me' ? 'personal' : 'group');
     setAutoBanner(null);
     if (fallback === 'listening') {
       setRequested(null);
@@ -799,7 +872,7 @@ export default function VoiceScreen() {
       // not a guess: the inbox, with the question shown, until they choose.
       setRequested(null);
       setDest({ kind: 'unassigned' });
-    } else if (result.personal) {
+    } else if (result.personal || launchPersonal) {
       // "Just for me" — a private expense on the Me ledger. This beats the
       // launch-group context below: an explicit solo marker is a clear choice.
       setRequested(null);
@@ -1148,7 +1221,11 @@ export default function VoiceScreen() {
   // guessing.
   const handleTranscript = (
     transcript: string,
-    { streamed = false, alternatives = [] }: Partial<VoiceDoneInfo> = {},
+    {
+      streamed = false,
+      alternatives = [],
+      typed = false,
+    }: Partial<VoiceDoneInfo> & { typed?: boolean } = {},
   ): void => {
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
@@ -1166,27 +1243,40 @@ export default function VoiceScreen() {
     // A fresh opening capture that was streamed goes to the advanced agent; "add
     // another", a link-supplied sentence, or a capture that fell back to the
     // on-device recogniser stay on the basic path.
-    if (agentOn && (streamed || phoneToAgent) && micMode !== 'append' && !heardFromLink.current) {
-      // Fast path: when the instant on-device parser reads the sentence with full
-      // confidence, skip the agent (no wait, no allowance spent) and show the
-      // ordinary basic review. The speech still came from the cloud engine.
-      // An answer to the agent's own question ("Answer") always goes back to the
-      // agent with what prompted it — on its own it is half a sentence.
-      const fastContext = fastPathContext(alternatives);
-      if (
-        !agentFollowUp &&
-        localParseIsConfident(parseLocally(transcript, fastContext), fastContext)
-      ) {
-        if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
-        setEngine(streamed ? CLOUD : local('free'));
-        runBasic(transcript, alternatives);
-        // The stream was used, so the command counts: meter it without waiting.
-        // A 402 changes nothing now (the review is up); the next start falls back.
-        // A Free sentence read on the phone cost nothing, so it is not counted.
-        if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
-        return;
-      }
+    // Typed text is a sentence like any other: the agent reads it when it is on
+    // (whichever way the mic would have streamed), the on-device parser otherwise.
+    // Fast path: when the instant on-device parser reads the sentence with full
+    // confidence, skip the agent (no wait, no allowance spent) and show the
+    // ordinary basic review. The speech still came from the cloud engine.
+    // An answer to the agent's own question ("Answer") always goes back to the
+    // agent with what prompted it — on its own it is half a sentence.
+    const route = transcriptRoute({
+      agentOn,
+      streamed,
+      phoneToAgent,
+      typed,
+      appending: micMode === 'append',
+      heardFromLink: heardFromLink.current,
+      answeringAgent: Boolean(agentFollowUp),
+      localConfident: () => {
+        const fastContext = fastPathContext(alternatives);
+        return localParseIsConfident(parseLocally(transcript, fastContext), fastContext);
+      },
+    });
+    if (route === 'fast') {
+      if (__DEV__) console.log('[voice] path: local fast path (agent skipped)');
+      setEngine(streamed ? CLOUD : typed ? local(null) : local('free'));
+      runBasic(transcript, alternatives);
+      // The stream was used, so the command counts: meter it without waiting.
+      // A 402 changes nothing now (the review is up); the next start falls back.
+      // A Free sentence read on the phone cost nothing, so it is not counted.
+      if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
+      return;
+    }
+    if (route === 'agent') {
       if (__DEV__) console.log('[voice] path: agent');
+      commandPath.current = 'agent';
+      if (typed) setEngine(CLOUD);
       setAgentSession({ transcript, alternatives });
       setPhase('agent');
       return;
@@ -1201,6 +1291,7 @@ export default function VoiceScreen() {
     const heardAlternatives = agentSession?.alternatives ?? [];
     setAgentSession(null);
     if (!heard) return;
+    reportCommand('failed', 'personal', 'agent');
     setAgentQuotaNote(reason === 'quota');
     if (reason === 'quota') {
       setEngine(local('quota'));
@@ -1217,6 +1308,7 @@ export default function VoiceScreen() {
 
   const runBasic = (transcript: string, alternatives: readonly string[] = []): void => {
     const mode = micMode;
+    commandPath.current = 'fast';
     // A settle/remind/add-member command, or a read-only balance question, only
     // makes sense as a fresh utterance, never as an expense appended to a batch.
     // When one takes the utterance it drives its own phase (an auto-act window,
@@ -1333,6 +1425,7 @@ export default function VoiceScreen() {
       setPhase('review');
       return;
     }
+    if (phase === 'review') reportCommand('discarded', dest.kind === 'me' ? 'personal' : 'group');
     router.back();
   };
 
@@ -1354,6 +1447,11 @@ export default function VoiceScreen() {
   // listening screen with nothing on it, so there is no batch to fold back to —
   // only the flag that makes the mic's parting `onDone` be ignored, and the way
   // out.
+  // A spoken balance question was answered on the phone, for the answered event.
+  useEffect(() => {
+    if (phase === 'answer')
+      trackAssistant('assistant_question_answered', { kind: 'balance', path: 'device' });
+  }, [phase]);
   const cancelledHold = hold.ended?.mode === 'cancel' ? hold.ended.seq : 0;
   useEffect(() => {
     if (cancelledHold === 0) return;
@@ -1522,6 +1620,8 @@ export default function VoiceScreen() {
    * point. Every path says it worked, so the jump is never the only signal.
    */
   const confirmSaved = (): void => {
+    reportCommand('confirmed', dest.kind === 'me' ? 'personal' : 'group');
+    hapticSuccess();
     toast.show(plural(locale, drafts.length, t.voice.savedCount));
   };
 
@@ -2036,6 +2136,44 @@ export default function VoiceScreen() {
     setPhase('listening');
   };
 
+  // Typed text enters the same pipeline as a spoken sentence: the mic is let go,
+  // the text is treated as a live capture, and the screen decides who reads it.
+  const submitTyped = (text: string): void => {
+    lastTyped.current = text;
+    setTypedDraft('');
+    captureActive.current = true;
+    heardFromLink.current = false;
+    setAgentQuotaNote(false);
+    setNoAmount(false);
+    setMicMode('replace');
+    handleTranscript(text, { typed: true });
+  };
+
+  // A Free person's saved expense: one line saying so, then the Pro teaser in
+  // place of the question Pro would be asked. Never blocks; Done is below it.
+  const renderFreeAfterSave = (saved: SavedState): ReactNode => {
+    const where =
+      saved.kind === 'personal'
+        ? t.followUps.wherePersonal
+        : (groupRows.find((group) => group.id === saved.groupId)?.name?.trim() ??
+          t.followUps.wherePersonal);
+    return (
+      <View style={{ gap: theme.spacing.md }}>
+        <Text variant="subheading">
+          {fill(t.followUps.added, {
+            amount: formatMoney(money(saved.amount, saved.currency), { locale }),
+            where,
+          })}
+        </Text>
+        <AssistantTeaser
+          viewerId={viewerId}
+          isPro={isPro}
+          kind={saved.hasReceipt ? 'payment' : 'place'}
+        />
+      </View>
+    );
+  };
+
   return (
     <Screen>
       {/* The desk scene along the foot, under everything. Not on the review:
@@ -2137,8 +2275,15 @@ export default function VoiceScreen() {
               onFallback={agentFellBack}
               followUp={agentFollowUp}
               engine={engine}
+              renderAfterSave={isPro ? undefined : renderFreeAfterSave}
+              aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
+              onResolved={(outcome, scope) => {
+                reportCommand(outcome, scope, 'agent');
+                if (outcome === 'confirmed') hapticSuccess();
+              }}
               onAnswer={(followUp, answer) => {
                 // A tapped option is the spoken answer, with no clip in between.
+                reportCommand('clarified', 'group', 'agent');
                 setAgentFollowUp(followUp);
                 setAgentSession({ transcript: answer, alternatives: [] });
                 setAgentRun((current) => current + 1);
@@ -2403,32 +2548,90 @@ export default function VoiceScreen() {
             // is the retry, and tapping it (via `onListen`) clears the miss. No
             // warning banner and no separate button stacked around it.
             <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
-              <VoiceMicPanel
-                key={attempt}
-                onDone={handleTranscript}
-                streamLive={agentOn && streamsToCloud}
-                agentReady={agentReady}
-                // Once the server has answered, that answer stands (a "not Pro"
-                // needs no consent read); before it, the phone's last answer.
-                agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
-                cloudConsent={agentServerOn ? cloudConsent : 'granted'}
-                onEngine={setEngine}
-                groupId={launchGroupId}
-                hints={hints}
-                groupNames={groupNames}
-                missed={noAmount}
-                autoStart={!noAmount}
-                endSignal={hold.ended}
-                onEndConsumed={() => pushToTalk.take()}
-                onListen={() => {
-                  // A capture the reader actually started — mark it live so its
-                  // transcript is accepted (and a dismissed one's is not).
-                  captureActive.current = true;
-                  heardFromLink.current = false;
-                  setAgentQuotaNote(false);
-                  setNoAmount(false);
-                }}
-              />
+              {launchPersonal ? (
+                <Text variant="caption" tone="muted" align="center">
+                  {t.assistant.personalScope}
+                </Text>
+              ) : null}
+              {typedMode ? (
+                <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.xxl }}>
+                  <Text variant="subheading" align="center">
+                    {t.voice.prompt}
+                  </Text>
+                  {noAmount ? <Callout tone="warning">{t.voice.noAmount}</Callout> : null}
+                  <AssistantComposer
+                    value={typedDraft}
+                    onChangeText={setTypedDraft}
+                    onSend={submitTyped}
+                    onUseMic={() => {
+                      setNoAmount(false);
+                      setAttempt((current) => current + 1);
+                      setTypedMode(false);
+                    }}
+                  />
+                </View>
+              ) : (
+                <>
+                  <VoiceMicPanel
+                    key={attempt}
+                    onDone={handleTranscript}
+                    streamLive={agentOn && streamsToCloud}
+                    agentReady={agentReady}
+                    // Once the server has answered, that answer stands (a "not Pro"
+                    // needs no consent read); before it, the phone's last answer.
+                    agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
+                    cloudConsent={agentServerOn ? cloudConsent : 'granted'}
+                    onEngine={setEngine}
+                    groupId={launchGroupId}
+                    hints={hints}
+                    groupNames={groupNames}
+                    missed={noAmount}
+                    autoStart={!noAmount}
+                    endSignal={hold.ended}
+                    onEndConsumed={() => pushToTalk.take()}
+                    onListen={() => {
+                      // A capture the reader actually started — mark it live so its
+                      // transcript is accepted (and a dismissed one's is not).
+                      captureActive.current = true;
+                      heardFromLink.current = false;
+                      setAgentQuotaNote(false);
+                      setNoAmount(false);
+                    }}
+                  />
+                  <Pressable
+                    onPress={() => {
+                      hapticSelect();
+                      captureActive.current = false;
+                      setTypedMode(true);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.assistant.composerTypeInstead}
+                    hitSlop={8}
+                    style={({ pressed }) => ({
+                      alignSelf: 'center',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.xs,
+                      minHeight: 40,
+                      paddingHorizontal: theme.spacing.lg,
+                      borderRadius: theme.radius.pill,
+                      borderWidth: 1,
+                      borderColor: theme.color.border,
+                      backgroundColor: theme.color.surface,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Ionicons
+                      name="keypad-outline"
+                      size={iconSize.base}
+                      color={theme.color.brand}
+                    />
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                      {t.assistant.composerTypeInstead}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
               {/* Only while a finger is actually on the bar's mic. It says the one
                 thing a held button has to say and the tapped one does not: there
                 is a way out that is not "finish the sentence". The chevron points

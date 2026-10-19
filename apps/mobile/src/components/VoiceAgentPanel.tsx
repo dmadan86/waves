@@ -10,7 +10,7 @@
  * the basic path exactly as it does without the flag.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { View } from 'react-native';
 
@@ -81,6 +81,16 @@ export interface VoiceAgentPanelProps {
   engine?: VoiceEngineInfo | null;
   /** Everything is confirmed or discarded. */
   onClose: () => void;
+  /**
+   * What the person sees after a single expense is saved, in place of the
+   * follow-up questions. The screen passes this for a Free account (the Pro
+   * teaser); omitted, the follow-ups run as before.
+   */
+  renderAfterSave?: (saved: SavedState) => ReactNode;
+  /** Shown above the follow-up questions (the first-run intro card). */
+  aboveFollowUps?: ReactNode;
+  /** One command has ended: how, and whether it was a personal or a group expense. */
+  onResolved?: (outcome: 'confirmed' | 'discarded', scope: 'personal' | 'group') => void;
 }
 
 type CardStatus = 'pending' | 'running' | 'done' | 'failed' | 'discarded';
@@ -109,7 +119,7 @@ function agentText(t: UiStrings): VoiceAgentText {
 }
 
 /** The reader's groups and who is in them, read from the local mirror. */
-function useAgentLocalData(viewerId: string | null): AgentLocalData {
+export function useAgentLocalData(viewerId: string | null): AgentLocalData {
   const { mirror, queue } = useSync();
   return useMemo(() => {
     const groups: AgentLocalGroup[] = [];
@@ -148,6 +158,9 @@ export function VoiceAgentPanel({
   followUp,
   engine = null,
   onClose,
+  renderAfterSave,
+  aboveFollowUps,
+  onResolved,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -244,15 +257,26 @@ export function VoiceAgentPanel({
     !plan.answer &&
     !plan.clarify
   ) {
+    if (savedFollowUp && renderAfterSave) {
+      return (
+        <View style={{ gap: theme.spacing.md }}>
+          {renderAfterSave(savedFollowUp.state)}
+          <Button label={t.followUps.done} onPress={onClose} />
+        </View>
+      );
+    }
     if (savedFollowUp) {
       return (
-        <VoiceFollowUps
-          initial={savedFollowUp.state}
-          groupWrite={savedFollowUp.write}
-          local={local}
-          today={today}
-          onClose={onClose}
-        />
+        <View style={{ gap: theme.spacing.md }}>
+          {aboveFollowUps}
+          <VoiceFollowUps
+            initial={savedFollowUp.state}
+            groupWrite={savedFollowUp.write}
+            local={local}
+            today={today}
+            onClose={onClose}
+          />
+        </View>
       );
     }
     return statusOf(only.key) === 'discarded' ? (
@@ -270,11 +294,13 @@ export function VoiceAgentPanel({
         onEdited={() => setCardStatus(only.key, 'discarded')}
         onDiscard={() => {
           setCardStatus(only.key, 'discarded');
+          onResolved?.('discarded', only.action.type === 'add_personal' ? 'personal' : 'group');
           onClose();
         }}
         onRetry={() => onRetry()}
         onAdded={(saved) => {
           setCardStatus(only.key, 'done');
+          onResolved?.('confirmed', only.action.type === 'add_personal' ? 'personal' : 'group');
           // Pro-only by construction: this panel exists only where the agent does.
           setSavedFollowUp(saved);
         }}
@@ -384,6 +410,7 @@ export function VoiceAgentPanel({
           label={t.voice.agentDone}
           onPress={() => {
             if (anyDone) toast.show(t.voice.agentDone);
+            onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
             onClose();
           }}
         />
