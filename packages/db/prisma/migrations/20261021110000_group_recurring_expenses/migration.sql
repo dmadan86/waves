@@ -468,6 +468,11 @@ BEGIN
 END
 $$;
 
+-- Same caller model as before (authenticated + service_role), restated because
+-- the grants audit wants it in the migration that redefines the function.
+REVOKE ALL ON FUNCTION public.waves_assert_expense_caller(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_assert_expense_caller(uuid, uuid) TO authenticated, service_role;
+
 -- ──────────────────────────────────────────────────────── generator ──
 
 CREATE FUNCTION public.waves_generate_recurring_expenses(
