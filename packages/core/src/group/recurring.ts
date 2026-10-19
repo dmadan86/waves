@@ -17,7 +17,7 @@
  * computed from the anchor (`anchor + k * interval`), never from the last date.
  */
 
-import { dayDelta, addToDate, stepOccurrence } from '../personal/compute';
+import { nextOnGrid, stepOccurrence } from '../personal/compute';
 import type { Cadence } from '../personal/types';
 import { computeShares } from '../split/computeShares';
 import { parseSplitParams, serialiseSplitParams } from '../split/wire';
@@ -68,11 +68,6 @@ export interface GroupRecurringRule extends GroupSchedule {
  *  so nothing is dropped and a long-forgotten rule never floods a group at once. */
 export const RECURRING_CATCH_UP_CAP = 12;
 
-function stepsFor(schedule: GroupSchedule): { cadence: Cadence; step: number } {
-  const interval = schedule.interval > 0 ? Math.floor(schedule.interval) : 1;
-  return { cadence: schedule.cadence, step: interval };
-}
-
 /** A real calendar date (not 2026-02-30 or 2026-13-01). */
 export function isRealDate(date: string): boolean {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -81,49 +76,19 @@ export function isRealDate(date: string): boolean {
   return t.toISOString().slice(0, 10) === date;
 }
 
-/** Months from `a` to `b` (YYYY-MM-DD), by calendar month, ignoring the day. */
-function monthsBetween(a: string, b: string): number {
-  return (
-    (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 +
-    (Number(b.slice(5, 7)) - Number(a.slice(5, 7)))
-  );
-}
-
-/**
- * The k-th occurrence (k = 0 is the anchor), computed from the anchor so a
- * month-end day is remembered. Not defined for `semimonthly`, which is walked
- * by {@link nextOccurrenceAfter}.
- */
-function occurrence(schedule: GroupSchedule, k: number): string {
-  if (k <= 0) return schedule.anchorDate; // addToDate reads 0 as 1
-  const { cadence, step } = stepsFor(schedule);
-  return addToDate(schedule.anchorDate, cadence, step * k);
-}
-
 /**
  * The first occurrence strictly after `after`. A date before the anchor gives
- * the anchor. Malformed input comes back unchanged (never throws).
+ * the anchor. Malformed input comes back unchanged (never throws). The anchored
+ * stepping itself is the personal ledger's `stepOccurrence`, shared so the two
+ * ledgers cannot disagree about a 31st.
  */
 export function nextOccurrenceAfter(schedule: GroupSchedule, after: string): string {
   if (!isRealDate(after) || !isRealDate(schedule.anchorDate)) return after;
   if (after < schedule.anchorDate) return schedule.anchorDate;
-  if (schedule.cadence === 'semimonthly') {
-    return schedule.secondDay === null
-      ? addToDate(after, 'monthly', 1)
-      : stepOccurrence(schedule, after);
-  }
-  const { cadence, step } = stepsFor(schedule);
-  // Start one period early so the clamped short-month dates cannot overshoot,
-  // then walk forward; at most two or three iterations.
-  const estimate =
-    cadence === 'weekly'
-      ? Math.floor(dayDelta(schedule.anchorDate, after) / (7 * step))
-      : Math.floor(
-          monthsBetween(schedule.anchorDate, after) / (cadence === 'yearly' ? 12 * step : step),
-        );
-  let k = Math.max(0, estimate - 1);
-  while (occurrence(schedule, k) <= after) k += 1;
-  return occurrence(schedule, k);
+  return (
+    (schedule.cadence === 'semimonthly' ? null : nextOnGrid(schedule, after)) ??
+    stepOccurrence(schedule, after)
+  );
 }
 
 /** The first occurrence on or after `date` (the anchor if `date` is earlier). */
