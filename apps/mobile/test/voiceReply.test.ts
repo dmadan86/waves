@@ -8,10 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act, renderHook } from './support/fakeReact';
 
-vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
-vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
-vi.mock('@/lib/voiceReplyEngine', () => ({ deviceReplyEngine: { supported: () => true } }));
-
 import {
   FOLLOW_UP_TURN_CAP,
   REPLY_MAX_MS,
@@ -21,6 +17,10 @@ import {
 } from '@/lib/voiceReplyPure';
 import type { ReplyEngine, ReplyHandlers, ReplyRun } from '@/lib/voiceReplyEngine';
 import { useVoiceReply, type UseVoiceReplyInput } from '@/lib/useVoiceReply';
+
+vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
+vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
+vi.mock('@/lib/voiceReplyEngine', () => ({ deviceReplyEngine: { supported: () => true } }));
 
 interface Fake {
   engine: ReplyEngine;

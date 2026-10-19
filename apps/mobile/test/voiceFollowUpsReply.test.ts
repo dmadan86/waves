@@ -9,6 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act, findAll, flush, renderHook, textOf } from './support/fakeReact';
 
+import { VoiceFollowUps, type VoiceFollowUpsProps } from '@/components/VoiceFollowUps';
+import type { SavedState } from '@/lib/followUpApply';
+
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
 
@@ -99,9 +102,6 @@ vi.mock('@/lib/voiceReplyEngine', () => ({
     },
   },
 }));
-
-import { VoiceFollowUps, type VoiceFollowUpsProps } from '@/components/VoiceFollowUps';
-import type { SavedState } from '@/lib/followUpApply';
 
 const initial: SavedState = {
   kind: 'personal',
