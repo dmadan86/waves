@@ -17,6 +17,7 @@ import { UNDO_RING_MS } from '../src/lib/assistantUndo';
 import type { SavedState } from '../src/lib/followUpApply';
 import type { AgentExpenseWrite, AgentLocalData } from '../src/lib/voiceAgentPlan';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
+import { inlineWorld, resetInlineWorld } from './support/inlineStubs';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
@@ -113,7 +114,22 @@ vi.mock('@/lib/voiceStream', () => ({ checkOnline: async () => world.online }));
 vi.mock('@/lib/voiceReplyEngine', () => ({
   deviceReplyEngine: { supported: () => false, start: () => ({ stop() {}, cancel() {} }) },
 }));
-vi.mock('@/sync', () => ({ useSync: () => ({ mirror: {}, queue: {} }) }));
+vi.mock('@/sync', async () => {
+  const { inlineWorld: w } = await import('./support/inlineStubs');
+  return { useSync: () => ({ mirror: {}, queue: {}, mutate: w.mutate }) };
+});
+vi.mock('expo-crypto', async () => (await import('./support/inlineStubs')).cryptoModule());
+vi.mock('@/components/assistant/inline/useInlineReceipt', async () => ({
+  useInlineReceipt: (await import('./support/inlineStubs')).useInlineReceiptStub,
+}));
+vi.mock('@/components/assistant/inline/InlineReceiptStatus', () => ({
+  InlineReceiptStatus: 'InlineReceiptStatus',
+}));
+vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({ InlineLoanShare: 'InlineLoanShare' }));
+vi.mock('@/components/assistant/inline/InlineSettle', () => ({ InlineSettle: 'InlineSettle' }));
+vi.mock('@/components/assistant/inline/InlineSheetHost', () => ({
+  InlineSheetHost: 'InlineSheetHost',
+}));
 vi.mock('@waves/core', async (original) => ({
   ...(await original<typeof import('@waves/core')>()),
   materialiseGroups: () => world.groups,
@@ -205,6 +221,7 @@ const labels = (r: ReturnType<typeof mount>): string[] =>
   ).map((n) => String(n.props.accessibilityLabel ?? n.props.label));
 
 beforeEach(() => {
+  resetInlineWorld();
   vi.clearAllMocks();
   // The clock is part of the scorer (a spend after midnight asks about the date),
   // so the tests pin it to mid-afternoon on the day they are written for.
@@ -265,6 +282,7 @@ describe('saved bar controls', () => {
       'hold',
       'popFilled',
       'registerExecutor',
+      'registerMover',
       'replaceSaved',
       'stop',
     ]);

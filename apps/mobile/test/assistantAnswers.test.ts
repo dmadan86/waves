@@ -35,6 +35,10 @@ vi.mock('@waves/ui', () => ({
 }));
 vi.mock('@/lib/navigation', () => ({ router: { push: vi.fn() } }));
 vi.mock('@/lib/useAssistantAnswerer', () => ({ useAssistantAnswerer: () => ({}) }));
+vi.mock('@/data/personal', () => ({ usePersonalLedger: () => ({ txns: [] }) }));
+vi.mock('@/components/assistant/inline/InlineSpendingList', () => ({
+  InlineSpendingList: 'InlineSpendingList',
+}));
 
 const { STRINGS_BY_LANGUAGE, LANGUAGES, fill } = await import('../src/i18n');
 const {

@@ -92,8 +92,19 @@ vi.mock('@/lib/voiceAgent', () => ({
 }));
 vi.mock('@/lib/voiceAgentHandoff', () => ({ encodeAgentSplitParams: () => ({}) }));
 vi.mock('@/sync', () => ({
-  useSync: () => ({ mirror: {}, queue: [] }),
-  syncEngine: { saveDraft: vi.fn() },
+  useSync: () => ({ mirror: {}, queue: [], mutate: vi.fn() }),
+}));
+vi.mock('expo-crypto', async () => (await import('./support/inlineStubs')).cryptoModule());
+vi.mock('@/components/assistant/inline/useInlineReceipt', async () => ({
+  useInlineReceipt: (await import('./support/inlineStubs')).useInlineReceiptStub,
+}));
+vi.mock('@/components/assistant/inline/InlineReceiptStatus', () => ({
+  InlineReceiptStatus: 'InlineReceiptStatus',
+}));
+vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({ InlineLoanShare: 'InlineLoanShare' }));
+vi.mock('@/components/assistant/inline/InlineSettle', () => ({ InlineSettle: 'InlineSettle' }));
+vi.mock('@/components/assistant/inline/InlineSheetHost', () => ({
+  InlineSheetHost: 'InlineSheetHost',
 }));
 vi.mock('@/lib/voiceReplyEngine', () => ({
   deviceReplyEngine: {

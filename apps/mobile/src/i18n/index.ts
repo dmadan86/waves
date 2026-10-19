@@ -1260,6 +1260,55 @@ export interface UiStrings {
     currencyNote: string;
   };
   /** Speak-an-expense quick add, reached from the bar's mic. */
+  /** The follow-ups and answers done on the voice screen itself (sheets, in-card UI). */
+  inline: {
+    close: string;
+    groupLabel: string;
+    peopleLabel: string;
+    you: string;
+    needSomeone: string;
+    peopleCount: string;
+    retry: string;
+    splitTitle: string;
+    splitConfirm: string;
+    tripTitle: string;
+    tripConfirm: string;
+    attendanceTitle: string;
+    attendanceSave: string;
+    attendanceDone: string;
+    movedDone: string;
+    splitDone: string;
+    itemizeTitle: string;
+    itemizeHint: string;
+    itemChipA11y: string;
+    everyone: string;
+    everyoneA11y: string;
+    itemizeCharges: string;
+    itemizeLeft: string;
+    itemizeSave: string;
+    itemizeDone: string;
+    receiptThumb: string;
+    attaching: string;
+    attached: string;
+    attachFailed: string;
+    removeReceipt: string;
+    receiptDone: string;
+    loanSharing: string;
+    loanShared: string;
+    loanShareFailed: string;
+    settleTitle: string;
+    settleAllDone: string;
+    settleRecorded: string;
+    settleFailed: string;
+    settleOthers: string;
+    owesYou: string;
+    youOwe: string;
+    recordPayment: string;
+    recordA11y: string;
+    showAll: string;
+    showLess: string;
+    noMatches: string;
+  };
   followUps: {
     added: string;
     wherePersonal: string;
@@ -6681,6 +6730,54 @@ const en: UiStrings = {
     problemDates: 'Check the dates: the end cannot be before the start.',
     currencyNote: 'Currency stays {currency}.',
   },
+  inline: {
+    close: 'Close',
+    groupLabel: 'Group',
+    peopleLabel: 'People',
+    you: 'You',
+    needSomeone: 'Pick at least one person.',
+    peopleCount: '{count} sharing',
+    retry: 'Try again',
+    splitTitle: 'Split {amount}',
+    splitConfirm: 'Split',
+    tripTitle: 'Move to the trip',
+    tripConfirm: 'Move here',
+    attendanceTitle: 'Who was there?',
+    attendanceSave: 'Save',
+    attendanceDone: 'Updated who was there ✓',
+    movedDone: 'Moved to {group} ✓',
+    splitDone: 'Split with {names} ✓',
+    itemizeTitle: 'Split by item',
+    itemizeHint: 'Tap who had each item.',
+    itemChipA11y: '{name} had {item}',
+    everyone: 'Everyone',
+    everyoneA11y: 'Everyone shared {item}',
+    itemizeCharges: 'Tax and extras {amount} are shared by what each person had.',
+    itemizeLeft: '{count} left to assign',
+    itemizeSave: 'Save split',
+    itemizeDone: 'Split by item ✓',
+    receiptThumb: 'Receipt photo',
+    attaching: 'Attaching…',
+    attached: 'Attached ✓',
+    attachFailed: "Couldn't attach the receipt.",
+    removeReceipt: 'Remove',
+    receiptDone: 'Receipt attached ✓',
+    loanSharing: 'Sharing with {name}…',
+    loanShared: 'Shared with {name} ✓ They can see it and settle it.',
+    loanShareFailed: "Loan saved, but couldn't share it with {name}.",
+    settleTitle: 'Settle up',
+    settleAllDone: 'All settled up ✓',
+    settleRecorded: 'Payment recorded ✓',
+    settleFailed: "Couldn't record the payment.",
+    settleOthers: '{count} more between other people',
+    owesYou: '{name} owes you {amount}',
+    youOwe: 'You owe {name} {amount}',
+    recordPayment: 'Record payment',
+    recordA11y: 'Record payment, {name}, {amount}',
+    showAll: 'Show all ({count})',
+    showLess: 'Show less',
+    noMatches: 'Nothing to show.',
+  },
   followUps: {
     added: 'Added {amount} to {where} ✓',
     wherePersonal: 'Personal',
@@ -11507,6 +11604,55 @@ const ta: UiStrings = {
     problemSplit: 'பிரிப்பின் கூட்டுத்தொகை தொகைக்குச் சமமாக இல்லை.',
     problemDates: 'தேதிகளைச் சரிபார்க்கவும்: முடிவு தொடக்கத்துக்கு முன் இருக்க முடியாது.',
     currencyNote: 'நாணயம் {currency} ஆகவே இருக்கும்.',
+  },
+  inline: {
+    close: 'மூடு',
+    groupLabel: 'குழு',
+    peopleLabel: 'நபர்கள்',
+    you: 'நீங்கள்',
+    needSomeone: 'குறைந்தது ஒருவரைத் தேர்ந்தெடுங்கள்.',
+    peopleCount: '{count} பேர் பகிர்கிறார்கள்',
+    retry: 'மீண்டும் முயற்சிக்கவும்',
+    splitTitle: '{amount} பிரிக்கவும்',
+    splitConfirm: 'பிரி',
+    tripTitle: 'பயணத்துக்கு மாற்று',
+    tripConfirm: 'இங்கே மாற்று',
+    attendanceTitle: 'யார் இருந்தார்கள்?',
+    attendanceSave: 'சேமி',
+    attendanceDone: 'யார் இருந்தார்கள் என்பது புதுப்பிக்கப்பட்டது ✓',
+    movedDone: '{group} குழுவுக்கு மாற்றப்பட்டது ✓',
+    splitDone: '{names} உடன் பிரிக்கப்பட்டது ✓',
+    itemizeTitle: 'பொருள் வாரியாகப் பிரி',
+    itemizeHint: 'ஒவ்வொரு பொருளையும் யார் எடுத்தார்கள் எனத் தட்டவும்.',
+    itemChipA11y: '{item} ஐ {name} எடுத்தார்',
+    everyone: 'அனைவரும்',
+    everyoneA11y: '{item} ஐ அனைவரும் பகிர்ந்தனர்',
+    itemizeCharges:
+      'வரி மற்றும் கூடுதல் கட்டணம் {amount}, ஒவ்வொருவரின் பொருள்களுக்கு ஏற்ப பகிரப்படும்.',
+    itemizeLeft: '{count} இன்னும் ஒதுக்க வேண்டும்',
+    itemizeSave: 'பிரிவைச் சேமி',
+    itemizeDone: 'பொருள் வாரியாகப் பிரிக்கப்பட்டது ✓',
+    receiptThumb: 'ரசீது புகைப்படம்',
+    attaching: 'இணைக்கிறது…',
+    attached: 'இணைக்கப்பட்டது ✓',
+    attachFailed: 'ரசீதை இணைக்க முடியவில்லை.',
+    removeReceipt: 'நீக்கு',
+    receiptDone: 'ரசீது இணைக்கப்பட்டது ✓',
+    loanSharing: '{name} உடன் பகிர்கிறது…',
+    loanShared: '{name} உடன் பகிரப்பட்டது ✓ அவர்கள் பார்த்து தீர்த்துக்கொள்ளலாம்.',
+    loanShareFailed: 'கடன் சேமிக்கப்பட்டது, ஆனால் {name} உடன் பகிர முடியவில்லை.',
+    settleTitle: 'கணக்கைத் தீர்',
+    settleAllDone: 'அனைத்தும் தீர்ந்தது ✓',
+    settleRecorded: 'பணம் செலுத்தல் பதிவானது ✓',
+    settleFailed: 'பணம் செலுத்தலைப் பதிவு செய்ய முடியவில்லை.',
+    settleOthers: 'மற்றவர்களுக்கிடையே இன்னும் {count}',
+    owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
+    youOwe: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
+    recordPayment: 'பணம் செலுத்தலைப் பதிவு செய்',
+    recordA11y: 'பணம் செலுத்தலைப் பதிவு செய், {name}, {amount}',
+    showAll: 'அனைத்தையும் காட்டு ({count})',
+    showLess: 'குறைவாகக் காட்டு',
+    noMatches: 'காட்ட எதுவும் இல்லை.',
   },
   followUps: {
     added: '{amount} {where}-இல் சேர்க்கப்பட்டது ✓',
@@ -16484,6 +16630,54 @@ const hi: UiStrings = {
     problemDates: 'तारीखें जाँचें: अंत शुरुआत से पहले नहीं हो सकता।',
     currencyNote: 'मुद्रा {currency} ही रहेगी।',
   },
+  inline: {
+    close: 'बंद करें',
+    groupLabel: 'ग्रुप',
+    peopleLabel: 'लोग',
+    you: 'आप',
+    needSomeone: 'कम से कम एक व्यक्ति चुनें।',
+    peopleCount: '{count} लोग बाँट रहे हैं',
+    retry: 'फिर कोशिश करें',
+    splitTitle: '{amount} बाँटें',
+    splitConfirm: 'बाँटें',
+    tripTitle: 'ट्रिप में ले जाएँ',
+    tripConfirm: 'यहाँ ले जाएँ',
+    attendanceTitle: 'कौन-कौन था?',
+    attendanceSave: 'सहेजें',
+    attendanceDone: 'कौन था, अपडेट हो गया ✓',
+    movedDone: '{group} में ले गए ✓',
+    splitDone: '{names} के साथ बाँटा ✓',
+    itemizeTitle: 'आइटम के हिसाब से बाँटें',
+    itemizeHint: 'हर आइटम पर चुनें कि किसने लिया।',
+    itemChipA11y: '{name} ने {item} लिया',
+    everyone: 'सब',
+    everyoneA11y: '{item} सबने मिलकर लिया',
+    itemizeCharges: 'टैक्स और अतिरिक्त शुल्क {amount}, हर किसी के आइटम के अनुपात में बँटेंगे।',
+    itemizeLeft: '{count} आइटम बाकी हैं',
+    itemizeSave: 'बँटवारा सहेजें',
+    itemizeDone: 'आइटम के हिसाब से बँट गया ✓',
+    receiptThumb: 'रसीद की फ़ोटो',
+    attaching: 'जोड़ रहे हैं…',
+    attached: 'जुड़ गई ✓',
+    attachFailed: 'रसीद नहीं जुड़ सकी।',
+    removeReceipt: 'हटाएँ',
+    receiptDone: 'रसीद जुड़ गई ✓',
+    loanSharing: '{name} के साथ साझा कर रहे हैं…',
+    loanShared: '{name} के साथ साझा हो गया ✓ वे इसे देख और चुका सकते हैं।',
+    loanShareFailed: 'उधार सहेज लिया, पर {name} के साथ साझा नहीं हो सका।',
+    settleTitle: 'हिसाब चुकाएँ',
+    settleAllDone: 'सब हिसाब बराबर ✓',
+    settleRecorded: 'भुगतान दर्ज हो गया ✓',
+    settleFailed: 'भुगतान दर्ज नहीं हो सका।',
+    settleOthers: 'दूसरे लोगों के बीच {count} और',
+    owesYou: '{name} पर आपके {amount} बकाया हैं',
+    youOwe: 'आप पर {name} के {amount} बकाया हैं',
+    recordPayment: 'भुगतान दर्ज करें',
+    recordA11y: 'भुगतान दर्ज करें, {name}, {amount}',
+    showAll: 'सब दिखाएँ ({count})',
+    showLess: 'कम दिखाएँ',
+    noMatches: 'दिखाने के लिए कुछ नहीं।',
+  },
   followUps: {
     added: '{amount} {where} में जोड़ा ✓',
     wherePersonal: 'निजी',
@@ -21373,6 +21567,54 @@ const ar: UiStrings = {
     problemSplit: 'مجموع التقسيم لا يساوي المبلغ.',
     problemDates: 'تحقق من التواريخ: لا يمكن أن يسبق الانتهاءُ البدايةَ.',
     currencyNote: 'تبقى العملة {currency}.',
+  },
+  inline: {
+    close: 'إغلاق',
+    groupLabel: 'المجموعة',
+    peopleLabel: 'الأشخاص',
+    you: 'أنت',
+    needSomeone: 'اختر شخصًا واحدًا على الأقل.',
+    peopleCount: '{count} يتشاركون',
+    retry: 'حاول مرة أخرى',
+    splitTitle: 'تقسيم {amount}',
+    splitConfirm: 'قسّم',
+    tripTitle: 'نقل إلى الرحلة',
+    tripConfirm: 'انقل إلى هنا',
+    attendanceTitle: 'من كان حاضرًا؟',
+    attendanceSave: 'حفظ',
+    attendanceDone: 'تم تحديث من كان حاضرًا ✓',
+    movedDone: 'تم النقل إلى {group} ✓',
+    splitDone: 'تم التقسيم مع {names} ✓',
+    itemizeTitle: 'التقسيم حسب البند',
+    itemizeHint: 'اضغط على من تناول كل بند.',
+    itemChipA11y: '{name} تناول {item}',
+    everyone: 'الجميع',
+    everyoneA11y: 'الجميع تشاركوا {item}',
+    itemizeCharges: 'الضريبة والرسوم الإضافية {amount} تُوزَّع بحسب ما تناوله كل شخص.',
+    itemizeLeft: 'تبقّى {count} للتوزيع',
+    itemizeSave: 'حفظ التقسيم',
+    itemizeDone: 'تم التقسيم حسب البند ✓',
+    receiptThumb: 'صورة الإيصال',
+    attaching: 'جارٍ الإرفاق…',
+    attached: 'تم الإرفاق ✓',
+    attachFailed: 'تعذّر إرفاق الإيصال.',
+    removeReceipt: 'إزالة',
+    receiptDone: 'تم إرفاق الإيصال ✓',
+    loanSharing: 'جارٍ المشاركة مع {name}…',
+    loanShared: 'تمت المشاركة مع {name} ✓ يمكنه رؤيته وتسويته.',
+    loanShareFailed: 'تم حفظ القرض، لكن تعذّرت مشاركته مع {name}.',
+    settleTitle: 'تسوية الحساب',
+    settleAllDone: 'تمت التسوية بالكامل ✓',
+    settleRecorded: 'تم تسجيل الدفعة ✓',
+    settleFailed: 'تعذّر تسجيل الدفعة.',
+    settleOthers: '{count} أخرى بين أشخاص آخرين',
+    owesYou: '{name} مدين لك بـ {amount}',
+    youOwe: 'أنت مدين لـ {name} بـ {amount}',
+    recordPayment: 'تسجيل دفعة',
+    recordA11y: 'تسجيل دفعة، {name}، {amount}',
+    showAll: 'عرض الكل ({count})',
+    showLess: 'عرض أقل',
+    noMatches: 'لا شيء لعرضه.',
   },
   followUps: {
     added: 'تمت إضافة {amount} إلى {where} ✓',
