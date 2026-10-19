@@ -50,6 +50,7 @@ import {
   type UndoEntry,
 } from '@/lib/assistantUndo';
 import { filledBy, toGroupWrite, toPersonalData, type SavedState } from '@/lib/followUpApply';
+import { hapticLight } from '@/lib/assistantHaptics';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
@@ -66,7 +67,7 @@ export interface AssistantBarContext {
 export type SavedBarEvent =
   | {
       readonly name: 'assistant_correction';
-      readonly field: string;
+      readonly field: 'amount' | 'date' | 'description' | 'group' | 'currency';
       readonly path: 'device' | 'llm';
     }
   | { readonly name: 'assistant_undo'; readonly what: 'expense' | 'answer' | 'handoff' };
@@ -311,16 +312,11 @@ export function AssistantSavedBar({
           controls.stop();
         }
         for (const field of result.fields) {
+          // The payer is not a reported field (the event's words are a fixed list).
+          if (field === 'payerMemberId') continue;
           onEvent?.({
             name: 'assistant_correction',
-            field:
-              field === 'amountMinor'
-                ? 'amount'
-                : field === 'groupId'
-                  ? 'group'
-                  : field === 'payerMemberId'
-                    ? 'payer'
-                    : field,
+            field: field === 'amountMinor' ? 'amount' : field === 'groupId' ? 'group' : field,
             path: result.path,
           });
         }
@@ -404,6 +400,7 @@ export function AssistantSavedBar({
 
   async function doUndo(): Promise<void> {
     if (busy) return;
+    hapticLight();
     if (handedOffNow) {
       await doUndoLast();
       return;
@@ -427,6 +424,7 @@ export function AssistantSavedBar({
 
   async function doUndoLast(): Promise<void> {
     if (busy) return;
+    hapticLight();
     setBusy(true);
     try {
       const undoingMove = history[history.length - 1]?.kind === 'move';

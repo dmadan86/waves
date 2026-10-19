@@ -49,6 +49,7 @@ import {
   correctionLine,
   readLocally,
 } from '@/lib/assistantCorrections';
+import { hapticSelect } from '@/lib/assistantHaptics';
 import { UNDO_RING_MS, type UndoEntry } from '@/lib/assistantUndo';
 import { useDeleteExpense, useOpenReceipts, useWriteExpense } from '@/data/hooks';
 import {
@@ -824,7 +825,10 @@ export function VoiceFollowUps({
                 accessibilityLabel={chip.label}
                 hitSlop={4}
                 disabled={busy}
-                onPress={chip.onPress}
+                onPress={() => {
+                  hapticSelect();
+                  chip.onPress();
+                }}
                 style={({ pressed }) => ({
                   paddingHorizontal: theme.spacing.md,
                   height: 40,
@@ -839,7 +843,7 @@ export function VoiceFollowUps({
                 <Text
                   numberOfLines={1}
                   style={{
-                    color: chip.primary ? theme.color.brand : theme.color.text,
+                    color: theme.color.text,
                     fontWeight: '700',
                   }}
                 >
