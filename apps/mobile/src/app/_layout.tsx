@@ -849,6 +849,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/pending" />
           <Stack.Screen name="group/[id]/plan" />
           <Stack.Screen name="group/[id]/recurring" />
+          <Stack.Screen name="group/[id]/recurring-edit" />
           <Stack.Screen name="group/[id]/recap" />
           <Stack.Screen name="receipt/[id]" options={slide} />
           <Stack.Screen name="friends/add-person" />

@@ -11,7 +11,6 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { randomUUID } from 'expo-crypto';
 
 import {
   buildGroupRecurringCreate,
@@ -56,12 +55,12 @@ export function useCreateGroupRecurring(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
     mutationFn: async (input: {
-      /** Pass a stable id to make a retry find the same rule. */
-      ruleId?: string;
+      /** Derived from what the rule repeats, so a retry finds the same rule. */
+      ruleId: string;
       template: GroupRecurringTemplate;
       when: GroupRecurringWhen;
     }): Promise<string> => {
-      const ruleId = input.ruleId ?? randomUUID();
+      const ruleId = input.ruleId;
       await mutate(MutationKind.GroupRecurringCreate, groupId, {
         ...buildGroupRecurringCreate(ruleId, input.template, input.when),
       });

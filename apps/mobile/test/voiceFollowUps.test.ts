@@ -62,6 +62,9 @@ vi.mock('@/data/hooks', () => ({
   useDeleteExpense: () => ({ mutateAsync: world.removeExpense }),
   useOpenReceipts: () => ({ data: [], loading: false }),
 }));
+vi.mock('@/data/groupRecurring', () => ({
+  useCreateGroupRecurring: () => ({ mutateAsync: async () => 'rule' }),
+}));
 vi.mock('@/data/personal', () => ({
   usePersonalLedger: () => ({ txns: world.txns, recurrings: [], loans: [], budgets: [] }),
   useUpsertPersonalRecord: () => ({ mutateAsync: world.upsert }),

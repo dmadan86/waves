@@ -14,9 +14,10 @@ import {
   type QueuedMutation,
   RECURRING_CATCH_UP_CAP,
   canChangeRecurringStatus,
-  canEditRecurringAmount,
   recurringDisplayStatus,
-  recurringEditPatch,
+  editFromRule,
+  recurringEditProblem,
+  recurringFullPatch,
   type GroupRecurringRule,
   rescalePayers,
   dueOccurrences,
@@ -452,15 +453,9 @@ describe('group recurring: editing the amount', () => {
     const two = rescalePayers({ a: 300n, b: 100n }, 1000n);
     expect(two).toEqual({ a: 750n, b: 250n });
   });
-  it('only splits that follow the amount can be re-amounted', () => {
-    expect(canEditRecurringAmount({ splitParams: { kind: 'equal' } })).toBe(true);
-    expect(canEditRecurringAmount({ splitParams: { kind: 'exact', amounts: { a: 1n } } })).toBe(
-      false,
-    );
-  });
 });
 
-describe('group recurring: the edit patch', () => {
+describe('group recurring: the full edit', () => {
   const rule: GroupRecurringRule = {
     id: 'rule-1',
     groupId: 'g',
@@ -480,23 +475,138 @@ describe('group recurring: the edit patch', () => {
     lastGeneratedOn: null,
   };
 
-  it('rescales payers and recomputes shares for a new amount', () => {
-    const patch = recurringEditPatch(rule, { description: 'Rent', amount: 120_000n })!;
+  it('an untouched form is no patch', () => {
+    expect(recurringFullPatch(rule, editFromRule(rule))).toBeNull();
+  });
+
+  it('a new amount sends the whole expense, payers and shares adding up', () => {
+    const edit = editFromRule(rule);
+    const patch = recurringFullPatch(rule, {
+      ...edit,
+      template: { ...edit.template, amount: 120_000n, payers: { a: 120_000n } },
+    })!;
     expect(patch.amount).toBe('120000');
     expect(patch.payers).toEqual([{ memberId: 'a', amount: '120000' }]);
     expect(patch.shares!.reduce((t, l) => t + BigInt(l.amount), 0n)).toBe(120_000n);
+    expect(patch.cadence).toBeUndefined();
   });
 
-  it('returns null for no change, a blank name, or an amount on an exact split', () => {
-    expect(recurringEditPatch(rule, { description: 'Rent', amount: 90_000n })).toBeNull();
-    expect(recurringEditPatch(rule, { description: '  ', amount: 90_000n })).toBeNull();
-    expect(recurringEditPatch(rule, { description: 'Rent', amount: 0n })).toBeNull();
-    const exact = {
-      ...rule,
-      splitParams: { kind: 'exact', amounts: { a: 30_000n, b: 30_000n, c: 30_000n } },
-    } as GroupRecurringRule;
-    expect(recurringEditPatch(exact, { description: 'Rent', amount: 100n })).toBeNull();
-    expect(recurringEditPatch(exact, { description: 'Flat rent', amount: 90_000n })).not.toBeNull();
+  it('changes the split, the payer, the people, the category and the notes', () => {
+    const edit = editFromRule(rule);
+    const patch = recurringFullPatch(rule, {
+      ...edit,
+      template: {
+        ...edit.template,
+        category: 'home',
+        notes: ' flat 4B ',
+        participants: ['a', 'b'],
+        payers: { b: 90_000n },
+        splitParams: { kind: 'percent', basisPoints: { a: 7000, b: 3000 } },
+      },
+    })!;
+    expect(patch).toMatchObject({ category: 'home', notes: 'flat 4B', split_type: 'percent' });
+    expect(patch.payers).toEqual([{ memberId: 'b', amount: '90000' }]);
+    expect(patch.shares).toEqual([
+      { memberId: 'a', amount: '63000' },
+      { memberId: 'b', amount: '27000' },
+    ]);
+  });
+
+  it('sends only the schedule fields that changed, and the end date only when it moved', () => {
+    const edit = editFromRule(rule);
+    const quarterly = recurringFullPatch(rule, {
+      ...edit,
+      when: { ...edit.when, frequency: Frequency.Quarterly, anchorDate: '2026-12-01' },
+    })!;
+    expect(quarterly).toEqual({
+      cadence: 'monthly',
+      interval: 3,
+      second_day: null,
+      anchor_date: '2026-12-01',
+    });
+    expect(
+      recurringFullPatch(rule, { ...edit, when: { ...edit.when, endDate: '2027-06-01' } }),
+    ).toEqual({
+      end_date: '2027-06-01',
+    });
+    const ending = { ...rule, endDate: '2027-06-01' };
+    expect(
+      recurringFullPatch(ending, {
+        ...editFromRule(ending),
+        when: { ...editFromRule(ending).when, endDate: null },
+      }),
+    ).toEqual({
+      end_date: null,
+    });
+  });
+
+  it('twice a month and every-N-months carry their extra number', () => {
+    const edit = editFromRule(rule);
+    expect(
+      recurringFullPatch(rule, {
+        ...edit,
+        when: { ...edit.when, frequency: Frequency.TwiceAMonth, secondDay: 20 },
+      }),
+    ).toMatchObject({ cadence: 'semimonthly', second_day: 20 });
+    expect(
+      recurringFullPatch(rule, {
+        ...edit,
+        when: { ...edit.when, frequency: Frequency.EveryNMonths, interval: 5 },
+      }),
+    ).toMatchObject({ cadence: 'monthly', interval: 5 });
+  });
+
+  it.each([
+    [
+      'name',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        template: { ...e.template, description: ' ' },
+      }),
+    ],
+    [
+      'amount',
+      (e: ReturnType<typeof editFromRule>) => ({ ...e, template: { ...e.template, amount: 0n } }),
+    ],
+    [
+      'people',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        template: { ...e.template, participants: [] },
+      }),
+    ],
+    [
+      'payers',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        template: { ...e.template, payers: { a: 5n } },
+      }),
+    ],
+    [
+      'split',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        template: { ...e.template, splitParams: { kind: 'exact', amounts: { a: 1n } } as never },
+      }),
+    ],
+    [
+      'startDate',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        when: { ...e.when, anchorDate: '2026-02-30' },
+      }),
+    ],
+    [
+      'endDate',
+      (e: ReturnType<typeof editFromRule>) => ({
+        ...e,
+        when: { ...e.when, endDate: '2026-10-01' },
+      }),
+    ],
+  ])('refuses an invalid edit (%s) with a named problem and no patch', (problem, make) => {
+    const bad = make(editFromRule(rule));
+    expect(recurringEditProblem(bad)).toBe(problem);
+    expect(recurringFullPatch(rule, bad)).toBeNull();
   });
 
   it('shows stopped and past-end rules as ended', () => {

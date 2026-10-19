@@ -12,21 +12,17 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import {
-  canEditRecurringAmount,
   format,
   frequencyOf,
   money,
   recurringDisplayStatus,
-  recurringEditPatch,
   type CurrencyCode,
   type GroupRecurringRule,
 } from '@waves/core';
 import {
-  AmountField,
-  Button,
   Card,
   directionalIcon,
   EmptyState,
@@ -38,7 +34,6 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
@@ -60,7 +55,6 @@ export default function GroupRecurringScreen() {
   const { group, members } = useGroup(groupId);
   const { rules } = useGroupRecurring(groupId);
   const update = useUpdateGroupRecurring(groupId);
-  const [editing, setEditing] = useState<GroupRecurringRule | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const patch = async (ruleId: string, body: Parameters<typeof update.mutateAsync>[0]['patch']) => {
@@ -185,7 +179,9 @@ export default function GroupRecurringScreen() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={() => setEditing(rule)}
+                    onPress={() =>
+                      router.push(`/group/${groupId}/recurring-edit?ruleId=${rule.id}`)
+                    }
                     style={actionStyle(theme)}
                   >
                     <Ionicons name="create-outline" size={iconSize.sm} color={theme.color.brand} />
@@ -213,18 +209,6 @@ export default function GroupRecurringScreen() {
           );
         })}
       </ScrollView>
-
-      {editing ? (
-        <EditRuleSheet
-          rule={editing}
-          saving={update.isPending}
-          onSave={async (body) => {
-            await patch(editing.id, body);
-            setEditing(null);
-          }}
-          onClose={() => setEditing(null)}
-        />
-      ) : null}
     </Screen>
   );
 }
@@ -239,76 +223,4 @@ function actionStyle(theme: ReturnType<typeof useTheme>) {
     borderRadius: theme.radius.md,
     backgroundColor: theme.color.surfaceMuted,
   };
-}
-
-/** The name and the amount — the two things a rent edit is ever about. */
-function EditRuleSheet({
-  rule,
-  saving,
-  onSave,
-  onClose,
-}: {
-  rule: GroupRecurringRule;
-  saving: boolean;
-  onSave: (patch: NonNullable<ReturnType<typeof recurringEditPatch>>) => Promise<void>;
-  onClose: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const [name, setName] = useState(rule.description);
-  const [amount, setAmount] = useState(rule.amount);
-  const next = recurringEditPatch(rule, { description: name, amount });
-  const amountEditable = canEditRecurringAmount(rule);
-
-  return (
-    <SheetOverlay title={t.groupRecurring.editTitle} onClose={onClose}>
-      <View style={{ gap: theme.spacing.md }}>
-        <View style={{ gap: 4 }}>
-          <Text variant="micro" tone="muted">
-            {t.groupRecurring.nameLabel}
-          </Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            maxLength={80}
-            accessibilityLabel={t.groupRecurring.nameLabel}
-            style={{
-              color: theme.color.text,
-              backgroundColor: theme.color.surfaceMuted,
-              borderRadius: theme.radius.md,
-              paddingHorizontal: theme.spacing.md,
-              paddingVertical: theme.spacing.sm,
-              fontSize: 16,
-            }}
-          />
-        </View>
-        <View style={{ gap: 4 }}>
-          <Text variant="micro" tone="muted">
-            {t.groupRecurring.amountLabel}
-          </Text>
-          {amountEditable ? (
-            <AmountField
-              currency={rule.currency as CurrencyCode}
-              value={amount}
-              onChange={setAmount}
-              size="compact"
-              framed
-            />
-          ) : (
-            <Text variant="body">
-              {format(money(rule.amount, rule.currency as CurrencyCode), { locale: 'en' })}
-            </Text>
-          )}
-        </View>
-        <Text variant="micro" tone="muted">
-          {amountEditable ? t.groupRecurring.editHint : t.groupRecurring.splitNote}
-        </Text>
-        <Button
-          label={t.groupRecurring.save}
-          disabled={!next || saving}
-          onPress={() => next && void onSave(next)}
-        />
-      </View>
-    </SheetOverlay>
-  );
 }

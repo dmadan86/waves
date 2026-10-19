@@ -1241,14 +1241,23 @@ export interface UiStrings {
     editHint: string;
     save: string;
     amountLabel: string;
-    nameLabel: string;
-    splitNote: string;
     addedToast: string;
     couldNotSave: string;
     rowCount: string;
     rowNone: string;
     voiceDone: string;
     offlineNote: string;
+    nextOn: string;
+    notesLabel: string;
+    severalPayers: string;
+    splitKept: string;
+    problemName: string;
+    problemAmount: string;
+    problemPeople: string;
+    problemPayers: string;
+    problemSplit: string;
+    problemDates: string;
+    currencyNote: string;
   };
   /** Speak-an-expense quick add, reached from the bar's mic. */
   followUps: {
@@ -6579,14 +6588,24 @@ const en: UiStrings = {
     editHint: 'Changes apply to future ones. Expenses already added stay as they are.',
     save: 'Save',
     amountLabel: 'Amount',
-    nameLabel: 'What for',
-    splitNote: 'Split stays the same as when it was set up.',
     addedToast: 'Repeats {freq} from {date}',
     couldNotSave: "Couldn't update. Try again.",
     rowCount: 'Repeating ({n})',
     rowNone: 'Repeating',
     voiceDone: 'Will repeat monthly',
     offlineNote: "Saved. It will start once you're back online.",
+    nextOn: 'Next on',
+    notesLabel: 'Notes',
+    severalPayers: 'Several people paid. Their shares follow the amount.',
+    splitKept:
+      'This split keeps its saved amounts. To change it, stop this one and make a new one.',
+    problemName: 'Give it a name.',
+    problemAmount: 'Enter an amount.',
+    problemPeople: 'Pick who it is split with.',
+    problemPayers: 'The payers do not add up to the amount.',
+    problemSplit: 'The split does not add up to the amount.',
+    problemDates: 'Check the dates: the end cannot be before the start.',
+    currencyNote: 'Currency stays {currency}.',
   },
   followUps: {
     added: 'Added {amount} to {where} ✓',
@@ -11319,14 +11338,24 @@ const ta: UiStrings = {
     editHint: 'மாற்றங்கள் இனி வரும் செலவுகளுக்கு மட்டும். சேர்ந்தவை அப்படியே இருக்கும்.',
     save: 'சேமி',
     amountLabel: 'தொகை',
-    nameLabel: 'எதற்காக',
-    splitNote: 'பிரிப்பு தொடக்கத்தில் அமைத்தபடியே இருக்கும்.',
     addedToast: '{freq} மீண்டும் வரும், {date} முதல்',
     couldNotSave: 'புதுப்பிக்க முடியவில்லை. மீண்டும் முயலவும்.',
     rowCount: 'மீண்டும் வருபவை ({n})',
     rowNone: 'மீண்டும் வருபவை',
     voiceDone: 'மாதந்தோறும் மீண்டும் வரும்',
     offlineNote: 'சேமிக்கப்பட்டது. இணையம் வந்ததும் தொடங்கும்.',
+    nextOn: 'அடுத்த தேதி',
+    notesLabel: 'குறிப்புகள்',
+    severalPayers: 'பலர் செலுத்தினர். அவர்களின் பங்குகள் தொகையைப் பின்தொடரும்.',
+    splitKept:
+      'இந்தப் பிரிப்பு சேமித்த தொகைகளையே வைத்திருக்கும். மாற்ற, இதை நிறுத்தி புதியதை உருவாக்குங்கள்.',
+    problemName: 'ஒரு பெயர் கொடுங்கள்.',
+    problemAmount: 'தொகையை உள்ளிடுங்கள்.',
+    problemPeople: 'யாருடன் பிரிக்கப்படும் என்பதைத் தேர்வுசெய்க.',
+    problemPayers: 'செலுத்தியவர்களின் கூட்டுத்தொகை தொகைக்குச் சமமாக இல்லை.',
+    problemSplit: 'பிரிப்பின் கூட்டுத்தொகை தொகைக்குச் சமமாக இல்லை.',
+    problemDates: 'தேதிகளைச் சரிபார்க்கவும்: முடிவு தொடக்கத்துக்கு முன் இருக்க முடியாது.',
+    currencyNote: 'நாணயம் {currency} ஆகவே இருக்கும்.',
   },
   followUps: {
     added: '{amount} {where}-இல் சேர்க்கப்பட்டது ✓',
@@ -16208,14 +16237,23 @@ const hi: UiStrings = {
     editHint: 'बदलाव आगे के खर्चों पर लागू होंगे। जुड़ चुके खर्च जैसे हैं वैसे रहेंगे।',
     save: 'सहेजें',
     amountLabel: 'राशि',
-    nameLabel: 'किसलिए',
-    splitNote: 'बँटवारा वही रहेगा जो शुरू में तय हुआ था।',
     addedToast: '{freq} दोहराएगा, {date} से',
     couldNotSave: 'अपडेट नहीं हो सका। फिर कोशिश करें।',
     rowCount: 'दोहराए जाने वाले ({n})',
     rowNone: 'दोहराए जाने वाले',
     voiceDone: 'हर महीने दोहराया जाएगा',
     offlineNote: 'सहेज लिया। ऑनलाइन होते ही शुरू होगा।',
+    nextOn: 'अगली तारीख',
+    notesLabel: 'टिप्पणी',
+    severalPayers: 'कई लोगों ने भुगतान किया। उनके हिस्से राशि के साथ बदलेंगे।',
+    splitKept: 'इस बँटवारे की सहेजी राशियाँ वैसी ही रहेंगी। बदलने के लिए इसे बंद करके नया बनाएँ।',
+    problemName: 'इसे एक नाम दें।',
+    problemAmount: 'राशि दर्ज करें।',
+    problemPeople: 'चुनें कि किनके साथ बँटेगा।',
+    problemPayers: 'भुगतान करने वालों का जोड़ राशि के बराबर नहीं है।',
+    problemSplit: 'बँटवारे का जोड़ राशि के बराबर नहीं है।',
+    problemDates: 'तारीखें जाँचें: अंत शुरुआत से पहले नहीं हो सकता।',
+    currencyNote: 'मुद्रा {currency} ही रहेगी।',
   },
   followUps: {
     added: '{amount} {where} में जोड़ा ✓',
@@ -21012,14 +21050,23 @@ const ar: UiStrings = {
     editHint: 'تسري التغييرات على القادم فقط. تبقى المصروفات المضافة كما هي.',
     save: 'حفظ',
     amountLabel: 'المبلغ',
-    nameLabel: 'لماذا',
-    splitNote: 'يبقى التقسيم كما تم إعداده.',
     addedToast: 'يتكرر {freq} ابتداءً من {date}',
     couldNotSave: 'تعذّر التحديث. حاول مرة أخرى.',
     rowCount: 'المتكررة ({n})',
     rowNone: 'المتكررة',
     voiceDone: 'سيتكرر شهريًا',
     offlineNote: 'تم الحفظ. سيبدأ عند عودة الاتصال.',
+    nextOn: 'التالي في',
+    notesLabel: 'ملاحظات',
+    severalPayers: 'دفع عدة أشخاص. تتبع حصصهم المبلغ.',
+    splitKept: 'يحتفظ هذا التقسيم بمبالغه المحفوظة. لتغييره أوقف هذا وأنشئ واحدًا جديدًا.',
+    problemName: 'أعطه اسمًا.',
+    problemAmount: 'أدخل مبلغًا.',
+    problemPeople: 'اختر من سيتقاسم المبلغ.',
+    problemPayers: 'مجموع الدافعين لا يساوي المبلغ.',
+    problemSplit: 'مجموع التقسيم لا يساوي المبلغ.',
+    problemDates: 'تحقق من التواريخ: لا يمكن أن يسبق الانتهاءُ البدايةَ.',
+    currencyNote: 'تبقى العملة {currency}.',
   },
   followUps: {
     added: 'تمت إضافة {amount} إلى {where} ✓',

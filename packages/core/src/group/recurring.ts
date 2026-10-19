@@ -26,7 +26,7 @@ import type {
   GroupRecurringLine,
   GroupRecurringPatch,
 } from '../sync/protocol';
-import { Frequency, scheduleFor } from '../personal/frequency';
+import { Frequency, frequencyOf, scheduleFor } from '../personal/frequency';
 import type { SplitParams } from '../split/types';
 
 export type GroupRecurringStatus = 'active' | 'paused' | 'stopped';
@@ -338,13 +338,6 @@ export function schedulePatch(when: GroupRecurringWhen): GroupRecurringPatch {
   };
 }
 
-/** Split kinds whose shares follow the amount, so the amount may be edited. An
- *  exact or adjusted split names its own amounts and would no longer add up. */
-export function canEditRecurringAmount(rule: Pick<GroupRecurringRule, 'splitParams'>): boolean {
-  const kind = rule.splitParams.kind;
-  return kind === 'equal' || kind === 'percent' || kind === 'shares';
-}
-
 /**
  * Who paid, scaled to a new amount: a single payer pays all of it; several keep
  * their proportions, the rounding remainder going to the largest payer so the
@@ -368,37 +361,125 @@ export function rescalePayers(
   return out;
 }
 
-/** What a rule's edit sheet can change today: the wording and the amount. */
-export interface GroupRecurringEdit {
-  readonly description: string;
-  readonly amount: bigint;
+/** Everything the phone's edit form can change about a rule. The currency stays
+ *  what it was: a repeating expense never converts, and a rule has no FX rate. */
+export interface GroupRecurringFullEdit {
+  readonly template: GroupRecurringTemplate;
+  readonly when: GroupRecurringWhen;
 }
 
+/** The form as a saved rule opens it. */
+export function editFromRule(rule: GroupRecurringRule): GroupRecurringFullEdit {
+  const frequency = frequencyOf(rule);
+  return {
+    template: {
+      description: rule.description,
+      category: rule.category,
+      currency: rule.currency,
+      amount: rule.amount,
+      splitParams: rule.splitParams,
+      participants: rule.participants,
+      payers: rule.payers,
+      notes: rule.notes,
+    },
+    when: {
+      frequency,
+      interval: rule.interval > 1 ? rule.interval : 2,
+      secondDay: rule.secondDay ?? 15,
+      anchorDate: rule.anchorDate,
+      endDate: rule.endDate,
+    },
+  };
+}
+
+export type RecurringEditProblem =
+  'name' | 'amount' | 'people' | 'payers' | 'split' | 'startDate' | 'endDate';
+
 /**
- * The patch for an edit, or null when nothing changed (or the edit cannot be
- * made: an empty name, a zero amount, or an amount on a split that names its own
- * amounts). Payers are scaled and the shares recomputed, so the stored expense
- * still adds up.
+ * The first reason an edit cannot be saved, or null: a name, an amount, somebody
+ * in the split, payers and a split that add up, real dates, and an end that is
+ * not before the start. The same facts the database re-checks.
  */
-export function recurringEditPatch(
+export function recurringEditProblem(edit: GroupRecurringFullEdit): RecurringEditProblem | null {
+  const { template, when } = edit;
+  if (template.description.trim() === '') return 'name';
+  if (template.amount <= 0n) return 'amount';
+  if (template.participants.length === 0) return 'people';
+  const paid = Object.values(template.payers).reduce((total, value) => total + value, 0n);
+  if (paid !== template.amount) return 'payers';
+  try {
+    computeShares({
+      amount: template.amount,
+      currency: template.currency,
+      params: template.splitParams,
+      participants: [...template.participants],
+      seed: 'check',
+    });
+  } catch {
+    return 'split';
+  }
+  if (!isRealDate(when.anchorDate)) return 'startDate';
+  if (when.endDate != null && (!isRealDate(when.endDate) || when.endDate < when.anchorDate)) {
+    return 'endDate';
+  }
+  return null;
+}
+
+const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+
+const sameMoney = (
+  a: Readonly<Record<string, bigint>>,
+  b: Readonly<Record<string, bigint>>,
+): boolean => {
+  const left = Object.entries(a).filter(([, v]) => v > 0n);
+  const right = Object.entries(b).filter(([, v]) => v > 0n);
+  return left.length === right.length && left.every(([id, v]) => b[id] === v);
+};
+
+/**
+ * The patch for an edit: only what changed, or null when nothing did or the edit
+ * is not valid ({@link recurringEditProblem}). A changed template sends the whole
+ * expense (payers and shares recomputed, so they add up); a changed schedule sends
+ * its fields; an end date is sent only when it moved.
+ */
+export function recurringFullPatch(
   rule: GroupRecurringRule,
-  edit: GroupRecurringEdit,
+  edit: GroupRecurringFullEdit,
 ): GroupRecurringPatch | null {
-  const description = edit.description.trim();
-  if (description === '' || edit.amount <= 0n) return null;
-  const amountChanged = edit.amount !== rule.amount;
-  if (amountChanged && !canEditRecurringAmount(rule)) return null;
-  if (!amountChanged && description === rule.description) return null;
-  return templatePatch(rule.id, {
-    description,
-    category: rule.category,
-    currency: rule.currency,
-    amount: edit.amount,
-    splitParams: rule.splitParams,
-    participants: rule.participants,
-    payers: amountChanged ? rescalePayers(rule.payers, edit.amount) : rule.payers,
-    notes: rule.notes,
+  if (recurringEditProblem(edit) !== null) return null;
+  const { template, when } = edit;
+  const patch: Record<string, unknown> = {};
+
+  const templateChanged =
+    template.description.trim() !== rule.description ||
+    (template.category ?? null) !== rule.category ||
+    (template.notes?.trim() || null) !== rule.notes ||
+    template.amount !== rule.amount ||
+    JSON.stringify(serialiseSplitParams(template.splitParams)) !==
+      JSON.stringify(serialiseSplitParams(rule.splitParams)) ||
+    !sameSet(template.participants, rule.participants) ||
+    !sameMoney(template.payers, rule.payers);
+  if (templateChanged)
+    Object.assign(patch, templatePatch(rule.id, { ...template, currency: rule.currency }));
+
+  const schedule = scheduleFor(when.frequency, {
+    interval: when.interval,
+    secondDay: when.secondDay,
   });
+  const scheduleChanged =
+    schedule.cadence !== rule.cadence ||
+    schedule.interval !== rule.interval ||
+    schedule.secondDay !== rule.secondDay ||
+    when.anchorDate !== rule.anchorDate;
+  if (scheduleChanged) {
+    const { end_date: _end, ...fields } = schedulePatch(when);
+    void _end;
+    Object.assign(patch, fields);
+  }
+  if ((when.endDate ?? null) !== rule.endDate) patch.end_date = when.endDate ?? null;
+
+  return Object.keys(patch).length > 0 ? (patch as GroupRecurringPatch) : null;
 }
 
 /** How the list shows a rule: running, paused, or over (stopped or past its end). */
