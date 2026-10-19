@@ -163,6 +163,56 @@ Whether the dashboard's offerings and products are still wired correctly is a
 separate check that needs no device: `packages/core/test/revenuecat.live.test.ts`
 (weekly, `.github/workflows/revenuecat-contract.yml`).
 
+### Waves Assistant flows (`assistant-*.yaml`) — opt-in with `E2E_ASSISTANT=1`
+
+Twelve flows for the Pro assistant (E2E-01 to E2E-12 in the test plan). They type
+into the assistant's composer, because an emulator has no microphone, and they
+need three things the other flows do not:
+
+- **The staging stub.** `VOICE_AGENT_STUB=1` as a secret on the staging
+  `voice-agent` function (`supabase secrets set VOICE_AGENT_STUB=1 --project-ref
+emyjuhazbynzwjqcfloh`). Then the same sentence always yields the same tool
+  calls (`supabase/functions/_shared/voiceStub.ts`); the rest of the server
+  (validation, quota, caps) is the real code. The stub refuses to switch on for
+  the production project ref, or for a project it cannot identify. Never set it
+  on production.
+- **A Pro login.** `E2E_SEED_EXTRAS=assistant` makes the seeded user Pro on the
+  voice agent, adds the ghost Ravi to Goa trip and a second group, Flat 4B
+  (Sam and Priya each owe the login user ₹300). `assistant-duplicate` also takes
+  `duplicate`, a ₹1,200 "Dinner" Priya added just now. `run-maestro.sh` passes the
+  right extras per flow.
+- **No location permission.** The scorer then has no place and no phone
+  currency to ask about, which is what keeps the question order fixed.
+
+`assistant-open`, `assistant-say`, `assistant-intro` and `assistant-close` are
+sub-flows (like `login.yaml`); do not run them alone.
+
+| Flow                         | Guards                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `assistant-personal-add`     | type a personal add -> card -> Confirm -> receipt question -> UPI -> ledger |
+| `assistant-group-add-payer`  | "Ravi paid" -> payer question -> Ravi is the payer                          |
+| `assistant-skip-twice`       | two skips end the chain                                                     |
+| `assistant-mute`             | "Don't ask this again" mutes; Profile resets it                             |
+| `assistant-correction`       | "no make it 800" after the save changes the amount (needs corrections)      |
+| `assistant-undo`             | Undo removes, ledger empty, Restore brings it back (needs corrections)      |
+| `assistant-duplicate`        | "Same, remove mine" leaves only the other person's bill                     |
+| `assistant-offline`          | airplane mode: on-device parse, chips work, no typing, syncs after          |
+| `assistant-clarify`          | an amount with no group asks which; a chip completes it                     |
+| `assistant-balance-question` | "who owes me" is answered with the people who owe you                       |
+| `assistant-settings-toggle`  | Follow-up questions off means none; on means they return                    |
+| `assistant-intro-once`       | the intro card shows once                                                   |
+
+Run one locally (after seeding with the right extras):
+
+```bash
+E2E_SEED_EXTRAS=assistant node e2e/seed-e2e.mjs
+maestro test --env E2E_EMAIL="$E2E_EMAIL" --env E2E_PASSWORD="$E2E_PASSWORD" e2e/assistant-personal-add.yaml
+```
+
+The web has no assistant: `apps/web/e2e/assistant-absent.spec.ts` and
+`apps/web/test/assistantAbsent.test.ts` guard against a shared component leaking
+it there.
+
 Each flow mutates the shared staging backend, so CI **reseeds the fixture before
 every flow** (the seed is idempotent). Locally, run one flow at a time and
 reseed between them.

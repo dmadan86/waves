@@ -1,0 +1,35 @@
+# E2E-03. Two skips in a row end the chain: a closing line, no third question.
+#
+# ₹8,000 personal asks the receipt question and then the payment method; skipping
+# both is two consecutive skips. (The chain is also capped at two questions, so
+# the assertion that matters is that the card ends rather than lingers.)
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 8000 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*8,000.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*8,000.*Personal.*'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+
+# First skip: the receipt question.
+- assertVisible: 'Got a receipt.*'
+- tapOn: 'Skip'
+
+# Second skip: the payment question.
+- assertVisible: 'How did you pay\?'
+- tapOn: 'Skip'
+
+# Over: no Skip left, no further question, Done is the way out.
+- assertNotVisible: 'Skip'
+- assertNotVisible: 'How did you pay\?'
+- assertNotVisible: 'Got a receipt.*'
+- assertVisible: 'Done'

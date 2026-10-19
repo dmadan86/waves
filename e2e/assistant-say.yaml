@@ -1,0 +1,12 @@
+# Sub-flow (do not run it alone): types ${SENTENCE} into the assistant's composer
+# and sends it. Expects assistant-open.yaml to have run.
+#
+#   - runFlow:
+#       file: assistant-say.yaml
+#       env:
+#         SENTENCE: 'dinner 1200 Goa'
+appId: app.waves.mobile
+---
+- tapOn: 'Type a command or a question|Ask or add.*'
+- inputText: '${SENTENCE}'
+- tapOn: '^Send$'

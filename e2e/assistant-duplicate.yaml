@@ -1,0 +1,40 @@
+# E2E-07. Adding what someone else just added asks "same bill?", and "Same,
+# remove mine" leaves only theirs.
+#
+# Seed: E2E_SEED_EXTRAS=assistant,duplicate - the ghost Priya's ₹1,200 "Dinner"
+# in Goa trip, added a moment ago.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'dinner 1200 Goa'
+- extendedWaitUntil:
+    visible: '.*1,200.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+
+# The duplicate question outranks everything and ignores the small-spend rule.
+- extendedWaitUntil:
+    visible: 'Priya already added.*'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+- tapOn: 'Same, remove mine'
+- extendedWaitUntil:
+    visible: 'Removed the duplicate'
+    timeout: 10000
+- tapOn: 'Done'
+
+# One "Dinner" is left in the group, not two.
+- extendedWaitUntil:
+    visible: 'Goa trip'
+    timeout: 15000
+- tapOn: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Dinner'
+    timeout: 15000
+- assertNotVisible:
+    text: 'Dinner'
+    index: 1

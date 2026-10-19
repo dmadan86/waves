@@ -1,0 +1,36 @@
+# E2E-05. A typed correction after the save changes the amount on the phone.
+#
+# Needs the corrections work (WS2): the saved line under the card carries
+# "Undo" and "Change"; "Change" opens a one-line composer, and "no make it 800"
+# is applied locally (no network, no model).
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*250.*Personal.*'
+    timeout: 15000
+
+- tapOn: 'Change'
+- tapOn: 'Type your answer'
+- inputText: 'no make it 800'
+- tapOn: 'Send answer'
+- extendedWaitUntil:
+    visible: 'Changed to.*800.*'
+    timeout: 10000
+- tapOn: 'Done'
+
+# The ledger agrees.
+- openLink: waves:///personal/transactions
+- extendedWaitUntil:
+    visible: '.*800.*'
+    timeout: 15000
+- assertNotVisible: '.*250.*'

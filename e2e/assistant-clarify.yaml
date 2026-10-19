@@ -1,0 +1,22 @@
+# E2E-09. An amount with no group asks "which group?" with a chip per group;
+# tapping one completes the command and shows the card.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 8000 to'
+
+- extendedWaitUntil:
+    visible: 'Which group is this for\?'
+    timeout: 25000
+- assertVisible: 'Flat 4B'
+- tapOn: 'Goa trip'
+
+- extendedWaitUntil:
+    visible: '.*8,000.*'
+    timeout: 25000
+- assertVisible: 'Goa trip'
+- assertVisible: 'Confirm'
