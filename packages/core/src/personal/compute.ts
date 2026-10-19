@@ -90,7 +90,10 @@ export function addToDate(date: string, cadence: Cadence, interval: number): str
  * the month it lands in — a rule on the 15th and the 31st fires on the 15th and
  * the 28th in February, which is what a payroll actually does.
  */
-export function stepOccurrence(rule: PersonalRecurring, date: string): string {
+export function stepOccurrence(
+  rule: Pick<PersonalRecurring, 'cadence' | 'interval' | 'secondDay' | 'anchorDate'>,
+  date: string,
+): string {
   if (rule.cadence !== 'semimonthly' || rule.secondDay === null) {
     const next = addToDate(date, rule.cadence, rule.interval);
     if (rule.cadence === 'weekly') return next;

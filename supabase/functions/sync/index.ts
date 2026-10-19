@@ -81,6 +81,10 @@ type MutationKind =
   | 'plan_item.create'
   | 'plan_item.update'
   | 'plan_item.delete'
+  // A repeating group expense — group-scoped, authorised by membership inside the
+  // RPC. The expenses it produces are posted by the server generator, not here.
+  | 'group_recurring.create'
+  | 'group_recurring.update'
   | 'member_budget.set'
   | 'member_budget.clear'
   | 'group_budget.set'
@@ -285,6 +289,8 @@ const GROUP_TABLES = [
   // co-member's private budget is filtered by RLS and simply not returned.
   ['trip_plan_items', '*'],
   ['trip_member_budgets', '*'],
+  // Repeating group expenses. Flat rows; RLS limits them to the group's members.
+  ['group_recurring_expenses', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -656,6 +662,39 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_remove_plan_item', {
           p_item_id: requireString(mutation.payload.itemId, 'itemId'),
         });
+      case 'group_recurring.create':
+        return await this.rpcAsCaller('waves_create_group_recurring_expense', {
+          p_group_id: mutation.groupId,
+          // Client-chosen id: the RPC returns the same rule for a replay.
+          p_id: requireString(mutation.payload.ruleId, 'ruleId'),
+          p_description: requireString(mutation.payload.description, 'description'),
+          p_category: optionalText(mutation.payload.category, 'category'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_amount: requireString(mutation.payload.amount, 'amount'),
+          p_split_type: requireString(mutation.payload.splitType, 'splitType'),
+          p_split_params: mutation.payload.splitParams ?? {},
+          p_payers: requireLines(mutation.payload.payers, 'payers'),
+          p_shares: requireLines(mutation.payload.shares, 'shares'),
+          p_notes: optionalText(mutation.payload.notes, 'notes'),
+          p_cadence: requireString(mutation.payload.cadence, 'cadence'),
+          p_interval: Number(mutation.payload.interval ?? 1),
+          p_second_day:
+            mutation.payload.secondDay === undefined || mutation.payload.secondDay === null
+              ? null
+              : Number(mutation.payload.secondDay),
+          p_anchor_date: requireString(mutation.payload.anchorDate, 'anchorDate'),
+          p_end_date: optionalText(mutation.payload.endDate, 'endDate'),
+        });
+      case 'group_recurring.update': {
+        const patch = mutation.payload.patch;
+        if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'patch must be an object');
+        }
+        return await this.rpcAsCaller('waves_update_group_recurring_expense', {
+          p_id: requireString(mutation.payload.ruleId, 'ruleId'),
+          p_patch: patch,
+        });
+      }
       case 'member_budget.set':
         return await this.rpcAsCaller('waves_set_my_trip_budget', {
           p_group_id: mutation.groupId,
@@ -1771,6 +1810,20 @@ function requireString(value: unknown, field: string): string {
     throw new HttpError(400, 'VALIDATION_FAILED', `${field} is required`);
   }
   return value;
+}
+
+/** A non-empty list of `{ memberId, amount }` lines (a repeating expense's payers or shares). */
+function requireLines(value: unknown, field: string): { memberId: string; amount: string }[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be a non-empty list`);
+  }
+  return value.map((line) => {
+    const row = line as { memberId?: unknown; amount?: unknown } | null;
+    if (!row || typeof row.memberId !== 'string' || typeof row.amount !== 'string') {
+      throw new HttpError(400, 'VALIDATION_FAILED', `${field} lines need memberId and amount text`);
+    }
+    return { memberId: row.memberId, amount: row.amount };
+  });
 }
 
 /**
