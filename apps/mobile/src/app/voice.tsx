@@ -120,7 +120,6 @@ import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
-import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -136,9 +135,20 @@ import {
 } from '@/lib/voiceEnginePure';
 import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
-import { VoiceAgentPanel, type AgentFallbackReason } from '@/components/VoiceAgentPanel';
+import {
+  useAgentLocalData,
+  VoiceAgentPanel,
+  type AgentFallbackReason,
+} from '@/components/VoiceAgentPanel';
+import { AssistantSavedBar } from '@/components/AssistantSavedBar';
+import { VoiceFollowUps } from '@/components/VoiceFollowUps';
+import { VoiceDetailRows } from '@/components/voice/VoiceDetailRows';
+import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
+import type { UndoEntry } from '@/lib/assistantUndo';
+import type { AgentExpenseWrite } from '@/lib/voiceAgentPlan';
+import { splitEditFromParams } from '@/lib/voiceSplitPure';
 import { LocationField } from '@/components/LocationField';
-import { CategoryBadge } from '@/components/Category';
+import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
 import {
   captureLocation,
   locationAvailable,
@@ -148,7 +158,6 @@ import {
 import { router } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import { isRatelessTransfer } from '@/lib/settleCurrency';
-import { useToast } from '@/lib/toast';
 import {
   detectAddMember,
   detectBalanceQuery,
@@ -164,7 +173,14 @@ import {
 import { logVoiceAttempt } from '@/lib/voiceLog';
 import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
-import { VoiceFooterScene } from '@/components/VoiceFooterScene';
+import { ExpensePreviewCard, type ExpensePreview } from '@/components/voice/ExpensePreviewCard';
+import { LiveTranscript } from '@/components/voice/LiveTranscript';
+import { VoiceSceneBackdrop } from '@/components/voice/VoiceSceneBackdrop';
+import { statusText, VoiceStage } from '@/components/voice/VoiceStage';
+import { VoiceStatus } from '@/components/voice/VoiceStatus';
+import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
+import { useReducedMotion } from '@/lib/reducedMotion';
+import { singleFlight, voiceFlowState, voiceStatusKey } from '@/lib/voiceFlowPure';
 import { AssistantComposer } from '@/components/AssistantComposer';
 import { AssistantIntro } from '@/components/AssistantIntro';
 import { AssistantTeaser } from '@/components/AssistantTeaser';
@@ -273,6 +289,8 @@ interface WhoEdit {
   participantIds?: string[];
   /** A heard name settled with one tap ("Did you mean Renny?" → yes): its {@link nameKey} → member id. */
   picks?: Record<string, string>;
+  /** A split set in the split sheet (exact, percent, shares or equal). */
+  params?: SplitParams;
 }
 
 /** A group's members as the voice parser matches names against them. */
@@ -333,13 +351,28 @@ function planWho(
     );
     if (participantIds.length === 0) problems.push({ code: 'no_participants' });
   }
+  if (edit?.params) {
+    params = edit.params;
+    problems = problems.filter(
+      (problem) => problem.code !== 'exact_sum_mismatch' && problem.code !== 'percent_sum_mismatch',
+    );
+    // Set against one amount: still has to add up to the amount as it stands.
+    if (params.kind === 'exact') {
+      const sum = Object.values(params.amounts).reduce((total, value) => total + value, 0n);
+      if (draftCount > 1 || (amountMinor !== null && sum !== amountMinor))
+        problems.push({ code: 'exact_sum_mismatch' });
+    }
+  }
   return {
     intent: resolved,
     payerId,
     participantIds,
     params,
     problems,
-    edited: edit?.payerId !== undefined || edit?.participantIds !== undefined,
+    edited:
+      edit?.payerId !== undefined ||
+      edit?.participantIds !== undefined ||
+      edit?.params !== undefined,
   };
 }
 
@@ -362,9 +395,8 @@ export default function VoiceScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
   const dc = useDefaultCurrency();
-  // "That worked", said over whichever screen the save leaves you on — see the
-  // note on the landings in `save` below.
-  const toast = useToast();
+  // The reader's categories (custom tags included), for the preview's label.
+  const { visible: categoryCatalog } = useLabelledCategoryCatalog();
   const groups = useGroups();
   /** A debt in a currency its group does not settle in, in a group that settles
    *  in its own currency: a bill with no rate yet, not something to pay. An
@@ -443,7 +475,7 @@ export default function VoiceScreen() {
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [phase, setPhase] = useState<
-    'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent'
+    'listening' | 'thinking' | 'review' | 'committing' | 'answer' | 'agent' | 'saved'
   >(widgetHeard ? 'thinking' : 'listening');
   // Pro advanced voice (flag `voice_agent`): when on, the mic streams to Deepgram
   // and the live transcript goes to the agent (phase 'agent') instead of straight
@@ -463,6 +495,30 @@ export default function VoiceScreen() {
   const [typedMode, setTypedMode] = useState(params.source === 'typed');
   const [typedDraft, setTypedDraft] = useState('');
   const lastTyped = useRef('');
+  // The last sentence handed to be read — spoken or typed — so the processing
+  // step and the preview can show what was heard, and Edit can correct it.
+  const [heardText, setHeardText] = useState('');
+  // The single expense's editor is open (the preview's Edit).
+  const [editingDraft, setEditingDraft] = useState(false);
+  // The whole flow stays on this screen: a save lands here, on a compact
+  // success state with Add another and Done, and the follow-up questions run
+  // right under it. `expense` carries what the follow-ups need.
+  const [savedResult, setSavedResult] = useState<
+    | { kind: 'expense'; line: string; state: SavedState; write: AgentExpenseWrite | null }
+    | { kind: 'line'; line: string }
+    | null
+  >(null);
+  const [savedHandoff, setSavedHandoff] = useState<UndoEntry | null>(null);
+  // The split sheet (who paid, how it splits) over the review, and whether the
+  // payer/people plan is shown for a sentence that named nobody.
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [whoForced, setWhoForced] = useState(false);
+  // The reader's groups and people from the local mirror, for the follow-ups.
+  const agentLocal = useAgentLocalData(viewerId);
+  const reduceMotion = useReducedMotion();
+  // One save at a time: a double tap on Add expense, or the auto-commit timer
+  // racing a tap, is refused synchronously rather than writing twice.
+  const [saveGate] = useState(singleFlight);
   // Free sees a once-a-week teaser where Pro would be asked a follow-up.
   // Not yet known counts as Pro: a paid person is never shown a teaser because a
   // read was slow.
@@ -809,6 +865,7 @@ export default function VoiceScreen() {
   // Reset the per-parse bookkeeping — a fresh parse is a fresh group to create,
   // fresh ghosts to mint, and a fresh location to read.
   const resetForNewParse = (): void => {
+    setWhoForced(false);
     groupCreated.current = false;
     ghostMemberIds.current = null;
     autoLocated.current = false;
@@ -1234,6 +1291,8 @@ export default function VoiceScreen() {
     // double-apply.
     if (!captureActive.current) return;
     captureActive.current = false;
+    setHeardText(transcript);
+    setEditingDraft(false);
     // A money question is never an expense and never needs the agent.
     if (micMode !== 'append' && !agentFollowUp && tryMoneyQuestion(transcript)) {
       // The cloud engine heard it, so the command counts like any fast-path one.
@@ -1622,7 +1681,6 @@ export default function VoiceScreen() {
   const confirmSaved = (): void => {
     reportCommand('confirmed', dest.kind === 'me' ? 'personal' : 'group');
     hapticSuccess();
-    toast.show(plural(locale, drafts.length, t.voice.savedCount));
   };
 
   // Who paid and who shares, once the destination group's members are known: the
@@ -1639,7 +1697,12 @@ export default function VoiceScreen() {
   const who: WhoView | null = (() => {
     // A plain "I paid, split equally" keeps the way it has always been written;
     // the card and the plan exist for sentences that said something more.
-    if (!intent?.hasSocialDetail || dest.kind !== 'existing' || targetMembers.length === 0)
+    if (
+      !intent ||
+      (!intent.hasSocialDetail && !whoForced) ||
+      dest.kind !== 'existing' ||
+      targetMembers.length === 0
+    )
       return null;
     const first = drafts[0];
     const firstCurrency = first
@@ -1771,7 +1834,24 @@ export default function VoiceScreen() {
     (who !== null && who.problems.length > 0) ||
     (payerElsewhere && dest.kind !== 'existing');
 
+  // A save finished: the leave-guard stands down and the success state shows.
+  const landSaved = (
+    result:
+      | { kind: 'expense'; line: string; state: SavedState; write: AgentExpenseWrite | null }
+      | { kind: 'line'; line: string },
+  ): void => {
+    committed.current = true;
+    setEditingDraft(false);
+    setSavedHandoff(null);
+    setSavedResult(result);
+    setPhase('saved');
+  };
+
   const save = async (): Promise<void> => {
+    await saveGate.run(saveOnce);
+  };
+
+  const saveOnce = async (): Promise<void> => {
     setError(null);
     setSaving(true);
     try {
@@ -1796,8 +1876,9 @@ export default function VoiceScreen() {
           rail: 'cash',
           currency: dest.currency,
         });
-        committed.current = true;
-        router.replace({ pathname: '/group/[id]', params: { id: dest.groupId } });
+        reportCommand('confirmed', 'group');
+        hapticSuccess();
+        landSaved({ kind: 'line', line: fill(t.voiceScreen.savedSettled, { name: dest.name }) });
         return;
       }
 
@@ -1815,8 +1896,9 @@ export default function VoiceScreen() {
           const message = caught instanceof Error ? caught.message : '';
           if (!/NUDGE_RATE_LIMIT/i.test(message)) throw caught;
         }
-        committed.current = true;
-        router.replace({ pathname: '/group/[id]', params: { id: dest.groupId } });
+        reportCommand('confirmed', 'group');
+        hapticSuccess();
+        landSaved({ kind: 'line', line: fill(t.voiceScreen.savedReminded, { name: dest.name }) });
         return;
       }
 
@@ -1833,19 +1915,24 @@ export default function VoiceScreen() {
           if (existing.has(name.trim().toLowerCase())) continue;
           await addGhost.mutateAsync(name);
         }
-        committed.current = true;
-        router.replace({ pathname: '/group/[id]', params: { id: dest.groupId } });
+        reportCommand('confirmed', 'group');
+        hapticSuccess();
+        landSaved({
+          kind: 'line',
+          line: fill(t.voiceScreen.savedMembers, {
+            name: dest.names.join(', '),
+            group: dest.groupName,
+          }),
+        });
         return;
       }
 
       if (dest.kind === 'unassigned') {
         // No group chosen: keep the batch as a draft in the capture inbox.
         await persistDraftsToInbox();
-        committed.current = true;
         confirmSaved();
-        // Review, from the widget too: the expense just saved is at the top of
-        // that list, which is the proof it landed and the place to file it.
-        router.replace('/captures');
+        // Kept as a draft in the inbox; said here, and the reader stays put.
+        landSaved({ kind: 'line', line: t.voiceScreen.savedForLater });
         return;
       }
 
@@ -1853,6 +1940,7 @@ export default function VoiceScreen() {
         // Just me: each draft is a private personal expense (A48), in its own
         // spoken currency. The draft's stable id is the record id, so a retry
         // after a partial failure re-uses it rather than writing a duplicate.
+        let single: SavedState | null = null;
         for (const draft of drafts) {
           const currency = draft.currency ?? dc;
           const amount = toMinor(draft.amount, currency);
@@ -1872,13 +1960,34 @@ export default function VoiceScreen() {
               recurringId: null,
             }),
           });
+          if (drafts.length === 1)
+            single = {
+              kind: 'personal',
+              id: draft.key,
+              groupId: null,
+              description,
+              amount,
+              currency,
+              category: draft.category ?? guessCategory(description),
+              categoryStated: draft.category !== null,
+              date,
+              notes: null,
+              place: location?.name ?? null,
+              location,
+              paymentMethod: null,
+              payers: null,
+              hasReceipt: false,
+              reimbursable: false,
+              participants: [],
+            };
         }
-        committed.current = true;
         confirmSaved();
-        // Home, not the personal tab. Nothing there needs looking at — the
-        // expense is private, split with nobody and complete on save — so
-        // opening it only cost the reader the walk back.
-        router.replace('/');
+        const line = fill(t.voiceScreen.savedTo, { where: t.voiceScreen.justYou });
+        landSaved(
+          single
+            ? { kind: 'expense', line, state: single, write: null }
+            : { kind: 'line', line: plural(locale, drafts.length, t.voice.savedCount) },
+        );
         return;
       }
 
@@ -1955,6 +2064,7 @@ export default function VoiceScreen() {
 
       if (participants.length === 0) throw new Error('no members to split among');
 
+      let single: { state: SavedState; write: AgentExpenseWrite } | null = null;
       for (const draft of drafts) {
         // The currency that was said, not the group's: "200 dollars" is $200 in
         // a rupee group, never ₹200. Only an unheard currency takes the group's.
@@ -1978,7 +2088,7 @@ export default function VoiceScreen() {
         // Same category guess as the inbox path: a voiced expense carries a bucket
         // read from its description, which the reader can still change afterwards.
         const description = draft.note.trim() || fallback;
-        await writeExpense.mutateAsync({
+        const write: AgentExpenseWrite = {
           expenseId,
           description,
           category: draft.category ?? guessCategory(description),
@@ -1990,12 +2100,41 @@ export default function VoiceScreen() {
           payers: { [payer]: amount },
           // ShareMap is a Map; the write input wants a plain record.
           expectedShares: Object.fromEntries(shares),
-          location,
-        });
+        };
+        await writeExpense.mutateAsync({ ...write, location });
+        if (drafts.length === 1)
+          single = {
+            write,
+            state: {
+              kind: 'group',
+              id: expenseId,
+              groupId: dest.groupId,
+              description,
+              amount,
+              currency,
+              category: write.category,
+              categoryStated: draft.category !== null,
+              date,
+              notes: null,
+              place: location?.name ?? null,
+              location,
+              paymentMethod: null,
+              payers: write.payers,
+              hasReceipt: false,
+              reimbursable: false,
+              participants: write.participants,
+            },
+          };
       }
-      committed.current = true;
       confirmSaved();
-      router.replace({ pathname: '/group/[id]', params: { id: dest.groupId } });
+      // Stay here: the group's ledger is one tap away from the success state,
+      // never a jump the reader did not ask for.
+      const line = fill(t.voiceScreen.savedTo, { where: current.label });
+      landSaved(
+        single
+          ? { kind: 'expense', line, ...single }
+          : { kind: 'line', line: plural(locale, drafts.length, t.voice.savedCount) },
+      );
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'voice.save'));
     } finally {
@@ -2099,7 +2238,89 @@ export default function VoiceScreen() {
   // so the button says so; once a group is picked it writes real expenses and
   // the label counts them.
   const isDraft = dest.kind === 'unassigned';
-  const saveLabel = isDraft ? t.voice.saveDraft : plural(locale, drafts.length, t.voice.save);
+  const saveLabel = isDraft
+    ? t.voice.saveDraft
+    : drafts.length === 1
+      ? t.voiceScreen.addExpense
+      : plural(locale, drafts.length, t.voice.save);
+
+  // The review's state, read from the screen's own phase and flags.
+  const reviewFlow = { phase: 'review' as const, saving, needsAnswer: whoBlocked };
+  const reviewStatus = voiceStatusKey(voiceFlowState(reviewFlow), reviewFlow);
+  // A single expense into one of the reader's groups can have its payer and
+  // split set in full, in the sheet; opening it shows the plan if none yet.
+  const canEditSplit =
+    drafts.length === 1 && dest.kind === 'existing' && targetMembers.length > 0 && intent !== null;
+  const openSplit = (): void => {
+    setWhoForced(true);
+    setSplitOpen(true);
+  };
+
+  // The single heard expense as a structured preview, from the parser's real
+  // output and the destination's real members. Several expenses keep the list.
+  const preview: ExpensePreview | null = (() => {
+    if (drafts.length !== 1) return null;
+    const draft = drafts[0];
+    if (!draft) return null;
+    const currency = voiceSaveCurrency(draft.currency, destCurrency, dc);
+    const description = draft.note.trim() || t.voice.anExpense;
+    const category = draft.category ?? guessCategory(description);
+    const categoryLabel = category
+      ? (categoryCatalog.find((entry) => entry.key === category)?.label ??
+        (t.categories as Record<string, string>)[category] ??
+        null)
+      : null;
+    const members = target.members.data ?? [];
+    const nameOf = (id: string): string => {
+      const member = members.find((candidate) => candidate.id === id);
+      if (!member) return '';
+      return isViewer(member, viewerId) ? t.voice.youLabel : displayName(member, viewerId);
+    };
+    let splitWith: string[] | null = null;
+    if (dest.kind === 'me') splitWith = [t.voiceScreen.justYou];
+    else if (dest.kind === 'create') splitWith = [t.voice.youLabel];
+    else if (dest.kind === 'people') splitWith = [t.voice.youLabel, ...dest.ghostNames];
+    else if (dest.kind === 'existing' && members.length > 0) {
+      const ids = who
+        ? who.participantIds
+        : resolveVoiceParticipants({
+            all: members.map((member) => member.id),
+            payer: members.find((member) => isViewer(member, viewerId))?.id ?? members[0]?.id ?? '',
+            members: members.map((member) => ({
+              id: member.id,
+              name: displayName(member, viewerId),
+            })),
+            peopleText: voicePeopleText,
+            splitCount: voiceSplitCount,
+          });
+      // "You" first, then the others in the group's order.
+      const names = ids.map(nameOf).filter(Boolean);
+      splitWith = [
+        ...names.filter((name) => name === t.voice.youLabel),
+        ...names.filter((name) => name !== t.voice.youLabel),
+      ];
+    }
+    // The split type only when the sentence set one, or the product default (an
+    // equal split) applies because more than one person shares it.
+    const said =
+      who && (who.params.kind !== 'equal' || (who.intent.splitMode === 'full_on' && !who.edited));
+    const splitType =
+      who && said
+        ? describeSplit(who, targetMembers, currency, t)
+        : splitWith && splitWith.length > 1
+          ? t.voiceScreen.splitEqually
+          : null;
+    return {
+      description,
+      amountMinor: toMinor(draft.amount, currency),
+      amountText: draft.amount.trim(),
+      currency,
+      category,
+      categoryLabel,
+      splitWith,
+      splitType,
+    };
+  })();
 
   // The line the answer card shows. A `text` answer is ready; a `group` one is
   // composed from its ledger and shows a spinner until the balance has loaded.
@@ -2127,6 +2348,46 @@ export default function VoiceScreen() {
   };
 
   // Ask another question: clear the answer and reopen the mic.
+  // Done: back to wherever the reader came from. Never into a group.
+  const finishVoice = (): void => {
+    router.back();
+  };
+
+  // Add another: the same screen, fresh, listening again.
+  const addAnother = (): void => {
+    committed.current = false;
+    autoSaved.current = false;
+    heardFromLink.current = false;
+    captureActive.current = false;
+    groupCreated.current = false;
+    ghostMemberIds.current = null;
+    interpretToken.current += 1;
+    setSavedResult(null);
+    setSavedHandoff(null);
+    setDrafts([]);
+    setIntent(null);
+    setWhoEdit(null);
+    setWhoForced(false);
+    setRequested(null);
+    setDest({ kind: 'unassigned' });
+    setGroupChosen(false);
+    setVoicePeopleText(null);
+    setVoiceSplitCount(null);
+    setVoiceExpenseDate(null);
+    setLocation(null);
+    setHeardText('');
+    setEditingDraft(false);
+    setError(null);
+    setAnswer(null);
+    setAgentSession(null);
+    setAgentFollowUp(null);
+    setNoAmount(false);
+    setTypedMode(false);
+    setMicMode('replace');
+    setAttempt((current) => current + 1);
+    setPhase('listening');
+  };
+
   const askAgain = (): void => {
     setAnswer(null);
     setQueryGroupId('');
@@ -2135,6 +2396,38 @@ export default function VoiceScreen() {
     setAttempt((current) => current + 1);
     setPhase('listening');
   };
+
+  // "Edit text" on what was heard: the words go into the typed composer, to be
+  // corrected and sent again through the same pipeline. Leaving the composer
+  // with ✕ while a batch exists returns to that batch (see `dismiss`).
+  const editHeard = (): void => {
+    captureActive.current = false;
+    interpretToken.current += 1;
+    setTypedDraft(heardText);
+    setTypedMode(true);
+    setNoAmount(false);
+    setMicMode('replace');
+    setPhase('listening');
+  };
+
+  // A suggestion row. A question goes straight through the assistant (it
+  // answers it); an expense sentence is put in the composer to check and send,
+  // never saved on a tap.
+  const pickSuggestion = (suggestion: Suggestion): void => {
+    hapticSelect();
+    const words = suggestionWords(suggestion.text);
+    if (suggestion.kind === 'question') {
+      submitTyped(words);
+      return;
+    }
+    captureActive.current = false;
+    setTypedDraft(words);
+    setTypedMode(true);
+  };
+  // "Who owes me?" has no on-device answer; only the assistant (agent) can
+  // answer it, so it is a button only when the agent is on.
+  const canPickSuggestion = (suggestion: Suggestion): boolean =>
+    suggestion.kind === 'expense' || agentOn;
 
   // Typed text enters the same pipeline as a spoken sentence: the mic is let go,
   // the text is treated as a live capture, and the screen decides who reads it.
@@ -2179,7 +2472,9 @@ export default function VoiceScreen() {
       {/* The desk scene along the foot, under everything. Not on the review:
           that list keeps its pinned Save bar there, and a picture behind the
           figures being checked would only be in the way. */}
-      {phase === 'review' || phase === 'agent' ? null : <VoiceFooterScene />}
+      {phase === 'listening' || phase === 'thinking' || phase === 'saved' ? (
+        <VoiceSceneBackdrop />
+      ) : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -2222,20 +2517,25 @@ export default function VoiceScreen() {
             {/* The Activity screen's header shape — a left-aligned brand glyph and a
               big bold title — so the review reads as the same family of screen.
               Here the glyph is the mic that started the capture. */}
-            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-              <Ionicons
-                name="mic"
-                size={phase === 'review' ? iconSize.lg : iconSize.xl}
-                color={theme.color.brand}
-              />
-              <Text variant={phase === 'review' ? 'heading' : 'title'}>
-                {phase === 'review'
-                  ? t.voice.review
-                  : phase === 'answer'
-                    ? answer?.kind === 'spend'
-                      ? t.personal.spendingTitle
-                      : t.voice.ansTitle
-                    : t.voice.title}
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'center', flexShrink: 1 }}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="mic" size={iconSize.md} color={theme.color.brand} />
+              </View>
+              <Text variant="heading" accessibilityRole="header" style={{ flexShrink: 1 }}>
+                {phase === 'answer'
+                  ? answer?.kind === 'spend'
+                    ? t.personal.spendingTitle
+                    : t.voice.ansTitle
+                  : t.voice.title}
               </Text>
             </Row>
             {/* Just the ✕. Speaking another expense is one job with one home — the
@@ -2318,58 +2618,117 @@ export default function VoiceScreen() {
                 setAttempt((current) => current + 1);
                 setPhase('listening');
               }}
-              onClose={() => router.back()}
+              onClose={finishVoice}
+              onAddAnother={addAnother}
             />
           ) : phase === 'thinking' ? (
-            <View
-              style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: theme.spacing.xxl }}
-            >
-              <VoiceMicOrb working />
-              <Text variant="heading">{t.voice.thinking}</Text>
+            // The same frame the mic panel draws, so listening → understanding
+            // changes the words and the mic's glyph, never the layout.
+            <View style={{ paddingTop: theme.spacing.md }}>
+              <VoiceStage
+                status={voiceStatusKey(voiceFlowState({ phase }), { phase })}
+                micMode="busy"
+                onMicPress={() => {}}
+                reduceMotion={reduceMotion}
+                transcript={heardText}
+                final
+              />
             </View>
           ) : phase === 'review' ? (
             <View style={{ gap: theme.spacing.md }}>
+              {/* Where things stand — "Expense ready", or "Check one detail" while
+                a question holds Add expense — announced as it changes. */}
+              <VoiceStatus status={reviewStatus} text={statusText(t, reviewStatus)} />
+              {/* What was heard, word for word, with Edit to correct it. */}
+              {heardText ? <LiveTranscript text={heardText} final onEdit={editHeard} /> : null}
               {/* Confirmation, not an edit form. Each expense reads as a quiet
                 summary line — what we heard, and the amount — inside one grouped
                 card, the way a receipt lists what it charged. Tapping a line opens
                 it to correct the amount or the note; it is closed again by
                 default. The parser is not put on trial the moment you land here. */}
-              {amountQuestion ? (
-                <AmountChooser
-                  question={amountQuestion.question}
-                  onAnswer={answerAmount}
-                  theme={theme}
-                />
-              ) : currencyQuestion ? (
-                <AmountChooser
-                  question={currencyQuestion}
-                  onAnswer={answerCurrency}
-                  theme={theme}
-                />
-              ) : null}
-              <Card padded={false} style={{ overflow: 'hidden' }}>
-                {drafts.map((draft, index) => (
-                  <View key={draft.key}>
-                    {index > 0 ? <Divider /> : null}
-                    <DraftRow
-                      draft={draft}
-                      // The currency the row shows is the one Save will persist:
-                      // the spoken one, else the group's, else the default.
-                      currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
-                      onEdit={editDraft}
-                      onRemove={removeDraft}
-                      fallbackNote={t.voice.anExpense}
-                      editLabel={t.common.edit}
-                      doneLabel={t.common.done}
-                      removeLabel={t.captures.delete}
-                      amountLabel={t.captures.amount}
-                      noteLabel={t.captures.description}
-                      notePlaceholder={t.captures.descriptionPlaceholder}
+              {amountQuestion || currencyQuestion ? (
+                // An amount or currency that could be read two ways is asked,
+                // never picked: Add expense waits for the answer.
+                <ClarifyCard title={t.voiceScreen.checkTitle} theme={theme}>
+                  {amountQuestion ? (
+                    <AmountChooser
+                      question={amountQuestion.question}
+                      onAnswer={answerAmount}
                       theme={theme}
                     />
-                  </View>
-                ))}
-              </Card>
+                  ) : currencyQuestion ? (
+                    <AmountChooser
+                      question={currencyQuestion}
+                      onAnswer={answerCurrency}
+                      theme={theme}
+                    />
+                  ) : null}
+                </ClarifyCard>
+              ) : null}
+              {preview && !editingDraft ? (
+                <ExpensePreviewCard
+                  preview={preview}
+                  locale={locale}
+                  onEditSplit={canEditSplit ? openSplit : undefined}
+                />
+              ) : (
+                <Card padded={false} style={{ overflow: 'hidden' }}>
+                  {drafts.map((draft, index) => (
+                    <View key={draft.key}>
+                      {index > 0 ? <Divider /> : null}
+                      <DraftRow
+                        editing={drafts.length === 1 && editingDraft ? true : undefined}
+                        onEditingChange={
+                          drafts.length === 1 ? (open) => setEditingDraft(open) : undefined
+                        }
+                        draft={draft}
+                        // The currency the row shows is the one Save will persist:
+                        // the spoken one, else the group's, else the default.
+                        currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
+                        onEdit={editDraft}
+                        onRemove={removeDraft}
+                        fallbackNote={t.voice.anExpense}
+                        editLabel={t.common.edit}
+                        doneLabel={t.common.done}
+                        removeLabel={t.captures.delete}
+                        amountLabel={t.captures.amount}
+                        noteLabel={t.captures.description}
+                        notePlaceholder={t.captures.descriptionPlaceholder}
+                        theme={theme}
+                      />
+                    </View>
+                  ))}
+                </Card>
+              )}
+              {/* The single expense's Edit, past amount and words: category and
+                date, each in a picker over this screen. */}
+              {preview && editingDraft && drafts[0] ? (
+                <Card padded={false} style={{ overflow: 'hidden' }}>
+                  <VoiceDetailRows
+                    category={preview.category}
+                    categoryLabel={preview.categoryLabel}
+                    onCategory={(key) => editDraft(drafts[0]?.key ?? '', { category: key })}
+                    date={voiceExpenseDate}
+                    onDate={setVoiceExpenseDate}
+                  />
+                  {canEditSplit ? (
+                    <Pressable
+                      onPress={openSplit}
+                      accessibilityRole="button"
+                      style={({ pressed }) => ({
+                        minHeight: 48,
+                        justifyContent: 'center',
+                        paddingHorizontal: theme.spacing.md,
+                        opacity: pressed ? 0.6 : 1,
+                      })}
+                    >
+                      <Text tone="brand" style={{ fontWeight: '600' }}>
+                        {t.voiceScreen.editSplit}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </Card>
+              ) : null}
 
               {/* Speak again and append — another expense (or several) onto the
                 batch, keeping the ones already here and the chosen destination.
@@ -2517,6 +2876,48 @@ export default function VoiceScreen() {
                 compact
               />
             </View>
+          ) : phase === 'saved' && savedResult ? (
+            // Saved, and still here: a compact confirmation, then — for one
+            // expense — the follow-up questions, answered in place. Add another
+            // and Done sit in the bar at the foot.
+            <View style={{ gap: theme.spacing.md }}>
+              <VoiceStatus status="saved" text={t.voiceScreen.statusSaved} />
+              {savedResult.kind === 'expense' && !isPro ? (
+                renderFreeAfterSave(savedResult.state)
+              ) : savedResult.kind === 'expense' ? (
+                <View style={{ gap: theme.spacing.md }}>
+                  <AssistantIntro viewerId={viewerId} />
+                  <VoiceFollowUps
+                    initial={savedResult.state}
+                    groupWrite={savedResult.write}
+                    local={agentLocal}
+                    today={today()}
+                    onClose={finishVoice}
+                    onUndoable={setSavedHandoff}
+                    renderSavedBar={(bar) => (
+                      <AssistantSavedBar
+                        context={bar}
+                        controls={bar.controls}
+                        groupWrite={savedResult.write}
+                        local={agentLocal}
+                        today={today()}
+                        externalEntry={savedHandoff}
+                        onEvent={(event) => {
+                          if (event.name === 'assistant_correction')
+                            trackAssistant('assistant_correction', {
+                              field: event.field,
+                              path: event.path,
+                            });
+                          else trackAssistant('assistant_undo', { what: event.what });
+                        }}
+                      />
+                    )}
+                  />
+                </View>
+              ) : (
+                <SavedLine line={savedResult.line} theme={theme} />
+              )}
+            </View>
           ) : phase === 'committing' ? (
             // The Undo window. A confident command is about to write itself; the
             // banner says what and where, a spinner marks the wait, and Undo is the
@@ -2578,9 +2979,12 @@ export default function VoiceScreen() {
                 </Text>
               ) : null}
               {typedMode ? (
-                <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.xxl }}>
-                  <Text variant="subheading" align="center">
-                    {t.voice.prompt}
+                <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
+                  <Text variant="heading" align="center">
+                    {t.voiceScreen.headline}
+                  </Text>
+                  <Text variant="body" tone="muted" align="center">
+                    {t.voiceScreen.subline}
                   </Text>
                   {noAmount ? <Callout tone="warning">{t.voice.noAmount}</Callout> : null}
                   <AssistantComposer
@@ -2610,6 +3014,13 @@ export default function VoiceScreen() {
                     hints={hints}
                     groupNames={groupNames}
                     missed={noAmount}
+                    heard={noAmount ? heardText : ''}
+                    onSuggestion={pickSuggestion}
+                    canPick={canPickSuggestion}
+                    onTypeInstead={() => {
+                      captureActive.current = false;
+                      setTypedMode(true);
+                    }}
                     autoStart={!noAmount}
                     endSignal={hold.ended}
                     onEndConsumed={() => pushToTalk.take()}
@@ -2649,6 +3060,32 @@ export default function VoiceScreen() {
       {/* Sticky action bar: the running total on the left, Save on the right —
           anchored to the foot so it is reachable no matter how the list grows,
           the pattern every checkout and expense-review screen settles on. */}
+      {phase === 'saved' ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: insets.bottom + theme.spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: theme.color.border,
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Button
+              label={t.voiceScreen.addAnother}
+              variant="secondary"
+              fullWidth
+              onPress={addAnother}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button label={t.voiceScreen.done} variant="brand" fullWidth onPress={finishVoice} />
+          </View>
+        </View>
+      ) : null}
       {phase === 'review' ? (
         <View
           style={{
@@ -2667,25 +3104,41 @@ export default function VoiceScreen() {
           {/* Quiet running total on the left — the count when a mixed-currency
               batch has no single sum. No check, no ledger flourish; the Save
               button is the confirmation. */}
-          <View style={{ gap: 1 }}>
-            {drafts.length > 1 ? (
-              <Text variant="micro" tone="muted">
-                {plural(locale, drafts.length, t.voice.count)}
-              </Text>
-            ) : null}
-            {singleTotal ? (
-              <MoneyText
-                amount={singleTotal[1]}
-                currency={singleTotal[0]}
-                locale={locale}
-                mode="plain"
-                variant="subheading"
-              />
-            ) : (
-              <Text variant="subheading">{plural(locale, drafts.length, t.voice.count)}</Text>
-            )}
-          </View>
-          <Button label={saveLabel} size="sm" onPress={() => void save()} disabled={!canSave} />
+          {preview ? (
+            <Button
+              label={editingDraft ? t.common.done : t.voiceScreen.edit}
+              variant="secondary"
+              size="md"
+              onPress={() => setEditingDraft((open) => !open)}
+            />
+          ) : (
+            <View style={{ gap: 1 }}>
+              {drafts.length > 1 ? (
+                <Text variant="micro" tone="muted">
+                  {plural(locale, drafts.length, t.voice.count)}
+                </Text>
+              ) : null}
+              {singleTotal ? (
+                <MoneyText
+                  amount={singleTotal[1]}
+                  currency={singleTotal[0]}
+                  locale={locale}
+                  mode="plain"
+                  variant="subheading"
+                />
+              ) : (
+                <Text variant="subheading">{plural(locale, drafts.length, t.voice.count)}</Text>
+              )}
+            </View>
+          )}
+          <Button
+            label={saving ? t.voiceScreen.statusSaving : saveLabel}
+            variant="brand"
+            size="md"
+            style={preview ? { flex: 1 } : undefined}
+            onPress={() => void save()}
+            disabled={!canSave}
+          />
         </View>
       ) : null}
 
@@ -2754,6 +3207,32 @@ export default function VoiceScreen() {
           />
         </ScrollView>
       </Sheet>
+
+      {/* Who paid and how it splits, in full (exact, percent, shares): the
+          add-expense form's own split editor, in a sheet over this screen. */}
+      {splitOpen && who && dest.kind === 'existing' && preview?.amountMinor ? (
+        <VoiceSplitSheet
+          visible
+          onClose={() => setSplitOpen(false)}
+          groupId={dest.groupId}
+          currency={preview.currency}
+          amount={preview.amountMinor}
+          seed={splitEditFromParams(
+            who.payerId ?? '',
+            who.params,
+            who.participantIds,
+            preview.currency,
+          )}
+          onApply={(result) =>
+            setWhoEdit((current) => ({
+              ...current,
+              payerId: result.payerId,
+              participantIds: result.participants,
+              params: result.params,
+            }))
+          }
+        />
+      ) : null}
 
       {/* Correct who paid and who shares — the heard names as members to pick. */}
       <Sheet
@@ -2864,6 +3343,73 @@ function AmountChooser({
           </Pressable>
         ))}
       </Row>
+    </View>
+  );
+}
+
+/**
+ * The questions that must be answered before Add expense: a soft warning card
+ * with a title and an icon, so it is never colour alone.
+ */
+function ClarifyCard({
+  title,
+  theme,
+  children,
+}: {
+  title: string;
+  theme: ThemeT;
+  children: ReactNode;
+}) {
+  return (
+    <View
+      accessibilityRole="alert"
+      style={{
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.warningSoft,
+      }}
+    >
+      <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+        <Ionicons name="help-circle-outline" size={iconSize.sm} color={theme.color.text} />
+        <Text variant="caption" style={{ fontWeight: '700' }}>
+          {title}
+        </Text>
+      </Row>
+      {children}
+    </View>
+  );
+}
+
+/** The success state's line for anything without follow-ups. */
+function SavedLine({ line, theme }: { line: string; theme: ThemeT }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        padding: theme.spacing.lg,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        ...theme.shadow.soft,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
+      </View>
+      <Text variant="subheading" style={{ flex: 1 }}>
+        {line}
+      </Text>
     </View>
   );
 }
@@ -3244,6 +3790,8 @@ function WhoSheet({
  * of mini-forms.
  */
 function DraftRow({
+  editing: editingProp,
+  onEditingChange,
   draft,
   currency,
   onEdit,
@@ -3257,6 +3805,9 @@ function DraftRow({
   notePlaceholder,
   theme,
 }: {
+  /** Controlled open state (the single-expense preview's Edit); else the row keeps its own. */
+  editing?: boolean;
+  onEditingChange?: (open: boolean) => void;
   draft: Draft;
   /** The currency Save will persist this row in — the group's when a group is
    *  the destination, else the draft's own spoken currency (or the default). */
@@ -3276,7 +3827,12 @@ function DraftRow({
   // Closed by default: you land on a confirmation, and only open a row if the
   // parser got something wrong. A fresh parse remounts every row (new keys), so
   // this resets to closed for each new batch.
-  const [editing, setEditing] = useState(false);
+  const [editingOwn, setEditingOwn] = useState(false);
+  const editing = editingProp ?? editingOwn;
+  const setEditing = (open: boolean): void => {
+    setEditingOwn(open);
+    onEditingChange?.(open);
+  };
   const title = draft.note.trim() || fallbackNote;
   const amountText = draft.amount.trim();
 

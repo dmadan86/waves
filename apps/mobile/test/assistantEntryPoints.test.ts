@@ -61,8 +61,10 @@ describe('entry points', () => {
     expect(panel).toContain('aboveFollowUps');
   });
 
-  it('S-ONB-03: the "Try saying" card has a 4th example, "Who owes me?"', () => {
-    expect(src('components/VoiceCapture.tsx')).toContain('t.assistant.tryWhoOwes');
+  it('S-ONB-03: the "Try saying" suggestions include "Who owes me?"', () => {
+    // The suggestions moved into their own component with the capture redesign.
+    expect(src('components/voice/VoiceSuggestions.tsx')).toContain('t.assistant.tryWhoOwes');
+    expect(src('components/VoiceCapture.tsx')).toContain('useVoiceSuggestions');
   });
 
   it('an unknown plan is not a Free plan: the teaser waits for the entitlement read', () => {
