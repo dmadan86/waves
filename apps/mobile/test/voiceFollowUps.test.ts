@@ -60,6 +60,7 @@ vi.mock('@/components/VoiceTypedAnswer', () => ({ VoiceTypedAnswer: 'VoiceTypedA
 vi.mock('@/data/hooks', () => ({
   useWriteExpense: () => ({ mutateAsync: world.writeExpense }),
   useDeleteExpense: () => ({ mutateAsync: world.removeExpense }),
+  useOpenReceipts: () => ({ data: [], loading: false }),
 }));
 vi.mock('@/data/personal', () => ({
   usePersonalLedger: () => ({ txns: world.txns, recurrings: [], loans: [], budgets: [] }),

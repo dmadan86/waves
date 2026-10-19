@@ -244,9 +244,9 @@ describe('MC-FU-16..20 (pure helpers)', () => {
     expect(applyAnswer(noted, { kind: 'place', name: 'Taj' }).notes).toBe('At Taj');
   });
 
-  it('MC-FU-19 work: a personal entry is flagged, a group expense is noted', () => {
+  it('MC-FU-19 work: both a personal entry and a group expense carry the real flag', () => {
     expect(applyAnswer(personal(), { kind: 'work' }).reimbursable).toBe(true);
-    expect(applyAnswer(group(), { kind: 'work' }).notes).toBe('Work expense');
+    expect(applyAnswer(group(), { kind: 'work' }).reimbursable).toBe(true);
   });
 
   it('MC-FU-20 planUpdate ignores splitWith for a group and wantsReceipt for personal', () => {
