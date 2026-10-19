@@ -19,6 +19,7 @@ import {
   Frequency,
   advanceSession,
   dedupeFilled,
+  cleanCounterpart,
   encodeLoan,
   deterministicId,
   encodeRecurring,
@@ -811,34 +812,39 @@ export function VoiceFollowUps({
         ];
       case 'lend': {
         const person = q.person ?? '';
+        // Money lent is not money spent: it becomes a loan and leaves the
+        // expenses. With `share` the loan is then offered to the other person
+        // (a debt in a 1:1 group they can see and settle), via the loans screen.
+        const lend = (share: boolean) => async () => {
+          setBusy(true);
+          try {
+            const loanId = await upsert.mutateAsync({
+              recordKind: 'loan',
+              data: encodeLoan({
+                direction: 'lent',
+                counterpart: cleanCounterpart(person),
+                principal: saved.amount,
+                currency: saved.currency,
+                note: null,
+                startDate: saved.date,
+                status: 'active',
+              }),
+            });
+            await removePersonal.mutateAsync(saved.id);
+            onUndoable?.({ kind: 'lend', previous: saved, loanId });
+            setFilled((list) => [...list, 'lend']);
+            respond('lend', 'answered');
+            setSession((s) => ({ ...s, stopped: true }));
+            if (share) router.push({ pathname: '/personal/loans', params: { share: loanId } });
+          } catch {
+            setNotice(f.couldNotSave);
+          } finally {
+            setBusy(false);
+          }
+        };
         return [
-          yes(fill(f.lendYes, { name: person }), async () => {
-            setBusy(true);
-            try {
-              // Money lent is not money spent: it becomes a loan and leaves the expenses.
-              const loanId = await upsert.mutateAsync({
-                recordKind: 'loan',
-                data: encodeLoan({
-                  direction: 'lent',
-                  counterpart: person,
-                  principal: saved.amount,
-                  currency: saved.currency,
-                  note: null,
-                  startDate: saved.date,
-                  status: 'active',
-                }),
-              });
-              await removePersonal.mutateAsync(saved.id);
-              onUndoable?.({ kind: 'lend', previous: saved, loanId });
-              setFilled((list) => [...list, 'lend']);
-              respond('lend', 'answered');
-              setSession((s) => ({ ...s, stopped: true }));
-            } catch {
-              setNotice(f.couldNotSave);
-            } finally {
-              setBusy(false);
-            }
-          }),
+          yes(fill(f.lendYes, { name: person }), lend(false)),
+          ...(person ? [yes(fill(f.lendShare, { name: person }), lend(true))] : []),
           { label: f.lendNo, onPress: () => respond('lend', 'answered') },
         ];
       }

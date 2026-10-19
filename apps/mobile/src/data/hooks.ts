@@ -1165,6 +1165,66 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
 }
 
 /**
+ * What the other person owes you (or you them) in each group a shared loan
+ * lives in, read off the same pairwise ledger the Friends list sums. Keyed
+ * group → currency → net (positive: they owe you), so a loan's outstanding
+ * amount (`syncedOutstanding` in core) is the group balance, never a figure of
+ * the personal ledger's own. `groups` is the set of group ids still present on
+ * this device, so a link to a deleted group can be told from a square balance.
+ */
+export interface SyncedLoanNets {
+  nets: ReadonlyMap<string, ReadonlyMap<string, bigint>>;
+  groups: ReadonlySet<string>;
+}
+
+const NO_NETS: SyncedLoanNets = { nets: new Map(), groups: new Set() };
+
+export function useSyncedLoanNets(
+  profileId: string | null,
+  links: readonly { groupId: string; myMemberId: string; otherMemberId: string }[],
+): SyncedLoanNets {
+  const { mirror, queue } = useSync();
+  const key = links
+    .map((link) => `${link.groupId}:${link.myMemberId}:${link.otherMemberId}`)
+    .join();
+  return useMemo<SyncedLoanNets>(() => {
+    if (!profileId || links.length === 0) return NO_NETS;
+    const rows = materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[];
+    const present = new Set(rows.map((group) => group.id));
+    const nets = new Map<string, ReadonlyMap<string, bigint>>();
+    for (const link of links) {
+      if (!present.has(link.groupId) || nets.has(link.groupId)) continue;
+      const group = rows.find((row) => row.id === link.groupId);
+      if (!group) continue;
+      const snapshots = (
+        materialiseExpenses(mirror, queue, { groupId: link.groupId }) as unknown as ExpenseRow[]
+      )
+        .map((expense) => toSnapshot(expense))
+        .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+      const settlements = toSettlementSnapshots(
+        materialiseSettlements(mirror, queue, {
+          groupId: link.groupId,
+        }) as unknown as SettlementRow[],
+      );
+      const pair = pairBalances([
+        {
+          groupId: link.groupId,
+          simplify: false,
+          viewerMemberId: link.myMemberId,
+          otherMemberIds: [link.otherMemberId],
+          edges: computePairwiseBalances(ledgerSnapshotsOf(snapshots, group), settlements),
+          suggested: null,
+        },
+      ]);
+      nets.set(link.groupId, new Map(pair.totals.map((total) => [total.currency, total.net])));
+    }
+    return { nets, groups: present };
+    // `key` stands for `links`, which callers rebuild every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mirror, queue, profileId, key]);
+}
+
+/**
  * The recent-activity feed, entirely from the mirror — offline-first (ADR-005).
  *
  * `activity_log` is already pulled into the mirror per group, so the global feed
