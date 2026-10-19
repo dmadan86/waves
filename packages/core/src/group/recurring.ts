@@ -372,3 +372,75 @@ export function schedulePatch(when: GroupRecurringWhen): GroupRecurringPatch {
     end_date: when.endDate ?? null,
   };
 }
+
+/** Split kinds whose shares follow the amount, so the amount may be edited. An
+ *  exact or adjusted split names its own amounts and would no longer add up. */
+export function canEditRecurringAmount(rule: Pick<GroupRecurringRule, 'splitParams'>): boolean {
+  const kind = rule.splitParams.kind;
+  return kind === 'equal' || kind === 'percent' || kind === 'shares';
+}
+
+/**
+ * Who paid, scaled to a new amount: a single payer pays all of it; several keep
+ * their proportions, the rounding remainder going to the largest payer so the
+ * total is exact.
+ */
+export function rescalePayers(
+  payers: Readonly<Record<string, bigint>>,
+  amount: bigint,
+): Record<string, bigint> {
+  const entries = Object.entries(payers).filter(([, value]) => value > 0n);
+  const old = entries.reduce((total, [, value]) => total + value, 0n);
+  if (entries.length === 0 || old === 0n) return { ...payers };
+  const out: Record<string, bigint> = {};
+  let given = 0n;
+  for (const [id, value] of entries) {
+    out[id] = (value * amount) / old;
+    given += out[id]!;
+  }
+  const largest = entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+  out[largest] = out[largest]! + (amount - given);
+  return out;
+}
+
+/** What a rule's edit sheet can change today: the wording and the amount. */
+export interface GroupRecurringEdit {
+  readonly description: string;
+  readonly amount: bigint;
+}
+
+/**
+ * The patch for an edit, or null when nothing changed (or the edit cannot be
+ * made: an empty name, a zero amount, or an amount on a split that names its own
+ * amounts). Payers are scaled and the shares recomputed, so the stored expense
+ * still adds up.
+ */
+export function recurringEditPatch(
+  rule: GroupRecurringRule,
+  edit: GroupRecurringEdit,
+): GroupRecurringPatch | null {
+  const description = edit.description.trim();
+  if (description === '' || edit.amount <= 0n) return null;
+  const amountChanged = edit.amount !== rule.amount;
+  if (amountChanged && !canEditRecurringAmount(rule)) return null;
+  if (!amountChanged && description === rule.description) return null;
+  return templatePatch(rule.id, {
+    description,
+    category: rule.category,
+    currency: rule.currency,
+    amount: edit.amount,
+    splitParams: rule.splitParams,
+    participants: rule.participants,
+    payers: amountChanged ? rescalePayers(rule.payers, edit.amount) : rule.payers,
+    notes: rule.notes,
+  });
+}
+
+/** How the list shows a rule: running, paused, or over (stopped or past its end). */
+export function recurringDisplayStatus(
+  rule: Pick<GroupRecurringRule, 'status' | 'nextDate' | 'endDate'>,
+): 'active' | 'paused' | 'ended' {
+  if (rule.status === 'stopped') return 'ended';
+  if (rule.endDate !== null && rule.nextDate > rule.endDate) return 'ended';
+  return rule.status;
+}

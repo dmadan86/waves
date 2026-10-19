@@ -20,6 +20,8 @@ import {
 import {
   CategoryId,
   currencySymbol,
+  deterministicId,
+  Frequency,
   format,
   formatMinorInput,
   guessCategory,
@@ -88,6 +90,10 @@ import { tripRateFor } from '@/lib/tripRates';
 import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
 import { useDeletePersonalRecord, usePersonalRecords } from '@/data/personal';
+import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
+import { useCreateGroupRecurring } from '@/data/groupRecurring';
+import { frequencyLabel } from '@/lib/frequencyLabel';
+import { reportHandled } from '@/lib/observability';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
@@ -291,6 +297,15 @@ async function sendHeldReceipts(expenseId: string): Promise<void> {
     // Best-effort; the queue retries on its own.
   }
 }
+
+/** What the Repeat row holds; `null` is a one-off. */
+interface GroupRepeat {
+  readonly frequency: Frequency;
+  readonly interval: number;
+  readonly secondDay: number;
+}
+
+const NEW_GROUP_REPEAT: GroupRepeat = { frequency: Frequency.Monthly, interval: 2, secondDay: 15 };
 
 export default function AddExpenseScreen() {
   const theme = useTheme();
@@ -508,6 +523,12 @@ export default function AddExpenseScreen() {
   const [category, setCategory] = useState<string | null>(CategoryId.Food);
   const [categoryMeta, setCategoryMeta] = useState<CategoryMeta | null>(null);
   const [categoryChosen, setCategoryChosen] = useState(false);
+  // "Repeat" (a flat's monthly rent): null is a one-off. Only offered when adding,
+  // never when editing an expense that already exists; the rule it makes starts at
+  // the occurrence after this one, since this one is being saved right now.
+  const [repeat, setRepeat] = useState<GroupRepeat | null>(null);
+  const [pickingRepeat, setPickingRepeat] = useState(false);
+  const createRecurring = useCreateGroupRecurring(groupId);
   // The create-tag sheet, opened from the category sheet's "＋ New tag" row.
   const [editingTag, setEditingTag] = useState(false);
   // The two "more details" rows open their options in sheets, and those sheets
@@ -1406,41 +1427,42 @@ export default function AddExpenseScreen() {
       // through from the version being edited (the write nulls whatever it is
       // not given), `expectedShares` is seeded with this expense's id, and
       // `baseVersionNo` lets the server spot a concurrent edit (TDR §4.4).
+      const writePayload = expenseWritePayload({
+        expenseId: targetExpenseId,
+        state: {
+          amount,
+          description,
+          category,
+          categoryMeta,
+          // A chosen day wins outright. Untouched, a capture keeps the day it
+          // was caught, a saved expense keeps the day it has, and only a new
+          // one is today's (expenseDateFor).
+          expenseDate,
+          occurredAt,
+          currency,
+          fx,
+          splitKind,
+          participants,
+          weights,
+          percents,
+          exacts,
+          payers,
+          paymentMethod,
+          location,
+          payee,
+          reimbursable,
+          subEventId: effectiveSubEventId,
+          isDeposit: effectiveIsDeposit,
+          balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
+          balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
+        },
+        editing: editing?.currentVersion,
+      });
       const writeExpense = (): Promise<unknown> =>
         mutate(
           expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
           groupId,
-          expenseWritePayload({
-            expenseId: targetExpenseId,
-            state: {
-              amount,
-              description,
-              category,
-              categoryMeta,
-              // A chosen day wins outright. Untouched, a capture keeps the day it
-              // was caught, a saved expense keeps the day it has, and only a new
-              // one is today's (expenseDateFor).
-              expenseDate,
-              occurredAt,
-              currency,
-              fx,
-              splitKind,
-              participants,
-              weights,
-              percents,
-              exacts,
-              payers,
-              paymentMethod,
-              location,
-              payee,
-              reimbursable,
-              subEventId: effectiveSubEventId,
-              isDeposit: effectiveIsDeposit,
-              balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
-              balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
-            },
-            editing: editing?.currentVersion,
-          }),
+          writePayload,
         );
       const movedFrom = !expenseId && movePersonal ? movePersonal : null;
       if (movedFrom) {
@@ -1460,6 +1482,40 @@ export default function AddExpenseScreen() {
         }
       } else {
         await writeExpense();
+      }
+      // The rule goes in only after the expense is safely queued. Its id comes
+      // from the expense's, so saving again after a failure later in this
+      // function finds the same rule instead of making a second.
+      if (repeat && !expenseId) {
+        try {
+          await createRecurring.mutateAsync({
+            ruleId: deterministicId(`recurring:${targetExpenseId}`),
+            template: {
+              description: String(writePayload.description ?? ''),
+              category: (writePayload.category as string | null) ?? null,
+              currency: String(writePayload.currency),
+              amount,
+              splitParams: writePayload.splitParams as SplitParams,
+              participants: writePayload.participants as MemberId[],
+              payers: Object.fromEntries(
+                Object.entries(writePayload.payers as Record<string, string>).map(([id, value]) => [
+                  id,
+                  BigInt(value),
+                ]),
+              ),
+            },
+            when: {
+              frequency: repeat.frequency,
+              interval: repeat.interval,
+              secondDay: repeat.secondDay,
+              anchorDate: expenseDate,
+              skipFirst: true,
+            },
+          });
+        } catch (ruleError) {
+          reportHandled(ruleError, 'expense.repeat');
+          setScanNote(t.groupRecurring.couldNotSave);
+        }
       }
       // Paying a vendor's balance: the advance it settles is rewritten with its
       // balance cleared (a new version of that expense, via the ordinary edit
@@ -2473,6 +2529,48 @@ export default function AddExpenseScreen() {
                 dense
               />
 
+              {/* A rent, a subscription: the same expense again on a schedule,
+                  added for everyone on its date. New expenses only. */}
+              {!expenseId && !fx ? (
+                <View>
+                  <DetailRow
+                    icon={repeat ? 'repeat' : 'repeat-outline'}
+                    tint={theme.tint.mint}
+                    dense
+                    label={t.groupRecurring.repeat}
+                    value={
+                      repeat
+                        ? frequencyLabel(t, repeat.frequency, repeat.interval)
+                        : t.groupRecurring.never
+                    }
+                    placeholder={!repeat}
+                    onPress={() => setPickingRepeat(true)}
+                  />
+                  {repeat?.frequency === Frequency.TwiceAMonth ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <DayStepper
+                        label={t.personal.secondDay}
+                        value={repeat.secondDay}
+                        min={1}
+                        max={31}
+                        onChange={(secondDay) => setRepeat({ ...repeat, secondDay })}
+                      />
+                    </View>
+                  ) : null}
+                  {repeat?.frequency === Frequency.EveryNMonths ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <DayStepper
+                        label={t.personal.everyNMonths}
+                        value={repeat.interval}
+                        min={2}
+                        max={24}
+                        onChange={(interval) => setRepeat({ ...repeat, interval })}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               {/* Who outside the group the money went to: the landlord, the
                   car rental, the maid. Optional, so a faint "Add" until set. */}
               <DetailRow
@@ -2652,6 +2750,19 @@ export default function AddExpenseScreen() {
       ) : null}
 
       {/* How it was paid — a tag on the expense, defaulting to cash. */}
+      {pickingRepeat ? (
+        <RepeatSheet
+          value={repeat}
+          fallback={NEW_GROUP_REPEAT}
+          canStop
+          onChange={(next) => {
+            setRepeat(next);
+            setPickingRepeat(false);
+          }}
+          onClose={() => setPickingRepeat(false)}
+        />
+      ) : null}
+
       {pickingPayment ? (
         <PaymentMethodSheet
           value={paymentMethod}

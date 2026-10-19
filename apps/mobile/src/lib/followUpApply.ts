@@ -8,6 +8,10 @@
 
 import {
   currencyForCountry,
+  Frequency,
+  parseSplitParams,
+  type GroupRecurringTemplate,
+  type GroupRecurringWhen,
   encodeTxn,
   guessCategory,
   minorUnitExponent,
@@ -322,4 +326,54 @@ export const CHIP_MAX_CHARS = 24;
 export function chipLabel(label: string, max: number = CHIP_MAX_CHARS): string {
   const chars = [...label.trim()];
   return chars.length <= max ? chars.join('') : `${chars.slice(0, max - 1).join('')}…`;
+}
+
+/**
+ * The "does this repeat?" yes for a GROUP expense: a monthly rule that repeats
+ * the expense as it was saved (same split, same payers), starting at the month
+ * after it. The split is read off the saved version when it is there, so a voice
+ * "split 60/40" repeats as 60/40; without it the rule falls back to an equal
+ * split among the same people. Null when the expense has no people or payers to
+ * repeat (nothing safe to write).
+ */
+export function groupRecurringFor(
+  saved: SavedState,
+  version: {
+    readonly split_params?: unknown;
+    readonly payers?: readonly { member_id: string; amount: string }[];
+    readonly shares?: readonly { member_id: string }[];
+  } | null,
+): { template: GroupRecurringTemplate; when: GroupRecurringWhen } | null {
+  if (saved.kind !== 'group' || !saved.groupId) return null;
+  const participants = version?.shares?.length
+    ? version.shares.map((share) => share.member_id)
+    : [...saved.participants];
+  const payers: Record<string, bigint> = {};
+  if (version?.payers?.length) {
+    for (const payer of version.payers) payers[payer.member_id] = BigInt(payer.amount);
+  } else if (saved.payers) {
+    Object.assign(payers, saved.payers);
+  }
+  if (participants.length === 0 || Object.keys(payers).length === 0) return null;
+  let splitParams: GroupRecurringTemplate['splitParams'] = { kind: 'equal' };
+  if (version?.split_params) {
+    try {
+      splitParams = parseSplitParams(version.split_params);
+    } catch {
+      splitParams = { kind: 'equal' };
+    }
+  }
+  return {
+    template: {
+      description: saved.description,
+      category: saved.category,
+      currency: saved.currency,
+      amount: saved.amount,
+      splitParams,
+      participants,
+      payers,
+      notes: saved.notes,
+    },
+    when: { frequency: Frequency.Monthly, anchorDate: saved.date, skipFirst: true },
+  };
 }

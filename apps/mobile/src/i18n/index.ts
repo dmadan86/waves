@@ -1215,6 +1215,41 @@ export interface UiStrings {
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
+  groupRecurring: {
+    title: string;
+    sub: string;
+    empty: string;
+    emptyHint: string;
+    repeat: string;
+    never: string;
+    startsNext: string;
+    ends: string;
+    endsNever: string;
+    endsOn: string;
+    pickEnd: string;
+    next: string;
+    lastAdded: string;
+    paused: string;
+    ended: string;
+    pause: string;
+    resume: string;
+    stop: string;
+    stopTitle: string;
+    stopBody: string;
+    edit: string;
+    editTitle: string;
+    editHint: string;
+    save: string;
+    amountLabel: string;
+    nameLabel: string;
+    splitNote: string;
+    addedToast: string;
+    couldNotSave: string;
+    rowCount: string;
+    rowNone: string;
+    voiceDone: string;
+    offlineNote: string;
+  };
   /** Speak-an-expense quick add, reached from the bar's mic. */
   followUps: {
     added: string;
@@ -6518,6 +6553,41 @@ const en: UiStrings = {
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
   },
+  groupRecurring: {
+    title: 'Repeating',
+    sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
+    empty: 'Nothing repeating yet',
+    emptyHint: 'Add an expense and turn on Repeat.',
+    repeat: 'Repeat',
+    never: 'Does not repeat',
+    startsNext: 'Starts {date}',
+    ends: 'Ends',
+    endsNever: 'Never',
+    endsOn: 'Ends {date}',
+    pickEnd: 'Pick an end date',
+    next: 'Next {date}',
+    lastAdded: 'Last added {date}',
+    paused: 'Paused',
+    ended: 'Ended',
+    pause: 'Pause',
+    resume: 'Resume',
+    stop: 'Stop repeating',
+    stopTitle: 'Stop "{name}"?',
+    stopBody: 'No more will be added. Expenses already added stay. This cannot be undone.',
+    edit: 'Edit',
+    editTitle: 'Edit repeating expense',
+    editHint: 'Changes apply to future ones. Expenses already added stay as they are.',
+    save: 'Save',
+    amountLabel: 'Amount',
+    nameLabel: 'What for',
+    splitNote: 'Split stays the same as when it was set up.',
+    addedToast: 'Repeats {freq} from {date}',
+    couldNotSave: "Couldn't update. Try again.",
+    rowCount: 'Repeating ({n})',
+    rowNone: 'Repeating',
+    voiceDone: 'Will repeat monthly',
+    offlineNote: "Saved. It will start once you're back online.",
+  },
   followUps: {
     added: 'Added {amount} to {where} ✓',
     wherePersonal: 'Personal',
@@ -11221,6 +11291,42 @@ const ta: UiStrings = {
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  groupRecurring: {
+    title: 'மீண்டும் வரும் செலவுகள்',
+    sub: 'வாடகை, கட்டணங்கள் மற்றும் அட்டவணைப்படி வரும் செலவுகள். ஒவ்வொன்றும் அதன் தேதியில் அனைவருக்கும் சேர்க்கப்படும்.',
+    empty: 'இன்னும் எதுவும் மீண்டும் வருவதில்லை',
+    emptyHint: "செலவைச் சேர்த்து 'மீண்டும்' என்பதை இயக்கவும்.",
+    repeat: 'மீண்டும்',
+    never: 'மீண்டும் வராது',
+    startsNext: '{date} முதல்',
+    ends: 'முடிவு',
+    endsNever: 'ஒருபோதும் இல்லை',
+    endsOn: '{date} அன்று முடியும்',
+    pickEnd: 'முடிவு தேதியைத் தேர்வுசெய்க',
+    next: 'அடுத்தது {date}',
+    lastAdded: 'கடைசியாக {date} அன்று சேர்ந்தது',
+    paused: 'இடைநிறுத்தப்பட்டது',
+    ended: 'முடிந்தது',
+    pause: 'இடைநிறுத்து',
+    resume: 'மீண்டும் தொடங்கு',
+    stop: 'மீண்டும் வருவதை நிறுத்து',
+    stopTitle: '"{name}" நிறுத்தவா?',
+    stopBody:
+      'இனி எதுவும் சேர்க்கப்படாது. ஏற்கனவே சேர்ந்தவை இருக்கும். இதைத் திரும்பப் பெற முடியாது.',
+    edit: 'திருத்து',
+    editTitle: 'மீண்டும் வரும் செலவைத் திருத்து',
+    editHint: 'மாற்றங்கள் இனி வரும் செலவுகளுக்கு மட்டும். சேர்ந்தவை அப்படியே இருக்கும்.',
+    save: 'சேமி',
+    amountLabel: 'தொகை',
+    nameLabel: 'எதற்காக',
+    splitNote: 'பிரிப்பு தொடக்கத்தில் அமைத்தபடியே இருக்கும்.',
+    addedToast: '{freq} மீண்டும் வரும், {date} முதல்',
+    couldNotSave: 'புதுப்பிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    rowCount: 'மீண்டும் வருபவை ({n})',
+    rowNone: 'மீண்டும் வருபவை',
+    voiceDone: 'மாதந்தோறும் மீண்டும் வரும்',
+    offlineNote: 'சேமிக்கப்பட்டது. இணையம் வந்ததும் தொடங்கும்.',
   },
   followUps: {
     added: '{amount} {where}-இல் சேர்க்கப்பட்டது ✓',
@@ -16076,6 +16182,41 @@ const hi: UiStrings = {
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
+  groupRecurring: {
+    title: 'दोहराए जाने वाले',
+    sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
+    empty: 'अभी कुछ भी दोहराया नहीं जा रहा',
+    emptyHint: "खर्च जोड़ें और 'दोहराएँ' चालू करें।",
+    repeat: 'दोहराएँ',
+    never: 'दोहराया नहीं जाएगा',
+    startsNext: '{date} से शुरू',
+    ends: 'समाप्त',
+    endsNever: 'कभी नहीं',
+    endsOn: '{date} को समाप्त',
+    pickEnd: 'समाप्ति तिथि चुनें',
+    next: 'अगला {date}',
+    lastAdded: 'पिछली बार {date} को जुड़ा',
+    paused: 'रुका हुआ',
+    ended: 'समाप्त',
+    pause: 'रोकें',
+    resume: 'फिर शुरू करें',
+    stop: 'दोहराना बंद करें',
+    stopTitle: '"{name}" बंद करें?',
+    stopBody: 'आगे कुछ नहीं जुड़ेगा। जो खर्च जुड़ चुके हैं वे रहेंगे। इसे वापस नहीं किया जा सकता।',
+    edit: 'बदलें',
+    editTitle: 'दोहराया जाने वाला खर्च बदलें',
+    editHint: 'बदलाव आगे के खर्चों पर लागू होंगे। जुड़ चुके खर्च जैसे हैं वैसे रहेंगे।',
+    save: 'सहेजें',
+    amountLabel: 'राशि',
+    nameLabel: 'किसलिए',
+    splitNote: 'बँटवारा वही रहेगा जो शुरू में तय हुआ था।',
+    addedToast: '{freq} दोहराएगा, {date} से',
+    couldNotSave: 'अपडेट नहीं हो सका। फिर कोशिश करें।',
+    rowCount: 'दोहराए जाने वाले ({n})',
+    rowNone: 'दोहराए जाने वाले',
+    voiceDone: 'हर महीने दोहराया जाएगा',
+    offlineNote: 'सहेज लिया। ऑनलाइन होते ही शुरू होगा।',
+  },
   followUps: {
     added: '{amount} {where} में जोड़ा ✓',
     wherePersonal: 'निजी',
@@ -20844,6 +20985,41 @@ const ar: UiStrings = {
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
+  },
+  groupRecurring: {
+    title: 'المتكررة',
+    sub: 'الإيجار والفواتير وكل ما يتكرر في موعد محدد. يُضاف كل واحد في تاريخه للجميع.',
+    empty: 'لا شيء متكرر بعد',
+    emptyHint: 'أضف مصروفًا وفعّل «تكرار».',
+    repeat: 'تكرار',
+    never: 'لا يتكرر',
+    startsNext: 'يبدأ في {date}',
+    ends: 'ينتهي',
+    endsNever: 'أبدًا',
+    endsOn: 'ينتهي في {date}',
+    pickEnd: 'اختر تاريخ الانتهاء',
+    next: 'التالي {date}',
+    lastAdded: 'آخر إضافة {date}',
+    paused: 'متوقف مؤقتًا',
+    ended: 'انتهى',
+    pause: 'إيقاف مؤقت',
+    resume: 'استئناف',
+    stop: 'إيقاف التكرار',
+    stopTitle: 'إيقاف «{name}»؟',
+    stopBody: 'لن يُضاف المزيد. تبقى المصروفات المضافة. لا يمكن التراجع عن هذا.',
+    edit: 'تعديل',
+    editTitle: 'تعديل المصروف المتكرر',
+    editHint: 'تسري التغييرات على القادم فقط. تبقى المصروفات المضافة كما هي.',
+    save: 'حفظ',
+    amountLabel: 'المبلغ',
+    nameLabel: 'لماذا',
+    splitNote: 'يبقى التقسيم كما تم إعداده.',
+    addedToast: 'يتكرر {freq} ابتداءً من {date}',
+    couldNotSave: 'تعذّر التحديث. حاول مرة أخرى.',
+    rowCount: 'المتكررة ({n})',
+    rowNone: 'المتكررة',
+    voiceDone: 'سيتكرر شهريًا',
+    offlineNote: 'تم الحفظ. سيبدأ عند عودة الاتصال.',
   },
   followUps: {
     added: 'تمت إضافة {amount} إلى {where} ✓',

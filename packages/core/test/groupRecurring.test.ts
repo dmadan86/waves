@@ -14,6 +14,11 @@ import {
   type QueuedMutation,
   RECURRING_CATCH_UP_CAP,
   canChangeRecurringStatus,
+  canEditRecurringAmount,
+  recurringDisplayStatus,
+  recurringEditPatch,
+  type GroupRecurringRule,
+  rescalePayers,
   dueOccurrences,
   firstOccurrenceOnOrAfter,
   frequencyOf,
@@ -433,5 +438,71 @@ describe('group recurring: payloads and the offline overlay', () => {
     expect(rule.payers).toEqual({ [A]: 300n });
     expect(rule.participants).toEqual([A, B, C]);
     expect(rule.splitParams).toEqual({ kind: 'equal' });
+  });
+});
+
+describe('group recurring: editing the amount', () => {
+  it('a single payer pays all of the new amount', () => {
+    expect(rescalePayers({ a: 100n }, 250n)).toEqual({ a: 250n });
+  });
+  it('several payers keep their proportions and the total is exact', () => {
+    const out = rescalePayers({ a: 1n, b: 1n, c: 1n }, 100n);
+    expect(Object.values(out).reduce((x, y) => x + y, 0n)).toBe(100n);
+    expect(out.a).toBe(34n);
+    const two = rescalePayers({ a: 300n, b: 100n }, 1000n);
+    expect(two).toEqual({ a: 750n, b: 250n });
+  });
+  it('only splits that follow the amount can be re-amounted', () => {
+    expect(canEditRecurringAmount({ splitParams: { kind: 'equal' } })).toBe(true);
+    expect(canEditRecurringAmount({ splitParams: { kind: 'exact', amounts: { a: 1n } } })).toBe(
+      false,
+    );
+  });
+});
+
+describe('group recurring: the edit patch', () => {
+  const rule: GroupRecurringRule = {
+    id: 'rule-1',
+    groupId: 'g',
+    createdBy: 'a',
+    description: 'Rent',
+    category: null,
+    currency: 'INR',
+    amount: 90_000n,
+    splitParams: { kind: 'equal' },
+    participants: ['a', 'b', 'c'],
+    payers: { a: 90_000n },
+    notes: null,
+    ...monthly('2026-11-01'),
+    nextDate: '2026-11-01',
+    endDate: null,
+    status: 'active',
+    lastGeneratedOn: null,
+  };
+
+  it('rescales payers and recomputes shares for a new amount', () => {
+    const patch = recurringEditPatch(rule, { description: 'Rent', amount: 120_000n })!;
+    expect(patch.amount).toBe('120000');
+    expect(patch.payers).toEqual([{ memberId: 'a', amount: '120000' }]);
+    expect(patch.shares!.reduce((t, l) => t + BigInt(l.amount), 0n)).toBe(120_000n);
+  });
+
+  it('returns null for no change, a blank name, or an amount on an exact split', () => {
+    expect(recurringEditPatch(rule, { description: 'Rent', amount: 90_000n })).toBeNull();
+    expect(recurringEditPatch(rule, { description: '  ', amount: 90_000n })).toBeNull();
+    expect(recurringEditPatch(rule, { description: 'Rent', amount: 0n })).toBeNull();
+    const exact = {
+      ...rule,
+      splitParams: { kind: 'exact', amounts: { a: 30_000n, b: 30_000n, c: 30_000n } },
+    } as GroupRecurringRule;
+    expect(recurringEditPatch(exact, { description: 'Rent', amount: 100n })).toBeNull();
+    expect(recurringEditPatch(exact, { description: 'Flat rent', amount: 90_000n })).not.toBeNull();
+  });
+
+  it('shows stopped and past-end rules as ended', () => {
+    expect(recurringDisplayStatus(rule)).toBe('active');
+    expect(recurringDisplayStatus({ ...rule, status: 'paused' })).toBe('paused');
+    expect(recurringDisplayStatus({ ...rule, status: 'stopped' })).toBe('ended');
+    expect(recurringDisplayStatus({ ...rule, endDate: '2026-10-31' })).toBe('ended');
   });
 });
