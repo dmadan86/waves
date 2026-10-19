@@ -103,6 +103,11 @@ export function captureReducer(state: CaptureState, event: CaptureEvent): Captur
     case 'final':
       return { mic: 'idle', transcript: event.text, final: true, problem: null };
     case 'noSpeech':
+      // The recogniser reports a failure with `error` and then ends with no
+      // words; that empty end must not overwrite the reason (and its Open
+      // settings / Try again) with a vaguer "couldn't hear".
+      if (state.problem && state.problem.kind !== 'no-speech')
+        return { ...state, mic: 'idle', transcript: '', final: false };
       return { mic: 'idle', transcript: '', final: false, problem: { kind: 'no-speech' } };
     case 'error':
       return {

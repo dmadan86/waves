@@ -248,3 +248,22 @@ it('VF-18: a rejected save rethrows and releases the gate for retry', async () =
   expect(await gate.run(retry)).toBe(true);
   expect(retry).toHaveBeenCalledTimes(1);
 });
+
+it('VF-19: an error followed by an empty end keeps the error and its recovery', () => {
+  for (const event of [
+    { type: 'error', message: 'Denied', permission: true, settings: true },
+    { type: 'error', message: 'Recogniser busy' },
+  ] as const) {
+    const failed = captureReducer(listening, event);
+    const ended = captureReducer(failed, { type: 'noSpeech' });
+    expect(ended.problem).toEqual(failed.problem);
+    expect(ended.mic).toBe('idle');
+    expect(flow(ended)).toBe(
+      event.type === 'error' && 'permission' in event ? 'permission_required' : 'error',
+    );
+  }
+  // A later tap starts clean.
+  expect(
+    captureReducer(captureReducer(listening, { type: 'noSpeech' }), { type: 'start' }).problem,
+  ).toBeNull();
+});
