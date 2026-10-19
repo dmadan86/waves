@@ -173,7 +173,8 @@ describe('follow-up handler integration', () => {
       const body = await run(deps, { savedExpense: saved });
       expect(body.update).toEqual({ expenseId: saved.id, place: 'Blue Tokai' });
       expect(body.actions).toEqual([]);
-      expect(body.quota.used).toBe(3);
+      // D1: an unmetered follow-up reports no spend of the allowance.
+      expect(body.quota.used).toBe(0);
       expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_quota')).toBe(false);
       const p = payloads(fetchMock)[0];
       expect(p.messages[0].content).toContain(
@@ -182,7 +183,7 @@ describe('follow-up handler integration', () => {
       expect(p.messages[1].content).toBe('at Blue Tokai');
     },
   );
-  it('EH-02 adding a personal expense in a follow-up is rejected and refunded once', async () => {
+  it('EH-02 adding a personal expense in a follow-up is rejected; nothing was metered, so nothing is refunded', async () => {
     const { deps, rpc } = makeDeps({
       fetchImpl: scriptedLlm([
         {
@@ -196,7 +197,8 @@ describe('follow-up handler integration', () => {
     expect(body.clarify).toBe(
       "Sorry, I didn't catch what to do with that. Could you say it again?",
     );
-    expect(refunds(rpc)).toHaveLength(1);
+    expect(refunds(rpc)).toHaveLength(0);
+    expect(rpc.mock.calls.some(([n]) => n === 'waves_voice_agent_quota')).toBe(false);
     expect(logs()[0].valid).toBe(false);
   });
   it('EH-03 cached context never retains the previous saved expense', async () => {

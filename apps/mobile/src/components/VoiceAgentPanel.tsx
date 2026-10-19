@@ -21,6 +21,7 @@ import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
+import { AssistantSavedBar, type SavedBarEvent } from '@/components/AssistantSavedBar';
 import { VoiceFollowUps } from '@/components/VoiceFollowUps';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
@@ -39,6 +40,8 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
+import { followUpsAllowed } from '@/lib/assistantCorrections';
+import type { UndoEntry } from '@/lib/assistantUndo';
 import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { clarifyOptionViews, typedFollowUp } from '@/lib/voiceClarifyPure';
@@ -91,6 +94,8 @@ export interface VoiceAgentPanelProps {
   aboveFollowUps?: ReactNode;
   /** One command has ended: how, and whether it was a personal or a group expense. */
   onResolved?: (outcome: 'confirmed' | 'discarded', scope: 'personal' | 'group') => void;
+  /** A correction or undo on the saved bar, for telemetry. */
+  onSavedBarEvent?: (event: SavedBarEvent) => void;
 }
 
 type CardStatus = 'pending' | 'running' | 'done' | 'failed' | 'discarded';
@@ -161,6 +166,7 @@ export function VoiceAgentPanel({
   renderAfterSave,
   aboveFollowUps,
   onResolved,
+  onSavedBarEvent,
 }: VoiceAgentPanelProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -218,6 +224,9 @@ export function VoiceAgentPanel({
     write: AgentExpenseWrite | null;
   } | null>(null);
 
+  // A hand-off the follow-ups did (a lend, a duplicate removed), so the bar can undo it.
+  const [handoff, setHandoff] = useState<UndoEntry | null>(null);
+
   const toast = useToast();
   // Everything handled — a Done button closes the screen.
   const settled =
@@ -250,7 +259,7 @@ export function VoiceAgentPanel({
   // One proposed expense and nothing else: the confirmation screen, with its
   // fields editable in place. Anything more (several actions, a settle-up, an
   // answer or a question) keeps the card list below.
-  const only = plan.cards.length === 1 ? plan.cards[0] : undefined;
+  const only = followUpsAllowed(plan.cards) ? plan.cards[0] : undefined;
   if (
     only &&
     (only.action.type === 'add_expense' || only.action.type === 'add_personal') &&
@@ -275,6 +284,18 @@ export function VoiceAgentPanel({
             local={local}
             today={today}
             onClose={onClose}
+            onUndoable={setHandoff}
+            renderSavedBar={(bar) => (
+              <AssistantSavedBar
+                context={bar}
+                controls={bar.controls}
+                groupWrite={savedFollowUp.write}
+                local={local}
+                today={today}
+                externalEntry={handoff}
+                onEvent={onSavedBarEvent}
+              />
+            )}
           />
         </View>
       );
