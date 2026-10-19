@@ -4,6 +4,7 @@ import { decodeTxn } from '@waves/core';
 import {
   applyAnswer,
   chipLabel,
+  visibleChips,
   deviceCurrencyFor,
   factsFor,
   paymentChoices,
@@ -263,5 +264,26 @@ describe('chipLabel', () => {
     expect(chipLabel('Blue Tokai')).toBe('Blue Tokai');
     expect(chipLabel('The Very Long Named Cafe And Roastery')).toBe('The Very Long Named Caf…');
     expect([...chipLabel('x'.repeat(40))]).toHaveLength(24);
+  });
+});
+
+describe('visibleChips', () => {
+  const chip = (label: string, extra: { freeText?: boolean; skip?: boolean } = {}) => ({
+    label,
+    ...extra,
+  });
+  it('shows at most three answers and drops the ones that only say Skip', () => {
+    const chips = [chip('A'), chip('B'), chip('C'), chip('D'), chip('No', { skip: true })];
+    expect(visibleChips(chips).map((c) => c.label)).toEqual(['A', 'B', 'C']);
+  });
+  it('keeps the free-text chip last and never cuts it', () => {
+    const chips = [chip('A'), chip('B'), chip('C'), chip('Somewhere else', { freeText: true })];
+    expect(visibleChips(chips).map((c) => c.label)).toEqual(['A', 'B', 'Somewhere else']);
+  });
+  it('leaves a short list alone', () => {
+    expect(visibleChips([chip('Yes'), chip('Not now')]).map((c) => c.label)).toEqual([
+      'Yes',
+      'Not now',
+    ]);
   });
 });

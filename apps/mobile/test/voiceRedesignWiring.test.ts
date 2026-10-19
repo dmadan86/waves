@@ -22,9 +22,8 @@ describe('voice screen redesign wiring', () => {
   });
 
   it('VW-02: the review state is derived from the existing phase, not a parallel copy', () => {
-    expect(voice).toContain(
-      'const stageInput = { phase, saving, needsAnswer: whoBlocked, agent: agentStage }',
-    );
+    expect(voice).toContain('needsAnswer: whoBlocked,');
+    expect(voice).toContain('agent: agentStage,');
     expect(voice).not.toMatch(/useState<VoiceFlowState>/);
   });
 

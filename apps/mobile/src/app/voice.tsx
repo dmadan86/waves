@@ -31,7 +31,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   type LayoutChangeEvent,
   Platform,
@@ -120,7 +119,6 @@ import {
 import type { VoiceDoneInfo } from '@/components/VoiceCapture';
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -189,8 +187,8 @@ import {
   type AgentStage,
 } from '@/lib/voiceFlowPure';
 import { AssistantComposer } from '@/components/AssistantComposer';
-import { AssistantIntro } from '@/components/AssistantIntro';
-import { AssistantTeaser } from '@/components/AssistantTeaser';
+import { SavedActions } from '@/components/voice/SavedActions';
+import { SavedSummary } from '@/components/voice/SavedSummary';
 import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
 import { trackAssistant, type AssistantScope } from '@/lib/assistantTelemetry';
@@ -511,6 +509,9 @@ export default function VoiceScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const cardBox = useRef({ y: 0, h: 0 });
   const wantReveal = useRef(false);
+  // Where the stage and its mic sit in the scroll, so a card never scrolls them away.
+  const stageY = useRef(0);
+  const micTop = useRef(0);
   // The single expense's editor is open (the preview's Edit).
   const [editingDraft, setEditingDraft] = useState(false);
   // The whole flow stays on this screen: a save lands here, on a compact
@@ -587,8 +588,8 @@ export default function VoiceScreen() {
   const agentReady = agentStatusReady && voiceConsent.ready;
   const consentSheetOpen =
     agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
-  // Which engine heard the last capture — shown on every step after it too.
-  const [engine, setEngine] = useState<VoiceEngineInfo | null>(null);
+  // Which engine heard the capture — its pill shows only while listening.
+  const [, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
   // answer; cleared once that answer has been read.
   const [agentFollowUp, setAgentFollowUp] = useState<{
@@ -2260,7 +2261,13 @@ export default function VoiceScreen() {
   // The review's state, read from the screen's own phase and flags.
   // The stage that stays on screen once the sentence is heard (mic, status,
   // transcript) reads the same flow, whichever card is under it.
-  const stageInput = { phase, saving, needsAnswer: whoBlocked, agent: agentStage };
+  const stageInput = {
+    phase,
+    saving,
+    needsAnswer: whoBlocked,
+    agent: agentStage,
+    answering: answer?.kind === 'group' && queryLedger.loading,
+  };
   const stageState = voiceFlowState(stageInput);
   const stageTap = stageMicTap(phase, stageState);
   // Tapping the mic speaks the next sentence in place: onto the reviewed batch,
@@ -2468,40 +2475,34 @@ export default function VoiceScreen() {
     handleTranscript(text, { typed: true });
   };
 
-  // A Free person's saved expense: one line saying so, then the Pro teaser in
-  // place of the question Pro would be asked. Never blocks; Done is below it.
+  // A Free person's saved expense: the same summary card, with no Undo and no
+  // question after it. Done is below it.
   const renderFreeAfterSave = (saved: SavedState): ReactNode => {
     const where =
       saved.kind === 'personal'
         ? t.followUps.wherePersonal
         : (groupRows.find((group) => group.id === saved.groupId)?.name?.trim() ??
           t.followUps.wherePersonal);
+    const category = saved.category
+      ? ((t.categories as Record<string, string>)[saved.category] ?? '')
+      : '';
     return (
-      <View style={{ gap: theme.spacing.md }}>
-        <Text variant="subheading">
-          {fill(t.followUps.added, {
-            amount: formatMoney(money(saved.amount, saved.currency), { locale }),
-            where,
-          })}
-        </Text>
-        <AssistantTeaser
-          viewerId={viewerId}
-          isPro={isPro}
-          kind={saved.hasReceipt ? 'payment' : 'place'}
-        />
-      </View>
+      <SavedSummary
+        amount={formatMoney(money(saved.amount, saved.currency), { locale })}
+        detail={[category, where].filter(Boolean).join(' · ')}
+      />
     );
   };
 
-  // Scroll the arriving card into view, never so far that the stage's status
-  // line and transcript leave the top. Runs when the card (re)lays out, since
+  // Scroll the arriving card into view only if it sits below the fold, never so
+  // far that the mic and its status line leave the top. Runs when the card (re)lays out, since
   // its height is only known then; the flag lapses if no layout follows.
   const revealCard = (): void => {
     const { y, h } = cardBox.current;
     if (!wantReveal.current || h <= 0) return;
     wantReveal.current = false;
     const needed = y + h - viewportHeight + theme.spacing.md;
-    const target = Math.min(Math.max(needed, 0), Math.max(y - 120, 0));
+    const target = Math.min(Math.max(needed, 0), Math.max(micTop.current - theme.spacing.sm, 0));
     scrollRef.current?.scrollTo({ y: target, animated: !reduceMotion });
   };
   const cardKey = phase === 'agent' ? `agent-${agentStage}` : phase;
@@ -2530,10 +2531,9 @@ export default function VoiceScreen() {
 
   return (
     <Screen>
-      {/* The desk scene along the foot, under everything. Not on the review:
-          that list keeps its pinned Save bar there, and a picture behind the
-          figures being checked would only be in the way. */}
-      {phase !== 'review' && phase !== 'agent' ? <VoiceSceneBackdrop /> : null}
+      {/* The desk scene along the foot, under everything, in every step; a card
+          or a pinned bar simply covers it. */}
+      <VoiceSceneBackdrop />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -2625,19 +2625,16 @@ export default function VoiceScreen() {
               {t.voice.agentQuotaFallback}
             </Text>
           ) : null}
-          {phase === 'agent' ? (
-            <View style={{ marginTop: -theme.spacing.xs }}>
-              <Text tone="muted" variant="caption">
-                {t.voice.confirmSubtitle}
-              </Text>
-            </View>
-          ) : null}
-
           {/* One stage for the whole flow: the mic, the status line and what was
               heard stay put while the cards below it come and go. The listening
               phase draws the same frame inside the mic panel. */}
           {phase !== 'listening' ? (
-            <View style={{ paddingTop: theme.spacing.md }}>
+            <View
+              style={{ paddingTop: theme.spacing.md }}
+              onLayout={(event) => {
+                stageY.current = event.nativeEvent.layout.y;
+              }}
+            >
               <VoiceStage
                 status={stageStatusKey(stageInput)}
                 micMode={stageMicMode(stageState)}
@@ -2650,12 +2647,11 @@ export default function VoiceScreen() {
                     ? editHeard
                     : undefined
                 }
+                onMicLayout={(event) => {
+                  micTop.current = stageY.current + theme.spacing.md + event.nativeEvent.layout.y;
+                }}
                 compact={stageState !== 'processing'}
-              >
-                {/* Small and last under what was heard, where the mic panel keeps it
-                    while listening. The agent's card carries its own. */}
-                {phase !== 'agent' ? <VoiceEngineBadge info={engine} /> : null}
-              </VoiceStage>
+              />
             </View>
           ) : null}
 
@@ -2668,9 +2664,7 @@ export default function VoiceScreen() {
                 today={today()}
                 onFallback={agentFellBack}
                 followUp={agentFollowUp}
-                engine={engine}
                 renderAfterSave={isPro ? undefined : renderFreeAfterSave}
-                aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
                 onSavedBarEvent={(event) => {
                   if (event.name === 'assistant_correction') {
                     trackAssistant('assistant_correction', {
@@ -2714,7 +2708,10 @@ export default function VoiceScreen() {
                 {amountQuestion || currencyQuestion ? (
                   // An amount or currency that could be read two ways is asked,
                   // never picked: Add expense waits for the answer.
-                  <ClarifyCard title={t.voiceScreen.checkTitle} theme={theme}>
+                  <ClarifyCard
+                    title={(amountQuestion?.question ?? currencyQuestion)?.prompt ?? ''}
+                    theme={theme}
+                  >
                     {amountQuestion ? (
                       <AmountChooser
                         question={amountQuestion.question}
@@ -2795,40 +2792,19 @@ export default function VoiceScreen() {
                   </Card>
                 ) : null}
 
-                {/* Speak again and append — another expense (or several) onto the
-                batch, keeping the ones already here and the chosen destination.
-                The one and only "add another"; the header carries no rival mic.
-                A slim inline text-button, not a tall box: it is one more line
-                under the list, not a second card competing with it. */}
-                <Pressable
-                  onPress={startAddMore}
-                  accessibilityRole="button"
-                  accessibilityLabel={t.voice.addMore}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: theme.spacing.xs,
-                    paddingVertical: theme.spacing.sm,
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
-                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                    {t.voice.addMore}
-                  </Text>
-                </Pressable>
-
                 {/* A group that was named but is not clearly one of theirs: say so and
                 offer the candidates, instead of filing it somewhere on a guess. */}
-                {groupPending && intent ? (
+                {groupPending && intent && !amountQuestion && !currencyQuestion ? (
                   <Callout tone="warning">
                     {intent.groupSource === 'ambiguous'
                       ? t.voice.whichGroup
                       : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
                   </Callout>
                 ) : null}
-                {groupPending && intent?.groupSource === 'ambiguous' ? (
+                {groupPending &&
+                intent?.groupSource === 'ambiguous' &&
+                !amountQuestion &&
+                !currencyQuestion ? (
                   <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
                     {(intent.groupHint?.candidates ?? []).map((candidate) => (
                       <Pressable
@@ -2952,7 +2928,6 @@ export default function VoiceScreen() {
                   renderFreeAfterSave(savedResult.state)
                 ) : savedResult.kind === 'expense' ? (
                   <View style={{ gap: theme.spacing.md }}>
-                    <AssistantIntro viewerId={viewerId} />
                     <VoiceFollowUps
                       initial={savedResult.state}
                       groupWrite={savedResult.write}
@@ -3042,19 +3017,18 @@ export default function VoiceScreen() {
                     <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
                   </View>
                 ) : null}
-                {answer?.kind === 'spend'
+                {answer?.kind === 'spend' || (answer?.kind === 'group' && queryLedger.loading)
                   ? null
                   : (() => {
                       const line = answerLine();
-                      return 'loading' in line ? (
-                        <ActivityIndicator color={theme.color.brand} />
-                      ) : (
-                        <Text variant="title" style={{ textAlign: 'center' }}>
-                          {line.text}
-                        </Text>
-                      );
+                      return 'text' in line ? (
+                        <Card>
+                          <Text style={{ fontWeight: '700', textAlign: 'center' }}>
+                            {line.text}
+                          </Text>
+                        </Card>
+                      ) : null;
                     })()}
-                <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
               </View>,
             )
           ) : (
@@ -3153,8 +3127,6 @@ export default function VoiceScreen() {
       {phase === 'saved' ? (
         <View
           style={{
-            flexDirection: 'row',
-            gap: theme.spacing.sm,
             paddingHorizontal: theme.spacing.xl,
             paddingTop: theme.spacing.sm,
             paddingBottom: insets.bottom + theme.spacing.sm,
@@ -3163,17 +3135,7 @@ export default function VoiceScreen() {
             backgroundColor: theme.color.surface,
           }}
         >
-          <View style={{ flex: 1 }}>
-            <Button
-              label={t.voiceScreen.addAnother}
-              variant="secondary"
-              fullWidth
-              onPress={addAnother}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button label={t.voiceScreen.done} variant="brand" fullWidth onPress={finishVoice} />
-          </View>
+          <SavedActions onDone={finishVoice} onAddAnother={addAnother} />
         </View>
       ) : null}
       {phase === 'review' ? (
@@ -3408,9 +3370,6 @@ function AmountChooser({
 }) {
   return (
     <View style={{ gap: theme.spacing.xs }}>
-      <Text variant="caption" style={{ fontWeight: '600' }}>
-        {question.prompt}
-      </Text>
       <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
         {question.answers.map((answer) => (
           <Pressable
@@ -3419,7 +3378,8 @@ function AmountChooser({
             accessibilityRole="button"
             accessibilityLabel={answer.label}
             style={({ pressed }) => ({
-              paddingVertical: theme.spacing.xs,
+              minHeight: 44,
+              justifyContent: 'center',
               paddingHorizontal: theme.spacing.md,
               borderRadius: 999,
               borderWidth: 1,
@@ -3427,9 +3387,7 @@ function AmountChooser({
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text variant="caption" style={{ fontWeight: '600' }}>
-              {answer.label}
-            </Text>
+            <Text style={{ fontWeight: '600' }}>{answer.label}</Text>
           </Pressable>
         ))}
       </Row>
@@ -3462,9 +3420,7 @@ function ClarifyCard({
     >
       <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
         <Ionicons name="help-circle-outline" size={iconSize.sm} color={theme.color.text} />
-        <Text variant="caption" style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
+        <Text style={{ fontWeight: '700' }}>{title}</Text>
       </Row>
       {children}
     </View>

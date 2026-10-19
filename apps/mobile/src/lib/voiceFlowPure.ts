@@ -160,6 +160,8 @@ export interface VoiceFlowInput {
   readonly needsAnswer?: boolean;
   /** The agent panel's stage while `phase` is `agent` (absent: still reading). */
   readonly agent?: AgentStage;
+  /** An answer is still being worked out (the mic is busy, never a second spinner). */
+  readonly answering?: boolean;
 }
 
 export function voiceFlowState(input: VoiceFlowInput): VoiceFlowState {
@@ -176,7 +178,7 @@ export function voiceFlowState(input: VoiceFlowInput): VoiceFlowState {
     case 'committing':
       return 'saving';
     case 'answer':
-      return 'preview';
+      return input.answering ? 'processing' : 'preview';
     case 'review':
       if (input.saving) return 'saving';
       return input.needsAnswer ? 'clarification_required' : 'preview';
@@ -254,7 +256,7 @@ export function micButtonMode(state: VoiceFlowState): 'start' | 'stop' | 'busy' 
  * is not an "expense ready".
  */
 export function stageStatusKey(input: VoiceFlowInput): VoiceStatusKey {
-  if (input.phase === 'answer' && !input.saved) return 'ready';
+  if (input.phase === 'answer' && !input.saved && !input.answering) return 'ready';
   return voiceStatusKey(voiceFlowState(input), input);
 }
 

@@ -289,3 +289,13 @@ it('VF-19: an error followed by an empty end keeps the error and its recovery', 
     captureReducer(captureReducer(listening, { type: 'noSpeech' }), { type: 'start' }).problem,
   ).toBeNull();
 });
+
+describe('an answer being worked out', () => {
+  it('is processing, with the mic busy and the one status line, never a second spinner', () => {
+    const input = { phase: 'answer', answering: true } as const;
+    expect(voiceFlowState(input)).toBe('processing');
+    expect(stageStatusKey(input)).toBe('processing');
+    expect(stageStatusKey({ phase: 'answer' })).toBe('ready');
+    expect(voiceFlowState({ phase: 'answer' })).toBe('preview');
+  });
+});

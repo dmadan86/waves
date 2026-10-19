@@ -1316,11 +1316,9 @@ export interface UiStrings {
     skip: string;
     dontAsk: string;
     done: string;
-    typeInstead: string;
     yes: string;
     no: string;
     working: string;
-    placeHere: string;
     placeAsk: string;
     placeElse: string;
     receiptAsk: string;
@@ -1379,7 +1377,6 @@ export interface UiStrings {
     handedOff: string;
     gotIt: string;
     couldNotUse: string;
-    voiceAnswer: string;
     listening: string;
     stopListening: string;
     transcribing: string;
@@ -1396,21 +1393,6 @@ export interface UiStrings {
     resetHint: string;
     resetDone: string;
     typingOffline: string;
-    reasonPlace: string;
-    reasonReceipt: string;
-    reasonSplit: string;
-    reasonPayer: string;
-    reasonAttendance: string;
-    reasonTrip: string;
-    reasonWrapup: string;
-    reasonRecurring: string;
-    reasonDuplicate: string;
-    reasonCurrency: string;
-    reasonCategory: string;
-    reasonDateWords: string;
-    reasonDateNight: string;
-    reasonLend: string;
-    reasonWork: string;
   };
   /** The Speak-an-expense capture surface (voice.tsx, VoiceCapture). */
   voiceScreen: {
@@ -1444,7 +1426,6 @@ export interface UiStrings {
     justYou: string;
     addExpense: string;
     edit: string;
-    checkTitle: string;
     retry: string;
     openSettings: string;
     permissionBody: string;
@@ -1531,8 +1512,6 @@ export interface UiStrings {
     /** The row that adds a brand-new person (a 1:1 IOU) by name. */
     addPerson: string;
     addPersonPlaceholder: string;
-    /** The affordance under the review items to speak and append more expenses. */
-    addMore: string;
     /** The two destination tabs in the "Save to" picker. */
     groupsTab: string;
     peopleTab: string;
@@ -1677,12 +1656,8 @@ export interface UiStrings {
     sqChipLastYear: string;
     sqChipLast7: string;
     sqChipLast30: string;
-    /** The button on the answer card that reopens the mic for another question. */
-    askAgain: string;
     /** Shown while the advanced voice agent reads the clip. */
     agentUnderstanding: string;
-    /** Under "Understanding…", while the words are being worked out. */
-    agentUnderstandingHint: string;
     agentHeard: string;
     agentConfirm: string;
     agentConfirmAll: string;
@@ -1691,18 +1666,12 @@ export interface UiStrings {
     agentDone: string;
     agentCouldNotRun: string;
     agentProblem: string;
-    agentClarifyTitle: string;
     agentTryAgain: string;
     /** After the assistant asks something: speak the answer. */
     agentAnswer: string;
-    /** Clarification with tappable options: the primary button, and the way to answer by speaking. */
-    agentContinue: string;
-    agentTypeInstead: string;
     agentTypePlaceholder: string;
     agentTypeSend: string;
     agentTypeMic: string;
-    /** Accessibility hint on an option row. */
-    agentOptionHint: string;
     agentOtherGroup: string;
     agentSearchGroups: string;
     agentNoGroupMatch: string;
@@ -1711,7 +1680,6 @@ export interface UiStrings {
     agentTrialQuotaLeft: string;
     /** The same, with the day the pool closes. */
     agentTrialQuotaLeftUntil: string;
-    confirmSubtitle: string;
     confirmUnderstood: string;
     confirmEditHint: string;
     confirmEditAll: string;
@@ -1726,7 +1694,6 @@ export interface UiStrings {
     confirmNotePlaceholder: string;
     confirmAdd: string;
     confirmClear: string;
-    confirmQuotaInfo: string;
     confirmPersonMissing: string;
     confirmPickGroup: string;
     confirmNeedAmount: string;
@@ -1739,16 +1706,7 @@ export interface UiStrings {
     confirmNoteHint: string;
     confirmToday: string;
     confirmYesterday: string;
-    /** Engine badge on the voice screen. */
-    engineCloud: string;
-    engineOnDevice: string;
-    engineReasonFree: string;
-    engineReasonQuota: string;
-    engineReasonOffline: string;
-    /** Online, but the cloud voice (stream or agent) failed or timed out. */
-    engineReasonCloudDown: string;
     /** Cloud voice switched off in Settings. */
-    engineReasonOff: string;
     agentQuotaFallback: string;
     /** Card text (the next ones too): {placeholders} are filled in. */
     agentAdd: string;
@@ -6789,11 +6747,9 @@ const en: UiStrings = {
     skip: 'Skip',
     dontAsk: "Don't ask this again",
     done: 'Done',
-    typeInstead: 'Type instead',
     yes: 'Yes',
     no: 'No',
     working: 'Updating…',
-    placeHere: "Where was this — {place} (you're here now)?",
     placeAsk: 'Where was this?',
     placeElse: 'Somewhere else',
     receiptAsk: "Got a receipt? I'll keep it with the expense.",
@@ -6852,7 +6808,6 @@ const en: UiStrings = {
     handedOff: 'Opened it for you',
     gotIt: 'Got it',
     couldNotUse: "I couldn't use that",
-    voiceAnswer: 'Answer by voice',
     listening: 'Listening…',
     stopListening: 'Done speaking',
     transcribing: 'Working it out…',
@@ -6869,21 +6824,6 @@ const en: UiStrings = {
     resetHint: 'Ask every kind of follow-up again',
     resetDone: 'Follow-up questions reset',
     typingOffline: 'Typing needs a connection',
-    reasonPlace: "You're at a place right now",
-    reasonReceipt: 'Bigger than your usual spend',
-    reasonSplit: "You've split {category} with {name} before",
-    reasonPayer: 'Your words name {name} as the payer',
-    reasonAttendance: '{count} people are in this group',
-    reasonTrip: '{trip} is on right now',
-    reasonWrapup: '{trip} has ended or gone quiet',
-    reasonRecurring: 'Same amount around day {day}, a few months running',
-    reasonDuplicate: 'Added in the last day',
-    reasonCurrency: 'Your phone is in a {currency} country',
-    reasonCategory: "Couldn't tell from the words",
-    reasonDateWords: 'You said it was yesterday',
-    reasonDateNight: "It's past midnight",
-    reasonLend: 'Your words say you gave money to {name}',
-    reasonWork: 'Work-type spend above your usual',
   },
   voiceScreen: {
     headline: 'Just say it naturally',
@@ -6916,7 +6856,6 @@ const en: UiStrings = {
     justYou: 'Just you',
     addExpense: 'Add expense',
     edit: 'Edit',
-    checkTitle: 'Check before adding',
     retry: 'Try again',
     openSettings: 'Open settings',
     permissionBody: 'Allow microphone access to speak an expense, or type it instead.',
@@ -6973,7 +6912,6 @@ const en: UiStrings = {
     people: 'People',
     addPerson: 'Add a person',
     addPersonPlaceholder: 'Their name',
-    addMore: 'Add another',
     groupsTab: 'Groups',
     peopleTab: 'People',
     justMe: 'Just me',
@@ -7066,9 +7004,7 @@ const en: UiStrings = {
     sqChipLastYear: 'Last year',
     sqChipLast7: 'Last 7 days',
     sqChipLast30: 'Last 30 days',
-    askAgain: 'Ask again',
     agentUnderstanding: 'Understanding…',
-    agentUnderstandingHint: 'Just a moment, I’m listening.',
     agentHeard: 'Heard',
     agentConfirm: 'Confirm',
     agentConfirmAll: 'Confirm all',
@@ -7077,15 +7013,11 @@ const en: UiStrings = {
     agentDone: 'Done',
     agentCouldNotRun: "Couldn't do that. Try again.",
     agentProblem: "Couldn't match this to your people or groups.",
-    agentClarifyTitle: "I didn't quite get that",
     agentTryAgain: 'Try again',
     agentAnswer: 'Answer',
-    agentContinue: 'Continue',
-    agentTypeInstead: 'Type instead',
     agentTypePlaceholder: 'Type your answer',
     agentTypeSend: 'Send answer',
     agentTypeMic: 'Answer by voice',
-    agentOptionHint: 'Double tap to choose this answer',
     agentOtherGroup: 'Another group',
     agentSearchGroups: 'Search your groups',
     agentNoGroupMatch: 'No group by that name',
@@ -7093,7 +7025,6 @@ const en: UiStrings = {
     agentQuotaLeft: '{percent}% of your advanced commands left this month',
     agentTrialQuotaLeft: '{percent}% of your Pro trial commands left',
     agentTrialQuotaLeftUntil: '{percent}% of your trial voice commands left · until {date}',
-    confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
     confirmUnderstood: 'I understood this',
     confirmEditHint: 'You can edit if something looks wrong.',
     confirmEditAll: 'Edit all',
@@ -7108,7 +7039,6 @@ const en: UiStrings = {
     confirmNotePlaceholder: 'What was it for?',
     confirmAdd: 'Add expense',
     confirmClear: 'Clear',
-    confirmQuotaInfo: 'About advanced commands',
     confirmPersonMissing: "{name} isn't in this group",
     confirmPickGroup: 'Pick a group to add this to',
     confirmNeedAmount: 'Enter an amount',
@@ -7121,13 +7051,6 @@ const en: UiStrings = {
     confirmNoteHint: 'Add a note (optional)',
     confirmToday: 'Today',
     confirmYesterday: 'Yesterday',
-    engineCloud: 'Cloud',
-    engineOnDevice: 'On-device',
-    engineReasonFree: 'Free plan',
-    engineReasonQuota: 'Monthly limit reached',
-    engineReasonOffline: 'Offline',
-    engineReasonCloudDown: 'Cloud unavailable',
-    engineReasonOff: 'Off in settings',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
     agentPaid: '{name} paid',
@@ -11669,11 +11592,9 @@ const ta: UiStrings = {
     skip: 'தவிர்',
     dontAsk: 'இதை மீண்டும் கேட்காதே',
     done: 'முடிந்தது',
-    typeInstead: 'தட்டச்சு செய்',
     yes: 'ஆம்',
     no: 'இல்லை',
     working: 'புதுப்பிக்கிறது…',
-    placeHere: 'இது எங்கே — {place} (நீங்கள் இப்போது இங்கே இருக்கிறீர்கள்)?',
     placeAsk: 'இது எங்கே?',
     placeElse: 'வேறு இடம்',
     receiptAsk: 'ரசீது இருக்கிறதா? செலவுடன் சேர்த்து வைத்துக்கொள்கிறேன்.',
@@ -11732,7 +11653,6 @@ const ta: UiStrings = {
     handedOff: 'உங்களுக்காகத் திறந்தேன்',
     gotIt: 'சரி',
     couldNotUse: 'இதை என்னால் பயன்படுத்த முடியவில்லை',
-    voiceAnswer: 'குரலில் பதில் சொல்லுங்கள்',
     listening: 'கேட்டுக்கொண்டிருக்கிறது…',
     stopListening: 'பேசி முடித்தேன்',
     transcribing: 'புரிந்துகொள்கிறது…',
@@ -11749,21 +11669,6 @@ const ta: UiStrings = {
     resetHint: 'எல்லா வகை தொடர் கேள்விகளையும் மீண்டும் கேள்',
     resetDone: 'தொடர் கேள்விகள் மீட்டமைக்கப்பட்டன',
     typingOffline: 'தட்டச்சு செய்ய இணைப்பு தேவை',
-    reasonPlace: 'நீங்கள் இப்போது ஓர் இடத்தில் இருக்கிறீர்கள்',
-    reasonReceipt: 'உங்கள் வழக்கமான செலவை விட பெரியது',
-    reasonSplit: 'முன்பு {category} செலவை {name} உடன் பிரித்திருக்கிறீர்கள்',
-    reasonPayer: 'உங்கள் சொற்களில் {name} செலுத்தியவர்',
-    reasonAttendance: 'இந்தக் குழுவில் {count} பேர் உள்ளனர்',
-    reasonTrip: '{trip} இப்போது நடக்கிறது',
-    reasonWrapup: '{trip} முடிந்தது அல்லது அமைதியாகிவிட்டது',
-    reasonRecurring: 'பல மாதங்களாக {day}-ஆம் நாளை ஒட்டி அதே தொகை',
-    reasonDuplicate: 'கடந்த ஒரு நாளில் சேர்க்கப்பட்டது',
-    reasonCurrency: 'உங்கள் தொலைபேசி {currency} நாட்டில் உள்ளது',
-    reasonCategory: 'சொற்களிலிருந்து தெரியவில்லை',
-    reasonDateWords: 'நேற்று என்று சொன்னீர்கள்',
-    reasonDateNight: 'நள்ளிரவு தாண்டிவிட்டது',
-    reasonLend: '{name}-க்குப் பணம் கொடுத்ததாக உங்கள் சொற்கள் கூறுகின்றன',
-    reasonWork: 'வழக்கத்தை விட அதிகமான அலுவலகவகைச் செலவு',
   },
   voiceScreen: {
     headline: 'இயல்பாகச் சொல்லுங்கள்',
@@ -11796,7 +11701,6 @@ const ta: UiStrings = {
     justYou: 'நீங்கள் மட்டும்',
     addExpense: 'செலவைச் சேர்',
     edit: 'திருத்து',
-    checkTitle: 'சேர்ப்பதற்கு முன் சரிபாருங்கள்',
     retry: 'மீண்டும் முயலவும்',
     openSettings: 'அமைப்புகளைத் திற',
     permissionBody: 'செலவைச் சொல்ல மைக்ரோஃபோன் அனுமதி தாருங்கள், அல்லது தட்டச்சு செய்யுங்கள்.',
@@ -11855,7 +11759,6 @@ const ta: UiStrings = {
     people: 'நபர்கள்',
     addPerson: 'ஒரு நபரைச் சேர்',
     addPersonPlaceholder: 'அவர்களின் பெயர்',
-    addMore: 'மற்றொன்றைச் சேர்',
     groupsTab: 'குழுக்கள்',
     peopleTab: 'நபர்கள்',
     justMe: 'நான் மட்டும்',
@@ -11949,9 +11852,7 @@ const ta: UiStrings = {
     sqChipLastYear: 'கடந்த ஆண்டு',
     sqChipLast7: 'கடந்த 7 நாட்கள்',
     sqChipLast30: 'கடந்த 30 நாட்கள்',
-    askAgain: 'மீண்டும் கேள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
-    agentUnderstandingHint: 'ஒரு நொடி, கேட்டுக்கொண்டிருக்கிறேன்.',
     agentHeard: 'கேட்டது',
     agentConfirm: 'உறுதிப்படுத்து',
     agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
@@ -11960,15 +11861,11 @@ const ta: UiStrings = {
     agentDone: 'முடிந்தது',
     agentCouldNotRun: 'இதைச் செய்ய முடியவில்லை. மீண்டும் முயலுங்கள்.',
     agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
-    agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
     agentTryAgain: 'மீண்டும் முயல்',
     agentAnswer: 'பதில் சொல்',
-    agentContinue: 'தொடர்க',
-    agentTypeInstead: 'பதிலாக தட்டச்சு செய்',
     agentTypePlaceholder: 'உங்கள் பதிலை தட்டச்சு செய்யுங்கள்',
     agentTypeSend: 'பதிலை அனுப்பு',
     agentTypeMic: 'குரலில் பதிலளி',
-    agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
     agentOtherGroup: 'வேறு குழு',
     agentSearchGroups: 'உங்கள் குழுக்களைத் தேடுங்கள்',
     agentNoGroupMatch: 'அந்தப் பெயரில் குழு இல்லை',
@@ -11976,7 +11873,6 @@ const ta: UiStrings = {
     agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
     agentTrialQuotaLeft: 'உங்கள் Pro சோதனைக் கட்டளைகளில் {percent}% மீதம்',
     agentTrialQuotaLeftUntil: 'உங்கள் சோதனைக் குரல் கட்டளைகளில் {percent}% மீதம் · {date} வரை',
-    confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
     confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
     confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
     confirmEditAll: 'எல்லாவற்றையும் திருத்து',
@@ -11991,7 +11887,6 @@ const ta: UiStrings = {
     confirmNotePlaceholder: 'எதற்காக?',
     confirmAdd: 'செலவைச் சேர்',
     confirmClear: 'அழி',
-    confirmQuotaInfo: 'மேம்பட்ட கட்டளைகள் பற்றி',
     confirmPersonMissing: '{name} இந்த குழுவில் இல்லை',
     confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
     confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
@@ -12004,13 +11899,6 @@ const ta: UiStrings = {
     confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     confirmToday: 'இன்று',
     confirmYesterday: 'நேற்று',
-    engineCloud: 'கிளவுட்',
-    engineOnDevice: 'சாதனத்தில்',
-    engineReasonFree: 'இலவசத் திட்டம்',
-    engineReasonQuota: 'மாத வரம்பு முடிந்தது',
-    engineReasonOffline: 'இணைப்பு இல்லை',
-    engineReasonCloudDown: 'கிளவுட் கிடைக்கவில்லை',
-    engineReasonOff: 'அமைப்புகளில் ஆஃப்',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
     agentAdd: '{amount} சேர்',
@@ -16697,11 +16585,9 @@ const hi: UiStrings = {
     skip: 'छोड़ें',
     dontAsk: 'यह दोबारा न पूछें',
     done: 'हो गया',
-    typeInstead: 'टाइप करें',
     yes: 'हाँ',
     no: 'नहीं',
     working: 'अपडेट हो रहा है…',
-    placeHere: 'यह कहाँ था — {place} (आप अभी यहीं हैं)?',
     placeAsk: 'यह कहाँ था?',
     placeElse: 'कहीं और',
     receiptAsk: 'रसीद है? मैं इसे खर्च के साथ रख लूँगा।',
@@ -16760,7 +16646,6 @@ const hi: UiStrings = {
     handedOff: 'आपके लिए खोल दिया',
     gotIt: 'ठीक है',
     couldNotUse: 'मैं इसे समझ नहीं पाया',
-    voiceAnswer: 'बोलकर जवाब दें',
     listening: 'सुन रहा है…',
     stopListening: 'बोल लिया',
     transcribing: 'समझ रहा है…',
@@ -16777,21 +16662,6 @@ const hi: UiStrings = {
     resetHint: 'हर तरह के फ़ॉलो-अप फिर से पूछे जाएँ',
     resetDone: 'फ़ॉलो-अप सवाल रीसेट हो गए',
     typingOffline: 'टाइप करने के लिए कनेक्शन चाहिए',
-    reasonPlace: 'आप अभी किसी जगह पर हैं',
-    reasonReceipt: 'आपके सामान्य खर्च से बड़ा',
-    reasonSplit: 'आपने पहले {category} {name} के साथ बाँटा है',
-    reasonPayer: 'आपके शब्दों में {name} ने भुगतान किया',
-    reasonAttendance: 'इस ग्रुप में {count} लोग हैं',
-    reasonTrip: '{trip} अभी चल रही है',
-    reasonWrapup: '{trip} खत्म हो गई या शांत है',
-    reasonRecurring: 'कई महीनों से दिन {day} के आसपास उतनी ही रकम',
-    reasonDuplicate: 'पिछले एक दिन में जोड़ा गया',
-    reasonCurrency: 'आपका फ़ोन {currency} वाले देश में है',
-    reasonCategory: 'शब्दों से पता नहीं चला',
-    reasonDateWords: 'आपने कहा कि यह कल का था',
-    reasonDateNight: 'आधी रात के बाद का समय है',
-    reasonLend: 'आपके शब्दों के अनुसार आपने {name} को पैसे दिए',
-    reasonWork: 'आपके सामान्य से ज़्यादा ऑफ़िस-जैसा खर्च',
   },
   voiceScreen: {
     headline: 'बस सहज रूप से बोलिए',
@@ -16824,7 +16694,6 @@ const hi: UiStrings = {
     justYou: 'सिर्फ़ आप',
     addExpense: 'खर्च जोड़ें',
     edit: 'बदलें',
-    checkTitle: 'जोड़ने से पहले जाँचें',
     retry: 'फिर से कोशिश करें',
     openSettings: 'सेटिंग्स खोलें',
     permissionBody: 'खर्च बोलने के लिए माइक्रोफ़ोन की अनुमति दें, या उसे टाइप करें।',
@@ -16881,7 +16750,6 @@ const hi: UiStrings = {
     people: 'लोग',
     addPerson: 'व्यक्ति जोड़ें',
     addPersonPlaceholder: 'उनका नाम',
-    addMore: 'एक और जोड़ें',
     groupsTab: 'ग्रुप',
     peopleTab: 'लोग',
     justMe: 'सिर्फ़ मैं',
@@ -16974,9 +16842,7 @@ const hi: UiStrings = {
     sqChipLastYear: 'पिछले साल',
     sqChipLast7: 'पिछले 7 दिन',
     sqChipLast30: 'पिछले 30 दिन',
-    askAgain: 'फिर पूछें',
     agentUnderstanding: 'समझा जा रहा है…',
-    agentUnderstandingHint: 'बस एक पल, मैं सुन रहा हूँ।',
     agentHeard: 'सुना',
     agentConfirm: 'पुष्टि करें',
     agentConfirmAll: 'सभी की पुष्टि करें',
@@ -16985,15 +16851,11 @@ const hi: UiStrings = {
     agentDone: 'हो गया',
     agentCouldNotRun: 'यह नहीं हो सका। फिर कोशिश करें।',
     agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
-    agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
     agentTryAgain: 'फिर कोशिश करें',
     agentAnswer: 'जवाब दें',
-    agentContinue: 'जारी रखें',
-    agentTypeInstead: 'इसके बजाय टाइप करें',
     agentTypePlaceholder: 'अपना जवाब टाइप करें',
     agentTypeSend: 'जवाब भेजें',
     agentTypeMic: 'बोलकर जवाब दें',
-    agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
     agentOtherGroup: 'कोई और ग्रुप',
     agentSearchGroups: 'अपने ग्रुप खोजें',
     agentNoGroupMatch: 'इस नाम का कोई ग्रुप नहीं',
@@ -17001,7 +16863,6 @@ const hi: UiStrings = {
     agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
     agentTrialQuotaLeft: 'आपके Pro ट्रायल कमांड का {percent}% बाकी',
     agentTrialQuotaLeftUntil: 'आपके ट्रायल वॉइस कमांड का {percent}% बाकी · {date} तक',
-    confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
     confirmUnderstood: 'मैंने यह समझा',
     confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
     confirmEditAll: 'सब बदलें',
@@ -17016,7 +16877,6 @@ const hi: UiStrings = {
     confirmNotePlaceholder: 'किसलिए था?',
     confirmAdd: 'खर्च जोड़ें',
     confirmClear: 'हटाएँ',
-    confirmQuotaInfo: 'एडवांस्ड कमांड के बारे में',
     confirmPersonMissing: '{name} इस ग्रुप में नहीं है',
     confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
     confirmNeedAmount: 'राशि डालें',
@@ -17029,13 +16889,6 @@ const hi: UiStrings = {
     confirmNoteHint: 'नोट जोड़ें (वैकल्पिक)',
     confirmToday: 'आज',
     confirmYesterday: 'कल',
-    engineCloud: 'क्लाउड',
-    engineOnDevice: 'ऑन-डिवाइस',
-    engineReasonFree: 'फ्री प्लान',
-    engineReasonQuota: 'मासिक सीमा पूरी',
-    engineReasonOffline: 'ऑफ़लाइन',
-    engineReasonCloudDown: 'क्लाउड उपलब्ध नहीं',
-    engineReasonOff: 'सेटिंग्स में बंद',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
     agentPaid: '{name} ने भुगतान किया',
@@ -21639,11 +21492,9 @@ const ar: UiStrings = {
     skip: 'تخطَّ',
     dontAsk: 'لا تسأل عن هذا مجددًا',
     done: 'تم',
-    typeInstead: 'اكتب بدلًا من ذلك',
     yes: 'نعم',
     no: 'لا',
     working: 'جارٍ التحديث…',
-    placeHere: 'أين كان هذا — {place} (أنت هنا الآن)؟',
     placeAsk: 'أين كان هذا؟',
     placeElse: 'مكان آخر',
     receiptAsk: 'هل لديك إيصال؟ سأحتفظ به مع المصروف.',
@@ -21702,7 +21553,6 @@ const ar: UiStrings = {
     handedOff: 'فتحته لك',
     gotIt: 'حسنًا',
     couldNotUse: 'لم أستطع استخدام ذلك',
-    voiceAnswer: 'أجب بالصوت',
     listening: 'جارٍ الاستماع…',
     stopListening: 'انتهيت من الكلام',
     transcribing: 'جارٍ الفهم…',
@@ -21719,21 +21569,6 @@ const ar: UiStrings = {
     resetHint: 'اسأل كل أنواع المتابعة مجددًا',
     resetDone: 'تمت إعادة ضبط أسئلة المتابعة',
     typingOffline: 'الكتابة تحتاج إلى اتصال',
-    reasonPlace: 'أنت في مكان ما الآن',
-    reasonReceipt: 'أكبر من إنفاقك المعتاد',
-    reasonSplit: 'قسّمت {category} مع {name} من قبل',
-    reasonPayer: 'كلامك يذكر {name} كدافع',
-    reasonAttendance: 'يوجد {count} أشخاص في هذه المجموعة',
-    reasonTrip: '{trip} جارية الآن',
-    reasonWrapup: 'انتهت {trip} أو هدأت',
-    reasonRecurring: 'المبلغ نفسه تقريبًا في اليوم {day} لعدة أشهر',
-    reasonDuplicate: 'أُضيف خلال اليوم الماضي',
-    reasonCurrency: 'هاتفك في بلد عملته {currency}',
-    reasonCategory: 'لم أستطع التمييز من الكلمات',
-    reasonDateWords: 'قلت إنه كان أمس',
-    reasonDateNight: 'تجاوزنا منتصف الليل',
-    reasonLend: 'كلامك يقول إنك أعطيت {name} مالًا',
-    reasonWork: 'مصروف من نوع العمل أعلى من المعتاد',
   },
   voiceScreen: {
     headline: 'قلها ببساطة',
@@ -21766,7 +21601,6 @@ const ar: UiStrings = {
     justYou: 'أنت فقط',
     addExpense: 'أضف المصروف',
     edit: 'تعديل',
-    checkTitle: 'راجع قبل الإضافة',
     retry: 'حاول مرة أخرى',
     openSettings: 'افتح الإعدادات',
     permissionBody: 'اسمح بالوصول إلى الميكروفون لتقول مصروفًا، أو اكتبه بدلًا من ذلك.',
@@ -21830,7 +21664,6 @@ const ar: UiStrings = {
     people: 'الأشخاص',
     addPerson: 'إضافة شخص',
     addPersonPlaceholder: 'اسمه',
-    addMore: 'أضف آخر',
     groupsTab: 'المجموعات',
     peopleTab: 'الأشخاص',
     justMe: 'أنا فقط',
@@ -21923,9 +21756,7 @@ const ar: UiStrings = {
     sqChipLastYear: 'السنة الماضية',
     sqChipLast7: 'آخر 7 أيام',
     sqChipLast30: 'آخر 30 يومًا',
-    askAgain: 'اسأل مرة أخرى',
     agentUnderstanding: 'جارٍ الفهم…',
-    agentUnderstandingHint: 'لحظة واحدة، أنا أستمع.',
     agentHeard: 'سمعتُ',
     agentConfirm: 'تأكيد',
     agentConfirmAll: 'تأكيد الكل',
@@ -21934,15 +21765,11 @@ const ar: UiStrings = {
     agentDone: 'تم',
     agentCouldNotRun: 'تعذّر تنفيذ ذلك. حاول مرة أخرى.',
     agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
-    agentClarifyTitle: 'لم أفهم تمامًا',
     agentTryAgain: 'حاول مرة أخرى',
     agentAnswer: 'أجب',
-    agentContinue: 'متابعة',
-    agentTypeInstead: 'اكتب بدلاً من ذلك',
     agentTypePlaceholder: 'اكتب إجابتك',
     agentTypeSend: 'إرسال الإجابة',
     agentTypeMic: 'أجب بالصوت',
-    agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
     agentOtherGroup: 'مجموعة أخرى',
     agentSearchGroups: 'ابحث في مجموعاتك',
     agentNoGroupMatch: 'لا توجد مجموعة بهذا الاسم',
@@ -21950,7 +21777,6 @@ const ar: UiStrings = {
     agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',
     agentTrialQuotaLeft: 'تبقّى {percent}% من أوامر تجربة Pro',
     agentTrialQuotaLeftUntil: 'تبقّى {percent}% من أوامرك الصوتية في التجربة · حتى {date}',
-    confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
     confirmUnderstood: 'فهمتُ هذا',
     confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',
     confirmEditAll: 'تعديل الكل',
@@ -21965,7 +21791,6 @@ const ar: UiStrings = {
     confirmNotePlaceholder: 'لأي غرض؟',
     confirmAdd: 'إضافة المصروف',
     confirmClear: 'مسح',
-    confirmQuotaInfo: 'عن الأوامر المتقدمة',
     confirmPersonMissing: '{name} ليس في هذه المجموعة',
     confirmPickGroup: 'اختر مجموعة لإضافته إليها',
     confirmNeedAmount: 'أدخل مبلغًا',
@@ -21978,13 +21803,6 @@ const ar: UiStrings = {
     confirmNoteHint: 'أضف ملاحظة (اختياري)',
     confirmToday: 'اليوم',
     confirmYesterday: 'أمس',
-    engineCloud: 'السحابة',
-    engineOnDevice: 'على الجهاز',
-    engineReasonFree: 'الخطة المجانية',
-    engineReasonQuota: 'بلغتَ الحد الشهري',
-    engineReasonOffline: 'غير متصل',
-    engineReasonCloudDown: 'السحابة غير متاحة',
-    engineReasonOff: 'متوقف في الإعدادات',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',
     agentPaid: 'دفع {name}',

@@ -7,7 +7,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
 import { Text, useTheme } from '@waves/ui';
@@ -69,9 +69,11 @@ export interface VoiceStageProps {
   transcript: string;
   final: boolean;
   onEditTranscript?: () => void;
+  /** Where the mic sits, so a card scrolled into view never pushes it off. */
+  onMicLayout?: (event: LayoutChangeEvent) => void;
   /** The sentence is read and a card follows: drop the wave's room. */
   compact?: boolean;
-  /** Under the transcript: suggestions, the error card, the engine pill. */
+  /** Under the transcript: suggestions, the error card. */
   children?: ReactNode;
 }
 
@@ -84,6 +86,7 @@ export function VoiceStage({
   transcript,
   final,
   onEditTranscript,
+  onMicLayout,
   compact = false,
   children,
 }: VoiceStageProps) {
@@ -101,13 +104,15 @@ export function VoiceStage({
           {t.voiceScreen.subline}
         </Text>
       </View>
-      <FloatingMicrophone
-        mode={micMode}
-        level={level}
-        onPress={onMicPress}
-        label={micLabel(t, micMode)}
-        reduceMotion={reduceMotion}
-      />
+      <View onLayout={onMicLayout}>
+        <FloatingMicrophone
+          mode={micMode}
+          level={level}
+          onPress={onMicPress}
+          label={micLabel(t, micMode)}
+          reduceMotion={reduceMotion}
+        />
+      </View>
       <View style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: -theme.spacing.sm }}>
         <VoiceStatus status={status} text={statusText(t, status)} />
         {/* The wave's room is kept while the mic is open, so it appears in place. */}

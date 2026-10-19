@@ -30,7 +30,6 @@ import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { useGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
@@ -47,14 +46,11 @@ import {
   type ConfirmFields,
   type SplitOverride,
 } from '@/lib/voiceConfirmPure';
-import type { VoiceEngineInfo } from '@/lib/voiceEnginePure';
 
 export interface VoiceConfirmCardProps {
   action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
-  quota: { percent: number };
-  engine: VoiceEngineInfo | null;
   busy: boolean;
   failed: boolean;
   /** The group the fields name now (null while it is just for you). */
@@ -91,8 +87,6 @@ export function VoiceConfirmCard({
   action,
   transcript,
   local,
-  quota,
-  engine,
   busy,
   failed,
   onGroupChange,
@@ -238,29 +232,8 @@ export function VoiceConfirmCard({
   const categoryIcon = (categoryEntry?.icon ??
     'pricetag-outline') as keyof typeof Ionicons.glyphMap;
 
-  // The allowance and the engine that heard it, then speaking it again.
-  const allowance = (
-    <Row gap={theme.spacing.xs} style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-      <Text variant="caption" tone="muted">
-        {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
-      </Text>
-      <VoiceEngineBadge info={engine} />
-    </Row>
-  );
   const footer = (
     <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-      <Row gap={theme.spacing.xs}>
-        <Text variant="caption" tone="muted">
-          {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
-        </Text>
-        <Ionicons
-          name="information-circle-outline"
-          size={iconSize.base}
-          color={theme.color.textMuted}
-          accessibilityLabel={t.voice.confirmQuotaInfo}
-        />
-      </Row>
-      <VoiceEngineBadge info={engine} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.voice.agentTryAgain}
@@ -455,8 +428,8 @@ export function VoiceConfirmCard({
         }}
         icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
       />
-      {/* Discard and Try again share a row, and the allowance one line, so
-          the whole confirmation fits a phone without scrolling. */}
+      {/* Discard and Try again share a row, so the whole
+          confirmation fits a phone without scrolling. */}
       <Row gap={theme.spacing.sm}>
         <PillButton
           label={t.voice.agentDiscard}
@@ -471,7 +444,6 @@ export function VoiceConfirmCard({
           onPress={onRetry}
         />
       </Row>
-      {allowance}
     </>
   );
 

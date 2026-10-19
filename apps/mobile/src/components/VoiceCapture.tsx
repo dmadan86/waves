@@ -47,7 +47,6 @@ import {
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { createModelProbe, planAgentWait } from '@/lib/voiceStartPure';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceErrorState } from '@/components/voice/VoiceErrorState';
 import { VoiceStage } from '@/components/voice/VoiceStage';
 import {
@@ -431,9 +430,6 @@ export function VoiceCapture({
   );
   const listening = micState.mic === 'listening';
   const live = micState.final ? '' : micState.transcript;
-  // Which engine hears the mic. null until it is known (the entitlement may
-  // still be loading); the start decides it and every start refreshes it.
-  const [micEngine, setMicEngineState] = useState<VoiceEngineInfo | null>(null);
   // The latest entitlement, read when the mic actually opens: the auto-start on
   // mount captured whatever the first render held, which is how a tap could open
   // on the on-device engine before the flag had loaded.
@@ -450,7 +446,6 @@ export function VoiceCapture({
     onEngineRef.current = onEngine;
   });
   const reportEngine = useCallback((info: VoiceEngineInfo): void => {
-    setMicEngineState(info);
     onEngineRef.current?.(info);
   }, []);
   // How the live sentence ends, decided at the start (tap: silence; hold: release).
@@ -1348,7 +1343,11 @@ export function VoiceCapture({
       ) : null}
 
       {showSuggestions(flow, shownTranscript) ? (
-        <VoiceSuggestions suggestions={suggestions} onPick={onSuggestion} canPick={canPick} />
+        <VoiceSuggestions
+          suggestions={suggestions.slice(0, 1)}
+          onPick={onSuggestion}
+          canPick={canPick}
+        />
       ) : null}
 
       {offerOffline ? (
@@ -1376,9 +1375,6 @@ export function VoiceCapture({
           ) : null}
         </View>
       ) : null}
-
-      {/* Which engine is hearing the mic: kept, but small and last. */}
-      <VoiceEngineBadge info={micEngine} />
     </VoiceStage>
   );
 }

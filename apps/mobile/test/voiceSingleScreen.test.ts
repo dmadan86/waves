@@ -46,8 +46,9 @@ describe('one screen, start to saved', () => {
 
   it('SS-03: a save lands on the success state with Add another and Done', () => {
     expect(files.voice).toContain("setPhase('saved')");
-    expect(files.voice).toContain('label={t.voiceScreen.addAnother}');
-    expect(files.voice).toContain('onPress={finishVoice}');
+    expect(files.voice).toContain(
+      '<SavedActions onDone={finishVoice} onAddAnother={addAnother} />',
+    );
     expect(files.voice).toContain('<VoiceFollowUps');
     expect(files.panel).toContain('onAddAnother');
   });

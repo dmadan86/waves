@@ -145,22 +145,23 @@ it('VC-06: transcript hides empty text unless reserving flexible space', () => {
   const tree = renderHook(() => LiveTranscript({ text: '', final: false, reserve: true })).result
     .current;
   expect(textOf(tree)).toBe('');
-  expect(nodes(tree, 'View')[0].props.style).toMatchObject({ minHeight: 76 });
+  expect(nodes(tree, 'Pressable')[0].props.style).toMatchObject({ minHeight: 76 });
 });
-it('VC-07: transcript labels partial and final words and only final editable text has Edit text', () => {
+it('VC-07: no caption; the words are the card, and only final editable text can be tapped to edit', () => {
   const onEdit = vi.fn();
   const partial = renderHook(() => LiveTranscript({ text: 'Coffee', final: false, onEdit })).result
     .current;
-  expect(textOf(partial)).toContain(words.hearing);
-  expect(nodes(partial, 'Pressable')).toHaveLength(0);
+  expect(textOf(partial)).toBe('“Coffee”');
+  expect(nodes(partial, 'Pressable')[0].props.disabled).toBe(true);
+  expect(nodes(partial, 'Pressable')[0].props.accessibilityLabel).toContain(words.hearing);
   const final = renderHook(() => LiveTranscript({ text: 'Coffee', final: true, onEdit })).result
     .current;
-  expect(textOf(final)).toContain(words.youSaid);
-  expect(textOf(final)).toContain(words.editHeard);
+  expect(textOf(final)).toBe('“Coffee”');
+  expect(nodes(final, 'Pressable')[0].props.accessibilityLabel).toContain(words.editHeard);
   press(nodes(final, 'Pressable')[0]);
   expect(onEdit).toHaveBeenCalledTimes(1);
   const readOnly = renderHook(() => LiveTranscript({ text: 'Coffee', final: true })).result.current;
-  expect(nodes(readOnly, 'Pressable')).toHaveLength(0);
+  expect(nodes(readOnly, 'Pressable')[0].props.disabled).toBe(true);
 });
 it('VC-08: long transcripts are passed whole without truncation', () => {
   const text = 'Coffee with Ravi and Anu after dinner. '.repeat(40).trim();

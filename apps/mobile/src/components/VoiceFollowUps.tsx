@@ -30,7 +30,6 @@ import {
   materialiseGroups,
   materialiseMembers,
   money,
-  muteKind,
   MutationKind,
   nextFollowUp,
   nextMonthlyDate,
@@ -46,7 +45,7 @@ import {
   type FollowUpSession,
   type PersonalLoan,
 } from '@waves/core';
-import { Button, iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { InlineLoanShare } from '@/components/assistant/inline/InlineLoanShare';
 import { InlineReceiptStatus } from '@/components/assistant/inline/InlineReceiptStatus';
@@ -57,6 +56,7 @@ import {
 import { InlineSettle } from '@/components/assistant/inline/InlineSettle';
 import { useInlineReceipt } from '@/components/assistant/inline/useInlineReceipt';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
+import { SavedSummary, TextAction } from '@/components/voice/SavedSummary';
 import {
   applyAgentResponse,
   applyCorrectionFields,
@@ -100,6 +100,7 @@ import {
   planUpdate,
   toGroupWrite,
   toPersonalData,
+  visibleChips,
   type FollowUpAnswer,
   type SavedState,
 } from '@/lib/followUpApply';
@@ -173,8 +174,8 @@ type Mover = Parameters<SavedBarControls['registerMover']>[0];
 
 export interface SavedBarContext {
   readonly state: SavedState;
-  /** "Added ₹8,000 to Personal ✓" */
-  readonly headline: string;
+  /** Where it went: "Personal" or the group's name. */
+  readonly where: string;
   /** What has been filled in so far, in the order it was. */
   readonly filled: readonly FilledKind[];
   readonly controls: SavedBarControls;
@@ -189,6 +190,8 @@ interface Chip {
   readonly primary?: boolean;
   /** Opens the free-text answer, so it is not a spoken answer's target. */
   readonly freeText?: boolean;
+  /** Says the same as Skip, so the card does not draw it. */
+  readonly skip?: boolean;
 }
 
 /** Rows from the local mirror, shaped for the pure history builder. Read once. */
@@ -830,7 +833,11 @@ export function VoiceFollowUps({
   // ── per-question chips ───────────────────────────────────────────────────
 
   const chipsFor = (q: FollowUpQuestion): Chip[] => {
-    const no = (label = f.no): Chip => ({ label, onPress: () => respond(q.kind, 'skipped') });
+    const no = (label = f.no): Chip => ({
+      label,
+      onPress: () => respond(q.kind, 'skipped'),
+      skip: true,
+    });
     const yes = (label: string, run: () => void | Promise<void>): Chip => ({
       label,
       primary: true,
@@ -1118,24 +1125,13 @@ export function VoiceFollowUps({
       {renderSavedBar ? (
         // `controls` only touches the executor box inside callbacks, never while rendering.
         // eslint-disable-next-line react-hooks/refs
-        renderSavedBar({
-          state: saved,
-          headline: fill(f.added, { amount: amountLabel, where: whereLabel }),
-          filled,
-          controls,
-        })
+        renderSavedBar({ state: saved, where: whereLabel, filled, controls })
       ) : (
-        <Text variant="subheading">
-          {fill(f.added, { amount: amountLabel, where: whereLabel })}
-        </Text>
+        <SavedSummary
+          amount={amountLabel}
+          detail={[category ? categoryLabel(category) : '', whereLabel].filter(Boolean).join(' · ')}
+        />
       )}
-
-      {emptyBeat && !renderSavedBar ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-          <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
-          <Text tone="muted">{f.saved}</Text>
-        </View>
-      ) : null}
 
       {question ? (
         <View
@@ -1148,19 +1144,15 @@ export function VoiceFollowUps({
             borderColor: theme.color.border,
           }}
         >
-          <Text>{questionText(question, f, { saved, group, amountLabel, categoryLabel })}</Text>
-          {questionReason(question, f, { saved, group, amountLabel, categoryLabel }) ? (
-            <Text variant="micro" tone="faint">
-              {questionReason(question, f, { saved, group, amountLabel, categoryLabel })}
-            </Text>
-          ) : null}
+          <Text style={{ fontWeight: '700' }}>
+            {questionText(question, f, { saved, group, amountLabel, categoryLabel })}
+          </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-            {chipsFor(question).map((chip) => (
+            {visibleChips(chipsFor(question)).map((chip) => (
               <Pressable
                 key={chip.label}
                 accessibilityRole="button"
                 accessibilityLabel={chip.label}
-                hitSlop={4}
                 disabled={busy}
                 onPress={() => {
                   hapticSelect();
@@ -1168,7 +1160,8 @@ export function VoiceFollowUps({
                 }}
                 style={({ pressed }) => ({
                   paddingHorizontal: theme.spacing.md,
-                  height: 40,
+                  minHeight: 48,
+                  maxWidth: '100%',
                   justifyContent: 'center',
                   borderRadius: theme.radius.pill,
                   backgroundColor: chip.primary ? theme.color.brandSoft : theme.color.bg,
@@ -1177,13 +1170,7 @@ export function VoiceFollowUps({
                   opacity: busy ? 0.5 : pressed ? 0.7 : 1,
                 })}
               >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    color: theme.color.text,
-                    fontWeight: '700',
-                  }}
-                >
+                <Text numberOfLines={1} style={{ color: theme.color.text, fontWeight: '700' }}>
                   {chipLabel(chip.label)}
                 </Text>
               </Pressable>
@@ -1205,43 +1192,13 @@ export function VoiceFollowUps({
               onVoice={voice.off === null ? startVoice : undefined}
             />
           ) : null}
-          {caption ? (
+          {caption && (notice || typing || voice.problem) ? (
             <Text variant="caption" tone="muted">
               {caption}
             </Text>
           ) : null}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: theme.spacing.xs,
-            }}
-          >
-            <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
-              <SmallLink label={f.skip} onPress={() => respond(question.kind, 'skipped')} />
-              {!typing && canType ? (
-                <SmallLink label={f.typeInstead} onPress={() => setTyping(true)} />
-              ) : null}
-              {voice.off === null && voice.phase === 'idle' ? (
-                <MicLink label={f.voiceAnswer} onPress={startVoice} />
-              ) : null}
-            </View>
-            <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
-              <SmallLink
-                label={f.dontAsk}
-                faint
-                onPress={() => {
-                  prefsHandle.update((p) => muteKind(p, question.kind));
-                  respond(question.kind, 'dismissed');
-                }}
-              />
-              <SmallLink
-                label={f.done}
-                onPress={() => setSession((s) => ({ ...s, stopped: true }))}
-              />
-            </View>
+          <View style={{ alignSelf: 'flex-start' }}>
+            <TextAction label={f.skip} muted onPress={() => respond(question.kind, 'skipped')} />
           </View>
         </View>
       ) : null}
@@ -1250,24 +1207,18 @@ export function VoiceFollowUps({
       {sharing ? <InlineLoanShare loan={sharing} loans={personalLedger.loans} /> : null}
       {settleGroupId ? <InlineSettle groupId={settleGroupId} /> : null}
 
-      {finished && (session.asked.length > 0 || filled.length > 0 || handedOff || held) ? (
-        <View style={{ gap: theme.spacing.sm }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
-            <Text tone="muted">
-              {doneNote ?? (handedOff && filled.length === 0 ? f.handedOff : summary)}
-            </Text>
-          </View>
+      {finished && (doneNote || filled.length > 0 || handedOff) ? (
+        <View style={{ gap: theme.spacing.xs }}>
+          <Text tone="muted" align="center">
+            {doneNote ?? (handedOff && filled.length === 0 ? f.handedOff : summary)}
+          </Text>
           {notice ? (
-            <Text variant="caption" tone="muted">
+            <Text variant="caption" tone="muted" align="center">
               {notice}
             </Text>
           ) : null}
-          <Button label={f.done} onPress={onClose} />
         </View>
       ) : null}
-
-      {!ready ? <Button label={f.done} variant="secondary" onPress={onClose} /> : null}
 
       <InlineSheetHost
         request={sheet}
@@ -1341,49 +1292,6 @@ function ListeningRow({
   );
 }
 
-function MicLink({ label, onPress }: { label: string; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={10}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-    >
-      <Ionicons name="mic-outline" size={iconSize.base} color={theme.color.brand} />
-    </Pressable>
-  );
-}
-
-function SmallLink({
-  label,
-  onPress,
-  faint = false,
-}: {
-  label: string;
-  onPress: () => void;
-  faint?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-    >
-      <Text
-        variant="micro"
-        style={{ color: faint ? theme.color.textFaint : theme.color.textMuted }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const firstName = (name: string): string => name.trim().split(/\s+/)[0] ?? name;
 
 function paymentLabel(method: string, f: UiStrings['followUps']): string {
@@ -1441,7 +1349,7 @@ export function questionText(
 ): string {
   switch (q.kind) {
     case 'place':
-      return q.hereNow && q.places[0] ? fill(f.placeHere, { place: q.places[0] }) : f.placeAsk;
+      return f.placeAsk;
     case 'receipt':
       return f.receiptAsk;
     case 'split':
@@ -1479,61 +1387,5 @@ export function questionText(
       return fill(f.wrapupAsk, { trip: q.trip?.name ?? ctx.group?.name ?? '' });
     case 'work':
       return f.workAsk;
-  }
-}
-
-export interface QuestionContext {
-  saved: SavedState;
-  group: { name: string; members?: readonly unknown[] } | null;
-  amountLabel: string;
-  categoryLabel: (id: string) => string;
-}
-
-/**
- * Why this is being asked, in one short line ("You're at a place right now"):
- * the reason a person can read to trust or mute the question. Empty when there
- * is nothing useful to say (payment).
- */
-export function questionReason(
-  q: FollowUpQuestion,
-  f: UiStrings['followUps'],
-  ctx: QuestionContext,
-): string {
-  switch (q.kind) {
-    case 'place':
-      return q.hereNow ? f.reasonPlace : '';
-    case 'receipt':
-      return f.reasonReceipt;
-    case 'split':
-      return fill(f.reasonSplit, {
-        category: ctx.categoryLabel(ctx.saved.category ?? 'other').toLowerCase(),
-        name: q.partners[0]?.name ?? '',
-      });
-    case 'payer':
-      return fill(f.reasonPayer, { name: firstName(q.payer?.name ?? '') });
-    case 'attendance':
-      return fill(f.reasonAttendance, { count: ctx.saved.participants.length });
-    case 'trip':
-      return fill(f.reasonTrip, { trip: q.trip?.name ?? '' });
-    case 'wrapup':
-      return fill(f.reasonWrapup, { trip: q.trip?.name ?? ctx.group?.name ?? '' });
-    case 'recurring':
-      return fill(f.reasonRecurring, { day: q.dayOfMonth ?? '' });
-    case 'duplicate':
-      return f.reasonDuplicate;
-    case 'currency':
-      return fill(f.reasonCurrency, { currency: q.currency ?? '' });
-    case 'category':
-      return f.reasonCategory;
-    case 'date':
-      return /\b(yesterday|last night|yday|last evening)\b/i.test(ctx.saved.description)
-        ? f.reasonDateWords
-        : f.reasonDateNight;
-    case 'lend':
-      return fill(f.reasonLend, { name: q.person ?? '' });
-    case 'work':
-      return f.reasonWork;
-    case 'payment':
-      return '';
   }
 }

@@ -12,10 +12,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { Button, Card, Divider, Row, Text, useTheme } from '@waves/ui';
+
+import { SavedActions } from '@/components/voice/SavedActions';
 
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceClarifyCard } from '@/components/VoiceClarifyCard';
@@ -23,7 +25,6 @@ import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
 import { AssistantSavedBar, type SavedBarEvent } from '@/components/AssistantSavedBar';
 import { VoiceFollowUps } from '@/components/VoiceFollowUps';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 
 import { nudgeToSettle } from '@/data/api';
 import {
@@ -34,7 +35,7 @@ import {
 } from '@/data/hooks';
 import { useUpsertPersonalRecord } from '@/data/personal';
 import { GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
-import { fill, useStrings, type UiStrings } from '@/i18n';
+import { useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentStage } from '@/lib/voiceFlowPure';
@@ -44,12 +45,11 @@ import { savedStateFrom, type SavedState } from '@/lib/followUpApply';
 import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { clarifyOptionViews, otherGroupChoices, typedFollowUp } from '@/lib/voiceClarifyPure';
 import type { ConfirmableAction } from '@/lib/voiceConfirmPure';
-import type { AgentFailure, VoiceEngineInfo } from '@/lib/voiceEnginePure';
+import type { AgentFailure } from '@/lib/voiceEnginePure';
 import {
   expenseWriteFromAction,
   personalWriteFromAction,
   planVoiceAgentActions,
-  quotaLeft,
   type AgentCard,
   type AgentLocalData,
   type AgentLocalGroup,
@@ -78,8 +78,6 @@ export interface VoiceAgentPanelProps {
   onAnswer: (followUp: { transcript: string; question: string }, answer: string) => void;
   /** This clip answers the agent's earlier question. */
   followUp?: { transcript: string; question: string } | null;
-  /** Which engine heard the clip, for the pill behind the allowance's (i). */
-  engine?: VoiceEngineInfo | null;
   /** Everything is confirmed or discarded; Done leaves the screen. */
   onClose: () => void;
   /** Speak another command on this same screen, after a save. */
@@ -90,8 +88,6 @@ export interface VoiceAgentPanelProps {
    * teaser); omitted, the follow-ups run as before.
    */
   renderAfterSave?: (saved: SavedState) => ReactNode;
-  /** Shown above the follow-up questions (the first-run intro card). */
-  aboveFollowUps?: ReactNode;
   /** One command has ended: how, and whether it was a personal or a group expense. */
   onResolved?: (outcome: 'confirmed' | 'discarded', scope: 'personal' | 'group') => void;
   /** A correction or undo on the saved bar, for telemetry. */
@@ -163,11 +159,9 @@ export function VoiceAgentPanel({
   onRetry,
   onAnswer,
   followUp,
-  engine = null,
   onClose,
   renderAfterSave,
   onAddAnother,
-  aboveFollowUps,
   onResolved,
   onSavedBarEvent,
   onStage,
@@ -239,25 +233,6 @@ export function VoiceAgentPanel({
     plan.cards.every((card) => ['done', 'discarded'].includes(statusOf(card.key)));
   const anyDone = plan?.cards.some((card) => statusOf(card.key) === 'done') ?? false;
 
-  // After a save: speak another here, or leave. Never a jump to another screen.
-  const afterSave = (
-    <Row gap={theme.spacing.sm}>
-      {onAddAnother ? (
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t.voiceScreen.addAnother}
-            variant="secondary"
-            fullWidth
-            onPress={onAddAnother}
-          />
-        </View>
-      ) : null}
-      <View style={{ flex: 1 }}>
-        <Button label={t.voiceScreen.done} variant="brand" fullWidth onPress={onClose} />
-      </View>
-    </Row>
-  );
-
   // Tell the screen where this panel is, so the stage above it (mic, status line,
   // transcript) says the same thing without being rebuilt.
   const stage: AgentStage = !plan
@@ -275,22 +250,12 @@ export function VoiceAgentPanel({
     stageRef.current?.(stage);
   }, [stage]);
 
-  if (!plan) {
-    // The stage above already says "Understanding…"; this is just the wait.
-    return (
-      <View style={{ alignItems: 'center', paddingTop: theme.spacing.md }}>
-        <ActivityIndicator color={theme.color.brand} />
-        <Text tone="muted" variant="caption" style={{ marginTop: theme.spacing.xs }}>
-          {t.voice.agentUnderstandingHint}
-        </Text>
-      </View>
-    );
-  }
+  // The stage above already says "Understanding…" with its busy mic: no second wait.
+  if (!plan) return null;
 
   const pending = plan.cards.filter(
     (card) => !card.problem && statusOf(card.key) === 'pending',
   ).length;
-  const quota = quotaLeft(plan.quota);
   const nothing = plan.cards.length === 0 && !plan.answer && !plan.clarify;
   // A question about the person's own spend is answered here from the ledger,
   // whatever the server said: it cannot see the personal ledger at all.
@@ -306,40 +271,33 @@ export function VoiceAgentPanel({
     !plan.answer &&
     !plan.clarify
   ) {
-    if (savedFollowUp && renderAfterSave) {
-      return (
-        <View style={{ gap: theme.spacing.md }}>
-          {renderAfterSave(savedFollowUp.state)}
-          {afterSave}
-        </View>
-      );
-    }
     if (savedFollowUp) {
       return (
         <View style={{ gap: theme.spacing.md }}>
-          {aboveFollowUps}
-          <VoiceFollowUps
-            initial={savedFollowUp.state}
-            groupWrite={savedFollowUp.write}
-            local={local}
-            today={today}
-            onClose={onClose}
-            onUndoable={setHandoff}
-            renderSavedBar={(bar) => (
-              <AssistantSavedBar
-                context={bar}
-                controls={bar.controls}
-                groupWrite={savedFollowUp.write}
-                local={local}
-                today={today}
-                externalEntry={handoff}
-                onEvent={onSavedBarEvent}
-              />
-            )}
-          />
-          {onAddAnother ? (
-            <Button label={t.voiceScreen.addAnother} variant="secondary" onPress={onAddAnother} />
-          ) : null}
+          {renderAfterSave ? (
+            renderAfterSave(savedFollowUp.state)
+          ) : (
+            <VoiceFollowUps
+              initial={savedFollowUp.state}
+              groupWrite={savedFollowUp.write}
+              local={local}
+              today={today}
+              onClose={onClose}
+              onUndoable={setHandoff}
+              renderSavedBar={(bar) => (
+                <AssistantSavedBar
+                  context={bar}
+                  controls={bar.controls}
+                  groupWrite={savedFollowUp.write}
+                  local={local}
+                  today={today}
+                  externalEntry={handoff}
+                  onEvent={onSavedBarEvent}
+                />
+              )}
+            />
+          )}
+          <SavedActions onDone={onClose} onAddAnother={onAddAnother} />
         </View>
       );
     }
@@ -353,8 +311,6 @@ export function VoiceAgentPanel({
         transcript={plan.transcript || transcript}
         local={local}
         today={today}
-        quota={quota}
-        engine={engine}
         onDiscard={() => {
           setCardStatus(only.key, 'discarded');
           onResolved?.('discarded', only.action.type === 'add_personal' ? 'personal' : 'group');
@@ -397,28 +353,19 @@ export function VoiceAgentPanel({
                 .join(', '),
             })),
           )}
-          onContinue={(answer) =>
+          onPick={(answer) =>
             onAnswer(
               { transcript: plan.transcript || transcript, question: plan.clarify ?? '' },
               answer,
             )
           }
-          onTyped={(typed) => {
-            const follow = typedFollowUp(typed, plan.transcript || transcript, plan.clarify ?? '');
-            if (follow) {
-              const { answer, ...followUp } = follow;
-              onAnswer(followUp, answer);
-            }
-          }}
-          onVoice={() =>
-            onRetry({ transcript: plan.transcript || transcript, question: plan.clarify ?? '' })
-          }
         />
       ) : (plan.clarify || nothing) && !moneyQuery ? (
         <Card>
           <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="subheading">{t.voice.agentClarifyTitle}</Text>
-            <Text tone="muted">{plan.clarify ?? t.voice.agentNothingToDo}</Text>
+            <Text accessibilityRole="header" style={{ fontWeight: '700' }}>
+              {plan.clarify ?? t.voice.agentNothingToDo}
+            </Text>
             {plan.clarify ? (
               <VoiceTypedAnswer
                 autoFocus={false}
@@ -465,8 +412,6 @@ export function VoiceAgentPanel({
                 confirmAllSeq={confirmAllSeq}
                 text={t.voice}
                 transcript={plan.transcript || transcript}
-                quota={quota}
-                engine={engine ?? null}
                 onRetry={() => onRetry()}
               />
             </View>
@@ -481,49 +426,22 @@ export function VoiceAgentPanel({
         />
       ) : null}
       {settled ? (
-        <Row gap={theme.spacing.sm}>
-          {anyDone && onAddAnother ? (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t.voiceScreen.addAnother}
-                variant="secondary"
-                fullWidth
-                onPress={() => {
+        <SavedActions
+          onDone={() => {
+            if (anyDone) toast.show(t.voice.agentDone);
+            onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
+            onClose();
+          }}
+          onAddAnother={
+            anyDone && onAddAnother
+              ? () => {
                   onResolved?.('confirmed', 'group');
                   onAddAnother();
-                }}
-              />
-            </View>
-          ) : null}
-          <View style={{ flex: 1 }}>
-            <Button
-              label={t.voice.agentDone}
-              variant="brand"
-              fullWidth
-              onPress={() => {
-                if (anyDone) toast.show(t.voice.agentDone);
-                onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
-                onClose();
-              }}
-            />
-          </View>
-        </Row>
+                }
+              : undefined
+          }
+        />
       ) : null}
-
-      <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
-        {fill(
-          quota.trial
-            ? quota.until
-              ? t.voice.agentTrialQuotaLeftUntil
-              : t.voice.agentTrialQuotaLeft
-            : t.voice.agentQuotaLeft,
-          {
-            percent: String(quota.percent),
-            date: quota.until ? shortDate(quota.until, locale) : '',
-          },
-        )}
-      </Text>
-      <VoiceEngineBadge info={engine} />
     </View>
   );
 }
@@ -534,8 +452,6 @@ function ConfirmExpense({
   transcript,
   local,
   today,
-  quota,
-  engine,
   onDiscard,
   onAdded,
   onRetry,
@@ -544,8 +460,6 @@ function ConfirmExpense({
   transcript: string;
   local: AgentLocalData;
   today: string;
-  quota: { percent: number };
-  engine: VoiceEngineInfo | null;
   onDiscard: () => void;
   onAdded: (saved: { state: SavedState; write: AgentExpenseWrite | null }) => void;
   onRetry: () => void;
@@ -584,8 +498,6 @@ function ConfirmExpense({
       action={action}
       transcript={transcript}
       local={local}
-      quota={quota}
-      engine={engine}
       busy={busy}
       failed={failed}
       onGroupChange={(next) => setGroupId(next ?? '')}
@@ -605,8 +517,6 @@ function AgentActionCard({
   confirmAllSeq,
   text,
   transcript,
-  quota,
-  engine,
   onRetry,
 }: {
   card: AgentCard;
@@ -617,8 +527,6 @@ function AgentActionCard({
   confirmAllSeq: number;
   text: UiStrings['voice'];
   transcript: string;
-  quota: { percent: number };
-  engine: VoiceEngineInfo | null;
   onRetry: () => void;
 }) {
   const theme = useTheme();
@@ -740,8 +648,6 @@ function AgentActionCard({
           transcript={transcript}
           local={local}
           today={today}
-          quota={quota}
-          engine={engine}
           onDiscard={() => {
             setEditing(false);
             onStatus('discarded');
@@ -813,15 +719,4 @@ function AgentActionCard({
       )}
     </View>
   );
-}
-
-/** "20 Nov": the day the trial's voice pool closes. */
-function shortDate(iso: string, locale: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  try {
-    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
-  } catch {
-    return date.toISOString().slice(0, 10);
-  }
 }

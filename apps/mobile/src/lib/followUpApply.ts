@@ -322,6 +322,24 @@ export function savedStateFrom(
 /** The longest chip label shown; the full text stays in the accessibility label. */
 export const CHIP_MAX_CHARS = 24;
 
+/** At most this many answers show on a follow-up card; Skip is always there too. */
+export const MAX_FOLLOW_UP_CHIPS = 3;
+
+/**
+ * The chips one follow-up card draws: no chip that only says Skip, at most
+ * {@link MAX_FOLLOW_UP_CHIPS}, and the free-text one ("Somewhere else") kept
+ * last and never cut, so typing stays reachable.
+ */
+export function visibleChips<T extends { freeText?: boolean; skip?: boolean }>(
+  chips: readonly T[],
+  max: number = MAX_FOLLOW_UP_CHIPS,
+): T[] {
+  const answers = chips.filter((chip) => !chip.skip);
+  const free = answers.filter((chip) => chip.freeText).slice(0, 1);
+  const rest = answers.filter((chip) => !chip.freeText).slice(0, max - free.length);
+  return [...rest, ...free];
+}
+
 /** A chip label cut to {@link CHIP_MAX_CHARS} with an ellipsis. */
 export function chipLabel(label: string, max: number = CHIP_MAX_CHARS): string {
   const chars = [...label.trim()];
