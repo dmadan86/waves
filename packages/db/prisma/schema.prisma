@@ -212,6 +212,7 @@ model Profile {
   storageObjects      StorageObject[]
   voiceSttUsage       VoiceSttUsage[]
   voiceAgentUsage     VoiceAgentUsage[]
+  voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
   adsAllowlist        AdsAllowlist?
@@ -2335,12 +2336,30 @@ model VoiceAgentUsage {
   /// Seconds of audio streamed through the `voice-stream` relay this month
   /// (`waves_voice_stream_seconds`): the measured, billed quantity.
   streamSeconds Decimal  @default(0) @map("stream_seconds") @db.Decimal(10, 2)
+  /// Follow-up turns about a just-saved expense this month
+  /// (`waves_voice_agent_followup`): outside the command allowance, capped at 300.
+  followups     Int      @default(0)
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@id([profileId, month])
   @@map("voice_agent_usage")
+  @@schema("public")
+}
+
+/// Follow-up turns taken per (person, saved expense id) in the current window:
+/// at most 3 per 10 minutes (`waves_voice_agent_followup`). Service role only.
+model VoiceAgentFollowupTurns {
+  profileId   String   @map("profile_id") @db.Uuid
+  expenseId   String   @map("expense_id")
+  windowStart DateTime @default(now()) @map("window_start") @db.Timestamptz(6)
+  turns       Int      @default(0)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, expenseId])
+  @@map("voice_agent_followup_turns")
   @@schema("public")
 }
 
