@@ -661,14 +661,24 @@ export function VoiceConfirmCard({
             splitReady.split,
             splitReady.currency,
           )}
-          onApply={(result) =>
+          onApply={(result) => {
+            // "Paid for" shows the sheet's people, so the card and Confirm agree.
+            const members = local.groups.find((g) => g.id === splitReady.groupId)?.members ?? [];
+            const personText = result.participants
+              .filter((id) => id !== result.payerId)
+              .map((id) => members.find((member) => member.id === id))
+              .filter((member) => member !== undefined)
+              .map((member) => (member.isViewer ? youLabel : member.name))
+              .join(', ');
+            patch({ personText });
             setSplitOverride({
               groupId: splitReady.groupId,
               amountMinor: splitReady.amountMinor,
               paidByMemberId: result.payerId,
               split: agentSplitFrom(result.params, result.participants),
-            })
-          }
+              personText,
+            });
+          }}
         />
       ) : null}
 

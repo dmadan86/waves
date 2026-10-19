@@ -170,6 +170,7 @@ describe('confirmation split override', () => {
     groupId: 'g1',
     amountMinor: '100000',
     paidByMemberId: 'm2',
+    personText: 'You',
     split: {
       mode: 'exact' as const,
       shares: [
@@ -180,7 +181,15 @@ describe('confirmation split override', () => {
   };
 
   it('SS-10: the sheet’s payer and split are what Confirm writes', () => {
-    const result = resolveConfirm(action, initial, initial, local, 'You', 'x', exact);
+    const result = resolveConfirm(
+      action,
+      initial,
+      { ...initial, personText: 'You' },
+      local,
+      'You',
+      'x',
+      exact,
+    );
     expect(result.ok && result.action.type === 'add_expense' && result.action.paidByMemberId).toBe(
       'm2',
     );
@@ -193,7 +202,7 @@ describe('confirmation split override', () => {
     const result = resolveConfirm(
       action,
       initial,
-      { ...initial, amountText: '1200' },
+      { ...initial, amountText: '1200', personText: 'You' },
       local,
       'You',
       'x',
@@ -217,6 +226,30 @@ describe('confirmation split override', () => {
     );
     expect(result.ok && result.action.type === 'add_expense' && result.action.paidByMemberId).toBe(
       'n1',
+    );
+  });
+
+  it('SS-13: changing the people after the sheet drops its split, so Confirm charges who is shown', () => {
+    const result = resolveConfirm(
+      action,
+      initial,
+      { ...initial, personText: 'Renny' },
+      local,
+      'You',
+      'x',
+      exact,
+    );
+    expect(result.ok && result.action.type === 'add_expense' && result.action.paidByMemberId).toBe(
+      'm1',
+    );
+    expect(result.ok && result.action.type === 'add_expense' && result.action.split.mode).toBe(
+      'equal',
+    );
+  });
+
+  it('SS-14: a card open for editing is left out of Confirm all', () => {
+    expect(src('components/VoiceAgentPanel.tsx')).toContain(
+      "if (status === 'pending' && !card.problem && !editing) void run();",
     );
   });
 });

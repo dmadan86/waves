@@ -683,18 +683,21 @@ function AgentActionCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, group, today]);
 
+  // Edit opens the card in the confirmation card, in place (see below).
+  const [editing, setEditing] = useState(false);
   // "Confirm all" bumps the sequence; every card still waiting runs itself.
   const lastSeq = useRef(0);
   useEffect(() => {
     if (confirmAllSeq === lastSeq.current) return;
     lastSeq.current = confirmAllSeq;
-    if (status === 'pending' && !card.problem) void run();
-  }, [confirmAllSeq, status, card.problem, run]);
+    // A card open for editing is confirmed from its own editor, never in bulk
+    // with the values it had before the edit.
+    if (status === 'pending' && !card.problem && !editing) void run();
+  }, [confirmAllSeq, status, card.problem, run, editing]);
 
   // Edit opens this card's proposal in the confirmation card, in place: every
   // field (amount, words, category, date, people, payer and split) is fixed
   // right here, and its Confirm writes it. No trip to another screen.
-  const [editing, setEditing] = useState(false);
   const edit = (): void => setEditing(true);
   const editable = action.type === 'add_expense' || action.type === 'add_personal';
 

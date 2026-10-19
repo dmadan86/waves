@@ -156,6 +156,9 @@ export interface SplitOverride {
   readonly amountMinor: string;
   readonly paidByMemberId: string;
   readonly split: AddExpenseAction['split'];
+  /** The "Paid for" names the sheet left behind; a later change to them
+   *  drops the override and the people are read afresh. */
+  readonly personText: string;
 }
 
 export function resolveConfirm(
@@ -192,7 +195,11 @@ export function resolveConfirm(
   if (!group) return { ok: false, reason: 'group' };
 
   const proposed = original.type === 'add_expense' ? original : null;
-  if (override && override.groupId === group.id) {
+  if (
+    override &&
+    override.groupId === group.id &&
+    norm(override.personText) === norm(fields.personText)
+  ) {
     const split: AddExpenseAction['split'] =
       override.split.mode === 'exact' && override.amountMinor !== amountMinor
         ? {
