@@ -258,6 +258,34 @@ describe('creating a rule', () => {
   });
 });
 
+describe('a rule started from an expense just added', () => {
+  it('skips the first occurrence so that date is not posted twice', async () => {
+    const id = randomUUID();
+    const third = '30000';
+    await as(group.profileIds[alice]!, () =>
+      client.query(
+        `SELECT waves_create_group_recurring_expense(
+           $1, $2, 'Rent', NULL, 'INR', 90000, 'equal', '{"kind":"equal"}'::jsonb,
+           $3::jsonb, $4::jsonb, NULL, 'monthly', 1, NULL, '2026-11-01', NULL, true)`,
+        [
+          group.groupId,
+          id,
+          JSON.stringify([{ memberId: group.memberIds[alice], amount: '90000' }]),
+          JSON.stringify(group.memberIds.map((m) => ({ memberId: m, amount: third }))),
+        ],
+      ),
+    );
+    expect(await rule(id)).toMatchObject({
+      next_date: '2026-12-01',
+      last_generated_on: '2026-11-01',
+    });
+    await generate('2026-11-15T00:00:00Z');
+    expect(await expenseDates()).toEqual([]);
+    await generate('2026-12-01T00:10:00Z');
+    expect(await expenseDates()).toEqual(['2026-12-01']);
+  });
+});
+
 describe('the generator', () => {
   it('posts nothing before the date and one real expense on it', async () => {
     const id = await createRule({ anchor: '2026-11-01' });
@@ -570,5 +598,75 @@ describe('pause, resume, stop and edit', () => {
     const after = await rule(id);
     expect(after.next_date >= new Date().toISOString().slice(0, 10)).toBe(true);
     expect(await generate('2026-02-01T00:00:00Z')).toMatchObject({ generated: 0 });
+  });
+
+  it('editing the template makes the editor the author of what posts next', async () => {
+    const id = await createRule({ by: alice, anchor: '2026-11-01' });
+    await patch(group.profileIds[bob]!, id, { description: 'Rent (new)' });
+    await generate('2026-11-01T01:00:00Z');
+    const { rows } = await client.query(
+      `SELECT v.author_member_id, v.description FROM expenses e JOIN expense_versions v ON v.id = e.current_version_id
+        WHERE e.group_id = $1 AND v.description = 'Rent (new)'`,
+      [group.groupId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].author_member_id).toBe(group.memberIds[bob]);
+  });
+
+  it('pausing or rescheduling does not change whose name the rule posts under', async () => {
+    const id = await createRule({ by: alice });
+    await patch(group.profileIds[bob]!, id, { status: 'paused' });
+    await patch(group.profileIds[bob]!, id, { status: 'active', cadence: 'monthly', interval: 2 });
+    expect(
+      (await client.query(`SELECT created_by FROM group_recurring_expenses WHERE id=$1`, [id]))
+        .rows[0].created_by,
+    ).toBe(group.memberIds[alice]);
+  });
+});
+
+describe('the generator bypass cannot be forged by a client', () => {
+  it.each(['SET LOCAL', 'set_config'])(
+    'a signed-in client that sets waves.recurring_author (%s) is still refused as another member',
+    async (how) => {
+      await expect(
+        as(group.profileIds[cara]!, async () => {
+          await client.query('BEGIN');
+          try {
+            if (how === 'set_config') {
+              await client.query(`SELECT set_config('waves.recurring_author', $1, true)`, [
+                group.memberIds[alice],
+              ]);
+            } else {
+              await client.query(`SET LOCAL waves.recurring_author = '${group.memberIds[alice]}'`);
+            }
+            return await client.query(`SELECT waves_assert_expense_caller($1, $2)`, [
+              group.groupId,
+              group.memberIds[alice],
+            ]);
+          } finally {
+            await client.query('ROLLBACK');
+          }
+        }),
+      ).rejects.toThrow(/NOT_THE_AUTHOR/);
+    },
+  );
+
+  it('a client cannot write the authoring table to claim the bypass', async () => {
+    await expectDenied(
+      as(group.profileIds[cara]!, () =>
+        client.query(
+          `INSERT INTO waves_recurring_authoring (txid, member_id) VALUES (txid_current(), $1)`,
+          [group.memberIds[alice]],
+        ),
+      ),
+    );
+  });
+
+  it('the generator leaves nothing behind in the authoring table', async () => {
+    await createRule({ anchor: '2026-11-01' });
+    await generate('2026-11-01T01:00:00Z');
+    expect(
+      (await client.query(`SELECT count(*)::int AS n FROM waves_recurring_authoring`)).rows[0].n,
+    ).toBe(0);
   });
 });

@@ -2649,3 +2649,15 @@ model GroupRecurringExpense {
   @@map("group_recurring_expenses")
   @@schema("public")
 }
+
+/// Internal to `waves_generate_recurring_expenses`: "this transaction is posting
+/// as member M", read by `waves_assert_expense_caller`. No grants, RLS on —
+/// only SECURITY DEFINER code touches it. Rows live for one write.
+model WavesRecurringAuthoring {
+  txid     BigInt
+  memberId String @map("member_id") @db.Uuid
+
+  @@id([txid, memberId])
+  @@map("waves_recurring_authoring")
+  @@schema("public")
+}

@@ -403,6 +403,13 @@ BEGIN
     next_date   = v_next,
     end_date    = v_end,
     status      = v_status,
+    -- Whoever changes what the rule posts becomes the author of what it posts
+    -- next: a member can edit the template, but never makes it speak for someone
+    -- else. Pausing, resuming, stopping and rescheduling leave the author alone.
+    created_by  = CASE WHEN p_patch ?| ARRAY['description','category','currency','amount','split_type',
+                                              'split_params','payers','shares','notes']
+                       THEN COALESCE(public.waves_my_member_id(r.group_id), created_by)
+                       ELSE created_by END,
     updated_at  = now()
   WHERE id = p_id;
 END
@@ -411,12 +418,21 @@ $$;
 -- ──────────────────────────────────────────── the one narrow exception ──
 --
 -- `waves_assert_expense_caller` makes a signed-in caller write only as
--- themselves. The generator writes as the rule's creator, which is usually
--- not whoever's phone triggered the catch-up, so the generator announces the
--- author it is about to write as in a transaction-local setting and the check
--- stands aside for exactly that member. Nothing else changes: the setting
--- exists only inside the generator, is overwritten before and cleared after
--- every write, and a client that can only call RPCs cannot set a setting.
+-- themselves. The generator writes as the rule's author, usually not whoever's
+-- phone triggered the catch-up, so the generator records "this transaction is
+-- posting as member M" in a table nobody but SECURITY DEFINER code can touch
+-- (no grants, RLS on), keyed by the transaction id, and the check stands aside
+-- for exactly that member in exactly that transaction. Deliberately not a
+-- session setting: a setting is something any caller able to run SQL could set,
+-- a row in a table with no grants is not.
+CREATE TABLE public.waves_recurring_authoring (
+    txid bigint NOT NULL,
+    member_id uuid NOT NULL,
+    PRIMARY KEY (txid, member_id)
+);
+ALTER TABLE public.waves_recurring_authoring ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.waves_recurring_authoring FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.waves_assert_expense_caller(p_group_id uuid, p_author_member_id uuid) RETURNS void
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -430,9 +446,10 @@ BEGIN
   END IF;
 
   -- The recurring-expense generator, posting a rule's own occurrence as the
-  -- member who made the rule (see waves_generate_recurring_expenses).
-  IF p_author_member_id IS NOT NULL
-     AND current_setting('waves.recurring_author', true) = p_author_member_id::text THEN
+  -- member who owns the rule (see waves_generate_recurring_expenses).
+  IF p_author_member_id IS NOT NULL AND EXISTS (
+       SELECT 1 FROM public.waves_recurring_authoring ra
+        WHERE ra.txid = txid_current() AND ra.member_id = p_author_member_id) THEN
     RETURN;
   END IF;
 
@@ -506,7 +523,8 @@ BEGIN
         AND v_count < GREATEST(p_max_per_rule, 1)
         AND (r.end_date IS NULL OR v_next <= r.end_date)
       LOOP
-        PERFORM set_config('waves.recurring_author', r.created_by::text, true);
+        INSERT INTO public.waves_recurring_authoring (txid, member_id)
+          VALUES (txid_current(), r.created_by) ON CONFLICT DO NOTHING;
         v_result := public.waves_apply_expense(
           p_group_id           => r.group_id,
           p_expense_id         => public.waves_recurring_derived_id('expense', r.id, v_next),
@@ -523,7 +541,7 @@ BEGIN
           p_client_mutation_id => public.waves_recurring_derived_id('mutation', r.id, v_next),
           p_notes              => r.notes
         );
-        PERFORM set_config('waves.recurring_author', '', true);
+        DELETE FROM public.waves_recurring_authoring WHERE txid = txid_current();
         IF COALESCE((v_result ->> 'replayed')::boolean, false) THEN
           v_replayed := v_replayed + 1;
         ELSE
@@ -544,7 +562,6 @@ BEGIN
         updated_at        = now()
       WHERE id = r.id;
     EXCEPTION WHEN OTHERS THEN
-      PERFORM set_config('waves.recurring_author', '', true);
       v_failed := v_failed + 1;
       RAISE WARNING 'waves_generate_recurring_expenses: rule % failed: %', r.id, SQLERRM;
     END;
