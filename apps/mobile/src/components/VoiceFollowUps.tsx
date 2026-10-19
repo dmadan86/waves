@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { randomUUID } from 'expo-crypto';
 import { Pressable, View } from 'react-native';
 
 import {
@@ -30,6 +31,7 @@ import {
   materialiseMembers,
   money,
   muteKind,
+  MutationKind,
   nextFollowUp,
   nextMonthlyDate,
   recordAnswer,
@@ -42,9 +44,18 @@ import {
   type FollowUpKind,
   type FollowUpQuestion,
   type FollowUpSession,
+  type PersonalLoan,
 } from '@waves/core';
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
+import { InlineLoanShare } from '@/components/assistant/inline/InlineLoanShare';
+import { InlineReceiptStatus } from '@/components/assistant/inline/InlineReceiptStatus';
+import {
+  InlineSheetHost,
+  type InlineSheetRequest,
+} from '@/components/assistant/inline/InlineSheetHost';
+import { InlineSettle } from '@/components/assistant/inline/InlineSettle';
+import { useInlineReceipt } from '@/components/assistant/inline/useInlineReceipt';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import {
   applyAgentResponse,
@@ -52,11 +63,23 @@ import {
   changedFields,
   correctionLine,
   readLocally,
+  type MovePlan,
   type TypedResult,
 } from '@/lib/assistantCorrections';
 import { hapticSelect } from '@/lib/assistantHaptics';
+import {
+  itemizeDraftFor,
+  lentLoan,
+  planAttendance,
+  planItemize,
+  planSplitMove,
+  runOnce,
+  type Claims,
+} from '@/lib/assistantInline';
+import { runMove, type MoveProgress } from '@/lib/assistantMove';
 import { UNDO_RING_MS, type UndoEntry } from '@/lib/assistantUndo';
 import { useCreateGroupRecurring } from '@/data/groupRecurring';
+import { serialiseExpense } from '@/data/serialiseExpense';
 import { useDeleteExpense, useOpenReceipts, useWriteExpense } from '@/data/hooks';
 import {
   usePersonalLedger,
@@ -87,17 +110,14 @@ import {
 } from '@/lib/followUpHistory';
 import { useFollowUpPrefs } from '@/lib/followUpPrefs';
 import { currentPlaceIfGranted } from '@/lib/location';
-import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
 import { useVoiceReply } from '@/lib/useVoiceReply';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
-import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { FOLLOW_UP_TURN_CAP, matchChip } from '@/lib/voiceReplyPure';
-import { findSplittableReceipt, handoverFor, itemizeParams } from '@/lib/splitByItem';
-import { handoverKey } from '@/lib/handover';
-import { syncEngine, useSync } from '@/sync';
+import { findSplittableReceipt } from '@/lib/splitByItem';
+import { useSync } from '@/sync';
 
 export interface VoiceFollowUpsProps {
   initial: SavedState;
@@ -138,7 +158,18 @@ export interface SavedBarControls {
    * the same amount, date, move, delete and undo history. Returns a way to drop it.
    */
   registerExecutor(run: (response: VoiceAgentResponse) => Promise<TypedResult>): () => void;
+  /**
+   * The bar offers its move: the resumable two-write move a typed "move it to ..."
+   * uses, which switches the write base and leaves one undo step. The inline sheets
+   * (split with, a trip, split by item) run their plan through it. `line` is the
+   * sentence shown under the bar afterwards.
+   */
+  registerMover(
+    run: (plan: MovePlan, from: SavedState, line?: string) => Promise<boolean>,
+  ): () => void;
 }
+
+type Mover = Parameters<SavedBarControls['registerMover']>[0];
 
 export interface SavedBarContext {
   readonly state: SavedState;
@@ -264,7 +295,7 @@ export function VoiceFollowUps({
   const writeExpense = useWriteExpense(initial.groupId ?? '');
   const removeExpense = useDeleteExpense(initial.groupId ?? '');
   const createGroupRecurring = useCreateGroupRecurring(initial.groupId ?? '');
-  const { mirror, queue } = useSync();
+  const { mirror, queue, mutate } = useSync();
 
   const [saved, setSaved] = useState<SavedState>(initial);
   // A bill already scanned for this group with the same total and its lines read:
@@ -280,6 +311,24 @@ export function VoiceFollowUps({
   const [typing, setTyping] = useState(false);
   const [handedOff, setHandedOff] = useState(false);
   const [wrapUpOnScreen, setWrapUpOnScreen] = useState<string | null>(null);
+  // Inline answers (nothing here leaves the voice screen): the sheet that is open,
+  // the loan being shared, the group being settled, and the line that says it is done.
+  const [sheet, setSheet] = useState<InlineSheetRequest | null>(null);
+  const [sheetBusy, setSheetBusy] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<PersonalLoan | null>(null);
+  const [settleGroupId, setSettleGroupId] = useState<string | null>(null);
+  const [doneNote, setDoneNote] = useState<string | null>(null);
+  const sheetLock = useRef(false);
+  // One id per (expense, destination) until the move completes, so a retry after a
+  // half-done move resumes the entry already written instead of making a second.
+  const moveIds = useRef(new Map<string, string>());
+  // The id a split-by-item expense is written under (also the seed of its remainder).
+  const [itemizeSeed] = useState(() => randomUUID());
+  const moverBox = useRef<Mover | null>(null);
+  const fallbackProgress = useRef<MoveProgress | null>(null);
+  const attachedRef = useRef<() => void>(() => undefined);
+  const removedRef = useRef<() => void>(() => undefined);
   // Typing and the mic need the network; the chips work from the phone alone.
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -304,6 +353,12 @@ export function VoiceFollowUps({
     turnsUsed,
   });
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+  const receipt = useInlineReceipt({
+    groupId: saved.kind === 'group' ? saved.groupId : null,
+    expenseId: saved.id,
+    onAttached: () => attachedRef.current(),
+    onRemoved: () => removedRef.current(),
+  });
 
   // Where the phone is — only when permission was already granted; nothing here prompts.
   useEffect(() => {
@@ -427,6 +482,12 @@ export function VoiceFollowUps({
 
   const splittable =
     saved.kind === 'group' ? findSplittableReceipt(openReceipts.data, saved.amount) : null;
+  // The bill's lines for this total, or null when they cannot be split by item.
+  const itemize = useMemo(() => {
+    if (!splittable?.parsed) return null;
+    const start = itemizeDraftFor(splittable.parsed, saved.amount);
+    return start.ok ? { draft: start.draft, receiptId: splittable.id } : null;
+  }, [splittable, saved.amount]);
   const category = saved.category;
   const amountLabel = format(money(saved.amount, saved.currency), { locale });
   const whereLabel = saved.kind === 'group' ? (group?.name ?? '') : f.wherePersonal;
@@ -482,34 +543,155 @@ export function VoiceFollowUps({
     }
   };
 
-  /** Leave for another screen (a receipt, a split in a group, settling up). */
-  const handOff = (kind: FollowUpKind, go: () => void): void => {
-    respond(kind, 'answered');
-    setHandedOff(true);
-    go();
-  };
+  // ── inline answers: sheets and in-card UI, never another screen ──────────────
 
-  const addExpenseParams = (
-    targetGroupId: string,
-    paidBy: string | null,
-    split: { memberId: string }[] | null,
-  ) => ({
-    id: targetGroupId,
-    amount: saved.amount.toString(),
-    currency: saved.currency,
-    description: saved.description,
-    ...(saved.category ? { category: saved.category } : {}),
-    expenseDate: saved.date,
-    ...encodeAgentSplitParams({
-      paidByMemberId: paidBy,
-      split: split ? { mode: 'equal', shares: split } : null,
-    }),
-    ...(saved.kind === 'personal' ? { movePersonal: saved.id } : {}),
-    quick: '1',
+  useEffect(() => {
+    // The receipt hook calls these when its upload finishes or the bill is taken off.
+    attachedRef.current = () => {
+      const next = { ...saved, hasReceipt: true };
+      setSaved(next);
+      onSavedStateChange?.(next);
+      setDoneNote(t.inline.receiptDone);
+      respond('receipt', 'answered');
+    };
+    removedRef.current = () => {
+      const next = { ...saved, hasReceipt: false };
+      setSaved(next);
+      onSavedStateChange?.(next);
+      setDoneNote(null);
+    };
   });
 
-  const myMemberIn = (groupId: string): string | null =>
-    local.groups.find((g) => g.id === groupId)?.members.find((m) => m.isViewer)?.id ?? null;
+  /** Run a move through the saved bar (resumable, undoable); without a bar, directly. */
+  const runSheetMove = async (plan: MovePlan, line?: string): Promise<boolean> => {
+    const mover = moverBox.current;
+    if (mover) return mover(plan, saved, line);
+    return runMove(fallbackProgress, plan, saved, {
+      writeDestination: async (p) => {
+        if (p.kind === 'toGroup') {
+          await mutate(MutationKind.ExpenseCreate, p.groupId, {
+            ...serialiseExpense(p.write),
+            expenseId: p.write.expenseId,
+          });
+        } else {
+          await upsert.mutateAsync({ recordId: p.recordId, recordKind: 'txn', data: p.data });
+        }
+      },
+      removeSource: async (from) => {
+        if (from.kind === 'group' && from.groupId) {
+          await mutate(MutationKind.ExpenseDelete, from.groupId, { expenseId: from.id });
+        } else {
+          await removePersonal.mutateAsync(from.id);
+        }
+      },
+      removeDestination: async (d) => {
+        if (d.kind === 'group') {
+          await mutate(MutationKind.ExpenseDelete, d.groupId, { expenseId: d.id });
+        } else {
+          await removePersonal.mutateAsync(d.id);
+        }
+      },
+      completed: (p) => {
+        setSaved(p.next);
+        onSavedStateChange?.(p.next);
+      },
+    });
+  };
+
+  const closeSheet = (): void => {
+    if (sheetLock.current) return;
+    setSheet(null);
+    setSheetError(null);
+  };
+
+  /** The sheet saved: the question is answered and nothing more is asked about this expense. */
+  const sheetDone = (request: InlineSheetRequest, note: string): void => {
+    setSheet(null);
+    setSheetError(null);
+    setDoneNote(note);
+    if (request.from) respond(request.from, 'answered');
+    setHandedOff(true);
+  };
+
+  /** One write at a time: a second tap while it runs does nothing; a failure keeps the sheet open to retry. */
+  const submitSheet = async (
+    request: InlineSheetRequest,
+    write: () => Promise<boolean>,
+    note: string,
+  ): Promise<void> => {
+    const out = await runOnce(sheetLock, async () => {
+      setSheetBusy(true);
+      setSheetError(null);
+      try {
+        return await write();
+      } catch {
+        return false;
+      } finally {
+        setSheetBusy(false);
+      }
+    });
+    if (!out.ran) return;
+    if (out.value) sheetDone(request, note);
+    else setSheetError(f.couldNotSave);
+  };
+
+  // The id is per (expense, destination, people): a changed pick after a half-done move
+  // is a different entry, so the earlier one is taken back out instead of silently kept.
+  const moveIdFor = (groupId: string, people: readonly string[] = []): string => {
+    const key = `${saved.id}>${groupId}>${[...people].sort().join(',')}`;
+    let id = moveIds.current.get(key);
+    if (!id) {
+      id = randomUUID();
+      moveIds.current.set(key, id);
+    }
+    return id;
+  };
+
+  const groupName = (id: string): string => local.groups.find((g) => g.id === id)?.name ?? '';
+
+  const onSheetMove = (request: InlineSheetRequest, groupId: string, memberIds: string[]): void => {
+    const plan = planSplitMove(saved, local, groupId, memberIds, moveIdFor(groupId, memberIds));
+    if (!plan) {
+      setSheetError(f.couldNotSave);
+      return;
+    }
+    const names = (local.groups.find((g) => g.id === groupId)?.members ?? [])
+      .filter((m) => !m.isViewer && memberIds.includes(m.id))
+      .map((m) => m.name);
+    const note =
+      request.kind === 'trip' || names.length === 0
+        ? fill(t.inline.movedDone, { group: groupName(groupId) })
+        : fill(t.inline.splitDone, { names: names.join(', ') });
+    void submitSheet(request, () => runSheetMove(plan), note);
+  };
+
+  const onSheetAttendance = (request: InlineSheetRequest, memberIds: string[]): void => {
+    const next = planAttendance(saved, memberIds);
+    if (!next) {
+      sheetDone(request, t.inline.attendanceDone);
+      return;
+    }
+    void submitSheet(
+      request,
+      async () => {
+        const before = saved;
+        if (!(await persist(next))) return false;
+        onUndoable?.({ kind: 'edit', previous: before, what: 'answer' });
+        return true;
+      },
+      t.inline.attendanceDone,
+    );
+  };
+
+  const onSheetItemize = (request: InlineSheetRequest, claims: Claims): void => {
+    if (request.kind !== 'itemize') return;
+    const plan = planItemize(saved, request.draft, claims, local, request.receiptId, request.seed);
+    if (!plan) {
+      setSheetError(f.couldNotSave);
+      return;
+    }
+    void submitSheet(request, () => runSheetMove(plan, t.inline.itemizeDone), t.inline.itemizeDone);
+  };
 
   /**
    * One path for every free-text answer, typed or spoken: a chip the words name
@@ -631,17 +813,14 @@ export function VoiceFollowUps({
     setTyping(false);
     if (question) respond(question.kind, 'answered');
     if (plan && handoff && plan.wantsReceipt && saved.groupId) {
-      setHandedOff(true);
-      router.push(`/group/${saved.groupId}/expense/${saved.id}`);
+      // The bill is scanned right here; the camera opens over the panel.
+      receipt.scan();
     } else if (plan && handoff && plan.splitWith) {
-      const gid = plan.splitWith.groupId;
-      setHandedOff(true);
-      router.push({
-        pathname: '/group/[id]/add-expense',
-        params: addExpenseParams(gid, myMemberIn(gid), [
-          ...(myMemberIn(gid) ? [{ memberId: myMemberIn(gid) as string }] : []),
-          ...plan.splitWith.memberIds.map((memberId) => ({ memberId })),
-        ]),
+      setSheet({
+        kind: 'split',
+        groupId: plan.splitWith.groupId,
+        memberIds: plan.splitWith.memberIds,
+        from: null,
       });
     } else if (!viaBar) {
       setNotice(f.gotIt);
@@ -675,24 +854,18 @@ export function VoiceFollowUps({
         ];
       case 'receipt':
         return [
-          yes(f.receiptScan, () =>
-            handOff('receipt', () => router.push(`/group/${saved.groupId}/expense/${saved.id}`)),
-          ),
-          yes(f.receiptPick, () =>
-            handOff('receipt', () => router.push(`/group/${saved.groupId}/expense/${saved.id}`)),
-          ),
-          ...(splittable && saved.groupId
+          yes(f.receiptScan, () => receipt.scan()),
+          yes(f.receiptPick, () => receipt.pick()),
+          ...(itemize
             ? [
-                yes(f.splitByItem, () => {
-                  const groupId = saved.groupId as string;
-                  handOff('receipt', () => {
-                    void syncEngine.saveDraft(handoverKey(groupId), handoverFor(splittable));
-                    router.push({
-                      pathname: '/group/[id]/itemize',
-                      params: itemizeParams(groupId, saved.id),
-                    });
-                  });
-                }),
+                yes(f.splitByItem, () =>
+                  setSheet({
+                    kind: 'itemize',
+                    ...itemize,
+                    seed: itemizeSeed,
+                    from: 'receipt',
+                  }),
+                ),
               ]
             : []),
           no(),
@@ -701,15 +874,11 @@ export function VoiceFollowUps({
         return [
           ...q.partners.map((partner) =>
             yes(partner.name, () =>
-              handOff('split', () => {
-                const me = myMemberIn(partner.groupId);
-                router.push({
-                  pathname: '/group/[id]/add-expense',
-                  params: addExpenseParams(partner.groupId, me, [
-                    ...(me ? [{ memberId: me }] : []),
-                    { memberId: partner.memberId },
-                  ]),
-                });
+              setSheet({
+                kind: 'split',
+                groupId: partner.groupId,
+                memberIds: [partner.memberId],
+                from: 'split',
               }),
             ),
           ),
@@ -729,12 +898,7 @@ export function VoiceFollowUps({
         if (!trip) return [no()];
         return [
           yes(fill(f.tripMove, { trip: trip.name }), () =>
-            handOff('trip', () =>
-              router.push({
-                pathname: '/group/[id]/add-expense',
-                params: addExpenseParams(trip.groupId, myMemberIn(trip.groupId), null),
-              }),
-            ),
+            setSheet({ kind: 'trip', groupId: trip.groupId, from: 'trip' }),
           ),
           no(f.tripNo),
         ];
@@ -742,14 +906,7 @@ export function VoiceFollowUps({
       case 'attendance':
         return [
           yes(f.attendanceEveryone, () => respond('attendance', 'answered')),
-          yes(f.attendancePick, () =>
-            handOff('attendance', () =>
-              router.push({
-                pathname: '/group/[id]/add-expense',
-                params: { id: saved.groupId ?? '', expenseId: saved.id },
-              }),
-            ),
-          ),
+          yes(f.attendancePick, () => setSheet({ kind: 'attendance', from: 'attendance' })),
         ];
       case 'payer': {
         const payer = q.payer;
@@ -887,7 +1044,8 @@ export function VoiceFollowUps({
             setFilled((list) => [...list, 'lend']);
             respond('lend', 'answered');
             setSession((s) => ({ ...s, stopped: true }));
-            if (share) router.push({ pathname: '/personal/loans', params: { share: loanId } });
+            // Shared right here: the card shows the outcome (and Try again on a failure).
+            if (share) setSharing(lentLoan({ id: loanId, person, saved }));
           } catch {
             setNotice(f.couldNotSave);
           } finally {
@@ -902,9 +1060,11 @@ export function VoiceFollowUps({
       }
       case 'wrapup':
         return [
-          yes(f.wrapupYes, () =>
-            handOff('wrapup', () => router.push(`/group/${saved.groupId}/settle`)),
-          ),
+          yes(f.wrapupYes, () => {
+            respond('wrapup', 'answered');
+            setHandedOff(true);
+            setSettleGroupId(saved.groupId);
+          }),
           no(f.wrapupNo),
         ];
       case 'work':
@@ -934,6 +1094,12 @@ export function VoiceFollowUps({
         executorBox.current = run;
         return () => {
           if (executorBox.current === run) executorBox.current = null;
+        };
+      },
+      registerMover: (run) => {
+        moverBox.current = run;
+        return () => {
+          if (moverBox.current === run) moverBox.current = null;
         };
       },
     }),
@@ -1080,11 +1246,17 @@ export function VoiceFollowUps({
         </View>
       ) : null}
 
+      <InlineReceiptStatus receipt={receipt} />
+      {sharing ? <InlineLoanShare loan={sharing} loans={personalLedger.loans} /> : null}
+      {settleGroupId ? <InlineSettle groupId={settleGroupId} /> : null}
+
       {finished && (session.asked.length > 0 || filled.length > 0 || handedOff || held) ? (
         <View style={{ gap: theme.spacing.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
             <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
-            <Text tone="muted">{handedOff && filled.length === 0 ? f.handedOff : summary}</Text>
+            <Text tone="muted">
+              {doneNote ?? (handedOff && filled.length === 0 ? f.handedOff : summary)}
+            </Text>
           </View>
           {notice ? (
             <Text variant="caption" tone="muted">
@@ -1096,6 +1268,19 @@ export function VoiceFollowUps({
       ) : null}
 
       {!ready ? <Button label={f.done} variant="secondary" onPress={onClose} /> : null}
+
+      <InlineSheetHost
+        request={sheet}
+        saved={saved}
+        local={local}
+        amountLabel={amountLabel}
+        busy={sheetBusy}
+        error={sheetError}
+        onMove={onSheetMove}
+        onAttendance={onSheetAttendance}
+        onItemize={onSheetItemize}
+        onClose={closeSheet}
+      />
     </View>
   );
 }

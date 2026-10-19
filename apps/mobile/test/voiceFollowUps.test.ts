@@ -12,6 +12,7 @@ import { VoiceFollowUps, questionReason, questionText } from '../src/components/
 import type { SavedState } from '../src/lib/followUpApply';
 import type { AgentExpenseWrite, AgentLocalData } from '../src/lib/voiceAgentPlan';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
+import { inlineWorld, resetInlineWorld } from './support/inlineStubs';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
@@ -108,7 +109,24 @@ vi.mock('@/lib/voiceStream', () => ({ checkOnline: async () => world.online }));
 vi.mock('@/lib/voiceReplyEngine', () => ({
   deviceReplyEngine: { supported: () => false, start: () => ({ stop() {}, cancel() {} }) },
 }));
-vi.mock('@/sync', () => ({ useSync: () => ({ mirror: {}, queue: {} }) }));
+vi.mock('@/sync', async () => {
+  const { inlineWorld: w } = await import('./support/inlineStubs');
+  return { useSync: () => ({ mirror: {}, queue: {}, mutate: w.mutate }) };
+});
+vi.mock('expo-crypto', async () => (await import('./support/inlineStubs')).cryptoModule());
+vi.mock('@/components/assistant/inline/useInlineReceipt', async () => ({
+  useInlineReceipt: (await import('./support/inlineStubs')).useInlineReceiptStub,
+}));
+vi.mock('@/components/assistant/inline/InlineReceiptStatus', () => ({
+  InlineReceiptStatus: 'InlineReceiptStatus',
+}));
+vi.mock('@/components/assistant/inline/InlineLoanShare', () => ({
+  InlineLoanShare: 'InlineLoanShare',
+}));
+vi.mock('@/components/assistant/inline/InlineSettle', () => ({ InlineSettle: 'InlineSettle' }));
+vi.mock('@/components/assistant/inline/InlineSheetHost', () => ({
+  InlineSheetHost: 'InlineSheetHost',
+}));
 vi.mock('@waves/core', async (original) => ({
   ...(await original<typeof import('@waves/core')>()),
   materialiseGroups: () => world.groups,
@@ -200,6 +218,7 @@ const labels = (r: ReturnType<typeof mount>): string[] =>
   ).map((n) => String(n.props.accessibilityLabel ?? n.props.label));
 
 beforeEach(() => {
+  resetInlineWorld();
   vi.clearAllMocks();
   // The clock is part of the scorer (a spend after midnight asks about the date),
   // so the tests pin it to mid-afternoon on the day they are written for.
@@ -329,7 +348,7 @@ describe('VoiceFollowUps', () => {
     expect(world.toast).toHaveBeenCalledWith('Done');
   });
 
-  it('MC-FU-08 the receipt chip opens the expense and the closing line says so', async () => {
+  it('MC-FU-08 the receipt chip scans in place and the closing line says it is attached', async () => {
     const r = mount(
       group({ category: 'travel', description: 'hotel', location: { lat: 1, lng: 2, name: 'x' } }),
       write,
@@ -337,8 +356,14 @@ describe('VoiceFollowUps', () => {
     await flush();
     expect(textOf(tree(r))).toContain('Got a receipt?');
     await press(r, 'Scan');
-    expect(world.push).toHaveBeenCalledWith('/group/g1/expense/g-e1');
-    expect(textOf(tree(r))).toContain('Opened it for you');
+    // Nothing navigates: the camera opens over the panel, and the upload runs there.
+    expect(inlineWorld.scan).toHaveBeenCalledTimes(1);
+    expect(world.push).not.toHaveBeenCalled();
+    await act(async () => {
+      inlineWorld.receiptCallbacks?.onAttached();
+    });
+    await flush();
+    expect(textOf(tree(r))).toContain('Receipt attached ✓');
   });
 
   it('MC-FU-09 a typed answer goes to the agent with the question, and the update is applied', async () => {

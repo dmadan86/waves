@@ -13,14 +13,17 @@
  * nothing animates, so Reduce Motion needs none either.
  */
 
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import type { SpendQuery } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { InlineSpendingList } from '@/components/assistant/inline/InlineSpendingList';
+import { usePersonalLedger } from '@/data/personal';
 import type { AssistantAnswer, PeriodChip, SpendingLink } from '@/lib/assistantAnswers';
+import { matchingTransactions } from '@/lib/assistantInline';
 import { router } from '@/lib/navigation';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 
@@ -30,6 +33,10 @@ export interface AssistantAnswerCardProps {
   link: SpendingLink | null;
   onChip: (chip: PeriodChip) => void;
   onLink: (link: SpendingLink) => void;
+  /** The link's list is open inside the card (for a link that lists, not navigates). */
+  expanded?: boolean;
+  /** What the open link shows, under the chips. */
+  children?: ReactNode;
 }
 
 export function AssistantAnswerCard({
@@ -38,6 +45,8 @@ export function AssistantAnswerCard({
   link,
   onChip,
   onLink,
+  expanded,
+  children,
 }: AssistantAnswerCardProps) {
   const theme = useTheme();
   return (
@@ -95,11 +104,13 @@ export function AssistantAnswerCard({
           ))}
           {link ? (
             <Pressable
-              accessibilityRole="link"
+              accessibilityRole={expanded === undefined ? 'link' : 'button'}
               accessibilityLabel={link.label}
+              accessibilityState={expanded === undefined ? undefined : { expanded }}
               hitSlop={8}
               onPress={() => onLink(link)}
               style={({ pressed }) => ({
+                minHeight: 44,
                 marginStart: 'auto',
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -110,18 +121,29 @@ export function AssistantAnswerCard({
               <Text variant="caption" style={{ color: theme.color.brand }}>
                 {link.label}
               </Text>
-              <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.brand} />
+              <Ionicons
+                name={
+                  expanded === undefined
+                    ? 'chevron-forward'
+                    : expanded
+                      ? 'chevron-up'
+                      : 'chevron-down'
+                }
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
             </Pressable>
           ) : null}
         </View>
       ) : null}
+      {expanded ? children : null}
     </View>
   );
 }
 
 export interface AssistantMoneyAnswerProps {
   query: SpendQuery;
-  /** Called just before a link navigates, so the panel behind it can close. */
+  /** Called just before a link navigates (only the budget link does), so the panel behind it can close. */
   onNavigate?: () => void;
 }
 
@@ -129,19 +151,39 @@ export interface AssistantMoneyAnswerProps {
 export function AssistantMoneyAnswer({ query, onNavigate }: AssistantMoneyAnswerProps) {
   const answerer = useAssistantAnswerer();
   const [chosen, setChosen] = useState<PeriodChip['key'] | null>(null);
+  const [open, setOpen] = useState(false);
+  const ledger = usePersonalLedger();
   const answer: AssistantAnswer = chosen
     ? answerer.answerFor(query, chosen)
     : answerer.answer(query);
+  const lists = answer.link?.kind === 'spending';
+  const params = answer.link?.params;
+  // The entries "Show in Spending" would have opened, listed in the card.
+  const rows = useMemo(
+    () => (lists && params ? matchingTransactions(ledger.txns, params) : []),
+    [lists, params, ledger.txns],
+  );
   return (
     <AssistantAnswerCard
       text={answer.text}
       chips={answer.chips}
       link={answer.link}
-      onChip={(chip) => setChosen(chip.key)}
+      expanded={lists ? open : undefined}
+      onChip={(chip) => {
+        setChosen(chip.key);
+        setOpen(false);
+      }}
       onLink={(link) => {
+        if (link.kind === 'spending') {
+          setOpen((now) => !now);
+          return;
+        }
+        // The budget link opens the Budgets screen, where a budget is set.
         onNavigate?.();
         router.push({ pathname: link.pathname, params: link.params });
       }}
-    />
+    >
+      <InlineSpendingList rows={rows} />
+    </AssistantAnswerCard>
   );
 }

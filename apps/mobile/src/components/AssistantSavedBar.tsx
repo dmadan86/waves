@@ -38,6 +38,7 @@ import { serialiseExpense } from '@/data/serialiseExpense';
 import { fill, useStrings } from '@/i18n';
 import {
   applyAgentResponse,
+  correctionLine,
   runTypedMessage,
   type MovePlan,
   type TypedDeps,
@@ -474,6 +475,45 @@ export function AssistantSavedBar({
   });
   useEffect(
     () => controls.registerExecutor((response) => executorRef.current(response)),
+    [controls],
+  );
+
+  // An inline sheet (split with, move to a trip, split by item) moves the
+  // expense through this bar's own machinery: the same resumable `runMove`, the
+  // same write base switch and the same undo step a typed move leaves.
+  const inlineMove = async (plan: MovePlan, from: SavedState, line?: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true);
+    // Read before the move deletes the record: its unknown fields must survive an undo.
+    const carried = carriedFor(from);
+    try {
+      if (!(await doMove(plan, from))) {
+        setNotice(c.couldNotChange);
+        return false;
+      }
+      settle(
+        {
+          kind: 'corrected',
+          previous: from,
+          next: plan.next,
+          line: line ?? correctionLine(plan.next, ['groupId'], contextFor('', true)),
+          fields: ['groupId'],
+          path: 'device',
+          moved: true,
+        },
+        carried,
+      );
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const moverRef = useRef(inlineMove);
+  useEffect(() => {
+    moverRef.current = inlineMove;
+  });
+  useEffect(
+    () => controls.registerMover((plan, from, line) => moverRef.current(plan, from, line)),
     [controls],
   );
 
