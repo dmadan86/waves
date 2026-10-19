@@ -37,8 +37,6 @@ import { useUpsertPersonalRecord } from '@/data/personal';
 import { GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
-import { router } from '@/lib/navigation';
-import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import { followUpsAllowed } from '@/lib/assistantCorrections';
 import type { UndoEntry } from '@/lib/assistantUndo';
@@ -82,8 +80,10 @@ export interface VoiceAgentPanelProps {
   followUp?: { transcript: string; question: string } | null;
   /** Which engine heard the clip, for the pill behind the allowance's (i). */
   engine?: VoiceEngineInfo | null;
-  /** Everything is confirmed or discarded. */
+  /** Everything is confirmed or discarded; Done leaves the screen. */
   onClose: () => void;
+  /** Speak another command on this same screen, after a save. */
+  onAddAnother?: () => void;
   /**
    * What the person sees after a single expense is saved, in place of the
    * follow-up questions. The screen passes this for a Free account (the Pro
@@ -164,6 +164,7 @@ export function VoiceAgentPanel({
   engine = null,
   onClose,
   renderAfterSave,
+  onAddAnother,
   aboveFollowUps,
   onResolved,
   onSavedBarEvent,
@@ -235,6 +236,25 @@ export function VoiceAgentPanel({
     plan.cards.every((card) => ['done', 'discarded'].includes(statusOf(card.key)));
   const anyDone = plan?.cards.some((card) => statusOf(card.key) === 'done') ?? false;
 
+  // After a save: speak another here, or leave. Never a jump to another screen.
+  const afterSave = (
+    <Row gap={theme.spacing.sm}>
+      {onAddAnother ? (
+        <View style={{ flex: 1 }}>
+          <Button
+            label={t.voiceScreen.addAnother}
+            variant="secondary"
+            fullWidth
+            onPress={onAddAnother}
+          />
+        </View>
+      ) : null}
+      <View style={{ flex: 1 }}>
+        <Button label={t.voiceScreen.done} variant="brand" fullWidth onPress={onClose} />
+      </View>
+    </Row>
+  );
+
   if (!plan) {
     return (
       <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.xxl }}>
@@ -270,7 +290,7 @@ export function VoiceAgentPanel({
       return (
         <View style={{ gap: theme.spacing.md }}>
           {renderAfterSave(savedFollowUp.state)}
-          <Button label={t.followUps.done} onPress={onClose} />
+          {afterSave}
         </View>
       );
     }
@@ -297,6 +317,9 @@ export function VoiceAgentPanel({
               />
             )}
           />
+          {onAddAnother ? (
+            <Button label={t.voiceScreen.addAnother} variant="secondary" onPress={onAddAnother} />
+          ) : null}
         </View>
       );
     }
@@ -312,7 +335,6 @@ export function VoiceAgentPanel({
         today={today}
         quota={quota}
         engine={engine}
-        onEdited={() => setCardStatus(only.key, 'discarded')}
         onDiscard={() => {
           setCardStatus(only.key, 'discarded');
           onResolved?.('discarded', only.action.type === 'add_personal' ? 'personal' : 'group');
@@ -414,6 +436,10 @@ export function VoiceAgentPanel({
                 onStatus={(next) => setCardStatus(card.key, next)}
                 confirmAllSeq={confirmAllSeq}
                 text={t.voice}
+                transcript={plan.transcript || transcript}
+                quota={quota}
+                engine={engine ?? null}
+                onRetry={() => onRetry()}
               />
             </View>
           ))}
@@ -427,14 +453,33 @@ export function VoiceAgentPanel({
         />
       ) : null}
       {settled ? (
-        <Button
-          label={t.voice.agentDone}
-          onPress={() => {
-            if (anyDone) toast.show(t.voice.agentDone);
-            onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
-            onClose();
-          }}
-        />
+        <Row gap={theme.spacing.sm}>
+          {anyDone && onAddAnother ? (
+            <View style={{ flex: 1 }}>
+              <Button
+                label={t.voiceScreen.addAnother}
+                variant="secondary"
+                fullWidth
+                onPress={() => {
+                  onResolved?.('confirmed', 'group');
+                  onAddAnother();
+                }}
+              />
+            </View>
+          ) : null}
+          <View style={{ flex: 1 }}>
+            <Button
+              label={t.voice.agentDone}
+              variant="brand"
+              fullWidth
+              onPress={() => {
+                if (anyDone) toast.show(t.voice.agentDone);
+                onResolved?.(anyDone ? 'confirmed' : 'discarded', 'group');
+                onClose();
+              }}
+            />
+          </View>
+        </Row>
       ) : null}
 
       <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
@@ -463,7 +508,6 @@ function ConfirmExpense({
   today,
   quota,
   engine,
-  onEdited,
   onDiscard,
   onAdded,
   onRetry,
@@ -474,7 +518,6 @@ function ConfirmExpense({
   today: string;
   quota: { percent: number };
   engine: VoiceEngineInfo | null;
-  onEdited: () => void;
   onDiscard: () => void;
   onAdded: (saved: { state: SavedState; write: AgentExpenseWrite | null }) => void;
   onRetry: () => void;
@@ -519,7 +562,6 @@ function ConfirmExpense({
       failed={failed}
       onGroupChange={(next) => setGroupId(next ?? '')}
       onAdd={(resolved) => void add(resolved)}
-      onEdited={onEdited}
       onDiscard={onDiscard}
       onRetry={onRetry}
     />
@@ -534,6 +576,10 @@ function AgentActionCard({
   onStatus,
   confirmAllSeq,
   text,
+  transcript,
+  quota,
+  engine,
+  onRetry,
 }: {
   card: AgentCard;
   local: AgentLocalData;
@@ -542,6 +588,10 @@ function AgentActionCard({
   onStatus: (next: CardStatus) => void;
   confirmAllSeq: number;
   text: UiStrings['voice'];
+  transcript: string;
+  quota: { percent: number };
+  engine: VoiceEngineInfo | null;
+  onRetry: () => void;
 }) {
   const theme = useTheme();
   const action: VoiceAgentAction = card.action;
@@ -633,51 +683,50 @@ function AgentActionCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, group, today]);
 
+  // Edit opens the card in the confirmation card, in place (see below).
+  const [editing, setEditing] = useState(false);
   // "Confirm all" bumps the sequence; every card still waiting runs itself.
   const lastSeq = useRef(0);
   useEffect(() => {
     if (confirmAllSeq === lastSeq.current) return;
     lastSeq.current = confirmAllSeq;
-    if (status === 'pending' && !card.problem) void run();
-  }, [confirmAllSeq, status, card.problem, run]);
+    // A card open for editing is confirmed from its own editor, never in bulk
+    // with the values it had before the edit.
+    if (status === 'pending' && !card.problem && !editing) void run();
+  }, [confirmAllSeq, status, card.problem, run, editing]);
 
-  // Edit hands the proposal to the ordinary form, prefilled — the same route
-  // params the quick sheet uses — and the card is done with.
-  const edit = (): void => {
-    if (action.type === 'add_expense') {
-      onStatus('discarded');
-      router.push({
-        pathname: '/group/[id]/add-expense',
-        params: {
-          id: action.groupId,
-          amount: action.amountMinor,
-          currency: action.currency,
-          description: action.description,
-          ...(action.category ? { category: action.category } : {}),
-          ...(action.date ? { expenseDate: action.date } : {}),
-          // Who paid and how it was split, so editing never quietly resets the
-          // proposal to "I paid, split with everyone".
-          ...encodeAgentSplitParams({ paidByMemberId: action.paidByMemberId, split: action.split }),
-          quick: '1',
-        },
-      });
-    } else if (action.type === 'add_personal') {
-      onStatus('discarded');
-      router.push({
-        pathname: '/personal/entry',
-        params: {
-          amount: action.amountMinor,
-          currency: action.currency,
-          kind: 'expense',
-          note: action.description,
-        },
-      });
-    }
-  };
+  // Edit opens this card's proposal in the confirmation card, in place: every
+  // field (amount, words, category, date, people, payer and split) is fixed
+  // right here, and its Confirm writes it. No trip to another screen.
+  const edit = (): void => setEditing(true);
   const editable = action.type === 'add_expense' || action.type === 'add_personal';
 
   const finished = status === 'done' || status === 'discarded';
   const [headline, ...rest] = card.segments;
+
+  if (editing && !finished && (action.type === 'add_expense' || action.type === 'add_personal')) {
+    return (
+      <View style={{ padding: theme.spacing.sm }}>
+        <ConfirmExpense
+          action={action}
+          transcript={transcript}
+          local={local}
+          today={today}
+          quota={quota}
+          engine={engine}
+          onDiscard={() => {
+            setEditing(false);
+            onStatus('discarded');
+          }}
+          onAdded={() => {
+            setEditing(false);
+            onStatus('done');
+          }}
+          onRetry={onRetry}
+        />
+      </View>
+    );
+  }
 
   return (
     <View

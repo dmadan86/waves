@@ -33,8 +33,8 @@ import { VoiceMicOrb } from '@/components/VoiceMicOrb';
 import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { useGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
-import { encodeAgentSplitParams } from '@/lib/voiceAgentHandoff';
+import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
+import { agentSplitFrom, splitEditFromAgent } from '@/lib/voiceSplitPure';
 import type { AgentLocalData, AgentLocalGroup } from '@/lib/voiceAgentPlan';
 import {
   initialFields,
@@ -45,6 +45,7 @@ import {
   sameFields,
   type ConfirmableAction,
   type ConfirmFields,
+  type SplitOverride,
 } from '@/lib/voiceConfirmPure';
 import type { VoiceEngineInfo } from '@/lib/voiceEnginePure';
 
@@ -60,8 +61,6 @@ export interface VoiceConfirmCardProps {
   onGroupChange: (groupId: string | null) => void;
   /** Confirm pressed with a fully resolved proposal. */
   onAdd: (action: ConfirmableAction) => void;
-  /** Edit pressed: the full form has been opened with the current state. */
-  onEdited: () => void;
   onDiscard: () => void;
   /** Speak it again, in place. */
   onRetry: () => void;
@@ -98,7 +97,6 @@ export function VoiceConfirmCard({
   failed,
   onGroupChange,
   onAdd,
-  onEdited,
   onDiscard,
   onRetry,
 }: VoiceConfirmCardProps) {
@@ -127,10 +125,14 @@ export function VoiceConfirmCard({
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [iosDateOpen, setIosDateOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  // Who paid and how it splits, when set in the split sheet (Edit).
+  const [splitOverride, setSplitOverride] = useState<SplitOverride | null>(null);
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const resolution = useMemo(
-    () => resolveConfirm(action, initial, fields, local, youLabel, t.voice.anExpense),
-    [action, initial, fields, local, youLabel, t.voice.anExpense],
+    () =>
+      resolveConfirm(action, initial, fields, local, youLabel, t.voice.anExpense, splitOverride),
+    [action, initial, fields, local, youLabel, t.voice.anExpense, splitOverride],
   );
 
   const brand = theme.color.brand;
@@ -204,50 +206,15 @@ export function VoiceConfirmCard({
       resolveCategory(fields.category, null))
     : null;
 
+  // Edit stays on this screen: who paid and how it splits open in a sheet over
+  // the card (the add-expense form's own split editor). Everything else on the
+  // card is already edited in place. With no group yet, the group is the
+  // question, so the picker opens instead.
+  const splitReady =
+    resolution.ok && resolution.action.type === 'add_expense' ? resolution.action : null;
   const edit = (): void => {
-    onEdited();
-    // The form follows the destination on screen, whatever the amount reads.
-    if (fields.personal) {
-      const ready = resolution.ok ? resolution.action : null;
-      router.push({
-        pathname: '/personal/entry',
-        params: {
-          kind: 'expense',
-          ...(ready ? { amount: ready.amountMinor } : {}),
-          currency: action.currency,
-          note: ready?.description ?? fields.description,
-        },
-      });
-      return;
-    }
-    const proposal =
-      resolution.ok && resolution.action.type === 'add_expense'
-        ? resolution.action
-        : action.type === 'add_expense' && fields.groupId
-          ? { ...action, groupId: fields.groupId }
-          : null;
-    if (!proposal) {
-      setPickerOpen(true);
-      return;
-    }
-    router.push({
-      pathname: '/group/[id]/add-expense',
-      params: {
-        id: proposal.groupId,
-        amount: proposal.amountMinor,
-        currency: proposal.currency,
-        description: proposal.description,
-        ...(proposal.category ? { category: proposal.category } : {}),
-        ...(proposal.date ? { expenseDate: proposal.date } : {}),
-        // Who paid and how it was split, so editing never quietly resets the
-        // proposal to "I paid, split with everyone".
-        ...encodeAgentSplitParams({
-          paidByMemberId: proposal.paidByMemberId,
-          split: proposal.split,
-        }),
-        quick: '1',
-      },
-    });
+    if (splitReady) setSplitOpen(true);
+    else setPickerOpen(true);
   };
 
   // A group expense: who it was for, picked from the group's own people.
@@ -668,12 +635,6 @@ export function VoiceConfirmCard({
                 }}
               />
               <PillButton
-                label={t.voice.agentEdit}
-                icon="pencil-outline"
-                disabled={busy}
-                onPress={edit}
-              />
-              <PillButton
                 label={t.voice.agentDiscard}
                 icon="trash-outline"
                 disabled={busy}
@@ -687,6 +648,39 @@ export function VoiceConfirmCard({
       ) : (
         groupLayout
       )}
+
+      {splitOpen && splitReady ? (
+        <VoiceSplitSheet
+          visible
+          onClose={() => setSplitOpen(false)}
+          groupId={splitReady.groupId}
+          currency={splitReady.currency}
+          amount={BigInt(splitReady.amountMinor)}
+          seed={splitEditFromAgent(
+            splitReady.paidByMemberId,
+            splitReady.split,
+            splitReady.currency,
+          )}
+          onApply={(result) => {
+            // "Paid for" shows the sheet's people, so the card and Confirm agree.
+            const members = local.groups.find((g) => g.id === splitReady.groupId)?.members ?? [];
+            const personText = result.participants
+              .filter((id) => id !== result.payerId)
+              .map((id) => members.find((member) => member.id === id))
+              .filter((member) => member !== undefined)
+              .map((member) => (member.isViewer ? youLabel : member.name))
+              .join(', ');
+            patch({ personText });
+            setSplitOverride({
+              groupId: splitReady.groupId,
+              amountMinor: splitReady.amountMinor,
+              paidByMemberId: result.payerId,
+              split: agentSplitFrom(result.params, result.participants),
+              personText,
+            });
+          }}
+        />
+      ) : null}
 
       <Sheet
         visible={peopleOpen}
