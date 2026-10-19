@@ -60,6 +60,11 @@ vi.mock('@/data/hooks', () => ({
   useDeleteExpense: () => ({ mutateAsync: vi.fn() }),
   useWriteExpense: () => ({ mutateAsync: vi.fn() }),
 }));
+// The recurring-rule hook reaches the Supabase client (URL polyfill, secure store);
+// stub it the way voiceFollowUps.test.ts does so the card loads under Node.
+vi.mock('@/data/groupRecurring', () => ({
+  useCreateGroupRecurring: () => ({ mutateAsync: async () => 'rule' }),
+}));
 vi.mock('@/data/personal', () => ({
   usePersonalLedger: () => ({ txns: [], recurrings: [] }),
   useDeletePersonalRecord: () => ({ mutateAsync: vi.fn() }),
