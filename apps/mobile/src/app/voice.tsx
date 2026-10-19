@@ -166,7 +166,8 @@ import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { ExpensePreviewCard, type ExpensePreview } from '@/components/voice/ExpensePreviewCard';
 import { LiveTranscript } from '@/components/voice/LiveTranscript';
 import { VoiceSceneBackdrop } from '@/components/voice/VoiceSceneBackdrop';
-import { VoiceStage } from '@/components/voice/VoiceStage';
+import { statusText, VoiceStage } from '@/components/voice/VoiceStage';
+import { VoiceStatus } from '@/components/voice/VoiceStatus';
 import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { singleFlight, voiceFlowState, voiceStatusKey } from '@/lib/voiceFlowPure';
@@ -2125,6 +2126,10 @@ export default function VoiceScreen() {
       ? t.voiceScreen.addExpense
       : plural(locale, drafts.length, t.voice.save);
 
+  // The review's state, read from the screen's own phase and flags.
+  const reviewFlow = { phase: 'review' as const, saving, needsAnswer: whoBlocked };
+  const reviewStatus = voiceStatusKey(voiceFlowState(reviewFlow), reviewFlow);
+
   // The single heard expense as a structured preview, from the parser's real
   // output and the destination's real members. Several expenses keep the list.
   const preview: ExpensePreview | null = (() => {
@@ -2460,6 +2465,9 @@ export default function VoiceScreen() {
             </View>
           ) : phase === 'review' ? (
             <View style={{ gap: theme.spacing.md }}>
+              {/* Where things stand — "Expense ready", or "Check one detail" while
+                a question holds Add expense — announced as it changes. */}
+              <VoiceStatus status={reviewStatus} text={statusText(t, reviewStatus)} />
               {/* What was heard, word for word, with Edit to correct it. */}
               {heardText ? <LiveTranscript text={heardText} final onEdit={editHeard} /> : null}
               {/* Confirmation, not an edit form. Each expense reads as a quiet
