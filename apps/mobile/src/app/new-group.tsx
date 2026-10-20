@@ -46,6 +46,7 @@ import { router } from '@/lib/navigation';
 import { isPhoneCountryError, normaliseContactPhone } from '@/lib/phone';
 import { type PickedContact } from '@/components/ContactPicker';
 import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
+import { coverTone } from '@/lib/groupCoverColor';
 import { GroupTagField } from '@/components/GroupTagField';
 import { GROUP_TAG_MAX, normaliseGroupTag } from '@/lib/groupTypeTag';
 import {
@@ -314,6 +315,8 @@ export default function NewGroupScreen() {
   // Null until somebody picks: the icon is otherwise read from the name, so an
   // untouched group still gets a sensible cover.
   const [pickedEmoji, setPickedEmoji] = useState<string | null>(null);
+  // The colour behind the icon (a `GROUP_COVER_COLORS` key); null is the app's own.
+  const [pickedColor, setPickedColor] = useState<string | null>(null);
   // Null until toggled, so it can follow the group type's default until then.
   const [simplify, setSimplify] = useState<boolean | null>(null);
   // Optional starting budget for a trip, minor units. Zero is "not set".
@@ -442,6 +445,7 @@ export default function NewGroupScreen() {
       setCustomTag(group.custom_tag ?? '');
       setPickedType(group.type);
       setPickedEmoji(group.cover_emoji ?? null);
+      setPickedColor(group.cover_color ?? null);
       setSimplify(group.simplify_debts);
       if (budgetMinor !== null) setBudget(budgetMinor);
       if (group.start_date && group.end_date) {
@@ -605,6 +609,12 @@ export default function NewGroupScreen() {
       const tagToSave = normaliseGroupTag(customTag) ?? ownTemplate;
       if (tagToSave) {
         await mutate(MutationKind.GroupUpdate, groupId, { custom_tag: tagToSave });
+      }
+
+      // The icon colour is not part of the create call either; a picked one
+      // rides behind it on the same ordered queue, and none is simply not sent.
+      if (pickedColor) {
+        await mutate(MutationKind.GroupUpdate, groupId, { cover_color: pickedColor });
       }
 
       // Trip dates are not part of the create call, so they ride behind it as
@@ -774,13 +784,19 @@ export default function NewGroupScreen() {
                 width: cover,
                 height: cover,
                 borderRadius: 16,
-                backgroundColor: theme.color.brandSoft,
+                backgroundColor: coverTone(pickedColor, theme)?.bg ?? theme.color.brandSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <GroupPhoto photoPath={null} emoji={emoji} size={Math.round(cover * 0.56)} />
+              <GroupPhoto
+                photoPath={null}
+                emoji={emoji}
+                color={pickedColor}
+                bare
+                size={Math.round(cover * 0.56)}
+              />
               {/* The camera as a white disc inside the cover's corner, its glyph in
                   the accent, lifted by a soft shadow. */}
               <View
@@ -892,6 +908,8 @@ export default function NewGroupScreen() {
           <CoverEmojiPicker
             value={emoji}
             onChange={setPickedEmoji}
+            color={pickedColor}
+            onColorChange={setPickedColor}
             open={iconOpen}
             onOpenChange={setIconOpen}
           />

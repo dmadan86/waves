@@ -187,6 +187,9 @@ const GROUP_UPDATABLE_FIELDS = [
   // The member-typed short tag shown instead of the automatic type tag;
   // paired with `waves_guard_group_columns` in 20261006120000_group_custom_tag.
   'custom_tag',
+  // The palette key behind the group's icon; paired with
+  // `waves_guard_group_columns` in 20261022120000_group_cover_color.
+  'cover_color',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -598,6 +601,12 @@ export class SyncSession {
         // CHECK refuses a blank one and enforces the 24-character cap).
         if ('custom_tag' in patch)
           patch.custom_tag = optionalString(patch.custom_tag, 'custom_tag');
+        // The icon colour is a palette key, lowercase letters; cleared means
+        // NULL. The column's CHECK enforces the shape, this just normalises.
+        if ('cover_color' in patch) {
+          const key = optionalString(patch.cover_color, 'cover_color');
+          patch.cover_color = key === null ? null : key.toLowerCase();
+        }
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };

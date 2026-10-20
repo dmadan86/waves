@@ -35,6 +35,8 @@ export interface GroupRow {
   photo_path: string | null;
   /** Member-typed short tag; null when unset. Optional: narrow selects omit it. */
   custom_tag?: string | null;
+  /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon; null is the app's default. Optional: narrow selects omit it. */
+  cover_color?: string | null;
   start_date: string | null;
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */

@@ -20,6 +20,7 @@ import { useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
 
 import { GroupMark } from './GroupMark';
+import { useCoverTile } from '@/lib/groupCoverColor';
 import { groupPhotoUrl } from '@/data/api';
 import { localThumbUri } from '@/lib/storage/thumbStore';
 import { useSignedUrl } from '@/lib/useSignedUrl';
@@ -29,6 +30,8 @@ interface GroupPhotoProps {
   /** A locally chosen image that has not been uploaded yet. */
   localUri?: string | null;
   emoji?: string | null;
+  /** The group's `cover_color` key; null draws the default tile. */
+  color?: string | null;
   size?: number;
   onPress?: () => void;
   busy?: boolean;
@@ -42,20 +45,26 @@ interface GroupPhotoProps {
   /** The tile behind the mark, when not the soft brand fill — the group hero
    *  sets it white so the mark reads on its scene. */
   background?: string;
+  /** No tile of its own: the caller already drew the colour behind it and this
+   *  only needs the matching ink for the mark. */
+  bare?: boolean;
 }
 
 export function GroupPhoto({
   photoPath,
   localUri,
   emoji,
+  color,
   size = 64,
   onPress,
   busy = false,
   accessibilityLabel,
   background,
+  bare = false,
 }: GroupPhotoProps) {
   const theme = useTheme();
   const { t } = useStrings();
+  const tile = useCoverTile(color, background ?? theme.color.brandSoft);
   const url = useGroupPhotoUrl(photoPath);
   // The cover's low-resolution copy kept on the phone (`thumbStore`): what is
   // drawn offline, and under the full image while it loads online.
@@ -71,7 +80,7 @@ export function GroupPhoto({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: background ?? theme.color.brandSoft,
+        backgroundColor: bare ? 'transparent' : tile.backgroundColor,
       }}
     >
       {busy ? (
@@ -97,7 +106,7 @@ export function GroupPhoto({
         // emoji rendered as text never sat right beside the app's own icons.
         // A cover with no mark still falls back to the character there, so a
         // group keeps whatever picture it has always had.
-        <GroupMark emoji={emoji} size={size * 0.55} />
+        <GroupMark emoji={emoji} size={size * 0.55} color={tile.ink} />
       )}
 
       {onPress && !busy ? (

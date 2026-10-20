@@ -27,6 +27,7 @@ import { filterGroups, sortGroups, type GroupsFilter, type GroupsSort } from '@/
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
+import { useCoverTile } from '@/lib/groupCoverColor';
 import { UnreadDot } from '@/components/UnreadDot';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { SkeletonList } from '@/components/Skeletons';
@@ -264,6 +265,7 @@ export default function AllGroupsScreen() {
                   groupId={group.id}
                   label={row.item.label}
                   coverEmoji={group.cover_emoji}
+                  coverColor={group.cover_color}
                   balance={balance}
                   currency={group.default_currency}
                   locale={locale}
@@ -622,6 +624,7 @@ const GroupListRow = memo(function GroupListRow({
   groupId,
   label,
   coverEmoji,
+  coverColor,
   balance,
   currency,
   locale,
@@ -635,6 +638,7 @@ const GroupListRow = memo(function GroupListRow({
   groupId: string;
   label: string;
   coverEmoji: string | null;
+  coverColor?: string | null;
   balance: bigint;
   currency: string;
   locale: string;
@@ -652,6 +656,7 @@ const GroupListRow = memo(function GroupListRow({
   unread?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
+  const tile = useCoverTile(coverColor, theme.color.brandSoft);
   const { t } = useStrings();
 
   return (
@@ -687,12 +692,12 @@ const GroupListRow = memo(function GroupListRow({
               width: 38,
               height: 38,
               borderRadius: 19,
-              backgroundColor: theme.color.brandSoft,
+              backgroundColor: tile.backgroundColor,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <GroupMark emoji={coverEmoji} size={20} />
+            <GroupMark emoji={coverEmoji} size={20} color={tile.ink} />
             {unread ? <UnreadDot /> : null}
           </View>
           <View style={{ flex: 1, gap: 1 }}>

@@ -685,6 +685,7 @@ export default function GroupSettingsScreen() {
             <GroupPhoto
               photoPath={group.data.photo_path}
               emoji={group.data.cover_emoji}
+              color={group.data.cover_color}
               size={64}
               busy={uploading}
               // The mark is the one door to the cover now, so it has to say so:
@@ -904,6 +905,10 @@ export default function GroupSettingsScreen() {
           visible={coverOpen}
           onClose={() => setCoverOpen(false)}
           value={group.data.cover_emoji}
+          color={group.data.cover_color ?? null}
+          onColorChange={(cover_color) =>
+            updateGroup.mutate({ cover_color }, { onSuccess: () => setStatus(t.account.saved) })
+          }
           // Says "Saved" like every other setting on this screen. The mark is
           // drawn, so a changed cover has no words of its own to confirm it.
           onChange={(emoji) =>

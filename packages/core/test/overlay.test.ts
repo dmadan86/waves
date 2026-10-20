@@ -367,6 +367,39 @@ describe('groups', () => {
     expect(row).toMatchObject({ id: GROUP, name: 'Goa 2026', pending: true });
   });
 
+  it('shows a cover colour set (or cleared) offline over the synced row', () => {
+    const mirror = reconcile(emptyMirror(), [
+      {
+        table: SyncTable.Groups,
+        groupId: GROUP,
+        seq: 1,
+        row: {
+          id: GROUP,
+          name: 'Goa',
+          default_currency: 'INR',
+          created_at: AT,
+          archived_at: null,
+          cover_color: 'mint',
+        },
+      },
+    ]).state;
+
+    const [synced] = materialiseGroups(mirror, []);
+    expect(synced).toMatchObject({ cover_color: 'mint' });
+
+    const [set] = materialiseGroups(
+      mirror,
+      queued(envelope('m-5', MutationKind.GroupUpdate, { cover_color: 'peach' })),
+    );
+    expect(set).toMatchObject({ cover_color: 'peach', pending: true });
+
+    const [cleared] = materialiseGroups(
+      mirror,
+      queued(envelope('m-6', MutationKind.GroupUpdate, { cover_color: null })),
+    );
+    expect(cleared?.cover_color).toBeNull();
+  });
+
   it('shows a custom tag set (or cleared) offline over the synced row', () => {
     const mirror = reconcile(emptyMirror(), [
       {

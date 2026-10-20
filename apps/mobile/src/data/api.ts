@@ -855,6 +855,8 @@ export async function updateGroup(
     remind_evening_at: string;
     /** Normalise through `normaliseGroupTag`: NULL, not '', max 24 chars. */
     custom_tag: string | null;
+    /** A `GROUP_COVER_COLORS` key, or null to go back to the app's colour. */
+    cover_color: string | null;
   }>,
 ): Promise<void> {
   const { error } = await backend.from('groups').update(patch).eq('id', groupId);
