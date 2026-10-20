@@ -33,6 +33,7 @@ import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
+import { addPickedBatch } from '@/lib/addPickedBatch';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -229,26 +230,17 @@ export default function GroupSettingsScreen() {
   const addPicked = async (people: readonly PickedContact[]): Promise<void> => {
     setAddError(null);
     setAddingContacts(true);
-    const failed: string[] = [];
-    let reason: string | null = null;
-    for (const person of people) {
-      try {
-        await addGhost.mutateAsync({
-          name: person.name,
-          email: person.email,
-          phone: person.phone,
-        });
-      } catch (caught) {
-        failed.push(person.name);
-        const message = isPhoneCountryError(caught)
+    const { failed, reason } = await addPickedBatch(
+      people,
+      (person) => addGhost.mutateAsync(person),
+      (caught) =>
+        isPhoneCountryError(caught)
           ? t.people.phoneNeedsCountryCode
-          : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.addPicked');
-        if (!reason) reason = message;
-      }
-    }
+          : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.addPicked'),
+    );
     setAddingContacts(false);
     if (failed.length === 0) return;
-    setAddError(fill(t.misc.couldNotAddSome, { reason: reason ?? '' }));
+    setAddError(fill(t.misc.couldNotAddSome, { reason }));
   };
 
   // Addresses already in the group, so the picker greys them out rather than
@@ -1069,6 +1061,12 @@ export default function GroupSettingsScreen() {
               />
             }
           />
+
+          {/* The picker routes close the sheet before the people come back, so
+              their progress and any refusal are shown here, on the page, where
+              the person is looking. While the sheet is open it shows its own. */}
+          {!addOpen && addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
+          {!addOpen && addError ? <Callout tone="negative">{addError}</Callout> : null}
 
           {/* The roster in the settings screen itself, so seeing who is in the
               group no longer costs a tap through to the members screen. Each row
