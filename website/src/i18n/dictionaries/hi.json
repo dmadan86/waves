@@ -271,6 +271,7 @@
       "contact": "संपर्क",
       "privacy": "निजता",
       "terms": "शर्तें",
+      "refund": "रद्दीकरण और रिफ़ंड",
       "markdown": "यह पन्ना Markdown में",
       "deleteAccount": "खाता हटाना",
       "agents": "AI असिस्टेंट",
@@ -283,6 +284,7 @@
   "legal": {
     "privacyTitle": "निजता",
     "termsTitle": "शर्तें",
+    "refundTitle": "रद्दीकरण और रिफ़ंड नीति",
     "lastUpdated": "आख़िरी अपडेट",
     "backHome": "होम पर वापस",
     "englishOnly": "हमारे क़ानूनी दस्तावेज़ अंग्रेज़ी में प्रकाशित होते हैं।",
