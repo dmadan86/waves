@@ -3791,6 +3791,20 @@ export interface UiStrings {
     /** "Created by Asha" / "Edited by Ravi" — the head of one audit entry. */
     createdByName: string;
     editedByName: string;
+    /** What others did since the reader last opened the group (highlighted rows). */
+    fresh: {
+      new: string;
+      edited: string;
+      /** Screen-reader words appended to a highlighted row. */
+      newA11y: string;
+      editedA11y: string;
+      /** Detail-screen tag: "New · by Ravi" / "Edited · by Ravi". */
+      newBy: string;
+      editedBy: string;
+      /** "3 new" pill that scrolls to the first one. */
+      count: string;
+      jump: string;
+    };
     /** Shown, quietly, on an edit that saved without changing anything we can see. */
     noChanges: string;
     /** Field names on the edit-history audit, each shown as old → new. */
@@ -8729,6 +8743,16 @@ const en: UiStrings = {
     note: 'Note',
     createdByName: 'Created by {name}',
     editedByName: 'Edited by {name}',
+    fresh: {
+      new: 'New',
+      edited: 'Edited',
+      newA11y: 'new',
+      editedA11y: 'edited',
+      newBy: 'New · by {name}',
+      editedBy: 'Edited · by {name}',
+      count: '{n} new',
+      jump: 'Jump to the first new expense',
+    },
     noChanges: 'Saved again, nothing changed',
     audit: {
       amount: 'Amount',
@@ -13683,6 +13707,16 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
+    fresh: {
+      new: 'புதியது',
+      edited: 'திருத்தியது',
+      newA11y: 'புதியது',
+      editedA11y: 'திருத்தப்பட்டது',
+      newBy: 'புதியது · {name}',
+      editedBy: 'திருத்தம் · {name}',
+      count: '{n} புதியவை',
+      jump: 'முதல் புதிய செலவுக்குச் செல்',
+    },
     noChanges: 'மீண்டும் சேமிக்கப்பட்டது, எதுவும் மாறவில்லை',
     audit: {
       amount: 'தொகை',
@@ -18644,6 +18678,16 @@ const hi: UiStrings = {
     note: 'नोट',
     createdByName: '{name} ने बनाया',
     editedByName: '{name} ने बदला',
+    fresh: {
+      new: 'नया',
+      edited: 'बदला',
+      newA11y: 'नया',
+      editedA11y: 'बदला गया',
+      newBy: 'नया · {name} द्वारा',
+      editedBy: 'बदला · {name} द्वारा',
+      count: '{n} नए',
+      jump: 'पहले नए खर्च पर जाएँ',
+    },
     noChanges: 'फिर से सहेजा, कुछ नहीं बदला',
     audit: {
       amount: 'राशि',
@@ -23779,6 +23823,16 @@ const ar: UiStrings = {
     note: 'ملاحظة',
     createdByName: 'أنشأها {name}',
     editedByName: 'عدّلها {name}',
+    fresh: {
+      new: 'جديد',
+      edited: 'معدّل',
+      newA11y: 'جديد',
+      editedA11y: 'معدّل',
+      newBy: 'جديد · بواسطة {name}',
+      editedBy: 'معدّل · بواسطة {name}',
+      count: '{n} جديد',
+      jump: 'انتقل إلى أول مصروف جديد',
+    },
     noChanges: 'حُفظ مجددًا دون أي تغيير',
     audit: {
       amount: 'المبلغ',

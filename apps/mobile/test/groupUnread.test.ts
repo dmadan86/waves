@@ -10,6 +10,7 @@ import type { MirrorState } from '@waves/core';
 
 import { newestActivityFromOthersByGroup } from '@/data/recentActivity';
 import {
+  beginGroupVisit,
   groupsSeenKey,
   isGroupUnread,
   markGroupSeen,
@@ -19,6 +20,7 @@ import {
   seedGroupsSeen,
   seedMissing,
   unreadGroupIds,
+  visitBaseline,
 } from '@/lib/groupUnread';
 
 describe('isGroupUnread', () => {
@@ -122,6 +124,46 @@ describe('the per-profile store', () => {
       'g-x': 1,
       'g-a': 10,
     });
+  });
+});
+
+describe('the visit baseline', () => {
+  beforeEach(async () => {
+    resetGroupsSeenForTests();
+    await AsyncStorage.clear();
+  });
+
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('keeps the last look from before the visit marked the group seen', async () => {
+    await AsyncStorage.setItem(groupsSeenKey('p-me'), JSON.stringify({ 'g-a': 100 }));
+    const end = beginGroupVisit('p-me', 'g-a');
+    markGroupSeen('p-me', 'g-a', 500); // before the stored reads load
+    await settle();
+    expect(visitBaseline('p-me', 'g-a')).toBe(100);
+    markGroupSeen('p-me', 'g-a', 900); // later marks do not move it
+    expect(visitBaseline('p-me', 'g-a')).toBe(100);
+    end();
+    expect(visitBaseline('p-me', 'g-a')).toBeNull();
+  });
+
+  it('reads it straight from a loaded map too', async () => {
+    markGroupSeen('p-me', 'g-b', 1); // starts the load
+    await settle();
+    markGroupSeen('p-me', 'g-a', 50);
+    const end = beginGroupVisit('p-me', 'g-a');
+    markGroupSeen('p-me', 'g-a', 80);
+    expect(visitBaseline('p-me', 'g-a')).toBe(50);
+    end();
+  });
+
+  it('is null when the group had no record, and outside a visit', async () => {
+    const end = beginGroupVisit('p-me', 'g-a');
+    markGroupSeen('p-me', 'g-a', 5);
+    await settle();
+    expect(visitBaseline('p-me', 'g-a')).toBeNull();
+    end();
+    expect(visitBaseline('p-me', 'g-z')).toBeNull();
   });
 });
 
