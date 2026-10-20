@@ -33,7 +33,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { GROUP_COVER_COLORS } from '@waves/core';
 import { Button, ListRow, Row, Sheet, Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
@@ -493,8 +493,15 @@ function QuickIconGrid({
   const { t } = useStrings();
   const dark = theme.scheme === 'dark';
   const current = quickIconFor(value);
+  // Five to a row, measured: a percentage width inside the padded sheet came out
+  // at four, pushing Game and Other onto a third row.
+  const [width, setWidth] = useState(0);
+  const cell = Math.floor(width / 5);
   return (
-    <Row style={{ flexWrap: 'wrap', rowGap: theme.spacing.md }}>
+    <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: theme.spacing.md }}
+    >
       {QUICK_ICONS.map((quick) => {
         const selected = current === quick.id;
         const label = t.groupIconPicker.quick[quick.id];
@@ -506,7 +513,7 @@ function QuickIconGrid({
             accessibilityLabel={label}
             onPress={() => onPick(quick.emoji)}
             style={({ pressed }) => ({
-              width: '20%',
+              width: cell || '20%',
               alignItems: 'center',
               gap: 6,
               opacity: pressed ? 0.7 : 1,
@@ -539,7 +546,7 @@ function QuickIconGrid({
           </Pressable>
         );
       })}
-    </Row>
+    </View>
   );
 }
 
@@ -728,6 +735,7 @@ export function GroupCoverSheet({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { height: windowHeight } = useWindowDimensions();
   const [tab, setTab] = useState<'icon' | 'photo'>('icon');
   const [showAll, setShowAll] = useState(false);
   const [draftIcon, setDraftIcon] = useState(value);
@@ -778,7 +786,7 @@ export function GroupCoverSheet({
       onClose={onClose}
       padded={false}
       closeLabel={t.common.close}
-      style={{ height: '92%' }}
+      style={{ height: Math.round(windowHeight * 0.92) }}
     >
       {showAll ? (
         <SheetHeader
@@ -945,7 +953,7 @@ export function GroupCoverSheet({
 
       {/* Pinned under the scrolling part, never floating over the grid. */}
       <View style={{ paddingHorizontal: theme.spacing.xl, paddingVertical: theme.spacing.md }}>
-        <Button label={t.common.done} onPress={done} />
+        <Button label={t.common.done} variant="brand" size="lg" fullWidth onPress={done} />
       </View>
     </Sheet>
   );

@@ -3309,6 +3309,7 @@ export interface UiStrings {
     createdOn: string;
     changePill: string;
     editGroup: string;
+    editGroupHint: string;
     groupDetails: string;
     simplifyDebtsSub: string;
     muteSub: string;
@@ -8475,6 +8476,7 @@ const en: UiStrings = {
     createdOn: 'Created {date}',
     changePill: 'Change',
     editGroup: 'Edit group',
+    editGroupHint: 'Changes save automatically',
     groupDetails: 'Group details',
     simplifyDebtsSub: 'Suggests the minimum number of payments when settling',
     muteSub: 'Turn off group notifications',
@@ -13500,6 +13502,7 @@ const ta: UiStrings = {
     createdOn: 'உருவாக்கியது {date}',
     changePill: 'மாற்று',
     editGroup: 'குழுவைத் திருத்து',
+    editGroupHint: 'மாற்றங்கள் தானாகவே சேமிக்கப்படும்',
     groupDetails: 'குழு விவரங்கள்',
     simplifyDebtsSub: 'தீர்வு செய்யும்போது குறைந்தபட்ச கட்டணங்களைப் பரிந்துரைக்கும்',
     muteSub: 'குழு அறிவிப்புகளை நிறுத்து',
@@ -18566,6 +18569,7 @@ const hi: UiStrings = {
     createdOn: 'बनाया गया {date}',
     changePill: 'बदलें',
     editGroup: 'ग्रुप संपादित करें',
+    editGroupHint: 'बदलाव अपने आप सेव हो जाते हैं',
     groupDetails: 'ग्रुप विवरण',
     simplifyDebtsSub: 'हिसाब चुकाते समय कम से कम भुगतान सुझाता है',
     muteSub: 'ग्रुप की सूचनाएँ बंद करें',
@@ -23734,6 +23738,7 @@ const ar: UiStrings = {
     createdOn: 'أُنشئت {date}',
     changePill: 'تغيير',
     editGroup: 'تعديل المجموعة',
+    editGroupHint: 'تُحفظ التغييرات تلقائيًا',
     groupDetails: 'تفاصيل المجموعة',
     simplifyDebtsSub: 'يقترح أقل عدد من الدفعات عند التسوية',
     muteSub: 'إيقاف إشعارات المجموعة',

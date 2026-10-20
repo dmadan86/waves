@@ -41,6 +41,8 @@ export function ScenicHeader({
   trailing,
   titleAlign = 'center',
   circleBack = false,
+  wash = false,
+  wide = false,
 }: {
   title: string;
   /** Defaults to going back one screen. */
@@ -53,6 +55,10 @@ export function ScenicHeader({
   titleAlign?: 'center' | 'start';
   /** A white circle behind the back chevron, so it reads over a busy photo. */
   circleBack?: boolean;
+  /** A soft wash of the page colour behind the text, for a header carrying small text over the photo. */
+  wash?: boolean;
+  /** The children fill the row, so a control inside them can sit at the far end. */
+  wide?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -99,6 +105,18 @@ export function ScenicHeader({
         colors={['rgba(0,0,0,0)', theme.color.bg]}
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
       />
+      {wash ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            dark
+              ? ['rgba(14,14,26,0.78)', 'rgba(14,14,26,0.55)', 'rgba(14,14,26,0)']
+              : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.66)', 'rgba(255,255,255,0)']
+          }
+          locations={[0, 0.55, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 20 }}
+        />
+      ) : null}
       <View
         style={{
           paddingTop: insets.top + theme.spacing.sm,

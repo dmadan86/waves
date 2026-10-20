@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -128,6 +129,7 @@ const ARCHIVE_ART = require('../../../../assets/images/archive-group-art.webp') 
 
 export default function GroupSettingsScreen() {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   // This screen renders under the persistent bottom nav, so it must pad for the
   // bar, not just the system inset — with the plain inset the last of the exit
   // rows sat behind the bar and could not be reached.
@@ -905,11 +907,51 @@ export default function GroupSettingsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader
-          title={t.group.settings}
-          titleAlign="start"
-          circleBack
-          trailing={
+        <ScenicHeader title={t.group.settings} titleAlign="start" circleBack wash wide>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md, flex: 1 }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md, flexShrink: 1 }}>
+              <View
+                style={{
+                  borderRadius: 35,
+                  borderWidth: 3,
+                  borderColor: theme.scheme === 'dark' ? '#2A2A40' : '#FFFFFF',
+                }}
+              >
+                <GroupPhoto
+                  photoPath={group.data.photo_path}
+                  emoji={group.data.cover_emoji}
+                  color={group.data.cover_color}
+                  size={64}
+                  round
+                  busy={uploading}
+                />
+              </View>
+              <View style={{ flexShrink: 1, gap: 2 }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Text
+                    variant="heading"
+                    numberOfLines={1}
+                    style={{ fontSize: 20, fontWeight: '800', flexShrink: 1 }}
+                  >
+                    {groupName}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.group.editGroup}
+                    hitSlop={10}
+                    onPress={() => setEditOpen(true)}
+                  >
+                    <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
+                  </Pressable>
+                </Row>
+                <Text variant="caption" numberOfLines={1}>
+                  {[plural(locale, memberCount, t.memberCount), createdLabel]
+                    .filter(Boolean)
+                    .join('  ·  ')}
+                </Text>
+              </View>
+            </Row>
+            <View style={{ flex: 1 }} />
             <PillButton
               label={t.group.changePill}
               icon="image-outline"
@@ -917,43 +959,6 @@ export default function GroupSettingsScreen() {
               accessibilityLabel={t.group.changeCover}
               onPress={() => setCoverOpen(true)}
             />
-          }
-        >
-          {/* The group, as the mockup has it: a round mark, the name with a
-              pencil that opens the edit sheet, and who is in it since when. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md, flexShrink: 1 }}>
-            <GroupPhoto
-              photoPath={group.data.photo_path}
-              emoji={group.data.cover_emoji}
-              color={group.data.cover_color}
-              size={64}
-              round
-              busy={uploading}
-            />
-            <View style={{ flexShrink: 1, gap: 2 }}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                <Text
-                  variant="heading"
-                  numberOfLines={1}
-                  style={{ fontSize: 20, fontWeight: '800', flexShrink: 1 }}
-                >
-                  {groupName}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.group.editGroup}
-                  hitSlop={10}
-                  onPress={() => setEditOpen(true)}
-                >
-                  <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
-                </Pressable>
-              </Row>
-              <Text variant="caption" numberOfLines={1}>
-                {[plural(locale, memberCount, t.memberCount), createdLabel]
-                  .filter(Boolean)
-                  .join('  ·  ')}
-              </Text>
-            </View>
           </Row>
         </ScenicHeader>
 
@@ -1465,15 +1470,17 @@ export default function GroupSettingsScreen() {
       <Sheet
         visible={editOpen}
         onClose={closeEdit}
-        padded={false}
         title={t.group.editGroup}
         closeLabel={t.common.close}
-        style={{ height: '92%' }}
+        style={{ height: Math.round(windowHeight * 0.92) }}
       >
+        <Text variant="caption" tone="muted">
+          {t.group.editGroupHint}
+        </Text>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.lg,
             paddingBottom: theme.spacing.xl,
             gap: theme.spacing.xl,
           }}
