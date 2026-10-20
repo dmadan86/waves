@@ -94,7 +94,6 @@ export function Donut({
   caption: string;
   size?: number;
 }) {
-  const theme = useTheme();
   const stroke = size * 0.23;
   const r = (size - stroke) / 2;
   const c = size / 2;
