@@ -73,10 +73,11 @@ describe('the seeded flag', () => {
 describe('waves_screenshot_import_quota', () => {
   it('reserves one at a time up to the Pro allowance, then refuses without reserving', async () => {
     await subscribe(a, 'plus');
-    expect(await reserve(a, 3)).toEqual({ used: 1, limit: 3, tier: 'pro', allowed: true });
+    const month = expect.stringMatching(/^\d{4}-\d{2}$/);
+    expect(await reserve(a, 3)).toEqual({ used: 1, limit: 3, tier: 'pro', allowed: true, month });
     await reserve(a, 3);
-    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: true });
-    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: false });
+    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: true, month });
+    expect(await reserve(a, 3)).toEqual({ used: 3, limit: 3, tier: 'pro', allowed: false, month });
     const { rows } = await client.query(
       `SELECT count FROM ai_usage WHERE profile_id = $1 AND feature = 'screenshot_import'`,
       [a],
