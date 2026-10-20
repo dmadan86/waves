@@ -28,13 +28,19 @@ export async function generateMetadata({
 
 const sections: LegalSection[] = [
   {
+    heading: 'Who is responsible',
+    body: [
+      `Waves is run by Madan D, an individual, based in Bengaluru, Karnataka, India, who is responsible for your data as described here. Write to us at ${site.supportEmail}.`,
+    ],
+  },
+  {
     heading: 'What we collect',
     body: [
       'An account needs an email address or a phone number, and a display name if you set one. Signing in with Google or Apple gives us the email address and name that provider returns; we ask for nothing else from them. A phone number is also used so friends who already know it can find you; you can turn that off under Privacy in Settings.',
       'The ledger itself — groups, the people in them, expenses, amounts, currencies, splits, comments, settlements and any notes you write — is stored so it can be shared with the people you share a group with, and so it survives losing your phone.',
       'Optional things you choose to add: receipt images and expense photos, a location on an expense, a payment handle such as a UPI ID so a settlement can be handed to a payment app, a name picked from your contacts, and your voice. How voice is handled is set out under Voice and AI below.',
       'Your subscription status, which we receive from Google Play or the App Store through RevenueCat. We never see your card or bank details.',
-      'Technical data we cannot avoid: the device model and app version for crash reports, a push notification token if you turn notifications on, and a few anonymous app steps (an install, a sign-up started, onboarding finished, the plans screen opened) counted against a random install ID that is not your advertising ID. If you arrived through a referral or campaign link, we also keep which link it was.',
+      'Technical data we cannot avoid: the device model and app version for crash reports, a push notification token if you turn notifications on, and a few anonymous app steps, which are always on (they are not a setting) (an install, a sign-up started, onboarding finished, the plans screen opened) counted against a random install ID that is not your advertising ID. If you arrived through a referral or campaign link, we also keep which link it was.',
     ],
   },
   {
@@ -76,7 +82,7 @@ const sections: LegalSection[] = [
   {
     heading: 'Who processes it for us',
     body: [
-      'We use a small number of providers, each for one job: Supabase for the managed database, sign-in and file storage; Cloudflare R2 for object storage of shared images and receipts; Resend for email (invitations, settlement receipts and sign-in codes); Twilio, and Google Firebase for phone verification, to send sign-in codes by SMS or WhatsApp; Google and Apple for sign-in and push notifications; RevenueCat, Google Play and the Apple App Store for subscriptions; Sentry for crash reports; Google AdMob for the optional reward ads on Free; and Vercel to host this website. The AI providers are named under Voice and AI below.',
+      'We use a small number of providers, each for one job: Supabase for the managed database, sign-in and file storage; Cloudflare R2 for object storage of shared images and receipts; Resend for email (invitations, settlement receipts and sign-in codes); Twilio, and Google Firebase for phone verification, to send sign-in codes by SMS or WhatsApp; Google and Apple for sign-in and push notifications; RevenueCat, Google Play and the Apple App Store for subscriptions; Sentry for crash reports; Google AdMob for the optional reward ads on Free; and a hosting provider that serves this website and processes standard web request logs. The AI providers are named under Voice and AI below.',
       'Optional session recordings. If you turn on the session-replay switch under Privacy in Settings, Microsoft Clarity records how you use the app screens to help us fix problems. It is off unless you turn it on, and with it on, voice commands the phone could not understand are also sent to us as text so we can improve them.',
       'These providers process data on our instructions and are not permitted to use it for their own purposes, except that Google AdMob acts as described under Advertising.',
       'Exchange rates for bills in a foreign currency come from public rate services: the European Central Bank reference rates (through Frankfurter), the open-source currency-api, and ExchangeRate-API (Rates By Exchange Rate API, exchangerate-api.com). A rate lookup is made by our server and sends only the two currency codes and, for a past bill, its date — never your name, your amounts or anything else about you or your groups. We keep the rates we fetch, by day, so the same lookup does not have to be made again.',
