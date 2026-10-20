@@ -51,7 +51,7 @@ const sections: LegalSection[] = [
   {
     heading: 'AI features',
     body: [
-      'Waves uses AI to turn your voice, a receipt photo, a screenshot or a bank statement into proposed expenses. The result can be wrong or incomplete. Nothing is added to your ledger until you check it and confirm, and you are responsible for what you confirm.',
+      'Waves uses AI to turn your voice, a receipt photo, a screenshot or a bank statement into proposed expenses. The result can be wrong or incomplete. Receipt, screenshot and statement results are shown for you to check before anything is added. Voice can save an expense by itself after a few seconds, with an Undo, when it is confident; otherwise it asks you to check. You can edit or delete anything later, and you are responsible for what ends up in your ledger.',
       'Advanced voice only runs after you agree to it in the app, and you can turn it off in Settings. The Privacy Policy says what is sent, and to whom.',
       'Do not use AI features on anything you have no right to share, and do not try to get around the monthly limits.',
     ],
@@ -68,14 +68,14 @@ const sections: LegalSection[] = [
     body: [
       'The core ledger — groups, expenses, splits, currencies, offline use and settling up — is free and unlimited, and the free plan does not expire. Paid features exist for the parts with a per-use cost behind them, such as advanced voice, receipt scans, screenshot and bank statement import, and more devices.',
       'Waves Pro is an auto-renewing subscription, billed through Google Play or the Apple App Store. In India it is \u20b979 a month or \u20b9699 a year; elsewhere the price shown in the store at purchase applies. The plan renews until you cancel it in the store, and cancelling does not delete your ledger.',
-      'New accounts get 15 days of Pro free, with no card needed. When it ends without a subscription, the account goes back to Free and nothing is charged. We may change the plans, limits or prices, and a change to a price does not affect a period you have already paid for.',
+      'New accounts get 15 days of Pro free, once per account, with no card needed. When it ends without a subscription, the account goes back to Free and nothing is charged. We may change the plans, limits or prices, and a change to a price does not affect a period you have already paid for.',
       'Refunds follow the rules of the app store and our refund page.',
     ],
   },
   {
     heading: 'Ads and rewards',
     body: [
-      'On Free, you may choose to watch a rewarded video ad for a few extra voice commands or receipt scans. It is optional, rewards expire at the end of the calendar month, have no cash value and cannot be transferred. We may limit how many you can earn in a day, or stop offering them. Using automation or tricks to fake an ad view or a referral may close the account.',
+      'On Free, you may choose to watch a rewarded video ad for a few extra voice commands or receipt scans. It is optional, rewards expire at the end of the calendar month (UTC), have no cash value and cannot be transferred. We may limit how many you can earn in a day, or stop offering them. Using automation or tricks to fake an ad view or a referral may close the account.',
       'Inviting friends can earn free Pro days for you and the friend, when the friend genuinely uses Waves. There is a cap on the total days one account can earn, and we may withhold days if we think a referral is not genuine.',
     ],
   },
