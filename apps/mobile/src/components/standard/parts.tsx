@@ -299,6 +299,9 @@ export function ListRow({
   divider?: boolean;
 }) {
   const theme = useTheme();
+  const spoken = [title, subtitle, amount, percent !== undefined ? `${percent}%` : null]
+    .filter(Boolean)
+    .join(', ');
   const body = (
     <Row style={{ alignItems: 'center', gap: theme.spacing.md, paddingVertical: theme.spacing.sm }}>
       {leading}
@@ -339,14 +342,14 @@ export function ListRow({
       {onPress ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={amount ? `${title}, ${amount}` : title}
+          accessibilityLabel={spoken}
           onPress={onPress}
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
           {body}
         </Pressable>
       ) : (
-        <View accessible accessibilityLabel={amount ? `${title}, ${amount}` : title}>
+        <View accessible accessibilityLabel={spoken}>
           {body}
         </View>
       )}

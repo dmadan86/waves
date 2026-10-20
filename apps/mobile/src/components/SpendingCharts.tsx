@@ -257,7 +257,9 @@ export function MonthBars({
                       color: active ? theme.color.brandPressed : theme.color.textMuted,
                     }}
                   >
-                    {bar.value > 0 ? `${symbol}${compactNumber(bar.value)}` : ''}
+                    {bar.value > 0 && (data.length <= 6 || active)
+                      ? `${symbol}${compactNumber(bar.value)}`
+                      : ''}
                   </Text>
                   <View
                     style={{

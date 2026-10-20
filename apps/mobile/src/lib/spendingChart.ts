@@ -21,10 +21,14 @@ export function compactNumber(value: number): string {
     if (abs >= size) {
       const scaled = value / size;
       const digits = Math.abs(scaled) >= 100 ? 0 : Math.abs(scaled) >= 10 ? 1 : 2;
-      return `${trim(scaled.toFixed(digits))}${suffix}`;
+      const text = trim(scaled.toFixed(digits));
+      // 999,600 rounds to "1000K": say "1M" instead.
+      if (Math.abs(Number(text)) >= 1000 && size < 1e9) return compactNumber(Number(text) * size);
+      return `${text}${suffix}`;
     }
   }
-  return trim(value.toFixed(abs >= 100 ? 0 : 1));
+  const plain = trim(value.toFixed(abs >= 100 ? 0 : 1));
+  return Math.abs(Number(plain)) >= 1000 ? compactNumber(Number(plain)) : plain;
 }
 
 function trim(text: string): string {
@@ -147,4 +151,22 @@ export function selectableMonth(
     return picked;
   }
   return latest;
+}
+
+/**
+ * The window of month keys for the chart: `size` months ending at the latest,
+ * slid back so it still includes `selected` when that is older than the window.
+ */
+export function chartMonths(latest: string, selected: string, size: number): string[] {
+  const keys = monthRange(latest, size);
+  if (selected >= keys[0]!) return keys;
+  let end = selected;
+  for (let step = 1; step < size; step++) end = nextMonthKey(end);
+  return monthRange(end, size);
+}
+
+function nextMonthKey(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
+  const date = new Date(Date.UTC(year, monthNumber, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }

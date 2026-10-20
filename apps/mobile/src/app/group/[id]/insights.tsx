@@ -67,6 +67,7 @@ import { router } from '@/lib/navigation';
 import {
   compactNumber,
   donutSlices,
+  chartMonths,
   monthRange,
   percentChange,
   selectableMonth,
@@ -331,7 +332,7 @@ function SpendingBody({
   // in it is a gap in the row, not a missing column.
   const byMonth = new Map(allMonths.map((entry) => [entry.month, entry.value]));
   const newest = allMonths[allMonths.length - 1]?.month ?? month;
-  const bars = monthRange(newest, windowSize).map((key) => {
+  const bars = chartMonths(newest, month, windowSize).map((key) => {
     const value = byMonth.get(key) ?? 0n;
     return {
       key,

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   arcPath,
+  chartMonths,
   compactNumber,
   donutSlices,
   niceTicks,
@@ -103,5 +104,27 @@ describe('currencySymbol in Arabic', () => {
   it('finds the symbol even where the locale prints it after the digits', () => {
     const symbol = currencySymbol('INR', 'ar');
     expect(symbol.replace(/[\u200e\u200f\u061c\s]/g, '')).not.toBe('');
+  });
+});
+
+describe('chartMonths', () => {
+  it('slides back to include an older selected month', () => {
+    expect(chartMonths('2026-10-01', '2026-09-01', 3)).toEqual([
+      '2026-08-01',
+      '2026-09-01',
+      '2026-10-01',
+    ]);
+    expect(chartMonths('2026-10-01', '2026-05-01', 3)).toEqual([
+      '2026-05-01',
+      '2026-06-01',
+      '2026-07-01',
+    ]);
+  });
+});
+
+describe('compactNumber rounding', () => {
+  it('rolls into the next unit', () => {
+    expect(compactNumber(999600)).toBe('1M');
+    expect(compactNumber(999.7)).toBe('1K');
   });
 });
