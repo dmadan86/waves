@@ -63,11 +63,13 @@ describe('voice screen redesign wiring', () => {
   it('VW-09: one stage stays mounted after the sentence; cards change in place under it', () => {
     expect(voice).toContain("phase !== 'listening' ? (");
     expect(voice).toContain('stageStatusKey(stageInput)');
-    // The top (✕, title, mic, pill, wave) is drawn once, above the sheet, in every
-    // phase; the mic panel reports its state up and draws only sheet content.
+    // The stage (headline, mic, status, wave) is drawn once, in the one scroll, until
+    // a card is answering; the mic panel reports its state up and draws only the
+    // words and the examples.
     expect(voice.match(/<VoiceTop/g)).toHaveLength(1);
     expect(voice).toContain('onStage={setCapStage}');
-    expect(voice).not.toContain('stageSettled');
+    expect(voice).toContain("(phase === 'agent' && agentStage !== 'working')");
+    expect(voice).toContain('{!stageSettled ? (');
     expect(capture).not.toContain('<VoiceTop');
     expect(voice).toContain('onStage={setAgentStage}');
     expect(voice).toContain('onFooter={setPanelFooter}');
@@ -94,7 +96,9 @@ describe('voice screen redesign wiring', () => {
   });
 
   it('VW-08: the full-bleed scene photo is the background; the old strip is gone', () => {
-    expect(voice).toContain('<VoiceScene sheetTop=');
+    expect(voice).toContain('<VoiceScene />');
+    expect(voice).not.toContain('sheetTop');
+    expect(voice).not.toContain('borderTopLeftRadius: 28');
     expect(voice).not.toContain('VoiceSceneBackdrop');
     expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(false);
     expect(voice).not.toContain('VoiceFooterScene');

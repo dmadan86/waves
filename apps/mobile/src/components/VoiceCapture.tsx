@@ -1329,7 +1329,7 @@ export function VoiceCapture({
     (flow === 'idle' && !live && offlineEligible) ||
     (showMiss && (engine === 'network' || offlineEligible));
 
-  // Hand the top area the mic's state before paint, so it never shows a stale frame.
+  // Hand the stage the mic's state before paint, so it never shows a stale frame.
   const toggleRef = useRef(toggle);
   useEffect(() => {
     toggleRef.current = toggle;
@@ -1357,8 +1357,6 @@ export function VoiceCapture({
     <VoiceSheetBody
       transcript={shownTranscript}
       final={shownFinal}
-      // The examples hold the sheet until the first word; no empty box above them.
-      reserve={!showSuggestions(flow, shownTranscript)}
     >
       {problem ? (
         <VoiceErrorState

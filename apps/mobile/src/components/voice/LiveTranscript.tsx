@@ -3,8 +3,7 @@
  * open, the final in full ink once it stops. Only ever the recogniser's own
  * words — when there are none, nothing is drawn.
  *
- * The box keeps a two-line minimum while listening so the first word arriving
- * does not shove the suggestions down; past that it simply grows and wraps.
+ * The card appears with the first word and then simply grows and wraps.
  * There is no per-character animation: a new partial replaces the text.
  *
  * With `onEdit`, tapping a final transcript (a small pencil says so) hands the
@@ -18,6 +17,8 @@ import { Pressable } from 'react-native';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+
+import { sceneCardColor } from './sceneCard';
 
 export function LiveTranscript({
   text,
@@ -48,14 +49,14 @@ export function LiveTranscript({
       accessibilityLabel={label}
       style={{
         alignSelf: 'stretch',
-        minHeight: reserve ? 76 : words ? 48 : undefined,
+        minHeight: reserve ? 76 : words ? 56 : undefined,
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.sm,
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        backgroundColor: words ? theme.color.surface : 'transparent',
+        borderRadius: theme.radius.xl,
+        backgroundColor: words ? sceneCardColor(theme.scheme, theme.color.surface) : 'transparent',
         ...(words ? theme.shadow.soft : null),
       }}
     >
