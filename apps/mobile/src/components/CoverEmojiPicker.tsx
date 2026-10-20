@@ -31,7 +31,6 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
@@ -49,7 +48,7 @@ import {
 } from '@/lib/groupIconCatalog';
 import { coverTone, planCoverCommit, useCoverTile } from '@/lib/groupCoverColor';
 import { COVER_SWATCHES } from '@/lib/groupCoverTone';
-import { QUICK_ICONS, quickIconFor, type QuickIconId } from '@/lib/groupCoverQuick';
+import { QUICK_ICONS, quickIconFor } from '@/lib/groupCoverQuick';
 import type { PhotoGateStatus } from '@/lib/groupPhotoGate';
 
 /** An icon tile, and a colour swatch. Both above the 44pt touch size once padded by the gaps. */
@@ -454,33 +453,6 @@ function quickTileBackground(hex: string, dark: boolean): string {
   return `${hex}${dark ? '38' : '24'}`;
 }
 
-/** The glyph each quick icon is drawn with: filled, in the same families the app already uses. */
-function QuickGlyph({ id, color }: { id: QuickIconId; color: string }) {
-  const size = 28;
-  switch (id) {
-    case 'food':
-      return <Ionicons name="restaurant" size={size} color={color} />;
-    case 'travel':
-      return <Ionicons name="airplane" size={size} color={color} />;
-    case 'home':
-      return <Ionicons name="home" size={size} color={color} />;
-    case 'friends':
-      return <Ionicons name="people" size={size} color={color} />;
-    case 'shopping':
-      return <Ionicons name="bag-handle" size={size} color={color} />;
-    case 'event':
-      return <MaterialCommunityIcons name="party-popper" size={size} color={color} />;
-    case 'car':
-      return <Ionicons name="car-sport" size={size} color={color} />;
-    case 'wallet':
-      return <Ionicons name="wallet" size={size} color={color} />;
-    case 'game':
-      return <Ionicons name="game-controller" size={size} color={color} />;
-    default:
-      return <Ionicons name="ellipsis-horizontal" size={size} color={color} />;
-  }
-}
-
 /** Step 1: the ten everyday icons in a 5 × 2 grid, each on its own soft tint. */
 function QuickIconGrid({
   value,
@@ -531,7 +503,8 @@ function QuickIconGrid({
                 borderColor: selected ? theme.color.brand : 'transparent',
               }}
             >
-              <QuickGlyph id={quick.id} color={quick.color} />
+              {/* The very mark the cover is drawn with everywhere else. */}
+              <GroupMark emoji={quick.emoji} size={32} color={quick.color} />
             </View>
             <Text
               variant="caption"

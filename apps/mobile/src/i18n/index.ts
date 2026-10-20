@@ -2600,6 +2600,9 @@ export interface UiStrings {
     ball: string;
     star: string;
     people: string;
+    bag: string;
+    gamepad: string;
+    more: string;
   };
   /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
   groupIconPicker: {
@@ -7935,6 +7938,9 @@ const en: UiStrings = {
     ball: 'Sport',
     star: 'Favourite',
     people: 'Friends',
+    bag: 'Shopping',
+    gamepad: 'Game',
+    more: 'Other',
   },
   /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
   groupIconPicker: {
@@ -12934,6 +12940,9 @@ const ta: UiStrings = {
     ball: 'விளையாட்டு',
     star: 'பிடித்தது',
     people: 'நண்பர்கள்',
+    bag: 'ஷாப்பிங்',
+    gamepad: 'விளையாட்டு',
+    more: 'மற்றவை',
   },
   /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
   groupIconPicker: {
@@ -18026,6 +18035,9 @@ const hi: UiStrings = {
     ball: 'खेल',
     star: 'पसंदीदा',
     people: 'दोस्त',
+    bag: 'खरीदारी',
+    gamepad: 'गेम',
+    more: 'अन्य',
   },
   /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
   groupIconPicker: {
@@ -23124,6 +23136,9 @@ const ar: UiStrings = {
     ball: 'رياضة',
     star: 'مفضّل',
     people: 'أصدقاء',
+    bag: 'تسوق',
+    gamepad: 'لعبة',
+    more: 'أخرى',
   },
   /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
   groupIconPicker: {

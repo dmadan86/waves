@@ -57,6 +57,9 @@ export const GROUP_MARK_IDS = [
   'ball',
   'star',
   'people',
+  'bag',
+  'gamepad',
+  'more',
 ] as const;
 
 export type GroupMarkId = (typeof GROUP_MARK_IDS)[number];
@@ -91,6 +94,9 @@ export const EMOJI_FOR_MARK: Readonly<Record<GroupMarkId, string>> = {
   ball: '⚽',
   star: '⭐',
   people: '👥',
+  bag: '🛒',
+  gamepad: '🎮',
+  more: '📌',
 };
 
 /**
@@ -145,6 +151,9 @@ export const MARK_FOR_EMOJI: Readonly<Record<string, GroupMarkId>> = {
   '🏸': 'ball',
   '⭐': 'star',
   '👥': 'people',
+  '🛒': 'bag',
+  '🎮': 'gamepad',
+  '📌': 'more',
 };
 
 /** U+FE0F, the variation selector that makes a character render in colour. */
@@ -449,6 +458,41 @@ const MARKS: Readonly<Record<GroupMarkId, (props: PartProps) => ReactElement>> =
       <Circle cx={9.4} cy={8} r={3.4} fill={color} fillOpacity={ACCENT_OPACITY} />
       <Circle cx={9.4} cy={8} r={3.4} />
       <Path d="M3.4 19.6a6 6 0 0 1 12 0" />
+    </>
+  ),
+  // A shopping bag: filled body, a looped handle.
+  bag: ({ color }) => (
+    <>
+      <Path d="M5.5 8h13l1 12.5h-15Z" fill={color} fillOpacity={ACCENT_OPACITY} />
+      <Path d="M5.5 8h13l1 12.5h-15Z" />
+      <Path d="M9 8V7a3 3 0 0 1 6 0v1" />
+    </>
+  ),
+  // A game controller: a cross on the left, two filled buttons on the right.
+  gamepad: ({ color }) => (
+    <>
+      <Rect
+        x={2.5}
+        y={7.5}
+        width={19}
+        height={10}
+        rx={5}
+        fill={color}
+        fillOpacity={ACCENT_OPACITY}
+      />
+      <Rect x={2.5} y={7.5} width={19} height={10} rx={5} />
+      <Path d="M8 10.5v4" />
+      <Path d="M6 12.5h4" />
+      <Circle cx={15.5} cy={11.5} r={1} fill={color} stroke="none" />
+      <Circle cx={18} cy={13.8} r={1} fill={color} stroke="none" />
+    </>
+  ),
+  // Three dots: "something else".
+  more: ({ color }) => (
+    <>
+      <Circle cx={5.5} cy={12} r={2} fill={color} stroke="none" />
+      <Circle cx={12} cy={12} r={2} fill={color} stroke="none" />
+      <Circle cx={18.5} cy={12} r={2} fill={color} stroke="none" />
     </>
   ),
 };

@@ -19,6 +19,7 @@ vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }]
 vi.mock('react-native-svg', () => ({ default: {}, Circle: {}, Ellipse: {}, Path: {}, Rect: {} }));
 vi.mock('@waves/ui', () => ({ Text: {}, useTheme: () => lightTheme }));
 
+const { markForEmoji } = await import('../src/components/GroupMark');
 const { QUICK_ICONS, quickIconFor } = await import('../src/lib/groupCoverQuick');
 const { GROUP_ICON_CATALOG, GROUP_ICON_CATEGORY_IDS } = await import('../src/lib/groupIconCatalog');
 
@@ -174,6 +175,17 @@ describe('group cover sheet', () => {
       GROUP_ICON_CATEGORY_IDS.flatMap((id) => GROUP_ICON_CATALOG[id].map((e) => e.emoji)),
     );
     for (const quick of QUICK_ICONS) expect(catalogued.has(quick.emoji)).toBe(true);
+  });
+
+  it('draws every quick tile with the same mark the cover renders for its stored value', () => {
+    // The tile renders <GroupMark emoji={quick.emoji}>; the preview, avatars and
+    // lists render <GroupMark emoji={stored}> with stored === quick.emoji. So
+    // the glyph is the same if the stored value resolves to a drawn mark.
+    expect(COVER).toContain('<GroupMark emoji={quick.emoji}');
+    expect(COVER).not.toContain('QuickGlyph');
+    const marks = QUICK_ICONS.map((quick) => markForEmoji(quick.emoji));
+    for (const mark of marks) expect(mark).not.toBeNull();
+    expect(new Set(marks).size).toBe(QUICK_ICONS.length);
   });
 
   it('lights the quick tile for a stored emoji, and none for an icon only See all has', () => {
