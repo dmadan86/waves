@@ -20,6 +20,14 @@ import {
   VoiceAgentError,
 } from './core.js';
 
+/**
+ * Seconds of audio one mint may carry (the relay's cap). The seconds budget
+ * handed to `waves_voice_stream_mint` is this times the mint budget: the
+ * measured minutes Deepgram bills are bounded by the server even if every
+ * stream ran to its cap.
+ */
+export const STREAM_SECONDS_PER_MINT = 20;
+
 export interface StreamGateDeps {
   readonly env: (name: string) => string | undefined;
   readonly caller: SupabaseClient;
@@ -79,6 +87,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     p_free_budget: VOICE_STREAM_FREE_MONTHLY,
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
     p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
+    p_seconds_budget: VOICE_STREAM_PRO_MONTHLY * STREAM_SECONDS_PER_MINT,
   });
   const mint = mintData as StreamMint | null;
   if (mintError || !mint) {

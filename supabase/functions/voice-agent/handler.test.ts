@@ -42,8 +42,10 @@ function makeDeps(over: {
   const rpc = vi.fn(async (name: string) => {
     if (name === 'waves_voice_agent_enabled') return { data: over.enabled ?? true, error: null };
     if (name === 'waves_voice_agent_quota') {
+      // Pro by default: the requests below send audio, which Free is refused
+      // (cloud transcription is for Pro and the trial, like the live stream).
       return {
-        data: over.quota ?? { used: 1, limit: 10, tier: 'free', allowed: true },
+        data: over.quota ?? { used: 1, limit: 100, tier: 'pro', allowed: true },
         error: null,
       };
     }
@@ -218,7 +220,7 @@ describe('handleVoiceAgent', () => {
     expect(body).toMatchObject({
       schemaVersion: 1,
       transcript: 'dinner 1200 with Anu',
-      quota: { used: 1, limit: 10, tier: 'free' },
+      quota: { used: 1, limit: 100, tier: 'pro' },
     });
     expect(body.actions).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -277,32 +279,32 @@ describe('handleVoiceAgent', () => {
     expect(body.clarify).toBeTruthy();
   });
 
-  it('does not charge for an "ask again": the command is refunded once', async () => {
+  it('charges an "ask again": the models were asked, so there is no refund', async () => {
     const { deps, rpc } = makeDeps({
       fetchImpl: (url) =>
         url.includes('deepgram') ? deepgram('uh') : claude({ name: 'add_expense', input: {} }),
     });
     const body = await (await handleVoiceAgent(request(), deps)).json();
-    expect(body.quota.used).toBe(0);
-    expect(rpc.mock.calls.filter(([name]) => name === 'waves_voice_agent_refund')).toHaveLength(1);
+    expect(body.quota.used).toBe(1);
+    expect(rpc.mock.calls.filter(([name]) => name === 'waves_voice_agent_refund')).toHaveLength(0);
   });
 
-  it('422s and refunds on an empty transcript', async () => {
+  it('422s on an empty transcript without a refund: Deepgram was asked', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => deepgram('  ') });
     await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({
       status: 422,
       code: 'VOICE_AGENT_NOTHING_HEARD',
     });
-    expect(rpc).toHaveBeenCalledWith('waves_voice_agent_refund', { p_profile: ME });
+    expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_refund', expect.anything());
   });
 
-  it('refunds when a provider fails', async () => {
+  it('does not refund when a provider fails after being asked', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => new Response('no', { status: 500 }) });
     await expect(handleVoiceAgent(request(), deps)).rejects.toMatchObject({
       status: 503,
       code: 'VOICE_AGENT_UNAVAILABLE',
     });
-    expect(rpc).toHaveBeenCalledWith('waves_voice_agent_refund', { p_profile: ME });
+    expect(rpc).not.toHaveBeenCalledWith('waves_voice_agent_refund', expect.anything());
   });
 });
 

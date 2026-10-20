@@ -185,23 +185,23 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('Deepgram (clip transcription)', () => {
-  it('down (503): 503 VOICE_AGENT_UNAVAILABLE, refunded, no LLM call', async () => {
+  it('down (503): 503 VOICE_AGENT_UNAVAILABLE, not refunded (Deepgram was asked), no LLM call', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
       fetchImpl: (url) =>
         url.includes('deepgram') ? new Response('down', { status: 503 }) : goodCompletion(),
     });
     await expect(handleVoiceAgent(clipRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('401 (bad key): the same honest 503, refunded', async () => {
+  it('401 (bad key): the same honest 503, not refunded', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: () => new Response('no', { status: 401 }) });
     await expect(handleVoiceAgent(clipRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
-  it('slow: aborted at the STT budget, 503, refunded', async () => {
+  it('slow: aborted at the STT budget, 503, not refunded', async () => {
     const signals: AbortSignal[] = [];
     const { deps, rpc } = makeDeps({
       limits: { sttMs: 30 },
@@ -214,7 +214,7 @@ describe('Deepgram (clip transcription)', () => {
     await expect(handleVoiceAgent(clipRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
     expect(Date.now() - started).toBeLessThan(1000);
     expect(signals[0]?.aborted).toBe(true);
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
   it('a breaker open on Deepgram fails a clip fast, before reserving a command', async () => {
@@ -228,13 +228,13 @@ describe('Deepgram (clip transcription)', () => {
 });
 
 describe('LLM chain (OpenRouter → Gemini)', () => {
-  it('down (5xx everywhere): 503 VOICE_AGENT_UNAVAILABLE, refunded once', async () => {
+  it('down (5xx everywhere): 503 VOICE_AGENT_UNAVAILABLE, never refunded', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
       fetchImpl: () => new Response('bad gateway', { status: 502 }),
     });
     await expect(handleVoiceAgent(textRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
   it('429 on OpenRouter falls through to Gemini: answered, not refunded', async () => {
@@ -259,7 +259,7 @@ describe('LLM chain (OpenRouter → Gemini)', () => {
     expect(fetchMock.mock.calls.filter(([u]) => isGemini(u as string))).toHaveLength(1);
   });
 
-  it('timeout everywhere: the total budget ends it with a refunded 503', async () => {
+  it('timeout everywhere: the total budget ends it with an unrefunded 503', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
       realClock: true,
       limits: { totalMs: 120, llmAttemptMs: 100, minAttemptMs: 50 },
@@ -270,7 +270,7 @@ describe('LLM chain (OpenRouter → Gemini)', () => {
     // One full attempt, then too little budget left to start another.
     expect(Date.now() - started).toBeLessThan(400);
     expect(fetchMock.mock.calls.length).toBeLessThan(3);
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
   it('a body that is not JSON counts as a failure and the next provider answers', async () => {
@@ -281,7 +281,7 @@ describe('LLM chain (OpenRouter → Gemini)', () => {
     expect(body.actions).toHaveLength(1);
   });
 
-  it('malformed tool output everywhere: an "ask again", refunded, never an action', async () => {
+  it('malformed tool output everywhere: an "ask again", charged, never an action', async () => {
     const garbage = () =>
       new Response(
         JSON.stringify({
@@ -293,8 +293,9 @@ describe('LLM chain (OpenRouter → Gemini)', () => {
     const body = await (await handleVoiceAgent(textRequest(), deps)).json();
     expect(body.actions).toEqual([]);
     expect(body.clarify).toBeTruthy();
-    expect(body.quota.used).toBe(2);
-    expect(refunds(rpc)).toBe(1);
+    // The reservation stands: the models were asked.
+    expect(body.quota.used).toBe(3);
+    expect(refunds(rpc)).toBe(0);
   });
 });
 
@@ -369,7 +370,7 @@ describe('Supabase (database) failures', () => {
 describe('chaos injection', () => {
   const chaos = (flags: string) => ({ VOICE_CHAOS_ENABLED: '1', VOICE_CHAOS: flags });
 
-  it('llm-down for an allowlisted caller: 503, refunded, real providers never called', async () => {
+  it('llm-down for an allowlisted caller: 503, charged like a real failure, real providers never called', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
       env: chaos('llm-down'),
       allowlisted: true,
@@ -377,7 +378,7 @@ describe('chaos injection', () => {
     });
     await expect(handleVoiceAgent(textRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
   it('llm-slow runs into the per-attempt deadline, not a hang', async () => {
@@ -389,14 +390,14 @@ describe('chaos injection', () => {
     await expect(handleVoiceAgent(textRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
   });
 
-  it('llm-garbage gives the refunded "ask again"', async () => {
+  it('llm-garbage gives the charged "ask again"', async () => {
     const { deps, rpc } = makeDeps({ env: chaos('llm-garbage'), allowlisted: true });
     const body = await (await handleVoiceAgent(textRequest(), deps)).json();
     expect(body.clarify).toBeTruthy();
-    expect(refunds(rpc)).toBe(1);
+    expect(refunds(rpc)).toBe(0);
   });
 
-  it('deepgram-down / deepgram-slow fail a clip with a refunded 503', async () => {
+  it('deepgram-down / deepgram-slow fail a clip with an unrefunded 503', async () => {
     for (const flag of ['deepgram-down', 'deepgram-slow']) {
       breaker.reset();
       const { deps, rpc } = makeDeps({
@@ -405,7 +406,7 @@ describe('chaos injection', () => {
         limits: { sttMs: 20 },
       });
       await expect(handleVoiceAgent(clipRequest(), deps)).rejects.toMatchObject(UNAVAILABLE);
-      expect(refunds(rpc)).toBe(1);
+      expect(refunds(rpc)).toBe(0);
     }
   });
 

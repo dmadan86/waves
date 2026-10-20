@@ -243,12 +243,12 @@ describe('follow-up handler integration', () => {
     breaker.failure('openrouter');
     expect(breaker.isOpen('openrouter')).toBe(true);
   });
-  it('EH-05 all providers down: 503, refund once, each model attempted once', async () => {
+  it('EH-05 all providers down: 503, no refund (they were asked), each model attempted once', async () => {
     const { deps, rpc, fetchMock } = makeDeps({
       fetchImpl: () => new Response('down', { status: 503 }),
     });
     await expect(run(deps)).rejects.toMatchObject(unavailable);
-    expect(refunds(rpc)).toHaveLength(1);
+    expect(refunds(rpc)).toHaveLength(0);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const attempts = fetchMock.mock.calls.map(
       ([url, init]) => `${url}|${JSON.parse(String(init.body)).model ?? url}`,
@@ -268,7 +268,7 @@ describe('follow-up handler integration', () => {
     });
     await expect(run(deps)).rejects.toMatchObject(unavailable);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(refunds(rpc)).toHaveLength(1);
+    expect(refunds(rpc)).toHaveLength(0);
     expect(vi.mocked(console.error).mock.calls.some(([s]) => String(s).includes('"budget"'))).toBe(
       true,
     );
@@ -357,13 +357,13 @@ describe('follow-up handler integration', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
-  it('EH-15 empty Deepgram transcript returns 422 and refunds', async () => {
+  it('EH-15 empty Deepgram transcript returns 422 and is not refunded', async () => {
     const { deps, rpc, fetchMock } = makeDeps({ fetchImpl: scriptedLlm([answer], '') });
     await expect(handleVoiceAgent(clip(), deps)).rejects.toMatchObject({
       status: 422,
       code: 'VOICE_AGENT_NOTHING_HEARD',
     });
-    expect(refunds(rpc)).toHaveLength(1);
+    expect(refunds(rpc)).toHaveLength(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('EH-16 clarification keeps three options and omits a singleton', async () => {
@@ -392,7 +392,7 @@ describe('follow-up handler integration', () => {
     await run(on.deps);
     expect(logs().at(-1).chaos).toEqual(['deepgram-down']);
     await expect(handleVoiceAgent(clip(), on.deps)).rejects.toMatchObject(unavailable);
-    expect(refunds(on.rpc)).toHaveLength(1);
+    expect(refunds(on.rpc)).toHaveLength(0);
     expect(off.fetchMock).toHaveBeenCalledTimes(1);
   });
   it('EH-18 update and answer both pass through', async () => {

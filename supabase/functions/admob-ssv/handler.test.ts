@@ -47,10 +47,12 @@ async function setup(
     seen.add(tx);
     return { data: { outcome: 'granted', kind: args.p_kind, amount: 2 }, error: null };
   });
+  // The callbacks below carry timestamp 1790000000000; the clock sits just after.
   const deps: Deps = {
     env: (name) => env[name],
     keys: new VerifierKeys(fetchFn),
     service: { rpc },
+    now: () => 1_790_000_000_000 + 5_000,
   };
   const callback = async (
     params: Record<string, string> = {},
