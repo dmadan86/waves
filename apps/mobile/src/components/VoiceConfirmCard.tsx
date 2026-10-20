@@ -3,10 +3,10 @@
  * expense or one just for you. What was heard, then one card: the category's
  * badge, the amount, where it goes (the "Just for you" pill opens the picker),
  * and four rows a person can fix in place (description, category, date, note).
- * Confirm writes it; Edit hands the current state to the full form; Discard
- * drops it.
+ * The screen's footer button writes it; Edit opens the split sheet. Leaving the
+ * screen drops it.
  *
- * Nothing is written until Confirm. The proposal stays the source of truth — see
+ * Nothing is written until that button. The proposal stays the source of truth — see
  * `voiceConfirmPure` for how an edit turns back into one.
  *
  * The recording is not kept (the sentence streams to the recogniser and is
@@ -23,16 +23,16 @@ import DateTimePicker, {
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { currencySymbol, resolveCategory, sanitiseMinorInput } from '@waves/core';
-import { Button, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge, CategorySheet, useLabelledCategoryCatalog } from '@/components/Category';
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { useGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
+import { useReportFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
 import { agentSplitFrom, splitEditFromAgent } from '@/lib/voiceSplitPure';
 import type { AgentLocalData, AgentLocalGroup } from '@/lib/voiceAgentPlan';
@@ -47,23 +47,19 @@ import {
   type ConfirmFields,
   type SplitOverride,
 } from '@/lib/voiceConfirmPure';
-import type { VoiceEngineInfo } from '@/lib/voiceEnginePure';
 
 export interface VoiceConfirmCardProps {
   action: ConfirmableAction;
   transcript: string;
   local: AgentLocalData;
-  quota: { percent: number };
-  engine: VoiceEngineInfo | null;
   busy: boolean;
   failed: boolean;
   /** The group the fields name now (null while it is just for you). */
   onGroupChange: (groupId: string | null) => void;
-  /** Confirm pressed with a fully resolved proposal. */
+  /** The footer's Add pressed with a fully resolved proposal. */
   onAdd: (action: ConfirmableAction) => void;
-  onDiscard: () => void;
-  /** Speak it again, in place. */
-  onRetry: () => void;
+  /** Where the screen's footer button is reported (see {@link useReportFooter}). */
+  onFooter?: (spec: FooterSpec | null) => void;
 }
 
 /** YYYY-MM-DD for a local calendar day. */
@@ -91,14 +87,11 @@ export function VoiceConfirmCard({
   action,
   transcript,
   local,
-  quota,
-  engine,
   busy,
   failed,
   onGroupChange,
   onAdd,
-  onDiscard,
-  onRetry,
+  onFooter,
 }: VoiceConfirmCardProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -238,49 +231,15 @@ export function VoiceConfirmCard({
   const categoryIcon = (categoryEntry?.icon ??
     'pricetag-outline') as keyof typeof Ionicons.glyphMap;
 
-  // The allowance and the engine that heard it, then speaking it again.
-  const allowance = (
-    <Row gap={theme.spacing.xs} style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-      <Text variant="caption" tone="muted">
-        {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
-      </Text>
-      <VoiceEngineBadge info={engine} />
-    </Row>
-  );
-  const footer = (
-    <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-      <Row gap={theme.spacing.xs}>
-        <Text variant="caption" tone="muted">
-          {fill(t.voice.agentQuotaLeft, { percent: String(quota.percent) })}
-        </Text>
-        <Ionicons
-          name="information-circle-outline"
-          size={iconSize.base}
-          color={theme.color.textMuted}
-          accessibilityLabel={t.voice.confirmQuotaInfo}
-        />
-      </Row>
-      <VoiceEngineBadge info={engine} />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.voice.agentTryAgain}
-        disabled={busy}
-        onPress={onRetry}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.xs,
-          opacity: pressed || busy ? 0.6 : 1,
-        })}
-      >
-        <Ionicons name="mic-outline" size={iconSize.base} color={brand} />
-        <Text variant="caption" style={{ color: brand, fontWeight: '700' }}>
-          {t.voice.agentTryAgain}
-        </Text>
-      </Pressable>
-    </View>
-  );
+  useReportFooter(onFooter, {
+    primary: {
+      label: busy ? t.voiceScreen.statusSaving : t.voice.confirmAdd,
+      disabled: !resolution.ok || busy,
+      onPress: () => {
+        if (resolution.ok) onAdd(resolution.action);
+      },
+    },
+  });
 
   const groupLayout = (
     <>
@@ -444,34 +403,6 @@ export function VoiceConfirmCard({
           {problemText}
         </Text>
       ) : null}
-
-      <Button
-        label={t.voice.confirmAdd}
-        variant="brand"
-        fullWidth
-        disabled={!resolution.ok || busy}
-        onPress={() => {
-          if (resolution.ok) onAdd(resolution.action);
-        }}
-        icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
-      />
-      {/* Discard and Try again share a row, and the allowance one line, so
-          the whole confirmation fits a phone without scrolling. */}
-      <Row gap={theme.spacing.sm}>
-        <PillButton
-          label={t.voice.agentDiscard}
-          icon="trash-outline"
-          disabled={busy}
-          onPress={onDiscard}
-        />
-        <PillButton
-          label={t.voice.agentTryAgain}
-          icon="mic-outline"
-          disabled={busy}
-          onPress={onRetry}
-        />
-      </Row>
-      {allowance}
     </>
   );
 
@@ -622,28 +553,7 @@ export function VoiceConfirmCard({
                 {problemText}
               </Text>
             ) : null}
-
-            <Row gap={theme.spacing.sm} style={{ marginTop: theme.spacing.xs }}>
-              <PillButton
-                label={t.voice.agentConfirm}
-                icon="checkmark"
-                primary
-                grow={1.4}
-                disabled={!resolution.ok || busy}
-                onPress={() => {
-                  if (resolution.ok) onAdd(resolution.action);
-                }}
-              />
-              <PillButton
-                label={t.voice.agentDiscard}
-                icon="trash-outline"
-                disabled={busy}
-                onPress={onDiscard}
-              />
-            </Row>
           </View>
-
-          {footer}
         </>
       ) : (
         groupLayout
@@ -938,58 +848,5 @@ function LineRow({
       </Text>
       <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
     </Row>
-  );
-}
-
-function PillButton({
-  label,
-  icon,
-  primary = false,
-  grow = 1,
-  disabled = false,
-  onPress,
-}: {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  primary?: boolean;
-  grow?: number;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const ink = primary ? theme.color.onButtonPrimary : theme.color.brand;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexGrow: grow,
-        flexBasis: 0,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.spacing.xs,
-        height: 50,
-        paddingHorizontal: theme.spacing.sm,
-        borderRadius: theme.radius.pill,
-        backgroundColor: primary
-          ? pressed
-            ? theme.color.buttonPrimaryPressed
-            : theme.color.buttonPrimary
-          : theme.color.brandSoft,
-        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.lg} color={ink} />
-      <Text
-        numberOfLines={1}
-        style={{ color: ink, fontWeight: '700', fontSize: 15, flexShrink: 1 }}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

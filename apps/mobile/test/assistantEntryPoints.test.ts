@@ -52,13 +52,14 @@ describe('entry points', () => {
     expect(paywall).toContain('t.assistant.planRowPill');
   });
 
-  it('the Free teaser replaces the follow-ups for Free and the intro sits above them for Pro', () => {
+  it('Free sees the plain saved summary instead of the follow-ups; nothing is sold or introduced after a save', () => {
     const voice = src('app/voice.tsx');
     expect(voice).toContain('renderAfterSave={isPro ? undefined : renderFreeAfterSave}');
-    expect(voice).toContain('aboveFollowUps={<AssistantIntro');
+    expect(voice).not.toContain('AssistantIntro');
+    expect(voice).not.toContain('AssistantTeaser');
     const panel = src('components/VoiceAgentPanel.tsx');
     expect(panel).toContain('renderAfterSave');
-    expect(panel).toContain('aboveFollowUps');
+    expect(panel).not.toContain('aboveFollowUps');
   });
 
   it('S-ONB-03: the "Try saying" suggestions include "Who owes me?"', () => {

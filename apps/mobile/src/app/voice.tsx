@@ -31,12 +31,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
-  TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,21 +62,7 @@ import {
   type VoiceParty,
   type VoiceSplitPlan,
 } from '@waves/core';
-import {
-  Button,
-  Callout,
-  Card,
-  Chip,
-  Divider,
-  IconButton,
-  iconSize,
-  MoneyText,
-  Row,
-  Screen,
-  Sheet,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Button, Callout, Card, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import {
   useAddGhostMember,
@@ -101,7 +86,6 @@ import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from 
 import { fill, isRtl, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
-import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
 import {
@@ -116,10 +100,9 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
-import type { VoiceDoneInfo } from '@/components/VoiceCapture';
+import type { CaptureStage, VoiceDoneInfo } from '@/components/VoiceCapture';
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -147,8 +130,9 @@ import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
 import type { UndoEntry } from '@/lib/assistantUndo';
 import type { AgentExpenseWrite } from '@/lib/voiceAgentPlan';
 import { splitEditFromParams } from '@/lib/voiceSplitPure';
+import { currentQuestion, partyQuestion, type ReviewOpen } from '@/lib/voiceReviewPure';
 import { LocationField } from '@/components/LocationField';
-import { CategoryBadge, useLabelledCategoryCatalog } from '@/components/Category';
+import { useLabelledCategoryCatalog } from '@/components/Category';
 import {
   captureLocation,
   locationAvailable,
@@ -173,17 +157,30 @@ import {
 import { logVoiceAttempt } from '@/lib/voiceLog';
 import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
-import { ExpensePreviewCard, type ExpensePreview } from '@/components/voice/ExpensePreviewCard';
-import { LiveTranscript } from '@/components/voice/LiveTranscript';
-import { VoiceSceneBackdrop } from '@/components/voice/VoiceSceneBackdrop';
-import { statusText, VoiceStage } from '@/components/voice/VoiceStage';
-import { VoiceStatus } from '@/components/voice/VoiceStatus';
+import { DraftRow } from '@/components/voice/DraftRow';
+import {
+  ExpensePreviewCard,
+  SplitLine,
+  type ExpensePreview,
+} from '@/components/voice/ExpensePreviewCard';
+import { ReviewQuestionCard } from '@/components/voice/ReviewQuestion';
+import { VoiceFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
+import { VoiceScene } from '@/components/voice/VoiceScene';
+import { VoiceHeader, VoiceSheetBody, VoiceTop } from '@/components/voice/VoiceStage';
+import type { MicMode as StageMicMode } from '@/components/voice/FloatingMicrophone';
 import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { singleFlight, voiceFlowState, voiceStatusKey } from '@/lib/voiceFlowPure';
+import {
+  singleFlight,
+  stageMicMode,
+  stageMicTap,
+  stageStatusKey,
+  type VoiceStatusKey,
+  voiceFlowState,
+  type AgentStage,
+} from '@/lib/voiceFlowPure';
 import { AssistantComposer } from '@/components/AssistantComposer';
-import { AssistantIntro } from '@/components/AssistantIntro';
-import { AssistantTeaser } from '@/components/AssistantTeaser';
+import { SavedSummary } from '@/components/voice/SavedSummary';
 import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
 import { trackAssistant, type AssistantScope } from '@/lib/assistantTelemetry';
@@ -376,15 +373,42 @@ function planWho(
   };
 }
 
+/** A plain icon button in the header (the ✕, the keypad): no circle behind it. */
+function IconButton({
+  label,
+  onPress,
+  children,
+}: {
+  label: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 export default function VoiceScreen() {
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   // Your own name, for the destination row: the picker offers "me" as your
   // portrait and name, and the folded selector has to say the same thing back.
   const viewer = useViewerIdentity();
-  // The one canonical foot. `Screen` below takes only the top edge, so nothing
-  // else has added the bottom inset — this is where it comes from, once.
-  const clearance = useBottomClearance();
+  // The one canonical insets: the header clears the status bar and the footer
+  // clears the navigation bar, each added once, here.
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
 
@@ -498,8 +522,14 @@ export default function VoiceScreen() {
   // The last sentence handed to be read — spoken or typed — so the processing
   // step and the preview can show what was heard, and Edit can correct it.
   const [heardText, setHeardText] = useState('');
-  // The single expense's editor is open (the preview's Edit).
+  // Where the Pro agent's panel is, reported by it, for the stage above it.
+  const [agentStage, setAgentStage] = useState<AgentStage>('working');
+  // The agent panel's own footer button (Add, Add all, or Done), reported up.
+  const [panelFooter, setPanelFooter] = useState<FooterSpec | null>(null);
+  // The single expense's editor is open (a tap on the preview); Save finishes it.
   const [editingDraft, setEditingDraft] = useState(false);
+  // The optional Details (category, date, place) are unfolded.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   // The whole flow stays on this screen: a save lands here, on a compact
   // success state with Add another and Done, and the follow-up questions run
   // right under it. `expense` carries what the follow-ups need.
@@ -512,6 +542,7 @@ export default function VoiceScreen() {
   // The split sheet (who paid, how it splits) over the review, and whether the
   // payer/people plan is shown for a sentence that named nobody.
   const [splitOpen, setSplitOpen] = useState(false);
+  const [splitView, setSplitView] = useState<'people' | 'payer'>('people');
   const [whoForced, setWhoForced] = useState(false);
   // The reader's groups and people from the local mirror, for the follow-ups.
   const agentLocal = useAgentLocalData(viewerId);
@@ -574,8 +605,8 @@ export default function VoiceScreen() {
   const agentReady = agentStatusReady && voiceConsent.ready;
   const consentSheetOpen =
     agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
-  // Which engine heard the last capture — shown on every step after it too.
-  const [engine, setEngine] = useState<VoiceEngineInfo | null>(null);
+  // Which engine heard the capture — its pill shows only while listening.
+  const [, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
   // answer; cleared once that answer has been read.
   const [agentFollowUp, setAgentFollowUp] = useState<{
@@ -624,7 +655,6 @@ export default function VoiceScreen() {
   // The reader's corrections to the payer and the people, laid over the spoken
   // intent. Dropped whenever a new sentence or a different group comes in.
   const [whoEdit, setWhoEdit] = useState<WhoEdit | null>(null);
-  const [whoOpen, setWhoOpen] = useState(false);
   // A spoken group name that fit nothing, or several groups, stays flagged until
   // the reader picks a destination themselves.
   const [groupChosen, setGroupChosen] = useState(false);
@@ -634,9 +664,6 @@ export default function VoiceScreen() {
   // move it. A spoken expense is nearly always logged on the spot, so filing it
   // there without a tap is the point.
   const [location, setLocation] = useState<ExpenseLocation | null>(null);
-  // The up-front read of the current place is in flight — the field shows a
-  // "getting location" state rather than empty buttons while it lands.
-  const [locating, setLocating] = useState(false);
   const [dest, setDest] = useState<Dest>({ kind: 'unassigned' });
   // The destination folds into a single row that opens this sheet, so the
   // expenses — not a wall of group rows — are the first thing on the review.
@@ -648,6 +675,8 @@ export default function VoiceScreen() {
     if (noAmount && typedMode && lastTyped.current) setTypedDraft(lastTyped.current);
   }, [noAmount, typedMode]);
   const [error, setError] = useState<string | null>(null);
+  // The mic panel's state for the fixed top area, while listening.
+  const [capStage, setCapStage] = useState<CaptureStage | null>(null);
   const [saving, setSaving] = useState(false);
   // Remounts the mic to start a fresh utterance after a miss.
   const [attempt, setAttempt] = useState(0);
@@ -1293,6 +1322,7 @@ export default function VoiceScreen() {
     captureActive.current = false;
     setHeardText(transcript);
     setEditingDraft(false);
+    setDetailsOpen(false);
     // A money question is never an expense and never needs the agent.
     if (micMode !== 'append' && !agentFollowUp && tryMoneyQuestion(transcript)) {
       // The cloud engine heard it, so the command counts like any fast-path one.
@@ -1627,8 +1657,8 @@ export default function VoiceScreen() {
   //
   // `captureLocation` only ever waits on a fast coordinate fix (lib/location's
   // `FAST_FIX_TIMEOUT_MS`) — never on reverse-geocoding, which can hang far
-  // longer offline. `locating` therefore clears quickly, and Save is never held
-  // up by the map/place-name lookup. The human-readable name, when there is
+  // longer offline. The read is silent — no busy state of its own competes with
+  // Save — and Save is never held up by the map/place-name lookup. The human-readable name, when there is
   // one, is resolved separately below and folds in only if it beats the
   // reader to Save; arriving after is fine to drop.
   useEffect(() => {
@@ -1637,30 +1667,23 @@ export default function VoiceScreen() {
     if (!locationAvailable()) return;
     const gen = locationGen.current;
     void (async () => {
-      // Set inside the async body, not the effect body, so it does not read as a
-      // synchronous cascading setState (react-hooks/set-state-in-effect).
-      setLocating(true);
-      try {
-        const result = await captureLocation();
-        if (!result.ok) return;
-        // Drop a fix that lost its race: the reader has since set or cleared the
-        // pin by hand, or a fresh utterance moved on to a new batch.
+      const result = await captureLocation();
+      if (!result.ok) return;
+      // Drop a fix that lost its race: the reader has since set or cleared the
+      // pin by hand, or a fresh utterance moved on to a new batch.
+      if (locationGen.current !== gen || locationTouched.current) return;
+      const { lat, lng } = result.location;
+      setLocation(result.location);
+      // Best-effort, and never awaited: a name that lands after the pin was
+      // touched, the batch moved on, or the expense was already saved is
+      // simply dropped — coordinates alone are a saveable location.
+      void reverseGeocode(lat, lng).then((name) => {
+        if (!name) return;
         if (locationGen.current !== gen || locationTouched.current) return;
-        const { lat, lng } = result.location;
-        setLocation(result.location);
-        // Best-effort, and never awaited: a name that lands after the pin was
-        // touched, the batch moved on, or the expense was already saved is
-        // simply dropped — coordinates alone are a saveable location.
-        void reverseGeocode(lat, lng).then((name) => {
-          if (!name) return;
-          if (locationGen.current !== gen || locationTouched.current) return;
-          setLocation((current) =>
-            locationUnchanged(current, lat, lng) ? { ...current, name } : current,
-          );
-        });
-      } finally {
-        setLocating(false);
-      }
+        setLocation((current) =>
+          locationUnchanged(current, lat, lng) ? { ...current, name } : current,
+        );
+      });
     })();
   }, [phase]);
 
@@ -2191,12 +2214,8 @@ export default function VoiceScreen() {
     !whoBlocked &&
     drafts.every((draft) => toMinor(draft.amount, draft.currency ?? dc) !== null);
 
-  // The footer total must read in the same currency the Save will persist, or
-  // it lies about what lands. Every destination keeps each draft's spoken
-  // currency (see `save`); a draft with none takes the group's currency for a
-  // group, else the reader's default. So the total is per-currency, and a mixed
-  // batch shows its count instead — there is no total across currencies
-  // (ADR-004).
+  // Every destination keeps each draft's spoken currency (see `save`); a draft
+  // with none takes the group's currency for a group, else the reader's default.
   const destCurrency =
     dest.kind === 'unassigned' || dest.kind === 'me'
       ? null
@@ -2207,14 +2226,6 @@ export default function VoiceScreen() {
             drafts.map((draft) => draft.currency),
             dc,
           ));
-  const draftTotals = new Map<string, bigint>();
-  for (const draft of drafts) {
-    const currency = voiceSaveCurrency(draft.currency, destCurrency, dc);
-    const minor = toMinor(draft.amount, currency);
-    if (minor === null) continue;
-    draftTotals.set(currency, (draftTotals.get(currency) ?? 0n) + minor);
-  }
-  const singleTotal = draftTotals.size === 1 ? [...draftTotals.entries()][0] : null;
 
   const current = describeDest(dest, groupRows, t, viewer.name, labelOf);
 
@@ -2245,82 +2256,137 @@ export default function VoiceScreen() {
       : plural(locale, drafts.length, t.voice.save);
 
   // The review's state, read from the screen's own phase and flags.
-  const reviewFlow = { phase: 'review' as const, saving, needsAnswer: whoBlocked };
-  const reviewStatus = voiceStatusKey(voiceFlowState(reviewFlow), reviewFlow);
-  // A single expense into one of the reader's groups can have its payer and
-  // split set in full, in the sheet; opening it shows the plan if none yet.
+  // The stage that stays on screen once the sentence is heard (mic, status,
+  // transcript) reads the same flow, whichever card is under it.
+  const stageInput = {
+    phase,
+    saving,
+    needsAnswer: whoBlocked,
+    agent: agentStage,
+    answering: answer?.kind === 'group' && queryLedger.loading,
+  };
+  const stageState = voiceFlowState(stageInput);
+  const stageTap = stageMicTap(phase, stageState);
+  // Tapping the mic speaks the next sentence in place: onto the reviewed batch,
+  // or fresh after a card or an answer.
+  const onStageMic = (): void => {
+    hapticSelect();
+    if (stageTap === 'append') startAddMore();
+    else if (stageTap === 'fresh') {
+      if (phase === 'answer') askAgain();
+      else addAnother();
+    }
+  };
+  // The first expense, which the split is set against (one total cannot be spread
+  // over several, so more than one keeps to an equal split).
+  const firstDraft = drafts[0];
+  const splitCurrency = voiceSaveCurrency(firstDraft?.currency ?? null, destCurrency, dc);
+  const splitAmount = firstDraft ? toMinor(firstDraft.amount, splitCurrency) : null;
+  // Who shares it, their payer and split can be set in the sheet when the
+  // destination is one of the reader's groups.
   const canEditSplit =
-    drafts.length === 1 && dest.kind === 'existing' && targetMembers.length > 0 && intent !== null;
-  const openSplit = (): void => {
+    dest.kind === 'existing' && targetMembers.length > 0 && intent !== null && splitAmount !== null;
+  const openSplit = (view: 'people' | 'payer'): void => {
     setWhoForced(true);
+    setSplitView(view);
     setSplitOpen(true);
   };
 
-  // The single heard expense as a structured preview, from the parser's real
-  // output and the destination's real members. Several expenses keep the list.
-  const preview: ExpensePreview | null = (() => {
-    if (drafts.length !== 1) return null;
-    const draft = drafts[0];
-    if (!draft) return null;
-    const currency = voiceSaveCurrency(draft.currency, destCurrency, dc);
-    const description = draft.note.trim() || t.voice.anExpense;
-    const category = draft.category ?? guessCategory(description);
-    const categoryLabel = category
-      ? (categoryCatalog.find((entry) => entry.key === category)?.label ??
-        (t.categories as Record<string, string>)[category] ??
-        null)
-      : null;
+  // Names in the split, "You" first; null when no split applies yet.
+  const splitWith: string[] | null = (() => {
+    if (dest.kind === 'me') return [t.voiceScreen.justYou];
+    if (dest.kind === 'create') return [t.voice.youLabel];
+    if (dest.kind === 'people') return [t.voice.youLabel, ...dest.ghostNames];
     const members = target.members.data ?? [];
+    if (dest.kind !== 'existing' || members.length === 0) return null;
     const nameOf = (id: string): string => {
       const member = members.find((candidate) => candidate.id === id);
       if (!member) return '';
       return isViewer(member, viewerId) ? t.voice.youLabel : displayName(member, viewerId);
     };
-    let splitWith: string[] | null = null;
-    if (dest.kind === 'me') splitWith = [t.voiceScreen.justYou];
-    else if (dest.kind === 'create') splitWith = [t.voice.youLabel];
-    else if (dest.kind === 'people') splitWith = [t.voice.youLabel, ...dest.ghostNames];
-    else if (dest.kind === 'existing' && members.length > 0) {
-      const ids = who
-        ? who.participantIds
-        : resolveVoiceParticipants({
-            all: members.map((member) => member.id),
-            payer: members.find((member) => isViewer(member, viewerId))?.id ?? members[0]?.id ?? '',
-            members: members.map((member) => ({
-              id: member.id,
-              name: displayName(member, viewerId),
-            })),
-            peopleText: voicePeopleText,
-            splitCount: voiceSplitCount,
-          });
-      // "You" first, then the others in the group's order.
-      const names = ids.map(nameOf).filter(Boolean);
-      splitWith = [
-        ...names.filter((name) => name === t.voice.youLabel),
-        ...names.filter((name) => name !== t.voice.youLabel),
-      ];
-    }
-    // The split type only when the sentence set one, or the product default (an
-    // equal split) applies because more than one person shares it.
-    const said =
-      who && (who.params.kind !== 'equal' || (who.intent.splitMode === 'full_on' && !who.edited));
-    const splitType =
-      who && said
-        ? describeSplit(who, targetMembers, currency, t)
-        : splitWith && splitWith.length > 1
-          ? t.voiceScreen.splitEqually
-          : null;
+    const ids = who
+      ? who.participantIds
+      : resolveVoiceParticipants({
+          all: members.map((member) => member.id),
+          payer: members.find((member) => isViewer(member, viewerId))?.id ?? members[0]?.id ?? '',
+          members: members.map((member) => ({
+            id: member.id,
+            name: displayName(member, viewerId),
+          })),
+          peopleText: voicePeopleText,
+          splitCount: voiceSplitCount,
+        });
+    const names = ids.map(nameOf).filter(Boolean);
+    return [
+      ...names.filter((name) => name === t.voice.youLabel),
+      ...names.filter((name) => name !== t.voice.youLabel),
+    ];
+  })();
+  // One plain line: "Split equally with: You, Ravi", or the split in words when
+  // it was set another way. Who paid is a second small line only when it was not you.
+  const splitText =
+    (who ? describeSplit(who, targetMembers, splitCurrency, t) : null) ??
+    (splitWith && splitWith.length > 1
+      ? t.voiceScreen.splitEquallyWith.replace('{names}', splitWith.join(', '))
+      : null);
+  const payerMember = who?.payerId ? targetMembers.find((m) => m.id === who.payerId) : undefined;
+  const splitProps = splitText
+    ? {
+        text: splitText,
+        paidBy:
+          payerMember && !payerMember.isMe
+            ? t.voiceScreen.paidByName.replace('{name}', payerMember.name)
+            : null,
+        onPress: canEditSplit ? () => openSplit('people') : undefined,
+        onPaidBy: canEditSplit ? () => openSplit('payer') : undefined,
+      }
+    : null;
+
+  // The single heard expense as a structured preview, from the parser's real
+  // output. Several expenses keep the list.
+  const preview: ExpensePreview | null = (() => {
+    if (!firstDraft || drafts.length !== 1) return null;
+    const description = firstDraft.note.trim() || t.voice.anExpense;
     return {
       description,
-      amountMinor: toMinor(draft.amount, currency),
-      amountText: draft.amount.trim(),
-      currency,
-      category,
-      categoryLabel,
-      splitWith,
-      splitType,
+      amountMinor: toMinor(firstDraft.amount, splitCurrency),
+      amountText: firstDraft.amount.trim(),
+      currency: splitCurrency,
+      category: firstDraft.category ?? guessCategory(description),
     };
   })();
+  const categoryLabel = preview?.category
+    ? (categoryCatalog.find((entry) => entry.key === preview.category)?.label ??
+      (t.categories as Record<string, string>)[preview.category] ??
+      null)
+    : null;
+
+  // The review asks one thing at a time: the first of these that is open is the
+  // only part of the review on screen until it is answered.
+  const partyText = {
+    you: t.voice.youLabel,
+    didYouMean: t.voice.didYouMean,
+    didYouMeanYes: t.voice.didYouMeanYes,
+    whichOf: t.voice.whichOf,
+  };
+  const askedParty = (who?.intent.participants ?? [])
+    .map((party) => ({ party, ask: partyQuestion(party, targetMembers, partyText) }))
+    .find((entry) => entry.ask !== null);
+  const payerParty =
+    who && who.problems.some((problem) => problem.code === 'payer_unresolved')
+      ? who.intent.payer
+      : null;
+  const groupOpen = groupPending || (payerElsewhere && dest.kind !== 'existing');
+  const reviewOpen: ReviewOpen = {
+    amount: amountQuestion !== null,
+    currency: currencyQuestion !== null,
+    group: groupOpen,
+    payer: payerParty !== null,
+    people:
+      askedParty !== undefined ||
+      who?.problems.some((problem) => problem.code !== 'payer_unresolved') === true,
+  };
+  const question = currentQuestion(reviewOpen);
 
   // The line the answer card shows. A `text` answer is ready; a `group` one is
   // composed from its ledger and shows a spinner until the balance has loaded.
@@ -2377,6 +2443,7 @@ export default function VoiceScreen() {
     setLocation(null);
     setHeardText('');
     setEditingDraft(false);
+    setDetailsOpen(false);
     setError(null);
     setAnswer(null);
     setAgentSession(null);
@@ -2442,145 +2509,252 @@ export default function VoiceScreen() {
     handleTranscript(text, { typed: true });
   };
 
-  // A Free person's saved expense: one line saying so, then the Pro teaser in
-  // place of the question Pro would be asked. Never blocks; Done is below it.
+  // A Free person's saved expense: the same summary card, with no Undo and no
+  // question after it. Done is below it.
   const renderFreeAfterSave = (saved: SavedState): ReactNode => {
     const where =
       saved.kind === 'personal'
         ? t.followUps.wherePersonal
         : (groupRows.find((group) => group.id === saved.groupId)?.name?.trim() ??
           t.followUps.wherePersonal);
+    const category = saved.category
+      ? ((t.categories as Record<string, string>)[saved.category] ?? '')
+      : '';
     return (
-      <View style={{ gap: theme.spacing.md }}>
-        <Text variant="subheading">
-          {fill(t.followUps.added, {
-            amount: formatMoney(money(saved.amount, saved.currency), { locale }),
-            where,
-          })}
-        </Text>
-        <AssistantTeaser
-          viewerId={viewerId}
-          isPro={isPro}
-          kind={saved.hasReceipt ? 'payment' : 'place'}
-        />
-      </View>
+      <SavedSummary
+        amount={formatMoney(money(saved.amount, saved.currency), { locale })}
+        detail={[category, where].filter(Boolean).join(' · ')}
+      />
     );
   };
 
+  const choosePeople = canEditSplit
+    ? { label: t.voiceScreen.splitWith, onPress: () => openSplit('people') }
+    : undefined;
+  // The one open question as a card: tap an answer and it is applied.
+  const renderQuestion = (): ReactNode => {
+    if (question === 'amount' && amountQuestion)
+      return (
+        <ReviewQuestionCard
+          title={amountQuestion.question.prompt}
+          options={amountQuestion.question.answers}
+          onSelect={answerAmount}
+        />
+      );
+    if (question === 'currency' && currencyQuestion)
+      return (
+        <ReviewQuestionCard
+          title={currencyQuestion.prompt}
+          options={currencyQuestion.answers}
+          onSelect={answerCurrency}
+        />
+      );
+    if (question === 'group' && intent) {
+      const ambiguous = groupPending && intent.groupSource === 'ambiguous';
+      return (
+        <ReviewQuestionCard
+          title={
+            !groupPending
+              ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
+              : ambiguous
+                ? t.voice.whichGroup
+                : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')
+          }
+          options={
+            ambiguous
+              ? (intent.groupHint?.candidates ?? []).map((candidate) => ({
+                  key: candidate.id,
+                  label: candidate.name ?? '',
+                }))
+              : []
+          }
+          onSelect={chooseGroup}
+          action={{ label: t.voice.chooseGroup, onPress: () => setPickerOpen(true) }}
+        />
+      );
+    }
+    if (question === 'payer' && payerParty) {
+      const ask = partyQuestion(payerParty, targetMembers, partyText);
+      return (
+        <ReviewQuestionCard
+          title={ask?.title ?? `${t.voice.whoPaid} “${payerParty.name}”`}
+          options={
+            ask
+              ? ask.options.map((option) => ({ key: option.memberId, label: option.label }))
+              : targetMembers.map((member) => ({
+                  key: member.id,
+                  label: member.isMe ? t.voice.youLabel : member.name,
+                }))
+          }
+          onSelect={(memberId) =>
+            ask ? pickName(payerParty, memberId) : editWho({ payerId: memberId })
+          }
+        />
+      );
+    }
+    if (question === 'people' && who) {
+      const unknown = who.problems.find((problem) => problem.code === 'participant_unresolved');
+      return (
+        <ReviewQuestionCard
+          title={
+            askedParty?.ask
+              ? askedParty.ask.title
+              : unknown && unknown.code === 'participant_unresolved'
+                ? t.voice.whoUnknown.replace('{name}', unknown.name)
+                : t.voice.splitInvalid
+          }
+          options={
+            askedParty?.ask
+              ? askedParty.ask.options.map((option) => ({
+                  key: option.memberId,
+                  label: option.label,
+                }))
+              : []
+          }
+          onSelect={(memberId) => askedParty && pickName(askedParty.party, memberId)}
+          action={choosePeople}
+        />
+      );
+    }
+    return null;
+  };
+
+  // The one action area at the foot. It holds the same slots in every step; only
+  // what sits in them changes.
+  const footerSpec: FooterSpec =
+    phase === 'review'
+      ? {
+          primary: {
+            label: saving ? t.voiceScreen.statusSaving : saveLabel,
+            disabled: !canSave,
+            onPress: () => void save(),
+          },
+        }
+      : phase === 'saved'
+        ? {
+            primary: { label: t.voiceScreen.done, onPress: finishVoice },
+            secondary: { label: t.voiceScreen.addAnother, onPress: addAnother },
+          }
+        : phase === 'committing' && autoBanner?.needsConfirm
+          ? {
+              primary: {
+                label: t.voice.autoConfirm,
+                onPress: () => runAutoCommit(autoBanner.fallback),
+              },
+            }
+          : phase === 'agent'
+            ? (panelFooter ?? {})
+            : {};
+
+  // The stage (headline, mic, status, wave) is the same in every phase until a
+  // card is answering: while listening the mic panel reports its state up,
+  // otherwise it is read from the screen's own flow. Only what is under it changes.
+  const listeningLive = phase === 'listening' && !typedMode;
+  const topStage = listeningLive ? capStage : null;
+  const topStatus: VoiceStatusKey = listeningLive
+    ? (capStage?.status ?? 'ready')
+    : phase === 'listening'
+      ? 'ready'
+      : stageStatusKey(stageInput);
+  const topMicMode: StageMicMode = listeningLive
+    ? (capStage?.micMode ?? 'start')
+    : phase === 'listening'
+      ? 'start'
+      : stageMicMode(stageState);
+  const onTopMic = (): void => {
+    if (listeningLive) topStage?.onMicPress();
+    else if (phase === 'listening') {
+      // Typing: the mic is the way back to speaking.
+      setNoAmount(false);
+      setAttempt((current) => current + 1);
+      setTypedMode(false);
+    } else onStageMic();
+  };
+  // A card is answering (a question, the review, the agent's proposal, an answer,
+  // the saved summary): the headline, mic, status and wave give way and the
+  // heard words sit right under the header, with the card after them.
+  const stageSettled =
+    phase === 'review' ||
+    phase === 'saved' ||
+    phase === 'answer' ||
+    (phase === 'agent' && agentStage !== 'working');
+  // A short phone trims the stage's gaps instead of scrolling it.
+  const { height: windowHeight } = useWindowDimensions();
+  const compactTop = windowHeight < 720;
+
   return (
-    <Screen>
-      {/* The desk scene along the foot, under everything. Not on the review:
-          that list keeps its pinned Save bar there, and a picture behind the
-          figures being checked would only be in the way. */}
-      {phase === 'listening' || phase === 'thinking' || phase === 'saved' ? (
-        <VoiceSceneBackdrop />
-      ) : null}
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      {/* The photograph, edge to edge, anchored to the bottom; everything else
+          scrolls over it. */}
+      <VoiceScene />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
           style={{ flex: 1 }}
-          // Capturing is one still screen — the mic, what to say, the scene at the
-          // foot — so it does not scroll or bounce while it fits. It only scrolls
-          // when it has to: the review's list, or a phone too short to show the
-          // capture surface whole, where clipping it would hide the mic.
-          scrollEnabled={phase === 'review' || contentHeight > viewportHeight + 1}
-          bounces={phase === 'review'}
-          overScrollMode={phase === 'review' ? 'auto' : 'never'}
+          // Scrolls only when the content is taller than the screen.
+          scrollEnabled={contentHeight > viewportHeight + 1}
+          bounces={false}
+          overScrollMode="never"
           onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
           onContentSizeChange={(_width, height) => setContentHeight(height)}
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            // The review's pinned bar carries the inset itself; the agent's buttons
-            // sit at the end of the scroll, so they need the system bar cleared.
-            paddingBottom: phase === 'review' ? theme.spacing.lg : clearance,
-            gap: phase === 'review' || phase === 'agent' ? theme.spacing.sm : theme.spacing.xl,
-            // Fill the viewport when the capture surface is shorter than it, so the
-            // mic panel's own footer (the offline-voice offer) can sit at the foot of
-            // the screen rather than tucked under the mic. `flexGrow` only ever sets a
-            // *minimum* — a panel taller than the window still scrolls, where `flex`
-            // would have squeezed it. The review lays itself out and keeps its own
-            // pinned action bar, so it is left alone.
-            ...(phase === 'review' ? null : { flexGrow: 1 }),
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: insets.top + theme.spacing.sm,
+            paddingBottom: theme.spacing.lg,
+            gap: theme.spacing.md,
+            flexGrow: 1,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Row
-            style={{
-              paddingTop: phase === 'review' ? theme.spacing.xs : theme.spacing.md,
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            {/* The Activity screen's header shape — a left-aligned brand glyph and a
-              big bold title — so the review reads as the same family of screen.
-              Here the glyph is the mic that started the capture. */}
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center', flexShrink: 1 }}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brandSoft,
+          {/* Just the ✕ (and typing, while listening). Speaking another expense is
+              one job with one home — the mic — so there is no second mic here. */}
+          <VoiceHeader>
+            {phase === 'listening' && !typedMode ? (
+              <IconButton
+                label={t.assistant.composerTypeInstead}
+                onPress={() => {
+                  hapticSelect();
+                  captureActive.current = false;
+                  setTypedMode(true);
                 }}
               >
-                <Ionicons name="mic" size={iconSize.md} color={theme.color.brand} />
-              </View>
-              <Text variant="heading" accessibilityRole="header" style={{ flexShrink: 1 }}>
-                {phase === 'answer'
-                  ? answer?.kind === 'spend'
-                    ? t.personal.spendingTitle
-                    : t.voice.ansTitle
-                  : t.voice.title}
-              </Text>
-            </Row>
-            {/* Just the ✕. Speaking another expense is one job with one home — the
-              "+ Add another" pill under the list — so the header carries no second
-              mic competing with it. */}
-            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-              {/* Typing lives up here beside ✕ rather than as a pill under the
-                examples: the capture screen has to fit one phone height, and a
-                pill at the foot ended up under the system navigation bar. */}
-              {phase === 'listening' && !typedMode ? (
-                <IconButton
-                  label={t.assistant.composerTypeInstead}
-                  onPress={() => {
-                    hapticSelect();
-                    captureActive.current = false;
-                    setTypedMode(true);
-                  }}
-                >
-                  <Ionicons name="keypad-outline" size={iconSize.lg} color={theme.color.text} />
-                </IconButton>
-              ) : null}
-              <IconButton label={t.common.close} onPress={dismiss}>
-                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+                <Ionicons name="keypad-outline" size={iconSize.lg} color={theme.color.text} />
               </IconButton>
-            </Row>
-          </Row>
-
+            ) : null}
+            <IconButton label={t.common.close} onPress={dismiss}>
+              <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
+            </IconButton>
+          </VoiceHeader>
+          {!stageSettled ? (
+            <VoiceTop
+              status={topStatus}
+              micMode={topMicMode}
+              onMicPress={onTopMic}
+              reduceMotion={reduceMotion}
+              level={listeningLive ? (capStage?.level ?? null) : null}
+              compact={compactTop}
+            />
+          ) : null}
           {error ? <Callout tone="negative">{error}</Callout> : null}
           {agentQuotaNote && phase !== 'agent' ? (
             <Text variant="caption" tone="muted">
               {t.voice.agentQuotaFallback}
             </Text>
           ) : null}
-          {phase === 'agent' ? (
-            <View style={{ marginTop: -theme.spacing.xs }}>
-              <Text tone="muted" variant="caption">
-                {t.voice.confirmSubtitle}
-              </Text>
-            </View>
-          ) : null}
-          {/* On the agent screen the engine's pill lives behind the allowance's (i). */}
-          {phase !== 'listening' && phase !== 'agent' ? (
-            <View style={{ alignItems: 'center' }}>
-              <VoiceEngineBadge info={engine} />
-            </View>
+          {/* What was heard heads the sheet in every step after the sentence; the
+              cards below it change in place. The listening phase draws the same
+              transcript inside the mic panel. */}
+          {phase !== 'listening' ? (
+            <VoiceSheetBody
+              transcript={heardText}
+              final
+              onEditTranscript={
+                phase === 'review' || phase === 'agent' || phase === 'saved' ? editHeard : undefined
+              }
+            />
           ) : null}
 
           {phase === 'agent' && agentSession ? (
@@ -2591,12 +2765,13 @@ export default function VoiceScreen() {
               today={today()}
               onFallback={agentFellBack}
               followUp={agentFollowUp}
-              engine={engine}
               renderAfterSave={isPro ? undefined : renderFreeAfterSave}
-              aboveFollowUps={<AssistantIntro viewerId={viewerId} />}
               onSavedBarEvent={(event) => {
                 if (event.name === 'assistant_correction') {
-                  trackAssistant('assistant_correction', { field: event.field, path: event.path });
+                  trackAssistant('assistant_correction', {
+                    field: event.field,
+                    path: event.path,
+                  });
                 } else {
                   trackAssistant('assistant_undo', { what: event.what });
                 }
@@ -2620,352 +2795,243 @@ export default function VoiceScreen() {
               }}
               onClose={finishVoice}
               onAddAnother={addAnother}
+              onStage={setAgentStage}
+              onFooter={setPanelFooter}
             />
-          ) : phase === 'thinking' ? (
-            // The same frame the mic panel draws, so listening → understanding
-            // changes the words and the mic's glyph, never the layout.
-            <View style={{ paddingTop: theme.spacing.md }}>
-              <VoiceStage
-                status={voiceStatusKey(voiceFlowState({ phase }), { phase })}
-                micMode="busy"
-                onMicPress={() => {}}
-                reduceMotion={reduceMotion}
-                transcript={heardText}
-                final
-              />
-            </View>
-          ) : phase === 'review' ? (
+          ) : phase === 'thinking' ? null : phase === 'review' ? (
             <View style={{ gap: theme.spacing.md }}>
-              {/* Where things stand — "Expense ready", or "Check one detail" while
-                a question holds Add expense — announced as it changes. */}
-              <VoiceStatus status={reviewStatus} text={statusText(t, reviewStatus)} />
-              {/* What was heard, word for word, with Edit to correct it. */}
-              {heardText ? <LiveTranscript text={heardText} final onEdit={editHeard} /> : null}
-              {/* Confirmation, not an edit form. Each expense reads as a quiet
-                summary line — what we heard, and the amount — inside one grouped
-                card, the way a receipt lists what it charged. Tapping a line opens
-                it to correct the amount or the note; it is closed again by
-                default. The parser is not put on trial the moment you land here. */}
-              {amountQuestion || currencyQuestion ? (
-                // An amount or currency that could be read two ways is asked,
-                // never picked: Add expense waits for the answer.
-                <ClarifyCard title={t.voiceScreen.checkTitle} theme={theme}>
-                  {amountQuestion ? (
-                    <AmountChooser
-                      question={amountQuestion.question}
-                      onAnswer={answerAmount}
-                      theme={theme}
-                    />
-                  ) : currencyQuestion ? (
-                    <AmountChooser
-                      question={currencyQuestion}
-                      onAnswer={answerCurrency}
-                      theme={theme}
-                    />
-                  ) : null}
-                </ClarifyCard>
-              ) : null}
-              {preview && !editingDraft ? (
-                <ExpensePreviewCard
-                  preview={preview}
-                  locale={locale}
-                  onEditSplit={canEditSplit ? openSplit : undefined}
-                />
+              {/* Confirmation, not an edit form. One open question hides the rest of
+                  the review until it is answered; settled, the review is the
+                  expense, one plain split line, where it goes, and optional Details. */}
+              {question ? (
+                renderQuestion()
               ) : (
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  {drafts.map((draft, index) => (
-                    <View key={draft.key}>
-                      {index > 0 ? <Divider /> : null}
-                      <DraftRow
-                        editing={drafts.length === 1 && editingDraft ? true : undefined}
-                        onEditingChange={
-                          drafts.length === 1 ? (open) => setEditingDraft(open) : undefined
-                        }
-                        draft={draft}
-                        // The currency the row shows is the one Save will persist:
-                        // the spoken one, else the group's, else the default.
-                        currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
-                        onEdit={editDraft}
-                        onRemove={removeDraft}
-                        fallbackNote={t.voice.anExpense}
-                        editLabel={t.common.edit}
-                        doneLabel={t.common.done}
-                        removeLabel={t.captures.delete}
-                        amountLabel={t.captures.amount}
-                        noteLabel={t.captures.description}
-                        notePlaceholder={t.captures.descriptionPlaceholder}
-                        theme={theme}
-                      />
-                    </View>
-                  ))}
-                </Card>
-              )}
-              {/* The single expense's Edit, past amount and words: category and
-                date, each in a picker over this screen. */}
-              {preview && editingDraft && drafts[0] ? (
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  <VoiceDetailRows
-                    category={preview.category}
-                    categoryLabel={preview.categoryLabel}
-                    onCategory={(key) => editDraft(drafts[0]?.key ?? '', { category: key })}
-                    date={voiceExpenseDate}
-                    onDate={setVoiceExpenseDate}
-                  />
-                  {canEditSplit ? (
+                <>
+                  {preview && !editingDraft ? (
+                    <ExpensePreviewCard
+                      preview={preview}
+                      locale={locale}
+                      onEdit={() => setEditingDraft(true)}
+                      split={splitProps}
+                    />
+                  ) : (
+                    <>
+                      <Card padded={false} style={{ overflow: 'hidden' }}>
+                        {drafts.map((draft, index) => (
+                          <View key={draft.key}>
+                            {index > 0 ? <Divider /> : null}
+                            <DraftRow
+                              editing={drafts.length === 1 && editingDraft ? true : undefined}
+                              draft={draft}
+                              // The currency the row shows is the one Save will persist:
+                              // the spoken one, else the group's, else the default.
+                              currency={voiceSaveCurrency(draft.currency, destCurrency, dc)}
+                              locale={locale}
+                              onEdit={editDraft}
+                              onRemove={drafts.length > 1 ? removeDraft : undefined}
+                              fallbackNote={t.voice.anExpense}
+                              editLabel={t.common.edit}
+                              removeLabel={t.captures.delete}
+                              amountLabel={t.captures.amount}
+                              noteLabel={t.captures.description}
+                              notePlaceholder={t.captures.descriptionPlaceholder}
+                            />
+                          </View>
+                        ))}
+                      </Card>
+                      {splitProps ? <SplitLine {...splitProps} /> : null}
+                    </>
+                  )}
+
+                  {/* One destination row: "Save to · <where> · Change". The taxonomy of
+                      groups and people only appears once the reader taps it. */}
+                  <Card padded={false} style={{ overflow: 'hidden' }}>
                     <Pressable
-                      onPress={openSplit}
+                      onPress={() => setPickerOpen(true)}
                       accessibilityRole="button"
+                      accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
                       style={({ pressed }) => ({
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: theme.spacing.sm,
                         minHeight: 48,
-                        justifyContent: 'center',
                         paddingHorizontal: theme.spacing.md,
                         opacity: pressed ? 0.6 : 1,
                       })}
                     >
-                      <Text tone="brand" style={{ fontWeight: '600' }}>
-                        {t.voiceScreen.editSplit}
+                      <View
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: theme.color.buttonPrimary,
+                        }}
+                      >
+                        {current.emoji ? (
+                          <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
+                        ) : (
+                          <Ionicons
+                            name={current.icon}
+                            size={iconSize.xs}
+                            color={theme.color.onBrand}
+                          />
+                        )}
+                      </View>
+                      <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
+                        <Text tone="muted">{t.voice.saveTo}</Text>
+                        <Text tone="faint"> · </Text>
+                        <Text style={{ fontWeight: '600' }}>{current.label}</Text>
+                      </Text>
+                      <Text
+                        variant="caption"
+                        style={{ color: theme.color.brand, fontWeight: '600' }}
+                      >
+                        {t.voice.change}
                       </Text>
                     </Pressable>
+                  </Card>
+
+                  {intent?.hasSocialDetail && dest.kind !== 'existing' ? (
+                    <Callout tone="info">{t.voice.needGroupForSplit}</Callout>
                   ) : null}
-                </Card>
-              ) : null}
 
-              {/* Speak again and append — another expense (or several) onto the
-                batch, keeping the ones already here and the chosen destination.
-                The one and only "add another"; the header carries no rival mic.
-                A slim inline text-button, not a tall box: it is one more line
-                under the list, not a second card competing with it. */}
-              <Pressable
-                onPress={startAddMore}
-                accessibilityRole="button"
-                accessibilityLabel={t.voice.addMore}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: theme.spacing.xs,
-                  paddingVertical: theme.spacing.sm,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons name="mic-outline" size={iconSize.sm} color={theme.color.brand} />
-                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                  {t.voice.addMore}
-                </Text>
-              </Pressable>
-
-              {/* A group that was named but is not clearly one of theirs: say so and
-                offer the candidates, instead of filing it somewhere on a guess. */}
-              {groupPending && intent ? (
-                <Callout tone="warning">
-                  {intent.groupSource === 'ambiguous'
-                    ? t.voice.whichGroup
-                    : t.voice.noGroupNamed.replace('{name}', intent.groupHint?.name ?? '')}
-                </Callout>
-              ) : null}
-              {groupPending && intent?.groupSource === 'ambiguous' ? (
-                <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
-                  {(intent.groupHint?.candidates ?? []).map((candidate) => (
+                  {/* Everything optional behind one row: category and date for a single
+                      expense, and the place, read once when the review opened and pinned
+                      by default (A43), which rides onto every expense saved from here. */}
+                  <Card padded={false} style={{ overflow: 'hidden' }}>
                     <Pressable
-                      key={candidate.id}
-                      onPress={() => chooseGroup(candidate.id)}
+                      onPress={() => setDetailsOpen((open) => !open)}
                       accessibilityRole="button"
+                      accessibilityState={{ expanded: detailsOpen }}
                       style={({ pressed }) => ({
-                        paddingVertical: theme.spacing.xs,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        minHeight: 48,
                         paddingHorizontal: theme.spacing.md,
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: theme.color.warning,
                         opacity: pressed ? 0.6 : 1,
                       })}
                     >
-                      <Text variant="caption" style={{ fontWeight: '600' }}>
-                        {candidate.name}
+                      <Text tone="muted" style={{ flex: 1 }}>
+                        {t.voiceScreen.details}
                       </Text>
-                    </Pressable>
-                  ))}
-                </Row>
-              ) : null}
-
-              {/* One opinionated destination row: "Save to · <where> · Change",
-                all on one line. No chips, no badges, no tabs out here — the
-                taxonomy of groups and people only appears once the reader taps
-                Change and the picker sheet opens. The answer to "where does
-                this go?" is one line, not a card's worth of it. */}
-              <Card
-                padded={false}
-                style={{
-                  overflow: 'hidden',
-                  ...(groupPending ? { borderWidth: 1, borderColor: theme.color.warning } : null),
-                }}
-              >
-                <Pressable
-                  onPress={() => setPickerOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.voice.saveTo}: ${current.label}. ${t.voice.change}`}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingVertical: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.md,
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.buttonPrimary,
-                    }}
-                  >
-                    {current.emoji ? (
-                      <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
-                    ) : (
                       <Ionicons
-                        name={current.icon}
-                        size={iconSize.xs}
-                        color={theme.color.onBrand}
+                        name={detailsOpen ? 'chevron-up' : 'chevron-down'}
+                        size={iconSize.sm}
+                        color={theme.color.textFaint}
                       />
-                    )}
-                  </View>
-                  <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
-                    <Text tone="muted">{t.voice.saveTo}</Text>
-                    <Text tone="faint"> · </Text>
-                    <Text style={{ fontWeight: '600' }}>{current.label}</Text>
-                  </Text>
-                  <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                    {t.voice.change}
-                  </Text>
-                </Pressable>
-              </Card>
-
-              {/* What was understood about who paid and who shares: one compact card,
-                each line tappable to correct. A name nobody matched shows as a
-                question, never a default, and holds Save until it is answered. */}
-              {who ? (
-                <WhoCard
-                  who={who}
-                  members={targetMembers}
-                  currency={destCurrency ?? dc}
-                  onOpen={() => setWhoOpen(true)}
-                  onPick={pickName}
-                  t={t}
-                  theme={theme}
-                />
-              ) : intent?.hasSocialDetail && dest.kind !== 'existing' && !groupPending ? (
-                <Callout tone={payerElsewhere ? 'warning' : 'info'}>
-                  {payerElsewhere
-                    ? t.voice.needGroupForPayer.replace('{name}', intent.payer.name)
-                    : t.voice.needGroupForSplit}
-                </Callout>
-              ) : null}
-
-              {/* One place for the whole batch (A43) — read once when the review
-                opens and pinned by default; the reader can clear or move it. It
-                rides onto every expense saved from this review. Compact: one
-                line until tapped, the way the expense screen's own Location row
-                folds its map away. */}
-              <LocationField
-                value={location}
-                onChange={handleLocationChange}
-                busy={locating}
-                compact
-              />
+                    </Pressable>
+                    {detailsOpen && preview && firstDraft ? (
+                      <VoiceDetailRows
+                        category={preview.category}
+                        categoryLabel={categoryLabel}
+                        onCategory={(key) => editDraft(firstDraft.key, { category: key })}
+                        date={voiceExpenseDate}
+                        onDate={setVoiceExpenseDate}
+                      />
+                    ) : null}
+                  </Card>
+                  {detailsOpen ? (
+                    <LocationField value={location} onChange={handleLocationChange} compact />
+                  ) : null}
+                </>
+              )}
             </View>
           ) : phase === 'saved' && savedResult ? (
             // Saved, and still here: a compact confirmation, then — for one
             // expense — the follow-up questions, answered in place. Add another
-            // and Done sit in the bar at the foot.
+            // and Done sit in the footer.
             <View style={{ gap: theme.spacing.md }}>
-              <VoiceStatus status="saved" text={t.voiceScreen.statusSaved} />
               {savedResult.kind === 'expense' && !isPro ? (
                 renderFreeAfterSave(savedResult.state)
               ) : savedResult.kind === 'expense' ? (
-                <View style={{ gap: theme.spacing.md }}>
-                  <AssistantIntro viewerId={viewerId} />
-                  <VoiceFollowUps
-                    initial={savedResult.state}
-                    groupWrite={savedResult.write}
-                    local={agentLocal}
-                    today={today()}
-                    onClose={finishVoice}
-                    onUndoable={setSavedHandoff}
-                    renderSavedBar={(bar) => (
-                      <AssistantSavedBar
-                        context={bar}
-                        controls={bar.controls}
-                        groupWrite={savedResult.write}
-                        local={agentLocal}
-                        today={today()}
-                        externalEntry={savedHandoff}
-                        onEvent={(event) => {
-                          if (event.name === 'assistant_correction')
-                            trackAssistant('assistant_correction', {
-                              field: event.field,
-                              path: event.path,
-                            });
-                          else trackAssistant('assistant_undo', { what: event.what });
-                        }}
-                      />
-                    )}
-                  />
-                </View>
+                <VoiceFollowUps
+                  initial={savedResult.state}
+                  groupWrite={savedResult.write}
+                  local={agentLocal}
+                  today={today()}
+                  onClose={finishVoice}
+                  onUndoable={setSavedHandoff}
+                  renderSavedBar={(bar) => (
+                    <AssistantSavedBar
+                      context={bar}
+                      controls={bar.controls}
+                      groupWrite={savedResult.write}
+                      local={agentLocal}
+                      today={today()}
+                      externalEntry={savedHandoff}
+                      onEvent={(event) => {
+                        if (event.name === 'assistant_correction')
+                          trackAssistant('assistant_correction', {
+                            field: event.field,
+                            path: event.path,
+                          });
+                        else trackAssistant('assistant_undo', { what: event.what });
+                      }}
+                    />
+                  )}
+                />
               ) : (
                 <SavedLine line={savedResult.line} theme={theme} />
               )}
             </View>
           ) : phase === 'committing' ? (
-            // The Undo window. A confident command is about to write itself; the
-            // banner says what and where, a spinner marks the wait, and Undo is the
-            // one escape — no other choice competes with it here.
+            // The Undo window, as one small card under what was heard: what is about
+            // to be written and Undo beside it. The stage's status line already says
+            // "Adding…", so the card carries no spinner of its own.
             <View
-              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
+              style={{
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.surface,
+              }}
             >
-              {autoBanner?.needsConfirm ? null : <ActivityIndicator color={theme.color.brand} />}
-              <Text variant="title" style={{ textAlign: 'center' }}>
-                {autoBanner?.label ?? ''}
-              </Text>
-              {autoBanner?.needsConfirm ? (
-                <Button
-                  label={t.voice.autoConfirm}
-                  onPress={() => runAutoCommit(autoBanner.fallback)}
+              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={iconSize.lg}
+                  color={theme.color.brand}
                 />
-              ) : null}
-              {/* Gone once the write has started (Confirm pressed, or the timer
-                fired): an Undo then would reset the screen while the save still
-                lands. */}
-              {autoBanner ? (
-                <Button label={t.voice.autoUndo} variant="secondary" onPress={cancelAutoCommit} />
-              ) : null}
+                <Text style={{ flex: 1, fontWeight: '700' }}>{autoBanner?.label ?? ''}</Text>
+                {/* Gone once the write has started (Confirm pressed, or the timer
+                  fired): an Undo then would reset the screen while the save still
+                  lands. */}
+                {autoBanner ? (
+                  <Button
+                    label={t.voice.autoUndo}
+                    variant="secondary"
+                    size="sm"
+                    onPress={cancelAutoCommit}
+                  />
+                ) : null}
+              </Row>
             </View>
           ) : phase === 'answer' ? (
-            // A read-only answer to a spoken balance question. One line, and a mic
+            // A read-only answer to a spoken balance question. One line, and the mic
             // to ask another — nothing to save, nothing to undo.
             <View
-              style={{ alignItems: 'center', gap: theme.spacing.xl, paddingTop: theme.spacing.xxl }}
+              style={{
+                alignItems: 'center',
+                gap: theme.spacing.lg,
+                paddingTop: theme.spacing.md,
+              }}
             >
               {answer?.kind === 'spend' ? (
                 <View style={{ alignSelf: 'stretch' }}>
                   <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
                 </View>
               ) : null}
-              {answer?.kind === 'spend'
+              {answer?.kind === 'spend' || (answer?.kind === 'group' && queryLedger.loading)
                 ? null
                 : (() => {
                     const line = answerLine();
-                    return 'loading' in line ? (
-                      <ActivityIndicator color={theme.color.brand} />
-                    ) : (
-                      <Text variant="title" style={{ textAlign: 'center' }}>
-                        {line.text}
-                      </Text>
-                    );
+                    return 'text' in line ? (
+                      <Card>
+                        <Text style={{ fontWeight: '700', textAlign: 'center' }}>{line.text}</Text>
+                      </Card>
+                    ) : null;
                   })()}
-              <Button label={t.voice.askAgain} variant="secondary" onPress={askAgain} />
             </View>
           ) : (
             // Listening — the mic panel owns the whole capture surface, the miss
@@ -2980,12 +3046,6 @@ export default function VoiceScreen() {
               ) : null}
               {typedMode ? (
                 <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
-                  <Text variant="heading" align="center">
-                    {t.voiceScreen.headline}
-                  </Text>
-                  <Text variant="body" tone="muted" align="center">
-                    {t.voiceScreen.subline}
-                  </Text>
                   {noAmount ? <Callout tone="warning">{t.voice.noAmount}</Callout> : null}
                   <AssistantComposer
                     value={typedDraft}
@@ -2999,41 +3059,36 @@ export default function VoiceScreen() {
                   />
                 </View>
               ) : (
-                <>
-                  <VoiceMicPanel
-                    key={attempt}
-                    onDone={handleTranscript}
-                    streamLive={agentOn && streamsToCloud}
-                    agentReady={agentReady}
-                    // Once the server has answered, that answer stands (a "not Pro"
-                    // needs no consent read); before it, the phone's last answer.
-                    agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
-                    cloudConsent={agentServerOn ? cloudConsent : 'granted'}
-                    onEngine={setEngine}
-                    groupId={launchGroupId}
-                    hints={hints}
-                    groupNames={groupNames}
-                    missed={noAmount}
-                    heard={noAmount ? heardText : ''}
-                    onSuggestion={pickSuggestion}
-                    canPick={canPickSuggestion}
-                    onTypeInstead={() => {
-                      captureActive.current = false;
-                      setTypedMode(true);
-                    }}
-                    autoStart={!noAmount}
-                    endSignal={hold.ended}
-                    onEndConsumed={() => pushToTalk.take()}
-                    onListen={() => {
-                      // A capture the reader actually started — mark it live so its
-                      // transcript is accepted (and a dismissed one's is not).
-                      captureActive.current = true;
-                      heardFromLink.current = false;
-                      setAgentQuotaNote(false);
-                      setNoAmount(false);
-                    }}
-                  />
-                </>
+                <VoiceMicPanel
+                  key={attempt}
+                  onDone={handleTranscript}
+                  streamLive={agentOn && streamsToCloud}
+                  agentReady={agentReady}
+                  // Once the server has answered, that answer stands (a "not Pro"
+                  // needs no consent read); before it, the phone's last answer.
+                  agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
+                  cloudConsent={agentServerOn ? cloudConsent : 'granted'}
+                  onEngine={setEngine}
+                  onStage={setCapStage}
+                  groupId={launchGroupId}
+                  hints={hints}
+                  groupNames={groupNames}
+                  missed={noAmount}
+                  heard={noAmount ? heardText : ''}
+                  onSuggestion={pickSuggestion}
+                  canPick={canPickSuggestion}
+                  autoStart={!noAmount}
+                  endSignal={hold.ended}
+                  onEndConsumed={() => pushToTalk.take()}
+                  onListen={() => {
+                    // A capture the reader actually started — mark it live so its
+                    // transcript is accepted (and a dismissed one's is not).
+                    captureActive.current = true;
+                    heardFromLink.current = false;
+                    setAgentQuotaNote(false);
+                    setNoAmount(false);
+                  }}
+                />
               )}
               {/* Only while a finger is actually on the bar's mic. It says the one
                 thing a held button has to say and the tapped one does not: there
@@ -3055,92 +3110,8 @@ export default function VoiceScreen() {
             </View>
           )}
         </ScrollView>
+        <VoiceFooter spec={footerSpec} inset={insets.bottom} />
       </KeyboardAvoidingView>
-
-      {/* Sticky action bar: the running total on the left, Save on the right —
-          anchored to the foot so it is reachable no matter how the list grows,
-          the pattern every checkout and expense-review screen settles on. */}
-      {phase === 'saved' ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: insets.bottom + theme.spacing.sm,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Button
-              label={t.voiceScreen.addAnother}
-              variant="secondary"
-              fullWidth
-              onPress={addAnother}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button label={t.voiceScreen.done} variant="brand" fullWidth onPress={finishVoice} />
-          </View>
-        </View>
-      ) : null}
-      {phase === 'review' ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: theme.spacing.md,
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: insets.bottom + theme.spacing.sm,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          {/* Quiet running total on the left — the count when a mixed-currency
-              batch has no single sum. No check, no ledger flourish; the Save
-              button is the confirmation. */}
-          {preview ? (
-            <Button
-              label={editingDraft ? t.common.done : t.voiceScreen.edit}
-              variant="secondary"
-              size="md"
-              onPress={() => setEditingDraft((open) => !open)}
-            />
-          ) : (
-            <View style={{ gap: 1 }}>
-              {drafts.length > 1 ? (
-                <Text variant="micro" tone="muted">
-                  {plural(locale, drafts.length, t.voice.count)}
-                </Text>
-              ) : null}
-              {singleTotal ? (
-                <MoneyText
-                  amount={singleTotal[1]}
-                  currency={singleTotal[0]}
-                  locale={locale}
-                  mode="plain"
-                  variant="subheading"
-                />
-              ) : (
-                <Text variant="subheading">{plural(locale, drafts.length, t.voice.count)}</Text>
-              )}
-            </View>
-          )}
-          <Button
-            label={saving ? t.voiceScreen.statusSaving : saveLabel}
-            variant="brand"
-            size="md"
-            style={preview ? { flex: 1 } : undefined}
-            onPress={() => void save()}
-            disabled={!canSave}
-          />
-        </View>
-      ) : null}
 
       {/* The destination picker, as a dismissible bottom sheet — the app's one
           Sheet, so it presents, dims and dismisses exactly like every other
@@ -3208,55 +3179,34 @@ export default function VoiceScreen() {
         </ScrollView>
       </Sheet>
 
-      {/* Who paid and how it splits, in full (exact, percent, shares): the
-          add-expense form's own split editor, in a sheet over this screen. */}
-      {splitOpen && who && dest.kind === 'existing' && preview?.amountMinor ? (
+      {/* Who shares it, and who paid: the add-expense form's own split editor, in a
+          sheet over this screen. It opens on the people (or on the payer's list,
+          from the small "Paid by" line). */}
+      {splitOpen && who && dest.kind === 'existing' && splitAmount ? (
         <VoiceSplitSheet
           visible
           onClose={() => setSplitOpen(false)}
           groupId={dest.groupId}
-          currency={preview.currency}
-          amount={preview.amountMinor}
+          currency={splitCurrency}
+          amount={splitAmount}
+          initialView={splitView}
+          simple={drafts.length > 1}
           seed={splitEditFromParams(
             who.payerId ?? '',
             who.params,
             who.participantIds,
-            preview.currency,
+            splitCurrency,
           )}
           onApply={(result) =>
-            setWhoEdit((current) => ({
-              ...current,
+            editWho({
               payerId: result.payerId,
               participantIds: result.participants,
               params: result.params,
-            }))
+            })
           }
         />
       ) : null}
-
-      {/* Correct who paid and who shares — the heard names as members to pick. */}
-      <Sheet
-        visible={whoOpen && who !== null}
-        onClose={() => setWhoOpen(false)}
-        closeLabel={t.common.close}
-        style={{
-          backgroundColor: theme.color.bg,
-          paddingHorizontal: theme.spacing.xl,
-          maxHeight: '80%',
-        }}
-      >
-        {who ? (
-          <WhoSheet
-            who={who}
-            members={targetMembers}
-            onChange={editWho}
-            onClose={() => setWhoOpen(false)}
-            t={t}
-            theme={theme}
-          />
-        ) : null}
-      </Sheet>
-    </Screen>
+    </View>
   );
 }
 
@@ -3302,85 +3252,6 @@ function describeDest(
 type Strings = ReturnType<typeof useStrings>['t'];
 type ThemeT = ReturnType<typeof useTheme>;
 
-/**
- * The spoken amount's one question, compact: the prompt on a line and the
- * answers as pills under it, the way the group question reads. Nothing is
- * pre-picked; Save waits for a tap.
- */
-function AmountChooser({
-  question,
-  onAnswer,
-  theme,
-}: {
-  question: VoiceAmountQuestion;
-  onAnswer: (key: string) => void;
-  theme: ThemeT;
-}) {
-  return (
-    <View style={{ gap: theme.spacing.xs }}>
-      <Text variant="caption" style={{ fontWeight: '600' }}>
-        {question.prompt}
-      </Text>
-      <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
-        {question.answers.map((answer) => (
-          <Pressable
-            key={answer.key}
-            onPress={() => onAnswer(answer.key)}
-            accessibilityRole="button"
-            accessibilityLabel={answer.label}
-            style={({ pressed }) => ({
-              paddingVertical: theme.spacing.xs,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: theme.color.warning,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="caption" style={{ fontWeight: '600' }}>
-              {answer.label}
-            </Text>
-          </Pressable>
-        ))}
-      </Row>
-    </View>
-  );
-}
-
-/**
- * The questions that must be answered before Add expense: a soft warning card
- * with a title and an icon, so it is never colour alone.
- */
-function ClarifyCard({
-  title,
-  theme,
-  children,
-}: {
-  title: string;
-  theme: ThemeT;
-  children: ReactNode;
-}) {
-  return (
-    <View
-      accessibilityRole="alert"
-      style={{
-        gap: theme.spacing.sm,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.color.warningSoft,
-      }}
-    >
-      <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-        <Ionicons name="help-circle-outline" size={iconSize.sm} color={theme.color.text} />
-        <Text variant="caption" style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-      </Row>
-      {children}
-    </View>
-  );
-}
-
 /** The success state's line for anything without follow-ups. */
 function SavedLine({ line, theme }: { line: string; theme: ThemeT }) {
   return (
@@ -3421,13 +3292,14 @@ function whoName(members: readonly VoiceNameCandidate[], id: string, t: Strings)
   return member.isMe ? t.voice.youLabel : member.name;
 }
 
-/** "Equally · You, Arjun" / "Exact · Arjun 300, Meera 200" / "All on Arjun". */
+/** The split in words when it is not the plain equal one: "Exact · Arjun 300,
+ * Meera 200" or "All on Arjun". Null for an equal split. */
 function describeSplit(
   who: WhoView,
   members: readonly VoiceNameCandidate[],
   currency: string,
   t: Strings,
-): string {
+): string | null {
   const names = who.participantIds.map((id) => whoName(members, id, t));
   const { params } = who;
   if (params.kind === 'exact') {
@@ -3445,496 +3317,5 @@ function describeSplit(
   }
   if (who.intent.splitMode === 'full_on' && !who.edited)
     return t.voice.splitFullOn.replace('{names}', names.join(', '));
-  if (who.participantIds.length === members.length) return t.voice.splitEveryone;
-  return t.voice.splitEqual.replace('{names}', names.join(', '));
-}
-
-/**
- * Who paid and how it divides, as understood. Two quiet lines in one card; the
- * line that is still a question (nobody matched, or a split that does not add
- * up) turns warning-coloured and says what to do, and Save waits on it.
- */
-function WhoCard({
-  who,
-  members,
-  currency,
-  onOpen,
-  onPick,
-  t,
-  theme,
-}: {
-  who: WhoView;
-  members: readonly VoiceNameCandidate[];
-  currency: string;
-  onOpen: () => void;
-  /** A one-tap answer to "Did you mean …?" or "A or B?". */
-  onPick: (party: VoiceParty, memberId: string) => void;
-  t: Strings;
-  theme: ThemeT;
-}) {
-  const payerOpen = who.problems.some((problem) => problem.code === 'payer_unresolved');
-  const peopleOpen = who.problems.find((problem) => problem.code === 'participant_unresolved');
-  const invalid = who.problems.some(
-    (problem) =>
-      problem.code === 'exact_sum_mismatch' ||
-      problem.code === 'percent_sum_mismatch' ||
-      problem.code === 'no_participants',
-  );
-  const { payer } = who.intent;
-  const payerName = who.payerId ? whoName(members, who.payerId, t) : '';
-  // People in the split still in question, each asked on its own line.
-  const asked = (who.intent.participants ?? []).filter(
-    (party) => party.status === 'suggested' || party.status === 'ambiguous',
-  );
-  const heard = payer.explicit && payer.fuzzy && !payerOpen ? (payer.heard ?? payer.name) : null;
-  const rowStyle = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-  };
-  const warn = theme.color.warning;
-  return (
-    <Card
-      padded={false}
-      style={{
-        overflow: 'hidden',
-        ...(payerOpen || peopleOpen || invalid ? { borderWidth: 1, borderColor: warn } : null),
-      }}
-    >
-      <Pressable
-        onPress={onOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`${t.voice.paidBy}: ${payerOpen ? t.voice.whoPaid : payerName}. ${t.voice.change}`}
-        style={({ pressed }) => ({ ...rowStyle, opacity: pressed ? 0.6 : 1 })}
-      >
-        <Ionicons
-          name={payerOpen ? 'help-circle-outline' : 'wallet-outline'}
-          size={iconSize.sm}
-          color={payerOpen ? warn : theme.color.textMuted}
-        />
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={1}>
-            <Text tone="muted">{t.voice.paidBy}</Text>
-            <Text tone="faint"> · </Text>
-            <Text style={{ fontWeight: '600', color: payerOpen ? warn : theme.color.text }}>
-              {payerOpen ? `${t.voice.whoPaid} “${payer.name}”` : payerName}
-            </Text>
-          </Text>
-          {heard ? (
-            <Text variant="micro" tone="muted">
-              {t.voice.heardAs.replace('{heard}', heard)}
-            </Text>
-          ) : null}
-        </View>
-        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-          {t.voice.change}
-        </Text>
-      </Pressable>
-      {payerOpen ? (
-        <NameQuestion party={payer} members={members} onPick={onPick} t={t} theme={theme} />
-      ) : null}
-      <Divider />
-      <Pressable
-        onPress={onOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`${t.voice.splitLabel}. ${t.voice.change}`}
-        style={({ pressed }) => ({ ...rowStyle, opacity: pressed ? 0.6 : 1 })}
-      >
-        <Ionicons
-          name={peopleOpen || invalid ? 'help-circle-outline' : 'git-branch-outline'}
-          size={iconSize.sm}
-          color={peopleOpen || invalid ? warn : theme.color.textMuted}
-        />
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={2}>
-            <Text tone="muted">{t.voice.splitLabel}</Text>
-            <Text tone="faint"> · </Text>
-            <Text style={{ fontWeight: '600' }}>{describeSplit(who, members, currency, t)}</Text>
-          </Text>
-          {peopleOpen &&
-          peopleOpen.code === 'participant_unresolved' &&
-          !asked.some((party) => party.name === peopleOpen.name) ? (
-            <Text variant="micro" style={{ color: warn }}>
-              {t.voice.whoUnknown.replace('{name}', peopleOpen.name)}
-            </Text>
-          ) : invalid ? (
-            <Text variant="micro" style={{ color: warn }}>
-              {t.voice.splitInvalid}
-            </Text>
-          ) : null}
-        </View>
-        <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-          {t.voice.change}
-        </Text>
-      </Pressable>
-      {asked.map((party, index) => (
-        <NameQuestion
-          key={`${party.heard ?? party.name}-${index}`}
-          party={party}
-          members={members}
-          onPick={onPick}
-          t={t}
-          theme={theme}
-        />
-      ))}
-    </Card>
-  );
-}
-
-/**
- * A heard name the review could not fill in on its own, asked in one compact
- * line: "Did you mean Renny?" with a Yes, or "Ravi or Rajiv?" with a pill for
- * each. One tap settles it (and is remembered for this group); anything else is
- * a tap on the row above, which opens the full list.
- */
-function NameQuestion({
-  party,
-  members,
-  onPick,
-  t,
-  theme,
-}: {
-  party: VoiceParty;
-  members: readonly VoiceNameCandidate[];
-  onPick: (party: VoiceParty, memberId: string) => void;
-  t: Strings;
-  theme: ThemeT;
-}) {
-  const candidates = (party.candidates ?? []).filter((candidate) =>
-    members.some((member) => member.id === candidate.id),
-  );
-  const label = (candidate: VoiceNameCandidate): string =>
-    candidate.isMe ? t.voice.youLabel : candidate.name;
-  const first = candidates[0];
-  if (!first || (party.status !== 'suggested' && party.status !== 'ambiguous')) return null;
-  const rowStyle = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    flexWrap: 'wrap' as const,
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-  };
-  if (party.status === 'suggested') {
-    return (
-      <View style={rowStyle}>
-        <Text variant="caption" numberOfLines={1} style={{ flex: 1, color: theme.color.warning }}>
-          {t.voice.didYouMean.replace('{name}', label(first))}
-        </Text>
-        <Chip
-          label={t.voice.didYouMeanYes}
-          selected
-          variant="brand"
-          onPress={() => onPick(party, first.id)}
-        />
-      </View>
-    );
-  }
-  if (candidates.length < 2) return null;
-  const names = candidates.map(label);
-  const question = t.voice.whichOf
-    .replace('{names}', names.slice(0, -1).join(', '))
-    .replace('{last}', names[names.length - 1] ?? '');
-  return (
-    <View style={rowStyle}>
-      <Text
-        variant="caption"
-        numberOfLines={1}
-        style={{ flexBasis: '100%', color: theme.color.warning }}
-      >
-        {question}
-      </Text>
-      {candidates.map((candidate) => (
-        <Chip
-          key={candidate.id}
-          label={label(candidate)}
-          selected
-          variant="brand"
-          onPress={() => onPick(party, candidate.id)}
-        />
-      ))}
-    </View>
-  );
-}
-
-/** Pick the payer and who shares from the group's own members. */
-function WhoSheet({
-  who,
-  members,
-  onChange,
-  onClose,
-  t,
-  theme,
-}: {
-  who: WhoView;
-  members: readonly VoiceNameCandidate[];
-  onChange: (next: WhoEdit) => void;
-  onClose: () => void;
-  t: Strings;
-  theme: ThemeT;
-}) {
-  const unknown = who.problems.find((problem) => problem.code === 'participant_unresolved');
-  const payerUnknown = who.problems.some((problem) => problem.code === 'payer_unresolved');
-  const toggle = (id: string): void => {
-    const next = who.participantIds.includes(id)
-      ? who.participantIds.filter((other) => other !== id)
-      : [...who.participantIds, id];
-    onChange({ participantIds: next });
-  };
-  const row = (
-    id: string,
-    label: string,
-    on: boolean,
-    kind: 'radio' | 'check',
-    press: () => void,
-  ) => (
-    <Pressable
-      key={`${kind}-${id}`}
-      onPress={press}
-      accessibilityRole={kind === 'radio' ? 'radio' : 'checkbox'}
-      accessibilityState={{ selected: on, checked: on }}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.sm,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons
-        name={
-          kind === 'radio'
-            ? on
-              ? 'radio-button-on'
-              : 'radio-button-off'
-            : on
-              ? 'checkbox'
-              : 'square-outline'
-        }
-        size={iconSize.md}
-        color={on ? theme.color.brand : theme.color.textMuted}
-      />
-      <Text style={{ flex: 1 }}>{label}</Text>
-    </Pressable>
-  );
-  return (
-    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.lg }}>
-        <Text variant="heading">{t.voice.whoTitle}</Text>
-        <Text
-          variant="micro"
-          tone="muted"
-          style={{ textTransform: 'uppercase', marginTop: theme.spacing.sm }}
-        >
-          {t.voice.whoPaidSection}
-        </Text>
-        {payerUnknown ? (
-          <Text variant="caption" style={{ color: theme.color.warning }}>
-            {t.voice.whoUnknown.replace('{name}', who.intent.payer.name)}
-          </Text>
-        ) : null}
-        {members.map((member) =>
-          row(
-            member.id,
-            member.isMe ? t.voice.youLabel : member.name,
-            who.payerId === member.id,
-            'radio',
-            () => onChange({ payerId: member.id }),
-          ),
-        )}
-        <Divider />
-        <Text
-          variant="micro"
-          tone="muted"
-          style={{ textTransform: 'uppercase', marginTop: theme.spacing.sm }}
-        >
-          {t.voice.whoSharesSection}
-        </Text>
-        {unknown && unknown.code === 'participant_unresolved' ? (
-          <Text variant="caption" style={{ color: theme.color.warning }}>
-            {t.voice.whoUnknown.replace('{name}', unknown.name)}
-          </Text>
-        ) : null}
-        {members.map((member) =>
-          row(
-            member.id,
-            member.isMe ? t.voice.youLabel : member.name,
-            who.participantIds.includes(member.id),
-            'check',
-            () => toggle(member.id),
-          ),
-        )}
-        {who.params.kind !== 'equal' ? (
-          <Text variant="micro" tone="muted">
-            {t.voice.whoResets}
-          </Text>
-        ) : null}
-        <Button label={t.common.done} onPress={onClose} />
-      </View>
-    </ScrollView>
-  );
-}
-
-/**
- * One heard expense as a confirmation line, not an edit form. Closed, it reads
- * as a quiet row: what we heard on the left, the amount on the right, the way a
- * receipt lists a charge — a faint pencil the only hint it can be opened. Tapping
- * it (or its pencil) opens the amount and note to correct, and Done closes it
- * back to a line. Inline note dictation is gone: the whole screen is already
- * voice; a mic in every row was clutter doing an unclear job.
- *
- * No card of its own — the review stacks these inside one grouped card, divided
- * by hairlines, so several spoken expenses read as one list rather than a tower
- * of mini-forms.
- */
-function DraftRow({
-  editing: editingProp,
-  onEditingChange,
-  draft,
-  currency,
-  onEdit,
-  onRemove,
-  fallbackNote,
-  editLabel,
-  doneLabel,
-  removeLabel,
-  amountLabel,
-  noteLabel,
-  notePlaceholder,
-  theme,
-}: {
-  /** Controlled open state (the single-expense preview's Edit); else the row keeps its own. */
-  editing?: boolean;
-  onEditingChange?: (open: boolean) => void;
-  draft: Draft;
-  /** The currency Save will persist this row in — the group's when a group is
-   *  the destination, else the draft's own spoken currency (or the default). */
-  currency: string;
-  onEdit: (key: string, patch: Partial<Draft>) => void;
-  onRemove: (key: string) => void;
-  /** Shown as the row's title when the spoken note came back empty. */
-  fallbackNote: string;
-  editLabel: string;
-  doneLabel: string;
-  removeLabel: string;
-  amountLabel: string;
-  noteLabel: string;
-  notePlaceholder: string;
-  theme: ReturnType<typeof useTheme>;
-}) {
-  // Closed by default: you land on a confirmation, and only open a row if the
-  // parser got something wrong. A fresh parse remounts every row (new keys), so
-  // this resets to closed for each new batch.
-  const [editingOwn, setEditingOwn] = useState(false);
-  const editing = editingProp ?? editingOwn;
-  const setEditing = (open: boolean): void => {
-    setEditingOwn(open);
-    onEditingChange?.(open);
-  };
-  const title = draft.note.trim() || fallbackNote;
-  const amountText = draft.amount.trim();
-
-  if (!editing) {
-    return (
-      <Pressable
-        onPress={() => setEditing(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${title}, ${amountText} ${currency}. ${editLabel}`}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.sm,
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.md,
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        {/* The icon reads the description: a coffee cup for a chai, a car for the
-            cab — guessed from the note, tinted by its category, so the line is
-            recognisable at a glance instead of a row of identical receipts. */}
-        <CategoryBadge category={draft.category} description={draft.note} size={28} />
-        <Text numberOfLines={1} style={{ flex: 1, color: theme.color.text }}>
-          {title}
-        </Text>
-        <Text style={{ fontWeight: '700', color: theme.color.text }}>
-          {amountText ? `${amountText} ${currency}` : currency}
-        </Text>
-        <Ionicons name="pencil" size={iconSize.sm} color={theme.color.textFaint} />
-      </Pressable>
-    );
-  }
-
-  // Opened for a correction: the amount is the one field worth making big, with
-  // the currency as a chip and the note beneath. Done folds it back to a line.
-  return (
-    <View
-      style={{
-        gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-      }}
-    >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <CategoryBadge category={draft.category} description={draft.note} size={36} />
-        <TextInput
-          value={draft.amount}
-          onChangeText={(value) => onEdit(draft.key, { amount: value })}
-          keyboardType="decimal-pad"
-          accessibilityLabel={amountLabel}
-          autoFocus
-          style={{
-            flex: 1,
-            fontSize: 26,
-            fontWeight: '700',
-            color: theme.color.text,
-            paddingVertical: 0,
-          }}
-        />
-        {currency ? (
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: 4,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surfaceMuted,
-            }}
-          >
-            <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
-              {currency}
-            </Text>
-          </View>
-        ) : null}
-        <IconButton label={removeLabel} onPress={() => onRemove(draft.key)}>
-          <Ionicons name="close" size={iconSize.md} color={theme.color.textFaint} />
-        </IconButton>
-      </Row>
-
-      <Divider />
-
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <Ionicons name="create-outline" size={iconSize.sm} color={theme.color.textFaint} />
-        <TextInput
-          value={draft.note}
-          onChangeText={(value) => onEdit(draft.key, { note: value })}
-          placeholder={notePlaceholder}
-          placeholderTextColor={theme.color.textFaint}
-          accessibilityLabel={noteLabel}
-          style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 0 }}
-        />
-        <Pressable
-          onPress={() => setEditing(false)}
-          accessibilityRole="button"
-          accessibilityLabel={doneLabel}
-          hitSlop={8}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-            {doneLabel}
-          </Text>
-        </Pressable>
-      </Row>
-    </View>
-  );
+  return null;
 }

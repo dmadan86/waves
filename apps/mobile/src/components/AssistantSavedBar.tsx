@@ -1,29 +1,23 @@
 /**
- * The line under a saved assistant expense: "✓ Added ₹8,000 to Personal  Undo".
- * Undo wears a 6 second ring, then stays as a plain link until the panel closes.
- * Under it, a "Change" link opens a one-line composer where a correction
- * ("make it 800", "it was yesterday", "that was in Flat 4B") is applied on the
- * phone with no network, and the last correction or answer can be taken back.
+ * The saved summary under the stage: a round check, the amount large and one
+ * muted line ("Food · Personal"), with Undo as a plain text button. A pencil
+ * beside the amount opens a one-line composer where a correction ("make it
+ * 800", "it was yesterday", "that was in Flat 4B") is applied on the phone with
+ * no network, and the last correction or answer can be taken back.
  *
  * The follow-up panel owns the saved state; this bar edits it through the
  * `controls` it is given, and keeps the undo history itself.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 
 import { MutationKind, format, money, type VoiceAgentResponse } from '@waves/core';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { Text, useTheme } from '@waves/ui';
+
+import { SavedSummary, TextAction } from '@/components/voice/SavedSummary';
 
 import type { SavedBarControls } from '@/components/VoiceFollowUps';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
@@ -45,7 +39,6 @@ import {
   type TypedResult,
 } from '@/lib/assistantCorrections';
 import {
-  UNDO_RING_MS,
   historyEntryFor,
   pushHistory,
   restoreSaved,
@@ -58,7 +51,6 @@ import {
 import { filledBy, toGroupWrite, toPersonalData, type SavedState } from '@/lib/followUpApply';
 import { hapticLight } from '@/lib/assistantHaptics';
 import { runMove, type MoveProgress } from '@/lib/assistantMove';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { forgetMove, lastRememberedMove } from '@/lib/personalHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
@@ -67,8 +59,8 @@ import { useSync } from '@/sync';
 
 export interface AssistantBarContext {
   readonly state: SavedState;
-  /** "Added ₹8,000 to Personal" */
-  readonly headline: string;
+  /** Where it went: "Personal" or the group's name. */
+  readonly where: string;
 }
 
 /** A tally the panel can forward to telemetry; the bar has no opinion about where it goes. */
@@ -92,61 +84,18 @@ export interface AssistantSavedBarProps {
   onEvent?: (event: SavedBarEvent) => void;
 }
 
-const RING = 16;
-const STROKE = 2;
-const RADIUS = (RING - STROKE) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-/** A 16 px ring that empties over {@link UNDO_RING_MS}; a static dot when motion is reduced. */
-function UndoRing({ color, track, still }: { color: string; track: string; still: boolean }) {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    if (still) return;
-    progress.value = withTiming(1, { duration: UNDO_RING_MS, easing: Easing.linear });
-  }, [progress, still]);
-  const props = useAnimatedProps(() => ({ strokeDashoffset: CIRCUMFERENCE * progress.value }));
-  return (
-    <Svg width={RING} height={RING} accessibilityElementsHidden importantForAccessibility="no">
-      <Circle
-        cx={RING / 2}
-        cy={RING / 2}
-        r={RADIUS}
-        stroke={track}
-        strokeWidth={STROKE}
-        fill="none"
-      />
-      <AnimatedCircle
-        cx={RING / 2}
-        cy={RING / 2}
-        r={RADIUS}
-        stroke={color}
-        strokeWidth={STROKE}
-        fill="none"
-        strokeDasharray={CIRCUMFERENCE}
-        animatedProps={props}
-        strokeLinecap="round"
-        rotation={-90}
-        origin={`${RING / 2}, ${RING / 2}`}
-      />
-    </Svg>
-  );
-}
-
 function Link({
   label,
   onPress,
   accessibilityLabel,
   disabled,
   brand,
-  children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
   disabled?: boolean;
   brand?: boolean;
-  children?: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
@@ -154,16 +103,15 @@ function Link({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       disabled={disabled}
-      hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
+        minHeight: 44,
         gap: theme.spacing.xs,
         opacity: disabled ? 0.5 : pressed ? 0.6 : 1,
       })}
     >
-      {children}
       <Text
         variant="micro"
         style={{ color: brand ? theme.color.brand : theme.color.textMuted, fontWeight: '700' }}
@@ -186,7 +134,6 @@ export function AssistantSavedBar({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const c = t.corrections;
-  const reduceMotion = useReducedMotion();
   const { mutate } = useSync();
   const upsert = useUpsertPersonalRecord();
   const removePersonal = useDeletePersonalRecord();
@@ -198,7 +145,6 @@ export function AssistantSavedBar({
   );
 
   const state = context.state;
-  const [ringOn, setRingOn] = useState(true);
   const [removed, setRemoved] = useState<SavedState | null>(null);
   const [history, setHistory] = useState<UndoEntry[]>([]);
   const [line, setLine] = useState<string | null>(null);
@@ -216,11 +162,6 @@ export function AssistantSavedBar({
   const moveIds = useRef(new Map<string, string>());
   // The full personal record read just before a delete hid it, for Restore.
   const removedCarried = useRef<Readonly<Record<string, unknown>> | undefined>(undefined);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setRingOn(false), UNDO_RING_MS);
-    return () => clearTimeout(timer);
-  }, []);
 
   // A hand-off the panel did (a lend that became a loan, a duplicate removed) becomes one more undo step.
   const seenExternal = useRef<UndoEntry | null>(null);
@@ -633,28 +574,34 @@ export function AssistantSavedBar({
     );
   }
 
+  const category = state.category
+    ? ((t.categories as Record<string, string>)[state.category] ?? '')
+    : '';
   return (
-    <View style={{ gap: theme.spacing.xs }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />
-        <Text style={{ flex: 1 }} numberOfLines={2}>
-          {context.headline}
-        </Text>
-        <Link
+    <View style={{ gap: theme.spacing.sm }}>
+      <SavedSummary
+        amount={amountOf(state)}
+        detail={[category, context.where].filter(Boolean).join(' · ')}
+        editLabel={c.change}
+        onEdit={
+          typing
+            ? undefined
+            : () => {
+                controls.hold();
+                setTyping(true);
+              }
+        }
+      >
+        <TextAction
           label={c.undo}
-          brand
           disabled={busy}
           accessibilityLabel={fill(c.undoA11y, {
             amount: amountOf(state),
             description: state.description,
           })}
           onPress={() => void doUndo()}
-        >
-          {ringOn ? (
-            <UndoRing color={theme.color.brand} track={theme.color.border} still={reduceMotion} />
-          ) : null}
-        </Link>
-      </View>
+        />
+      </SavedSummary>
 
       {line ? (
         <View
@@ -669,19 +616,7 @@ export function AssistantSavedBar({
         </View>
       ) : null}
 
-      {typing ? (
-        <VoiceTypedAnswer autoFocus onSubmit={(text) => void submit(text)} />
-      ) : (
-        <View style={{ flexDirection: 'row' }}>
-          <Link
-            label={c.change}
-            onPress={() => {
-              controls.hold();
-              setTyping(true);
-            }}
-          />
-        </View>
-      )}
+      {typing ? <VoiceTypedAnswer autoFocus onSubmit={(text) => void submit(text)} /> : null}
 
       {notice ? (
         <Text variant="caption" tone="muted">

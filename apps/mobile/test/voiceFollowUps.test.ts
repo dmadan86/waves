@@ -8,7 +8,7 @@
 import { decodeLoan, decodeRecurring, decodeTxn, nextMonthlyDate } from '@waves/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { VoiceFollowUps, questionReason, questionText } from '../src/components/VoiceFollowUps';
+import { VoiceFollowUps, questionText } from '../src/components/VoiceFollowUps';
 import type { SavedState } from '../src/lib/followUpApply';
 import type { AgentExpenseWrite, AgentLocalData } from '../src/lib/voiceAgentPlan';
 import { act, findAll, flush, renderHook, textOf, type FakeElement } from './support/fakeReact';
@@ -58,6 +58,10 @@ vi.mock('@waves/ui', () => {
   };
 });
 vi.mock('@/components/VoiceTypedAnswer', () => ({ VoiceTypedAnswer: 'VoiceTypedAnswer' }));
+vi.mock('@/components/voice/SavedSummary', () => ({
+  SavedSummary: 'SavedSummary',
+  TextAction: () => null,
+}));
 vi.mock('@/data/hooks', () => ({
   useWriteExpense: () => ({ mutateAsync: world.writeExpense }),
   useDeleteExpense: () => ({ mutateAsync: world.removeExpense }),
@@ -252,22 +256,17 @@ const withHere = () => {
 };
 
 describe('VoiceFollowUps', () => {
-  it('MC-FU-01 a place question shows the place chips, Somewhere else, and the four links', async () => {
+  it('MC-FU-01 a place question shows the place chips, Somewhere else and Skip, and nothing else', async () => {
     withHere();
     const r = mount(personal());
     await flush();
     expect(labels(r)).toEqual(
-      expect.arrayContaining([
-        'Blue Tokai',
-        'Phoenix Mall',
-        'Somewhere else',
-        'Skip',
-        'Type instead',
-        "Don't ask this again",
-        'Done',
-      ]),
+      expect.arrayContaining(['Blue Tokai', 'Phoenix Mall', 'Somewhere else', 'Skip']),
     );
-    expect(textOf(tree(r))).toContain("Where was this — Blue Tokai (you're here now)?");
+    for (const gone of ['Type instead', "Don't ask this again", 'Done'])
+      expect(labels(r)).not.toContain(gone);
+    expect(textOf(tree(r))).toContain('Where was this?');
+    expect(textOf(tree(r))).not.toContain("you're here now");
   });
 
   it('MC-FU-02 a place chip writes the place and moves on to the closing line', async () => {
@@ -295,15 +294,6 @@ describe('VoiceFollowUps', () => {
     await press(r, 'Skip');
     expect(textOf(tree(r))).not.toContain('How did you pay?');
     expect(labels(r)).not.toContain('Skip');
-    expect(labels(r)).toContain('Done');
-  });
-
-  it('MC-FU-04 "Don\'t ask this again" mutes the type', async () => {
-    withHere();
-    const r = mount(personal());
-    await flush();
-    await press(r, "Don't ask this again");
-    expect((world.prefsNow!.prefs as { muted: string[] }).muted).toContain('place');
   });
 
   it('MC-FU-05 a failed write shows the notice, keeps the chips live, and changes nothing', async () => {
@@ -326,9 +316,7 @@ describe('VoiceFollowUps', () => {
     const r = mount(personal());
     await flush();
     expect(labels(r)).not.toContain('Skip');
-    expect(findAll(tree(r), (n) => n.type === 'Button' && n.props.label === 'Done')).toHaveLength(
-      1,
-    );
+    expect(labels(r)).not.toContain('Done');
     open();
     await flush();
     expect(labels(r)).toContain('Skip');
@@ -339,7 +327,7 @@ describe('VoiceFollowUps', () => {
     vi.setSystemTime(new Date(2026, 9, 21, 15, 0, 0));
     const r = mount(personal({ amount: 5000n }));
     await vi.advanceTimersByTimeAsync(10);
-    expect(textOf(tree(r))).toContain('Saved ✓');
+    expect(findAll(tree(r), (n) => n.type === 'SavedSummary')[0]?.props.amount).toBe('₹50.00');
     expect(onClose).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1150);
     expect(onClose).not.toHaveBeenCalled();
@@ -374,7 +362,7 @@ describe('VoiceFollowUps', () => {
     });
     const r = mount(personal());
     await flush();
-    await press(r, 'Type instead');
+    await press(r, 'Somewhere else');
     const typed = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
     await act(async () => {
       (typed.props.onSubmit as (t: string) => void)('at Taj');
@@ -382,7 +370,7 @@ describe('VoiceFollowUps', () => {
     await flush();
     const sent = world.send.mock.calls[0]![0] as { savedExpense: { id: string; question: string } };
     expect(sent.savedExpense.id).toBe('p1');
-    expect(sent.savedExpense.question).toBe("Where was this — Blue Tokai (you're here now)?");
+    expect(sent.savedExpense.question).toBe('Where was this?');
     const call = world.upsert.mock.calls[0]![0] as { data: Record<string, unknown> };
     expect(decodeTxn('p1', call.data).place).toBe('Taj');
   });
@@ -395,7 +383,7 @@ describe('VoiceFollowUps', () => {
     });
     const r = mount(personal());
     await flush();
-    await press(r, 'Type instead');
+    await press(r, 'Somewhere else');
     const typed = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
     await act(async () => {
       (typed.props.onSubmit as (t: string) => void)('at Taj');
@@ -405,7 +393,7 @@ describe('VoiceFollowUps', () => {
     expect(textOf(tree(r))).toContain("I couldn't use that");
   });
 
-  it('MC-FU-10 offline: no Type instead, no typing chips, a caption instead', async () => {
+  it('MC-FU-10 offline: no typing chip, and nothing else changes', async () => {
     withHere();
     world.online = false;
     const r = mount(personal());
@@ -413,7 +401,6 @@ describe('VoiceFollowUps', () => {
     expect(labels(r)).not.toContain('Type instead');
     expect(labels(r)).not.toContain('Somewhere else');
     expect(labels(r)).toContain('Blue Tokai');
-    expect(textOf(tree(r))).toContain('Typing needs a connection');
   });
 
   it('MC-FU-11 "Same, remove mine" deletes the saved expense and stops the chain', async () => {
@@ -554,27 +541,25 @@ describe('VoiceFollowUps', () => {
 });
 
 describe('WS1 props and copy', () => {
-  it('onSavedStateChange follows each write, and renderSavedBar sits under the headline', async () => {
+  it('onSavedStateChange follows each write, and renderSavedBar sits first', async () => {
     withHere();
     const seen: SavedState[] = [];
     const r = mount(personal(), null, {
       onSavedStateChange: (s: SavedState) => seen.push(s),
-      renderSavedBar: (c: { headline: string }) => ({
+      renderSavedBar: (c: { where: string }) => ({
         type: 'SavedBar',
-        props: { headline: c.headline },
+        props: { where: c.where },
         key: null,
       }),
     });
     await flush();
-    expect(findAll(tree(r), (n) => n.type === 'SavedBar')[0]?.props.headline).toBe(
-      'Added ₹8,000.00 to Personal ✓',
-    );
+    expect(findAll(tree(r), (n) => n.type === 'SavedBar')[0]?.props.where).toBe('Personal');
     await press(r, 'Blue Tokai');
     expect(seen).toHaveLength(1);
     expect(seen[0]!.place).toBe('Blue Tokai');
   });
 
-  it('chips are 40 high with a hit slop, and long labels are cut but stay readable to a screen reader', async () => {
+  it('chips are 48 high, and long labels are cut but stay readable to a screen reader', async () => {
     world.place = {
       lat: 1,
       lng: 2,
@@ -584,15 +569,14 @@ describe('WS1 props and copy', () => {
     const r = mount(personal());
     await flush();
     const chip = byLabel(r, 'The Very Long Named Cafe And Roastery')!;
-    expect(chip.props.hitSlop).toBe(4);
-    const style = (chip.props.style as (s: { pressed: boolean }) => { height: number })({
+    const style = (chip.props.style as (s: { pressed: boolean }) => { minHeight: number })({
       pressed: false,
     });
-    expect(style.height).toBe(40);
+    expect(style.minHeight).toBe(48);
     expect(textOf(chip)).toBe('The Very Long Named Caf…');
   });
 
-  it('questionText and questionReason are exported for every kind', async () => {
+  it('questionText is exported for every kind', async () => {
     const { STRINGS_BY_LANGUAGE } = await import('../src/i18n');
     const f = STRINGS_BY_LANGUAGE.en.followUps;
     const ctx = {
@@ -602,21 +586,9 @@ describe('WS1 props and copy', () => {
       categoryLabel: (id: string) => id,
     };
     const base = { score: 50, places: [], hereNow: false, partners: [] };
-    expect(questionReason({ ...base, kind: 'place', hereNow: true, places: ['x'] }, f, ctx)).toBe(
-      "You're at a place right now",
+    expect(questionText({ ...base, kind: 'place', hereNow: true, places: ['x'] }, f, ctx)).toBe(
+      'Where was this?',
     );
-    expect(
-      questionReason(
-        {
-          ...base,
-          kind: 'trip',
-          trip: { groupId: 'g', name: 'Goa', startDate: null, endDate: null, quietDays: null },
-        },
-        f,
-        ctx,
-      ),
-    ).toBe('Goa is on right now');
-    expect(questionReason({ ...base, kind: 'payment' }, f, ctx)).toBe('');
     expect(questionText({ ...base, kind: 'payment' }, f, ctx)).toBe('How did you pay?');
   });
 });

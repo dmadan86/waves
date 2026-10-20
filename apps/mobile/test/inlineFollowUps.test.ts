@@ -461,7 +461,7 @@ it.each([true, false])('IN-F-10 wrapup yes=%s stays inline', async (yes) => {
   question('wrapup', { trip: { groupId: 'g1', name: 'Goa trip' } });
   const r = mount(group(), write);
   await flush();
-  await press(r, yes ? 'Settle up' : 'Not yet');
+  await press(r, yes ? 'Settle up' : 'Skip');
   const nodes = findAll(tree(r), (n) => n.type === 'InlineSettle');
   expect(nodes).toHaveLength(yes ? 1 : 0);
   if (yes) expect(nodes[0]!.props.groupId).toBe('g1');
@@ -492,7 +492,7 @@ it('IN-F-11 receipt Scan/Pick forward to picker; attachment and removal update s
 it.each(['splitWith', 'wantsReceipt'])(
   'IN-F-12 model-driven %s stays over voice panel',
   async (kind) => {
-    question('payment');
+    question('place', { places: ['Cafe'] });
     const initial = kind === 'splitWith' ? personal() : group();
     world.send.mockResolvedValue({
       kind: 'ok',
@@ -507,7 +507,7 @@ it.each(['splitWith', 'wantsReceipt'])(
     });
     const r = mount(initial, kind === 'splitWith' ? null : write);
     await flush();
-    await press(r, 'Type instead');
+    await press(r, 'Somewhere else');
     const typed = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
     act(() => {
       (typed.props.onSubmit as any)('please arrange the special request');

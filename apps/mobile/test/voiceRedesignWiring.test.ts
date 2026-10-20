@@ -5,7 +5,7 @@
  * phases, the mic panel is the reducer, and nothing simulates audio.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -22,7 +22,8 @@ describe('voice screen redesign wiring', () => {
   });
 
   it('VW-02: the review state is derived from the existing phase, not a parallel copy', () => {
-    expect(voice).toContain("phase: 'review' as const, saving, needsAnswer: whoBlocked");
+    expect(voice).toContain('needsAnswer: whoBlocked,');
+    expect(voice).toContain('agent: agentStage,');
     expect(voice).not.toMatch(/useState<VoiceFlowState>/);
   });
 
@@ -33,11 +34,13 @@ describe('voice screen redesign wiring', () => {
       expect(capture).not.toContain(gone);
   });
 
-  it('VW-04: the waveform is fed by real levels only — no animation clock drives it', () => {
+  it('VW-04: the wave rides the eased input level and honours reduced motion', () => {
     const wave = src('components/voice/AudioWaveform.tsx');
-    expect(wave).not.toMatch(/withRepeat|setInterval|requestAnimationFrame|Math\.random/);
-    expect(capture).toContain('pushLevel(levelHistory.current, value, Date.now())');
-    expect(capture).not.toMatch(/withRepeat/);
+    expect(wave).not.toMatch(/setInterval|requestAnimationFrame|Math\.random/);
+    expect(wave).toContain('duration: 2400');
+    expect(wave).toContain('reduceMotion ? <StaticWave');
+    expect(capture).toContain('level.set(withTiming(value, { duration: 90 }))');
+    expect(capture).not.toMatch(/levelHistory|pushLevel/);
   });
 
   it('VW-05: leaving while recording releases the mic and cancels the stream', () => {
@@ -57,8 +60,49 @@ describe('voice screen redesign wiring', () => {
     expect(voice).toContain("suggestion.kind === 'expense' || agentOn");
   });
 
-  it('VW-08: Home’s time-of-day scene replaces the old desk footer', () => {
-    expect(voice).toContain('<VoiceSceneBackdrop />');
+  it('VW-09: one stage stays mounted after the sentence; cards change in place under it', () => {
+    expect(voice).toContain("phase !== 'listening' ? (");
+    expect(voice).toContain('stageStatusKey(stageInput)');
+    // The stage (headline, mic, status, wave) is drawn once, in the one scroll, until
+    // a card is answering; the mic panel reports its state up and draws only the
+    // words and the examples.
+    expect(voice.match(/<VoiceTop/g)).toHaveLength(1);
+    expect(voice).toContain('onStage={setCapStage}');
+    expect(voice).toContain("(phase === 'agent' && agentStage !== 'working')");
+    expect(voice).toContain('{!stageSettled ? (');
+    expect(capture).not.toContain('<VoiceTop');
+    expect(voice).toContain('onStage={setAgentStage}');
+    expect(voice).toContain('onFooter={setPanelFooter}');
+    // Content updates in place: no scroll jumps, no per-phase fade or rise.
+    expect(voice).not.toContain('scrollTo');
+    expect(voice).not.toContain('StageAppear');
+    expect(voice).not.toContain('<VoiceStatus');
+    expect(voice).not.toContain('<LiveTranscript');
+    expect(voice).not.toContain('t.voice.ansTitle');
+    expect(existsSync(join(__dirname, '../src/components/voice/StageAppear.tsx'))).toBe(false);
+    expect(src('components/VoiceAgentPanel.tsx')).not.toContain('VoiceMicOrb');
+  });
+
+  it('VW-10: one footer area holds the action in every step, and nothing else says Add', () => {
+    expect(voice).toContain('<VoiceFooter spec={footerSpec} inset={insets.bottom} />');
+    expect(voice).not.toContain('<SavedActions');
+    expect(voice).not.toContain('onTypeInstead');
+    expect(src('components/voice/VoiceFooter.tsx')).toContain('height: 48');
+    expect(src('components/voice/VoiceFooter.tsx')).toContain('height: 44');
+    // The confirmation card and the list report their button up instead of drawing one.
+    expect(src('components/VoiceConfirmCard.tsx')).toContain('useReportFooter(onFooter');
+    expect(src('components/VoiceConfirmCard.tsx')).not.toContain('agentTryAgain');
+    expect(src('components/VoiceAgentPanel.tsx')).toContain('useReportFooter(');
+  });
+
+  it('VW-08: the full-bleed scene photo is the background; the old strip is gone', () => {
+    expect(voice).toContain('<VoiceScene />');
+    expect(voice).not.toContain('sheetTop');
+    expect(voice).not.toContain('borderTopLeftRadius: 28');
+    expect(voice).not.toContain('VoiceSceneBackdrop');
+    expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(
+      false,
+    );
     expect(voice).not.toContain('VoiceFooterScene');
   });
 });

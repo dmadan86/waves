@@ -13,16 +13,15 @@
  * there.
  */
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { Linking, Pressable, View } from 'react-native';
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 import {
   checkOnline,
@@ -47,9 +46,9 @@ import {
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
 import { createModelProbe, planAgentWait } from '@/lib/voiceStartPure';
-import { VoiceEngineBadge } from '@/components/VoiceEngineBadge';
 import { VoiceErrorState } from '@/components/voice/VoiceErrorState';
-import { VoiceStage } from '@/components/voice/VoiceStage';
+import type { MicMode } from '@/components/voice/FloatingMicrophone';
+import { VoiceSheetBody } from '@/components/voice/VoiceStage';
 import {
   useVoiceSuggestions,
   VoiceSuggestions,
@@ -57,13 +56,12 @@ import {
 } from '@/components/voice/VoiceSuggestions';
 import {
   captureReducer,
-  EMPTY_LEVELS,
   initialCapture,
   micButtonMode,
-  pushLevel,
   showSuggestions,
   voiceFlowState,
   voiceStatusKey,
+  type VoiceStatusKey,
 } from '@/lib/voiceFlowPure';
 
 /**
@@ -186,7 +184,21 @@ export interface VoiceDoneInfo {
   readonly alternatives: readonly string[];
 }
 
+/**
+ * What the screen's fixed top area needs from the mic: the screen draws the
+ * mic, the status pill and the wave once above the sheet, so this panel reports
+ * their state up and draws only the sheet's share (the transcript and cards).
+ */
+export interface CaptureStage {
+  status: VoiceStatusKey;
+  micMode: MicMode;
+  onMicPress: () => void;
+  level: SharedValue<number>;
+}
+
 export interface VoiceCaptureProps {
+  /** Reports the mic's state to the screen's top area; null when this unmounts. */
+  onStage?: (stage: CaptureStage | null) => void;
   /**
    * Called with the final sentence once the speaker stops. `info.streamed` is
    * true when it came from the live Deepgram stream (advanced voice) rather
@@ -277,8 +289,6 @@ export interface VoiceCaptureProps {
    *  and `canPick` allows the row. */
   onSuggestion?: (suggestion: Suggestion) => void;
   canPick?: (suggestion: Suggestion) => boolean;
-  /** Leave the mic for the typed composer (offered on an error). */
-  onTypeInstead?: () => void;
 }
 
 function recognitionAvailable(): boolean {
@@ -414,10 +424,9 @@ export function VoiceCapture({
   heard = '',
   onSuggestion,
   canPick,
-  onTypeInstead,
+  onStage,
 }: VoiceCaptureProps) {
   const theme = useTheme();
-  const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
 
   const [available] = useState(recognitionAvailable);
@@ -433,9 +442,6 @@ export function VoiceCapture({
   );
   const listening = micState.mic === 'listening';
   const live = micState.final ? '' : micState.transcript;
-  // Which engine hears the mic. null until it is known (the entitlement may
-  // still be loading); the start decides it and every start refreshes it.
-  const [micEngine, setMicEngineState] = useState<VoiceEngineInfo | null>(null);
   // The latest entitlement, read when the mic actually opens: the auto-start on
   // mount captured whatever the first render held, which is how a tap could open
   // on the on-device engine before the flag had loaded.
@@ -452,7 +458,6 @@ export function VoiceCapture({
     onEngineRef.current = onEngine;
   });
   const reportEngine = useCallback((info: VoiceEngineInfo): void => {
-    setMicEngineState(info);
     onEngineRef.current?.(info);
   }, []);
   // How the live sentence ends, decided at the start (tap: silence; hold: release).
@@ -464,25 +469,12 @@ export function VoiceCapture({
   // waveform rides this so it answers the actual voice instead of looping on a
   // fixed clock; it stays 0 when the mic is shut.
   const level = useSharedValue(0);
-  // The last couple of seconds of that loudness, thinned to one reading per
-  // LEVEL_MIN_GAP_MS, for the bar waveform. A shared value: writing it moves
-  // the bars on the UI thread and re-renders nothing.
-  const levels = useSharedValue<readonly number[]>(EMPTY_LEVELS.values);
-  const levelHistory = useRef(EMPTY_LEVELS);
   const sampleLevel = useCallback(
     (value: number): void => {
       level.set(withTiming(value, { duration: 90 }));
-      const next = pushLevel(levelHistory.current, value, Date.now());
-      if (next === levelHistory.current) return;
-      levelHistory.current = next;
-      levels.set(next.values);
     },
-    [level, levels],
+    [level],
   );
-  const resetLevels = useCallback((): void => {
-    levelHistory.current = EMPTY_LEVELS;
-    levels.set(EMPTY_LEVELS.values);
-  }, [levels]);
 
   // The latest transcript, kept in a ref so the 'end' handler reads the final
   // one without waiting on a state update.
@@ -859,7 +851,6 @@ export function VoiceCapture({
       latest.current = '';
       latestAlternatives.current = [];
       level.set(0);
-      resetLevels();
       gotResult.current = false;
 
       // Claim the recogniser first, and wait here for any previous session's
@@ -982,7 +973,6 @@ export function VoiceCapture({
         // Back to "getting ready" until the recogniser itself is open.
         dispatch({ type: 'start' });
         level.set(0);
-        resetLevels();
       }
       if (!mounted.current) return give();
       // A push-to-talk cancel that landed while the token was in flight.
@@ -1123,7 +1113,6 @@ export function VoiceCapture({
       onListen,
       beginStream,
       dropCapture,
-      resetLevels,
       sampleLevel,
       session,
       stopListening,
@@ -1317,14 +1306,6 @@ export function VoiceCapture({
 
   const suggestions = useVoiceSuggestions(groupNames);
 
-  if (!available) {
-    return (
-      <Text tone="muted" align="center">
-        {t.voice.unavailable}
-      </Text>
-    );
-  }
-
   const flowInput = { phase: 'listening' as const, capture: micState, missed };
   const flow = voiceFlowState(flowInput);
   const status = voiceStatusKey(flow, flowInput);
@@ -1346,23 +1327,36 @@ export function VoiceCapture({
     (flow === 'idle' && !live && offlineEligible) ||
     (showMiss && (engine === 'network' || offlineEligible));
 
+  // Hand the stage the mic's state before paint, so it never shows a stale frame.
+  const toggleRef = useRef(toggle);
+  useEffect(() => {
+    toggleRef.current = toggle;
+  });
+  const onMicPress = useCallback(() => toggleRef.current(), []);
+  const onStageRef = useRef(onStage);
+  useEffect(() => {
+    onStageRef.current = onStage;
+  });
+  useLayoutEffect(() => {
+    onStageRef.current?.({ status, micMode, onMicPress, level });
+  }, [status, micMode, onMicPress, level]);
+  useLayoutEffect(() => () => onStageRef.current?.(null), []);
+
+  if (!available) {
+    return (
+      <Text tone="muted" align="center">
+        {t.voice.unavailable}
+      </Text>
+    );
+  }
+
   return (
-    <VoiceStage
-      status={status}
-      micMode={micMode}
-      onMicPress={toggle}
-      reduceMotion={reduceMotion}
-      level={level}
-      levels={levels}
-      transcript={shownTranscript}
-      final={shownFinal}
-    >
+    <VoiceSheetBody transcript={shownTranscript} final={shownFinal}>
       {problem ? (
         <VoiceErrorState
           problem={problem}
           onRetry={() => void start()}
           onOpenSettings={() => void Linking.openSettings()}
-          onType={onTypeInstead}
         />
       ) : null}
 
@@ -1395,9 +1389,6 @@ export function VoiceCapture({
           ) : null}
         </View>
       ) : null}
-
-      {/* Which engine is hearing the mic: kept, but small and last. */}
-      <VoiceEngineBadge info={micEngine} />
-    </VoiceStage>
+    </VoiceSheetBody>
   );
 }

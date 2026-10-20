@@ -262,7 +262,7 @@ describe('saved bar controls', () => {
     const r = mount(initial, null, {
       renderSavedBar: (c: SavedBarContext) => {
         context = c;
-        return { type: 'SavedBar', props: { headline: c.headline }, key: null };
+        return { type: 'SavedBar', props: { where: c.where }, key: null };
       },
       ...extra,
     });
@@ -272,7 +272,7 @@ describe('saved bar controls', () => {
     };
   }
 
-  it('MC-SB-03 the bar replaces the plain headline and is given controls', async () => {
+  it('MC-SB-03 the bar replaces the plain summary and is given controls', async () => {
     const { r, controls } = barMount(personal());
     await flush();
     expect(findAll(tree(r), (n) => n.type === 'SavedBar')).toHaveLength(1);
@@ -300,7 +300,7 @@ describe('saved bar controls', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('MC-SB-05 using the bar holds the panel open: no auto-close, and a Done button', async () => {
+  it('MC-SB-05 using the bar holds the panel open: no auto-close (Done lives with the screen)', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 21, 15, 0, 0));
     const { r, controls } = barMount(personal({ amount: 5000n }));
@@ -308,7 +308,7 @@ describe('saved bar controls', () => {
     await act(async () => controls().hold());
     await vi.advanceTimersByTimeAsync(UNDO_RING_MS + 1000);
     expect(onClose).not.toHaveBeenCalled();
-    expect(byLabel(r, 'Done')).toBeDefined();
+    expect(byLabel(r, 'Done')).toBeUndefined();
   });
 
   it('MC-SB-06 replaceSaved becomes the saved state, and onSavedStateChange hears of it', async () => {
@@ -434,7 +434,7 @@ describe('hand-offs that can be undone', () => {
 
 describe('typed answers are read on the phone first', () => {
   const typeInto = async (r: ReturnType<typeof mount>, text: string): Promise<void> => {
-    await press(r, 'Type instead');
+    await press(r, 'Somewhere else');
     const composer = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
     await act(async () => {
       (composer.props.onSubmit as (t: string) => void)(text);
@@ -499,7 +499,7 @@ describe('typed answers are read on the phone first', () => {
 
 describe('the follow-up composer applies the whole reply (review finding 6)', () => {
   const typeAnswer = async (r: ReturnType<typeof mount>, text: string) => {
-    await press(r, 'Type instead');
+    await press(r, 'Somewhere else');
     const typed = findAll(tree(r), (n) => n.type === 'VoiceTypedAnswer')[0]!;
     await act(async () => {
       (typed.props.onSubmit as (t: string) => void)(text);
@@ -533,7 +533,7 @@ describe('the follow-up composer applies the whole reply (review finding 6)', ()
     const r = mount(personal(), null, {
       renderSavedBar: (c: SavedBarContext) => {
         context = c;
-        return { type: 'SavedBar', props: { headline: c.headline }, key: null };
+        return { type: 'SavedBar', props: { where: c.where }, key: null };
       },
     });
     await flush();
