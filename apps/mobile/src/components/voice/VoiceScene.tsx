@@ -13,7 +13,6 @@ import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const SCENE = require('../../../assets/images/voice-scene.webp') as number;
 /** The photograph is 849 × 1852. */
 const RATIO = 1852 / 849;

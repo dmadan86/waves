@@ -22,7 +22,6 @@ import { Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 import {
   checkOnline,
@@ -428,7 +427,6 @@ export function VoiceCapture({
   onStage,
 }: VoiceCaptureProps) {
   const theme = useTheme();
-  const reduceMotion = useReducedMotion();
   const { t, locale } = useStrings();
 
   const [available] = useState(recognitionAvailable);

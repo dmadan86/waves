@@ -100,7 +100,7 @@ import {
   type DestinationSelection,
   type PersonChoice,
 } from '@/components/DestinationPicker';
-import type { VoiceDoneInfo } from '@/components/VoiceCapture';
+import type { CaptureStage, VoiceDoneInfo } from '@/components/VoiceCapture';
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
@@ -168,7 +168,6 @@ import { VoiceFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 import { VoiceScene } from '@/components/voice/VoiceScene';
 import { VoiceHeader, VoiceSheetBody, VoiceTop } from '@/components/voice/VoiceStage';
 import type { MicMode as StageMicMode } from '@/components/voice/FloatingMicrophone';
-import type { CaptureStage } from '@/components/VoiceCapture';
 import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import {
