@@ -285,6 +285,7 @@ export function GroupHero({
             <GroupPhoto
               photoPath={group.photo_path}
               emoji={group.cover_emoji}
+              color={group.cover_color}
               size={TILE}
               background="#FFFFFF"
             />

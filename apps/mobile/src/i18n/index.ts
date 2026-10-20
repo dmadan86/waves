@@ -2590,6 +2590,38 @@ export interface UiStrings {
     star: string;
     people: string;
   };
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: string;
+      home: string;
+      food: string;
+      events: string;
+      friends: string;
+      work: string;
+      sport: string;
+      money: string;
+      other: string;
+    };
+    colour: string;
+    defaultColour: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    colours: {
+      lilac: string;
+      pink: string;
+      peach: string;
+      coral: string;
+      butter: string;
+      mint: string;
+      sage: string;
+      sky: string;
+      indigo: string;
+      teal: string;
+      berry: string;
+      slate: string;
+    };
+  };
   groupPhoto: {
     paidHint: string;
   };
@@ -7790,6 +7822,38 @@ const en: UiStrings = {
     star: 'Favourite',
     people: 'Friends',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'Travel',
+      home: 'Home',
+      food: 'Food & drink',
+      events: 'Events',
+      friends: 'Friends & family',
+      work: 'Work',
+      sport: 'Sport & fun',
+      money: 'Money',
+      other: 'Other',
+    },
+    colour: 'Colour',
+    defaultColour: 'Default',
+    searchPlaceholder: 'Search icons',
+    noMatches: 'No icon matches that',
+    colours: {
+      lilac: 'Lilac',
+      pink: 'Pink',
+      peach: 'Peach',
+      coral: 'Coral',
+      butter: 'Butter',
+      mint: 'Mint',
+      sage: 'Sage',
+      sky: 'Sky',
+      indigo: 'Indigo',
+      teal: 'Teal',
+      berry: 'Berry',
+      slate: 'Slate',
+    },
+  },
   groupPhoto: {
     paidHint: 'Group photos are a Pro feature. Pick an icon, or upgrade to add a photo.',
   },
@@ -8265,7 +8329,7 @@ const en: UiStrings = {
     descriptionPlaceholder: 'What is this group for?',
     changeCover: 'Group cover',
     chooseIcon: 'Choose an icon',
-    chooseIconHint: 'One of the drawn marks',
+    chooseIconHint: 'Pick an icon and a colour',
     usePhotoHint: 'A picture from this phone',
     photoIsPaid: 'Photos come with Pro',
     removePhoto: 'Remove photo',
@@ -12659,6 +12723,38 @@ const ta: UiStrings = {
     star: 'பிடித்தது',
     people: 'நண்பர்கள்',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'பயணம்',
+      home: 'வீடு',
+      food: 'உணவு & பானம்',
+      events: 'நிகழ்வுகள்',
+      friends: 'நண்பர்கள் & குடும்பம்',
+      work: 'வேலை',
+      sport: 'விளையாட்டு & வேடிக்கை',
+      money: 'பணம்',
+      other: 'மற்றவை',
+    },
+    colour: 'நிறம்',
+    defaultColour: 'இயல்புநிலை',
+    searchPlaceholder: 'ஐகான்களைத் தேடு',
+    noMatches: 'பொருந்தும் ஐகான் இல்லை',
+    colours: {
+      lilac: 'இளஞ்சிவப்பு ஊதா',
+      pink: 'இளஞ்சிவப்பு',
+      peach: 'பீச்',
+      coral: 'பவளம்',
+      butter: 'வெண்ணெய் மஞ்சள்',
+      mint: 'புதினா',
+      sage: 'இளம் பச்சை',
+      sky: 'வான நீலம்',
+      indigo: 'கருநீலம்',
+      teal: 'நீலப்பச்சை',
+      berry: 'பெர்ரி',
+      slate: 'சாம்பல்',
+    },
+  },
   groupPhoto: {
     paidHint:
       'குழு புகைப்படங்கள் Pro அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
@@ -13161,7 +13257,7 @@ const ta: UiStrings = {
     descriptionPlaceholder: 'இந்தக் குழு எதற்காக?',
     changeCover: 'குழுவின் அட்டை',
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
-    chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
+    chooseIconHint: 'ஒரு ஐகானையும் நிறத்தையும் தேர்ந்தெடு',
     usePhotoHint: 'இந்த ஃபோனிலிருந்து ஒரு படம்',
     photoIsPaid: 'புகைப்படங்கள் Pro-உடன் வரும்',
     removePhoto: 'புகைப்படத்தை நீக்கு',
@@ -17620,6 +17716,38 @@ const hi: UiStrings = {
     star: 'पसंदीदा',
     people: 'दोस्त',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'यात्रा',
+      home: 'घर',
+      food: 'खाना-पीना',
+      events: 'आयोजन',
+      friends: 'दोस्त और परिवार',
+      work: 'काम',
+      sport: 'खेल और मस्ती',
+      money: 'पैसा',
+      other: 'अन्य',
+    },
+    colour: 'रंग',
+    defaultColour: 'डिफ़ॉल्ट',
+    searchPlaceholder: 'आइकन खोजें',
+    noMatches: 'कोई आइकन नहीं मिला',
+    colours: {
+      lilac: 'बैंगनी',
+      pink: 'गुलाबी',
+      peach: 'आड़ू',
+      coral: 'मूंगा',
+      butter: 'मक्खनी',
+      mint: 'पुदीना',
+      sage: 'हल्का हरा',
+      sky: 'आसमानी',
+      indigo: 'नील',
+      teal: 'हरा-नीला',
+      berry: 'बेरी',
+      slate: 'स्लेटी',
+    },
+  },
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Pro सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
@@ -18097,7 +18225,7 @@ const hi: UiStrings = {
     descriptionPlaceholder: 'यह समूह किसलिए है?',
     changeCover: 'समूह का कवर',
     chooseIcon: 'आइकन चुनें',
-    chooseIconHint: 'बने-बनाए चिह्नों में से एक',
+    chooseIconHint: 'एक आइकन और एक रंग चुनें',
     usePhotoHint: 'इसी फ़ोन से एक तस्वीर',
     photoIsPaid: 'फ़ोटो Pro के साथ आती हैं',
     removePhoto: 'फ़ोटो हटाएँ',
@@ -22588,6 +22716,38 @@ const ar: UiStrings = {
     star: 'مفضّل',
     people: 'أصدقاء',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'سفر',
+      home: 'المنزل',
+      food: 'طعام وشراب',
+      events: 'مناسبات',
+      friends: 'أصدقاء وعائلة',
+      work: 'عمل',
+      sport: 'رياضة ومرح',
+      money: 'مال',
+      other: 'أخرى',
+    },
+    colour: 'اللون',
+    defaultColour: 'الافتراضي',
+    searchPlaceholder: 'ابحث عن أيقونة',
+    noMatches: 'لا توجد أيقونة مطابقة',
+    colours: {
+      lilac: 'بنفسجي فاتح',
+      pink: 'وردي',
+      peach: 'خوخي',
+      coral: 'مرجاني',
+      butter: 'أصفر زبدي',
+      mint: 'نعناعي',
+      sage: 'أخضر مريمية',
+      sky: 'أزرق سماوي',
+      indigo: 'نيلي',
+      teal: 'أخضر مزرق',
+      berry: 'توتي',
+      slate: 'رمادي أردوازي',
+    },
+  },
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Pro. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
@@ -23136,7 +23296,7 @@ const ar: UiStrings = {
     descriptionPlaceholder: 'ما الغرض من هذه المجموعة؟',
     changeCover: 'غلاف المجموعة',
     chooseIcon: 'اختر أيقونة',
-    chooseIconHint: 'أحد الرموز المرسومة',
+    chooseIconHint: 'اختر أيقونة ولونًا',
     usePhotoHint: 'صورة من هذا الهاتف',
     photoIsPaid: 'الصور تأتي مع Pro',
     removePhoto: 'إزالة الصورة',

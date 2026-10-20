@@ -83,7 +83,12 @@ function Groups({ query }: { query: string }) {
     const count = members.get(group.id)?.filter((member) => !member.left_at).length ?? 0;
     return (
       <Link key={group.id} href={`/g/${group.id}`} className="item">
-        <span className="avatar" aria-hidden style={{ width: 38, height: 38 }}>
+        <span
+          className="avatar"
+          aria-hidden
+          data-cover={group.cover_color ?? undefined}
+          style={{ width: 38, height: 38 }}
+        >
           {group.cover_emoji ?? '👥'}
         </span>
         <span className="grow">
