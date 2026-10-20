@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { WAV_CLIP } from '../_shared/test/audio.ts';
 import { followupMeter } from '../_shared/test/voiceFollowupMeter.ts';
 import { HttpError } from '../_shared/auth.ts';
 import { breaker, clearContextCache, handleVoiceAgent, type Deps, type Limits } from './handler.ts';
@@ -146,7 +147,7 @@ const request = (extra: Record<string, unknown> = {}) =>
 const clip = (extra: Record<string, unknown> = {}) =>
   request({
     transcript: undefined,
-    audioBase64: btoa('audio'),
+    audioBase64: WAV_CLIP,
     mimeType: 'audio/wav',
     durationMs: 1000,
     ...extra,

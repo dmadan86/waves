@@ -6,6 +6,7 @@
 import { vi } from 'vitest';
 
 import type { Deps } from '../../voice-agent/handler.ts';
+import { WAV_CLIP } from '../test/audio.ts';
 
 export const ME = 'profile-me';
 
@@ -169,8 +170,8 @@ export const clipRequest = (extra: Record<string, unknown> = {}) =>
     method: 'POST',
     body: JSON.stringify({
       schemaVersion: 1,
-      audioBase64: btoa('audio'),
-      mimeType: 'audio/m4a',
+      audioBase64: WAV_CLIP,
+      mimeType: 'audio/wav',
       durationMs: 4000,
       locale: 'en',
       today: '2026-10-07',
@@ -179,33 +180,4 @@ export const clipRequest = (extra: Record<string, unknown> = {}) =>
     }),
   });
 
-/** A RIFF/WAVE header for `seconds` of 16 kHz mono 16-bit PCM, with `dataBytes` of audio behind it. */
-export function wavBytes(seconds: number, dataBytes = 64): Uint8Array {
-  const byteRate = 16000 * 2;
-  const dataSize = Math.round(seconds * byteRate);
-  const out = new Uint8Array(44 + dataBytes);
-  const view = new DataView(out.buffer);
-  const ascii = (at: number, s: string) => {
-    for (let i = 0; i < s.length; i += 1) out[at + i] = s.charCodeAt(i);
-  };
-  ascii(0, 'RIFF');
-  view.setUint32(4, 36 + dataSize, true);
-  ascii(8, 'WAVE');
-  ascii(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, 16000, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  ascii(36, 'data');
-  view.setUint32(40, dataSize, true);
-  return out;
-}
-
-export function base64(bytes: Uint8Array): string {
-  let s = '';
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s);
-}
+export { base64, wavBytes } from '../test/audio.ts';

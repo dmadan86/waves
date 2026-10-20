@@ -107,7 +107,7 @@ describe('WAV-10 the clip length is measured, not declared', () => {
     ).rejects.toMatchObject({ status: 413, code: 'VOICE_AGENT_CLIP_TOO_LONG' });
     expect(fetchMock).not.toHaveBeenCalled();
     // The header may claim more than the clip carries; the bytes decide.
-    expect(wavDurationSeconds(wavBytes(120))).toBeCloseTo(0.002, 3);
+    expect(wavDurationSeconds(wavBytes(120, 64))).toBeCloseTo(0.002, 3);
     expect(wavDurationSeconds(wavBytes(2, 2 * 32000))).toBeCloseTo(2, 2);
     expect(wavDurationSeconds(new Uint8Array(10))).toBeNull();
   });

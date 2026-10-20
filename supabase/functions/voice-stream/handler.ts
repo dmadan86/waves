@@ -303,11 +303,14 @@ export function runRelay(
   /** Log the stream and add its seconds to the month's meter. */
   const settle = async (summary: RelaySummary): Promise<void> => {
     console.log(JSON.stringify({ fn: 'voice-stream', event: 'stream', ...summary }));
-    if (!admitted || summary.bytes === 0) return;
+    // Every admitted stream settles, carrying nothing too: the mint reserved
+    // its seconds, and the settle gives the unused part back.
+    if (!admitted) return;
     try {
       const { error } = await deps.service.rpc('waves_voice_stream_seconds', {
         p_profile: admitted.profileId,
         p_seconds: summary.seconds,
+        p_reserved_seconds: admitted.reservedSeconds,
       });
       if (error) console.error('stream seconds not recorded', error.message);
     } catch (error) {

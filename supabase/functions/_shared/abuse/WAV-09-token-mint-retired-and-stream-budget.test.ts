@@ -17,12 +17,11 @@ import { admitStream, STREAM_SECONDS_PER_MINT } from '../../_shared/voiceStreamG
 import { handleVoiceStreamToken } from '../../voice-stream-token/handler.ts';
 
 describe('WAV-09 the token mint is retired', () => {
-  it('is no longer in the edge:deploy list', () => {
+  it('stays in the edge:deploy list, so the 410 tombstone replaces the deployed mint', () => {
     const pkg = JSON.parse(
       readFileSync(fileURLToPath(new URL('../../../../package.json', import.meta.url)), 'utf8'),
     ) as { scripts: Record<string, string> };
-    expect(pkg.scripts['edge:deploy']).not.toContain('voice-stream-token');
-    expect(pkg.scripts['edge:deploy']).toContain('voice-stream ');
+    expect(pkg.scripts['edge:deploy']).toContain('voice-stream-token');
   });
 
   it('answers 410 and asks Deepgram for nothing', async () => {
@@ -49,7 +48,7 @@ describe('M6 the stream gate hands the database a seconds budget', () => {
     });
     const from = (t: string) => {
       const q: Record<string, unknown> = {};
-      for (const m of ['select', 'eq']) q[m] = () => q;
+      for (const m of ['select', 'eq', 'in']) q[m] = () => q;
       q.maybeSingle = async () => ({
         data: t === 'voice_agent_usage' ? { count: 0 } : null,
         error: null,
@@ -75,15 +74,23 @@ describe('M6 the stream gate hands the database a seconds budget', () => {
     };
   }
 
-  it('passes p_seconds_budget = mint budget x 20 s', async () => {
-    const { deps, rpc } = gate({ allowed: true, mints: 1, budget: 300, tier: 'pro' });
-    await admitStream(deps, 'voice-stream');
+  it('reserves 20 s per mint against a seconds budget of mint budget x 20 s', async () => {
+    const { deps, rpc } = gate({
+      allowed: true,
+      mints: 1,
+      budget: 300,
+      tier: 'pro',
+      reserved_seconds: 20,
+    });
+    const admitted = await admitStream(deps, 'voice-stream');
     expect(rpc).toHaveBeenCalledWith(
       'waves_voice_stream_mint',
       expect.objectContaining({
         p_seconds_budget: VOICE_STREAM_PRO_MONTHLY * STREAM_SECONDS_PER_MINT,
+        p_reserve_seconds: STREAM_SECONDS_PER_MINT,
       }),
     );
+    expect(admitted.reservedSeconds).toBe(20);
     expect(STREAM_SECONDS_PER_MINT).toBe(20);
   });
 

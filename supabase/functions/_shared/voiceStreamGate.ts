@@ -21,10 +21,11 @@ import {
 } from './core.js';
 
 /**
- * Seconds of audio one mint may carry (the relay's cap). The seconds budget
- * handed to `waves_voice_stream_mint` is this times the mint budget: the
- * measured minutes Deepgram bills are bounded by the server even if every
- * stream ran to its cap.
+ * Seconds of audio one mint may carry (the relay's cap). Every mint RESERVES
+ * this many seconds against a seconds budget of this times the mint budget,
+ * atomically with the mint itself; the relay settles the measured seconds on
+ * close. The minutes Deepgram bills are bounded by the server whatever the
+ * streams do.
  */
 export const STREAM_SECONDS_PER_MINT = 20;
 
@@ -43,6 +44,8 @@ export interface Admitted {
   readonly tier: StreamMint['tier'];
   readonly mints: number;
   readonly budget: number;
+  /** Seconds the mint reserved against the month's seconds budget; settled on close. */
+  readonly reservedSeconds: number;
 }
 
 interface StreamMint {
@@ -52,6 +55,7 @@ interface StreamMint {
   readonly mints: number;
   readonly budget: number;
   readonly tier: 'free' | 'pro';
+  readonly reserved_seconds?: number;
 }
 
 export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Admitted> {
@@ -88,6 +92,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
     p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
     p_seconds_budget: VOICE_STREAM_PRO_MONTHLY * STREAM_SECONDS_PER_MINT,
+    p_reserve_seconds: STREAM_SECONDS_PER_MINT,
   });
   const mint = mintData as StreamMint | null;
   if (mintError || !mint) {
@@ -119,7 +124,15 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
   if (!mint.allowed) {
     throw new HttpError(402, VoiceAgentError.StreamBudget, 'Live transcription budget used up');
   }
-  return { profileId, profileHash, key, tier: mint.tier, mints: mint.mints, budget: mint.budget };
+  return {
+    profileId,
+    profileHash,
+    key,
+    tier: mint.tier,
+    mints: mint.mints,
+    budget: mint.budget,
+    reservedSeconds: mint.reserved_seconds ?? STREAM_SECONDS_PER_MINT,
+  };
 }
 
 /** First 12 hex of SHA-256(profile id): stable per person, not reversible to it. */
@@ -148,7 +161,7 @@ export async function remainingCommands(
       .from('subscriptions')
       .select('tier, status, current_period_end, store')
       .eq('profile_id', profileId)
-      .eq('status', 'active'),
+      .in('status', ['active', 'grace']),
     service
       .from('voice_agent_usage')
       .select('count')

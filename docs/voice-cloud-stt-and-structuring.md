@@ -404,9 +404,11 @@ then a 1.5 s flush; hard deadline 26.5 s), and closes outright on a frame over
   (paid), 2 s CPU and 256 MB per invocation; a 25 s stream is well inside them.
   The worker is kept alive with `EdgeRuntime.waitUntil` until both sockets close.
 - `voice-stream-token` is retired (abuse audit H1): the handler answers 410 to
-  everything and mints nothing, and the function is out of `edge:deploy`. Builds
-  from before the relay fall back to on-device listening, as they do on any
-  refusal. Delete it from the project once those builds are gone.
+  everything and mints nothing. It STAYS in `edge:deploy` so the tombstone
+  replaces the deployed mint on the next deploy; builds from before the relay
+  fall back to on-device listening, as they do on any refusal. Once those
+  builds are gone, `supabase functions delete voice-stream-token` and drop it
+  from `edge:deploy`.
 
 ---
 

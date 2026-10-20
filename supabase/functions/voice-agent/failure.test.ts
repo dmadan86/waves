@@ -7,6 +7,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { WAV_CLIP } from '../_shared/test/audio.ts';
+
 import { breaker, clearContextCache, handleVoiceAgent, type Deps, type Limits } from './handler.ts';
 
 const ME = 'profile-me';
@@ -112,8 +114,8 @@ const clipRequest = () =>
     method: 'POST',
     body: JSON.stringify({
       schemaVersion: 1,
-      audioBase64: btoa('audio'),
-      mimeType: 'audio/m4a',
+      audioBase64: WAV_CLIP,
+      mimeType: 'audio/wav',
       durationMs: 4000,
       locale: 'en',
       today: '2026-10-07',

@@ -29,6 +29,7 @@ import {
   raceDeadline,
   type DeadlineResponse,
 } from '../_shared/resilience.ts';
+import { clipDurationSeconds } from '../_shared/audioDuration.ts';
 import { chaosFetch, chaosFor } from '../_shared/voiceChaos.ts';
 import { withVoiceStub } from '../_shared/voiceStub.ts';
 import {
@@ -367,6 +368,19 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
     );
   }
   if (meterOnly) {
+    // A command the phone parsed itself and is about to save: the follow-up
+    // turns about it need a slot, exactly as a cloud-parsed command's do. The
+    // budget is the same (one charged command, a few turns), and a money
+    // question metered this way has no saved expense to follow up on.
+    const open = Promise.resolve(
+      deps.service.rpc('waves_voice_agent_followup_open', {
+        p_profile: profileId,
+        p_turns: FOLLOWUP_PER_EXPENSE,
+        p_window_seconds: FOLLOWUP_WINDOW_SECONDS,
+      }),
+    ).catch(() => null);
+    if (deps.waitUntil) deps.waitUntil(open);
+    else await open;
     const metered: VoiceAgentResponse = {
       schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
       transcript: spoken,
@@ -777,9 +791,15 @@ async function transcribe(
   if (audio.length > MAX_AUDIO_BYTES) {
     throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
   }
-  // A WAV header says how long the clip is before a byte leaves this server.
-  const wavSeconds = wavDurationSeconds(audio);
-  if (wavSeconds !== null && wavSeconds > MAX_CLIP_SECONDS) {
+  // The container says how long the clip is, before a byte leaves this server
+  // (_shared/audioDuration.ts). A type that cannot be measured, or bytes that
+  // do not parse as the type they claim, are refused: Deepgram bills what it
+  // decodes, and nothing is sent that this server could not bound.
+  const measured = clipDurationSeconds(audio, body.mimeType ?? '');
+  if (measured === null) {
+    throw new HttpError(415, VoiceAgentError.ClipUnreadable, 'That audio format is not accepted');
+  }
+  if (measured > MAX_CLIP_SECONDS) {
     throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
   }
   const sttDown = () =>
@@ -818,36 +838,11 @@ async function transcribe(
     seconds:
       typeof duration === 'number' && Number.isFinite(duration) && duration >= 0
         ? duration
-        : wavSeconds,
+        : measured,
   };
 }
 
-/**
- * Seconds of audio in a RIFF/WAVE clip, from its header: data bytes over the
- * byte rate. Null for anything that is not a WAV with a sane header.
- */
-export function wavDurationSeconds(bytes: Uint8Array): number | null {
-  if (bytes.length < 44) return null;
-  const ascii = (at: number, n: number) => String.fromCharCode(...bytes.subarray(at, at + n));
-  if (ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WAVE') return null;
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let at = 12;
-  let byteRate = 0;
-  while (at + 8 <= bytes.length) {
-    const id = ascii(at, 4);
-    const size = view.getUint32(at + 4, true);
-    if (id === 'fmt ' && at + 20 <= bytes.length) {
-      byteRate = view.getUint32(at + 16, true);
-    } else if (id === 'data') {
-      if (byteRate <= 0) return null;
-      // A streamed WAV may claim more data than it carries; trust the bytes.
-      const data = Math.min(size, bytes.length - at - 8);
-      return data / byteRate;
-    }
-    at += 8 + size + (size % 2);
-  }
-  return null;
-}
+export { clipDurationSeconds, wavDurationSeconds } from '../_shared/audioDuration.ts';
 
 /** POST JSON to a provider within what is left of this step's budget. */
 type Post = (url: string, init: RequestInit) => Promise<DeadlineResponse>;
