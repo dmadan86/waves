@@ -1,9 +1,17 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
-
-import { guessCategory, resolveCategory } from '@waves/core';
+import {
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
 import {
@@ -11,7 +19,6 @@ import {
   Button,
   directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -32,18 +39,34 @@ import {
   filterByDayRange,
   groupByDay,
   parseMoney,
-  verbIcon,
-  verbTint,
 } from '@/data/activity';
 import { activityLabels } from '@/data/activityLabels';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { SplitMoney } from '@/components/SplitMoney';
+import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
+import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
+import { useHeroStatusBar } from '@/components/ScreenHero';
+import {
+  HERO_SCRIM_COLORS,
+  HERO_SCRIM_LOCATIONS,
+  HOME_HERO_PHOTOS,
+} from '@/components/home/HomeHeroBackground';
 import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
 import { useTransitionSettled } from '@/lib/useTransitionSettled';
 import { markActivitySeen } from '@/lib/activitySeen';
+import {
+  activityAmountStyle,
+  activityCategory,
+  activityTileGlyph,
+  type AmountTone,
+  type GlyphFamily,
+  heroWantsDarkInk,
+} from '@/lib/activityRowPure';
+import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
+import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
@@ -71,17 +94,18 @@ type RowView = {
   /** The visible title, event-first so the feed is skimmable. */
   headline: string;
   who: string | null;
-  groupLabel: string | null;
-  /** The group as the subtitle names it: its mark, or its name without one. */
-  groupShort: string | null;
   groupId: string | null;
   timestamp: string;
   tintKey: TintName;
-  icon: ReturnType<typeof verbIcon>;
+  glyph: { family: GlyphFamily; name: string };
+  /** What the meta line names between the actor and the time: the expense's
+   *  category, else the group's kind ("Trip"), each with its small icon. */
+  tag: { family: GlyphFamily; name: string; label: string; tint: TintName | null } | null;
   money: ReturnType<typeof parseMoney>;
-  /** The reader's own stake in this expense, when they are on the bill —
-   *  coloured by direction, the way the ledger and Friends show money. */
+  /** The reader's own stake in this expense, when they are on the bill. */
   stake: RecentActivityRow['stake'];
+  amountTone: AmountTone;
+  amountStrike: boolean;
   archived: boolean;
   unavailable: boolean;
 };
@@ -97,6 +121,8 @@ type RowContext = {
   blockedIds: ReturnType<typeof useBlockedUsers>['blockedIds'];
   rtf: Intl.RelativeTimeFormat | undefined;
   labels: ActivityLabels;
+  labelForBuiltin: (id: string) => string | undefined;
+  groupTagLabels: GroupTypeTagLabels;
 };
 
 // Resolve everything a row shows, once, at list-build time. `describeActivity`
@@ -104,7 +130,18 @@ type RowContext = {
 // `activityHeadline`; `rtf` is the hoisted formatter, never rebuilt per row.
 function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   const g = entry.group;
-  const glyph = rowGlyph(entry);
+  const description =
+    typeof entry.payload.description === 'string' ? entry.payload.description : '';
+  const isExpense = entry.object_type === 'expense';
+  const category = isExpense
+    ? activityCategory(description, entry.category, ctx.labelForBuiltin)
+    : null;
+  const glyph = activityTileGlyph(entry.verb, entry.object_type, category);
+  // The group's own cover is a mark the app draws (`GroupMark`), not text: set
+  // as a raw emoji it printed the plate (🍽️), which the system font lacks, as a
+  // broken box. So the meta names the category, or else the kind of group.
+  const kind = g ? groupTypeTag(g.type, null, ctx.groupTagLabels) : null;
+  const amount = activityAmountStyle(entry.verb);
   return {
     href: activityTarget(entry) as Href,
     label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
@@ -114,39 +151,50 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
     who: entry.actor
       ? actorName(entry.actor, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone)
       : null,
-    groupLabel: g
-      ? [g.cover_emoji, g.name].filter(Boolean).join(' ').trim() || ctx.t.captures.group
-      : null,
-    groupShort: g ? g.cover_emoji?.trim() || g.name?.trim() || null : null,
     groupId: g?.id ?? null,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
-    icon: glyph.icon,
+    glyph,
+    tag: category
+      ? { ...category.glyph, label: category.label }
+      : kind
+        ? {
+            family: 'ion',
+            name: kind.custom ? 'pricetag' : GROUP_TYPE_ICON[kind.type],
+            label: kind.label,
+            tint: null,
+          }
+        : null,
     money: parseMoney(entry.payload),
     stake: entry.stake,
+    amountTone: amount.tone,
+    amountStrike: amount.strike,
     archived: !!g?.archived_at,
     unavailable: !g,
   };
 }
 
-/**
- * The glyph a row wears. A bill being added, deleted or restored shows what it
- * was for — its category's icon and tint, or a guess from its description when
- * it has none — so "Added Dinner" reads as food at a glance; everything else
- * (an edit, a settlement, a join) keeps the verb's own mark.
- */
-function rowGlyph(entry: RecentActivityRow): { icon: RowView['icon']; tint: TintName } {
-  const billVerb = entry.verb === 'added' || entry.verb === 'deleted' || entry.verb === 'restored';
-  if (entry.object_type === 'expense' && billVerb) {
-    const description =
-      typeof entry.payload.description === 'string' ? entry.payload.description : '';
-    const key = entry.category?.key ?? guessCategory(description);
-    if (key || entry.category?.meta) {
-      const resolved = resolveCategory(key, entry.category?.meta ?? null);
-      return { icon: resolved.icon as RowView['icon'], tint: resolved.tint };
-    }
-  }
-  return { icon: verbIcon(entry.verb), tint: verbTint(entry.verb) };
+/** An icon from either family the feed draws with. */
+function GlyphIcon({
+  family,
+  name,
+  size,
+  color,
+}: {
+  family: GlyphFamily;
+  name: string;
+  size: number;
+  color: string;
+}) {
+  return family === 'mci' ? (
+    <MaterialCommunityIcons
+      name={name as keyof typeof MaterialCommunityIcons.glyphMap}
+      size={size}
+      color={color}
+    />
+  ) : (
+    <Ionicons name={name as keyof typeof Ionicons.glyphMap} size={size} color={color} />
+  );
 }
 
 /**
@@ -170,17 +218,12 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
 }) {
   // Each event is its own card: the glyph in a soft tile tinted by what the
   // bill was for (or by the verb, when it is not a bill), the event as a title,
-  // who · where · when beneath it, and the money on the right in the colour of
-  // the reader's side of it — with a ⋮ for where the event leads.
+  // who · what · when beneath it, and the money on the right — blue, or red and
+  // struck through once deleted — with a ⋮ for where the event leads.
   const tint = theme.tint[view.tintKey];
   const amount = view.stake ?? view.money;
-  const ink = view.stake
-    ? view.stake.amount > 0n
-      ? theme.color.positive
-      : view.stake.amount < 0n
-        ? theme.color.negative
-        : theme.color.textMuted
-    : theme.color.text;
+  const ink = view.amountTone === 'negative' ? theme.color.negative : theme.color.positive;
+  const tagInk = view.tag?.tint ? theme.tint[view.tag.tint].ink : theme.color.textMuted;
   return (
     <Pressable
       accessibilityRole="button"
@@ -211,7 +254,12 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           backgroundColor: tint.bg,
         }}
       >
-        <Ionicons name={view.icon} size={iconSize.md} color={tint.ink} />
+        <GlyphIcon
+          family={view.glyph.family}
+          name={view.glyph.name}
+          size={iconSize.md}
+          color={tint.ink}
+        />
       </View>
       <View style={{ flex: 1, gap: 1 }}>
         <Text
@@ -220,16 +268,18 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         >
           {view.headline}
         </Text>
-        {/* Who · which group · when. The group is named by its mark when it has
-            one — the feed spans groups, and the mark is the quickest tell. An
-            archived group, or one no longer on this device, gets a badge. */}
-        <Row style={{ gap: theme.spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Text
-            numberOfLines={1}
-            style={{ flexShrink: 1, fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}
-          >
-            {[view.who, view.groupShort, view.timestamp].filter(Boolean).join(' · ')}
-          </Text>
+        {/* Who · what · when. What is the expense's category, else the kind of
+            group, each with its small icon. An archived group, or one no longer
+            on this device, gets a badge. */}
+        <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+          {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
+          {view.tag ? (
+            <>
+              <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
+              <MetaText>{`${view.tag.label} ·`}</MetaText>
+            </>
+          ) : null}
+          <MetaText>{view.timestamp}</MetaText>
           {view.archived ? (
             <Badge label={t.misc.archivedGroup} tone="neutral" />
           ) : view.unavailable ? (
@@ -237,10 +287,9 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           ) : null}
         </Row>
       </View>
-      {/* An expense the reader is on shows THEIR side of it, coloured by
-          direction, as the ledger and Friends do; anything else keeps the
-          neutral total. `payload` is untyped JSON, so a bad amount renders as
-          no amount, not a crashed tab. */}
+      {/* An expense the reader is on shows THEIR side of it; anything else the
+          total. `payload` is untyped JSON, so a bad amount renders as no
+          amount, not a crashed tab. */}
       {amount ? (
         <SplitMoney
           amount={amount.amount}
@@ -248,6 +297,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           locale={locale}
           color={ink}
           fontSize={15}
+          strike={view.amountStrike}
         />
       ) : null}
       <Pressable
@@ -262,6 +312,16 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
     </Pressable>
   );
 });
+
+/** One small word of a row's meta line. */
+function MetaText({ children }: { children: string }) {
+  const theme = useTheme();
+  return (
+    <Text numberOfLines={1} style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}>
+      {children}
+    </Text>
+  );
+}
 
 /** The feed's filter chips: everything, bills, edits, or one kind of group. */
 enum FeedKind {
@@ -287,6 +347,13 @@ function inKind(entry: RecentActivityRow, kind: FeedKind): boolean {
       return true;
   }
 }
+
+/** Home's photographs share one 2.25:1 frame. */
+const PHOTO_W = 1440;
+const PHOTO_H = 640;
+/** The band's height below the status bar, and how far the sheet rides over it. */
+const HERO_BODY = 112;
+const SHEET_OVERLAP = 20;
 
 export default function ActivityScreen() {
   const theme = useTheme();
@@ -384,6 +451,7 @@ export default function ActivityScreen() {
   // Each row's display is pre-computed here via `toRowView` so a recycled cell
   // mounts with no work. This whole pass only reruns when the data, filter or
   // locale changes — never on scroll — so the up-front cost is paid off-fling.
+  const groupTagLabels = useGroupTypeTagLabels();
   const listData = useMemo(() => {
     const ctx: RowContext = {
       locale,
@@ -392,6 +460,8 @@ export default function ActivityScreen() {
       blockedIds,
       rtf,
       labels: activityLabels(locale, t.activityScreen),
+      labelForBuiltin: (id) => (t.categories as Record<string, string | undefined>)[id],
+      groupTagLabels,
     };
     const rows: FeedRow[] = [];
     for (const section of groupByDay(visibleEntries)) {
@@ -410,7 +480,7 @@ export default function ActivityScreen() {
       });
     }
     return rows;
-  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf]);
+  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels]);
 
   // The active range worded for the chip: one date when start and end share a
   // day, "start – end" otherwise. Formatted in the current locale.
@@ -426,35 +496,95 @@ export default function ActivityScreen() {
       : `${showDay(range.start)} – ${showDay(range.end)}`
     : '';
 
-  const kinds: { value: FeedKind; label: string; icon: keyof typeof Ionicons.glyphMap | null }[] = [
-    { value: FeedKind.All, label: t.activityScreen.all, icon: null },
+  const kinds: { value: FeedKind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { value: FeedKind.All, label: t.activityScreen.all, icon: 'list' },
     { value: FeedKind.Expenses, label: t.activityScreen.expenses, icon: 'wallet-outline' },
     { value: FeedKind.Edits, label: t.activityScreen.edits, icon: 'create-outline' },
     { value: FeedKind.Trip, label: t.activityScreen.trip, icon: 'airplane-outline' },
   ];
 
-  const header = (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ paddingTop: theme.spacing.sm, alignItems: 'center', gap: theme.spacing.sm }}>
+  // The scenic band behind the title: Home's own picture for the hour. Pale
+  // skies take dark ink and the status bar to match; the deep scenes keep white
+  // ink under the same top scrim Home uses.
+  const hero = useHomeHero();
+  const darkInk = heroWantsDarkInk(hero);
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const photoH = insets.top + HERO_BODY;
+  // `cover` by hand, anchored to the bottom, as Home's hero does.
+  const scale = Math.max(windowWidth / PHOTO_W, photoH / PHOTO_H);
+  const heroInk = darkInk ? '#1B1840' : '#FFFFFF';
+  const circle = (
+    label: string,
+    onPress: () => void,
+    children: React.ReactNode,
+    tinted = false,
+  ) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: tinted ? theme.color.brandSoft : 'rgba(255,255,255,0.92)',
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      {children}
+    </Pressable>
+  );
+
+  const heroBand = (
+    <View style={{ height: photoH }}>
+      <Image
+        source={HOME_HERO_PHOTOS[hero]}
+        accessibilityIgnoresInvertColors
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={{
+          position: 'absolute',
+          width: PHOTO_W * scale,
+          height: PHOTO_H * scale,
+          left: (windowWidth - PHOTO_W * scale) / 2,
+          top: photoH - PHOTO_H * scale,
+        }}
+      />
+      {darkInk ? null : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={HERO_SCRIM_COLORS}
+          locations={HERO_SCRIM_LOCATIONS}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: photoH * 0.7 }}
+        />
+      )}
+      <Row
+        style={{
+          paddingTop: insets.top + theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          alignItems: 'center',
+          gap: theme.spacing.md,
+        }}
+      >
         {/* Activity is pushed, so it carries its own way back — mirrored with
             the writing direction, the same as `groups.tsx`'s header. */}
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.xl}
-            color={theme.color.text}
-          />
-        </IconButton>
+        {circle(
+          t.common.back,
+          () => router.back(),
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color="#1B1840" />,
+        )}
         <View style={{ flex: 1 }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="notifications" size={22} color={theme.color.brand} />
-            <Text
-              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: theme.color.text }}
-            >
-              {t.activity}
-            </Text>
-          </Row>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: heroInk }}
+          >
+            {t.activity}
+          </Text>
+          <Text numberOfLines={1} style={{ fontSize: 13, lineHeight: 18, color: heroInk }}>
             {shownGroup
               ? [shownGroup.cover_emoji, shownGroup.name].filter(Boolean).join(' ')
               : t.activityScreen.subtitle}
@@ -463,32 +593,34 @@ export default function ActivityScreen() {
         {/* A long feed is easier to read a day or a span at a time — the
             calendar opens a range picker clamped to the feed's own start and
             end. A filled glyph in the brand tint marks an active range. */}
-        {span ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.activityFilter.open}
-            onPress={() => setFilterOpen(true)}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: range ? theme.color.brandSoft : theme.color.surface,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Ionicons
-              name={range ? 'calendar' : 'calendar-outline'}
-              size={iconSize.lg}
-              color={range ? theme.color.brand : theme.color.text}
-            />
-          </Pressable>
-        ) : null}
+        {span
+          ? circle(
+              t.activityFilter.open,
+              () => setFilterOpen(true),
+              <Ionicons
+                name={range ? 'calendar' : 'calendar-outline'}
+                size={iconSize.lg}
+                color={range ? theme.color.brand : '#1B1840'}
+              />,
+              !!range,
+            )
+          : null}
       </Row>
+    </View>
+  );
 
+  // The list sheet: rounded top corners riding up over the band's foot.
+  const sheetStyle = {
+    flex: 1,
+    marginTop: -SHEET_OVERLAP,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: theme.color.bg,
+    overflow: 'hidden' as const,
+  };
+
+  const header = (
+    <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
       {/* What kind of event: everything, bills, edits, or a trip's. */}
       <ScrollView
         horizontal
@@ -509,8 +641,8 @@ export default function ActivityScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
-                height: 34,
-                paddingHorizontal: option.icon ? theme.spacing.md : theme.spacing.lg,
+                height: 36,
+                paddingHorizontal: theme.spacing.md,
                 borderRadius: theme.radius.pill,
                 backgroundColor: active
                   ? theme.color.brand
@@ -520,7 +652,7 @@ export default function ActivityScreen() {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              {option.icon ? <Ionicons name={option.icon} size={iconSize.sm} color={ink} /> : null}
+              <Ionicons name={option.icon} size={iconSize.sm} color={ink} />
               <Text style={{ fontSize: 14, color: ink, fontWeight: active ? '700' : '500' }}>
                 {option.label}
               </Text>
@@ -695,12 +827,15 @@ export default function ActivityScreen() {
   // state are laid out directly instead, keeping the same padding the feed uses.
   if (listData.length === 0) {
     return (
-      <Screen>
+      <Screen edges={[]}>
+        {heroBand}
         {/* The same bottom clearance the feed's rows get. Without it this box
             runs on underneath the tab bar, and centring inside it puts the
             artwork below the middle of the part you can actually see — the
             further down the screen, the more of the box is hidden. */}
-        <View style={{ flex: 1, paddingHorizontal: theme.spacing.xl, paddingBottom: clearance }}>
+        <View
+          style={[sheetStyle, { paddingHorizontal: theme.spacing.xl, paddingBottom: clearance }]}
+        >
           {header}
           {empty}
         </View>
@@ -711,14 +846,15 @@ export default function ActivityScreen() {
   }
 
   return (
-    <Screen>
+    <Screen edges={[]}>
+      {heroBand}
       {/* A feed broken into days: each event is an icon in a soft tile, the
           sentence beside it and the actor/group/time beneath. The day headings
           are what make a long feed skimmable — without them every row had to be
           read to place it in time. */}
-      <View style={{ flex: 1 }}>
-        {/* The nav header is a fixed sibling above the feed, so only the rows
-            scroll under it. Padded to line up with the feed rows below. */}
+      <View style={sheetStyle}>
+        {/* The filters are a fixed sibling above the feed, so only the rows
+            scroll under them. Padded to line up with the feed rows below. */}
         <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
