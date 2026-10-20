@@ -566,9 +566,11 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                   ) : null}
                   {expense.pending ? <PendingMark /> : null}
                 </Row>
-                <Row style={{ gap: 6, alignItems: 'center', marginTop: 2 }}>
+                <Row style={{ gap: 6, alignItems: 'center', marginTop: 2, maxWidth: '100%' }}>
                   <View
                     style={{
+                      flexShrink: 1,
+                      minWidth: 0,
                       paddingHorizontal: 6,
                       paddingVertical: 2,
                       borderRadius: 999,
@@ -589,7 +591,12 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                     </Text>
                   </View>
                   {dateStamp ? (
-                    <Text variant="micro" tone="muted" numberOfLines={1} style={{ fontSize: 12 }}>
+                    <Text
+                      variant="micro"
+                      tone="muted"
+                      numberOfLines={1}
+                      style={{ fontSize: 12, flexShrink: 0 }}
+                    >
                       {dateStamp}
                     </Text>
                   ) : null}

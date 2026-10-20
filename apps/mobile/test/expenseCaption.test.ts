@@ -2,18 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { expenseCaption } from '../src/lib/expenseCaption';
 
 const t = {
-  youOwe: 'You owe',
-  youGet: 'You get',
+  pillBorrowed: 'Borrowed',
+  pillLent: 'Lent',
   settledShort: 'Settled',
   notInSplit: 'Not in split',
 };
 
 describe('expenseCaption', () => {
-  it('maps borrowed to the owe pill', () => {
-    expect(expenseCaption(-250n, t)).toEqual({ kind: 'owe', label: 'You owe' });
+  it('maps borrowed to the red pill', () => {
+    expect(expenseCaption(-250n, t)).toEqual({ kind: 'owe', label: 'Borrowed' });
   });
-  it('maps lent to the get pill', () => {
-    expect(expenseCaption(250n, t)).toEqual({ kind: 'get', label: 'You get' });
+  it('maps lent to the blue pill', () => {
+    expect(expenseCaption(250n, t)).toEqual({ kind: 'get', label: 'Lent' });
   });
   it('keeps settled and not-involved neutral', () => {
     expect(expenseCaption(0n, t)).toEqual({ kind: 'neutral', label: 'Settled' });

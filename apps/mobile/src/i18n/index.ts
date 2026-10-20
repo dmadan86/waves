@@ -3677,8 +3677,8 @@ export interface UiStrings {
     notInvolved: string;
     /** The short pill captions on a ledger row's right side (the long forms above
      *  stay as the spoken label). */
-    youOwe: string;
-    youGet: string;
+    pillBorrowed: string;
+    pillLent: string;
     settledShort: string;
     notInSplit: string;
     /** Detail-screen banner title when you are not a party to the bill. */
@@ -8606,8 +8606,8 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     noRateShort: 'no rate yet',
     notInvolved: 'not involved',
-    youOwe: 'You owe',
-    youGet: 'You get',
+    pillBorrowed: 'Borrowed',
+    pillLent: 'Lent',
     settledShort: 'Settled',
     notInSplit: 'Not in split',
     notInvolvedTitle: "You're not in this split",
@@ -13526,8 +13526,8 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     noRateShort: 'விகிதம் இல்லை',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
-    youOwe: 'நீங்கள் தர',
-    youGet: 'உங்களுக்கு வரும்',
+    pillBorrowed: 'வாங்கியது',
+    pillLent: 'கொடுத்தது',
     settledShort: 'சரி',
     notInSplit: 'இதில் இல்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
@@ -18454,8 +18454,8 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     noRateShort: 'दर नहीं',
     notInvolved: 'आप इसमें नहीं',
-    youOwe: 'आप देंगे',
-    youGet: 'आपको मिलेंगे',
+    pillBorrowed: 'उधार लिया',
+    pillLent: 'उधार दिया',
     settledShort: 'चुकता',
     notInSplit: 'इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
@@ -23529,8 +23529,8 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     noRateShort: 'لا يوجد سعر',
     notInvolved: 'لست ضمنها',
-    youOwe: 'عليك',
-    youGet: 'لك',
+    pillBorrowed: 'اقترضت',
+    pillLent: 'أقرضت',
     settledShort: 'مسدّد',
     notInSplit: 'خارج القسمة',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',

@@ -6,8 +6,8 @@
 export type CaptionKind = 'owe' | 'get' | 'neutral';
 
 export interface CaptionStrings {
-  youOwe: string;
-  youGet: string;
+  pillBorrowed: string;
+  pillLent: string;
   settledShort: string;
   notInSplit: string;
 }
@@ -18,7 +18,7 @@ export function expenseCaption(
   t: CaptionStrings,
 ): { kind: CaptionKind; label: string } {
   if (stake === null) return { kind: 'neutral', label: t.notInSplit };
-  if (stake > 0n) return { kind: 'get', label: t.youGet };
-  if (stake < 0n) return { kind: 'owe', label: t.youOwe };
+  if (stake > 0n) return { kind: 'get', label: t.pillLent };
+  if (stake < 0n) return { kind: 'owe', label: t.pillBorrowed };
   return { kind: 'neutral', label: t.settledShort };
 }
