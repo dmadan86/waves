@@ -602,10 +602,9 @@ function SpendingBody({
       <View style={{ gap: theme.spacing.md }}>
         {heading(
           t.byCategory,
-          link(
-            showAll && categories.length > TOP_CATEGORIES ? t.spendShowLess : t.spendSeeAll,
-            () => setShowAll((v) => !v),
-          ),
+          categories.length > TOP_CATEGORIES
+            ? link(showAll ? t.spendShowLess : t.spendSeeAll, () => setShowAll((v) => !v))
+            : null,
         )}
         <Card style={{ borderRadius: theme.radius.xl, padding: theme.spacing.lg }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
@@ -735,10 +734,9 @@ function SpendingBody({
       <View style={{ gap: theme.spacing.md }}>
         {heading(
           t.spendTopCategories,
-          link(
-            showAll && categories.length > TOP_CATEGORIES ? t.spendShowLess : t.spendSeeAll,
-            () => setShowAll((v) => !v),
-          ),
+          categories.length > TOP_CATEGORIES
+            ? link(showAll ? t.spendShowLess : t.spendSeeAll, () => setShowAll((v) => !v))
+            : null,
         )}
         <Card style={{ borderRadius: theme.radius.xl, gap: theme.spacing.md }}>
           {topList.map((entry, index) => (
