@@ -2618,6 +2618,18 @@ export interface UiStrings {
     defaultColour: string;
     searchPlaceholder: string;
     noMatches: string;
+    quick: {
+      food: string;
+      travel: string;
+      home: string;
+      friends: string;
+      shopping: string;
+      event: string;
+      car: string;
+      wallet: string;
+      game: string;
+      other: string;
+    };
     colours: {
       lilac: string;
       pink: string;
@@ -2631,6 +2643,12 @@ export interface UiStrings {
       teal: string;
       berry: string;
       slate: string;
+      iris: string;
+      blue: string;
+      aqua: string;
+      green: string;
+      yellow: string;
+      orange: string;
     };
   };
   groupPhoto: {
@@ -3288,6 +3306,28 @@ export interface UiStrings {
     muteNotifications: string;
     muteNotificationsBody: string;
     simplifyDebtsHint: string;
+    createdOn: string;
+    changePill: string;
+    editGroup: string;
+    groupDetails: string;
+    simplifyDebtsSub: string;
+    muteSub: string;
+    addMembers: string;
+    membersTitle: string;
+    inviteToGroup: string;
+    inviteToGroupHint: string;
+    groupActions: string;
+    archiveHintShort: string;
+    deleteHintShort: string;
+    adminTitle: string;
+    openMember: string;
+    memberMenu: string;
+    coverSubtitle: string;
+    coverTabIcon: string;
+    coverTabPhoto: string;
+    chooseIconStep: string;
+    chooseColourStep: string;
+    seeAll: string;
     membersHint: string;
     bringThingsIn: string;
     importMessages: string;
@@ -7867,6 +7907,18 @@ const en: UiStrings = {
     defaultColour: 'Default',
     searchPlaceholder: 'Search icons',
     noMatches: 'No icon matches that',
+    quick: {
+      food: 'Food',
+      travel: 'Travel',
+      home: 'Home',
+      friends: 'Friends',
+      shopping: 'Shopping',
+      event: 'Event',
+      car: 'Car',
+      wallet: 'Wallet',
+      game: 'Game',
+      other: 'Other',
+    },
     colours: {
       lilac: 'Lilac',
       pink: 'Pink',
@@ -7880,6 +7932,12 @@ const en: UiStrings = {
       teal: 'Teal',
       berry: 'Berry',
       slate: 'Slate',
+      iris: 'Indigo',
+      blue: 'Blue',
+      aqua: 'Aqua',
+      green: 'Green',
+      yellow: 'Yellow',
+      orange: 'Orange',
     },
   },
   groupPhoto: {
@@ -8369,6 +8427,28 @@ const en: UiStrings = {
     muteNotificationsBody:
       "Stop pushes about this group. You'll still see everything in the app, and no one else is told.",
     simplifyDebtsHint: 'Fewest payments to settle up',
+    createdOn: 'Created {date}',
+    changePill: 'Change',
+    editGroup: 'Edit group',
+    groupDetails: 'Group details',
+    simplifyDebtsSub: 'Suggests the minimum number of payments when settling',
+    muteSub: 'Turn off group notifications',
+    addMembers: 'Add members',
+    membersTitle: 'Members ({n})',
+    inviteToGroup: 'Invite to group',
+    inviteToGroupHint: 'Share a link or QR so they can join easily',
+    groupActions: 'Group actions',
+    archiveHintShort: 'Hide from your list, can be unarchived',
+    deleteHintShort: 'Permanently delete for everyone',
+    adminTitle: 'Admin',
+    openMember: 'Open member',
+    memberMenu: 'Member options',
+    coverSubtitle: 'Choose how your group looks',
+    coverTabIcon: 'Icon & colour',
+    coverTabPhoto: 'Photo',
+    chooseIconStep: '1. Choose an icon',
+    chooseColourStep: '2. Choose a colour',
+    seeAll: 'See all',
     membersHint: 'Add people, rename, set UPI IDs',
     bringThingsIn: 'Bring things in',
     importMessages: 'Import from messages',
@@ -12783,6 +12863,18 @@ const ta: UiStrings = {
     defaultColour: 'இயல்புநிலை',
     searchPlaceholder: 'ஐகான்களைத் தேடு',
     noMatches: 'பொருந்தும் ஐகான் இல்லை',
+    quick: {
+      food: 'உணவு',
+      travel: 'பயணம்',
+      home: 'வீடு',
+      friends: 'நண்பர்கள்',
+      shopping: 'ஷாப்பிங்',
+      event: 'நிகழ்வு',
+      car: 'கார்',
+      wallet: 'பணப்பை',
+      game: 'விளையாட்டு',
+      other: 'மற்றவை',
+    },
     colours: {
       lilac: 'இளஞ்சிவப்பு ஊதா',
       pink: 'இளஞ்சிவப்பு',
@@ -12796,6 +12888,12 @@ const ta: UiStrings = {
       teal: 'நீலப்பச்சை',
       berry: 'பெர்ரி',
       slate: 'சாம்பல்',
+      iris: 'கருநீலம்',
+      blue: 'நீலம்',
+      aqua: 'நீலப்பச்சை',
+      green: 'பச்சை',
+      yellow: 'மஞ்சள்',
+      orange: 'ஆரஞ்சு',
     },
   },
   groupPhoto: {
@@ -13312,6 +13410,28 @@ const ta: UiStrings = {
     muteNotificationsBody:
       'இந்தக் குழுவைப் பற்றிய புஷ் அறிவிப்புகள் உங்களுக்கு வராது. பயன்பாட்டில் எல்லாம் தெரியும்; மற்றவர்களுக்குத் தெரியாது.',
     simplifyDebtsHint: 'தீர்க குறைந்தபட்ச பணம் செலுத்தல்கள்',
+    createdOn: 'உருவாக்கியது {date}',
+    changePill: 'மாற்று',
+    editGroup: 'குழுவைத் திருத்து',
+    groupDetails: 'குழு விவரங்கள்',
+    simplifyDebtsSub: 'தீர்வு செய்யும்போது குறைந்தபட்ச கட்டணங்களைப் பரிந்துரைக்கும்',
+    muteSub: 'குழு அறிவிப்புகளை நிறுத்து',
+    addMembers: 'உறுப்பினர்களைச் சேர்',
+    membersTitle: 'உறுப்பினர்கள் ({n})',
+    inviteToGroup: 'குழுவுக்கு அழை',
+    inviteToGroupHint: 'இணைப்பு அல்லது QR பகிர்ந்தால் எளிதாகச் சேரலாம்',
+    groupActions: 'குழு செயல்கள்',
+    archiveHintShort: 'உங்கள் பட்டியலில் இருந்து மறை, மீண்டும் கொண்டுவரலாம்',
+    deleteHintShort: 'அனைவருக்கும் நிரந்தரமாக நீக்கு',
+    adminTitle: 'நிர்வாகி',
+    openMember: 'உறுப்பினரைத் திற',
+    memberMenu: 'உறுப்பினர் விருப்பங்கள்',
+    coverSubtitle: 'உங்கள் குழு எப்படித் தெரிய வேண்டும் எனத் தேர்ந்தெடுக்கவும்',
+    coverTabIcon: 'ஐகான் & நிறம்',
+    coverTabPhoto: 'புகைப்படம்',
+    chooseIconStep: '1. ஐகானைத் தேர்ந்தெடுக்கவும்',
+    chooseColourStep: '2. நிறத்தைத் தேர்ந்தெடுக்கவும்',
+    seeAll: 'அனைத்தும்',
     membersHint: 'ஆட்களைச் சேர், பெயர் மாற்று, UPI ID அமை',
     bringThingsIn: 'கொண்டுவருதல்',
     importMessages: 'செய்திகளிலிருந்து இறக்குமதி',
@@ -17791,6 +17911,18 @@ const hi: UiStrings = {
     defaultColour: 'डिफ़ॉल्ट',
     searchPlaceholder: 'आइकन खोजें',
     noMatches: 'कोई आइकन नहीं मिला',
+    quick: {
+      food: 'खाना',
+      travel: 'यात्रा',
+      home: 'घर',
+      friends: 'दोस्त',
+      shopping: 'खरीदारी',
+      event: 'इवेंट',
+      car: 'कार',
+      wallet: 'वॉलेट',
+      game: 'गेम',
+      other: 'अन्य',
+    },
     colours: {
       lilac: 'बैंगनी',
       pink: 'गुलाबी',
@@ -17804,6 +17936,12 @@ const hi: UiStrings = {
       teal: 'हरा-नीला',
       berry: 'बेरी',
       slate: 'स्लेटी',
+      iris: 'नीलम',
+      blue: 'नीला',
+      aqua: 'फिरोज़ी',
+      green: 'हरा',
+      yellow: 'पीला',
+      orange: 'नारंगी',
     },
   },
   groupPhoto: {
@@ -18295,6 +18433,28 @@ const hi: UiStrings = {
     muteNotificationsBody:
       'इस ग्रुप की पुश सूचनाएँ आपको नहीं आएँगी। ऐप में सब कुछ दिखता रहेगा, और किसी और को पता नहीं चलेगा।',
     simplifyDebtsHint: 'सेटल करने के लिए कम से कम भुगतान',
+    createdOn: 'बनाया गया {date}',
+    changePill: 'बदलें',
+    editGroup: 'ग्रुप संपादित करें',
+    groupDetails: 'ग्रुप विवरण',
+    simplifyDebtsSub: 'हिसाब चुकाते समय कम से कम भुगतान सुझाता है',
+    muteSub: 'ग्रुप की सूचनाएँ बंद करें',
+    addMembers: 'सदस्य जोड़ें',
+    membersTitle: 'सदस्य ({n})',
+    inviteToGroup: 'ग्रुप में बुलाएँ',
+    inviteToGroupHint: 'लिंक या QR शेयर करें ताकि वे आसानी से जुड़ सकें',
+    groupActions: 'ग्रुप कार्रवाइयाँ',
+    archiveHintShort: 'अपनी सूची से छिपाएँ, बाद में वापस ला सकते हैं',
+    deleteHintShort: 'सबके लिए हमेशा के लिए हटाएँ',
+    adminTitle: 'एडमिन',
+    openMember: 'सदस्य खोलें',
+    memberMenu: 'सदस्य विकल्प',
+    coverSubtitle: 'चुनें कि आपका ग्रुप कैसा दिखे',
+    coverTabIcon: 'आइकन और रंग',
+    coverTabPhoto: 'फ़ोटो',
+    chooseIconStep: '1. आइकन चुनें',
+    chooseColourStep: '2. रंग चुनें',
+    seeAll: 'सभी देखें',
     membersHint: 'लोग जोड़ें, नाम बदलें, UPI ID सेट करें',
     bringThingsIn: 'बाहर से लाएँ',
     importMessages: 'मैसेज से आयात',
@@ -22806,6 +22966,18 @@ const ar: UiStrings = {
     defaultColour: 'الافتراضي',
     searchPlaceholder: 'ابحث عن أيقونة',
     noMatches: 'لا توجد أيقونة مطابقة',
+    quick: {
+      food: 'طعام',
+      travel: 'سفر',
+      home: 'منزل',
+      friends: 'أصدقاء',
+      shopping: 'تسوق',
+      event: 'مناسبة',
+      car: 'سيارة',
+      wallet: 'محفظة',
+      game: 'لعبة',
+      other: 'أخرى',
+    },
     colours: {
       lilac: 'بنفسجي فاتح',
       pink: 'وردي',
@@ -22819,6 +22991,12 @@ const ar: UiStrings = {
       teal: 'أخضر مزرق',
       berry: 'توتي',
       slate: 'رمادي أردوازي',
+      iris: 'نيلي',
+      blue: 'أزرق',
+      aqua: 'سماوي',
+      green: 'أخضر',
+      yellow: 'أصفر',
+      orange: 'برتقالي',
     },
   },
   groupPhoto: {
@@ -23381,6 +23559,28 @@ const ar: UiStrings = {
     muteNotificationsBody:
       'لن تصلك إشعارات عن هذه المجموعة. سترى كل شيء في التطبيق، ولن يعلم أحد غيرك.',
     simplifyDebtsHint: 'أقل عدد من المدفوعات للتسوية',
+    createdOn: 'أُنشئت {date}',
+    changePill: 'تغيير',
+    editGroup: 'تعديل المجموعة',
+    groupDetails: 'تفاصيل المجموعة',
+    simplifyDebtsSub: 'يقترح أقل عدد من الدفعات عند التسوية',
+    muteSub: 'إيقاف إشعارات المجموعة',
+    addMembers: 'إضافة أعضاء',
+    membersTitle: 'الأعضاء ({n})',
+    inviteToGroup: 'دعوة إلى المجموعة',
+    inviteToGroupHint: 'شارك رابطًا أو رمز QR ليتمكنوا من الانضمام بسهولة',
+    groupActions: 'إجراءات المجموعة',
+    archiveHintShort: 'إخفاء من قائمتك، ويمكن إلغاء الأرشفة',
+    deleteHintShort: 'حذف نهائي للجميع',
+    adminTitle: 'مشرف',
+    openMember: 'فتح العضو',
+    memberMenu: 'خيارات العضو',
+    coverSubtitle: 'اختر شكل مجموعتك',
+    coverTabIcon: 'أيقونة ولون',
+    coverTabPhoto: 'صورة',
+    chooseIconStep: '1. اختر أيقونة',
+    chooseColourStep: '2. اختر لونًا',
+    seeAll: 'عرض الكل',
     membersHint: 'أضف أشخاصًا، غيّر الأسماء، اضبط معرّفات الدفع',
     bringThingsIn: 'استيراد',
     importMessages: 'استيراد من الرسائل',

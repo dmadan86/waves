@@ -6,16 +6,16 @@ do not draw your own header, card, pill or row.
 
 ## Components
 
-| Component        | Use it for                                                                                                                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ScenicHeader`   | The top of a screen: a short photo band (about 20% of the screen height) with back chevron, centred 22sp bold title and an optional pill row as children.                                       |
-| `ScenicBody`     | The content under a `ScenicHeader`: rides up 36dp over the photo, 16dp side gutters, 20dp between sections. In a list, put the header in `ListHeaderComponent` and give items the same gutters. |
-| `SegmentedPills` | Choose one of a few (Group / Just me): navy `#1F1B4D` with white text when selected, translucent white otherwise.                                                                               |
-| `PillButton`     | A white pill that opens a picker (month, currency).                                                                                                                                             |
-| `SectionHeader`  | A 20sp bold section title. Optional `action` ("See all ›") or `trailing` (a dropdown pill, a day total).                                                                                        |
-| `StandardCard`   | Any grouped content: white, 24dp radius, soft shadow, 16dp padding.                                                                                                                             |
-| `StatCard`       | The screen's headline number: muted 15sp label with glyph, 34sp bold amount with grey minor units, a caption, an optional change pill and sparkline.                                            |
-| `ListRow`        | A line in a card: 28dp tinted icon circle, regular-weight title, muted subtitle, semibold amount on the right, optional muted % or chevron.                                                     |
+| Component        | Use it for                                                                                                                                                                                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ScenicHeader`   | The top of a screen: a short photo band (about 20% of the screen height) with back chevron, centred 22sp bold title and an optional pill row as children.                                                                                                  |
+| `ScenicBody`     | The content under a `ScenicHeader`: rides up 36dp over the photo, 16dp side gutters, 20dp between sections. In a list, put the header in `ListHeaderComponent` and give items the same gutters.                                                            |
+| `SegmentedPills` | Choose one of a few (Group / Just me): navy `#1F1B4D` with white text when selected, translucent white otherwise.                                                                                                                                          |
+| `PillButton`     | A white pill that opens a picker (month, currency).                                                                                                                                                                                                        |
+| `SectionHeader`  | A 20sp bold section title. Optional `action` ("See all ›") or `trailing` (a dropdown pill, a day total).                                                                                                                                                   |
+| `StandardCard`   | Any grouped content: white, 24dp radius, soft shadow, 16dp padding.                                                                                                                                                                                        |
+| `StatCard`       | The screen's headline number: muted 15sp label with glyph, 34sp bold amount with grey minor units, a caption, an optional change pill and sparkline.                                                                                                       |
+| `ListRow`        | A line in a card: tinted icon circle, regular-weight title, muted subtitle, semibold amount on the right, optional muted % or chevron. Also `trailing` (a toggle or menu button), `highlight`, `destructive`, `titleAccessory` (an ⓘ) and `subtitleLines`. |
 
 ## Tokens
 

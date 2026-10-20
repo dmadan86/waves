@@ -8,9 +8,9 @@ import {
 } from '../src/index';
 
 describe('group cover colour keys', () => {
-  it('offers twelve distinct keys, every one a shape the column accepts', () => {
-    expect(GROUP_COVER_COLORS).toHaveLength(12);
-    expect(new Set(GROUP_COVER_COLORS).size).toBe(12);
+  it('offers eighteen distinct keys, every one a shape the column accepts', () => {
+    expect(GROUP_COVER_COLORS).toHaveLength(18);
+    expect(new Set(GROUP_COVER_COLORS).size).toBe(18);
     for (const key of GROUP_COVER_COLORS) expect(key).toMatch(GROUP_COVER_COLOR_SHAPE);
   });
 
