@@ -1350,12 +1350,8 @@ export function VoiceCapture({
     );
   }
 
-
   return (
-    <VoiceSheetBody
-      transcript={shownTranscript}
-      final={shownFinal}
-    >
+    <VoiceSheetBody transcript={shownTranscript} final={shownFinal}>
       {problem ? (
         <VoiceErrorState
           problem={problem}
@@ -1365,11 +1361,7 @@ export function VoiceCapture({
       ) : null}
 
       {showSuggestions(flow, shownTranscript) ? (
-        <VoiceSuggestions
-          suggestions={suggestions}
-          onPick={onSuggestion}
-          canPick={canPick}
-        />
+        <VoiceSuggestions suggestions={suggestions} onPick={onSuggestion} canPick={canPick} />
       ) : null}
 
       {offerOffline ? (

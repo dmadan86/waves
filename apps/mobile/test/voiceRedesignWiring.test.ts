@@ -100,7 +100,9 @@ describe('voice screen redesign wiring', () => {
     expect(voice).not.toContain('sheetTop');
     expect(voice).not.toContain('borderTopLeftRadius: 28');
     expect(voice).not.toContain('VoiceSceneBackdrop');
-    expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(false);
+    expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(
+      false,
+    );
     expect(voice).not.toContain('VoiceFooterScene');
   });
 });
