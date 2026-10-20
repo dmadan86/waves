@@ -556,8 +556,15 @@ function SwatchRow({ value, onPick }: { value: string | null; onPick: (key: stri
   // A group with no colour chosen is drawn on the app's own tile, which is the
   // indigo family; show that one as the current pick.
   const current = value ?? 'iris';
+  // Sized from the measured row so all eight fit down to 360dp.
+  const [width, setWidth] = useState(0);
+  const slot = width > 0 ? Math.min(44, Math.floor(width / COVER_SWATCHES.length)) : 40;
+  const dot = slot - 8;
   return (
-    <Row style={{ justifyContent: 'space-between' }}>
+    <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+    >
       {COVER_SWATCHES.map((swatch) => {
         const selected = current === swatch.key;
         return (
@@ -571,9 +578,9 @@ function SwatchRow({ value, onPick }: { value: string | null; onPick: (key: stri
             onPress={() => onPick(swatch.key)}
             hitSlop={4}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
+              width: slot,
+              height: slot,
+              borderRadius: slot / 2,
               alignItems: 'center',
               justifyContent: 'center',
               borderWidth: 2,
@@ -582,9 +589,9 @@ function SwatchRow({ value, onPick }: { value: string | null; onPick: (key: stri
           >
             <View
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 17,
+                width: dot,
+                height: dot,
+                borderRadius: dot / 2,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: swatch.hex,
@@ -595,7 +602,7 @@ function SwatchRow({ value, onPick }: { value: string | null; onPick: (key: stri
           </Pressable>
         );
       })}
-    </Row>
+    </View>
   );
 }
 

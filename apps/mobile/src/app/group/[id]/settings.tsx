@@ -944,11 +944,8 @@ export default function GroupSettingsScreen() {
                     <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
                   </Pressable>
                 </Row>
-                <Text variant="caption" numberOfLines={1}>
-                  {[plural(locale, memberCount, t.memberCount), createdLabel]
-                    .filter(Boolean)
-                    .join('  ·  ')}
-                </Text>
+                <Text variant="caption">{plural(locale, memberCount, t.memberCount)}</Text>
+                {createdLabel ? <Text variant="caption">{createdLabel}</Text> : null}
               </View>
             </Row>
             <View style={{ flex: 1 }} />
