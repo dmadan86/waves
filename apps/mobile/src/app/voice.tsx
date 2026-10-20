@@ -2239,6 +2239,12 @@ export default function VoiceScreen() {
     answering: answer?.kind === 'group' && queryLedger.loading,
   };
   const stageState = voiceFlowState(stageInput);
+  // A card is under the stage: a question, the expense, an answer or Saved.
+  const stageSettled =
+    phase === 'review' ||
+    phase === 'saved' ||
+    phase === 'answer' ||
+    (phase === 'agent' && agentStage !== 'working');
   const stageTap = stageMicTap(phase, stageState);
   // Tapping the mic speaks the next sentence in place: onto the reviewed batch,
   // or fresh after a card or an answer.
@@ -2621,9 +2627,9 @@ export default function VoiceScreen() {
 
   return (
     <Screen>
-      {/* The desk scene along the foot, under everything, in every step; a card
-          or a pinned bar simply covers it. */}
-      <VoiceSceneBackdrop />
+      {/* The desk scene along the foot while speaking and understanding. Once a
+          card is answering it goes, so it never sits over the card's choices. */}
+      {stageSettled ? null : <VoiceSceneBackdrop />}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -2724,6 +2730,7 @@ export default function VoiceScreen() {
                 reduceMotion={reduceMotion}
                 transcript={heardText}
                 final
+                settled={stageSettled}
                 onEditTranscript={
                   phase === 'review' || phase === 'agent' || phase === 'saved'
                     ? editHeard

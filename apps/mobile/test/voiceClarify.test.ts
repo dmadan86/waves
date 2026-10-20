@@ -48,6 +48,24 @@ describe('clarifyOptionViews', () => {
     expect(views[1]!.detail).toBeNull();
   });
 
+  it('titles each option by its detail when every option has the same title', () => {
+    const views = clarifyOptionViews([
+      { label: '₹80,000', detail: 'Goa trip (split in group)', answer: 'goa' },
+      { label: '₹80,000', detail: 'Just for me', answer: 'me' },
+    ]);
+    expect(views.map((v) => [v.label, v.detail])).toEqual([
+      ['Goa trip (split in group)', null],
+      ['Just for me', null],
+    ]);
+    // One option missing a detail keeps the titles as they were.
+    expect(
+      clarifyOptionViews([
+        { label: '₹80,000', detail: 'Goa', answer: 'goa' },
+        { label: '₹80,000', answer: 'me' },
+      ])[0]!.label,
+    ).toBe('₹80,000');
+  });
+
   it('shows nothing (the old speak/type card) when absent, too few or too many', () => {
     expect(clarifyOptionViews(undefined)).toEqual([]);
     expect(clarifyOptionViews([two[0]!])).toEqual([]);

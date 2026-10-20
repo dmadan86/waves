@@ -69,6 +69,12 @@ export interface VoiceStageProps {
   transcript: string;
   final: boolean;
   onEditTranscript?: () => void;
+  /**
+   * A card is answering under the stage (a question, the expense, Saved): the
+   * "say it naturally" prompt and the empty wave room give way to it, so the
+   * card sits right under the mic instead of below the fold.
+   */
+  settled?: boolean;
   /** Under the transcript: suggestions, the error card. */
   children?: ReactNode;
 }
@@ -82,6 +88,7 @@ export function VoiceStage({
   transcript,
   final,
   onEditTranscript,
+  settled = false,
   children,
 }: VoiceStageProps) {
   const theme = useTheme();
@@ -89,15 +96,17 @@ export function VoiceStage({
   const open = micMode === 'stop';
   return (
     <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      {/* Kept through every step, so the page never changes under the person. */}
-      <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
-        <Text variant="heading" align="center" accessibilityRole="header">
-          {t.voiceScreen.headline}
-        </Text>
-        <Text variant="body" tone="muted" align="center">
-          {t.voiceScreen.subline}
-        </Text>
-      </View>
+      {/* Kept while speaking and understanding, so stopping the mic changes nothing. */}
+      {settled ? null : (
+        <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
+          <Text variant="heading" align="center" accessibilityRole="header">
+            {t.voiceScreen.headline}
+          </Text>
+          <Text variant="body" tone="muted" align="center">
+            {t.voiceScreen.subline}
+          </Text>
+        </View>
+      )}
       <FloatingMicrophone
         mode={micMode}
         level={level}
@@ -107,10 +116,12 @@ export function VoiceStage({
       />
       <View style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: -theme.spacing.sm }}>
         <VoiceStatus status={status} text={statusText(t, status)} />
-        {/* The wave's room is kept in every step, so nothing below it moves. */}
-        <View style={{ height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
-          {open && level ? <AudioWaveform level={level} reduceMotion={reduceMotion} /> : null}
-        </View>
+        {/* The wave's room is kept until a card arrives, so nothing below it moves. */}
+        {settled ? null : (
+          <View style={{ height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
+            {open && level ? <AudioWaveform level={level} reduceMotion={reduceMotion} /> : null}
+          </View>
+        )}
       </View>
       <LiveTranscript text={transcript} final={final} reserve onEdit={onEditTranscript} />
       {children}

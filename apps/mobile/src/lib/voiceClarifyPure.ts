@@ -41,7 +41,13 @@ export function clarifyOptionViews(
     const detail = typeof option.detail === 'string' ? option.detail.trim() : '';
     views.push({ label, detail: detail || null, answer, ...look });
   }
-  return views.length >= 2 && views.length <= 4 ? views : [];
+  if (views.length < 2 || views.length > 4) return [];
+  // Every option titled the same ("₹80,000", "₹80,000") tells the reader nothing;
+  // the detail is what tells them apart, so it becomes the title.
+  const sameLabel = views.every((view) => view.label === views[0].label);
+  if (sameLabel && views.every((view) => view.detail))
+    return views.map((view) => ({ ...view, label: view.detail as string, detail: null }));
+  return views;
 }
 
 /** The follow-up Continue sends for the chosen option, or null with no choice. */
