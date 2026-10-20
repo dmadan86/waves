@@ -13,10 +13,10 @@
  * there.
  */
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { Linking, Pressable, View } from 'react-native';
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { Text, useTheme } from '@waves/ui';
 
@@ -48,7 +48,8 @@ import {
 } from '@/lib/voiceEnginePure';
 import { createModelProbe, planAgentWait } from '@/lib/voiceStartPure';
 import { VoiceErrorState } from '@/components/voice/VoiceErrorState';
-import { VoiceStage } from '@/components/voice/VoiceStage';
+import type { MicMode } from '@/components/voice/FloatingMicrophone';
+import { VoiceSheetBody } from '@/components/voice/VoiceStage';
 import {
   useVoiceSuggestions,
   VoiceSuggestions,
@@ -61,6 +62,7 @@ import {
   showSuggestions,
   voiceFlowState,
   voiceStatusKey,
+  type VoiceStatusKey,
 } from '@/lib/voiceFlowPure';
 
 /**
@@ -183,7 +185,21 @@ export interface VoiceDoneInfo {
   readonly alternatives: readonly string[];
 }
 
+/**
+ * What the screen's fixed top area needs from the mic: the screen draws the
+ * mic, the status pill and the wave once above the sheet, so this panel reports
+ * their state up and draws only the sheet's share (the transcript and cards).
+ */
+export interface CaptureStage {
+  status: VoiceStatusKey;
+  micMode: MicMode;
+  onMicPress: () => void;
+  level: SharedValue<number>;
+}
+
 export interface VoiceCaptureProps {
+  /** Reports the mic's state to the screen's top area; null when this unmounts. */
+  onStage?: (stage: CaptureStage | null) => void;
   /**
    * Called with the final sentence once the speaker stops. `info.streamed` is
    * true when it came from the live Deepgram stream (advanced voice) rather
@@ -409,6 +425,7 @@ export function VoiceCapture({
   heard = '',
   onSuggestion,
   canPick,
+  onStage,
 }: VoiceCaptureProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -1291,14 +1308,6 @@ export function VoiceCapture({
 
   const suggestions = useVoiceSuggestions(groupNames);
 
-  if (!available) {
-    return (
-      <Text tone="muted" align="center">
-        {t.voice.unavailable}
-      </Text>
-    );
-  }
-
   const flowInput = { phase: 'listening' as const, capture: micState, missed };
   const flow = voiceFlowState(flowInput);
   const status = voiceStatusKey(flow, flowInput);
@@ -1320,15 +1329,35 @@ export function VoiceCapture({
     (flow === 'idle' && !live && offlineEligible) ||
     (showMiss && (engine === 'network' || offlineEligible));
 
+  // Hand the top area the mic's state before paint, so it never shows a stale frame.
+  const toggleRef = useRef(toggle);
+  useEffect(() => {
+    toggleRef.current = toggle;
+  });
+  const onMicPress = useCallback(() => toggleRef.current(), []);
+  const onStageRef = useRef(onStage);
+  useEffect(() => {
+    onStageRef.current = onStage;
+  });
+  useLayoutEffect(() => {
+    onStageRef.current?.({ status, micMode, onMicPress, level });
+  }, [status, micMode, onMicPress, level]);
+  useLayoutEffect(() => () => onStageRef.current?.(null), []);
+
+  if (!available) {
+    return (
+      <Text tone="muted" align="center">
+        {t.voice.unavailable}
+      </Text>
+    );
+  }
+
+
   return (
-    <VoiceStage
-      status={status}
-      micMode={micMode}
-      onMicPress={toggle}
-      reduceMotion={reduceMotion}
-      level={level}
+    <VoiceSheetBody
       transcript={shownTranscript}
       final={shownFinal}
+      reserve
     >
       {problem ? (
         <VoiceErrorState
@@ -1371,6 +1400,6 @@ export function VoiceCapture({
           ) : null}
         </View>
       ) : null}
-    </VoiceStage>
+    </VoiceSheetBody>
   );
 }

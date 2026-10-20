@@ -30,7 +30,14 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -60,10 +67,8 @@ import {
   Callout,
   Card,
   Divider,
-  IconButton,
   iconSize,
   Row,
-  Screen,
   Sheet,
   Text,
   useTheme,
@@ -170,8 +175,10 @@ import {
 } from '@/components/voice/ExpensePreviewCard';
 import { ReviewQuestionCard } from '@/components/voice/ReviewQuestion';
 import { VoiceFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
-import { VoiceSceneBackdrop } from '@/components/voice/VoiceSceneBackdrop';
-import { VoiceStage } from '@/components/voice/VoiceStage';
+import { VoiceScene } from '@/components/voice/VoiceScene';
+import { VoiceSheetBody, VoiceTop } from '@/components/voice/VoiceStage';
+import type { MicMode as StageMicMode } from '@/components/voice/FloatingMicrophone';
+import type { CaptureStage } from '@/components/VoiceCapture';
 import { suggestionWords, type Suggestion } from '@/components/voice/VoiceSuggestions';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import {
@@ -179,6 +186,7 @@ import {
   stageMicMode,
   stageMicTap,
   stageStatusKey,
+  type VoiceStatusKey,
   voiceFlowState,
   type AgentStage,
 } from '@/lib/voiceFlowPure';
@@ -376,14 +384,45 @@ function planWho(
   };
 }
 
+/** A round translucent button over the photo (the ✕, the keypad). */
+function CircleButton({
+  label,
+  onPress,
+  children,
+}: {
+  label: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.scheme === 'dark' ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.78)',
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 export default function VoiceScreen() {
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   // Your own name, for the destination row: the picker offers "me" as your
   // portrait and name, and the folded selector has to say the same thing back.
   const viewer = useViewerIdentity();
-  // The one canonical foot. `Screen` below takes only the top edge, so nothing
-  // else has added the bottom inset — this is where it comes from, once.
+  // The one canonical insets: the top area clears the status bar and the sheet's
+  // footer clears the navigation bar, each added once, here.
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
 
@@ -650,6 +689,8 @@ export default function VoiceScreen() {
     if (noAmount && typedMode && lastTyped.current) setTypedDraft(lastTyped.current);
   }, [noAmount, typedMode]);
   const [error, setError] = useState<string | null>(null);
+  // The mic panel's state for the fixed top area, while listening.
+  const [capStage, setCapStage] = useState<CaptureStage | null>(null);
   const [saving, setSaving] = useState(false);
   // Remounts the mic to start a fresh utterance after a miss.
   const [attempt, setAttempt] = useState(0);
@@ -2239,12 +2280,6 @@ export default function VoiceScreen() {
     answering: answer?.kind === 'group' && queryLedger.loading,
   };
   const stageState = voiceFlowState(stageInput);
-  // A card is under the stage: a question, the expense, an answer or Saved.
-  const stageSettled =
-    phase === 'review' ||
-    phase === 'saved' ||
-    phase === 'answer' ||
-    (phase === 'agent' && agentStage !== 'working');
   const stageTap = stageMicTap(phase, stageState);
   // Tapping the mic speaks the next sentence in place: onto the reviewed batch,
   // or fresh after a card or an answer.
@@ -2625,119 +2660,143 @@ export default function VoiceScreen() {
             ? (panelFooter ?? {})
             : {};
 
+  // The fixed top area (✕, title, mic, status pill, wave) is the same in every
+  // phase: while listening the mic panel reports its state up, otherwise it is
+  // read from the screen's own flow. Only the sheet below it changes.
+  const listeningLive = phase === 'listening' && !typedMode;
+  const topStage = listeningLive ? capStage : null;
+  const topStatus: VoiceStatusKey = listeningLive
+    ? (capStage?.status ?? 'ready')
+    : phase === 'listening'
+      ? 'ready'
+      : stageStatusKey(stageInput);
+  const topMicMode: StageMicMode = listeningLive
+    ? (capStage?.micMode ?? 'start')
+    : phase === 'listening'
+      ? 'start'
+      : stageMicMode(stageState);
+  const onTopMic = (): void => {
+    if (listeningLive) topStage?.onMicPress();
+    else if (phase === 'listening') {
+      // Typing: the mic is the way back to speaking.
+      setNoAmount(false);
+      setAttempt((current) => current + 1);
+      setTypedMode(false);
+    } else onStageMic();
+  };
+  // The sheet takes the lower ~43% (never under 40%); a short phone trims the
+  // top area's gaps instead of scrolling it.
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = Math.round(windowHeight * 0.43);
+  const compactTop = windowHeight < 720;
+
   return (
-    <Screen>
-      {/* The desk scene along the foot while speaking and understanding. Once a
-          card is answering it goes, so it never sits over the card's choices. */}
-      {stageSettled ? null : <VoiceSceneBackdrop />}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      {/* The photograph, edge to edge under the status bar; the sheet covers its
+          lower part. */}
+      <VoiceScene />
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+        <VoiceTop
+          status={topStatus}
+          micMode={topMicMode}
+          onMicPress={onTopMic}
+          reduceMotion={reduceMotion}
+          level={listeningLive ? (capStage?.level ?? null) : null}
+          topInset={insets.top}
+          compact={compactTop}
+        />
+      </View>
+      {/* Just the ✕ (and typing, while listening). Speaking another expense is
+          one job with one home — the mic — so there is no second mic here. */}
+      <Row
+        style={{
+          position: 'absolute',
+          top: insets.top + theme.spacing.sm,
+          right: theme.spacing.lg,
+          gap: theme.spacing.sm,
+          alignItems: 'center',
+        }}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          // Capturing is one still screen — the mic, what to say, the scene at the
-          // foot — so it does not scroll or bounce while it fits. It only scrolls
-          // when it has to: a long review, or a phone too short to show the
-          // capture surface whole, where clipping it would hide the mic.
-          scrollEnabled={contentHeight > viewportHeight + 1}
-          bounces={false}
-          overScrollMode="never"
-          onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
-          onContentSizeChange={(_width, height) => setContentHeight(height)}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingBottom: theme.spacing.lg,
-            // The same in every step, so the header and the mic never move.
-            gap: theme.spacing.md,
-            // Fill the viewport when the capture surface is shorter than it, so the
-            // mic panel's own footer (the offline-voice offer) can sit at the foot of
-            // the screen rather than tucked under the mic. `flexGrow` only ever sets a
-            // *minimum* — a panel taller than the window still scrolls, where `flex`
-            // would have squeezed it.
-            flexGrow: 1,
-          }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Row
-            style={{
-              paddingTop: theme.spacing.md,
-              justifyContent: 'space-between',
-              alignItems: 'center',
+        {phase === 'listening' && !typedMode ? (
+          <CircleButton
+            label={t.assistant.composerTypeInstead}
+            onPress={() => {
+              hapticSelect();
+              captureActive.current = false;
+              setTypedMode(true);
             }}
           >
-            {/* The Activity screen's header shape — a left-aligned brand glyph and a
-              big bold title — so the review reads as the same family of screen.
-              Here the glyph is the mic that started the capture. */}
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center', flexShrink: 1 }}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Ionicons name="mic" size={iconSize.md} color={theme.color.brand} />
-              </View>
-              <Text variant="heading" accessibilityRole="header" style={{ flexShrink: 1 }}>
-                {t.voice.title}
-              </Text>
-            </Row>
-            {/* Just the ✕. Speaking another expense is one job with one home — the
-              mic below, and "Add another" once saved — so the header carries no
-              second mic competing with it. */}
-            <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-              {/* Typing lives up here beside ✕ rather than as a pill under the
-                examples: the capture screen has to fit one phone height, and a
-                pill at the foot ended up under the system navigation bar. */}
-              {phase === 'listening' && !typedMode ? (
-                <IconButton
-                  label={t.assistant.composerTypeInstead}
-                  onPress={() => {
-                    hapticSelect();
-                    captureActive.current = false;
-                    setTypedMode(true);
-                  }}
-                >
-                  <Ionicons name="keypad-outline" size={iconSize.lg} color={theme.color.text} />
-                </IconButton>
-              ) : null}
-              <IconButton label={t.common.close} onPress={dismiss}>
-                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
-              </IconButton>
-            </Row>
-          </Row>
-
+            <Ionicons name="keypad-outline" size={iconSize.lg} color={theme.color.text} />
+          </CircleButton>
+        ) : null}
+        <CircleButton label={t.common.close} onPress={dismiss}>
+          <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+        </CircleButton>
+      </Row>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        pointerEvents="box-none"
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+      >
+        {/* The sheet: the transcript and the step's card scroll inside it; the
+            footer stays pinned at its foot. */}
+        <View
+          style={{
+            height: sheetHeight,
+            flexShrink: 1,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            overflow: 'hidden',
+            backgroundColor: theme.color.bg,
+          }}
+        >
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              alignSelf: 'center',
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              marginTop: theme.spacing.sm,
+              backgroundColor: theme.color.border,
+            }}
+          />
+          <ScrollView
+            style={{ flex: 1 }}
+            // Scrolls only when the card is taller than the sheet.
+            scrollEnabled={contentHeight > viewportHeight + 1}
+            bounces={false}
+            overScrollMode="never"
+            onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+            onContentSizeChange={(_width, height) => setContentHeight(height)}
+            contentContainerStyle={{
+              paddingHorizontal: theme.spacing.xl,
+              paddingTop: theme.spacing.md,
+              paddingBottom: theme.spacing.lg,
+              gap: theme.spacing.md,
+              flexGrow: 1,
+            }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           {error ? <Callout tone="negative">{error}</Callout> : null}
           {agentQuotaNote && phase !== 'agent' ? (
             <Text variant="caption" tone="muted">
               {t.voice.agentQuotaFallback}
             </Text>
           ) : null}
-          {/* One stage for the whole flow: the mic, the status line and what was
-              heard stay put while the cards below it change in place. The listening
-              phase draws the same frame inside the mic panel. */}
+          {/* What was heard heads the sheet in every step after the sentence; the
+              cards below it change in place. The listening phase draws the same
+              transcript inside the mic panel. */}
           {phase !== 'listening' ? (
-            <View style={{ paddingTop: theme.spacing.md }}>
-              <VoiceStage
-                status={stageStatusKey(stageInput)}
-                micMode={stageMicMode(stageState)}
-                onMicPress={onStageMic}
-                reduceMotion={reduceMotion}
-                transcript={heardText}
-                final
-                settled={stageSettled}
-                onEditTranscript={
-                  phase === 'review' || phase === 'agent' || phase === 'saved'
-                    ? editHeard
-                    : undefined
-                }
-              />
-            </View>
+            <VoiceSheetBody
+              transcript={heardText}
+              final
+              onEditTranscript={
+                phase === 'review' || phase === 'agent' || phase === 'saved' ? editHeard : undefined
+              }
+            />
           ) : null}
 
           {phase === 'agent' && agentSession ? (
@@ -3029,12 +3088,6 @@ export default function VoiceScreen() {
               ) : null}
               {typedMode ? (
                 <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
-                  <Text variant="heading" align="center">
-                    {t.voiceScreen.headline}
-                  </Text>
-                  <Text variant="body" tone="muted" align="center">
-                    {t.voiceScreen.subline}
-                  </Text>
                   {noAmount ? <Callout tone="warning">{t.voice.noAmount}</Callout> : null}
                   <AssistantComposer
                     value={typedDraft}
@@ -3058,6 +3111,7 @@ export default function VoiceScreen() {
                   agentLastKnown={agentStatusReady ? agentServerOn : agentLastKnown}
                   cloudConsent={agentServerOn ? cloudConsent : 'granted'}
                   onEngine={setEngine}
+                  onStage={setCapStage}
                   groupId={launchGroupId}
                   hints={hints}
                   groupNames={groupNames}
@@ -3097,10 +3151,10 @@ export default function VoiceScreen() {
               ) : null}
             </View>
           )}
-        </ScrollView>
+          </ScrollView>
+          <VoiceFooter spec={footerSpec} inset={insets.bottom} />
+        </View>
       </KeyboardAvoidingView>
-
-      <VoiceFooter spec={footerSpec} inset={insets.bottom} />
 
       {/* The destination picker, as a dismissible bottom sheet — the app's one
           Sheet, so it presents, dims and dismisses exactly like every other
@@ -3195,7 +3249,7 @@ export default function VoiceScreen() {
           }
         />
       ) : null}
-    </Screen>
+    </View>
   );
 }
 

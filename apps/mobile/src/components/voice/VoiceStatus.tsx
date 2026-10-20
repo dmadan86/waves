@@ -1,5 +1,5 @@
 /**
- * The status line under the mic: an icon and a word, never colour alone.
+ * The status pill under the mic: an icon and a word, never colour alone.
  *
  * It is a polite live region (Android) and is announced on iOS when it changes,
  * so a screen-reader user hears "Listening…", "Understanding your expense…",
@@ -55,7 +55,11 @@ export function VoiceStatus({ status, text }: { status: VoiceStatusKey; text: st
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.spacing.xs,
-        minHeight: 24,
+        minHeight: 32,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.pill,
+        // A pill over the photo, so the word reads on any part of it.
+        backgroundColor: theme.scheme === 'dark' ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.78)',
       }}
     >
       <Ionicons name={ICON[status]} size={iconSize.sm} color={color} />

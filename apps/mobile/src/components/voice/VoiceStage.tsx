@@ -1,9 +1,10 @@
 /**
- * The capture surface's fixed frame: the prompt, the floating mic, the status
- * line, the waveform's slot and the transcript. The live mic panel
- * (`VoiceCapture`) and the screen's "understanding…" step both draw it, so
- * moving from listening to processing changes words and the mic's glyph, never
- * the layout.
+ * The capture surface, in two parts. {@link VoiceTop} is the fixed area over
+ * the photo (title, the lines under it, the floating mic, the status pill and
+ * the waveform's slot): the screen draws it once, above the sheet, in every
+ * phase, so moving from listening to processing changes words and the mic's
+ * glyph, never the layout. {@link VoiceSheetBody} is what sits at the head of
+ * the sheet: the transcript and whatever the step shows under it.
  */
 
 import type { ReactNode } from 'react';
@@ -60,70 +61,106 @@ export function micLabel(t: UiStrings, mode: MicMode): string {
         : t.voiceScreen.micStart;
 }
 
-export interface VoiceStageProps {
+export interface VoiceTopProps {
   status: VoiceStatusKey;
   micMode: MicMode;
   onMicPress: () => void;
   reduceMotion: boolean;
   level?: SharedValue<number> | null;
-  transcript: string;
-  final: boolean;
-  onEditTranscript?: () => void;
-  /**
-   * A card is answering under the stage (a question, the expense, Saved): the
-   * "say it naturally" prompt and the empty wave room give way to it, so the
-   * card sits right under the mic instead of below the fold.
-   */
-  settled?: boolean;
-  /** Under the transcript: suggestions, the error card. */
-  children?: ReactNode;
+  /** The status bar's height; the title starts below the ✕ row under it. */
+  topInset: number;
+  /** A short phone: the halo, wave room and title give a little. */
+  compact?: boolean;
 }
 
-export function VoiceStage({
+/** Height of the ✕ row the title sits under. */
+export const TOP_BAR = 52;
+
+export function VoiceTop({
   status,
   micMode,
   onMicPress,
   reduceMotion,
   level,
-  transcript,
-  final,
-  onEditTranscript,
-  settled = false,
-  children,
-}: VoiceStageProps) {
+  topInset,
+  compact = false,
+}: VoiceTopProps) {
   const theme = useTheme();
   const { t } = useStrings();
   const open = micMode === 'stop';
   return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-      {/* Kept while speaking and understanding, so stopping the mic changes nothing. */}
-      {settled ? null : (
-        <View style={{ alignItems: 'center', gap: 4, paddingHorizontal: theme.spacing.sm }}>
-          <Text variant="heading" align="center" accessibilityRole="header">
-            {t.voiceScreen.headline}
-          </Text>
-          <Text variant="body" tone="muted" align="center">
-            {t.voiceScreen.subline}
-          </Text>
-        </View>
-      )}
-      <FloatingMicrophone
-        mode={micMode}
-        level={level}
-        onPress={onMicPress}
-        label={micLabel(t, micMode)}
-        reduceMotion={reduceMotion}
-      />
-      <View style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: -theme.spacing.sm }}>
-        <VoiceStatus status={status} text={statusText(t, status)} />
-        {/* The wave's room is kept until a card arrives, so nothing below it moves. */}
-        {settled ? null : (
-          <View style={{ height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
-            {open && level ? <AudioWaveform level={level} reduceMotion={reduceMotion} /> : null}
-          </View>
-        )}
+    <View
+      pointerEvents="box-none"
+      style={{
+        alignItems: 'center',
+        paddingTop: topInset + TOP_BAR,
+        paddingHorizontal: theme.spacing.xl,
+      }}
+    >
+      <Text
+        align="center"
+        accessibilityRole="header"
+        style={{ fontSize: compact ? 26 : 32, lineHeight: compact ? 32 : 38, fontWeight: '800' }}
+      >
+        {t.voice.title}
+      </Text>
+      <Text
+        variant="body"
+        tone="muted"
+        align="center"
+        style={{ fontWeight: '500', marginTop: theme.spacing.xs }}
+      >
+        {t.voiceScreen.headline}
+      </Text>
+      <Text variant="body" tone="muted" align="center">
+        {t.voiceScreen.subline}
+      </Text>
+      {/* The halo's box is roomy; a short phone trims it rather than scrolling. */}
+      <View style={{ marginVertical: compact ? -14 : -4 }}>
+        <FloatingMicrophone
+          mode={micMode}
+          level={level}
+          onPress={onMicPress}
+          label={micLabel(t, micMode)}
+          reduceMotion={reduceMotion}
+        />
       </View>
-      <LiveTranscript text={transcript} final={final} reserve onEdit={onEditTranscript} />
+      <VoiceStatus status={status} text={statusText(t, status)} />
+      {/* The wave's room is always kept, so nothing below it moves. */}
+      <View
+        style={{
+          height: compact ? WAVEFORM_HEIGHT * 0.6 : WAVEFORM_HEIGHT,
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        {open && level ? <AudioWaveform level={level} reduceMotion={reduceMotion} /> : null}
+      </View>
+    </View>
+  );
+}
+
+export interface VoiceSheetBodyProps {
+  transcript: string;
+  final: boolean;
+  /** Hold room for the words about to arrive (the mic is open). */
+  reserve?: boolean;
+  onEditTranscript?: () => void;
+  /** Under the transcript: suggestions, the error card. */
+  children?: ReactNode;
+}
+
+export function VoiceSheetBody({
+  transcript,
+  final,
+  reserve,
+  onEditTranscript,
+  children,
+}: VoiceSheetBodyProps) {
+  const theme = useTheme();
+  return (
+    <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+      <LiveTranscript text={transcript} final={final} reserve={reserve} onEdit={onEditTranscript} />
       {children}
     </View>
   );

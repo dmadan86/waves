@@ -63,6 +63,12 @@ describe('voice screen redesign wiring', () => {
   it('VW-09: one stage stays mounted after the sentence; cards change in place under it', () => {
     expect(voice).toContain("phase !== 'listening' ? (");
     expect(voice).toContain('stageStatusKey(stageInput)');
+    // The top (✕, title, mic, pill, wave) is drawn once, above the sheet, in every
+    // phase; the mic panel reports its state up and draws only sheet content.
+    expect(voice.match(/<VoiceTop/g)).toHaveLength(1);
+    expect(voice).toContain('onStage={setCapStage}');
+    expect(voice).not.toContain('stageSettled');
+    expect(capture).not.toContain('<VoiceTop');
     expect(voice).toContain('onStage={setAgentStage}');
     expect(voice).toContain('onFooter={setPanelFooter}');
     // Content updates in place: no scroll jumps, no per-phase fade or rise.
@@ -87,8 +93,10 @@ describe('voice screen redesign wiring', () => {
     expect(src('components/VoiceAgentPanel.tsx')).toContain('useReportFooter(');
   });
 
-  it('VW-08: Home’s time-of-day scene replaces the old desk footer', () => {
-    expect(voice).toContain('<VoiceSceneBackdrop />');
+  it('VW-08: the full-bleed scene photo is the background; the old strip is gone', () => {
+    expect(voice).toContain('<VoiceScene />');
+    expect(voice).not.toContain('VoiceSceneBackdrop');
+    expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(false);
     expect(voice).not.toContain('VoiceFooterScene');
   });
 });
