@@ -353,6 +353,17 @@ export interface UiStrings {
   nothingIn: string;
   /** Under the month chart — says the columns are a way in, not just a picture. */
   tapMonthForDays: string;
+  spendTotal: string;
+  spendInCurrency: string;
+  spendVsLast: string;
+  spendDonutTotal: string;
+  spendTopCategories: string;
+  spendSeeAll: string;
+  spendShowLess: string;
+  spendLastMonths: string;
+  spendSeeDays: string;
+  spendPickMonth: string;
+  spendPickCurrency: string;
   nothingToChart: string;
   /** The ten categories of TDR §8, in the language the phone is set to. */
   categories: Record<CategoryId, string>;
@@ -5881,6 +5892,17 @@ const en: UiStrings = {
   totalIn: 'total in {currency}',
   nothingIn: 'nothing in {currency}',
   tapMonthForDays: 'Tap a month to see its days.',
+  spendTotal: 'Total spending',
+  spendInCurrency: 'in {currency}',
+  spendVsLast: 'vs last month',
+  spendDonutTotal: 'Total',
+  spendTopCategories: 'Top categories',
+  spendSeeAll: 'See all',
+  spendShowLess: 'Show less',
+  spendLastMonths: 'Last {n} months',
+  spendSeeDays: 'See the days in {month}',
+  spendPickMonth: 'Choose a month',
+  spendPickCurrency: 'Choose a currency',
   nothingToChart: 'Add a few expenses and this fills in.',
   categories: {
     food: 'Food & drink',
@@ -10706,6 +10728,17 @@ const ta: UiStrings = {
   totalIn: '{currency} இல் மொத்தம்',
   nothingIn: '{currency} இல் ஏதுமில்லை',
   tapMonthForDays: 'நாட்களைக் காண மாதத்தைத் தட்டவும்.',
+  spendTotal: 'மொத்த செலவு',
+  spendInCurrency: '{currency} இல்',
+  spendVsLast: 'கடந்த மாதத்துடன் ஒப்பிட',
+  spendDonutTotal: 'மொத்தம்',
+  spendTopCategories: 'முக்கிய வகைகள்',
+  spendSeeAll: 'அனைத்தும்',
+  spendShowLess: 'குறைவாகக் காட்டு',
+  spendLastMonths: 'கடந்த {n} மாதங்கள்',
+  spendSeeDays: '{month} மாத நாட்களைக் காண்க',
+  spendPickMonth: 'மாதத்தைத் தேர்வு செய்',
+  spendPickCurrency: 'நாணயத்தைத் தேர்வு செய்',
   nothingToChart: 'சில செலவுகளைச் சேர்த்தால் இது நிரம்பும்.',
   categories: {
     food: 'உணவு',
@@ -15708,6 +15741,17 @@ const hi: UiStrings = {
   totalIn: '{currency} में कुल',
   nothingIn: '{currency} में कुछ नहीं',
   tapMonthForDays: 'दिन देखने के लिए महीने पर टैप करें।',
+  spendTotal: 'कुल खर्च',
+  spendInCurrency: '{currency} में',
+  spendVsLast: 'पिछले महीने की तुलना में',
+  spendDonutTotal: 'कुल',
+  spendTopCategories: 'शीर्ष श्रेणियाँ',
+  spendSeeAll: 'सभी देखें',
+  spendShowLess: 'कम दिखाएँ',
+  spendLastMonths: 'पिछले {n} महीने',
+  spendSeeDays: '{month} के दिन देखें',
+  spendPickMonth: 'महीना चुनें',
+  spendPickCurrency: 'मुद्रा चुनें',
   nothingToChart: 'कुछ खर्च जोड़ें, यह अपने आप भर जाएगा।',
   categories: {
     food: 'खाना-पीना',
@@ -20558,6 +20602,17 @@ const ar: UiStrings = {
   totalIn: 'الإجمالي بعملة {currency}',
   nothingIn: 'لا شيء بعملة {currency}',
   tapMonthForDays: 'اضغط على شهر لرؤية أيامه.',
+  spendTotal: 'إجمالي الإنفاق',
+  spendInCurrency: 'بـ{currency}',
+  spendVsLast: 'مقارنة بالشهر الماضي',
+  spendDonutTotal: 'الإجمالي',
+  spendTopCategories: 'أعلى الفئات',
+  spendSeeAll: 'عرض الكل',
+  spendShowLess: 'عرض أقل',
+  spendLastMonths: 'آخر {n} أشهر',
+  spendSeeDays: 'عرض أيام {month}',
+  spendPickMonth: 'اختر شهراً',
+  spendPickCurrency: 'اختر عملة',
   nothingToChart: 'أضف بعض المصروفات وسيمتلئ هذا.',
   categories: {
     food: 'طعام وشراب',
