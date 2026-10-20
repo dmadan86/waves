@@ -337,13 +337,17 @@ export function ListRow({
   const main = (
     <>
       {leading}
-      <View style={{ flex: 1, gap: 4 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <Text
                 numberOfLines={1}
-                style={destructive ? { color: theme.color.negative, fontWeight: '600' } : undefined}
+                // Shrinks before it can reach the accessory or the control beside the row.
+                style={[
+                  { flexShrink: 1 },
+                  destructive ? { color: theme.color.negative, fontWeight: '600' } : null,
+                ]}
               >
                 {title}
               </Text>
@@ -389,6 +393,7 @@ export function ListRow({
           onPress={onPress}
           style={({ pressed }) => ({
             flex: 1,
+            minWidth: 0,
             flexDirection: 'row',
             alignItems: 'center',
             gap: theme.spacing.md,
@@ -398,10 +403,17 @@ export function ListRow({
           {main}
         </Pressable>
       ) : (
+        // Not one accessible group: the ⓘ button and the explanation under the
+        // title must be reachable on their own, so the texts are read as they are
+        // and the control beside them carries its own label.
         <View
-          accessible
-          accessibilityLabel={spoken}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+          }}
         >
           {main}
         </View>

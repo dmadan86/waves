@@ -260,3 +260,29 @@ describe('strings', () => {
     }
   });
 });
+
+describe('review fixes', () => {
+  const PARTS = readFileSync(join(process.cwd(), 'src/components/standard/parts.tsx'), 'utf8');
+
+  it('commits name, description and tag on close and before a picker route', () => {
+    const pending = between(SCREEN, 'const commitPending', 'const leaveEditForPicker');
+    for (const call of ['commitName()', 'commitDescription()', 'commitTag(tag)']) {
+      expect(pending).toContain(call);
+    }
+    expect(between(SCREEN, 'const leaveEditForPicker', 'const closeEdit')).toContain(
+      'commitPending()',
+    );
+    expect(between(SCREEN, 'const closeEdit', 'A member')).toContain('commitPending()');
+  });
+
+  it('keeps the ⓘ button and its explanation out of an accessible text group', () => {
+    const trailing = between(PARTS, 'const body = trailing', ') : onPress ? (');
+    expect(trailing).not.toContain('accessible\n');
+    expect(trailing).not.toMatch(/accessible\s+accessibilityLabel/);
+  });
+
+  it('lets row titles shrink so they never reach accessories or trailing controls', () => {
+    expect(PARTS).toMatch(/flexShrink: 1 \}/);
+    expect(PARTS).toContain('minWidth: 0');
+  });
+});

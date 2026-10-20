@@ -452,15 +452,23 @@ export default function GroupSettingsScreen() {
       }
     }, []),
   );
+  /** Saves whatever the edit sheet's fields hold: name, description and tag. */
+  const commitPending = (): void => {
+    commitName();
+    commitDescription();
+    commitTag(tag);
+  };
   const leaveEditForPicker = (): void => {
+    // A route push does not blur the fields behind it either.
+    Keyboard.dismiss();
+    commitPending();
     reopenEdit.current = true;
     setEditOpen(false);
   };
   /** Closing commits whatever is still being typed: a Modal does not always blur its fields. */
   const closeEdit = (): void => {
     Keyboard.dismiss();
-    commitName();
-    commitDescription();
+    commitPending();
     setEditOpen(false);
   };
   // A member's ⋮ menu (by member id), and which ⓘ explanation is open.
