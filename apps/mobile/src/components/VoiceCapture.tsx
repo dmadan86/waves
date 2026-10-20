@@ -1357,7 +1357,8 @@ export function VoiceCapture({
     <VoiceSheetBody
       transcript={shownTranscript}
       final={shownFinal}
-      reserve
+      // The examples hold the sheet until the first word; no empty box above them.
+      reserve={!showSuggestions(flow, shownTranscript)}
     >
       {problem ? (
         <VoiceErrorState
@@ -1369,7 +1370,7 @@ export function VoiceCapture({
 
       {showSuggestions(flow, shownTranscript) ? (
         <VoiceSuggestions
-          suggestions={suggestions.slice(0, 1)}
+          suggestions={suggestions}
           onPick={onSuggestion}
           canPick={canPick}
         />
