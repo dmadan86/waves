@@ -94,7 +94,7 @@ describe('voice screen redesign wiring', () => {
   });
 
   it('VW-08: the full-bleed scene photo is the background; the old strip is gone', () => {
-    expect(voice).toContain('<VoiceScene />');
+    expect(voice).toContain('<VoiceScene sheetTop=');
     expect(voice).not.toContain('VoiceSceneBackdrop');
     expect(existsSync(join(__dirname, '../src/components/voice/VoiceSceneBackdrop.tsx'))).toBe(false);
     expect(voice).not.toContain('VoiceFooterScene');

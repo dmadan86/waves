@@ -276,11 +276,12 @@ export function stageMicTap(phase: VoicePhase, state: VoiceFlowState): StageMicT
   return 'fresh';
 }
 
-/** Suggestions are for the moment before speaking: hidden while the mic is open,
- *  while a sentence is read, and once a preview has replaced them. */
+/** Suggestions fill the sheet until the first word is heard: before speaking and
+ *  while the mic is open and silent. Words, a sentence being read or a preview
+ *  replace them. */
 export function showSuggestions(state: VoiceFlowState, transcript: string): boolean {
   if (transcript.trim()) return false;
-  return state === 'idle' || state === 'no_speech';
+  return state === 'idle' || state === 'no_speech' || state === 'listening';
 }
 
 /**

@@ -191,7 +191,9 @@ const states = [
 it.each(states)('VF-14: %s has status %s and mic mode %s', (state, status, mode) => {
   expect(voiceStatusKey(state, { phase: 'listening', capture: listening })).toBe(status);
   expect(micButtonMode(state)).toBe(mode);
-  expect(showSuggestions(state, '')).toBe(state === 'idle' || state === 'no_speech');
+  expect(showSuggestions(state, '')).toBe(
+    state === 'idle' || state === 'no_speech' || state === 'listening',
+  );
   expect(showSuggestions(state, 'coffee')).toBe(false);
 });
 it('VF-15: starting status and announcements only announce nonempty changes', () => {

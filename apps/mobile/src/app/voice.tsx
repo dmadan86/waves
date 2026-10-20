@@ -2694,7 +2694,7 @@ export default function VoiceScreen() {
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       {/* The photograph, edge to edge under the status bar; the sheet covers its
           lower part. */}
-      <VoiceScene />
+      <VoiceScene sheetTop={windowHeight - sheetHeight} />
       <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
         <VoiceTop
           status={topStatus}
