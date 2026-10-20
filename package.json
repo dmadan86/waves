@@ -30,6 +30,7 @@
     "db:migrate": "pnpm --filter @waves/db run migrate:deploy",
     "db:migrate:dev": "pnpm --filter @waves/db run migrate:dev",
     "db:drift": "pnpm --filter @waves/db run drift",
+    "db:push": "bash scripts/db-push.sh",
     "db:pg:up": "docker run -d --name waves-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=waves -p 54330:5432 postgres:17-alpine",
     "db:pg:down": "docker rm -f waves-pg",
     "mobile": "pnpm --filter @waves/mobile run start",
