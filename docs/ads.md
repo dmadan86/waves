@@ -86,9 +86,13 @@ add `5224354917` (Android) and `1712485313` (iOS) to the secret, put yourself on
 
 - Free (including ad-granted) AI voice commands use the phone's own speech
   recognition and send the text to the cloud model.
-- Deepgram live streaming is for Pro and the trial. `waves_voice_stream_mint` refuses
-  Free (403 `VOICE_STREAM_FREE_TIER` from `voice-stream` and `voice-stream-token`), so
-  this is enforced on the server, not only in the app.
+- Deepgram is for Pro and the trial, live or as a clip. `waves_voice_stream_mint`
+  refuses Free (403 `VOICE_STREAM_FREE_TIER` from `voice-stream`), and `voice-agent`
+  refuses a Free clip with the same code before any byte reaches Deepgram, so this
+  is enforced on the server, not only in the app. (`voice-stream-token` is retired:
+  it answers 410 and stays deployed as that tombstone until deleted.) A clip is
+  measured from its container before upload (PCM WAV or MP4/M4A only; anything
+  else is refused with 415).
 - A sentence the phone's own parser reads with full confidence is not sent to the model
   and does not use up an allowance for Free.
 - Tradeoff: on-device recognition is weaker than the cloud engine, especially for

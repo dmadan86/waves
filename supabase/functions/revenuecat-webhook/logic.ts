@@ -30,8 +30,9 @@
  *   TEST and anything else                  → recorded, nothing written
  *
  * RevenueCat's Test Store (a `test_` SDK key) writes rows with store 'test', so
- * a test purchase unlocks what a real one would. It counts as sandbox: with
- * REVENUECAT_IGNORE_SANDBOX on, its events are dropped like any other.
+ * a test purchase unlocks what a real one would. It counts as sandbox: unless
+ * the deployment opts in (handler.ts, REVENUECAT_ALLOW_SANDBOX=true), its
+ * events are dropped like any other sandbox event.
  */
 
 import {

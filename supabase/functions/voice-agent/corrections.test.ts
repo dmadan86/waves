@@ -411,9 +411,19 @@ describe('handler: corrections and undo', () => {
   });
 
   it('FM-02 the plan is the database answer: the response reports it, never a fixed tier', async () => {
-    const { deps } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    const { deps } = makeDeps([
+      { name: 'update_expense', input: { expenseId: pid, date: '2026-10-20' } },
+    ]);
     const body = await post(deps, { savedExpense: fixtures.saved.personal });
     expect(body.quota).toEqual({ used: 1, limit: 300, tier: 'pro' });
+  });
+
+  it('FM-02b a follow-up that only answers a question is charged as a command', async () => {
+    const { deps, rpc } = makeDeps([{ name: 'answer_question', input: { text: 'Ok' } }]);
+    const body = await post(deps, { savedExpense: fixtures.saved.personal });
+    expect(body.answer).toBe('Ok');
+    expect(rpc.mock.calls.map(([n]) => n)).toContain('waves_voice_agent_quota');
+    expect(body.quota).toEqual({ used: 3, limit: 100, tier: 'pro' });
   });
 
   it('FM-03 the follow-up meter is asked with the verified caller, the expense id and the caps', async () => {

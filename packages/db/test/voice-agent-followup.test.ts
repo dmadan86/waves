@@ -23,6 +23,9 @@ async function reset(): Promise<void> {
   await client.query(`DELETE FROM voice_agent_followup_turns WHERE profile_id = ANY($1::uuid[])`, [
     [a, b],
   ]);
+  await client.query(`DELETE FROM voice_agent_followup_slots WHERE profile_id = ANY($1::uuid[])`, [
+    [a, b],
+  ]);
   await client.query(`DELETE FROM voice_agent_usage WHERE profile_id = ANY($1::uuid[])`, [[a, b]]);
   await client.query(`DELETE FROM subscriptions WHERE profile_id = ANY($1::uuid[])`, [[a, b]]);
 }
@@ -32,6 +35,14 @@ afterAll(async () => {
   await client.end();
 });
 
+/** A metered command just produced an action: opens the slot follow-ups need (20261022100000). */
+async function openSlot(profile: string, turns = 3): Promise<void> {
+  await client.query(`SELECT public.waves_voice_agent_followup_open($1, $2, 600)`, [
+    profile,
+    turns,
+  ]);
+}
+
 async function turn(
   profile: string,
   expense: string,
@@ -39,6 +50,8 @@ async function turn(
   perExpense = 3,
   windowSeconds = 600,
 ): Promise<Record<string, unknown>> {
+  // Each turn here is about a command that was metered a moment ago.
+  await openSlot(profile, 1);
   const { rows } = await client.query(
     `SELECT public.waves_voice_agent_followup($1, $2, $3, $4, $5) AS r`,
     [profile, expense, month, perExpense, windowSeconds],
@@ -80,7 +93,13 @@ describe('waves_voice_agent_followup', () => {
 
   it('admits Pro (and a legacy plus row) and does not touch the command count', async () => {
     await subscribe(a, 'plus');
-    expect(await turn(a, 'e1')).toEqual({ used: 1, limit: 300, tier: 'pro', allowed: true });
+    expect(await turn(a, 'e1')).toEqual({
+      used: 1,
+      limit: 300,
+      tier: 'pro',
+      allowed: true,
+      month: expect.stringMatching(/^\d{4}-\d{2}$/),
+    });
     const { rows } = await client.query(
       `SELECT count, followups FROM voice_agent_usage WHERE profile_id = $1`,
       [a],
@@ -107,6 +126,7 @@ describe('waves_voice_agent_followup', () => {
        VALUES ($1, to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM'), 0, 299)`,
       [a],
     );
+    await openSlot(a, 2);
     const { rows } = await client.query(`SELECT public.waves_voice_agent_followup($1, 'x') AS r`, [
       a,
     ]);

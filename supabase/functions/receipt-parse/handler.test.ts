@@ -60,7 +60,22 @@ function setup(options: Options = {}) {
         return { data: null, error: null };
       }
       if (name === 'waves_record_receipt') return { data: 'receipt-1', error: null };
+      if (name === 'waves_receipt_scan_reserve') {
+        // The atomic reservation: allowed while under the limit, counted when it is.
+        const used = options.used ?? 0;
+        const limit = options.limit ?? 20;
+        return {
+          data: { used: Math.min(used + 1, limit), limit, allowed: used < limit, tier: 'free' },
+          error: null,
+        };
+      }
       return { data: null, error: null };
+    }),
+    from: vi.fn(() => {
+      const q: Record<string, unknown> = {};
+      for (const m of ['select', 'eq']) q[m] = () => q;
+      q.maybeSingle = async () => ({ data: null, error: null });
+      return q;
     }),
   };
   const caller = {
@@ -111,9 +126,12 @@ describe('receipt-parse exact-match cache', () => {
     expect(body.quota).toEqual({ used: 1, limit: 20 });
     expect(t.cache.size).toBe(1);
     const [key, value] = [...t.cache.entries()][0]!;
-    expect(key).toBe(`${await sha256Hex(IMAGE)}|${CACHE_MODEL_TAG}|${PROMPT_VERSION}|INR`);
+    // The key is salted with the group: the same bytes in another group miss.
+    const salted = new Uint8Array([...new TextEncoder().encode('g1|'), ...IMAGE]);
+    expect(key).toBe(`${await sha256Hex(salted)}|${CACHE_MODEL_TAG}|${PROMPT_VERSION}|INR`);
     expect(value).toEqual(GOOD);
-    expect(recorded(t.rpcLog).p_cached).toBeUndefined();
+    expect(recorded(t.rpcLog).p_cached).toBe(false);
+    expect(recorded(t.rpcLog).p_reserved).toBe(true);
     expect(recorded(t.rpcLog).p_input_tokens).toBe(1000);
   });
 

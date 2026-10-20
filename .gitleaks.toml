@@ -23,3 +23,8 @@ regexTarget = "match"
 regexes = [
   '''sb_publishable_[A-Za-z0-9_\-]{20,}''',
 ]
+# Base64 of two tiny FFmpeg-encoded AAC clips (test media for the audio-length
+# parser), not credentials: every chunk trips the entropy rule.
+paths = [
+  '''supabase/functions/_shared/test/audioFixtures\.ts''',
+]

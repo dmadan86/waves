@@ -492,8 +492,8 @@ describe('privileges', () => {
     'waves_pro_trial_grant(uuid)',
     'waves_pro_trial_after_auth_user()',
     'waves_voice_agent_quota(uuid, integer, integer, integer, integer)',
-    'waves_voice_agent_refund(uuid)',
-    'waves_voice_stream_mint(uuid, integer, integer, integer, integer)',
+    'waves_voice_agent_refund(uuid, text, boolean)',
+    'waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer)',
     'waves_voice_agent_enabled(uuid)',
     'waves_revenuecat_apply(text, text, text, timestamptz, jsonb)',
   ];
@@ -521,8 +521,11 @@ describe('privileges', () => {
         WHERE pronamespace = 'public'::regnamespace
           AND proname IN ('waves_voice_agent_quota', 'waves_voice_stream_mint')`,
     );
-    expect(rows.every((r) => r.pronargs === 5)).toBe(true);
-    expect(rows).toHaveLength(2);
+    // The mint gained a seconds budget (20261022100000): six arguments, one overload.
+    expect(rows.map((r) => [r.proname, r.pronargs]).sort()).toEqual([
+      ['waves_voice_agent_quota', 5],
+      ['waves_voice_stream_mint', 7],
+    ]);
   });
 
   it('keeps the trial tables away from clients', async () => {

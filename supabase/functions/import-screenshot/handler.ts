@@ -163,6 +163,8 @@ interface Quota {
   limit: number;
   tier?: string;
   allowed: boolean;
+  /** The UTC month ('YYYY-MM') the reservation was taken in: what a refund names. */
+  month?: string;
 }
 
 interface Hints {
@@ -348,12 +350,19 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
     );
   }
 
+  // A refund gives back the month the reservation named, and only while no
+  // model has been asked: after that the cost is real and the use stays spent.
   let refunded = false;
+  let spent = false;
   const refund = async (): Promise<void> => {
-    if (refunded) return;
+    if (refunded || spent) return;
     refunded = true;
     await Promise.resolve(
-      deps.service.rpc('waves_ai_usage_refund', { p_profile: profileId, p_feature: FEATURE }),
+      deps.service.rpc('waves_ai_usage_refund', {
+        p_profile: profileId,
+        p_feature: FEATURE,
+        p_month: quota.month ?? null,
+      }),
     ).catch(() => null);
   };
 
@@ -411,6 +420,8 @@ export async function handleImportScreenshot(request: Request, deps: Deps): Prom
 
       let response: Response;
       try {
+        // From here on a provider has been asked: the reservation stays spent.
+        spent = true;
         response = await ask(true);
         // A model that does not know the effort knob says so with a 400; ask plainly.
         if (response.status === 400) response = await ask(false);

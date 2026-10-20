@@ -422,7 +422,7 @@ describe('input validation costs nothing', () => {
   });
 });
 
-describe('model failures give the reservation back', () => {
+describe('model failures keep the reservation: a provider was asked', () => {
   async function failed(
     fetchImpl: () => Response | Promise<Response>,
     status: number,
@@ -433,8 +433,7 @@ describe('model failures give the reservation back', () => {
     const e = await refusal(handleImportScreenshot(req(goodBody()), deps));
     expect([e.status, e.code]).toEqual([status, code]);
     const refunds = rpc.mock.calls.filter((c) => c[0] === 'waves_ai_usage_refund');
-    expect(refunds).toHaveLength(1);
-    expect(refunds[0]![1]).toEqual({ p_profile: ME, p_feature: 'screenshot_import' });
+    expect(refunds).toHaveLength(0);
   }
 
   it('on a provider 5xx from every model', async () => {

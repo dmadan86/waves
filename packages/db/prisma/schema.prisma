@@ -215,6 +215,10 @@ model Profile {
   voiceSttUsage       VoiceSttUsage[]
   voiceAgentUsage     VoiceAgentUsage[]
   voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
+  voiceAgentFollowupSlots VoiceAgentFollowupSlot[]
+  usageRestoreMark        UsageRestoreMark?
+  voiceStreamReservations VoiceStreamReservation[]
+  statementImportSessions StatementImportSession[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
   adsAllowlist        AdsAllowlist?
@@ -1498,9 +1502,11 @@ model ReferralCode {
 /// in a group of two or more. Days granted are capped at 30 per account.
 model Referral {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  referrerId   String    @map("referrer_id") @db.Uuid
-  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
-  code         String
+  /// Null once the referrer's account is deleted: the row (and the days it
+  /// earned) outlives both accounts.
+  referrerId   String?   @map("referrer_id") @db.Uuid
+  refereeId    String?   @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code         String?
   source       String    @default("code")
   status       String    @default("claimed")
   rejectReason String?   @map("reject_reason")
@@ -1508,14 +1514,23 @@ model Referral {
   qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
   referrerDays Int       @default(0) @map("referrer_days")
   refereeDays  Int       @default(0) @map("referee_days")
+  /// Salted identity hashes of the friend, stamped when evaluated.
   identityKeys String[]  @default([]) @map("identity_keys")
+  /// The referrer's identity hashes, stamped at the same time, so the lifetime
+  /// cap follows the person through a delete-and-sign-up-again.
+  referrerKeys String[]  @default([]) @map("referrer_keys")
+  /// Device hashes of the friend and of the referrer: the same phone on both
+  /// sides is a self-referral.
+  deviceKeys         String[] @default([]) @map("device_keys")
+  referrerDeviceKeys String[] @default([]) @map("referrer_device_keys")
 
-  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
-  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
-  referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+  referrer     Profile?      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull, map: "referrals_referrer_fkey")
+  referee      Profile?      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: SetNull, map: "referrals_referee_fkey")
+  referralCode ReferralCode? @relation(fields: [code], references: [code], onDelete: SetNull)
 
   @@index([referrerId, status], map: "referrals_referrer_idx")
   @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
+  @@index([referrerKeys], map: "referrals_referrer_keys_idx", type: Gin)
   @@map("referrals")
   @@schema("public")
 }
@@ -1546,8 +1561,14 @@ model ProTrial {
   /// Voice commands used from the trial's pool.
   voiceUsed    Int      @default(0) @map("voice_used")
   identityKeys String[] @default([]) @map("identity_keys")
+  /// Salted hashes of the device ids registered to the account: an install
+  /// signal. On its own it only marks `deviceReused`; with a relay-only email
+  /// it refuses the trial (outcome 'refused_device').
+  deviceKeys   String[] @default([]) @map("device_keys")
+  deviceReused Boolean  @default(false) @map("device_reused")
 
   @@index([identityKeys], map: "pro_trials_identity_idx", type: Gin)
+  @@index([deviceKeys], map: "pro_trials_device_idx", type: Gin)
   @@map("pro_trials")
   @@schema("public")
 }
@@ -2410,6 +2431,125 @@ model VoiceAgentFollowupTurns {
 
   @@id([profileId, expenseId])
   @@map("voice_agent_followup_turns")
+  @@schema("public")
+}
+
+/// A follow-up turn needs a slot: a metered command that produced an action the
+/// app will save opens one (`waves_voice_agent_followup_open`, 3 turns for 10
+/// minutes); `waves_voice_agent_followup` takes a turn from the newest open one.
+model VoiceAgentFollowupSlot {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  turnsLeft Int      @map("turns_left")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, expiresAt], map: "voice_agent_followup_slots_profile_idx")
+  @@map("voice_agent_followup_slots")
+  @@schema("public")
+}
+
+/// One stream's reserved seconds (`waves_voice_stream_mint`), settled exactly
+/// once against its own month by the relay (`waves_voice_stream_settle`).
+model VoiceStreamReservation {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  month     String
+  seconds   Decimal   @db.Decimal(10, 2)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  settledAt DateTime? @map("settled_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt], map: "voice_stream_reservations_open_idx")
+  @@map("voice_stream_reservations")
+  @@schema("public")
+}
+
+/// Requests one statement import id has made (`waves_statement_import_chunk`):
+/// a continuation token no longer buys unbounded reads of one "file".
+model StatementImportSession {
+  profileId String   @map("profile_id") @db.Uuid
+  importId  String   @map("import_id")
+  chunks    Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, importId])
+  @@map("statement_import_sessions")
+  @@schema("public")
+}
+
+/// Every AdMob SSV transaction id ever verified, with its outcome. No relation
+/// to profiles on purpose: replay memory that survives "delete and sign up again".
+model AdSsvTransaction {
+  transactionId String   @id @map("transaction_id")
+  profileId     String?  @map("profile_id") @db.Uuid
+  kind          String?
+  adUnit        String?  @map("ad_unit")
+  outcome       String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([profileId, createdAt], map: "ad_ssv_transactions_profile_idx")
+  @@map("ad_ssv_transactions")
+  @@schema("public")
+}
+
+/// Which profiles have had their deleted-account restoration run
+/// (`waves_usage_guard`). No row: the next reservation restores first, and
+/// refuses if it cannot. Cascades with the profile.
+model UsageRestoreMark {
+  profileId   String   @id @map("profile_id") @db.Uuid
+  /// sha256 of the sorted canonical identity keys the restoration ran for
+  /// ('' while unverified); a reservation under a different one restores again.
+  fingerprint String   @default("")
+  restoredAt  DateTime @default(now()) @map("restored_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("usage_restore_marks")
+  @@schema("public")
+}
+
+/// One row per identity hash ever verified or deleted. No relation to profiles:
+/// it is the memory that outlives the account. Hashes only.
+model IdentityTombstone {
+  identityKey    String    @id @map("identity_key")
+  firstSeenAt    DateTime  @default(now()) @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  seenCount      Int       @default(1) @map("seen_count")
+  deletedCount   Int       @default(0) @map("deleted_count")
+  lastDeletedAt  DateTime? @map("last_deleted_at") @db.Timestamptz(6)
+  lastAuthUserId String?   @map("last_auth_user_id") @db.Uuid
+
+  @@map("identity_tombstones")
+  @@schema("public")
+}
+
+/// The month's meters at the moment an account was deleted, keyed by the auth
+/// user id and the identity hashes, restored onto the next profile for either
+/// (`waves_usage_snapshot` / `waves_usage_restore`). No relation to profiles.
+model UsageCarryover {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authUserId   String   @map("auth_user_id") @db.Uuid
+  identityKeys String[] @default([]) @map("identity_keys")
+  /// 'YYYY-MM' for a monthly meter, 'YYYY-MM-DD' for an ad reward.
+  month        String
+  /// voice:count | voice:stream_mints | voice:followups | voice:stream_seconds | ai:<feature> | ad:<kind>
+  feature      String
+  amount       Decimal  @db.Decimal(12, 2)
+  /// The ad's ORIGINAL transaction id (never a restored 'carry:' id); one
+  /// carry-over row per reward, ever.
+  ref          String?  @unique(map: "usage_carryover_ref_key")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([authUserId, month], map: "usage_carryover_auth_user_idx")
+  @@index([identityKeys], map: "usage_carryover_identity_idx", type: Gin)
+  @@map("usage_carryover")
   @@schema("public")
 }
 

@@ -65,9 +65,10 @@ describe('the seeded flag', () => {
 
 describe('waves_statement_import_quota', () => {
   it('reserves one file at a time up to the allowance, then refuses without reserving', async () => {
-    expect(await reserve(a, 2)).toEqual({ used: 1, limit: 2, tier: 'pro', allowed: true });
-    expect(await reserve(a, 2)).toEqual({ used: 2, limit: 2, tier: 'pro', allowed: true });
-    expect(await reserve(a, 2)).toEqual({ used: 2, limit: 2, tier: 'pro', allowed: false });
+    const month = expect.stringMatching(/^\d{4}-\d{2}$/);
+    expect(await reserve(a, 2)).toEqual({ used: 1, limit: 2, tier: 'pro', allowed: true, month });
+    expect(await reserve(a, 2)).toEqual({ used: 2, limit: 2, tier: 'pro', allowed: true, month });
+    expect(await reserve(a, 2)).toEqual({ used: 2, limit: 2, tier: 'pro', allowed: false, month });
     const { rows } = await client.query(
       `SELECT count FROM ai_usage WHERE profile_id = $1 AND feature = 'statement_import'`,
       [a],
