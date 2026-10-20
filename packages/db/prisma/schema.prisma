@@ -207,6 +207,8 @@ model Profile {
   purchasedPasses     GroupPass[]
   syncMutations       SyncMutation[]
   memberClaims        MemberClaim[]
+  linkRequestsForMe   MemberLinkRequest[] @relation("LinkRequestTarget")
+  linkRequestsMade    MemberLinkRequest[] @relation("LinkRequestRequester")
   deviceSessions      DeviceSession[]
   ghostMerges         GhostMerge[]
   storageObjects      StorageObject[]
@@ -347,6 +349,7 @@ model Group {
   imageEvents        ExpenseImageEvent[]
   syncMutations      SyncMutation[]
   memberClaims       MemberClaim[]
+  memberLinkRequests MemberLinkRequest[]
   memberBudgets      TripMemberBudget[]
   storageObjects     StorageObject[]
 
@@ -393,6 +396,10 @@ model GroupMember {
   removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
   /// The admin who removed them.
   removedBy     String?    @map("removed_by") @db.Uuid
+  /// Set when this placeholder was folded into another member of the same
+  /// group (`waves_fold_member_into`): retired, kept for the history that
+  /// names it.
+  mergedIntoMemberId String? @map("merged_into_member_id") @db.Uuid
   updatedSeq    BigInt     @default(0) @map("updated_seq")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -401,6 +408,8 @@ model GroupMember {
   profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
   remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
   importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
+  mergedInto  GroupMember? @relation("MergedInto", fields: [mergedIntoMemberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mergedFrom  GroupMember[] @relation("MergedInto")
 
   authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")
   paidFor            ExpensePayer[]
@@ -429,6 +438,7 @@ model GroupMember {
   deletedExpenses    Expense[]           @relation("ExpenseDeletedBy")
   claimsOnThisPlace  MemberClaim[]       @relation("ClaimTarget")
   claimsDecided      MemberClaim[]       @relation("ClaimDecider")
+  linkRequests       MemberLinkRequest[]
   tripBudget         TripMemberBudget?
   ghostMerges        GhostMerge[]
   importsRun         ImportBatch[]       @relation("BatchActor")
@@ -437,6 +447,7 @@ model GroupMember {
   @@unique([groupId, profileId])
   @@index([groupId])
   @@index([groupId, updatedSeq])
+  @@index([mergedIntoMemberId])
   @@map("group_members")
   @@schema("public")
 }
@@ -497,6 +508,37 @@ model MemberClaim {
   @@index([groupId, status, createdAt], map: "member_claims_group_id_status_created_at_idx")
   @@index([requesterId, createdAt], map: "member_claims_requester_id_created_at_idx")
   @@map("member_claims")
+  @@schema("public")
+}
+
+/// An admin saying a placeholder member is a particular Waves user, who alone
+/// can accept it (`waves_decide_member_link`). Accepting is the same claim an
+/// approved join request performs; a person already in the group with money
+/// on their own row has the placeholder folded into it instead.
+///
+/// "One open ask per placeholder" is enforced in `waves_request_member_link`
+/// under a row lock, for the same reason `MemberClaim` above gives.
+model MemberLinkRequest {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  memberId        String    @map("member_id") @db.Uuid
+  targetProfileId String    @map("target_profile_id") @db.Uuid
+  requestedBy     String    @map("requested_by") @db.Uuid
+  /// 'pending' | 'accepted' | 'declined' | 'cancelled' (CHECK in migration SQL).
+  status          String    @default("pending")
+  decidedAt       DateTime? @map("decided_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member    GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  target    Profile     @relation("LinkRequestTarget", fields: [targetProfileId], references: [id], onDelete: Cascade)
+  requester Profile     @relation("LinkRequestRequester", fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  @@index([memberId, status], map: "member_link_requests_member_id_status_idx")
+  @@index([targetProfileId, status], map: "member_link_requests_target_profile_id_status_idx")
+  @@index([requestedBy, createdAt], map: "member_link_requests_requested_by_created_at_idx")
+  @@index([groupId, status], map: "member_link_requests_group_id_status_idx")
+  @@map("member_link_requests")
   @@schema("public")
 }
 

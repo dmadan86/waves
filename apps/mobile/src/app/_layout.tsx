@@ -807,6 +807,7 @@ function AuthGate() {
               Here it pushes like the rest, and back pops back to where it was
               opened from. */}
           <Stack.Screen name="profile" options={slide} />
+          <Stack.Screen name="link-requests" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
