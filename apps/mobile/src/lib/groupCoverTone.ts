@@ -22,7 +22,18 @@ export interface CoverTone {
 
 const OWN: Readonly<
   Record<
-    'butter' | 'sage' | 'indigo' | 'teal' | 'berry' | 'slate',
+    | 'butter'
+    | 'sage'
+    | 'indigo'
+    | 'teal'
+    | 'berry'
+    | 'slate'
+    | 'iris'
+    | 'blue'
+    | 'aqua'
+    | 'green'
+    | 'yellow'
+    | 'orange',
     Record<'light' | 'dark', CoverTone>
   >
 > = {
@@ -50,7 +61,31 @@ const OWN: Readonly<
     light: { bg: '#475569', ink: '#F1F5F9' },
     dark: { bg: '#334155', ink: '#CBD5E1' },
   },
+  // The cover sheet's eight-swatch row: soft tiles with a strong ink, so the
+  // icon reads the way the mockup's preview does.
+  iris: { light: { bg: '#E4DEFF', ink: '#4B3FD1' }, dark: { bg: '#2E2A66', ink: '#C9C3FF' } },
+  blue: { light: { bg: '#DCEBFF', ink: '#2563C9' }, dark: { bg: '#1E3358', ink: '#AFCDFF' } },
+  aqua: { light: { bg: '#D4F3EF', ink: '#0F8A80' }, dark: { bg: '#123F3B', ink: '#9FE6DF' } },
+  green: { light: { bg: '#DDF5DF', ink: '#2E8B3F' }, dark: { bg: '#1E3D24', ink: '#B3E8BA' } },
+  yellow: { light: { bg: '#FFF0C2', ink: '#A56A00' }, dark: { bg: '#4A3A10', ink: '#F5D98A' } },
+  orange: { light: { bg: '#FFE3CC', ink: '#C25A10' }, dark: { bg: '#4A2A14', ink: '#FFC9A0' } },
 };
+
+/**
+ * The cover sheet's colour row, in order: the solid circle each key is drawn as
+ * (the same in both schemes — it is a swatch, not a tile). `iris` is also what
+ * a group with no colour chosen shows as selected.
+ */
+export const COVER_SWATCHES: readonly { key: string; hex: string }[] = [
+  { key: 'iris', hex: '#5B4FD8' },
+  { key: 'blue', hex: '#5AA9F5' },
+  { key: 'aqua', hex: '#4DD0C4' },
+  { key: 'green', hex: '#8EDB9A' },
+  { key: 'yellow', hex: '#FFC857' },
+  { key: 'orange', hex: '#FFA566' },
+  { key: 'coral', hex: '#FF8A94' },
+  { key: 'lilac', hex: '#C9A0F5' },
+];
 
 /** The tone for a key in a theme, or null for "the default tile". */
 export function coverTone(key: string | null | undefined, theme: Theme): CoverTone | null {

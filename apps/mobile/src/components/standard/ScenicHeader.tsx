@@ -39,6 +39,10 @@ export function ScenicHeader({
   onBack,
   children,
   trailing,
+  titleAlign = 'center',
+  circleBack = false,
+  wash = false,
+  wide = false,
 }: {
   title: string;
   /** Defaults to going back one screen. */
@@ -47,6 +51,14 @@ export function ScenicHeader({
   children?: ReactNode;
   /** One pill at the right-hand end; on a narrow phone it drops to its own row. */
   trailing?: ReactNode;
+  /** 'start' sets the title against the back button, for a screen with an identity row under it. */
+  titleAlign?: 'center' | 'start';
+  /** A white circle behind the back chevron, so it reads over a busy photo. */
+  circleBack?: boolean;
+  /** A soft wash of the page colour behind the text, for a header carrying small text over the photo. */
+  wash?: boolean;
+  /** The children fill the row, so a control inside them can sit at the far end. */
+  wide?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -58,6 +70,7 @@ export function ScenicHeader({
   const photoH = Math.round(height * CARD_TOP) + SCENIC_OVERLAP;
   const scale = width / SCENE_W;
   const ink = theme.color.text;
+  const glassWhite = dark ? 'rgba(20,20,34,0.82)' : '#FFFFFF';
   return (
     <View style={{ minHeight: photoH, overflow: 'hidden' }}>
       <Image
@@ -92,6 +105,18 @@ export function ScenicHeader({
         colors={['rgba(0,0,0,0)', theme.color.bg]}
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
       />
+      {wash ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            dark
+              ? ['rgba(14,14,26,0.78)', 'rgba(14,14,26,0.55)', 'rgba(14,14,26,0)']
+              : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.66)', 'rgba(255,255,255,0)']
+          }
+          locations={[0, 0.55, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 20 }}
+        />
+      ) : null}
       <View
         style={{
           paddingTop: insets.top + theme.spacing.sm,
@@ -106,20 +131,32 @@ export function ScenicHeader({
             accessibilityLabel={t.common.back}
             onPress={onBack ?? (() => router.back())}
             hitSlop={8}
-            style={{ width: 40, height: 40, justifyContent: 'center' }}
+            style={{
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: circleBack ? 'center' : undefined,
+              borderRadius: 20,
+              backgroundColor: circleBack ? glassWhite : undefined,
+            }}
           >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
           </Pressable>
           <Text
             variant="heading"
-            align="center"
+            align={titleAlign === 'start' ? 'left' : 'center'}
             accessibilityRole="header"
             numberOfLines={1}
-            style={{ flex: 1, fontSize: 22, fontWeight: '800' }}
+            style={{
+              flex: 1,
+              fontSize: 22,
+              fontWeight: '800',
+              marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
+            }}
           >
             {title}
           </Text>
-          <View style={{ width: 40 }} />
+          {titleAlign === 'start' ? null : <View style={{ width: 40 }} />}
         </Row>
         {children || trailing ? (
           <Row
@@ -132,7 +169,9 @@ export function ScenicHeader({
               marginTop: theme.spacing.lg,
             }}
           >
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>{children}</Row>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
+              {children}
+            </Row>
             {trailing}
           </Row>
         ) : null}

@@ -48,6 +48,8 @@ interface GroupPhotoProps {
   /** No tile of its own: the caller already drew the colour behind it and this
    *  only needs the matching ink for the mark. */
   bare?: boolean;
+  /** A circle rather than the rounded square. */
+  round?: boolean;
 }
 
 export function GroupPhoto({
@@ -61,6 +63,7 @@ export function GroupPhoto({
   accessibilityLabel,
   background,
   bare = false,
+  round = false,
 }: GroupPhotoProps) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -76,7 +79,7 @@ export function GroupPhoto({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 3,
+        borderRadius: round ? size / 2 : size / 3,
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',

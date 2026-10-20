@@ -25,9 +25,12 @@ import { router } from '@/lib/navigation';
 export function CountryRow({
   countryCode,
   onChange,
+  onOpen,
 }: {
   countryCode: string | null;
   onChange: (countryCode: string | null) => void;
+  /** Called just before the picker route opens, for a host that has to get out of its way (a sheet). */
+  onOpen?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -43,6 +46,7 @@ export function CountryRow({
   // receive the answer.
   const open = (): void => {
     requestCountry({ initial: countryCode, onPicked: onChange });
+    onOpen?.();
     router.push('/country');
   };
 
