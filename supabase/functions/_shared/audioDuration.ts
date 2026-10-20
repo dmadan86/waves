@@ -13,8 +13,8 @@
  *     (stts), each in its own timescale. A decoder plays the samples the
  *     tables describe, so the tables bound what Deepgram will hear.
  *
- * Anything else — a container this cannot read, or a file that does not parse
- * — is `null`, and the caller refuses it.
+ * Anything else — a container this cannot read, a fragmented MP4 (moof /
+ * mvex), or a file that does not parse — is `null`, and the caller refuses it.
  */
 
 const ascii = (bytes: Uint8Array, at: number, n: number): string =>
@@ -92,9 +92,14 @@ export function mp4DurationSeconds(bytes: Uint8Array): number | null {
   if (!top) return null;
   const moov = find(top, 'moov')[0];
   if (!moov) return null;
+  // A fragmented MP4 keeps its samples in moof/mdat fragments and its moov
+  // tables empty: the tables would say 0 s of minutes of audio. Refused until
+  // fragment timing is read (the app's recorder writes plain MP4).
+  if (find(top, 'moof').length > 0) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const inMoov = boxes(bytes, moov.start, moov.end);
   if (!inMoov) return null;
+  if (find(inMoov, 'mvex').length > 0) return null;
 
   // A full-box header: version (1) + flags (3), then the fields.
   const timed = (box: Box, isMvhd: boolean): number | null => {

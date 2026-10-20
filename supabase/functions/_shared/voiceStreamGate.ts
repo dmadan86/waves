@@ -46,6 +46,8 @@ export interface Admitted {
   readonly budget: number;
   /** Seconds the mint reserved against the month's seconds budget; settled on close. */
   readonly reservedSeconds: number;
+  /** The reservation row the relay settles exactly once (null for an older database). */
+  readonly reservation: string | null;
 }
 
 interface StreamMint {
@@ -56,6 +58,7 @@ interface StreamMint {
   readonly budget: number;
   readonly tier: 'free' | 'pro';
   readonly reserved_seconds?: number;
+  readonly reservation?: string;
 }
 
 export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Admitted> {
@@ -132,6 +135,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     mints: mint.mints,
     budget: mint.budget,
     reservedSeconds: mint.reserved_seconds ?? STREAM_SECONDS_PER_MINT,
+    reservation: typeof mint.reservation === 'string' ? mint.reservation : null,
   };
 }
 

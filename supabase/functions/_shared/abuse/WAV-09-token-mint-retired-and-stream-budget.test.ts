@@ -81,6 +81,7 @@ describe('M6 the stream gate hands the database a seconds budget', () => {
       budget: 300,
       tier: 'pro',
       reserved_seconds: 20,
+      reservation: 'res-9',
     });
     const admitted = await admitStream(deps, 'voice-stream');
     expect(rpc).toHaveBeenCalledWith(
@@ -91,6 +92,7 @@ describe('M6 the stream gate hands the database a seconds budget', () => {
       }),
     );
     expect(admitted.reservedSeconds).toBe(20);
+    expect(admitted.reservation).toBe('res-9');
     expect(STREAM_SECONDS_PER_MINT).toBe(20);
   });
 

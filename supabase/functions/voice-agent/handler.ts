@@ -407,14 +407,18 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
       : loaded;
     let transcript = spoken;
     if (!transcript) {
-      // From here on a provider has been asked: the command is spent.
-      spent = true;
+      // The clip is checked locally first (base64, size, container, length):
+      // a refusal there costs nothing. The command is spent the moment the
+      // request to Deepgram goes out (`onSend`).
       const heard = await transcribe(
         outbound,
         deepgramKey as string,
         body,
         context,
         Math.min(limits.sttMs, left()),
+        () => {
+          spent = true;
+        },
       );
       // The length Deepgram measured, not the one the client declared. A clip
       // over the cap gets nothing back: no transcript, no refund.
@@ -458,8 +462,9 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
       }
       if (breaker.isOpen(step.provider)) continue;
       try {
-        spent = true;
-        const attempt = await ask(outbound, step, context, message, budget, onUsage);
+        const attempt = await ask(outbound, step, context, message, budget, onUsage, () => {
+          spent = true;
+        });
         breaker.success(step.provider);
         model = step.model;
         parsed = attempt;
@@ -780,6 +785,7 @@ async function transcribe(
   body: VoiceAgentRequest,
   context: VoiceContext,
   budgetMs: number,
+  onSend: () => void = () => undefined,
 ): Promise<Heard> {
   let audio: Uint8Array;
   try {
@@ -806,6 +812,7 @@ async function transcribe(
     new HttpError(503, VoiceAgentError.Unavailable, 'Speech recognition is unavailable just now');
   let response: DeadlineResponse;
   try {
+    onSend();
     response = await fetchJsonWithDeadline(
       fetchFn,
       deepgramUrl(body.locale, keyterms(context)),
@@ -854,10 +861,19 @@ async function ask(
   transcript: string,
   budgetMs: number,
   onUsage: (model: string, usage: AnthropicUsage) => void = () => undefined,
+  onSend: () => void = () => undefined,
 ): Promise<Parsed> {
   const end = Date.now() + budgetMs;
-  const post: Post = (url, init) =>
-    fetchJsonWithDeadline(fetchFn, url, init, end - Date.now(), `${step.provider}:${step.model}`);
+  const post: Post = (url, init) => {
+    onSend();
+    return fetchJsonWithDeadline(
+      fetchFn,
+      url,
+      init,
+      end - Date.now(),
+      `${step.provider}:${step.model}`,
+    );
+  };
   const calls =
     step.provider === 'deepseek' || step.provider === 'openrouter'
       ? await askDeepSeek(post, step, context, transcript)

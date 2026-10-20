@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mp4DurationSeconds, wavDurationSeconds } from '../../_shared/audioDuration.ts';
 import { breaker, clearContextCache, handleVoiceAgent } from '../../voice-agent/handler.ts';
 import { base64, mp4Bytes, wavBytes } from '../test/audio.ts';
+import { FRAGMENTED_M4A_65S, PLAIN_M4A_2S } from '../test/audioFixtures.ts';
 import { clipRequest, goodExpense, makeDeps, refunds, route } from './voiceDeps.ts';
 
 beforeEach(() => {
@@ -27,6 +28,41 @@ beforeEach(() => {
 const add = [{ name: 'add_expense', input: goodExpense }];
 const tooLong = { status: 413, code: 'VOICE_AGENT_CLIP_TOO_LONG' };
 const unreadable = { status: 415, code: 'VOICE_AGENT_CLIP_UNREADABLE' };
+
+function fromBase64(s: string): Uint8Array {
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+}
+
+describe('M8 real encoder output', () => {
+  it('refuses a fragmented MP4 (moof / mvex) before Deepgram: its moov tables say nothing', async () => {
+    const bytes = fromBase64(FRAGMENTED_M4A_65S);
+    expect(bytes.length).toBeLessThan(3 * 1024 * 1024);
+    expect(mp4DurationSeconds(bytes)).toBeNull();
+    const { deps, fetchMock, rpc } = makeDeps({ fetchImpl: route('x', add, 65) });
+    await expect(
+      handleVoiceAgent(
+        clipRequest({ audioBase64: FRAGMENTED_M4A_65S, mimeType: 'audio/mp4', durationMs: 2000 }),
+        deps,
+      ),
+    ).rejects.toMatchObject(unreadable);
+    expect(fetchMock).not.toHaveBeenCalled();
+    // Refused locally, before any provider call: the command is given back.
+    expect(refunds(rpc)).toHaveLength(1);
+  });
+
+  it('measures a plain M4A from FFmpeg and lets a 2 s clip through', async () => {
+    expect(mp4DurationSeconds(fromBase64(PLAIN_M4A_2S))).toBeCloseTo(2, 0);
+    const { deps, fetchMock } = makeDeps({ fetchImpl: route('dinner', add, 2) });
+    const body = await (
+      await handleVoiceAgent(
+        clipRequest({ audioBase64: PLAIN_M4A_2S, mimeType: 'audio/m4a', durationMs: 2000 }),
+        deps,
+      )
+    ).json();
+    expect(body.actions).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('M8 MP4 / M4A clips are measured from their tables', () => {
   it('reads the sample table: a 2-minute M4A in a few KB is refused before Deepgram', async () => {
@@ -83,8 +119,8 @@ describe('M8 MP4 / M4A clips are measured from their tables', () => {
         handleVoiceAgent(clipRequest({ audioBase64, mimeType, durationMs: 1000 }), deps),
       ).rejects.toMatchObject(unreadable);
       expect(fetchMock).not.toHaveBeenCalled();
-      // The command was reserved and stays spent: an unreadable clip is the client's doing.
-      expect(refunds(rpc)).toHaveLength(0);
+      // Refused before any provider call: the command is given back.
+      expect(refunds(rpc)).toHaveLength(1);
     }
   });
 });

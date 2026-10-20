@@ -148,11 +148,20 @@ function makeDeps(
           const used = over.mints ?? 0;
           const budget = args.p_free_budget;
           return {
-            data: { allowed: used < budget, mints: used + 1, budget, tier: 'free' },
+            data: {
+              allowed: used < budget,
+              mints: used + 1,
+              budget,
+              tier: 'free',
+              reserved_seconds: 20,
+              reservation: 'res-1',
+            },
             error: null,
           };
         }
-        if (name === 'waves_voice_stream_seconds') return { data: 1, error: null };
+        if (name === 'waves_voice_stream_seconds' || name === 'waves_voice_stream_settle') {
+          return { data: 1, error: null };
+        }
         return { data: true, error: null };
       },
       from: (t: string) => {
@@ -397,8 +406,8 @@ describe('runRelay: piping', () => {
     expect(line?.profile).toMatch(/^[0-9a-f]{12}$/);
     expect(JSON.stringify(line)).not.toContain(ME);
     expect(made.rpcCalls).toContainEqual({
-      name: 'waves_voice_stream_seconds',
-      args: { p_profile: ME, p_seconds: 0.3, p_reserved_seconds: 20 },
+      name: 'waves_voice_stream_settle',
+      args: { p_reservation: 'res-1', p_seconds: 0.3 },
     });
   });
 
@@ -523,8 +532,8 @@ describe('runRelay: failure modes (docs/voice-failure-modes.md)', () => {
     // 20 s its mint reserved (review M9 of PR #1350).
     await expect(done).resolves.toMatchObject({ bytes: 0 });
     expect(rpcCalls).toContainEqual({
-      name: 'waves_voice_stream_seconds',
-      args: { p_profile: ME, p_seconds: 0, p_reserved_seconds: 20 },
+      name: 'waves_voice_stream_settle',
+      args: { p_reservation: 'res-1', p_seconds: 0 },
     });
   });
 
