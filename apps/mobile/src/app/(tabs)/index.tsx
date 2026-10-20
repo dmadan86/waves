@@ -40,6 +40,7 @@ import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
+import { LinkRequestsCard } from '@/components/LinkRequestsCard';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -561,6 +562,11 @@ export default function HomeScreen() {
           {/* A background import's progress lands here, just above the groups —
               the person tapped Import, came home, and watches it fill. */}
           <ImportProgressBanner />
+
+          {/* "Madan says you are Renny in Goa trip": somebody has named this
+              person as a placeholder in their group, and only they can say
+              yes. Drawn only while something is waiting. */}
+          <LinkRequestsCard enabled={session !== null && !isGuest} />
 
           {showSkeleton ? (
             <SkeletonList rows={3} />
