@@ -1,18 +1,21 @@
 /**
- * Who paid and how it splits, edited in a sheet over the voice screen instead
- * of a trip to the add-expense form. It is that form's own split editor
- * (`SplitKindSegments` + `SplitParticipants`, with its share preview and its
- * "left to assign" checks from `lib/expenseEdit`), plus one row of payer chips.
+ * Who shares an expense, edited in a sheet over the voice screen instead of a
+ * trip to the add-expense form. It opens on the people alone, split equally. The
+ * payer is one small row that swaps the sheet to a list where a tap applies and
+ * closes; exact, percent and shares sit behind "Split differently" (that form's
+ * own split editor, with its share preview and its "left to assign" checks from
+ * `lib/expenseEdit`).
  *
  * The sheet edits a copy; Done hands back the payer, the core split params and
  * the people, and only when the split adds up.
  */
 
 import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import type { SplitParams } from '@waves/core';
-import { Button, Chip, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
 import { SplitKindSegments, SplitParticipants } from '@/components/expense/SplitEditor';
 import { useGroup } from '@/data/hooks';
@@ -37,6 +40,8 @@ export function VoiceSplitSheet({
   amount,
   seed,
   onApply,
+  initialView = 'people',
+  simple = false,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -47,6 +52,10 @@ export function VoiceSplitSheet({
   /** What the sheet opens on. */
   seed: SplitEdit;
   onApply: (result: SplitSheetResult) => void;
+  /** Open on the payer list instead of the people. */
+  initialView?: 'people' | 'payer';
+  /** One total cannot be spread over several expenses: equal only. */
+  simple?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -58,6 +67,9 @@ export function VoiceSplitSheet({
   );
 
   const [payerId, setPayerId] = useState(seed.payerId);
+  const [view, setView] = useState(initialView);
+  // A split already set another way opens its figures, so they are not hidden.
+  const [advanced, setAdvanced] = useState(seed.kind !== SplitKind.Equal);
   const [kind, setKind] = useState<SplitKind>(seed.kind);
   const [participants, setParticipants] = useState<string[]>([...seed.participants]);
   const [weights, setWeights] = useState<SplitEntries>(
@@ -105,13 +117,28 @@ export function VoiceSplitSheet({
       current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId],
     );
   const ready = Boolean(payerId) && participants.length > 0 && issue === null && preview !== null;
+  const nameOf = (member: (typeof members)[number]): string =>
+    isViewer(member, viewerId) ? t.voice.youLabel : displayName(member, viewerId);
+  const apply = (payer: string): void => {
+    onApply({ payerId: payer, params, participants });
+    onClose();
+  };
+
+  const rowStyle = ({ pressed }: { pressed: boolean }) => ({
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: theme.spacing.sm,
+    minHeight: 48,
+    opacity: pressed ? 0.6 : 1,
+  });
+  const payer = members.find((member) => member.id === payerId);
 
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       closeLabel={t.common.close}
-      title={t.voiceScreen.splitSheetTitle}
+      title={view === 'payer' ? t.voice.paidBy : t.voiceScreen.splitWith}
       style={{
         backgroundColor: theme.color.bg,
         paddingHorizontal: theme.spacing.xl,
@@ -120,49 +147,81 @@ export function VoiceSplitSheet({
     >
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.lg }}>
-          <View style={{ gap: theme.spacing.xs }}>
-            <Text variant="caption" tone="muted">
-              {t.voice.paidBy}
-            </Text>
-            <Row gap={theme.spacing.xs} style={{ flexWrap: 'wrap' }}>
-              {members.map((member) => (
-                <Chip
-                  key={member.id}
-                  label={
-                    isViewer(member, viewerId) ? t.voice.youLabel : displayName(member, viewerId)
-                  }
-                  selected={payerId === member.id}
-                  variant="brand"
-                  onPress={() => setPayerId(member.id)}
+          {view === 'payer' ? (
+            members.map((member) => (
+              <Pressable
+                key={member.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: payerId === member.id }}
+                onPress={() => {
+                  setPayerId(member.id);
+                  if (ready) apply(member.id);
+                  else setView('people');
+                }}
+                style={rowStyle}
+              >
+                <Ionicons
+                  name={payerId === member.id ? 'radio-button-on' : 'radio-button-off'}
+                  size={iconSize.md}
+                  color={payerId === member.id ? theme.color.brand : theme.color.textMuted}
                 />
-              ))}
-            </Row>
-          </View>
-          <SplitKindSegments value={kind} onChange={setKind} />
-          <SplitParticipants
-            members={members}
-            viewerId={viewerId}
-            participants={participants}
-            onToggle={toggle}
-            splitKind={kind}
-            entries={entries}
-            onEntryChange={setEntry}
-            currency={currency}
-            amount={amount}
-            lineAmount={(memberId) =>
-              lineAmountFor(memberId, preview, { splitKind: kind, percents, amount })
-            }
-            splitIssue={issue}
-          />
-          <Button
-            label={t.common.done}
-            variant="brand"
-            disabled={!ready}
-            onPress={() => {
-              onApply({ payerId, params, participants });
-              onClose();
-            }}
-          />
+                <Text style={{ flex: 1 }}>{nameOf(member)}</Text>
+              </Pressable>
+            ))
+          ) : (
+            <>
+              {advanced ? <SplitKindSegments value={kind} onChange={setKind} /> : null}
+              <SplitParticipants
+                members={members}
+                viewerId={viewerId}
+                participants={participants}
+                onToggle={toggle}
+                splitKind={kind}
+                entries={entries}
+                onEntryChange={setEntry}
+                currency={currency}
+                amount={amount}
+                lineAmount={(memberId) =>
+                  lineAmountFor(memberId, preview, { splitKind: kind, percents, amount })
+                }
+                splitIssue={issue}
+              />
+              {payer ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.voiceScreen.paidByName.replace('{name}', nameOf(payer))}
+                  onPress={() => setView('payer')}
+                  style={rowStyle}
+                >
+                  <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                    {t.voiceScreen.paidByName.replace('{name}', nameOf(payer))}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={iconSize.sm}
+                    color={theme.color.textFaint}
+                  />
+                </Pressable>
+              ) : null}
+              {simple || advanced ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setAdvanced(true)}
+                  style={rowStyle}
+                >
+                  <Text tone="brand" style={{ fontWeight: '600' }}>
+                    {t.voiceScreen.splitDifferently}
+                  </Text>
+                </Pressable>
+              )}
+              <Button
+                label={t.common.done}
+                variant="brand"
+                disabled={!ready}
+                onPress={() => apply(payerId)}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
     </Sheet>

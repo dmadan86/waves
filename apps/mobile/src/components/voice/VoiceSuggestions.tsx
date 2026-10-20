@@ -1,5 +1,5 @@
 /**
- * Three things to say, as compact rows with a small icon: one personal expense,
+ * Three things to say, as a card of rows with a tinted icon: one personal expense,
  * one split with two people, one question. The sentences are fitted to the
  * phone's country and the reader's groups (`lib/voiceExamples`), so the names
  * and amounts are plausible here rather than fixed.
@@ -19,6 +19,11 @@ import { iconSize, Text, useTheme } from '@waves/ui';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 import { useDefaultCurrency } from '@/lib/currency';
 import { exampleCountry, voiceExamples } from '@/lib/voiceExamples';
+
+import { sceneCardColor } from './sceneCard';
+
+/** One tint per row, in order, as in the design. */
+const ROW_TINTS = ['sky', 'peach', 'mint'] as const;
 
 export type SuggestionKind = 'expense' | 'question';
 
@@ -87,47 +92,53 @@ export function VoiceSuggestions({
   const theme = useTheme();
   const { t } = useStrings();
   return (
-    <View style={{ alignSelf: 'stretch', gap: theme.spacing.xs }}>
-      <Text variant="caption" tone="muted" style={{ paddingHorizontal: theme.spacing.xs }}>
-        {t.voiceScreen.suggestionsTitle}
-      </Text>
-      {suggestions.map((row) => {
+    <View
+      style={{
+        alignSelf: 'stretch',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.xl,
+        backgroundColor: sceneCardColor(theme.scheme, theme.color.surface),
+        ...theme.shadow.soft,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+        <Ionicons name="bulb-outline" size={iconSize.base} color={theme.color.warning} />
+        <Text variant="body" style={{ fontWeight: '600', flexShrink: 1 }}>
+          {t.voiceScreen.suggestionsTitle}
+        </Text>
+      </View>
+      {suggestions.map((row, index) => {
         const pick = onPick && (canPick ? canPick(row) : true) ? onPick : null;
+        const tint = theme.tint[ROW_TINTS[index % ROW_TINTS.length]];
         const body = (
           <>
             <View
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: theme.color.brandSoft,
+                backgroundColor: tint.bg,
               }}
             >
-              <Ionicons name={row.icon} size={iconSize.sm} color={theme.color.brand} />
+              <Ionicons name={row.icon} size={iconSize.base} color={tint.ink} />
             </View>
-            <Text variant="body" style={{ flex: 1 }}>
+            <Text variant="body" tone="muted" style={{ flex: 1 }}>
               {row.text}
             </Text>
-            {pick ? (
-              <Ionicons
-                name={row.kind === 'question' ? 'arrow-forward' : 'create-outline'}
-                size={iconSize.sm}
-                color={theme.color.textMuted}
-              />
-            ) : null}
           </>
         );
         const style = {
           flexDirection: 'row' as const,
           alignItems: 'center' as const,
-          gap: theme.spacing.sm,
-          minHeight: 48,
+          gap: theme.spacing.md,
+          minHeight: 56,
           paddingHorizontal: theme.spacing.sm,
           paddingVertical: theme.spacing.xs,
-          borderRadius: theme.radius.md,
-          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.surfaceMuted,
         };
         return pick ? (
           <Pressable

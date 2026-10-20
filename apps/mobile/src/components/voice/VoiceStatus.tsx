@@ -1,5 +1,5 @@
 /**
- * The status line under the mic: an icon and a word, never colour alone.
+ * The status line under the mic: a word (a pill when ready, an icon and plain text after), never colour alone.
  *
  * It is a polite live region (Android) and is announced on iOS when it changes,
  * so a screen-reader user hears "Listening…", "Understanding your expense…",
@@ -17,7 +17,7 @@ import { statusAnnouncement, type VoiceStatusKey } from '@/lib/voiceFlowPure';
 const ICON: Record<VoiceStatusKey, React.ComponentProps<typeof Ionicons>['name']> = {
   ready: 'ellipse-outline',
   starting: 'hourglass-outline',
-  listening: 'radio-button-on',
+  listening: 'bar-chart',
   processing: 'sparkles-outline',
   noSpeech: 'volume-mute-outline',
   noAmount: 'help-circle-outline',
@@ -39,13 +39,9 @@ export function VoiceStatus({ status, text }: { status: VoiceStatusKey; text: st
   }, [text]);
   const warn = status === 'noSpeech' || status === 'noAmount' || status === 'check';
   const bad = status === 'error' || status === 'permission';
-  const color = bad
-    ? theme.color.negative
-    : warn
-      ? theme.color.warning
-      : status === 'ready'
-        ? theme.color.textMuted
-        : theme.color.brand;
+  // "Ready" is the one pill (brand on brandSoft); every other state is plain text.
+  const ready = status === 'ready';
+  const color = bad ? theme.color.negative : warn ? theme.color.warning : theme.color.brand;
   return (
     <View
       accessibilityLiveRegion="polite"
@@ -55,10 +51,13 @@ export function VoiceStatus({ status, text }: { status: VoiceStatusKey; text: st
         alignItems: 'center',
         justifyContent: 'center',
         gap: theme.spacing.xs,
-        minHeight: 24,
+        minHeight: 36,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: theme.radius.pill,
+        backgroundColor: ready ? theme.color.brandSoft : 'transparent',
       }}
     >
-      <Ionicons name={ICON[status]} size={iconSize.sm} color={color} />
+      {ready ? null : <Ionicons name={ICON[status]} size={iconSize.sm} color={color} />}
       <Text
         variant="body"
         style={{ fontWeight: '600', color: bad || warn ? theme.color.text : color }}

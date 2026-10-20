@@ -27,7 +27,7 @@ const world = vi.hoisted(() => ({
   send: vi.fn(),
   upsert: vi.fn(),
   prefsUpdate: vi.fn(),
-  question: { kind: 'payment', score: 50, places: [], hereNow: false, partners: [] } as unknown,
+  question: { kind: 'place', score: 50, places: ['Cafe'], hereNow: false, partners: [] } as unknown,
 }));
 
 const WORDS: Record<string, string> = { payCash: 'Cash', payUpi: 'UPI', payCard: 'Card' };
@@ -55,6 +55,10 @@ vi.mock('@waves/core', async () => ({
   nextFollowUp: () => world.question,
 }));
 vi.mock('@/components/VoiceTypedAnswer', () => ({ VoiceTypedAnswer: 'VoiceTypedAnswer' }));
+vi.mock('@/components/voice/SavedSummary', () => ({
+  SavedSummary: 'SavedSummary',
+  TextAction: () => null,
+}));
 vi.mock('@/data/hooks', () => ({
   useOpenReceipts: () => [],
   useDeleteExpense: () => ({ mutateAsync: vi.fn() }),
@@ -153,6 +157,15 @@ const mount = async (over: Partial<VoiceFollowUpsProps> = {}) => {
   await flush();
   return card;
 };
+// The voice reply is reached from the typed answer's own mic, which "Somewhere
+// else" opens: no mic icon sits on the card itself.
+const startMic = async (card: Awaited<ReturnType<typeof mount>>): Promise<void> => {
+  const chip = findAll(card.result.current, (n) => n.props.accessibilityLabel === 'placeElse')[0];
+  act(() => (chip?.props.onPress as () => void)());
+  await flush();
+  const [typed] = findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer');
+  act(() => (typed?.props.onVoice as () => void)());
+};
 const named = (tree: unknown, name: string) =>
   findAll(tree, (n) => typeof n.type === 'function' && n.type.name === name);
 
@@ -164,29 +177,27 @@ beforeEach(() => {
   world.send.mockReset();
   world.upsert.mockReset();
   world.upsert.mockResolvedValue(undefined);
-  world.question = { kind: 'payment', score: 50, places: [], hereNow: false, partners: [] };
+  world.question = { kind: 'place', score: 50, places: ['Cafe'], hereNow: false, partners: [] };
 });
 
 describe('follow-up card voice reply', () => {
-  it('MC-FU-30 shows a mic link with an a11y label; tapping it starts listening', async () => {
+  it('MC-FU-30 the typed answer offers the mic; tapping it starts listening', async () => {
     const card = await mount();
-    const [mic] = named(card.result.current, 'MicLink');
-    expect(mic?.props.label).toBe('voiceAnswer');
-    act(() => (mic?.props.onPress as () => void)());
+    expect(named(card.result.current, 'MicLink')).toHaveLength(0);
+    await startMic(card);
     expect(world.starts).toBe(1);
     const [row] = named(card.result.current, 'ListeningRow');
     expect(row?.props.transcribing).toBe(false);
-    expect(named(card.result.current, 'MicLink')).toHaveLength(0);
   });
 
   it('MC-FU-31 idle -> listening -> transcribing -> answered: a spoken chip name is pressed on the phone, no model turn', async () => {
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     act(() => world.handlers?.onText?.('ca'));
     expect(named(card.result.current, 'ListeningRow')[0]?.props.heard).toBe('ca');
     act(() => world.handlers?.onCaptured());
     expect(named(card.result.current, 'ListeningRow')[0]?.props.transcribing).toBe(true);
-    act(() => world.handlers?.onEnd({ kind: 'text', text: 'cash' }));
+    act(() => world.handlers?.onEnd({ kind: 'text', text: 'cafe' }));
     await flush();
     expect(world.send).not.toHaveBeenCalled();
     expect(world.upsert).toHaveBeenCalledTimes(1);
@@ -199,7 +210,7 @@ describe('follow-up card voice reply', () => {
       response: { update: { expenseId: 'p1', note: 'with Anu' } },
     });
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     act(() => world.handlers?.onEnd({ kind: 'text', text: 'it was a gift for Anu' }));
     await flush();
     expect(world.send).toHaveBeenCalledTimes(1);
@@ -209,78 +220,80 @@ describe('follow-up card voice reply', () => {
     };
     expect(call.transcript).toBe('it was a gift for Anu');
     expect(call.savedExpense.id).toBe('p1');
-    expect(call.savedExpense.question).toBe('paymentAsk');
+    expect(call.savedExpense.question).toBe('placeAsk');
   });
 
   it('MC-FU-33 the source is reported for voice and typed answers', async () => {
     const seen: string[] = [];
     const card = await mount({ onAnswerSource: (s, via) => seen.push(`${s}:${via}`) });
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
-    act(() => world.handlers?.onEnd({ kind: 'text', text: 'upi' }));
+    await startMic(card);
+    act(() => world.handlers?.onEnd({ kind: 'text', text: 'cafe' }));
     await flush();
-    // A refused mic opens the typed field; the same words typed take the same path.
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
-    act(() => world.handlers?.onEnd({ kind: 'denied' }));
+    // The same words typed take the same path.
+    const chip = findAll(card.result.current, (n) => n.props.accessibilityLabel === 'placeElse')[0];
+    act(() => (chip?.props.onPress as () => void)());
     await flush();
     const [typed] = findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer');
-    act(() => (typed?.props.onSubmit as (text: string) => void)('cash'));
+    act(() => (typed?.props.onSubmit as (text: string) => void)('cafe'));
     await flush();
     expect(seen).toEqual(['voice:chip', 'typed:chip']);
     expect(world.send).not.toHaveBeenCalled();
   });
 
-  it('MC-FU-34 offline hides the mic and Type instead and shows the caption', async () => {
+  it('MC-FU-34 offline: no typing chip, no mic, no typed field', async () => {
     world.online = false;
     const card = await mount();
     expect(named(card.result.current, 'MicLink')).toHaveLength(0);
-    const labels = named(card.result.current, 'SmallLink').map((n) => n.props.label);
-    expect(labels).not.toContain('typeInstead');
-    expect(textOf(card.result.current)).toContain('typingOffline');
+    expect(textOf(card.result.current)).not.toContain('typingOffline');
+    expect(
+      findAll(card.result.current, (n) => n.props.accessibilityLabel === 'placeElse'),
+    ).toHaveLength(0);
+    expect(findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer')).toHaveLength(0);
   });
 
   it('MC-FU-35 a refused microphone opens typing with a hint, no crash', async () => {
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     act(() => world.handlers?.onEnd({ kind: 'denied' }));
     await flush();
     expect(findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer')).toHaveLength(1);
     expect(textOf(card.result.current)).toContain('micDenied');
   });
 
-  it('MC-FU-36 an empty transcript shows the retry hint and the mic stays', async () => {
+  it('MC-FU-36 an empty transcript shows the retry hint', async () => {
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     act(() => world.handlers?.onEnd({ kind: 'empty' }));
     expect(textOf(card.result.current)).toContain('noSpeech');
-    expect(named(card.result.current, 'MicLink')).toHaveLength(1);
     expect(world.send).not.toHaveBeenCalled();
   });
 
   it('MC-FU-37 unmounting the card stops the recorder', async () => {
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     card.unmount();
     expect(world.run.cancel).toHaveBeenCalledTimes(1);
   });
 
-  it('MC-FU-38 three model turns is the cap: the mic goes, the fourth answer is refused', async () => {
+  it('MC-FU-38 three model turns is the cap: the fourth answer is refused', async () => {
     world.send.mockResolvedValue({ kind: 'ok', response: {} });
     const card = await mount();
     for (let i = 0; i < 3; i++) {
-      act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+      await startMic(card);
       act(() => world.handlers?.onEnd({ kind: 'text', text: `something odd ${i}` }));
       await flush();
     }
     expect(world.send).toHaveBeenCalledTimes(3);
-    expect(named(card.result.current, 'MicLink')).toHaveLength(0);
+    const chip = findAll(card.result.current, (n) => n.props.accessibilityLabel === 'placeElse')[0];
+    act(() => (chip?.props.onPress as () => void)());
+    await flush();
     expect(textOf(card.result.current)).toContain('turnsUsed');
-    const typed = findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer');
-    expect(typed).toHaveLength(0);
+    expect(findAll(card.result.current, (n) => n.type === 'VoiceTypedAnswer')).toHaveLength(0);
   });
 
   it('MC-FU-39 Stop ends the clip through the row button', async () => {
     const card = await mount();
-    act(() => (named(card.result.current, 'MicLink')[0]?.props.onPress as () => void)());
+    await startMic(card);
     act(() => (named(card.result.current, 'ListeningRow')[0]?.props.onStop as () => void)());
     expect(world.run.stop).toHaveBeenCalledTimes(1);
   });

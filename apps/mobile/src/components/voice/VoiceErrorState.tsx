@@ -1,7 +1,8 @@
 /**
  * Why the mic stopped without words, and the way forward: a refused permission
  * (Open settings when only Settings can fix it, else the mic asks again), or an
- * error (Try again). "Type instead" is always the second way out.
+ * error (Try again): one explanation and one recovery. Typing is the header's
+ * keypad, so it is not offered a second time here.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,12 +17,10 @@ export function VoiceErrorState({
   problem,
   onRetry,
   onOpenSettings,
-  onType,
 }: {
   problem: Exclude<CaptureProblem, { kind: 'no-speech' }>;
   onRetry: () => void;
   onOpenSettings: () => void;
-  onType?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -51,19 +50,10 @@ export function VoiceErrorState({
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
         <Button
-          size="sm"
           variant="brand"
           label={settings ? t.voiceScreen.openSettings : t.voiceScreen.retry}
           onPress={settings ? onOpenSettings : onRetry}
         />
-        {onType ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            label={t.voiceScreen.typeInstead}
-            onPress={onType}
-          />
-        ) : null}
       </View>
     </View>
   );
