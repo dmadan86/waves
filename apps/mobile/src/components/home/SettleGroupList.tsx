@@ -8,6 +8,7 @@
  * The body of the `/settle-up` screen, under its header.
  */
 
+import { coverTone } from '@/lib/groupCoverColor';
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, Pressable, View } from 'react-native';
@@ -27,6 +28,7 @@ export interface SettleCandidate {
   id: string;
   title: string;
   coverEmoji: string | null;
+  coverColor?: string | null;
   photoPath: string | null;
   balance: bigint;
   currency: string;
@@ -126,7 +128,7 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
             height: DISC,
             borderRadius: DISC / 2,
             overflow: 'hidden',
-            backgroundColor: tint.bg,
+            backgroundColor: coverTone(item.coverColor, theme)?.bg ?? tint.bg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -134,6 +136,8 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           <GroupPhoto
             photoPath={item.photoPath}
             emoji={item.coverEmoji}
+            color={item.coverColor}
+            bare
             size={DISC}
             background="transparent"
           />

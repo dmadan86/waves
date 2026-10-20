@@ -75,7 +75,7 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, convert_to_group_currency,
-  cover_emoji, photo_path,
+  cover_emoji, cover_color, photo_path,
   start_date, end_date, time_zone, budget_minor, budget_currency,
   archived_at, created_at, updated_seq
 `;

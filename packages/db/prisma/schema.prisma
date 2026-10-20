@@ -276,6 +276,12 @@ model Group {
   /// `groups_custom_tag_shape`). Ordinary member-writable, like `eventTemplate`.
   customTag String? @map("custom_tag")
 
+  /// Palette key ('peach', 'mint', …; `GROUP_COVER_COLORS` in `@waves/core`) for the
+  /// tile behind the group's icon. NULL is the app's default colour. Lowercase
+  /// letters only (CHECK `groups_cover_color_shape`); a key is stored, not a hex,
+  /// so dark mode can map it. Ordinary member-writable, like `coverEmoji`.
+  coverColor String? @map("cover_color")
+
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
   /// Group-visible by design: everyone sees the overall budget; only an admin

@@ -1759,6 +1759,84 @@
     color: var(--w-text-muted);
   }
 
+  /* The colour a member picked behind a group's icon (`groups.cover_color`, a
+     palette key from @waves/core). Mirrors the app's tones; no attribute, or a
+     key not listed here, keeps the tile's own background. */
+  [data-cover='lilac'] {
+    background: #dcd9fb;
+  }
+  [data-cover='pink'] {
+    background: #f8d7da;
+  }
+  [data-cover='peach'] {
+    background: #fbe0c4;
+  }
+  [data-cover='coral'] {
+    background: #ffc5c5;
+  }
+  [data-cover='butter'] {
+    background: #fff1b8;
+  }
+  [data-cover='mint'] {
+    background: #dce1ff;
+  }
+  [data-cover='sage'] {
+    background: #ddebd3;
+  }
+  [data-cover='sky'] {
+    background: #cfe6fa;
+  }
+  [data-cover='indigo'] {
+    background: #4f46e5;
+  }
+  [data-cover='teal'] {
+    background: #0f9d94;
+  }
+  [data-cover='berry'] {
+    background: #c2417a;
+  }
+  [data-cover='slate'] {
+    background: #475569;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-cover='lilac'] {
+      background: #2e2a57;
+    }
+    [data-cover='pink'] {
+      background: #4a2a31;
+    }
+    [data-cover='peach'] {
+      background: #463020;
+    }
+    [data-cover='coral'] {
+      background: #4c2a28;
+    }
+    [data-cover='butter'] {
+      background: #4a3f14;
+    }
+    [data-cover='mint'] {
+      background: #26306b;
+    }
+    [data-cover='sage'] {
+      background: #28402a;
+    }
+    [data-cover='sky'] {
+      background: #1b3a52;
+    }
+    [data-cover='indigo'] {
+      background: #3b3799;
+    }
+    [data-cover='teal'] {
+      background: #0b5f5a;
+    }
+    [data-cover='berry'] {
+      background: #7a2a52;
+    }
+    [data-cover='slate'] {
+      background: #334155;
+    }
+  }
+
   /* "A pays B" — two names with the direction drawn between them, so the row
      still reads correctly when the page runs right to left. */
   .transfer {

@@ -245,6 +245,26 @@ describe('group.update and the name column', () => {
     expect(scoped.update).toHaveBeenCalledWith({ custom_tag: null });
   });
 
+  it('lets cover_color through the allowlist, lowercased', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(updateGroup({ cover_color: ' Peach ' }, 'color-set'));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.update).toHaveBeenCalledWith({ cover_color: 'peach' });
+  });
+
+  it('writes NULL when the cover colour is cleared', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+
+    const outcome = await session.apply(updateGroup({ cover_color: null }, 'color-clear'));
+
+    expect(outcome).toMatchObject({ status: 'applied' });
+    expect(scoped.update).toHaveBeenCalledWith({ cover_color: null });
+  });
+
   it('still drops columns that are not on the allowlist', async () => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);

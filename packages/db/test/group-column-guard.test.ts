@@ -162,6 +162,7 @@ describe('the columns the app actually writes still go through', () => {
     await patch(member, groupId, 'default_currency', 'EUR');
     await patch(member, groupId, 'country_code', 'IN');
     await patch(member, groupId, 'custom_tag', 'Diwali 2026');
+    await patch(member, groupId, 'cover_color', 'peach');
 
     const { rows } = await client.query(
       `SELECT name, description, cover_emoji, remind_daily FROM groups WHERE id = $1`,
@@ -193,6 +194,25 @@ describe('the columns the app actually writes still go through', () => {
     // Refused, so the last accepted write is what the column still holds.
     const { rows } = await client.query(`SELECT description FROM groups WHERE id = $1`, [groupId]);
     expect(rows[0]?.description).toBe('கோ'.repeat(140));
+  });
+
+  it('stores a cover colour key, refuses a hex or capitals, and lets it clear to NULL', async () => {
+    // A palette key, not a colour: the CHECK is the shape of a key so dark mode
+    // can map it, and a stray hex from a hand-written PATCH is refused.
+    const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
+    const member = profileIds[1]!;
+
+    await patch(member, groupId, 'cover_color', 'mint');
+    for (const bad of ['#ffaa00', 'Peach', '', 'a'.repeat(17)]) {
+      const message = await expectDenied(patch(member, groupId, 'cover_color', bad));
+      expect(message).toMatch(/groups_cover_color_shape/);
+    }
+    let { rows } = await client.query(`SELECT cover_color FROM groups WHERE id = $1`, [groupId]);
+    expect(rows[0]?.cover_color).toBe('mint');
+
+    await patch(member, groupId, 'cover_color', null);
+    ({ rows } = await client.query(`SELECT cover_color FROM groups WHERE id = $1`, [groupId]));
+    expect(rows[0]?.cover_color).toBeNull();
   });
 
   it('lets a member clear a description back to NULL', async () => {
