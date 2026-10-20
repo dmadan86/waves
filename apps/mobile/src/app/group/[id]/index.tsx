@@ -38,6 +38,7 @@ import {
   useCaptures,
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
+import { expenseCaption } from '@/lib/expenseCaption';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -438,19 +439,16 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   const dateStamp = version ? dateFmt.format(new Date(version.expense_date)) : null;
   // The right column's date-line: the direction and the date, joined the way the
   // subtitle joins its parts. Undated rows (no version) show the label alone.
-  const rightMeta = [
-    foreign && stake !== null && stake !== 0n
-      ? stakeHere
-        ? formatParts(
-            { minor: stake < 0n ? -stake : stake, currency: version.currency },
-            { locale },
-          ).text
-        : t.expense.noRateShort
-      : directionLabel,
-    dateStamp,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const foreignStake = foreign && stake !== null && stake !== 0n;
+  const caption = expenseCaption(stake, t.expense);
+  // A foreign bill says its stake (or "no rate yet") in the same neutral pill.
+  const pillLabel = foreignStake
+    ? stakeHere
+      ? formatParts({ minor: stake < 0n ? -stake : stake, currency: version.currency }, { locale })
+          .text
+      : t.expense.noRateShort
+    : caption.label;
+  const pillKind = foreignStake ? 'neutral' : caption.kind;
   // The whole row is one button to a screen reader, so the money a sighted user
   // reads on the right has to ride the row's label — otherwise it announces the
   // title alone and never the amount. The magnitude (the direction is already in
@@ -568,9 +566,41 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                   ) : null}
                   {expense.pending ? <PendingMark /> : null}
                 </Row>
-                <Text variant="micro" tone="muted" numberOfLines={1} style={{ fontSize: 11 }}>
-                  {rightMeta}
-                </Text>
+                <Row style={{ gap: 6, alignItems: 'center', marginTop: 2, maxWidth: '100%' }}>
+                  <View
+                    style={{
+                      flexShrink: 1,
+                      minWidth: 0,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 999,
+                      backgroundColor:
+                        pillKind === 'neutral' ? theme.color.border : `${stakeColor}1F`,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 11,
+                        lineHeight: 14,
+                        fontWeight: '600',
+                        color: pillKind === 'neutral' ? theme.color.textMuted : stakeColor,
+                      }}
+                    >
+                      {pillLabel}
+                    </Text>
+                  </View>
+                  {dateStamp ? (
+                    <Text
+                      variant="micro"
+                      tone="muted"
+                      numberOfLines={1}
+                      style={{ fontSize: 12, flexShrink: 0 }}
+                    >
+                      {dateStamp}
+                    </Text>
+                  ) : null}
+                </Row>
               </View>
             ) : null}
           </Row>
