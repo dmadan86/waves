@@ -305,6 +305,11 @@ BEGIN
 END
 $$;
 
+-- A trigger function, as before (20260908120000): fired by the table, never
+-- called by anyone.
+REVOKE ALL ON FUNCTION public.waves_settlement_notify() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_settlement_notify() TO service_role;
+
 -- ──────────────────────────────────────────────────────────────── the fold ──
 
 -- Everything filed under one member of a group, moved onto another member of
