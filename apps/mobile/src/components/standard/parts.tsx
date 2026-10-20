@@ -26,11 +26,14 @@ export function PillButton({
   icon,
   onPress,
   accessibilityLabel,
+  chevron = true,
 }: {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   accessibilityLabel?: string;
+  /** The down chevron that says "opens a list"; off for a pill that does something else. */
+  chevron?: boolean;
 }) {
   const theme = useTheme();
   const glass = useGlass();
@@ -53,7 +56,9 @@ export function PillButton({
       <Text variant="caption" style={{ fontWeight: '600' }}>
         {label}
       </Text>
-      <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.text} />
+      {chevron ? (
+        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.text} />
+      ) : null}
     </Pressable>
   );
 }
@@ -287,6 +292,11 @@ export function ListRow({
   footer,
   onPress,
   divider = false,
+  trailing,
+  subtitleLines = 1,
+  destructive = false,
+  highlight,
+  titleAccessory,
 }: {
   leading?: ReactNode;
   title: string;
@@ -297,20 +307,54 @@ export function ListRow({
   onPress?: () => void;
   /** A hairline under the row, for every row but the last of a card. */
   divider?: boolean;
+  /** A control at the right-hand end (a toggle, a pill, a menu button), in place of the chevron. */
+  trailing?: ReactNode;
+  /** How many lines the subtitle may take before it is cut; one by default. */
+  subtitleLines?: number;
+  /** The title is drawn in the negative colour, for the act that cannot be undone. */
+  destructive?: boolean;
+  /** A tint behind the whole row, for "this one is you". */
+  highlight?: string;
+  /** Sits beside the title, such as an ⓘ. */
+  titleAccessory?: ReactNode;
 }) {
   const theme = useTheme();
   const spoken = [title, subtitle, amount, percent !== undefined ? `${percent}%` : null]
     .filter(Boolean)
     .join(', ');
-  const body = (
-    <Row style={{ alignItems: 'center', gap: theme.spacing.md, paddingVertical: theme.spacing.sm }}>
+  const rowStyle = {
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    ...(highlight
+      ? {
+          backgroundColor: highlight,
+          borderRadius: theme.radius.lg,
+          paddingHorizontal: theme.spacing.md,
+        }
+      : null),
+  } as const;
+  const main = (
+    <>
       {leading}
-      <View style={{ flex: 1, gap: 4 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={1}>{title}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Text
+                numberOfLines={1}
+                // Shrinks before it can reach the accessory or the control beside the row.
+                style={[
+                  { flexShrink: 1 },
+                  destructive ? { color: theme.color.negative, fontWeight: '600' } : null,
+                ]}
+              >
+                {title}
+              </Text>
+              {titleAccessory}
+            </Row>
             {subtitle ? (
-              <Text variant="caption" tone="muted" numberOfLines={1}>
+              <Text variant="caption" tone="muted" numberOfLines={subtitleLines}>
                 {subtitle}
               </Text>
             ) : null}
@@ -328,31 +372,71 @@ export function ListRow({
           {`${percent}%`}
         </Text>
       ) : null}
-      {onPress && percent === undefined ? (
+      {onPress && percent === undefined && !trailing ? (
         <Ionicons
           name={directionalIcon('chevron-forward')}
           size={iconSize.sm}
           color={theme.color.textFaint}
         />
       ) : null}
-    </Row>
+    </>
   );
-  return (
-    <View>
+  // With a control of its own at the end (a toggle, a menu button) the text and
+  // the control are siblings, so a screen reader can reach both; the whole row
+  // is not one big accessible button swallowing it.
+  const body = trailing ? (
+    <Row style={rowStyle}>
       {onPress ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={spoken}
           onPress={onPress}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          style={({ pressed }) => ({
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            opacity: pressed ? 0.6 : 1,
+          })}
         >
-          {body}
+          {main}
         </Pressable>
       ) : (
-        <View accessible accessibilityLabel={spoken}>
-          {body}
+        // Not one accessible group: the ⓘ button and the explanation under the
+        // title must be reachable on their own, so the texts are read as they are
+        // and the control beside them carries its own label.
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+          }}
+        >
+          {main}
         </View>
       )}
+      {trailing}
+    </Row>
+  ) : onPress ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={spoken}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <Row style={rowStyle}>{main}</Row>
+    </Pressable>
+  ) : (
+    <View accessible accessibilityLabel={spoken}>
+      <Row style={rowStyle}>{main}</Row>
+    </View>
+  );
+  return (
+    <View>
+      {body}
       {divider ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
     </View>
   );

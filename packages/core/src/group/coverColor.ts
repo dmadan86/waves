@@ -29,6 +29,13 @@ export const GROUP_COVER_COLORS = [
   'teal',
   'berry',
   'slate',
+  // Added with the cover sheet's eight-swatch row; older keys above stay valid.
+  'iris',
+  'blue',
+  'aqua',
+  'green',
+  'yellow',
+  'orange',
 ] as const;
 
 export type GroupCoverColor = (typeof GROUP_COVER_COLORS)[number];
