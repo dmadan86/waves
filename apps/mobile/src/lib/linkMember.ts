@@ -4,7 +4,7 @@
  * so a test can pin each decision without rendering anything.
  */
 
-import { isGhost, isViewer, type MemberRow } from '@/data/types';
+import { isGhost, isViewer } from '@/data/types';
 import type { UiStrings } from '@/i18n';
 
 /** Somebody the sheet can offer: a member already here, or a person outside. */
@@ -41,7 +41,12 @@ export function matchPeople<T extends { name: string }>(query: string, people: r
  * here, not the viewer (that is "This is me") and not the placeholder itself.
  */
 export function membersAsPeople(
-  members: readonly Pick<MemberRow, 'id' | 'profile_id' | 'left_at' | 'profile'>[],
+  members: readonly {
+    id: string;
+    profile_id: string | null;
+    left_at: string | null;
+    profile?: { display_name: string; avatar_url: string | null } | null;
+  }[],
   viewerId: string | null | undefined,
   placeholderId: string,
 ): LinkPerson[] {

@@ -290,15 +290,21 @@ describe('members', () => {
     const decide = mutation<{ requestId: string; accept: boolean }>(() =>
       hooks.useDecideMemberLink(),
     );
+    // The hook reads the variables back in onSuccess, which the harness's
+    // captured shape does not model.
+    const onSuccess = decide.onSuccess as unknown as (
+      verdict: { ok: boolean },
+      variables: { requestId: string; accept: boolean },
+    ) => Promise<void>;
     await decide.mutationFn({ requestId: 'r-1', accept: false });
     expect(api.decideMemberLink).toHaveBeenCalledWith('r-1', false);
-    await decide.onSuccess?.({ ok: true }, { requestId: 'r-1', accept: false });
+    await onSuccess({ ok: true }, { requestId: 'r-1', accept: false });
     expect(query.client.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['member-links', 'mine'],
     });
     expect(query.client.invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ['groups'] });
 
-    await decide.onSuccess?.({ ok: true }, { requestId: 'r-1', accept: true });
+    await onSuccess({ ok: true }, { requestId: 'r-1', accept: true });
     expect(query.client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['groups'] });
   });
 
