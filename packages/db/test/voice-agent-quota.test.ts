@@ -63,10 +63,11 @@ function subscribe(
 
 describe('waves_voice_agent_quota', () => {
   it('reserves one command at a time on the free tier, then refuses without reserving', async () => {
-    expect(await reserve(a)).toEqual({ used: 1, limit: 3, tier: 'free', allowed: true });
+    const month = expect.stringMatching(/^\d{4}-\d{2}$/);
+    expect(await reserve(a)).toEqual({ used: 1, limit: 3, tier: 'free', allowed: true, month });
     await reserve(a);
-    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'free', allowed: true });
-    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'free', allowed: false });
+    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'free', allowed: true, month });
+    expect(await reserve(a)).toEqual({ used: 3, limit: 3, tier: 'free', allowed: false, month });
     const { rows } = await client.query(
       `SELECT count FROM voice_agent_usage WHERE profile_id = $1`,
       [a],

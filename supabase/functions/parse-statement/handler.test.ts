@@ -12,6 +12,7 @@ import {
   DEFAULT_MODELS,
   FEATURE,
   handleParseStatement,
+  MAX_CHUNKS_PER_IMPORT,
   MONTHLY_REQUEST_LIMIT,
   SYSTEM_PROMPT,
   type Deps,
@@ -63,6 +64,7 @@ function makeDeps(
     gateError?: boolean;
     quota?: Record<string, unknown> | null;
     chunkAllowed?: boolean;
+    sessionAllowed?: boolean;
     fetchImpl?: (url: string, init: RequestInit) => Response | Promise<Response>;
     env?: Record<string, string>;
     rateLimit?: () => Promise<void>;
@@ -89,6 +91,9 @@ function makeDeps(
         data: { used: 1, limit: MONTHLY_REQUEST_LIMIT, allowed: over.chunkAllowed ?? true },
         error: null,
       };
+    }
+    if (name === 'waves_statement_import_chunk') {
+      return { data: { chunks: 1, limit: 24, allowed: over.sessionAllowed ?? true }, error: null };
     }
     return { data: 0, error: null };
   });
@@ -175,11 +180,17 @@ describe('success', () => {
 
     expect(rpcNames(rpc)).toEqual([
       'waves_statement_import_enabled',
+      'waves_statement_import_chunk',
       'waves_statement_import_quota',
       'waves_ai_usage_reserve',
     ]);
-    expect(rpc.mock.calls[1]![1]).toEqual({ p_profile: ME, p_pro_limit: 30 });
-    expect(rpc.mock.calls[2]![1]).toEqual({
+    expect(rpc.mock.calls[1]![1]).toEqual({
+      p_profile: ME,
+      p_import_id: 'import-0001-abcd',
+      p_max_chunks: MAX_CHUNKS_PER_IMPORT,
+    });
+    expect(rpc.mock.calls[2]![1]).toEqual({ p_profile: ME, p_pro_limit: 30 });
+    expect(rpc.mock.calls[3]![1]).toEqual({
       p_profile: ME,
       p_feature: CHUNK_FEATURE,
       p_limit: MONTHLY_REQUEST_LIMIT,
@@ -322,7 +333,11 @@ describe('one file is one use', () => {
     const continuation = await firstContinuation();
     const { deps, rpc } = makeDeps();
     const out = await (await handleParseStatement(req(goodBody({ continuation })), deps)).json();
-    expect(rpcNames(rpc)).toEqual(['waves_statement_import_enabled', 'waves_ai_usage_reserve']);
+    expect(rpcNames(rpc)).toEqual([
+      'waves_statement_import_enabled',
+      'waves_statement_import_chunk',
+      'waves_ai_usage_reserve',
+    ]);
     expect(out.quota).toBeNull();
     expect(out.continuation).toBe(continuation);
   });
@@ -354,23 +369,26 @@ describe('one file is one use', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('refunds both meters when the model fails on a file’s first request', async () => {
+  it('keeps both meters when the model fails on a file’s first request: it was asked', async () => {
     const { deps, rpc } = makeDeps({ fetchImpl: async () => new Response('x', { status: 500 }) });
     const error = await refusal(handleParseStatement(req(goodBody()), deps));
     expect(error.status).toBe(502);
-    const refunds = rpc.mock.calls.filter((c) => c[0] === 'waves_ai_usage_refund').map((c) => c[1]);
-    expect(refunds).toEqual([
-      { p_profile: ME, p_feature: FEATURE },
-      { p_profile: ME, p_feature: CHUNK_FEATURE },
-    ]);
+    expect(rpc.mock.calls.filter((c) => c[0] === 'waves_ai_usage_refund')).toHaveLength(0);
   });
 
-  it('refunds only the request counter when a follow-up request fails', async () => {
+  it('keeps the request counter when a follow-up request fails at the model', async () => {
     const continuation = await firstContinuation();
     const { deps, rpc } = makeDeps({ fetchImpl: async () => new Response('x', { status: 500 }) });
     await refusal(handleParseStatement(req(goodBody({ continuation })), deps));
+    expect(rpc.mock.calls.filter((c) => c[0] === 'waves_ai_usage_refund')).toHaveLength(0);
+  });
+
+  it('refunds the file (naming its month) when the request meter refuses before any model call', async () => {
+    const { deps, rpc } = makeDeps({ chunkAllowed: false });
+    const error = await refusal(handleParseStatement(req(goodBody()), deps));
+    expect(error.status).toBe(429);
     const refunds = rpc.mock.calls.filter((c) => c[0] === 'waves_ai_usage_refund').map((c) => c[1]);
-    expect(refunds).toEqual([{ p_profile: ME, p_feature: CHUNK_FEATURE }]);
+    expect(refunds).toEqual([{ p_profile: ME, p_feature: FEATURE, p_month: null }]);
   });
 });
 
@@ -506,7 +524,7 @@ describe('the model', () => {
     ).toBeUndefined();
   });
 
-  it('422 on a refusal and on a cut-off, with a refund', async () => {
+  it('422 on a refusal and on a cut-off, without a refund', async () => {
     const refused = makeDeps({
       fetchImpl: async () =>
         new Response(
@@ -522,7 +540,7 @@ describe('the model', () => {
     });
     const error = await refusal(handleParseStatement(req(goodBody()), cut.deps));
     expect(error.code).toBe('TOO_MANY_ROWS_IN_PAGES');
-    expect(cut.rpc.mock.calls.some((c) => c[0] === 'waves_ai_usage_refund')).toBe(true);
+    expect(cut.rpc.mock.calls.some((c) => c[0] === 'waves_ai_usage_refund')).toBe(false);
   });
 
   it('502 when no model returns something usable', async () => {

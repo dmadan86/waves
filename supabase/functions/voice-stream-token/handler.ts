@@ -1,32 +1,22 @@
 /**
- * voice-stream-token — the key to the app's live transcription stream.
+ * voice-stream-token — RETIRED. Answers 410 to everything.
  *
- * The advanced voice streams the mic straight to Deepgram while the person
- * speaks (live captions, no upload wait), the way production voice apps do. The
- * Deepgram key never ships in the app: this mints a 60-second token (Deepgram
- * `/v1/auth/grant`) — it only has to be valid when the socket opens — and hands
- * back the exact streaming URL, with the caller's group and member names as
- * keyterms so they come back spelled right.
+ * This used to mint a 60-second Deepgram token (`/v1/auth/grant`) and hand the
+ * phone the raw Deepgram URL. The token's TTL only gated the socket *open*; a
+ * modified client could hold each mint open for as long as it kept sending
+ * audio, so one mint bought unbounded Deepgram minutes (abuse audit H1 /
+ * WAV-09). The server relay (`voice-stream`) replaced it and enforces the 20 s
+ * cap itself; builds from before the relay fall back to on-device listening on
+ * any refusal, which is what a 410 is to them.
  *
- * Gated like voice-agent (flag/allowlist, rate limit, monthly stream budget):
- * the gate is `_shared/voiceStreamGate.ts`, shared with the relay.
- *
- * SUPERSEDED by `voice-stream` (the server relay, which enforces the 20 s cap
- * server-side; a token handed to the phone cannot be capped, see
- * docs/voice-cloud-stt-and-structuring.md §10.1). Kept deployed, unused by
- * current builds, so app builds from before the relay keep streaming. Remove it
- * once those builds are gone.
+ * Kept as a handler (not deleted) so the function can stay deployed as a
+ * tombstone during the transition, and so nothing can resurrect the mint by
+ * accident: there is no Deepgram call left in this file. Remove it from the
+ * project with `supabase functions delete voice-stream-token` when the old
+ * builds are gone.
  */
 
-import { HttpError, json, type SupabaseClient } from '../_shared/auth.ts';
-import {
-  VoiceAgentError,
-  type VoiceStreamTokenRequest,
-  type VoiceStreamTokenResponse,
-} from '../_shared/core.js';
-import { admitStream } from '../_shared/voiceStreamGate.ts';
-import { loadContext } from '../voice-agent/handler.ts';
-import { deepgramStreamUrl, keyterms } from '../voice-agent/logic.ts';
+import { HttpError, type SupabaseClient } from '../_shared/auth.ts';
 
 export { hashProfile, remainingCommands } from '../_shared/voiceStreamGate.ts';
 
@@ -40,47 +30,16 @@ export interface Deps {
   readonly rateLimit: (profileId: string) => Promise<void>;
 }
 
-export async function handleVoiceStreamToken(request: Request, deps: Deps): Promise<Response> {
-  if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
-  const raw = (await request.json().catch(() => null)) as Partial<VoiceStreamTokenRequest> | null;
-  const locale = typeof raw?.locale === 'string' ? raw.locale : 'en';
-  const groupId = typeof raw?.groupId === 'string' ? raw.groupId : null;
+export const VOICE_STREAM_TOKEN_RETIRED = 'VOICE_STREAM_TOKEN_RETIRED';
 
-  const { profileId, profileHash, key } = await admitStream(deps, 'voice-stream-token');
-  const unavailable = (message: string) => new HttpError(503, VoiceAgentError.Unavailable, message);
-
-  // The caller's names (for keyterms) and the minted token, together.
-  const contextLoad = loadContext(deps.caller, profileId, {
-    schemaVersion: 1,
-    locale,
-    today: new Date().toISOString().slice(0, 10),
-    groupId,
-  });
-  contextLoad.catch(() => undefined);
-
-  const grant = await deps.fetch('https://api.deepgram.com/v1/auth/grant', {
-    method: 'POST',
-    headers: { Authorization: `Token ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ttl_seconds: STREAM_TOKEN_TTL_SECONDS }),
-  });
-  if (!grant.ok) {
-    // 403 here means the key cannot mint tokens (a Member-role key): the app
-    // falls back to on-device, so say "unavailable" rather than fail loudly.
-    console.error('deepgram grant error', grant.status);
-    throw unavailable('Live transcription is not available');
-  }
-  const minted = (await grant.json()) as { access_token?: string; expires_in?: number };
-  if (!minted.access_token) throw unavailable('Live transcription is not available');
-
-  const context = await contextLoad;
-  const body: VoiceStreamTokenResponse = {
-    token: minted.access_token,
-    // Tagged with the hashed profile so Deepgram's usage API can reconcile the
-    // real streamed minutes against the mint log.
-    url: deepgramStreamUrl(locale, keyterms(context), `vst-${profileHash}`),
-    expiresInSeconds: minted.expires_in ?? STREAM_TOKEN_TTL_SECONDS,
-    sampleRate: 16000,
-    encoding: 'linear16',
-  };
-  return json(body);
+export function handleVoiceStreamToken(_request: Request, _deps: Deps): Promise<Response> {
+  // Before auth, before the rate limit, before any read: nothing about the
+  // caller is consulted and nothing is spent or minted.
+  return Promise.reject(
+    new HttpError(
+      410,
+      VOICE_STREAM_TOKEN_RETIRED,
+      'Live transcription moved to the voice-stream relay; update the app',
+    ),
+  );
 }

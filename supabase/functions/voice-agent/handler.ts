@@ -29,6 +29,7 @@ import {
   raceDeadline,
   type DeadlineResponse,
 } from '../_shared/resilience.ts';
+import { clipDurationSeconds } from '../_shared/audioDuration.ts';
 import { chaosFetch, chaosFor } from '../_shared/voiceChaos.ts';
 import { withVoiceStub } from '../_shared/voiceStub.ts';
 import {
@@ -167,8 +168,14 @@ export const breaker = new CircuitBreaker();
 /** A spoken command is a sentence or two; anything longer is not one. */
 const MAX_TRANSCRIPT_CHARS = 2000;
 
-/** ~12 MB of audio. A 60 s clip is a fraction of this in any accepted format. */
-const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+/**
+ * Audio ceiling for a clip. 60 s of 16 kHz mono PCM is 1.9 MB; AAC / Opus at any
+ * sane bitrate is far less. The client's `durationMs` is a hint only: the length
+ * Deepgram measures is what is enforced ({@link MAX_CLIP_SECONDS}).
+ */
+export const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
+/** The measured length a clip may have; a second over the declared cap for codec padding. */
+export const MAX_CLIP_SECONDS = VOICE_AGENT_MAX_CLIP_MS / 1000 + 1;
 
 export interface Deps {
   readonly env: (name: string) => string | undefined;
@@ -193,8 +200,10 @@ interface Quota {
   /** With `trial`: when the pool closes. */
   until?: string;
   allowed: boolean;
-  /** For a refused follow-up: free_tier, expense_cap or month_cap. */
+  /** For a refused follow-up: free_tier, no_slot, expense_cap or month_cap. */
   reason?: string;
+  /** The UTC month ('YYYY-MM') the reservation was taken in: what a refund names. */
+  month?: string;
 }
 
 export async function handleVoiceAgent(request: Request, realDeps: Deps): Promise<Response> {
@@ -276,12 +285,22 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
   }
   // At most once per request, whichever failure path gets there first. An
   // unmetered follow-up never took a command, so it has nothing to give back.
+  // And only while nothing has been sent to a provider: once Deepgram or a
+  // model has been asked, the cost is real whatever came back, so the command
+  // stays spent (a refund after that point would be a free retry loop).
   let refunded = unmetered;
+  let spent = false;
+  let bucket: { month?: string; trial?: boolean } = {};
+  const refundBucket = (q: Quota | null): Record<string, unknown> => ({
+    p_profile: profileId,
+    p_month: q?.month ?? null,
+    p_trial: q?.trial ?? false,
+  });
   const refund = async (): Promise<void> => {
-    if (refunded) return;
+    if (refunded || spent) return;
     refunded = true;
     await Promise.resolve(
-      deps.service.rpc('waves_voice_agent_refund', { p_profile: profileId }),
+      deps.service.rpc('waves_voice_agent_refund', refundBucket(bucket as Quota)),
     ).catch(() => null);
   };
   const reservation = unmetered
@@ -311,7 +330,13 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
     // The reservation is a write that may still land after we gave up on it:
     // when it does, give the command back — the person got nothing for it.
     const late = reservation.then(
-      (r) => ((r.data as Quota | null)?.allowed ? refund() : null),
+      (r) => {
+        const q = r.data as Quota | null;
+        if (!q?.allowed || unmetered) return null;
+        return Promise.resolve(deps.service.rpc('waves_voice_agent_refund', refundBucket(q))).catch(
+          () => null,
+        );
+      },
       () => null,
     );
     deps.waitUntil?.(late);
@@ -320,6 +345,7 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
   const { data: quotaData, error: quotaError } = quotaResult;
   if (quotaError || !quotaData) throw unavailable('Advanced voice is not available');
   const quota = quotaData as Quota;
+  bucket = { month: quota.month, trial: quota.trial };
   if (!quota.allowed) {
     if (unmetered) {
       if (quota.reason === 'free_tier') {
@@ -329,7 +355,32 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
     }
     throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
   }
+  // Cloud transcription of a clip is for Pro and the trial, like the live
+  // stream (waves_voice_stream_mint): Free sends the phone's own transcript.
+  // Decided here from the database's answer, before any byte reaches Deepgram;
+  // the command just reserved is given back.
+  if (!spoken && !unmetered && quota.tier === 'free' && !quota.trial) {
+    await refund();
+    throw new HttpError(
+      403,
+      VoiceAgentError.StreamFreeTier,
+      'Cloud transcription is not on this plan',
+    );
+  }
   if (meterOnly) {
+    // A command the phone parsed itself and is about to save: the follow-up
+    // turns about it need a slot, exactly as a cloud-parsed command's do. The
+    // budget is the same (one charged command, a few turns), and a money
+    // question metered this way has no saved expense to follow up on.
+    const open = Promise.resolve(
+      deps.service.rpc('waves_voice_agent_followup_open', {
+        p_profile: profileId,
+        p_turns: FOLLOWUP_PER_EXPENSE,
+        p_window_seconds: FOLLOWUP_WINDOW_SECONDS,
+      }),
+    ).catch(() => null);
+    if (deps.waitUntil) deps.waitUntil(open);
+    else await open;
     const metered: VoiceAgentResponse = {
       schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
       transcript: spoken,
@@ -354,15 +405,28 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
     const context: VoiceContext = body.savedExpense
       ? followUpContext(loaded, body.savedExpense)
       : loaded;
-    const transcript =
-      spoken ||
-      (await transcribe(
+    let transcript = spoken;
+    if (!transcript) {
+      // The clip is checked locally first (base64, size, container, length):
+      // a refusal there costs nothing. The command is spent the moment the
+      // request to Deepgram goes out (`onSend`).
+      const heard = await transcribe(
         outbound,
         deepgramKey as string,
         body,
         context,
         Math.min(limits.sttMs, left()),
-      ));
+        () => {
+          spent = true;
+        },
+      );
+      // The length Deepgram measured, not the one the client declared. A clip
+      // over the cap gets nothing back: no transcript, no refund.
+      if (heard.seconds !== null && heard.seconds > MAX_CLIP_SECONDS) {
+        throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
+      }
+      transcript = heard.transcript;
+    }
     if (!transcript) {
       throw new HttpError(422, VoiceAgentError.NothingHeard, 'Nothing was heard');
     }
@@ -398,7 +462,9 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
       }
       if (breaker.isOpen(step.provider)) continue;
       try {
-        const attempt = await ask(outbound, step, context, message, budget, onUsage);
+        const attempt = await ask(outbound, step, context, message, budget, onUsage, () => {
+          spent = true;
+        });
         breaker.success(step.provider);
         model = step.model;
         parsed = attempt;
@@ -415,10 +481,49 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
       throw unavailable('The assistant is unavailable just now');
     }
     const escalated = model !== chain[0].model;
-    // No step produced a usable answer: the person is asked to say it again,
-    // and that is not a command they should pay for.
-    const used = parsed.ok ? quota.used : Math.max(0, quota.used - 1);
-    if (!parsed.ok) await refund();
+    // No step produced a usable answer: the person is asked to say it again.
+    // The models were asked all the same, so the command stays spent (a bad
+    // answer a client can provoke on purpose must not be a free retry).
+    let charged: Quota = quota;
+    if (parsed.ok && unmetered && parsed.answer && !parsed.update && !parsed.delete) {
+      // A follow-up that is really a question ("who owes me?") is a command,
+      // not a correction: it counts against the allowance like any other.
+      // Refused when the allowance is spent, and the answer is withheld.
+      const { data, error } = await raceDeadline(
+        Promise.resolve(
+          deps.service.rpc('waves_voice_agent_quota', {
+            p_profile: profileId,
+            p_free_limit: VOICE_AGENT_FREE_MONTHLY,
+            p_pro_limit: VOICE_AGENT_PRO_MONTHLY,
+            p_trial_limit: VOICE_AGENT_TRIAL_COMMANDS,
+          }),
+        ),
+        dbDeadline(),
+        () => unavailable('Advanced voice is not available'),
+      );
+      const asked = data as Quota | null;
+      if (error || !asked) throw unavailable('Advanced voice is not available');
+      if (!asked.allowed) {
+        throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
+      }
+      charged = asked;
+    }
+    const used = charged.used;
+    // A metered command that produced something the app will save opens the
+    // door to a few follow-up turns about it ("make it 800", "undo"). The slot
+    // is what waves_voice_agent_followup admits a follow-up against; a
+    // follow-up with no slot behind it is refused there.
+    if (parsed.ok && !unmetered && parsed.actions.length > 0) {
+      const open = Promise.resolve(
+        deps.service.rpc('waves_voice_agent_followup_open', {
+          p_profile: profileId,
+          p_turns: FOLLOWUP_PER_EXPENSE,
+          p_window_seconds: FOLLOWUP_WINDOW_SECONDS,
+        }),
+      ).catch(() => null);
+      if (deps.waitUntil) deps.waitUntil(open);
+      else await open;
+    }
 
     const response: VoiceAgentResponse = parsed.ok
       ? {
@@ -434,10 +539,10 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
             : {}),
           quota: {
             used,
-            limit: quota.limit,
-            tier: quota.tier,
-            trial: quota.trial,
-            until: quota.until,
+            limit: charged.limit,
+            tier: charged.tier,
+            trial: charged.trial,
+            until: charged.until,
           },
         }
       : {
@@ -486,7 +591,8 @@ export async function handleVoiceAgent(request: Request, realDeps: Deps): Promis
     );
     return json(response);
   } catch (error) {
-    // The person got nothing for the command: give it back.
+    // The person got nothing for the command: give it back — unless a
+    // provider was already asked (see `spent`).
     await refund();
     throw error;
   }
@@ -667,13 +773,20 @@ async function loadContextFresh(
   });
 }
 
+/** What Deepgram heard, and how long the clip really was (null when it did not say). */
+interface Heard {
+  transcript: string;
+  seconds: number | null;
+}
+
 async function transcribe(
   fetchFn: typeof fetch,
   key: string,
   body: VoiceAgentRequest,
   context: VoiceContext,
   budgetMs: number,
-): Promise<string> {
+  onSend: () => void = () => undefined,
+): Promise<Heard> {
   let audio: Uint8Array;
   try {
     const binary = atob(body.audioBase64 ?? '');
@@ -681,10 +794,25 @@ async function transcribe(
   } catch {
     throw new HttpError(400, 'BAD_REQUEST', 'Audio is not valid base64');
   }
+  if (audio.length > MAX_AUDIO_BYTES) {
+    throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
+  }
+  // The container says how long the clip is, before a byte leaves this server
+  // (_shared/audioDuration.ts). A type that cannot be measured, or bytes that
+  // do not parse as the type they claim, are refused: Deepgram bills what it
+  // decodes, and nothing is sent that this server could not bound.
+  const measured = clipDurationSeconds(audio, body.mimeType ?? '');
+  if (measured === null) {
+    throw new HttpError(415, VoiceAgentError.ClipUnreadable, 'That audio format is not accepted');
+  }
+  if (measured > MAX_CLIP_SECONDS) {
+    throw new HttpError(413, VoiceAgentError.ClipTooLong, 'That clip is too long');
+  }
   const sttDown = () =>
     new HttpError(503, VoiceAgentError.Unavailable, 'Speech recognition is unavailable just now');
   let response: DeadlineResponse;
   try {
+    onSend();
     response = await fetchJsonWithDeadline(
       fetchFn,
       deepgramUrl(body.locale, keyterms(context)),
@@ -708,10 +836,20 @@ async function transcribe(
   }
   breaker.success('deepgram');
   const result = response.body as {
+    metadata?: { duration?: number };
     results?: { channels?: { alternatives?: { transcript?: string }[] }[] };
   };
-  return (result.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '').trim();
+  const duration = result.metadata?.duration;
+  return {
+    transcript: (result.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '').trim(),
+    seconds:
+      typeof duration === 'number' && Number.isFinite(duration) && duration >= 0
+        ? duration
+        : measured,
+  };
 }
+
+export { clipDurationSeconds, wavDurationSeconds } from '../_shared/audioDuration.ts';
 
 /** POST JSON to a provider within what is left of this step's budget. */
 type Post = (url: string, init: RequestInit) => Promise<DeadlineResponse>;
@@ -723,10 +861,19 @@ async function ask(
   transcript: string,
   budgetMs: number,
   onUsage: (model: string, usage: AnthropicUsage) => void = () => undefined,
+  onSend: () => void = () => undefined,
 ): Promise<Parsed> {
   const end = Date.now() + budgetMs;
-  const post: Post = (url, init) =>
-    fetchJsonWithDeadline(fetchFn, url, init, end - Date.now(), `${step.provider}:${step.model}`);
+  const post: Post = (url, init) => {
+    onSend();
+    return fetchJsonWithDeadline(
+      fetchFn,
+      url,
+      init,
+      end - Date.now(),
+      `${step.provider}:${step.model}`,
+    );
+  };
   const calls =
     step.provider === 'deepseek' || step.provider === 'openrouter'
       ? await askDeepSeek(post, step, context, transcript)

@@ -304,7 +304,11 @@ describe('each store', () => {
     ['PLAY_STORE', 'play'],
     ['TEST_STORE', 'test'],
   ])('%s is written as %s', async (store, expected) => {
-    const { deps, rpc } = makeDeps();
+    // The Test Store is sandbox: only a deployment that opted in writes it.
+    const { deps, rpc } = makeDeps({
+      REVENUECAT_WEBHOOK_SECRET: SECRET,
+      REVENUECAT_ALLOW_SANDBOX: 'true',
+    });
     const response = await handleRevenueCatWebhook(
       request(rcEvent('INITIAL_PURCHASE', { store })),
       deps,
@@ -314,9 +318,9 @@ describe('each store', () => {
   });
 });
 
-describe('REVENUECAT_IGNORE_SANDBOX', () => {
+describe('REVENUECAT_ALLOW_SANDBOX (opt-in; sandbox is dropped by default)', () => {
   const withSetting = (value: string | undefined) =>
-    makeDeps({ REVENUECAT_WEBHOOK_SECRET: SECRET, REVENUECAT_IGNORE_SANDBOX: value });
+    makeDeps({ REVENUECAT_WEBHOOK_SECRET: SECRET, REVENUECAT_ALLOW_SANDBOX: value });
   const run = async (value: string | undefined, over: Record<string, unknown>) => {
     const { deps, rpc } = withSetting(value);
     const response = await handleRevenueCatWebhook(
@@ -326,31 +330,44 @@ describe('REVENUECAT_IGNORE_SANDBOX', () => {
     return { outcome: (await response.json()).outcome as string, rpc };
   };
 
-  it('on: sandbox and Test Store events are acknowledged but not written', async () => {
-    for (const over of [
-      { environment: 'SANDBOX' },
-      { store: 'TEST_STORE', environment: 'PRODUCTION' },
-      { store: 'TEST_STORE', environment: 'SANDBOX' },
-    ]) {
-      const { outcome, rpc } = await run('true', over);
-      expect(outcome).toBe('ignored');
-      expect(rpc.mock.calls[0]![1]).toMatchObject({
-        p_action: { kind: 'ignore', reason: 'sandbox' },
-      });
-    }
-  });
+  it.each([undefined, 'false', '', '1', 'TRUE'])(
+    '%j: sandbox and Test Store events are acknowledged but not written',
+    async (value) => {
+      for (const over of [
+        { environment: 'SANDBOX' },
+        { store: 'TEST_STORE', environment: 'PRODUCTION' },
+        { store: 'TEST_STORE', environment: 'SANDBOX' },
+      ]) {
+        const { outcome, rpc } = await run(value, over);
+        expect(outcome).toBe('ignored');
+        expect(rpc.mock.calls[0]![1]).toMatchObject({
+          p_action: { kind: 'ignore', reason: 'sandbox' },
+        });
+      }
+    },
+  );
 
-  it('on: a production purchase on a real store is still written', async () => {
+  it('a production purchase on a real store is written whatever the setting', async () => {
+    expect((await run(undefined, { environment: 'PRODUCTION' })).outcome).toBe('applied');
     expect((await run('true', { environment: 'PRODUCTION' })).outcome).toBe('applied');
   });
 
-  it.each([undefined, 'false', '', '1', 'TRUE'])(
-    '%j: sandbox events are written',
-    async (value) => {
-      expect((await run(value, { environment: 'SANDBOX' })).outcome).toBe('applied');
-      expect((await run(value, { store: 'TEST_STORE' })).outcome).toBe('applied');
-    },
-  );
+  it('exactly "true" opts a deployment (staging) in to sandbox events', async () => {
+    expect((await run('true', { environment: 'SANDBOX' })).outcome).toBe('applied');
+    expect((await run('true', { store: 'TEST_STORE' })).outcome).toBe('applied');
+  });
+
+  it('the retired REVENUECAT_IGNORE_SANDBOX=false cannot open production', async () => {
+    const { deps } = makeDeps({
+      REVENUECAT_WEBHOOK_SECRET: SECRET,
+      REVENUECAT_IGNORE_SANDBOX: 'false',
+    });
+    const response = await handleRevenueCatWebhook(
+      request(rcEvent('INITIAL_PURCHASE', { environment: 'SANDBOX' })),
+      deps,
+    );
+    expect((await response.json()).outcome).toBe('ignored');
+  });
 });
 
 describe('the event id', () => {

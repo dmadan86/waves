@@ -267,6 +267,8 @@ export enum VoiceAgentError {
   Unavailable = 'VOICE_AGENT_UNAVAILABLE',
   /** [413] Clip longer than VOICE_AGENT_MAX_CLIP_MS. */
   ClipTooLong = 'VOICE_AGENT_CLIP_TOO_LONG',
+  /** [415] A container the server cannot measure the length of (only WAV and MP4/M4A are accepted). */
+  ClipUnreadable = 'VOICE_AGENT_CLIP_UNREADABLE',
   /** [422] Nothing intelligible was heard. */
   NothingHeard = 'VOICE_AGENT_NOTHING_HEARD',
 }

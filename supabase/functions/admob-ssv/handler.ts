@@ -22,7 +22,16 @@
  */
 
 import { HttpError, json } from '../_shared/auth.ts';
-import { verifyCallback, VerifierKeys } from './verify.ts';
+import { splitSignedQuery, verifyCallback, VerifierKeys } from './verify.ts';
+
+/**
+ * How old a callback's `timestamp` (ms, signed by Google) may be. AdMob calls
+ * within seconds of the ad ending; an hour covers its retries. Anything older is
+ * a callback somebody held back to replay on a day the account is eligible.
+ */
+export const MAX_CALLBACK_AGE_MS = 60 * 60 * 1000;
+/** Clock skew tolerated for a timestamp in the future. */
+export const MAX_CALLBACK_SKEW_MS = 5 * 60 * 1000;
 
 export interface Deps {
   env: (name: string) => string | undefined;
@@ -33,6 +42,25 @@ export interface Deps {
       args: Record<string, unknown>,
     ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
   };
+  /** The clock (tests). */
+  now?: () => number;
+}
+
+/**
+ * The reward fields, read from the SIGNED part of the query only (everything
+ * before `&signature=`). A field that appears twice is refused: the verifier
+ * cannot tell which copy Google meant, so neither is trusted.
+ */
+export function signedParams(rawQuery: string): URLSearchParams | null {
+  const parts = splitSignedQuery(rawQuery);
+  if (!parts) return null;
+  const params = new URLSearchParams(parts.message);
+  const seen = new Set<string>();
+  for (const key of params.keys()) {
+    if (seen.has(key)) return null;
+    seen.add(key);
+  }
+  return params;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -74,11 +102,27 @@ export async function handleAdmobSsv(request: Request, deps: Deps): Promise<Resp
   }
   if (!genuine) throw new HttpError(403, 'BAD_SIGNATURE', 'Signature does not verify');
 
-  const params = url.searchParams;
   const ignored = (reason: string): Response => {
     console.log(JSON.stringify({ fn: 'admob-ssv', outcome: 'ignored', reason }));
     return json({ ok: true, outcome: 'ignored', reason });
   };
+
+  // Only what Google signed is read; a field appended after the signature, or
+  // repeated, is not Google's word.
+  const params = signedParams(rawQuery);
+  if (!params) return ignored('unsigned_params');
+
+  // Freshness: the signed timestamp must be recent. A genuine callback kept for
+  // a day the account is Free and under its cap would otherwise still verify.
+  const timestamp = Number(params.get('timestamp') ?? '');
+  const now = (deps.now ?? Date.now)();
+  if (
+    !Number.isFinite(timestamp) ||
+    timestamp < now - MAX_CALLBACK_AGE_MS ||
+    timestamp > now + MAX_CALLBACK_SKEW_MS
+  ) {
+    return ignored('timestamp');
+  }
 
   const adUnit = unitId(params.get('ad_unit') ?? '');
   if (!units.has(adUnit)) return ignored('ad_unit');
