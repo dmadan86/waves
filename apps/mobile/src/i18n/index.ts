@@ -3675,6 +3675,12 @@ export interface UiStrings {
     noRateShort: string;
     /** An expense you neither paid for nor have a share of. */
     notInvolved: string;
+    /** The short pill captions on a ledger row's right side (the long forms above
+     *  stay as the spoken label). */
+    youOwe: string;
+    youGet: string;
+    settledShort: string;
+    notInSplit: string;
     /** Detail-screen banner title when you are not a party to the bill. */
     notInvolvedTitle: string;
     /** The small tag beside the total; the title and body are its spoken label. */
@@ -8600,6 +8606,10 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     noRateShort: 'no rate yet',
     notInvolved: 'not involved',
+    youOwe: 'You owe',
+    youGet: 'You get',
+    settledShort: 'Settled',
+    notInSplit: 'Not in split',
     notInvolvedTitle: "You're not in this split",
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: "You're viewing this as a group member — nothing here touches your balance.",
@@ -13516,6 +13526,10 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     noRateShort: 'விகிதம் இல்லை',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
+    youOwe: 'நீங்கள் தர',
+    youGet: 'உங்களுக்கு வரும்',
+    settledShort: 'சரி',
+    notInSplit: 'இதில் இல்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -18440,6 +18454,10 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     noRateShort: 'दर नहीं',
     notInvolved: 'आप इसमें नहीं',
+    youOwe: 'आप देंगे',
+    youGet: 'आपको मिलेंगे',
+    settledShort: 'चुकता',
+    notInSplit: 'इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -23511,6 +23529,10 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     noRateShort: 'لا يوجد سعر',
     notInvolved: 'لست ضمنها',
+    youOwe: 'عليك',
+    youGet: 'لك',
+    settledShort: 'مسدّد',
+    notInSplit: 'خارج القسمة',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: 'أنت تشاهدها كعضو في المجموعة — لا شيء هنا يؤثّر على رصيدك.',
