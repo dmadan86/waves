@@ -403,8 +403,10 @@ then a 1.5 s flush; hard deadline 26.5 s), and closes outright on a frame over
 - **Platform limits:** edge functions allow 150 s wall clock (free) / 400 s
   (paid), 2 s CPU and 256 MB per invocation; a 25 s stream is well inside them.
   The worker is kept alive with `EdgeRuntime.waitUntil` until both sockets close.
-- `voice-stream-token` stays deployed for builds from before the relay; with
-  those gone it can be removed, which removes the uncapped path entirely.
+- `voice-stream-token` is retired (abuse audit H1): the handler answers 410 to
+  everything and mints nothing, and the function is out of `edge:deploy`. Builds
+  from before the relay fall back to on-device listening, as they do on any
+  refusal. Delete it from the project once those builds are gone.
 
 ---
 
