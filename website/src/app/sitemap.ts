@@ -9,7 +9,7 @@ import { absoluteUrl } from '@/lib/site';
 // `/mcp` is listed for the same reason as the line above it, minus the
 // obligation: somebody whose assistant refuses to connect goes looking for the
 // page, and a help page nobody can find is a support email instead.
-const paths = ['', '/privacy', '/terms', '/refund', '/delete-account', '/mcp'] as const;
+const paths = ['', '/privacy', '/terms', '/refund', '/support', '/delete-account', '/mcp'] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return locales.flatMap((locale) =>

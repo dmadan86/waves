@@ -45,6 +45,7 @@ export function SiteFooter({
     {
       heading: t.support,
       links: [
+        { label: t.links.support, href: `/${locale}/support`, kind: 'route' },
         { label: t.links.contact, href: `mailto:${site.supportEmail}`, kind: 'external' },
         { label: t.links.privacy, href: `/${locale}/privacy`, kind: 'route' },
         { label: t.links.terms, href: `/${locale}/terms`, kind: 'route' },
