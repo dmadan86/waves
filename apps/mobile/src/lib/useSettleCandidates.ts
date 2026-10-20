@@ -24,6 +24,7 @@ export function useSettleCandidates(): SettleCandidate[] {
           id: group.id,
           title: groupLabel(group, members, me),
           coverEmoji: group.cover_emoji,
+          coverColor: group.cover_color,
           photoPath: group.photo_path,
           balance: summary.balanceFor(group.id),
           currency: group.default_currency,

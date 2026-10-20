@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Avatar,
@@ -19,6 +19,7 @@ import {
   Row,
   Screen,
   SectionHeader,
+  Sheet,
   Text,
   Toggle,
   useTheme,
@@ -32,6 +33,7 @@ import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
+import { addPickedBatch } from '@/lib/addPickedBatch';
 import { friendlyError } from '@/lib/errors';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
@@ -189,6 +191,11 @@ export default function GroupSettingsScreen() {
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [addingContacts, setAddingContacts] = useState(false);
+  // The "Add someone" sheet, opened from the "+ Add" pill beside the member count.
+  const [addOpen, setAddOpen] = useState(false);
+  // Who was just added by name, shown in the sheet so adding several people in
+  // a row has an answer each time.
+  const [justAdded, setJustAdded] = useState<string | null>(null);
   const addMember = (): void => {
     // The button disables while pending, but the keyboard's "done"
     // (onSubmitEditing) can still fire — guard so a second tap can't queue the
@@ -197,12 +204,16 @@ export default function GroupSettingsScreen() {
     const person = newName.trim();
     if (!person) return;
     setAddError(null);
+    setJustAdded(null);
     addGhost.mutate(
       { name: person },
       {
         // Only clear the field if it still holds what we submitted, so a name
         // typed for the next person isn't wiped when this add lands.
-        onSuccess: () => setNewName((current) => (current.trim() === person ? '' : current)),
+        onSuccess: () => {
+          setNewName((current) => (current.trim() === person ? '' : current));
+          setJustAdded(person);
+        },
         onError: (caught) =>
           setAddError(friendlyError(caught, t.misc.couldNotAddGeneric, 'groupSettings.addGhost')),
       },
@@ -219,26 +230,17 @@ export default function GroupSettingsScreen() {
   const addPicked = async (people: readonly PickedContact[]): Promise<void> => {
     setAddError(null);
     setAddingContacts(true);
-    const failed: string[] = [];
-    let reason: string | null = null;
-    for (const person of people) {
-      try {
-        await addGhost.mutateAsync({
-          name: person.name,
-          email: person.email,
-          phone: person.phone,
-        });
-      } catch (caught) {
-        failed.push(person.name);
-        const message = isPhoneCountryError(caught)
+    const { failed, reason } = await addPickedBatch(
+      people,
+      (person) => addGhost.mutateAsync(person),
+      (caught) =>
+        isPhoneCountryError(caught)
           ? t.people.phoneNeedsCountryCode
-          : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.addPicked');
-        if (!reason) reason = message;
-      }
-    }
+          : friendlyError(caught, t.misc.tryAgainMoment, 'groupSettings.addPicked'),
+    );
     setAddingContacts(false);
     if (failed.length === 0) return;
-    setAddError(fill(t.misc.couldNotAddSome, { reason: reason ?? '' }));
+    setAddError(fill(t.misc.couldNotAddSome, { reason }));
   };
 
   // Addresses already in the group, so the picker greys them out rather than
@@ -275,6 +277,7 @@ export default function GroupSettingsScreen() {
    * them (ADR-006).
    */
   const openRoute = (route: AddSomeoneRoute): void => {
+    setAddOpen(false);
     if (route.key === 'contacts') {
       requestContacts({
         initial: [],
@@ -682,6 +685,7 @@ export default function GroupSettingsScreen() {
             <GroupPhoto
               photoPath={group.data.photo_path}
               emoji={group.data.cover_emoji}
+              color={group.data.cover_color}
               size={64}
               busy={uploading}
               // The mark is the one door to the cover now, so it has to say so:
@@ -762,10 +766,149 @@ export default function GroupSettingsScreen() {
 
         {/* Opened by the mark above and nothing else, so there is one door to
             the cover rather than a button per way through it. */}
+        <Sheet
+          visible={addOpen}
+          onClose={() => setAddOpen(false)}
+          title={t.people.addSomeone}
+          closeLabel={t.common.close}
+        >
+          {/* The ways in, each one named.
+
+              This section used to ask you to guess. A text field with nothing
+              over it but the words "Add someone", a ghost button under it
+              reading "Browse my contacts", and — four rows further down the
+              page, in a card of its own — the invite link. Three different ways
+              of getting a person into the group, and none of the three said
+              where that person was coming from before you pressed it; the one
+              most people actually want (send a link, they join themselves) did
+              not look like part of adding anybody at all.
+
+              So the doors come first, as rows with a mark, a name and a line
+              saying what the tap does, ordered by how often each is the right
+              answer rather than alphabetically. Typing a name follows under a
+              rule, as the fallback it is — the same shape the members screen
+              settled on, drawn in this screen's own row idiom.
+
+              `ListRow` rather than a `DetailRow`: these are entries you *open*,
+              each with a name and a subtitle, not facts about the group with a
+              value on the right. That is the row this screen already wears for
+              duplicate, favourite and the three ways out, so the section reads
+              as part of the page instead of introducing a fourth kind of row.
+
+              Missing, and worth saying out loud: the people already in your
+              other groups — the same friends, a new trip — which is very likely
+              the commonest reason this section is opened. No flow exists for it
+              yet, and a row leading nowhere is worse than no row, so none is
+              drawn (see `lib/addSomeoneRoutes`). */}
+          <View style={{ gap: theme.spacing.md }}>
+            {/* The hairline belongs to the gap, not to the row: drawn by the
+                row itself it would leave a stray line under the last one. Keyed
+                off the position in the list that was actually returned, so a
+                row that is absent (no address book) takes its divider with it
+                rather than leaving a line with nothing on one side of it. */}
+            <View>
+              {routes.map((route, index) => (
+                <Fragment key={route.key}>
+                  {index > 0 ? (
+                    <View style={{ height: 1, backgroundColor: theme.color.border }} />
+                  ) : null}
+                  <ListRow
+                    title={route.title}
+                    subtitle={route.hint}
+                    // The name alone says a place, not an act. A reader hears
+                    // both halves — "From your contacts, pick names out of this
+                    // phone's address book" — which is the whole point of the
+                    // rewrite and would be lost to a label of just the title.
+                    accessibilityLabel={route.spoken}
+                    leading={
+                      <Ionicons
+                        name={route.icon}
+                        size={iconSize.xl}
+                        color={theme.color.textMuted}
+                      />
+                    }
+                    onPress={() => openRoute(route)}
+                    trailing={
+                      <Ionicons
+                        // Content, not layout: RN mirrors the row in RTL but
+                        // leaves the glyph pointing whichever way it was drawn.
+                        name={directionalIcon('chevron-forward')}
+                        size={iconSize.md}
+                        color={theme.color.textFaint}
+                      />
+                    }
+                  />
+                </Fragment>
+              ))}
+            </View>
+
+            {/* A rule with the alternative written into it, so the field below
+                reads as the other way rather than as the only way — the same
+                divider, and the same string, the members screen uses. */}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+              <Text variant="micro" tone="faint">
+                {t.people.orByName}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            </Row>
+
+            <Row style={{ gap: theme.spacing.sm }}>
+              <TextInput
+                value={newName}
+                autoFocus={false}
+                onChangeText={setNewName}
+                placeholder={t.people.namePlaceholder}
+                placeholderTextColor={theme.color.textFaint}
+                accessibilityLabel={t.common.name}
+                onSubmitEditing={addMember}
+                // Both add flows drive the one `addGhost` mutation and the one
+                // `addError`; gate each on the other so a name typed mid-batch
+                // cannot race the contacts loop and clobber its result.
+                editable={!addGhost.isPending && !addingContacts}
+                returnKeyType="done"
+                style={{
+                  flex: 1,
+                  fontSize: 17,
+                  fontWeight: '600',
+                  color: theme.color.text,
+                  paddingVertical: theme.spacing.sm,
+                }}
+              />
+              <Button
+                label={t.add}
+                size="sm"
+                variant="secondary"
+                disabled={!newName.trim() || addGhost.isPending || addingContacts}
+                onPress={addMember}
+              />
+            </Row>
+
+            {/* Every way in is a row above; what is left at the foot of the
+                card is the one spinner and the one error line, because all of
+                them drive the same mutation and beside-the-button would mean
+                three of each. */}
+            {addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
+            {justAdded ? (
+              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Ionicons name="checkmark-circle" size={iconSize.md} color={theme.color.positive} />
+                <Text variant="caption" tone="muted">
+                  {justAdded}
+                </Text>
+              </Row>
+            ) : null}
+            {addError ? <Callout tone="negative">{addError}</Callout> : null}
+          </View>
+        </Sheet>
+
         <GroupCoverSheet
           visible={coverOpen}
           onClose={() => setCoverOpen(false)}
           value={group.data.cover_emoji}
+          color={group.data.cover_color ?? null}
+          onColorChange={(cover_color) =>
+            updateGroup.mutate({ cover_color }, { onSuccess: () => setStatus(t.account.saved) })
+          }
           // Says "Saved" like every other setting on this screen. The mark is
           // drawn, so a changed cover has no words of its own to confirm it.
           onChange={(emoji) =>
@@ -906,7 +1049,29 @@ export default function GroupSettingsScreen() {
         </Card>
 
         <View style={{ gap: theme.spacing.sm }}>
-          <SectionHeader title={plural(locale, members.data?.length ?? 0, t.memberCount)} />
+          <SectionHeader
+            title={plural(locale, members.data?.length ?? 0, t.memberCount)}
+            action={
+              <Button
+                label={`+ ${t.add}`}
+                size="sm"
+                variant="secondary"
+                onPress={() => {
+                  // Nothing in the sheet should be typing yet: drop any focus
+                  // left on the page's own fields so the keyboard does not
+                  // open over the sheet. The name field is focused by a tap.
+                  Keyboard.dismiss();
+                  setAddOpen(true);
+                }}
+              />
+            }
+          />
+
+          {/* The picker routes close the sheet before the people come back, so
+              their progress and any refusal are shown here, on the page, where
+              the person is looking. While the sheet is open it shows its own. */}
+          {!addOpen && addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
+          {!addOpen && addError ? <Callout tone="negative">{addError}</Callout> : null}
 
           {/* The roster in the settings screen itself, so seeing who is in the
               group no longer costs a tap through to the members screen. Each row
@@ -956,129 +1121,6 @@ export default function GroupSettingsScreen() {
                 ) : null}
               </View>
             ))}
-          </Card>
-
-          {/* The ways in, each one named.
-
-              This section used to ask you to guess. A text field with nothing
-              over it but the words "Add someone", a ghost button under it
-              reading "Browse my contacts", and — four rows further down the
-              page, in a card of its own — the invite link. Three different ways
-              of getting a person into the group, and none of the three said
-              where that person was coming from before you pressed it; the one
-              most people actually want (send a link, they join themselves) did
-              not look like part of adding anybody at all.
-
-              So the doors come first, as rows with a mark, a name and a line
-              saying what the tap does, ordered by how often each is the right
-              answer rather than alphabetically. Typing a name follows under a
-              rule, as the fallback it is — the same shape the members screen
-              settled on, drawn in this screen's own row idiom.
-
-              `ListRow` rather than a `DetailRow`: these are entries you *open*,
-              each with a name and a subtitle, not facts about the group with a
-              value on the right. That is the row this screen already wears for
-              duplicate, favourite and the three ways out, so the section reads
-              as part of the page instead of introducing a fourth kind of row.
-
-              Missing, and worth saying out loud: the people already in your
-              other groups — the same friends, a new trip — which is very likely
-              the commonest reason this section is opened. No flow exists for it
-              yet, and a row leading nowhere is worse than no row, so none is
-              drawn (see `lib/addSomeoneRoutes`). */}
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="caption" tone="muted">
-              {t.people.addSomeone}
-            </Text>
-
-            {/* The hairline belongs to the gap, not to the row: drawn by the
-                row itself it would leave a stray line under the last one. Keyed
-                off the position in the list that was actually returned, so a
-                row that is absent (no address book) takes its divider with it
-                rather than leaving a line with nothing on one side of it. */}
-            <View>
-              {routes.map((route, index) => (
-                <Fragment key={route.key}>
-                  {index > 0 ? (
-                    <View style={{ height: 1, backgroundColor: theme.color.border }} />
-                  ) : null}
-                  <ListRow
-                    title={route.title}
-                    subtitle={route.hint}
-                    // The name alone says a place, not an act. A reader hears
-                    // both halves — "From your contacts, pick names out of this
-                    // phone's address book" — which is the whole point of the
-                    // rewrite and would be lost to a label of just the title.
-                    accessibilityLabel={route.spoken}
-                    leading={
-                      <Ionicons
-                        name={route.icon}
-                        size={iconSize.xl}
-                        color={theme.color.textMuted}
-                      />
-                    }
-                    onPress={() => openRoute(route)}
-                    trailing={
-                      <Ionicons
-                        // Content, not layout: RN mirrors the row in RTL but
-                        // leaves the glyph pointing whichever way it was drawn.
-                        name={directionalIcon('chevron-forward')}
-                        size={iconSize.md}
-                        color={theme.color.textFaint}
-                      />
-                    }
-                  />
-                </Fragment>
-              ))}
-            </View>
-
-            {/* A rule with the alternative written into it, so the field below
-                reads as the other way rather than as the only way — the same
-                divider, and the same string, the members screen uses. */}
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-              <Text variant="micro" tone="faint">
-                {t.people.orByName}
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-            </Row>
-
-            <Row style={{ gap: theme.spacing.sm }}>
-              <TextInput
-                value={newName}
-                onChangeText={setNewName}
-                placeholder={t.people.namePlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.common.name}
-                onSubmitEditing={addMember}
-                // Both add flows drive the one `addGhost` mutation and the one
-                // `addError`; gate each on the other so a name typed mid-batch
-                // cannot race the contacts loop and clobber its result.
-                editable={!addGhost.isPending && !addingContacts}
-                returnKeyType="done"
-                style={{
-                  flex: 1,
-                  fontSize: 17,
-                  fontWeight: '600',
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              />
-              <Button
-                label={t.add}
-                size="sm"
-                variant="secondary"
-                disabled={!newName.trim() || addGhost.isPending || addingContacts}
-                onPress={addMember}
-              />
-            </Row>
-
-            {/* Every way in is a row above; what is left at the foot of the
-                card is the one spinner and the one error line, because all of
-                them drive the same mutation and beside-the-button would mean
-                three of each. */}
-            {addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
-            {addError ? <Callout tone="negative">{addError}</Callout> : null}
           </Card>
 
           {/* Make another group from this one, and star it so it sits at the top

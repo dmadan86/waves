@@ -37,6 +37,7 @@ import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
+import { useCoverTile } from '@/lib/groupCoverColor';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { LinkRequestsCard } from '@/components/LinkRequestsCard';
@@ -723,6 +724,7 @@ export default function HomeScreen() {
                             : null
                         }
                         coverEmoji={group.cover_emoji}
+                        coverColor={group.cover_color}
                         groupType={group.type}
                         eventTemplate={group.event_template}
                         customTag={group.custom_tag}
@@ -984,6 +986,7 @@ function GroupRow({
   memberLabel,
   draftLabel,
   coverEmoji,
+  coverColor,
   groupType,
   eventTemplate,
   customTag,
@@ -1009,6 +1012,7 @@ function GroupRow({
    *  is waiting on the reader. */
   draftLabel: string | null;
   coverEmoji: string | null;
+  coverColor: string | null | undefined;
   /** What kind of group — drawn as a small tag on the member-count line. */
   groupType: string | null | undefined;
   eventTemplate: string | null | undefined;
@@ -1068,6 +1072,7 @@ function GroupRow({
   // every line of the list. The spoken label still carries it in full: a screen
   // reader is given the label instead of the text inside the row, so anything
   // said only on screen is not said quietly, it is not said.
+  const tile = useCoverTile(coverColor, theme.color.surfaceMuted);
   const typeTag = useGroupTypeTag(groupType, eventTemplate, customTag);
   const typeSpoken = useGroupTypeTagSpoken(typeTag);
   const spoken =
@@ -1100,12 +1105,12 @@ function GroupRow({
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: theme.color.surfaceMuted,
+            backgroundColor: tile.backgroundColor,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <GroupMark emoji={coverEmoji} size={22} />
+          <GroupMark emoji={coverEmoji} size={22} color={tile.ink} />
           {unread ? <UnreadDot /> : null}
         </View>
         <View style={{ flex: 1, gap: 2 }}>

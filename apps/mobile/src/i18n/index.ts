@@ -353,6 +353,17 @@ export interface UiStrings {
   nothingIn: string;
   /** Under the month chart — says the columns are a way in, not just a picture. */
   tapMonthForDays: string;
+  spendTotal: string;
+  spendInCurrency: string;
+  spendVsLast: string;
+  spendDonutTotal: string;
+  spendTopCategories: string;
+  spendSeeAll: string;
+  spendShowLess: string;
+  spendLastMonths: string;
+  spendSeeDays: string;
+  spendPickMonth: string;
+  spendPickCurrency: string;
   nothingToChart: string;
   /** The ten categories of TDR §8, in the language the phone is set to. */
   categories: Record<CategoryId, string>;
@@ -2590,6 +2601,38 @@ export interface UiStrings {
     star: string;
     people: string;
   };
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: string;
+      home: string;
+      food: string;
+      events: string;
+      friends: string;
+      work: string;
+      sport: string;
+      money: string;
+      other: string;
+    };
+    colour: string;
+    defaultColour: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    colours: {
+      lilac: string;
+      pink: string;
+      peach: string;
+      coral: string;
+      butter: string;
+      mint: string;
+      sage: string;
+      sky: string;
+      indigo: string;
+      teal: string;
+      berry: string;
+      slate: string;
+    };
+  };
   groupPhoto: {
     paidHint: string;
   };
@@ -3675,6 +3718,12 @@ export interface UiStrings {
     noRateShort: string;
     /** An expense you neither paid for nor have a share of. */
     notInvolved: string;
+    /** The short pill captions on a ledger row's right side (the long forms above
+     *  stay as the spoken label). */
+    pillBorrowed: string;
+    pillLent: string;
+    settledShort: string;
+    notInSplit: string;
     /** Detail-screen banner title when you are not a party to the bill. */
     notInvolvedTitle: string;
     /** The small tag beside the total; the title and body are its spoken label. */
@@ -5926,6 +5975,17 @@ const en: UiStrings = {
   totalIn: 'total in {currency}',
   nothingIn: 'nothing in {currency}',
   tapMonthForDays: 'Tap a month to see its days.',
+  spendTotal: 'Total spending',
+  spendInCurrency: 'in {currency}',
+  spendVsLast: 'vs last month',
+  spendDonutTotal: 'Total',
+  spendTopCategories: 'Top categories',
+  spendSeeAll: 'See all',
+  spendShowLess: 'Show less',
+  spendLastMonths: 'Last {n} months',
+  spendSeeDays: 'See the days in {month}',
+  spendPickMonth: 'Choose a month',
+  spendPickCurrency: 'Choose a currency',
   nothingToChart: 'Add a few expenses and this fills in.',
   categories: {
     food: 'Food & drink',
@@ -7835,6 +7895,38 @@ const en: UiStrings = {
     star: 'Favourite',
     people: 'Friends',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'Travel',
+      home: 'Home',
+      food: 'Food & drink',
+      events: 'Events',
+      friends: 'Friends & family',
+      work: 'Work',
+      sport: 'Sport & fun',
+      money: 'Money',
+      other: 'Other',
+    },
+    colour: 'Colour',
+    defaultColour: 'Default',
+    searchPlaceholder: 'Search icons',
+    noMatches: 'No icon matches that',
+    colours: {
+      lilac: 'Lilac',
+      pink: 'Pink',
+      peach: 'Peach',
+      coral: 'Coral',
+      butter: 'Butter',
+      mint: 'Mint',
+      sage: 'Sage',
+      sky: 'Sky',
+      indigo: 'Indigo',
+      teal: 'Teal',
+      berry: 'Berry',
+      slate: 'Slate',
+    },
+  },
   groupPhoto: {
     paidHint: 'Group photos are a Pro feature. Pick an icon, or upgrade to add a photo.',
   },
@@ -8310,7 +8402,7 @@ const en: UiStrings = {
     descriptionPlaceholder: 'What is this group for?',
     changeCover: 'Group cover',
     chooseIcon: 'Choose an icon',
-    chooseIconHint: 'One of the drawn marks',
+    chooseIconHint: 'Pick an icon and a colour',
     usePhotoHint: 'A picture from this phone',
     photoIsPaid: 'Photos come with Pro',
     removePhoto: 'Remove photo',
@@ -8645,6 +8737,10 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     noRateShort: 'no rate yet',
     notInvolved: 'not involved',
+    pillBorrowed: 'Borrowed',
+    pillLent: 'Lent',
+    settledShort: 'Settled',
+    notInSplit: 'Not in split',
     notInvolvedTitle: "You're not in this split",
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: "You're viewing this as a group member — nothing here touches your balance.",
@@ -10793,6 +10889,17 @@ const ta: UiStrings = {
   totalIn: '{currency} இல் மொத்தம்',
   nothingIn: '{currency} இல் ஏதுமில்லை',
   tapMonthForDays: 'நாட்களைக் காண மாதத்தைத் தட்டவும்.',
+  spendTotal: 'மொத்த செலவு',
+  spendInCurrency: '{currency} இல்',
+  spendVsLast: 'கடந்த மாதத்துடன் ஒப்பிட',
+  spendDonutTotal: 'மொத்தம்',
+  spendTopCategories: 'முக்கிய வகைகள்',
+  spendSeeAll: 'அனைத்தும்',
+  spendShowLess: 'குறைவாகக் காட்டு',
+  spendLastMonths: 'கடந்த {n} மாதங்கள்',
+  spendSeeDays: '{month} மாத நாட்களைக் காண்க',
+  spendPickMonth: 'மாதத்தைத் தேர்வு செய்',
+  spendPickCurrency: 'நாணயத்தைத் தேர்வு செய்',
   nothingToChart: 'சில செலவுகளைச் சேர்த்தால் இது நிரம்பும்.',
   categories: {
     food: 'உணவு',
@@ -12746,6 +12853,38 @@ const ta: UiStrings = {
     star: 'பிடித்தது',
     people: 'நண்பர்கள்',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'பயணம்',
+      home: 'வீடு',
+      food: 'உணவு & பானம்',
+      events: 'நிகழ்வுகள்',
+      friends: 'நண்பர்கள் & குடும்பம்',
+      work: 'வேலை',
+      sport: 'விளையாட்டு & வேடிக்கை',
+      money: 'பணம்',
+      other: 'மற்றவை',
+    },
+    colour: 'நிறம்',
+    defaultColour: 'இயல்புநிலை',
+    searchPlaceholder: 'ஐகான்களைத் தேடு',
+    noMatches: 'பொருந்தும் ஐகான் இல்லை',
+    colours: {
+      lilac: 'இளஞ்சிவப்பு ஊதா',
+      pink: 'இளஞ்சிவப்பு',
+      peach: 'பீச்',
+      coral: 'பவளம்',
+      butter: 'வெண்ணெய் மஞ்சள்',
+      mint: 'புதினா',
+      sage: 'இளம் பச்சை',
+      sky: 'வான நீலம்',
+      indigo: 'கருநீலம்',
+      teal: 'நீலப்பச்சை',
+      berry: 'பெர்ரி',
+      slate: 'சாம்பல்',
+    },
+  },
   groupPhoto: {
     paidHint:
       'குழு புகைப்படங்கள் Pro அம்சம். ஒரு ஐகானைத் தேர்ந்தெடுக்கவும், அல்லது புகைப்படம் சேர்க்க மேம்படுத்தவும்.',
@@ -13248,7 +13387,7 @@ const ta: UiStrings = {
     descriptionPlaceholder: 'இந்தக் குழு எதற்காக?',
     changeCover: 'குழுவின் அட்டை',
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
-    chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
+    chooseIconHint: 'ஒரு ஐகானையும் நிறத்தையும் தேர்ந்தெடு',
     usePhotoHint: 'இந்த ஃபோனிலிருந்து ஒரு படம்',
     photoIsPaid: 'புகைப்படங்கள் Pro-உடன் வரும்',
     removePhoto: 'புகைப்படத்தை நீக்கு',
@@ -13603,6 +13742,10 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     noRateShort: 'விகிதம் இல்லை',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
+    pillBorrowed: 'வாங்கியது',
+    pillLent: 'கொடுத்தது',
+    settledShort: 'சரி',
+    notInSplit: 'இதில் இல்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -15838,6 +15981,17 @@ const hi: UiStrings = {
   totalIn: '{currency} में कुल',
   nothingIn: '{currency} में कुछ नहीं',
   tapMonthForDays: 'दिन देखने के लिए महीने पर टैप करें।',
+  spendTotal: 'कुल खर्च',
+  spendInCurrency: '{currency} में',
+  spendVsLast: 'पिछले महीने की तुलना में',
+  spendDonutTotal: 'कुल',
+  spendTopCategories: 'शीर्ष श्रेणियाँ',
+  spendSeeAll: 'सभी देखें',
+  spendShowLess: 'कम दिखाएँ',
+  spendLastMonths: 'पिछले {n} महीने',
+  spendSeeDays: '{month} के दिन देखें',
+  spendPickMonth: 'महीना चुनें',
+  spendPickCurrency: 'मुद्रा चुनें',
   nothingToChart: 'कुछ खर्च जोड़ें, यह अपने आप भर जाएगा।',
   categories: {
     food: 'खाना-पीना',
@@ -17750,6 +17904,38 @@ const hi: UiStrings = {
     star: 'पसंदीदा',
     people: 'दोस्त',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'यात्रा',
+      home: 'घर',
+      food: 'खाना-पीना',
+      events: 'आयोजन',
+      friends: 'दोस्त और परिवार',
+      work: 'काम',
+      sport: 'खेल और मस्ती',
+      money: 'पैसा',
+      other: 'अन्य',
+    },
+    colour: 'रंग',
+    defaultColour: 'डिफ़ॉल्ट',
+    searchPlaceholder: 'आइकन खोजें',
+    noMatches: 'कोई आइकन नहीं मिला',
+    colours: {
+      lilac: 'बैंगनी',
+      pink: 'गुलाबी',
+      peach: 'आड़ू',
+      coral: 'मूंगा',
+      butter: 'मक्खनी',
+      mint: 'पुदीना',
+      sage: 'हल्का हरा',
+      sky: 'आसमानी',
+      indigo: 'नील',
+      teal: 'हरा-नीला',
+      berry: 'बेरी',
+      slate: 'स्लेटी',
+    },
+  },
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Pro सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
   },
@@ -18227,7 +18413,7 @@ const hi: UiStrings = {
     descriptionPlaceholder: 'यह समूह किसलिए है?',
     changeCover: 'समूह का कवर',
     chooseIcon: 'आइकन चुनें',
-    chooseIconHint: 'बने-बनाए चिह्नों में से एक',
+    chooseIconHint: 'एक आइकन और एक रंग चुनें',
     usePhotoHint: 'इसी फ़ोन से एक तस्वीर',
     photoIsPaid: 'फ़ोटो Pro के साथ आती हैं',
     removePhoto: 'फ़ोटो हटाएँ',
@@ -18570,6 +18756,10 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     noRateShort: 'दर नहीं',
     notInvolved: 'आप इसमें नहीं',
+    pillBorrowed: 'उधार लिया',
+    pillLent: 'उधार दिया',
+    settledShort: 'चुकता',
+    notInSplit: 'इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -20730,6 +20920,17 @@ const ar: UiStrings = {
   totalIn: 'الإجمالي بعملة {currency}',
   nothingIn: 'لا شيء بعملة {currency}',
   tapMonthForDays: 'اضغط على شهر لرؤية أيامه.',
+  spendTotal: 'إجمالي الإنفاق',
+  spendInCurrency: 'بـ{currency}',
+  spendVsLast: 'مقارنة بالشهر الماضي',
+  spendDonutTotal: 'الإجمالي',
+  spendTopCategories: 'أعلى الفئات',
+  spendSeeAll: 'عرض الكل',
+  spendShowLess: 'عرض أقل',
+  spendLastMonths: 'آخر {n} أشهر',
+  spendSeeDays: 'عرض أيام {month}',
+  spendPickMonth: 'اختر شهراً',
+  spendPickCurrency: 'اختر عملة',
   nothingToChart: 'أضف بعض المصروفات وسيمتلئ هذا.',
   categories: {
     food: 'طعام وشراب',
@@ -22760,6 +22961,38 @@ const ar: UiStrings = {
     star: 'مفضّل',
     people: 'أصدقاء',
   },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'سفر',
+      home: 'المنزل',
+      food: 'طعام وشراب',
+      events: 'مناسبات',
+      friends: 'أصدقاء وعائلة',
+      work: 'عمل',
+      sport: 'رياضة ومرح',
+      money: 'مال',
+      other: 'أخرى',
+    },
+    colour: 'اللون',
+    defaultColour: 'الافتراضي',
+    searchPlaceholder: 'ابحث عن أيقونة',
+    noMatches: 'لا توجد أيقونة مطابقة',
+    colours: {
+      lilac: 'بنفسجي فاتح',
+      pink: 'وردي',
+      peach: 'خوخي',
+      coral: 'مرجاني',
+      butter: 'أصفر زبدي',
+      mint: 'نعناعي',
+      sage: 'أخضر مريمية',
+      sky: 'أزرق سماوي',
+      indigo: 'نيلي',
+      teal: 'أخضر مزرق',
+      berry: 'توتي',
+      slate: 'رمادي أردوازي',
+    },
+  },
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Pro. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
   },
@@ -23308,7 +23541,7 @@ const ar: UiStrings = {
     descriptionPlaceholder: 'ما الغرض من هذه المجموعة؟',
     changeCover: 'غلاف المجموعة',
     chooseIcon: 'اختر أيقونة',
-    chooseIconHint: 'أحد الرموز المرسومة',
+    chooseIconHint: 'اختر أيقونة ولونًا',
     usePhotoHint: 'صورة من هذا الهاتف',
     photoIsPaid: 'الصور تأتي مع Pro',
     removePhoto: 'إزالة الصورة',
@@ -23683,6 +23916,10 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     noRateShort: 'لا يوجد سعر',
     notInvolved: 'لست ضمنها',
+    pillBorrowed: 'اقترضت',
+    pillLent: 'أقرضت',
+    settledShort: 'مسدّد',
+    notInSplit: 'خارج القسمة',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: 'أنت تشاهدها كعضو في المجموعة — لا شيء هنا يؤثّر على رصيدك.',
