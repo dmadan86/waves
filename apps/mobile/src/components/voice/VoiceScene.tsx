@@ -1,7 +1,7 @@
 /**
  * The capture screen's backdrop: one full-bleed photograph behind everything,
- * drawn at the screen's width and anchored to the bottom, so the terrace table
- * and the sea sit at the foot of the screen and the sky and leaves above. A
+ * scaled so the sea's horizon sits low (about 70% down) with the sky and
+ * leaves filling the top, and only the edge of the terrace table at the foot. A
  * light wash from the top keeps the words readable and fades out by mid-screen;
  * in dark mode a scrim does the same for the light text.
  *
@@ -17,12 +17,16 @@ import { useTheme } from '@waves/ui';
 const SCENE = require('../../../assets/images/voice-scene.webp') as number;
 /** The photograph is 849 × 1852. */
 const RATIO = 1852 / 849;
+/** Where the far shore meets the sea in the photograph, and where it goes on screen. */
+const HORIZON = 0.6;
+const HORIZON_ON_SCREEN = 0.72;
 
 export function VoiceScene() {
   const theme = useTheme();
   const { width, height: screen } = useWindowDimensions();
-  // Fill the screen on a short phone too: scale up and keep the bottom anchored.
-  const height = Math.max(width * RATIO, screen);
+  // Tall enough that the horizon lands low with the photograph's top at the
+  // screen's top; never narrower than the screen. The sides crop evenly.
+  const height = Math.max(width * RATIO, (screen * HORIZON_ON_SCREEN) / HORIZON);
   const imageWidth = height / RATIO;
   const dark = theme.scheme === 'dark';
   return (
@@ -39,7 +43,7 @@ export function VoiceScene() {
         style={{
           position: 'absolute',
           left: (width - imageWidth) / 2,
-          top: screen - height,
+          top: 0,
           width: imageWidth,
           height,
         }}
