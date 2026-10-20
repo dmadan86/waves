@@ -147,7 +147,9 @@ describe('A. merging a placeholder into a member already in the group', () => {
       memberCount: 3,
       ghostCount: 1,
     });
-    const [admin, arun, third] = memberIds.map((m) => id(m, 'member'));
+    const admin = id(memberIds[0], 'admin');
+    const arun = id(memberIds[1], 'arun');
+    const third = id(memberIds[2], 'third');
     const renny = id(memberIds[3], 'ghost');
 
     // Renny owes the admin for dinner; Renny paid for the taxi everyone took;
@@ -281,8 +283,10 @@ describe('A. merging a placeholder into a member already in the group', () => {
   it('only a placeholder can be merged, and only into a member of the same group', async () => {
     const { memberIds, profileIds } = await seedGroup(client, { memberCount: 2, ghostCount: 2 });
     const other = await seedGroup(client, { memberCount: 1 });
-    const [admin, arun] = memberIds.map((m) => id(m, 'member'));
-    const [ghostA, ghostB] = [id(memberIds[2], 'ghost'), id(memberIds[3], 'ghost')];
+    const admin = id(memberIds[0], 'admin');
+    const arun = id(memberIds[1], 'arun');
+    const ghostA = id(memberIds[2], 'ghost');
+    const ghostB = id(memberIds[3], 'ghost');
 
     // A real person is not a placeholder.
     expect(await merge(profileIds[0], arun, admin)).toMatchObject({ reason: 'NOT_A_PLACEHOLDER' });
