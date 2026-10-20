@@ -7,37 +7,36 @@
  * server-side; it reads the same local expenses the group page shows and slices
  * them to the month and currency the tapped column stood for.
  *
- * It honours the scope the chart was in. In "group" scope a row is the whole
+ * Built from the standard components (docs/design-standard.md): scenic header
+ * with the Group / Just me pills, a stat card for the month, then one card per day.
+ *
+ * It starts in the scope the chart was in, and the pills switch it. In "group" scope a row is the whole
  * expense; in "mine" scope it is this person's share of it, and expenses they
  * had no share in are not shown — so the day subtotals and the screen total add
  * back up to the column that was tapped, and never to a different number.
  */
 
-import { useMemo } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { useMemo, useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
-import { byNewest, paidBy } from '@waves/core';
+import { byNewest, format, formatParts, paidBy } from '@waves/core';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
-import {
-  directionalIcon,
-  EmptyState,
-  IconButton,
-  iconSize,
-  MoneyText,
-  Row,
-  Screen,
-  Text,
-  TintCard,
-  tintForKey,
-  useTheme,
-} from '@waves/ui';
+import { EmptyState, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import {
+  ListRow,
+  SCENIC_OVERLAP,
+  ScenicHeader,
+  SectionHeader,
+  SegmentedPills,
+  StandardCard,
+  StatCard,
+} from '@/components/standard';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { expenseTitle } from '@/data/expenseTitle';
-import { groupLabel, isViewer, type ExpenseRow } from '@/data/types';
+import { isViewer, type ExpenseRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
@@ -46,11 +45,12 @@ import { useBottomClearance } from '@/lib/clearance';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { memberNameById } from '@/lib/memberName';
 
-/** One row of the flattened month: the header tile, a day heading, or a bill. */
-type MonthItem =
-  | { kind: 'total'; key: string }
-  | { kind: 'day'; key: string; day: string; total: bigint }
-  | { kind: 'expense'; key: string; expense: ExpenseRow; amount: bigint; isLast: boolean };
+/** One day of the month: its date, its total and the expenses on it. */
+interface DayItem {
+  day: string;
+  total: bigint;
+  items: { expense: ExpenseRow; amount: bigint }[];
+}
 
 /** Sum of this member's shares in a version, in minor units. */
 function myShare(shares: { member_id: string; amount: string }[], memberId: string | null): bigint {
@@ -73,7 +73,7 @@ export default function SpendingMonthScreen() {
   const groupId = params.id ?? '';
   const month = (params.month ?? '').slice(0, 7); // 'YYYY-MM'
   const currency = params.currency ?? '';
-  const mine = params.scope === 'mine';
+  const [mine, setMine] = useState(params.scope === 'mine');
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -82,7 +82,7 @@ export default function SpendingMonthScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members, everyone, expenses } = useGroup(groupId);
+  const { members, everyone, expenses } = useGroup(groupId);
 
   const myMemberId = useMemo(
     () => (members.data ?? []).find((member) => isViewer(member, viewerId))?.id ?? null,
@@ -153,171 +153,128 @@ export default function SpendingMonthScreen() {
     }).format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))));
   };
 
-  /**
-   * The month, flattened into one recyclable list.
-   *
-   * It was a ScrollView with a nested `days.map(... bucket.items.map(...))`
-   * inside it, which mounts every expense of the month at once — a busy month on
-   * a shared trip is hundreds of rows, all of them built before the first one is
-   * on screen. FlashList mounts what is visible; the nesting becomes a flat
-   * sequence of typed items so it can recycle each kind against its own pool.
-   */
-  const items: MonthItem[] = useMemo(() => {
-    const list: MonthItem[] = [{ kind: 'total', key: 'total' }];
-    for (const [day, bucket] of days) {
-      list.push({ kind: 'day', key: `day-${day}`, day, total: bucket.total });
-      bucket.items.forEach(({ expense, amount }, index) =>
-        list.push({
-          kind: 'expense',
-          key: expense.id,
-          expense,
-          amount,
-          isLast: index === bucket.items.length - 1,
-        }),
-      );
-    }
-    return list;
-  }, [days]);
+  // One recyclable item per day — a card of that day's rows under its heading.
+  // Mounting only the visible days keeps a busy month on a trip cheap.
+  const dayItems: DayItem[] = useMemo(
+    () =>
+      days.map(([day, bucket]) => ({
+        day,
+        total: bucket.total,
+        items: bucket.items.map(({ expense, amount }) => ({ expense, amount })),
+      })),
+    [days],
+  );
 
-  const renderItem = ({ item }: { item: MonthItem }) => {
-    if (item.kind === 'total') {
-      return (
-        <TintCard
-          tint={tintForKey(groupId)}
-          style={{
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            borderRadius: theme.radius.xl,
-            padding: theme.spacing.xl,
-            // With the first day's own `md` above its heading, a section's `xl`.
-            marginBottom: theme.spacing.sm,
-          }}
-        >
-          <MoneyText amount={total} currency={currency} locale={locale} variant="display" />
-          <Text variant="caption" tone="muted">
-            {plural(locale, rows.length, t.importLedger.expenseCount)}
+  const money = (minor: bigint) => format({ minor, currency }, { locale });
+  const totalParts = formatParts({ minor: total, currency }, { locale });
+
+  const renderDay = ({ item }: { item: DayItem }) => (
+    <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}>
+      <SectionHeader
+        title={dayLabel(item.day)}
+        trailing={
+          <Text tone="muted" style={{ fontWeight: '600' }}>
+            {money(item.total)}
           </Text>
-        </TintCard>
-      );
-    }
-
-    if (item.kind === 'day') {
-      return (
-        <Row
-          style={{
-            justifyContent: 'space-between',
-            paddingHorizontal: theme.spacing.xs,
-            paddingTop: theme.spacing.md,
-            paddingBottom: theme.spacing.sm,
-          }}
-        >
-          <Text variant="subheading">{dayLabel(item.day)}</Text>
-          <MoneyText
-            amount={item.total}
-            currency={currency}
-            locale={locale}
-            variant="caption"
-            tone="muted"
-          />
-        </Row>
-      );
-    }
-
-    const version = item.expense.currentVersion;
-    // Who paid, by the same rule the group ledger uses (paidBy): one person is
-    // named, several are counted. Naming payers[0] put a shared bill entirely
-    // on whoever happened to sort first.
-    const paid = paidBy(version?.payers ?? []);
-    const title = expenseTitle(version?.description, version?.category, t, version?.category_meta);
-    return (
-      <View>
-        <Pressable
-          onPress={() => router.push(`/group/${groupId}/expense/${item.expense.id}`)}
-          accessibilityRole="button"
-          accessibilityLabel={title}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Row
-            style={{
-              gap: theme.spacing.md,
-              alignItems: 'center',
-              paddingVertical: theme.spacing.sm,
-            }}
-          >
-            <CategoryBadge
-              category={version?.category}
-              meta={version?.category_meta}
-              description={version?.description}
-              size={40}
-            />
-            <View style={{ flex: 1 }}>
-              <Text variant="subheading" numberOfLines={1}>
-                {title}
-              </Text>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {paid.kind === 'several'
+        }
+      />
+      <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+        {item.items.map(({ expense, amount }, index) => {
+          const version = expense.currentVersion;
+          // Who paid, by the same rule the group ledger uses (paidBy): one
+          // person is named, several are counted. Naming payers[0] put a
+          // shared bill entirely on whoever happened to sort first.
+          const paid = paidBy(version?.payers ?? []);
+          const title = expenseTitle(
+            version?.description,
+            version?.category,
+            t,
+            version?.category_meta,
+          );
+          return (
+            <ListRow
+              key={expense.id}
+              leading={
+                <CategoryBadge
+                  category={version?.category}
+                  meta={version?.category_meta}
+                  description={version?.description}
+                  size={28}
+                />
+              }
+              title={title}
+              subtitle={
+                paid.kind === 'several'
                   ? plural(locale, paid.count, t.expense.paidByCount)
-                  : fill(t.expense.paidByName, { name: nameOf(paid.memberId) })}
-              </Text>
-            </View>
-            <MoneyText
-              amount={item.amount}
-              currency={currency}
-              locale={locale}
-              tone="default"
-              style={{ fontWeight: '700' }}
+                  : fill(t.expense.paidByName, { name: nameOf(paid.memberId) })
+              }
+              amount={money(amount)}
+              onPress={() => router.push(`/group/${groupId}/expense/${expense.id}`)}
+              divider={index < item.items.length - 1}
             />
-          </Row>
-        </Pressable>
-        {!item.isLast ? <View style={{ height: 1, backgroundColor: theme.color.border }} /> : null}
+          );
+        })}
+      </StandardCard>
+    </View>
+  );
+
+  const header = (
+    <>
+      <ScenicHeader title={monthTitle}>
+        <SegmentedPills<'group' | 'mine'>
+          value={mine ? 'mine' : 'group'}
+          onChange={(value) => setMine(value === 'mine')}
+          options={[
+            { value: 'group', label: t.extras.theGroup },
+            { value: 'mine', label: t.extras.justMe },
+          ]}
+        />
+      </ScenicHeader>
+      <View
+        style={{
+          marginTop: -SCENIC_OVERLAP,
+          paddingHorizontal: theme.spacing.lg,
+          marginBottom: theme.spacing.xl,
+        }}
+      >
+        <StatCard
+          label={t.spendTotal}
+          lead={totalParts.lead}
+          fraction={`${totalParts.fraction}${totalParts.trail}`}
+          accessibilityLabel={`${t.spendTotal}: ${money(total)}`}
+          caption={
+            <Text variant="caption" tone="muted">
+              {plural(locale, rows.length, t.importLedger.expenseCount)}
+            </Text>
+          }
+        />
       </View>
-    );
-  };
+    </>
+  );
 
   return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{monthTitle}</Text>
-          <Text variant="micro" tone="muted">
-            {`${mine ? t.extras.justMe : t.extras.theGroup} · ${groupLabel(
-              group.data,
-              members.data ?? [],
-            )}`}
-          </Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
-
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       {expenses.isLoading ? (
-        <View style={{ padding: theme.spacing.xl }}>
-          <ActivityIndicator color={theme.color.brand} />
-        </View>
-      ) : rows.length === 0 ? (
-        <EmptyState title={t.nothingYet} body={t.nothingToChart} />
+        <>
+          {header}
+          <View style={{ padding: theme.spacing.xl }}>
+            <ActivityIndicator color={theme.color.brand} />
+          </View>
+        </>
       ) : (
         <FlashList
-          data={items}
-          extraData={`${locale}|${theme.scheme}`}
-          keyExtractor={(item) => item.key}
-          getItemType={(item) => item.kind}
-          renderItem={renderItem}
+          data={dayItems}
+          extraData={`${locale}|${theme.scheme}|${mine}`}
+          keyExtractor={(item) => item.day}
+          renderItem={renderDay}
+          ListHeaderComponent={header}
+          ListEmptyComponent={<EmptyState title={t.nothingYet} body={t.nothingToChart} />}
+          ItemSeparatorComponent={() => <View style={{ height: theme.spacing.xl }} />}
           // The group ledger's settings: render well beyond the viewport so a
           // hard fling down a busy month never outruns recycling and flashes
           // blank rows.
           drawDistance={1500}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
-            paddingTop: theme.spacing.lg,
-            paddingBottom: clearance,
-          }}
+          contentContainerStyle={{ paddingBottom: clearance }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             mine ? (
@@ -333,6 +290,6 @@ export default function SpendingMonthScreen() {
           }
         />
       )}
-    </Screen>
+    </View>
   );
 }
