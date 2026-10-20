@@ -33,10 +33,12 @@ vi.mock('@waves/ui', () => ({
   Text: 'Text',
   Button: 'Button',
   MoneyText: 'MoneyText',
-  iconSize: { sm: 16, md: 20, base: 24 },
+  iconSize: { sm: 16, md: 20, base: 24, lg: 28, xl: 32 },
   useTheme: () => ({
     spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
-    radius: { md: 8, lg: 12, pill: 99 },
+    radius: { md: 8, lg: 12, xl: 20, pill: 99 },
+    scheme: 'light',
+    tint: new Proxy({}, { get: () => ({ bg: '#eef', ink: '#115', inkMuted: '#447' }) }),
     shadow: { soft: {} },
     color: new Proxy({}, { get: () => '#123456' }),
   }),
@@ -127,7 +129,7 @@ it('VC-05: status has text, icon, polite live region and announces once per chan
     props: { status: 'listening', text: 'Listening' },
   });
   expect(textOf(card.result.current)).toBe('Listening');
-  expect(nodes(card.result.current, 'Ionicons')[0].props.name).toBe('radio-button-on');
+  expect(nodes(card.result.current, 'Ionicons')[0].props.name).toBe('bar-chart');
   expect(nodes(card.result.current, 'View')[0].props.accessibilityLiveRegion).toBe('polite');
   expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledExactlyOnceWith('Listening');
   card.rerender();
