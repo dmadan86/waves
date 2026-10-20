@@ -387,6 +387,7 @@ function SpendingBody({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { width: windowWidth } = useWindowDimensions();
   const [windowSize, setWindowSize] = useState<(typeof MONTH_WINDOWS)[number]>(6);
   const [windowOpen, setWindowOpen] = useState(false);
   const [allLegend, setAllLegend] = useState(false);
@@ -441,6 +442,11 @@ function SpendingBody({
     description: `${monthLabel(entry.month, locale)}: ${money(entry.value)}`,
   }));
   const trend = allMonths.slice(-6).map((entry) => toMajor(entry.value));
+
+  // The ring takes about 38% of the card's inner width (screen minus the page
+  // and card padding), so the legend keeps room for a whole name, amount and %.
+  const inner = windowWidth - theme.spacing.lg * 4;
+  const donutSize = Math.min(150, Math.max(120, Math.round(inner * 0.38)));
 
   const legend = allLegend ? categories : categories.slice(0, TOP_CATEGORIES);
   const topList = allTop ? categories : categories.slice(0, TOP_CATEGORIES);
@@ -581,9 +587,10 @@ function SpendingBody({
             ? link(allLegend ? t.spendShowLess : t.spendSeeAll, () => setAllLegend((v) => !v))
             : null,
         )}
-        <Card style={{ borderRadius: theme.radius.xl }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <Card style={{ borderRadius: theme.radius.xl, padding: theme.spacing.lg }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Donut
+              size={donutSize}
               slices={slices}
               centre={`${symbol}${compactNumber(toMajor(total))}`}
               caption={t.spendDonutTotal}
@@ -594,21 +601,27 @@ function SpendingBody({
                   key={entry.key}
                   accessible
                   accessibilityLabel={`${entry.label}, ${money(entry.value)}, ${entry.percent}%`}
-                  style={{ alignItems: 'center', gap: theme.spacing.sm }}
+                  style={{ alignItems: 'center', gap: 5 }}
                 >
                   <CategoryBadge
                     category={entry.category}
                     meta={entry.meta}
-                    size={26}
+                    size={22}
                     accent={RANK_COLORS[index] ?? REST_COLOR}
                   />
-                  <Text variant="micro" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
+                  <Text
+                    variant="micro"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={{ flex: 1, fontWeight: '600' }}
+                  >
                     {entry.label}
                   </Text>
                   <Text variant="micro" numberOfLines={1} tabular style={{ fontWeight: '600' }}>
                     {money(entry.value)}
                   </Text>
-                  <Text variant="micro" tone="muted" style={{ width: 28, textAlign: 'right' }}>
+                  <Text variant="micro" tone="muted" style={{ width: 24, textAlign: 'right' }}>
                     {`${entry.percent}%`}
                   </Text>
                 </Row>
