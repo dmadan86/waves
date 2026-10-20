@@ -148,6 +148,10 @@ export interface PersonalLoan {
   readonly status: 'active' | 'closed';
   /** Set once the loan is shared with the other person as a debt in a 1:1 group. */
   readonly synced?: SyncedLoanLink | null;
+  /** How many times the loan has been unshared. Each share books its debt under
+   *  an expense id derived from this, because an unshared expense is soft-deleted
+   *  and a later write to the same id would not bring it back. Absent means 0. */
+  readonly shareSeq?: number;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -227,6 +231,7 @@ const KNOWN_LOAN = [
   'startDate',
   'status',
   'synced',
+  'shareSeq',
 ];
 const KNOWN_BUDGET = ['category', 'limit', 'currency'];
 
@@ -358,6 +363,9 @@ export function decodeLoan(id: string, data: Record<string, unknown>): PersonalL
     startDate: str(data.startDate) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     synced,
+    ...(typeof data.shareSeq === 'number' && Number.isInteger(data.shareSeq) && data.shareSeq > 0
+      ? { shareSeq: data.shareSeq }
+      : {}),
     carried: unread ? { ...carried, ...unread } : carried,
   };
 }
@@ -431,6 +439,7 @@ export function encodeLoan(loan: Omit<PersonalLoan, 'id'>): Record<string, unkno
       startDate: loan.startDate,
       status: loan.status,
       ...(loan.synced ? { synced: loan.synced } : {}),
+      ...(loan.shareSeq ? { shareSeq: loan.shareSeq } : {}),
     },
     loan.carried,
   );
