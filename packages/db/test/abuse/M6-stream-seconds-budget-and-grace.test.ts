@@ -25,6 +25,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await client.query(`DELETE FROM voice_agent_usage WHERE profile_id = $1`, [a]);
+  await client.query(`DELETE FROM voice_stream_reservations WHERE profile_id = $1`, [a]);
   await client.query(`DELETE FROM voice_agent_followup_slots WHERE profile_id = $1`, [a]);
   await client.query(`DELETE FROM subscriptions WHERE profile_id = $1`, [a]);
 });
@@ -41,7 +42,13 @@ const mint = async (secondsBudget: number | null = null) =>
       a,
       secondsBudget,
     ])
-  ).rows[0].m as { allowed: boolean; reason?: string; mints: number };
+  ).rows[0].m as {
+    allowed: boolean;
+    reason?: string;
+    mints: number;
+    reservation?: string;
+    month?: string;
+  };
 
 describe('M6 / M9 the stream seconds budget is reserved at mint', () => {
   const seconds = async () =>
@@ -67,17 +74,69 @@ describe('M6 / M9 the stream seconds budget is reserved at mint', () => {
     expect(rows[0].stream_mints).toBe(2);
   });
 
-  it('settling a stream gives the unused reservation back, so the next mint fits', async () => {
+  it('settling a reservation gives the unused seconds back, exactly once, so the next mint fits', async () => {
     await subscribe('active');
-    await mint(40);
-    await mint(40);
-    await client.query(`SELECT waves_voice_stream_seconds($1, 5, 20)`, [a]);
+    const first = await mint(40);
+    const second = await mint(40);
+    expect(first.reservation).toMatch(/^[0-9a-f-]{36}$/);
+    expect(first.month).toMatch(/^\d{4}-\d{2}$/);
+    await client.query(`SELECT waves_voice_stream_settle($1, 5)`, [first.reservation]);
+    expect(await seconds()).toBe(25);
+    // A second settle of the same reservation changes nothing.
+    await client.query(`SELECT waves_voice_stream_settle($1, 5)`, [first.reservation]);
     expect(await seconds()).toBe(25);
     // A stream that carried nothing settles with 0 and frees its 20 s.
-    await client.query(`SELECT waves_voice_stream_seconds($1, 0, 20)`, [a]);
+    await client.query(`SELECT waves_voice_stream_settle($1, 0)`, [second.reservation]);
     expect(await seconds()).toBe(5);
     expect(await mint(40)).toMatchObject({ allowed: true, mints: 3 });
     expect(await seconds()).toBe(25);
+  });
+
+  it('settles against the month the reservation was taken in, not the month it closes in', async () => {
+    await subscribe('active');
+    const r = await mint(40);
+    await client.query(`UPDATE voice_stream_reservations SET month = '2020-01' WHERE id = $1`, [
+      r.reservation,
+    ]);
+    await client.query(
+      `INSERT INTO voice_agent_usage (profile_id, month, count, stream_seconds) VALUES ($1, '2020-01', 0, 50)`,
+      [a],
+    );
+    await client.query(`SELECT waves_voice_stream_settle($1, 3)`, [r.reservation]);
+    const rows = await client.query(
+      `SELECT month, stream_seconds::numeric AS s FROM voice_agent_usage WHERE profile_id = $1 ORDER BY month`,
+      [a],
+    );
+    expect(rows.rows.map((x) => [x.month, Number(x.s)])).toEqual([
+      ['2020-01', 33],
+      [new Date().toISOString().slice(0, 7), 20],
+    ]);
+  });
+
+  it('an old relay (profile + seconds, no id) settles the oldest open reservation; with none it adds', async () => {
+    await subscribe('active');
+    await mint(40);
+    await client.query(`SELECT waves_voice_stream_seconds($1, 4)`, [a]);
+    expect(await seconds()).toBe(4);
+    const open = await client.query(
+      `SELECT count(*)::int AS n FROM voice_stream_reservations WHERE profile_id = $1 AND settled_at IS NULL`,
+      [a],
+    );
+    expect(open.rows[0].n).toBe(0);
+    await client.query(`SELECT waves_voice_stream_seconds($1, 2)`, [a]);
+    expect(await seconds()).toBe(6);
+  });
+
+  it('releases a reservation a dead relay never settled, ten minutes on', async () => {
+    await subscribe('active');
+    const r = await mint(40);
+    await client.query(
+      `UPDATE voice_stream_reservations SET created_at = now() - interval '11 minutes' WHERE id = $1`,
+      [r.reservation],
+    );
+    expect(await mint(40)).toMatchObject({ allowed: true });
+    // The stale 20 s were released before the new 20 s were reserved.
+    expect(await seconds()).toBe(20);
   });
 
   it('never lets a parallel burst reserve past the seconds budget', async () => {

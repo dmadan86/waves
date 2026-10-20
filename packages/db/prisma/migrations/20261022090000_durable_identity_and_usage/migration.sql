@@ -55,6 +55,9 @@
 -- Every function here is SECURITY DEFINER and service-role only unless it
 -- replaces one that a client already calls (waves_delete_my_account).
 
+-- Every lock this migration needs is short; never queue behind a long one.
+SET LOCAL lock_timeout = '10s';
+
 -- 1. The salt, out of the public schema ------------------------------------------
 
 CREATE SCHEMA IF NOT EXISTS waves_private;
@@ -265,14 +268,32 @@ ALTER TABLE public.usage_carryover ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.usage_carryover FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.usage_carryover TO service_role;
 
--- Which profiles have had their restoration run. No row: the next reservation
--- must restore first (and refuses if it cannot). Cascades with the profile, so
--- a re-created row starts unrestored.
+-- Which profiles have had their restoration run, and for WHICH identity: the
+-- fingerprint (sha256 of the sorted canonical keys, '' while unverified) at
+-- the time. A reservation whose current fingerprint differs — a phone or email
+-- confirmed since — restores again first. So a verification whose restore
+-- failed and rolled back leaves a stale fingerprint, not a free pass. Cascades
+-- with the profile, so a re-created row starts unrestored.
 CREATE TABLE public.usage_restore_marks (
     profile_id  uuid NOT NULL REFERENCES public.profiles(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    fingerprint text DEFAULT '' NOT NULL,
     restored_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT usage_restore_marks_pkey PRIMARY KEY (profile_id)
 );
+
+-- The identity fingerprint a mark is tied to.
+CREATE OR REPLACE FUNCTION public.waves_identity_fingerprint(p_profile uuid) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  SELECT COALESCE(
+    (SELECT encode(sha256(convert_to(string_agg(k, ','), 'UTF8')), 'hex')
+       FROM unnest(public.waves_identity_keys(p_profile)) k),
+    '');
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_identity_fingerprint(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_identity_fingerprint(uuid) TO service_role;
 
 ALTER TABLE public.usage_restore_marks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.usage_restore_marks FROM PUBLIC, anon, authenticated;
@@ -443,13 +464,16 @@ REVOKE ALL ON FUNCTION public.waves_usage_restore(uuid) FROM PUBLIC, anon, authe
 GRANT EXECUTE ON FUNCTION public.waves_usage_restore(uuid) TO service_role;
 
 -- The guard every reservation runs first: the profile lock, the profile must
--- exist, and the restoration must have run once for this profile row. If
--- restoring fails the exception propagates and the reservation is refused —
--- nobody spends on meters that may be missing what they already used.
+-- exist, and the restoration must have run for this profile row AND this
+-- identity (the mark's fingerprint). If restoring fails the exception
+-- propagates and the reservation is refused — nobody spends on meters that may
+-- be missing what they already used.
 CREATE OR REPLACE FUNCTION public.waves_usage_guard(p_profile uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
+DECLARE
+  v_fp text;
 BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_usage_guard needs a profile';
@@ -458,10 +482,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_profile) THEN
     RAISE EXCEPTION 'NO_SUCH_PROFILE' USING ERRCODE = 'foreign_key_violation';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.usage_restore_marks WHERE profile_id = p_profile) THEN
+  v_fp := public.waves_identity_fingerprint(p_profile);
+  IF NOT EXISTS (
+    SELECT 1 FROM public.usage_restore_marks m
+     WHERE m.profile_id = p_profile AND m.fingerprint = v_fp
+  ) THEN
     PERFORM public.waves_usage_restore(p_profile);
-    INSERT INTO public.usage_restore_marks (profile_id) VALUES (p_profile)
-    ON CONFLICT (profile_id) DO NOTHING;
+    INSERT INTO public.usage_restore_marks (profile_id, fingerprint) VALUES (p_profile, v_fp)
+    ON CONFLICT (profile_id) DO UPDATE SET fingerprint = EXCLUDED.fingerprint, restored_at = now();
   END IF;
 END
 $$;
@@ -496,9 +524,7 @@ CREATE TRIGGER profiles_usage_restore AFTER INSERT ON public.profiles
 
 -- At verification (the moment the pro-trial trigger already fires): remember
 -- the identity, union any newly confirmed key into this account's trial and
--- referral rows, and restore a deleted account's month by identity. The mark
--- is dropped first so that, should the restore fail, the next reservation
--- refuses until it succeeds.
+-- referral rows, and restore a deleted account's month by identity.
 CREATE OR REPLACE FUNCTION public.waves_identity_after_verify(p_profile uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -522,10 +548,13 @@ BEGIN
   UPDATE public.referrals r
      SET referrer_keys = (SELECT array_agg(DISTINCT k) FROM unnest(r.referrer_keys || v_keys) k)
    WHERE r.referrer_id = p_profile;
-  DELETE FROM public.usage_restore_marks WHERE profile_id = p_profile;
+  -- Restore for the identity as it is now; the mark records that fingerprint.
+  -- Should this raise and roll back, the mark keeps its old fingerprint and
+  -- the next reservation restores (or refuses) under waves_usage_guard.
   PERFORM public.waves_usage_restore(p_profile);
-  INSERT INTO public.usage_restore_marks (profile_id) VALUES (p_profile)
-  ON CONFLICT (profile_id) DO UPDATE SET restored_at = now();
+  INSERT INTO public.usage_restore_marks (profile_id, fingerprint)
+  VALUES (p_profile, public.waves_identity_fingerprint(p_profile))
+  ON CONFLICT (profile_id) DO UPDATE SET fingerprint = EXCLUDED.fingerprint, restored_at = now();
 END
 $$;
 
@@ -659,7 +688,13 @@ BEGIN
       END LOOP;
     END IF;
     IF v_changed THEN
-      PERFORM public.waves_identity_after_verify(NEW.id);
+      -- Two subtransactions: a failing trial grant must not roll back the
+      -- identity hook, nor the other way round.
+      BEGIN
+        PERFORM public.waves_identity_after_verify(NEW.id);
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'identity hook failed for %: %', NEW.id, SQLERRM;
+      END;
       PERFORM public.waves_pro_trial_grant(NEW.id);
     END IF;
   EXCEPTION WHEN OTHERS THEN
@@ -772,13 +807,25 @@ DECLARE
   v_days_a   int;
   v_days_b   int;
   v_key      text;
+  v_referrer uuid;
 BEGIN
   IF p_referee IS NULL THEN RETURN jsonb_build_object('rewarded', false, 'reason', 'NONE'); END IF;
+
+  -- Lock order, the same as deletion and verification: the participants'
+  -- profile locks FIRST (sorted), the referral row after. A peek finds the
+  -- referrer; the row is re-read under the locks and must still be pending.
+  SELECT referrer_id INTO v_referrer FROM public.referrals
+   WHERE referee_id = p_referee AND status = 'claimed';
+  IF NOT FOUND OR v_referrer IS NULL THEN
+    RETURN jsonb_build_object('rewarded', false, 'reason', 'NONE');
+  END IF;
+  PERFORM public.waves_profile_lock(LEAST(v_referrer, p_referee));
+  PERFORM public.waves_profile_lock(GREATEST(v_referrer, p_referee));
 
   SELECT * INTO r FROM public.referrals
    WHERE referee_id = p_referee AND status = 'claimed'
    FOR UPDATE;
-  IF NOT FOUND OR r.referrer_id IS NULL THEN
+  IF NOT FOUND OR r.referrer_id IS NULL OR r.referrer_id <> v_referrer THEN
     RETURN jsonb_build_object('rewarded', false, 'reason', 'NONE');
   END IF;
 
@@ -815,11 +862,9 @@ BEGIN
     RETURN jsonb_build_object('rewarded', false, 'reason', 'NOT_YET');
   END IF;
 
-  -- 4. Locks: both profiles (sorted), then every identity key of both sides
-  --    (sorted). The same order everywhere, so no two qualifications deadlock
-  --    and none can read a stale "not rewarded yet" / "earned so far".
-  PERFORM public.waves_profile_lock(LEAST(r.referrer_id, p_referee));
-  PERFORM public.waves_profile_lock(GREATEST(r.referrer_id, p_referee));
+  -- 4. Locks: every identity key of both sides (sorted; the profile locks were
+  --    taken above). The same order everywhere, so no two qualifications
+  --    deadlock and none can read a stale "not rewarded yet" / "earned so far".
   FOR v_key IN
     SELECT DISTINCT k FROM unnest(v_lookup || v_ref_lookup) k ORDER BY k
   LOOP
@@ -1028,11 +1073,12 @@ GRANT EXECUTE ON FUNCTION public.waves_delete_my_account(text) TO authenticated,
 
 -- 11. Backfill ---------------------------------------------------------------------------
 -- Every trial and referral row whose accounts still exist gets its canonical
--- keys and device keys now, so an alias of an existing trial is refused from
--- the first day. Where the identity can be computed the row keeps only
--- canonical keys (the legacy hash is enumerable); where the auth identity is
--- already gone the legacy keys stay, and the lookups still match them.
--- Callable again later (idempotent); one profile or all.
+-- keys and device keys UNIONED in now, so an alias of an existing trial is
+-- refused from the first day. History is never replaced: keys already on a row
+-- (legacy, or confirmed later) stay, so running this again is always safe.
+-- Where the auth identity is already gone nothing can be added; those rows
+-- keep their legacy keys, which the lookups still match for the unchanged
+-- address (an alias of a deleted legacy email is a documented residual).
 CREATE OR REPLACE FUNCTION public.waves_identity_backfill(p_profile uuid DEFAULT NULL) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1044,7 +1090,8 @@ BEGIN
   IF to_regclass('auth.users') IS NULL THEN RETURN 0; END IF;
 
   UPDATE public.pro_trials t
-     SET identity_keys = COALESCE(NULLIF(public.waves_identity_keys(t.profile_id), '{}'), t.identity_keys),
+     SET identity_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                            FROM unnest(t.identity_keys || public.waves_identity_keys(t.profile_id)) k),
          device_keys   = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
                             FROM unnest(t.device_keys || public.waves_device_keys(t.profile_id)) k)
    WHERE (p_profile IS NULL OR t.profile_id = p_profile)
@@ -1052,7 +1099,8 @@ BEGIN
   GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
 
   UPDATE public.referrals r
-     SET identity_keys = COALESCE(NULLIF(public.waves_identity_keys(r.referee_id), '{}'), r.identity_keys),
+     SET identity_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                            FROM unnest(r.identity_keys || public.waves_identity_keys(r.referee_id)) k),
          device_keys   = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
                             FROM unnest(r.device_keys || public.waves_device_keys(r.referee_id)) k)
    WHERE r.referee_id IS NOT NULL
@@ -1060,7 +1108,8 @@ BEGIN
   GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
 
   UPDATE public.referrals r
-     SET referrer_keys = COALESCE(NULLIF(public.waves_identity_keys(r.referrer_id), '{}'), r.referrer_keys),
+     SET referrer_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                            FROM unnest(r.referrer_keys || public.waves_identity_keys(r.referrer_id)) k),
          referrer_device_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
                                    FROM unnest(r.referrer_device_keys || public.waves_device_keys(r.referrer_id)) k)
    WHERE r.referrer_id IS NOT NULL

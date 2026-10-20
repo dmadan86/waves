@@ -31,6 +31,7 @@ afterEach(async () => {
   await client.query('ROLLBACK');
 });
 
+const repeat = (c: string, n: number) => c.repeat(n);
 const legacy = async (kind: string, value: string) =>
   (
     await client.query(`SELECT encode(sha256(convert_to($1 || ':' || $2, 'UTF8')), 'hex') AS k`, [
@@ -45,7 +46,7 @@ const grant = async (id: string) =>
   };
 
 describe('H4 backfill of rows written before the canonical keys', () => {
-  it('gives an old trial row canonical keys (legacy dropped) and device keys, so an alias is refused', async () => {
+  it('adds canonical keys and device keys to an old trial row (keeping its history), so an alias is refused', async () => {
     const owner = await person(client, {
       phone: null,
       email: 'me@gmail.com',
@@ -66,9 +67,21 @@ describe('H4 backfill of rows written before the canonical keys', () => {
         [owner],
       )
     ).rows[0] as { identity_keys: string[]; device_keys: string[] };
-    expect(row.identity_keys).not.toContain(legacyKey);
-    expect(row.identity_keys).toHaveLength(1);
+    expect(row.identity_keys).toContain(legacyKey);
+    expect(row.identity_keys).toHaveLength(2);
     expect(row.device_keys).toHaveLength(1);
+
+    // Re-running never removes a key a row already has (one confirmed later, say).
+    await client.query(
+      `UPDATE pro_trials SET identity_keys = identity_keys || ARRAY[repeat('a', 64)] WHERE profile_id = $1`,
+      [owner],
+    );
+    await client.query(`SELECT waves_identity_backfill($1)`, [owner]);
+    const again = (
+      await client.query(`SELECT identity_keys FROM pro_trials WHERE profile_id = $1`, [owner])
+    ).rows[0] as { identity_keys: string[] };
+    expect(again.identity_keys).toHaveLength(3);
+    expect(again.identity_keys).toContain(repeat('a', 64));
 
     const alias = await person(client, { phone: null, email: 'm.e+tag@googlemail.com' });
     expect(await grant(alias)).toMatchObject({ granted: false, reason: 'IDENTITY_REUSED' });

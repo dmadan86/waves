@@ -98,6 +98,40 @@ describe('H2 restoration by identity at profile insert, and the guard', () => {
     ).toBe(1);
   });
 
+  it('a mark is tied to the identity: an identity confirmed later restores again at the next reservation', async () => {
+    const phone = `9134${Math.floor(Math.random() * 1e8)}`;
+    const first = await person(client, { phone });
+    for (let i = 0; i < 10; i += 1) await voice(client, first);
+    await asUser(client, first, () => client.query(`SELECT waves_delete_my_account()`));
+    await client.query(`DELETE FROM auth.users WHERE id = $1`, [first]);
+
+    // A fresh, still-unverified account: restored for the empty identity, spends one.
+    const second = randomUUID();
+    await client.query(
+      `INSERT INTO profiles (id, display_name, default_currency) VALUES ($1, 'Guest', 'INR')`,
+      [second],
+    );
+    expect(await voice(client, second)).toMatchObject({ allowed: true, used: 1 });
+    const mark = await client.query(
+      `SELECT fingerprint FROM usage_restore_marks WHERE profile_id = $1`,
+      [second],
+    );
+    expect(mark.rows[0].fingerprint).toBe('');
+
+    // The phone is confirmed, but the verification hook's restore never ran
+    // (it failed and rolled back): the mark still says 'unverified'.
+    await client.query(
+      `INSERT INTO auth.users (id, is_anonymous, phone, phone_confirmed_at) VALUES ($1, false, $2, now())`,
+      [second, phone],
+    );
+    expect(await voice(client, second)).toMatchObject({ allowed: false, used: 10 });
+    const after = await client.query(
+      `SELECT fingerprint FROM usage_restore_marks WHERE profile_id = $1`,
+      [second],
+    );
+    expect(after.rows[0].fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it('every reservation refuses a profile that does not exist', async () => {
     const ghost = randomUUID();
     for (const call of [

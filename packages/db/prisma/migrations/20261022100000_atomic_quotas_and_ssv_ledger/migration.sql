@@ -33,12 +33,14 @@
 --   5. ad_ssv_transactions: every verified callback's transaction id, forever,
 --      with its outcome. waves_ads_grant writes it first.
 --   6. Grace counts as paid in the voice meters; a stream mint RESERVES its
---      seconds (20 s) atomically against a seconds budget and the relay
---      reconciles the actual seconds on close; the TRANSFER honours
---      store_event_at.
+--      seconds (20 s) atomically against a seconds budget, as a reservation
+--      row the relay settles exactly once against its own month; the TRANSFER
+--      honours store_event_at.
 --   7. Every reservation starts with waves_usage_guard (20261022090000): the
 --      per-profile lock shared with deletion and restoration, the profile must
 --      exist, and a deleted account's month must have been restored first.
+
+SET LOCAL lock_timeout = '10s';
 
 -- 1. Receipt scans -----------------------------------------------------------------
 
@@ -354,12 +356,67 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_voice_agent_refund(uuid, text, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_voice_agent_refund(uuid, text, boolean) TO service_role;
 
+-- A stream's seconds reservation: one row per mint, settled exactly once
+-- against the month it was taken in (a stream admitted before UTC midnight on
+-- the last day and closed after it settles the old month, not the new one).
+CREATE TABLE IF NOT EXISTS public.voice_stream_reservations (
+  id         uuid DEFAULT gen_random_uuid() NOT NULL,
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  month      text NOT NULL,
+  seconds    numeric(10, 2) NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  settled_at timestamptz,
+  CONSTRAINT voice_stream_reservations_pkey PRIMARY KEY (id),
+  CONSTRAINT voice_stream_reservations_month_shape CHECK (month ~ '^[0-9]{4}-[0-9]{2}$'),
+  CONSTRAINT voice_stream_reservations_seconds_nonneg CHECK (seconds >= 0)
+);
+CREATE INDEX IF NOT EXISTS voice_stream_reservations_open_idx
+  ON public.voice_stream_reservations (profile_id, created_at) WHERE settled_at IS NULL;
+
+ALTER TABLE public.voice_stream_reservations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.voice_stream_reservations FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.voice_stream_reservations TO service_role;
+
+-- Settles one reservation against its own month, exactly once: the reserved
+-- seconds come off and the measured seconds go on. A second call is a no-op.
+CREATE OR REPLACE FUNCTION public.waves_voice_stream_settle(p_reservation uuid, p_seconds numeric) RETURNS numeric
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  r         public.voice_stream_reservations%ROWTYPE;
+  v_seconds numeric := round(least(greatest(COALESCE(p_seconds, 0), 0), 30), 2);
+  v_total   numeric;
+BEGIN
+  IF p_reservation IS NULL THEN RETURN NULL; END IF;
+  SELECT profile_id INTO r.profile_id FROM public.voice_stream_reservations WHERE id = p_reservation;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  PERFORM public.waves_profile_lock(r.profile_id);
+  UPDATE public.voice_stream_reservations
+     SET settled_at = now()
+   WHERE id = p_reservation AND settled_at IS NULL
+  RETURNING * INTO r;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  INSERT INTO public.voice_agent_usage AS u (profile_id, month, count, stream_seconds, updated_at)
+  VALUES (r.profile_id, r.month, 0, v_seconds, now())
+  ON CONFLICT (profile_id, month) DO UPDATE
+    SET stream_seconds = GREATEST(0, u.stream_seconds - r.seconds + v_seconds), updated_at = now()
+  RETURNING u.stream_seconds INTO v_total;
+  RETURN v_total;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_voice_stream_settle(uuid, numeric) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_stream_settle(uuid, numeric) TO service_role;
+
 -- waves_voice_stream_mint from 20261016120000_two_tiers_free_and_pro: grace is
 -- paid, and a mint RESERVES p_reserve_seconds (the relay's 20 s cap) against a
 -- seconds budget in the same atomic UPDATE as the mint count, so the minutes
 -- Deepgram bills are bounded by the server whatever the stream count. The
--- relay settles the actual seconds on close (waves_voice_stream_seconds,
--- p_reserved_seconds) and the difference is given back.
+-- answer carries `reservation` (and `month`); the relay settles it on close.
+-- A reservation left open (a relay that died) is released after ten minutes,
+-- well past the relay's 25 s wall clock.
 DROP FUNCTION IF EXISTS public.waves_voice_stream_mint(uuid, integer, integer, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.waves_voice_stream_mint(
@@ -383,12 +440,22 @@ DECLARE
   v_reserve numeric := LEAST(GREATEST(COALESCE(p_reserve_seconds, 20), 0), 30);
   v_cap     numeric;
   v_trial   boolean;
+  v_stale   uuid;
+  v_id      uuid;
 BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_voice_stream_mint needs a profile';
   END IF;
   PERFORM public.waves_usage_guard(p_profile);
   v_trial := public.waves_voice_trial_until(p_profile) IS NOT NULL;
+
+  -- Reservations a dead relay never settled: release them (0 s streamed).
+  FOR v_stale IN
+    SELECT id FROM public.voice_stream_reservations
+     WHERE profile_id = p_profile AND settled_at IS NULL AND created_at < now() - interval '10 minutes'
+  LOOP
+    PERFORM public.waves_voice_stream_settle(v_stale, 0);
+  END LOOP;
 
   IF v_trial THEN
     v_tier := CASE WHEN public.waves_pro_trial_active(p_profile) IS NOT NULL THEN 'pro' ELSE 'free' END;
@@ -423,9 +490,12 @@ BEGIN
   RETURNING u.stream_mints, u.stream_seconds INTO v_mints, v_seconds;
 
   IF v_mints IS NOT NULL THEN
+    INSERT INTO public.voice_stream_reservations (profile_id, month, seconds)
+    VALUES (p_profile, v_month, v_reserve)
+    RETURNING id INTO v_id;
     RETURN jsonb_build_object(
       'mints', v_mints, 'budget', v_budget, 'tier', v_tier, 'trial', v_trial, 'allowed', true,
-      'reserved_seconds', v_reserve, 'seconds', v_seconds
+      'reserved_seconds', v_reserve, 'seconds', v_seconds, 'reservation', v_id, 'month', v_month
     );
   END IF;
 
@@ -442,43 +512,49 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) TO service_role;
 
--- waves_voice_stream_seconds from 20261008090000: settles a stream. The seconds
--- the mint reserved are taken back and the measured seconds added, under the
--- profile lock. A stream that carried nothing settles with 0 and frees its
--- reservation.
-DROP FUNCTION IF EXISTS public.waves_voice_stream_seconds(uuid, numeric);
-
+-- waves_voice_stream_seconds from 20261008090000, the signature the relay
+-- deployed BEFORE this change calls (profile, seconds). Kept so a rollout where
+-- the migration lands before the relay does not over-count: an old relay's
+-- settle is applied to this profile's oldest open reservation (released and
+-- replaced by the measured seconds); with no open reservation it adds the
+-- seconds to the current month as it always did. The new relay calls
+-- waves_voice_stream_settle with its reservation id.
 CREATE OR REPLACE FUNCTION public.waves_voice_stream_seconds(
   p_profile uuid,
-  p_seconds numeric,
-  p_reserved_seconds numeric DEFAULT 0
+  p_seconds numeric
 ) RETURNS numeric
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
-  v_month    text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
-  v_seconds  numeric := round(least(greatest(COALESCE(p_seconds, 0), 0), 30), 2);
-  v_reserved numeric := round(least(greatest(COALESCE(p_reserved_seconds, 0), 0), 30), 2);
-  v_total    numeric;
+  v_month   text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
+  v_seconds numeric := round(least(greatest(COALESCE(p_seconds, 0), 0), 30), 2);
+  v_open    uuid;
+  v_total   numeric;
 BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_voice_stream_seconds needs a profile';
   END IF;
   PERFORM public.waves_profile_lock(p_profile);
 
+  SELECT id INTO v_open FROM public.voice_stream_reservations
+   WHERE profile_id = p_profile AND settled_at IS NULL
+   ORDER BY created_at ASC LIMIT 1;
+  IF v_open IS NOT NULL THEN
+    RETURN public.waves_voice_stream_settle(v_open, v_seconds);
+  END IF;
+
   INSERT INTO public.voice_agent_usage AS u (profile_id, month, count, stream_seconds, updated_at)
   VALUES (p_profile, v_month, 0, v_seconds, now())
   ON CONFLICT (profile_id, month) DO UPDATE
-    SET stream_seconds = GREATEST(0, u.stream_seconds - v_reserved + v_seconds), updated_at = now()
+    SET stream_seconds = u.stream_seconds + v_seconds, updated_at = now()
   RETURNING u.stream_seconds INTO v_total;
-
   RETURN v_total;
 END
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric, numeric) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric, numeric) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric) TO service_role;
 
 -- 3. Follow-ups need a slot -----------------------------------------------------------
 

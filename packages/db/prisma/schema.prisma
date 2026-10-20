@@ -215,6 +215,7 @@ model Profile {
   voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
   voiceAgentFollowupSlots VoiceAgentFollowupSlot[]
   usageRestoreMark        UsageRestoreMark?
+  voiceStreamReservations VoiceStreamReservation[]
   statementImportSessions StatementImportSession[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
@@ -2402,6 +2403,23 @@ model VoiceAgentFollowupSlot {
   @@schema("public")
 }
 
+/// One stream's reserved seconds (`waves_voice_stream_mint`), settled exactly
+/// once against its own month by the relay (`waves_voice_stream_settle`).
+model VoiceStreamReservation {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  month     String
+  seconds   Decimal   @db.Decimal(10, 2)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  settledAt DateTime? @map("settled_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt], map: "voice_stream_reservations_open_idx")
+  @@map("voice_stream_reservations")
+  @@schema("public")
+}
+
 /// Requests one statement import id has made (`waves_statement_import_chunk`):
 /// a continuation token no longer buys unbounded reads of one "file".
 model StatementImportSession {
@@ -2437,8 +2455,11 @@ model AdSsvTransaction {
 /// (`waves_usage_guard`). No row: the next reservation restores first, and
 /// refuses if it cannot. Cascades with the profile.
 model UsageRestoreMark {
-  profileId  String   @id @map("profile_id") @db.Uuid
-  restoredAt DateTime @default(now()) @map("restored_at") @db.Timestamptz(6)
+  profileId   String   @id @map("profile_id") @db.Uuid
+  /// sha256 of the sorted canonical identity keys the restoration ran for
+  /// ('' while unverified); a reservation under a different one restores again.
+  fingerprint String   @default("")
+  restoredAt  DateTime @default(now()) @map("restored_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
