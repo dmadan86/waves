@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
@@ -5,21 +6,18 @@ import { Text, useTheme } from '@waves/ui';
 
 import { GroupType } from '@/data/types';
 import { useStrings } from '@/i18n';
-import { groupTypeTag, type GroupTypeTag as GroupTypeTagValue } from '@/lib/groupTypeTag';
+import {
+  groupTypeTag,
+  type GroupTypeTag as GroupTypeTagValue,
+  type GroupTypeTagLabels,
+} from '@/lib/groupTypeTag';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 
-/** The tag for a group, in the reader's language — null when the group has no
- *  meaningful type to show. */
-export function useGroupTypeTag(
-  type: string | null | undefined,
-  eventTemplate: string | null | undefined,
-  customTag?: string | null,
-): GroupTypeTagValue | null {
+/** The words a group tag is drawn from, in the reader's language. */
+export function useGroupTypeTagLabels(): GroupTypeTagLabels {
   const { t } = useStrings();
-  return groupTypeTag(
-    type,
-    eventTemplate,
-    {
+  return useMemo(
+    () => ({
       types: {
         trip: t.extras.typeTrip,
         home: t.extras.typeHome,
@@ -28,9 +26,20 @@ export function useGroupTypeTag(
         friends: t.extras.typeFriends,
       },
       events: t.eventOrganizer.tagNames,
-    },
-    customTag,
+    }),
+    [t],
   );
+}
+
+/** The tag for a group, in the reader's language — null when the group has no
+ *  meaningful type to show. */
+export function useGroupTypeTag(
+  type: string | null | undefined,
+  eventTemplate: string | null | undefined,
+  customTag?: string | null,
+): GroupTypeTagValue | null {
+  const labels = useGroupTypeTagLabels();
+  return groupTypeTag(type, eventTemplate, labels, customTag);
 }
 
 /** The spoken form — "Kind: Trip" — for an accessibility label. */
