@@ -29,9 +29,11 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
-import { type CurrencyCode } from '@waves/core';
+import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
+import { LinkMemberSheet } from '@/components/LinkMemberSheet';
+import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import {
   ListRow,
   PillButton,
@@ -75,7 +77,11 @@ import {
   useGroupLedger,
   useGroups,
   useLeaveGroup,
+  useCancelMemberLink,
+  useGroupMemberLinks,
+  useMergeMemberInto,
   useRemoveMember,
+  useRequestMemberLink,
   useSetMemberRole,
   useUpdateGroup,
 } from '@/data/hooks';
@@ -460,6 +466,13 @@ export default function GroupSettingsScreen() {
   const [info, setInfo] = useState<'simplify' | 'mute' | null>(null);
   const removeFromGroup = useRemoveMember(groupId);
   const setRole = useSetMemberRole(groupId);
+  // "Link to a Waves user" (admin-only, as on the member screen): what this
+  // group's admins have asked and are still waiting on, and the ways to act.
+  const links = useGroupMemberLinks(groupId);
+  const mergeInto = useMergeMemberInto(groupId);
+  const requestLink = useRequestMemberLink(groupId);
+  const cancelLink = useCancelMemberLink(groupId);
+  const [linkFor, setLinkFor] = useState<string | null>(null);
 
   if (group.isLoading) return <GroupSkeleton />;
 
@@ -649,6 +662,7 @@ export default function GroupSettingsScreen() {
       });
   const groupName = groupLabel(group.data, members.data ?? [], viewerId);
   const menuMember = (members.data ?? []).find((row) => row.id === menuFor) ?? null;
+  const linkMember = (members.data ?? []).find((row) => row.id === linkFor) ?? null;
   const tint = (hex: string): string => `${hex}${theme.scheme === 'dark' ? '38' : '24'}`;
 
   /** The tinted circle on a row's left, as in the mockup. */
@@ -729,14 +743,99 @@ export default function GroupSettingsScreen() {
     );
   };
 
+  const pendingLinkFor = (memberId: string) =>
+    links.data?.find((ask) => ask.member_id === memberId) ?? null;
+
+  /** The same person is already here: fold the placeholder into them. */
+  const confirmMerge = async (
+    member: MemberRow,
+    into: { memberId: string; name: string },
+  ): Promise<void> => {
+    const placeholderName = member.ghost_name ?? t.misc.someone;
+    const balance = ledger.balances.get(member.id) ?? 0n;
+    const involved = expenses.rows.filter((expense) =>
+      expense.currentVersion?.shares.some((share) => share.member_id === member.id),
+    );
+    const ok = await confirm({
+      title: fill(t.link.mergeConfirmTitle, { name: placeholderName, who: into.name }),
+      body: fill(t.link.mergeConfirmBody, {
+        name: placeholderName,
+        who: into.name,
+        expenses: plural(locale, involved.length, t.link.mergeExpenses),
+        balance: format(money(balance < 0n ? -balance : balance, currency as CurrencyCode), {
+          locale,
+        }),
+      }),
+      confirmLabel: t.link.mergeAction,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    setStatus(null);
+    mergeInto.mutate(
+      { memberId: member.id, intoMemberId: into.memberId },
+      {
+        onSuccess: (verdict) => {
+          if (!verdict.ok) setStatus(linkReasonText(verdict.reason, t));
+        },
+        onError: (caught) => setStatus(friendlyError(caught, t.link.failed, 'settings.merge')),
+      },
+    );
+  };
+
+  /** The person is not in this group: ask them; nothing attaches until they say yes. */
+  const confirmAsk = async (member: MemberRow, person: LinkPerson): Promise<void> => {
+    const placeholderName = member.ghost_name ?? t.misc.someone;
+    const me = (members.data ?? []).find((row) => isViewer(row, viewerId));
+    const ok = await confirm({
+      title: fill(t.link.askConfirmTitle, { who: person.name }),
+      body: fill(t.link.askConfirmBody, {
+        me: me ? displayName(me, null, blockedIds, t.misc.someone) : t.misc.someone,
+        name: placeholderName,
+        group: groupName,
+      }),
+      confirmLabel: t.link.askAction,
+    });
+    if (!ok) return;
+    setStatus(null);
+    requestLink.mutate(
+      { memberId: member.id, targetProfileId: person.profileId },
+      {
+        onSuccess: (verdict) => {
+          if (verdict.ok) {
+            setStatus(fill(t.link.askSent, { who: person.name }));
+          } else if (verdict.reason === 'ALREADY_IN_GROUP' && verdict.member_id) {
+            void confirmMerge(member, { memberId: verdict.member_id, name: person.name });
+          } else {
+            setStatus(linkReasonText(verdict.reason, t));
+          }
+        },
+        onError: (caught) => setStatus(friendlyError(caught, t.link.failed, 'settings.link')),
+      },
+    );
+  };
+
+  const confirmCancelAsk = async (member: MemberRow): Promise<void> => {
+    const ask = pendingLinkFor(member.id);
+    if (!ask) return;
+    const ok = await confirm({
+      title: fill(t.link.waiting, { who: ask.target_name ?? t.misc.someone }),
+      body: t.link.waitingHint,
+      confirmLabel: t.link.cancelAsk,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    cancelLink.mutate(ask.id, {
+      onError: (caught) => setStatus(friendlyError(caught, t.link.failed, 'settings.linkCancel')),
+    });
+  };
+
   /**
    * The actions in a member's ⋮ menu. Open, role and remove are the ones the
    * member's own screen has always had; anything else a person can do to a
    * member joins this list, so the menu stays the one place to look.
    *
-   * HOOK: "Link to a Waves user" (PR #1355) belongs here, for a ghost member —
-   * add one more entry that opens its flow, and nothing else on this screen
-   * needs to change.
+   * "Link to a Waves user" is admin-only and for placeholders only, exactly as
+   * on the member screen; while an ask waits the row says so and a tap takes it back.
    */
   const memberActions = (member: MemberRow): MemberAction[] => {
     const isMe = isViewer(member, viewerId);
@@ -749,6 +848,29 @@ export default function GroupSettingsScreen() {
         onPress: () => router.push(`/group/${groupId}/member/${member.id}`),
       },
     ];
+    if (ghost && isAdmin && !member.left_at) {
+      const ask = pendingLinkFor(member.id);
+      actions.push(
+        ask
+          ? {
+              key: 'link',
+              icon: 'hourglass-outline',
+              title: fill(t.link.waiting, { who: ask.target_name ?? t.misc.someone }),
+              subtitle: t.link.waitingHint,
+              onPress: cancelLink.isPending ? undefined : () => void confirmCancelAsk(member),
+            }
+          : {
+              key: 'link',
+              icon: 'link-outline',
+              title: t.link.row,
+              subtitle: fill(t.link.rowHint, { name: member.ghost_name ?? t.misc.someone }),
+              onPress:
+                mergeInto.isPending || requestLink.isPending
+                  ? undefined
+                  : () => setLinkFor(member.id),
+            },
+      );
+    }
     if (isAdmin && !isMe) {
       actions.push({
         key: 'role',
@@ -931,7 +1053,11 @@ export default function GroupSettingsScreen() {
                     title={displayName(member, viewerId, blockedIds, t.misc.someone)}
                     subtitle={
                       isGhost(member)
-                        ? t.notJoinedYet
+                        ? pendingLinkFor(member.id)
+                          ? fill(t.link.waiting, {
+                              who: pendingLinkFor(member.id)?.target_name ?? t.misc.someone,
+                            })
+                          : t.notJoinedYet
                         : // A handle carries a name, an address or a phone number,
                           // so a blocked person's is masked here exactly as it is
                           // on the members screen.
@@ -1312,6 +1438,25 @@ export default function GroupSettingsScreen() {
             ))
           : null}
       </Sheet>
+
+      {/* "Who is Renny?" — picks a person; what the pick means is decided above. */}
+      {linkMember ? (
+        <LinkMemberSheet
+          visible
+          groupId={groupId}
+          placeholderName={linkMember.ghost_name ?? t.misc.someone}
+          inGroup={membersAsPeople(members.data ?? [], viewerId, linkMember.id)}
+          onPick={(person) => {
+            setLinkFor(null);
+            if (person.memberId) {
+              void confirmMerge(linkMember, { memberId: person.memberId, name: person.name });
+            } else {
+              void confirmAsk(linkMember, person);
+            }
+          }}
+          onClose={() => setLinkFor(null)}
+        />
+      ) : null}
 
       {/* Everything that used to be laid out down this page and is not in the
           mockup: name, description, kind and tag, then the group's details —

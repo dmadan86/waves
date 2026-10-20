@@ -65,6 +65,11 @@ describe('settings page layout', () => {
     expect(actions).toContain("key: 'open'");
     expect(actions).toContain("key: 'role'");
     expect(actions).toContain("key: 'remove'");
+    // Link to a Waves user: placeholders only, admin only, with the waiting state.
+    expect(actions).toContain("key: 'link'");
+    expect(actions).toContain('ghost && isAdmin && !member.left_at');
+    expect(SCREEN).toContain('<LinkMemberSheet');
+    expect(SCREEN).toContain('t.link.waiting');
     // Only an admin can change a role or remove somebody, as on the member screen.
     expect(actions).toContain('isAdmin && !isMe');
     // The hook for PR #1355 is left in place.
