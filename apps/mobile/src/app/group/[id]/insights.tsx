@@ -27,6 +27,7 @@ import {
   categoryTotals,
   computeSpendingRows,
   format,
+  currencySymbol,
   formatParts,
   minorUnitExponent,
   monthTotals,
@@ -68,6 +69,7 @@ import {
   donutSlices,
   monthRange,
   percentChange,
+  selectableMonth,
   previousMonthKey,
 } from '@/lib/spendingChart';
 import { isViewer } from '@/data/types';
@@ -146,8 +148,11 @@ export default function InsightsScreen() {
   // Every month with spending, oldest first (a limit beyond any real history).
   const allMonths = useMemo(() => monthTotals(rows, 1200), [rows]);
   const latest = allMonths[allMonths.length - 1]?.month ?? null;
-  const month =
-    pickedMonth && allMonths.some((entry) => entry.month === pickedMonth) ? pickedMonth : latest;
+  const month = selectableMonth(
+    pickedMonth,
+    latest,
+    allMonths.map((entry) => entry.month),
+  );
 
   const loading = group.isLoading || members.isLoading || expenses.isLoading;
   const empty = !loading && currencies.length === 0;
@@ -159,7 +164,19 @@ export default function InsightsScreen() {
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader title={t.spending}>
+        <ScenicHeader
+          title={t.spending}
+          trailing={
+            month ? (
+              <PillButton
+                icon="calendar-outline"
+                label={monthLabel(month, locale, true)}
+                accessibilityLabel={`${t.spendPickMonth}: ${monthLabel(month, locale, true)}`}
+                onPress={() => setSheet('month')}
+              />
+            ) : null
+          }
+        >
           <SegmentedPills<Scope>
             value={scope}
             onChange={setScope}
@@ -168,15 +185,6 @@ export default function InsightsScreen() {
               { value: Scope.Mine, label: t.extras.justMe },
             ]}
           />
-          <View style={{ flex: 1 }} />
-          {month ? (
-            <PillButton
-              icon="calendar-outline"
-              label={monthLabel(month, locale, true)}
-              accessibilityLabel={`${t.spendPickMonth}: ${monthLabel(month, locale, true)}`}
-              onPress={() => setSheet('month')}
-            />
-          ) : null}
         </ScenicHeader>
 
         <ScenicBody>
@@ -282,7 +290,7 @@ function SpendingBody({
   const toMajor = (minor: bigint) => Number(minor) / 10 ** exponent;
   const money = (minor: bigint) => format({ minor, currency }, { locale });
   // The currency's own symbol, as the locale prints it (₹, $, €).
-  const symbol = formatParts({ minor: 0n, currency }, { locale }).lead.replace(/[\d\s.,٠-٩]/g, '');
+  const symbol = currencySymbol(currency, locale);
 
   // The month on show: its rows, its total, and how it compares with the month before.
   const monthRows = useMemo(() => rows.filter((row) => row.month === month), [rows, month]);
@@ -500,19 +508,21 @@ function SpendingBody({
         ) : null}
         <StandardCard style={{ gap: theme.spacing.md }}>
           <MonthBars data={bars} selected={month} onSelect={onSelectMonth} symbol={symbol} />
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              router.push(
-                `/group/${groupId}/month?month=${month}&currency=${currency}&scope=${scope}`,
-              )
-            }
-            style={{ alignSelf: 'center' }}
-          >
-            <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-              {t.spendSeeDays.replace('{month}', monthLabel(month, locale))}
-            </Text>
-          </Pressable>
+          {monthRows.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                router.push(
+                  `/group/${groupId}/month?month=${month}&currency=${currency}&scope=${scope}`,
+                )
+              }
+              style={{ alignSelf: 'center' }}
+            >
+              <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                {t.spendSeeDays.replace('{month}', monthLabel(month, locale))}
+              </Text>
+            </Pressable>
+          ) : null}
         </StandardCard>
       </View>
 

@@ -38,12 +38,15 @@ export function ScenicHeader({
   title,
   onBack,
   children,
+  trailing,
 }: {
   title: string;
   /** Defaults to going back one screen. */
   onBack?: () => void;
-  /** The pill row under the title. */
+  /** The pills under the title, on the left. */
   children?: ReactNode;
+  /** One pill at the right-hand end; on a narrow phone it drops to its own row. */
+  trailing?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -56,7 +59,7 @@ export function ScenicHeader({
   const scale = width / SCENE_W;
   const ink = theme.color.text;
   return (
-    <View style={{ height: photoH, overflow: 'hidden' }}>
+    <View style={{ minHeight: photoH, overflow: 'hidden' }}>
       <Image
         source={SCENE}
         accessibilityIgnoresInvertColors
@@ -90,7 +93,12 @@ export function ScenicHeader({
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
       />
       <View
-        style={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg }}
+        style={{
+          paddingTop: insets.top + theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          // Room for the body that rides up over the foot, so it never lands on a control.
+          paddingBottom: SCENIC_OVERLAP + theme.spacing.sm,
+        }}
       >
         <Row style={{ alignItems: 'center' }}>
           <Pressable
@@ -113,9 +121,19 @@ export function ScenicHeader({
           </Text>
           <View style={{ width: 40 }} />
         </Row>
-        {children ? (
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: theme.spacing.lg }}>
-            {children}
+        {children || trailing ? (
+          <Row
+            style={{
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              columnGap: theme.spacing.sm,
+              rowGap: theme.spacing.sm,
+              marginTop: theme.spacing.lg,
+            }}
+          >
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>{children}</Row>
+            {trailing}
           </Row>
         ) : null}
       </View>

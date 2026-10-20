@@ -1,3 +1,4 @@
+import { currencySymbol } from '@waves/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +9,7 @@ import {
   percentChange,
   monthRange,
   previousMonthKey,
+  selectableMonth,
   smoothPath,
 } from '../src/lib/spendingChart';
 
@@ -82,5 +84,24 @@ describe('previousMonthKey', () => {
 describe('monthRange', () => {
   it('lists consecutive months ending at the last one', () => {
     expect(monthRange('2026-02-01', 3)).toEqual(['2025-12-01', '2026-01-01', '2026-02-01']);
+  });
+});
+
+describe('selectableMonth', () => {
+  const spending = ['2026-08-01', '2026-10-01'];
+  it('keeps an empty month the chart offers, instead of showing the latest', () => {
+    expect(selectableMonth('2026-09-01', '2026-10-01', spending)).toBe('2026-09-01');
+  });
+  it('falls back to the latest for a month outside the chart, and for none', () => {
+    expect(selectableMonth('2020-01-01', '2026-10-01', spending)).toBe('2026-10-01');
+    expect(selectableMonth(null, '2026-10-01', spending)).toBe('2026-10-01');
+    expect(selectableMonth('2026-09-01', null, [])).toBeNull();
+  });
+});
+
+describe('currencySymbol in Arabic', () => {
+  it('finds the symbol even where the locale prints it after the digits', () => {
+    const symbol = currencySymbol('INR', 'ar');
+    expect(symbol.replace(/[\u200e\u200f\u061c\s]/g, '')).not.toBe('');
   });
 });

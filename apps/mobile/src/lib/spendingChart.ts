@@ -130,3 +130,21 @@ export function monthRange(last: string, count: number): string[] {
   while (keys.length < count) keys.unshift(previousMonthKey(keys[0]!));
   return keys;
 }
+
+/**
+ * The month to show: the one picked when it is a slot on the chart (spending or
+ * not — an empty month is shown as nothing, not swapped for another), else the
+ * latest month with spending.
+ */
+export function selectableMonth(
+  picked: string | null,
+  latest: string | null,
+  spendingMonths: readonly string[],
+  slots = 12,
+): string | null {
+  if (!latest) return null;
+  if (picked && (spendingMonths.includes(picked) || monthRange(latest, slots).includes(picked))) {
+    return picked;
+  }
+  return latest;
+}
