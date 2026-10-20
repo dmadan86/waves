@@ -62,6 +62,7 @@ import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
+import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -2531,7 +2532,7 @@ export default function AddExpenseScreen() {
 
               {/* A rent, a subscription: the same expense again on a schedule,
                   added for everyone on its date. New expenses only. */}
-              {!expenseId && !fx ? (
+              {!GROUP_REPEAT_HIDDEN && !expenseId && !fx ? (
                 <View>
                   <DetailRow
                     icon={repeat ? 'repeat' : 'repeat-outline'}

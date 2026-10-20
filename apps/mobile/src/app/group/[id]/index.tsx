@@ -59,6 +59,8 @@ import {
   type MemberId,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
+import { useGroupRecurring } from '@/data/groupRecurring';
+import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
 import {
   displayName,
   groupLabel,
@@ -768,6 +770,7 @@ export default function GroupScreen() {
   const guestGuard = useGuestGuard();
 
   const { blockedIds } = useBlockedUsers();
+  const { rules: repeatingRules } = useGroupRecurring(groupId);
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const nameOf = useCallback(
     (memberId: string | null): string => {
@@ -1105,11 +1108,15 @@ export default function GroupScreen() {
     // The hero's QR used to open this; the hero's corner is Activity now.
     { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
     { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
-    {
-      icon: 'repeat-outline',
-      label: t.groupRecurring.rowNone,
-      route: `/group/${groupId}/recurring`,
-    },
+    ...(!GROUP_REPEAT_HIDDEN || repeatingRules.length > 0
+      ? [
+          {
+            icon: 'repeat-outline',
+            label: t.groupRecurring.rowNone,
+            route: `/group/${groupId}/recurring`,
+          } as OverflowMenuItem,
+        ]
+      : []),
     ...(!PLAN_HIDDEN && groupData.type === 'trip'
       ? [
           {
