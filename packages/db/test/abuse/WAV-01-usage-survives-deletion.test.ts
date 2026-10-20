@@ -134,7 +134,7 @@ describe('WAV-01 the month survives "delete and start again"', () => {
   });
 
   it('the carry-over tables and identity tombstones are closed to clients', async () => {
-    for (const table of ['usage_carryover', 'identity_tombstones', 'identity_settings']) {
+    for (const table of ['usage_carryover', 'identity_tombstones', 'usage_restore_marks']) {
       for (const role of ['anon', 'authenticated']) {
         const { rows } = await client.query(
           `SELECT has_table_privilege($1, $2, 'SELECT') AS s, has_table_privilege($1, $2, 'INSERT') AS i`,

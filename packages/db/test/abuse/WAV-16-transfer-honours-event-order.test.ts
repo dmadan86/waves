@@ -17,12 +17,14 @@ import { connect, seedGroup } from '../helpers';
 let client: Client;
 let from: string;
 let to: string;
+const TXN = `txn-${randomUUID()}`;
 
 beforeAll(async () => {
   client = await connect();
   [from, to] = (await seedGroup(client, { memberCount: 2 })).profileIds as [string, string];
 });
 afterAll(async () => {
+  await client.query(`DELETE FROM subscriptions WHERE profile_id = ANY($1::uuid[])`, [[from, to]]);
   await client
     .query(`DELETE FROM profiles WHERE id = ANY($1::uuid[])`, [[from, to]])
     .catch(() => null);
@@ -40,14 +42,14 @@ const transfer = async (at: string) =>
     )
   ).rows[0].o as string;
 const owner = async () =>
-  (await client.query(`SELECT profile_id FROM subscriptions WHERE store_txn_id = 'txn-1'`)).rows[0]
+  (await client.query(`SELECT profile_id FROM subscriptions WHERE store_txn_id = '${TXN}'`)).rows[0]
     .profile_id as string;
 
 describe('WAV-16 TRANSFER is ordered like every other event', () => {
   it('an older transfer does not move a row with a newer store event, a newer one does', async () => {
     await client.query(
       `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store, store_txn_id, store_event_at)
-       VALUES ($1, 'pro', 'monthly', 'active', now() + interval '30 days', 'play', 'txn-1', '2026-10-10T00:00:00Z')`,
+       VALUES ($1, 'pro', 'monthly', 'active', now() + interval '30 days', 'play', '${TXN}', '2026-10-10T00:00:00Z')`,
       [from],
     );
     expect(await transfer('2026-10-09T00:00:00Z')).toBe('stale');
@@ -59,7 +61,7 @@ describe('WAV-16 TRANSFER is ordered like every other event', () => {
   it('a promo grant and a trial never move', async () => {
     await client.query(
       `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store, store_txn_id)
-       VALUES ($1, 'pro', 'monthly', 'active', now() + interval '30 days', 'promo', 'txn-1'),
+       VALUES ($1, 'pro', 'monthly', 'active', now() + interval '30 days', 'promo', '${TXN}'),
               ($1, 'pro', 'monthly', 'active', now() + interval '15 days', 'trial', 'trial:' || $1::text)`,
       [from],
     );

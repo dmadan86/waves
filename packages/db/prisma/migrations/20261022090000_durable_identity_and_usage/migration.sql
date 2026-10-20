@@ -13,50 +13,63 @@
 --           rule read it (L2: it is also the guest-install time, not sign-up).
 --
 -- Pieces:
---   1. identity_settings — one salt. Every NEW identity hash is
---      sha256(salt | kind:value): a table dump alone cannot be rainbowed back
---      to a phone number. The old unsalted keys are still produced beside the
---      new ones so rows written before this migration keep matching.
+--   1. waves_private.identity_salt — the one salt, in a schema no API role can
+--      reach (no USAGE for anon / authenticated / service_role, so PostgREST
+--      cannot expose it and a public-schema dump does not carry it). Hashing
+--      has to happen in the database (the auth triggers run here), so the
+--      secret has to be readable from SQL; the Vault extension is not present
+--      on a bare Postgres (CI) and its decrypted view is readable by the same
+--      roles anyway, so a private schema is the boundary that exists.
 --   2. waves_canonical_email — lower-case, '+tag' stripped, Gmail dots removed
 --      and googlemail folded to gmail.
---   3. waves_referral_identity — now returns canonical salted keys first, then
---      the legacy keys, plus `relay_only` (only Apple Hide-My-Email addresses)
---      and `has_phone`.
+--   3. waves_referral_identity — canonical salted keys (`keys`, the only ones
+--      ever stored from now on) and the unsalted legacy keys (`legacy_keys`,
+--      used only to MATCH rows written before this migration), plus
+--      `relay_only` (only Apple Hide-My-Email addresses) and `has_phone`.
 --   4. waves_device_keys — salted hashes of the device ids this account has
 --      registered (device_sessions): an install signal, never a blocker on its
 --      own.
 --   5. identity_tombstones / usage_carryover — no FK to profiles. On deletion
 --      the month's meters are copied here under the auth user id and the
---      identity keys; a new profile for the same auth user (trigger on
---      profiles) or the same identity (the verification trigger) restores them,
---      taking the larger of the two.
---   6. pro_trials gains device_keys; the grant refuses a relay-only email on a
+--      identity keys; a profile inserted later for the same auth user or the
+--      same identity restores them (taking the larger of the two). Every
+--      reservation runs waves_usage_guard first: under the per-profile lock it
+--      restores once per profile and refuses when it cannot (fail closed).
+--   6. waves_profile_lock — ONE advisory lock per profile, held by deletion
+--      (snapshot through DELETE), restoration and every reservation, so a
+--      command cannot slip between the snapshot and the cascade.
+--   7. pro_trials gains device_keys; the grant refuses a relay-only email on a
 --      device that already had a trial, and records device reuse otherwise.
 --      Keys confirmed later (a phone added after the trial) are unioned in.
---   7. referrals keep their rows when either side is deleted (FKs SET NULL),
+--   8. referrals keep their rows when either side is deleted (FKs SET NULL),
 --      carry the referrer's identity keys and both device keys, and the
---      lifetime cap is summed by identity. Same device = self-referral.
---   8. profiles.created_at is immutable for client roles; ad eligibility ages
+--      lifetime cap is summed by identity. Same device = self-referral. The
+--      reuse and cap checks run under locks on every participant identity key.
+--   9. profiles.created_at is immutable for client roles; ad eligibility ages
 --      the account from when it was verified (waves_referral_joined_at).
+--  10. Backfill: every existing trial / referral row whose accounts still exist
+--      gets canonical keys and device keys (waves_identity_backfill); rows whose
+--      auth identity is already gone keep their legacy keys, which the lookups
+--      still match.
 --
 -- Every function here is SECURITY DEFINER and service-role only unless it
 -- replaces one that a client already calls (waves_delete_my_account).
 
--- 1. The salt -------------------------------------------------------------------
+-- 1. The salt, out of the public schema ------------------------------------------
 
-CREATE TABLE public.identity_settings (
+CREATE SCHEMA IF NOT EXISTS waves_private;
+REVOKE ALL ON SCHEMA waves_private FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE TABLE waves_private.identity_salt (
     id   boolean DEFAULT true NOT NULL,
     salt text NOT NULL,
-    CONSTRAINT identity_settings_pkey PRIMARY KEY (id),
-    CONSTRAINT identity_settings_single CHECK (id),
-    CONSTRAINT identity_settings_salt_len CHECK (char_length(salt) >= 32)
+    CONSTRAINT identity_salt_pkey PRIMARY KEY (id),
+    CONSTRAINT identity_salt_single CHECK (id),
+    CONSTRAINT identity_salt_len CHECK (char_length(salt) >= 32)
 );
-INSERT INTO public.identity_settings (id, salt)
+INSERT INTO waves_private.identity_salt (id, salt)
 VALUES (true, replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''));
-
-ALTER TABLE public.identity_settings ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.identity_settings FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.identity_settings TO service_role;
+REVOKE ALL ON TABLE waves_private.identity_salt FROM PUBLIC, anon, authenticated, service_role;
 
 -- 2. Canonical email --------------------------------------------------------------
 -- Not SECURITY DEFINER: pure text.
@@ -82,22 +95,22 @@ BEGIN
 END
 $$;
 
--- 3. Salted hash -------------------------------------------------------------------
+-- 3. Salted hash and the identity -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.waves_identity_hash(p_kind text, p_value text) RETURNS text
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
   SELECT encode(sha256(convert_to(s.salt || '|' || p_kind || ':' || p_value, 'UTF8')), 'hex')
-    FROM public.identity_settings s
+    FROM waves_private.identity_salt s
    WHERE s.id;
 $$;
 
 REVOKE ALL ON FUNCTION public.waves_identity_hash(text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_identity_hash(text, text) TO service_role;
 
--- Which identities a verified account has. `keys` leads with the canonical
--- salted keys and ends with the legacy unsalted ones (phone:<digits>,
--- email:<lowercase>) so rows stamped before this migration still overlap.
+-- Which identities a verified account has. `keys` are the canonical salted
+-- keys (stored); `legacy_keys` the unsalted ones rows written before this
+-- migration carry (phone:<digits>, email:<lowercase>): matched, never stored.
 CREATE OR REPLACE FUNCTION public.waves_referral_identity(p_profile uuid) RETURNS jsonb
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -113,12 +126,12 @@ DECLARE
   v_relay_only boolean := false;
 BEGIN
   IF to_regclass('auth.users') IS NULL THEN
-    RETURN jsonb_build_object('verified', false, 'keys', '[]'::jsonb, 'has_phone', false, 'relay_only', false);
+    RETURN jsonb_build_object('verified', false, 'keys', '[]'::jsonb, 'legacy_keys', '[]'::jsonb, 'has_phone', false, 'relay_only', false);
   END IF;
 
   EXECUTE 'SELECT to_jsonb(u) FROM auth.users u WHERE u.id = $1' INTO v_row USING p_profile;
   IF v_row IS NULL OR COALESCE((v_row ->> 'is_anonymous')::boolean, false) THEN
-    RETURN jsonb_build_object('verified', false, 'keys', '[]'::jsonb, 'has_phone', false, 'relay_only', false);
+    RETURN jsonb_build_object('verified', false, 'keys', '[]'::jsonb, 'legacy_keys', '[]'::jsonb, 'has_phone', false, 'relay_only', false);
   END IF;
 
   IF v_row ->> 'phone_confirmed_at' IS NOT NULL THEN
@@ -141,7 +154,8 @@ BEGIN
 
   RETURN jsonb_build_object(
     'verified', cardinality(v_keys) > 0,
-    'keys', to_jsonb(v_keys || v_legacy),
+    'keys', to_jsonb(v_keys),
+    'legacy_keys', to_jsonb(v_legacy),
     'has_phone', v_has_phone,
     'relay_only', v_relay_only
   );
@@ -151,7 +165,7 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_referral_identity(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_referral_identity(uuid) TO service_role;
 
--- The keys as a text[] (what the callers below store and compare).
+-- The keys to STORE on a row: canonical only.
 CREATE OR REPLACE FUNCTION public.waves_identity_keys(p_profile uuid) RETURNS text[]
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -160,13 +174,26 @@ CREATE OR REPLACE FUNCTION public.waves_identity_keys(p_profile uuid) RETURNS te
     FROM jsonb_array_elements_text(public.waves_referral_identity(p_profile) -> 'keys') k;
 $$;
 
+-- The keys to MATCH a row with: canonical and legacy, so a row stamped before
+-- this migration (an unsalted hash of the raw email) still counts.
+CREATE OR REPLACE FUNCTION public.waves_identity_lookup_keys(p_profile uuid) RETURNS text[]
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  SELECT COALESCE(array_agg(DISTINCT k ORDER BY k), '{}')
+    FROM (
+      SELECT k FROM jsonb_array_elements_text(public.waves_referral_identity(p_profile) -> 'keys') k
+      UNION ALL
+      SELECT k FROM jsonb_array_elements_text(public.waves_referral_identity(p_profile) -> 'legacy_keys') k
+    ) AS all_keys(k);
+$$;
+
 REVOKE ALL ON FUNCTION public.waves_identity_keys(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_identity_keys(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_identity_lookup_keys(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_identity_lookup_keys(uuid) TO service_role;
 
 -- 4. Device keys --------------------------------------------------------------------
--- Every device id this account ever registered (revoked ones too: a sign-out
--- does not change the phone). Hashed with the salt; the raw id stays in
--- device_sessions where it already lives.
 CREATE OR REPLACE FUNCTION public.waves_device_keys(p_profile uuid) RETURNS text[]
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -179,10 +206,22 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_device_keys(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_device_keys(uuid) TO service_role;
 
--- 5. Tombstones and carry-over ---------------------------------------------------------
+-- 5. The per-profile lock -------------------------------------------------------------
+-- Held for the rest of the transaction. Deletion takes it before the snapshot
+-- and keeps it through the DELETE; restoration and every reservation take it
+-- too, so none of them can run between the snapshot and the cascade.
+CREATE OR REPLACE FUNCTION public.waves_profile_lock(p_profile uuid) RETURNS void
+    LANGUAGE sql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  SELECT pg_advisory_xact_lock(hashtextextended('profile:' || p_profile::text, 0));
+$$;
 
--- One row per identity key ever verified or deleted. No FK: it is the memory
--- that outlives the account. Holds hashes only.
+REVOKE ALL ON FUNCTION public.waves_profile_lock(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_profile_lock(uuid) TO service_role;
+
+-- 6. Tombstones and carry-over ---------------------------------------------------------
+
 CREATE TABLE public.identity_tombstones (
     identity_key      text NOT NULL,
     first_seen_at     timestamp with time zone DEFAULT now() NOT NULL,
@@ -199,9 +238,11 @@ ALTER TABLE public.identity_tombstones ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.identity_tombstones FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.identity_tombstones TO service_role;
 
--- The month's meters at the moment of deletion. No FK. `month` is 'YYYY-MM'
--- for a monthly meter and 'YYYY-MM-DD' for an ad reward (its day matters for
--- the daily cap). `ref` is the ad's transaction id, so a restore is idempotent.
+-- The month's meters at the moment of deletion. `month` is 'YYYY-MM' for a
+-- monthly meter and 'YYYY-MM-DD' for an ad reward (its day matters for the
+-- daily cap). `ref` is the ad's ORIGINAL transaction id (a restored reward's
+-- 'carry:' prefix stripped), unique: one carry-over row per reward, ever,
+-- however many times the account is deleted and restored.
 CREATE TABLE public.usage_carryover (
     id            uuid DEFAULT gen_random_uuid() NOT NULL,
     auth_user_id  uuid NOT NULL,
@@ -213,14 +254,29 @@ CREATE TABLE public.usage_carryover (
     created_at    timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT usage_carryover_pkey PRIMARY KEY (id),
     CONSTRAINT usage_carryover_month_shape CHECK (month ~ '^[0-9]{4}-[0-9]{2}(-[0-9]{2})?$'),
-    CONSTRAINT usage_carryover_amount_nonneg CHECK (amount >= 0)
+    CONSTRAINT usage_carryover_amount_nonneg CHECK (amount >= 0),
+    CONSTRAINT usage_carryover_ref_origin CHECK (ref IS NULL OR ref NOT LIKE 'carry:%')
 );
 CREATE INDEX usage_carryover_auth_user_idx ON public.usage_carryover USING btree (auth_user_id, month);
 CREATE INDEX usage_carryover_identity_idx ON public.usage_carryover USING gin (identity_keys);
+CREATE UNIQUE INDEX usage_carryover_ref_key ON public.usage_carryover USING btree (ref) WHERE ref IS NOT NULL;
 
 ALTER TABLE public.usage_carryover ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.usage_carryover FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.usage_carryover TO service_role;
+
+-- Which profiles have had their restoration run. No row: the next reservation
+-- must restore first (and refuses if it cannot). Cascades with the profile, so
+-- a re-created row starts unrestored.
+CREATE TABLE public.usage_restore_marks (
+    profile_id  uuid NOT NULL REFERENCES public.profiles(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    restored_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT usage_restore_marks_pkey PRIMARY KEY (profile_id)
+);
+
+ALTER TABLE public.usage_restore_marks ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.usage_restore_marks FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.usage_restore_marks TO service_role;
 
 -- Record that these keys were seen (verified) or deleted.
 CREATE OR REPLACE FUNCTION public.waves_identity_touch(p_profile uuid, p_deleted boolean DEFAULT false) RETURNS integer
@@ -248,7 +304,8 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_identity_touch(uuid, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_identity_touch(uuid, boolean) TO service_role;
 
--- Copy this month's meters out before the profile row goes. Also stamps every
+-- Copy this month's meters out before the profile row goes. Under the profile
+-- lock, which the caller (deletion) keeps through the DELETE. Also stamps every
 -- identity the account holds right now into its trial and referral rows (a
 -- phone confirmed after the trial was granted used to be forgotten).
 CREATE OR REPLACE FUNCTION public.waves_usage_snapshot(p_profile uuid) RETURNS integer
@@ -257,11 +314,13 @@ CREATE OR REPLACE FUNCTION public.waves_usage_snapshot(p_profile uuid) RETURNS i
     AS $$
 DECLARE
   v_month text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
-  v_keys  text[] := public.waves_identity_keys(p_profile);
+  v_keys  text[];
   v_rows  integer := 0;
   v_n     integer;
 BEGIN
   IF p_profile IS NULL THEN RETURN 0; END IF;
+  PERFORM public.waves_profile_lock(p_profile);
+  v_keys := public.waves_identity_keys(p_profile);
 
   INSERT INTO public.usage_carryover (auth_user_id, identity_keys, month, feature, amount)
   SELECT p_profile, v_keys, u.month, f.feature, f.amount
@@ -281,12 +340,18 @@ BEGIN
    WHERE a.profile_id = p_profile AND a.month = v_month AND a.count > 0;
   GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
 
-  INSERT INTO public.usage_carryover (auth_user_id, identity_keys, month, feature, amount, ref)
+  -- One row per ORIGINAL reward: a restored reward ('carry:<origin>') names
+  -- its origin, and an origin already carried is only re-pointed at this
+  -- account and its current keys.
+  INSERT INTO public.usage_carryover AS c (auth_user_id, identity_keys, month, feature, amount, ref)
   SELECT p_profile, v_keys, to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD'),
-         'ad:' || r.kind, r.amount, r.transaction_id
+         'ad:' || r.kind, r.amount, regexp_replace(r.transaction_id, '^(carry:)+', '')
     FROM public.ad_rewards r
    WHERE r.profile_id = p_profile
-     AND r.created_at >= (date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC');
+     AND r.created_at >= (date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')
+  ON CONFLICT (ref) WHERE ref IS NOT NULL DO UPDATE
+    SET auth_user_id  = EXCLUDED.auth_user_id,
+        identity_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}') FROM unnest(c.identity_keys || EXCLUDED.identity_keys) k);
   GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
 
   -- Identities confirmed since the trial / referral was stamped travel with it.
@@ -312,23 +377,26 @@ GRANT EXECUTE ON FUNCTION public.waves_usage_snapshot(uuid) TO service_role;
 
 -- Bring the month's meters back for a profile that is the same auth user, or
 -- the same verified identity, as a deleted one. Takes the larger count, so it
--- is safe to run more than once and never lowers anything.
+-- is safe to run more than once and never lowers anything. Raises on any
+-- failure: the caller (the guard) then refuses the reservation.
 CREATE OR REPLACE FUNCTION public.waves_usage_restore(p_profile uuid) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
   v_month text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
-  v_keys  text[] := public.waves_identity_keys(p_profile);
+  v_keys  text[];
   r       record;
   v_rows  integer := 0;
 BEGIN
   IF p_profile IS NULL OR NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_profile) THEN
     RETURN 0;
   END IF;
+  PERFORM public.waves_profile_lock(p_profile);
+  v_keys := public.waves_identity_lookup_keys(p_profile);
 
   FOR r IN
-    SELECT c.month, c.feature, max(c.amount) AS amount, min(c.ref) AS ref
+    SELECT c.month, c.feature, max(c.amount) AS amount, c.ref
       FROM public.usage_carryover c
      WHERE c.month LIKE v_month || '%'
        AND (c.auth_user_id = p_profile
@@ -357,7 +425,8 @@ BEGIN
         SET count = GREATEST(a.count, EXCLUDED.count), updated_at = now();
       v_rows := v_rows + 1;
     ELSIF r.feature LIKE 'ad:%' AND r.ref IS NOT NULL THEN
-      -- Keep the day (the daily cap) but never a time in the future.
+      -- Keep the day (the daily cap) but never a time in the future. The
+      -- transaction id names the origin, so a second restore is a no-op.
       INSERT INTO public.ad_rewards (profile_id, kind, amount, transaction_id, ad_unit, created_at)
       VALUES (p_profile, substr(r.feature, 4), r.amount::int, 'carry:' || r.ref, 'carryover',
               LEAST(now(), (r.month || 'T12:00:00Z')::timestamptz))
@@ -373,17 +442,44 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_usage_restore(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_usage_restore(uuid) TO service_role;
 
--- A profile re-created for the same auth user (the RPC was called directly and
--- the row inserted again) gets its month back at once.
+-- The guard every reservation runs first: the profile lock, the profile must
+-- exist, and the restoration must have run once for this profile row. If
+-- restoring fails the exception propagates and the reservation is refused —
+-- nobody spends on meters that may be missing what they already used.
+CREATE OR REPLACE FUNCTION public.waves_usage_guard(p_profile uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF p_profile IS NULL THEN
+    RAISE EXCEPTION 'waves_usage_guard needs a profile';
+  END IF;
+  PERFORM public.waves_profile_lock(p_profile);
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_profile) THEN
+    RAISE EXCEPTION 'NO_SUCH_PROFILE' USING ERRCODE = 'foreign_key_violation';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.usage_restore_marks WHERE profile_id = p_profile) THEN
+    PERFORM public.waves_usage_restore(p_profile);
+    INSERT INTO public.usage_restore_marks (profile_id) VALUES (p_profile)
+    ON CONFLICT (profile_id) DO NOTHING;
+  END IF;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_usage_guard(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_usage_guard(uuid) TO service_role;
+
+-- A profile inserted (or re-inserted) is restored at once, by auth user id or
+-- by identity. A failure here is logged, not raised — it must not block a
+-- sign-up — and leaves no mark, so the first reservation retries and refuses
+-- if it still cannot (waves_usage_guard).
 CREATE OR REPLACE FUNCTION public.waves_profile_after_insert_restore() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 BEGIN
   BEGIN
-    IF EXISTS (SELECT 1 FROM public.usage_carryover c WHERE c.auth_user_id = NEW.id) THEN
-      PERFORM public.waves_usage_restore(NEW.id);
-    END IF;
+    PERFORM public.waves_usage_guard(NEW.id);
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'usage restore failed for %: %', NEW.id, SQLERRM;
   END;
@@ -400,15 +496,20 @@ CREATE TRIGGER profiles_usage_restore AFTER INSERT ON public.profiles
 
 -- At verification (the moment the pro-trial trigger already fires): remember
 -- the identity, union any newly confirmed key into this account's trial and
--- referral rows, and restore a deleted account's month by identity.
+-- referral rows, and restore a deleted account's month by identity. The mark
+-- is dropped first so that, should the restore fail, the next reservation
+-- refuses until it succeeds.
 CREATE OR REPLACE FUNCTION public.waves_identity_after_verify(p_profile uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
-  v_keys text[] := public.waves_identity_keys(p_profile);
-  v_devs text[] := public.waves_device_keys(p_profile);
+  v_keys text[];
+  v_devs text[];
 BEGIN
+  PERFORM public.waves_profile_lock(p_profile);
+  v_keys := public.waves_identity_keys(p_profile);
+  v_devs := public.waves_device_keys(p_profile);
   IF cardinality(v_keys) = 0 THEN RETURN; END IF;
   PERFORM public.waves_identity_touch(p_profile, false);
   UPDATE public.pro_trials t
@@ -421,14 +522,17 @@ BEGIN
   UPDATE public.referrals r
      SET referrer_keys = (SELECT array_agg(DISTINCT k) FROM unnest(r.referrer_keys || v_keys) k)
    WHERE r.referrer_id = p_profile;
+  DELETE FROM public.usage_restore_marks WHERE profile_id = p_profile;
   PERFORM public.waves_usage_restore(p_profile);
+  INSERT INTO public.usage_restore_marks (profile_id) VALUES (p_profile)
+  ON CONFLICT (profile_id) DO UPDATE SET restored_at = now();
 END
 $$;
 
 REVOKE ALL ON FUNCTION public.waves_identity_after_verify(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_identity_after_verify(uuid) TO service_role;
 
--- 6. The trial: canonical identity, device signal ------------------------------------
+-- 7. The trial: canonical identity, device signal ------------------------------------
 
 ALTER TABLE public.pro_trials ADD COLUMN IF NOT EXISTS device_keys text[] DEFAULT '{}'::text[] NOT NULL;
 ALTER TABLE public.pro_trials ADD COLUMN IF NOT EXISTS device_reused boolean DEFAULT false NOT NULL;
@@ -437,11 +541,11 @@ ALTER TABLE public.pro_trials DROP CONSTRAINT IF EXISTS pro_trials_outcome_known
 ALTER TABLE public.pro_trials ADD CONSTRAINT pro_trials_outcome_known
   CHECK (outcome = ANY (ARRAY['granted'::text, 'skipped_has_plan'::text, 'refused_device'::text]));
 
--- waves_pro_trial_grant from 20261015220000_pro_trial, with: keys from the
--- canonical identity (legacy keys included, so older rows still match); the
--- device signal; and `refused_device` for an Apple relay-only email on a device
--- that already had a trial (a relay address is minted per sign-in and would
--- otherwise be a trial a day).
+-- waves_pro_trial_grant from 20261015220000_pro_trial, with: canonical keys
+-- stored, legacy keys matched; locks on every key (canonical and legacy) in a
+-- fixed order; the device signal; and `refused_device` for an Apple relay-only
+-- email on a device that already had a trial (a relay address is minted per
+-- sign-in and would otherwise be a trial a day).
 CREATE OR REPLACE FUNCTION public.waves_pro_trial_grant(p_profile uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -450,6 +554,7 @@ DECLARE
   v_set    public.pro_trial_settings%ROWTYPE;
   v_ident  jsonb;
   v_keys   text[];
+  v_lookup text[];
   v_devs   text[];
   v_joined timestamptz;
   v_end    timestamptz;
@@ -471,8 +576,8 @@ BEGIN
   IF NOT COALESCE((v_ident ->> 'verified')::boolean, false) THEN
     RETURN jsonb_build_object('granted', false, 'reason', 'NOT_VERIFIED');
   END IF;
-  SELECT COALESCE(array_agg(k ORDER BY k), '{}') INTO v_keys
-    FROM jsonb_array_elements_text(v_ident -> 'keys') k;
+  v_keys := public.waves_identity_keys(p_profile);
+  v_lookup := public.waves_identity_lookup_keys(p_profile);
   v_devs := public.waves_device_keys(p_profile);
 
   v_joined := public.waves_referral_joined_at(p_profile);
@@ -480,15 +585,17 @@ BEGIN
     RETURN jsonb_build_object('granted', false, 'reason', 'EXISTING_ACCOUNT');
   END IF;
 
+  -- Serialise per person and per identity (sorted) so two sign-ups of one
+  -- phone or email cannot both pass the checks below.
   PERFORM pg_advisory_xact_lock(hashtextextended('pro_trial:' || p_profile::text, 0));
-  FOREACH v_key IN ARRAY v_keys LOOP
+  FOREACH v_key IN ARRAY v_lookup LOOP
     PERFORM pg_advisory_xact_lock(hashtextextended('pro_trial_key:' || v_key, 0));
   END LOOP;
 
   IF EXISTS (SELECT 1 FROM public.pro_trials WHERE profile_id = p_profile) THEN
     RETURN jsonb_build_object('granted', false, 'reason', 'ALREADY_GRANTED');
   END IF;
-  IF EXISTS (SELECT 1 FROM public.pro_trials WHERE identity_keys && v_keys) THEN
+  IF EXISTS (SELECT 1 FROM public.pro_trials WHERE identity_keys && v_lookup) THEN
     RETURN jsonb_build_object('granted', false, 'reason', 'IDENTITY_REUSED');
   END IF;
 
@@ -565,8 +672,7 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_pro_trial_after_auth_user() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_pro_trial_after_auth_user() TO service_role;
 
--- A device registered after the trial was granted is stamped onto it, so the
--- signal is there even when registration lands after verification.
+-- A device registered after the trial was granted is stamped onto it.
 CREATE OR REPLACE FUNCTION public.waves_device_after_register_stamp() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -593,7 +699,7 @@ DROP TRIGGER IF EXISTS device_sessions_trial_stamp ON public.device_sessions;
 CREATE TRIGGER device_sessions_trial_stamp AFTER INSERT ON public.device_sessions
   FOR EACH ROW EXECUTE FUNCTION public.waves_device_after_register_stamp();
 
--- 7. Referrals outlive their accounts --------------------------------------------------
+-- 8. Referrals outlive their accounts --------------------------------------------------
 
 ALTER TABLE public.referrals ALTER COLUMN referrer_id DROP NOT NULL;
 ALTER TABLE public.referrals ALTER COLUMN referee_id DROP NOT NULL;
@@ -624,7 +730,7 @@ CREATE OR REPLACE FUNCTION public.waves_referral_days_earned(p_profile uuid) RET
     SET search_path TO 'public', 'pg_temp'
     AS $$
 DECLARE
-  v_keys text[] := public.waves_identity_keys(p_profile);
+  v_keys text[] := public.waves_identity_lookup_keys(p_profile);
   v_days integer;
 BEGIN
   SELECT (
@@ -643,8 +749,10 @@ REVOKE ALL ON FUNCTION public.waves_referral_days_earned(uuid) FROM PUBLIC, anon
 GRANT EXECUTE ON FUNCTION public.waves_referral_days_earned(uuid) TO service_role;
 
 -- waves_referral_try_qualify from 20261015170000_referral_new_user_window, with
--- the canonical keys, the referrer's keys stamped on the row, and the device
--- rule: the friend's phone is the referrer's phone -> SAME_DEVICE.
+-- canonical keys stored and legacy keys matched, the referrer's keys stamped on
+-- the row, the device rule (SAME_DEVICE), and every participant profile and
+-- identity key locked, in a fixed order, BEFORE the reuse and cap checks: two
+-- alias accounts qualifying together cannot both pass.
 CREATE OR REPLACE FUNCTION public.waves_referral_try_qualify(p_referee uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -653,7 +761,9 @@ DECLARE
   r          public.referrals%ROWTYPE;
   v_ident    jsonb;
   v_keys     text[];
+  v_lookup   text[];
   v_ref_keys text[];
+  v_ref_lookup text[];
   v_devs     text[];
   v_ref_devs text[];
   v_created  timestamptz;
@@ -661,6 +771,7 @@ DECLARE
   v_earned_b int;
   v_days_a   int;
   v_days_b   int;
+  v_key      text;
 BEGIN
   IF p_referee IS NULL THEN RETURN jsonb_build_object('rewarded', false, 'reason', 'NONE'); END IF;
 
@@ -676,9 +787,11 @@ BEGIN
   IF NOT COALESCE((v_ident ->> 'verified')::boolean, false) THEN
     RETURN jsonb_build_object('rewarded', false, 'reason', 'NOT_VERIFIED');
   END IF;
-  SELECT COALESCE(array_agg(k), '{}') INTO v_keys FROM jsonb_array_elements_text(v_ident -> 'keys') k;
+  v_keys := public.waves_identity_keys(p_referee);
+  v_lookup := public.waves_identity_lookup_keys(p_referee);
   v_devs := public.waves_device_keys(p_referee);
   v_ref_keys := public.waves_identity_keys(r.referrer_id);
+  v_ref_lookup := public.waves_identity_lookup_keys(r.referrer_id);
   v_ref_devs := public.waves_device_keys(r.referrer_id);
 
   -- 2. A new account: real no more than 7 days before the claim.
@@ -702,9 +815,20 @@ BEGIN
     RETURN jsonb_build_object('rewarded', false, 'reason', 'NOT_YET');
   END IF;
 
-  -- 4. One reward per identity: not the referrer's, not the referrer's phone,
-  --    not an earlier friend's (rows outlive deleted accounts now).
-  IF v_keys && v_ref_keys THEN
+  -- 4. Locks: both profiles (sorted), then every identity key of both sides
+  --    (sorted). The same order everywhere, so no two qualifications deadlock
+  --    and none can read a stale "not rewarded yet" / "earned so far".
+  PERFORM public.waves_profile_lock(LEAST(r.referrer_id, p_referee));
+  PERFORM public.waves_profile_lock(GREATEST(r.referrer_id, p_referee));
+  FOR v_key IN
+    SELECT DISTINCT k FROM unnest(v_lookup || v_ref_lookup) k ORDER BY k
+  LOOP
+    PERFORM pg_advisory_xact_lock(hashtextextended('referral_key:' || v_key, 0));
+  END LOOP;
+
+  -- 5. One reward per identity: not the referrer's, not the referrer's phone,
+  --    not an earlier friend's (rows outlive deleted accounts).
+  IF v_lookup && v_ref_lookup THEN
     UPDATE public.referrals SET status = 'rejected', reject_reason = 'SAME_IDENTITY',
            identity_keys = v_keys, referrer_keys = v_ref_keys, device_keys = v_devs, referrer_device_keys = v_ref_devs
      WHERE id = r.id;
@@ -718,7 +842,7 @@ BEGIN
   END IF;
   IF EXISTS (
     SELECT 1 FROM public.referrals o
-     WHERE o.id <> r.id AND o.status = 'rewarded' AND o.identity_keys && v_keys
+     WHERE o.id <> r.id AND o.status = 'rewarded' AND o.identity_keys && v_lookup
   ) THEN
     UPDATE public.referrals SET status = 'rejected', reject_reason = 'IDENTITY_REUSED',
            identity_keys = v_keys, referrer_keys = v_ref_keys, device_keys = v_devs, referrer_device_keys = v_ref_devs
@@ -726,10 +850,7 @@ BEGIN
     RETURN jsonb_build_object('rewarded', false, 'reason', 'IDENTITY_REUSED');
   END IF;
 
-  -- 5. Reward both, serialised per account.
-  PERFORM pg_advisory_xact_lock(hashtextextended('referral:' || LEAST(r.referrer_id, r.referee_id)::text, 0));
-  PERFORM pg_advisory_xact_lock(hashtextextended('referral:' || GREATEST(r.referrer_id, r.referee_id)::text, 0));
-
+  -- 6. Reward both, under the locks above.
   v_earned_a := public.waves_referral_days_earned(r.referrer_id);
   v_earned_b := public.waves_referral_days_earned(p_referee);
   v_days_a := GREATEST(0, LEAST(7, 30 - v_earned_a));
@@ -773,10 +894,7 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_admin_referrals(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_admin_referrals(integer) TO service_role;
 
--- 8. profiles.created_at is the server's ---------------------------------------------
--- A client role (anon / authenticated, by JWT) can neither insert a profile
--- with an older date nor move it afterwards. Service, cron and direct database
--- sessions are untouched (tests and backfills set it on purpose).
+-- 9. profiles.created_at is the server's ---------------------------------------------
 CREATE OR REPLACE FUNCTION public.waves_guard_profile_timestamps() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
@@ -859,8 +977,9 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_ads_eligibility(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_ads_eligibility(uuid) TO service_role;
 
--- 9. Deletion keeps the month --------------------------------------------------------
--- waves_delete_my_account from the baseline, with the snapshot before the row goes.
+-- 10. Deletion keeps the month -------------------------------------------------------
+-- waves_delete_my_account from the baseline, with the profile lock taken first
+-- (held through the DELETE) and the snapshot before the row goes.
 CREATE OR REPLACE FUNCTION public.waves_delete_my_account(p_feedback text DEFAULT NULL::text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -872,6 +991,9 @@ BEGIN
   IF v_profile IS NULL THEN
     RAISE EXCEPTION 'NOT_SIGNED_IN';
   END IF;
+
+  -- No reservation may land between the snapshot and the cascade.
+  PERFORM public.waves_profile_lock(v_profile);
 
   -- While there is still an author to attribute it to. It outlives the row.
   IF length(trim(COALESCE(p_feedback, ''))) > 0 THEN
@@ -903,3 +1025,53 @@ $$;
 
 REVOKE ALL ON FUNCTION public.waves_delete_my_account(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_delete_my_account(text) TO authenticated, service_role;
+
+-- 11. Backfill ---------------------------------------------------------------------------
+-- Every trial and referral row whose accounts still exist gets its canonical
+-- keys and device keys now, so an alias of an existing trial is refused from
+-- the first day. Where the identity can be computed the row keeps only
+-- canonical keys (the legacy hash is enumerable); where the auth identity is
+-- already gone the legacy keys stay, and the lookups still match them.
+-- Callable again later (idempotent); one profile or all.
+CREATE OR REPLACE FUNCTION public.waves_identity_backfill(p_profile uuid DEFAULT NULL) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_rows integer := 0;
+  v_n    integer;
+BEGIN
+  IF to_regclass('auth.users') IS NULL THEN RETURN 0; END IF;
+
+  UPDATE public.pro_trials t
+     SET identity_keys = COALESCE(NULLIF(public.waves_identity_keys(t.profile_id), '{}'), t.identity_keys),
+         device_keys   = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                            FROM unnest(t.device_keys || public.waves_device_keys(t.profile_id)) k)
+   WHERE (p_profile IS NULL OR t.profile_id = p_profile)
+     AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = t.profile_id);
+  GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
+
+  UPDATE public.referrals r
+     SET identity_keys = COALESCE(NULLIF(public.waves_identity_keys(r.referee_id), '{}'), r.identity_keys),
+         device_keys   = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                            FROM unnest(r.device_keys || public.waves_device_keys(r.referee_id)) k)
+   WHERE r.referee_id IS NOT NULL
+     AND (p_profile IS NULL OR r.referee_id = p_profile);
+  GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
+
+  UPDATE public.referrals r
+     SET referrer_keys = COALESCE(NULLIF(public.waves_identity_keys(r.referrer_id), '{}'), r.referrer_keys),
+         referrer_device_keys = (SELECT COALESCE(array_agg(DISTINCT k), '{}')
+                                   FROM unnest(r.referrer_device_keys || public.waves_device_keys(r.referrer_id)) k)
+   WHERE r.referrer_id IS NOT NULL
+     AND (p_profile IS NULL OR r.referrer_id = p_profile);
+  GET DIAGNOSTICS v_n = ROW_COUNT; v_rows := v_rows + v_n;
+
+  RETURN v_rows;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_identity_backfill(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_identity_backfill(uuid) TO service_role;
+
+SELECT public.waves_identity_backfill(NULL);

@@ -32,8 +32,13 @@
 --   4. statement_import_sessions bound the requests one import id may make.
 --   5. ad_ssv_transactions: every verified callback's transaction id, forever,
 --      with its outcome. waves_ads_grant writes it first.
---   6. Grace counts as paid in the voice meters; stream mints also stop at a
---      seconds budget; the TRANSFER honours store_event_at.
+--   6. Grace counts as paid in the voice meters; a stream mint RESERVES its
+--      seconds (20 s) atomically against a seconds budget and the relay
+--      reconciles the actual seconds on close; the TRANSFER honours
+--      store_event_at.
+--   7. Every reservation starts with waves_usage_guard (20261022090000): the
+--      per-profile lock shared with deletion and restoration, the profile must
+--      exist, and a deleted account's month must have been restored first.
 
 -- 1. Receipt scans -----------------------------------------------------------------
 
@@ -224,6 +229,7 @@ DECLARE
   v_month text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
   v_count integer;
 BEGIN
+  PERFORM public.waves_usage_guard(p_profile);
   INSERT INTO public.ai_usage AS u (profile_id, month, feature, count, updated_at)
   SELECT p_profile, v_month, p_feature, 1, now()
    WHERE p_limit >= 1
@@ -267,6 +273,7 @@ DECLARE
   v_until timestamptz := public.waves_voice_trial_until(p_profile);
   v_ttier text := CASE WHEN public.waves_pro_trial_active(p_profile) IS NOT NULL THEN 'pro' ELSE 'free' END;
 BEGIN
+  PERFORM public.waves_usage_guard(p_profile);
   IF v_until IS NOT NULL THEN
     UPDATE public.pro_trials
        SET voice_used = voice_used + 1
@@ -348,9 +355,11 @@ REVOKE ALL ON FUNCTION public.waves_voice_agent_refund(uuid, text, boolean) FROM
 GRANT EXECUTE ON FUNCTION public.waves_voice_agent_refund(uuid, text, boolean) TO service_role;
 
 -- waves_voice_stream_mint from 20261016120000_two_tiers_free_and_pro: grace is
--- paid, and a second ceiling on the measured seconds (waves_voice_stream_seconds)
--- so the minutes Deepgram bills are bounded by the server, not by the count of
--- streams alone. Default: 20 s per mint in the budget.
+-- paid, and a mint RESERVES p_reserve_seconds (the relay's 20 s cap) against a
+-- seconds budget in the same atomic UPDATE as the mint count, so the minutes
+-- Deepgram bills are bounded by the server whatever the stream count. The
+-- relay settles the actual seconds on close (waves_voice_stream_seconds,
+-- p_reserved_seconds) and the difference is given back.
 DROP FUNCTION IF EXISTS public.waves_voice_stream_mint(uuid, integer, integer, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.waves_voice_stream_mint(
@@ -359,7 +368,8 @@ CREATE OR REPLACE FUNCTION public.waves_voice_stream_mint(
   p_pro_budget integer DEFAULT 300,
   p_plus_budget integer DEFAULT 300,
   p_trial_budget integer DEFAULT 60,
-  p_seconds_budget integer DEFAULT NULL
+  p_seconds_budget integer DEFAULT NULL,
+  p_reserve_seconds integer DEFAULT 20
 ) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -370,11 +380,15 @@ DECLARE
   v_budget  integer;
   v_mints   integer;
   v_seconds numeric;
-  v_trial   boolean := public.waves_voice_trial_until(p_profile) IS NOT NULL;
+  v_reserve numeric := LEAST(GREATEST(COALESCE(p_reserve_seconds, 20), 0), 30);
+  v_cap     numeric;
+  v_trial   boolean;
 BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_voice_stream_mint needs a profile';
   END IF;
+  PERFORM public.waves_usage_guard(p_profile);
+  v_trial := public.waves_voice_trial_until(p_profile) IS NOT NULL;
 
   IF v_trial THEN
     v_tier := CASE WHEN public.waves_pro_trial_active(p_profile) IS NOT NULL THEN 'pro' ELSE 'free' END;
@@ -395,41 +409,76 @@ BEGIN
     END IF;
     v_budget := p_pro_budget;
   END IF;
+  v_cap := COALESCE(p_seconds_budget, v_budget * 20);
 
-  -- Seconds already streamed this month against the seconds budget.
-  SELECT stream_seconds INTO v_seconds
-    FROM public.voice_agent_usage WHERE profile_id = p_profile AND month = v_month;
-  IF COALESCE(v_seconds, 0) >= COALESCE(p_seconds_budget, v_budget * 20) THEN
-    SELECT stream_mints INTO v_mints
-      FROM public.voice_agent_usage WHERE profile_id = p_profile AND month = v_month;
+  -- One atomic step: the mint and its seconds, or neither.
+  INSERT INTO public.voice_agent_usage AS u (profile_id, month, count, stream_mints, stream_seconds, updated_at)
+  SELECT p_profile, v_month, 0, 1, v_reserve, now()
+   WHERE v_budget >= 1 AND v_reserve <= v_cap
+  ON CONFLICT (profile_id, month) DO UPDATE
+    SET stream_mints = u.stream_mints + 1,
+        stream_seconds = u.stream_seconds + v_reserve,
+        updated_at = now()
+    WHERE u.stream_mints < v_budget AND u.stream_seconds + v_reserve <= v_cap
+  RETURNING u.stream_mints, u.stream_seconds INTO v_mints, v_seconds;
+
+  IF v_mints IS NOT NULL THEN
     RETURN jsonb_build_object(
-      'mints', COALESCE(v_mints, 0), 'budget', v_budget, 'tier', v_tier, 'trial', v_trial,
-      'allowed', false, 'reason', 'seconds_budget', 'seconds', COALESCE(v_seconds, 0)
+      'mints', v_mints, 'budget', v_budget, 'tier', v_tier, 'trial', v_trial, 'allowed', true,
+      'reserved_seconds', v_reserve, 'seconds', v_seconds
     );
   END IF;
 
-  INSERT INTO public.voice_agent_usage AS u (profile_id, month, count, stream_mints, updated_at)
-  SELECT p_profile, v_month, 0, 1, now()
-   WHERE v_budget >= 1
-  ON CONFLICT (profile_id, month) DO UPDATE
-    SET stream_mints = u.stream_mints + 1, updated_at = now()
-    WHERE u.stream_mints < v_budget
-  RETURNING u.stream_mints INTO v_mints;
-
-  IF v_mints IS NOT NULL THEN
-    RETURN jsonb_build_object('mints', v_mints, 'budget', v_budget, 'tier', v_tier, 'trial', v_trial, 'allowed', true);
-  END IF;
-
-  SELECT stream_mints INTO v_mints
+  SELECT stream_mints, stream_seconds INTO v_mints, v_seconds
     FROM public.voice_agent_usage WHERE profile_id = p_profile AND month = v_month;
   RETURN jsonb_build_object(
-    'mints', COALESCE(v_mints, 0), 'budget', v_budget, 'tier', v_tier, 'trial', v_trial, 'allowed', false
+    'mints', COALESCE(v_mints, 0), 'budget', v_budget, 'tier', v_tier, 'trial', v_trial, 'allowed', false,
+    'reason', CASE WHEN COALESCE(v_mints, 0) >= v_budget THEN 'mint_budget' ELSE 'seconds_budget' END,
+    'seconds', COALESCE(v_seconds, 0)
   );
 END
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) TO service_role;
+
+-- waves_voice_stream_seconds from 20261008090000: settles a stream. The seconds
+-- the mint reserved are taken back and the measured seconds added, under the
+-- profile lock. A stream that carried nothing settles with 0 and frees its
+-- reservation.
+DROP FUNCTION IF EXISTS public.waves_voice_stream_seconds(uuid, numeric);
+
+CREATE OR REPLACE FUNCTION public.waves_voice_stream_seconds(
+  p_profile uuid,
+  p_seconds numeric,
+  p_reserved_seconds numeric DEFAULT 0
+) RETURNS numeric
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_month    text := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM');
+  v_seconds  numeric := round(least(greatest(COALESCE(p_seconds, 0), 0), 30), 2);
+  v_reserved numeric := round(least(greatest(COALESCE(p_reserved_seconds, 0), 0), 30), 2);
+  v_total    numeric;
+BEGIN
+  IF p_profile IS NULL THEN
+    RAISE EXCEPTION 'waves_voice_stream_seconds needs a profile';
+  END IF;
+  PERFORM public.waves_profile_lock(p_profile);
+
+  INSERT INTO public.voice_agent_usage AS u (profile_id, month, count, stream_seconds, updated_at)
+  VALUES (p_profile, v_month, 0, v_seconds, now())
+  ON CONFLICT (profile_id, month) DO UPDATE
+    SET stream_seconds = GREATEST(0, u.stream_seconds - v_reserved + v_seconds), updated_at = now()
+  RETURNING u.stream_seconds INTO v_total;
+
+  RETURN v_total;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric, numeric) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_stream_seconds(uuid, numeric, numeric) TO service_role;
 
 -- 3. Follow-ups need a slot -----------------------------------------------------------
 
@@ -465,6 +514,7 @@ BEGIN
   IF p_profile IS NULL THEN
     RAISE EXCEPTION 'waves_voice_agent_followup_open needs a profile';
   END IF;
+  PERFORM public.waves_usage_guard(p_profile);
   DELETE FROM public.voice_agent_followup_slots d
    WHERE d.profile_id = p_profile AND d.expires_at < now() - interval '1 day';
   INSERT INTO public.voice_agent_followup_slots (profile_id, turns_left, expires_at)
@@ -501,6 +551,7 @@ BEGIN
   IF p_profile IS NULL OR p_expense_id IS NULL OR char_length(p_expense_id) NOT BETWEEN 1 AND 64 THEN
     RAISE EXCEPTION 'waves_voice_agent_followup needs a profile and an expense id';
   END IF;
+  PERFORM public.waves_usage_guard(p_profile);
 
   IF public.waves_pro_trial_active(p_profile) IS NOT NULL THEN
     v_tier := 'pro';
@@ -632,6 +683,7 @@ BEGIN
   IF p_profile IS NULL OR p_import_id IS NULL THEN
     RAISE EXCEPTION 'waves_statement_import_chunk needs a profile and an import id';
   END IF;
+  PERFORM public.waves_usage_guard(p_profile);
   DELETE FROM public.statement_import_sessions d
    WHERE d.profile_id = p_profile AND d.updated_at < now() - interval '2 days';
 
@@ -719,6 +771,7 @@ BEGIN
     UPDATE public.ad_ssv_transactions SET outcome = 'ineligible:unknown_profile' WHERE transaction_id = p_transaction_id;
     RETURN jsonb_build_object('outcome', 'ineligible', 'reason', 'unknown_profile');
   END IF;
+  PERFORM public.waves_usage_guard(p_profile);
 
   v_elig := public.waves_ads_eligibility(p_profile);
   IF NOT (v_elig ->> 'eligible')::boolean THEN

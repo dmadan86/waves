@@ -214,6 +214,7 @@ model Profile {
   voiceAgentUsage     VoiceAgentUsage[]
   voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
   voiceAgentFollowupSlots VoiceAgentFollowupSlot[]
+  usageRestoreMark        UsageRestoreMark?
   statementImportSessions StatementImportSession[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
@@ -2432,12 +2433,16 @@ model AdSsvTransaction {
   @@schema("public")
 }
 
-/// The one salt every identity / device hash is keyed with. Service role only.
-model IdentitySettings {
-  id   Boolean @id @default(true)
-  salt String
+/// Which profiles have had their deleted-account restoration run
+/// (`waves_usage_guard`). No row: the next reservation restores first, and
+/// refuses if it cannot. Cascades with the profile.
+model UsageRestoreMark {
+  profileId  String   @id @map("profile_id") @db.Uuid
+  restoredAt DateTime @default(now()) @map("restored_at") @db.Timestamptz(6)
 
-  @@map("identity_settings")
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("usage_restore_marks")
   @@schema("public")
 }
 
@@ -2468,8 +2473,9 @@ model UsageCarryover {
   /// voice:count | voice:stream_mints | voice:followups | voice:stream_seconds | ai:<feature> | ad:<kind>
   feature      String
   amount       Decimal  @db.Decimal(12, 2)
-  /// The ad's transaction id, so a restore is idempotent.
-  ref          String?
+  /// The ad's ORIGINAL transaction id (never a restored 'carry:' id); one
+  /// carry-over row per reward, ever.
+  ref          String?  @unique(map: "usage_carryover_ref_key")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([authUserId, month], map: "usage_carryover_auth_user_idx")
