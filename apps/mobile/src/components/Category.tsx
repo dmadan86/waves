@@ -47,6 +47,15 @@ export function useLabelledCategoryCatalog(): ReturnType<typeof useCategoryCatal
   );
   return useCategoryCatalog(labelForBuiltin);
 }
+/** A hex colour darkened a third, for an icon on a pale disc of the same hue. */
+function shade(hex: string): string {
+  const channel = (at: number) =>
+    Math.round(parseInt(hex.slice(at, at + 2), 16) * 0.62)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
 export function CategoryBadge({
   category,
   meta,
@@ -86,7 +95,7 @@ export function CategoryBadge({
       <Ionicons
         name={icon as keyof typeof Ionicons.glyphMap}
         size={Math.round(size * 0.5)}
-        color={accent ? '#2A2F4F' : tint.ink}
+        color={accent ? shade(accent) : tint.ink}
       />
     </View>
   );

@@ -6,6 +6,7 @@ import {
   donutSlices,
   niceTicks,
   percentChange,
+  monthRange,
   previousMonthKey,
   smoothPath,
 } from '../src/lib/spendingChart';
@@ -75,5 +76,11 @@ describe('previousMonthKey', () => {
   it('steps back across a year boundary', () => {
     expect(previousMonthKey('2026-09-01')).toBe('2026-08-01');
     expect(previousMonthKey('2026-01-01')).toBe('2025-12-01');
+  });
+});
+
+describe('monthRange', () => {
+  it('lists consecutive months ending at the last one', () => {
+    expect(monthRange('2026-02-01', 3)).toEqual(['2025-12-01', '2026-01-01', '2026-02-01']);
   });
 });

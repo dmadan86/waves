@@ -94,7 +94,7 @@ export function Donut({
   caption: string;
   size?: number;
 }) {
-  const stroke = size * 0.23;
+  const stroke = size * 0.27;
   const r = (size - stroke) / 2;
   const c = size / 2;
   return (
@@ -257,7 +257,7 @@ export function MonthBars({
                       color: active ? theme.color.brandPressed : theme.color.textMuted,
                     }}
                   >
-                    {`${symbol}${compactNumber(bar.value)}`}
+                    {bar.value > 0 ? `${symbol}${compactNumber(bar.value)}` : ''}
                   </Text>
                   <View
                     style={{

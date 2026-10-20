@@ -123,3 +123,10 @@ export function previousMonthKey(month: string): string {
   const date = new Date(Date.UTC(year, monthNumber - 2, 1));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }
+
+/** `count` consecutive month keys ending at `last`, oldest first. */
+export function monthRange(last: string, count: number): string[] {
+  const keys = [last];
+  while (keys.length < count) keys.unshift(previousMonthKey(keys[0]!));
+  return keys;
+}

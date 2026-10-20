@@ -57,7 +57,13 @@ import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
-import { compactNumber, donutSlices, percentChange, previousMonthKey } from '@/lib/spendingChart';
+import {
+  compactNumber,
+  donutSlices,
+  monthRange,
+  percentChange,
+  previousMonthKey,
+} from '@/lib/spendingChart';
 import { isViewer } from '@/data/types';
 
 enum Scope {
@@ -75,17 +81,19 @@ const SCENE = require('../../../../assets/images/voice-scene.webp') as number;
 /** The photograph is 849 × 1852. The header shows the far shore down to the terrace wall. */
 const SCENE_W = 849;
 const SCENE_H = 1852;
-/** Where, in the photograph, the strip we want ends: the top of the terrace table. */
-const SCENE_FOOT = 1300;
-/** The photo's height below the status bar; the cards ride up over its foot. */
-const HERO_BODY = 150;
-const CARD_OVERLAP = 56;
+/** The total card's top edge sits a fifth of the way down the screen. */
+const CARD_TOP = 0.2;
+/** How far the photo carries on behind the card's top edge. */
+const CARD_OVERLAP = 36;
+/** Where the sea's horizon lands on screen, in dp from the top. */
+const HORIZON_Y = 52;
+const SCENE_HORIZON = 1140;
 
 export default function InsightsScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
@@ -127,8 +135,13 @@ export default function InsightsScreen() {
     return spendingRows;
   }, [spendingRows, scope, myMemberId]);
 
+  // Only currencies with something in them: a currency whose expenses all net
+  // to nothing is not a reason to offer a switch.
   const currencies = useMemo(
-    () => spendingCurrencies(scoped, groupCurrency),
+    () =>
+      spendingCurrencies(scoped, groupCurrency).filter(
+        (code) => spendingTotal(scoped.filter((row) => row.currency === code)) !== 0n,
+      ),
     [scoped, groupCurrency],
   );
 
@@ -149,10 +162,10 @@ export default function InsightsScreen() {
   const loading = group.isLoading || members.isLoading || expenses.isLoading;
   const empty = !loading && currencies.length === 0;
 
-  const photoH = insets.top + HERO_BODY;
+  const photoH = Math.round(windowHeight * CARD_TOP) + CARD_OVERLAP;
   // `cover` by hand: full width, the strip ending at the terrace wall sitting
   // on the bottom edge of the band.
-  const scale = Math.max(windowWidth / SCENE_W, photoH / SCENE_FOOT);
+  const scale = windowWidth / SCENE_W;
   const ink = theme.color.text;
   const glass = dark ? 'rgba(20,20,34,0.72)' : 'rgba(255,255,255,0.82)';
 
@@ -175,7 +188,7 @@ export default function InsightsScreen() {
               width: SCENE_W * scale,
               height: SCENE_H * scale,
               left: (windowWidth - SCENE_W * scale) / 2,
-              top: photoH - SCENE_FOOT * scale,
+              top: HORIZON_Y - SCENE_HORIZON * scale,
             }}
           />
           {dark ? (
@@ -309,10 +322,6 @@ export default function InsightsScreen() {
               labels={t.categories}
             />
           )}
-
-          <Text variant="micro" tone="muted" align="center">
-            {t.misc.insightsLiveNote}
-          </Text>
         </View>
       </ScrollView>
 
@@ -390,8 +399,7 @@ function SpendingBody({
   const { width: windowWidth } = useWindowDimensions();
   const [windowSize, setWindowSize] = useState<(typeof MONTH_WINDOWS)[number]>(6);
   const [windowOpen, setWindowOpen] = useState(false);
-  const [allLegend, setAllLegend] = useState(false);
-  const [allTop, setAllTop] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const exponent = minorUnitExponent(currency);
   const toMajor = (minor: bigint) => Number(minor) / 10 ** exponent;
@@ -434,22 +442,29 @@ function SpendingBody({
     return donutSlices(parts, Number(total));
   })();
 
-  const window = allMonths.slice(-windowSize);
-  const bars = window.map((entry) => ({
-    key: entry.month,
-    label: monthLabel(entry.month, locale),
-    value: toMajor(entry.value),
-    description: `${monthLabel(entry.month, locale)}: ${money(entry.value)}`,
-  }));
-  const trend = allMonths.slice(-6).map((entry) => toMajor(entry.value));
+  // Every slot of the window is drawn, spending or not: a month with nothing
+  // in it is a gap in the row, not a missing column.
+  const byMonth = new Map(allMonths.map((entry) => [entry.month, entry.value]));
+  const newest = allMonths[allMonths.length - 1]?.month ?? month;
+  const bars = monthRange(newest, windowSize).map((key) => {
+    const value = byMonth.get(key) ?? 0n;
+    return {
+      key,
+      label: monthLabel(key, locale),
+      value: toMajor(value),
+      description: `${monthLabel(key, locale)}: ${money(value)}`,
+    };
+  });
+  // The trend ends on the month on show, six months back from it.
+  const trend = monthRange(month, 6).map((key) => toMajor(byMonth.get(key) ?? 0n));
 
   // The ring takes about 38% of the card's inner width (screen minus the page
   // and card padding), so the legend keeps room for a whole name, amount and %.
   const inner = windowWidth - theme.spacing.lg * 4;
   const donutSize = Math.min(150, Math.max(120, Math.round(inner * 0.38)));
 
-  const legend = allLegend ? categories : categories.slice(0, TOP_CATEGORIES);
-  const topList = allTop ? categories : categories.slice(0, TOP_CATEGORIES);
+  const legend = showAll ? categories : categories.slice(0, TOP_CATEGORIES);
+  const topList = showAll ? categories : categories.slice(0, TOP_CATEGORIES);
   const link = (label: string, onPress: () => void) => (
     <Pressable
       accessibilityRole="button"
@@ -470,7 +485,11 @@ function SpendingBody({
   );
   const heading = (title: string, trailing: React.ReactNode) => (
     <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-      <Text variant="heading" accessibilityRole="header" style={{ fontWeight: '800' }}>
+      <Text
+        variant="heading"
+        accessibilityRole="header"
+        style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}
+      >
         {title}
       </Text>
       {trailing}
@@ -485,7 +504,7 @@ function SpendingBody({
             <View style={{ flex: 1 }}>
               <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
                 <Ionicons name="wallet-outline" size={iconSize.lg} color={theme.color.textMuted} />
-                <Text variant="body" tone="muted">
+                <Text tone="muted" style={{ fontSize: 15, lineHeight: 20 }}>
                   {t.spendTotal}
                 </Text>
               </Row>
@@ -494,8 +513,8 @@ function SpendingBody({
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 style={{
-                  fontSize: 32,
-                  lineHeight: 40,
+                  fontSize: 34,
+                  lineHeight: 42,
                   fontWeight: '800',
                   color: theme.color.text,
                   marginTop: theme.spacing.xs,
@@ -504,8 +523,8 @@ function SpendingBody({
                 {totalParts.lead}
                 <Text
                   style={{
-                    fontSize: 32,
-                    lineHeight: 40,
+                    fontSize: 34,
+                    lineHeight: 42,
                     fontWeight: '800',
                     color: theme.color.textFaint,
                   }}
@@ -583,9 +602,10 @@ function SpendingBody({
       <View style={{ gap: theme.spacing.md }}>
         {heading(
           t.byCategory,
-          categories.length > TOP_CATEGORIES
-            ? link(allLegend ? t.spendShowLess : t.spendSeeAll, () => setAllLegend((v) => !v))
-            : null,
+          link(
+            showAll && categories.length > TOP_CATEGORIES ? t.spendShowLess : t.spendSeeAll,
+            () => setShowAll((v) => !v),
+          ),
         )}
         <Card style={{ borderRadius: theme.radius.xl, padding: theme.spacing.lg }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
@@ -595,7 +615,7 @@ function SpendingBody({
               centre={`${symbol}${compactNumber(toMajor(total))}`}
               caption={t.spendDonutTotal}
             />
-            <View style={{ flex: 1, gap: theme.spacing.md }}>
+            <View style={{ flex: 1, minHeight: donutSize, justifyContent: 'space-evenly' }}>
               {legend.map((entry, index) => (
                 <Row
                   key={entry.key}
@@ -606,7 +626,7 @@ function SpendingBody({
                   <CategoryBadge
                     category={entry.category}
                     meta={entry.meta}
-                    size={22}
+                    size={28}
                     accent={RANK_COLORS[index] ?? REST_COLOR}
                   />
                   <Text
@@ -614,7 +634,7 @@ function SpendingBody({
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.85}
-                    style={{ flex: 1, fontWeight: '600' }}
+                    style={{ flex: 1 }}
                   >
                     {entry.label}
                   </Text>
@@ -715,9 +735,10 @@ function SpendingBody({
       <View style={{ gap: theme.spacing.md }}>
         {heading(
           t.spendTopCategories,
-          categories.length > TOP_CATEGORIES
-            ? link(allTop ? t.spendShowLess : t.spendSeeAll, () => setAllTop((v) => !v))
-            : null,
+          link(
+            showAll && categories.length > TOP_CATEGORIES ? t.spendShowLess : t.spendSeeAll,
+            () => setShowAll((v) => !v),
+          ),
         )}
         <Card style={{ borderRadius: theme.radius.xl, gap: theme.spacing.md }}>
           {topList.map((entry, index) => (
