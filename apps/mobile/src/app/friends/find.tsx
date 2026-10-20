@@ -50,6 +50,7 @@ import { FindSomeoneFooter } from '@/components/FindSomeoneFooter';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
+import { channelFor } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 
 const ART = require('../../../assets/images/find-someone-art.webp') as number;
@@ -74,15 +75,6 @@ function useKeyboardOpen(): boolean {
     };
   }, []);
   return open;
-}
-
-/** What the box holds decides which channel is searched — no second control. */
-function channelFor(query: string): 'email' | 'phone' | null {
-  const value = query.trim();
-  if (value.includes('@')) return value.length > 2 ? 'email' : null;
-  // Six digits is not a valid number anywhere; it is just the floor below which
-  // a search cannot mean anything and should not spend one of the daily few.
-  return value.replace(/[^0-9]/g, '').length >= 6 ? 'phone' : null;
 }
 
 type Outcome =

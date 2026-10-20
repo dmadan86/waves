@@ -5058,6 +5058,51 @@ export interface UiStrings {
     youHaveHistory: string;
     theyHaveHistory: string;
   };
+  /**
+   * "Link to a Waves user": an admin saying which real person a placeholder is
+   * (link_placeholder_member). Merge when they are already here; ask them
+   * when they are not. And the card the person asked sees.
+   */
+  link: {
+    row: string;
+    rowHint: string;
+    waiting: string;
+    waitingHint: string;
+    cancelAsk: string;
+    sheetTitle: string;
+    sheetHint: string;
+    inThisGroup: string;
+    peopleYouKnow: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    notFound: string;
+    searching: string;
+    lookUp: string;
+    mergeConfirmTitle: string;
+    mergeConfirmBody: string;
+    mergeExpenses: PluralForms;
+    mergeAction: string;
+    mergeDone: string;
+    askConfirmTitle: string;
+    askConfirmBody: string;
+    askAction: string;
+    askSent: string;
+    failed: string;
+    guest: string;
+    thatIsYou: string;
+    rateLimited: string;
+    notAllowed: string;
+    cardTitle: string;
+    cardBody: string;
+    cardHint: string;
+    accept: string;
+    notMe: string;
+    accepted: string;
+    declined: string;
+    needsAccount: string;
+    placeTaken: string;
+    empty: string;
+  };
   /** The rest: one or two strings each, from a dozen screens. */
   /** Feedback, the policy screens, and erasure. */
   blocked: {
@@ -9924,6 +9969,48 @@ const en: UiStrings = {
       'You already have expenses in this group as yourself, so the two cannot be combined.',
     theyHaveHistory:
       'They already have expenses in this group as themselves, so the two cannot be combined.',
+  },
+  link: {
+    row: 'Link to a Waves user',
+    rowHint: 'Say which person {name} really is.',
+    waiting: 'Waiting for {who} to accept',
+    waitingHint: 'Nothing changes until they say yes.',
+    cancelAsk: 'Cancel the ask',
+    sheetTitle: 'Who is {name}?',
+    sheetHint: 'Pick the person, or find them by phone number or email.',
+    inThisGroup: 'Already in this group',
+    peopleYouKnow: 'People you know',
+    searchPlaceholder: 'Name, phone number or email',
+    noMatches: 'Nobody by that name. Try their phone number or email.',
+    notFound: 'Nobody on Waves with that number or email, or they do not want to be found.',
+    searching: 'Looking…',
+    lookUp: 'Look up',
+    mergeConfirmTitle: 'Merge {name} into {who}?',
+    mergeConfirmBody:
+      "{name}'s {expenses} and {balance} balance move to {who}. This can't be undone.",
+    mergeExpenses: { one: '{n} expense', other: '{n} expenses' },
+    mergeAction: 'Merge',
+    mergeDone: 'Done. Everything under {name} is {who}’s now.',
+    askConfirmTitle: 'Ask {who}?',
+    askConfirmBody:
+      'They get a message: “{me} says you are {name} in {group}”. Nothing changes until they accept.',
+    askAction: 'Ask them',
+    askSent: 'Asked. You will hear when {who} answers.',
+    failed: 'That could not be done just now. Try again in a moment.',
+    guest: 'They are using Waves as a guest. Ask them to sign up first.',
+    thatIsYou: 'That is you. Use “This is me” instead.',
+    rateLimited: 'You have asked a lot of people today. Try again tomorrow.',
+    notAllowed: 'Only an admin of this group can do this.',
+    cardTitle: 'Is this you?',
+    cardBody: '{who} says you are {name} in {group}.',
+    cardHint: 'Accept, and everything filed under that name becomes yours.',
+    accept: 'Yes, that is me',
+    notMe: 'Not me',
+    accepted: 'Done. You are in {group} now.',
+    declined: 'Told them.',
+    needsAccount: 'Sign up first — a guest cannot take a place in a group.',
+    placeTaken: 'That place belongs to somebody now.',
+    empty: 'Nothing is waiting on you.',
   },
   blocked: {
     row: 'Blocked people',
@@ -14966,6 +15053,49 @@ const ta: UiStrings = {
     theyHaveHistory:
       'இந்தக் குழுவில் அவர் பெயரிலேயே ஏற்கனவே செலவுகள் உள்ளன, எனவே இரண்டையும் இணைக்க முடியாது.',
   },
+  link: {
+    row: 'Waves பயனருடன் இணைக்கவும்',
+    rowHint: '{name} உண்மையில் யார் என்று சொல்லுங்கள்.',
+    waiting: '{who} ஏற்கும் வரை காத்திருக்கிறது',
+    waitingHint: 'அவர் சம்மதிக்கும் வரை எதுவும் மாறாது.',
+    cancelAsk: 'கேட்டதை ரத்து செய்',
+    sheetTitle: '{name} யார்?',
+    sheetHint: 'நபரைத் தேர்வு செய்யுங்கள், அல்லது தொலைபேசி எண் அல்லது மின்னஞ்சல் மூலம் தேடுங்கள்.',
+    inThisGroup: 'ஏற்கனவே இந்தக் குழுவில்',
+    peopleYouKnow: 'உங்களுக்குத் தெரிந்தவர்கள்',
+    searchPlaceholder: 'பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சல்',
+    noMatches: 'அந்தப் பெயரில் யாரும் இல்லை. தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
+    notFound:
+      'அந்த எண் அல்லது மின்னஞ்சலுடன் Waves இல் யாரும் இல்லை, அல்லது அவர் கண்டறியப்பட விரும்பவில்லை.',
+    searching: 'தேடுகிறது…',
+    lookUp: 'தேடு',
+    mergeConfirmTitle: '{name} ஐ {who} உடன் இணைக்கவா?',
+    mergeConfirmBody:
+      '{name} இன் {expenses} மற்றும் {balance} இருப்பு {who} க்கு மாறும். இதைத் திரும்பப் பெற முடியாது.',
+    mergeExpenses: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    mergeAction: 'இணை',
+    mergeDone: 'முடிந்தது. {name} பெயரில் உள்ளவை அனைத்தும் இப்போது {who} உடையவை.',
+    askConfirmTitle: '{who} ஐக் கேட்கவா?',
+    askConfirmBody:
+      'அவருக்கு ஒரு செய்தி போகும்: “{group} இல் நீங்கள்தான் {name} என்கிறார் {me}”. அவர் ஏற்கும் வரை எதுவும் மாறாது.',
+    askAction: 'அவரைக் கேள்',
+    askSent: 'கேட்கப்பட்டது. {who} பதிலளித்ததும் உங்களுக்குத் தெரியும்.',
+    failed: 'இப்போது செய்ய முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    guest: 'அவர் Waves ஐ விருந்தினராகப் பயன்படுத்துகிறார். முதலில் பதிவு செய்யச் சொல்லுங்கள்.',
+    thatIsYou: 'அது நீங்கள்தான். “இது நான்தான்” ஐப் பயன்படுத்துங்கள்.',
+    rateLimited: 'இன்று நிறைய பேரைக் கேட்டுவிட்டீர்கள். நாளை முயலுங்கள்.',
+    notAllowed: 'இந்தக் குழுவின் நிர்வாகி மட்டுமே இதைச் செய்ய முடியும்.',
+    cardTitle: 'இது நீங்களா?',
+    cardBody: '{group} இல் நீங்கள்தான் {name} என்கிறார் {who}.',
+    cardHint: 'ஏற்றுக்கொண்டால் அந்தப் பெயரில் பதிவானவை அனைத்தும் உங்களுடையதாகும்.',
+    accept: 'ஆம், அது நான்தான்',
+    notMe: 'நான் இல்லை',
+    accepted: 'முடிந்தது. நீங்கள் இப்போது {group} இல் இருக்கிறீர்கள்.',
+    declined: 'சொல்லிவிட்டோம்.',
+    needsAccount: 'முதலில் பதிவு செய்யுங்கள் — விருந்தினர் ஒரு குழுவில் இடம் பெற முடியாது.',
+    placeTaken: 'அந்த இடம் இப்போது வேறொருவருடையது.',
+    empty: 'உங்களுக்காக எதுவும் காத்திருக்கவில்லை.',
+  },
   blocked: {
     row: 'தடுக்கப்பட்டவர்கள்',
     rowHint: 'நீங்கள் மறைத்த பெயர்களும் முகங்களும்',
@@ -19867,6 +19997,48 @@ const hi: UiStrings = {
       'इस ग्रुप में आपके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
     theyHaveHistory:
       'इस ग्रुप में उनके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
+  },
+  link: {
+    row: 'Waves यूज़र से जोड़ें',
+    rowHint: 'बताएँ कि {name} असल में कौन है।',
+    waiting: '{who} के स्वीकार करने का इंतज़ार',
+    waitingHint: 'जब तक वे हाँ न कहें, कुछ नहीं बदलेगा।',
+    cancelAsk: 'पूछना रद्द करें',
+    sheetTitle: '{name} कौन है?',
+    sheetHint: 'व्यक्ति चुनें, या फ़ोन नंबर या ईमेल से ढूँढें।',
+    inThisGroup: 'पहले से इस ग्रुप में',
+    peopleYouKnow: 'जिन्हें आप जानते हैं',
+    searchPlaceholder: 'नाम, फ़ोन नंबर या ईमेल',
+    noMatches: 'इस नाम का कोई नहीं। फ़ोन नंबर या ईमेल आज़माएँ।',
+    notFound: 'इस नंबर या ईमेल से Waves पर कोई नहीं, या वे ढूँढे जाना नहीं चाहते।',
+    searching: 'ढूँढ रहे हैं…',
+    lookUp: 'ढूँढें',
+    mergeConfirmTitle: '{name} को {who} में मिला दें?',
+    mergeConfirmBody:
+      '{name} के {expenses} और {balance} बैलेंस {who} के हो जाएँगे। इसे वापस नहीं किया जा सकता।',
+    mergeExpenses: { one: '{n} खर्च', other: '{n} खर्च' },
+    mergeAction: 'मिला दें',
+    mergeDone: 'हो गया। {name} के नाम सब कुछ अब {who} का है।',
+    askConfirmTitle: '{who} से पूछें?',
+    askConfirmBody:
+      'उन्हें संदेश जाएगा: “{me} का कहना है कि {group} में {name} आप हैं”। जब तक वे स्वीकार न करें, कुछ नहीं बदलेगा।',
+    askAction: 'उनसे पूछें',
+    askSent: 'पूछ लिया। {who} के जवाब देने पर आपको पता चलेगा।',
+    failed: 'अभी नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    guest: 'वे Waves पर मेहमान हैं। पहले उन्हें साइन अप करने को कहें।',
+    thatIsYou: 'वह आप ही हैं। “यह मैं हूँ” इस्तेमाल करें।',
+    rateLimited: 'आज आपने बहुत लोगों से पूछ लिया। कल फिर कोशिश करें।',
+    notAllowed: 'यह सिर्फ़ इस ग्रुप का एडमिन कर सकता है।',
+    cardTitle: 'क्या यह आप हैं?',
+    cardBody: '{who} का कहना है कि {group} में {name} आप हैं।',
+    cardHint: 'स्वीकार करें, और उस नाम पर दर्ज सब कुछ आपका हो जाएगा।',
+    accept: 'हाँ, यह मैं हूँ',
+    notMe: 'मैं नहीं',
+    accepted: 'हो गया। अब आप {group} में हैं।',
+    declined: 'उन्हें बता दिया।',
+    needsAccount: 'पहले साइन अप करें — मेहमान ग्रुप में जगह नहीं ले सकता।',
+    placeTaken: 'वह जगह अब किसी और की है।',
+    empty: 'आपके लिए कुछ भी इंतज़ार में नहीं है।',
   },
   blocked: {
     row: 'अवरोधित लोग',
@@ -25347,6 +25519,47 @@ const ar: UiStrings = {
     thisIsMeFailed: 'تعذّر الإرسال الآن. حاول مرة أخرى بعد قليل.',
     youHaveHistory: 'لديك مصروفات في هذه المجموعة باسمك بالفعل، لذا لا يمكن دمج الاثنين.',
     theyHaveHistory: 'لديه مصروفات في هذه المجموعة باسمه بالفعل، لذا لا يمكن دمج الاثنين.',
+  },
+  link: {
+    row: 'ربط بمستخدم Waves',
+    rowHint: 'قل من هو {name} فعلًا.',
+    waiting: 'بانتظار قبول {who}',
+    waitingHint: 'لا يتغيّر شيء حتى يوافق.',
+    cancelAsk: 'إلغاء الطلب',
+    sheetTitle: 'من هو {name}؟',
+    sheetHint: 'اختر الشخص، أو ابحث عنه برقم الهاتف أو البريد الإلكتروني.',
+    inThisGroup: 'في هذه المجموعة بالفعل',
+    peopleYouKnow: 'أشخاص تعرفهم',
+    searchPlaceholder: 'الاسم أو رقم الهاتف أو البريد',
+    noMatches: 'لا أحد بهذا الاسم. جرّب رقم هاتفه أو بريده.',
+    notFound: 'لا أحد على Waves بهذا الرقم أو البريد، أو أنه لا يريد أن يُعثر عليه.',
+    searching: 'جارٍ البحث…',
+    lookUp: 'ابحث',
+    mergeConfirmTitle: 'دمج {name} في {who}؟',
+    mergeConfirmBody:
+      '{expenses} ورصيد {balance} الخاصة بـ {name} تنتقل إلى {who}. لا يمكن التراجع عن هذا.',
+    mergeExpenses: { one: 'مصروف واحد', other: '{n} مصروفات' },
+    mergeAction: 'دمج',
+    mergeDone: 'تم. كل ما تحت اسم {name} صار لـ {who}.',
+    askConfirmTitle: 'سؤال {who}؟',
+    askConfirmBody: 'تصله رسالة: «{me} يقول إنك {name} في {group}». لا يتغيّر شيء حتى يقبل.',
+    askAction: 'اسأله',
+    askSent: 'تم السؤال. ستعرف عندما يجيب {who}.',
+    failed: 'تعذّر ذلك الآن. حاول مرة أخرى بعد قليل.',
+    guest: 'يستخدم Waves كضيف. اطلب منه التسجيل أولًا.',
+    thatIsYou: 'هذا أنت. استخدم «هذا أنا» بدلًا من ذلك.',
+    rateLimited: 'سألت كثيرين اليوم. حاول غدًا.',
+    notAllowed: 'مشرف هذه المجموعة وحده يستطيع فعل ذلك.',
+    cardTitle: 'هل هذا أنت؟',
+    cardBody: '{who} يقول إنك {name} في {group}.',
+    cardHint: 'اقبل، وكل ما سُجّل بذلك الاسم يصبح لك.',
+    accept: 'نعم، هذا أنا',
+    notMe: 'ليس أنا',
+    accepted: 'تم. أنت الآن في {group}.',
+    declined: 'أخبرناه.',
+    needsAccount: 'سجّل أولًا — لا يمكن لضيف أن يأخذ مكانًا في مجموعة.',
+    placeTaken: 'ذلك المكان صار لشخص آخر الآن.',
+    empty: 'لا شيء بانتظارك.',
   },
   blocked: {
     row: 'الأشخاص المحظورون',
