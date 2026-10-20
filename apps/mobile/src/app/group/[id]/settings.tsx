@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Avatar,
@@ -863,6 +863,7 @@ export default function GroupSettingsScreen() {
             <Row style={{ gap: theme.spacing.sm }}>
               <TextInput
                 value={newName}
+                autoFocus={false}
                 onChangeText={setNewName}
                 placeholder={t.people.namePlaceholder}
                 placeholderTextColor={theme.color.textFaint}
@@ -1058,7 +1059,13 @@ export default function GroupSettingsScreen() {
                 label={`+ ${t.add}`}
                 size="sm"
                 variant="secondary"
-                onPress={() => setAddOpen(true)}
+                onPress={() => {
+                  // Nothing in the sheet should be typing yet: drop any focus
+                  // left on the page's own fields so the keyboard does not
+                  // open over the sheet. The name field is focused by a tap.
+                  Keyboard.dismiss();
+                  setAddOpen(true);
+                }}
               />
             }
           />

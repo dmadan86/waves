@@ -15,7 +15,7 @@ describe('Group settings add-someone sheet', () => {
   it('puts a + Add action in the members heading row', () => {
     expect(SCREEN).toContain('t.memberCount');
     expect(SCREEN).toMatch(/action=\{\s*<Button[^>]*label=\{`\+ \$\{t\.add\}`\}/s);
-    expect(SCREEN).toContain('onPress={() => setAddOpen(true)}');
+    expect(SCREEN).toContain('Keyboard.dismiss();');
   });
 
   it('hosts the three routes and the by-name field in a titled Sheet', () => {
@@ -40,5 +40,10 @@ describe('Group settings add-someone sheet', () => {
     const add = SCREEN.slice(SCREEN.indexOf('const addMember'), SCREEN.indexOf('const addPicked'));
     expect(add).not.toContain('setAddOpen(false)');
     expect(add).toContain('setJustAdded(person)');
+  });
+
+  it('does not raise the keyboard when the sheet opens', () => {
+    expect(SCREEN).toContain('Keyboard.dismiss();');
+    expect(SCREEN).toContain('autoFocus={false}');
   });
 });
