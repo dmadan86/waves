@@ -72,6 +72,10 @@ export function Sparkline({ values, height = 64 }: { values: readonly number[]; 
   );
 }
 
+/** Slice colours by rank, as the mockup has them; everything else is the grey. */
+export const RANK_COLORS = ['#6E9BF0', '#F7C58F', '#F29494', '#9D8CF2', '#7DD3E8'] as const;
+export const REST_COLOR = '#D5D8E0';
+
 export interface DonutPart {
   key: string;
   /** A theme tint's ink, or null for the "everything else" slice. */
@@ -102,7 +106,7 @@ export function Donut({
     >
       <Svg width={size} height={size}>
         {slices.map(({ item, start, end }) => {
-          const color = item.color ?? theme.color.border;
+          const color = item.color ?? REST_COLOR;
           return end - start >= Math.PI * 2 - 0.001 ? (
             <Circle
               key={item.key}
@@ -110,7 +114,6 @@ export function Donut({
               cy={c}
               r={r}
               stroke={color}
-              strokeOpacity={0.6}
               strokeWidth={stroke}
               fill="none"
             />
@@ -119,7 +122,6 @@ export function Donut({
               key={item.key}
               d={arcPath(c, c, r, start, end)}
               stroke={color}
-              strokeOpacity={0.6}
               strokeWidth={stroke}
               fill="none"
             />
@@ -127,7 +129,7 @@ export function Donut({
         })}
       </Svg>
       {slices.map(({ item, start, end, percent }) => {
-        if (percent < 5 || item.color === null) return null;
+        if (percent < 4 || item.color === null) return null;
         const mid = (start + end) / 2;
         return (
           <Text
@@ -138,7 +140,7 @@ export function Donut({
               width: 34,
               textAlign: 'center',
               fontWeight: '700',
-              color: item.color,
+              color: '#2A2F4F',
               left: c + r * Math.sin(mid) - 17,
               top: c - r * Math.cos(mid) - 8,
             }}

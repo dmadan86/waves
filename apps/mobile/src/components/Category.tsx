@@ -52,7 +52,9 @@ export function CategoryBadge({
   meta,
   description,
   size = 42,
+  accent,
 }: {
+  accent?: string;
   category: string | null | undefined;
   /** The custom tag's denormalised display, when the value is a custom tag. */
   meta?: CategoryMeta | null;
@@ -78,13 +80,13 @@ export function CategoryBadge({
         borderRadius: size / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: tint.bg,
+        backgroundColor: accent ? `${accent}40` : tint.bg,
       }}
     >
       <Ionicons
         name={icon as keyof typeof Ionicons.glyphMap}
         size={Math.round(size * 0.5)}
-        color={tint.ink}
+        color={accent ? '#2A2F4F' : tint.ink}
       />
     </View>
   );

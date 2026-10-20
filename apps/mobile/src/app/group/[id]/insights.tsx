@@ -42,7 +42,14 @@ import { Card, directionalIcon, EmptyState, iconSize, Row, Text, useTheme } from
 import { CategoryBadge } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useHeroStatusBar } from '@/components/ScreenHero';
-import { Donut, MonthBars, Sparkline, type DonutPart } from '@/components/SpendingCharts';
+import {
+  Donut,
+  MonthBars,
+  RANK_COLORS,
+  REST_COLOR,
+  Sparkline,
+  type DonutPart,
+} from '@/components/SpendingCharts';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import type { SpendingRow } from '@/data/api';
 import { useGroup } from '@/data/hooks';
@@ -69,10 +76,10 @@ const SCENE = require('../../../../assets/images/voice-scene.webp') as number;
 const SCENE_W = 849;
 const SCENE_H = 1852;
 /** Where, in the photograph, the strip we want ends: the top of the terrace table. */
-const SCENE_FOOT = 1500;
+const SCENE_FOOT = 1300;
 /** The photo's height below the status bar; the cards ride up over its foot. */
-const HERO_BODY = 205;
-const CARD_OVERLAP = 40;
+const HERO_BODY = 150;
+const CARD_OVERLAP = 56;
 
 export default function InsightsScreen() {
   const theme = useTheme();
@@ -156,7 +163,7 @@ export default function InsightsScreen() {
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ height: photoH }}>
+        <View style={{ height: photoH, overflow: 'hidden' }}>
           <Image
             source={SCENE}
             accessibilityIgnoresInvertColors
@@ -234,14 +241,14 @@ export default function InsightsScreen() {
                       paddingHorizontal: theme.spacing.lg,
                       borderRadius: theme.radius.pill,
                       justifyContent: 'center',
-                      backgroundColor: selected ? theme.color.buttonPrimary : glass,
+                      backgroundColor: selected ? '#1F1B4D' : glass,
                     }}
                   >
                     <Text
                       variant="caption"
                       style={{
                         fontWeight: '600',
-                        color: selected ? theme.color.onButtonPrimary : theme.color.textMuted,
+                        color: selected ? '#FFFFFF' : theme.color.textMuted,
                       }}
                     >
                       {option.label}
@@ -418,8 +425,8 @@ function SpendingBody({
   const slices = (() => {
     const lead = categories.slice(0, TOP_CATEGORIES);
     const rest = categories.slice(TOP_CATEGORIES).reduce((sum, entry) => sum + entry.value, 0n);
-    const parts: { item: DonutPart; value: number }[] = lead.map((entry) => ({
-      item: { key: entry.key, color: theme.tint[entry.tint].ink },
+    const parts: { item: DonutPart; value: number }[] = lead.map((entry, index) => ({
+      item: { key: entry.key, color: RANK_COLORS[index] },
       value: Number(entry.value),
     }));
     if (rest > 0n) parts.push({ item: { key: 'rest', color: null }, value: Number(rest) });
@@ -582,23 +589,26 @@ function SpendingBody({
               caption={t.spendDonutTotal}
             />
             <View style={{ flex: 1, gap: theme.spacing.md }}>
-              {legend.map((entry) => (
+              {legend.map((entry, index) => (
                 <Row
                   key={entry.key}
                   accessible
                   accessibilityLabel={`${entry.label}, ${money(entry.value)}, ${entry.percent}%`}
                   style={{ alignItems: 'center', gap: theme.spacing.sm }}
                 >
-                  <CategoryBadge category={entry.category} meta={entry.meta} size={26} />
-                  <View style={{ flex: 1 }}>
-                    <Text variant="micro" numberOfLines={1} style={{ fontWeight: '600' }}>
-                      {entry.label}
-                    </Text>
-                    <Text variant="micro" tone="muted" numberOfLines={1} tabular>
-                      {money(entry.value)}
-                    </Text>
-                  </View>
-                  <Text variant="micro" tone="muted">
+                  <CategoryBadge
+                    category={entry.category}
+                    meta={entry.meta}
+                    size={26}
+                    accent={RANK_COLORS[index] ?? REST_COLOR}
+                  />
+                  <Text variant="micro" numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
+                    {entry.label}
+                  </Text>
+                  <Text variant="micro" numberOfLines={1} tabular style={{ fontWeight: '600' }}>
+                    {money(entry.value)}
+                  </Text>
+                  <Text variant="micro" tone="muted" style={{ width: 28, textAlign: 'right' }}>
                     {`${entry.percent}%`}
                   </Text>
                 </Row>
@@ -697,14 +707,19 @@ function SpendingBody({
             : null,
         )}
         <Card style={{ borderRadius: theme.radius.xl, gap: theme.spacing.md }}>
-          {topList.map((entry) => (
+          {topList.map((entry, index) => (
             <Row
               key={entry.key}
               accessible
               accessibilityLabel={`${entry.label}, ${money(entry.value)}, ${entry.percent}%`}
               style={{ alignItems: 'center', gap: theme.spacing.md }}
             >
-              <CategoryBadge category={entry.category} meta={entry.meta} size={34} />
+              <CategoryBadge
+                category={entry.category}
+                meta={entry.meta}
+                size={34}
+                accent={RANK_COLORS[index] ?? REST_COLOR}
+              />
               <View style={{ flex: 1, gap: 4 }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text variant="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
@@ -722,7 +737,7 @@ function SpendingBody({
                       width: `${Math.max(entry.percent, 2)}%`,
                       height: 5,
                       borderRadius: 3,
-                      backgroundColor: theme.tint[entry.tint].ink,
+                      backgroundColor: RANK_COLORS[index] ?? REST_COLOR,
                       opacity: 0.6,
                     }}
                   />
