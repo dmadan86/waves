@@ -92,9 +92,15 @@ const sections: LegalSection[] = [
     ],
   },
   {
+    heading: 'Governing law',
+    body: [
+      'These terms are governed by the laws of India. The courts at Bengaluru, Karnataka have exclusive jurisdiction, subject to any consumer-protection rights that cannot be waived.',
+    ],
+  },
+  {
     heading: 'Ending it',
     body: [
-      'You can delete your account from inside the app at any time (see the delete account page for what is removed and what stays in shared groups). Deleting your account does not cancel a store subscription; cancel it in Google Play or the App Store. We may close an account that breaches these terms. Either way, the parts of these terms that should survive — liability, governing law — do.',
+      'You can delete your account from inside the app at any time (see the delete account page for what is removed and what stays in shared groups). Deleting your account does not cancel a store subscription; cancel it in Google Play or the App Store. We may close an account that breaches these terms. Either way, the parts of these terms that should survive — Liability and Governing law above — do.',
     ],
   },
   {
