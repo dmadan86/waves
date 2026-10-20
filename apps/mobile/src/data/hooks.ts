@@ -103,6 +103,14 @@ import {
   fetchMemberClaims,
   decideMemberClaim,
   claimMemberAsMe,
+  cancelMemberLink,
+  decideMemberLink,
+  fetchGroupMemberLinks,
+  fetchMemberLinkCandidates,
+  fetchMyMemberLinks,
+  mergeMemberInto,
+  requestMemberLink,
+  type LinkVerdict,
   type PlanItemRow,
   type MemberBudgetRow,
   type GroupBudget,
@@ -163,6 +171,9 @@ export const keys = {
   activity: (id: string) => ['group', id, 'activity'] as const,
   balances: (id: string) => ['group', id, 'balances'] as const,
   memberClaims: (id: string) => ['group', id, 'member-claims'] as const,
+  memberLinks: (id: string) => ['group', id, 'member-links'] as const,
+  myMemberLinks: ['member-links', 'mine'] as const,
+  linkCandidates: (id: string) => ['group', id, 'link-candidates'] as const,
   memberBudgets: (id: string) => ['group', id, 'member-budgets'] as const,
   groupBudget: (id: string) => ['group', id, 'budget'] as const,
   currencyReadiness: (id: string) => ['group', id, 'currency-readiness'] as const,
@@ -3150,6 +3161,96 @@ export function useClaimMemberAsMe(groupId: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
       invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+// ──────────── an admin saying who a placeholder is (link_placeholder_member) ──
+
+/** The asks this group's admins are waiting on. Empty for everybody else. */
+export function useGroupMemberLinks(groupId: string) {
+  return useQuery({
+    queryKey: keys.memberLinks(groupId),
+    queryFn: () => fetchGroupMemberLinks(groupId),
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+/** The asks addressed to me, for the card on Home. */
+export function useMyMemberLinks(enabled = true) {
+  return useQuery({
+    queryKey: keys.myMemberLinks,
+    queryFn: fetchMyMemberLinks,
+    enabled,
+  });
+}
+
+/** Who a placeholder could be; fetched only while the sheet is open. */
+export function useMemberLinkCandidates(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.linkCandidates(groupId),
+    queryFn: () => fetchMemberLinkCandidates(groupId),
+    enabled: enabled && groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+/**
+ * Folding a placeholder into a member who is already here. Everything about
+ * the group changes at once — members, bills, balances — so the whole group
+ * is invalidated, not one list.
+ */
+export function useMergeMemberInto(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, intoMemberId }: { memberId: string; intoMemberId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<LinkVerdict>()
+        : mergeMemberInto(memberId, intoMemberId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+      invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+/** Asking somebody outside the group whether they are the placeholder. */
+export function useRequestMemberLink(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, targetProfileId }: { memberId: string; targetProfileId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<LinkVerdict>()
+        : requestMemberLink(memberId, targetProfileId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+    },
+  });
+}
+
+/** Taking an ask back. */
+export function useCancelMemberLink(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<LinkVerdict>() : cancelMemberLink(requestId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+    },
+  });
+}
+
+/**
+ * Answering an ask addressed to me. Accepting puts me in a group I may not
+ * have had before, so the group list is refreshed along with the asks.
+ */
+export function useDecideMemberLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ requestId, accept }: { requestId: string; accept: boolean }) =>
+      decideMemberLink(requestId, accept),
+    onSuccess: async (_verdict, { accept }) => {
+      await queryClient.invalidateQueries({ queryKey: keys.myMemberLinks });
+      if (accept) await queryClient.invalidateQueries({ queryKey: keys.groups });
     },
   });
 }

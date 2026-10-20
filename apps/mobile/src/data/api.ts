@@ -1041,6 +1041,126 @@ export async function claimMemberAsMe(
   return (data ?? { ok: false }) as { ok: boolean; reason?: string; status?: string };
 }
 
+// ──────────────── an admin saying who a placeholder is (link_placeholder_member) ──
+
+/** The answer every link call gives: `ok`, or a reason the screen can word. */
+export interface LinkVerdict {
+  ok: boolean;
+  reason?: string;
+  status?: string;
+  /** The ask, when one was made or is already waiting. */
+  request_id?: string;
+  /** The member the person is (or now is) in this group. */
+  member_id?: string;
+  already_pending?: boolean;
+  bills?: number;
+}
+
+/** An ask this group's admins are waiting on. */
+export interface PendingMemberLink {
+  id: string;
+  member_id: string;
+  target_id: string;
+  target_name: string | null;
+  target_avatar: string | null;
+  created_at: string;
+}
+
+/** An ask addressed to me: "Madan says you are Renny in Goa trip". */
+export interface MemberLinkForMe {
+  id: string;
+  group_id: string;
+  group_name: string | null;
+  member_id: string;
+  ghost_name: string | null;
+  requester_name: string | null;
+  created_at: string;
+}
+
+/** Somebody the viewer already shares a group with, offered as "who Renny is". */
+export interface LinkCandidate {
+  profile_id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+/**
+ * A. The placeholder and a member of this group are the same person: fold the
+ * placeholder into them. Admin only; every bill gets one new version with the
+ * lines re-pointed (ADR-004), the placeholder row is retired.
+ */
+export async function mergeMemberInto(
+  memberId: string,
+  intoMemberId: string,
+): Promise<LinkVerdict> {
+  const { data, error } = await backend.rpc('waves_merge_member_into', {
+    p_member_id: memberId,
+    p_into_member_id: intoMemberId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? { ok: false }) as LinkVerdict;
+}
+
+/**
+ * B. The person is not in the group: ask them. Comes back `pending` (or
+ * `ALREADY_IN_GROUP` with their `member_id`, which is a merge instead).
+ */
+export async function requestMemberLink(
+  memberId: string,
+  targetProfileId: string,
+): Promise<LinkVerdict> {
+  const { data, error } = await backend.rpc('waves_request_member_link', {
+    p_member_id: memberId,
+    p_target_profile_id: targetProfileId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? { ok: false }) as LinkVerdict;
+}
+
+/** The person asked answers: accepting takes the place and its history. */
+export async function decideMemberLink(requestId: string, accept: boolean): Promise<LinkVerdict> {
+  const { data, error } = await backend.rpc('waves_decide_member_link', {
+    p_request_id: requestId,
+    p_accept: accept,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? { ok: false }) as LinkVerdict;
+}
+
+/** The asker (or an admin) takes the ask back. */
+export async function cancelMemberLink(requestId: string): Promise<LinkVerdict> {
+  const { data, error } = await backend.rpc('waves_cancel_member_link', {
+    p_request_id: requestId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? { ok: false }) as LinkVerdict;
+}
+
+/** What this group's admins have asked and are waiting on. Empty for others. */
+export async function fetchGroupMemberLinks(groupId: string): Promise<PendingMemberLink[]> {
+  if (isDemoGroupId(groupId)) return [];
+  const { data, error } = await backend.rpc('waves_group_member_links', { p_group_id: groupId });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PendingMemberLink[];
+}
+
+/** The asks waiting on me. */
+export async function fetchMyMemberLinks(): Promise<MemberLinkForMe[]> {
+  const { data, error } = await backend.rpc('waves_my_member_links');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MemberLinkForMe[];
+}
+
+/** Who a placeholder could be: the people I share a group with, not already here. */
+export async function fetchMemberLinkCandidates(groupId: string): Promise<LinkCandidate[]> {
+  if (isDemoGroupId(groupId)) return [];
+  const { data, error } = await backend.rpc('waves_member_link_candidates', {
+    p_group_id: groupId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LinkCandidate[];
+}
+
 /**
  * The group's durable join link (WhatsApp-style): a stable, re-showable token,
  * made on first use. Any member may fetch it; it is the same token on every call
