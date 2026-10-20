@@ -48,6 +48,7 @@ export function SiteFooter({
         { label: t.links.contact, href: `mailto:${site.supportEmail}`, kind: 'external' },
         { label: t.links.privacy, href: `/${locale}/privacy`, kind: 'route' },
         { label: t.links.terms, href: `/${locale}/terms`, kind: 'route' },
+        { label: t.links.refund, href: `/${locale}/refund`, kind: 'route' },
         { label: t.links.deleteAccount, href: `/${locale}/delete-account`, kind: 'route' },
       ],
     },

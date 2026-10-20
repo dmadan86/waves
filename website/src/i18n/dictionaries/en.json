@@ -267,6 +267,7 @@
       "contact": "Contact",
       "privacy": "Privacy",
       "terms": "Terms",
+      "refund": "Cancellation & refunds",
       "markdown": "This page as Markdown",
       "deleteAccount": "Delete your account",
       "agents": "AI Assistant",
@@ -279,6 +280,7 @@
   "legal": {
     "privacyTitle": "Privacy",
     "termsTitle": "Terms",
+    "refundTitle": "Cancellation & Refund Policy",
     "lastUpdated": "Last updated",
     "backHome": "Back to home",
     "englishOnly": "Our legal documents are published in English.",
