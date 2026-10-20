@@ -52,9 +52,14 @@ export class ShareLoanError extends Error {
  * failure in between must write the SAME expense (and group, and members), not
  * book the debt a second time.
  */
-export function sharedLoanIds(loanId: string) {
+export function sharedLoanIds(loanId: string, shareSeq = 0) {
   return {
-    expenseId: deterministicId(`synced-loan:expense:${loanId}`),
+    // Share 0 keeps the original id (loans shared before reshare support). A
+    // later share needs a new one: unshare soft-deletes the expense and a write
+    // to the same id appends a version without clearing deleted_at.
+    expenseId: deterministicId(
+      shareSeq > 0 ? `synced-loan:expense:${loanId}:${shareSeq}` : `synced-loan:expense:${loanId}`,
+    ),
     groupId: deterministicId(`synced-loan:group:${loanId}`),
     myMemberId: deterministicId(`synced-loan:me:${loanId}`),
     otherMemberId: deterministicId(`synced-loan:other:${loanId}`),
@@ -97,7 +102,7 @@ export function useShareLoan(loans: readonly PersonalLoan[]) {
       const name = cleanCounterpart(input.person?.name ?? loan.counterpart);
 
       let link = reusableLink(loans, name, loan.currency, (id) => known.groups.has(id));
-      const ids = sharedLoanIds(loan.id);
+      const ids = sharedLoanIds(loan.id, loan.shareSeq ?? 0);
       const expenseId = ids.expenseId;
       if (link) {
         link = { ...link, expenseId };

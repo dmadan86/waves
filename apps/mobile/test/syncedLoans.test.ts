@@ -6,7 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MutationKind, type PersonalLoan } from '@waves/core';
+import { decodeLoan, MutationKind, type PersonalLoan } from '@waves/core';
 
 const state = vi.hoisted(() => ({
   calls: [] as { kind: string; scope: string; payload: Record<string, unknown> }[],
@@ -183,5 +183,44 @@ describe('useUnshareLoan', () => {
     await unshare.mutationFn(LOAN);
     expect(state.calls).toEqual([]);
     expect(state.upserts).toEqual([]);
+  });
+});
+
+describe('share, unshare, share again', () => {
+  it('LG-14 books the re-share under a fresh expense id so the debt is live', async () => {
+    // Model the server: create appends to an id but never clears deleted_at.
+    const live = new Map<string, boolean>();
+    const apply = () => {
+      for (const c of state.calls) {
+        const id = c.payload.expenseId as string;
+        if (c.kind === MutationKind.ExpenseCreate) live.set(id, live.get(id) ?? true);
+        if (c.kind === MutationKind.ExpenseDelete) live.set(id, false);
+      }
+      state.calls = [];
+    };
+    const share = useShareLoan([LOAN]) as unknown as Opts<
+      { loan: PersonalLoan },
+      { expenseId: string }
+    >;
+    const unshare = useUnshareLoan() as unknown as Opts<PersonalLoan, void>;
+
+    const first = await share.mutationFn({ loan: LOAN });
+    apply();
+    const shared = decodeLoan('L1', state.upserts.at(-1)!.data);
+    await unshare.mutationFn(shared);
+    apply();
+    const unshared = decodeLoan('L1', state.upserts.at(-1)!.data);
+    expect(unshared.synced).toBeNull();
+
+    const second = await share.mutationFn({ loan: unshared });
+    apply();
+    expect(second.expenseId).not.toBe(first.expenseId);
+    expect(live.get(first.expenseId)).toBe(false);
+    expect(live.get(second.expenseId)).toBe(true);
+    expect([...live.values()].filter(Boolean)).toHaveLength(1);
+
+    // A retry of the second share (link save failed) reuses the same id.
+    const retry = await share.mutationFn({ loan: unshared });
+    expect(retry.expenseId).toBe(second.expenseId);
   });
 });

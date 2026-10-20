@@ -231,7 +231,9 @@ export function canUnlink(loan: PersonalLoan, outstanding: ReadonlyMap<string, b
 
 /** The loan with its link removed (kept as a private loan). */
 export function withoutLink(loan: PersonalLoan): PersonalLoan {
-  return { ...loan, synced: null };
+  // Bump the share sequence: the next share must book a fresh expense, since
+  // this one is soft-deleted and writing to its id would not restore it.
+  return { ...loan, synced: null, shareSeq: (loan.shareSeq ?? 0) + 1 };
 }
 
 /** The loan with its link set and the right status for what is outstanding. */
