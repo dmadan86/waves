@@ -20,10 +20,8 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { Image, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import {
   categoryTotals,
@@ -37,17 +35,25 @@ import {
   spendingTotal,
   type CategoryId,
 } from '@waves/core';
-import { Card, directionalIcon, EmptyState, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { EmptyState, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import {
+  ListRow,
+  PillButton,
+  ScenicBody,
+  ScenicHeader,
+  SectionHeader,
+  SegmentedPills,
+  StandardCard,
+  StatCard,
+} from '@/components/standard';
 import {
   Donut,
   MonthBars,
   RANK_COLORS,
   REST_COLOR,
-  Sparkline,
   type DonutPart,
 } from '@/components/SpendingCharts';
 import { InsightsSkeleton } from '@/components/Skeletons';
@@ -77,28 +83,12 @@ const MONTH_WINDOWS = [6, 12] as const;
 /** Leading categories the donut and its legend name; the rest are one slice. */
 const TOP_CATEGORIES = 5;
 
-const SCENE = require('../../../../assets/images/voice-scene.webp') as number;
-/** The photograph is 849 × 1852. The header shows the far shore down to the terrace wall. */
-const SCENE_W = 849;
-const SCENE_H = 1852;
-/** The total card's top edge sits a fifth of the way down the screen. */
-const CARD_TOP = 0.2;
-/** How far the photo carries on behind the card's top edge. */
-const CARD_OVERLAP = 36;
-/** Where the sea's horizon lands on screen, in dp from the top. */
-const HORIZON_Y = 52;
-const SCENE_HORIZON = 1140;
-
 export default function InsightsScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
-  const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const dark = theme.scheme === 'dark';
-  useHeroStatusBar(dark ? 'light' : 'dark');
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -162,13 +152,6 @@ export default function InsightsScreen() {
   const loading = group.isLoading || members.isLoading || expenses.isLoading;
   const empty = !loading && currencies.length === 0;
 
-  const photoH = Math.round(windowHeight * CARD_TOP) + CARD_OVERLAP;
-  // `cover` by hand: full width, the strip ending at the terrace wall sitting
-  // on the bottom edge of the band.
-  const scale = windowWidth / SCENE_W;
-  const ink = theme.color.text;
-  const glass = dark ? 'rgba(20,20,34,0.72)' : 'rgba(255,255,255,0.82)';
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <ScrollView
@@ -176,133 +159,27 @@ export default function InsightsScreen() {
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ height: photoH, overflow: 'hidden' }}>
-          <Image
-            source={SCENE}
-            accessibilityIgnoresInvertColors
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-            fadeDuration={0}
-            style={{
-              position: 'absolute',
-              width: SCENE_W * scale,
-              height: SCENE_H * scale,
-              left: (windowWidth - SCENE_W * scale) / 2,
-              top: HORIZON_Y - SCENE_HORIZON * scale,
-            }}
+        <ScenicHeader title={t.spending}>
+          <SegmentedPills<Scope>
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: Scope.Group, label: t.extras.theGroup },
+              { value: Scope.Mine, label: t.extras.justMe },
+            ]}
           />
-          {dark ? (
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.45)',
-              }}
+          <View style={{ flex: 1 }} />
+          {month ? (
+            <PillButton
+              icon="calendar-outline"
+              label={monthLabel(month, locale, true)}
+              accessibilityLabel={`${t.spendPickMonth}: ${monthLabel(month, locale, true)}`}
+              onPress={() => setSheet('month')}
             />
           ) : null}
-          <LinearGradient
-            pointerEvents="none"
-            colors={['rgba(0,0,0,0)', theme.color.bg]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
-          />
-          <View
-            style={{
-              paddingTop: insets.top + theme.spacing.sm,
-              paddingHorizontal: theme.spacing.lg,
-            }}
-          >
-            <Row style={{ alignItems: 'center' }}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.common.back}
-                onPress={() => router.back()}
-                hitSlop={8}
-                style={{ width: 40, height: 40, justifyContent: 'center' }}
-              >
-                <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
-              </Pressable>
-              <Text
-                variant="heading"
-                align="center"
-                accessibilityRole="header"
-                style={{ flex: 1, fontSize: 22, fontWeight: '800' }}
-              >
-                {t.spending}
-              </Text>
-              <View style={{ width: 40 }} />
-            </Row>
-            <Row
-              style={{ alignItems: 'center', gap: theme.spacing.sm, marginTop: theme.spacing.lg }}
-            >
-              {[
-                { value: Scope.Group, label: t.extras.theGroup },
-                { value: Scope.Mine, label: t.extras.justMe },
-              ].map((option) => {
-                const selected = option.value === scope;
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => setScope(option.value)}
-                    style={{
-                      height: 38,
-                      paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.pill,
-                      justifyContent: 'center',
-                      backgroundColor: selected ? '#1F1B4D' : glass,
-                    }}
-                  >
-                    <Text
-                      variant="caption"
-                      style={{
-                        fontWeight: '600',
-                        color: selected ? '#FFFFFF' : theme.color.textMuted,
-                      }}
-                    >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <View style={{ flex: 1 }} />
-              {month ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.spendPickMonth}: ${monthLabel(month, locale, true)}`}
-                  onPress={() => setSheet('month')}
-                  style={{
-                    height: 38,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.md,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: glass,
-                  }}
-                >
-                  <Ionicons name="calendar-outline" size={iconSize.base} color={ink} />
-                  <Text variant="caption" style={{ fontWeight: '600' }}>
-                    {monthLabel(month, locale, true)}
-                  </Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={ink} />
-                </Pressable>
-              ) : null}
-            </Row>
-          </View>
-        </View>
+        </ScenicHeader>
 
-        <View
-          style={{
-            marginTop: -CARD_OVERLAP,
-            paddingHorizontal: theme.spacing.lg,
-            gap: theme.spacing.xl,
-          }}
-        >
+        <ScenicBody>
           {loading ? (
             <InsightsSkeleton />
           ) : empty || !month ? (
@@ -322,7 +199,7 @@ export default function InsightsScreen() {
               labels={t.categories}
             />
           )}
-        </View>
+        </ScenicBody>
       </ScrollView>
 
       {sheet === 'month' ? (
@@ -465,148 +342,54 @@ function SpendingBody({
 
   const legend = showAll ? categories : categories.slice(0, TOP_CATEGORIES);
   const topList = showAll ? categories : categories.slice(0, TOP_CATEGORIES);
-  const link = (label: string, onPress: () => void) => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={8}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-    >
-      <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-        {label}
-      </Text>
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={iconSize.sm}
-        color={theme.color.brand}
-      />
-    </Pressable>
-  );
-  const heading = (title: string, trailing: React.ReactNode) => (
-    <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-      <Text
-        variant="heading"
-        accessibilityRole="header"
-        style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}
-      >
-        {title}
-      </Text>
-      {trailing}
-    </Row>
-  );
+  // "See all" is offered only when there is more than the five shown.
+  const seeAll =
+    categories.length > TOP_CATEGORIES
+      ? {
+          label: showAll ? t.spendShowLess : t.spendSeeAll,
+          onPress: () => setShowAll((v) => !v),
+        }
+      : undefined;
 
   return (
     <>
-      <Card style={{ padding: 0, overflow: 'hidden', borderRadius: theme.radius.xl }}>
-        <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-          <Row style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1 }}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                <Ionicons name="wallet-outline" size={iconSize.lg} color={theme.color.textMuted} />
-                <Text tone="muted" style={{ fontSize: 15, lineHeight: 20 }}>
-                  {t.spendTotal}
-                </Text>
-              </Row>
-              <Text
-                accessibilityLabel={`${t.spendTotal}: ${money(total)}`}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                style={{
-                  fontSize: 34,
-                  lineHeight: 42,
-                  fontWeight: '800',
-                  color: theme.color.text,
-                  marginTop: theme.spacing.xs,
-                }}
-              >
-                {totalParts.lead}
-                <Text
-                  style={{
-                    fontSize: 34,
-                    lineHeight: 42,
-                    fontWeight: '800',
-                    color: theme.color.textFaint,
-                  }}
-                >
-                  {totalParts.fraction}
-                  {totalParts.trail}
-                </Text>
+      <StatCard
+        label={t.spendTotal}
+        lead={totalParts.lead}
+        fraction={`${totalParts.fraction}${totalParts.trail}`}
+        accessibilityLabel={`${t.spendTotal}: ${money(total)}`}
+        caption={
+          hasSeveralCurrencies ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t.spendPickCurrency}: ${currency}`}
+              onPress={onPickCurrency}
+              hitSlop={8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                alignSelf: 'flex-start',
+              }}
+            >
+              <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                {t.spendInCurrency.replace('{currency}', currency)}
               </Text>
-              {hasSeveralCurrencies ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.spendPickCurrency}: ${currency}`}
-                  onPress={onPickCurrency}
-                  hitSlop={8}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                    alignSelf: 'flex-start',
-                  }}
-                >
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                    {t.spendInCurrency.replace('{currency}', currency)}
-                  </Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
-                </Pressable>
-              ) : (
-                <Text variant="caption" tone="muted">
-                  {t.spendInCurrency.replace('{currency}', currency)}
-                </Text>
-              )}
-            </View>
-            {change !== null ? (
-              <View style={{ alignItems: 'center', gap: 2 }}>
-                <Row
-                  style={{
-                    alignItems: 'center',
-                    gap: 2,
-                    paddingHorizontal: theme.spacing.md,
-                    paddingVertical: 4,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor:
-                      change >= 0 ? 'rgba(34,163,94,0.14)' : theme.color.negativeSoft,
-                  }}
-                >
-                  <Ionicons
-                    name={change >= 0 ? 'arrow-up' : 'arrow-down'}
-                    size={iconSize.sm}
-                    color={change >= 0 ? '#16A34A' : theme.color.negative}
-                  />
-                  <Text
-                    variant="caption"
-                    style={{
-                      fontWeight: '700',
-                      color: change >= 0 ? '#16A34A' : theme.color.negative,
-                    }}
-                  >
-                    {`${Math.abs(change)}%`}
-                  </Text>
-                </Row>
-                <Text variant="micro" tone="muted">
-                  {t.spendVsLast}
-                </Text>
-              </View>
-            ) : null}
-          </Row>
-        </View>
-        {trend.length > 1 ? (
-          <Sparkline values={trend} />
-        ) : (
-          <View style={{ height: theme.spacing.md }} />
-        )}
-      </Card>
+              <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
+            </Pressable>
+          ) : (
+            <Text variant="caption" tone="muted">
+              {t.spendInCurrency.replace('{currency}', currency)}
+            </Text>
+          )
+        }
+        delta={change !== null ? { percent: change, caption: t.spendVsLast } : undefined}
+        trend={trend}
+      />
 
       <View style={{ gap: theme.spacing.md }}>
-        {heading(
-          t.byCategory,
-          categories.length > TOP_CATEGORIES
-            ? link(showAll ? t.spendShowLess : t.spendSeeAll, () => setShowAll((v) => !v))
-            : null,
-        )}
-        <Card style={{ borderRadius: theme.radius.xl, padding: theme.spacing.lg }}>
+        <SectionHeader title={t.byCategory} action={seeAll} />
+        <StandardCard>
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Donut
               size={donutSize}
@@ -647,39 +430,41 @@ function SpendingBody({
               ))}
             </View>
           </Row>
-        </Card>
+        </StandardCard>
       </View>
 
       <View style={{ gap: theme.spacing.md }}>
-        {heading(
-          t.byMonth,
-          <View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.spendLastMonths.replace('{n}', String(windowSize))}
-              onPress={() => setWindowOpen((open) => !open)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                height: 34,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.surface,
-                ...theme.shadow.soft,
-              }}
-            >
-              <Text variant="caption" tone="muted">
-                {t.spendLastMonths.replace('{n}', String(windowSize))}
-              </Text>
-              <Ionicons
-                name={windowOpen ? 'chevron-up' : 'chevron-down'}
-                size={iconSize.sm}
-                color={theme.color.textMuted}
-              />
-            </Pressable>
-          </View>,
-        )}
+        <SectionHeader
+          title={t.byMonth}
+          trailing={
+            <View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.spendLastMonths.replace('{n}', String(windowSize))}
+                onPress={() => setWindowOpen((open) => !open)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs,
+                  height: 34,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: theme.color.surface,
+                  ...theme.shadow.soft,
+                }}
+              >
+                <Text variant="caption" tone="muted">
+                  {t.spendLastMonths.replace('{n}', String(windowSize))}
+                </Text>
+                <Ionicons
+                  name={windowOpen ? 'chevron-up' : 'chevron-down'}
+                  size={iconSize.sm}
+                  color={theme.color.textMuted}
+                />
+              </Pressable>
+            </View>
+          }
+        />
         {windowOpen ? (
           <Row style={{ justifyContent: 'flex-end', gap: theme.spacing.sm }}>
             {MONTH_WINDOWS.map((size) => (
@@ -713,7 +498,7 @@ function SpendingBody({
             ))}
           </Row>
         ) : null}
-        <Card style={{ borderRadius: theme.radius.xl, gap: theme.spacing.md }}>
+        <StandardCard style={{ gap: theme.spacing.md }}>
           <MonthBars data={bars} selected={month} onSelect={onSelectMonth} symbol={symbol} />
           <Pressable
             accessibilityRole="button"
@@ -728,39 +513,27 @@ function SpendingBody({
               {t.spendSeeDays.replace('{month}', monthLabel(month, locale))}
             </Text>
           </Pressable>
-        </Card>
+        </StandardCard>
       </View>
 
       <View style={{ gap: theme.spacing.md }}>
-        {heading(
-          t.spendTopCategories,
-          categories.length > TOP_CATEGORIES
-            ? link(showAll ? t.spendShowLess : t.spendSeeAll, () => setShowAll((v) => !v))
-            : null,
-        )}
-        <Card style={{ borderRadius: theme.radius.xl, gap: theme.spacing.md }}>
+        <SectionHeader title={t.spendTopCategories} action={seeAll} />
+        <StandardCard style={{ gap: theme.spacing.md }}>
           {topList.map((entry, index) => (
-            <Row
+            <ListRow
               key={entry.key}
-              accessible
-              accessibilityLabel={`${entry.label}, ${money(entry.value)}, ${entry.percent}%`}
-              style={{ alignItems: 'center', gap: theme.spacing.md }}
-            >
-              <CategoryBadge
-                category={entry.category}
-                meta={entry.meta}
-                size={34}
-                accent={RANK_COLORS[index] ?? REST_COLOR}
-              />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
-                    {entry.label}
-                  </Text>
-                  <Text variant="body" tabular style={{ fontWeight: '600' }}>
-                    {money(entry.value)}
-                  </Text>
-                </Row>
+              leading={
+                <CategoryBadge
+                  category={entry.category}
+                  meta={entry.meta}
+                  size={28}
+                  accent={RANK_COLORS[index] ?? REST_COLOR}
+                />
+              }
+              title={entry.label}
+              amount={money(entry.value)}
+              percent={entry.percent}
+              footer={
                 <View
                   style={{ height: 5, borderRadius: 3, backgroundColor: theme.color.surfaceMuted }}
                 >
@@ -774,13 +547,10 @@ function SpendingBody({
                     }}
                   />
                 </View>
-              </View>
-              <Text variant="caption" tone="muted" style={{ width: 36, textAlign: 'right' }}>
-                {`${entry.percent}%`}
-              </Text>
-            </Row>
+              }
+            />
           ))}
-        </Card>
+        </StandardCard>
       </View>
     </>
   );
