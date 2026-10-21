@@ -15,7 +15,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 
-import { Callout, iconSize, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Callout, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { GroupMark } from '@/components/GroupMark';
@@ -121,7 +121,7 @@ export default function ExportScreen() {
   );
 
   return (
-    <Screen>
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <PlainHeader title={t.exportData.title} />
 
       <ScrollView
@@ -314,6 +314,6 @@ export default function ExportScreen() {
           </View>
         </SheetOverlay>
       ) : null}
-    </Screen>
+    </View>
   );
 }
