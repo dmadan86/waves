@@ -3352,6 +3352,11 @@ export interface UiStrings {
     settleFirstBody: string;
     leaveQuestion: string;
     leaveBody: string;
+    settleFirstBalance: string;
+    leaveAnyway: string;
+    settleFirstSettle: string;
+    settleFirstBalanceLabel: string;
+    settleFirstClose: string;
     leave: string;
     archiveQuestion: string;
     archiveBody: string;
@@ -8534,6 +8539,11 @@ const en: UiStrings = {
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
+    settleFirstBalance: 'Your balance',
+    leaveAnyway: 'Leave anyway',
+    settleFirstSettle: 'Settle up',
+    settleFirstBalanceLabel: 'Your balance is {amount}. Opens settle up.',
+    settleFirstClose: 'Close',
     leave: 'Leave',
     archiveQuestion: 'Archive this group?',
     archiveBody:
@@ -13578,6 +13588,11 @@ const ta: UiStrings = {
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
+    settleFirstBalance: 'உங்கள் இருப்பு',
+    leaveAnyway: 'எப்படியும் விலகு',
+    settleFirstSettle: 'கணக்கைத் தீர்',
+    settleFirstBalanceLabel: 'உங்கள் இருப்பு {amount}. கணக்கு தீர்க்கும் திரையைத் திறக்கும்.',
+    settleFirstClose: 'மூடு',
     leave: 'விலகு',
     archiveQuestion: 'இந்தக் குழுவைக் காப்பகப்படுத்தவா?',
     archiveBody:
@@ -18661,6 +18676,11 @@ const hi: UiStrings = {
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
+    settleFirstBalance: 'आपका बकाया',
+    leaveAnyway: 'फिर भी छोड़ें',
+    settleFirstSettle: 'हिसाब चुकाएँ',
+    settleFirstBalanceLabel: 'आपका बकाया {amount} है। हिसाब चुकाने की स्क्रीन खुलती है।',
+    settleFirstClose: 'बंद करें',
     leave: 'छोड़ें',
     archiveQuestion: 'यह समूह संग्रहित करें?',
     archiveBody:
@@ -23847,6 +23867,11 @@ const ar: UiStrings = {
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
+    settleFirstBalance: 'رصيدك',
+    leaveAnyway: 'غادر على أي حال',
+    settleFirstSettle: 'سوِّ الحساب',
+    settleFirstBalanceLabel: 'رصيدك {amount}. يفتح تسوية الحساب.',
+    settleFirstClose: 'إغلاق',
     leave: 'مغادرة',
     archiveQuestion: 'أرشفة هذه المجموعة؟',
     archiveBody:
