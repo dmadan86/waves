@@ -51,12 +51,9 @@ describe('settings page layout', () => {
     expect(card).toContain('setGroupMute.mutate');
   });
 
-  it('opens the existing Add someone sheet from Add members, and invites from the last roster row', () => {
+  it('opens the existing Add someone sheet from Add members, with no invite row under the roster', () => {
     expect(SCREEN).toContain('setAddOpen(true)');
-    expect(SCREEN).toContain('`/group/${groupId}/invite`');
-    expect(SCREEN.indexOf('t.group.inviteToGroup}')).toBeGreaterThan(
-      SCREEN.indexOf('memberActions'),
-    );
+    expect(SCREEN).not.toContain('t.group.inviteToGroup}');
   });
 
   it('highlights the viewer and gives everyone else a ⋮ menu of the member actions', () => {

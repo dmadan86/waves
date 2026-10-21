@@ -1125,50 +1125,6 @@ export default function GroupSettingsScreen() {
                   />
                 );
               })}
-
-              {/* Inviting is the other way in, and the commonest: send a link,
-                  they join themselves. It sits last in the card it adds to. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${t.group.inviteToGroup}, ${t.group.inviteToGroupHint}`}
-                onPress={() => router.push(`/group/${groupId}/invite`)}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  marginTop: theme.spacing.sm,
-                  padding: theme.spacing.md,
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: theme.color.brandSoft,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme.color.brand,
-                  }}
-                >
-                  <Ionicons name="link" size={iconSize.lg} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text tone="brand" style={{ fontWeight: '700' }}>
-                    {t.group.inviteToGroup}
-                  </Text>
-                  <Text variant="caption" tone="muted">
-                    {t.group.inviteToGroupHint}
-                  </Text>
-                </View>
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.md}
-                  color={theme.color.brand}
-                />
-              </Pressable>
             </StandardCard>
           </View>
 
