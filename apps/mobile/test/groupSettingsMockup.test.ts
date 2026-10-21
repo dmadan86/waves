@@ -75,9 +75,7 @@ describe('settings page layout', () => {
     expect(row).toContain('t.extras.datesRow');
     expect(row).toContain('datesSummary');
     expect(SCREEN).toContain('groupType === GroupType.Trip || groupType === GroupType.Event');
-    expect(between(SCREEN, 'visible={datesOpen}', '</Sheet>')).toContain(
-      '<TripDates\n            embedded',
-    );
+    expect(between(SCREEN, 'visible={datesOpen}', '</Sheet>')).toContain('<DatesSheetBody');
   });
 
   it('shows Trip currency as a row that opens the embedded rates editor in a sheet', () => {
@@ -204,7 +202,7 @@ describe('group details on the page itself', () => {
       '<SettleInCurrencyRow',
       '<TripRatesCard',
       '<MissingRatesCard',
-      '<TripDates',
+      '<DatesSheetBody',
     ]) {
       expect(details).toContain(piece);
     }

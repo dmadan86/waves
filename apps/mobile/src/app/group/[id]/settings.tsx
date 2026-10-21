@@ -52,7 +52,7 @@ import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { GroupTagField } from '@/components/GroupTagField';
-import { TripDates } from '@/components/TripDates';
+import { DatesSheetBody } from '@/components/DatesSheetBody';
 import { gregorianFormatter } from '@/lib/calendarGrid';
 import { tripDateFromIso } from '@/lib/tripDateRange';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
@@ -1408,27 +1408,22 @@ export default function GroupSettingsScreen() {
       <Sheet
         visible={datesOpen}
         onClose={() => setDatesOpen(false)}
-        title={
-          groupType === GroupType.Event ? t.eventOrganizer.eventDatesTitle : t.misc.tripDatesTitle
-        }
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.75) }}
+        style={{ height: Math.round(windowHeight * 0.9) }}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
-          showsVerticalScrollIndicator={false}
-        >
-          <TripDates
-            embedded
+        {/* Mounted only while open, so each opening starts a fresh draft from
+            the saved range and closing discards it. */}
+        {datesOpen ? (
+          <DatesSheetBody
             group={group.data}
             locale={locale}
             forEvent={groupType === GroupType.Event}
-            onChange={(patch) =>
+            onClose={() => setDatesOpen(false)}
+            onSave={(patch) =>
               updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
             }
           />
-        </ScrollView>
+        ) : null}
       </Sheet>
 
       <Sheet
