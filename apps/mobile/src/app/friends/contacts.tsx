@@ -58,6 +58,7 @@ import { useKnownContacts } from '@/data/knownContacts';
 import { type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function ContactsScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -281,7 +282,7 @@ function ChooseGroup({
       <Card style={{ gap: theme.spacing.xs }}>
         <Row style={{ gap: theme.spacing.md }}>
           {only ? (
-            <Avatar name={only.name} size={44} />
+            <PersonAvatar name={only.name} size={44} />
           ) : (
             <AvatarStack names={contacts.map((contact) => contact.name)} size={36} />
           )}

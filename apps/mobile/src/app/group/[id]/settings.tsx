@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 
 import {
-  Avatar,
   Button,
   Callout,
   directionalIcon,
@@ -102,6 +101,7 @@ import {
   payableAt,
   SettlementStatus,
 } from '@/data/types';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** One entry in a member's ⋮ menu. */
 interface MemberAction {
@@ -1222,7 +1222,8 @@ export default function GroupSettingsScreen() {
                             (payableAt(member)?.handle ?? t.misc.noUpiYet)
                     }
                     leading={
-                      <Avatar
+                      <PersonAvatar
+                        member={member}
                         name={displayName(member, null, blockedIds, t.misc.someone)}
                         ghost={ghost}
                       />

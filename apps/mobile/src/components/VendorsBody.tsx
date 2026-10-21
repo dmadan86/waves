@@ -14,7 +14,6 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { subEventsForTemplate } from '@waves/core';
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -48,6 +47,7 @@ import { router } from '@/lib/navigation';
 import { vendorCandidates } from '@/lib/vendorCandidates';
 import { useViewerId } from '@/lib/auth';
 import { memberNameById } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export function VendorsBody({
   groupId,
@@ -389,7 +389,11 @@ export function VendorsBody({
                             ) : null}
                           </Row>
                           <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
-                            <Avatar name={payer} size={18} />
+                            <PersonAvatar
+                              name={payer}
+                              member={entry.payerMemberId ? lookup.get(entry.payerMemberId) : null}
+                              size={18}
+                            />
                             <Text variant="micro" tone="muted" numberOfLines={1}>
                               {fill(o.paidBy, { name: payer })}
                             </Text>

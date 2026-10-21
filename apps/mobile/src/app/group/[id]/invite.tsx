@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 
 import {
-  Avatar,
   Button,
   Callout,
   Card,
@@ -49,6 +48,7 @@ import {
 } from '@/components/invite/SharedInviteCard';
 import { shareInviteCard } from '@/lib/shareInviteCard';
 import type { ShareTarget } from '../../../../modules/waves-share';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as number;
 
@@ -339,7 +339,8 @@ export default function InviteScreen() {
                           borderColor: theme.color.surface,
                         }}
                       >
-                        <Avatar
+                        <PersonAvatar
+                          member={member}
                           name={displayName(member, profile?.id, null, t.misc.someone)}
                           ghost={isGhost(member)}
                           size={28}
