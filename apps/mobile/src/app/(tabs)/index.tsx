@@ -31,6 +31,7 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { trialDaysLeft } from '@/lib/proTrial';
 import { useProTrial } from '@/lib/useProTrial';
 import { useAuth } from '@/lib/auth';
+import { useGroupCapGuard } from '@/lib/groupCapGuard';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { router } from '@/lib/navigation';
@@ -104,6 +105,7 @@ export default function HomeScreen() {
   const groups = useGroups();
   const summary = useHomeSummary(viewerId);
   const guard = useGuestGuard();
+  const groupCap = useGroupCapGuard();
   const tour = useTour();
 
   // A press-and-hold on any add icon raises the same quick-add sheet — type,
@@ -321,6 +323,9 @@ export default function HomeScreen() {
   // waves this through.
   const openNewGroup = (): void => {
     if (guard.blockAddGroup()) return;
+    // A Free account that has started its ten groups gets the upgrade prompt
+    // instead of the form (`lib/groupCapGuard`).
+    if (groupCap.blockCreate()) return;
     router.push('/new-group');
   };
   // Every "new group" door on Home opens this menu: create, scan, or join.

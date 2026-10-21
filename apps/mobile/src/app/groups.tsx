@@ -34,6 +34,7 @@ import { SkeletonList } from '@/components/Skeletons';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { router } from '@/lib/navigation';
+import { useGroupCapGuard } from '@/lib/groupCapGuard';
 
 /** The round buttons in the header, back button included, so the row is one height. */
 const HEADER_BUTTON = 40;
@@ -74,6 +75,13 @@ export default function AllGroupsScreen() {
   const groups = useGroups();
   const list = useMemo(() => groups.data ?? [], [groups.data]);
   const loading = groups.isLoading || summary.isLoading;
+  // Both new-group doors on this screen ask the Free ceiling first: a Free
+  // account that has started its ten groups gets the upgrade prompt, not the form.
+  const groupCap = useGroupCapGuard();
+  const openNewGroup = (): void => {
+    if (groupCap.blockCreate()) return;
+    router.push('/new-group');
+  };
   // Groups someone else has touched since the reader last opened them.
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);
   const unreadGroups = useGroupUnread(groupIds);
@@ -160,7 +168,7 @@ export default function AllGroupsScreen() {
       body={t.noGroupsBody}
       action={
         <View style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-          <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
+          <Button label={t.newGroup} onPress={openNewGroup} />
           <Button
             label={t.misc.joinWithCode}
             variant="ghost"
@@ -181,6 +189,7 @@ export default function AllGroupsScreen() {
         backLabel={t.common.back}
         joinLabel={t.misc.joinWithCode}
         newLabel={t.newGroup}
+        onNew={openNewGroup}
         searchLabel={t.searchGroups}
         clearLabel={t.pickers.clearSearch}
         query={query}
@@ -322,6 +331,7 @@ function GroupsHeader({
   backLabel,
   joinLabel,
   newLabel,
+  onNew,
   searchLabel,
   clearLabel,
   query,
@@ -333,6 +343,7 @@ function GroupsHeader({
   backLabel: string;
   joinLabel: string;
   newLabel: string;
+  onNew: () => void;
   searchLabel: string;
   clearLabel: string;
   query: string;
@@ -423,7 +434,7 @@ function GroupsHeader({
           <PressableScale
             accessibilityRole="button"
             accessibilityLabel={newLabel}
-            onPress={() => router.push('/new-group')}
+            onPress={onNew}
             hitSlop={6}
             style={whiteDisc}
           >

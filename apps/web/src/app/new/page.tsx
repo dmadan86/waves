@@ -14,14 +14,16 @@
  * start splitting tonight, not to fill in a contact book.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { GroupType } from '@waves/api-client';
+import { FREE_GROUP_LIMIT, isFreeGroupLimitError } from '@waves/core';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { waves } from '@/lib/waves';
+import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { X } from 'lucide-react';
@@ -49,6 +51,15 @@ function NewGroup() {
   const [person, setPerson] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The Free ceiling on starting groups, asked before the form is filled in
+  // rather than after the server refuses. The server still decides.
+  const [capped, setCapped] = useState(false);
+  useEffect(() => {
+    waves
+      .groupCap()
+      .then((cap) => setCapped(!cap.canCreate))
+      .catch(() => setCapped(false));
+  }, []);
 
   const types: { value: GroupType; label: string }[] = [
     { value: GroupType.Trip, label: t.newGroup.typeTrip },
@@ -80,10 +91,12 @@ function NewGroup() {
       });
     } catch (caught) {
       setError(
-        friendlyError(caught, 'web.newGroup.create', {
-          fallback: t.errors.couldNotSave,
-          offline: t.errors.offline,
-        }),
+        isFreeGroupLimitError(caught)
+          ? fill(t.groupCap.refused, { n: FREE_GROUP_LIMIT })
+          : friendlyError(caught, 'web.newGroup.create', {
+              fallback: t.errors.couldNotSave,
+              offline: t.errors.offline,
+            }),
       );
       setBusy(false);
       return;
@@ -222,9 +235,15 @@ function NewGroup() {
           ) : null}
         </section>
 
+        {capped ? <p className="error">{fill(t.groupCap.body, { n: FREE_GROUP_LIMIT })}</p> : null}
         {error ? <p className="error">{error}</p> : null}
 
-        <button type="button" className="btn" disabled={busy} onClick={() => void create()}>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy || capped}
+          onClick={() => void create()}
+        >
           {busy ? t.newGroup.creating : t.newGroup.create}
         </button>
       </div>

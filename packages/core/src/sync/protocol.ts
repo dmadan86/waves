@@ -539,6 +539,8 @@ export enum SyncRejectionCode {
   ValidationFailed = 'VALIDATION_FAILED',
   ConflictSuperseded = 'CONFLICT_SUPERSEDED',
   RateLimited = 'RATE_LIMITED',
+  /** A Free account has started its ten groups (`waves_assert_group_cap`). */
+  FreeGroupLimit = 'FREE_GROUP_LIMIT',
 }
 
 export interface SyncResponse {

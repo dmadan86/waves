@@ -28,11 +28,18 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { GroupType, type Member, type ProfileRow } from '@waves/api-client';
-import { type CurrencyCode, parseMajor, serialiseSplitParams } from '@waves/core';
+import {
+  type CurrencyCode,
+  FREE_GROUP_LIMIT,
+  isFreeGroupLimitError,
+  parseMajor,
+  serialiseSplitParams,
+} from '@waves/core';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
+import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { waves } from '@/lib/waves';
@@ -153,10 +160,12 @@ function AddPerson() {
       // it, and give the way in.
       if (groupId) setHalfDone(groupId);
       setError(
-        friendlyError(caught, 'web.addPerson.save', {
-          fallback: t.addPerson.couldNotRecord,
-          offline: t.errors.offline,
-        }),
+        isFreeGroupLimitError(caught)
+          ? fill(t.groupCap.refused, { n: FREE_GROUP_LIMIT })
+          : friendlyError(caught, 'web.addPerson.save', {
+              fallback: t.addPerson.couldNotRecord,
+              offline: t.errors.offline,
+            }),
       );
       setSaving(false);
     }

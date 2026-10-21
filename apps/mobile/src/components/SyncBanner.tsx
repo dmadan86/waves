@@ -11,10 +11,15 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Easing, Pressable, View } from 'react-native';
 
-import { deadLettered, pendingMutations } from '@waves/core';
+import {
+  deadLettered,
+  FREE_GROUP_LIMIT,
+  isFreeGroupLimitError,
+  pendingMutations,
+} from '@waves/core';
 import { Card, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 
 import { isPhoneCountryError } from '@/lib/phone';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -214,7 +219,9 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
         <Text variant="caption" tone="muted">
           {first && isPhoneCountryError(first)
             ? t.people.phoneNeedsCountryCode
-            : t.misc.serverRefused}
+            : first && isFreeGroupLimitError(first)
+              ? fill(t.groupCap.refused, { n: FREE_GROUP_LIMIT })
+              : t.misc.serverRefused}
         </Text>
         {/* The two recovery actions for a refused change — the buttons a person
             most needs to hit. A caption Text alone left the tap area ~18pt tall;

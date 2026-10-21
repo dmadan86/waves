@@ -106,6 +106,8 @@ const RAISED_CODES: Record<string, { code: ErrorCode; retry?: boolean }> = {
   CANNOT_DELETE: { code: 'unprocessable' },
   RESTORE_WINDOW_EXPIRED: { code: 'unprocessable' },
   GUEST_GROUP_LIMIT: { code: 'forbidden' },
+  // A Free account has started its ten groups (`waves_assert_group_cap`).
+  FREE_GROUP_LIMIT: { code: 'forbidden' },
   ACCOUNT_REQUIRED: { code: 'forbidden' },
   NOTHING_OWED: { code: 'unprocessable' },
   INVALID_TRANSITION: { code: 'conflict' },

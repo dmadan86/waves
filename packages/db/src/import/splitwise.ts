@@ -343,6 +343,11 @@ export async function importSplitwiseLedger(
 
   await client.query('BEGIN');
   try {
+    // The importer writes as the service, which the `groups` trigger does not
+    // look at — so it asks the Free ceiling itself, as `waves_create_group`
+    // would. A Free account that has started its ten groups cannot import an
+    // eleventh; the refusal is FREE_GROUP_LIMIT, the same one the app shows.
+    await client.query(`SELECT public.waves_assert_group_cap($1)`, [userId]);
     const groupRows = (
       await client.query(
         `INSERT INTO groups (name, type, default_currency, created_by)

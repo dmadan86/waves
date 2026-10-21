@@ -3906,6 +3906,15 @@ export interface UiStrings {
     };
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
+  /** The Free ceiling on starting groups (`lib/groupCapGuard`): the prompt at
+   *  the New Group doors, and the line under a create the server refused. `{n}`
+   *  is the limit. */
+  groupCap: {
+    title: string;
+    body: string;
+    upgrade: string;
+    refused: string;
+  };
   misc: {
     settleYouOweTotal: string;
     settleOwedTotal: string;
@@ -8970,6 +8979,13 @@ const en: UiStrings = {
       yes: 'Yes',
       no: 'No',
     },
+  },
+  groupCap: {
+    title: 'Group limit reached',
+    body: 'Free plan lets you create up to {n} groups. Upgrade to Pro for unlimited groups.',
+    upgrade: 'Upgrade',
+    refused:
+      'Free plan lets you create up to {n} groups, so this group couldn\u2019t be created. Upgrade to Pro for unlimited groups.',
   },
   misc: {
     settleYouOweTotal: 'You owe {amount} in this group',
@@ -14064,6 +14080,13 @@ const ta: UiStrings = {
       yes: 'ஆம்',
       no: 'இல்லை',
     },
+  },
+  groupCap: {
+    title: 'குழு வரம்பை எட்டிவிட்டது',
+    body: 'இலவசத் திட்டத்தில் {n} குழுக்கள் வரை உருவாக்கலாம். வரம்பற்ற குழுக்களுக்கு Pro-க்கு மேம்படுத்துங்கள்.',
+    upgrade: 'மேம்படுத்து',
+    refused:
+      'இலவசத் திட்டத்தில் {n} குழுக்கள் வரை மட்டுமே உருவாக்கலாம், எனவே இந்தக் குழுவை உருவாக்க முடியவில்லை. வரம்பற்ற குழுக்களுக்கு Pro-க்கு மேம்படுத்துங்கள்.',
   },
   misc: {
     settleYouOweTotal: 'இந்தக் குழுவில் நீங்கள் {amount} தர வேண்டும்',
@@ -19169,6 +19192,13 @@ const hi: UiStrings = {
       yes: 'हाँ',
       no: 'नहीं',
     },
+  },
+  groupCap: {
+    title: 'ग्रुप की सीमा पूरी हो गई',
+    body: 'फ़्री प्लान में आप {n} ग्रुप तक बना सकते हैं। अनलिमिटेड ग्रुप के लिए Pro पर अपग्रेड करें।',
+    upgrade: 'अपग्रेड करें',
+    refused:
+      'फ़्री प्लान में आप {n} ग्रुप तक बना सकते हैं, इसलिए यह ग्रुप नहीं बन सका। अनलिमिटेड ग्रुप के लिए Pro पर अपग्रेड करें।',
   },
   misc: {
     settleYouOweTotal: 'इस ग्रुप में आपको {amount} देने हैं',
@@ -24437,6 +24467,13 @@ const ar: UiStrings = {
       yes: 'نعم',
       no: 'لا',
     },
+  },
+  groupCap: {
+    title: 'وصلت إلى حد المجموعات',
+    body: 'تتيح لك الخطة المجانية إنشاء ما يصل إلى {n} مجموعات. انتقل إلى Pro لمجموعات غير محدودة.',
+    upgrade: 'ترقية',
+    refused:
+      'تتيح لك الخطة المجانية إنشاء ما يصل إلى {n} مجموعات، لذا تعذّر إنشاء هذه المجموعة. انتقل إلى Pro لمجموعات غير محدودة.',
   },
   misc: {
     settleYouOweTotal: 'عليك {amount} في هذه المجموعة',
