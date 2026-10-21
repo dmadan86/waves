@@ -1,0 +1,14 @@
+Account Name       :	Mr. RAHUL SHARMA
+Address            :	12 MG ROAD
+Account Number     :	_00000012345678901
+Currency           :	INR
+Start Date         :	1 Sep 2026
+End Date           :	30 Sep 2026
+
+Txn Date	Value Date	Description	Ref No./Cheque No.	        Debit	Credit	Balance
+1 Sep 2026	1 Sep 2026	BY TRANSFER-NEFT*HDFC0000001*N182267001234*ACME TECHNOLOGIES PVT LTD--	TRANSFER FROM 1234567890		1,45,000.00	2,30,000.00
+3 Sep 2026	3 Sep 2026	TO TRANSFER-UPI/DR/624612345678/SUNITA S/UTIB/sunita.rent/House rent--	TRANSFER TO 4897691162093	32,000.00		1,98,000.00
+15 Sep 2026	15 Sep 2026	ATM WDL-ATM CASH 1234 KORAMANGALA BANGALORE-		5,000.00		1,93,000.00
+30 Sep 2026	30 Sep 2026	CREDIT INTEREST--			1,234.00	1,94,234.00
+
+**This is a computer generated statement and does not require a signature.

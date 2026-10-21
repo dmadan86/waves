@@ -1,0 +1,7 @@
+Transaction ID,Date,Time,Type,Name,Emoji,Category,Amount,Currency,Local amount,Local currency,Notes and #tags,Address,Receipt,Description,Category split,Money Out,Money In
+tx_0000AbC1,01/09/2026,08:14:22,Card payment,Pret A Manger,,Eating out,-4.95,GBP,-4.95,GBP,,"1 High St, London",,PRET A MANGER LONDON GBR,,-4.95,
+tx_0000AbC2,01/09/2026,09:00:00,Faster payment,ACME LTD,,Income,2450.00,GBP,2450.00,GBP,,"1 High St, London",,ACME LTD SALARY,,,2450.00
+tx_0000AbC3,03/09/2026,12:30:10,Direct Debit,Thames Water,,Bills,-38.50,GBP,-38.50,GBP,,"1 High St, London",,THAMES WATER DD,,-38.50,
+tx_0000AbC4,13/09/2026,19:45:00,Card payment,Tesco,,Groceries,-62.17,GBP,-62.17,GBP,,"1 High St, London",,TESCO STORES 3021 LONDON GBR,,-62.17,
+tx_0000AbC5,20/09/2026,10:00:00,Pot transfer,Savings,,Savings,-200.00,GBP,-200.00,GBP,,"1 High St, London",,,,-200.00,
+tx_0000AbC6,25/09/2026,07:10:00,Card payment,TfL Travel Charge,,Transport,-7.80,GBP,-7.80,GBP,,"1 High St, London",,TFL TRAVEL CH LONDON GBR,,-7.80,
