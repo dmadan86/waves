@@ -38,6 +38,7 @@ import {
 } from '@/data/hooks';
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
+import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -476,14 +477,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
     .join(', ');
   // The amount's colour: blue when you lent, the negative red when you borrowed
   // (the sign is also said in words under it, so colour is never the only cue).
-  const stakeColor =
-    stake === null || stake === 0n
-      ? theme.color.textMuted
-      : stake > 0n
-        ? theme.scheme === 'dark'
-          ? '#7AA2FF'
-          : '#2563EB'
-        : theme.color.negative;
+  const stakeColor = stakeColorFor(stake, theme);
   return (
     <CardRow isFirst={isFirst} isLast={isLast} theme={theme} tint={mark !== null}>
       <Row style={{ alignItems: 'center' }}>
@@ -567,29 +561,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
                   {expense.pending ? <PendingMark /> : null}
                 </Row>
                 <Row style={{ gap: 6, alignItems: 'center', marginTop: 2, maxWidth: '100%' }}>
-                  <View
-                    style={{
-                      flexShrink: 1,
-                      minWidth: 0,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 999,
-                      backgroundColor:
-                        pillKind === 'neutral' ? theme.color.border : `${stakeColor}1F`,
-                    }}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 11,
-                        lineHeight: 14,
-                        fontWeight: '600',
-                        color: pillKind === 'neutral' ? theme.color.textMuted : stakeColor,
-                      }}
-                    >
-                      {pillLabel}
-                    </Text>
-                  </View>
+                  <StakePill label={pillLabel} kind={pillKind} color={stakeColor} />
                   {dateStamp ? (
                     <Text
                       variant="micro"
