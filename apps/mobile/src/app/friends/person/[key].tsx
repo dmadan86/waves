@@ -28,7 +28,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type CurrencyCode } from '@waves/core';
 import {
-  Avatar,
   Button,
   Card,
   Divider,
@@ -65,6 +64,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
@@ -153,10 +153,10 @@ export default function PersonDetailScreen() {
                   onPress={() => setPhotoOpen(true)}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 >
-                  <Avatar name={title} size={64} photoUrl={photo} />
+                  <PersonAvatar name={title} size={64} avatarUrl={photo} />
                 </Pressable>
               ) : (
-                <Avatar
+                <PersonAvatar
                   name={masked ? t.misc.someone : title}
                   size={64}
                   ghost={masked || Boolean(profile?.is_ghost) || person.unregistered}

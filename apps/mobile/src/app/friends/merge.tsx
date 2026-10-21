@@ -114,6 +114,7 @@ import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * How much of the hand-pick roster is drawn before asking. It is every ghost in
@@ -750,7 +751,7 @@ export default function MergePeopleScreen() {
                 key={option}
                 label={option}
                 on={duplicateNameKey(option) === duplicateNameKey(name)}
-                leading={<Avatar name={option} size={24} ghost />}
+                leading={<PersonAvatar name={option} size={24} ghost />}
                 onPress={() => setSheetName(option)}
               />
             ))}
@@ -1288,7 +1289,7 @@ function PickRow({
           <Ionicons name="checkmark" size={iconSize.sm} color={theme.color.onBrand} />
         ) : null}
       </View>
-      <Avatar name={row.display_name} size={32} ghost />
+      <PersonAvatar name={row.display_name} size={32} ghost />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
           {row.display_name}

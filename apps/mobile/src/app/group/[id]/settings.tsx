@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 
 import {
-  Avatar,
   Button,
   Callout,
   ChipRow,
@@ -106,6 +105,7 @@ import {
   payableAt,
   SettlementStatus,
 } from '@/data/types';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 // Same chip icons the create screen wears, so changing a group's kind looks
 // like the same control that first set it.
@@ -1077,7 +1077,8 @@ export default function GroupSettingsScreen() {
                             (payableAt(member)?.handle ?? t.misc.noUpiYet)
                     }
                     leading={
-                      <Avatar
+                      <PersonAvatar
+                        member={member}
                         name={displayName(member, null, blockedIds, t.misc.someone)}
                         ghost={ghost}
                       />

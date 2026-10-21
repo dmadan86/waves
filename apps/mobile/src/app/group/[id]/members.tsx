@@ -4,7 +4,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
-  Avatar,
   Badge,
   Button,
   Callout,
@@ -37,6 +36,7 @@ import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { useBottomClearance } from '@/lib/clearance';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function MembersScreen() {
   const theme = useTheme();
@@ -231,7 +231,7 @@ export default function MembersScreen() {
             {(claims.data ?? []).map((claim) => (
               <View key={claim.id} style={{ gap: theme.spacing.sm }}>
                 <Row style={{ gap: theme.spacing.md }}>
-                  <Avatar name={claim.ghost_name ?? '?'} ghost />
+                  <PersonAvatar name={claim.ghost_name ?? '?'} ghost />
                   <Text variant="body" style={{ flex: 1 }}>
                     {fill(t.claims.saysTheyAre, {
                       who: claim.requested_name ?? claim.requester_name ?? t.misc.unnamed,
@@ -278,7 +278,8 @@ export default function MembersScreen() {
                         (payableAt(member)?.handle ?? t.misc.noUpiYet)
                 }
                 leading={
-                  <Avatar
+                  <PersonAvatar
+                    member={member}
                     name={displayName(member, null, blockedIds, t.misc.someone)}
                     ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
                   />

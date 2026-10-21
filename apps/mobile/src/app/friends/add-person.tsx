@@ -25,7 +25,6 @@ import { parseReceiptText, type HeuristicReceipt, type PaymentMethod } from '@wa
 
 import {
   AmountField,
-  Avatar,
   Button,
   Callout,
   Card,
@@ -52,6 +51,7 @@ import { captureReceipt, type PickedImage } from '@/lib/image';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { recogniseReceipt } from '@/lib/ocr';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 type Direction = 'theyOwe' | 'iOwe';
 
@@ -267,7 +267,7 @@ export default function AddPersonScreen() {
             contacts as a real button rather than a footnote link. */}
         <Card style={{ gap: theme.spacing.lg }}>
           <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-            <Avatar name={name.trim() || '?'} size={56} ghost />
+            <PersonAvatar name={name.trim() || '?'} size={56} ghost />
             <View style={{ flex: 1, gap: theme.spacing.xs }}>
               <Text variant="caption" tone="muted">
                 {t.addPerson.nameLabel}
