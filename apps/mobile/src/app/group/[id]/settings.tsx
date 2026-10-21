@@ -966,8 +966,11 @@ export default function GroupSettingsScreen() {
                   </Pressable>
                 </Row>
                 <Text variant="caption" tone="muted" numberOfLines={2}>
+                  {/* Non-breaking spaces keep each part whole, so a narrow
+                      screen wraps between them rather than inside "4 members". */}
                   {[createdLabel, plural(locale, memberCount, t.memberCount)]
-                    .filter(Boolean)
+                    .filter((part): part is string => Boolean(part))
+                    .map((part) => part.replace(/ /g, '\u00A0'))
                     .join(' • ')}
                 </Text>
               </View>
