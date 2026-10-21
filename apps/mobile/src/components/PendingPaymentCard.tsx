@@ -22,7 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ActivityIndicator, Linking, Platform, Pressable, Share, View } from 'react-native';
 
 import { format, money, type CurrencyCode } from '@waves/core';
-import { Avatar, Card, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import { Card, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { PendingMark } from '@/components/PendingMark';
 import { SettlementProof, useAddProof } from '@/components/SettlementProof';
@@ -47,6 +47,7 @@ import {
   RemindUnit,
   reminderUrls,
 } from '@/lib/paymentProof';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** One of the card's three equal, flat actions: icon and label, no fill. */
 function Action({
@@ -266,7 +267,12 @@ export function PendingPaymentCard({
       }}
     >
       <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-        <Avatar name={payeeName} ghost={payee ? isGhost(payee) : false} size={40} />
+        <PersonAvatar
+          name={payeeName}
+          member={payee}
+          ghost={payee ? isGhost(payee) : false}
+          size={40}
+        />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text variant="body" numberOfLines={1}>
             {fill(t.proof.youPaid, { name: payeeName })}

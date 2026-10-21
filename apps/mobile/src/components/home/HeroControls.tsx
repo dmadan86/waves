@@ -8,7 +8,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, View } from 'react-native';
 
-import { Avatar, iconSize, useTheme } from '@waves/ui';
+import { iconSize, useTheme } from '@waves/ui';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * The face at the top of the hero. With a photo it is the ordinary Avatar; with
@@ -34,10 +35,10 @@ export function HeroAvatar({
   const theme = useTheme();
   if (photoUrl) {
     return (
-      <Avatar
+      <PersonAvatar
         name={name}
         size={40}
-        photoUrl={photoUrl}
+        avatarUrl={photoUrl}
         accessibilityLabel={label}
         onPress={onPress}
       />

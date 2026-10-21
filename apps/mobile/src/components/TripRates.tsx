@@ -38,10 +38,11 @@ import {
 } from '@waves/ui';
 
 import { fetchFxRate } from '@/data/api';
+import { flagFor } from '@/components/expense/AmountHeader';
 import { CurrencyChoices, CurrencySheet } from '@/components/expense/CurrencySheet';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { rateAttribution } from '@/lib/fxLine';
 import { StaleFxRateError } from '@/lib/fxStale';
@@ -78,6 +79,110 @@ function CurrencyMark({ code }: { code: string }) {
   );
 }
 
+/** One added currency in the Other currencies sheet: flag, name, rate, chevron, ⋮. */
+function RateCurrencyCard({
+  code,
+  name,
+  rateText,
+  canEdit,
+  onEdit,
+  onMenu,
+  menuLabel,
+}: {
+  code: string;
+  name: string | null;
+  rateText?: string;
+  canEdit: boolean;
+  onEdit: () => void;
+  onMenu: () => void;
+  menuLabel: string;
+}) {
+  const theme = useTheme();
+  const flag = flagFor(code);
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.brandSoft,
+      }}
+    >
+      <Pressable
+        accessibilityRole={canEdit ? 'button' : undefined}
+        accessibilityLabel={`${name ?? code} ${rateText ?? ''}`.trim()}
+        disabled={!canEdit}
+        onPress={onEdit}
+        style={({ pressed }) => ({
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          paddingLeft: theme.spacing.md,
+          paddingVertical: theme.spacing.md,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: theme.radius.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          {flag ? (
+            <Text style={{ fontSize: 26, lineHeight: 32 }}>{flag}</Text>
+          ) : (
+            <Text variant="micro" style={{ fontWeight: '700' }}>
+              {code}
+            </Text>
+          )}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text variant="subheading" numberOfLines={1}>
+            {name ?? code}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {code}
+          </Text>
+        </View>
+        {rateText ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {rateText}
+          </Text>
+        ) : null}
+        {canEdit ? (
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        ) : null}
+      </Pressable>
+      {canEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={menuLabel}
+          onPress={onMenu}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.md,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.text} />
+        </Pressable>
+      ) : (
+        <View style={{ width: theme.spacing.md }} />
+      )}
+    </View>
+  );
+}
+
 /**
  * The currency the group counts in.
  *
@@ -91,39 +196,98 @@ export function SettlesInRow({
   currency,
   locked,
   onChange,
+  tile = false,
 }: {
   currency: string;
   locked: boolean;
   onChange: (currency: string) => void;
+  /** The Other currencies sheet's compact card: flag tile, "Balances in INR", "Indian Rupee · group currency", and a chevron only when it can change. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const [open, setOpen] = useState(false);
+
+  const name = currencyName(currency, locale);
+  const flag = flagFor(currency);
+  const row = tile ? (
+    <Pressable
+      accessibilityRole={locked ? undefined : 'button'}
+      accessibilityLabel={fill(t.fx.balancesIn, { currency })}
+      disabled={locked}
+      onPress={() => setOpen(true)}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: theme.radius.md,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+        }}
+      >
+        {flag ? (
+          <Text style={{ fontSize: 26, lineHeight: 32 }}>{flag}</Text>
+        ) : (
+          <Text variant="micro" style={{ fontWeight: '700' }}>
+            {currency}
+          </Text>
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="subheading" numberOfLines={1}>
+          {fill(t.fx.balancesIn, { currency })}
+        </Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {fill(t.fx.groupCurrencyLine, { name: name ?? currency })}
+        </Text>
+      </View>
+      {locked ? null : (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textMuted}
+        />
+      )}
+    </Pressable>
+  ) : (
+    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+      <ListRow
+        title={t.fx.settlesIn}
+        subtitle={locked ? t.fx.settlesInLocked : t.fx.settlesInHint}
+        leading={<CurrencyMark code={currency} />}
+        trailing={
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text variant="body" tone="muted">
+              {currency}
+            </Text>
+            {locked ? null : (
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.textFaint}
+              />
+            )}
+          </Row>
+        }
+        onPress={locked ? undefined : () => setOpen(true)}
+      />
+    </Card>
+  );
 
   return (
     <>
-      <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        <ListRow
-          title={t.fx.settlesIn}
-          subtitle={locked ? t.fx.settlesInLocked : t.fx.settlesInHint}
-          leading={<CurrencyMark code={currency} />}
-          trailing={
-            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <Text variant="body" tone="muted">
-                {currency}
-              </Text>
-              {locked ? null : (
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.sm}
-                  color={theme.color.textFaint}
-                />
-              )}
-            </Row>
-          }
-          onPress={locked ? undefined : () => setOpen(true)}
-        />
-      </Card>
+      {row}
 
       {open ? (
         <CurrencySheet
@@ -207,6 +371,8 @@ export function TripRatesCard({
   groupCurrency,
   canEdit,
   embedded = false,
+  bare = false,
+  cards = false,
 }: {
   store: TripRateStore;
   groupCurrency: string;
@@ -222,16 +388,87 @@ export function TripRatesCard({
    * being created has none.
    */
   embedded?: boolean;
+  /** Heading and list without the outer card, for a section inside another card. */
+  bare?: boolean;
+  /**
+   * The Other currencies sheet's look: one tinted card per currency with the
+   * rate, a chevron and a ⋮, then an "Add a currency" card. Embedded only.
+   */
+  cards?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const rows: readonly TripRateRow[] = store.rows;
+  /** The currency whose ⋮ menu is open. */
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   /** The currency being edited, or `''` for a rate that does not exist yet. */
   const [editing, setEditing] = useState<string | null>(null);
   /** The explanation under the heading, folded behind the ⓘ like Trip dates'. */
   const [showInfo, setShowInfo] = useState(false);
 
-  const list = (
+  const list = cards ? (
+    <View style={{ gap: theme.spacing.sm }}>
+      {rows.length === 0 && !canEdit ? (
+        <Text variant="caption" tone="muted">{`${t.fx.noRates} ${t.fx.adminOnly}`}</Text>
+      ) : null}
+      {rows.map((row) => {
+        const rate = tripRateFor([row], row.from, groupCurrency);
+        const name = currencyName(row.from, locale);
+        return (
+          <RateCurrencyCard
+            key={row.from}
+            code={row.from}
+            name={name}
+            rateText={rate ? rateLine(rate) : undefined}
+            canEdit={canEdit}
+            onEdit={() => setEditing(row.from)}
+            onMenu={() => setMenuFor(row.from)}
+            menuLabel={t.fx.editRate}
+          />
+        );
+      })}
+      <RateAttribution fx={rows.find((row) => rateAttribution(row))} tone="faint" />
+      {canEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.fx.addRate}
+          onPress={() => setEditing('')}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            paddingHorizontal: theme.spacing.lg,
+            paddingVertical: theme.spacing.md,
+            marginTop: theme.spacing.xs,
+            borderRadius: theme.radius.lg,
+            backgroundColor: theme.color.brandSoft,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: `${theme.color.brand}1F`,
+            }}
+          >
+            <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+          </View>
+          <Text variant="subheading" tone="brand" style={{ flex: 1 }}>
+            {t.fx.addRate}
+          </Text>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={theme.color.brand}
+          />
+        </Pressable>
+      ) : null}
+    </View>
+  ) : (
     <>
       {rows.length === 0 ? (
         // Embedded, "Add a currency" sits directly below and says the same
@@ -305,10 +542,36 @@ export function TripRatesCard({
       />
     ) : null;
 
+  const menu =
+    menuFor !== null ? (
+      <Sheet visible onClose={() => setMenuFor(null)} closeLabel={t.common.close}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <ListRow
+            title={t.fx.editRate}
+            onPress={() => {
+              const from = menuFor;
+              setMenuFor(null);
+              setEditing(from);
+            }}
+          />
+          <ListRow
+            title={t.fx.removeRate}
+            destructive
+            onPress={() => {
+              const from = menuFor;
+              setMenuFor(null);
+              void store.set({ from, num: null, den: null }).catch(() => undefined);
+            }}
+          />
+        </View>
+      </Sheet>
+    ) : null;
+
   if (embedded) {
     return (
       <View>
         {list}
+        {menu}
         {sheet}
       </View>
     );
@@ -321,7 +584,11 @@ export function TripRatesCard({
           come here for, and the explanation is for the one time they wonder. */}
       <Row style={{ justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.sm }}>
         <View style={{ flex: 1 }}>
-          <SectionHeader title={t.fx.tripRates} />
+          {bare ? (
+            <Text variant="subheading">{t.fx.tripRates}</Text>
+          ) : (
+            <SectionHeader title={t.fx.tripRates} />
+          )}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -349,9 +616,13 @@ export function TripRatesCard({
         </View>
       ) : null}
 
-      <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        {list}
-      </Card>
+      {bare ? (
+        list
+      ) : (
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          {list}
+        </Card>
+      )}
 
       {sheet}
     </View>

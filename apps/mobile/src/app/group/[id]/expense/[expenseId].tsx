@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -43,7 +42,6 @@ import { builtinCategoryLabel, CategoryRow } from '@/components/Category';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { AssistantCompleteRow } from '@/components/AssistantCompleteRow';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { ExpenseComments } from '@/components/ExpenseComments';
@@ -82,6 +80,7 @@ import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
 import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
 import { memberNameById } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -134,10 +133,8 @@ function HeroButton({
   );
 }
 
-/** A member's avatar showing their real picture when they have one. The signing
- *  hook (`useAvatarUrl`) must run per row, so this is its own component rather
- *  than a call inside a `.map`. Falls back to initials — same as the comment
- *  thread below. */
+/** A member's avatar showing their real picture when they have one. `PersonAvatar` signs the photo, falls back to
+ *  initials, and is the same component the comment thread below uses. */
 function MemberAvatar({
   name,
   photo,
@@ -149,8 +146,7 @@ function MemberAvatar({
   ghost: boolean;
   size?: number;
 }): React.JSX.Element {
-  const url = useAvatarUrl(photo);
-  return <Avatar name={name} photoUrl={url} ghost={ghost} size={size} />;
+  return <PersonAvatar name={name} avatarUrl={photo} ghost={ghost} size={size} />;
 }
 
 export default function ExpenseDetailScreen() {

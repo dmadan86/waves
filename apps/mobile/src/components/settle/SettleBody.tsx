@@ -21,7 +21,7 @@ import {
   allocateSettlement,
   BalanceDirection,
   buildPaymentUri,
-  defaultRailFor,
+  defaultRailForCurrency,
   format,
   money,
   railById,
@@ -30,7 +30,6 @@ import {
   type Receivable,
 } from '@waves/core';
 import {
-  Avatar,
   Button,
   Callout,
   directionalIcon,
@@ -59,7 +58,6 @@ import {
   SettlementStatus,
   type MemberRow,
 } from '@/data/types';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { fill, plural, useStrings } from '@/i18n';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { friendlyError } from '@/lib/errors';
@@ -81,6 +79,7 @@ import {
 } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export function SettleBody({
   groupId,
@@ -127,7 +126,6 @@ export function SettleBody({
   const [settleAskOpen, setSettleAskOpen] = useState(false);
 
   const currency = group.data?.default_currency ?? 'INR';
-  const country = group.data?.country_code ?? null;
   const myMemberId = ledger.myMemberId;
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
 
@@ -651,7 +649,7 @@ export function SettleBody({
           onClose={() => setSettleAskOpen(false)}
           onConfirm={() => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, defaultRailFor(country));
+            void record(settleAsk.transfer, defaultRailForCurrency(currency));
           }}
           title={settleAskTitle}
           body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}
@@ -793,8 +791,7 @@ function MemberAvatar({
   ghost: boolean;
   size: number;
 }) {
-  const photoUrl = useAvatarUrl(member?.profile?.avatar_url);
-  return <Avatar name={name} ghost={ghost} photoUrl={photoUrl} size={size} />;
+  return <PersonAvatar name={name} ghost={ghost} member={member} size={size} />;
 }
 
 /**

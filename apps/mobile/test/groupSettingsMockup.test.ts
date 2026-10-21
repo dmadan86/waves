@@ -33,16 +33,126 @@ const between = (source: string, from: string, to: string): string => {
 };
 
 describe('settings page layout', () => {
-  it('uses the standard scenic header, left-aligned with a round back button and a Change pill', () => {
-    expect(SCREEN).toContain('<ScenicHeader');
-    expect(SCREEN).toContain('titleAlign="start"');
-    expect(SCREEN).toContain('circleBack');
-    expect(SCREEN).toContain('t.group.changePill');
-    expect(SCREEN).toContain('setCoverOpen(true)');
+  it('uses a plain header with a back arrow, the title and a ⋮ that opens the exit sheet', () => {
+    expect(SCREEN).toContain('<PlainHeader');
+    expect(SCREEN).not.toContain('<ScenicHeader');
+    const header = between(SCREEN, '<PlainHeader', '/>\n\n');
+    expect(header).toContain('t.group.settings');
+    expect(header).toContain('ellipsis-vertical');
+    expect(header).toContain('setExitOpen(true)');
   });
 
-  it('puts fewer repayments and mute in one card, each with an info dot and a toggle', () => {
-    const card = between(SCREEN, "leading={chip('swap-horizontal'", 'Members');
+  it('draws the header inside the one card: cover with a camera badge, name with a pencil, members then created', () => {
+    const card = between(SCREEN, '<StandardCard style={{ paddingVertical', 'PlainListRow');
+    expect(card).toContain('<GroupPhoto');
+    expect(card).toContain('size={72}');
+    expect(card).toContain('name="camera"');
+    expect(card).toContain('setCoverOpen(true)');
+    expect(card).toContain('setEditOpen(true)');
+    expect(card.indexOf('t.memberCount')).toBeLessThan(card.indexOf('createdLabel'));
+    expect(card).toContain("' • '");
+    expect(SCREEN).not.toContain('t.group.changePill');
+  });
+
+  it('has group type as a pill row opening a sheet of the six kinds, and no inline chips', () => {
+    const card = between(
+      SCREEN,
+      't.extras.groupTypeTitle}\n              trailing',
+      'setTypeOpen(true)',
+    );
+    expect(card).toContain('currentType.label');
+    // The pill is a label, not a navigation hint: no chevron.
+    expect(card).not.toContain('chevron');
+    expect(SCREEN).not.toContain('<ChipRow');
+    const sheet = between(SCREEN, 'visible={typeOpen}', '</Sheet>');
+    expect(sheet).toContain('typeOptions.map');
+    expect(sheet).toContain('name="checkmark"');
+    expect(sheet).toContain('updateGroup.mutate');
+    expect(SCREEN).toContain('GroupType.Friends');
+  });
+
+  it('shows Dates for trips and events only, as a row that opens the embedded calendar in a sheet', () => {
+    const row = between(SCREEN, '{hasDates ? (', 'setDatesOpen(true)');
+    expect(row).toContain('t.extras.datesRow');
+    expect(row).toContain('datesSummary');
+    expect(SCREEN).toContain('groupType === GroupType.Trip || groupType === GroupType.Event');
+    expect(between(SCREEN, 'visible={datesOpen}', '</Sheet>')).toContain('<DatesSheetBody');
+  });
+
+  it('shows Other currencies for every group type, as a row that opens the rates editor in a sheet', () => {
+    const row = between(
+      SCREEN,
+      't.fx.otherCurrencies}\n              subtitle',
+      'setRatesOpen(true)',
+    );
+    expect(row).toContain('t.fx.currencyOnly');
+    expect(row).toContain('tripRateStore.rows');
+    // Not inside the trip/event-only block.
+    expect(between(SCREEN, '{hasDates ? (', ') : null}')).not.toContain('t.fx.otherCurrencies');
+    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toContain(
+      '<OtherCurrenciesSheetBody',
+    );
+  });
+
+  it('keeps the tag as one row in the card that opens a sheet', () => {
+    const card = between(SCREEN, 't.fx.otherCurrencies}', '</StandardCard>');
+    expect(card).toContain('onPress={() => setTagOpen(true)}');
+    expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<TagSheetBody');
+  });
+
+  it('folds group currency and the convert switch into the Other currencies sheet, and no country row', () => {
+    const card = between(SCREEN, 't.fx.otherCurrencies}', '</StandardCard>');
+    expect(card).not.toContain('<SettlesInRow');
+    expect(card).not.toContain('<SettleInCurrencyRow');
+    const sheet = between(SCREEN, 'visible={ratesOpen}', '</Sheet>');
+    expect(sheet).toContain('currencyLocked={!canChangeCurrency}');
+    expect(sheet).toContain('convertOn=');
+    expect(SCREEN).not.toContain('CountryRow');
+    expect(SCREEN).not.toContain('country_code');
+    expect(SCREEN).not.toContain('t.fx.section');
+    expect(SCREEN.match(/<StandardCard style=\{\{ paddingVertical/g)).toHaveLength(1);
+  });
+
+  it('makes every row tile a 44dp circle', () => {
+    const tile = readFileSync(join(process.cwd(), 'src/components/standard/RowTile.tsx'), 'utf8');
+    expect(tile).toContain('width: 44');
+    expect(tile).toContain('borderRadius: 22');
+  });
+
+  it('sizes the dates sheet to its content, with Save right under the card', () => {
+    const sheet = between(SCREEN, 'visible={datesOpen}', '</Sheet>');
+    expect(sheet).toContain("maxHeight: '90%'");
+    expect(sheet).not.toContain('windowHeight');
+    const body = readFileSync(join(process.cwd(), 'src/components/DatesSheetBody.tsx'), 'utf8');
+    expect(body).not.toContain('style={{ flex: 1 }}\n        contentContainerStyle');
+    expect(body).toContain('flexShrink: 1');
+  });
+
+  it('names the sheet rows Balances in {currency} and Count foreign bills in {currency}', () => {
+    const rates = readFileSync(join(process.cwd(), 'src/components/TripRates.tsx'), 'utf8');
+    expect(rates).toContain('t.fx.balancesIn');
+    expect(rates).toContain('t.fx.groupCurrencyLine');
+    expect(STRINGS_BY_LANGUAGE.en.fx.settleInShort).toBe('Count foreign bills in {currency}');
+    expect(STRINGS_BY_LANGUAGE.en.fx.balancesIn).toBe('Balances in {currency}');
+  });
+
+  it('has the new strings in every language', () => {
+    for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
+      expect(strings.fx.otherCurrencies).toBeTruthy();
+      expect(strings.fx.currencyOnly).toContain('{currency}');
+      expect(strings.fx.balancesIn).toContain('{currency}');
+      expect(strings.fx.groupCurrencyLine).toContain('{name}');
+      expect(strings.fx.groupCurrencies).toBeTruthy();
+      expect(strings.fx.settleInShort).toContain('{currency}');
+      expect(strings.extras.datesRow).toBeTruthy();
+    }
+  });
+
+  it('puts fewer repayments and mute at the top of Group actions, each with an info dot and a toggle', () => {
+    expect(SCREEN.indexOf("leading={chip('swap-horizontal'")).toBeGreaterThan(
+      SCREEN.indexOf('t.group.groupActions'),
+    );
+    const card = between(SCREEN, "leading={chip('swap-horizontal'", "leading={chip('copy-outline'");
     expect(card).toContain('t.group.simplifyDebtsSub');
     expect(card).toContain('t.group.muteSub');
     expect(card).toContain("infoDot('simplify'");
@@ -51,16 +161,13 @@ describe('settings page layout', () => {
     expect(card).toContain('setGroupMute.mutate');
   });
 
-  it('opens the existing Add someone sheet from Add members, and invites from the last roster row', () => {
+  it('opens the existing Add someone sheet from Add members, with no invite row under the roster', () => {
     expect(SCREEN).toContain('setAddOpen(true)');
-    expect(SCREEN).toContain('`/group/${groupId}/invite`');
-    expect(SCREEN.indexOf('t.group.inviteToGroup}')).toBeGreaterThan(
-      SCREEN.indexOf('memberActions'),
-    );
+    expect(SCREEN).not.toContain('t.group.inviteToGroup}');
   });
 
-  it('highlights the viewer and gives everyone else a ⋮ menu of the member actions', () => {
-    expect(SCREEN).toContain('highlight={isMe ? theme.color.brandSoft : undefined}');
+  it('draws every member row alike and gives everyone else a ⋮ menu of the member actions', () => {
+    expect(SCREEN).not.toContain('highlight={isMe');
     expect(SCREEN).toContain('{isMe ? null : (');
     const actions = between(SCREEN, 'const memberActions', 'return (\n    <View style={{ flex: 1');
     expect(actions).toContain("key: 'open'");
@@ -77,59 +184,69 @@ describe('settings page layout', () => {
     expect(SCREEN).toContain('Link to a Waves user');
   });
 
-  it('keeps every group action, admin-gating delete and keeping the unsettled warning in the dialog', () => {
-    const actions = between(SCREEN, 't.group.groupActions', '</ScenicBody>');
-    for (const key of [
-      't.clone.duplicateTitle',
-      't.clone.favoriteTitle',
-      't.group.archiveGroup',
-      't.group.leaveGroup',
-      't.group.deleteGroup',
-    ]) {
+  it('keeps every group action, with archive, leave and delete behind one row and delete admin-gated', () => {
+    const actions = between(SCREEN, 't.group.groupActions', 'visible={exitOpen}');
+    for (const key of ['t.clone.duplicateTitle', 't.clone.favoriteTitle', 'setExitOpen(true)']) {
       expect(actions).toContain(key);
     }
-    expect(actions).toContain('{isAdmin ? (');
+    expect(actions).not.toContain('t.group.leaveGroup');
+    const sheet = between(SCREEN, 'visible={exitOpen}', '</Sheet>');
+    for (const key of ['t.group.archiveGroup', 't.group.leaveGroup', 't.group.deleteGroup']) {
+      expect(sheet).toContain(key);
+    }
+    expect(sheet).toContain('{isAdmin ? (');
     expect(SCREEN).not.toContain('deleteUnsettledHint');
     expect(SCREEN).toContain('groupDeleteWarning(');
   });
 });
 
 describe('what moved into the Edit group sheet', () => {
-  const sheet = between(SCREEN, 'title={t.group.editGroup}\n        closeLabel', '</Sheet>');
+  const sheet = between(SCREEN, '<EditGroupSheetBody', '</Sheet>');
 
   it('is opened by the pencil beside the name', () => {
     expect(SCREEN).toContain('accessibilityLabel={t.group.editGroup}');
     expect(SCREEN).toContain('setEditOpen(true)');
   });
 
-  it('still holds name, description, kind, tag, country, currency, trip rates and dates', () => {
+  it('holds only the name and description', () => {
+    expect(sheet).toContain('commitName');
+    expect(sheet).toContain('commitDescription');
+    expect(sheet).not.toContain('title=');
     for (const piece of [
-      'commitName',
-      'commitDescription',
-      '<ChipRow<GroupType>',
-      '<GroupTagField',
-      '<CountryRow',
+      'setTypeOpen(true)',
+      'setTagOpen(true)',
       '<SettlesInRow',
-      '<SettleInCurrencyRow',
       '<TripRatesCard',
-      '<MissingRatesCard',
-      '<TripDates',
-      't.group.groupDetails',
     ]) {
-      expect(sheet).toContain(piece);
+      expect(sheet).not.toContain(piece);
+    }
+    expect(SCREEN).toMatch(
+      /const commitPending[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/,
+    );
+    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitPending\(\);/);
+  });
+});
+
+describe('group details on the page itself', () => {
+  const details = between(SCREEN, 'One card: the group', 'The "Add someone" sheet');
+
+  it('shows kind, tag, currency, other currencies and dates on the settings page', () => {
+    for (const piece of [
+      'setTypeOpen(true)',
+      'setTagOpen(true)',
+      't.fx.otherCurrencies',
+      '<OtherCurrenciesSheetBody',
+      '<MissingRatesCard',
+      '<DatesSheetBody',
+    ]) {
+      expect(details).toContain(piece);
     }
   });
 
-  it('keeps the permission checks, and commits typed text when it closes', () => {
-    expect(sheet).toContain('canEdit={isAdmin}');
-    expect(sheet).toContain('isAdmin={isAdmin}');
-    expect(sheet).toContain('locked={!canChangeCurrency}');
-    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
-  });
-
-  it('steps out of the way for the country picker route and returns to it', () => {
-    expect(sheet).toContain('onOpen={leaveEditForPicker}');
-    expect(SCREEN).toContain('useFocusEffect');
+  it('keeps the permission checks', () => {
+    expect(details).toContain('canEdit={isAdmin}');
+    expect(details).toContain('isAdmin={isAdmin}');
+    expect(details).toContain('currencyLocked={!canChangeCurrency}');
   });
 });
 
@@ -264,14 +381,11 @@ describe('strings', () => {
 describe('review fixes', () => {
   const PARTS = readFileSync(join(process.cwd(), 'src/components/standard/parts.tsx'), 'utf8');
 
-  it('commits name, description and tag on close and before a picker route', () => {
-    const pending = between(SCREEN, 'const commitPending', 'const leaveEditForPicker');
+  it('commits name, description and tag when the edit sheet closes', () => {
+    const pending = between(SCREEN, 'const commitPending', 'const closeEdit');
     for (const call of ['commitName()', 'commitDescription()', 'commitTag(tag)']) {
       expect(pending).toContain(call);
     }
-    expect(between(SCREEN, 'const leaveEditForPicker', 'const closeEdit')).toContain(
-      'commitPending()',
-    );
     expect(between(SCREEN, 'const closeEdit', 'A member')).toContain('commitPending()');
   });
 

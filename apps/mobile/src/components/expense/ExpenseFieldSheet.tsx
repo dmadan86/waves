@@ -30,7 +30,6 @@ import { MutationKind, type CurrencyCode, type MemberId } from '@waves/core';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   AmountField,
-  Avatar,
   Button,
   Callout,
   Gradient,
@@ -75,6 +74,7 @@ import {
 import { useGuestGuard } from '@/lib/guestGuard';
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import { clearDraft, useSync } from '@/sync';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** The facts on the expense screen that open a pop-up. */
 export type ExpenseField = 'amount' | 'description' | 'date' | 'payer' | 'split' | 'category';
@@ -388,7 +388,14 @@ export function ExpenseFieldSheet({
         {members.map((member) => (
           <ChoiceRow
             key={member.id}
-            leading={<Avatar name={displayName(member)} ghost={isGhost(member)} size={32} />}
+            leading={
+              <PersonAvatar
+                member={member}
+                name={displayName(member)}
+                ghost={isGhost(member)}
+                size={32}
+              />
+            }
             label={displayName(member, viewerId)}
             selected={state.payers.has(member.id)}
             onPress={() =>
@@ -581,7 +588,12 @@ function SeveralPayers({
                   borderColor: theme.color.surfaceMuted,
                 }}
               >
-                <Avatar name={displayName(member)} ghost={isGhost(member)} size={32} />
+                <PersonAvatar
+                  member={member}
+                  name={displayName(member)}
+                  ghost={isGhost(member)}
+                  size={32}
+                />
               </View>
             ))}
             {more > 0 ? (
@@ -645,7 +657,12 @@ function SeveralPayers({
         {open
           ? paying.map((member) => (
               <Row key={member.id} style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                <Avatar name={displayName(member)} ghost={isGhost(member)} size={24} />
+                <PersonAvatar
+                  member={member}
+                  name={displayName(member)}
+                  ghost={isGhost(member)}
+                  size={24}
+                />
                 <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>
                   {displayName(member, viewerId)}
                 </Text>

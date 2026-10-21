@@ -14,6 +14,7 @@
  * switch at all.
  */
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -31,6 +32,7 @@ export function SettleInCurrencyRow({
   on,
   isAdmin,
   settlementCount,
+  tile = false,
 }: {
   groupId: string;
   currency: string;
@@ -38,6 +40,8 @@ export function SettleInCurrencyRow({
   isAdmin: boolean;
   /** Settlements in the group that are not cancelled. */
   settlementCount: number;
+  /** The compact one-line switch row for the Other currencies sheet. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -86,12 +90,29 @@ export function SettleInCurrencyRow({
     });
   };
 
-  const title = fill(t.fx.convertTitle, { currency });
-  return (
-    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+  const title = fill(t.fx.settleInShort, { currency });
+  const body = (
+    <>
       <ListRow
         title={title}
-        subtitle={fill(t.fx.convertBody, { currency })}
+        fit={tile}
+        leading={
+          tile ? (
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.surface,
+              }}
+            >
+              <MaterialCommunityIcons name="swap-horizontal" size={24} color={theme.color.brand} />
+            </View>
+          ) : undefined
+        }
+        subtitle={tile ? undefined : fill(t.fx.convertBody, { currency })}
         trailing={
           <Toggle
             value={on}
@@ -133,6 +154,24 @@ export function SettleInCurrencyRow({
           ) : null}
         </View>
       ) : null}
+    </>
+  );
+  if (tile) {
+    return (
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        {body}
+      </View>
+    );
+  }
+  return (
+    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+      {body}
     </Card>
   );
 }

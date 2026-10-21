@@ -4,7 +4,6 @@ import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
 import {
-  Avatar,
   Button,
   Card,
   EmptyState,
@@ -34,6 +33,7 @@ import { formatPaidDay, paidDay } from '@/lib/paymentProof';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { memberNameById } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * Whole days left before a pending settlement auto-confirms — the 7-day window
@@ -149,8 +149,9 @@ export default function PendingConfirmationsScreen() {
             return (
               <Card style={{ gap: theme.spacing.md }}>
                 <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-                  <Avatar
+                  <PersonAvatar
                     name={nameOf(settlement.from_member_id)}
+                    member={member}
                     ghost={member ? isGhost(member) : false}
                     size={44}
                   />

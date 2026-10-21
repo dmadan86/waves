@@ -14,12 +14,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Avatar, Button, Callout, Card, Row, Text, useTheme } from '@waves/ui';
+import { Button, Callout, Card, Row, Text, useTheme } from '@waves/ui';
 
 import { useDecideMemberLink, useMyMemberLinks } from '@/data/hooks';
 import { fill, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { linkReasonText } from '@/lib/linkMember';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export function LinkRequestsCard({
   enabled = true,
@@ -76,7 +77,7 @@ export function LinkRequestsCard({
         return (
           <View key={ask.id} style={{ gap: theme.spacing.sm }}>
             <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-              <Avatar name={ask.ghost_name ?? '?'} ghost />
+              <PersonAvatar name={ask.ghost_name ?? '?'} ghost />
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <Text variant="body">
                   {fill(t.link.cardBody, {

@@ -5,6 +5,8 @@
  */
 
 export { SCENIC_OVERLAP, ScenicBody, ScenicHeader } from './ScenicHeader';
+export { PlainHeader } from './PlainHeader';
+export { RowTile } from './RowTile';
 export {
   ListRow,
   PillButton,

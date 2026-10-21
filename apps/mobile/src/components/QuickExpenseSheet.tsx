@@ -56,14 +56,13 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { encodeTxn, toFxRecord, type CategoryMeta, type ExpenseLocation } from '@waves/core';
-import { Avatar, Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DestinationPicker } from '@/components/DestinationPicker';
 import { DictateButton } from '@/components/DictateButton';
 import { QuickAmountRow } from '@/components/QuickAmountRow';
 import { QuickCategoryRow } from '@/components/QuickCategoryRow';
 import { GroupMark } from '@/components/GroupMark';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { uploadCapturePhoto, uploadExpenseReceipt } from '@/data/api';
 import {
   useCreateCapture,
@@ -94,6 +93,7 @@ import {
   PERSONAL_DESTINATION,
   useRecentDestinations,
 } from '@/lib/recentDestinations';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 // Only pulled in when the in-app camera opens (and only reachable when the
 // binary has the native module — see `useQuickReceipt`).
@@ -143,7 +143,6 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // falling back to initials) the account screen's own portrait uses.
   const { profile } = useAuth();
   const myName = profile?.display_name ?? t.quickExpense.justMe;
-  const myAvatarUrl = useAvatarUrl(profile?.avatar_url);
   // The one receipt a quick add can carry — held here, not uploaded until the
   // footer below actually saves (see lib/quickReceipt). Destructured rather
   // than passed around as one object, so the reset effect below can name the
@@ -481,8 +480,8 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                     >
                       {/* Your own face, the same as everywhere else it is
                           shown — initials when there is no photo, exactly as
-                          `Avatar` already falls back for any other person. */}
-                      <Avatar name={myName} photoUrl={myAvatarUrl} size={24} />
+                          `PersonAvatar` already falls back for any other person. */}
+                      <PersonAvatar name={myName} avatarUrl={profile?.avatar_url} size={24} />
                       <Text style={{ fontSize: 14, fontWeight: '600', color: theme.color.text }}>
                         {t.quickExpense.justMe}
                       </Text>

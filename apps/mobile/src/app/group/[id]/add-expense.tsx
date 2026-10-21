@@ -41,7 +41,6 @@ import {
 import {
   AmountField,
   amountKeyboard,
-  Avatar,
   Button,
   Callout,
   Card,
@@ -155,6 +154,7 @@ import {
 import { useDialog } from '@/lib/dialog';
 import { moveAfterSave, rememberMove } from '@/lib/personalHandoff';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -2220,7 +2220,11 @@ export default function AddExpenseScreen() {
                               opacity: isPayer ? 1 : 0.45,
                             }}
                           >
-                            <Avatar name={displayName(member)} ghost={isGhost(member)} />
+                            <PersonAvatar
+                              member={member}
+                              name={displayName(member)}
+                              ghost={isGhost(member)}
+                            />
                             <Text
                               variant="micro"
                               tone={isPayer ? 'brand' : 'muted'}
@@ -2244,7 +2248,8 @@ export default function AddExpenseScreen() {
                               key={memberId}
                               style={{ gap: theme.spacing.md, alignItems: 'center' }}
                             >
-                              <Avatar
+                              <PersonAvatar
+                                member={member}
                                 name={member ? displayName(member) : name}
                                 ghost={member ? isGhost(member) : false}
                                 size={32}
@@ -2723,6 +2728,9 @@ export default function AddExpenseScreen() {
       {pickingCurrency ? (
         <CurrencySheet
           value={currency}
+          // The group's own currencies lead the picker: its own, then every
+          // one it has pinned a rate for.
+          featured={[groupCurrency, ...(groupFxRates.data ?? []).map((row) => row.from)]}
           onPick={chooseCurrency}
           onClose={() => setPickingCurrency(false)}
         />
