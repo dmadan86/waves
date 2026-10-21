@@ -864,17 +864,17 @@ export default function GroupSettingsScreen() {
       );
     }
     if (isAdmin && !isMe) {
-      actions.push({
-        key: 'role',
-        icon: member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline',
-        title: t.people.manageRole,
-        subtitle: ghost
-          ? t.people.adminNeedsAccount
-          : member.role === 'admin'
-            ? t.people.currentRoleAdmin
-            : t.people.currentRoleMember,
-        onPress: ghost ? undefined : () => toggleRole(member),
-      });
+      // A guest (not on Waves) cannot hold a role, so the option is not drawn.
+      if (!ghost) {
+        actions.push({
+          key: 'role',
+          icon: member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline',
+          title: t.people.manageRole,
+          subtitle:
+            member.role === 'admin' ? t.people.currentRoleAdmin : t.people.currentRoleMember,
+          onPress: () => toggleRole(member),
+        });
+      }
       if (!member.left_at) {
         actions.push({
           key: 'remove',
