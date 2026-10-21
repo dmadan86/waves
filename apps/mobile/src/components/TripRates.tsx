@@ -106,7 +106,7 @@ export function SettlesInRow({
 
   const row = tile ? (
     <ListRow
-      title={t.fx.settlesIn}
+      title={t.fx.groupCurrency}
       subtitle={locked ? `${currency} · ${t.fx.settlesInLockedShort}` : currency}
       leading={
         <RowTile tint={theme.color.brandSoft}>

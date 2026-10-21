@@ -5376,6 +5376,21 @@ export interface UiStrings {
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
+    tagSheetSubtitle: string;
+    tagPopular: string;
+    saveTag: string;
+    tagChips: Record<
+      | 'weekend'
+      | 'roadTrip'
+      | 'holiday'
+      | 'officeOffsite'
+      | 'birthday'
+      | 'wedding'
+      | 'family'
+      | 'friends'
+      | 'other',
+      string
+    >;
     groupTypeTitle: string;
     datesRow: string;
     groupTypeInfo: string;
@@ -5479,6 +5494,7 @@ export interface UiStrings {
     tripCurrency: string;
     noCurrency: string;
     settleInShort: string;
+    groupCurrency: string;
     convertLine: string;
     tripRates: string;
     tripRatesBody: string;
@@ -10389,6 +10405,20 @@ const en: UiStrings = {
     typeOther: 'Other',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
+    tagSheetSubtitle: "Add a tag so it's easy to find later.",
+    tagPopular: 'Popular tags',
+    saveTag: 'Save tag',
+    tagChips: {
+      weekend: 'Weekend',
+      roadTrip: 'Road trip',
+      holiday: 'Holiday',
+      officeOffsite: 'Office offsite',
+      birthday: 'Birthday',
+      wedding: 'Wedding',
+      family: 'Family',
+      friends: 'Friends',
+      other: 'Other',
+    },
     groupTypeTitle: 'Group type',
     datesRow: 'Dates',
     groupTypeInfo:
@@ -10487,8 +10517,9 @@ const en: UiStrings = {
     convertShort: 'Bills paid in other currencies count in {currency}',
     tripCurrency: 'Trip currency',
     noCurrency: 'No currency added',
-    settleInShort: 'Settle in {currency}',
-    convertLine: 'Bills in other currencies count in {currency}',
+    settleInShort: 'Convert to {currency}',
+    groupCurrency: 'Group currency',
+    convertLine: 'Foreign bills count in {currency}',
     tripRates: 'Trip rates',
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
@@ -15556,6 +15587,20 @@ const ta: UiStrings = {
     typeOther: 'மற்றவை',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
+    tagSheetSubtitle: 'பின்னர் எளிதாகக் கண்டறிய ஒரு குறிச்சொல்லைச் சேர்க்கவும்.',
+    tagPopular: 'பிரபல குறிச்சொற்கள்',
+    saveTag: 'குறிச்சொல்லைச் சேமி',
+    tagChips: {
+      weekend: 'வார இறுதி',
+      roadTrip: 'சாலைப் பயணம்',
+      holiday: 'விடுமுறை',
+      officeOffsite: 'அலுவலக சுற்றுலா',
+      birthday: 'பிறந்தநாள்',
+      wedding: 'திருமணம்',
+      family: 'குடும்பம்',
+      friends: 'நண்பர்கள்',
+      other: 'மற்றவை',
+    },
     groupTypeTitle: 'குழு வகை',
     datesRow: 'தேதிகள்',
     groupTypeInfo:
@@ -15658,8 +15703,9 @@ const ta: UiStrings = {
     convertShort: 'வேறு நாணயங்களில் செலுத்திய பில்கள் {currency}-இல் கணக்கிடப்படும்',
     tripCurrency: 'பயண நாணயம்',
     noCurrency: 'நாணயம் சேர்க்கப்படவில்லை',
-    settleInShort: '{currency}-இல் கணக்கிடு',
-    convertLine: 'வேறு நாணய பில்கள் {currency}-இல் கணக்கிடப்படும்',
+    settleInShort: '{currency} ஆக மாற்று',
+    groupCurrency: 'குழு நாணயம்',
+    convertLine: 'வெளிநாட்டு பில்கள் {currency}-இல் கணக்கிடப்படும்',
     tripRates: 'பயண மாற்று விகிதங்கள்',
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
@@ -20560,6 +20606,20 @@ const hi: UiStrings = {
     typeOther: 'अन्य',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
+    tagSheetSubtitle: 'टैग जोड़ें ताकि बाद में ढूँढना आसान हो।',
+    tagPopular: 'लोकप्रिय टैग',
+    saveTag: 'टैग सहेजें',
+    tagChips: {
+      weekend: 'वीकेंड',
+      roadTrip: 'रोड ट्रिप',
+      holiday: 'छुट्टी',
+      officeOffsite: 'ऑफ़िस ऑफ़साइट',
+      birthday: 'जन्मदिन',
+      wedding: 'शादी',
+      family: 'परिवार',
+      friends: 'दोस्त',
+      other: 'अन्य',
+    },
     groupTypeTitle: 'समूह का प्रकार',
     datesRow: 'तारीखें',
     groupTypeInfo:
@@ -20657,8 +20717,9 @@ const hi: UiStrings = {
     convertShort: 'दूसरी मुद्राओं में चुकाए बिल {currency} में गिने जाते हैं',
     tripCurrency: 'यात्रा की मुद्रा',
     noCurrency: 'कोई मुद्रा नहीं जोड़ी',
-    settleInShort: '{currency} में निपटान',
-    convertLine: 'दूसरी मुद्राओं के बिल {currency} में गिने जाते हैं',
+    settleInShort: '{currency} में बदलें',
+    groupCurrency: 'समूह की मुद्रा',
+    convertLine: 'विदेशी बिल {currency} में गिने जाते हैं',
     tripRates: 'यात्रा दरें',
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
@@ -26168,6 +26229,20 @@ const ar: UiStrings = {
     typeOther: 'أخرى',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
+    tagSheetSubtitle: 'أضف وسمًا ليسهل العثور عليها لاحقًا.',
+    tagPopular: 'الوسوم الشائعة',
+    saveTag: 'حفظ الوسم',
+    tagChips: {
+      weekend: 'عطلة نهاية الأسبوع',
+      roadTrip: 'رحلة برية',
+      holiday: 'إجازة',
+      officeOffsite: 'رحلة الشركة',
+      birthday: 'عيد ميلاد',
+      wedding: 'زفاف',
+      family: 'العائلة',
+      friends: 'الأصدقاء',
+      other: 'أخرى',
+    },
     groupTypeTitle: 'نوع المجموعة',
     datesRow: 'التواريخ',
     groupTypeInfo:
@@ -26269,8 +26344,9 @@ const ar: UiStrings = {
     convertShort: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}',
     tripCurrency: 'عملة الرحلة',
     noCurrency: 'لم تُضف أي عملة',
-    settleInShort: 'التسوية بعملة {currency}',
-    convertLine: 'تُحتسب الفواتير بعملات أخرى بـ {currency}',
+    settleInShort: 'التحويل إلى {currency}',
+    groupCurrency: 'عملة المجموعة',
+    convertLine: 'الفواتير الأجنبية تُحتسب بـ {currency}',
     tripRates: 'أسعار الرحلة',
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',
