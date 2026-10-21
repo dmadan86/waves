@@ -43,13 +43,14 @@ import { addPickedBatch } from '@/lib/addPickedBatch';
 import { friendlyError } from '@/lib/errors';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
-import { GROUP_DESCRIPTION_MAX, normaliseGroupDescription } from '@/lib/groupDescription';
+import { normaliseGroupDescription } from '@/lib/groupDescription';
 import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
+import { EditGroupSheetBody } from '@/components/EditGroupSheetBody';
 import { TagSheetBody } from '@/components/TagSheetBody';
 import { DatesSheetBody } from '@/components/DatesSheetBody';
 import { gregorianFormatter } from '@/lib/calendarGrid';
@@ -346,10 +347,7 @@ export default function GroupSettingsScreen() {
   }
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  // Whether the name is being edited (the rule under it lights up) and whether
-  // the cover sheet is open. Both are about the identity row at the top.
-  const [naming, setNaming] = useState(false);
-  const [describing, setDescribing] = useState(false);
+  // Whether the cover sheet is open.
   const [coverOpen, setCoverOpen] = useState(false);
 
   /**
@@ -370,6 +368,11 @@ export default function GroupSettingsScreen() {
    */
   const commitName = (): void => {
     const next = name.trim();
+    // A group must keep a name: an empty field puts the saved one back.
+    if (!next) {
+      setName(group.data?.name ?? '');
+      return;
+    }
     if (next === (group.data?.name ?? '') || next === sentName) return;
     setSentName(next);
     updateGroup.mutate({ name: next || null }, { onSuccess: () => setStatus(t.account.saved) });
@@ -1718,86 +1721,38 @@ export default function GroupSettingsScreen() {
       <Sheet
         visible={editOpen}
         onClose={closeEdit}
-        title={t.group.editGroup}
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.5) }}
+        style={{ maxHeight: '90%' }}
       >
-        <Text variant="caption" tone="muted">
-          {t.group.editGroupHint}
-        </Text>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: theme.spacing.lg,
-            paddingBottom: theme.spacing.xl,
-            gap: theme.spacing.xl,
-          }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* The group's name and what it is for. Both commit themselves — on the
-              keyboard's "done" and when the field loses focus — so there is no
-              Save button, and closing the sheet commits whatever is typed. */}
-          <View style={{ gap: theme.spacing.lg }}>
-            <View style={{ gap: theme.spacing.xs }}>
-              <Text variant="caption" tone="muted">
-                {t.group.nameOptional}
-              </Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                onFocus={() => setNaming(true)}
-                onBlur={() => {
-                  setNaming(false);
-                  commitName();
-                }}
-                onSubmitEditing={commitName}
-                returnKeyType="done"
-                accessibilityLabel={t.group.groupName}
-                placeholder={groupLabel(null, members.data ?? [], viewerId)}
-                placeholderTextColor={theme.color.textFaint}
-                style={{
-                  fontSize: 20,
-                  fontWeight: '700',
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                  borderBottomWidth: 1.5,
-                  borderBottomColor: naming ? theme.color.brand : theme.color.border,
-                }}
+        {/* Mounted only while open. Name and description save on blur, on
+            "done", on Done and on every way of closing, so the subtitle's
+            "Changes save automatically" is true. An empty name is never saved. */}
+        {editOpen ? (
+          <EditGroupSheetBody
+            cover={
+              <GroupPhoto
+                photoPath={group.data.photo_path}
+                emoji={group.data.cover_emoji}
+                color={group.data.cover_color}
+                size={88}
+                busy={uploading}
               />
-            </View>
-            <View style={{ gap: theme.spacing.xs }}>
-              <Text variant="caption" tone="muted">
-                {t.group.descriptionOptional}
-              </Text>
-              <TextInput
-                value={description}
-                onChangeText={setDescription}
-                onFocus={() => setDescribing(true)}
-                onBlur={() => {
-                  setDescribing(false);
-                  commitDescription();
-                }}
-                accessibilityLabel={t.group.groupDescription}
-                placeholder={t.group.descriptionPlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                maxLength={GROUP_DESCRIPTION_MAX}
-                // Multiline, so blur is the only commit here: a return inside a
-                // description is a line break, not a save.
-                multiline
-                style={{
-                  fontSize: 15,
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                  minHeight: 48,
-                  textAlignVertical: 'top',
-                  borderBottomWidth: 1.5,
-                  borderBottomColor: describing ? theme.color.brand : theme.color.border,
-                }}
-              />
-            </View>
-          </View>
-        </ScrollView>
+            }
+            onCoverPress={() => {
+              // One modal at a time: save and close this sheet, then pick.
+              closeEdit();
+              setCoverOpen(true);
+            }}
+            name={name}
+            onNameChange={setName}
+            onNameCommit={commitName}
+            description={description}
+            onDescriptionChange={setDescription}
+            onDescriptionCommit={commitDescription}
+            onDone={closeEdit}
+            onClose={closeEdit}
+          />
+        ) : null}
       </Sheet>
     </View>
   );

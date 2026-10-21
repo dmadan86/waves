@@ -199,7 +199,7 @@ describe('settings page layout', () => {
 });
 
 describe('what moved into the Edit group sheet', () => {
-  const sheet = between(SCREEN, 'title={t.group.editGroup}\n        closeLabel', '</Sheet>');
+  const sheet = between(SCREEN, '<EditGroupSheetBody', '</Sheet>');
 
   it('is opened by the pencil beside the name', () => {
     expect(SCREEN).toContain('accessibilityLabel={t.group.editGroup}');
@@ -209,6 +209,7 @@ describe('what moved into the Edit group sheet', () => {
   it('holds only the name and description', () => {
     expect(sheet).toContain('commitName');
     expect(sheet).toContain('commitDescription');
+    expect(sheet).not.toContain('title=');
     for (const piece of [
       'setTypeOpen(true)',
       'setTagOpen(true)',
@@ -217,7 +218,8 @@ describe('what moved into the Edit group sheet', () => {
     ]) {
       expect(sheet).not.toContain(piece);
     }
-    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
+    expect(SCREEN).toMatch(/const commitPending[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
+    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitPending\(\);/);
   });
 });
 
