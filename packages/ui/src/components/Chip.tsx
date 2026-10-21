@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -88,17 +88,30 @@ export function ChipRow<T extends string>({
   onCard?: boolean;
 }) {
   const theme = useTheme();
+  const scroller = useRef<ScrollView>(null);
   const chips = options.map((option) => (
-    <Chip
+    <View
       key={option.value}
-      label={option.label}
-      icon={option.icon}
-      selected={option.value === value}
-      onPress={() => onChange(option.value)}
-      variant={variant}
-      onCard={onCard}
-      repeatable
-    />
+      // The chosen chip may sit past the edge of a one-line row; bring it in.
+      onLayout={
+        !wrap && option.value === value
+          ? (event) => {
+              const x = event.nativeEvent.layout.x;
+              if (x > 0) scroller.current?.scrollTo({ x: Math.max(0, x - 48), animated: false });
+            }
+          : undefined
+      }
+    >
+      <Chip
+        label={option.label}
+        icon={option.icon}
+        selected={option.value === value}
+        onPress={() => onChange(option.value)}
+        variant={variant}
+        onCard={onCard}
+        repeatable
+      />
+    </View>
   ));
   if (wrap) {
     return (
@@ -107,6 +120,7 @@ export function ChipRow<T extends string>({
   }
   return (
     <ScrollView
+      ref={scroller}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
