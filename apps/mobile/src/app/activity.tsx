@@ -38,6 +38,7 @@ import {
   describeActivity,
   filterByDayRange,
   groupByDay,
+  isGroupChange,
   parseMoney,
 } from '@/data/activity';
 import { activityLabels } from '@/data/activityLabels';
@@ -156,7 +157,12 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   const category = isExpense
     ? activityCategory(description, entry.category, ctx.labelForBuiltin)
     : null;
-  const glyph = activityTileGlyph(entry.verb, entry.object_type, category);
+  const glyph = activityTileGlyph(
+    entry.verb,
+    entry.object_type,
+    category,
+    typeof entry.payload.field === 'string' ? entry.payload.field : null,
+  );
   // The group's own cover is a mark the app draws (`GroupMark`), not text: set
   // as a raw emoji it printed the plate (🍽️), which the system font lacks, as a
   // broken box. So the meta names the category, or else the kind of group.
@@ -355,13 +361,18 @@ enum FeedKind {
 
 const EDIT_VERBS = new Set(['edited', 'superseded']);
 
+/** An edit to a bill, or to the group itself: its settings and its people. */
+function isEdit(verb: string): boolean {
+  return EDIT_VERBS.has(verb) || isGroupChange(verb);
+}
+
 /** Whether an entry belongs under a filter chip. */
 function inKind(entry: RecentActivityRow, kind: FeedKind): boolean {
   switch (kind) {
     case FeedKind.Expenses:
-      return entry.object_type === 'expense' && !EDIT_VERBS.has(entry.verb);
+      return entry.object_type === 'expense' && !isEdit(entry.verb);
     case FeedKind.Edits:
-      return EDIT_VERBS.has(entry.verb);
+      return isEdit(entry.verb);
     case FeedKind.Trip:
       return entry.group?.type === GroupType.Trip;
     case FeedKind.All:
@@ -481,7 +492,14 @@ export default function ActivityScreen() {
       myProfileId,
       blockedIds,
       rtf,
-      labels: activityLabels(locale, t.activityScreen),
+      labels: activityLabels(locale, t.activityScreen, {
+        trip: t.extras.typeTrip,
+        home: t.extras.typeHome,
+        couple: t.extras.typeCouple,
+        event: t.extras.typeEvent,
+        friends: t.extras.typeFriends,
+        other: t.extras.typeOther,
+      }),
       labelForBuiltin: (id) => (t.categories as Record<string, string | undefined>)[id],
       groupTagLabels,
       scoped: !!onlyGroup,

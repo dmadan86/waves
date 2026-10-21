@@ -82,3 +82,26 @@ describe('heroWantsDarkInk', () => {
     expect(heroWantsDarkInk('night')).toBe(false);
   });
 });
+
+describe('activityTileGlyph, a group settings change', () => {
+  it('draws the setting that moved, on the edit tint', () => {
+    expect(activityTileGlyph('group_updated', 'group', null, 'dates')).toEqual({
+      family: 'ion',
+      name: 'calendar-outline',
+      tint: 'lilac',
+    });
+    expect(activityTileGlyph('group_updated', 'group', null, 'cover').name).toBe('image-outline');
+  });
+
+  it('keeps the cog for a field it has not met, and for no field at all', () => {
+    expect(activityTileGlyph('group_updated', 'group', null, 'newer').name).toBe(
+      'settings-outline',
+    );
+    expect(activityTileGlyph('group_updated', 'group', null).name).toBe('settings-outline');
+  });
+
+  it('draws a person added or removed by the verb, not a field', () => {
+    expect(activityTileGlyph('member_added', 'member', null).name).toBe('person-add-outline');
+    expect(activityTileGlyph('member_removed', 'member', null).tint).toBe('coral');
+  });
+});

@@ -15,7 +15,9 @@
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
-import { isCurrencyCode } from '@waves/core';
+import { format as formatMoney, isCurrencyCode } from '@waves/core';
+
+import { formatShortDateRange } from '@/lib/tripDateRange';
 
 import { actorName, type ActivityRow } from './types';
 
@@ -69,6 +71,215 @@ export interface ActivityLabels {
   importUndoneHeadline: string;
   /** "Ravi undid an import". */
   importUndoneSentence(who: string): string;
+  /** The group-settings and people lines (`group_updated`, `member_*`, `claimed`, `merged`). */
+  group: GroupChangeLabels;
+}
+
+/**
+ * The wording of a group's settings and people changing, in one language.
+ *
+ * Each is the row's headline, verb first ("Renamed the group to Goa trip"),
+ * and `sentence` puts the actor in front of it for the spoken label and the
+ * watch ("Ravi renamed the group to Goa trip"). A change to a setting is one
+ * event in the feed whichever door it came through — the settings screen, a
+ * rate sheet, the archive switch — so the wording lives here with the rest.
+ */
+export interface GroupChangeLabels {
+  renamed(name: string): string;
+  nameCleared: string;
+  description: string;
+  /** Takes the group's `type` key ('trip'); the language supplies the name. */
+  type(key: string): string;
+  /** Two `YYYY-MM-DD` days, formatted for the language. */
+  datesSet(start: string, end: string): string;
+  datesCleared: string;
+  tag(tag: string): string;
+  tagCleared: string;
+  currency(code: string): string;
+  convertOn(code: string): string;
+  convertOff: string;
+  cover: string;
+  currencyAdded(code: string): string;
+  currencyRemoved(code: string): string;
+  rateChanged(code: string): string;
+  archived: string;
+  unarchived: string;
+  simplifyOn: string;
+  simplifyOff: string;
+  /** Minor units as the server sends them (a decimal string) and the code. */
+  budget(amountMinor: string, currency: string): string;
+  budgetCleared: string;
+  stops: string;
+  /** A field this build has not met. */
+  changed: string;
+  memberAdded(name: string): string;
+  memberRemoved(name: string): string;
+  memberLeft: string;
+  madeAdmin(name: string): string;
+  madeMember(name: string): string;
+  claimed: string;
+  merged(name: string): string;
+  /** "{who} renamed the group to Goa trip" from the headline. */
+  sentence(who: string, event: string): string;
+}
+
+/**
+ * The same lines as plain strings with `{name}`-style holes, which is how the
+ * locale tables carry them. `sentence` takes `{who}` and `{event}` — the
+ * headline after the actor ("{who} {event}", "{who} ने {event}", "{who}: {event}").
+ */
+export interface GroupChangeStrings {
+  renamed: string;
+  nameCleared: string;
+  description: string;
+  type: string;
+  datesSet: string;
+  datesCleared: string;
+  tag: string;
+  tagCleared: string;
+  currency: string;
+  convertOn: string;
+  convertOff: string;
+  cover: string;
+  currencyAdded: string;
+  currencyRemoved: string;
+  rateChanged: string;
+  archived: string;
+  unarchived: string;
+  simplifyOn: string;
+  simplifyOff: string;
+  budget: string;
+  budgetCleared: string;
+  stops: string;
+  changed: string;
+  memberAdded: string;
+  memberRemoved: string;
+  memberLeft: string;
+  madeAdmin: string;
+  madeMember: string;
+  claimed: string;
+  merged: string;
+  sentence: string;
+}
+
+/** The kind-of-group names, by the `groups.type` key, in one language. */
+export type GroupTypeNames = Readonly<Record<string, string>>;
+
+export const ENGLISH_GROUP_STRINGS: GroupChangeStrings = {
+  renamed: 'Renamed the group to {name}',
+  nameCleared: 'Cleared the group name',
+  description: 'Changed the description',
+  type: 'Changed the group type to {type}',
+  datesSet: 'Set the dates to {range}',
+  datesCleared: 'Cleared the dates',
+  tag: 'Changed the tag to {tag}',
+  tagCleared: 'Cleared the tag',
+  currency: 'Changed the currency to {code}',
+  convertOn: 'Turned on Convert to {code}',
+  convertOff: 'Turned off Convert',
+  cover: 'Changed the cover',
+  currencyAdded: 'Added {code}',
+  currencyRemoved: 'Removed {code}',
+  rateChanged: 'Changed the {code} rate',
+  archived: 'Archived the group',
+  unarchived: 'Unarchived the group',
+  simplifyOn: 'Turned on Fewer repayments',
+  simplifyOff: 'Turned off Fewer repayments',
+  budget: 'Set the budget to {amount}',
+  budgetCleared: 'Cleared the budget',
+  stops: 'Changed the trip stops',
+  changed: 'Changed the group settings',
+  memberAdded: 'Added {name}',
+  memberRemoved: 'Removed {name}',
+  memberLeft: 'Left the group',
+  madeAdmin: 'Made {name} an admin',
+  madeMember: 'Made {name} a member',
+  claimed: 'Claimed their place',
+  merged: 'Merged {name} into one person',
+  sentence: '{who} {event}',
+};
+
+const ENGLISH_TYPE_NAMES: GroupTypeNames = {
+  trip: 'Trip',
+  home: 'Home',
+  couple: 'Couple',
+  event: 'Event',
+  friends: 'Friends',
+  other: 'Other',
+};
+
+function lowerFirst(value: string): string {
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+function fill(template: string, values: Readonly<Record<string, string>>): string {
+  let out = template;
+  for (const [key, value] of Object.entries(values)) out = out.replaceAll(`{${key}}`, value);
+  return out;
+}
+
+/**
+ * Builds the group lines for a language from its strings. Pure — no locale
+ * table, no native module — so `activityLabels` (which has those) and the
+ * English default here share one definition.
+ */
+export function groupChangeLabels(
+  locale: string,
+  strings: GroupChangeStrings,
+  typeNames: GroupTypeNames = ENGLISH_TYPE_NAMES,
+): GroupChangeLabels {
+  const lowersEvent = /^en(?:[-_]|$)/i.test(locale);
+  const money = (amountMinor: string, currency: string): string => {
+    try {
+      if (!isCurrencyCode(currency)) return `${amountMinor} ${currency}`;
+      return formatMoney({ minor: BigInt(amountMinor), currency }, { locale });
+    } catch {
+      return `${amountMinor} ${currency}`;
+    }
+  };
+  return {
+    renamed: (name) => fill(strings.renamed, { name }),
+    nameCleared: strings.nameCleared,
+    description: strings.description,
+    type: (key) => fill(strings.type, { type: typeNames[key] ?? key }),
+    datesSet: (start, end) =>
+      fill(strings.datesSet, {
+        range: formatShortDateRange(start, end, locale) ?? `${start} – ${end}`,
+      }),
+    datesCleared: strings.datesCleared,
+    tag: (tag) => fill(strings.tag, { tag }),
+    tagCleared: strings.tagCleared,
+    currency: (code) => fill(strings.currency, { code }),
+    convertOn: (code) => fill(strings.convertOn, { code }),
+    convertOff: strings.convertOff,
+    cover: strings.cover,
+    currencyAdded: (code) => fill(strings.currencyAdded, { code }),
+    currencyRemoved: (code) => fill(strings.currencyRemoved, { code }),
+    rateChanged: (code) => fill(strings.rateChanged, { code }),
+    archived: strings.archived,
+    unarchived: strings.unarchived,
+    simplifyOn: strings.simplifyOn,
+    simplifyOff: strings.simplifyOff,
+    budget: (amountMinor, currency) =>
+      fill(strings.budget, { amount: money(amountMinor, currency) }),
+    budgetCleared: strings.budgetCleared,
+    stops: strings.stops,
+    changed: strings.changed,
+    memberAdded: (name) => fill(strings.memberAdded, { name }),
+    memberRemoved: (name) => fill(strings.memberRemoved, { name }),
+    memberLeft: strings.memberLeft,
+    madeAdmin: (name) => fill(strings.madeAdmin, { name }),
+    madeMember: (name) => fill(strings.madeMember, { name }),
+    claimed: strings.claimed,
+    merged: (name) => fill(strings.merged, { name }),
+    // The headline leads with a capitalised verb ("Renamed the group …") that
+    // has to drop its capital once a name is in front of it. Only English
+    // here has a case to drop: Tamil, Hindi and Arabic have none, and their
+    // headlines may begin with a Latin name or a currency code ("USD
+    // சேர்க்கப்பட்டது") that must be left exactly as it is.
+    sentence: (who, event) =>
+      fill(strings.sentence, { who, event: lowersEvent ? lowerFirst(event) : event }),
+  };
 }
 
 const ENGLISH_LABELS: ActivityLabels = {
@@ -77,7 +288,105 @@ const ENGLISH_LABELS: ActivityLabels = {
     `${who} imported ${count} ${count === 1 ? 'expense' : 'expenses'}`,
   importUndoneHeadline: 'Import undone',
   importUndoneSentence: (who) => `${who} undid an import`,
+  group: groupChangeLabels('en-IN', ENGLISH_GROUP_STRINGS),
 };
+
+/** The verbs the two triggers of 20261024100000 write, plus the two older
+ *  member verbs that never had wording. All worded from `labels.group`. */
+const GROUP_CHANGE_VERBS: ReadonlySet<string> = new Set([
+  'group_updated',
+  'member_added',
+  'member_removed',
+  'member_left',
+  'member_role_changed',
+  'claimed',
+  'merged',
+]);
+
+/** Whether a row is a group-settings or people change (see `GROUP_CHANGE_VERBS`). */
+export function isGroupChange(verb: string): boolean {
+  return GROUP_CHANGE_VERBS.has(verb);
+}
+
+function str(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/** The `payload.field` of a `group_updated` row, or null. */
+export function groupChangeField(payload: Record<string, unknown>): string | null {
+  return str(payload.field);
+}
+
+/**
+ * The headline of a settings or people change, from the row's payload. The
+ * payloads are the trigger's `{ field, from, to, … }` for a group and
+ * `{ name, from, to }` for a member; anything missing reads as the plainest
+ * line rather than a hole.
+ */
+function groupChangeHeadline(entry: ActivityRow, g: GroupChangeLabels): string {
+  const { payload } = entry;
+  const name = str(payload.name) ?? 'someone';
+  switch (entry.verb) {
+    case 'member_added':
+      return g.memberAdded(name);
+    case 'member_removed':
+      return g.memberRemoved(name);
+    case 'member_left':
+      return g.memberLeft;
+    case 'member_role_changed':
+      return payload.to === 'admin' ? g.madeAdmin(name) : g.madeMember(name);
+    case 'claimed':
+      return g.claimed;
+    case 'merged':
+      return g.merged(str(payload.from_name) ?? 'a placeholder');
+    default:
+      break;
+  }
+  const to = payload.to;
+  switch (groupChangeField(payload)) {
+    case 'name':
+      return str(to) ? g.renamed(str(to)!) : g.nameCleared;
+    case 'description':
+      return g.description;
+    case 'type':
+      return g.type(str(to) ?? 'other');
+    case 'dates': {
+      const range = typeof to === 'object' && to !== null ? (to as Record<string, unknown>) : {};
+      const start = str(range.start);
+      const end = str(range.end);
+      if (!start && !end) return g.datesCleared;
+      return g.datesSet(start ?? end!, end ?? start!);
+    }
+    case 'tag':
+      return str(to) ? g.tag(str(to)!) : g.tagCleared;
+    case 'currency':
+      return g.currency(str(to) ?? '');
+    case 'convert':
+      return to === true ? g.convertOn(str(payload.currency) ?? '') : g.convertOff;
+    case 'cover':
+      return g.cover;
+    case 'fx': {
+      const code = str(payload.currency) ?? '';
+      if (payload.change === 'added') return g.currencyAdded(code);
+      if (payload.change === 'removed') return g.currencyRemoved(code);
+      return g.rateChanged(code);
+    }
+    case 'archived':
+      return to === true ? g.archived : g.unarchived;
+    case 'simplify':
+      return to === true ? g.simplifyOn : g.simplifyOff;
+    case 'budget': {
+      const budget = typeof to === 'object' && to !== null ? (to as Record<string, unknown>) : null;
+      const amount = budget ? str(budget.amount) : null;
+      const currency = budget ? str(budget.currency) : null;
+      return amount && currency ? g.budget(amount, currency) : g.budgetCleared;
+    }
+    case 'stops':
+      return g.stops;
+    default:
+      return g.changed;
+  }
+}
 
 /**
  * How many expenses an `imported` row for an import batch brought in, or null
@@ -184,6 +493,15 @@ export function describeActivity(
       return `${who} resumed the repeating ${description ?? 'expense'}`;
     case 'recurring_stopped':
       return `${who} stopped the repeating ${description ?? 'expense'}`;
+    // A setting or a person changing: the headline with the actor in front.
+    case 'group_updated':
+    case 'member_added':
+    case 'member_removed':
+    case 'member_left':
+    case 'member_role_changed':
+    case 'claimed':
+    case 'merged':
+      return labels.group.sentence(who, groupChangeHeadline(entry, labels.group));
     default:
       // An unknown verb is a row written by a newer build than this one. Say
       // what is known rather than dropping it — a feed with holes in it is
@@ -280,6 +598,14 @@ export function activityHeadline(
     // so that afterwards there is a record of who did this.
     case 'group_deleted':
       return 'Group deleted';
+    case 'group_updated':
+    case 'member_added':
+    case 'member_removed':
+    case 'member_left':
+    case 'member_role_changed':
+    case 'claimed':
+    case 'merged':
+      return groupChangeHeadline(entry, labels.group);
     default:
       // A verb from a newer build. Say what is known rather than dropping the row.
       return `${entry.verb} ${entry.object_type}`;
@@ -302,6 +628,9 @@ export function activityHeadline(
 export function activityTarget(entry: ActivityRow): string {
   const group = `/group/${entry.group_id}`;
   if (!entry.object_id) return entry.object_type === 'member' ? `${group}/members` : group;
+  // Somebody who is gone has no member screen worth landing on; the list is
+  // where the reader sees who is left.
+  if (entry.verb === 'member_removed' || entry.verb === 'member_left') return `${group}/members`;
   switch (entry.object_type) {
     case 'expense':
       return `${group}/expense/${entry.object_id}`;
@@ -361,8 +690,62 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
       return 'pause-outline';
     case 'recurring_stopped':
       return 'stop-circle-outline';
+    case 'group_updated':
+      return 'settings-outline';
+    case 'member_added':
+      return 'person-add-outline';
+    case 'member_removed':
+      return 'person-remove-outline';
+    case 'member_left':
+      return 'exit-outline';
+    case 'member_role_changed':
+      return 'shield-checkmark-outline';
+    case 'claimed':
+      return 'person-circle-outline';
+    case 'merged':
+      return 'git-merge-outline';
     default:
       return 'ellipse-outline';
+  }
+}
+
+/**
+ * The glyph for a `group_updated` row, by which setting moved — a rename is a
+ * line of text, the dates a calendar, a currency cash — so a column of
+ * settings changes is skimmable the way bills are by category. A field this
+ * build has not met keeps the verb's own cog.
+ */
+export function groupChangeIcon(
+  field: string | null | undefined,
+): React.ComponentProps<typeof Ionicons>['name'] {
+  switch (field) {
+    case 'name':
+      return 'text-outline';
+    case 'description':
+      return 'document-text-outline';
+    case 'type':
+      return 'pricetags-outline';
+    case 'dates':
+      return 'calendar-outline';
+    case 'tag':
+      return 'pricetag-outline';
+    case 'currency':
+    case 'fx':
+      return 'cash-outline';
+    case 'convert':
+      return 'swap-horizontal-outline';
+    case 'cover':
+      return 'image-outline';
+    case 'archived':
+      return 'archive-outline';
+    case 'simplify':
+      return 'git-compare-outline';
+    case 'budget':
+      return 'wallet-outline';
+    case 'stops':
+      return 'map-outline';
+    default:
+      return verbIcon('group_updated');
   }
 }
 
@@ -394,9 +777,12 @@ export function verbTint(verb: string): ActivityTint {
     case 'rejected_dispute':
     case 'import_undone':
     case 'recurring_stopped':
+    case 'member_removed':
       return 'coral';
     case 'added':
     case 'joined':
+    case 'member_added':
+    case 'claimed':
       return 'sky';
     case 'edited':
     case 'superseded':

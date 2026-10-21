@@ -23,6 +23,7 @@ import {
   dayKey,
   describeActivity,
   filterByDayRange,
+  groupChangeIcon,
   parseMoney,
   groupByDay,
   relativeTime,
@@ -863,5 +864,195 @@ describe('repeating group expenses in the feed', () => {
     expect(
       describeActivity(row({ verb: 'recurring_paused', object_type: 'recurring_expense' }), 'me'),
     ).toBe('Ravi paused the repeating expense');
+  });
+});
+
+/**
+ * The group itself changing — a rename, the type, the dates, a currency, the
+ * archive, a person added or removed (the triggers of 20261024100000). The
+ * payload is the trigger's `{ field, from, to }`; the line has to read as what
+ * a person did, never as "Ravi group_updated group".
+ */
+describe('group settings in the feed', () => {
+  const change = (payload: Record<string, unknown>) =>
+    row({ verb: 'group_updated', object_type: 'group', object_id: 'group-1', payload });
+
+  it.each([
+    [{ field: 'name', from: 'Goa', to: 'Goa trip' }, 'Renamed the group to Goa trip'],
+    [{ field: 'name', from: 'Goa', to: null }, 'Cleared the group name'],
+    [{ field: 'description', from: null, to: 'Beach week' }, 'Changed the description'],
+    [{ field: 'type', from: 'other', to: 'trip' }, 'Changed the group type to Trip'],
+    [
+      {
+        field: 'dates',
+        from: { start: null, end: null },
+        to: { start: '2026-10-21', end: '2026-10-23' },
+      },
+      'Set the dates to 21–23 Oct',
+    ],
+    [
+      {
+        field: 'dates',
+        from: { start: '2026-10-21', end: '2026-10-23' },
+        to: { start: null, end: null },
+      },
+      'Cleared the dates',
+    ],
+    [{ field: 'tag', from: null, to: 'Holiday' }, 'Changed the tag to Holiday'],
+    [{ field: 'tag', from: 'Holiday', to: null }, 'Cleared the tag'],
+    [{ field: 'currency', from: 'INR', to: 'USD' }, 'Changed the currency to USD'],
+    [{ field: 'convert', from: false, to: true, currency: 'INR' }, 'Turned on Convert to INR'],
+    [{ field: 'convert', from: true, to: false, currency: 'INR' }, 'Turned off Convert'],
+    [{ field: 'cover', to: { emoji: '🏖️', color: null, photo: false } }, 'Changed the cover'],
+    [{ field: 'fx', change: 'added', currency: 'USD' }, 'Added USD'],
+    [{ field: 'fx', change: 'removed', currency: 'USD' }, 'Removed USD'],
+    [{ field: 'fx', change: 'rate', currency: 'USD' }, 'Changed the USD rate'],
+    [{ field: 'archived', from: false, to: true }, 'Archived the group'],
+    [{ field: 'archived', from: true, to: false }, 'Unarchived the group'],
+    [{ field: 'simplify', from: false, to: true }, 'Turned on Fewer repayments'],
+    [{ field: 'simplify', from: true, to: false }, 'Turned off Fewer repayments'],
+    [
+      { field: 'budget', to: { amount: '5000000', currency: 'INR' } },
+      'Set the budget to ₹50,000.00',
+    ],
+    [
+      { field: 'budget', from: { amount: '5000000', currency: 'INR' }, to: null },
+      'Cleared the budget',
+    ],
+    [{ field: 'stops', from: 0, to: 2 }, 'Changed the trip stops'],
+    [{ field: 'something_newer' }, 'Changed the group settings'],
+  ])('%j → %s', (payload, headline) => {
+    const entry = change(payload);
+    expect(activityHeadline(entry)).toBe(headline);
+    // The sentence is the headline with the actor in front, lower-cased to follow a name.
+    expect(describeActivity(entry, 'me')).toBe(
+      `Ravi ${headline.charAt(0).toLowerCase()}${headline.slice(1)}`,
+    );
+  });
+
+  it('reads as "You" for the reader\'s own change, and "Someone" for the cron', () => {
+    const mine = change({ field: 'archived', to: true });
+    expect(describeActivity({ ...mine, actor: ME }, 'profile-asha')).toBe('You archived the group');
+    const nobody = change({ field: 'archived', to: true });
+    expect(describeActivity({ ...nobody, actor: null, actor_member_id: null }, 'me')).toBe(
+      'Someone archived the group',
+    );
+  });
+
+  it('opens the group, and a settings row is an edit with its own glyph', () => {
+    const entry = change({ field: 'dates' });
+    expect(activityTarget(entry)).toBe('/group/group-1');
+    expect(verbIcon('group_updated')).toBe('settings-outline');
+    expect(verbTint('group_updated')).toBe('lilac');
+    expect(groupChangeIcon('dates')).toBe('calendar-outline');
+    expect(groupChangeIcon('name')).toBe('text-outline');
+    expect(groupChangeIcon('fx')).toBe('cash-outline');
+    expect(groupChangeIcon('archived')).toBe('archive-outline');
+    expect(groupChangeIcon('from_a_newer_build')).toBe('settings-outline');
+  });
+});
+
+describe('people in the feed', () => {
+  const member = (verb: string, payload: Record<string, unknown>) =>
+    row({ verb, object_type: 'member', object_id: 'member-deepak', payload });
+
+  it.each([
+    ['member_added', { name: 'Deepak', placeholder: true }, 'Added Deepak', 'Ravi added Deepak'],
+    ['member_removed', { name: 'Deepak' }, 'Removed Deepak', 'Ravi removed Deepak'],
+    ['member_left', { name: 'Ravi' }, 'Left the group', 'Ravi left the group'],
+    [
+      'member_role_changed',
+      { name: 'Deepak', from: 'member', to: 'admin' },
+      'Made Deepak an admin',
+      'Ravi made Deepak an admin',
+    ],
+    [
+      'member_role_changed',
+      { name: 'Deepak', from: 'admin', to: 'member' },
+      'Made Deepak a member',
+      'Ravi made Deepak a member',
+    ],
+    ['claimed', { via: 'invite_link' }, 'Claimed their place', 'Ravi claimed their place'],
+    [
+      'merged',
+      { from_name: 'Deepak (old)' },
+      'Merged Deepak (old) into one person',
+      'Ravi merged Deepak (old) into one person',
+    ],
+  ])('%s', (verb, payload, headline, sentence) => {
+    const entry = member(verb, payload);
+    expect(activityHeadline(entry)).toBe(headline);
+    expect(describeActivity(entry, 'me')).toBe(sentence);
+    expect(verbIcon(verb)).not.toBe('ellipse-outline');
+  });
+
+  it('wears the people colours: added and claimed sky, removed coral', () => {
+    expect(verbTint('member_added')).toBe('sky');
+    expect(verbTint('claimed')).toBe('sky');
+    expect(verbTint('member_removed')).toBe('coral');
+    expect(verbTint('member_left')).toBe('lilac');
+  });
+
+  it('opens the member who was added, and the list for somebody who is gone', () => {
+    expect(activityTarget(member('member_added', {}))).toBe('/group/group-1/member/member-deepak');
+    expect(activityTarget(member('member_removed', {}))).toBe('/group/group-1/members');
+    expect(activityTarget(member('member_left', {}))).toBe('/group/group-1/members');
+  });
+});
+
+describe('group changes in every language', () => {
+  const rename = row({
+    verb: 'group_updated',
+    object_type: 'group',
+    payload: { field: 'name', from: 'Goa', to: 'Goa trip' },
+  });
+  const type = row({
+    verb: 'group_updated',
+    object_type: 'group',
+    payload: { field: 'type', from: 'other', to: 'trip' },
+  });
+  const added = row({
+    verb: 'member_added',
+    object_type: 'member',
+    object_id: 'member-deepak',
+    payload: { name: 'Deepak' },
+  });
+
+  it.each([
+    [Language.En, 'en-IN'],
+    [Language.Ta, 'ta-IN'],
+    [Language.Hi, 'hi-IN'],
+    [Language.Ar, 'ar-AE'],
+  ])('%s names the group, the kind and the person, with the actor', (language, locale) => {
+    const strings = STRINGS_BY_LANGUAGE[language];
+    const labels = activityLabels(locale, strings.activityScreen, {
+      trip: strings.extras.typeTrip,
+      other: strings.extras.typeOther,
+    });
+
+    expect(activityHeadline(rename, labels)).toContain('Goa trip');
+    expect(describeActivity(rename, 'me', null, 'Someone', labels)).toContain('Ravi');
+    expect(describeActivity(rename, 'me', null, 'Someone', labels)).toContain('Goa trip');
+
+    // The kind of group is named in the language, not by its key.
+    expect(activityHeadline(type, labels)).toContain(strings.extras.typeTrip);
+    expect(activityHeadline(type, labels)).not.toContain('trip');
+
+    expect(activityHeadline(added, labels)).toContain('Deepak');
+    expect(describeActivity(added, 'me', null, 'Someone', labels)).toContain('Ravi');
+  });
+
+  it('has every line in every language', () => {
+    const english = STRINGS_BY_LANGUAGE[Language.En].activityScreen.group;
+    for (const language of [Language.Ta, Language.Hi, Language.Ar]) {
+      const table = STRINGS_BY_LANGUAGE[language].activityScreen.group;
+      for (const key of Object.keys(english) as (keyof typeof english)[]) {
+        expect(table[key], `${language}.${key}`).toBeTruthy();
+        // Every hole the English line has, the translation keeps.
+        for (const hole of english[key].match(/\{[a-z]+\}/g) ?? []) {
+          expect(table[key], `${language}.${key} keeps ${hole}`).toContain(hole);
+        }
+      }
+    }
   });
 });

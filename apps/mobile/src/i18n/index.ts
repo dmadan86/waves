@@ -2361,6 +2361,45 @@ export interface UiStrings {
     importUndoneHeadline: string;
     /** "{who} undid an import". */
     importUndoneSentence: string;
+    /**
+     * The group's own settings and people changing (`group_updated`,
+     * `member_*`, `claimed`, `merged`): each a verb-first headline with
+     * `{name}`-style holes, and `sentence` putting `{who}` in front of
+     * `{event}` for the spoken label ("{who} {event}", "{who} ने {event}").
+     */
+    group: {
+      renamed: string;
+      nameCleared: string;
+      description: string;
+      type: string;
+      datesSet: string;
+      datesCleared: string;
+      tag: string;
+      tagCleared: string;
+      currency: string;
+      convertOn: string;
+      convertOff: string;
+      cover: string;
+      currencyAdded: string;
+      currencyRemoved: string;
+      rateChanged: string;
+      archived: string;
+      unarchived: string;
+      simplifyOn: string;
+      simplifyOff: string;
+      budget: string;
+      budgetCleared: string;
+      stops: string;
+      changed: string;
+      memberAdded: string;
+      memberRemoved: string;
+      memberLeft: string;
+      madeAdmin: string;
+      madeMember: string;
+      claimed: string;
+      merged: string;
+      sentence: string;
+    };
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
@@ -7804,6 +7843,39 @@ const en: UiStrings = {
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
     importUndoneHeadline: 'Import undone',
     importUndoneSentence: '{who} undid an import',
+    group: {
+      renamed: 'Renamed the group to {name}',
+      nameCleared: 'Cleared the group name',
+      description: 'Changed the description',
+      type: 'Changed the group type to {type}',
+      datesSet: 'Set the dates to {range}',
+      datesCleared: 'Cleared the dates',
+      tag: 'Changed the tag to {tag}',
+      tagCleared: 'Cleared the tag',
+      currency: 'Changed the currency to {code}',
+      convertOn: 'Turned on Convert to {code}',
+      convertOff: 'Turned off Convert',
+      cover: 'Changed the cover',
+      currencyAdded: 'Added {code}',
+      currencyRemoved: 'Removed {code}',
+      rateChanged: 'Changed the {code} rate',
+      archived: 'Archived the group',
+      unarchived: 'Unarchived the group',
+      simplifyOn: 'Turned on Fewer repayments',
+      simplifyOff: 'Turned off Fewer repayments',
+      budget: 'Set the budget to {amount}',
+      budgetCleared: 'Cleared the budget',
+      stops: 'Changed the trip stops',
+      changed: 'Changed the group settings',
+      memberAdded: 'Added {name}',
+      memberRemoved: 'Removed {name}',
+      memberLeft: 'Left the group',
+      madeAdmin: 'Made {name} an admin',
+      madeMember: 'Made {name} a member',
+      claimed: 'Claimed their place',
+      merged: 'Merged {name} into one person',
+      sentence: '{who} {event}',
+    },
   },
   newGroupForm: {
     title: 'Create a new group',
@@ -12846,6 +12918,39 @@ const ta: UiStrings = {
     },
     importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
     importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
+    group: {
+      renamed: 'குழுவின் பெயர் {name} என மாற்றப்பட்டது',
+      nameCleared: 'குழுவின் பெயர் நீக்கப்பட்டது',
+      description: 'விளக்கம் மாற்றப்பட்டது',
+      type: 'குழு வகை {type} என மாற்றப்பட்டது',
+      datesSet: 'தேதிகள் {range} என அமைக்கப்பட்டன',
+      datesCleared: 'தேதிகள் நீக்கப்பட்டன',
+      tag: 'டேக் {tag} என மாற்றப்பட்டது',
+      tagCleared: 'டேக் நீக்கப்பட்டது',
+      currency: 'நாணயம் {code} என மாற்றப்பட்டது',
+      convertOn: '{code}-க்கு மாற்றுதல் இயக்கப்பட்டது',
+      convertOff: 'மாற்றுதல் நிறுத்தப்பட்டது',
+      cover: 'அட்டை மாற்றப்பட்டது',
+      currencyAdded: '{code} சேர்க்கப்பட்டது',
+      currencyRemoved: '{code} நீக்கப்பட்டது',
+      rateChanged: '{code} விகிதம் மாற்றப்பட்டது',
+      archived: 'குழு காப்பகப்படுத்தப்பட்டது',
+      unarchived: 'குழு காப்பகத்திலிருந்து மீட்கப்பட்டது',
+      simplifyOn: 'குறைவான திருப்பிச் செலுத்தல் இயக்கப்பட்டது',
+      simplifyOff: 'குறைவான திருப்பிச் செலுத்தல் நிறுத்தப்பட்டது',
+      budget: 'பட்ஜெட் {amount} என அமைக்கப்பட்டது',
+      budgetCleared: 'பட்ஜெட் நீக்கப்பட்டது',
+      stops: 'பயண நிறுத்தங்கள் மாற்றப்பட்டன',
+      changed: 'குழு அமைப்புகள் மாற்றப்பட்டன',
+      memberAdded: '{name} சேர்க்கப்பட்டார்',
+      memberRemoved: '{name} நீக்கப்பட்டார்',
+      memberLeft: 'குழுவிலிருந்து வெளியேறினார்',
+      madeAdmin: '{name} நிர்வாகியாக்கப்பட்டார்',
+      madeMember: '{name} உறுப்பினராக்கப்பட்டார்',
+      claimed: 'தம் இடத்தை உரிமை கொண்டார்',
+      merged: '{name} ஒரே நபராக இணைக்கப்பட்டார்',
+      sentence: '{who}: {event}',
+    },
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
@@ -17989,6 +18094,39 @@ const hi: UiStrings = {
     },
     importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
     importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
+    group: {
+      renamed: 'समूह का नाम बदलकर {name} रखा',
+      nameCleared: 'समूह का नाम हटाया',
+      description: 'विवरण बदला',
+      type: 'समूह का प्रकार बदलकर {type} किया',
+      datesSet: 'तारीखें {range} तय कीं',
+      datesCleared: 'तारीखें हटाईं',
+      tag: 'टैग बदलकर {tag} किया',
+      tagCleared: 'टैग हटाया',
+      currency: 'मुद्रा बदलकर {code} की',
+      convertOn: '{code} में बदलना चालू किया',
+      convertOff: 'मुद्रा बदलना बंद किया',
+      cover: 'कवर बदला',
+      currencyAdded: '{code} जोड़ा',
+      currencyRemoved: '{code} हटाया',
+      rateChanged: '{code} की दर बदली',
+      archived: 'समूह आर्काइव किया',
+      unarchived: 'समूह आर्काइव से वापस लाया',
+      simplifyOn: 'कम भुगतान चालू किया',
+      simplifyOff: 'कम भुगतान बंद किया',
+      budget: 'बजट {amount} तय किया',
+      budgetCleared: 'बजट हटाया',
+      stops: 'ट्रिप के पड़ाव बदले',
+      changed: 'समूह की सेटिंग बदली',
+      memberAdded: '{name} को जोड़ा',
+      memberRemoved: '{name} को हटाया',
+      memberLeft: 'समूह छोड़ा',
+      madeAdmin: '{name} को एडमिन बनाया',
+      madeMember: '{name} को सदस्य बनाया',
+      claimed: 'अपनी जगह ली',
+      merged: '{name} को एक ही व्यक्ति में मिलाया',
+      sentence: '{who} ने {event}',
+    },
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
@@ -23098,6 +23236,39 @@ const ar: UiStrings = {
     },
     importUndoneHeadline: 'تم التراجع عن الاستيراد',
     importUndoneSentence: '{who} تراجع عن استيراد',
+    group: {
+      renamed: 'غيّر اسم المجموعة إلى {name}',
+      nameCleared: 'أزال اسم المجموعة',
+      description: 'غيّر الوصف',
+      type: 'غيّر نوع المجموعة إلى {type}',
+      datesSet: 'حدّد التواريخ {range}',
+      datesCleared: 'أزال التواريخ',
+      tag: 'غيّر الوسم إلى {tag}',
+      tagCleared: 'أزال الوسم',
+      currency: 'غيّر العملة إلى {code}',
+      convertOn: 'فعّل التحويل إلى {code}',
+      convertOff: 'أوقف التحويل',
+      cover: 'غيّر الغلاف',
+      currencyAdded: 'أضاف {code}',
+      currencyRemoved: 'أزال {code}',
+      rateChanged: 'غيّر سعر {code}',
+      archived: 'أرشف المجموعة',
+      unarchived: 'أعاد المجموعة من الأرشيف',
+      simplifyOn: 'فعّل تقليل المدفوعات',
+      simplifyOff: 'أوقف تقليل المدفوعات',
+      budget: 'حدّد الميزانية {amount}',
+      budgetCleared: 'أزال الميزانية',
+      stops: 'غيّر محطات الرحلة',
+      changed: 'غيّر إعدادات المجموعة',
+      memberAdded: 'أضاف {name}',
+      memberRemoved: 'أزال {name}',
+      memberLeft: 'غادر المجموعة',
+      madeAdmin: 'جعل {name} مشرفًا',
+      madeMember: 'جعل {name} عضوًا',
+      claimed: 'أخذ مكانه',
+      merged: 'دمج {name} في شخص واحد',
+      sentence: '{who} {event}',
+    },
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',

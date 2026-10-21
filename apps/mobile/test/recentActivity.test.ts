@@ -184,3 +184,43 @@ describe('newestActivityFromOthers', () => {
     expect(newestActivityFromOthers(empty, 'p-me')).toBe(0);
   });
 });
+
+describe('a group settings change in the feed', () => {
+  it('joins the group and the actor, and carries no stake or category', () => {
+    const state = mirror();
+    const tables = (state as unknown as { tables: Record<string, Record<string, unknown>> }).tables;
+    tables.activity_log = {
+      rename: {
+        id: 'rename',
+        group_id: 'g-goa',
+        actor_member_id: 'm-ravi',
+        verb: 'group_updated',
+        object_type: 'group',
+        object_id: 'g-goa',
+        payload: { field: 'name', from: 'Goa', to: 'Goa trip' },
+        created_at: '2026-10-21T10:00:00.000Z',
+      },
+      added: {
+        id: 'added',
+        group_id: 'g-goa',
+        actor_member_id: 'm-me',
+        verb: 'member_added',
+        object_type: 'member',
+        object_id: 'm-deepak',
+        payload: { name: 'Deepak', placeholder: true },
+        created_at: '2026-10-21T09:00:00.000Z',
+      },
+    };
+
+    const rows = recentActivity(state, 'p-me');
+    expect(rows.map((row) => row.id)).toEqual(['rename', 'added']);
+    expect(rows[0]).toMatchObject({
+      group: { id: 'g-goa', name: 'Goa' },
+      actor: { id: 'm-ravi', profile_id: 'p-ravi' },
+      stake: null,
+      category: null,
+      payload: { field: 'name', to: 'Goa trip' },
+    });
+    expect(rows[1]?.actor?.id).toBe('m-me');
+  });
+});

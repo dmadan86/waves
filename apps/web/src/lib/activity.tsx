@@ -14,12 +14,18 @@ import {
   Dot,
   Flag,
   Handshake,
+  LogOut,
+  Merge,
   Pencil,
   Receipt,
   Repeat,
+  Settings,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Undo2,
+  UserCheck,
+  UserMinus,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -77,8 +83,84 @@ export function describeActivity(entry: ActivityRow, myProfileId: string | null)
       return `${who} resumed the repeating ${description ?? 'expense'}`;
     case 'recurring_stopped':
       return `${who} stopped the repeating ${description ?? 'expense'}`;
+    // The group itself changing (the triggers of 20261024100000): its settings
+    // and its people. Same lines as the phone, worded from the actor.
+    case 'group_updated':
+      return `${who} ${groupChange(payload)}`;
+    case 'member_added':
+      return `${who} added ${name(payload)}`;
+    case 'member_removed':
+      return `${who} removed ${name(payload)}`;
+    case 'member_left':
+      return `${who} left the group`;
+    case 'member_role_changed':
+      return payload?.to === 'admin'
+        ? `${who} made ${name(payload)} an admin`
+        : `${who} made ${name(payload)} a member`;
+    case 'claimed':
+      return `${who} claimed their place`;
+    case 'merged': {
+      const from = typeof payload?.from_name === 'string' ? payload.from_name : 'a placeholder';
+      return `${who} merged ${from} into one person`;
+    }
     default:
       return `${who} ${entry.verb} ${entry.object_type}`;
+  }
+}
+
+function name(payload: ActivityRow['payload']): string {
+  return typeof payload?.name === 'string' && payload.name.trim() ? payload.name.trim() : 'someone';
+}
+
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/** The lower-case clause after the actor for a `group_updated` row. */
+function groupChange(payload: ActivityRow['payload']): string {
+  const to = payload?.to;
+  const toRecord = typeof to === 'object' && to !== null ? (to as Record<string, unknown>) : null;
+  switch (text(payload?.field)) {
+    case 'name':
+      return text(to) ? `renamed the group to ${text(to)}` : 'cleared the group name';
+    case 'description':
+      return 'changed the description';
+    case 'type':
+      return `changed the group type to ${text(to) ?? 'other'}`;
+    case 'dates': {
+      const start = text(toRecord?.start);
+      const end = text(toRecord?.end);
+      if (!start && !end) return 'cleared the dates';
+      return `set the dates to ${start ?? end} – ${end ?? start}`;
+    }
+    case 'tag':
+      return text(to) ? `changed the tag to ${text(to)}` : 'cleared the tag';
+    case 'currency':
+      return `changed the currency to ${text(to) ?? ''}`;
+    case 'convert':
+      return to === true
+        ? `turned on Convert to ${text(payload?.currency) ?? ''}`
+        : 'turned off Convert';
+    case 'cover':
+      return 'changed the cover';
+    case 'fx': {
+      const code = text(payload?.currency) ?? '';
+      if (payload?.change === 'added') return `added ${code}`;
+      if (payload?.change === 'removed') return `removed ${code}`;
+      return `changed the ${code} rate`;
+    }
+    case 'archived':
+      return to === true ? 'archived the group' : 'unarchived the group';
+    case 'simplify':
+      return to === true ? 'turned on Fewer repayments' : 'turned off Fewer repayments';
+    case 'budget':
+      return toRecord
+        ? `set the budget to ${text(toRecord.amount) ?? ''} ${text(toRecord.currency) ?? ''}`.trim()
+        : 'cleared the budget';
+    case 'stops':
+      return 'changed the trip stops';
+    default:
+      return 'changed the group settings';
   }
 }
 
@@ -130,6 +212,20 @@ function iconForVerb(verb: string): LucideIcon {
     case 'recurring_resumed':
     case 'recurring_stopped':
       return Repeat;
+    case 'group_updated':
+      return Settings;
+    case 'member_added':
+      return UserPlus;
+    case 'member_removed':
+      return UserMinus;
+    case 'member_left':
+      return LogOut;
+    case 'member_role_changed':
+      return ShieldCheck;
+    case 'claimed':
+      return UserCheck;
+    case 'merged':
+      return Merge;
     default:
       return Dot;
   }
