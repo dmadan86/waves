@@ -24,7 +24,8 @@
 -- `waves_create_group` (every client path: the app, the sync function, the web,
 -- the public API, the agent) and again by a BEFORE INSERT trigger on `groups`,
 -- which closes the direct-insert door the `groups_insert` policy leaves open to
--- an edited client. The trigger only looks at rows written under a PostgREST
+-- an edited client; and by a trigger on `group_members` the moment a pair gains
+-- a third live member, so pairs cannot be made first and grown later. The trigger only looks at rows written under a PostgREST
 -- JWT (anon/authenticated): service-role work — imports, seeds, the tests'
 -- fixtures — is not a person tapping Create. The Splitwise importer, which
 -- inserts as the service, asks `waves_assert_group_cap` itself.
@@ -52,8 +53,9 @@ $$;
 REVOKE ALL ON FUNCTION public.waves_free_group_cap() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_free_group_cap() TO authenticated, service_role;
 
--- Groups p_profile started that count toward the ceiling.
-CREATE OR REPLACE FUNCTION public.waves_created_group_count(p_profile uuid) RETURNS integer
+-- Groups p_profile started that count toward the ceiling. `p_except` leaves one
+-- group out: the one about to stop being a pair (see the group_members trigger).
+CREATE OR REPLACE FUNCTION public.waves_created_group_count(p_profile uuid, p_except uuid DEFAULT NULL::uuid) RETURNS integer
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
@@ -61,15 +63,16 @@ CREATE OR REPLACE FUNCTION public.waves_created_group_count(p_profile uuid) RETU
     FROM public.groups g
    WHERE g.created_by = p_profile
      AND g.deleted_at IS NULL
+     AND (p_except IS NULL OR g.id <> p_except)
      AND (SELECT count(*) FROM public.group_members gm
            WHERE gm.group_id = g.id AND gm.left_at IS NULL) <> 2;
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_created_group_count(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.waves_created_group_count(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.waves_created_group_count(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_created_group_count(uuid, uuid) TO service_role;
 
 -- Refuse when a Free account has started its share. A no-op for Pro.
-CREATE OR REPLACE FUNCTION public.waves_assert_group_cap(p_profile uuid) RETURNS void
+CREATE OR REPLACE FUNCTION public.waves_assert_group_cap(p_profile uuid, p_except uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
@@ -84,15 +87,51 @@ BEGIN
     RETURN;
   END IF;
   v_cap := public.waves_free_group_cap();
-  v_count := public.waves_created_group_count(p_profile);
+  v_count := public.waves_created_group_count(p_profile, p_except);
   IF v_count >= v_cap THEN
     RAISE EXCEPTION 'FREE_GROUP_LIMIT: Free plan lets you create up to % groups. Upgrade to Pro for unlimited groups.', v_cap;
   END IF;
 END
 $$;
 
-REVOKE ALL ON FUNCTION public.waves_assert_group_cap(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.waves_assert_group_cap(uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.waves_assert_group_cap(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_assert_group_cap(uuid, uuid) TO authenticated, service_role;
+
+-- A pair that gains a third live member becomes a group, and counts from that
+-- moment — otherwise ten pairs plus one member each would be ten free groups.
+-- Fires when a group's live membership goes from two to three (a new live row,
+-- or a departed member coming back), under a person's JWT like the trigger on
+-- `groups`; the group itself is left out of the count since it is the one
+-- being added. Refused by name: the add (or the join) does not happen.
+CREATE OR REPLACE FUNCTION public.waves_group_members_cap_guard() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_role    text := COALESCE(NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', '');
+  v_creator uuid;
+  v_live    integer;
+BEGIN
+  IF v_role NOT IN ('anon', 'authenticated') OR NEW.left_at IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' AND OLD.left_at IS NULL THEN
+    RETURN NEW;
+  END IF;
+  SELECT count(*) INTO v_live FROM public.group_members WHERE group_id = NEW.group_id AND left_at IS NULL;
+  IF v_live = 3 THEN
+    SELECT created_by INTO v_creator FROM public.groups WHERE id = NEW.group_id AND deleted_at IS NULL;
+    PERFORM public.waves_assert_group_cap(v_creator, NEW.group_id);
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.waves_group_members_cap_guard() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS group_members_free_cap ON public.group_members;
+CREATE TRIGGER group_members_free_cap AFTER INSERT OR UPDATE OF left_at ON public.group_members
+  FOR EACH ROW EXECUTE FUNCTION public.waves_group_members_cap_guard();
 
 -- What the screens ask before opening the form: the ceiling, how much of it is
 -- used, and whether one more may be started. Always the caller's own.

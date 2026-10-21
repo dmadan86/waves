@@ -144,6 +144,56 @@ describe('the Free ceiling on starting groups', () => {
     expect(await cap(me)).toMatchObject({ created: 9 });
   });
 
+  it('counts a pair the moment it gains a third member, so pairs cannot be grown into free groups', async () => {
+    const me = await person('Growing Greta');
+    const ids = await createMany(me, 10);
+    const pair = ids[0]!;
+    await addGhost(pair, 'Friend');
+    expect(await cap(me)).toMatchObject({ created: 9 });
+    await expect(create(me, 'Tenth again')).resolves.toBeTruthy();
+    expect(await cap(me)).toMatchObject({ created: 10, canCreate: false });
+
+    // The third member would make the pair an eleventh group: refused, under the
+    // person's JWT (how the add-member and join RPCs write).
+    const third = randomUUID();
+    await expect(
+      asUser(me, () =>
+        client.query(
+          `INSERT INTO group_members (id, group_id, ghost_name, joined_via) VALUES ($1, $2, 'Third', 'ghost')`,
+          [third, pair],
+        ),
+      ),
+    ).rejects.toThrow(/FREE_GROUP_LIMIT/);
+    expect(await cap(me)).toMatchObject({ created: 10 });
+
+    // A departed member coming back is the same growth.
+    await addGhost(pair, 'Left');
+    await client.query(
+      `UPDATE group_members SET left_at = now() WHERE group_id = $1 AND ghost_name = 'Left'`,
+      [pair],
+    );
+    await expect(
+      asUser(me, () =>
+        client.query(
+          `UPDATE group_members SET left_at = NULL WHERE group_id = $1 AND ghost_name = 'Left'`,
+          [pair],
+        ),
+      ),
+    ).rejects.toThrow(/FREE_GROUP_LIMIT/);
+
+    // Pro grows it freely.
+    await grantPro(me);
+    await expect(
+      asUser(me, () =>
+        client.query(
+          `INSERT INTO group_members (id, group_id, ghost_name, joined_via) VALUES ($1, $2, 'Third', 'ghost')`,
+          [third, pair],
+        ),
+      ),
+    ).resolves.toBeTruthy();
+    expect(await cap(me)).toMatchObject({ created: 11, paid: true });
+  });
+
   it('leaves a deleted group out and keeps an archived one', async () => {
     const me = await person('Archiving Ana');
     const ids = await createMany(me, 10);
