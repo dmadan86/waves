@@ -66,6 +66,9 @@ export enum MutationKind {
   // `fx_rates` map. Admin-gated in its RPC like the budgets; a null ratio clears
   // that currency's entry.
   GroupFxRateSet = 'group_fx_rate.set',
+  // The trip's itinerary — the whole list of country stops — on the group
+  // row's `trip_stops`. Admin-gated in its RPC like the rates.
+  TripStopsSet = 'trip_stops.set',
   // Personal-scope kinds for the private personal-finance ledger (A48): solo
   // expenses/income, recurring rules, loans and monthly budgets. Like captures
   // they ride a personal scope, under their own suffixed cursor
@@ -439,6 +442,16 @@ export interface GroupFxRateSetPayload {
    * bill). Absent or false is a deliberate pin that overwrites.
    */
   readonly ifAbsent?: boolean;
+}
+
+/**
+ * The trip's itinerary, replaced whole: every stop as a country and two
+ * inclusive days. The whole list rather than one stop, because ordering and
+ * overlap are properties of the list, and fifteen entries at most is nothing
+ * to resend. An empty list clears it. Admin-only, like the rates.
+ */
+export interface TripStopsSetPayload {
+  readonly stops: readonly { country: string; start: string; end: string }[];
 }
 
 /**

@@ -37,6 +37,9 @@ export interface GroupRow {
   custom_tag?: string | null;
   /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon; null is the app's default. Optional: narrow selects omit it. */
   cover_color?: string | null;
+  /** The itinerary of a trip across borders — `[{ country, start, end }]`,
+   *  read through `parseTripStops` in @waves/core. Null is no itinerary. */
+  trip_stops?: unknown;
   start_date: string | null;
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */

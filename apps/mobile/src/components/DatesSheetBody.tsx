@@ -2,6 +2,11 @@
  * The body of the group-settings Dates sheet: a header, the start/end strip,
  * one month calendar and a pinned Save button.
  *
+ * It also picks the days of one itinerary stop ("When are you in Indonesia?"):
+ * the same strip and calendar, with its own title, the trip's dates as
+ * `bounds` (days outside them are faint and do not take a tap), no Clear (a
+ * stop always has days) and a footer for the stop's own buttons.
+ *
  * The selection is a draft held here. Nothing reaches the group until Save,
  * and closing the sheet any other way throws the draft away — the parent
  * mounts this only while the sheet is open, so every opening starts from the
@@ -10,7 +15,7 @@
  * inline TripDates editor uses).
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -59,12 +64,31 @@ export function DatesSheetBody({
   forEvent,
   onSave,
   onClose,
+  title,
+  subtitle,
+  bounds,
+  saveLabel,
+  canClear = true,
+  notice,
+  footer,
 }: {
-  group: TripDatesValue;
+  group: Pick<TripDatesValue, 'start_date' | 'end_date' | 'time_zone'>;
   locale: string;
   forEvent: boolean;
   onSave: (patch: TripDatesPatch) => void;
   onClose: () => void;
+  /** Overrides the trip/event heading, for a stop's own question. */
+  title?: string;
+  subtitle?: string;
+  /** Days outside this range are faint and take no tap (the trip's own dates, for a stop). */
+  bounds?: { start: Date | null; end: Date | null };
+  saveLabel?: string;
+  /** False hides Clear: a stop has days or it is not a stop. */
+  canClear?: boolean;
+  /** A refusal to show above Save ("Those days overlap another stop."). */
+  notice?: string | null;
+  /** Extra controls under the calendar — a stop's Remove, say. */
+  footer?: ReactNode;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -73,8 +97,15 @@ export function DatesSheetBody({
   const [end, setEnd] = useState<Date | null>(() => tripDateFromIso(group.end_date));
   const [target, setTarget] = useState<Target>('fresh');
   const [view, setView] = useState<Date>(() =>
-    firstOfMonth(tripDateFromIso(group.start_date) ?? new Date()),
+    firstOfMonth(tripDateFromIso(group.start_date) ?? bounds?.start ?? new Date()),
   );
+
+  /** Whether a day may be tapped: inside the bounds, when there are any. */
+  const allowed = (d: Date): boolean => {
+    if (bounds?.start && d.getTime() < startOfDay(bounds.start).getTime()) return false;
+    if (bounds?.end && d.getTime() > startOfDay(bounds.end).getTime() + 86_399_999) return false;
+    return true;
+  };
 
   const fmt = useMemo(() => {
     const date = gregorianFormatter(locale, {
@@ -152,8 +183,12 @@ export function DatesSheetBody({
   };
 
   const save = (): void => {
-    if (!start) onSave({ start_date: null, end_date: null });
-    else onSave(tripDateRangePatch(start, end ?? start, group.time_zone));
+    if (!start) {
+      if (!canClear) return;
+      onSave({ start_date: null, end_date: null });
+    } else {
+      onSave(tripDateRangePatch(start, end ?? start, group.time_zone));
+    }
     onClose();
   };
 
@@ -242,11 +277,11 @@ export function DatesSheetBody({
         <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <Tile size={48} name="calendar-outline" />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="heading" accessibilityRole="header" numberOfLines={1}>
-              {forEvent ? t.eventOrganizer.eventDatesTitle : t.misc.tripDatesTitle}
+            <Text variant="heading" accessibilityRole="header" numberOfLines={2}>
+              {title ?? (forEvent ? t.eventOrganizer.eventDatesTitle : t.misc.tripDatesTitle)}
             </Text>
             <Text variant="caption" tone="muted">
-              {t.pickers.datesSheetSubtitle}
+              {subtitle ?? t.pickers.datesSheetSubtitle}
             </Text>
           </View>
           <Pressable
@@ -327,12 +362,14 @@ export function DatesSheetBody({
                   const bandFrom = isFrom && !isTo;
                   const bandTo = isTo && !isFrom;
                   const otherMonth = d.getMonth() !== view.getMonth();
+                  const outside = !allowed(d);
                   return (
                     <Pressable
                       key={di}
                       accessibilityRole="button"
                       accessibilityLabel={fmt.full(d)}
-                      accessibilityState={{ selected: isEnd }}
+                      accessibilityState={{ selected: isEnd, disabled: outside }}
+                      disabled={outside}
                       onPress={() => pick(d)}
                       style={{
                         flex: 1,
@@ -372,7 +409,7 @@ export function DatesSheetBody({
                           style={{
                             color: isEnd
                               ? theme.color.onBrand
-                              : otherMonth
+                              : otherMonth || outside
                                 ? theme.color.textFaint
                                 : theme.color.text,
                             fontWeight: isEnd ? '700' : '500',
@@ -393,38 +430,50 @@ export function DatesSheetBody({
             <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>
               {days > 0 ? plural(locale, days, t.pickers.daysSelected) : t.pickers.noDatesSelected}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.pickers.clearDates}
-              onPress={clear}
-              hitSlop={6}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.brandSoft,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Ionicons name="close" size={iconSize.sm} color={theme.color.brand} />
-              <Text
-                variant="caption"
-                numberOfLines={1}
-                style={{ color: theme.color.brand, fontWeight: '600' }}
+            {canClear ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.pickers.clearDates}
+                onPress={clear}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: theme.color.brandSoft,
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
-                {t.pickers.clearDates}
-              </Text>
-            </Pressable>
+                <Ionicons name="close" size={iconSize.sm} color={theme.color.brand} />
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: theme.color.brand, fontWeight: '600' }}
+                >
+                  {t.pickers.clearDates}
+                </Text>
+              </Pressable>
+            ) : null}
           </Row>
         </View>
+
+        {footer}
       </ScrollView>
+
+      {notice ? (
+        <Text variant="caption" tone="negative">
+          {notice}
+        </Text>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t.pickers.saveDates}
+        accessibilityLabel={saveLabel ?? t.pickers.saveDates}
+        accessibilityState={{ disabled: !start && !canClear }}
+        disabled={!start && !canClear}
         onPress={save}
         style={({ pressed }) => ({
           height: 52,
@@ -432,11 +481,11 @@ export function DatesSheetBody({
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: pressed ? 0.85 : 1,
+          opacity: !start && !canClear ? 0.45 : pressed ? 0.85 : 1,
         })}
       >
         <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
-          {t.pickers.saveDates}
+          {saveLabel ?? t.pickers.saveDates}
         </Text>
       </Pressable>
     </View>

@@ -5445,6 +5445,37 @@ export interface UiStrings {
     /** Screen-reader announcement when the version wall takes the screen. */
     blockedAnnouncement: string;
   };
+  /** A trip across borders: its itinerary of country stops, and what each
+   *  stop cost. The home country (`country_code`) is untouched by this. */
+  stops: {
+    countriesVisited: string;
+    addCountries: string;
+    addStop: string;
+    editStop: string;
+    removeStop: string;
+    whichCountry: string;
+    /** "When are you in {country}?" */
+    whenThere: string;
+    stopDatesSubtitle: string;
+    saveStop: string;
+    changeCountry: string;
+    adminOnly: string;
+    stopCount: PluralForms;
+    /** The Spending bucket for bills dated outside every stop. */
+    otherDates: string;
+    byCountry: string;
+    /** "In {currency}, at the rate saved on each bill" */
+    byCountryCaption: string;
+    notCounted: PluralForms;
+    overlap: string;
+    outsideTrip: string;
+    endBeforeStart: string;
+    tooMany: string;
+    /** "{currency} added to trip rates" */
+    currencyPinned: string;
+    /** Heading over the itinerary's currencies in the currency picker. */
+    tripCurrencies: string;
+  };
   /** A group's settle currency and the rates it converts foreign bills with —
    *  set once for the trip, overridable on a single bill (ADR-003, extended). */
   fx: {
@@ -10457,6 +10488,33 @@ const en: UiStrings = {
     writtenIn: 'Written in {language}.',
     dismiss: 'Got it',
     blockedAnnouncement: 'Waves needs updating before it can be used.',
+  },
+  stops: {
+    countriesVisited: 'Countries visited',
+    addCountries: 'Add the countries you’re visiting',
+    addStop: 'Add a stop',
+    editStop: 'Edit stop',
+    removeStop: 'Remove this stop',
+    whichCountry: 'Which country?',
+    whenThere: 'When are you in {country}?',
+    stopDatesSubtitle: 'The first and last day there',
+    saveStop: 'Save stop',
+    changeCountry: 'Change country',
+    adminOnly: 'Only an admin can change the itinerary.',
+    stopCount: { one: '{n} stop', other: '{n} stops' },
+    otherDates: 'Other dates',
+    byCountry: 'By country',
+    byCountryCaption: 'In {currency}, at the rate saved on each bill',
+    notCounted: {
+      one: '{n} bill has no rate and is not counted',
+      other: '{n} bills have no rate and are not counted',
+    },
+    overlap: 'Those days overlap another stop.',
+    outsideTrip: 'Those days are outside the trip dates.',
+    endBeforeStart: 'The stop ends before it starts.',
+    tooMany: 'Up to 15 stops.',
+    currencyPinned: '{currency} added to trip rates',
+    tripCurrencies: 'On this trip',
   },
   fx: {
     section: 'Currency',
@@ -15628,6 +15686,33 @@ const ta: UiStrings = {
     dismiss: 'சரி',
     blockedAnnouncement: 'Waves-ஐப் பயன்படுத்த முதலில் புதுப்பிக்க வேண்டும்.',
   },
+  stops: {
+    countriesVisited: 'செல்லும் நாடுகள்',
+    addCountries: 'நீங்கள் செல்லும் நாடுகளைச் சேர்க்கவும்',
+    addStop: 'ஒரு இடத்தைச் சேர்',
+    editStop: 'இடத்தைத் திருத்து',
+    removeStop: 'இந்த இடத்தை நீக்கு',
+    whichCountry: 'எந்த நாடு?',
+    whenThere: '{country}-இல் எப்போது இருப்பீர்கள்?',
+    stopDatesSubtitle: 'அங்கு இருக்கும் முதல் மற்றும் கடைசி நாள்',
+    saveStop: 'இடத்தைச் சேமி',
+    changeCountry: 'நாட்டை மாற்று',
+    adminOnly: 'பயணத் திட்டத்தை நிர்வாகி மட்டுமே மாற்ற முடியும்.',
+    stopCount: { one: '{n} இடம்', other: '{n} இடங்கள்' },
+    otherDates: 'மற்ற தேதிகள்',
+    byCountry: 'நாடு வாரியாக',
+    byCountryCaption: '{currency}-இல், ஒவ்வொரு பில்லிலும் சேமித்த விகிதத்தில்',
+    notCounted: {
+      one: '{n} பில்லுக்கு விகிதம் இல்லை, கணக்கில் இல்லை',
+      other: '{n} பில்களுக்கு விகிதம் இல்லை, கணக்கில் இல்லை',
+    },
+    overlap: 'அந்த நாட்கள் வேறொரு இடத்துடன் ஒன்றுபடுகின்றன.',
+    outsideTrip: 'அந்த நாட்கள் பயணத் தேதிகளுக்கு வெளியே உள்ளன.',
+    endBeforeStart: 'தொடங்கும் முன்பே இடம் முடிகிறது.',
+    tooMany: 'அதிகபட்சம் 15 இடங்கள்.',
+    currencyPinned: '{currency} பயண விகிதங்களில் சேர்க்கப்பட்டது',
+    tripCurrencies: 'இந்தப் பயணத்தில்',
+  },
   fx: {
     section: 'நாணயம்',
     convertTitle: '{currency}-இல் கணக்கை முடி',
@@ -20627,6 +20712,33 @@ const hi: UiStrings = {
     writtenIn: '{language} में लिखा गया।',
     dismiss: 'ठीक है',
     blockedAnnouncement: 'Waves इस्तेमाल करने से पहले उसे अपडेट करना ज़रूरी है।',
+  },
+  stops: {
+    countriesVisited: 'घूमे जाने वाले देश',
+    addCountries: 'जिन देशों में जा रहे हैं, उन्हें जोड़ें',
+    addStop: 'एक पड़ाव जोड़ें',
+    editStop: 'पड़ाव बदलें',
+    removeStop: 'यह पड़ाव हटाएँ',
+    whichCountry: 'कौन सा देश?',
+    whenThere: '{country} में कब रहेंगे?',
+    stopDatesSubtitle: 'वहाँ का पहला और आखिरी दिन',
+    saveStop: 'पड़ाव सहेजें',
+    changeCountry: 'देश बदलें',
+    adminOnly: 'यात्रा का क्रम सिर्फ़ एडमिन बदल सकता है।',
+    stopCount: { one: '{n} पड़ाव', other: '{n} पड़ाव' },
+    otherDates: 'बाकी तारीखें',
+    byCountry: 'देश के हिसाब से',
+    byCountryCaption: '{currency} में, हर बिल पर सहेजी दर से',
+    notCounted: {
+      one: '{n} बिल की दर नहीं है, इसलिए गिना नहीं गया',
+      other: '{n} बिलों की दर नहीं है, इसलिए गिने नहीं गए',
+    },
+    overlap: 'ये दिन किसी और पड़ाव से टकराते हैं।',
+    outsideTrip: 'ये दिन यात्रा की तारीखों से बाहर हैं।',
+    endBeforeStart: 'पड़ाव शुरू होने से पहले ही खत्म हो रहा है।',
+    tooMany: 'ज़्यादा से ज़्यादा 15 पड़ाव।',
+    currencyPinned: '{currency} यात्रा दरों में जोड़ी गई',
+    tripCurrencies: 'इस यात्रा में',
   },
   fx: {
     section: 'मुद्रा',
@@ -26236,6 +26348,33 @@ const ar: UiStrings = {
     writtenIn: 'مكتوب بـ{language}.',
     dismiss: 'حسنًا',
     blockedAnnouncement: 'يجب تحديث Waves قبل استخدامه.',
+  },
+  stops: {
+    countriesVisited: 'البلدان التي ستزورونها',
+    addCountries: 'أضف البلدان التي ستزورونها',
+    addStop: 'إضافة محطة',
+    editStop: 'تعديل المحطة',
+    removeStop: 'إزالة هذه المحطة',
+    whichCountry: 'أي بلد؟',
+    whenThere: 'متى ستكونون في {country}؟',
+    stopDatesSubtitle: 'أول يوم وآخر يوم هناك',
+    saveStop: 'حفظ المحطة',
+    changeCountry: 'تغيير البلد',
+    adminOnly: 'المشرف وحده يمكنه تغيير خط الرحلة.',
+    stopCount: { one: 'محطة واحدة', other: '{n} محطات' },
+    otherDates: 'تواريخ أخرى',
+    byCountry: 'حسب البلد',
+    byCountryCaption: 'بعملة {currency}، بالسعر المحفوظ على كل فاتورة',
+    notCounted: {
+      one: 'فاتورة واحدة بلا سعر صرف ولم تُحتسب',
+      other: '{n} فواتير بلا سعر صرف ولم تُحتسب',
+    },
+    overlap: 'هذه الأيام تتداخل مع محطة أخرى.',
+    outsideTrip: 'هذه الأيام خارج تواريخ الرحلة.',
+    endBeforeStart: 'تنتهي المحطة قبل أن تبدأ.',
+    tooMany: 'حتى 15 محطة.',
+    currencyPinned: 'أُضيفت {currency} إلى أسعار الرحلة',
+    tripCurrencies: 'في هذه الرحلة',
   },
   fx: {
     section: 'العملة',

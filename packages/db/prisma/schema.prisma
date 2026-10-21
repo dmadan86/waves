@@ -313,6 +313,16 @@ model Group {
   /// on `expense_versions.fx` respectively).
   fxRates Json? @map("fx_rates")
 
+  /// The itinerary of a trip that crosses borders: a JSON list
+  /// `[{ country, start, end }]` — ISO-3166 alpha-2 and two inclusive
+  /// `YYYY-MM-DD` days — sorted by start, never overlapping, at most 15
+  /// (CHECK `groups_trip_stops_shape` keeps it an array; the RPC keeps the
+  /// rest). A stop's currency is the country's. NULL is "no itinerary".
+  /// Group-visible and admin-set like the rates; written only via
+  /// `waves_set_trip_stops`. `countryCode` is unchanged by this: it still
+  /// says where the group settles.
+  tripStops Json? @map("trip_stops")
+
   /// When the trip is. Both ends inclusive — the last day of a trip is the one
   /// with the most unrecorded spending on it.
   startDate       DateTime? @map("start_date") @db.Date

@@ -81,6 +81,7 @@ export function CurrencySheet({
   onClose,
   options,
   title,
+  featured,
 }: {
   value: string;
   onPick: (code: string) => void;
@@ -89,11 +90,13 @@ export function CurrencySheet({
   options?: readonly string[];
   /** The sheet's heading, when the choice has a name of its own ("Settles in"). */
   title?: string;
+  /** Currencies to lead with, as cards of their own ("On this trip"). */
+  featured?: readonly string[];
 }): React.JSX.Element {
   const { t } = useStrings();
   return (
     <SheetOverlay title={title ?? t.captures.currencyPickerTitle} onClose={onClose}>
-      <CurrencyChoices value={value} onPick={onPick} options={options} />
+      <CurrencyChoices value={value} onPick={onPick} options={options} featured={featured} />
     </SheetOverlay>
   );
 }
@@ -108,11 +111,15 @@ export function CurrencyChoices({
   value,
   onPick,
   options,
+  featured,
 }: {
   value: string;
   onPick: (code: string) => void;
   /** Which currencies may be picked; every offered currency by default. */
   options?: readonly string[];
+  /** Currencies to lead with, as a row of cards above the recent ones — the
+   *  itinerary's, on a trip across borders. Empty or absent draws nothing. */
+  featured?: readonly string[];
 }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -137,6 +144,9 @@ export function CurrencyChoices({
   }, []);
 
   const offered: readonly string[] = options ?? COMMON_CURRENCIES;
+  // The itinerary's currencies, whether or not the shortlist happens to hold
+  // them: a stop in Vietnam is a reason to offer dong.
+  const lead = [...new Set(featured ?? [])];
   // What this person has picked, in the order they picked it. Only before
   // there is any history does it fall back to the current currency and the
   // head of the offered list.
@@ -147,8 +157,9 @@ export function CurrencyChoices({
   }, [value, recent, offered]);
 
   const needle = query.trim().toLowerCase();
+  const searchable = [...new Set([...lead, ...offered])];
   const rows = needle
-    ? offered.filter((code) =>
+    ? searchable.filter((code) =>
         [code, names.currency(code), names.country(code)].some((text) =>
           text.toLowerCase().includes(needle),
         ),
@@ -163,6 +174,53 @@ export function CurrencyChoices({
   };
 
   const track = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#F1F0FA';
+
+  /** One of the cards along the top: flag, code and name, lit when chosen. */
+  const card = (code: string): React.JSX.Element => {
+    const selected = code === value;
+    return (
+      <Pressable
+        key={code}
+        accessibilityRole="radio"
+        accessibilityState={{ selected }}
+        accessibilityLabel={`${code}, ${titled(names.currency(code))}`}
+        onPress={() => pick(code)}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          paddingVertical: 8,
+          paddingStart: theme.spacing.sm,
+          paddingEnd: theme.spacing.md,
+          borderRadius: 14,
+          borderWidth: selected ? 1.5 : 1,
+          borderColor: selected ? theme.color.brand : theme.color.border,
+          backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <FlagDisc code={code} size={24} />
+        <View>
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 18,
+              fontWeight: '700',
+              color: theme.color.text,
+            }}
+          >
+            {code}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 11, lineHeight: 14, color: theme.color.textMuted }}
+          >
+            {titled(names.currency(code))}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <View style={{ gap: theme.spacing.md }}>
@@ -188,6 +246,21 @@ export function CurrencyChoices({
         />
       </Row>
 
+      {needle || lead.length === 0 ? null : (
+        <View style={{ gap: theme.spacing.sm }}>
+          <Text style={SECTION_LABEL(theme)}>{t.stops.tripCurrencies}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ gap: theme.spacing.sm }}
+          >
+            {lead.map(card)}
+          </ScrollView>
+          <View style={{ height: 1, backgroundColor: theme.color.border }} />
+        </View>
+      )}
+
       {needle ? null : (
         <View style={{ gap: theme.spacing.sm }}>
           <Text style={SECTION_LABEL(theme)}>{t.captureForm.recentlyUsed}</Text>
@@ -197,51 +270,7 @@ export function CurrencyChoices({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ gap: theme.spacing.sm }}
           >
-            {recentCards.map((code) => {
-              const selected = code === value;
-              return (
-                <Pressable
-                  key={code}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`${code}, ${titled(names.currency(code))}`}
-                  onPress={() => pick(code)}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingVertical: 8,
-                    paddingStart: theme.spacing.sm,
-                    paddingEnd: theme.spacing.md,
-                    borderRadius: 14,
-                    borderWidth: selected ? 1.5 : 1,
-                    borderColor: selected ? theme.color.brand : theme.color.border,
-                    backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <FlagDisc code={code} size={24} />
-                  <View>
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        lineHeight: 18,
-                        fontWeight: '700',
-                        color: theme.color.text,
-                      }}
-                    >
-                      {code}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={{ fontSize: 11, lineHeight: 14, color: theme.color.textMuted }}
-                    >
-                      {titled(names.currency(code))}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+            {recentCards.map(card)}
           </ScrollView>
           <View style={{ height: 1, backgroundColor: theme.color.border }} />
         </View>

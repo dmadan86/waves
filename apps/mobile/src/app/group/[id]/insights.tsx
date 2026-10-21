@@ -26,15 +26,19 @@ import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import {
   categoryTotals,
   computeSpendingRows,
+  countryFlag,
+  countryName,
   format,
   currencySymbol,
   formatParts,
   minorUnitExponent,
   monthTotals,
   resolveCategory,
+  spendByCountry,
   spendingCurrencies,
   spendingTotal,
   type CategoryId,
+  type StopSpend,
 } from '@waves/core';
 import { EmptyState, iconSize, Row, Text, useTheme } from '@waves/ui';
 
@@ -43,6 +47,7 @@ import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import {
   ListRow,
   PillButton,
+  RowTile,
   ScenicBody,
   ScenicHeader,
   SectionHeader,
@@ -59,8 +64,9 @@ import {
 } from '@/components/SpendingCharts';
 import { InsightsSkeleton } from '@/components/Skeletons';
 import type { SpendingRow } from '@/data/api';
-import { useGroup } from '@/data/hooks';
-import { useStrings } from '@/i18n';
+import { useGroup, useGroupFxRates, useTripStops } from '@/data/hooks';
+import { fill, plural, useStrings } from '@/i18n';
+import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
@@ -101,6 +107,10 @@ export default function InsightsScreen() {
   const viewerId = useViewerId();
 
   const { group, members, expenses } = useGroup(groupId);
+  // The itinerary, for the per-country card on a trip across borders, and the
+  // trip's pinned rates, which stand in for a bill that saved none.
+  const tripStops = useTripStops(groupId);
+  const tripRates = useGroupFxRates(groupId);
 
   // Spending is a read of expenses the phone already mirrors, so it is computed
   // on the device (ADR-005) rather than fetched — the local-first twin of the
@@ -155,6 +165,31 @@ export default function InsightsScreen() {
     allMonths.map((entry) => entry.month),
   );
 
+  // What each country cost, in the group's own currency at each bill's saved
+  // rate (or the trip's pinned one) — the one place this screen converts,
+  // because the question "what did Vietnam cost" has no answer per currency.
+  // Drawn only on a trip with stops.
+  const byCountry = useMemo(
+    () =>
+      tripStops.data.length === 0
+        ? []
+        : spendByCountry(expenses.rows, tripStops.data, groupCurrency, {
+            tripRates: Object.fromEntries(
+              tripRates.data.map((row) => [
+                row.from,
+                {
+                  num: row.num.toString(),
+                  den: row.den.toString(),
+                  ts: row.ts,
+                  source: row.source,
+                },
+              ]),
+            ),
+            memberId: scope === Scope.Mine ? myMemberId : null,
+          }),
+    [tripStops.data, tripRates.data, expenses.rows, groupCurrency, scope, myMemberId],
+  );
+
   const loading = group.isLoading || members.isLoading || expenses.isLoading;
   const empty = !loading && currencies.length === 0;
 
@@ -194,19 +229,24 @@ export default function InsightsScreen() {
           ) : empty || !month ? (
             <EmptyState title={t.nothingYet} body={t.nothingToChart} />
           ) : (
-            <SpendingBody
-              groupId={groupId}
-              scope={scope}
-              currency={currency}
-              hasSeveralCurrencies={currencies.length > 1}
-              onPickCurrency={() => setSheet('currency')}
-              locale={locale}
-              rows={rows}
-              allMonths={allMonths}
-              month={month}
-              onSelectMonth={setPickedMonth}
-              labels={t.categories}
-            />
+            <>
+              <SpendingBody
+                groupId={groupId}
+                scope={scope}
+                currency={currency}
+                hasSeveralCurrencies={currencies.length > 1}
+                onPickCurrency={() => setSheet('currency')}
+                locale={locale}
+                rows={rows}
+                allMonths={allMonths}
+                month={month}
+                onSelectMonth={setPickedMonth}
+                labels={t.categories}
+              />
+              {byCountry.length > 0 ? (
+                <ByCountryCard rows={byCountry} currency={groupCurrency} locale={locale} />
+              ) : null}
+            </>
           )}
         </ScenicBody>
       </ScrollView>
@@ -564,6 +604,84 @@ function SpendingBody({
         </StandardCard>
       </View>
     </>
+  );
+}
+
+/**
+ * What each stop of the itinerary cost: one row per country, a bar for its
+ * share of the trip, and "Other dates" for the bills dated between or outside
+ * the stops. Bills with no rate to the group currency are counted out loud
+ * rather than silently.
+ */
+function ByCountryCard({
+  rows,
+  currency,
+  locale,
+}: {
+  rows: readonly StopSpend[];
+  currency: string;
+  locale: string;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const money = (minor: bigint) => format({ minor, currency }, { locale });
+  const total = rows.reduce((sum, row) => sum + row.totalMinor, 0n);
+  const uncounted = rows.reduce((sum, row) => sum + row.unconvertedCount, 0);
+
+  return (
+    <View style={{ gap: theme.spacing.md }}>
+      <SectionHeader title={t.stops.byCountry} />
+      <StandardCard style={{ gap: theme.spacing.md }}>
+        <Text variant="caption" tone="muted">
+          {fill(t.stops.byCountryCaption, { currency })}
+        </Text>
+        {rows.map((row, index) => {
+          const percent =
+            total > 0n ? Math.round((Number(row.totalMinor) / Number(total)) * 100) : 0;
+          const stop = row.stop;
+          const name = stop ? (countryName(stop.country) ?? stop.country) : t.stops.otherDates;
+          const range = stop ? formatShortDateRange(stop.start, stop.end, locale) : null;
+          return (
+            <ListRow
+              key={stop ? `${stop.country}:${stop.start}` : 'other'}
+              leading={
+                <RowTile tint={theme.scheme === 'dark' ? '#E5566D38' : '#FDE8EC'}>
+                  {stop ? (
+                    <Text style={{ fontSize: 22 }}>{countryFlag(stop.country) ?? '🌐'}</Text>
+                  ) : (
+                    <Ionicons name="calendar-outline" size={iconSize.lg} color="#E5566D" />
+                  )}
+                </RowTile>
+              }
+              title={name}
+              subtitle={range ?? undefined}
+              amount={money(row.totalMinor)}
+              percent={percent}
+              footer={
+                <View
+                  style={{ height: 5, borderRadius: 3, backgroundColor: theme.color.surfaceMuted }}
+                >
+                  <View
+                    style={{
+                      width: `${Math.max(percent, 2)}%`,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: RANK_COLORS[index % RANK_COLORS.length] ?? REST_COLOR,
+                      opacity: 0.6,
+                    }}
+                  />
+                </View>
+              }
+            />
+          );
+        })}
+        {uncounted > 0 ? (
+          <Text variant="micro" tone="faint">
+            {plural(locale, uncounted, t.stops.notCounted)}
+          </Text>
+        ) : null}
+      </StandardCard>
+    </View>
   );
 }
 

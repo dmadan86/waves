@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
 import { GroupType, WavesApiError, type GroupRow } from '@waves/api-client';
+import { countryFlag, countryName, currencyForStop, parseTripStops } from '@waves/core';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
@@ -277,6 +278,17 @@ function GroupSettings({ profileId }: { profileId: string }) {
 
         {error ? <p className="error">{error}</p> : null}
 
+        {/* The itinerary of a trip across borders, read-only here: the stops
+            are edited in the app, where the calendar and the rate pinning
+            live. Shown only for a trip or an event, like the app's row. */}
+        {type === GroupType.Trip || type === GroupType.Event ? (
+          <section className="panel">
+            <h2>{t.groupSettings.countriesVisited}</h2>
+            <p className="faint">{t.groupSettings.countriesVisitedBody}</p>
+            <TripStopsList stops={group.trip_stops} />
+          </section>
+        ) : null}
+
         <section className="panel">
           <h2>{t.exportData.title}</h2>
           <p className="faint">{t.exportData.body}</p>
@@ -328,5 +340,33 @@ function GroupSettings({ profileId }: { profileId: string }) {
       </div>
       <aside className="detail" />
     </div>
+  );
+}
+
+/** The stops, one line each: flag, country, days, currency. */
+function TripStopsList({ stops }: { stops: unknown }) {
+  const { t, locale } = useStrings();
+  const parsed = parseTripStops(stops);
+  if (parsed.length === 0) return <p className="muted">{t.groupSettings.noStops}</p>;
+  const day = (iso: string): string => {
+    const [year, month, date] = iso.split('-').map(Number);
+    return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, date ?? 1)).toLocaleDateString(
+      locale,
+      { day: 'numeric', month: 'short', timeZone: 'UTC' },
+    );
+  };
+  return (
+    <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+      {parsed.map((stop) => (
+        <li key={`${stop.country}:${stop.start}`}>
+          <span aria-hidden>{countryFlag(stop.country) ?? '🌐'}</span>{' '}
+          <strong>{countryName(stop.country) ?? stop.country}</strong>{' '}
+          <span className="muted">
+            {day(stop.start)} – {day(stop.end)}
+            {currencyForStop(stop) ? ` · ${currencyForStop(stop)}` : ''}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

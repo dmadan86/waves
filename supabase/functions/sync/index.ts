@@ -91,6 +91,9 @@ type MutationKind =
   | 'category_budget.set'
   // The trip's shared exchange rate — group-scoped, admin-gated in its RPC.
   | 'group_fx_rate.set'
+  // The trip's itinerary (every country stop, replaced whole) — group-scoped,
+  // admin-gated in its RPC like the rate.
+  | 'trip_stops.set'
   | 'pack.install'
   | 'pack.uninstall'
   // One person's pin on one group (see the `group_pins` migration): personal
@@ -756,6 +759,16 @@ export class SyncSession {
           p_num: nullableString(mutation.payload.num, 'num'),
           p_den: nullableString(mutation.payload.den, 'den'),
           p_source: optionalText(mutation.payload.source, 'source') ?? 'manual',
+        });
+      case 'trip_stops.set':
+        // Admin-gated inside the RPC, like the rate. The whole itinerary at
+        // once — an empty list clears it. The shape is checked here so a
+        // malformed payload is refused as VALIDATION_FAILED rather than reaching
+        // the RPC; the calendar rules (order, overlap, inside the trip) are the
+        // RPC's, and @waves/core's `validateStops` on the client is their twin.
+        return await this.rpcAsCaller('waves_set_trip_stops', {
+          p_group_id: mutation.groupId,
+          p_stops: requireStops(mutation.payload.stops),
         });
       default:
         throw new HttpError(
@@ -1833,6 +1846,33 @@ function requireLines(value: unknown, field: string): { memberId: string; amount
       throw new HttpError(400, 'VALIDATION_FAILED', `${field} lines need memberId and amount text`);
     }
     return { memberId: row.memberId, amount: row.amount };
+  });
+}
+
+/**
+ * The itinerary as a list of `{ country, start, end }` strings. Only the shape:
+ * the RPC decides whether the days make a valid itinerary. Empty is allowed —
+ * it is how the itinerary is cleared — but it has to be a list, so a payload
+ * that forgot the field cannot clear anything by accident.
+ */
+function requireStops(value: unknown): { country: string; start: string; end: string }[] {
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, 'VALIDATION_FAILED', 'stops must be a list');
+  }
+  if (value.length > 15) {
+    throw new HttpError(400, 'VALIDATION_FAILED', 'stops holds at most 15 entries');
+  }
+  return value.map((entry) => {
+    const row = entry as { country?: unknown; start?: unknown; end?: unknown } | null;
+    if (
+      !row ||
+      typeof row.country !== 'string' ||
+      typeof row.start !== 'string' ||
+      typeof row.end !== 'string'
+    ) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'each stop needs country, start and end text');
+    }
+    return { country: row.country, start: row.start, end: row.end };
   });
 }
 
