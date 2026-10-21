@@ -5253,6 +5253,7 @@ export interface UiStrings {
     blockedNone: string;
     sessionReplayHint: string;
     policySection: string;
+    dataSection: string;
     supportRow: string;
     supportRowHint: string;
     /** Carries `{date}` — when this policy text last changed. */
@@ -10285,6 +10286,7 @@ const en: UiStrings = {
     blockedNone: 'None',
     sessionReplayHint: 'Off unless you turn it on',
     policySection: 'How Waves protects you',
+    dataSection: 'Your data',
     supportRow: 'Privacy questions',
     supportRowHint: 'Write to us — a person answers',
     lastUpdated: 'Last updated {date}.',
@@ -15464,6 +15466,7 @@ const ta: UiStrings = {
     blockedNone: 'யாரும் இல்லை',
     sessionReplayHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்',
     policySection: 'உங்கள் தரவை எப்படிப் பாதுகாக்கிறோம்',
+    dataSection: 'உங்கள் தரவு',
     supportRow: 'தனியுரிமைக் கேள்விகள்',
     supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
@@ -20493,6 +20496,7 @@ const hi: UiStrings = {
     blockedNone: 'कोई नहीं',
     sessionReplayHint: 'जब तक आप चालू न करें, बंद रहता है',
     policySection: 'हम आपके डेटा की रक्षा कैसे करते हैं',
+    dataSection: 'आपका डेटा',
     supportRow: 'निजता से जुड़े सवाल',
     supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
@@ -26106,6 +26110,7 @@ const ar: UiStrings = {
     blockedNone: 'لا أحد',
     sessionReplayHint: 'متوقف ما لم تفعّله بنفسك',
     policySection: 'كيف نحمي بياناتك',
+    dataSection: 'بياناتك',
     supportRow: 'أسئلة عن الخصوصية',
     supportRowHint: 'راسلنا — يردّ عليك شخص',
     lastUpdated: 'آخر تحديث {date}.',
