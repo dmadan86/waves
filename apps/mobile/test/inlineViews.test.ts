@@ -18,6 +18,7 @@ vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
   Platform: { OS: 'android' },
 }));
+vi.mock('@/components/PersonAvatar', () => ({ PersonAvatar: 'PersonAvatar' }));
 vi.mock('expo-localization', () => ({ getLocales: () => [] }));
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: 'Ionicons' }));
 vi.mock('@waves/ui', () => ({

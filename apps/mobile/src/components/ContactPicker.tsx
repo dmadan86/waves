@@ -49,7 +49,6 @@ import {
 } from 'react-native';
 
 import {
-  Avatar,
   Button,
   Callout,
   directionalIcon,
@@ -71,6 +70,7 @@ import {
 } from '@/lib/contactMatch';
 import { displayPhone, normaliseContactPhone } from '@/lib/phone';
 import { SkeletonList } from '@/components/Skeletons';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export interface PickedContact {
   readonly name: string;
@@ -938,7 +938,7 @@ function ContactRow({
               }
         }
       >
-        <Avatar name={contact.name} size={avatarSize} />
+        <PersonAvatar name={contact.name} size={avatarSize} />
         <View style={{ flex: 1 }}>
           <Text
             variant="body"
@@ -1023,7 +1023,7 @@ function PickedStrip({
           style={{ width: 56, alignItems: 'center', gap: 2 }}
         >
           <View>
-            <Avatar name={contact.name} size={40} />
+            <PersonAvatar name={contact.name} size={40} />
             <View
               style={{
                 position: 'absolute',

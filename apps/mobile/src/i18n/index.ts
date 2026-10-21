@@ -3321,6 +3321,9 @@ export interface UiStrings {
     inviteToGroup: string;
     inviteToGroupHint: string;
     groupActions: string;
+    exitActions: string;
+    exitActionsMember: string;
+    exitActionsHint: string;
     archiveHintShort: string;
     deleteHintShort: string;
     adminTitle: string;
@@ -3349,6 +3352,11 @@ export interface UiStrings {
     settleFirstBody: string;
     leaveQuestion: string;
     leaveBody: string;
+    settleFirstBalance: string;
+    leaveAnyway: string;
+    settleFirstSettle: string;
+    settleFirstBalanceLabel: string;
+    settleFirstClose: string;
     leave: string;
     archiveQuestion: string;
     archiveBody: string;
@@ -4843,6 +4851,14 @@ export interface UiStrings {
     breakfast: string;
     endOfDay: string;
     clearDates: string;
+    /** Under the title of the dates sheet. */
+    datesSheetSubtitle: string;
+    startDate: string;
+    endDate: string;
+    /** "{n} days selected" under the calendar. */
+    daysSelected: PluralForms;
+    noDatesSelected: string;
+    saveDates: string;
     nobodyPickedYet: string;
     personCount: PluralForms;
     alreadyAddedName: string;
@@ -5360,6 +5376,24 @@ export interface UiStrings {
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
+    tagSheetSubtitle: string;
+    tagPopular: string;
+    saveTag: string;
+    tagChips: Record<
+      | 'weekend'
+      | 'roadTrip'
+      | 'holiday'
+      | 'officeOffsite'
+      | 'birthday'
+      | 'wedding'
+      | 'family'
+      | 'friends'
+      | 'other',
+      string
+    >;
+    groupTypeTitle: string;
+    datesRow: string;
+    groupTypeInfo: string;
     /** A few tap-to-fill tag ideas per group type. */
     tagSuggestions: Record<
       'trip' | 'home' | 'couple' | 'event' | 'friends' | 'other',
@@ -5454,9 +5488,23 @@ export interface UiStrings {
     settlesIn: string;
     settlesInHint: string;
     settlesInLocked: string;
+    convertAllTitle: string;
+    convertShort: string;
+    /** The settings row listing the currencies pinned beside the group's own. */
+    otherCurrencies: string;
+    /** The currency picker's leading cards: the group's pinned currencies. */
+    groupCurrencies: string;
+    settleInShort: string;
+    balancesIn: string;
+    groupCurrencyLine: string;
+    currencyOnly: string;
     tripRates: string;
     tripRatesBody: string;
     addRate: string;
+    otherCurrenciesSubtitleTrip: string;
+    otherCurrenciesSubtitleGroup: string;
+    ratesInfoFetched: string;
+    ratesInfoKept: string;
     editRate: string;
     newRate: string;
     removeRate: string;
@@ -8491,6 +8539,9 @@ const en: UiStrings = {
     inviteToGroup: 'Invite to group',
     inviteToGroupHint: 'Share a link or QR so they can join easily',
     groupActions: 'Group actions',
+    exitActions: 'Archive, leave or delete',
+    exitActionsMember: 'Archive or leave',
+    exitActionsHint: 'Hide it, step out, or remove it',
     archiveHintShort: 'Hide from your list, can be unarchived',
     deleteHintShort: 'Permanently delete for everyone',
     adminTitle: 'Admin',
@@ -8518,6 +8569,11 @@ const en: UiStrings = {
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
+    settleFirstBalance: 'Your balance',
+    leaveAnyway: 'Leave anyway',
+    settleFirstSettle: 'Settle up',
+    settleFirstBalanceLabel: 'Your balance is {amount}. Opens settle up.',
+    settleFirstClose: 'Close',
     leave: 'Leave',
     archiveQuestion: 'Archive this group?',
     archiveBody:
@@ -9837,6 +9893,12 @@ const en: UiStrings = {
     breakfast: 'Breakfast',
     endOfDay: 'End of day',
     clearDates: 'Clear dates',
+    datesSheetSubtitle: 'Select the start and end dates for this group',
+    startDate: 'Start date',
+    endDate: 'End date',
+    daysSelected: { one: '{n} day selected', other: '{n} days selected' },
+    noDatesSelected: 'No dates selected',
+    saveDates: 'Save dates',
     nobodyPickedYet: 'Nobody picked yet',
     personCount: { one: '{n} person', other: '{n} people' },
     alreadyAddedName: '{name}, already added',
@@ -10349,6 +10411,24 @@ const en: UiStrings = {
     typeOther: 'Other',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
+    tagSheetSubtitle: "Add a tag so it's easy to find later.",
+    tagPopular: 'Popular tags',
+    saveTag: 'Save tag',
+    tagChips: {
+      weekend: 'Weekend',
+      roadTrip: 'Road trip',
+      holiday: 'Holiday',
+      officeOffsite: 'Office offsite',
+      birthday: 'Birthday',
+      wedding: 'Wedding',
+      family: 'Family',
+      friends: 'Friends',
+      other: 'Other',
+    },
+    groupTypeTitle: 'Group type',
+    datesRow: 'Dates',
+    groupTypeInfo:
+      'The type sets the group’s label, default cover and trip tools. Nothing already recorded changes.',
     tagSuggestions: {
       trip: ['Weekend', 'Road trip', 'Holiday'],
       home: ['Rent', 'Flatmates', 'Bills'],
@@ -10438,10 +10518,22 @@ const en: UiStrings = {
     settlesIn: 'Settles in',
     settlesInHint: 'Every balance is counted in this currency.',
     settlesInLocked: 'Locked — this group already has entries.',
+    convertAllTitle: 'Settle in {currency} for all expenses',
+    convertShort: 'Bills paid in other currencies count in {currency}',
+    otherCurrencies: 'Other currencies',
+    groupCurrencies: "This group's currencies",
+    settleInShort: 'Count foreign bills in {currency}',
+    balancesIn: 'Balances in {currency}',
+    groupCurrencyLine: '{name} · group currency',
+    currencyOnly: '{currency} only',
     tripRates: 'Trip rates',
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
     addRate: 'Add a currency',
+    otherCurrenciesSubtitleTrip: 'Add currencies used in this trip',
+    otherCurrenciesSubtitleGroup: 'Add currencies used in this group',
+    ratesInfoFetched: 'Rates are fetched when you add a currency.',
+    ratesInfoKept: 'Bills already saved keep the rate they were added with.',
     editRate: 'Edit rate',
     newRate: 'New rate',
     removeRate: 'Remove this rate',
@@ -13520,6 +13612,9 @@ const ta: UiStrings = {
     inviteToGroup: 'குழுவுக்கு அழை',
     inviteToGroupHint: 'இணைப்பு அல்லது QR பகிர்ந்தால் எளிதாகச் சேரலாம்',
     groupActions: 'குழு செயல்கள்',
+    exitActions: 'காப்பகம், வெளியேறு அல்லது நீக்கு',
+    exitActionsMember: 'காப்பகம் அல்லது வெளியேறு',
+    exitActionsHint: 'மறை, வெளியேறு அல்லது நீக்கு',
     archiveHintShort: 'உங்கள் பட்டியலில் இருந்து மறை, மீண்டும் கொண்டுவரலாம்',
     deleteHintShort: 'அனைவருக்கும் நிரந்தரமாக நீக்கு',
     adminTitle: 'நிர்வாகி',
@@ -13548,6 +13643,11 @@ const ta: UiStrings = {
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
+    settleFirstBalance: 'உங்கள் இருப்பு',
+    leaveAnyway: 'எப்படியும் விலகு',
+    settleFirstSettle: 'கணக்கைத் தீர்',
+    settleFirstBalanceLabel: 'உங்கள் இருப்பு {amount}. கணக்கு தீர்க்கும் திரையைத் திறக்கும்.',
+    settleFirstClose: 'மூடு',
     leave: 'விலகு',
     archiveQuestion: 'இந்தக் குழுவைக் காப்பகப்படுத்தவா?',
     archiveBody:
@@ -14946,6 +15046,15 @@ const ta: UiStrings = {
     breakfast: 'காலை உணவு',
     endOfDay: 'நாள் முடிவு',
     clearDates: 'தேதிகளை அழி',
+    datesSheetSubtitle: 'இந்தக் குழுவின் தொடக்க, முடிவு தேதிகளைத் தேர்ந்தெடுக்கவும்',
+    startDate: 'தொடக்க தேதி',
+    endDate: 'முடிவு தேதி',
+    daysSelected: {
+      one: '{n} நாள் தேர்ந்தெடுக்கப்பட்டது',
+      other: '{n} நாட்கள் தேர்ந்தெடுக்கப்பட்டன',
+    },
+    noDatesSelected: 'தேதிகள் தேர்ந்தெடுக்கப்படவில்லை',
+    saveDates: 'தேதிகளைச் சேமி',
     nobodyPickedYet: 'இன்னும் யாரையும் தேர்ந்தெடுக்கவில்லை',
     personCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     alreadyAddedName: '{name}, ஏற்கனவே சேர்க்கப்பட்டது',
@@ -15488,6 +15597,24 @@ const ta: UiStrings = {
     typeOther: 'மற்றவை',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
+    tagSheetSubtitle: 'பின்னர் எளிதாகக் கண்டறிய ஒரு குறிச்சொல்லைச் சேர்க்கவும்.',
+    tagPopular: 'பிரபல குறிச்சொற்கள்',
+    saveTag: 'குறிச்சொல்லைச் சேமி',
+    tagChips: {
+      weekend: 'வார இறுதி',
+      roadTrip: 'சாலைப் பயணம்',
+      holiday: 'விடுமுறை',
+      officeOffsite: 'அலுவலக சுற்றுலா',
+      birthday: 'பிறந்தநாள்',
+      wedding: 'திருமணம்',
+      family: 'குடும்பம்',
+      friends: 'நண்பர்கள்',
+      other: 'மற்றவை',
+    },
+    groupTypeTitle: 'குழு வகை',
+    datesRow: 'தேதிகள்',
+    groupTypeInfo:
+      'வகை குழுவின் பெயர்ச்சொல், இயல்பு அட்டை, பயணக் கருவிகளை அமைக்கும். ஏற்கெனவே பதிவானவை மாறாது.',
     tagSuggestions: {
       trip: ['வார இறுதி', 'சாலைப் பயணம்', 'விடுமுறை'],
       home: ['வாடகை', 'அறை நண்பர்கள்', 'கட்டணங்கள்'],
@@ -15581,10 +15708,22 @@ const ta: UiStrings = {
     settlesIn: 'கணக்கு இந்த நாணயத்தில்',
     settlesInHint: 'இந்தக் குழுவின் எல்லா இருப்புகளும் இந்த நாணயத்தில் கணக்கிடப்படும்.',
     settlesInLocked: 'பூட்டப்பட்டது — ஏற்கெனவே பதிவுகள் உள்ளன.',
+    convertAllTitle: 'எல்லாச் செலவுகளையும் {currency}-இல் கணக்கிடு',
+    convertShort: 'வேறு நாணயங்களில் செலுத்திய பில்கள் {currency}-இல் கணக்கிடப்படும்',
+    otherCurrencies: 'பிற நாணயங்கள்',
+    groupCurrencies: 'இந்தக் குழுவின் நாணயங்கள்',
+    settleInShort: 'வெளிநாட்டு பில்களை {currency}-இல் கணக்கிடு',
+    balancesIn: '{currency}-இல் இருப்புகள்',
+    groupCurrencyLine: '{name} · குழு நாணயம்',
+    currencyOnly: '{currency} மட்டும்',
     tripRates: 'பயண மாற்று விகிதங்கள்',
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
     addRate: 'ஒரு நாணயத்தைச் சேர்க்க',
+    otherCurrenciesSubtitleTrip: 'இந்தப் பயணத்தில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    otherCurrenciesSubtitleGroup: 'இந்தக் குழுவில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    ratesInfoFetched: 'நாணயத்தைச் சேர்க்கும்போது விகிதம் பெறப்படும்.',
+    ratesInfoKept: 'ஏற்கனவே சேமித்த பில்கள் சேர்க்கப்பட்ட விகிதத்தையே வைத்திருக்கும்.',
     editRate: 'விகிதத்தைத் திருத்து',
     newRate: 'புதிய விகிதம்',
     removeRate: 'இந்த விகிதத்தை நீக்கு',
@@ -18590,6 +18729,9 @@ const hi: UiStrings = {
     inviteToGroup: 'ग्रुप में बुलाएँ',
     inviteToGroupHint: 'लिंक या QR शेयर करें ताकि वे आसानी से जुड़ सकें',
     groupActions: 'ग्रुप कार्रवाइयाँ',
+    exitActions: 'आर्काइव करें, छोड़ें या हटाएँ',
+    exitActionsMember: 'आर्काइव करें या छोड़ें',
+    exitActionsHint: 'छिपाएँ, बाहर निकलें या हटाएँ',
     archiveHintShort: 'अपनी सूची से छिपाएँ, बाद में वापस ला सकते हैं',
     deleteHintShort: 'सबके लिए हमेशा के लिए हटाएँ',
     adminTitle: 'एडमिन',
@@ -18617,6 +18759,11 @@ const hi: UiStrings = {
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
+    settleFirstBalance: 'आपका बकाया',
+    leaveAnyway: 'फिर भी छोड़ें',
+    settleFirstSettle: 'हिसाब चुकाएँ',
+    settleFirstBalanceLabel: 'आपका बकाया {amount} है। हिसाब चुकाने की स्क्रीन खुलती है।',
+    settleFirstClose: 'बंद करें',
     leave: 'छोड़ें',
     archiveQuestion: 'यह समूह संग्रहित करें?',
     archiveBody:
@@ -19950,6 +20097,12 @@ const hi: UiStrings = {
     breakfast: 'नाश्ता',
     endOfDay: 'दिन का अंत',
     clearDates: 'तारीखें हटाएँ',
+    datesSheetSubtitle: 'इस ग्रुप की शुरुआत और समाप्ति की तारीखें चुनें',
+    startDate: 'शुरू होने की तारीख',
+    endDate: 'समाप्ति की तारीख',
+    daysSelected: { one: '{n} दिन चुना गया', other: '{n} दिन चुने गए' },
+    noDatesSelected: 'कोई तारीख नहीं चुनी गई',
+    saveDates: 'तारीखें सहेजें',
     nobodyPickedYet: 'अभी किसी को नहीं चुना',
     personCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
     alreadyAddedName: '{name}, पहले से जुड़ा है',
@@ -20467,6 +20620,24 @@ const hi: UiStrings = {
     typeOther: 'अन्य',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
+    tagSheetSubtitle: 'टैग जोड़ें ताकि बाद में ढूँढना आसान हो।',
+    tagPopular: 'लोकप्रिय टैग',
+    saveTag: 'टैग सहेजें',
+    tagChips: {
+      weekend: 'वीकेंड',
+      roadTrip: 'रोड ट्रिप',
+      holiday: 'छुट्टी',
+      officeOffsite: 'ऑफ़िस ऑफ़साइट',
+      birthday: 'जन्मदिन',
+      wedding: 'शादी',
+      family: 'परिवार',
+      friends: 'दोस्त',
+      other: 'अन्य',
+    },
+    groupTypeTitle: 'समूह का प्रकार',
+    datesRow: 'तारीखें',
+    groupTypeInfo:
+      'प्रकार से समूह का लेबल, डिफ़ॉल्ट कवर और ट्रिप टूल तय होते हैं। पहले से दर्ज कुछ भी नहीं बदलता।',
     tagSuggestions: {
       trip: ['वीकेंड', 'रोड ट्रिप', 'छुट्टी'],
       home: ['किराया', 'फ्लैटमेट', 'बिल'],
@@ -20555,10 +20726,22 @@ const hi: UiStrings = {
     settlesIn: 'हिसाब इस मुद्रा में',
     settlesInHint: 'इस समूह का हर बैलेंस इसी मुद्रा में गिना जाता है।',
     settlesInLocked: 'बंद — इस समूह में पहले से एंट्री हैं।',
+    convertAllTitle: 'सभी खर्चों का हिसाब {currency} में',
+    convertShort: 'दूसरी मुद्राओं में चुकाए बिल {currency} में गिने जाते हैं',
+    otherCurrencies: 'अन्य मुद्राएँ',
+    groupCurrencies: 'इस समूह की मुद्राएँ',
+    settleInShort: 'विदेशी बिल {currency} में गिनें',
+    balancesIn: '{currency} में बैलेंस',
+    groupCurrencyLine: '{name} · समूह की मुद्रा',
+    currencyOnly: 'सिर्फ़ {currency}',
     tripRates: 'यात्रा दरें',
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
     addRate: 'मुद्रा जोड़ें',
+    otherCurrenciesSubtitleTrip: 'इस यात्रा में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    otherCurrenciesSubtitleGroup: 'इस ग्रुप में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    ratesInfoFetched: 'मुद्रा जोड़ते समय दर ले ली जाती है।',
+    ratesInfoKept: 'पहले से सहेजे बिल अपनी जोड़ी गई दर पर ही रहते हैं।',
     editRate: 'दर बदलें',
     newRate: 'नई दर',
     removeRate: 'यह दर हटाएँ',
@@ -23762,6 +23945,9 @@ const ar: UiStrings = {
     inviteToGroup: 'دعوة إلى المجموعة',
     inviteToGroupHint: 'شارك رابطًا أو رمز QR ليتمكنوا من الانضمام بسهولة',
     groupActions: 'إجراءات المجموعة',
+    exitActions: 'أرشفة أو مغادرة أو حذف',
+    exitActionsMember: 'أرشفة أو مغادرة',
+    exitActionsHint: 'إخفاء أو خروج أو إزالة',
     archiveHintShort: 'إخفاء من قائمتك، ويمكن إلغاء الأرشفة',
     deleteHintShort: 'حذف نهائي للجميع',
     adminTitle: 'مشرف',
@@ -23789,6 +23975,11 @@ const ar: UiStrings = {
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
+    settleFirstBalance: 'رصيدك',
+    leaveAnyway: 'غادر على أي حال',
+    settleFirstSettle: 'سوِّ الحساب',
+    settleFirstBalanceLabel: 'رصيدك {amount}. يفتح تسوية الحساب.',
+    settleFirstClose: 'إغلاق',
     leave: 'مغادرة',
     archiveQuestion: 'أرشفة هذه المجموعة؟',
     archiveBody:
@@ -25463,6 +25654,19 @@ const ar: UiStrings = {
     breakfast: 'الإفطار',
     endOfDay: 'نهاية اليوم',
     clearDates: 'امسح التواريخ',
+    datesSheetSubtitle: 'اختر تاريخَي البداية والنهاية لهذه المجموعة',
+    startDate: 'تاريخ البداية',
+    endDate: 'تاريخ النهاية',
+    daysSelected: {
+      zero: 'لم يُحدَّد أي يوم',
+      one: 'تم تحديد يوم واحد',
+      two: 'تم تحديد يومين',
+      few: 'تم تحديد {n} أيام',
+      many: 'تم تحديد {n} يومًا',
+      other: 'تم تحديد {n} يوم',
+    },
+    noDatesSelected: 'لم تُحدَّد تواريخ',
+    saveDates: 'حفظ التواريخ',
     nobodyPickedYet: 'لم تختر أحدًا بعد',
     personCount: {
       zero: '{n} شخص',
@@ -26043,6 +26247,24 @@ const ar: UiStrings = {
     typeOther: 'أخرى',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
+    tagSheetSubtitle: 'أضف وسمًا ليسهل العثور عليها لاحقًا.',
+    tagPopular: 'الوسوم الشائعة',
+    saveTag: 'حفظ الوسم',
+    tagChips: {
+      weekend: 'عطلة نهاية الأسبوع',
+      roadTrip: 'رحلة برية',
+      holiday: 'إجازة',
+      officeOffsite: 'رحلة الشركة',
+      birthday: 'عيد ميلاد',
+      wedding: 'زفاف',
+      family: 'العائلة',
+      friends: 'الأصدقاء',
+      other: 'أخرى',
+    },
+    groupTypeTitle: 'نوع المجموعة',
+    datesRow: 'التواريخ',
+    groupTypeInfo:
+      'يحدد النوع تسمية المجموعة وغلافها الافتراضي وأدوات الرحلة. لا يتغير أي شيء سُجّل من قبل.',
     tagSuggestions: {
       trip: ['عطلة نهاية الأسبوع', 'رحلة برية', 'إجازة'],
       home: ['الإيجار', 'زملاء السكن', 'الفواتير'],
@@ -26135,10 +26357,22 @@ const ar: UiStrings = {
     settlesIn: 'التسوية بـ',
     settlesInHint: 'كل رصيد في هذه المجموعة يُحسب بهذه العملة.',
     settlesInLocked: 'مقفل — في المجموعة قيود بالفعل.',
+    convertAllTitle: 'التسوية بعملة {currency} لكل المصروفات',
+    convertShort: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}',
+    otherCurrencies: 'عملات أخرى',
+    groupCurrencies: 'عملات هذه المجموعة',
+    settleInShort: 'احتساب الفواتير الأجنبية بـ {currency}',
+    balancesIn: 'الأرصدة بـ {currency}',
+    groupCurrencyLine: '{name} · عملة المجموعة',
+    currencyOnly: '{currency} فقط',
     tripRates: 'أسعار الرحلة',
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',
     addRate: 'أضف عملة',
+    otherCurrenciesSubtitleTrip: 'أضف العملات المستخدمة في هذه الرحلة',
+    otherCurrenciesSubtitleGroup: 'أضف العملات المستخدمة في هذه المجموعة',
+    ratesInfoFetched: 'يتم جلب الأسعار عند إضافة عملة.',
+    ratesInfoKept: 'الفواتير المحفوظة مسبقًا تحتفظ بالسعر الذي أُضيفت به.',
     editRate: 'تعديل السعر',
     newRate: 'سعر جديد',
     removeRate: 'احذف هذا السعر',

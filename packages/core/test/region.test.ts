@@ -4,6 +4,7 @@ import {
   COUNTRIES,
   countryFlag,
   countryName,
+  countryForCurrency,
   currencyForCountry,
   isCountryCode,
   dialingCodeForCountry,
@@ -64,6 +65,41 @@ describe('what a country counts in', () => {
     expect(minorUnitExponent('OMR')).toBe(3);
     expect(minorUnitExponent('AED')).toBe(2);
     expect(minorUnitExponent('INR')).toBe(2);
+  });
+});
+
+describe('where a currency is at home', () => {
+  it('names the country for the markets Waves is in', () => {
+    expect(countryForCurrency('INR')).toBe('IN');
+    expect(countryForCurrency('AED')).toBe('AE');
+    expect(countryForCurrency('USD')).toBe('US');
+    expect(countryForCurrency('GBP')).toBe('GB');
+    expect(countryForCurrency('AUD')).toBe('AU');
+    expect(countryForCurrency('SGD')).toBe('SG');
+    expect(countryForCurrency('CAD')).toBe('CA');
+    expect(countryForCurrency('BRL')).toBe('BR');
+  });
+
+  it('settles the euro on one country rather than guessing per caller', () => {
+    expect(countryForCurrency('EUR')).toBe('DE');
+  });
+
+  it('round-trips with the country table', () => {
+    for (const { code } of COUNTRIES) {
+      const currency = currencyForCountry(code);
+      if (!currency) continue;
+      const home = countryForCurrency(currency);
+      expect(home, `${code} → ${currency}`).not.toBeNull();
+      expect(currencyForCountry(home)).toBe(currency);
+    }
+  });
+
+  it('has no opinion on a currency it does not know, and shrugs off case and blanks', () => {
+    expect(countryForCurrency('XXX')).toBeNull();
+    expect(countryForCurrency(null)).toBeNull();
+    expect(countryForCurrency(undefined)).toBeNull();
+    expect(countryForCurrency('')).toBeNull();
+    expect(countryForCurrency(' inr ')).toBe('IN');
   });
 });
 

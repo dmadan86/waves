@@ -16,7 +16,6 @@ import {
   type ParsedReceipt,
 } from '@waves/core';
 import {
-  Avatar,
   Badge,
   Button,
   Callout,
@@ -59,6 +58,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { handoverIsFresh, handoverKey, type ReceiptHandover } from '@/lib/handover';
 import { clearDraft, useRestoredDraft } from '@/sync';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 interface DraftItem {
   key: string;
@@ -746,7 +746,12 @@ export default function ItemizeScreen() {
                       opacity: claimed ? 1 : mine ? 0.6 : 0.5,
                     }}
                   >
-                    <Avatar name={displayName(member)} ghost={isGhost(member)} size={38} />
+                    <PersonAvatar
+                      member={member}
+                      name={displayName(member)}
+                      ghost={isGhost(member)}
+                      size={38}
+                    />
                     <Text variant="micro" tone={claimed ? 'brand' : 'muted'}>
                       {displayName(member, viewerId)}
                     </Text>
@@ -831,7 +836,8 @@ export default function ItemizeScreen() {
               return (
                 <Row key={memberId} style={{ justifyContent: 'space-between' }}>
                   <Row style={{ flex: 1 }}>
-                    <Avatar
+                    <PersonAvatar
+                      member={member}
                       name={member ? displayName(member) : '?'}
                       ghost={member ? isGhost(member) : false}
                       size={30}

@@ -129,6 +129,7 @@ export function TripDates({
   onChange,
   embedded = false,
   forEvent = false,
+  bare = false,
 }: {
   group: TripDatesValue;
   locale: string;
@@ -141,6 +142,8 @@ export function TripDates({
   embedded?: boolean;
   /** Same editor, Event wording (title, info label, body). */
   forEvent?: boolean;
+  /** Keep the title and info, drop the outer card: for a section inside another card. */
+  bare?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -329,5 +332,6 @@ export function TripDates({
   );
 
   if (embedded) return <View style={{ gap: theme.spacing.lg }}>{body}</View>;
+  if (bare) return <View style={{ gap: theme.spacing.md }}>{body}</View>;
   return <Card style={{ gap: theme.spacing.lg }}>{body}</Card>;
 }

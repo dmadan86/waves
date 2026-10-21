@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -22,6 +22,8 @@ export interface ChipProps {
    * opens something (a "see all" pill) leaves this off.
    */
   repeatable?: boolean;
+  /** On a white card the unselected chip wears the muted fill so it still reads as a chip. */
+  onCard?: boolean;
 }
 
 export function Chip({
@@ -31,6 +33,7 @@ export function Chip({
   icon,
   variant = 'ink',
   repeatable = false,
+  onCard = false,
 }: ChipProps) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
@@ -50,7 +53,11 @@ export function Chip({
         paddingHorizontal: theme.spacing.lg,
         height: 36,
         borderRadius: theme.radius.pill,
-        backgroundColor: selected ? selectedFill : theme.color.surface,
+        backgroundColor: selected
+          ? selectedFill
+          : onCard
+            ? theme.color.surfaceMuted
+            : theme.color.surface,
         opacity: pressed ? 0.85 : 1,
       })}
     >
@@ -67,31 +74,58 @@ export function ChipRow<T extends string>({
   value,
   onChange,
   variant = 'ink',
+  wrap = false,
+  onCard = false,
 }: {
   options: readonly { value: T; label: string; icon?: (color: string) => ReactNode }[];
   value: T;
   onChange: (value: T) => void;
   /** The fill selected chips wear — forwarded to every chip in the row. */
   variant?: 'brand' | 'ink';
+  /** Wrap onto more lines instead of scrolling sideways, so no chip is cut off. */
+  wrap?: boolean;
+  /** Chips sit on a white card: unselected ones take the muted fill. */
+  onCard?: boolean;
 }) {
   const theme = useTheme();
+  const scroller = useRef<ScrollView>(null);
+  const chips = options.map((option) => (
+    <View
+      key={option.value}
+      // The chosen chip may sit past the edge of a one-line row; bring it in.
+      onLayout={
+        !wrap && option.value === value
+          ? (event) => {
+              const x = event.nativeEvent.layout.x;
+              if (x > 0) scroller.current?.scrollTo({ x: Math.max(0, x - 48), animated: false });
+            }
+          : undefined
+      }
+    >
+      <Chip
+        label={option.label}
+        icon={option.icon}
+        selected={option.value === value}
+        onPress={() => onChange(option.value)}
+        variant={variant}
+        onCard={onCard}
+        repeatable
+      />
+    </View>
+  ));
+  if (wrap) {
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>{chips}</View>
+    );
+  }
   return (
     <ScrollView
+      ref={scroller}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.xl }}
     >
-      {options.map((option) => (
-        <Chip
-          key={option.value}
-          label={option.label}
-          icon={option.icon}
-          selected={option.value === value}
-          onPress={() => onChange(option.value)}
-          variant={variant}
-          repeatable
-        />
-      ))}
+      {chips}
     </ScrollView>
   );
 }

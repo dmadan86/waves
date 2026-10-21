@@ -313,6 +313,13 @@ model Group {
   /// on `expense_versions.fx` respectively).
   fxRates Json? @map("fx_rates")
 
+  /// Unused, reserved. Added by 20261023100000_group_trip_stops (already
+  /// applied in production, so the column and its `waves_set_trip_stops` RPC
+  /// stay) for a per-country itinerary the app no longer has: a group just
+  /// pins extra currencies in `fxRates` instead. Nothing reads or writes it;
+  /// it is always NULL.
+  tripStops Json? @map("trip_stops")
+
   /// When the trip is. Both ends inclusive — the last day of a trip is the one
   /// with the most unrecorded spending on it.
   startDate       DateTime? @map("start_date") @db.Date
