@@ -4851,6 +4851,14 @@ export interface UiStrings {
     breakfast: string;
     endOfDay: string;
     clearDates: string;
+    /** Under the title of the dates sheet. */
+    datesSheetSubtitle: string;
+    startDate: string;
+    endDate: string;
+    /** "{n} days selected" under the calendar. */
+    daysSelected: PluralForms;
+    noDatesSelected: string;
+    saveDates: string;
     nobodyPickedYet: string;
     personCount: PluralForms;
     alreadyAddedName: string;
@@ -9863,6 +9871,12 @@ const en: UiStrings = {
     breakfast: 'Breakfast',
     endOfDay: 'End of day',
     clearDates: 'Clear dates',
+    datesSheetSubtitle: 'Select the start and end dates for this group',
+    startDate: 'Start date',
+    endDate: 'End date',
+    daysSelected: { one: '{n} day selected', other: '{n} days selected' },
+    noDatesSelected: 'No dates selected',
+    saveDates: 'Save dates',
     nobodyPickedYet: 'Nobody picked yet',
     personCount: { one: '{n} person', other: '{n} people' },
     alreadyAddedName: '{name}, already added',
@@ -14991,6 +15005,15 @@ const ta: UiStrings = {
     breakfast: 'காலை உணவு',
     endOfDay: 'நாள் முடிவு',
     clearDates: 'தேதிகளை அழி',
+    datesSheetSubtitle: 'இந்தக் குழுவின் தொடக்க, முடிவு தேதிகளைத் தேர்ந்தெடுக்கவும்',
+    startDate: 'தொடக்க தேதி',
+    endDate: 'முடிவு தேதி',
+    daysSelected: {
+      one: '{n} நாள் தேர்ந்தெடுக்கப்பட்டது',
+      other: '{n} நாட்கள் தேர்ந்தெடுக்கப்பட்டன',
+    },
+    noDatesSelected: 'தேதிகள் தேர்ந்தெடுக்கப்படவில்லை',
+    saveDates: 'தேதிகளைச் சேமி',
     nobodyPickedYet: 'இன்னும் யாரையும் தேர்ந்தெடுக்கவில்லை',
     personCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     alreadyAddedName: '{name}, ஏற்கனவே சேர்க்கப்பட்டது',
@@ -20014,6 +20037,12 @@ const hi: UiStrings = {
     breakfast: 'नाश्ता',
     endOfDay: 'दिन का अंत',
     clearDates: 'तारीखें हटाएँ',
+    datesSheetSubtitle: 'इस ग्रुप की शुरुआत और समाप्ति की तारीखें चुनें',
+    startDate: 'शुरू होने की तारीख',
+    endDate: 'समाप्ति की तारीख',
+    daysSelected: { one: '{n} दिन चुना गया', other: '{n} दिन चुने गए' },
+    noDatesSelected: 'कोई तारीख नहीं चुनी गई',
+    saveDates: 'तारीखें सहेजें',
     nobodyPickedYet: 'अभी किसी को नहीं चुना',
     personCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
     alreadyAddedName: '{name}, पहले से जुड़ा है',
@@ -25546,6 +25575,19 @@ const ar: UiStrings = {
     breakfast: 'الإفطار',
     endOfDay: 'نهاية اليوم',
     clearDates: 'امسح التواريخ',
+    datesSheetSubtitle: 'اختر تاريخَي البداية والنهاية لهذه المجموعة',
+    startDate: 'تاريخ البداية',
+    endDate: 'تاريخ النهاية',
+    daysSelected: {
+      zero: 'لم يُحدَّد أي يوم',
+      one: 'تم تحديد يوم واحد',
+      two: 'تم تحديد يومين',
+      few: 'تم تحديد {n} أيام',
+      many: 'تم تحديد {n} يومًا',
+      other: 'تم تحديد {n} يوم',
+    },
+    noDatesSelected: 'لم تُحدَّد تواريخ',
+    saveDates: 'حفظ التواريخ',
     nobodyPickedYet: 'لم تختر أحدًا بعد',
     personCount: {
       zero: '{n} شخص',
