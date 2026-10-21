@@ -34,8 +34,8 @@ export function Chip({
 }: ChipProps) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
-  const selectedFill = variant === 'ink' ? theme.color.buttonPrimary : theme.color.brand;
-  const selectedInk = variant === 'ink' ? theme.color.onButtonPrimary : theme.color.onBrand;
+  const selectedFill = variant === 'ink' ? theme.color.selectedFill : theme.color.brand;
+  const selectedInk = variant === 'ink' ? theme.color.onSelectedFill : theme.color.onBrand;
   const color = selected ? selectedInk : theme.color.textMuted;
   return (
     <Pressable

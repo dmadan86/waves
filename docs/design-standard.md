@@ -30,3 +30,4 @@ do not draw your own header, card, pill or row.
 - Rows get `onPress` only when they go somewhere.
 - Dark mode comes from the theme; the header darkens the photo with a scrim.
 - New or changed screens use these components. If one is missing a variant, extend the component, not the screen.
+- All action buttons use the brand violet; no black buttons.
