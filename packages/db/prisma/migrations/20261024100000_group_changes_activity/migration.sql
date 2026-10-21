@@ -248,6 +248,10 @@ BEGIN
       END IF;
       IF NEW.removed_at IS NOT NULL THEN
         v_verb := 'member_removed';
+      ELSIF NEW.import_batch_id IS NOT NULL THEN
+        -- An import's placeholder cannot leave; the only thing that retires
+        -- it is waves_undo_import, whose one `import_undone` row covers them.
+        RETURN NEW;
       ELSE
         v_verb := 'member_left';
       END IF;

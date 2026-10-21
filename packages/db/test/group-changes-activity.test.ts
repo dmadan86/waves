@@ -11,6 +11,8 @@
  * for the archive cron, and a stamped `updated_seq` so the row syncs.
  */
 
+import { randomUUID } from 'node:crypto';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 
@@ -297,6 +299,38 @@ describe('people', () => {
     );
 
     expect(await feed(groupId, ['member_added'])).toHaveLength(0);
+  });
+
+  it('says nothing when undoing an import retires its placeholders', async () => {
+    const { groupId, profileIds } = await seedGroup(client, { memberCount: 1 });
+    const admin = id(profileIds[0], 'admin');
+    const batchId = randomUUID();
+    const people = ['Ghost A', 'Ghost B', 'Ghost C'].map((name) => ({ name, memberId: null }));
+    const expense = {
+      clientMutationId: randomUUID(),
+      description: 'Imported lunch',
+      date: '2026-09-14',
+      currency: 'INR',
+      amount: '3000',
+      payers: { 'Ghost A': '3000' },
+      shares: { 'Ghost A': '1000', 'Ghost B': '1000', 'Ghost C': '1000' },
+    };
+
+    await asUser(admin, async () => {
+      await client.query(
+        `SELECT waves_import_into_group($1, $2, 'csv', $3::jsonb, $4::jsonb, '[]'::jsonb, true)`,
+        [groupId, batchId, JSON.stringify(people), JSON.stringify([expense])],
+      );
+      await client.query(`SELECT waves_undo_import($1)`, [batchId]);
+    });
+
+    const { rows } = await client.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM group_members WHERE group_id = $1 AND left_at IS NOT NULL`,
+      [groupId],
+    );
+    expect(Number(rows[0]?.n)).toBe(3);
+    expect(await feed(groupId, ['member_left', 'member_removed', 'member_added'])).toHaveLength(0);
+    expect(await feed(groupId, ['import_undone'])).toHaveLength(1);
   });
 
   it('logs a promotion and a demotion', async () => {
