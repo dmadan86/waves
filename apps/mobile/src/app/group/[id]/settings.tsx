@@ -907,7 +907,9 @@ export default function GroupSettingsScreen() {
         />
 
         <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.lg }}>
-          {status ? (
+          {/* Changes save as they are made, so a plain "Saved" is not news;
+              only other messages (an error, a person added) are shown. */}
+          {status && status !== t.account.saved ? (
             <Text variant="caption" tone="positive">
               {status}
             </Text>
@@ -1005,7 +1007,6 @@ export default function GroupSettingsScreen() {
               </Row>
               {infoText('type', t.extras.groupTypeInfo)}
               <ChipRow<GroupType>
-                wrap
                 onCard
                 variant="brand"
                 // The column is NOT NULL DEFAULT 'other' on the server, so a missing
