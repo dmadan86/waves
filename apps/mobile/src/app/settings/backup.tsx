@@ -139,6 +139,7 @@ import {
 } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
 import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { BackupFrequency } from '@/lib/backup/schedule';
@@ -240,6 +241,7 @@ export default function BackupSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const { confirm } = useDialog();
   const backup = useBackup();
   /**
    * The dashboard's restore prompt sends its nonce here to mean "link if you
@@ -405,7 +407,19 @@ export default function BackupSettingsScreen() {
     setPending('backup');
     setError(null);
     try {
-      await backup.backupNow();
+      const outcome = await backup.backupNow();
+      // Wi‑Fi only and on mobile data: ask once instead of spending data silently.
+      if (outcome.kind === 'refused' && outcome.refusal === 'network-policy') {
+        if (
+          await confirm({
+            title: t.backup.mobileDataTitle,
+            body: t.backup.mobileDataBody,
+            confirmLabel: t.backup.mobileDataConfirm,
+          })
+        ) {
+          await backup.backupNow(true);
+        }
+      }
     } catch (caught) {
       setError(friendlyError(caught, t.backup.backupFailed, 'backup.run'));
     } finally {

@@ -3203,6 +3203,9 @@ export interface UiStrings {
     refusedKeyLost: string;
     refusedOffline: string;
     refusedNetwork: string;
+    mobileDataTitle: string;
+    mobileDataBody: string;
+    mobileDataConfirm: string;
     refusedAuth: string;
     refusedNoBackup: string;
     refusedBusy: string;
@@ -8433,6 +8436,9 @@ const en: UiStrings = {
       'The key for that backup is no longer in your Google account, so it can no longer be opened.',
     refusedOffline: 'No connection. The backup will run when you are back online.',
     refusedNetwork: 'Waiting for Wi‑Fi. Change Back up over to use mobile data.',
+    mobileDataTitle: "You're on mobile data",
+    mobileDataBody: 'Back up anyway?',
+    mobileDataConfirm: 'Back up anyway',
     refusedAuth: 'Google asked for the link again. Reconnect the account.',
     refusedNoBackup: 'There is no backup on this Drive account yet.',
     refusedBusy: 'A backup is already running.',
@@ -13502,6 +13508,9 @@ const ta: UiStrings = {
     refusedOffline: 'இணைப்பு இல்லை. மீண்டும் ஆன்லைனுக்கு வரும்போது காப்பு எடுக்கப்படும்.',
     refusedNetwork:
       'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
+    mobileDataTitle: 'நீங்கள் மொபைல் டேட்டாவில் உள்ளீர்கள்',
+    mobileDataBody: 'எப்படியும் காப்பு எடுக்கவா?',
+    mobileDataConfirm: 'எப்படியும் காப்பு எடு',
     refusedAuth: 'Google மீண்டும் அனுமதி கேட்கிறது. கணக்கை மீண்டும் இணையுங்கள்.',
     refusedNoBackup: 'இந்த Drive கணக்கில் இன்னும் காப்புப்பிரதி இல்லை.',
     refusedBusy: 'ஒரு காப்பு ஏற்கனவே இயங்குகிறது.',
@@ -18622,6 +18631,9 @@ const hi: UiStrings = {
       'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
     refusedOffline: 'कोई कनेक्शन नहीं। ऑनलाइन आते ही बैकअप चल जाएगा।',
     refusedNetwork: 'Wi‑Fi का इंतज़ार है। मोबाइल डेटा इस्तेमाल करने के लिए सेटिंग बदलें।',
+    mobileDataTitle: 'आप मोबाइल डेटा पर हैं',
+    mobileDataBody: 'फिर भी बैकअप लें?',
+    mobileDataConfirm: 'फिर भी बैकअप लें',
     refusedAuth: 'Google ने फिर से अनुमति माँगी है। खाता दोबारा जोड़ें।',
     refusedNoBackup: 'इस Drive खाते पर अभी कोई बैकअप नहीं है।',
     refusedBusy: 'एक बैकअप पहले से चल रहा है।',
@@ -23821,6 +23833,9 @@ const ar: UiStrings = {
     refusedKeyLost: 'لم يعد مفتاح تلك النسخة في حساب Google الخاص بك، لذا لا يمكن فتحها.',
     refusedOffline: 'لا اتصال. سيجري النسخ عند عودتك للاتصال.',
     refusedNetwork: 'في انتظار Wi‑Fi. غيّر الإعداد لاستخدام بيانات الجوال.',
+    mobileDataTitle: 'أنت تستخدم بيانات الجوال',
+    mobileDataBody: 'هل تريد النسخ على أي حال؟',
+    mobileDataConfirm: 'انسخ على أي حال',
     refusedAuth: 'طلب Google الإذن من جديد. أعد ربط الحساب.',
     refusedNoBackup: 'لا توجد نسخة على حساب Drive هذا بعد.',
     refusedBusy: 'هناك نسخ جارٍ بالفعل.',

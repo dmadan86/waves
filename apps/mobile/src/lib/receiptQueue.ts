@@ -40,6 +40,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as Network from 'expo-network';
 
 import { backend } from '@/lib/backend';
+import { loadSyncNetworkPreference, networkAllows } from '@/lib/syncNetwork';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
 import { cacheImageBytes, cachedImageUri } from '@/lib/storage/imageCache';
 import { endTransfer, setTransferProgress, startTransfer } from '@/lib/transferProgress';
@@ -376,6 +377,16 @@ export function pendingReceiptUri(
     if (cached) return cached;
   }
   return pendingFile(entry).uri;
+}
+
+/** Does the sync network preference allow this connection type? Fails open. */
+async function networkPermits(): Promise<boolean> {
+  try {
+    const { type } = await Network.getNetworkStateAsync();
+    return networkAllows(await loadSyncNetworkPreference(), type);
+  } catch {
+    return true;
+  }
 }
 
 /** Is there a usable network right now? Fail-open, matching the sync engine. */
@@ -763,6 +774,8 @@ async function runFlush(): Promise<FlushResult> {
   });
   if (due.length === 0) return EMPTY_FLUSH;
   if (!(await isOnline())) return EMPTY_FLUSH;
+  // Photos are the heavy part of sync, so they obey the same Wi‑Fi-only choice.
+  if (!(await networkPermits())) return EMPTY_FLUSH;
 
   // How each handled entry ends up: a replacement row, or null to drop it.
   // Applied against a re-read of the queue at the end, so entries parked *during*
