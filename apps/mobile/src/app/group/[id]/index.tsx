@@ -5,11 +5,9 @@ import {
   InteractionManager,
   Pressable,
   RefreshControl,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import Svg, { Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import {
@@ -42,6 +40,7 @@ import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
+import { FooterWaves, WAVES_TUCK } from '@/components/FooterWaves';
 import { MissingRatesCard } from '@/components/MissingRates';
 import { personKeyOf } from '@/data/peopleBalances';
 import { GroupNotFound } from '@/components/GroupNotFound';
@@ -1921,36 +1920,3 @@ export default function GroupScreen() {
     </Screen>
   );
 }
-
-/**
- * Two soft waves across the foot of the screen, just above the tab bar — the
- * page's quiet close, on every tab. Decoration only.
- */
-function FooterWaves({ bottom }: { bottom: number }) {
-  const theme = useTheme();
-  const { width } = useWindowDimensions();
-  const dark = theme.scheme === 'dark';
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ position: 'absolute', left: 0, right: 0, bottom }}
-    >
-      <Svg width={width} height={WAVES_HEIGHT} viewBox="0 0 400 90" preserveAspectRatio="none">
-        <Path
-          d="M0 40 Q 60 10 130 30 T 260 38 T 400 20 L400 90 L0 90 Z"
-          fill={dark ? 'rgba(255,255,255,0.04)' : '#ECEAFB'}
-        />
-        <Path
-          d="M0 62 Q 90 40 180 58 T 400 48 L400 90 L0 90 Z"
-          fill={dark ? 'rgba(255,255,255,0.06)' : '#E3E0FA'}
-        />
-      </Svg>
-    </View>
-  );
-}
-
-/** How tall the waves stand, and how far they tuck under the tab bar's rounded top. */
-const WAVES_HEIGHT = 90;
-const WAVES_TUCK = 24;

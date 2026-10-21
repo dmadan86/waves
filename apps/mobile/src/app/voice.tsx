@@ -2684,7 +2684,7 @@ export default function VoiceScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      {/* The photograph, edge to edge, anchored to the bottom; everything else
+      {/* The shared lavender backdrop and waves; everything else
           scrolls over it. */}
       <VoiceScene />
       <KeyboardAvoidingView
