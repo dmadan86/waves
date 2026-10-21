@@ -30,3 +30,4 @@ do not draw your own header, card, pill or row.
 - Rows get `onPress` only when they go somewhere.
 - Dark mode comes from the theme; the header darkens the photo with a scrim.
 - New or changed screens use these components. If one is missing a variant, extend the component, not the screen.
+- People always render through PersonAvatar (photo, else initials). The bare `Avatar` from `@waves/ui` is for non-people (a group mark); `apps/mobile/test/personAvatarGuard.test.ts` enforces it.

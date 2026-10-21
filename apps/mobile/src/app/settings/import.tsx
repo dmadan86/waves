@@ -35,7 +35,6 @@ import {
   type ImportProblem,
 } from '@waves/core';
 import {
-  Avatar,
   Button,
   Callout,
   ChipRow,
@@ -65,6 +64,7 @@ import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -744,7 +744,7 @@ export default function ImportScreen() {
                           opacity: pressed ? 0.7 : 1,
                         })}
                       >
-                        <Avatar name={person} size={32} tint={tintForKey(person)} />
+                        <PersonAvatar name={person} size={32} tint={tintForKey(person)} />
                         <Text
                           style={{
                             flex: 1,

@@ -13,7 +13,6 @@ import Svg, { Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -108,6 +107,7 @@ import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
 import { memberNameById, memberNameFor } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 enum Tab {
   Expenses = 'expenses',
@@ -1282,7 +1282,8 @@ export default function GroupScreen() {
             paddingHorizontal: theme.spacing.md,
           }}
         >
-          <Avatar
+          <PersonAvatar
+            member={member}
             name={displayName(member, null, blockedIds, t.misc.someone)}
             ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
             size={36}

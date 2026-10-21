@@ -13,7 +13,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { defaultRailFor, format, money, type CurrencyCode } from '@waves/core';
-import { Avatar, Button, Text, useTheme } from '@waves/ui';
+import { Button, Text, useTheme } from '@waves/ui';
 
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useBlockedUsers } from '@/data/blocked';
@@ -34,6 +34,7 @@ import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { owedRowModel } from '@/lib/settleRow';
 import { splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 import { useRemind } from '@/lib/useRemind';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export function InlineSettle({ groupId }: { groupId: string }) {
   const theme = useTheme();
@@ -244,7 +245,14 @@ function SettleRow({
           name,
         })}
         body={receive ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}
-        avatar={<Avatar name={name} size={40} />}
+        avatar={
+          <PersonAvatar
+            name={name}
+            member={member}
+            ghost={member ? isGhost(member) : false}
+            size={40}
+          />
+        }
         name={name}
         relation={receive ? t.misc.settleConfirmPaidYou : t.misc.settleConfirmYouPaid}
         amount={transfer.amount}
