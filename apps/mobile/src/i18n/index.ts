@@ -1081,9 +1081,7 @@ export interface UiStrings {
   account: {
     facePaying: string;
     faceSettings: string;
-    settled: string;
     nothingSettledYet: string;
-    otherCurrencies: PluralForms;
     saved: string;
     displayName: string;
     /** One line in the name editor: who sees it. */
@@ -6709,9 +6707,7 @@ const en: UiStrings = {
   account: {
     facePaying: 'Paying',
     faceSettings: 'Settings',
-    settled: 'settled',
     nothingSettledYet: 'Nothing settled yet',
-    otherCurrencies: { one: 'and {n} other currency', other: 'and {n} other currencies' },
     saved: 'Saved',
     displayName: 'Display name',
     displayNameHint: 'Everyone you share a group with sees this.',
@@ -11724,9 +11720,7 @@ const ta: UiStrings = {
   account: {
     facePaying: 'பணம் பெற',
     faceSettings: 'அமைப்புகள்',
-    settled: 'தீர்ந்தது',
     nothingSettledYet: 'இன்னும் எதுவும் தீரவில்லை',
-    otherCurrencies: { one: 'மேலும் {n} நாணயம்', other: 'மேலும் {n} நாணயங்கள்' },
     saved: 'சேமிக்கப்பட்டது',
     displayName: 'காட்டப்படும் பெயர்',
     displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
@@ -16906,9 +16900,7 @@ const hi: UiStrings = {
   account: {
     facePaying: 'भुगतान',
     faceSettings: 'सेटिंग्स',
-    settled: 'निपटा',
     nothingSettledYet: 'अभी कुछ नहीं निपटा',
-    otherCurrencies: { one: 'और {n} अन्य मुद्रा', other: 'और {n} अन्य मुद्राएँ' },
     saved: 'सेव हो गया',
     displayName: 'दिखने वाला नाम',
     displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
@@ -21991,16 +21983,7 @@ const ar: UiStrings = {
   account: {
     facePaying: 'الدفع',
     faceSettings: 'الإعدادات',
-    settled: 'تمت تسويته',
     nothingSettledYet: 'لم تتم تسوية شيء بعد',
-    otherCurrencies: {
-      zero: 'و{n} عملة أخرى',
-      one: 'وعملة أخرى',
-      two: 'وعملتان أخريان',
-      few: 'و{n} عملات أخرى',
-      many: 'و{n} عملة أخرى',
-      other: 'و{n} عملة أخرى',
-    },
     saved: 'تم الحفظ',
     displayName: 'الاسم الظاهر',
     displayNameHint: 'يراه كل من تشاركه مجموعة.',
