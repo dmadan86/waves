@@ -1,0 +1,16 @@
+# Synthetic. Shaped like the "Bank of Australia" credit-card example in
+# CommBank's financial-literacy module 7 (not vendored, and not a real CommBank
+# layout): "D Mon" dates with the year only in the period, one "Amount (A$)"
+# column, a payment written in parentheses.
+Bank of Australia
+Credit Card Statement
+SAMPLE CUSTOMER
+Statement period 1 January 2026 to 31 January 2026
+Opening balance $450.00
+Date Transaction details Amount (A$)
+2 Jan Sample Supermarket Anytown 85.50
+5 Jan Payment received - thank you (100.00)
+9 Jan Sample Fuel Anytown 60.00
+14 Jan Interest charged 4.25
+20 Jan Sample Pharmacy Anytown 23.10
+Closing balance $522.85

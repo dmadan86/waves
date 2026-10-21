@@ -252,13 +252,13 @@ export function VendorsBody({
                         paddingHorizontal: theme.spacing.md,
                         borderRadius: theme.radius.pill,
                         justifyContent: 'center',
-                        backgroundColor: selected ? theme.color.buttonPrimary : theme.color.surface,
+                        backgroundColor: selected ? theme.color.selectedFill : theme.color.surface,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 13,
-                          color: selected ? theme.color.onButtonPrimary : theme.color.textMuted,
+                          color: selected ? theme.color.onSelectedFill : theme.color.textMuted,
                         }}
                       >
                         {label}

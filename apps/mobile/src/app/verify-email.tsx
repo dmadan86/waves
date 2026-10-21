@@ -139,7 +139,7 @@ export default function VerifyEmailScreen() {
             <Ionicons
               name={directionalIcon('chevron-back')}
               size={iconSize.lg}
-              color={theme.color.buttonPrimary}
+              color={theme.color.text}
             />
           </Pressable>
         </Row>

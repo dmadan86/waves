@@ -1,0 +1,21 @@
+# Synthetic. Shaped like ANZ's personal account statement specimen (the
+# DDA-personal-statement images on anz.com.au, not vendored): the year printed
+# once on its own line and again when it changes, "DD MON" dates, two-line
+# entries, "OPENING BALANCE" as a dated line, "TOTALS AT END OF PAGE/PERIOD".
+ANZ Access Advantage
+SAMPLE CUSTOMER
+Account number 012-345 12345678
+Statement number 42
+Date Transaction Details Withdrawals ($) Deposits ($) Balance ($)
+2025
+29 DEC OPENING BALANCE 6,597.77
+30 DEC EFTPOS 33.95 6,563.82
+POST ASPLEY POST SHO QLDAU
+31 DEC PAYMENT TO SAMPLE INSURANCE 120.00 6,443.82
+2026
+02 JAN ANZ INTERNET BANKING FUNDS TFER
+TRANSFER 123456 TO 012345 56789012 250.00 6,193.82
+05 JAN SALARY SAMPLE EMPLOYER PTY LTD 2,100.00 8,293.82
+09 JAN ATM WITHDRAWAL ANZ ATM BRISBANE 200.00 8,093.82
+TOTALS AT END OF PERIOD $603.95 $2,100.00 8,093.82
+TOTALS AT END OF PAGE $603.95 $2,100.00 8,093.82
