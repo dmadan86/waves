@@ -542,6 +542,13 @@ export class SyncSession {
           // different rows.
           p_email: (mutation.payload.email as string | undefined) ?? null,
           p_phone: (mutation.payload.phone as string | undefined) ?? null,
+          // Only when the client named an account (a member cloned from another
+          // group): the argument exists from 20261023110000_add_member_by_profile
+          // on, and leaving it out keeps every other add working against a
+          // database that has not had that migration yet.
+          ...(typeof mutation.payload.profileId === 'string'
+            ? { p_profile_id: mutation.payload.profileId }
+            : {}),
         });
       case 'group.create':
         return await this.rpcAsCaller('waves_create_group', {
