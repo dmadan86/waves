@@ -18,7 +18,6 @@ import {
   Avatar,
   Button,
   Callout,
-  ChipRow,
   directionalIcon,
   iconSize,
   ListRow as PlainListRow,
@@ -55,6 +54,8 @@ import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { GroupTagField } from '@/components/GroupTagField';
 import { TripDates } from '@/components/TripDates';
+import { gregorianFormatter } from '@/lib/calendarGrid';
+import { tripDateFromIso } from '@/lib/tripDateRange';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { MissingRatesCard } from '@/components/MissingRates';
 import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
@@ -100,13 +101,6 @@ import {
   payableAt,
   SettlementStatus,
 } from '@/data/types';
-
-// Same chip icons the create screen wears, so changing a group's kind looks
-// like the same control that first set it.
-const iconFor =
-  (name: keyof typeof Ionicons.glyphMap) =>
-  // eslint-disable-next-line react/display-name
-  (color: string): ReactNode => <Ionicons name={name} size={iconSize.base} color={color} />;
 
 /** One entry in a member's ⋮ menu. */
 interface MemberAction {
@@ -168,6 +162,9 @@ export default function GroupSettingsScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [ratesOpen, setRatesOpen] = useState(false);
   // Who was just added by name, shown in the sheet so adding several people in
   // a row has an answer each time.
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -451,7 +448,7 @@ export default function GroupSettingsScreen() {
   };
   // A member's ⋮ menu (by member id), and which ⓘ explanation is open.
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [info, setInfo] = useState<'simplify' | 'mute' | 'type' | null>(null);
+  const [info, setInfo] = useState<'simplify' | 'mute' | null>(null);
   const removeFromGroup = useRemoveMember(groupId);
   const setRole = useSetMemberRole(groupId);
   // "Link to a Waves user" (admin-only, as on the member screen): what this
@@ -670,7 +667,7 @@ export default function GroupSettingsScreen() {
   );
 
   /** The ⓘ beside a title; the explanation opens under the row. */
-  const infoDot = (key: 'simplify' | 'mute' | 'type', title: string): ReactNode => (
+  const infoDot = (key: 'simplify' | 'mute', title: string): ReactNode => (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ expanded: info === key }}
@@ -685,7 +682,7 @@ export default function GroupSettingsScreen() {
       />
     </Pressable>
   );
-  const infoText = (key: 'simplify' | 'mute' | 'type', body: string): ReactNode =>
+  const infoText = (key: 'simplify' | 'mute', body: string): ReactNode =>
     info === key ? (
       <Text variant="caption" tone="muted">
         {body}
@@ -885,6 +882,40 @@ export default function GroupSettingsScreen() {
     return actions;
   };
 
+  const divider = (
+    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }} />
+  );
+  const chevron = (
+    <Ionicons
+      name={directionalIcon('chevron-forward')}
+      size={iconSize.md}
+      color={theme.color.textMuted}
+    />
+  );
+  // The kinds a group can be, with the icons the create screen's chips wear.
+  const typeOptions: { value: GroupType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { value: GroupType.Trip, label: t.extras.typeTrip, icon: 'airplane' },
+    { value: GroupType.Home, label: t.extras.typeHome, icon: 'home' },
+    { value: GroupType.Couple, label: t.extras.typeCouple, icon: 'heart' },
+    { value: GroupType.Event, label: t.extras.typeEvent, icon: 'sparkles' },
+    { value: GroupType.Friends, label: t.extras.typeFriends, icon: 'people-circle' },
+    { value: GroupType.Other, label: t.extras.typeOther, icon: 'people' },
+  ];
+  // The column is NOT NULL DEFAULT 'other' on the server, so a missing value
+  // only means a mirror row that predates this field syncing: fall back to that
+  // same default so the current kind always shows.
+  const groupType = group.data.type ?? GroupType.Other;
+  const currentType = typeOptions.find((option) => option.value === groupType) ?? typeOptions[5]!;
+  const hasDates = groupType === GroupType.Trip || groupType === GroupType.Event;
+  const datesSummary = (() => {
+    const from = tripDateFromIso(group.data.start_date);
+    const to = tripDateFromIso(group.data.end_date);
+    if (!from) return t.pickers.notSet;
+    const fmt = gregorianFormatter(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    const text = (value: Date): string => fmt?.format(value) ?? value.toDateString();
+    return to ? `${text(from)} ${locale === 'ar' ? '←' : '→'} ${text(to)}` : text(from);
+  })();
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <ScrollView
@@ -916,9 +947,26 @@ export default function GroupSettingsScreen() {
             </Text>
           ) : null}
 
-          {/* The group: cover, name, when it began and how many are in it. */}
-          <StandardCard>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          {/* One card: the group (cover, name, members, when it began) and, under
+              hairlines, everything about how it is set up, each as a circular
+              tile, a title, a quiet subtitle and a trailing control. Country is
+              what the settle screen's payment rails follow. Settles in is what
+              the group counts in; only an admin can choose it, and it stops being
+              a control once anything depends on it: either entries counted in it,
+              or pinned rates whose stored ratios all convert into it. Trip rates
+              can be re-pinned at any time, because a bill keeps the rate it was
+              saved with (ADR-003). The last row is whether foreign bills count in
+              that currency at their own saved rates (ADR-003 amendment): on for
+              new groups; an existing group opts in once every foreign bill has a
+              rate. */}
+          <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+            <Row
+              style={{
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                paddingVertical: theme.spacing.md,
+              }}
+            >
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t.group.changeCover}
@@ -928,8 +976,7 @@ export default function GroupSettingsScreen() {
                   photoPath={group.data.photo_path}
                   emoji={group.data.cover_emoji}
                   color={group.data.cover_color}
-                  size={64}
-                  round
+                  size={72}
                   busy={uploading}
                 />
                 <View
@@ -937,9 +984,9 @@ export default function GroupSettingsScreen() {
                     position: 'absolute',
                     right: -2,
                     bottom: -2,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: '#2B2B3A',
@@ -947,7 +994,7 @@ export default function GroupSettingsScreen() {
                     borderColor: theme.color.surface,
                   }}
                 >
-                  <Ionicons name="camera" size={13} color="#FFFFFF" />
+                  <Ionicons name="camera" size={14} color="#FFFFFF" />
                 </View>
               </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
@@ -955,7 +1002,7 @@ export default function GroupSettingsScreen() {
                   <Text
                     variant="heading"
                     numberOfLines={1}
-                    style={{ fontSize: 20, fontWeight: '800', flexShrink: 1 }}
+                    style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
                   >
                     {groupName}
                   </Text>
@@ -971,103 +1018,82 @@ export default function GroupSettingsScreen() {
                 <Text variant="caption" tone="muted" numberOfLines={2}>
                   {/* Non-breaking spaces keep each part whole, so a narrow
                       screen wraps between them rather than inside "4 members". */}
-                  {[createdLabel, plural(locale, memberCount, t.memberCount)]
+                  {[plural(locale, memberCount, t.memberCount), createdLabel]
                     .filter((part): part is string => Boolean(part))
                     .map((part) => part.replace(/ /g, '\u00A0'))
                     .join(' • ')}
                 </Text>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.group.changeCover}
-                onPress={() => setCoverOpen(true)}
-                style={{
-                  paddingHorizontal: theme.spacing.lg,
-                  height: 40,
-                  justifyContent: 'center',
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
-                  {t.group.changePill}
-                </Text>
-              </Pressable>
             </Row>
-          </StandardCard>
-
-          {/* What the group is and how it pays: kind, tag, country, currency,
-              trip rates and dates, on the page itself rather than behind Edit. */}
-          <StandardCard style={{ gap: theme.spacing.lg }}>
+            {divider}
             {/* The kind of group. Only changes the label, cover default and trip
-              affordances — nothing already recorded moves. */}
-            <View style={{ gap: theme.spacing.md }}>
-              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 17, fontWeight: '700' }}>{t.extras.groupTypeTitle}</Text>
-                {infoDot('type', t.extras.groupTypeTitle)}
-              </Row>
-              {infoText('type', t.extras.groupTypeInfo)}
-              <ChipRow<GroupType>
-                onCard
-                variant="brand"
-                // The column is NOT NULL DEFAULT 'other' on the server, so a missing
-                // value here only means a mirror row that predates this field syncing
-                // — fall back to that same default so the assigned chip always lights.
-                value={group.data.type ?? GroupType.Other}
-                onChange={(type) =>
-                  updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
-                }
-                options={[
-                  { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
-                  { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
-                  { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
-                  { value: GroupType.Event, label: t.extras.typeEvent, icon: iconFor('sparkles') },
-                  {
-                    value: GroupType.Friends,
-                    label: t.extras.typeFriends,
-                    icon: iconFor('people-circle'),
-                  },
-                  { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
-                ]}
-              />
-            </View>
-
-            {/* Trip and event dates live with the type that brings them: they
-              appear for a trip or an event and go when the type changes. */}
-            {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
-            (group.data.type ?? GroupType.Other) === GroupType.Event ? (
+              affordances: nothing already recorded moves. */}
+            <PlainListRow
+              leading={
+                <RowTile tint={theme.color.brandSoft}>
+                  <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
+                </RowTile>
+              }
+              title={t.extras.groupTypeTitle}
+              trailing={
+                <Row
+                  style={{
+                    alignItems: 'center',
+                    gap: theme.spacing.sm,
+                    paddingHorizontal: theme.spacing.md,
+                    height: 40,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.brandSoft,
+                  }}
+                >
+                  <Ionicons
+                    name={currentType.icon}
+                    size={iconSize.base}
+                    color={theme.color.brand}
+                  />
+                  <Text style={{ color: theme.color.text, fontWeight: '700' }}>
+                    {currentType.label}
+                  </Text>
+                  <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+                </Row>
+              }
+              onPress={() => setTypeOpen(true)}
+            />
+            {/* Trip and event dates appear for a trip or an event and go when the
+              type changes. */}
+            {hasDates ? (
               <>
-                <View
-                  style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
-                />
-                <TripDates
-                  bare
-                  group={group.data}
-                  locale={locale}
-                  forEvent={group.data.type === GroupType.Event}
-                  onChange={(patch) =>
-                    updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
+                {divider}
+                <PlainListRow
+                  leading={
+                    <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
+                      <Ionicons name="calendar-outline" size={iconSize.lg} color="#2E9E4F" />
+                    </RowTile>
                   }
+                  title={t.extras.datesRow}
+                  subtitle={datesSummary}
+                  trailing={chevron}
+                  onPress={() => setDatesOpen(true)}
                 />
               </>
             ) : null}
-            {/* Trip rates sit with the type too: the rates a trip abroad pins. */}
-            <View
-              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            {divider}
+            <PlainListRow
+              leading={
+                <RowTile tint={theme.scheme === 'dark' ? '#F5A62338' : '#FDEFD6'}>
+                  <Ionicons name="cash-outline" size={iconSize.lg} color="#E8890C" />
+                </RowTile>
+              }
+              title={t.fx.tripCurrency}
+              subtitle={
+                tripRateStore.rows.length > 0
+                  ? tripRateStore.rows.map((row) => row.from).join(', ')
+                  : t.fx.noCurrency
+              }
+              trailing={chevron}
+              onPress={() => setRatesOpen(true)}
             />
-            <TripRatesCard bare store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
-          </StandardCard>
-
-          {/* Country decides which payment rails the settle screen offers and what
-            a new expense starts in. Settles in is what the group counts in; only
-            an admin can choose it, and it stops being a control once anything
-            depends on it: either entries counted in it, or pinned rates whose
-            stored ratios all convert into it. Trip rates themselves can be
-            re-pinned at any time, because a bill keeps the rate it was saved
-            with (ADR-003). The last row is whether foreign bills count in that
-            currency at their own saved rates (ADR-003 amendment): on for new
-            groups; an existing group opts in once every foreign bill has a rate. */}
-          <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+            {divider}
             <CountryRow
               tile
               countryCode={group.data.country_code}
@@ -1082,9 +1108,7 @@ export default function GroupSettingsScreen() {
                 )
               }
             />
-            <View
-              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
-            />
+            {divider}
             <SettlesInRow
               tile
               currency={currency}
@@ -1096,9 +1120,7 @@ export default function GroupSettingsScreen() {
                 )
               }
             />
-            <View
-              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
-            />
+            {divider}
             <SettleInCurrencyRow
               tile
               groupId={groupId}
@@ -1107,9 +1129,7 @@ export default function GroupSettingsScreen() {
               isAdmin={isAdmin}
               settlementCount={liveSettlementCount}
             />
-            <View
-              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
-            />
+            {divider}
             {/* The member's own short tag, shown instead of the automatic type tag
               on Home and the group header: one row here, edited in a sheet. */}
             <PlainListRow
@@ -1120,13 +1140,7 @@ export default function GroupSettingsScreen() {
               }
               title={t.extras.tagLabel}
               subtitle={tag.trim() || t.extras.tagPlaceholder}
-              trailing={
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              }
+              trailing={chevron}
               onPress={() => setTagOpen(true)}
             />
           </StandardCard>
@@ -1348,6 +1362,87 @@ export default function GroupSettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Sheet
+        visible={typeOpen}
+        onClose={() => setTypeOpen(false)}
+        title={t.extras.groupTypeTitle}
+        closeLabel={t.common.close}
+      >
+        {typeOptions.map((option, index) => (
+          <ListRow
+            key={option.value}
+            leading={
+              <RowTile tint={theme.color.brandSoft}>
+                <Ionicons name={option.icon} size={iconSize.lg} color={theme.color.brand} />
+              </RowTile>
+            }
+            title={option.label}
+            trailing={
+              option.value === groupType ? (
+                <Ionicons name="checkmark" size={iconSize.lg} color={theme.color.brand} />
+              ) : null
+            }
+            divider={index < typeOptions.length - 1}
+            onPress={() => {
+              setTypeOpen(false);
+              if (option.value !== groupType) {
+                updateGroup.mutate(
+                  { type: option.value },
+                  { onSuccess: () => setStatus(t.account.saved) },
+                );
+              }
+            }}
+          />
+        ))}
+      </Sheet>
+
+      <Sheet
+        visible={datesOpen}
+        onClose={() => setDatesOpen(false)}
+        title={
+          groupType === GroupType.Event ? t.eventOrganizer.eventDatesTitle : t.misc.tripDatesTitle
+        }
+        closeLabel={t.common.close}
+        style={{ height: Math.round(windowHeight * 0.75) }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
+          showsVerticalScrollIndicator={false}
+        >
+          <TripDates
+            embedded
+            group={group.data}
+            locale={locale}
+            forEvent={groupType === GroupType.Event}
+            onChange={(patch) =>
+              updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
+            }
+          />
+        </ScrollView>
+      </Sheet>
+
+      <Sheet
+        visible={ratesOpen}
+        onClose={() => setRatesOpen(false)}
+        title={t.fx.tripCurrency}
+        closeLabel={t.common.close}
+        style={{ height: Math.round(windowHeight * 0.6) }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
+          showsVerticalScrollIndicator={false}
+        >
+          <TripRatesCard
+            embedded
+            store={tripRateStore}
+            groupCurrency={currency}
+            canEdit={isAdmin}
+          />
+        </ScrollView>
+      </Sheet>
 
       {/* The "Add someone" sheet, opened from "Add members". */}
       <Sheet

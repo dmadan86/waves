@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-/** The 48dp rounded-square tinted tile that leads a row in a settings card. */
+/** The 44dp circular tinted tile that leads a row in a settings card. */
 export function RowTile({ tint, children }: { tint: string; children: ReactNode }) {
   return (
     <View
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tint,

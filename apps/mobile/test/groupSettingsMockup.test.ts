@@ -42,40 +42,79 @@ describe('settings page layout', () => {
     expect(header).toContain('setExitOpen(true)');
   });
 
-  it('draws the group card: cover with a camera badge, name with a pencil, caption and a Change pill', () => {
-    const card = between(SCREEN, 'cover, name, when it began', 'Group type');
+  it('draws the header inside the one card: cover with a camera badge, name with a pencil, members then created', () => {
+    const card = between(SCREEN, '<StandardCard style={{ paddingVertical', 'PlainListRow');
     expect(card).toContain('<GroupPhoto');
+    expect(card).toContain('size={72}');
     expect(card).toContain('name="camera"');
     expect(card).toContain('setCoverOpen(true)');
     expect(card).toContain('setEditOpen(true)');
-    expect(card).toContain('createdLabel');
-    expect(card).toContain('t.memberCount');
+    expect(card.indexOf('t.memberCount')).toBeLessThan(card.indexOf('createdLabel'));
     expect(card).toContain("' • '");
-    expect(card).toContain('t.group.changePill');
+    expect(SCREEN).not.toContain('t.group.changePill');
   });
 
-  it('puts group type with an info dot, its trip/event dates and trip rates in one card', () => {
-    const card = between(SCREEN, 't.extras.groupTypeTitle}</Text>', '</StandardCard>');
-    expect(card).toContain("infoDot('type'");
-    expect(card).toContain("infoText('type', t.extras.groupTypeInfo)");
-    expect(card).toContain('variant="brand"');
-    expect(card).toContain('StyleSheet.hairlineWidth');
-    expect(card).toContain('<TripDates\n                  bare');
-    expect(card).toContain('<TripRatesCard bare');
-    expect(card).not.toContain('<GroupTagField');
+  it('has group type as a pill row opening a sheet of the six kinds, and no inline chips', () => {
+    const card = between(
+      SCREEN,
+      't.extras.groupTypeTitle}\n              trailing',
+      'setTypeOpen(true)',
+    );
+    expect(card).toContain('currentType.label');
+    expect(card).toContain('name="chevron-down"');
+    expect(SCREEN).not.toContain('<ChipRow');
+    const sheet = between(SCREEN, 'visible={typeOpen}', '</Sheet>');
+    expect(sheet).toContain('typeOptions.map');
+    expect(sheet).toContain('name="checkmark"');
+    expect(sheet).toContain('updateGroup.mutate');
+    expect(SCREEN).toContain('GroupType.Friends');
   });
 
-  it('keeps the tag as one row in the details card that opens a sheet', () => {
+  it('shows Dates for trips and events only, as a row that opens the embedded calendar in a sheet', () => {
+    const row = between(SCREEN, '{hasDates ? (', 'setDatesOpen(true)');
+    expect(row).toContain('t.extras.datesRow');
+    expect(row).toContain('datesSummary');
+    expect(SCREEN).toContain('groupType === GroupType.Trip || groupType === GroupType.Event');
+    expect(between(SCREEN, 'visible={datesOpen}', '</Sheet>')).toContain(
+      '<TripDates\n            embedded',
+    );
+  });
+
+  it('shows Trip currency as a row that opens the embedded rates editor in a sheet', () => {
+    const row = between(SCREEN, 't.fx.tripCurrency}\n              subtitle', 'setRatesOpen(true)');
+    expect(row).toContain('t.fx.noCurrency');
+    expect(row).toContain('tripRateStore.rows');
+    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toMatch(/<TripRatesCard\s+embedded/);
+  });
+
+  it('keeps the tag as one row in the card that opens a sheet', () => {
     const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
     expect(card).toContain('onPress={() => setTagOpen(true)}');
     expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<GroupTagField');
   });
 
-  it('puts country, settles in and settle-in-currency in one card of tiled rows with no Currency header', () => {
+  it('keeps country, settles in and settle-in-currency as tiled rows in the same card', () => {
     const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
     expect(card).toContain('<SettlesInRow\n              tile');
     expect(card).toContain('<SettleInCurrencyRow\n              tile');
     expect(SCREEN).not.toContain('t.fx.section');
+    expect(SCREEN.match(/<StandardCard style=\{\{ paddingVertical/g)).toHaveLength(1);
+  });
+
+  it('makes every row tile a 44dp circle', () => {
+    const tile = readFileSync(join(process.cwd(), 'src/components/standard/RowTile.tsx'), 'utf8');
+    expect(tile).toContain('width: 44');
+    expect(tile).toContain('borderRadius: 22');
+  });
+
+  it('has the new strings in every language', () => {
+    for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
+      expect(strings.fx.tripCurrency).toBeTruthy();
+      expect(strings.fx.noCurrency).toBeTruthy();
+      expect(strings.fx.settleInShort).toContain('{currency}');
+      expect(strings.fx.convertLine).toContain('{currency}');
+      expect(strings.extras.datesRow).toBeTruthy();
+    }
   });
 
   it('puts fewer repayments and mute at the top of Group actions, each with an info dot and a toggle', () => {
@@ -142,7 +181,7 @@ describe('what moved into the Edit group sheet', () => {
     expect(sheet).toContain('commitName');
     expect(sheet).toContain('commitDescription');
     for (const piece of [
-      '<ChipRow<GroupType>',
+      'setTypeOpen(true)',
       'setTagOpen(true)',
       '<CountryRow',
       '<TripRatesCard',
@@ -154,11 +193,11 @@ describe('what moved into the Edit group sheet', () => {
 });
 
 describe('group details on the page itself', () => {
-  const details = between(SCREEN, 'What the group is and how it pays', 't.group.groupActions');
+  const details = between(SCREEN, 'One card: the group', 'The "Add someone" sheet');
 
   it('shows kind, tag, country, currency, trip rates and dates on the settings page', () => {
     for (const piece of [
-      '<ChipRow<GroupType>',
+      'setTypeOpen(true)',
       'setTagOpen(true)',
       '<CountryRow',
       '<SettlesInRow',

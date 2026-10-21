@@ -97,7 +97,7 @@ export function SettlesInRow({
   currency: string;
   locked: boolean;
   onChange: (currency: string) => void;
-  /** A bare row for a shared card: a 48dp lavender tile with the currency mark, "INR · Locked for this group" under the title, and a chevron when it can change. */
+  /** A bare row for a shared card: a 44dp circular lavender tile with the currency mark, "INR · Locked for this group" under the title, and a chevron when it can change. */
   tile?: boolean;
 }) {
   const theme = useTheme();
