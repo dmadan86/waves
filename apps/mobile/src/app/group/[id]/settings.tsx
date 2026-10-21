@@ -1398,7 +1398,7 @@ export default function GroupSettingsScreen() {
         visible={ratesOpen}
         onClose={() => setRatesOpen(false)}
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.75) }}
+        style={{ maxHeight: '90%' }}
       >
         <OtherCurrenciesSheetBody
           store={tripRateStore}

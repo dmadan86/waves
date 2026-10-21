@@ -11,6 +11,7 @@
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
@@ -30,7 +31,7 @@ function Field({
   maxLength,
   multiline,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   value: string;
   onChangeText: (next: string) => void;
   onCommit: () => void;
@@ -49,8 +50,8 @@ function Field({
         gap: theme.spacing.md,
         paddingHorizontal: theme.spacing.sm,
         minHeight: 56,
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.color.surfaceMuted,
+        borderRadius: 18,
+        backgroundColor: theme.color.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.color.border,
       }}
@@ -65,7 +66,7 @@ function Field({
           justifyContent: 'center',
         }}
       >
-        <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+        <MaterialCommunityIcons name={icon} size={iconSize.md} color={theme.color.brand} />
       </View>
       <TextInput
         value={value}
@@ -138,7 +139,7 @@ export function EditGroupSheetBody({
   const { t } = useStrings();
 
   return (
-    <View style={{ gap: theme.spacing.lg }}>
+    <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <Pressable
           accessibilityRole="button"
@@ -215,7 +216,7 @@ export function EditGroupSheetBody({
           {t.group.descriptionOptional}
         </Text>
         <Field
-          icon="document-text-outline"
+          icon="text-box-outline"
           value={description}
           onChangeText={onDescriptionChange}
           onCommit={onDescriptionCommit}

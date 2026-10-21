@@ -23,7 +23,7 @@ describe('EditGroupSheetBody', () => {
 
   it('has name and description field cards with icon tiles and clear buttons', () => {
     expect(BODY).toContain('pencil-outline');
-    expect(BODY).toContain('document-text-outline');
+    expect(BODY).toContain('text-box-outline');
     expect(BODY).toContain("onChangeText('')");
     expect(BODY).toContain('value.length > 0');
     expect(BODY).toContain('StyleSheet.hairlineWidth');

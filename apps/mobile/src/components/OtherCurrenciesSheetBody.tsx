@@ -49,7 +49,7 @@ export function OtherCurrenciesSheetBody({
   const { t } = useStrings();
 
   return (
-    <View style={{ flex: 1, gap: theme.spacing.lg }}>
+    <View style={{ flexShrink: 1, gap: theme.spacing.lg }}>
       {/* Header: tile, title and subtitle, close. */}
       <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
         <View
@@ -63,8 +63,8 @@ export function OtherCurrenciesSheetBody({
           }}
         >
           <MaterialCommunityIcons
-            name="database-outline"
-            size={iconSize.lg}
+            name="cash-multiple"
+            size={28}
             color={theme.color.brand}
           />
         </View>
@@ -97,7 +97,7 @@ export function OtherCurrenciesSheetBody({
       </Row>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flexShrink: 1 }}
         contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
