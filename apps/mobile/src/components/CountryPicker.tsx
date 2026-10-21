@@ -69,7 +69,7 @@ export function CountryRow({
       <ListRow
         leading={
           <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
-            <Text style={{ fontSize: 26 }}>{flag}</Text>
+            <Text style={{ fontSize: 22 }}>{flag}</Text>
           </RowTile>
         }
         title={t.pickers.country}
