@@ -38,15 +38,13 @@
  * purpose — the same reasoning `mergePeople.ts`'s `isMergeable` states for why
  * a real person cannot be merged: "already one identity across every group by
  * their profile id, so folding them under a made-up name would be a lie, not
- * a [copy]." There is no RPC that attaches somebody else's account to a group
- * without their consent, and `waves_add_ghost_member` — the one mutation this
- * flow is allowed to use — can only ever create a ghost. Offering an
- * account-holder here would mean one of two wrong things happening silently:
- * a duplicate ghost wearing their name, or an add that looks like it worked
- * and did not touch their account at all. Neither is acceptable, so real
- * members are dropped before the offer is built; the existing join-link row
- * is still how somebody who already has an account gets in here — by their
- * own consent, joining as themselves.
+ * a [copy]." Without their account named, `waves_add_ghost_member` — the one
+ * mutation this flow uses — can only ever create a ghost, so offering an
+ * account-holder here by name would mean a duplicate ghost wearing their name.
+ * Real members are dropped before the offer is built; the existing join-link
+ * row is still how somebody who already has an account gets in here. (The
+ * clone flow is the one place that names the account — `lib/cloneMembers.ts`
+ * passes `profileId`, and the server adds a co-member as themselves.)
  *
  * ## Identity of a copied person, and the duplicate this must not create
  *
