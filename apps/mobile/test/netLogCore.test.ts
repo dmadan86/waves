@@ -20,7 +20,6 @@ import {
   parseSyncStats,
   pruneSyncStats,
   syncTotal,
-  displayAddress,
   isLocalHost,
   NET_LOG_MAX_AGE_MS,
   NET_LOG_MAX_ENTRIES,
@@ -103,10 +102,6 @@ describe('redactUrl', () => {
 
   it('cuts an absurdly long path', () => {
     expect(redactUrl(`https://x.test/${'a'.repeat(5000)}`).length).toBeLessThan(260);
-  });
-
-  it('shows host and path without the scheme', () => {
-    expect(displayAddress('https://x.test/a')).toBe('x.test/a');
   });
 });
 
@@ -345,6 +340,7 @@ describe('call names', () => {
     ['abc.supabase.co', '/functions/v1/r2-sign', 'files', 'Upload a file'],
     ['abc.supabase.co', '/functions/v1/phone-verify', 'sign-in', 'Sign in'],
     ['abc.supabase.co', '/auth/v1/token', 'sign-in', 'Sign in'],
+    ['abc.supabase.co', '/auth/v1/user/oauth/grants', 'sign-in', 'Connected apps'],
     ['abc.supabase.co', '/storage/v1/object/x', 'files', 'Upload a file'],
     ['abc.supabase.co', '/functions/v1/brand-new', 'server-task', 'Waves server'],
     ['abc.supabase.co', '/rest/v1/rpc/waves_track_event', 'analytics', 'Usage event'],

@@ -35,8 +35,10 @@ import { clearNetLog, useNetLog, useSyncStats } from '@/lib/netLog';
 import {
   callLabel,
   NET_FILTER_PURPOSES,
+  syncTotal,
   urlParts,
   type NetLogEntry,
+  type SyncStats,
   type NetPurpose,
 } from '@/lib/netLogCore';
 
@@ -66,6 +68,8 @@ function dayKey(time: number): string {
   const d = new Date(time);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+
+const syncTotalNow = (stats: SyncStats): number => syncTotal(stats, Date.now());
 
 /** Newest first, with a heading wherever the day changes. */
 function withDays(entries: readonly NetLogEntry[], t: UiStrings, locale: string): Item[] {
@@ -186,7 +190,7 @@ export default function NetworkActivityScreen() {
           ? t.netlog.statusFailed
           : t.netlog.statusOk;
 
-  const syncCount = Object.values(sync.days).reduce((a, b) => a + b, 0);
+  const syncCount = syncTotalNow(sync);
 
   const header = (
     <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.sm }}>

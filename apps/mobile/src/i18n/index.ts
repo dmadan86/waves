@@ -5221,6 +5221,7 @@ export interface UiStrings {
       | 'accountDelete'
       | 'exportData'
       | 'invite'
+      | 'connectedApps'
       | 'serverRequest',
       string
     >;
@@ -10242,6 +10243,7 @@ const en: UiStrings = {
       accountDelete: 'Delete account',
       exportData: 'Export my data',
       invite: 'Invite',
+      connectedApps: 'Connected apps',
       serverRequest: 'Waves server',
     },
     purposes: {
@@ -15444,6 +15446,7 @@ const ta: UiStrings = {
       accountDelete: 'கணக்கை நீக்குதல்',
       exportData: 'என் தரவை ஏற்றுமதி',
       invite: 'அழைப்பு',
+      connectedApps: 'இணைக்கப்பட்ட ஆப்கள்',
       serverRequest: 'Waves சர்வர்',
     },
     purposes: {
@@ -20499,6 +20502,7 @@ const hi: UiStrings = {
       accountDelete: 'खाता हटाना',
       exportData: 'मेरा डेटा निर्यात',
       invite: 'आमंत्रण',
+      connectedApps: 'कनेक्टेड ऐप्स',
       serverRequest: 'Waves सर्वर',
     },
     purposes: {
@@ -26143,6 +26147,7 @@ const ar: UiStrings = {
       accountDelete: 'حذف الحساب',
       exportData: 'تصدير بياناتي',
       invite: 'دعوة',
+      connectedApps: 'التطبيقات المتصلة',
       serverRequest: 'خادم Waves',
     },
     purposes: {

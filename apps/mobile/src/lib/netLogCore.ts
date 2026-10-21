@@ -121,11 +121,6 @@ export function redactUrl(url: string): string {
   return parts ? `${parts.scheme}://${parts.host}${parts.path}` : UNREADABLE_URL;
 }
 
-/** Host and path of a stored (already redacted) address, for display. */
-export function displayAddress(redacted: string): string {
-  return redacted.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
-}
-
 /** A development server, which the log leaves out of a dev build. */
 export function isLocalHost(host: string): boolean {
   const bare = host.replace(/:\d+$/, '').toLowerCase();
@@ -269,6 +264,7 @@ export type CallKey =
   | 'accountDelete'
   | 'exportData'
   | 'invite'
+  | 'connectedApps'
   | 'serverRequest';
 
 export const CALL_KEYS: readonly CallKey[] = [
@@ -289,6 +285,7 @@ export const CALL_KEYS: readonly CallKey[] = [
   'accountDelete',
   'exportData',
   'invite',
+  'connectedApps',
   'serverRequest',
 ];
 
@@ -336,6 +333,7 @@ export function callName(entry: Pick<NetLogEntry, 'u' | 'p'>): CallName {
   const host = parts ? parts.host.replace(/:\d+$/, '') : '';
   const fn = parts ? /^\/functions\/v1\/([^/?#]+)/.exec(parts.path) : null;
   if (fn) return { key: functionCall(fn[1]) };
+  if (parts && /^\/auth\/v1\/user\/oauth\//.test(parts.path)) return { key: 'connectedApps' };
   switch (entry.p) {
     case 'exchange-rates':
       return { key: 'exchangeRate' };
