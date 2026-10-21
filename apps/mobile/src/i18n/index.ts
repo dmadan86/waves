@@ -4721,9 +4721,17 @@ export interface UiStrings {
     chooseDifferentFile: string;
     whichGroup: string;
     groupNumber: string;
+    whichOneIsYou: string;
+    tapYourName: string;
+    weThinkYou: string;
+    thisIsMe: string;
+    thisIsMeFor: string;
+    personIsYou: string;
+    notInFile: string;
+    pickYouFirst: string;
+    tapTagToLink: string;
     whoIsWho: string;
     whoIsWhoNote: string;
-    tapANameNote: string;
     /**
      * Screen-reader label for a who-is-who row. The visible row is a name, a
      * balance and a badge, none of which says the row is tappable.
@@ -4769,7 +4777,6 @@ export interface UiStrings {
     importCount: PluralForms;
     chooseWhoIs: string;
     chooseWhoArePlural: PluralForms;
-    tapYourNameFirst: string;
     imported: string;
     openTheGroup: string;
     importedCount: PluralForms;
@@ -9769,10 +9776,18 @@ const en: UiStrings = {
     chooseDifferentFile: 'Choose a different file',
     whichGroup: 'Which group',
     groupNumber: 'Group {n}',
+    whichOneIsYou: 'Which one is you?',
+    tapYourName: 'Tap your name in the list.',
+    weThinkYou: 'We think this is you. Tap to change.',
+    thisIsMe: 'This is me',
+    thisIsMeFor: 'Mark {name} as me',
+    personIsYou: '{name} is you.',
+    notInFile: "I'm not in this file",
+    pickYouFirst: 'Pick which one is you first, or choose "I\'m not in this file".',
+    tapTagToLink: 'Tap a tag to link someone already in the group.',
     whoIsWho: 'Who is who',
     whoIsWhoNote:
       'The file names people; this group has members. Nothing is imported until every name has somebody against it.',
-    tapANameNote: 'Tap a name to say who they are. Nothing is matched for you.',
     personIsMapped: '{name} is {who}. Tap to change.',
     addAsNew: 'Add as new',
     newPerson: 'New person',
@@ -9818,7 +9833,6 @@ const en: UiStrings = {
     importCount: { one: 'Import {n} expense', other: 'Import {n} expenses' },
     chooseWhoIs: 'Choose who {name} is',
     chooseWhoArePlural: { one: 'Choose who {n} person is', other: 'Choose who {n} people are' },
-    tapYourNameFirst: 'Tap your own name first.',
     imported: 'Imported',
     openTheGroup: 'Open the group',
     importedCount: {
@@ -14913,11 +14927,19 @@ const ta: UiStrings = {
     chooseDifferentFile: 'வேறு கோப்பைத் தேர்வு செய்',
     whichGroup: 'எந்தக் குழு',
     groupNumber: 'குழு {n}',
+    whichOneIsYou: 'இதில் நீங்கள் யார்?',
+    tapYourName: 'பட்டியலில் உங்கள் பெயரைத் தட்டுங்கள்.',
+    weThinkYou: 'இது நீங்கள்தான் என நினைக்கிறோம். மாற்றத் தட்டுங்கள்.',
+    thisIsMe: 'இது நான்',
+    thisIsMeFor: '{name} என்பதை நான் என்று குறி',
+    personIsYou: '{name} நீங்கள்.',
+    notInFile: 'நான் இந்தக் கோப்பில் இல்லை',
+    pickYouFirst:
+      'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
+    tapTagToLink: 'குழுவில் ஏற்கனவே உள்ளவரை இணைக்க ஒரு குறியைத் தட்டுங்கள்.',
     whoIsWho: 'யார் யார்',
     whoIsWhoNote:
       'கோப்பில் பெயர்கள் உள்ளன; இந்தக் குழுவில் உறுப்பினர்கள் உள்ளனர். ஒவ்வொரு பெயருக்கும் ஒருவரைக் குறிக்கும் வரை எதுவும் இறக்குமதி ஆகாது.',
-    tapANameNote:
-      'ஒரு பெயரைத் தட்டி அவர்கள் யார் என்று சொல்லுங்கள். உங்களுக்காக எதுவும் பொருத்தப்படுவதில்லை.',
     personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
     newPerson: 'புதிய நபர்',
@@ -14966,7 +14988,6 @@ const ta: UiStrings = {
       one: '{n} நபர் யார் என்று தேர்ந்தெடுக்கவும்',
       other: '{n} நபர்கள் யார் என்று தேர்ந்தெடுக்கவும்',
     },
-    tapYourNameFirst: 'முதலில் உங்கள் பெயரைத் தட்டுங்கள்.',
     imported: 'இறக்குமதி ஆனது',
     openTheGroup: 'குழுவைத் திற',
     importedCount: {
@@ -19971,10 +19992,18 @@ const hi: UiStrings = {
     chooseDifferentFile: 'दूसरी फ़ाइल चुनें',
     whichGroup: 'कौन-सा समूह',
     groupNumber: 'समूह {n}',
+    whichOneIsYou: 'इनमें आप कौन हैं?',
+    tapYourName: 'सूची में अपने नाम पर टैप करें।',
+    weThinkYou: 'हमें लगता है यह आप हैं। बदलने के लिए टैप करें।',
+    thisIsMe: 'यह मैं हूँ',
+    thisIsMeFor: '{name} को मैं चुनें',
+    personIsYou: '{name} आप हैं।',
+    notInFile: 'मैं इस फ़ाइल में नहीं हूँ',
+    pickYouFirst: 'पहले चुनें कि आप कौन हैं, या "मैं इस फ़ाइल में नहीं हूँ" चुनें।',
+    tapTagToLink: 'समूह के किसी मौजूदा सदस्य से जोड़ने के लिए टैग पर टैप करें।',
     whoIsWho: 'कौन कौन है',
     whoIsWhoNote:
       'फ़ाइल में नाम हैं; इस समूह में सदस्य हैं। जब तक हर नाम के सामने कोई नहीं होगा, कुछ भी आयात नहीं होगा।',
-    tapANameNote: 'नाम पर टैप करके बताएँ कि वे कौन हैं। आपकी तरफ़ से कोई मिलान नहीं होता।',
     personIsMapped: '{name} यहाँ {who} हैं। बदलने के लिए टैप करें।',
     addAsNew: 'नए के रूप में जोड़ें',
     newPerson: 'नया व्यक्ति',
@@ -20023,7 +20052,6 @@ const hi: UiStrings = {
       one: 'चुनें कि {n} व्यक्ति कौन है',
       other: 'चुनें कि {n} लोग कौन हैं',
     },
-    tapYourNameFirst: 'पहले अपने नाम पर टैप करें।',
     imported: 'आयात हो गया',
     openTheGroup: 'समूह खोलें',
     importedCount: {
@@ -25457,10 +25485,18 @@ const ar: UiStrings = {
     chooseDifferentFile: 'اختر ملفًا آخر',
     whichGroup: 'أي مجموعة',
     groupNumber: 'مجموعة {n}',
+    whichOneIsYou: 'أيٌّ منهم أنت؟',
+    tapYourName: 'اضغط على اسمك في القائمة.',
+    weThinkYou: 'نظن أن هذا أنت. اضغط للتغيير.',
+    thisIsMe: 'هذا أنا',
+    thisIsMeFor: 'اعتبر {name} أنا',
+    personIsYou: '{name} هو أنت.',
+    notInFile: 'لستُ في هذا الملف',
+    pickYouFirst: 'اختر أولًا من تكون، أو اختر «لستُ في هذا الملف».',
+    tapTagToLink: 'اضغط على وسم لربط شخص موجود في المجموعة.',
     whoIsWho: 'من هو من',
     whoIsWhoNote:
       'الملف يذكر أسماء؛ وهذه المجموعة لها أعضاء. لا يُستورد شيء حتى يقابل كل اسمٍ شخصٌ ما.',
-    tapANameNote: 'اضغط على اسم لتقول من يكون. لا يُطابَق شيء نيابةً عنك.',
     personIsMapped: '{name} هو {who} هنا. اضغط للتغيير.',
     addAsNew: 'أضفه كشخص جديد',
     newPerson: 'شخص جديد',
@@ -25520,7 +25556,6 @@ const ar: UiStrings = {
       many: 'اختر من يكون {n} شخصًا',
       other: 'اختر من يكون {n} شخص',
     },
-    tapYourNameFirst: 'اضغط أولًا على الاسم الذي يخصّك.',
     imported: 'تم الاستيراد',
     openTheGroup: 'افتح المجموعة',
     importedCount: {
