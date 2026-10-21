@@ -47,7 +47,6 @@ import { friendlyError } from '@/lib/errors';
 import { rateAttribution } from '@/lib/fxLine';
 import { StaleFxRateError } from '@/lib/fxStale';
 import { RateAttribution } from '@/components/RateAttribution';
-import { RowTile } from '@/components/standard/RowTile';
 import {
   currencyMark,
   currencyName,

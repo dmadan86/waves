@@ -10,7 +10,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -118,7 +117,6 @@ const ARCHIVE_ART = require('../../../../assets/images/archive-group-art.webp') 
 
 export default function GroupSettingsScreen() {
   const theme = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
   // This screen renders under the persistent bottom nav, so it must pad for the
   // bar, not just the system inset — with the plain inset the last of the exit
   // rows sat behind the bar and could not be reached.

@@ -5,9 +5,9 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
-
 import { STRINGS_BY_LANGUAGE } from '../src/i18n';
+
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
 const BODY = readFileSync(join(process.cwd(), 'src/components/EditGroupSheetBody.tsx'), 'utf8');
 const SCREEN = readFileSync(join(process.cwd(), 'src/app/group/[id]/settings.tsx'), 'utf8');

@@ -5,9 +5,9 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
-
 import { STRINGS_BY_LANGUAGE } from '../src/i18n';
+
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
 const read = (p: string): string => readFileSync(join(process.cwd(), p), 'utf8');
 const BODY = read('src/components/OtherCurrenciesSheetBody.tsx');
