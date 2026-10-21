@@ -566,7 +566,8 @@ export default function MemberScreen() {
               },
         ]
       : []),
-    ...(iAmAdmin && !isMe
+    // A guest (not on Waves) cannot hold a role, so the option is not drawn.
+    ...(iAmAdmin && !isMe && !ghost
       ? [
           {
             icon: (member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline') as
@@ -575,26 +576,21 @@ export default function MemberScreen() {
             // neutral "Manage role" with the role read off as the subtitle —
             // the tap still toggles it immediately, same as before.
             label: t.people.manageRole,
-            hint: ghost
-              ? t.people.adminNeedsAccount
-              : member.role === 'admin'
-                ? t.people.currentRoleAdmin
-                : t.people.currentRoleMember,
-            onPress:
-              ghost || setRole.isPending
-                ? undefined
-                : () =>
-                    setRole.mutate(
-                      {
-                        memberId: member.id,
-                        role: member.role === 'admin' ? 'member' : 'admin',
-                      },
-                      {
-                        onSuccess: () => setStatus(t.account.saved),
-                        onError: (caught) =>
-                          setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
-                      },
-                    ),
+            hint: member.role === 'admin' ? t.people.currentRoleAdmin : t.people.currentRoleMember,
+            onPress: setRole.isPending
+              ? undefined
+              : () =>
+                  setRole.mutate(
+                    {
+                      memberId: member.id,
+                      role: member.role === 'admin' ? 'member' : 'admin',
+                    },
+                    {
+                      onSuccess: () => setStatus(t.account.saved),
+                      onError: (caught) =>
+                        setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
+                    },
+                  ),
           },
         ]
       : []),

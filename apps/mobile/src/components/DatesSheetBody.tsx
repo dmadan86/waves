@@ -267,9 +267,9 @@ export function DatesSheetBody({
   );
 
   return (
-    <View style={{ flex: 1, gap: theme.spacing.md }}>
+    <View style={{ flexShrink: 1, gap: theme.spacing.md }}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flexGrow: 0, flexShrink: 1 }}
         contentContainerStyle={{ gap: theme.spacing.md }}
         showsVerticalScrollIndicator={false}
       >

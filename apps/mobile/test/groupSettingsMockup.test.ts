@@ -88,7 +88,7 @@ describe('settings page layout', () => {
   it('keeps the tag as one row in the card that opens a sheet', () => {
     const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
     expect(card).toContain('onPress={() => setTagOpen(true)}');
-    expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<GroupTagField');
+    expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<TagSheetBody');
   });
 
   it('keeps country, settles in and settle-in-currency as tiled rows in the same card', () => {
@@ -105,12 +105,29 @@ describe('settings page layout', () => {
     expect(tile).toContain('borderRadius: 22');
   });
 
+  it('sizes the dates sheet to its content, with Save right under the card', () => {
+    const sheet = between(SCREEN, 'visible={datesOpen}', '</Sheet>');
+    expect(sheet).toContain("maxHeight: '90%'");
+    expect(sheet).not.toContain('windowHeight');
+    const body = readFileSync(join(process.cwd(), 'src/components/DatesSheetBody.tsx'), 'utf8');
+    expect(body).not.toContain('style={{ flex: 1 }}\n        contentContainerStyle');
+    expect(body).toContain('flexShrink: 1');
+  });
+
+  it('names the tile rows Group currency and Convert to {currency}', () => {
+    const rates = readFileSync(join(process.cwd(), 'src/components/TripRates.tsx'), 'utf8');
+    expect(rates).toContain('title={t.fx.groupCurrency}');
+    expect(STRINGS_BY_LANGUAGE.en.fx.settleInShort).toBe('Convert to {currency}');
+    expect(STRINGS_BY_LANGUAGE.en.fx.convertLine).toBe('Foreign bills count in {currency}');
+  });
+
   it('has the new strings in every language', () => {
     for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
       expect(strings.fx.tripCurrency).toBeTruthy();
       expect(strings.fx.noCurrency).toBeTruthy();
       expect(strings.fx.settleInShort).toContain('{currency}');
       expect(strings.fx.convertLine).toContain('{currency}');
+      expect(strings.fx.groupCurrency).toBeTruthy();
       expect(strings.extras.datesRow).toBeTruthy();
     }
   });
