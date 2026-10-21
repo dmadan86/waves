@@ -10208,7 +10208,7 @@ const en: UiStrings = {
     rowHint: 'Every connection this phone made, kept only on it',
     title: 'Network activity',
     explainer:
-      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+      'What Waves called from this phone in the last 7 days. Background sync is shown as a count. This list never leaves your phone.',
     empty: 'No connections recorded yet.',
     emptyFiltered: 'Nothing under this filter.',
     today: 'Today',
@@ -15407,7 +15407,7 @@ const ta: UiStrings = {
     rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
     title: 'நெட்வொர்க் செயல்பாடு',
     explainer:
-      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த அழைப்புகள். பின்னணி ஒத்திசைவு எண்ணிக்கையாக மட்டும் காட்டப்படும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
     empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
     emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
     today: 'இன்று',
@@ -20465,7 +20465,7 @@ const hi: UiStrings = {
     rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
     title: 'नेटवर्क गतिविधि',
     explainer:
-      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो कॉल किए, वे सब। बैकग्राउंड सिंक सिर्फ़ गिनती के रूप में दिखता है। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
     empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
     emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
     today: 'आज',
@@ -26102,7 +26102,7 @@ const ar: UiStrings = {
     rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
     title: 'نشاط الشبكة',
     explainer:
-      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+      'ما طلبه Waves من هذا الهاتف خلال آخر 7 أيام. تظهر المزامنة في الخلفية كعدد فقط. لا تغادر هذه القائمة هاتفك أبدًا.',
     empty: 'لم يُسجَّل أي اتصال بعد.',
     emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
     today: 'اليوم',
