@@ -5502,6 +5502,10 @@ export interface UiStrings {
     tripRates: string;
     tripRatesBody: string;
     addRate: string;
+    otherCurrenciesSubtitleTrip: string;
+    otherCurrenciesSubtitleGroup: string;
+    ratesInfoFetched: string;
+    ratesInfoKept: string;
     editRate: string;
     newRate: string;
     removeRate: string;
@@ -10528,6 +10532,10 @@ const en: UiStrings = {
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
     addRate: 'Add a currency',
+    otherCurrenciesSubtitleTrip: 'Add currencies used in this trip',
+    otherCurrenciesSubtitleGroup: 'Add currencies used in this group',
+    ratesInfoFetched: 'Rates are fetched when you add a currency.',
+    ratesInfoKept: 'Bills already saved keep the rate they were added with.',
     editRate: 'Edit rate',
     newRate: 'New rate',
     removeRate: 'Remove this rate',
@@ -15715,6 +15723,10 @@ const ta: UiStrings = {
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
     addRate: 'ஒரு நாணயத்தைச் சேர்க்க',
+    otherCurrenciesSubtitleTrip: 'இந்தப் பயணத்தில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    otherCurrenciesSubtitleGroup: 'இந்தக் குழுவில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    ratesInfoFetched: 'நாணயத்தைச் சேர்க்கும்போது விகிதம் பெறப்படும்.',
+    ratesInfoKept: 'ஏற்கனவே சேமித்த பில்கள் சேர்க்கப்பட்ட விகிதத்தையே வைத்திருக்கும்.',
     editRate: 'விகிதத்தைத் திருத்து',
     newRate: 'புதிய விகிதம்',
     removeRate: 'இந்த விகிதத்தை நீக்கு',
@@ -20730,6 +20742,10 @@ const hi: UiStrings = {
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
     addRate: 'मुद्रा जोड़ें',
+    otherCurrenciesSubtitleTrip: 'इस यात्रा में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    otherCurrenciesSubtitleGroup: 'इस ग्रुप में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    ratesInfoFetched: 'मुद्रा जोड़ते समय दर ले ली जाती है।',
+    ratesInfoKept: 'पहले से सहेजे बिल अपनी जोड़ी गई दर पर ही रहते हैं।',
     editRate: 'दर बदलें',
     newRate: 'नई दर',
     removeRate: 'यह दर हटाएँ',
@@ -26358,6 +26374,10 @@ const ar: UiStrings = {
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',
     addRate: 'أضف عملة',
+    otherCurrenciesSubtitleTrip: 'أضف العملات المستخدمة في هذه الرحلة',
+    otherCurrenciesSubtitleGroup: 'أضف العملات المستخدمة في هذه المجموعة',
+    ratesInfoFetched: 'يتم جلب الأسعار عند إضافة عملة.',
+    ratesInfoKept: 'الفواتير المحفوظة مسبقًا تحتفظ بالسعر الذي أُضيفت به.',
     editRate: 'تعديل السعر',
     newRate: 'سعر جديد',
     removeRate: 'احذف هذا السعر',

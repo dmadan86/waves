@@ -57,7 +57,8 @@ import { tripDateFromIso } from '@/lib/tripDateRange';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { MissingRatesCard } from '@/components/MissingRates';
 import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
-import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
+import { OtherCurrenciesSheetBody } from '@/components/OtherCurrenciesSheetBody';
+import { SettlesInRow, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
 import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
@@ -1415,22 +1416,16 @@ export default function GroupSettingsScreen() {
       <Sheet
         visible={ratesOpen}
         onClose={() => setRatesOpen(false)}
-        title={t.fx.otherCurrencies}
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.6) }}
+        style={{ height: Math.round(windowHeight * 0.75) }}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
-          showsVerticalScrollIndicator={false}
-        >
-          <TripRatesCard
-            embedded
-            store={tripRateStore}
-            groupCurrency={currency}
-            canEdit={isAdmin}
-          />
-        </ScrollView>
+        <OtherCurrenciesSheetBody
+          store={tripRateStore}
+          groupCurrency={currency}
+          canEdit={isAdmin}
+          forTrip={groupType === GroupType.Trip}
+          onClose={() => setRatesOpen(false)}
+        />
       </Sheet>
 
       {/* Leaving with a balance: settle first, or leave anyway (the server allows

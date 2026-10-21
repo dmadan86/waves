@@ -89,7 +89,7 @@ describe('settings page layout', () => {
     expect(row).toContain('tripRateStore.rows');
     // Not inside the trip/event-only block.
     expect(between(SCREEN, '{hasDates ? (', ') : null}')).not.toContain('t.fx.otherCurrencies');
-    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toMatch(/<TripRatesCard\s+embedded/);
+    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toContain('<OtherCurrenciesSheetBody');
   });
 
   it('keeps the tag as one row in the card that opens a sheet', () => {
@@ -227,7 +227,7 @@ describe('group details on the page itself', () => {
       't.fx.otherCurrencies',
       '<SettlesInRow',
       '<SettleInCurrencyRow',
-      '<TripRatesCard',
+      '<OtherCurrenciesSheetBody',
       '<MissingRatesCard',
       '<DatesSheetBody',
     ]) {
