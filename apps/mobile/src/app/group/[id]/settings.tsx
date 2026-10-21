@@ -1086,44 +1086,50 @@ export default function GroupSettingsScreen() {
               trip rates and dates, on the page itself rather than behind Edit. */}
           <View style={{ gap: theme.spacing.xl }}>
             <SectionHeader title={t.group.groupDetails} />
-            {/* The kind of group. Only changes the label, cover default and trip
-            affordances — nothing already recorded moves. */}
-            <View style={{ gap: theme.spacing.sm }}>
-              <Text variant="caption" tone="muted">
-                {t.extras.whatKindOfGroup}
-              </Text>
-              <ChipRow<GroupType>
-                // The column is NOT NULL DEFAULT 'other' on the server, so a missing
-                // value here only means a mirror row that predates this field syncing
-                // — fall back to that same default so the assigned chip always lights.
-                value={group.data.type ?? GroupType.Other}
-                onChange={(type) =>
-                  updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
-                }
-                options={[
-                  { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
-                  { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
-                  { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
-                  { value: GroupType.Event, label: t.extras.typeEvent, icon: iconFor('sparkles') },
-                  {
-                    value: GroupType.Friends,
-                    label: t.extras.typeFriends,
-                    icon: iconFor('people-circle'),
-                  },
-                  { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
-                ]}
-              />
-            </View>
+            <StandardCard style={{ gap: theme.spacing.lg }}>
+              {/* The kind of group. Only changes the label, cover default and trip
+              affordances — nothing already recorded moves. */}
+              <View style={{ gap: theme.spacing.sm }}>
+                <Text variant="caption" tone="muted">
+                  {t.extras.whatKindOfGroup}
+                </Text>
+                <ChipRow<GroupType>
+                  // The column is NOT NULL DEFAULT 'other' on the server, so a missing
+                  // value here only means a mirror row that predates this field syncing
+                  // — fall back to that same default so the assigned chip always lights.
+                  value={group.data.type ?? GroupType.Other}
+                  onChange={(type) =>
+                    updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
+                  }
+                  options={[
+                    { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
+                    { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
+                    { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
+                    {
+                      value: GroupType.Event,
+                      label: t.extras.typeEvent,
+                      icon: iconFor('sparkles'),
+                    },
+                    {
+                      value: GroupType.Friends,
+                      label: t.extras.typeFriends,
+                      icon: iconFor('people-circle'),
+                    },
+                    { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
+                  ]}
+                />
+              </View>
 
-            {/* The member's own short tag, shown instead of the automatic type tag
-            on Home and the group header. Saved on blur or a chip tap; empty
-            clears it back to the type. */}
-            <GroupTagField
-              type={group.data.type}
-              value={tag}
-              onChange={setTag}
-              onCommit={commitTag}
-            />
+              {/* The member's own short tag, shown instead of the automatic type tag
+              on Home and the group header. Saved on blur or a chip tap; empty
+              clears it back to the type. */}
+              <GroupTagField
+                type={group.data.type}
+                value={tag}
+                onChange={setTag}
+                onCommit={commitTag}
+              />
+            </StandardCard>
 
             {/* Decides which payment rails the settle screen offers, and what a new
             expense starts in. Nothing already recorded changes. */}
