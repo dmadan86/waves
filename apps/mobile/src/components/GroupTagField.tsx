@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { iconSize, Text, useTheme } from '@waves/ui';
 
@@ -98,7 +98,13 @@ export function GroupTagField({
                 style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 8 }}
               />
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+            {/* One line that scrolls sideways, so the suggestions never take two rows. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ gap: theme.spacing.sm }}
+            >
               {suggestions.map((suggestion) => {
                 const selected = value.trim() === suggestion;
                 return (
@@ -129,7 +135,7 @@ export function GroupTagField({
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
           </>
         ) : null}
       </View>
