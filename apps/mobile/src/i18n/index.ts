@@ -3321,6 +3321,9 @@ export interface UiStrings {
     inviteToGroup: string;
     inviteToGroupHint: string;
     groupActions: string;
+    exitActions: string;
+    exitActionsMember: string;
+    exitActionsHint: string;
     archiveHintShort: string;
     deleteHintShort: string;
     adminTitle: string;
@@ -8491,6 +8494,9 @@ const en: UiStrings = {
     inviteToGroup: 'Invite to group',
     inviteToGroupHint: 'Share a link or QR so they can join easily',
     groupActions: 'Group actions',
+    exitActions: 'Archive, leave or delete',
+    exitActionsMember: 'Archive or leave',
+    exitActionsHint: 'Hide it, step out, or remove it',
     archiveHintShort: 'Hide from your list, can be unarchived',
     deleteHintShort: 'Permanently delete for everyone',
     adminTitle: 'Admin',
@@ -13520,6 +13526,9 @@ const ta: UiStrings = {
     inviteToGroup: 'குழுவுக்கு அழை',
     inviteToGroupHint: 'இணைப்பு அல்லது QR பகிர்ந்தால் எளிதாகச் சேரலாம்',
     groupActions: 'குழு செயல்கள்',
+    exitActions: 'காப்பகம், வெளியேறு அல்லது நீக்கு',
+    exitActionsMember: 'காப்பகம் அல்லது வெளியேறு',
+    exitActionsHint: 'மறை, வெளியேறு அல்லது நீக்கு',
     archiveHintShort: 'உங்கள் பட்டியலில் இருந்து மறை, மீண்டும் கொண்டுவரலாம்',
     deleteHintShort: 'அனைவருக்கும் நிரந்தரமாக நீக்கு',
     adminTitle: 'நிர்வாகி',
@@ -18590,6 +18599,9 @@ const hi: UiStrings = {
     inviteToGroup: 'ग्रुप में बुलाएँ',
     inviteToGroupHint: 'लिंक या QR शेयर करें ताकि वे आसानी से जुड़ सकें',
     groupActions: 'ग्रुप कार्रवाइयाँ',
+    exitActions: 'आर्काइव करें, छोड़ें या हटाएँ',
+    exitActionsMember: 'आर्काइव करें या छोड़ें',
+    exitActionsHint: 'छिपाएँ, बाहर निकलें या हटाएँ',
     archiveHintShort: 'अपनी सूची से छिपाएँ, बाद में वापस ला सकते हैं',
     deleteHintShort: 'सबके लिए हमेशा के लिए हटाएँ',
     adminTitle: 'एडमिन',
@@ -23762,6 +23774,9 @@ const ar: UiStrings = {
     inviteToGroup: 'دعوة إلى المجموعة',
     inviteToGroupHint: 'شارك رابطًا أو رمز QR ليتمكنوا من الانضمام بسهولة',
     groupActions: 'إجراءات المجموعة',
+    exitActions: 'أرشفة أو مغادرة أو حذف',
+    exitActionsMember: 'أرشفة أو مغادرة',
+    exitActionsHint: 'إخفاء أو خروج أو إزالة',
     archiveHintShort: 'إخفاء من قائمتك، ويمكن إلغاء الأرشفة',
     deleteHintShort: 'حذف نهائي للجميع',
     adminTitle: 'مشرف',
