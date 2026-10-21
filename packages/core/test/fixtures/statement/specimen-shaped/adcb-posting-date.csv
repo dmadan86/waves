@@ -1,0 +1,13 @@
+"# Synthetic. Shaped like ADCB's account e-statement CSV (as seen in asappia/uae2ynab's adcb-account-estatement fixture, which has no licence file and is not vendored): six quoted metadata lines, a Posting Date with a time, Reference No, Debit Amount / Credit Amount, every row quoted with a trailing comma, one-decimal amounts.",
+"Account Number: 10000000000001 AED",
+"Account Name: SAMPLE ACCOUNT HOLDER",
+"Account Type: CURRENT ACCOUNT",
+"Statement Period: 01/01/2024 - 31/01/2024",
+"Opening Balance: 5,000.00",
+"Closing Balance: 4,330.50",
+Posting Date,Value Date,Reference No,Description,Debit Amount,Credit Amount,Balance
+"02/01/2024 09:15:00","02/01/2024","REF0000001","POS PURCHASE SAMPLE MART DUBAI","250.5","0.00","4,749.50",
+"05/01/2024 12:00:00","05/01/2024","REF0000002","SALARY SAMPLE LLC","0.00","12,000.00","16,749.50",
+"10/01/2024 18:30:00","10/01/2024","REF0000003","ATM CASH WITHDRAWAL","1,000.00","0.00","15,749.50",
+"15/01/2024 08:00:00","15/01/2024","REF0000004","DEWA BILL PAYMENT","419.00","0.00","15,330.50",
+"28/01/2024 22:45:00","28/01/2024","REF0000005","TRANSFER TO SAMPLE PERSON","11,000.00","0.00","4,330.50",

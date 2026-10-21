@@ -40,6 +40,11 @@ function textAfter(block: string, marker: RegExp): string {
   const found = marker.exec(block);
   if (!found) return '';
   const rest = block.slice(found.index + found[0].length).trimStart();
+  // `<NAME><![CDATA[EFTPOS WDL ALDI  ]]></NAME>`: the text is whatever the section wraps.
+  if (rest.startsWith('<![CDATA[')) {
+    const close = rest.indexOf(']]>');
+    return (close < 0 ? rest.slice(9) : rest.slice(9, close)).trim();
+  }
   const end = rest.search(/[<\r\n]/);
   return (end < 0 ? rest : rest.slice(0, end)).trim();
 }

@@ -1,0 +1,16 @@
+# Synthetic. Shaped like the text layer of ICICI Bank's current savings-account
+# PDF (as seen in raptar231/indian-bank-statement-parser's icici_savings-modern
+# fixture, which is not vendored): a serial number leads each row, dates are
+# dotted, and the remarks are printed after the amounts.
+Statement of Transactions in Saving Account no. 000401500001 in INR for the period April 1, 2026 - June 30, 2026
+
+S No.  Cheque Number  Transaction Remarks  Date  Withdrawal Amount (INR)  Deposit Amount (INR)  Balance (INR)
+1  02.04.2026  199.00  40718.24  BIL/NUCL/001100000001/Recharge/SAMPLE RECHARGE Bil Payment
+2  02.04.2026  5000.00  35718.24  UPI/SAMPLE PAYEE/samplepayee@okhdfc/Payment fr/AXIS BANK/559200000001/IBL0000000000000000000000000000000a/SAMPLE
+3  03.04.2026  499.20  36217.44  UPI/SAMPLE SHOP/9999900001@axi/Refund/AXIS BANK/820600000002/IBL0000000000000000000000000000000b/Shop
+4  04.04.2026  16000.00  20217.44  MMT/IMPS/609400000003/LOANDISB/SAMPLE FIN/IDFC bank SAMPLE
+5  05.04.2026  10000.00  10217.44  NFS/CASH WDL/609500000004/ATM01/SAMPLETOWN/05-04-26 ATM trxn
+6  09.04.2026  50567.00  60784.44  NEFT-HDFCH00000000001-SAMPLE SOFTWARE LLP-0001SALARY APR 2026-50200000000001-HDFC00000 Credit trxn
+7  10.04.2026  1000.00  59784.44  UPI/SAMPLE FRIEND/samplefriend@ybl/Payment fr/ICICI Bank/442e00000005 SAMPLE
+Total: 32199.00 51066.20 59784.44
+Page 1 of 1

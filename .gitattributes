@@ -6,3 +6,6 @@
 *.otf binary
 *.woff binary
 *.woff2 binary
+
+# Vendored third-party statement samples are kept byte for byte (some are CRLF on purpose).
+packages/core/test/fixtures/statement/real/** -text

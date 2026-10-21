@@ -28,6 +28,7 @@ import { parseLooseAmount } from '../import/amount';
 import { resolveDates, type ImportDateOrder } from '../import/date';
 import { squashHeader } from '../import/layout';
 import type { TableRead } from '../import/table';
+import { isCurrencyCode, type CurrencyCode } from '../money/currency';
 import { applyBalanceCheck } from './balance';
 import { referenceFor } from './narration';
 import type { TableParseOptions, TableParseResult } from './profiles';
@@ -50,6 +51,7 @@ export type IntlProfileId =
   | 'revolut'
   | 'commbank'
   | 'westpac'
+  | 'westpac_corporate'
   | 'anz'
   | 'nab'
   | 'emirates_nbd'
@@ -82,8 +84,8 @@ export interface IntlProfile {
   readonly country: 'US' | 'GB' | 'AU' | 'AE';
   readonly currency: StatementCurrency;
   readonly order: ImportDateOrder;
-  /** Squashed header names that must all be present. */
-  readonly required: readonly string[];
+  /** Squashed header names that must all be present; an inner list means any one of them. */
+  readonly required: readonly (string | readonly string[])[];
   readonly columns: IntlColumns;
 }
 
@@ -304,6 +306,23 @@ export const INTL_PROFILES: readonly IntlProfile[] = [
     },
   },
   {
+    // Corporate Online's previous-day export: `YYYYMMDD` dates, one signed amount, and the
+    // account's closing balance repeated on every row (which is not a running balance).
+    id: 'westpac_corporate',
+    bank: 'Westpac',
+    country: 'AU',
+    currency: 'AUD',
+    order: 'dmy',
+    required: ['trandate', 'accountno', 'ccy', 'closingbal', 'amount', 'narrative'],
+    columns: {
+      date: ['trandate'],
+      description: ['narrative'],
+      amount: ['amount'],
+      ref: ['serial'],
+      currency: ['ccy'],
+    },
+  },
+  {
     id: 'nab',
     bank: 'NAB',
     country: 'AU',
@@ -353,19 +372,21 @@ export const INTL_PROFILES: readonly IntlProfile[] = [
     country: 'AE',
     currency: 'AED',
     order: 'dmy',
+    // The e-statement export names them `Posting Date … Debit Amount, Credit Amount`.
     required: [
-      'transactiondate|تاريخالمعاملة',
+      ['transactiondate|تاريخالمعاملة', 'postingdate'],
       'valuedate|تاريخالقيمة',
       'description|التفاصيل',
-      'debit|مدين',
-      'credit|دائن',
+      ['debit|مدين', 'debitamount'],
+      ['credit|دائن', 'creditamount'],
       'balance|الرصيد',
     ],
     columns: {
-      date: ['transactiondate|تاريخالمعاملة'],
+      date: ['transactiondate|تاريخالمعاملة', 'postingdate'],
       description: ['description|التفاصيل'],
-      debit: ['debit|مدين'],
-      credit: ['credit|دائن'],
+      ref: ['referenceno'],
+      debit: ['debit|مدين', 'debitamount'],
+      credit: ['credit|دائن', 'creditamount'],
       balance: ['balance|الرصيد'],
     },
   },
@@ -532,7 +553,7 @@ interface Signed {
 }
 
 /** One signed amount cell. A trailing CR or DR beats the sign. */
-function readSigned(cell: string | undefined, currency: StatementCurrency): Signed | null {
+function readSigned(cell: string | undefined, currency: CurrencyCode): Signed | null {
   let text = stripDollarPrefix((cell ?? '').trim());
   if (text === '' || /^[-–—]+$/.test(text)) return null;
   const mark = /\b(cr|dr)\.?$/i.exec(text)?.[1]?.toLowerCase() ?? null;
@@ -550,12 +571,12 @@ function readSigned(cell: string | undefined, currency: StatementCurrency): Sign
   return { magnitude, direction };
 }
 
-function readUnsigned(cell: string | undefined, currency: StatementCurrency): bigint | null {
+function readUnsigned(cell: string | undefined, currency: CurrencyCode): bigint | null {
   const read = readSigned(cell, currency);
   return read ? read.magnitude : null;
 }
 
-function readBalance(cell: string | undefined, currency: StatementCurrency): string | null {
+function readBalance(cell: string | undefined, currency: CurrencyCode): string | null {
   let text = stripDollarPrefix((cell ?? '').trim());
   if (text === '') return null;
   const mark = /\b(cr|dr)\.?$/i.exec(text)?.[1]?.toLowerCase() ?? null;
@@ -568,7 +589,7 @@ function readBalance(cell: string | undefined, currency: StatementCurrency): str
 interface Layout {
   readonly id: IntlProfileId;
   readonly bank: string;
-  readonly currency: StatementCurrency;
+  readonly currency: CurrencyCode;
   readonly order: ImportDateOrder;
   /** Index of the first data row. */
   readonly firstRow: number;
@@ -590,7 +611,12 @@ function matchHeader(table: TableRead): Layout | null {
   for (let headerRow = 0; headerRow < limit; headerRow += 1) {
     const squashed = table.rows[headerRow]!.map((cell) => squashHeader(cell));
     for (const profile of INTL_PROFILES) {
-      if (!profile.required.every((name) => squashed.some((cell) => cellMatches(cell, name))))
+      const present = (name: string): boolean => squashed.some((cell) => cellMatches(cell, name));
+      if (
+        !profile.required.every((names) =>
+          typeof names === 'string' ? present(names) : names.some(present),
+        )
+      )
         continue;
       const find = (names: readonly string[] | undefined): number | undefined => {
         for (const name of names ?? []) {
@@ -660,13 +686,21 @@ function matchHeaderless(table: TableRead): Layout | null {
 const SIGNED_GENERIC: Readonly<
   Record<'date' | 'description' | 'amount' | 'balance', readonly string[]>
 > = {
-  date: ['date', 'transactiondate', 'postingdate', 'posteddate', 'bookingdate', 'valuedate'],
+  date: [
+    'date',
+    'transactiondate',
+    'trandate',
+    'postingdate',
+    'posteddate',
+    'bookingdate',
+    'valuedate',
+  ],
   description: ['description', 'details', 'narrative', 'memo', 'transactiondescription'],
   amount: ['amount', 'value', 'transactionamount'],
   balance: ['balance', 'runningbalance', 'runningbal', 'closingbalance'],
 };
 
-function matchSignedGeneric(table: TableRead, currency: StatementCurrency): Layout | null {
+function matchSignedGeneric(table: TableRead, currency: CurrencyCode): Layout | null {
   const limit = Math.min(table.rows.length, HEADER_SEARCH_ROWS);
   for (let headerRow = 0; headerRow < limit; headerRow += 1) {
     const squashed = table.rows[headerRow]!.map((cell) => squashHeader(cell));
@@ -706,6 +740,16 @@ export function currencyForStatementCountry(country: string | null | undefined):
     default:
       return 'INR';
   }
+}
+
+/** The currency a bank-less layout is read in: the account's when the caller says, else the country's. */
+export function statementCurrencyFor(
+  options: Pick<TableParseOptions, 'country' | 'currency'>,
+): CurrencyCode {
+  const hinted = (options.currency ?? '').toUpperCase();
+  return hinted !== '' && isCurrencyCode(hinted)
+    ? hinted
+    : currencyForStatementCountry(options.country);
 }
 
 export interface IntlParse {
@@ -757,7 +801,7 @@ function readLayout(
 
     const iso = dates.cells[at]?.iso ?? null;
     const description = layout.description
-      .map((i) => (cells[i] ?? '').trim())
+      .map((i) => (cells[i] ?? '').replace(/\s+/g, ' ').trim())
       .filter((part) => part !== '')
       .join(' ');
 
@@ -859,6 +903,6 @@ export function parseIntlGeneric(
   table: TableRead,
   options: TableParseOptions = {},
 ): TableParseResult | null {
-  const generic = matchSignedGeneric(table, currencyForStatementCountry(options.country));
+  const generic = matchSignedGeneric(table, statementCurrencyFor(options));
   return generic ? readLayout(table, generic, true, options) : null;
 }
