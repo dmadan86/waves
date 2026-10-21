@@ -1036,6 +1036,9 @@ export interface UiStrings {
     title: string;
     row: string;
     rowHint: string;
+    /** The Settings row's hint once the list has loaded: how many are connected. */
+    rowCount: PluralForms;
+    rowNone: string;
     intro: string;
     connectedOn: string;
     disconnect: string;
@@ -1967,6 +1970,10 @@ export interface UiStrings {
     weeklyEmail: string;
     weeklyEmailBody: string;
     failDenied: string;
+    /** Settings row status, from the phone's permission: on / not asked / refused. */
+    rowOn: string;
+    rowOff: string;
+    rowOffInPhone: string;
     failUnsupported: string;
     failNotSignedIn: string;
     failNotConfigured: string;
@@ -6654,6 +6661,8 @@ const en: UiStrings = {
     title: 'Connected apps',
     row: 'Connected apps',
     rowHint: 'AI assistants that can reach your Waves',
+    rowCount: { one: '{n} connected', other: '{n} connected' },
+    rowNone: 'None connected',
     intro:
       'AI assistants you have allowed to use your Waves. Disconnect one and it loses access straight away.',
     connectedOn: 'Connected {when}',
@@ -7459,6 +7468,9 @@ const en: UiStrings = {
       'Settlements, reminders and the weekly summary. Security alerts about a new sign-in arrive whatever this says.',
     weeklyEmail: 'Weekly email digest',
     weeklyEmailBody: 'Your net balance and pending confirmations, once a week. Off by default.',
+    rowOn: 'On',
+    rowOff: 'Off',
+    rowOffInPhone: 'Off in phone settings',
     failDenied: 'Not enabled — you can turn it on in your phone settings later.',
     failUnsupported:
       'This device cannot receive push notifications. Everything still lands in Activity.',
@@ -11662,6 +11674,8 @@ const ta: UiStrings = {
     title: 'இணைக்கப்பட்ட செயலிகள்',
     row: 'இணைக்கப்பட்ட செயலிகள்',
     rowHint: 'உங்கள் Waves-ஐ அணுகக்கூடிய AI உதவியாளர்கள்',
+    rowCount: { one: '{n} இணைக்கப்பட்டுள்ளது', other: '{n} இணைக்கப்பட்டுள்ளன' },
+    rowNone: 'எதுவும் இணைக்கப்படவில்லை',
     intro:
       'உங்கள் Waves-ஐப் பயன்படுத்த நீங்கள் அனுமதித்த AI உதவியாளர்கள். ஒன்றைத் துண்டித்தால் அதன் அணுகல் உடனே நின்றுவிடும்.',
     connectedOn: 'இணைத்த நாள்: {when}',
@@ -12484,6 +12498,9 @@ const ta: UiStrings = {
     weeklyEmail: 'வாராந்திர மின்னஞ்சல் சுருக்கம்',
     weeklyEmailBody:
       'உங்கள் நிகர பாக்கியும் நிலுவையிலுள்ள உறுதிப்படுத்தல்களும், வாரம் ஒருமுறை. இயல்பாக நிறுத்தத்தில்.',
+    rowOn: 'இயக்கத்தில்',
+    rowOff: 'முடக்கத்தில்',
+    rowOffInPhone: 'ஃபோன் அமைப்புகளில் முடக்கத்தில்',
     failDenied: 'இயக்கப்படவில்லை — பின்னர் ஃபோன் அமைப்புகளில் இயக்கிக்கொள்ளலாம்.',
     failUnsupported:
       'இந்தச் சாதனத்தால் அறிவிப்புகளைப் பெற முடியாது. எல்லாம் செயல்பாட்டுப் பக்கத்தில் வந்து சேரும்.',
@@ -16838,6 +16855,8 @@ const hi: UiStrings = {
     title: 'जुड़े हुए ऐप',
     row: 'जुड़े हुए ऐप',
     rowHint: 'वे AI असिस्टेंट जो आपके Waves तक पहुँच सकते हैं',
+    rowCount: { one: '{n} जुड़ा है', other: '{n} जुड़े हैं' },
+    rowNone: 'कोई नहीं जुड़ा',
     intro:
       'वे AI असिस्टेंट जिन्हें आपने अपना Waves इस्तेमाल करने की अनुमति दी है। किसी को डिस्कनेक्ट करते ही उसकी पहुँच तुरंत बंद हो जाती है।',
     connectedOn: 'जोड़ा गया: {when}',
@@ -17643,6 +17662,9 @@ const hi: UiStrings = {
       'हिसाब, याद दिलाने वाले संदेश और साप्ताहिक सारांश। नए साइन-इन की सुरक्षा चेतावनी इससे परे हमेशा आएगी।',
     weeklyEmail: 'साप्ताहिक ईमेल सारांश',
     weeklyEmailBody: 'आपकी कुल बाकी और लंबित पुष्टियाँ, हफ़्ते में एक बार। डिफ़ॉल्ट रूप से बंद।',
+    rowOn: 'चालू',
+    rowOff: 'बंद',
+    rowOffInPhone: 'फ़ोन सेटिंग्स में बंद',
     failDenied: 'चालू नहीं हुआ — आप बाद में फ़ोन सेटिंग्स में इसे चालू कर सकते हैं।',
     failUnsupported: 'यह डिवाइस पुश सूचनाएँ नहीं ले सकता। सब कुछ गतिविधि में आता ही रहेगा।',
     failNotSignedIn: 'पहले साइन इन करें, ताकि पता चले कौन सा फ़ोन आपका है।',
@@ -21912,6 +21934,14 @@ const ar: UiStrings = {
     title: 'التطبيقات المتصلة',
     row: 'التطبيقات المتصلة',
     rowHint: 'مساعدو الذكاء الاصطناعي الذين يمكنهم الوصول إلى Waves',
+    rowCount: {
+      one: 'متصل: {n}',
+      two: 'متصلان: {n}',
+      few: '{n} متصلة',
+      many: '{n} متصلًا',
+      other: '{n} متصل',
+    },
+    rowNone: 'لا يوجد تطبيق متصل',
     intro: 'مساعدو الذكاء الاصطناعي الذين سمحت لهم باستخدام Waves. عند فصل أحدهم يفقد وصوله فورًا.',
     connectedOn: 'تاريخ الاتصال: {when}',
     disconnect: 'فصل',
@@ -22723,6 +22753,9 @@ const ar: UiStrings = {
       'التسويات والتذكيرات والملخص الأسبوعي. تنبيه الأمان عند تسجيل دخول جديد يصل مهما كان هذا الإعداد.',
     weeklyEmail: 'ملخص أسبوعي بالبريد',
     weeklyEmailBody: 'صافي باقيك والتأكيدات المعلّقة، مرة كل أسبوع. متوقف افتراضيًا.',
+    rowOn: 'مفعّلة',
+    rowOff: 'متوقفة',
+    rowOffInPhone: 'متوقفة في إعدادات الهاتف',
     failDenied: 'لم يُفعَّل — يمكنك تفعيله لاحقًا من إعدادات هاتفك.',
     failUnsupported: 'لا يستطيع هذا الجهاز استقبال الإشعارات. كل شيء يصل إلى النشاط رغم ذلك.',
     failNotSignedIn: 'سجّل الدخول أولًا، كي نعرف أي هاتف هو هاتفك.',
