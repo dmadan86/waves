@@ -14,9 +14,12 @@
  * the answer comes back through `countryPickerBridge`.
  */
 
-import { countryFlag, countryName, railsFor } from '@waves/core';
-import { Card, ListRow, Text, useTheme } from '@waves/ui';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { countryFlag, countryName, railsFor } from '@waves/core';
+import { Card, directionalIcon, iconSize, ListRow, Text, useTheme } from '@waves/ui';
+
+import { RowTile } from '@/components/standard/RowTile';
 import { useStrings } from '@/i18n';
 
 import { requestCountry } from '@/lib/countryPickerBridge';
@@ -26,11 +29,14 @@ export function CountryRow({
   countryCode,
   onChange,
   onOpen,
+  tile = false,
 }: {
   countryCode: string | null;
   onChange: (countryCode: string | null) => void;
   /** Called just before the picker route opens, for a host that has to get out of its way (a sheet). */
   onOpen?: () => void;
+  /** A bare row for a shared card: a 48dp green tile for the flag and a chevron, no card of its own. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -50,18 +56,43 @@ export function CountryRow({
     router.push('/country');
   };
 
+  const flag = countryFlag(countryCode) ?? '🌐';
+  const subtitle = t.pickers.settlesWith
+    .replace(
+      '{country}',
+      countryCode ? (countryName(countryCode) ?? countryCode) : t.pickers.notSet,
+    )
+    .replace('{rails}', rails);
+
+  if (tile) {
+    return (
+      <ListRow
+        leading={
+          <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
+            <Text style={{ fontSize: 26 }}>{flag}</Text>
+          </RowTile>
+        }
+        title={t.pickers.country}
+        subtitle={subtitle}
+        trailing={
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
+        }
+        onPress={open}
+      />
+    );
+  }
+
   return (
     <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
       <ListRow
         // A globe stands in for "no country set", where a flag would be a lie.
-        leading={<Text style={{ fontSize: 26 }}>{countryFlag(countryCode) ?? '🌐'}</Text>}
+        leading={<Text style={{ fontSize: 26 }}>{flag}</Text>}
         title={t.pickers.country}
-        subtitle={t.pickers.settlesWith
-          .replace(
-            '{country}',
-            countryCode ? (countryName(countryCode) ?? countryCode) : t.pickers.notSet,
-          )
-          .replace('{rails}', rails)}
+        subtitle={subtitle}
         onPress={open}
       />
     </Card>

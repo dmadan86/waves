@@ -7,6 +7,7 @@ import {
   Keyboard,
   Platform,
   Pressable,
+  StyleSheet,
   ScrollView,
   TextInput,
   useWindowDimensions,
@@ -35,14 +36,7 @@ import { format, money, type CurrencyCode } from '@waves/core';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
-import {
-  ListRow,
-  PillButton,
-  ScenicBody,
-  ScenicHeader,
-  SectionHeader,
-  StandardCard,
-} from '@/components/standard';
+import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
 import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
@@ -456,7 +450,7 @@ export default function GroupSettingsScreen() {
   };
   // A member's ⋮ menu (by member id), and which ⓘ explanation is open.
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [info, setInfo] = useState<'simplify' | 'mute' | null>(null);
+  const [info, setInfo] = useState<'simplify' | 'mute' | 'type' | null>(null);
   const removeFromGroup = useRemoveMember(groupId);
   const setRole = useSetMemberRole(groupId);
   // "Link to a Waves user" (admin-only, as on the member screen): what this
@@ -675,7 +669,7 @@ export default function GroupSettingsScreen() {
   );
 
   /** The ⓘ beside a title; the explanation opens under the row. */
-  const infoDot = (key: 'simplify' | 'mute', title: string): ReactNode => (
+  const infoDot = (key: 'simplify' | 'mute' | 'type', title: string): ReactNode => (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ expanded: info === key }}
@@ -690,7 +684,7 @@ export default function GroupSettingsScreen() {
       />
     </Pressable>
   );
-  const infoText = (key: 'simplify' | 'mute', body: string): ReactNode =>
+  const infoText = (key: 'simplify' | 'mute' | 'type', body: string): ReactNode =>
     info === key ? (
       <Text variant="caption" tone="muted">
         {body}
@@ -898,15 +892,34 @@ export default function GroupSettingsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader title={t.group.settings} titleAlign="start" circleBack wash wide>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md, flex: 1 }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md, flexShrink: 1 }}>
-              <View
-                style={{
-                  borderRadius: 35,
-                  borderWidth: 3,
-                  borderColor: theme.scheme === 'dark' ? '#2A2A40' : '#FFFFFF',
-                }}
+        <PlainHeader
+          title={t.group.settings}
+          trailing={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.group.exitActions}
+              hitSlop={10}
+              onPress={() => setExitOpen(true)}
+            >
+              <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={theme.color.text} />
+            </Pressable>
+          }
+        />
+
+        <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.lg }}>
+          {status ? (
+            <Text variant="caption" tone="positive">
+              {status}
+            </Text>
+          ) : null}
+
+          {/* The group: cover, name, when it began and how many are in it. */}
+          <StandardCard>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.group.changeCover}
+                onPress={() => setCoverOpen(true)}
               >
                 <GroupPhoto
                   photoPath={group.data.photo_path}
@@ -916,8 +929,25 @@ export default function GroupSettingsScreen() {
                   round
                   busy={uploading}
                 />
-              </View>
-              <View style={{ flexShrink: 1, gap: 2 }}>
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: -2,
+                    bottom: -2,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#2B2B3A',
+                    borderWidth: 2,
+                    borderColor: theme.color.surface,
+                  }}
+                >
+                  <Ionicons name="camera" size={13} color="#FFFFFF" />
+                </View>
+              </Pressable>
+              <View style={{ flex: 1, gap: 2 }}>
                 <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text
                     variant="heading"
@@ -935,86 +965,96 @@ export default function GroupSettingsScreen() {
                     <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
                   </Pressable>
                 </Row>
-                {createdLabel ? <Text variant="caption">{createdLabel}</Text> : null}
+                <Text variant="caption" tone="muted" numberOfLines={2}>
+                  {[createdLabel, plural(locale, memberCount, t.memberCount)]
+                    .filter(Boolean)
+                    .join(' • ')}
+                </Text>
               </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.group.changeCover}
+                onPress={() => setCoverOpen(true)}
+                style={{
+                  paddingHorizontal: theme.spacing.lg,
+                  height: 40,
+                  justifyContent: 'center',
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
+                  {t.group.changePill}
+                </Text>
+              </Pressable>
             </Row>
-            <View style={{ flex: 1 }} />
-            <PillButton
-              label={t.group.changePill}
-              icon="image-outline"
-              chevron={false}
-              accessibilityLabel={t.group.changeCover}
-              onPress={() => setCoverOpen(true)}
-            />
-          </Row>
-        </ScenicHeader>
+          </StandardCard>
 
-        <ScenicBody>
-          {status ? (
-            <Text variant="caption" tone="positive">
-              {status}
-            </Text>
-          ) : null}
-
-          {/* Group actions: everything that is about this group as a whole.
-              Archiving is reversible and touches nobody but your own list;
-              leaving affects only you; deleting takes the group from everyone,
-              at once, with no undo — so it is admin-only (the RPC refuses it
-              regardless) and wears the negative colour. */}
           {/* What the group is and how it pays: kind, tag, country, currency,
               trip rates and dates, on the page itself rather than behind Edit. */}
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader title={t.group.groupDetails} />
-            <StandardCard style={{ gap: theme.spacing.lg }}>
-              {/* The kind of group. Only changes the label, cover default and trip
+          <StandardCard style={{ gap: theme.spacing.lg }}>
+            {/* The kind of group. Only changes the label, cover default and trip
               affordances — nothing already recorded moves. */}
-              <View style={{ gap: theme.spacing.sm }}>
-                <Text variant="caption" tone="muted">
-                  {t.extras.whatKindOfGroup}
-                </Text>
-                <ChipRow<GroupType>
-                  wrap
-                  onCard
-                  // The column is NOT NULL DEFAULT 'other' on the server, so a missing
-                  // value here only means a mirror row that predates this field syncing
-                  // — fall back to that same default so the assigned chip always lights.
-                  value={group.data.type ?? GroupType.Other}
-                  onChange={(type) =>
-                    updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
-                  }
-                  options={[
-                    { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
-                    { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
-                    { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
-                    {
-                      value: GroupType.Event,
-                      label: t.extras.typeEvent,
-                      icon: iconFor('sparkles'),
-                    },
-                    {
-                      value: GroupType.Friends,
-                      label: t.extras.typeFriends,
-                      icon: iconFor('people-circle'),
-                    },
-                    { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
-                  ]}
-                />
-              </View>
+            <View style={{ gap: theme.spacing.md }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 17, fontWeight: '700' }}>{t.extras.groupTypeTitle}</Text>
+                {infoDot('type', t.extras.groupTypeTitle)}
+              </Row>
+              {infoText('type', t.extras.groupTypeInfo)}
+              <ChipRow<GroupType>
+                wrap
+                onCard
+                variant="brand"
+                // The column is NOT NULL DEFAULT 'other' on the server, so a missing
+                // value here only means a mirror row that predates this field syncing
+                // — fall back to that same default so the assigned chip always lights.
+                value={group.data.type ?? GroupType.Other}
+                onChange={(type) =>
+                  updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
+                }
+                options={[
+                  { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
+                  { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
+                  { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
+                  { value: GroupType.Event, label: t.extras.typeEvent, icon: iconFor('sparkles') },
+                  {
+                    value: GroupType.Friends,
+                    label: t.extras.typeFriends,
+                    icon: iconFor('people-circle'),
+                  },
+                  { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
+                ]}
+              />
+            </View>
 
-              {/* The member's own short tag, shown instead of the automatic type tag
+            <View
+              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            />
+
+            {/* The member's own short tag, shown instead of the automatic type tag
               on Home and the group header. Saved on blur or a chip tap; empty
               clears it back to the type. */}
-              <GroupTagField
-                type={group.data.type}
-                value={tag}
-                onChange={setTag}
-                onCommit={commitTag}
-              />
-            </StandardCard>
+            <GroupTagField
+              card
+              type={group.data.type}
+              value={tag}
+              onChange={setTag}
+              onCommit={commitTag}
+            />
+          </StandardCard>
 
-            {/* Decides which payment rails the settle screen offers, and what a new
-            expense starts in. Nothing already recorded changes. */}
+          {/* Country decides which payment rails the settle screen offers and what
+            a new expense starts in. Settles in is what the group counts in; only
+            an admin can choose it, and it stops being a control once anything
+            depends on it: either entries counted in it, or pinned rates whose
+            stored ratios all convert into it. Trip rates themselves can be
+            re-pinned at any time, because a bill keeps the rate it was saved
+            with (ADR-003). The last row is whether foreign bills count in that
+            currency at their own saved rates (ADR-003 amendment): on for new
+            groups; an existing group opts in once every foreign bill has a rate. */}
+          <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
             <CountryRow
+              tile
               countryCode={group.data.country_code}
               onOpen={() => {
                 Keyboard.dismiss();
@@ -1027,17 +1067,11 @@ export default function GroupSettingsScreen() {
                 )
               }
             />
-          </View>
-
-          {/* What the group counts in, and what it converts foreign bills with.
-            Only an admin can choose it. It also stops being a control once
-            anything depends on it: either entries counted in it, or pinned rates
-            whose stored ratios all convert into it. Trip rates themselves can
-            be re-pinned at any time, because a bill keeps the rate it was saved
-            with (ADR-003). */}
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader title={t.fx.section} />
+            <View
+              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            />
             <SettlesInRow
+              tile
               currency={currency}
               locked={!canChangeCurrency}
               onChange={(default_currency) =>
@@ -1047,17 +1081,18 @@ export default function GroupSettingsScreen() {
                 )
               }
             />
-            {/* Whether foreign bills count in this currency at their own saved
-              rates (ADR-003 amendment). On for new groups; an existing group
-              opts in once every foreign bill has a rate. */}
+            <View
+              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            />
             <SettleInCurrencyRow
+              tile
               groupId={groupId}
               currency={currency}
               on={group.data.convert_to_group_currency === true}
               isAdmin={isAdmin}
               settlementCount={liveSettlementCount}
             />
-          </View>
+          </StandardCard>
           <View style={{ gap: theme.spacing.md }}>
             <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
             <MissingRatesCard groupId={groupId} />
@@ -1293,7 +1328,7 @@ export default function GroupSettingsScreen() {
                 unsettled warning lives in the confirm dialog itself. */}
             {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
           </View>
-        </ScenicBody>
+        </View>
       </ScrollView>
 
       {/* The "Add someone" sheet, opened from "Add members". */}

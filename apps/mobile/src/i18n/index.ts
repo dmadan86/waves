@@ -5363,6 +5363,8 @@ export interface UiStrings {
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
+    groupTypeTitle: string;
+    groupTypeInfo: string;
     /** A few tap-to-fill tag ideas per group type. */
     tagSuggestions: Record<
       'trip' | 'home' | 'couple' | 'event' | 'friends' | 'other',
@@ -5457,6 +5459,9 @@ export interface UiStrings {
     settlesIn: string;
     settlesInHint: string;
     settlesInLocked: string;
+    settlesInLockedShort: string;
+    convertAllTitle: string;
+    convertShort: string;
     tripRates: string;
     tripRatesBody: string;
     addRate: string;
@@ -10355,6 +10360,9 @@ const en: UiStrings = {
     typeOther: 'Other',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
+    groupTypeTitle: 'Group type',
+    groupTypeInfo:
+      'The type sets the group’s label, default cover and trip tools. Nothing already recorded changes.',
     tagSuggestions: {
       trip: ['Weekend', 'Road trip', 'Holiday'],
       home: ['Rent', 'Flatmates', 'Bills'],
@@ -10444,6 +10452,9 @@ const en: UiStrings = {
     settlesIn: 'Settles in',
     settlesInHint: 'Every balance is counted in this currency.',
     settlesInLocked: 'Locked — this group already has entries.',
+    settlesInLockedShort: 'Locked for this group',
+    convertAllTitle: 'Settle in {currency} for all expenses',
+    convertShort: 'Bills paid in other currencies count in {currency}',
     tripRates: 'Trip rates',
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
@@ -15497,6 +15508,9 @@ const ta: UiStrings = {
     typeOther: 'மற்றவை',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
+    groupTypeTitle: 'குழு வகை',
+    groupTypeInfo:
+      'வகை குழுவின் பெயர்ச்சொல், இயல்பு அட்டை, பயணக் கருவிகளை அமைக்கும். ஏற்கெனவே பதிவானவை மாறாது.',
     tagSuggestions: {
       trip: ['வார இறுதி', 'சாலைப் பயணம்', 'விடுமுறை'],
       home: ['வாடகை', 'அறை நண்பர்கள்', 'கட்டணங்கள்'],
@@ -15590,6 +15604,9 @@ const ta: UiStrings = {
     settlesIn: 'கணக்கு இந்த நாணயத்தில்',
     settlesInHint: 'இந்தக் குழுவின் எல்லா இருப்புகளும் இந்த நாணயத்தில் கணக்கிடப்படும்.',
     settlesInLocked: 'பூட்டப்பட்டது — ஏற்கெனவே பதிவுகள் உள்ளன.',
+    settlesInLockedShort: 'இந்தக் குழுவுக்குப் பூட்டப்பட்டது',
+    convertAllTitle: 'எல்லாச் செலவுகளையும் {currency}-இல் கணக்கிடு',
+    convertShort: 'வேறு நாணயங்களில் செலுத்திய பில்கள் {currency}-இல் கணக்கிடப்படும்',
     tripRates: 'பயண மாற்று விகிதங்கள்',
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
@@ -20479,6 +20496,9 @@ const hi: UiStrings = {
     typeOther: 'अन्य',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
+    groupTypeTitle: 'समूह का प्रकार',
+    groupTypeInfo:
+      'प्रकार से समूह का लेबल, डिफ़ॉल्ट कवर और ट्रिप टूल तय होते हैं। पहले से दर्ज कुछ भी नहीं बदलता।',
     tagSuggestions: {
       trip: ['वीकेंड', 'रोड ट्रिप', 'छुट्टी'],
       home: ['किराया', 'फ्लैटमेट', 'बिल'],
@@ -20567,6 +20587,9 @@ const hi: UiStrings = {
     settlesIn: 'हिसाब इस मुद्रा में',
     settlesInHint: 'इस समूह का हर बैलेंस इसी मुद्रा में गिना जाता है।',
     settlesInLocked: 'बंद — इस समूह में पहले से एंट्री हैं।',
+    settlesInLockedShort: 'इस समूह के लिए बंद',
+    convertAllTitle: 'सभी खर्चों का हिसाब {currency} में',
+    convertShort: 'दूसरी मुद्राओं में चुकाए बिल {currency} में गिने जाते हैं',
     tripRates: 'यात्रा दरें',
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
@@ -26058,6 +26081,9 @@ const ar: UiStrings = {
     typeOther: 'أخرى',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
+    groupTypeTitle: 'نوع المجموعة',
+    groupTypeInfo:
+      'يحدد النوع تسمية المجموعة وغلافها الافتراضي وأدوات الرحلة. لا يتغير أي شيء سُجّل من قبل.',
     tagSuggestions: {
       trip: ['عطلة نهاية الأسبوع', 'رحلة برية', 'إجازة'],
       home: ['الإيجار', 'زملاء السكن', 'الفواتير'],
@@ -26150,6 +26176,9 @@ const ar: UiStrings = {
     settlesIn: 'التسوية بـ',
     settlesInHint: 'كل رصيد في هذه المجموعة يُحسب بهذه العملة.',
     settlesInLocked: 'مقفل — في المجموعة قيود بالفعل.',
+    settlesInLockedShort: 'مقفل لهذه المجموعة',
+    convertAllTitle: 'التسوية بعملة {currency} لكل المصروفات',
+    convertShort: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}',
     tripRates: 'أسعار الرحلة',
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',

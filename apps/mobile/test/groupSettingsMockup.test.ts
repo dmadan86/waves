@@ -33,12 +33,41 @@ const between = (source: string, from: string, to: string): string => {
 };
 
 describe('settings page layout', () => {
-  it('uses the standard scenic header, left-aligned with a round back button and a Change pill', () => {
-    expect(SCREEN).toContain('<ScenicHeader');
-    expect(SCREEN).toContain('titleAlign="start"');
-    expect(SCREEN).toContain('circleBack');
-    expect(SCREEN).toContain('t.group.changePill');
-    expect(SCREEN).toContain('setCoverOpen(true)');
+  it('uses a plain header with a back arrow, the title and a ⋮ that opens the exit sheet', () => {
+    expect(SCREEN).toContain('<PlainHeader');
+    expect(SCREEN).not.toContain('<ScenicHeader');
+    const header = between(SCREEN, '<PlainHeader', '/>\n\n');
+    expect(header).toContain('t.group.settings');
+    expect(header).toContain('ellipsis-vertical');
+    expect(header).toContain('setExitOpen(true)');
+  });
+
+  it('draws the group card: cover with a camera badge, name with a pencil, caption and a Change pill', () => {
+    const card = between(SCREEN, 'cover, name, when it began', 'Group type');
+    expect(card).toContain('<GroupPhoto');
+    expect(card).toContain('name="camera"');
+    expect(card).toContain('setCoverOpen(true)');
+    expect(card).toContain('setEditOpen(true)');
+    expect(card).toContain('createdLabel');
+    expect(card).toContain('t.memberCount');
+    expect(card).toContain("' • '");
+    expect(card).toContain('t.group.changePill');
+  });
+
+  it('puts group type with an info dot, a hairline and a collapsible tag in one card', () => {
+    const card = between(SCREEN, 't.extras.groupTypeTitle}</Text>', '</StandardCard>');
+    expect(card).toContain("infoDot('type'");
+    expect(card).toContain("infoText('type', t.extras.groupTypeInfo)");
+    expect(card).toContain('variant="brand"');
+    expect(card).toContain('StyleSheet.hairlineWidth');
+    expect(card).toContain('<GroupTagField\n              card');
+  });
+
+  it('puts country, settles in and settle-in-currency in one card of tiled rows with no Currency header', () => {
+    const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
+    expect(card).toContain('<SettlesInRow\n              tile');
+    expect(card).toContain('<SettleInCurrencyRow\n              tile');
+    expect(SCREEN).not.toContain('t.fx.section');
   });
 
   it('puts fewer repayments and mute at the top of Group actions, each with an info dot and a toggle', () => {
@@ -78,7 +107,7 @@ describe('settings page layout', () => {
   });
 
   it('keeps every group action, with archive, leave and delete behind one row and delete admin-gated', () => {
-    const actions = between(SCREEN, 't.group.groupActions', '</ScenicBody>');
+    const actions = between(SCREEN, 't.group.groupActions', 'visible={exitOpen}');
     for (const key of ['t.clone.duplicateTitle', 't.clone.favoriteTitle', 'setExitOpen(true)']) {
       expect(actions).toContain(key);
     }
@@ -117,11 +146,7 @@ describe('what moved into the Edit group sheet', () => {
 });
 
 describe('group details on the page itself', () => {
-  const details = between(
-    SCREEN,
-    '<SectionHeader title={t.group.groupDetails} />',
-    't.group.groupActions',
-  );
+  const details = between(SCREEN, 'What the group is and how it pays', 't.group.groupActions');
 
   it('shows kind, tag, country, currency, trip rates and dates on the settings page', () => {
     for (const piece of [

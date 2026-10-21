@@ -46,6 +46,7 @@ import { friendlyError } from '@/lib/errors';
 import { rateAttribution } from '@/lib/fxLine';
 import { StaleFxRateError } from '@/lib/fxStale';
 import { RateAttribution } from '@/components/RateAttribution';
+import { RowTile } from '@/components/standard/RowTile';
 import {
   currencyMark,
   currencyName,
@@ -91,39 +92,68 @@ export function SettlesInRow({
   currency,
   locked,
   onChange,
+  tile = false,
 }: {
   currency: string;
   locked: boolean;
   onChange: (currency: string) => void;
+  /** A bare row for a shared card: a 48dp lavender tile with the currency mark, "INR · Locked for this group" under the title, and a chevron when it can change. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const [open, setOpen] = useState(false);
 
+  const row = tile ? (
+    <ListRow
+      title={t.fx.settlesIn}
+      subtitle={locked ? `${currency} · ${t.fx.settlesInLockedShort}` : currency}
+      leading={
+        <RowTile tint={theme.color.brandSoft}>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: theme.color.brand }}>
+            {currencyMark(currency) || currency}
+          </Text>
+        </RowTile>
+      }
+      trailing={
+        locked ? null : (
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
+        )
+      }
+      onPress={locked ? undefined : () => setOpen(true)}
+    />
+  ) : (
+    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+      <ListRow
+        title={t.fx.settlesIn}
+        subtitle={locked ? t.fx.settlesInLocked : t.fx.settlesInHint}
+        leading={<CurrencyMark code={currency} />}
+        trailing={
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text variant="body" tone="muted">
+              {currency}
+            </Text>
+            {locked ? null : (
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.textFaint}
+              />
+            )}
+          </Row>
+        }
+        onPress={locked ? undefined : () => setOpen(true)}
+      />
+    </Card>
+  );
+
   return (
     <>
-      <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        <ListRow
-          title={t.fx.settlesIn}
-          subtitle={locked ? t.fx.settlesInLocked : t.fx.settlesInHint}
-          leading={<CurrencyMark code={currency} />}
-          trailing={
-            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <Text variant="body" tone="muted">
-                {currency}
-              </Text>
-              {locked ? null : (
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.sm}
-                  color={theme.color.textFaint}
-                />
-              )}
-            </Row>
-          }
-          onPress={locked ? undefined : () => setOpen(true)}
-        />
-      </Card>
+      {row}
 
       {open ? (
         <CurrencySheet
