@@ -65,6 +65,7 @@ import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
+import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -78,7 +79,7 @@ import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { useSync } from '@/sync';
-import { displayName, GroupType, isViewer } from '@/data/types';
+import { displayName, GroupType } from '@/data/types';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 
 /**
@@ -252,7 +253,9 @@ export default function NewGroupScreen() {
   // People to add on Create — a typed name carries no address, a contact carries
   // whatever the phone had. Same shape either way, so the create loop treats
   // them alike.
-  const [ghosts, setGhosts] = useState<PickedContact[]>([]);
+  const [ghosts, setGhosts] = useState<(PickedContact & { readonly profileId?: string | null })[]>(
+    [],
+  );
   // People from your other groups to offer on the Suggested row: the
   // placeholders this screen can add, the ones in the most groups first, and
   // nobody already picked above.
@@ -422,16 +425,9 @@ export default function NewGroupScreen() {
     }
     // The people become the same removable chips a fresh group builds up — minus
     // whoever is making the clone (they are the new group's creator) and anyone
-    // who had left. Each carries whatever address the source row held, so the
-    // ones already on Waves can be tapped on their shoulder when re-added.
-    const seededGhosts: PickedContact[] = members
-      .filter((member) => !member.left_at)
-      .filter((member) => !isViewer(member, viewerId))
-      .map((member) => ({
-        name: displayName(member, viewerId),
-        email: member.invite_email ?? null,
-        phone: member.invite_phone ?? null,
-      }));
+    // who had left. A member on Waves is carried by their account, so they join
+    // the copy as themselves; a placeholder keeps whatever address it had.
+    const seededGhosts = membersToClone(members, viewerId);
     // Applied off the effect body, in a microtask: this is a one-time hydrate
     // from the local mirror, and putting the writes in a callback keeps the
     // React Compiler's no-synchronous-setState-in-effect rule satisfied (the
@@ -554,6 +550,9 @@ export default function NewGroupScreen() {
           memberId: randomUUID(),
           name: ghost.name,
           email: ghost.email,
+          // Set for a member cloned from another group who is on Waves: the
+          // server adds the account itself rather than a placeholder.
+          profileId: ghost.profileId ?? null,
           // Read a bare local number in this group's region before queueing it —
           // the country chosen for the group above, else the account/device — so
           // the server is never handed an unroutable number to refuse.
