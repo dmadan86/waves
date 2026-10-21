@@ -56,9 +56,8 @@ import { gregorianFormatter } from '@/lib/calendarGrid';
 import { tripDateFromIso } from '@/lib/tripDateRange';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
 import { MissingRatesCard } from '@/components/MissingRates';
-import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
 import { OtherCurrenciesSheetBody } from '@/components/OtherCurrenciesSheetBody';
-import { SettlesInRow, useGroupTripRateStore } from '@/components/TripRates';
+import { useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
 import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
@@ -1096,32 +1095,11 @@ export default function GroupSettingsScreen() {
               title={t.fx.otherCurrencies}
               subtitle={
                 tripRateStore.rows.length > 0
-                  ? tripRateStore.rows.map((row) => row.from).join(', ')
-                  : t.fx.noOtherCurrencies
+                  ? `${currency} · ${tripRateStore.rows.map((row) => row.from).join(', ')}`
+                  : fill(t.fx.currencyOnly, { currency })
               }
               trailing={chevron}
               onPress={() => setRatesOpen(true)}
-            />
-            {divider}
-            <SettlesInRow
-              tile
-              currency={currency}
-              locked={!canChangeCurrency}
-              onChange={(default_currency) =>
-                updateGroup.mutate(
-                  { default_currency },
-                  { onSuccess: () => setStatus(t.account.saved) },
-                )
-              }
-            />
-            {divider}
-            <SettleInCurrencyRow
-              tile
-              groupId={groupId}
-              currency={currency}
-              on={group.data.convert_to_group_currency === true}
-              isAdmin={isAdmin}
-              settlementCount={liveSettlementCount}
             />
             {divider}
             {/* The member's own short tag, shown instead of the automatic type tag
@@ -1425,6 +1403,17 @@ export default function GroupSettingsScreen() {
           canEdit={isAdmin}
           forTrip={groupType === GroupType.Trip}
           onClose={() => setRatesOpen(false)}
+          groupId={groupId}
+          currencyLocked={!canChangeCurrency}
+          onChangeCurrency={(default_currency) =>
+            updateGroup.mutate(
+              { default_currency },
+              { onSuccess: () => setStatus(t.account.saved) },
+            )
+          }
+          convertOn={group.data?.convert_to_group_currency === true}
+          isAdmin={isAdmin}
+          settlementCount={liveSettlementCount}
         />
       </Sheet>
 

@@ -5488,17 +5488,16 @@ export interface UiStrings {
     settlesIn: string;
     settlesInHint: string;
     settlesInLocked: string;
-    settlesInLockedShort: string;
     convertAllTitle: string;
     convertShort: string;
     /** The settings row listing the currencies pinned beside the group's own. */
     otherCurrencies: string;
-    noOtherCurrencies: string;
     /** The currency picker's leading cards: the group's pinned currencies. */
     groupCurrencies: string;
     settleInShort: string;
-    groupCurrency: string;
-    convertLine: string;
+    balancesIn: string;
+    groupCurrencyLine: string;
+    currencyOnly: string;
     tripRates: string;
     tripRatesBody: string;
     addRate: string;
@@ -10519,15 +10518,14 @@ const en: UiStrings = {
     settlesIn: 'Settles in',
     settlesInHint: 'Every balance is counted in this currency.',
     settlesInLocked: 'Locked — this group already has entries.',
-    settlesInLockedShort: 'Locked for this group',
     convertAllTitle: 'Settle in {currency} for all expenses',
     convertShort: 'Bills paid in other currencies count in {currency}',
     otherCurrencies: 'Other currencies',
-    noOtherCurrencies: 'None added',
     groupCurrencies: "This group's currencies",
-    settleInShort: 'Convert to {currency}',
-    groupCurrency: 'Group currency',
-    convertLine: 'Foreign bills count in {currency}',
+    settleInShort: 'Count foreign bills in {currency}',
+    balancesIn: 'Balances in {currency}',
+    groupCurrencyLine: '{name} · group currency',
+    currencyOnly: '{currency} only',
     tripRates: 'Trip rates',
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
@@ -15710,15 +15708,14 @@ const ta: UiStrings = {
     settlesIn: 'கணக்கு இந்த நாணயத்தில்',
     settlesInHint: 'இந்தக் குழுவின் எல்லா இருப்புகளும் இந்த நாணயத்தில் கணக்கிடப்படும்.',
     settlesInLocked: 'பூட்டப்பட்டது — ஏற்கெனவே பதிவுகள் உள்ளன.',
-    settlesInLockedShort: 'இந்தக் குழுவுக்குப் பூட்டப்பட்டது',
     convertAllTitle: 'எல்லாச் செலவுகளையும் {currency}-இல் கணக்கிடு',
     convertShort: 'வேறு நாணயங்களில் செலுத்திய பில்கள் {currency}-இல் கணக்கிடப்படும்',
     otherCurrencies: 'பிற நாணயங்கள்',
-    noOtherCurrencies: 'எதுவும் சேர்க்கப்படவில்லை',
     groupCurrencies: 'இந்தக் குழுவின் நாணயங்கள்',
-    settleInShort: '{currency} ஆக மாற்று',
-    groupCurrency: 'குழு நாணயம்',
-    convertLine: 'வெளிநாட்டு பில்கள் {currency}-இல் கணக்கிடப்படும்',
+    settleInShort: 'வெளிநாட்டு பில்களை {currency}-இல் கணக்கிடு',
+    balancesIn: '{currency}-இல் இருப்புகள்',
+    groupCurrencyLine: '{name} · குழு நாணயம்',
+    currencyOnly: '{currency} மட்டும்',
     tripRates: 'பயண மாற்று விகிதங்கள்',
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
@@ -20729,15 +20726,14 @@ const hi: UiStrings = {
     settlesIn: 'हिसाब इस मुद्रा में',
     settlesInHint: 'इस समूह का हर बैलेंस इसी मुद्रा में गिना जाता है।',
     settlesInLocked: 'बंद — इस समूह में पहले से एंट्री हैं।',
-    settlesInLockedShort: 'इस समूह के लिए बंद',
     convertAllTitle: 'सभी खर्चों का हिसाब {currency} में',
     convertShort: 'दूसरी मुद्राओं में चुकाए बिल {currency} में गिने जाते हैं',
     otherCurrencies: 'अन्य मुद्राएँ',
-    noOtherCurrencies: 'कोई नहीं जोड़ी',
     groupCurrencies: 'इस समूह की मुद्राएँ',
-    settleInShort: '{currency} में बदलें',
-    groupCurrency: 'समूह की मुद्रा',
-    convertLine: 'विदेशी बिल {currency} में गिने जाते हैं',
+    settleInShort: 'विदेशी बिल {currency} में गिनें',
+    balancesIn: '{currency} में बैलेंस',
+    groupCurrencyLine: '{name} · समूह की मुद्रा',
+    currencyOnly: 'सिर्फ़ {currency}',
     tripRates: 'यात्रा दरें',
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
@@ -26361,15 +26357,14 @@ const ar: UiStrings = {
     settlesIn: 'التسوية بـ',
     settlesInHint: 'كل رصيد في هذه المجموعة يُحسب بهذه العملة.',
     settlesInLocked: 'مقفل — في المجموعة قيود بالفعل.',
-    settlesInLockedShort: 'مقفل لهذه المجموعة',
     convertAllTitle: 'التسوية بعملة {currency} لكل المصروفات',
     convertShort: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}',
     otherCurrencies: 'عملات أخرى',
-    noOtherCurrencies: 'لم تُضف أي عملة',
     groupCurrencies: 'عملات هذه المجموعة',
-    settleInShort: 'التحويل إلى {currency}',
-    groupCurrency: 'عملة المجموعة',
-    convertLine: 'الفواتير الأجنبية تُحتسب بـ {currency}',
+    settleInShort: 'احتساب الفواتير الأجنبية بـ {currency}',
+    balancesIn: 'الأرصدة بـ {currency}',
+    groupCurrencyLine: '{name} · عملة المجموعة',
+    currencyOnly: '{currency} فقط',
     tripRates: 'أسعار الرحلة',
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',

@@ -15,12 +15,10 @@
  */
 
 import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { Button, Card, iconSize, ListRow, Text, Toggle, useTheme } from '@waves/ui';
+import { Button, Card, ListRow, Text, Toggle, useTheme } from '@waves/ui';
 
-import { RowTile } from '@/components/standard/RowTile';
 import { useGroupCurrencyReadiness, useSetGroupConvert } from '@/data/hooks';
 import { isDemoGroupId } from '@/demo/ids';
 import { fill, plural, useStrings } from '@/i18n';
@@ -41,7 +39,7 @@ export function SettleInCurrencyRow({
   isAdmin: boolean;
   /** Settlements in the group that are not cancelled. */
   settlementCount: number;
-  /** A bare row for a shared card: a lavender sync tile, the short subtitle, and no card of its own. */
+  /** The compact one-line switch row for the Other currencies sheet. */
   tile?: boolean;
 }) {
   const theme = useTheme();
@@ -91,20 +89,13 @@ export function SettleInCurrencyRow({
     });
   };
 
-  const title = fill(tile ? t.fx.settleInShort : t.fx.convertTitle, { currency });
+  const title = fill(t.fx.settleInShort, { currency });
   const body = (
     <>
       <ListRow
         title={title}
         fit={tile}
-        subtitle={fill(tile ? t.fx.convertLine : t.fx.convertBody, { currency })}
-        leading={
-          tile ? (
-            <RowTile tint={theme.color.brandSoft}>
-              <Ionicons name="sync-outline" size={iconSize.xl} color={theme.color.brand} />
-            </RowTile>
-          ) : undefined
-        }
+        subtitle={tile ? undefined : fill(t.fx.convertBody, { currency })}
         trailing={
           <Toggle
             value={on}
@@ -148,7 +139,19 @@ export function SettleInCurrencyRow({
       ) : null}
     </>
   );
-  if (tile) return body;
+  if (tile) {
+    return (
+      <View
+        style={{
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        {body}
+      </View>
+    );
+  }
   return (
     <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
       {body}

@@ -14,7 +14,8 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { iconSize, Row, Text, useTheme } from '@waves/ui';
 
-import { type TripRateStore, TripRatesCard } from '@/components/TripRates';
+import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
+import { SettlesInRow, type TripRateStore, TripRatesCard } from '@/components/TripRates';
 import { useStrings } from '@/i18n';
 
 export function OtherCurrenciesSheetBody({
@@ -23,12 +24,26 @@ export function OtherCurrenciesSheetBody({
   canEdit,
   forTrip,
   onClose,
+  groupId,
+  currencyLocked,
+  onChangeCurrency,
+  convertOn,
+  isAdmin,
+  settlementCount,
 }: {
   store: TripRateStore;
   groupCurrency: string;
   canEdit: boolean;
   forTrip: boolean;
   onClose: () => void;
+  groupId: string;
+  /** True once the group currency can no longer change (entries exist, or not an admin). */
+  currencyLocked: boolean;
+  onChangeCurrency: (currency: string) => void;
+  /** Whether foreign bills already count in the group currency; the switch only shows while off. */
+  convertOn: boolean;
+  isAdmin: boolean;
+  settlementCount: number;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -86,6 +101,25 @@ export function OtherCurrenciesSheetBody({
         contentContainerStyle={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.xl }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={{ gap: theme.spacing.sm }}>
+          <SettlesInRow
+            tile
+            currency={groupCurrency}
+            locked={currencyLocked}
+            onChange={onChangeCurrency}
+          />
+          {convertOn ? null : (
+            <SettleInCurrencyRow
+              tile
+              groupId={groupId}
+              currency={groupCurrency}
+              on={false}
+              isAdmin={isAdmin}
+              settlementCount={settlementCount}
+            />
+          )}
+        </View>
+
         <TripRatesCard
           embedded
           cards

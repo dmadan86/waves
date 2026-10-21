@@ -42,7 +42,7 @@ import { flagFor } from '@/components/expense/AmountHeader';
 import { CurrencyChoices, CurrencySheet } from '@/components/expense/CurrencySheet';
 import { COMMON_CURRENCIES } from '@/lib/currencyChoices';
 import { useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { rateAttribution } from '@/lib/fxLine';
 import { StaleFxRateError } from '@/lib/fxStale';
@@ -202,35 +202,65 @@ export function SettlesInRow({
   currency: string;
   locked: boolean;
   onChange: (currency: string) => void;
-  /** A bare row for a shared card: a 44dp circular lavender tile with the currency mark, "INR · Locked for this group" under the title, and a chevron when it can change. */
+  /** The Other currencies sheet's compact card: flag tile, "Balances in INR", "Indian Rupee · group currency", and a chevron only when it can change. */
   tile?: boolean;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const [open, setOpen] = useState(false);
 
+  const name = currencyName(currency, locale);
+  const flag = flagFor(currency);
   const row = tile ? (
-    <ListRow
-      title={t.fx.groupCurrency}
-      subtitle={locked ? `${currency} · ${t.fx.settlesInLockedShort}` : currency}
-      leading={
-        <RowTile tint={theme.color.brandSoft}>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: theme.color.brand }}>
-            {currencyMark(currency) || currency}
+    <Pressable
+      accessibilityRole={locked ? undefined : 'button'}
+      accessibilityLabel={fill(t.fx.balancesIn, { currency })}
+      disabled={locked}
+      onPress={() => setOpen(true)}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.brandSoft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: theme.radius.md,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+        }}
+      >
+        {flag ? (
+          <Text style={{ fontSize: 26, lineHeight: 32 }}>{flag}</Text>
+        ) : (
+          <Text variant="micro" style={{ fontWeight: '700' }}>
+            {currency}
           </Text>
-        </RowTile>
-      }
-      trailing={
-        locked ? null : (
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.md}
-            color={theme.color.textMuted}
-          />
-        )
-      }
-      onPress={locked ? undefined : () => setOpen(true)}
-    />
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="subheading" numberOfLines={1}>
+          {fill(t.fx.balancesIn, { currency })}
+        </Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {fill(t.fx.groupCurrencyLine, { name: name ?? currency })}
+        </Text>
+      </View>
+      {locked ? null : (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textMuted}
+        />
+      )}
+    </Pressable>
   ) : (
     <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
       <ListRow

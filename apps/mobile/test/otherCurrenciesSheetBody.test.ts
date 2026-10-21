@@ -34,6 +34,15 @@ describe('OtherCurrenciesSheetBody', () => {
     expect(RATES).toContain('name="ellipsis-vertical"');
   });
 
+  it('leads with the group currency row, and shows the convert switch only while off', () => {
+    expect(BODY).toMatch(/<SettlesInRow\s+tile/);
+    expect(BODY).toMatch(/convertOn \? null : \(\s*<SettleInCurrencyRow/);
+    expect(BODY.indexOf('<SettlesInRow')).toBeLessThan(BODY.indexOf('<TripRatesCard'));
+    // Locked: not pressable, no chevron.
+    expect(RATES).toContain('disabled={locked}');
+    expect(RATES).toContain('{locked ? null : (');
+  });
+
   it('states only what is true about rates, in every language', () => {
     expect(BODY).toContain('t.fx.ratesInfoFetched');
     expect(BODY).toContain('t.fx.ratesInfoKept');

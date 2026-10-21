@@ -85,7 +85,7 @@ describe('settings page layout', () => {
       't.fx.otherCurrencies}\n              subtitle',
       'setRatesOpen(true)',
     );
-    expect(row).toContain('t.fx.noOtherCurrencies');
+    expect(row).toContain('t.fx.currencyOnly');
     expect(row).toContain('tripRateStore.rows');
     // Not inside the trip/event-only block.
     expect(between(SCREEN, '{hasDates ? (', ') : null}')).not.toContain('t.fx.otherCurrencies');
@@ -93,15 +93,18 @@ describe('settings page layout', () => {
   });
 
   it('keeps the tag as one row in the card that opens a sheet', () => {
-    const card = between(SCREEN, '<SettlesInRow\n              tile', '</StandardCard>');
+    const card = between(SCREEN, 't.fx.otherCurrencies}', '</StandardCard>');
     expect(card).toContain('onPress={() => setTagOpen(true)}');
     expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<TagSheetBody');
   });
 
-  it('keeps settles in and settle-in-currency as tiled rows in the same card, and no country row', () => {
+  it('folds group currency and the convert switch into the Other currencies sheet, and no country row', () => {
     const card = between(SCREEN, 't.fx.otherCurrencies}', '</StandardCard>');
-    expect(card).toContain('<SettlesInRow\n              tile');
-    expect(card).toContain('<SettleInCurrencyRow\n              tile');
+    expect(card).not.toContain('<SettlesInRow');
+    expect(card).not.toContain('<SettleInCurrencyRow');
+    const sheet = between(SCREEN, 'visible={ratesOpen}', '</Sheet>');
+    expect(sheet).toContain('currencyLocked={!canChangeCurrency}');
+    expect(sheet).toContain('convertOn=');
     expect(SCREEN).not.toContain('CountryRow');
     expect(SCREEN).not.toContain('country_code');
     expect(SCREEN).not.toContain('t.fx.section');
@@ -123,21 +126,22 @@ describe('settings page layout', () => {
     expect(body).toContain('flexShrink: 1');
   });
 
-  it('names the tile rows Group currency and Convert to {currency}', () => {
+  it('names the sheet rows Balances in {currency} and Count foreign bills in {currency}', () => {
     const rates = readFileSync(join(process.cwd(), 'src/components/TripRates.tsx'), 'utf8');
-    expect(rates).toContain('title={t.fx.groupCurrency}');
-    expect(STRINGS_BY_LANGUAGE.en.fx.settleInShort).toBe('Convert to {currency}');
-    expect(STRINGS_BY_LANGUAGE.en.fx.convertLine).toBe('Foreign bills count in {currency}');
+    expect(rates).toContain('t.fx.balancesIn');
+    expect(rates).toContain('t.fx.groupCurrencyLine');
+    expect(STRINGS_BY_LANGUAGE.en.fx.settleInShort).toBe('Count foreign bills in {currency}');
+    expect(STRINGS_BY_LANGUAGE.en.fx.balancesIn).toBe('Balances in {currency}');
   });
 
   it('has the new strings in every language', () => {
     for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
       expect(strings.fx.otherCurrencies).toBeTruthy();
-      expect(strings.fx.noOtherCurrencies).toBeTruthy();
+      expect(strings.fx.currencyOnly).toContain('{currency}');
+      expect(strings.fx.balancesIn).toContain('{currency}');
+      expect(strings.fx.groupCurrencyLine).toContain('{name}');
       expect(strings.fx.groupCurrencies).toBeTruthy();
       expect(strings.fx.settleInShort).toContain('{currency}');
-      expect(strings.fx.convertLine).toContain('{currency}');
-      expect(strings.fx.groupCurrency).toBeTruthy();
       expect(strings.extras.datesRow).toBeTruthy();
     }
   });
@@ -225,8 +229,6 @@ describe('group details on the page itself', () => {
       'setTypeOpen(true)',
       'setTagOpen(true)',
       't.fx.otherCurrencies',
-      '<SettlesInRow',
-      '<SettleInCurrencyRow',
       '<OtherCurrenciesSheetBody',
       '<MissingRatesCard',
       '<DatesSheetBody',
@@ -238,7 +240,7 @@ describe('group details on the page itself', () => {
   it('keeps the permission checks', () => {
     expect(details).toContain('canEdit={isAdmin}');
     expect(details).toContain('isAdmin={isAdmin}');
-    expect(details).toContain('locked={!canChangeCurrency}');
+    expect(details).toContain('currencyLocked={!canChangeCurrency}');
   });
 });
 
