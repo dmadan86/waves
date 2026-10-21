@@ -43,6 +43,8 @@ const ALLOWLIST: Record<string, string> = {
   'components/EventPlanSummary.tsx': 'Only mounted by the plan screen behind showsVendorTools.',
   'app/new-group.tsx':
     'Creating a group: every Event control renders only once the Event type is picked.',
+  'components/EventTemplateSheetBody.tsx':
+    'Sheet opened only from the Event template row, which new-group draws once the Event type is picked.',
   'components/TripDates.tsx':
     'Shared dates card; the Event wording is chosen by the forEvent prop from new-group.',
   'components/DatesSheetBody.tsx':
