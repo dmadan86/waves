@@ -4731,12 +4731,6 @@ export interface UiStrings {
     notInFile: string;
     pickYouFirst: string;
     tapTagToLink: string;
-    whoIsWho: string;
-    whoIsWhoNote: string;
-    /**
-     * Screen-reader label for a who-is-who row. The visible row is a name, a
-     * balance and a badge, none of which says the row is tappable.
-     */
     personIsMapped: string;
     addAsNew: string;
     newPerson: string;
@@ -9787,9 +9781,6 @@ const en: UiStrings = {
     notInFile: "I'm not in this file",
     pickYouFirst: 'Pick which one is you first, or choose "I\'m not in this file".',
     tapTagToLink: 'Tap a tag to link someone already in the group.',
-    whoIsWho: 'Who is who',
-    whoIsWhoNote:
-      'The file names people; this group has members. Nothing is imported until every name has somebody against it.',
     personIsMapped: '{name} is {who}. Tap to change.',
     addAsNew: 'Add as new',
     newPerson: 'New person',
@@ -14940,9 +14931,6 @@ const ta: UiStrings = {
     pickYouFirst:
       'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
     tapTagToLink: 'குழுவில் ஏற்கனவே உள்ளவரை இணைக்க ஒரு குறியைத் தட்டுங்கள்.',
-    whoIsWho: 'யார் யார்',
-    whoIsWhoNote:
-      'கோப்பில் பெயர்கள் உள்ளன; இந்தக் குழுவில் உறுப்பினர்கள் உள்ளனர். ஒவ்வொரு பெயருக்கும் ஒருவரைக் குறிக்கும் வரை எதுவும் இறக்குமதி ஆகாது.',
     personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
     newPerson: 'புதிய நபர்',
@@ -20005,9 +19993,6 @@ const hi: UiStrings = {
     notInFile: 'मैं इस फ़ाइल में नहीं हूँ',
     pickYouFirst: 'पहले चुनें कि आप कौन हैं, या "मैं इस फ़ाइल में नहीं हूँ" चुनें।',
     tapTagToLink: 'समूह के किसी मौजूदा सदस्य से जोड़ने के लिए टैग पर टैप करें।',
-    whoIsWho: 'कौन कौन है',
-    whoIsWhoNote:
-      'फ़ाइल में नाम हैं; इस समूह में सदस्य हैं। जब तक हर नाम के सामने कोई नहीं होगा, कुछ भी आयात नहीं होगा।',
     personIsMapped: '{name} यहाँ {who} हैं। बदलने के लिए टैप करें।',
     addAsNew: 'नए के रूप में जोड़ें',
     newPerson: 'नया व्यक्ति',
@@ -25499,9 +25484,6 @@ const ar: UiStrings = {
     notInFile: 'لستُ في هذا الملف',
     pickYouFirst: 'اختر أولًا من تكون، أو اختر «لستُ في هذا الملف».',
     tapTagToLink: 'اضغط على وسم لربط شخص موجود في المجموعة.',
-    whoIsWho: 'من هو من',
-    whoIsWhoNote:
-      'الملف يذكر أسماء؛ وهذه المجموعة لها أعضاء. لا يُستورد شيء حتى يقابل كل اسمٍ شخصٌ ما.',
     personIsMapped: '{name} هو {who} هنا. اضغط للتغيير.',
     addAsNew: 'أضفه كشخص جديد',
     newPerson: 'شخص جديد',
