@@ -31,6 +31,7 @@ import {
 import {
   Button,
   Callout,
+  IconButton,
   directionalIcon,
   iconSize,
   MoneyText,
@@ -387,6 +388,9 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
   const theme = useTheme();
   const { t } = useStrings();
   const {
+    groupId,
+    group,
+    groupName,
     activeFilter,
     addRate,
     amountsText,
@@ -434,6 +438,10 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
             return (
               <OwedPersonRow
                 key={debts.memberId}
+                groupId={groupId}
+                groupName={groupName}
+                joinToken={group.data?.join_token ?? null}
+                memberId={debts.memberId}
                 member={person}
                 name={name}
                 ghost={ghostFor(person)}
@@ -1042,6 +1050,10 @@ function PersonTile({
  * off-app message names every amount and carries the group's join link.
  */
 function OwedPersonRow({
+  groupId,
+  groupName,
+  joinToken,
+  memberId,
   member,
   name,
   ghost,
@@ -1051,6 +1063,10 @@ function OwedPersonRow({
   disabled,
   onPress,
 }: {
+  groupId: string;
+  groupName: string;
+  joinToken: string | null;
+  memberId: string;
   member?: MemberRow;
   name: string;
   ghost: boolean;
@@ -1060,6 +1076,7 @@ function OwedPersonRow({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const theme = useTheme();
   const { t } = useStrings();
   const joined = Boolean(member && !isGhost(member));
   const left = hasLeft(member);
@@ -1071,16 +1088,29 @@ function OwedPersonRow({
     t.ghostRemind.comma,
   );
 
+  const lead = amounts[0];
+  const remind = useRemind({
+    groupId,
+    memberId,
+    currency: lead?.currency ?? '',
+    joined,
+    phone: member?.invite_phone ?? null,
+    joinToken,
+    name,
+    groupName,
+    amountText,
+  });
+
   const row = owedRowModel({
     joined,
     hasMember: Boolean(member),
     left,
     pending,
-    reminded: false,
+    reminded: remind.reminded,
   });
   const status =
     row.status === OwedStatus.Feedback
-      ? t.people.reminded
+      ? (remind.outcome?.label ?? t.people.reminded)
       : row.status === OwedStatus.Pending
         ? t.misc.settleStatusPending
         : row.status === OwedStatus.Left
@@ -1089,15 +1119,27 @@ function OwedPersonRow({
             ? t.notJoinedYet
             : null;
 
-  // One Record pill: they paid me, outside the app. Reminding is on their row
-  // under Everyone's balance, which every member has.
+  // Record is the one primary button: they paid me, outside the app. Remind is a
+  // small bell beside it, so every debt owed to you can be reminded here whatever
+  // the member's net balance or currency.
   const action = (
-    <PayPill
-      label={t.misc.settleRecord}
-      accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
-      disabled={disabled}
-      onPress={onPress}
-    />
+    <>
+      {row.remind ? (
+        <IconButton
+          label={fill(t.misc.settleRemindA11y, { name, amount: amountText })}
+          onPress={remind.open}
+        >
+          <Ionicons name="notifications-outline" size={iconSize.md} color={theme.color.brand} />
+        </IconButton>
+      ) : null}
+      <PayPill
+        label={t.misc.settleRecord}
+        accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
+        disabled={disabled}
+        onPress={onPress}
+      />
+      {remind.sheet}
+    </>
   );
 
   return (

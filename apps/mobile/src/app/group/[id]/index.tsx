@@ -785,7 +785,8 @@ export default function GroupScreen() {
   const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
   // Settling up lives on the Balances tab: its payments, history and confirm sheet.
-  const settleFlow = useSettleFlow(groupId);
+  // Once a payment is recorded the user stays here, on the balances that moved.
+  const settleFlow = useSettleFlow(groupId, () => setTab(Tab.Balances));
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();

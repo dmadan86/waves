@@ -67,3 +67,20 @@ describe('settle deep links map to Balances', () => {
     }
   });
 });
+
+describe('settling keeps you in the group', () => {
+  it('passes onRecorded so recording does not router.back() out of the group', () => {
+    expect(read('app/group/[id]/index.tsx')).toMatch(
+      /useSettleFlow\(groupId, \(\) => setTab\(Tab\.Balances\)\)/,
+    );
+  });
+
+  it('keeps Remind on every owed-to-you payment row beside the one Record button', () => {
+    const body = read('components/settle/SettleBody.tsx');
+    const row = body.slice(body.indexOf('function OwedPersonRow'));
+    expect(row).toMatch(/useRemind\(/);
+    expect(row).toMatch(/onPress=\{remind\.open\}/);
+    expect(row).toMatch(/t\.misc\.settleRecord\b/);
+    expect(row).toMatch(/\{remind\.sheet\}/);
+  });
+});
