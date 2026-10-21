@@ -15,10 +15,12 @@
  */
 
 import { useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { Button, Card, ListRow, Text, Toggle, useTheme } from '@waves/ui';
+import { Button, Card, iconSize, ListRow, Text, Toggle, useTheme } from '@waves/ui';
 
+import { RowTile } from '@/components/standard/RowTile';
 import { useGroupCurrencyReadiness, useSetGroupConvert } from '@/data/hooks';
 import { isDemoGroupId } from '@/demo/ids';
 import { fill, plural, useStrings } from '@/i18n';
@@ -31,6 +33,7 @@ export function SettleInCurrencyRow({
   on,
   isAdmin,
   settlementCount,
+  tile = false,
 }: {
   groupId: string;
   currency: string;
@@ -38,6 +41,8 @@ export function SettleInCurrencyRow({
   isAdmin: boolean;
   /** Settlements in the group that are not cancelled. */
   settlementCount: number;
+  /** A bare row for a shared card: a pink sync tile, the short subtitle, and no card of its own. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -86,12 +91,19 @@ export function SettleInCurrencyRow({
     });
   };
 
-  const title = fill(t.fx.convertTitle, { currency });
-  return (
-    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+  const title = fill(tile ? t.fx.convertAllTitle : t.fx.convertTitle, { currency });
+  const body = (
+    <>
       <ListRow
         title={title}
-        subtitle={fill(t.fx.convertBody, { currency })}
+        subtitle={fill(tile ? t.fx.convertShort : t.fx.convertBody, { currency })}
+        leading={
+          tile ? (
+            <RowTile tint={theme.scheme === 'dark' ? '#E5484D38' : '#FDE8EA'}>
+              <Ionicons name="sync-outline" size={iconSize.xl} color={theme.color.negative} />
+            </RowTile>
+          ) : undefined
+        }
         trailing={
           <Toggle
             value={on}
@@ -133,6 +145,12 @@ export function SettleInCurrencyRow({
           ) : null}
         </View>
       ) : null}
+    </>
+  );
+  if (tile) return body;
+  return (
+    <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+      {body}
     </Card>
   );
 }
