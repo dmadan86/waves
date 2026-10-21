@@ -11,7 +11,7 @@
 
 import { guessCategory, resolveCategory, type CategoryMeta, type TintName } from '@waves/core';
 
-import { verbIcon, verbTint } from '@/data/activity';
+import { groupChangeIcon, verbIcon, verbTint } from '@/data/activity';
 import type { HomeHero } from '@/lib/homeHeroPure';
 
 /** Ionicons carries almost every glyph; a fuel pump is only in Material
@@ -70,14 +70,22 @@ export function activityCategory(
   };
 }
 
-/** The tile glyph for an event, given the category it names (if any). */
+/**
+ * The tile glyph for an event, given the category it names (if any). A
+ * settings change (`group_updated`) draws the setting that moved — `field` is
+ * the row's `payload.field` — rather than one cog for all of them.
+ */
 export function activityTileGlyph(
   verb: string,
   objectType: string,
   category: RowCategory | null,
+  field: string | null = null,
 ): RowGlyph {
   const billVerb = verb === 'added' || verb === 'restored';
   if (objectType === 'expense' && billVerb && category) return category.glyph;
+  if (verb === 'group_updated') {
+    return { family: 'ion', name: groupChangeIcon(field), tint: verbTint(verb) };
+  }
   return { family: 'ion', name: verbIcon(verb), tint: verbTint(verb) };
 }
 
