@@ -43,6 +43,7 @@ import {
 import { activityLabels } from '@/data/activityLabels';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
@@ -123,11 +124,30 @@ type RowContext = {
   labels: ActivityLabels;
   labelForBuiltin: (id: string) => string | undefined;
   groupTagLabels: GroupTypeTagLabels;
+  /** Opened from one group: the group kind is redundant on every row. */
+  scoped: boolean;
 };
 
 // Resolve everything a row shows, once, at list-build time. `describeActivity`
 // is called once for the spoken label; the visible title uses the lighter
 // `activityHeadline`; `rtf` is the hoisted formatter, never rebuilt per row.
+/**
+ * The meta tag of a row in one group's own feed, where the group's kind says
+ * nothing: the expense's description ("petrol"), else its category, else none.
+ */
+function scopedTag(
+  description: string,
+  category: ReturnType<typeof activityCategory>,
+): RowView['tag'] {
+  const text = description.trim();
+  if (text) {
+    return category
+      ? { ...category.glyph, label: text }
+      : { family: 'ion', name: 'pricetag-outline', label: text, tint: null };
+  }
+  return category ? { ...category.glyph, label: category.label } : null;
+}
+
 function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   const g = entry.group;
   const description =
@@ -155,16 +175,18 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
     glyph,
-    tag: category
-      ? { ...category.glyph, label: category.label }
-      : kind
-        ? {
-            family: 'ion',
-            name: kind.custom ? 'pricetag' : GROUP_TYPE_ICON[kind.type],
-            label: kind.label,
-            tint: null,
-          }
-        : null,
+    tag: ctx.scoped
+      ? scopedTag(description, category)
+      : category
+        ? { ...category.glyph, label: category.label }
+        : kind
+          ? {
+              family: 'ion',
+              name: kind.custom ? 'pricetag' : GROUP_TYPE_ICON[kind.type],
+              label: kind.label,
+              tint: null,
+            }
+          : null,
     money: parseMoney(entry.payload),
     stake: entry.stake,
     amountTone: amount.tone,
@@ -462,6 +484,7 @@ export default function ActivityScreen() {
       labels: activityLabels(locale, t.activityScreen),
       labelForBuiltin: (id) => (t.categories as Record<string, string | undefined>)[id],
       groupTagLabels,
+      scoped: !!onlyGroup,
     };
     const rows: FeedRow[] = [];
     for (const section of groupByDay(visibleEntries)) {
@@ -480,7 +503,7 @@ export default function ActivityScreen() {
       });
     }
     return rows;
-  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels]);
+  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);
 
   // The active range worded for the chip: one date when start and end share a
   // day, "start – end" otherwise. Formatted in the current locale.
@@ -500,14 +523,24 @@ export default function ActivityScreen() {
     { value: FeedKind.All, label: t.activityScreen.all, icon: 'list' },
     { value: FeedKind.Expenses, label: t.activityScreen.expenses, icon: 'wallet-outline' },
     { value: FeedKind.Edits, label: t.activityScreen.edits, icon: 'create-outline' },
-    { value: FeedKind.Trip, label: t.activityScreen.trip, icon: 'airplane-outline' },
+    // One group's own feed has no use for a group-kind chip.
+    ...(onlyGroup
+      ? []
+      : [
+          {
+            value: FeedKind.Trip,
+            label: t.activityScreen.trip,
+            icon: 'airplane-outline' as const,
+          },
+        ]),
   ];
 
   // The scenic band behind the title: Home's own picture for the hour. Pale
   // skies take dark ink and the status bar to match; the deep scenes keep white
   // ink under the same top scrim Home uses.
   const hero = useHomeHero();
-  const darkInk = heroWantsDarkInk(hero);
+  // One group's feed wears the group screen's hero: always white ink over the scrim.
+  const darkInk = !onlyGroup && heroWantsDarkInk(hero);
   useHeroStatusBar(darkInk ? 'dark' : 'light');
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -515,6 +548,13 @@ export default function ActivityScreen() {
   // `cover` by hand, anchored to the bottom, as Home's hero does.
   const scale = Math.max(windowWidth / PHOTO_W, photoH / PHOTO_H);
   const heroInk = darkInk ? '#1B1840' : '#FFFFFF';
+  const inkShadow = darkInk
+    ? {}
+    : {
+        textShadowColor: 'rgba(0,0,0,0.45)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+      };
   const circle = (
     label: string,
     onPress: () => void,
@@ -578,16 +618,36 @@ export default function ActivityScreen() {
           <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color="#1B1840" />,
         )}
         <View style={{ flex: 1 }}>
+          {shownGroup ? (
+            <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+              <GroupMark emoji={shownGroup.cover_emoji} size={24} color={heroInk} />
+              <Text
+                numberOfLines={1}
+                style={{
+                  flexShrink: 1,
+                  fontSize: 24,
+                  lineHeight: 30,
+                  fontWeight: '800',
+                  color: heroInk,
+                  ...inkShadow,
+                }}
+              >
+                {shownGroup.name}
+              </Text>
+            </Row>
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: heroInk }}
+            >
+              {t.activity}
+            </Text>
+          )}
           <Text
             numberOfLines={1}
-            style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: heroInk }}
+            style={{ fontSize: 13, lineHeight: 18, color: heroInk, ...inkShadow }}
           >
-            {t.activity}
-          </Text>
-          <Text numberOfLines={1} style={{ fontSize: 13, lineHeight: 18, color: heroInk }}>
-            {shownGroup
-              ? [shownGroup.cover_emoji, shownGroup.name].filter(Boolean).join(' ')
-              : t.activityScreen.subtitle}
+            {shownGroup ? t.activity : t.activityScreen.subtitle}
           </Text>
         </View>
         {/* A long feed is easier to read a day or a span at a time — the
@@ -797,7 +857,7 @@ export default function ActivityScreen() {
             <Ionicons name="notifications-outline" size={iconSize.xxl} color={theme.color.brand} />
           }
           action={
-            hasGroups ? (
+            onlyGroup ? undefined : hasGroups ? (
               <Button label={t.addExpense} onPress={() => router.push('/capture')} />
             ) : (
               <Button label={t.newGroup} onPress={() => router.push('/new-group')} />
