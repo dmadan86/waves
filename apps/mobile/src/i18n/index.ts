@@ -4722,6 +4722,7 @@ export interface UiStrings {
     whichGroup: string;
     groupNumber: string;
     whichOneIsYou: string;
+    isThisYou: string;
     tapYourName: string;
     weThinkYou: string;
     thisIsMe: string;
@@ -9776,6 +9777,7 @@ const en: UiStrings = {
     chooseDifferentFile: 'Choose a different file',
     whichGroup: 'Which group',
     groupNumber: 'Group {n}',
+    isThisYou: 'Is this you?',
     whichOneIsYou: 'Which one is you?',
     tapYourName: 'Tap your name in the list.',
     weThinkYou: 'We think this is you. Tap to change.',
@@ -14927,6 +14929,7 @@ const ta: UiStrings = {
     chooseDifferentFile: 'வேறு கோப்பைத் தேர்வு செய்',
     whichGroup: 'எந்தக் குழு',
     groupNumber: 'குழு {n}',
+    isThisYou: 'இது நீங்களா?',
     whichOneIsYou: 'இதில் நீங்கள் யார்?',
     tapYourName: 'பட்டியலில் உங்கள் பெயரைத் தட்டுங்கள்.',
     weThinkYou: 'இது நீங்கள்தான் என நினைக்கிறோம். மாற்றத் தட்டுங்கள்.',
@@ -19992,6 +19995,7 @@ const hi: UiStrings = {
     chooseDifferentFile: 'दूसरी फ़ाइल चुनें',
     whichGroup: 'कौन-सा समूह',
     groupNumber: 'समूह {n}',
+    isThisYou: 'क्या यह आप हैं?',
     whichOneIsYou: 'इनमें आप कौन हैं?',
     tapYourName: 'सूची में अपने नाम पर टैप करें।',
     weThinkYou: 'हमें लगता है यह आप हैं। बदलने के लिए टैप करें।',
@@ -25485,6 +25489,7 @@ const ar: UiStrings = {
     chooseDifferentFile: 'اختر ملفًا آخر',
     whichGroup: 'أي مجموعة',
     groupNumber: 'مجموعة {n}',
+    isThisYou: 'هل هذا أنت؟',
     whichOneIsYou: 'أيٌّ منهم أنت؟',
     tapYourName: 'اضغط على اسمك في القائمة.',
     weThinkYou: 'نظن أن هذا أنت. اضغط للتغيير.',

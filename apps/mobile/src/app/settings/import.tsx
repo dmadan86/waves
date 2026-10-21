@@ -64,7 +64,7 @@ import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
-import { importGate, suggestSelf } from '@/lib/importSelf';
+import { importGate, maybeSelf, suggestSelf } from '@/lib/importSelf';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -182,6 +182,7 @@ export default function ImportScreen() {
   const [suggested, setSuggested] = useState<string | null>(null);
   /** Import was tapped before "you" was answered: show the question, loudly. */
   const [needYou, setNeedYou] = useState(false);
+  const hintedMe = parsed ? maybeSelf(parsed.people, profile?.display_name) : null;
   const scrollRef = useRef<ScrollView>(null);
   const youSectionY = useRef(0);
   /**
@@ -817,7 +818,7 @@ export default function ImportScreen() {
                         <Pressable
                           onPress={() => chooseMe(person)}
                           accessibilityRole="radio"
-                          accessibilityState={{ selected: isMe }}
+                          accessibilityState={{ checked: isMe }}
                           accessibilityLabel={
                             isMe
                               ? t.importLedger.personIsYou.replace('{name}', person)
@@ -846,6 +847,11 @@ export default function ImportScreen() {
                             >
                               {person}
                             </Text>
+                            {!isMe && !claimedByMe && !notInFile && person === hintedMe ? (
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: accent }}>
+                                {t.importLedger.isThisYou}
+                              </Text>
+                            ) : null}
                             <MoneyText
                               amount={parsed.balances[person] ?? 0n}
                               currency={parsed.currency}
@@ -914,7 +920,7 @@ export default function ImportScreen() {
                   <Pressable
                     onPress={chooseNotInFile}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: notInFile }}
+                    accessibilityState={{ checked: notInFile }}
                     style={({ pressed }) => ({
                       flexDirection: 'row',
                       alignItems: 'center',
