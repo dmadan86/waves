@@ -93,6 +93,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
+import { SettleFirstDialog } from '@/components/SettleFirstDialog';
 import { useDialog } from '@/lib/dialog';
 import { type DialogRow } from '@/lib/dialogQueue';
 import {
@@ -135,7 +136,7 @@ export default function GroupSettingsScreen() {
   // rows sat behind the bar and could not be reached.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { confirm, notify } = useDialog();
+  const { confirm } = useDialog();
   // Why the group is still here. It sits under the delete row rather than
   // fading, because a refused delete leaves the screen looking exactly as it
   // did and a line that is gone in three seconds is a tap that did nothing.
@@ -173,6 +174,7 @@ export default function GroupSettingsScreen() {
   // The "Add someone" sheet, opened from the "+ Add" pill beside the member count.
   const [addOpen, setAddOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [settleFirstOpen, setSettleFirstOpen] = useState(false);
   // Who was just added by name, shown in the sheet so adding several people in
   // a row has an answer each time.
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -496,11 +498,16 @@ export default function GroupSettingsScreen() {
     (row) => row.status !== SettlementStatus.Cancelled,
   ).length;
 
+  const leaveNow = (): void => {
+    if (!ledger.myMemberId) return;
+    leaveGroup.mutate(ledger.myMemberId, { onSuccess: () => router.replace('/') });
+  };
+
   const leave = async (): Promise<void> => {
-    // A refusal, not a failure — it explains why the tap did nothing, so it
-    // keeps its dialog rather than fading past as a toast.
+    // With a balance the person is asked to settle first, in the illustrated
+    // dialog. The server allows leaving regardless, so "Leave anyway" is there.
     if (!settled) {
-      await notify({ title: t.group.settleFirst, body: t.group.settleFirstBody });
+      setSettleFirstOpen(true);
       return;
     }
     const ok = await confirm({
@@ -509,8 +516,8 @@ export default function GroupSettingsScreen() {
       confirmLabel: t.group.leave,
       tone: 'danger',
     });
-    if (!ok || !ledger.myMemberId) return;
-    leaveGroup.mutate(ledger.myMemberId, { onSuccess: () => router.replace('/') });
+    if (!ok) return;
+    leaveNow();
   };
 
   // Archiving puts a group away; it does not throw anything out, and it can be
@@ -1295,6 +1302,28 @@ export default function GroupSettingsScreen() {
           </View>
         </ScenicBody>
       </ScrollView>
+
+      {/* Leaving with a balance: settle first, or leave anyway (the server allows
+          it). Only reached through `leave()`, so the balance is never zero here. */}
+      <SettleFirstDialog
+        visible={settleFirstOpen}
+        onClose={() => setSettleFirstOpen(false)}
+        amount={format(
+          money(
+            ledger.myBalance < 0n ? -ledger.myBalance : ledger.myBalance,
+            currency as CurrencyCode,
+          ),
+          { locale },
+        )}
+        onSettle={() => {
+          setSettleFirstOpen(false);
+          router.push(`/group/${groupId}/settle`);
+        }}
+        onLeaveAnyway={() => {
+          setSettleFirstOpen(false);
+          leaveNow();
+        }}
+      />
 
       {/* The "Add someone" sheet, opened from "Add members". */}
       <Sheet
