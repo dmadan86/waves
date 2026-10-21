@@ -1051,6 +1051,11 @@ export default function GroupSettingsScreen() {
                 />
               </>
             ) : null}
+            {/* Trip rates sit with the type too: the rates a trip abroad pins. */}
+            <View
+              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            />
+            <TripRatesCard bare store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
           </StandardCard>
 
           {/* Country decides which payment rails the settle screen offers and what
@@ -1125,10 +1130,7 @@ export default function GroupSettingsScreen() {
               onPress={() => setTagOpen(true)}
             />
           </StandardCard>
-          <View style={{ gap: theme.spacing.md }}>
-            <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
-            <MissingRatesCard groupId={groupId} />
-          </View>
+          <MissingRatesCard groupId={groupId} />
 
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader

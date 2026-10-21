@@ -237,6 +237,7 @@ export function TripRatesCard({
   groupCurrency,
   canEdit,
   embedded = false,
+  bare = false,
 }: {
   store: TripRateStore;
   groupCurrency: string;
@@ -252,6 +253,8 @@ export function TripRatesCard({
    * being created has none.
    */
   embedded?: boolean;
+  /** Heading and list without the outer card, for a section inside another card. */
+  bare?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -351,7 +354,11 @@ export function TripRatesCard({
           come here for, and the explanation is for the one time they wonder. */}
       <Row style={{ justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.sm }}>
         <View style={{ flex: 1 }}>
-          <SectionHeader title={t.fx.tripRates} />
+          {bare ? (
+            <Text variant="subheading">{t.fx.tripRates}</Text>
+          ) : (
+            <SectionHeader title={t.fx.tripRates} />
+          )}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -379,9 +386,13 @@ export function TripRatesCard({
         </View>
       ) : null}
 
-      <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
-        {list}
-      </Card>
+      {bare ? (
+        list
+      ) : (
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+          {list}
+        </Card>
+      )}
 
       {sheet}
     </View>

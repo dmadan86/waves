@@ -54,13 +54,14 @@ describe('settings page layout', () => {
     expect(card).toContain('t.group.changePill');
   });
 
-  it('puts group type with an info dot and its trip/event dates in one card', () => {
+  it('puts group type with an info dot, its trip/event dates and trip rates in one card', () => {
     const card = between(SCREEN, 't.extras.groupTypeTitle}</Text>', '</StandardCard>');
     expect(card).toContain("infoDot('type'");
     expect(card).toContain("infoText('type', t.extras.groupTypeInfo)");
     expect(card).toContain('variant="brand"');
     expect(card).toContain('StyleSheet.hairlineWidth');
     expect(card).toContain('<TripDates\n                  bare');
+    expect(card).toContain('<TripRatesCard bare');
     expect(card).not.toContain('<GroupTagField');
   });
 
