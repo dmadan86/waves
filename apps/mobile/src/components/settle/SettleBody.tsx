@@ -45,7 +45,7 @@ import {
   memberLookup,
   toLedgerSnapshots,
   useGroup,
-  useGroupLedger,
+  type GroupLedger,
   useRecordSettlement,
 } from '@/data/hooks';
 import {
@@ -75,14 +75,13 @@ import { useRemind } from '@/lib/useRemind';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Everything the settle flow knows and does for one group; the sections below only draw it. */
-export function useSettleFlow(groupId: string, onRecorded?: () => void) {
+export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: () => void) {
   const { t, locale } = useStrings();
   const { confirm, notify, choose } = useDialog();
   const { profile } = useAuth();
   const { blockedIds } = useBlockedUsers();
 
   const { group, members, everyone, expenses, settlements } = useGroup(groupId);
-  const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const recordSettlement = useRecordSettlement(groupId);
   const guard = useGuestGuard();
 
@@ -168,8 +167,7 @@ export function useSettleFlow(groupId: string, onRecorded?: () => void) {
         currency: transfer.currency,
         allocations: allocation.allocations,
       });
-      if (onRecorded) onRecorded();
-      else router.back();
+      onRecorded();
     } catch (caught) {
       setError(friendlyError(caught, t.couldNotSave, 'settle.record'));
     }
