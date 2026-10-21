@@ -12,15 +12,14 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   revalidate:
-    name: refetch fixtures, run tests, file the issue
+    name: refetch fixtures and run the statement tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -33,13 +32,41 @@ jobs:
         continue-on-error: true
         run: node scripts/statement-revalidate.mjs --out report.md
 
+      - name: Keep the report for the issue job
+        run: |
+          echo "${{ steps.revalidate.outcome }}" > outcome.txt
+          [ -f report.md ] || echo "_The script produced no report._" > report.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: revalidation-report
+          path: |
+            report.md
+            outcome.txt
+
+      - name: Fail the run when the tests failed
+        if: steps.revalidate.outcome == 'failure'
+        run: exit 1
+
+  # Only this job can write issues, and it runs no third-party action and none
+  # of the repository's code: it reads the report and files it.
+  file-issue:
+    name: open or update this month's issue
+    needs: revalidate
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: revalidation-report
       - name: Open or update this month's issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OUTCOME: ${{ steps.revalidate.outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          OUTCOME="$(cat outcome.txt)"
           MONTH="$(date -u +%Y-%m)"
           TITLE="Monthly statement import revalidation — ${MONTH}"
           LABEL="statement-import"
@@ -66,6 +93,3 @@ jobs:
             gh issue create --title "$TITLE" --label "$LABEL" --body-file body.md
           fi
 
-      - name: Fail the run when the tests failed
-        if: steps.revalidate.outcome == 'failure'
-        run: exit 1
