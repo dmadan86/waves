@@ -173,7 +173,7 @@ export function CountryCodePicker({
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
-                <Ionicons name="close" size={iconSize.lg} color={theme.color.buttonPrimary} />
+                <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
               </Pressable>
             </Row>
 

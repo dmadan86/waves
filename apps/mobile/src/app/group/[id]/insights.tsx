@@ -491,14 +491,13 @@ function SpendingBody({
                   borderRadius: theme.radius.pill,
                   justifyContent: 'center',
                   backgroundColor:
-                    size === windowSize ? theme.color.buttonPrimary : theme.color.surface,
+                    size === windowSize ? theme.color.selectedFill : theme.color.surface,
                 }}
               >
                 <Text
                   variant="caption"
                   style={{
-                    color:
-                      size === windowSize ? theme.color.onButtonPrimary : theme.color.textMuted,
+                    color: size === windowSize ? theme.color.onSelectedFill : theme.color.textMuted,
                   }}
                 >
                   {t.spendLastMonths.replace('{n}', String(size))}

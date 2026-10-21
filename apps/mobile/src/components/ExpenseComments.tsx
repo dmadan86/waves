@@ -358,8 +358,8 @@ export function ExpenseComments({
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignSelf: 'flex-start' })}
         >
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons name="chevron-up" size={14} color={theme.color.buttonPrimary} />
-            <Text variant="caption" style={{ color: theme.color.buttonPrimary, fontWeight: '600' }}>
+            <Ionicons name="chevron-up" size={14} color={theme.color.text} />
+            <Text variant="caption" style={{ color: theme.color.text, fontWeight: '600' }}>
               {`${t.comments.showEarlier} (${hidden})`}
             </Text>
           </Row>
@@ -504,7 +504,7 @@ export function ExpenseComments({
               disabled={busy || editorBody.trim() === ''}
               onPress={send}
             />
-            {busy ? <ActivityIndicator color={theme.color.buttonPrimary} /> : null}
+            {busy ? <ActivityIndicator color={theme.color.text} /> : null}
           </Row>
         </View>
       </Popup>

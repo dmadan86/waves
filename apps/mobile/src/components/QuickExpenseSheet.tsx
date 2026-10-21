@@ -1069,7 +1069,7 @@ function QuickReceiptControl({
             borderRadius: 9,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.color.text,
+            backgroundColor: theme.color.brand,
             opacity: pressed ? 0.7 : 1,
           })}
         >

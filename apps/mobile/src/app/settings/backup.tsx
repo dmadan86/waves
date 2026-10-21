@@ -149,7 +149,7 @@ import type { RestoreScan } from '@/lib/backup/engine';
 import { CloudAuthError } from '@/lib/cloud/oauth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
-import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { SyncNetworkPreference } from '@/lib/syncNetwork';
 
 /** A found backup, held while the person decides whether to take it. */
@@ -1743,7 +1743,7 @@ function useBackupInks() {
   return {
     ink: dark ? theme.color.text : SPEC_INK,
     muted: dark ? theme.color.textMuted : SPEC_MUTED,
-    accent: dark ? theme.color.brand : SPEC_ACCENT,
+    accent: theme.color.brand,
     lavender: dark ? theme.color.surfaceMuted : '#F1EFFC',
     line: dark ? theme.color.border : '#E7E5F2',
   };
