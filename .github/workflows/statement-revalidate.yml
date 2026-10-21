@@ -92,4 +92,3 @@ jobs:
           else
             gh issue create --title "$TITLE" --label "$LABEL" --body-file body.md
           fi
-
