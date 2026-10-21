@@ -89,7 +89,9 @@ describe('settings page layout', () => {
     expect(row).toContain('tripRateStore.rows');
     // Not inside the trip/event-only block.
     expect(between(SCREEN, '{hasDates ? (', ') : null}')).not.toContain('t.fx.otherCurrencies');
-    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toContain('<OtherCurrenciesSheetBody');
+    expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toContain(
+      '<OtherCurrenciesSheetBody',
+    );
   });
 
   it('keeps the tag as one row in the card that opens a sheet', () => {
@@ -218,7 +220,9 @@ describe('what moved into the Edit group sheet', () => {
     ]) {
       expect(sheet).not.toContain(piece);
     }
-    expect(SCREEN).toMatch(/const commitPending[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
+    expect(SCREEN).toMatch(
+      /const commitPending[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/,
+    );
     expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitPending\(\);/);
   });
 });

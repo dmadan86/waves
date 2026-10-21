@@ -62,11 +62,7 @@ export function OtherCurrenciesSheetBody({
             justifyContent: 'center',
           }}
         >
-          <MaterialCommunityIcons
-            name="cash-multiple"
-            size={28}
-            color={theme.color.brand}
-          />
+          <MaterialCommunityIcons name="cash-multiple" size={28} color={theme.color.brand} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="heading" accessibilityRole="header">

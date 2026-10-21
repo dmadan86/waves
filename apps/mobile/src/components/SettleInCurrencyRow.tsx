@@ -108,11 +108,7 @@ export function SettleInCurrencyRow({
                 backgroundColor: theme.color.surface,
               }}
             >
-              <MaterialCommunityIcons
-                name="swap-horizontal"
-                size={24}
-                color={theme.color.brand}
-              />
+              <MaterialCommunityIcons name="swap-horizontal" size={24} color={theme.color.brand} />
             </View>
           ) : undefined
         }
