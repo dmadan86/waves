@@ -45,6 +45,8 @@ const ALLOWLIST: Record<string, string> = {
     'Creating a group: every Event control renders only once the Event type is picked.',
   'components/TripDates.tsx':
     'Shared dates card; the Event wording is chosen by the forEvent prop from new-group.',
+  'app/group/[id]/settings.tsx':
+    'Only the Event wording of the Dates sheet title, opened from a row drawn for Trip and Event groups alone.',
   'i18n/index.ts': 'String tables only; renders nothing. Screens that show the copy are scanned.',
   'lib/eventDetailFacts.ts': 'Pure facts of saved data; the detail screen decides what to draw.',
   'lib/eventVendors.ts': 'Pure vendor list logic; mounted only by gated screens.',

@@ -35,7 +35,7 @@ export function CountryRow({
   onChange: (countryCode: string | null) => void;
   /** Called just before the picker route opens, for a host that has to get out of its way (a sheet). */
   onOpen?: () => void;
-  /** A bare row for a shared card: a 48dp green tile for the flag and a chevron, no card of its own. */
+  /** A bare row for a shared card: a 44dp circular pink tile for the flag and a chevron, no card of its own. */
   tile?: boolean;
 }) {
   const theme = useTheme();
@@ -65,15 +65,17 @@ export function CountryRow({
     .replace('{rails}', rails);
 
   if (tile) {
+    // Just the country's name under the title; the rails it unlocks are in the picker.
+    const name = countryCode ? (countryName(countryCode) ?? countryCode) : t.pickers.notSet;
     return (
       <ListRow
         leading={
-          <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
+          <RowTile tint={theme.scheme === 'dark' ? '#E5566D38' : '#FDE8EC'}>
             <Text style={{ fontSize: 22 }}>{flag}</Text>
           </RowTile>
         }
         title={t.pickers.country}
-        subtitle={subtitle}
+        subtitle={name}
         trailing={
           <Ionicons
             name={directionalIcon('chevron-forward')}

@@ -41,7 +41,7 @@ export function SettleInCurrencyRow({
   isAdmin: boolean;
   /** Settlements in the group that are not cancelled. */
   settlementCount: number;
-  /** A bare row for a shared card: a pink sync tile, the short subtitle, and no card of its own. */
+  /** A bare row for a shared card: a lavender sync tile, the short subtitle, and no card of its own. */
   tile?: boolean;
 }) {
   const theme = useTheme();
@@ -91,17 +91,17 @@ export function SettleInCurrencyRow({
     });
   };
 
-  const title = fill(tile ? t.fx.convertAllTitle : t.fx.convertTitle, { currency });
+  const title = fill(tile ? t.fx.settleInShort : t.fx.convertTitle, { currency });
   const body = (
     <>
       <ListRow
         title={title}
         fit={tile}
-        subtitle={fill(tile ? t.fx.convertShort : t.fx.convertBody, { currency })}
+        subtitle={fill(tile ? t.fx.convertLine : t.fx.convertBody, { currency })}
         leading={
           tile ? (
-            <RowTile tint={theme.scheme === 'dark' ? '#E5484D38' : '#FDE8EA'}>
-              <Ionicons name="sync-outline" size={iconSize.xl} color={theme.color.negative} />
+            <RowTile tint={theme.color.brandSoft}>
+              <Ionicons name="sync-outline" size={iconSize.xl} color={theme.color.brand} />
             </RowTile>
           ) : undefined
         }
