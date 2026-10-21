@@ -13,6 +13,7 @@
  * dialog cannot outlive a screen it has just sent somebody away from.
  */
 
+import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Pressable, View } from 'react-native';
 
@@ -24,9 +25,6 @@ const ART = require('../../assets/images/settle-first-art.webp') as number;
 
 /** The art is 1040 x 435; it is drawn at the card's width and this ratio. */
 const ART_RATIO = 1040 / 435;
-
-/** The art's own backdrop is pale lavender, so it sits on this in both themes. */
-const ART_BACKDROP = '#F4F1FF';
 
 export interface SettleFirstDialogProps {
   visible: boolean;
@@ -50,6 +48,9 @@ export function SettleFirstDialog({
   const theme = useTheme();
   const { t } = useStrings();
   const g = t.group;
+  // Measured, not a percentage: a percent width with aspectRatio inside the
+  // popup let the art grow past the card and crop to one corner.
+  const [artWidth, setArtWidth] = useState(0);
 
   return (
     <Popup
@@ -59,25 +60,30 @@ export function SettleFirstDialog({
       style={{ borderRadius: 28, padding: theme.spacing.lg, maxWidth: 420 }}
     >
       <View
-        style={{
-          borderRadius: theme.radius.xl,
-          overflow: 'hidden',
-          backgroundColor: ART_BACKDROP,
-          marginBottom: theme.spacing.md,
-        }}
+        onLayout={(event) => setArtWidth(event.nativeEvent.layout.width)}
+        style={{ alignSelf: 'stretch', marginBottom: theme.spacing.md }}
       >
-        <Image
-          source={ART}
-          accessible={false}
-          resizeMode="cover"
-          style={{ width: '100%', aspectRatio: ART_RATIO }}
-        />
+        {artWidth > 0 ? (
+          <Image
+            source={ART}
+            accessible={false}
+            resizeMode="contain"
+            style={{ width: artWidth, height: artWidth / ART_RATIO }}
+          />
+        ) : (
+          <View style={{ height: 1 }} />
+        )}
       </View>
 
       <Text
         variant="title"
         accessibilityRole="header"
-        style={{ textAlign: 'center', marginBottom: theme.spacing.sm }}
+        style={{
+          textAlign: 'center',
+          fontSize: 26,
+          fontWeight: '800',
+          marginBottom: theme.spacing.sm,
+        }}
       >
         {g.settleFirst}
       </Text>
@@ -108,10 +114,10 @@ export function SettleFirstDialog({
           style={{
             width: 52,
             height: 52,
-            borderRadius: theme.radius.md,
+            borderRadius: theme.radius.lg,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.color.surface,
+            backgroundColor: `${theme.color.brand}1F`,
           }}
         >
           <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
@@ -124,7 +130,7 @@ export function SettleFirstDialog({
             variant="heading"
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={{ color: theme.color.brand }}
+            style={{ color: theme.color.brand, fontSize: 28, fontWeight: '800' }}
           >
             {amount}
           </Text>
@@ -145,7 +151,7 @@ export function SettleFirstDialog({
             onPress={onLeaveAnyway}
             style={({ pressed }) => ({
               flex: 1,
-              minHeight: 52,
+              minHeight: 56,
               alignItems: 'center',
               justifyContent: 'center',
               paddingHorizontal: theme.spacing.sm,
