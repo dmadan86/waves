@@ -51,7 +51,7 @@ import { isPhoneCountryError } from '@/lib/phone';
 import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
-import { GroupTagField } from '@/components/GroupTagField';
+import { TagSheetBody } from '@/components/TagSheetBody';
 import { DatesSheetBody } from '@/components/DatesSheetBody';
 import { gregorianFormatter } from '@/lib/calendarGrid';
 import { tripDateFromIso } from '@/lib/tripDateRange';
@@ -1409,7 +1409,7 @@ export default function GroupSettingsScreen() {
         visible={datesOpen}
         onClose={() => setDatesOpen(false)}
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.9) }}
+        style={{ maxHeight: '90%' }}
       >
         {/* Mounted only while open, so each opening starts a fresh draft from
             the saved range and closing discards it. */}
@@ -1470,17 +1470,19 @@ export default function GroupSettingsScreen() {
       />
 
       {/* The "Add someone" sheet, opened from "Add members". */}
-      <Sheet
-        visible={tagOpen}
-        onClose={() => {
-          Keyboard.dismiss();
-          commitTag(tag);
-          setTagOpen(false);
-        }}
-        title={t.extras.tagLabel}
-        closeLabel={t.common.close}
-      >
-        <GroupTagField type={group.data.type} value={tag} onChange={setTag} onCommit={commitTag} />
+      <Sheet visible={tagOpen} onClose={() => setTagOpen(false)} closeLabel={t.common.close}>
+        {/* Mounted only while open: each opening starts a draft from the saved
+            tag, and closing any other way than Save discards it. */}
+        {tagOpen ? (
+          <TagSheetBody
+            value={tag}
+            onClose={() => setTagOpen(false)}
+            onSave={(next) => {
+              setTag(next);
+              commitTag(next);
+            }}
+          />
+        ) : null}
       </Sheet>
 
       <Sheet
