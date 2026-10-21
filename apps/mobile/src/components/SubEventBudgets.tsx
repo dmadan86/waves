@@ -199,7 +199,7 @@ export function SubEventBudgets({
                   borderRadius: theme.radius.pill,
                   justifyContent: 'center',
                   backgroundColor:
-                    subEventId === subEvent.id ? theme.color.buttonPrimary : theme.color.surface,
+                    subEventId === subEvent.id ? theme.color.selectedFill : theme.color.surface,
                 }}
               >
                 <Text
@@ -207,7 +207,7 @@ export function SubEventBudgets({
                   style={{
                     color:
                       subEventId === subEvent.id
-                        ? theme.color.onButtonPrimary
+                        ? theme.color.onSelectedFill
                         : theme.color.textMuted,
                   }}
                 >
