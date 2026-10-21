@@ -21,7 +21,12 @@ import { GROUP_DESCRIPTION_MAX } from '@/lib/groupDescription';
 
 export const EDIT_GROUP_NAME_MAX = 120;
 
-function Field({
+/**
+ * One labelled input in the group's field-card style: surface fill, hairline
+ * border, a lavender icon tile, and a clear button. Shared with the create
+ * screen so the two read as the same form.
+ */
+export function GroupFieldCard({
   icon,
   value,
   onChangeText,
@@ -30,15 +35,17 @@ function Field({
   placeholder,
   maxLength,
   multiline,
+  autoFocus,
 }: {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   value: string;
   onChangeText: (next: string) => void;
-  onCommit: () => void;
+  onCommit?: () => void;
   label: string;
   placeholder: string;
   maxLength: number;
   multiline?: boolean;
+  autoFocus?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -76,6 +83,7 @@ function Field({
         returnKeyType="done"
         blurOnSubmit
         accessibilityLabel={label}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         placeholderTextColor={theme.color.textFaint}
         maxLength={maxLength}
@@ -200,7 +208,7 @@ export function EditGroupSheetBody({
         <Text variant="body" tone="muted">
           {t.group.groupName}
         </Text>
-        <Field
+        <GroupFieldCard
           icon="pencil-outline"
           value={name}
           onChangeText={onNameChange}
@@ -215,7 +223,7 @@ export function EditGroupSheetBody({
         <Text variant="body" tone="muted">
           {t.group.descriptionOptional}
         </Text>
-        <Field
+        <GroupFieldCard
           icon="text-box-outline"
           value={description}
           onChangeText={onDescriptionChange}

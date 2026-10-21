@@ -697,6 +697,7 @@ export function GroupCoverSheet({
   onPickPhoto,
   onRemovePhoto,
   onUpgrade,
+  iconOnly = false,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -712,6 +713,8 @@ export function GroupCoverSheet({
   onPickPhoto: () => void;
   onRemovePhoto: () => void;
   onUpgrade: () => void;
+  /** Draft mode (the group is not made yet): no Photo tab, since a photo is uploaded under the group's own path. */
+  iconOnly?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -758,7 +761,7 @@ export function GroupCoverSheet({
   const tabs = [
     { id: 'icon' as const, label: t.group.coverTabIcon, icon: 'color-palette' as const },
     { id: 'photo' as const, label: t.group.coverTabPhoto, icon: 'image' as const },
-  ];
+  ].filter((entry) => !iconOnly || entry.id === 'icon');
 
   return (
     <Sheet
@@ -823,50 +826,52 @@ export function GroupCoverSheet({
           }}
           showsVerticalScrollIndicator={false}
         >
-          <Row
-            accessibilityRole="tablist"
-            style={{
-              padding: 4,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surfaceMuted,
-            }}
-          >
-            {tabs.map((entry) => {
-              const selected = tab === entry.id;
-              return (
-                <Pressable
-                  key={entry.id}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  onPress={() => setTab(entry.id)}
-                  style={{
-                    flex: 1,
-                    height: 40,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: theme.spacing.sm,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: selected ? theme.color.brandSoft : 'transparent',
-                  }}
-                >
-                  <Ionicons
-                    name={entry.icon}
-                    size={iconSize.base}
-                    color={selected ? theme.color.brand : theme.color.textMuted}
-                  />
-                  <Text
+          {tabs.length > 1 ? (
+            <Row
+              accessibilityRole="tablist"
+              style={{
+                padding: 4,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.surfaceMuted,
+              }}
+            >
+              {tabs.map((entry) => {
+                const selected = tab === entry.id;
+                return (
+                  <Pressable
+                    key={entry.id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    onPress={() => setTab(entry.id)}
                     style={{
-                      fontWeight: '700',
-                      color: selected ? theme.color.brand : theme.color.textMuted,
+                      flex: 1,
+                      height: 40,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: theme.spacing.sm,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: selected ? theme.color.brandSoft : 'transparent',
                     }}
                   >
-                    {entry.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </Row>
+                    <Ionicons
+                      name={entry.icon}
+                      size={iconSize.base}
+                      color={selected ? theme.color.brand : theme.color.textMuted}
+                    />
+                    <Text
+                      style={{
+                        fontWeight: '700',
+                        color: selected ? theme.color.brand : theme.color.textMuted,
+                      }}
+                    >
+                      {entry.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Row>
+          ) : null}
 
           <CloudPreview icon={draftIcon} color={draftColor} name={name} />
 
