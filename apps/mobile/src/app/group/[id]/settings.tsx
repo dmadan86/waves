@@ -1,7 +1,7 @@
-import { Fragment, useCallback, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Keyboard,
@@ -441,30 +441,12 @@ export default function GroupSettingsScreen() {
     }
   };
 
-  // The edit sheet closes itself for a picker route (the Modal would sit over
-  // it), and comes back when this screen is focused again.
   const [editOpen, setEditOpen] = useState(false);
-  const reopenEdit = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (reopenEdit.current) {
-        reopenEdit.current = false;
-        setEditOpen(true);
-      }
-    }, []),
-  );
   /** Saves whatever the edit sheet's fields hold: name, description and tag. */
   const commitPending = (): void => {
     commitName();
     commitDescription();
     commitTag(tag);
-  };
-  const leaveEditForPicker = (): void => {
-    // A route push does not blur the fields behind it either.
-    Keyboard.dismiss();
-    commitPending();
-    reopenEdit.current = true;
-    setEditOpen(false);
   };
   /** Closing commits whatever is still being typed: a Modal does not always blur its fields. */
   const closeEdit = (): void => {
@@ -1100,6 +1082,114 @@ export default function GroupSettingsScreen() {
               leaving affects only you; deleting takes the group from everyone,
               at once, with no undo — so it is admin-only (the RPC refuses it
               regardless) and wears the negative colour. */}
+          {/* What the group is and how it pays: kind, tag, country, currency,
+              trip rates and dates, on the page itself rather than behind Edit. */}
+          <View style={{ gap: theme.spacing.xl }}>
+            <SectionHeader title={t.group.groupDetails} />
+            {/* The kind of group. Only changes the label, cover default and trip
+            affordances — nothing already recorded moves. */}
+            <View style={{ gap: theme.spacing.sm }}>
+              <Text variant="caption" tone="muted">
+                {t.extras.whatKindOfGroup}
+              </Text>
+              <ChipRow<GroupType>
+                // The column is NOT NULL DEFAULT 'other' on the server, so a missing
+                // value here only means a mirror row that predates this field syncing
+                // — fall back to that same default so the assigned chip always lights.
+                value={group.data.type ?? GroupType.Other}
+                onChange={(type) =>
+                  updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
+                }
+                options={[
+                  { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
+                  { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
+                  { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
+                  { value: GroupType.Event, label: t.extras.typeEvent, icon: iconFor('sparkles') },
+                  {
+                    value: GroupType.Friends,
+                    label: t.extras.typeFriends,
+                    icon: iconFor('people-circle'),
+                  },
+                  { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
+                ]}
+              />
+            </View>
+
+            {/* The member's own short tag, shown instead of the automatic type tag
+            on Home and the group header. Saved on blur or a chip tap; empty
+            clears it back to the type. */}
+            <GroupTagField
+              type={group.data.type}
+              value={tag}
+              onChange={setTag}
+              onCommit={commitTag}
+            />
+
+            {/* Decides which payment rails the settle screen offers, and what a new
+            expense starts in. Nothing already recorded changes. */}
+            <CountryRow
+              countryCode={group.data.country_code}
+              onOpen={() => {
+                Keyboard.dismiss();
+                commitTag(tag);
+              }}
+              onChange={(country_code) =>
+                updateGroup.mutate(
+                  { country_code },
+                  { onSuccess: () => setStatus(t.account.saved) },
+                )
+              }
+            />
+
+            {/* What the group counts in, and what it converts foreign bills with.
+            Only an admin can choose it. It also stops being a control once
+            anything depends on it: either entries counted in it, or pinned rates
+            whose stored ratios all convert into it. Trip rates themselves can
+            be re-pinned at any time, because a bill keeps the rate it was saved
+            with (ADR-003). */}
+            <View style={{ gap: theme.spacing.sm }}>
+              <SectionHeader title={t.fx.section} />
+              <SettlesInRow
+                currency={currency}
+                locked={!canChangeCurrency}
+                onChange={(default_currency) =>
+                  updateGroup.mutate(
+                    { default_currency },
+                    { onSuccess: () => setStatus(t.account.saved) },
+                  )
+                }
+              />
+              {/* Whether foreign bills count in this currency at their own saved
+              rates (ADR-003 amendment). On for new groups; an existing group
+              opts in once every foreign bill has a rate. */}
+              <SettleInCurrencyRow
+                groupId={groupId}
+                currency={currency}
+                on={group.data.convert_to_group_currency === true}
+                isAdmin={isAdmin}
+                settlementCount={liveSettlementCount}
+              />
+            </View>
+            <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
+            <MissingRatesCard groupId={groupId} />
+
+            {/* Trip dates and their nudges only mean anything on a trip, so the
+            section appears only for that type and disappears the moment the
+            group is changed to another kind. Nothing recorded is touched — the
+            stored dates simply stop being shown until it is a trip again. */}
+            {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
+            (group.data.type ?? GroupType.Other) === GroupType.Event ? (
+              <TripDates
+                group={group.data}
+                locale={locale}
+                forEvent={group.data.type === GroupType.Event}
+                onChange={(patch) =>
+                  updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
+                }
+              />
+            ) : null}
+          </View>
+
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader title={t.group.groupActions} />
             <StandardCard>
@@ -1463,7 +1553,7 @@ export default function GroupSettingsScreen() {
         onClose={closeEdit}
         title={t.group.editGroup}
         closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.92) }}
+        style={{ height: Math.round(windowHeight * 0.5) }}
       >
         <Text variant="caption" tone="muted">
           {t.group.editGroupHint}
@@ -1540,104 +1630,6 @@ export default function GroupSettingsScreen() {
               />
             </View>
           </View>
-
-          {/* The kind of group. Only changes the label, cover default and trip
-            affordances — nothing already recorded moves. */}
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {t.extras.whatKindOfGroup}
-            </Text>
-            <ChipRow<GroupType>
-              // The column is NOT NULL DEFAULT 'other' on the server, so a missing
-              // value here only means a mirror row that predates this field syncing
-              // — fall back to that same default so the assigned chip always lights.
-              value={group.data.type ?? GroupType.Other}
-              onChange={(type) =>
-                updateGroup.mutate({ type }, { onSuccess: () => setStatus(t.account.saved) })
-              }
-              options={[
-                { value: GroupType.Trip, label: t.extras.typeTrip, icon: iconFor('airplane') },
-                { value: GroupType.Home, label: t.extras.typeHome, icon: iconFor('home') },
-                { value: GroupType.Couple, label: t.extras.typeCouple, icon: iconFor('heart') },
-                { value: GroupType.Event, label: t.extras.typeEvent, icon: iconFor('sparkles') },
-                {
-                  value: GroupType.Friends,
-                  label: t.extras.typeFriends,
-                  icon: iconFor('people-circle'),
-                },
-                { value: GroupType.Other, label: t.extras.typeOther, icon: iconFor('people') },
-              ]}
-            />
-          </View>
-
-          {/* The member's own short tag, shown instead of the automatic type tag
-            on Home and the group header. Saved on blur or a chip tap; empty
-            clears it back to the type. */}
-          <GroupTagField
-            type={group.data.type}
-            value={tag}
-            onChange={setTag}
-            onCommit={commitTag}
-          />
-
-          <SectionHeader title={t.group.groupDetails} />
-          {/* Decides which payment rails the settle screen offers, and what a new
-            expense starts in. Nothing already recorded changes. */}
-          <CountryRow
-            countryCode={group.data.country_code}
-            onOpen={leaveEditForPicker}
-            onChange={(country_code) =>
-              updateGroup.mutate({ country_code }, { onSuccess: () => setStatus(t.account.saved) })
-            }
-          />
-
-          {/* What the group counts in, and what it converts foreign bills with.
-            Only an admin can choose it. It also stops being a control once
-            anything depends on it: either entries counted in it, or pinned rates
-            whose stored ratios all convert into it. Trip rates themselves can
-            be re-pinned at any time, because a bill keeps the rate it was saved
-            with (ADR-003). */}
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t.fx.section} />
-            <SettlesInRow
-              currency={currency}
-              locked={!canChangeCurrency}
-              onChange={(default_currency) =>
-                updateGroup.mutate(
-                  { default_currency },
-                  { onSuccess: () => setStatus(t.account.saved) },
-                )
-              }
-            />
-            {/* Whether foreign bills count in this currency at their own saved
-              rates (ADR-003 amendment). On for new groups; an existing group
-              opts in once every foreign bill has a rate. */}
-            <SettleInCurrencyRow
-              groupId={groupId}
-              currency={currency}
-              on={group.data.convert_to_group_currency === true}
-              isAdmin={isAdmin}
-              settlementCount={liveSettlementCount}
-            />
-          </View>
-          <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
-          <MissingRatesCard groupId={groupId} />
-
-          {/* Trip dates and their nudges only mean anything on a trip, so the
-            section appears only for that type and disappears the moment the
-            group is changed to another kind. Nothing recorded is touched — the
-            stored dates simply stop being shown until it is a trip again. */}
-          {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
-          (group.data.type ?? GroupType.Other) === GroupType.Event ? (
-            <TripDates
-              group={group.data}
-              locale={locale}
-              forEvent={group.data.type === GroupType.Event}
-              onChange={(patch) =>
-                updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
-              }
-            />
-          ) : null}
         </ScrollView>
       </Sheet>
     </View>

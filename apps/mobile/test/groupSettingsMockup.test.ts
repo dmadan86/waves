@@ -101,10 +101,30 @@ describe('what moved into the Edit group sheet', () => {
     expect(SCREEN).toContain('setEditOpen(true)');
   });
 
-  it('still holds name, description, kind, tag, country, currency, trip rates and dates', () => {
+  it('holds only the name and description', () => {
+    expect(sheet).toContain('commitName');
+    expect(sheet).toContain('commitDescription');
     for (const piece of [
-      'commitName',
-      'commitDescription',
+      '<ChipRow<GroupType>',
+      '<GroupTagField',
+      '<CountryRow',
+      '<TripRatesCard',
+    ]) {
+      expect(sheet).not.toContain(piece);
+    }
+    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
+  });
+});
+
+describe('group details on the page itself', () => {
+  const details = between(
+    SCREEN,
+    '<SectionHeader title={t.group.groupDetails} />',
+    't.group.groupActions',
+  );
+
+  it('shows kind, tag, country, currency, trip rates and dates on the settings page', () => {
+    for (const piece of [
       '<ChipRow<GroupType>',
       '<GroupTagField',
       '<CountryRow',
@@ -113,22 +133,16 @@ describe('what moved into the Edit group sheet', () => {
       '<TripRatesCard',
       '<MissingRatesCard',
       '<TripDates',
-      't.group.groupDetails',
     ]) {
-      expect(sheet).toContain(piece);
+      expect(details).toContain(piece);
     }
   });
 
-  it('keeps the permission checks, and commits typed text when it closes', () => {
-    expect(sheet).toContain('canEdit={isAdmin}');
-    expect(sheet).toContain('isAdmin={isAdmin}');
-    expect(sheet).toContain('locked={!canChangeCurrency}');
-    expect(SCREEN).toMatch(/const closeEdit[\s\S]*commitName\(\);[\s\S]*commitDescription\(\);/);
-  });
-
-  it('steps out of the way for the country picker route and returns to it', () => {
-    expect(sheet).toContain('onOpen={leaveEditForPicker}');
-    expect(SCREEN).toContain('useFocusEffect');
+  it('keeps the permission checks, and saves the tag before the country picker opens', () => {
+    expect(details).toContain('canEdit={isAdmin}');
+    expect(details).toContain('isAdmin={isAdmin}');
+    expect(details).toContain('locked={!canChangeCurrency}');
+    expect(between(details, '<CountryRow', 'onChange')).toContain('commitTag(tag)');
   });
 });
 
@@ -263,14 +277,11 @@ describe('strings', () => {
 describe('review fixes', () => {
   const PARTS = readFileSync(join(process.cwd(), 'src/components/standard/parts.tsx'), 'utf8');
 
-  it('commits name, description and tag on close and before a picker route', () => {
-    const pending = between(SCREEN, 'const commitPending', 'const leaveEditForPicker');
+  it('commits name, description and tag when the edit sheet closes', () => {
+    const pending = between(SCREEN, 'const commitPending', 'const closeEdit');
     for (const call of ['commitName()', 'commitDescription()', 'commitTag(tag)']) {
       expect(pending).toContain(call);
     }
-    expect(between(SCREEN, 'const leaveEditForPicker', 'const closeEdit')).toContain(
-      'commitPending()',
-    );
     expect(between(SCREEN, 'const closeEdit', 'A member')).toContain('commitPending()');
   });
 
