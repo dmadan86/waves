@@ -71,6 +71,7 @@ import { useAddRate } from '@/lib/useAddRate';
 import { splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
+import { useRemind } from '@/lib/useRemind';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Everything the settle flow knows and does for one group; the sections below only draw it. */
