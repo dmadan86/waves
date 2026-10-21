@@ -172,6 +172,7 @@ export default function GroupSettingsScreen() {
   const [addingContacts, setAddingContacts] = useState(false);
   // The "Add someone" sheet, opened from the "+ Add" pill beside the member count.
   const [addOpen, setAddOpen] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
   // Who was just added by name, shown in the sheet so adding several people in
   // a row has an answer each time.
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -968,45 +969,6 @@ export default function GroupSettingsScreen() {
         </ScenicHeader>
 
         <ScenicBody>
-          {/* ADR-009: simplification is presentation only — the pairwise ledger
-              underneath is untouched, so this is safe to toggle at any time.
-              Mute is this person's own switch, not the group's: pushes about
-              the group stop reaching them, the inbox keeps everything, and the
-              others are never told (the `group_mutes` migration). */}
-          <StandardCard>
-            <ListRow
-              leading={chip('swap-horizontal', null)}
-              title={t.group.simplifyDebts}
-              subtitle={t.group.simplifyDebtsSub}
-              subtitleLines={2}
-              titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
-              footer={infoText('simplify', t.group.simplifyDebtsBody)}
-              divider
-              trailing={
-                <Toggle
-                  value={group.data.simplify_debts}
-                  onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
-                  accessibilityLabel={t.group.simplifyDebts}
-                />
-              }
-            />
-            <ListRow
-              leading={chip('notifications-outline', null)}
-              title={t.group.muteNotifications}
-              subtitle={t.group.muteSub}
-              subtitleLines={2}
-              titleAccessory={infoDot('mute', t.group.muteNotifications)}
-              footer={infoText('mute', t.group.muteNotificationsBody)}
-              trailing={
-                <Toggle
-                  value={muted}
-                  onValueChange={(value) => setGroupMute.mutate({ groupId, muted: value })}
-                  accessibilityLabel={t.group.muteNotifications}
-                />
-              }
-            />
-          </StandardCard>
-
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader
               title={fill(t.group.membersTitle, { n: memberCount })}
@@ -1059,7 +1021,6 @@ export default function GroupSettingsScreen() {
                 return (
                   <ListRow
                     key={member.id}
-                    highlight={isMe ? theme.color.brandSoft : undefined}
                     title={displayName(member, viewerId, blockedIds, t.misc.someone)}
                     subtitle={
                       isGhost(member)
@@ -1142,6 +1103,43 @@ export default function GroupSettingsScreen() {
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader title={t.group.groupActions} />
             <StandardCard>
+              {/* ADR-009: simplification is presentation only — the pairwise ledger
+                underneath is untouched, so this is safe to toggle at any time.
+                Mute is this person's own switch, not the group's: pushes about
+                the group stop reaching them, the inbox keeps everything, and the
+                others are never told (the `group_mutes` migration). */}
+              <ListRow
+                leading={chip('swap-horizontal', null)}
+                title={t.group.simplifyDebts}
+                subtitle={t.group.simplifyDebtsSub}
+                subtitleLines={2}
+                titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
+                footer={infoText('simplify', t.group.simplifyDebtsBody)}
+                divider
+                trailing={
+                  <Toggle
+                    value={group.data.simplify_debts}
+                    onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
+                    accessibilityLabel={t.group.simplifyDebts}
+                  />
+                }
+              />
+              <ListRow
+                leading={chip('notifications-outline', null)}
+                title={t.group.muteNotifications}
+                subtitle={t.group.muteSub}
+                subtitleLines={2}
+                titleAccessory={infoDot('mute', t.group.muteNotifications)}
+                footer={infoText('mute', t.group.muteNotificationsBody)}
+                trailing={
+                  <Toggle
+                    value={muted}
+                    onValueChange={(value) => setGroupMute.mutate({ groupId, muted: value })}
+                    accessibilityLabel={t.group.muteNotifications}
+                  />
+                }
+                divider
+              />
               {group.data?.isDemo ? (
                 // The demo group has exactly one way out — archiving and leaving
                 // both assume a real membership and a real server row, neither
@@ -1180,32 +1178,14 @@ export default function GroupSettingsScreen() {
                       />
                     }
                   />
+                  {/* Archive, leave and delete are rare and final, so they share
+                      one row that opens a sheet instead of taking three. */}
                   <ListRow
-                    leading={chip('archive-outline', '#E5566D')}
-                    title={archived ? t.group.unarchive : t.group.archiveGroup}
-                    subtitle={archived ? t.group.unarchiveHint : t.group.archiveHintShort}
-                    onPress={archived ? unarchive : () => void archive()}
-                    divider
+                    leading={chip('exit-outline', '#E5566D')}
+                    title={isAdmin ? t.group.exitActions : t.group.exitActionsMember}
+                    subtitle={t.group.exitActionsHint}
+                    onPress={() => setExitOpen(true)}
                   />
-                  <ListRow
-                    leading={chip('person-remove-outline', '#E5566D')}
-                    title={t.group.leaveGroup}
-                    subtitle={t.group.leaveHint}
-                    destructive
-                    onPress={() => void leave()}
-                    divider={isAdmin}
-                  />
-                  {isAdmin ? (
-                    <View style={{ opacity: deleteGroup.isPending ? 0.45 : 1 }}>
-                      <ListRow
-                        leading={chip('trash-outline', '#E5384B')}
-                        title={t.group.deleteGroup}
-                        subtitle={t.group.deleteHintShort}
-                        destructive
-                        onPress={deleteGroup.isPending ? undefined : () => void confirmDelete()}
-                      />
-                    </View>
-                  ) : null}
                 </>
               )}
             </StandardCard>
@@ -1218,6 +1198,56 @@ export default function GroupSettingsScreen() {
       </ScrollView>
 
       {/* The "Add someone" sheet, opened from "Add members". */}
+      <Sheet
+        visible={exitOpen}
+        onClose={() => setExitOpen(false)}
+        title={isAdmin ? t.group.exitActions : t.group.exitActionsMember}
+        closeLabel={t.common.close}
+      >
+        <View>
+          <ListRow
+            leading={chip('archive-outline', '#E5566D')}
+            title={archived ? t.group.unarchive : t.group.archiveGroup}
+            subtitle={archived ? t.group.unarchiveHint : t.group.archiveHintShort}
+            onPress={() => {
+              setExitOpen(false);
+              if (archived) unarchive();
+              else void archive();
+            }}
+            divider
+          />
+          <ListRow
+            leading={chip('person-remove-outline', '#E5566D')}
+            title={t.group.leaveGroup}
+            subtitle={t.group.leaveHint}
+            destructive
+            onPress={() => {
+              setExitOpen(false);
+              void leave();
+            }}
+            divider={isAdmin}
+          />
+          {isAdmin ? (
+            <View style={{ opacity: deleteGroup.isPending ? 0.45 : 1 }}>
+              <ListRow
+                leading={chip('trash-outline', '#E5384B')}
+                title={t.group.deleteGroup}
+                subtitle={t.group.deleteHintShort}
+                destructive
+                onPress={
+                  deleteGroup.isPending
+                    ? undefined
+                    : () => {
+                        setExitOpen(false);
+                        void confirmDelete();
+                      }
+                }
+              />
+            </View>
+          ) : null}
+        </View>
+      </Sheet>
+
       <Sheet
         visible={addOpen}
         onClose={() => setAddOpen(false)}

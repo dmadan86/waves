@@ -41,8 +41,11 @@ describe('settings page layout', () => {
     expect(SCREEN).toContain('setCoverOpen(true)');
   });
 
-  it('puts fewer repayments and mute in one card, each with an info dot and a toggle', () => {
-    const card = between(SCREEN, "leading={chip('swap-horizontal'", 'Members');
+  it('puts fewer repayments and mute at the top of Group actions, each with an info dot and a toggle', () => {
+    expect(SCREEN.indexOf("leading={chip('swap-horizontal'")).toBeGreaterThan(
+      SCREEN.indexOf('t.group.groupActions'),
+    );
+    const card = between(SCREEN, "leading={chip('swap-horizontal'", "leading={chip('copy-outline'");
     expect(card).toContain('t.group.simplifyDebtsSub');
     expect(card).toContain('t.group.muteSub');
     expect(card).toContain("infoDot('simplify'");
@@ -56,8 +59,8 @@ describe('settings page layout', () => {
     expect(SCREEN).not.toContain('t.group.inviteToGroup}');
   });
 
-  it('highlights the viewer and gives everyone else a ⋮ menu of the member actions', () => {
-    expect(SCREEN).toContain('highlight={isMe ? theme.color.brandSoft : undefined}');
+  it('draws every member row alike and gives everyone else a ⋮ menu of the member actions', () => {
+    expect(SCREEN).not.toContain('highlight={isMe');
     expect(SCREEN).toContain('{isMe ? null : (');
     const actions = between(SCREEN, 'const memberActions', 'return (\n    <View style={{ flex: 1');
     expect(actions).toContain("key: 'open'");
@@ -74,18 +77,17 @@ describe('settings page layout', () => {
     expect(SCREEN).toContain('Link to a Waves user');
   });
 
-  it('keeps every group action, admin-gating delete and keeping the unsettled warning in the dialog', () => {
+  it('keeps every group action, with archive, leave and delete behind one row and delete admin-gated', () => {
     const actions = between(SCREEN, 't.group.groupActions', '</ScenicBody>');
-    for (const key of [
-      't.clone.duplicateTitle',
-      't.clone.favoriteTitle',
-      't.group.archiveGroup',
-      't.group.leaveGroup',
-      't.group.deleteGroup',
-    ]) {
+    for (const key of ['t.clone.duplicateTitle', 't.clone.favoriteTitle', 'setExitOpen(true)']) {
       expect(actions).toContain(key);
     }
-    expect(actions).toContain('{isAdmin ? (');
+    expect(actions).not.toContain('t.group.leaveGroup');
+    const sheet = between(SCREEN, 'visible={exitOpen}', '</Sheet>');
+    for (const key of ['t.group.archiveGroup', 't.group.leaveGroup', 't.group.deleteGroup']) {
+      expect(sheet).toContain(key);
+    }
+    expect(sheet).toContain('{isAdmin ? (');
     expect(SCREEN).not.toContain('deleteUnsettledHint');
     expect(SCREEN).toContain('groupDeleteWarning(');
   });
