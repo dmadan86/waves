@@ -13,7 +13,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
 
 import {
-  Avatar,
   Button,
   Card,
   directionalIcon,
@@ -29,9 +28,9 @@ import {
 
 import type { BlockedUser } from '@/data/blocked';
 import { useBlockedUsers } from '@/data/blocked';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function BlockedScreen() {
   const theme = useTheme();
@@ -109,12 +108,11 @@ function BlockedRow({
   t: UiStrings;
 }): React.JSX.Element {
   const theme = useTheme();
-  const url = useAvatarUrl(user.avatarUrl);
   const name = user.name.trim() || t.misc.someone;
 
   return (
     <Row style={{ paddingVertical: theme.spacing.sm, alignItems: 'center', gap: theme.spacing.md }}>
-      <Avatar name={name} size={44} photoUrl={url} />
+      <PersonAvatar name={name} size={44} avatarUrl={user.avatarUrl} />
       <Text variant="subheading" numberOfLines={1} style={{ flex: 1 }}>
         {name}
       </Text>

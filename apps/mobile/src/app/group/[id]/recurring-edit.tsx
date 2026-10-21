@@ -30,7 +30,6 @@ import {
 } from '@waves/core';
 import {
   AmountField,
-  Avatar,
   Button,
   Callout,
   Card,
@@ -70,6 +69,7 @@ import { editStateFromRule, splitIsEditable, templateFromState } from '@/lib/gro
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
 import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function GroupRecurringEditScreen() {
   const { id, ruleId } = useLocalSearchParams<{ id: string; ruleId?: string }>();
@@ -428,7 +428,14 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
             {live.map((member) => (
               <ChoiceRow
                 key={member.id}
-                leading={<Avatar name={displayName(member)} ghost={isGhost(member)} size={32} />}
+                leading={
+                  <PersonAvatar
+                    member={member}
+                    name={displayName(member)}
+                    ghost={isGhost(member)}
+                    size={32}
+                  />
+                }
                 label={displayName(member, viewerId)}
                 selected={state.payers.has(member.id)}
                 onPress={() => {

@@ -5,7 +5,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 
 import {
-  Avatar,
   Badge,
   Card,
   directionalIcon,
@@ -40,6 +39,7 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { memberNameById } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * One proposed payment.
@@ -60,6 +60,7 @@ import { memberNameById } from '@/lib/memberName';
 function TransferRow({
   sentence,
   avatarName,
+  member,
   ghost,
   amount,
   currency,
@@ -71,6 +72,7 @@ function TransferRow({
 }: {
   sentence: string;
   avatarName: string;
+  member?: MemberRow;
   ghost: boolean;
   amount: bigint;
   currency: CurrencyCode;
@@ -104,7 +106,7 @@ function TransferRow({
         minHeight: 44,
       }}
     >
-      <Avatar name={avatarName} ghost={ghost} size={40} />
+      <PersonAvatar name={avatarName} member={member} ghost={ghost} size={40} />
       <View style={{ flex: 1 }}>
         <Text variant="subheading" numberOfLines={2}>
           {sentence}
@@ -255,6 +257,7 @@ export default function SimplifyScreen() {
         <TransferRow
           sentence={sentence}
           avatarName={personName}
+          member={person}
           ghost={Boolean(person && (isGhost(person) || isBlockedMember(person, blockedIds)))}
           amount={transfer.amount}
           currency={transfer.currency as CurrencyCode}

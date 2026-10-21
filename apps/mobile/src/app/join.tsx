@@ -12,7 +12,6 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
-  Avatar,
   Badge,
   Button,
   Callout,
@@ -47,6 +46,7 @@ import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { router, useGoBack } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * Landing screen for an invite link (ADR-006).
@@ -438,7 +438,7 @@ export default function JoinScreen() {
                       opacity: claimId === candidate.memberId ? 1 : 0.5,
                     }}
                   >
-                    <Avatar name={candidate.name ?? '?'} ghost size={52} />
+                    <PersonAvatar name={candidate.name ?? '?'} ghost size={52} />
                     <Text variant="micro" tone={claimId === candidate.memberId ? 'brand' : 'muted'}>
                       {candidate.name ?? t.misc.unnamed}
                     </Text>

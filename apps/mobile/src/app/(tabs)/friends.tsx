@@ -1431,7 +1431,7 @@ const PersonRow = memo(function PersonRow({
           currencies, with a band of empty surface under it — the same stranding
           the amounts column suffers when it is the shorter side. */}
       <View style={{ alignSelf: 'center' }}>
-        <PersonAvatar
+        <VividAvatar
           name={shownName}
           size={44}
           ghost={person.is_ghost || blocked}
@@ -1637,7 +1637,7 @@ const PersonRow = memo(function PersonRow({
  * LinearGradient view per row is a real cost on a fast fling; a solid `ink` with
  * white initials reads all but identically and stays cheap.
  */
-function PersonAvatar({
+function VividAvatar({
   name,
   size,
   ghost,

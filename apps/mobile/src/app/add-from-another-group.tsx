@@ -31,7 +31,6 @@ import { FlashList } from '@shopify/flash-list';
 import { Pressable, View } from 'react-native';
 
 import {
-  Avatar,
   Button,
   directionalIcon,
   EmptyState,
@@ -55,6 +54,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { fold } from '@/lib/contactMatch';
 import { useFavorites } from '@/lib/favorites';
 import { router } from '@/lib/navigation';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** One row of the flat list: a group's name, or somebody in it. */
 type Entry =
@@ -303,7 +303,7 @@ function PersonRow({
       <Row
         style={{ height: ROW_HEIGHT, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}
       >
-        <Avatar name={person.name} size={40} ghost />
+        <PersonAvatar name={person.name} size={40} ghost />
         <View style={{ flex: 1 }}>
           <Text variant="body" numberOfLines={1}>
             {person.name}
