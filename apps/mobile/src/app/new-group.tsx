@@ -15,8 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   currencySymbol,
   EVENT_TEMPLATES,
+  FREE_GROUP_LIMIT,
   guessGroupEmoji,
   guessGroupType,
+  isFreeGroupLimitError,
   minorUnitExponent,
   minorUnitScale,
   MutationKind,
@@ -76,6 +78,7 @@ import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useGroupCapGuard } from '@/lib/groupCapGuard';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { useSync } from '@/sync';
 import { displayName, GroupType, isViewer } from '@/data/types';
@@ -155,6 +158,7 @@ export default function NewGroupScreen() {
   const viewerId = useViewerId();
   const currency = useDefaultCurrency();
   const guard = useGuestGuard();
+  const groupCap = useGroupCapGuard();
   const { mutate } = useSync();
 
   // Cloning: `?from=<groupId>` opens this screen filled from an existing group.
@@ -523,6 +527,10 @@ export default function NewGroupScreen() {
     // sends them to the upgrade screen instead of making a group the server
     // would refuse anyway.
     if (guard.blockAddGroup()) return;
+    // A Free account that has started its ten groups gets the upgrade prompt
+    // here too — the doors on Home and Groups ask first, but this screen has
+    // other doors (Activity, Contacts, a capture, a clone).
+    if (groupCap.blockCreate()) return;
     setError(null);
     try {
       const groupId = await createGroup.mutateAsync({
@@ -685,7 +693,9 @@ export default function NewGroupScreen() {
       setError(
         isPhoneCountryError(caught)
           ? t.people.phoneNeedsCountryCode
-          : friendlyError(caught, t.couldNotSave, 'newGroup.create'),
+          : isFreeGroupLimitError(caught)
+            ? fill(t.groupCap.refused, { n: groupCap.gate?.limit ?? FREE_GROUP_LIMIT })
+            : friendlyError(caught, t.couldNotSave, 'newGroup.create'),
       );
     }
   };

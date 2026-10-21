@@ -18,6 +18,7 @@ import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { useFavorites } from '@/lib/favorites';
+import { useGroupCapGuard } from '@/lib/groupCapGuard';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
@@ -41,6 +42,9 @@ export default function CloneGroupScreen() {
   const groups = useGroups();
   const summary = useHomeSummary(profile?.id ?? null);
   const { isFavorite, toggle } = useFavorites();
+  // A clone is a create: a Free account at its ten groups gets the upgrade
+  // prompt here rather than a form the server would refuse.
+  const groupCap = useGroupCapGuard();
 
   // Favourites first, then the app's existing group order underneath. Computed
   // each render rather than memoised: starring a group re-renders this screen
@@ -88,7 +92,10 @@ export default function CloneGroupScreen() {
                 key={group.id}
                 accessibilityRole="button"
                 accessibilityLabel={fill(t.clone.startFrom, { name: title })}
-                onPress={() => router.replace(`/new-group?from=${group.id}`)}
+                onPress={() => {
+                  if (groupCap.blockCreate()) return;
+                  router.replace(`/new-group?from=${group.id}`);
+                }}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
               >
                 <Row

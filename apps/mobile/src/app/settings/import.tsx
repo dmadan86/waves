@@ -27,7 +27,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
+  FREE_GROUP_LIMIT,
   importSplitwiseCsv,
+  isFreeGroupLimitError,
   isWavesExport,
   parseWavesExport,
   type WavesImportGroup,
@@ -55,8 +57,9 @@ import {
 import { createGroup, fetchMembers, importLedger, type ImportPerson } from '@/data/api';
 import { beginImport } from '@/lib/importProgress';
 import { friendlyError } from '@/lib/errors';
+import { useGroupCapGuard } from '@/lib/groupCapGuard';
 import { importProblemLine, importProblemText } from '@/lib/problemText';
-import { plural, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useGroupLabeller, useGroups, useHomeSummary } from '@/data/hooks';
@@ -153,6 +156,7 @@ export default function ImportScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  const groupCap = useGroupCapGuard();
 
   const [file, setFile] = useState<string | null>(null);
   const [parsed, setParsed] = useState<Loaded | null>(null);
@@ -389,6 +393,9 @@ export default function ImportScreen() {
       return;
     }
 
+    // Importing into a new group is a create: the Free ceiling applies.
+    if (chosenTarget === NEW_GROUP && groupCap.blockCreate()) return;
+
     const scheduled = beginImport({
       name,
       run: async () => {
@@ -457,6 +464,11 @@ export default function ImportScreen() {
           // people-facing line. The store shows whichever we throw verbatim.
           if (caught instanceof Error && caught.message === t.importLedger.couldNotFindYou) {
             throw caught;
+          }
+          if (isFreeGroupLimitError(caught)) {
+            throw new Error(
+              fill(t.groupCap.refused, { n: groupCap.gate?.limit ?? FREE_GROUP_LIMIT }),
+            );
           }
           throw new Error(friendlyError(caught, t.importLedger.importFailed, 'import.commit'));
         }

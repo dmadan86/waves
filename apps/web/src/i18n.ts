@@ -1300,6 +1300,11 @@ export interface WebStrings {
     /** Shown instead of a client-supplied logo — see the page for why. */
     unverified: string;
   };
+  /** The Free ceiling on starting groups. `{n}` is the limit. */
+  groupCap: {
+    body: string;
+    refused: string;
+  };
   errors: {
     couldNotLoad: string;
     couldNotSignIn: string;
@@ -2380,6 +2385,11 @@ const en: WebStrings = {
     deny: 'Deny',
     denying: 'Denying…',
     unverified: 'Waves has not verified this application.',
+  },
+  groupCap: {
+    body: 'Free plan lets you create up to {n} groups. Upgrade to Pro in the Waves app for unlimited groups.',
+    refused:
+      'Free plan lets you create up to {n} groups, so this group couldn’t be created. Upgrade to Pro in the Waves app for unlimited groups.',
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -3488,6 +3498,11 @@ const ta: WebStrings = {
     denying: 'மறுக்கிறது…',
     unverified: 'இந்தப் பயன்பாட்டை Waves சரிபார்க்கவில்லை.',
   },
+  groupCap: {
+    body: 'இலவசத் திட்டத்தில் {n} குழுக்கள் வரை உருவாக்கலாம். வரம்பற்ற குழுக்களுக்கு Waves செயலியில் Pro-க்கு மேம்படுத்துங்கள்.',
+    refused:
+      'இலவசத் திட்டத்தில் {n} குழுக்கள் வரை மட்டுமே உருவாக்கலாம், எனவே இந்தக் குழுவை உருவாக்க முடியவில்லை. வரம்பற்ற குழுக்களுக்கு Waves செயலியில் Pro-க்கு மேம்படுத்துங்கள்.',
+  },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
     couldNotSignIn: 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
@@ -4563,6 +4578,11 @@ const hi: WebStrings = {
     deny: 'मना करें',
     denying: 'मना कर रहे हैं…',
     unverified: 'Waves ने इस ऐप्लिकेशन की जाँच नहीं की है।',
+  },
+  groupCap: {
+    body: 'फ़्री प्लान में आप {n} ग्रुप तक बना सकते हैं। अनलिमिटेड ग्रुप के लिए Waves ऐप में Pro पर अपग्रेड करें।',
+    refused:
+      'फ़्री प्लान में आप {n} ग्रुप तक बना सकते हैं, इसलिए यह ग्रुप नहीं बन सका। अनलिमिटेड ग्रुप के लिए Waves ऐप में Pro पर अपग्रेड करें।',
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
@@ -5695,6 +5715,11 @@ const ar: WebStrings = {
     deny: 'رفض',
     denying: 'جارٍ الرفض…',
     unverified: 'لم تتحقّق Waves من هذا التطبيق.',
+  },
+  groupCap: {
+    body: 'تتيح لك الخطة المجانية إنشاء ما يصل إلى {n} مجموعات. انتقل إلى Pro في تطبيق Waves لمجموعات غير محدودة.',
+    refused:
+      'تتيح لك الخطة المجانية إنشاء ما يصل إلى {n} مجموعات، لذا تعذّر إنشاء هذه المجموعة. انتقل إلى Pro في تطبيق Waves لمجموعات غير محدودة.',
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',

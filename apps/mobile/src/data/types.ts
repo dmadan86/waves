@@ -70,6 +70,11 @@ export interface GroupRow {
    *  devices; the rows stay (ADR-004). */
   deleted_at: string | null;
   created_at: string;
+  /** Who started the group. Optional because the row the `group.create` overlay
+   *  builds has never carried it (the queue only holds the viewer's own creates,
+   *  so `pending` says the same); the mirror row (a full `*` pull) always does.
+   *  Read by the Free group ceiling (`lib/groupCapGuard`). */
+  created_by?: string | null;
   /** The overall trip budget, minor units, or null for "no cap". Set by an admin
    *  and always group-visible; the private per-member caps live elsewhere.
    *  Optional because the narrow contact/group REST selects omit it — the mirror

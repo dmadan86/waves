@@ -958,6 +958,17 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
     },
 
     /**
+     * The Free ceiling on starting groups, for this account: the limit, how
+     * many it has started (its own, not deleted, pairs left out) and whether
+     * one more may be. Pro reports `paid` and always `canCreate`. The server
+     * refuses on the same numbers (`waves_assert_group_cap`), so this is for
+     * saying so before the form rather than after.
+     */
+    groupCap(): Promise<{ limit: number; created: number; paid: boolean; canCreate: boolean }> {
+      return rpc('waves_my_group_cap', {});
+    },
+
+    /**
      * Start a group. The creator's membership is made by the RPC, not by a
      * second insert here: two round trips could leave a group nobody is in.
      *
