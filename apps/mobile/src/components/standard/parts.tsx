@@ -294,6 +294,7 @@ export function ListRow({
   divider = false,
   trailing,
   subtitleLines = 1,
+  titleLines = 1,
   destructive = false,
   highlight,
   titleAccessory,
@@ -311,6 +312,8 @@ export function ListRow({
   trailing?: ReactNode;
   /** How many lines the subtitle may take before it is cut; one by default. */
   subtitleLines?: number;
+  /** Lines the title may take before it truncates. */
+  titleLines?: number;
   /** The title is drawn in the negative colour, for the act that cannot be undone. */
   destructive?: boolean;
   /** A tint behind the whole row, for "this one is you". */
@@ -342,7 +345,7 @@ export function ListRow({
           <View style={{ flex: 1, minWidth: 0 }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <Text
-                numberOfLines={1}
+                numberOfLines={titleLines}
                 // Shrinks before it can reach the accessory or the control beside the row.
                 style={[
                   { flexShrink: 1 },
