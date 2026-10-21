@@ -54,13 +54,20 @@ describe('settings page layout', () => {
     expect(card).toContain('t.group.changePill');
   });
 
-  it('puts group type with an info dot, a hairline and a collapsible tag in one card', () => {
+  it('puts group type with an info dot and its trip/event dates in one card', () => {
     const card = between(SCREEN, 't.extras.groupTypeTitle}</Text>', '</StandardCard>');
     expect(card).toContain("infoDot('type'");
     expect(card).toContain("infoText('type', t.extras.groupTypeInfo)");
     expect(card).toContain('variant="brand"');
     expect(card).toContain('StyleSheet.hairlineWidth');
-    expect(card).toContain('<GroupTagField\n              card');
+    expect(card).toContain('<TripDates\n                  bare');
+    expect(card).not.toContain('<GroupTagField');
+  });
+
+  it('keeps the tag as one row in the details card that opens a sheet', () => {
+    const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
+    expect(card).toContain('onPress={() => setTagOpen(true)}');
+    expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<GroupTagField');
   });
 
   it('puts country, settles in and settle-in-currency in one card of tiled rows with no Currency header', () => {
@@ -135,7 +142,7 @@ describe('what moved into the Edit group sheet', () => {
     expect(sheet).toContain('commitDescription');
     for (const piece of [
       '<ChipRow<GroupType>',
-      '<GroupTagField',
+      'setTagOpen(true)',
       '<CountryRow',
       '<TripRatesCard',
     ]) {
@@ -151,7 +158,7 @@ describe('group details on the page itself', () => {
   it('shows kind, tag, country, currency, trip rates and dates on the settings page', () => {
     for (const piece of [
       '<ChipRow<GroupType>',
-      '<GroupTagField',
+      'setTagOpen(true)',
       '<CountryRow',
       '<SettlesInRow',
       '<SettleInCurrencyRow',

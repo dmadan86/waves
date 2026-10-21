@@ -96,7 +96,7 @@ export function SettleInCurrencyRow({
     <>
       <ListRow
         title={title}
-        lines={tile ? 2 : 1}
+        fit={tile}
         subtitle={fill(tile ? t.fx.convertShort : t.fx.convertBody, { currency })}
         leading={
           tile ? (

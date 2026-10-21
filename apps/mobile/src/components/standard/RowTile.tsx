@@ -6,9 +6,9 @@ export function RowTile({ tint, children }: { tint: string; children: ReactNode 
   return (
     <View
       style={{
-        width: 48,
-        height: 48,
-        borderRadius: 14,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tint,

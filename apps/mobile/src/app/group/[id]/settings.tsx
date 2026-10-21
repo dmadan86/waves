@@ -36,7 +36,7 @@ import { format, money, type CurrencyCode } from '@waves/core';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
-import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
 import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
@@ -167,6 +167,7 @@ export default function GroupSettingsScreen() {
   // The "Add someone" sheet, opened from the "+ Add" pill beside the member count.
   const [addOpen, setAddOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
   // Who was just added by name, shown in the sheet so adding several people in
   // a row has an answer each time.
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -1031,20 +1032,25 @@ export default function GroupSettingsScreen() {
               />
             </View>
 
-            <View
-              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
-            />
-
-            {/* The member's own short tag, shown instead of the automatic type tag
-              on Home and the group header. Saved on blur or a chip tap; empty
-              clears it back to the type. */}
-            <GroupTagField
-              card
-              type={group.data.type}
-              value={tag}
-              onChange={setTag}
-              onCommit={commitTag}
-            />
+            {/* Trip and event dates live with the type that brings them: they
+              appear for a trip or an event and go when the type changes. */}
+            {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
+            (group.data.type ?? GroupType.Other) === GroupType.Event ? (
+              <>
+                <View
+                  style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+                />
+                <TripDates
+                  bare
+                  group={group.data}
+                  locale={locale}
+                  forEvent={group.data.type === GroupType.Event}
+                  onChange={(patch) =>
+                    updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
+                  }
+                />
+              </>
+            ) : null}
           </StandardCard>
 
           {/* Country decides which payment rails the settle screen offers and what
@@ -1096,27 +1102,33 @@ export default function GroupSettingsScreen() {
               isAdmin={isAdmin}
               settlementCount={liveSettlementCount}
             />
+            <View
+              style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.color.border }}
+            />
+            {/* The member's own short tag, shown instead of the automatic type tag
+              on Home and the group header: one row here, edited in a sheet. */}
+            <PlainListRow
+              leading={
+                <RowTile tint={theme.color.brandSoft}>
+                  <Ionicons name="pricetag-outline" size={iconSize.lg} color={theme.color.brand} />
+                </RowTile>
+              }
+              title={t.extras.tagLabel}
+              subtitle={tag.trim() || t.extras.tagPlaceholder}
+              trailing={
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.md}
+                  color={theme.color.textMuted}
+                />
+              }
+              onPress={() => setTagOpen(true)}
+            />
           </StandardCard>
           <View style={{ gap: theme.spacing.md }}>
             <TripRatesCard store={tripRateStore} groupCurrency={currency} canEdit={isAdmin} />
             <MissingRatesCard groupId={groupId} />
           </View>
-
-          {/* Trip dates and their nudges only mean anything on a trip, so the
-            section appears only for that type and disappears the moment the
-            group is changed to another kind. Nothing recorded is touched — the
-            stored dates simply stop being shown until it is a trip again. */}
-          {(group.data.type ?? GroupType.Other) === GroupType.Trip ||
-          (group.data.type ?? GroupType.Other) === GroupType.Event ? (
-            <TripDates
-              group={group.data}
-              locale={locale}
-              forEvent={group.data.type === GroupType.Event}
-              onChange={(patch) =>
-                updateGroup.mutate(patch, { onSuccess: () => setStatus(t.account.saved) })
-              }
-            />
-          ) : null}
 
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader
@@ -1336,6 +1348,19 @@ export default function GroupSettingsScreen() {
       </ScrollView>
 
       {/* The "Add someone" sheet, opened from "Add members". */}
+      <Sheet
+        visible={tagOpen}
+        onClose={() => {
+          Keyboard.dismiss();
+          commitTag(tag);
+          setTagOpen(false);
+        }}
+        title={t.extras.tagLabel}
+        closeLabel={t.common.close}
+      >
+        <GroupTagField type={group.data.type} value={tag} onChange={setTag} onCommit={commitTag} />
+      </Sheet>
+
       <Sheet
         visible={exitOpen}
         onClose={() => setExitOpen(false)}

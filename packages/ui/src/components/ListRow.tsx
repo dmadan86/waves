@@ -10,6 +10,8 @@ export interface ListRowProps {
   subtitle?: string;
   /** Lines the title and subtitle may each take before truncating (default 1). */
   lines?: number;
+  /** Shrink the title's type slightly rather than truncate it on a narrow phone. */
+  fit?: boolean;
   /**
    * What the subtitle line draws, when it needs more than plain text — nested
    * `Text` spans in their own colours. `subtitle` is still what is spoken.
@@ -57,6 +59,7 @@ export function ListRow({
   repeatable = false,
   quiet = false,
   lines = 1,
+  fit = false,
 }: ListRowProps) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
@@ -81,6 +84,8 @@ export function ListRow({
           variant={quiet ? 'body' : 'subheading'}
           tone={destructive ? 'negative' : undefined}
           numberOfLines={lines}
+          adjustsFontSizeToFit={fit}
+          minimumFontScale={fit ? 0.8 : undefined}
           style={quiet ? { fontWeight: '600' } : undefined}
         >
           {title}
