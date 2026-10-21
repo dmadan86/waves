@@ -13,15 +13,55 @@ import { toMajorString } from '../src/money/money.js';
 import {
   buildPaymentUri,
   defaultRailFor,
+  defaultRailForCurrency,
   isValidHandle,
   payableFor,
   PAYMENT_RAILS,
   railById,
   railsFor,
+  railsForCurrency,
 } from '../src/settlement/rails';
 
 const major = (amount: bigint, currency: string): string =>
   toMajorString({ minor: amount, currency });
+
+describe('what a currency can pay with', () => {
+  it('leads with the rail of the currency’s home country', () => {
+    expect(defaultRailForCurrency('INR')).toBe('upi');
+    expect(defaultRailForCurrency('AED')).toBe('aani');
+    expect(defaultRailForCurrency('SGD')).toBe('paynow');
+    expect(defaultRailForCurrency('BRL')).toBe('pix');
+    expect(defaultRailForCurrency('THB')).toBe('promptpay');
+    expect(defaultRailForCurrency('IDR')).toBe('qris');
+    expect(defaultRailForCurrency('AUD')).toBe('payid');
+    expect(defaultRailForCurrency('CAD')).toBe('interac');
+  });
+
+  it('offers the same list the home country gets, case and whitespace aside', () => {
+    expect(railsForCurrency(' inr ')).toEqual(railsFor('IN'));
+    expect(railsForCurrency('USD')).toEqual(railsFor('US'));
+    expect(railsForCurrency('GBP')).toEqual(railsFor('GB'));
+    expect(railsForCurrency('AUD')).toEqual(railsFor('AU'));
+    expect(railsForCurrency('EUR')).toEqual(railsFor('DE'));
+  });
+
+  it('does not offer one currency’s national rail to another', () => {
+    const dirham = railsForCurrency('AED').map((rail) => rail.id);
+    expect(dirham).not.toContain('upi');
+    const rupee = railsForCurrency('INR').map((rail) => rail.id);
+    expect(rupee).not.toContain('aani');
+  });
+
+  it('gives an unknown or missing currency the global rails and cash, never nothing', () => {
+    for (const currency of [null, undefined, '', 'XXX', 'KRW']) {
+      const ids = railsForCurrency(currency).map((rail) => rail.id);
+      expect(ids.length).toBeGreaterThan(0);
+      expect(ids.slice(-3), `for ${currency ?? '(none)'}`).toEqual(['bank', 'cash', 'other']);
+      expect(ids).not.toContain('upi');
+      expect(defaultRailForCurrency(currency)).not.toBe('upi');
+    }
+  });
+});
 
 describe('what a country can pay with', () => {
   it('leads with the rail that country actually uses', () => {

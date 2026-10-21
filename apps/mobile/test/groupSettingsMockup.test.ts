@@ -61,7 +61,8 @@ describe('settings page layout', () => {
       'setTypeOpen(true)',
     );
     expect(card).toContain('currentType.label');
-    expect(card).toContain('name="chevron-down"');
+    // The pill is a label, not a navigation hint: no chevron.
+    expect(card).not.toContain('chevron');
     expect(SCREEN).not.toContain('<ChipRow');
     const sheet = between(SCREEN, 'visible={typeOpen}', '</Sheet>');
     expect(sheet).toContain('typeOptions.map');
@@ -78,23 +79,31 @@ describe('settings page layout', () => {
     expect(between(SCREEN, 'visible={datesOpen}', '</Sheet>')).toContain('<DatesSheetBody');
   });
 
-  it('shows Trip currency as a row that opens the embedded rates editor in a sheet', () => {
-    const row = between(SCREEN, 't.fx.tripCurrency}\n              subtitle', 'setRatesOpen(true)');
-    expect(row).toContain('t.fx.noCurrency');
+  it('shows Other currencies for every group type, as a row that opens the rates editor in a sheet', () => {
+    const row = between(
+      SCREEN,
+      't.fx.otherCurrencies}\n              subtitle',
+      'setRatesOpen(true)',
+    );
+    expect(row).toContain('t.fx.noOtherCurrencies');
     expect(row).toContain('tripRateStore.rows');
+    // Not inside the trip/event-only block.
+    expect(between(SCREEN, '{hasDates ? (', ') : null}')).not.toContain('t.fx.otherCurrencies');
     expect(between(SCREEN, 'visible={ratesOpen}', '</Sheet>')).toMatch(/<TripRatesCard\s+embedded/);
   });
 
   it('keeps the tag as one row in the card that opens a sheet', () => {
-    const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
+    const card = between(SCREEN, '<SettlesInRow\n              tile', '</StandardCard>');
     expect(card).toContain('onPress={() => setTagOpen(true)}');
     expect(between(SCREEN, 'visible={tagOpen}', '</Sheet>')).toContain('<TagSheetBody');
   });
 
-  it('keeps country, settles in and settle-in-currency as tiled rows in the same card', () => {
-    const card = between(SCREEN, '<CountryRow\n              tile', '</StandardCard>');
+  it('keeps settles in and settle-in-currency as tiled rows in the same card, and no country row', () => {
+    const card = between(SCREEN, 't.fx.otherCurrencies}', '</StandardCard>');
     expect(card).toContain('<SettlesInRow\n              tile');
     expect(card).toContain('<SettleInCurrencyRow\n              tile');
+    expect(SCREEN).not.toContain('CountryRow');
+    expect(SCREEN).not.toContain('country_code');
     expect(SCREEN).not.toContain('t.fx.section');
     expect(SCREEN.match(/<StandardCard style=\{\{ paddingVertical/g)).toHaveLength(1);
   });
@@ -123,8 +132,9 @@ describe('settings page layout', () => {
 
   it('has the new strings in every language', () => {
     for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
-      expect(strings.fx.tripCurrency).toBeTruthy();
-      expect(strings.fx.noCurrency).toBeTruthy();
+      expect(strings.fx.otherCurrencies).toBeTruthy();
+      expect(strings.fx.noOtherCurrencies).toBeTruthy();
+      expect(strings.fx.groupCurrencies).toBeTruthy();
       expect(strings.fx.settleInShort).toContain('{currency}');
       expect(strings.fx.convertLine).toContain('{currency}');
       expect(strings.fx.groupCurrency).toBeTruthy();
@@ -198,7 +208,7 @@ describe('what moved into the Edit group sheet', () => {
     for (const piece of [
       'setTypeOpen(true)',
       'setTagOpen(true)',
-      '<CountryRow',
+      '<SettlesInRow',
       '<TripRatesCard',
     ]) {
       expect(sheet).not.toContain(piece);
@@ -210,11 +220,11 @@ describe('what moved into the Edit group sheet', () => {
 describe('group details on the page itself', () => {
   const details = between(SCREEN, 'One card: the group', 'The "Add someone" sheet');
 
-  it('shows kind, tag, country, currency, trip rates and dates on the settings page', () => {
+  it('shows kind, tag, currency, other currencies and dates on the settings page', () => {
     for (const piece of [
       'setTypeOpen(true)',
       'setTagOpen(true)',
-      '<CountryRow',
+      't.fx.otherCurrencies',
       '<SettlesInRow',
       '<SettleInCurrencyRow',
       '<TripRatesCard',
@@ -225,11 +235,10 @@ describe('group details on the page itself', () => {
     }
   });
 
-  it('keeps the permission checks, and saves the tag before the country picker opens', () => {
+  it('keeps the permission checks', () => {
     expect(details).toContain('canEdit={isAdmin}');
     expect(details).toContain('isAdmin={isAdmin}');
     expect(details).toContain('locked={!canChangeCurrency}');
-    expect(between(details, '<CountryRow', 'onChange')).toContain('commitTag(tag)');
   });
 });
 

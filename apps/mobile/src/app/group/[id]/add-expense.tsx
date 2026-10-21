@@ -31,7 +31,6 @@ import {
   subEventsForTemplate,
   validatePayers,
   type CategoryMeta,
-  stopCurrencies,
   type CurrencyCode,
   type ExpenseLocation,
   type FxRecord,
@@ -95,13 +94,7 @@ import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { reportHandled } from '@/lib/observability';
-import {
-  useAssignCapture,
-  useGroup,
-  useGroupFxRates,
-  useSetGroupFxRate,
-  useTripStops,
-} from '@/data/hooks';
+import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
@@ -109,7 +102,6 @@ import { useViewerId } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { handoverKey } from '@/lib/handover';
 import { resolveDraftCurrency, resolveDraftFx } from '@/lib/expenseDraft';
-import { useStopCurrency } from '@/lib/tripStops';
 import {
   dateFrom,
   isoDate,
@@ -422,10 +414,6 @@ export default function AddExpenseScreen() {
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
-  // The itinerary: which country the trip was in on the bill's day decides the
-  // currency a new bill starts in (a dong bill in Vietnam), until a currency is
-  // picked by hand.
-  const tripStops = useTripStops(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
   const { mutate } = useSync();
   const personalRecords = usePersonalRecords();
@@ -987,27 +975,9 @@ export default function AddExpenseScreen() {
   const [payerSectionChoice, setPayerSectionChoice] = useState<boolean | null>(null);
 
   const groupCurrency = group.data?.default_currency ?? 'INR';
-  // The itinerary's answer for the bill's day — the same day `expenseDate`
-  // below resolves to — or null when the trip has no stops or the day falls
-  // between them. Moving the date moves the default with it, unless the
-  // person has chosen a currency (`expenseCurrency`), which wins.
-  const stopCurrency = useStopCurrency(
-    tripStops.data,
-    expenseDateFor({
-      picked: pickedDate,
-      captureDate: captureId
-        ? captureExpenseDate
-        : proposal === '1' && !editing
-          ? agentHandoffDate(captureExpenseDate)
-          : null,
-      savedDate: editing?.currentVersion?.expense_date,
-      today: todayIso(),
-    }),
-  );
   // The expense keeps the currency it was paid in; the group's is only the
-  // default and what a converted total would be shown in (ADR-003). Between
-  // the two sits the stop the bill's day falls in.
-  const currency = expenseCurrency ?? stopCurrency ?? groupCurrency;
+  // default and what a converted total would be shown in (ADR-003).
+  const currency = expenseCurrency ?? groupCurrency;
   // The rate the trip has pinned for whatever this bill is in, if it has pinned
   // one (`components/TripRates`). It is a default for the rate field below and
   // nothing more — the bill can still carry its own, and whichever rate is on
@@ -2758,9 +2728,9 @@ export default function AddExpenseScreen() {
       {pickingCurrency ? (
         <CurrencySheet
           value={currency}
-          // The itinerary's currencies lead the picker: they are what this
-          // trip is paid in.
-          featured={stopCurrencies(tripStops.data, groupCurrency)}
+          // The group's own currencies lead the picker: its own, then every
+          // one it has pinned a rate for.
+          featured={[groupCurrency, ...(groupFxRates.data ?? []).map((row) => row.from)]}
           onPick={chooseCurrency}
           onClose={() => setPickingCurrency(false)}
         />

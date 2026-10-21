@@ -88,10 +88,6 @@ export interface GroupRow {
   custom_tag?: string | null;
   /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon, or null for the app's colour. Optional like `custom_tag`. */
   cover_color?: string | null;
-  /** The itinerary of a trip across borders — `[{ country, start, end }]` as
-   *  stored, read through `parseTripStops`. Set only through
-   *  `waves_set_trip_stops`; optional for the same reason `fx_rates` is. */
-  trip_stops?: unknown;
   /** Whether a foreign bill with a stored rate counts in `default_currency`
    *  (ADR-003 amendment). Set only through `waves_set_group_convert`; new groups
    *  start true. Absent on a row mirrored before the column existed — which is

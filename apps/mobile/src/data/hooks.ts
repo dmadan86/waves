@@ -40,8 +40,6 @@ import {
   materialiseSettlementProofs,
   materialiseSettlements,
   MutationKind,
-  parseTripStops,
-  type TripStop,
   nextSortOrder,
   pairBalances,
   openCaptures,
@@ -2665,29 +2663,6 @@ export function useSetGroupFxRate(groupId: string) {
         den: input.den === null ? null : input.den.toString(),
         source: input.source ?? 'manual',
         ...(input.ifAbsent ? { ifAbsent: true } : {}),
-      }),
-  });
-}
-
-/** The trip's itinerary, read off the mirrored group row (ADR-005): the stops
- *  sorted by start, malformed entries dropped. Empty for a group with none. */
-export function useTripStops(groupId: string): LocalRead<TripStop[]> {
-  const { mirror, queue } = useSync();
-  const rows = useMemo(() => {
-    const group = materialiseGroup(mirror, queue, groupId);
-    return parseTripStops(group?.trip_stops ?? null);
-  }, [mirror, queue, groupId]);
-  return useLocalRead(rows);
-}
-
-/** Replace the itinerary, queued. Admin-only, enforced by the RPC; the client
- *  runs `validateStops` first so a refusal is shown before anything is queued. */
-export function useSetTripStops(groupId: string) {
-  const { mutate } = useSync();
-  return useMutation({
-    mutationFn: (stops: readonly TripStop[]) =>
-      mutate(MutationKind.TripStopsSet, groupId, {
-        stops: stops.map((stop) => ({ country: stop.country, start: stop.start, end: stop.end })),
       }),
   });
 }

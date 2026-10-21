@@ -12,7 +12,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { defaultRailFor, format, money, type CurrencyCode } from '@waves/core';
+import { defaultRailForCurrency, format, money, type CurrencyCode } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
@@ -80,7 +80,8 @@ export function InlineSettle({ groupId }: { groupId: string }) {
         groupId,
         tr,
         receivablesFor(toLedgerSnapshots(expenses.rows, group.data), tr.from, tr.to, tr.currency),
-        defaultRailFor(group.data?.country_code ?? null),
+        // The ways to pay back follow the group's currency, not a country.
+        defaultRailForCurrency(group.data?.default_currency ?? null),
       );
       if (!write) return;
       const out = await recordInline(lock, () => recordSettlement.mutateAsync(write));

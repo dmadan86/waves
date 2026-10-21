@@ -1,8 +1,9 @@
 /**
  * "Choose currency" — the one picker every screen that asks for a currency uses:
- * a search over code, name and country, the few currencies this person reaches
- * for as cards along the top, then every offered currency as a row — its flag,
- * code and name, and a radio.
+ * a search over code, name and country, the group's own pinned currencies as
+ * cards along the top when it has any (`featured`), the few currencies this
+ * person reaches for as cards under them, then every offered currency as a row
+ * — its flag, code and name, and a radio.
  *
  * The recent cards are remembered on the phone (most recent first, four at
  * most); before anything has been picked they are simply the head of the
@@ -90,7 +91,7 @@ export function CurrencySheet({
   options?: readonly string[];
   /** The sheet's heading, when the choice has a name of its own ("Settles in"). */
   title?: string;
-  /** Currencies to lead with, as cards of their own ("On this trip"). */
+  /** Currencies to lead with, as cards of their own ("This group's currencies"). */
   featured?: readonly string[];
 }): React.JSX.Element {
   const { t } = useStrings();
@@ -118,7 +119,7 @@ export function CurrencyChoices({
   /** Which currencies may be picked; every offered currency by default. */
   options?: readonly string[];
   /** Currencies to lead with, as a row of cards above the recent ones — the
-   *  itinerary's, on a trip across borders. Empty or absent draws nothing. */
+   *  group's pinned currencies. Empty or absent draws nothing. */
   featured?: readonly string[];
 }): React.JSX.Element {
   const theme = useTheme();
@@ -144,8 +145,8 @@ export function CurrencyChoices({
   }, []);
 
   const offered: readonly string[] = options ?? COMMON_CURRENCIES;
-  // The itinerary's currencies, whether or not the shortlist happens to hold
-  // them: a stop in Vietnam is a reason to offer dong.
+  // The group's own currencies, whether or not the shortlist happens to hold
+  // them: a rate pinned for dong is a reason to offer dong.
   const lead = [...new Set(featured ?? [])];
   // What this person has picked, in the order they picked it. Only before
   // there is any history does it fall back to the current currency and the
@@ -248,7 +249,7 @@ export function CurrencyChoices({
 
       {needle || lead.length === 0 ? null : (
         <View style={{ gap: theme.spacing.sm }}>
-          <Text style={SECTION_LABEL(theme)}>{t.stops.tripCurrencies}</Text>
+          <Text style={SECTION_LABEL(theme)}>{t.fx.groupCurrencies}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

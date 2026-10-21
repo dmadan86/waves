@@ -1006,10 +1006,6 @@ export interface WebStrings {
     adminOnly: string;
     changedElsewhere: string;
     danger: string;
-    /** The itinerary of a trip across borders, read-only here (edited in the app). */
-    countriesVisited: string;
-    countriesVisitedBody: string;
-    noStops: string;
   };
   /** Light, dark, or whatever the machine is set to (the phone's Appearance). */
   theme: {
@@ -2125,10 +2121,6 @@ const en: WebStrings = {
     changedElsewhere:
       'Somebody else changed this group while this page was open. Their version is above — check it, then save again.',
     danger: 'Careful',
-    countriesVisited: 'Countries visited',
-    countriesVisitedBody:
-      'Where the trip goes, and when. A bill there starts in that country’s currency. Edit the stops in the app.',
-    noStops: 'No stops added yet.',
   },
   theme: {
     label: 'Appearance',
@@ -3229,10 +3221,6 @@ const ta: WebStrings = {
     changedElsewhere:
       'இந்தப் பக்கம் திறந்திருந்தபோது வேறு ஒருவர் இந்தக் குழுவை மாற்றியுள்ளார். அவர்களின் பதிப்பு மேலே உள்ளது — பார்த்துவிட்டு மீண்டும் சேமிக்கவும்.',
     danger: 'கவனம்',
-    countriesVisited: 'செல்லும் நாடுகள்',
-    countriesVisitedBody:
-      'பயணம் எங்கே, எப்போது செல்கிறது. அங்கு ஒரு பில் அந்த நாட்டின் நாணயத்தில் தொடங்கும். இடங்களை ஆப்பில் திருத்தவும்.',
-    noStops: 'இன்னும் இடங்கள் சேர்க்கப்படவில்லை.',
   },
   theme: {
     label: 'தோற்றம்',
@@ -4317,10 +4305,6 @@ const hi: WebStrings = {
     changedElsewhere:
       'यह पेज खुला रहते हुए किसी और ने इस समूह में बदलाव किया। उनका संस्करण ऊपर है — देखकर फिर से सेव करें।',
     danger: 'सावधान',
-    countriesVisited: 'घूमे जाने वाले देश',
-    countriesVisitedBody:
-      'यात्रा कहाँ और कब जाती है। वहाँ का बिल उस देश की मुद्रा में शुरू होता है। पड़ाव ऐप में बदलें।',
-    noStops: 'अभी कोई पड़ाव नहीं जोड़ा गया।',
   },
   theme: {
     label: 'रूप-रंग',
@@ -5456,10 +5440,6 @@ const ar: WebStrings = {
     changedElsewhere:
       'غيّر شخص آخر هذه المجموعة بينما كانت هذه الصفحة مفتوحة. نسخته ظاهرة أعلاه — راجعها ثم احفظ من جديد.',
     danger: 'انتبه',
-    countriesVisited: 'البلدان التي ستزورونها',
-    countriesVisitedBody:
-      'إلى أين تذهب الرحلة ومتى. تبدأ الفاتورة هناك بعملة ذلك البلد. عدّل المحطات من التطبيق.',
-    noStops: 'لم تُضف أي محطة بعد.',
   },
   theme: {
     label: 'المظهر',

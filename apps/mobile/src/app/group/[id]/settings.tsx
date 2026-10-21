@@ -29,16 +29,7 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
-import {
-  countryFlag,
-  countryName,
-  format,
-  fromFxRecord,
-  money,
-  stopCurrencies,
-  type CurrencyCode,
-  type TripStop,
-} from '@waves/core';
+import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
@@ -57,12 +48,10 @@ import { pickGroupPhoto } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
-import { CountryRow } from '@/components/CountryPicker';
 import { GroupCoverSheet } from '@/components/CoverEmojiPicker';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { TagSheetBody } from '@/components/TagSheetBody';
 import { DatesSheetBody } from '@/components/DatesSheetBody';
-import { TripStopsBody } from '@/components/TripStopsSheet';
 import { gregorianFormatter } from '@/lib/calendarGrid';
 import { tripDateFromIso } from '@/lib/tripDateRange';
 import { normaliseGroupTag } from '@/lib/groupTypeTag';
@@ -71,7 +60,7 @@ import { SettleInCurrencyRow } from '@/components/SettleInCurrencyRow';
 import { SettlesInRow, TripRatesCard, useGroupTripRateStore } from '@/components/TripRates';
 import { photoGateParam, photoGateStatus } from '@/lib/groupPhotoGate';
 import { canEditSettlementCurrency } from '@/lib/currencyChoices';
-import { canUploadGroupPhoto, fetchFxRate, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
+import { canUploadGroupPhoto, removeGroupPhoto, uploadGroupPhoto } from '@/data/api';
 import {
   useAddGhostMember,
   useGroupMuted,
@@ -87,10 +76,7 @@ import {
   useMergeMemberInto,
   useRemoveMember,
   useRequestMemberLink,
-  useSetGroupFxRate,
   useSetMemberRole,
-  useSetTripStops,
-  useTripStops,
   useUpdateGroup,
 } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
@@ -146,11 +132,6 @@ export default function GroupSettingsScreen() {
   const groupId = id ?? '';
   const tripRates = useGroupFxRates(groupId);
   const tripRateStore = useGroupTripRateStore(groupId);
-  // The itinerary (A trip across borders): where the group went and when. The
-  // home country stays `country_code`; this is the list of the others.
-  const tripStops = useTripStops(groupId);
-  const setTripStops = useSetTripStops(groupId);
-  const pinRate = useSetGroupFxRate(groupId);
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -183,7 +164,6 @@ export default function GroupSettingsScreen() {
   const [tagOpen, setTagOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
-  const [stopsOpen, setStopsOpen] = useState(false);
   const [ratesOpen, setRatesOpen] = useState(false);
   const [settleFirstOpen, setSettleFirstOpen] = useState(false);
   // Who was just added by name, shown in the sheet so adding several people in
@@ -660,39 +640,6 @@ export default function GroupSettingsScreen() {
     });
   };
 
-  /**
-   * Save the itinerary, then make sure the trip has a rate for every currency
-   * it will be paid in.
-   *
-   * A stop in Vietnam means dong bills, and a dong bill with no rate is the
-   * thing the Missing-rates card nags about — so adding the stop goes and gets
-   * today's mid-market rate for VND and pins it, the same fetch-and-pin the
-   * Trip rates sheet does by hand. Pinned only if absent: an admin's deliberate
-   * rate is never overwritten by a convenience. A fetch that fails is left for
-   * the rates sheet; the stop itself has already saved.
-   */
-  const saveStops = async (stops: readonly TripStop[]): Promise<void> => {
-    await setTripStops.mutateAsync(stops);
-    const pinned = new Set(tripRateStore.rows.map((row) => row.from));
-    const wanted = stopCurrencies(stops, currency).filter((code) => !pinned.has(code));
-    for (const code of wanted) {
-      try {
-        const fetched = fromFxRecord(await fetchFxRate(code as CurrencyCode, currency));
-        await pinRate.mutateAsync({
-          from: fetched.from,
-          num: fetched.num,
-          den: fetched.den,
-          source: fetched.source,
-          ifAbsent: true,
-        });
-        setStatus(fill(t.stops.currencyPinned, { currency: code }));
-      } catch {
-        // No rate today: the Trip currency row still lists it as wanted, and
-        // the first foreign bill fetches its own (fxAutoRate).
-      }
-    }
-  };
-
   const memberCount = (members.data ?? []).length;
   const created = new Date(group.data.created_at);
   const createdLabel = Number.isNaN(created.getTime())
@@ -966,17 +913,6 @@ export default function GroupSettingsScreen() {
   const groupType = group.data.type ?? GroupType.Other;
   const currentType = typeOptions.find((option) => option.value === groupType) ?? typeOptions[5]!;
   const hasDates = groupType === GroupType.Trip || groupType === GroupType.Event;
-  // "🇮🇩 🇸🇬 🇻🇳 Indonesia, Singapore, Vietnam", or the invitation to add some.
-  const stopsSummary = (() => {
-    const countries = [...new Set(tripStops.data.map((stop) => stop.country))];
-    if (countries.length === 0) return t.stops.addCountries;
-    const flags = countries
-      .map((code) => countryFlag(code) ?? '')
-      .filter(Boolean)
-      .join(' ');
-    const names = countries.map((code) => countryName(code) ?? code).join(', ');
-    return `${flags} ${names}`.trim();
-  })();
   const datesSummary = (() => {
     const from = tripDateFromIso(group.data.start_date);
     const to = tripDateFromIso(group.data.end_date);
@@ -1124,7 +1060,6 @@ export default function GroupSettingsScreen() {
                   <Text style={{ color: theme.color.text, fontWeight: '700' }}>
                     {currentType.label}
                   </Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
                 </Row>
               }
               onPress={() => setTypeOpen(true)}
@@ -1145,53 +1080,26 @@ export default function GroupSettingsScreen() {
                   trailing={chevron}
                   onPress={() => setDatesOpen(true)}
                 />
-                {divider}
-                {/* Where the trip goes, as a list of country stops with days. A
-                    stop's currency joins the trip rates by itself; the home
-                    country (below) is untouched. */}
-                <PlainListRow
-                  leading={
-                    <RowTile tint={theme.scheme === 'dark' ? '#2F80ED38' : '#E3EEFD'}>
-                      <Ionicons name="earth-outline" size={iconSize.lg} color="#2F80ED" />
-                    </RowTile>
-                  }
-                  title={t.stops.countriesVisited}
-                  subtitle={stopsSummary}
-                  trailing={chevron}
-                  onPress={() => setStopsOpen(true)}
-                />
               </>
             ) : null}
             {divider}
+            {/* The currencies this group is also paid in, beside its own: one per
+              pinned rate. Any kind of group — a flat with a bill in dollars
+              counts as much as a trip — and the same sheet of rates behind it. */}
             <PlainListRow
               leading={
                 <RowTile tint={theme.scheme === 'dark' ? '#F5A62338' : '#FDEFD6'}>
                   <Ionicons name="cash-outline" size={iconSize.lg} color="#E8890C" />
                 </RowTile>
               }
-              title={t.fx.tripCurrency}
+              title={t.fx.otherCurrencies}
               subtitle={
                 tripRateStore.rows.length > 0
                   ? tripRateStore.rows.map((row) => row.from).join(', ')
-                  : t.fx.noCurrency
+                  : t.fx.noOtherCurrencies
               }
               trailing={chevron}
               onPress={() => setRatesOpen(true)}
-            />
-            {divider}
-            <CountryRow
-              tile
-              countryCode={group.data.country_code}
-              onOpen={() => {
-                Keyboard.dismiss();
-                commitTag(tag);
-              }}
-              onChange={(country_code) =>
-                updateGroup.mutate(
-                  { country_code },
-                  { onSuccess: () => setStatus(t.account.saved) },
-                )
-              }
             />
             {divider}
             <SettlesInRow
@@ -1505,32 +1413,9 @@ export default function GroupSettingsScreen() {
       </Sheet>
 
       <Sheet
-        visible={stopsOpen}
-        onClose={() => setStopsOpen(false)}
-        closeLabel={t.common.close}
-        style={{ height: Math.round(windowHeight * 0.9) }}
-      >
-        {/* Mounted only while open, like the Dates sheet, so each opening
-            starts on the list with no draft stop left over. */}
-        {stopsOpen ? (
-          <TripStopsBody
-            stops={tripStops.data}
-            tripStart={group.data.start_date}
-            tripEnd={group.data.end_date}
-            timeZone={group.data.time_zone}
-            canEdit={isAdmin}
-            locale={locale}
-            pending={setTripStops.isPending}
-            onSave={saveStops}
-            onClose={() => setStopsOpen(false)}
-          />
-        ) : null}
-      </Sheet>
-
-      <Sheet
         visible={ratesOpen}
         onClose={() => setRatesOpen(false)}
-        title={t.fx.tripCurrency}
+        title={t.fx.otherCurrencies}
         closeLabel={t.common.close}
         style={{ height: Math.round(windowHeight * 0.6) }}
       >

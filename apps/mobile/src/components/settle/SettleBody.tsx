@@ -21,7 +21,7 @@ import {
   allocateSettlement,
   BalanceDirection,
   buildPaymentUri,
-  defaultRailFor,
+  defaultRailForCurrency,
   format,
   money,
   railById,
@@ -126,7 +126,6 @@ export function SettleBody({
   const [settleAskOpen, setSettleAskOpen] = useState(false);
 
   const currency = group.data?.default_currency ?? 'INR';
-  const country = group.data?.country_code ?? null;
   const myMemberId = ledger.myMemberId;
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
 
@@ -650,7 +649,7 @@ export function SettleBody({
           onClose={() => setSettleAskOpen(false)}
           onConfirm={() => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, defaultRailFor(country));
+            void record(settleAsk.transfer, defaultRailForCurrency(currency));
           }}
           title={settleAskTitle}
           body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}

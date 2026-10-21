@@ -639,9 +639,6 @@ export interface MirrorGroup extends MirrorRow {
    *  (ADR-003 amendment). Absent on a row mirrored before the column existed,
    *  which is exactly a group that has not opted in. */
   readonly convert_to_group_currency?: boolean;
-  /** The itinerary — `[{ country, start, end }]` — read through
-   *  `parseTripStops`, which tolerates whatever is here. Group-visible, admin-set. */
-  readonly trip_stops?: unknown;
   readonly pending?: boolean;
 }
 
@@ -762,22 +759,6 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
           };
         }
         byId.set(mutation.groupId, { ...existing, fx_rates: map, pending: true });
-      }
-    }
-
-    // The itinerary is replaced whole, so the overlay is the payload's list;
-    // an empty one clears it, the way the RPC writes NULL.
-    if (mutation.kind === 'trip_stops.set') {
-      const existing = byId.get(mutation.groupId);
-      if (existing) {
-        const payload = mutation.payload as {
-          stops: readonly { country: string; start: string; end: string }[];
-        };
-        byId.set(mutation.groupId, {
-          ...existing,
-          trip_stops: payload.stops.length === 0 ? null : payload.stops,
-          pending: true,
-        });
       }
     }
   }
