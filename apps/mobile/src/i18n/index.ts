@@ -3402,10 +3402,10 @@ export interface UiStrings {
     rejectConfirm: string;
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
     cancelSettlement: string;
-    /** Uppercase section label above the member balance rows. */
-    groupBalances: string;
-    /** Link that opens the settle flow for the whole group. */
-    settleUpAll: string;
+    /** Section label above the suggested repayments on the Balances tab. */
+    paymentsToSettle: string;
+    /** Section label above the member balance rows. */
+    everyonesBalance: string;
     cancelTitle: string;
     /** `{name}` is the payee who would have confirmed. */
     cancelBody: string;
@@ -3935,6 +3935,8 @@ export interface UiStrings {
     settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
+    settleRecord: string;
+    settleRecordA11y: string;
     settleMarkPaidA11y: string;
     settleReceivedHint: string;
     settleSeeAll: string;
@@ -8608,8 +8610,8 @@ const en: UiStrings = {
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
-    groupBalances: 'Group balances',
-    settleUpAll: 'Settle up all',
+    paymentsToSettle: 'Payments to settle',
+    everyonesBalance: 'Everyone’s balance',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -9003,6 +9005,8 @@ const en: UiStrings = {
     settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
+    settleRecord: 'Record',
+    settleRecordA11y: 'Record that {name} paid {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
     settleReceivedHint: 'Marks it as received',
     settleSeeAll: 'See all',
@@ -13683,8 +13687,8 @@ const ta: UiStrings = {
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
-    groupBalances: 'குழு இருப்புகள்',
-    settleUpAll: 'அனைத்தையும் தீர்',
+    paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
+    everyonesBalance: 'அனைவரின் இருப்பு',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -14100,6 +14104,8 @@ const ta: UiStrings = {
     settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
+    settleRecord: 'பதிவு செய்',
+    settleRecordA11y: '{name} {amount} செலுத்தியதைப் பதிவு செய்',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
     settleReceivedHint: 'கிடைத்ததாகக் குறிக்கும்',
     settleSeeAll: 'அனைத்தும் காண்க',
@@ -18798,8 +18804,8 @@ const hi: UiStrings = {
       '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
-    groupBalances: 'ग्रुप बैलेंस',
-    settleUpAll: 'सब सेटल करें',
+    paymentsToSettle: 'चुकाने वाले भुगतान',
+    everyonesBalance: 'सबका बैलेंस',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -19202,6 +19208,8 @@ const hi: UiStrings = {
     settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
+    settleRecord: 'दर्ज करें',
+    settleRecordA11y: '{name} ने {amount} चुकाए, यह दर्ज करें',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
     settleReceivedHint: 'इसे मिला हुआ दर्ज करता है',
     settleSeeAll: 'सभी देखें',
@@ -24018,8 +24026,8 @@ const ar: UiStrings = {
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
-    groupBalances: 'أرصدة المجموعة',
-    settleUpAll: 'تسوية الكل',
+    paymentsToSettle: 'دفعات للتسوية',
+    everyonesBalance: 'رصيد الجميع',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
@@ -24468,6 +24476,8 @@ const ar: UiStrings = {
     settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
+    settleRecord: 'سجّل',
+    settleRecordA11y: 'سجّل أن {name} دفع {amount}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
     settleReceivedHint: 'يحدده كمستلم',
     settleSeeAll: 'عرض الكل',

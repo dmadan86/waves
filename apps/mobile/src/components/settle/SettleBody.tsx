@@ -2,8 +2,8 @@
  * Settling up in a group, as plainly as it can be said: who owes me (remind
  * them), whom I owe (pay them), and nothing else until asked.
  *
- * Two homes: the Settle up screen (reached from a balance, a reminder, the
- * pending list) and a group's own Settle up tab, so the two cannot drift.
+ * One home: the top of a group's Balances tab. `useSettleFlow` holds the state
+ * and writes; `SettlePayments`, `SettleHistory` and `SettleConfirm` draw them.
  *
  * Presentation only. The plan is the ledger's own (`useGroupLedger().transfers`,
  * simplified or pairwise as the group chose), reminders go through `useNudge`,
@@ -14,8 +14,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 
 import {
   allocateSettlement,
@@ -41,7 +40,6 @@ import {
 } from '@waves/ui';
 
 import { useBlockedUsers } from '@/data/blocked';
-import { useBottomClearance } from '@/lib/clearance';
 import {
   memberLookup,
   toLedgerSnapshots,
@@ -66,43 +64,16 @@ import { useDialog } from '@/lib/dialog';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { router } from '@/lib/navigation';
 import { groupDebtsByPerson, joinAmounts, type PersonAmount } from '@/lib/debtsByPerson';
-import { useRemind } from '@/lib/useRemind';
-import { convertedCaption, isRatelessTransfer } from '@/lib/settleCurrency';
+import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useAddRate } from '@/lib/useAddRate';
-import {
-  settleHero,
-  splitSettlePlan,
-  summariseSettlePlan,
-  type PlanTransfer,
-  type SettleHero,
-} from '@/lib/settlePlan';
+import { splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-export function SettleBody({
-  groupId,
-  onRecorded,
-  showSummary = true,
-}: {
-  groupId: string;
-  /**
-   * The Settle up screen opens with its own summary card; a group's tab sits
-   * under the hero that already says what you are owed, so it leaves it out.
-   */
-  showSummary?: boolean;
-  /**
-   * What to do once a settlement is recorded. The screen closes itself; a
-   * group's Settle up tab has nowhere to go back to, so it says where to look.
-   */
-  onRecorded?: () => void;
-}) {
-  const theme = useTheme();
-  // The foot clears whatever is there: the app's tab bar when this is a
-  // group's Settle up tab (the last "who pays whom" rows sat under it), the
-  // system bar alone on the standalone Settle up screen.
-  const clearance = useBottomClearance();
+/** Everything the settle flow knows and does for one group; the sections below only draw it. */
+export function useSettleFlow(groupId: string, onRecorded?: () => void) {
   const { t, locale } = useStrings();
   const { confirm, notify, choose } = useDialog();
   const { profile } = useAuth();
@@ -133,7 +104,6 @@ export function SettleBody({
     () => splitSettlePlan(ledger.transfers, myMemberId),
     [ledger.transfers, myMemberId],
   );
-  const summary = useMemo(() => summariseSettlePlan(split, currency), [split, currency]);
 
   const nameOf = (memberId: string, bare = false): string => {
     return memberNameById(lookup, memberId, {
@@ -271,16 +241,7 @@ export function SettleBody({
     if (recordIt) void record(transfer, payable.rail);
   };
 
-  if (group.isLoading || members.isLoading) {
-    return (
-      <View style={{ paddingTop: theme.spacing.xxxl, alignItems: 'center' }}>
-        <ActivityIndicator color={theme.color.brand} />
-      </View>
-    );
-  }
-
-  const hero = settleHero(split, summary, currency);
-  const heroCaption = convertedCaption(ledger.convertedFrom, locale, t.fx.convertedCaption);
+  const loading = group.isLoading || members.isLoading;
 
   const history = (settlements.data ?? [])
     .filter((row) => row.status !== SettlementStatus.Cancelled)
@@ -371,278 +332,386 @@ export function SettleBody({
     return picked === null ? null : (amounts[Number(picked)]?.transfer ?? null);
   };
 
+  return {
+    groupId,
+    activeFilter,
+    addRate,
+    amountsText,
+    currency,
+    error,
+    explainPending,
+    filterOpen,
+    ghostFor,
+    group,
+    groupName,
+    history,
+    historyExpandable,
+    isPending,
+    locale,
+    markPaid,
+    markReceived,
+    nameOf,
+    otherMembers,
+    owedPeople,
+    owingPeople,
+    pay,
+    personFor,
+    pickAmount,
+    ratelessOwed,
+    ratelessOwing,
+    record,
+    recordSettlement,
+    setFilterMember,
+    setFilterOpen,
+    setSettleAskOpen,
+    setShowAllHistory,
+    settleAsk,
+    settleAskMember,
+    settleAskName,
+    settleAskOpen,
+    settleAskReceived,
+    settleAskTitle,
+    showAllHistory,
+    shownHistory,
+    shownOthers,
+    split,
+    t,
+    loading,
+  };
+}
+
+export type SettleFlow = ReturnType<typeof useSettleFlow>;
+
+/** The payments to make or receive, by who owes whom. The flow's only write is behind these rows. */
+export function SettlePayments({ flow }: { flow: SettleFlow }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const {
+    activeFilter,
+    addRate,
+    amountsText,
+    error,
+    explainPending,
+    filterOpen,
+    ghostFor,
+    isPending,
+    locale,
+    markPaid,
+    markReceived,
+    nameOf,
+    otherMembers,
+    owedPeople,
+    owingPeople,
+    pay,
+    personFor,
+    pickAmount,
+    ratelessOwed,
+    ratelessOwing,
+    recordSettlement,
+    setFilterMember,
+    setFilterOpen,
+    shownOthers,
+    split,
+  } = flow;
+  const nothingToSettle =
+    split.owesMe.length === 0 && split.iOwe.length === 0 && split.others.length === 0;
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.md,
-          paddingBottom: clearance,
-          gap: GAP,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {showSummary ? (
-          <SummaryCard hero={hero} currency={currency} locale={locale} caption={heroCaption} />
-        ) : null}
+    <>
+      {nothingToSettle ? (
+        <Text variant="body" tone="muted">
+          {t.allSettled}
+        </Text>
+      ) : null}
+      {error ? <Callout tone="negative">{error}</Callout> : null}
 
-        {error ? <Callout tone="negative">{error}</Callout> : null}
-
-        {split.owesMe.length > 0 ? (
-          <Card>
-            <CardHeader title={t.misc.settleOweYouTitle} />
-            {owedPeople.map((debts) => {
-              const person = personFor(debts.memberId);
-              // Who left says so on the status line, not as a "(left)" on the name.
-              const name = nameOf(debts.memberId, true);
-              return (
-                <OwedPersonRow
-                  key={debts.memberId}
-                  groupId={groupId}
-                  groupName={groupName}
-                  joinToken={group.data?.join_token ?? null}
-                  memberId={debts.memberId}
-                  member={person}
-                  name={name}
-                  ghost={ghostFor(person)}
-                  amounts={debts.amounts}
-                  pending={debts.amounts.some((amount) => isPending(amount.transfer))}
-                  locale={locale}
-                  disabled={recordSettlement.isPending}
-                  // The row has always been the way to say "they paid me".
-                  onPress={() =>
-                    void pickAmount(debts.amounts, name).then((transfer) => {
-                      if (!transfer) return;
-                      return isPending(transfer) ? explainPending() : markReceived(transfer);
-                    })
-                  }
-                />
-              );
-            })}
-            {ratelessOwed.map((transfer) => {
-              const person = personFor(transfer.from);
-              return (
-                <RatelessTile
-                  key={`${transfer.from}-${transfer.currency}`}
-                  name={nameOf(transfer.from)}
-                  member={person}
-                  ghost={ghostFor(person)}
-                  amount={transfer.amount}
-                  currency={transfer.currency}
-                  direction={BalanceDirection.OwedToYou}
-                  locale={locale}
-                  onAddRate={() =>
-                    void addRate({
-                      currency: transfer.currency,
-                      parties: [transfer.from, transfer.to],
-                    })
-                  }
-                />
-              );
-            })}
-          </Card>
-        ) : null}
-
-        {split.iOwe.length > 0 ? (
-          <Card>
-            <CardHeader title={t.misc.settleYouOweTitle} />
-            {owingPeople.map((debts) => {
-              const person = personFor(debts.memberId);
-              const name = nameOf(debts.memberId);
-              const amountText = amountsText(debts.amounts);
-              const pending = debts.amounts.some((amount) => isPending(amount.transfer));
-              return (
-                <PersonTile
-                  key={debts.memberId}
-                  name={name}
-                  member={person}
-                  ghost={ghostFor(person)}
-                  status={
-                    !person || isGhost(person)
-                      ? t.notJoinedYet
-                      : pending
-                        ? t.misc.settleStatusPending
-                        : null
-                  }
-                  hint={t.misc.settleTapPaid}
-                  amounts={debts.amounts}
-                  direction={BalanceDirection.YouOwe}
-                  locale={locale}
-                  // Already paid outside the app: the row records it, the
-                  // button hands off to their payment app.
-                  accessibilityLabel={fill(t.misc.settleMarkPaidA11y, { name, amount: amountText })}
-                  onPress={() =>
-                    void pickAmount(debts.amounts, name).then((transfer) => {
-                      if (!transfer) return;
-                      return isPending(transfer) ? explainPending() : markPaid(transfer);
-                    })
-                  }
-                  disabled={recordSettlement.isPending}
-                  action={
-                    <PayPill
-                      label={t.misc.settlePay}
-                      accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
-                      disabled={recordSettlement.isPending}
-                      onPress={() =>
-                        void pickAmount(debts.amounts, name).then((transfer) =>
-                          transfer ? pay(transfer) : undefined,
-                        )
-                      }
-                    />
-                  }
-                />
-              );
-            })}
-            {ratelessOwing.map((transfer) => {
-              const person = personFor(transfer.to);
-              return (
-                <RatelessTile
-                  key={`${transfer.to}-${transfer.currency}`}
-                  name={nameOf(transfer.to)}
-                  member={person}
-                  ghost={ghostFor(person)}
-                  amount={transfer.amount}
-                  currency={transfer.currency}
-                  direction={BalanceDirection.YouOwe}
-                  locale={locale}
-                  onAddRate={() =>
-                    void addRate({
-                      currency: transfer.currency,
-                      parties: [transfer.from, transfer.to],
-                    })
-                  }
-                />
-              );
-            })}
-          </Card>
-        ) : null}
-
-        {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
-
-        {split.others.length > 0 ? (
-          <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm }}>
-              <View style={{ flex: 1 }}>
-                <CardHeader
-                  title={t.misc.settleBetweenOthers}
-                  subtitle={t.misc.settleBetweenOthersSub}
-                />
-              </View>
-              <FilterPill
-                label={activeFilter ? nameOf(activeFilter) : t.misc.settleFilterAll}
-                onPress={() => setFilterOpen((open) => !open)}
-                open={filterOpen}
+      {split.owesMe.length > 0 ? (
+        <Card>
+          <CardHeader title={t.misc.settleOweYouTitle} />
+          {owedPeople.map((debts) => {
+            const person = personFor(debts.memberId);
+            // Who left says so on the status line, not as a "(left)" on the name.
+            const name = nameOf(debts.memberId, true);
+            return (
+              <OwedPersonRow
+                key={debts.memberId}
+                member={person}
+                name={name}
+                ghost={ghostFor(person)}
+                amounts={debts.amounts}
+                pending={debts.amounts.some((amount) => isPending(amount.transfer))}
+                locale={locale}
+                disabled={recordSettlement.isPending}
+                // The row has always been the way to say "they paid me".
+                onPress={() =>
+                  void pickAmount(debts.amounts, name).then((transfer) => {
+                    if (!transfer) return;
+                    return isPending(transfer) ? explainPending() : markReceived(transfer);
+                  })
+                }
               />
-            </View>
-            {filterOpen ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                {[null, ...otherMembers].map((id) => (
-                  <FilterChip
-                    key={id ?? 'all'}
-                    label={id ? nameOf(id) : t.misc.settleFilterAll}
-                    selected={id === activeFilter}
-                    onPress={() => {
-                      setFilterMember(id);
-                      setFilterOpen(false);
-                    }}
-                  />
-                ))}
-              </View>
-            ) : null}
-            {shownOthers.map((transfer) => (
-              <OtherTile
-                key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
-                fromName={nameOf(transfer.from)}
-                toName={nameOf(transfer.to)}
-                from={personFor(transfer.from)}
-                to={personFor(transfer.to)}
-                fromGhost={ghostFor(personFor(transfer.from))}
-                toGhost={ghostFor(personFor(transfer.to))}
+            );
+          })}
+          {ratelessOwed.map((transfer) => {
+            const person = personFor(transfer.from);
+            return (
+              <RatelessTile
+                key={`${transfer.from}-${transfer.currency}`}
+                name={nameOf(transfer.from)}
+                member={person}
+                ghost={ghostFor(person)}
                 amount={transfer.amount}
                 currency={transfer.currency}
+                direction={BalanceDirection.OwedToYou}
                 locale={locale}
+                onAddRate={() =>
+                  void addRate({
+                    currency: transfer.currency,
+                    parties: [transfer.from, transfer.to],
+                  })
+                }
               />
-            ))}
-          </Card>
-        ) : null}
+            );
+          })}
+        </Card>
+      ) : null}
 
+      {split.iOwe.length > 0 ? (
         <Card>
-          {/* One line when empty (clock, title, muted "No payments yet"): the
-              old illustration and sentence spent 120pt on nothing. */}
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
-            <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
-            <Text variant="subheading" accessibilityRole="header">
-              {t.misc.settleHistory}
-            </Text>
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {history.length === 0
-                ? t.misc.settleNoHistory
-                : plural(locale, history.length, t.misc.settlePaymentsCount)}
-            </Text>
-          </Row>
-          {shownHistory.map((row) => (
+          <CardHeader title={t.misc.settleYouOweTitle} />
+          {owingPeople.map((debts) => {
+            const person = personFor(debts.memberId);
+            const name = nameOf(debts.memberId);
+            const amountText = amountsText(debts.amounts);
+            const pending = debts.amounts.some((amount) => isPending(amount.transfer));
+            return (
+              <PersonTile
+                key={debts.memberId}
+                name={name}
+                member={person}
+                ghost={ghostFor(person)}
+                status={
+                  !person || isGhost(person)
+                    ? t.notJoinedYet
+                    : pending
+                      ? t.misc.settleStatusPending
+                      : null
+                }
+                hint={t.misc.settleTapPaid}
+                amounts={debts.amounts}
+                direction={BalanceDirection.YouOwe}
+                locale={locale}
+                // Already paid outside the app: the row records it, the
+                // button hands off to their payment app.
+                accessibilityLabel={fill(t.misc.settleMarkPaidA11y, { name, amount: amountText })}
+                onPress={() =>
+                  void pickAmount(debts.amounts, name).then((transfer) => {
+                    if (!transfer) return;
+                    return isPending(transfer) ? explainPending() : markPaid(transfer);
+                  })
+                }
+                disabled={recordSettlement.isPending}
+                action={
+                  <PayPill
+                    label={t.misc.settlePay}
+                    accessibilityLabel={fill(t.misc.settlePayA11y, { name, amount: amountText })}
+                    disabled={recordSettlement.isPending}
+                    onPress={() =>
+                      void pickAmount(debts.amounts, name).then((transfer) =>
+                        transfer ? pay(transfer) : undefined,
+                      )
+                    }
+                  />
+                }
+              />
+            );
+          })}
+          {ratelessOwing.map((transfer) => {
+            const person = personFor(transfer.to);
+            return (
+              <RatelessTile
+                key={`${transfer.to}-${transfer.currency}`}
+                name={nameOf(transfer.to)}
+                member={person}
+                ghost={ghostFor(person)}
+                amount={transfer.amount}
+                currency={transfer.currency}
+                direction={BalanceDirection.YouOwe}
+                locale={locale}
+                onAddRate={() =>
+                  void addRate({
+                    currency: transfer.currency,
+                    parties: [transfer.from, transfer.to],
+                  })
+                }
+              />
+            );
+          })}
+        </Card>
+      ) : null}
+
+      {recordSettlement.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
+
+      {split.others.length > 0 ? (
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm }}>
+            <View style={{ flex: 1 }}>
+              <CardHeader
+                title={t.misc.settleBetweenOthers}
+                subtitle={t.misc.settleBetweenOthersSub}
+              />
+            </View>
+            <FilterPill
+              label={activeFilter ? nameOf(activeFilter) : t.misc.settleFilterAll}
+              onPress={() => setFilterOpen((open) => !open)}
+              open={filterOpen}
+            />
+          </View>
+          {filterOpen ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+              {[null, ...otherMembers].map((id) => (
+                <FilterChip
+                  key={id ?? 'all'}
+                  label={id ? nameOf(id) : t.misc.settleFilterAll}
+                  selected={id === activeFilter}
+                  onPress={() => {
+                    setFilterMember(id);
+                    setFilterOpen(false);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          {shownOthers.map((transfer) => (
             <OtherTile
-              key={row.id}
-              fromName={nameOf(row.from_member_id)}
-              toName={nameOf(row.to_member_id)}
-              from={personFor(row.from_member_id)}
-              to={personFor(row.to_member_id)}
-              fromGhost={ghostFor(personFor(row.from_member_id))}
-              toGhost={ghostFor(personFor(row.to_member_id))}
-              amount={BigInt(row.amount)}
-              currency={row.currency}
+              key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
+              fromName={nameOf(transfer.from)}
+              toName={nameOf(transfer.to)}
+              from={personFor(transfer.from)}
+              to={personFor(transfer.to)}
+              fromGhost={ghostFor(personFor(transfer.from))}
+              toGhost={ghostFor(personFor(transfer.to))}
+              amount={transfer.amount}
+              currency={transfer.currency}
               locale={locale}
-              date={row.initiated_at}
-              past
             />
           ))}
-          {historyExpandable ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showAllHistory }}
-              hitSlop={{ top: 8, bottom: 8 }}
-              onPress={() => setShowAllHistory((open) => !open)}
-              style={{ alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center' }}
-            >
-              <Text variant="caption" tone="brand">
-                {showAllHistory ? t.misc.settleHideAll : t.misc.settleSeeAll}
-              </Text>
-              <Ionicons
-                name={showAllHistory ? 'chevron-up' : directionalIcon('chevron-forward')}
-                size={iconSize.sm}
-                color={theme.color.brand}
-              />
-            </Pressable>
-          ) : null}
         </Card>
+      ) : null}
+    </>
+  );
+}
 
-        {/* A slim text link, not a card: it is a way out, not content. */}
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={t.whoPaysWhom}
-          onPress={() => router.push(`/group/${groupId}/simplify`)}
-          style={({ pressed }) => ({
-            minHeight: 44,
-            paddingHorizontal: theme.spacing.xs,
-            justifyContent: 'center',
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-            <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
-            <Text variant="body" tone="brand" style={{ flex: 1 }}>
-              {t.whoPaysWhom}
+/** Past payments, and the way out to the who-pays-whom view. */
+export function SettleHistory({ flow }: { flow: SettleFlow }) {
+  const theme = useTheme();
+  const { t, locale } = useStrings();
+  const {
+    groupId,
+    ghostFor,
+    history,
+    historyExpandable,
+    nameOf,
+    personFor,
+    setShowAllHistory,
+    showAllHistory,
+    shownHistory,
+  } = flow;
+  return (
+    <>
+      <Card>
+        {/* One line when empty (clock, title, muted "No payments yet"): the
+              old illustration and sentence spent 120pt on nothing. */}
+        <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
+          <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
+          <Text variant="subheading" accessibilityRole="header">
+            {t.misc.settleHistory}
+          </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
+            {history.length === 0
+              ? t.misc.settleNoHistory
+              : plural(locale, history.length, t.misc.settlePaymentsCount)}
+          </Text>
+        </Row>
+        {shownHistory.map((row) => (
+          <OtherTile
+            key={row.id}
+            fromName={nameOf(row.from_member_id)}
+            toName={nameOf(row.to_member_id)}
+            from={personFor(row.from_member_id)}
+            to={personFor(row.to_member_id)}
+            fromGhost={ghostFor(personFor(row.from_member_id))}
+            toGhost={ghostFor(personFor(row.to_member_id))}
+            amount={BigInt(row.amount)}
+            currency={row.currency}
+            locale={locale}
+            date={row.initiated_at}
+            past
+          />
+        ))}
+        {historyExpandable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showAllHistory }}
+            hitSlop={{ top: 8, bottom: 8 }}
+            onPress={() => setShowAllHistory((open) => !open)}
+            style={{ alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center' }}
+          >
+            <Text variant="caption" tone="brand">
+              {showAllHistory ? t.misc.settleHideAll : t.misc.settleSeeAll}
             </Text>
             <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.md}
-              color={theme.color.textMuted}
+              name={showAllHistory ? 'chevron-up' : directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
             />
-          </Row>
-        </Pressable>
-      </ScrollView>
+          </Pressable>
+        ) : null}
+      </Card>
 
+      {/* A slim text link, not a card: it is a way out, not content. */}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={t.whoPaysWhom}
+        onPress={() => router.push(`/group/${groupId}/simplify`)}
+        style={({ pressed }) => ({
+          minHeight: 44,
+          paddingHorizontal: theme.spacing.xs,
+          justifyContent: 'center',
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+          <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
+          <Text variant="body" tone="brand" style={{ flex: 1 }}>
+            {t.whoPaysWhom}
+          </Text>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.md}
+            color={theme.color.textMuted}
+          />
+        </Row>
+      </Pressable>
+    </>
+  );
+}
+
+/** The confirm sheet for the row being recorded. Rendered once, outside any list. */
+export function SettleConfirm({ flow }: { flow: SettleFlow }) {
+  const { t } = useStrings();
+  const {
+    currency,
+    record,
+    setSettleAskOpen,
+    settleAsk,
+    settleAskMember,
+    settleAskName,
+    settleAskOpen,
+    settleAskReceived,
+    settleAskTitle,
+  } = flow;
+  return (
+    <>
       {settleAsk ? (
         <SettleConfirmSheet
           visible={settleAskOpen}
@@ -670,14 +739,11 @@ export function SettleBody({
           }
         />
       ) : null}
-    </View>
+    </>
   );
 }
 
-// Cards sit 8pt apart: this screen is a checklist, not a showcase.
-const GAP = 8;
 const HISTORY_PREVIEW = 3;
-const WALLET_ART = require('../../../assets/images/settle-wallet.webp') as number;
 
 /** A white card: the one surface every block below the summary sits on. */
 function Card({ children }: { children: ReactNode }) {
@@ -976,10 +1042,6 @@ function PersonTile({
  * off-app message names every amount and carries the group's join link.
  */
 function OwedPersonRow({
-  groupId,
-  groupName,
-  joinToken,
-  memberId,
   member,
   name,
   ghost,
@@ -989,10 +1051,6 @@ function OwedPersonRow({
   disabled,
   onPress,
 }: {
-  groupId: string;
-  groupName: string;
-  joinToken: string | null;
-  memberId: string;
   member?: MemberRow;
   name: string;
   ghost: boolean;
@@ -1002,11 +1060,9 @@ function OwedPersonRow({
   disabled: boolean;
   onPress: () => void;
 }) {
-  const theme = useTheme();
   const { t } = useStrings();
   const joined = Boolean(member && !isGhost(member));
   const left = hasLeft(member);
-  const lead = amounts[0];
   const amountText = joinAmounts(
     amounts.map((amount) =>
       format(money(amount.minor, amount.currency as CurrencyCode), { locale }),
@@ -1014,29 +1070,17 @@ function OwedPersonRow({
     t.ghostRemind.and,
     t.ghostRemind.comma,
   );
-  const remindA11y = fill(t.misc.settleRemindA11y, { name, amount: amountText });
-  const remind = useRemind({
-    groupId,
-    memberId,
-    currency: lead?.currency ?? '',
-    joined,
-    phone: member?.invite_phone ?? null,
-    joinToken,
-    name,
-    groupName,
-    amountText,
-  });
 
   const row = owedRowModel({
     joined,
     hasMember: Boolean(member),
     left,
     pending,
-    reminded: remind.reminded,
+    reminded: false,
   });
   const status =
     row.status === OwedStatus.Feedback
-      ? (remind.outcome?.label ?? t.people.reminded)
+      ? t.people.reminded
       : row.status === OwedStatus.Pending
         ? t.misc.settleStatusPending
         : row.status === OwedStatus.Left
@@ -1045,24 +1089,16 @@ function OwedPersonRow({
             ? t.notJoinedYet
             : null;
 
-  // One Remind pill, identical on every row; which channel it uses is picked
-  // in the sheet it opens.
-  const action = row.remind ? (
-    <>
-      <Button
-        label={t.people.remind}
-        variant="secondary"
-        size="sm"
-        icon={
-          <Ionicons name="notifications-outline" size={iconSize.base} color={theme.color.brand} />
-        }
-        accessibilityLabel={remindA11y}
-        disabled={remind.pending}
-        onPress={remind.open}
-      />
-      {remind.sheet}
-    </>
-  ) : null;
+  // One Record pill: they paid me, outside the app. Reminding is on their row
+  // under Everyone's balance, which every member has.
+  const action = (
+    <PayPill
+      label={t.misc.settleRecord}
+      accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
+      disabled={disabled}
+      onPress={onPress}
+    />
+  );
 
   return (
     <PersonTile
@@ -1245,86 +1281,5 @@ function OtherTile({
         </View>
       </Row>
     </Tile>
-  );
-}
-
-/**
- * The top card: which side of the ledger I am on, the amount, and how many
- * payments make it up. A soft wash of the money colours (never the saturated
- * balance panel) with the wallet on the right.
- */
-function SummaryCard({
-  hero,
-  currency,
-  locale,
-  caption,
-}: {
-  hero: SettleHero;
-  currency: string;
-  locale: string;
-  /** "Includes ₫ bills at their recorded rates", when any bill was converted. */
-  caption: string | null;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const colors: [string, string] =
-    hero.tone === 'owe'
-      ? [theme.color.negativeSoft, theme.color.brandSoft]
-      : hero.tone === 'owed'
-        ? [theme.color.positiveSoft, theme.tint.sky.bg]
-        : [theme.color.surfaceMuted, theme.color.brandSoft];
-
-  return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{
-        borderRadius: theme.radius.lg,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        minHeight: 72,
-        overflow: 'hidden',
-        justifyContent: 'center',
-      }}
-    >
-      {/* Small and tucked in the corner: at 132x70 the wallet cost more height
-          than the figures it sat beside. */}
-      <Image
-        source={WALLET_ART}
-        style={{ position: 'absolute', end: 8, bottom: 4, width: 64, height: 40 }}
-        resizeMode="contain"
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      />
-      {hero.tone === 'settled' ? (
-        <Text variant="title" accessibilityRole="header">
-          {t.allSettled}
-        </Text>
-      ) : (
-        <View accessible accessibilityRole="header" style={{ paddingEnd: 72 }}>
-          {/* Label and count share a line: "You owe · across 1 payment". */}
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {hero.tone === 'owe' ? t.youOwe : t.youAreOwed}
-            {' · '}
-            {plural(locale, hero.count, t.misc.settlePaymentsCount)}
-          </Text>
-          <MoneyText
-            amount={hero.amount}
-            currency={currency as CurrencyCode}
-            locale={locale}
-            variant="title"
-            mode="balance"
-            direction={hero.tone === 'owe' ? BalanceDirection.YouOwe : BalanceDirection.OwedToYou}
-            style={{ fontSize: 28, lineHeight: 34 }}
-          />
-          {caption ? (
-            <Text variant="micro" tone="muted" numberOfLines={2}>
-              {caption}
-            </Text>
-          ) : null}
-        </View>
-      )}
-    </LinearGradient>
   );
 }

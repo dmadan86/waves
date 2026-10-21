@@ -65,6 +65,7 @@ import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { settleHref } from '@/lib/groupTab';
 
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
@@ -113,7 +114,7 @@ export default function PersonDetailScreen() {
   // History and "all groups" live inside a group, so with one group they go
   // straight there and with several the person picks which.
   const goGroup = (group: PairGroupRow, to: 'group' | 'history'): void =>
-    router.push(to === 'group' ? `/group/${group.groupId}` : `/group/${group.groupId}/settle`);
+    router.push(to === 'group' ? `/group/${group.groupId}` : settleHref(group.groupId));
   const via = (to: 'group' | 'history'): void => {
     const [only] = groups;
     if (groups.length === 1 && only) goGroup(only, to);
