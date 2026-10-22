@@ -35,6 +35,7 @@ import {
   sanitiseCategoryMeta,
   sanitiseExpenseLocation,
   stampFields,
+  validateGroupUnits,
   verifyClientShares,
   type FxRecord,
   type SplitParams,
@@ -190,6 +191,10 @@ const GROUP_UPDATABLE_FIELDS = [
   // The palette key behind the group's icon; paired with
   // `waves_guard_group_columns` in 20261022120000_group_cover_color.
   'cover_color',
+  // The families inside the group (`group/units.ts`); admin-only and
+  // shape-checked below, paired with `waves_guard_group_columns` in
+  // 20261025100000_group_units.
+  'units',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -489,6 +494,23 @@ export class SyncSession {
     return memberId;
   }
 
+  /** `groups.units` as it may be stored: admin-written, every id a member here. */
+  private async validatedUnits(groupId: string, raw: unknown): Promise<unknown> {
+    const me = await this.requireMemberId(groupId);
+    const { data, error } = await this.caller
+      .from('group_members')
+      .select('id, role')
+      .eq('group_id', groupId);
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    const rows = (data ?? []) as { id: string; role: string }[];
+    if (rows.find((row) => row.id === me)?.role !== 'admin') {
+      throw new HttpError(403, 'NOT_AN_ADMIN', 'Only an admin changes the families');
+    }
+    const verdict = validateGroupUnits(raw, new Set(rows.map((row) => row.id)));
+    if (!verdict.ok) throw new HttpError(400, 'VALIDATION_FAILED', verdict.reason);
+    return verdict.units;
+  }
+
   private async dispatch(mutation: MutationEnvelope): Promise<unknown> {
     switch (mutation.kind) {
       case 'expense.create':
@@ -614,6 +636,12 @@ export class SyncSession {
           const key = optionalString(patch.cover_color, 'cover_color');
           patch.cover_color = key === null ? null : key.toLowerCase();
         }
+        // The families: only an admin arranges them, and the map must name
+        // only this group's members (one family each), with a head who is in
+        // it. The SQL guard repeats the admin gate for direct PostgREST
+        // writers; the shape is this boundary's job.
+        if ('units' in patch)
+          patch.units = await this.validatedUnits(mutation.groupId, patch.units);
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };

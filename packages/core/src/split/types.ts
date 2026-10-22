@@ -9,6 +9,7 @@ export enum SplitType {
   Shares = 'shares',
   Adjustment = 'adjustment',
   Itemized = 'itemized',
+  Units = 'units',
 }
 
 /** Everyone in `participants` pays the same, remainder rotated (TDR §3.1). */
@@ -74,8 +75,29 @@ export interface ItemizedParams {
   readonly discounts?: bigint;
 }
 
+/**
+ * Split across families (units) first, then equally inside each one — a
+ * family of three pays one share, not three. `units` is the composition
+ * snapshotted on this bill (unit id → its members among the participants), so
+ * the server recomputes it from the payload alone and later moves between
+ * families never rewrite history. A person in no family is a unit of one,
+ * keyed by their own member id. `weights` is an optional per-unit weight with
+ * the same two-decimal rule as `SharesParams`; absent means 1 each.
+ */
+export interface UnitsParams {
+  readonly kind: 'units';
+  readonly units: Readonly<Record<string, readonly MemberId[]>>;
+  readonly weights?: Readonly<Record<string, number>>;
+}
+
 export type SplitParams =
-  EqualParams | ExactParams | PercentParams | SharesParams | AdjustmentParams | ItemizedParams;
+  | EqualParams
+  | ExactParams
+  | PercentParams
+  | SharesParams
+  | AdjustmentParams
+  | ItemizedParams
+  | UnitsParams;
 
 export interface ComputeSharesInput {
   /** Expense total in minor units. */

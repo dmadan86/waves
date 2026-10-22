@@ -18,7 +18,14 @@
  * the only useful response is to stop.
  */
 
-import type { AdjustmentParams, ExactParams, ItemizedParams, MemberId, SplitParams } from './types';
+import type {
+  AdjustmentParams,
+  ExactParams,
+  ItemizedParams,
+  MemberId,
+  SplitParams,
+  UnitsParams,
+} from './types';
 
 export class SplitWireError extends Error {
   constructor(
@@ -52,7 +59,7 @@ export function serialiseSplitParams(params: SplitParams): WireSplitParams {
         ...optionalString('tip', params.tip),
         ...optionalString('discounts', params.discounts),
       };
-    // equal, percent and shares hold nothing that JSON cannot carry.
+    // equal, percent, shares and units hold nothing that JSON cannot carry.
     default:
       return { ...params };
   }
@@ -120,9 +127,49 @@ export function parseSplitParams(raw: unknown): SplitParams {
       };
     }
 
+    case 'units':
+      return unitsParams(params.units, params.weights);
+
     default:
       throw new SplitWireError('UNKNOWN_KIND', `Unknown split kind: ${String(params.kind)}`);
   }
+}
+
+/** A units split's composition off the wire: unit id → member ids, each id a
+ *  non-empty string, no member in two units; weights only for units that exist. */
+function unitsParams(rawUnits: unknown, rawWeights: unknown): UnitsParams {
+  requireRecord(rawUnits, 'units');
+  const seen = new Set<MemberId>();
+  const units: Record<string, MemberId[]> = {};
+  for (const [unitId, value] of Object.entries(rawUnits)) {
+    if (unitId.length === 0 || !Array.isArray(value)) {
+      throw new SplitWireError('BAD_SHAPE', `units[${unitId}] must be a list of member ids`);
+    }
+    const members: MemberId[] = [];
+    for (const member of value) {
+      if (typeof member !== 'string' || member.length === 0) {
+        throw new SplitWireError('BAD_SHAPE', `units[${unitId}] must contain member ids`);
+      }
+      if (seen.has(member)) {
+        throw new SplitWireError('BAD_SHAPE', `units: member ${member} is in two units`);
+      }
+      seen.add(member);
+      members.push(member);
+    }
+    units[unitId] = members;
+  }
+  if (rawWeights === undefined) return { kind: 'units', units };
+  requireRecord(rawWeights, 'weights');
+  for (const unitId of Object.keys(rawWeights)) {
+    if (!Object.prototype.hasOwnProperty.call(units, unitId)) {
+      throw new SplitWireError('BAD_SHAPE', `weights names unit ${unitId}, which is not in units`);
+    }
+  }
+  return {
+    kind: 'units',
+    units,
+    weights: mapValues(rawWeights, (value) => shareWeight(value, 'weights')),
+  };
 }
 
 function minorUnitMap(raw: unknown, field: string): Record<MemberId, bigint> {
