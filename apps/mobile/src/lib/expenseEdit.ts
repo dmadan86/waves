@@ -36,6 +36,7 @@ import {
   type PayerMap,
   type PaymentMethod,
   type SplitParams,
+  type UnitsParams,
 } from '@waves/core';
 
 import type { ExpenseVersionRow } from '../data/types';
@@ -71,6 +72,11 @@ export interface ExpenseEditState {
   /** The group's families when an equal split is "by family" (one share per
    *  family); null or absent splits per person. Only read for `SplitKind.Equal`. */
   byFamily?: GroupUnits | null;
+  /** A saved by-family bill's own composition, kept while an edit leaves the
+   *  split alone — so changing the description never re-divides the money by
+   *  today's families (or by nobody, with the flag off). The editor clears it
+   *  the moment the split or the people change. Only read for `SplitKind.Equal`. */
+  savedUnits?: UnitsParams | null;
   participants: MemberId[];
   /** What was typed per member, kept apart per kind (see add-expense). */
   weights: SplitEntries;
@@ -162,6 +168,7 @@ export function editStateFromVersion(
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
     splitKind: splitKindOf(version.split_type),
+    savedUnits: params.kind === 'units' ? params : null,
     participants: version.shares.map((share) => share.member_id),
     weights: params.kind === 'shares' ? textEntries(params.weights, 'shares') : {},
     percents: params.kind === 'percent' ? textEntries(params.basisPoints, 'percent') : {},
@@ -196,9 +203,18 @@ export function editStateFromVersion(
 export function splitParamsFor(
   state: Pick<
     ExpenseEditState,
-    'splitKind' | 'weights' | 'percents' | 'exacts' | 'participants' | 'currency' | 'byFamily'
+    | 'splitKind'
+    | 'weights'
+    | 'percents'
+    | 'exacts'
+    | 'participants'
+    | 'currency'
+    | 'byFamily'
+    | 'savedUnits'
   >,
 ): SplitParams {
+  // An untouched by-family split keeps the bill's own composition.
+  if (state.splitKind === SplitKind.Equal && state.savedUnits) return state.savedUnits;
   // Equal by family: one share per family, then equal inside it. The families
   // are snapshotted onto the bill here, so the server needs nothing else.
   if (state.splitKind === SplitKind.Equal && state.byFamily) {

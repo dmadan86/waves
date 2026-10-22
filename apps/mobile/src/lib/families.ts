@@ -8,6 +8,7 @@
 import {
   headsFor,
   simplify,
+  unitMembers,
   unitNetBalances,
   unitOf,
   type GroupUnit,
@@ -30,7 +31,9 @@ export function hasFamilies(units: GroupUnits | null | undefined): boolean {
 }
 
 /** The families with their member rows, then everyone in no family. Members
- *  the family names but the list does not have (departed, not loaded) are skipped. */
+ *  the family names but the list does not have (departed, not loaded) are
+ *  skipped, and so is an entry that is not a family at all (no name, no
+ *  member list) — the map is validated on write, but a reader never crashes on it. */
 export function familyRows<M extends { id: MemberId }>(
   units: GroupUnits | null | undefined,
   members: readonly M[],
@@ -39,7 +42,8 @@ export function familyRows<M extends { id: MemberId }>(
   const placed = new Set<MemberId>();
   const families: FamilyGroup<M>[] = [];
   for (const [id, unit] of Object.entries(units ?? {})) {
-    const rows = unit.members
+    if (typeof unit?.name !== 'string' || !Array.isArray(unit.members)) continue;
+    const rows = unitMembers(unit)
       .map((memberId) => byId.get(memberId))
       .filter((member): member is M => member !== undefined && !placed.has(member.id));
     for (const member of rows) placed.add(member.id);
@@ -144,7 +148,7 @@ export function placeMember(
   if (current && current !== familyId) {
     const unit = next?.[current];
     if (unit) {
-      const members = unit.members.filter((member) => member !== memberId);
+      const members = unitMembers(unit).filter((member) => member !== memberId);
       next = withFamily(
         next,
         current,
@@ -156,7 +160,9 @@ export function placeMember(
   }
   if (familyId && current !== familyId) {
     const unit = next?.[familyId];
-    if (unit) next = withFamily(next, familyId, { ...unit, members: [...unit.members, memberId] });
+    if (unit) {
+      next = withFamily(next, familyId, { ...unit, members: [...unitMembers(unit), memberId] });
+    }
   }
   return next;
 }

@@ -16,6 +16,7 @@ import {
   headsFor,
   unassignedMembers,
   unitBalances,
+  unitMembers,
   unitNetBalances,
   unitOf,
   unitsSplitParams,
@@ -297,6 +298,42 @@ describe('family lens', () => {
         },
       ),
     );
+  });
+});
+
+describe('a malformed families map', () => {
+  it('is read as families with nobody in them, never a crash', () => {
+    const bad = {
+      u: {},
+      v: null,
+      w: { name: 'Odd', members: 'ravi' },
+      ok: { name: 'Patel', members: ['sam', 3, 'meera'], head: 'meera' },
+    } as unknown as GroupUnits;
+    expect(unitMembers(bad.u)).toEqual([]);
+    expect(unitMembers(bad.ok)).toEqual(['sam', 'meera']);
+    expect(unitOf(bad, 'ravi')).toBeNull();
+    expect(unitOf(bad, 'meera')).toBe('ok');
+    expect(headOf(bad.u!)).toBeUndefined();
+    expect(headOf(bad.ok!)).toBe('meera');
+    expect(unitsSplitParams(bad, ['ravi', 'sam'])).toEqual({
+      kind: 'units',
+      units: { ok: ['sam'], ravi: ['ravi'] },
+    });
+    expect(
+      unitBalances(
+        new Map([
+          ['ravi', 1n],
+          ['sam', 2n],
+        ]),
+        bad,
+      ),
+    ).toEqual(
+      new Map([
+        ['ravi', 1n],
+        ['ok', 2n],
+      ]),
+    );
+    expect(validateGroupUnits(bad, new Set(['sam', 'meera', 'ravi'])).ok).toBe(false);
   });
 });
 
