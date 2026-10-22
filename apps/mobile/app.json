@@ -199,6 +199,7 @@
       ],
       "./plugins/withShortNativeBuildPath",
       "./plugins/withGradleMemory",
+      "./plugins/withHermesHeaders",
       "./plugins/withSideBySideDebug",
       "./plugins/withEdgeToEdgeTheme",
       "./plugins/withReleaseSigning",
