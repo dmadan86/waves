@@ -225,6 +225,20 @@ describe('expenseWriteFromAction', () => {
     expect(expenseWriteFromAction(dinner, undefined, 'e1', '2026-10-07')).toBeNull();
   });
 
+  it('splits by family when the agent proposes a units split', () => {
+    const families = { ...group!, units: { f1: { name: 'Ravi family', members: ['m2', 'm3'] } } };
+    const byFamily = { ...dinner, split: { ...dinner.split, mode: 'units' as const } };
+    const write = expenseWriteFromAction(byFamily, families, 'e1', '2026-10-07');
+    expect(write?.splitParams.kind).toBe('units');
+    // Madan alone is one family, Ravi and Anu the other: half each.
+    expect(write?.expectedShares.m1).toBe(25000n);
+    expect((write?.expectedShares.m2 ?? 0n) + (write?.expectedShares.m3 ?? 0n)).toBe(25000n);
+    // Without families it falls back to equal per person.
+    expect(expenseWriteFromAction(byFamily, group, 'e1', '2026-10-07')?.splitParams.kind).toBe(
+      'equal',
+    );
+  });
+
   it('keeps an explicit date', () => {
     const write = expenseWriteFromAction({ ...dinner, date: '2026-10-01' }, group, 'e1', 'x');
     expect(write?.expenseDate).toBe('2026-10-01');

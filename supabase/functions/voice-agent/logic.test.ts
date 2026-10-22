@@ -520,3 +520,64 @@ describe('update_expense (follow-up turns)', () => {
     ).toBe(true);
   });
 });
+
+describe('restricted family splits', () => {
+  function familyContext() {
+    const c = context();
+    return {
+      ...c,
+      groups: [
+        {
+          ...c.groups[0]!,
+          families: {
+            sharma: { name: 'Sharma', memberIds: ['m-me'] },
+            patel: { name: 'Patel', memberIds: ['m-anu'] },
+          },
+        },
+        ...c.groups.slice(1),
+      ],
+    };
+  }
+  it('does not append excluded family members as standalone units', () => {
+    const result = parseToolCalls(
+      call(
+        'add_expense',
+        expense({
+          split: {
+            mode: 'units',
+            unitIds: ['sharma'],
+            shares: [{ memberId: 'm-me' }, { memberId: 'm-anu' }, { memberId: 'm-ravi' }],
+          },
+        }),
+      ),
+      familyContext(),
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      actions: [
+        {
+          split: {
+            mode: 'units',
+            shares: [{ memberId: 'm-me' }, { memberId: 'm-ravi' }],
+          },
+        },
+      ],
+    });
+  });
+  it.each([['invented'], ['sharma', 'invented'], [42]])(
+    'rejects invalid unit ids %j',
+    (...unitIds) => {
+      expect(
+        parseToolCalls(
+          call(
+            'add_expense',
+            expense({
+              split: { mode: 'units', unitIds, shares: [{ memberId: 'm-me' }] },
+            }),
+          ),
+          familyContext(),
+        ).ok,
+      ).toBe(false);
+    },
+  );
+});

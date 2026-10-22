@@ -16,6 +16,8 @@ import {
   format,
   guessCategory,
   money,
+  unitsSplitParams,
+  type GroupUnits,
   type SplitParams,
   type VoiceAgentAction,
   type VoiceAgentResponse,
@@ -41,6 +43,8 @@ export interface AgentLocalGroup {
   /** What the group's tile in the confirmation screen wears. */
   photoPath?: string | null;
   coverEmoji?: string | null;
+  /** The group's families, for a by-family split the agent proposes. */
+  units?: GroupUnits | null;
 }
 
 export interface AgentLocalData {
@@ -350,6 +354,9 @@ export function expenseWriteFromAction(
           kind: 'shares',
           weights: Object.fromEntries(participants.map((id) => [id, Number(valueOf(id))])),
         };
+        break;
+      case 'units':
+        splitParams = group.units ? unitsSplitParams(group.units, participants) : { kind: 'equal' };
         break;
     }
     const shares = computeShares({

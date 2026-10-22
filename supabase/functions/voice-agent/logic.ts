@@ -39,7 +39,13 @@ export const CLARIFY_ICONS = [
 ] as const;
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 4;
-const SPLIT_MODES: readonly VoiceSplitMode[] = ['equal', 'exact', 'percent', 'shares'];
+const SPLIT_MODES: readonly (VoiceSplitMode | 'units')[] = [
+  'equal',
+  'exact',
+  'percent',
+  'shares',
+  'units',
+];
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'credit', 'debit', 'bank', 'wallet'] as const;
 
 // ── context ────────────────────────────────────────────────────────────────
@@ -50,6 +56,13 @@ export interface ContextMember {
   readonly me: boolean;
 }
 
+export interface ContextFamily {
+  /** The display name of the family. */
+  readonly name: string;
+  /** Member ids that belong to this family (all must be in this group). */
+  readonly memberIds: readonly string[];
+}
+
 export interface ContextGroup {
   readonly id: string;
   readonly name: string;
@@ -58,6 +71,8 @@ export interface ContextGroup {
   readonly members: readonly ContextMember[];
   /** member id -> signed minor units (positive = is owed). Non-zero only. */
   readonly balances: Readonly<Record<string, string>>;
+  /** Families defined in this group: unitId -> family. Absent when none. */
+  readonly families?: Readonly<Record<string, ContextFamily>>;
 }
 
 export interface VoiceContext {
@@ -74,6 +89,11 @@ export interface RawGroup {
   name: string | null;
   type: string | null;
   default_currency: string | null;
+  /**
+   * `groups.units` column value: unitId -> { name, members: string[], head? }.
+   * Passed through from the database as-is; buildContext validates and maps it.
+   */
+  units?: unknown;
 }
 export interface RawMember {
   id: string;
@@ -87,6 +107,34 @@ export interface RawBalance {
   member_id: string;
   currency: string;
   balance: string | number | bigint;
+}
+
+/**
+ * Safely parse `groups.units` (arbitrary JSON) into ContextFamily records.
+ * Returns null when there are no valid families so the caller can omit the
+ * field entirely.
+ */
+function parseFamilies(
+  raw: unknown,
+  memberIds: ReadonlySet<string>,
+): Record<string, ContextFamily> | null {
+  if (raw === null || raw === undefined || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const result: Record<string, ContextFamily> = {};
+  for (const [unitId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) continue;
+    const unit = value as Record<string, unknown>;
+    const name = typeof unit.name === 'string' ? unit.name.trim() : '';
+    if (!name) continue;
+    if (!Array.isArray(unit.members)) continue;
+    const unitMemberIds = (unit.members as unknown[]).filter(
+      (m): m is string => typeof m === 'string' && memberIds.has(m),
+    );
+    if (unitMemberIds.length === 0) continue;
+    result[unitId] = { name, memberIds: unitMemberIds };
+  }
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 /** Shape rows from the database into the compact context, current group first. */
@@ -120,6 +168,8 @@ export function buildContext(input: {
       const value = String(b.balance);
       if (value !== '0' && members.some((m) => m.id === b.member_id)) balances[b.member_id] = value;
     }
+    const memberIds = new Set(members.map((m) => m.id));
+    const families = parseFamilies(g.units, memberIds);
     return {
       id: g.id,
       name: (g.name ?? '').trim() || 'Untitled group',
@@ -127,6 +177,7 @@ export function buildContext(input: {
       type: g.type ?? 'other',
       members,
       balances,
+      ...(families ? { families } : {}),
     };
   });
   const current =
@@ -194,6 +245,12 @@ export function contextText(context: VoiceContext): string {
       .filter((m) => g.balances[m.id])
       .map((m) => `${m.name} ${Number(g.balances[m.id]) > 0 ? '+' : ''}${g.balances[m.id]}`);
     if (bal.length) lines.push(`  balances (minor, + is owed to them): ${bal.join('; ')}`);
+    if (g.families) {
+      const fams = Object.entries(g.families)
+        .map(([unitId, f]) => `${unitId} "${f.name}" [${f.memberIds.join(', ')}]`)
+        .join('; ');
+      lines.push(`  families (unitId "name" [memberIds]): ${fams}`);
+    }
   }
   if (context.groups.length === 0) lines.push('The caller is in no groups yet.');
   return lines.join('\n');
@@ -218,7 +275,7 @@ Rules:
 - Resolve spoken names to member ids from the context below. Names may be transcribed approximately or in mixed Hindi/Tamil/English; match by closest sound. Never invent an id: use only ids that appear in the context. "me", "I", "my" mean the member marked (me). If a name matches nobody, ask.
 - Use the CURRENT group unless a different group is named or the people spoken of only share another group.
 - Amounts are integer minor units as a digit string (amountMinor). Use the group's currency unless another is spoken; "Rs", "rupees", "bucks" etc. map to the group's currency when it fits. Respect the group's minor unit: for 10^-2 currencies 1,250 rupees is "125000"; for 10^0 it is "1250".
-- Unless said otherwise the speaker paid and the split is equal across everyone named, or all members of the group if nobody is named. For equal splits list the participants in split.shares without values. For exact/percent/shares give a value per share (exact in minor units, percent summing to 100).
+- Unless said otherwise the speaker paid and the split is equal across everyone named, or all members of the group if nobody is named. For equal splits list the participants in split.shares without values. For exact/percent/shares give a value per share (exact in minor units, percent summing to 100). For units splits (families): if the group has a "families" line in the context and the person says "split by family", "per family", "family wise", "between the families", or names specific families (e.g. "Sharma family and Patel family"), use mode=units. List all participating member ids in split.shares (no values). Optionally supply split.unitIds with the unit ids of the named families to restrict the split; omit for all families. Each family pays one share regardless of size.
 - Relative dates ("yesterday", "last Friday") resolve against today, as YYYY-MM-DD. Omit date when it is today.
 - nudge reminds a member who owes the caller. record_settlement is a payment between two members of one group and one party must be the caller (me).
 - Keep descriptions short, in the speaker's words.
@@ -270,6 +327,14 @@ const SPLIT = {
         },
         required: ['memberId'],
       },
+      description:
+        'For mode=units: list all member ids that participate (each family is expanded server-side). For other modes, the normal per-member list.',
+    },
+    unitIds: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'For mode=units only: the unit ids (from the "families" line in the context) that share this bill. Omit to include all families with at least one member in shares.',
     },
   },
   required: ['mode', 'shares'],
@@ -641,10 +706,63 @@ function validateSplit(
   group: ContextGroup,
   value: unknown,
   total: bigint,
-): { mode: VoiceSplitMode; shares: VoiceSplitShare[] } {
+): { mode: VoiceSplitMode | 'units'; shares: VoiceSplitShare[] } {
   const split = asRecord(value);
-  const mode = split.mode as VoiceSplitMode;
+  const mode = split.mode as VoiceSplitMode | 'units';
   if (!SPLIT_MODES.includes(mode)) bad('unknown split mode');
+
+  if (mode === 'units') {
+    // For a units split the model supplies member ids in shares (flat list).
+    // We validate every member id is in the group, then build a units split
+    // using the group's families. If no families are defined, reject.
+    if (!group.families || Object.keys(group.families).length === 0) {
+      bad('units split requires families to be defined on this group');
+    }
+    if (!Array.isArray(split.shares)) bad('split needs shares');
+    const participantIds: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of split.shares as unknown[]) {
+      const s = asRecord(raw);
+      const member = memberOf(group, s.memberId);
+      if (seen.has(member.id)) bad('member listed twice in split');
+      seen.add(member.id);
+      participantIds.push(member.id);
+    }
+    if (participantIds.length === 0) bad('units split needs at least one participant');
+    // If unitIds were provided, restrict to those families.
+    const allowedUnitIds =
+      Array.isArray(split.unitIds) && split.unitIds.length > 0
+        ? new Set(split.unitIds as unknown[])
+        : null;
+    if (allowedUnitIds) {
+      for (const id of allowedUnitIds) {
+        if (typeof id !== 'string' || !Object.hasOwn(group.families!, id))
+          bad('unknown family id in units split');
+      }
+    }
+    // Build the UnitsParams-compatible shares: one entry per family.
+    // We reuse the families from the context to emit per-family member lists.
+    const unitShares: VoiceSplitShare[] = [];
+    for (const [unitId, fam] of Object.entries(group.families)) {
+      if (allowedUnitIds && !allowedUnitIds.has(unitId)) continue;
+      const famMembers = fam.memberIds.filter((id) => participantIds.includes(id));
+      if (famMembers.length === 0) continue;
+      // Represent family split: one share entry per family member (equal within family).
+      for (const mid of famMembers) {
+        unitShares.push({ memberId: mid });
+      }
+    }
+    // Members in no family are a unit of one.
+    const placedInFamily = new Set(
+      Object.values(group.families!).flatMap((family) => family.memberIds),
+    );
+    for (const id of participantIds) {
+      if (!placedInFamily.has(id)) unitShares.push({ memberId: id });
+    }
+    if (unitShares.length === 0) bad('units split: no participants resolved to families');
+    return { mode: 'units', shares: unitShares };
+  }
+
   if (!Array.isArray(split.shares) || split.shares.length === 0) bad('split needs shares');
   const seen = new Set<string>();
   const shares: VoiceSplitShare[] = [];

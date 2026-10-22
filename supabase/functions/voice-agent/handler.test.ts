@@ -500,3 +500,20 @@ describe('OpenRouter privacy', () => {
     expect(JSON.parse(bodies[0]).provider).toEqual({ data_collection: 'deny' });
   });
 });
+
+it('selects family units when loading groups', async () => {
+  const select = vi.fn(() => table([]));
+  const caller = { from: () => ({ select }) } as never;
+  await loadContext(
+    caller,
+    ME,
+    {
+      schemaVersion: 1,
+      locale: 'en',
+      today: '2026-10-07',
+      groupId: null,
+    } as never,
+    1000,
+  );
+  expect(select).toHaveBeenCalledWith('id, name, type, default_currency, units');
+});

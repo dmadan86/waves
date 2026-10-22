@@ -2222,7 +2222,7 @@ function segmentExpenses(text: string): string[] {
  */
 export interface VoiceParseContext extends Pick<
   VoiceIntentContext,
-  'members' | 'currentGroupId' | 'now' | 'learned'
+  'members' | 'currentGroupId' | 'now' | 'learned' | 'families'
 > {
   /**
    * The recogniser's other readings of the same speech (n-best), best first,
@@ -2274,6 +2274,7 @@ export function parseVoiceExpenses(
     : parseVoiceIntent(normalized, {
         groups,
         members: context.members,
+        families: context.families,
         currentGroupId: context.currentGroupId,
         now: context.now,
         // The recogniser's other hypotheses, read the same way, so a name is

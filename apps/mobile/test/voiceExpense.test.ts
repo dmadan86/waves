@@ -1511,3 +1511,21 @@ describe('the closing punctuation the recogniser adds', () => {
     expect(note('500 for dr. rao')).toBe('dr. rao');
   });
 });
+
+it('re-parses family splits with the destination group families', () => {
+  const transcript = '₹600 split by family';
+  expect(parseVoiceExpenses(transcript, groups).intent?.splitMode).toBe('equal');
+  const families = { patel: { name: 'Patel', members: ['m-me', 'm-other'] } };
+  expect(
+    parseVoiceExpenses(transcript, groups, {
+      currentGroupId: 'g-flat',
+      families,
+    }).intent?.splitMode,
+  ).toBe('units');
+  expect(
+    parseVoiceExpenses(transcript, groups, {
+      currentGroupId: 'g-goa',
+      families: null,
+    }).intent?.splitMode,
+  ).toBe('equal');
+});

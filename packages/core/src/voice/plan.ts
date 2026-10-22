@@ -6,7 +6,10 @@
  */
 
 import type { SplitParams } from '../split/types';
+import type { GroupUnits } from '../group/units';
+import { unitsSplitParams, unitMembers } from '../group/units';
 import type { VoiceIntent } from './intent';
+import type { VoiceNameCandidate } from './names';
 
 export type VoiceSplitProblem =
   | { readonly code: 'payer_unresolved'; readonly name: string }
@@ -30,6 +33,20 @@ export interface VoiceSplitInput {
   /** The speaker's own member id in that group. */
   readonly meMemberId?: string | null;
   readonly amountMinor: bigint | null;
+  /**
+   * Family (unit) definitions for the group, required when intent.splitMode
+   * is 'units'. When present, a spoken family name in intent.participants is
+   * expanded to all its members; when absent for a 'units' intent the split
+   * falls back to equal.
+   */
+  readonly families?: GroupUnits | null;
+  /**
+   * Member candidates with display names, used to resolve spoken names to
+   * member ids when disambiguating person vs. family references. When provided,
+   * a spoken family name that matches a member's display name is treated as a
+   * person reference (person wins over family).
+   */
+  readonly members?: readonly VoiceNameCandidate[];
 }
 
 export function buildVoiceSplit(intent: VoiceIntent, input: VoiceSplitInput): VoiceSplitPlan {
@@ -87,6 +104,48 @@ export function buildVoiceSplit(intent: VoiceIntent, input: VoiceSplitInput): Vo
     const sum = participants.reduce((a, id) => a + (basisPoints[id] ?? 0), 0);
     if (sum !== 10000) problems.push({ code: 'percent_sum_mismatch' });
     params = { kind: 'percent', basisPoints };
+  } else if (intent.splitMode === 'units') {
+    const families = input.families;
+    if (!families || Object.keys(families).length === 0) {
+      // No families defined: fall back to equal split among all members.
+      params = { kind: 'equal' };
+    } else {
+      // Determine which participants to pass to unitsSplitParams.
+      // When the intent names specific families, expand each to its members;
+      // otherwise use all group members (everyone).
+      const familyNames = intent.familyNames;
+      if (familyNames && familyNames.length > 0) {
+        // Build a set of member ids that belong to the named families.
+        // Person wins when an exact member match exists for the spoken name.
+        const expanded = new Set<string>();
+        for (const spoken of familyNames) {
+          // Check for exact person match first (person wins over family).
+          // Compare against member display names, not ids (ids are UUIDs).
+          const personMatch = (input.members ?? []).find(
+            (m) => m.name.toLowerCase() === spoken.toLowerCase(),
+          );
+          if (personMatch) {
+            expanded.add(personMatch.id);
+            continue;
+          }
+          // Match spoken name against family names (case-insensitive).
+          const matchedUnit = Object.values(families).find(
+            (u) => u.name.toLowerCase() === spoken.toLowerCase(),
+          );
+          if (matchedUnit) {
+            for (const m of unitMembers(matchedUnit)) {
+              if (memberSet.has(m)) expanded.add(m);
+            }
+          } else {
+            problems.push({ code: 'participant_unresolved', name: spoken });
+          }
+        }
+        // Ensure payer is included if they weren't named.
+        if (payerId && !expanded.has(payerId)) expanded.add(payerId);
+        participants = [...expanded];
+      }
+      params = unitsSplitParams(families, participants);
+    }
   }
 
   return { payerId, participants, params, problems };

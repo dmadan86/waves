@@ -730,7 +730,7 @@ async function loadContextFresh(
 ): Promise<VoiceContext> {
   const { data: groups, error: groupsError } = await caller
     .from('groups')
-    .select('id, name, type, default_currency')
+    .select('id, name, type, default_currency, units')
     .is('deleted_at', null)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
