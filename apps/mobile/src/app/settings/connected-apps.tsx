@@ -7,7 +7,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ActivityIndicator, Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
 
@@ -30,16 +30,14 @@ import { fill, useStrings } from '@/i18n';
 import {
   CONNECT_GUIDE_URL,
   disconnectApp,
-  listConnectedApps,
   withoutApp,
   type ConnectedApp,
 } from '@/lib/connectedApps';
 import { backend } from '@/lib/backend';
+import { CONNECTED_APPS_QUERY_KEY as QUERY_KEY, useConnectedApps } from '@/lib/useConnectedApps';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
-
-const QUERY_KEY = ['connected-apps'] as const;
 
 export default function ConnectedAppsScreen() {
   const theme = useTheme();
@@ -48,10 +46,7 @@ export default function ConnectedAppsScreen() {
   const queryClient = useQueryClient();
   const { confirm } = useDialog();
 
-  const apps = useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: () => listConnectedApps(backend.auth.oauth),
-  });
+  const apps = useConnectedApps();
   const rows = apps.data ?? [];
   // A failed fetch with nothing cached is not an empty list: saying "no
   // connected apps" about a list that was never read would be a false comfort.
