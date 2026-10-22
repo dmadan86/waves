@@ -32,12 +32,7 @@ import { Animated, Easing, Linking, Pressable, View } from 'react-native';
 import { iconSize, Text, useTheme, type Theme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-import {
-  dictationError,
-  mergeTranscript,
-  onDeviceLocaleInstalled,
-  speechLocale,
-} from '@/lib/dictation';
+import { dictationError, mergeTranscript, speechLocale } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
 
@@ -125,65 +120,6 @@ export interface DictateProps {
 function recognitionAvailable(): boolean {
   try {
     return ExpoSpeechRecognitionModule.isRecognitionAvailable();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Languages already confirmed on-device this session — kept so a flaky re-probe
- * cannot downgrade one to the network path.
- *
- * `getSupportedLocales` is unreliable when called right after a recognition
- * session ends: Android's RecognitionService is briefly busy and the query
- * throws or returns empty, so the `catch` reports `false`. That flipped a second
- * dictation to the network recogniser — which, offline, fails with a "needs a
- * connection" error even though the model that served the first is still there.
- * A model is not uninstalled between two utterances, so the positive signal is
- * reliable and a re-probe's negative is not: latch each confirmed tag.
- */
-const onDeviceConfirmed = new Set<string>();
-
-/**
- * Whether an on-device model for `langTag` is actually installed on this phone.
- *
- * `supportsOnDeviceRecognition()` only says the phone can do on-device work at
- * all — not that the model for the language we are about to ask for is present.
- * Requiring on-device for a locale whose model is not downloaded is a quiet
- * failure: the recogniser starts, hears the words, and returns nothing, because
- * it was told to use a model that is not there (the "did not catch anything"
- * this field used to hit). So on-device is requested only when this language is
- * in `installedLocales`; otherwise the mic falls back to network recognition,
- * which is what the keyboard's mic key uses. An empty or throwing probe
- * (Android 12 and below, a missing service) resolves to `false` and the network
- * path, which works, rather than the on-device path, which may not.
- */
-async function installedOnDeviceFor(langTag: string): Promise<boolean> {
-  if (onDeviceConfirmed.has(langTag)) return true;
-  try {
-    let supportsOnDevice = false;
-    try {
-      supportsOnDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
-    } catch {
-      supportsOnDevice = false;
-    }
-    if (!supportsOnDevice) return false;
-
-    let androidRecognitionServicePackage: string | undefined;
-    try {
-      const pkg = ExpoSpeechRecognitionModule.getDefaultRecognitionService?.().packageName;
-      if (pkg) androidRecognitionServicePackage = pkg;
-    } catch {
-      // iOS / older builds have no Android service concept — query without one.
-    }
-    const { installedLocales } = await ExpoSpeechRecognitionModule.getSupportedLocales(
-      androidRecognitionServicePackage ? { androidRecognitionServicePackage } : {},
-    );
-    // Match the whole tag, region and all: a phone with only en-US installed
-    // must not be told it has the en-IN model (that returns silence).
-    const installed = onDeviceLocaleInstalled(langTag, installedLocales);
-    if (installed) onDeviceConfirmed.add(langTag);
-    return installed;
   } catch {
     return false;
   }
@@ -299,12 +235,6 @@ export function DictateVoice({ value, onChange, hints, compact = false }: Dictat
 
     const lang = speechLocale(language, locale);
 
-    // Best effort, not a requirement: asking for on-device recognition on a
-    // phone that has no model for this language returns silence, so fall to the
-    // network recogniser unless the language's model is actually installed.
-    const onDevice = await installedOnDeviceFor(lang);
-    if (!mounted.current) return give();
-
     before.current = value;
     setListening(true);
 
@@ -316,10 +246,6 @@ export function DictateVoice({ value, onChange, hints, compact = false }: Dictat
         // A note is one short utterance. Continuous listening would leave the
         // mic open on a table full of other people talking.
         continuous: false,
-        requiresOnDeviceRecognition: onDevice,
-        // Android only honours this with on-device recognition; iOS punctuates
-        // either way.
-        addsPunctuation: onDevice,
         contextualStrings: hints && hints.length > 0 ? [...hints] : undefined,
         iosTaskHint: 'dictation',
       });

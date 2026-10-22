@@ -2,16 +2,13 @@
  * How the voice mic gets from a tap to a live recogniser as fast as it can —
  * pure, so the rules are tested apart from the native modules.
  *
- * Two things used to sit serially between the tap and the mic:
+ * One thing used to sit between the tap and the mic:
  *
  *  - **The entitlement wait.** Whether Pro advanced voice is on is a server
  *    answer (`waves_my_voice_agent_enabled`), and on a cold start it was not in
  *    yet, so every start waited up to 1.5 s for it — almost always to learn
  *    "not Pro", which buys nothing. The last answer is now remembered on the
  *    phone, and {@link planAgentWait} starts on it instead of waiting.
- *  - **The installed-model probe.** `getSupportedLocales` is slow on Android and
- *    was asked on every start. {@link createModelProbe} asks once and shares
- *    the answer, so the start reads a promise that has usually long settled.
  */
 
 /** The most a start waits for the entitlement when the last answer was Pro. */
@@ -72,54 +69,4 @@ export function parseLastKnown(raw: string | null | undefined): boolean | null {
   if (raw === 'true') return true;
   if (raw === 'false') return false;
   return null;
-}
-
-export interface ModelProbe {
-  /** The answer, probing only when there is none in hand (or in flight). */
-  get: () => Promise<boolean>;
-  /**
-   * Forget a negative answer so the next `get` asks again — called when the app
-   * comes back to the foreground, since a model may have been installed from
-   * Settings meanwhile. A positive answer is kept: a model is not uninstalled
-   * between two utterances, and a re-probe right after a session is exactly
-   * when the platform answers a false "no".
-   */
-  invalidate: () => void;
-  /** Record a positive answer learned elsewhere (a model download finished). */
-  confirm: () => void;
-}
-
-/**
- * Ask `probe` once and share the answer: concurrent callers share the one
- * in-flight call, a `true` is latched for the life of the process, and a
- * `false` (or a probe that throws, which reads as `false`) is kept until
- * {@link ModelProbe.invalidate}.
- */
-export function createModelProbe(probe: () => Promise<boolean>): ModelProbe {
-  let confirmed = false;
-  let pending: Promise<boolean> | null = null;
-  return {
-    get() {
-      if (confirmed) return Promise.resolve(true);
-      if (pending) return pending;
-      const run = (async () => {
-        let installed = false;
-        try {
-          installed = await probe();
-        } catch {
-          installed = false;
-        }
-        if (installed) confirmed = true;
-        return installed;
-      })();
-      pending = run;
-      return run;
-    },
-    invalidate() {
-      if (!confirmed) pending = null;
-    },
-    confirm() {
-      confirmed = true;
-    },
-  };
 }
