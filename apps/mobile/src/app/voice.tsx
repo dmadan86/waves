@@ -94,15 +94,11 @@ import {
   type VoiceAmountQuestion,
 } from '@/lib/voiceAmountChoice';
 import { friendlyError } from '@/lib/errors';
-import {
-  DestinationPicker,
-  GROUP_TYPE_ICON,
-  type DestinationSelection,
-  type PersonChoice,
-} from '@/components/DestinationPicker';
+import { GROUP_TYPE_ICON, type DestinationSelection } from '@/components/DestinationPicker';
 import type { CaptureStage, VoiceDoneInfo } from '@/components/VoiceCapture';
 import { AssistantMoneyAnswer } from '@/components/AssistantAnswerCard';
 import { VoiceMicPanel } from '@/components/VoiceMicPanel';
+import { SaveToSheet, type SaveToPerson } from '@/components/SaveToSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -472,8 +468,8 @@ export default function VoiceScreen() {
   // never treated as a person, even when it is your sole shared group with
   // someone, so it always stays listed under Groups.
   const oneToOne = useOneToOneGroupIds();
-  const peopleChoices: PersonChoice[] = (() => {
-    const byGroup = new Map<string, PersonChoice>();
+  const peopleChoices: SaveToPerson[] = (() => {
+    const byGroup = new Map<string, SaveToPerson>();
     for (const row of people.data ?? []) {
       // A contact is a real 1:1 group, not merely the one group you happen to
       // share with them — otherwise a whole trip would masquerade as a person.
@@ -484,6 +480,8 @@ export default function VoiceScreen() {
         personKey: row.person_key,
         name: row.display_name,
         groupId: row.only_group_id,
+        avatarUrl: row.avatar_url,
+        isGhost: row.is_ghost,
       });
     }
     return [...byGroup.values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -3128,6 +3126,7 @@ export default function VoiceScreen() {
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
         closeLabel={t.common.close}
+        title={t.voice.saveTo}
         style={{
           // The picker was drawn on the page colour rather than card white, and
           // the rows inside it are white cards: on `surface` they would vanish.
@@ -3139,44 +3138,40 @@ export default function VoiceScreen() {
           maxHeight: '80%',
         }}
       >
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <DestinationPicker
-            // Remount each time the sheet opens, so the tab and the picked
-            // people re-seed from the current destination rather than keeping
-            // stale state from the last open.
-            key={pickerOpen ? 'open' : 'closed'}
-            selection={pickerSelection}
-            eyebrow={t.voice.saveTo}
-            // The "new group" row is offered whenever a name was heard,
-            // whatever the destination now stands at.
-            createRow={
-              requested ? { label: t.voice.newGroupNamed.replace('{name}', requested.name) } : null
+        <SaveToSheet
+          // Remount each time the sheet opens, so the tab and the picked
+          // people re-seed from the current destination rather than keeping
+          // stale state from the last open.
+          key={pickerOpen ? 'open' : 'closed'}
+          selection={pickerSelection}
+          // The "new group" row is offered whenever a name was heard,
+          // whatever the destination now stands at.
+          createRow={
+            requested ? { label: t.voice.newGroupNamed.replace('{name}', requested.name) } : null
+          }
+          onChoose={(choice) => {
+            // A change of destination is a change of group/ghost to make,
+            // so drop the once-only latches for the new one.
+            groupCreated.current = false;
+            ghostMemberIds.current = null;
+            // Their own choice of destination settles a spoken name that was in
+            // doubt, and the payer and people are read afresh for the new group.
+            setGroupChosen(true);
+            setWhoEdit(null);
+            // 'create' is the picker naming a row, not a destination: the
+            // group id and my member id were minted when the name was
+            // heard, and this screen holds them.
+            if (choice.kind === 'create') {
+              if (requested) setDest({ kind: 'create', ...requested });
+            } else {
+              setDest(choice);
             }
-            onChoose={(choice) => {
-              // A change of destination is a change of group/ghost to make,
-              // so drop the once-only latches for the new one.
-              groupCreated.current = false;
-              ghostMemberIds.current = null;
-              // Their own choice of destination settles a spoken name that was in
-              // doubt, and the payer and people are read afresh for the new group.
-              setGroupChosen(true);
-              setWhoEdit(null);
-              // 'create' is the picker naming a row, not a destination: the
-              // group id and my member id were minted when the name was
-              // heard, and this screen holds them.
-              if (choice.kind === 'create') {
-                if (requested) setDest({ kind: 'create', ...requested });
-              } else {
-                setDest(choice);
-              }
-              setPickerOpen(false);
-            }}
-            onResolvePeople={resolvePeople}
-            people={peopleChoices}
-            groups={groupRows}
-            t={t}
-          />
-        </ScrollView>
+            setPickerOpen(false);
+          }}
+          onResolvePeople={resolvePeople}
+          people={peopleChoices}
+          groups={groupRows}
+        />
       </Sheet>
 
       {/* Who shares it, and who paid: the add-expense form's own split editor, in a
