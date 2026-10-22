@@ -85,7 +85,7 @@ import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
-import { familyRows } from '@/lib/families';
+import { familyOf, familyRows } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { SettleFirstDialog } from '@/components/SettleFirstDialog';
@@ -1232,6 +1232,23 @@ export default function GroupSettingsScreen() {
                     divider={!isMe}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        {familiesOn && familyOf(group.data?.units, member.id) ? (
+                          <View
+                            style={{
+                              paddingHorizontal: theme.spacing.md,
+                              paddingVertical: 4,
+                              borderRadius: theme.radius.pill,
+                              backgroundColor: theme.color.brandSoft,
+                            }}
+                          >
+                            <Text
+                              variant="caption"
+                              style={{ color: theme.color.brand, fontWeight: '700' }}
+                            >
+                              {familyOf(group.data?.units, member.id)?.name}
+                            </Text>
+                          </View>
+                        ) : null}
                         {member.role === 'admin' && !isGhost(member) ? (
                           <View
                             style={{

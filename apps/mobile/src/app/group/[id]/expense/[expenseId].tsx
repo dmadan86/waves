@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { familyOf } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -173,6 +175,7 @@ export default function ExpenseDetailScreen() {
   const viewerId = useViewerId();
 
   const { group, members, everyone, expenses, activity } = useGroup(groupId);
+  const familiesOn = useFlagEnabled('group_units');
   const versions = useExpenseVersions(expenseId ?? '');
   const imageEvents = useExpenseImageEvents(expenseId ?? '');
   const scrollRef = useRef<RNScrollView>(null);
@@ -1210,6 +1213,8 @@ export default function ExpenseDetailScreen() {
                   // subtitle said would otherwise be dropped from the audio.
                   const subtitle =
                     [
+                      // Their family, when the group has them.
+                      familiesOn ? familyOf(group.data?.units, row.memberId)?.name : null,
                       // Not "not joined yet": on a bill the question is who owes
                       // what, and whether somebody has an account is noise here
                       // (the members list and their own page still say it).
