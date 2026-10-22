@@ -90,6 +90,7 @@ function splitLabels(t: UiStrings): Record<string, string> {
     shares: t.expense.byShares,
     adjustment: t.expense.withAdjustments,
     itemized: t.expense.itemized,
+    units: t.families.byFamily,
   };
 }
 
@@ -410,13 +411,33 @@ export default function ExpenseDetailScreen() {
         share: BigInt(share.amount),
         paid,
         net: paid - BigInt(share.amount),
+        /** A by-family bill: the family this row opens, with the family's share. */
+        family: null as { name: string; share: bigint } | null,
       };
     });
     // Whoever is left paid something without being in the split at all.
     for (const [memberId, paid] of paidBy) {
-      rows.push({ memberId, share: 0n, paid, net: paid });
+      rows.push({ memberId, share: 0n, paid, net: paid, family: null });
     }
-    return rows;
+    if (version.split_params.kind !== 'units') return rows;
+    // Split by family: the rows in family order, each family's first row
+    // headed by its name (as the group calls it now) and its share. The
+    // composition is the bill's own snapshot, so a later move changes nothing.
+    const byMember = new Map(rows.map((row) => [row.memberId, row]));
+    const ordered: typeof rows = [];
+    for (const [unitId, memberIds] of Object.entries(version.split_params.units)) {
+      const inFamily = memberIds.map((id) => byMember.get(id)).filter((row) => row !== undefined);
+      if (inFamily.length === 0) continue;
+      const name = group.data?.units?.[unitId]?.name;
+      if (name && inFamily[0]) {
+        inFamily[0].family = { name, share: inFamily.reduce((sum, row) => sum + row.share, 0n) };
+      }
+      for (const row of inFamily) {
+        ordered.push(row);
+        byMember.delete(row.memberId);
+      }
+    }
+    return [...ordered, ...byMember.values()];
   })();
 
   // Where it happened (A43), when the author attached one. A plain snapshot — a
@@ -1235,6 +1256,26 @@ export default function ExpenseDetailScreen() {
                   const rowLabel = [spokenBalance, subtitle].filter(Boolean).join('. ');
                   return (
                     <View key={row.memberId}>
+                      {row.family ? (
+                        <Row
+                          style={{
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            paddingTop: index > 0 ? theme.spacing.sm : 0,
+                          }}
+                        >
+                          <Text variant="caption" tone="muted" style={{ fontWeight: '600' }}>
+                            {row.family.name}
+                          </Text>
+                          <MoneyText
+                            amount={row.family.share}
+                            currency={currency}
+                            locale={locale}
+                            variant="caption"
+                            tone="muted"
+                          />
+                        </Row>
+                      ) : null}
                       <ListRow
                         title={nameOf(row.memberId)}
                         quiet

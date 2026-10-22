@@ -2306,6 +2306,7 @@ export interface UiStrings {
       budget: string;
       budgetCleared: string;
       stops: string;
+      families: string;
       changed: string;
       memberAdded: string;
       memberRemoved: string;
@@ -5054,6 +5055,33 @@ export interface UiStrings {
     noPlaceCount: PluralForms;
     stops: PluralForms;
   };
+  /** Families inside a group: the settings screen, the split choice, the balances lens. */
+  families: {
+    title: string;
+    rowHint: string;
+    summary: PluralForms;
+    people: PluralForms;
+    onTheirOwn: string;
+    newFamily: string;
+    namePlaceholder: string;
+    nameHint: string;
+    rename: string;
+    deleteFamily: string;
+    deleteBody: string;
+    addToFamily: string;
+    moveTo: string;
+    removeFromFamily: string;
+    head: string;
+    makeHead: string;
+    whoFor: string;
+    adminOnly: string;
+    splitBy: string;
+    byPeople: string;
+    byFamilies: string;
+    byFamily: string;
+    partOf: string;
+    couldNotSave: string;
+  };
   claims: {
     askToJoinAs: string;
     needsConfirming: string;
@@ -7766,6 +7794,7 @@ const en: UiStrings = {
       budget: 'Set the budget to {amount}',
       budgetCleared: 'Cleared the budget',
       stops: 'Changed the trip stops',
+      families: 'Changed the families',
       changed: 'Changed the group settings',
       memberAdded: 'Added {name}',
       memberRemoved: 'Removed {name}',
@@ -10071,6 +10100,32 @@ const en: UiStrings = {
     quietFor: { one: '{n} hour later', other: '{n} hours later' },
     noPlaceCount: { one: '{n} has no place', other: '{n} have no place' },
     stops: { one: '{n} stop', other: '{n} stops' },
+  },
+  families: {
+    title: 'Families',
+    rowHint: 'People who settle together',
+    summary: { one: '{n} family', other: '{n} families' },
+    people: { one: '{n} person', other: '{n} people' },
+    onTheirOwn: 'On their own',
+    newFamily: 'New family',
+    namePlaceholder: 'e.g. Sharma family',
+    nameHint: 'A couple or a family that pays as one.',
+    rename: 'Rename',
+    deleteFamily: 'Delete family',
+    deleteBody: 'Nobody leaves the group — everyone in it is on their own again.',
+    addToFamily: 'Add to a family',
+    moveTo: 'Move to {name}',
+    removeFromFamily: 'Take out of the family',
+    head: 'Settles for the family',
+    makeHead: 'Make them settle for the family',
+    whoFor: '{name}',
+    adminOnly: 'Only a group admin can change the families.',
+    splitBy: 'Split between',
+    byPeople: 'People',
+    byFamilies: 'Families',
+    byFamily: 'By family',
+    partOf: 'Part of {name} — the family settles together',
+    couldNotSave: 'Could not save the families.',
   },
   claims: {
     askToJoinAs: 'Ask to join as {name}',
@@ -12822,6 +12877,7 @@ const ta: UiStrings = {
       budget: 'பட்ஜெட் {amount} என அமைக்கப்பட்டது',
       budgetCleared: 'பட்ஜெட் நீக்கப்பட்டது',
       stops: 'பயண நிறுத்தங்கள் மாற்றப்பட்டன',
+      families: 'குடும்பங்கள் மாற்றப்பட்டன',
       changed: 'குழு அமைப்புகள் மாற்றப்பட்டன',
       memberAdded: '{name} சேர்க்கப்பட்டார்',
       memberRemoved: '{name} நீக்கப்பட்டார்',
@@ -15259,6 +15315,33 @@ const ta: UiStrings = {
     quietFor: { one: '{n} மணி நேரம் கழித்து', other: '{n} மணி நேரம் கழித்து' },
     noPlaceCount: { one: '{n} க்கு இடம் இல்லை', other: '{n} க்கு இடம் இல்லை' },
     stops: { one: '{n} இடம்', other: '{n} இடங்கள்' },
+  },
+  families: {
+    title: 'குடும்பங்கள்',
+    rowHint: 'ஒன்றாகத் தீர்த்துக்கொள்பவர்கள்',
+    summary: { one: '{n} குடும்பம்', other: '{n} குடும்பங்கள்' },
+    people: { one: '{n} பேர்', other: '{n} பேர்' },
+    onTheirOwn: 'தனியாக',
+    newFamily: 'புதிய குடும்பம்',
+    namePlaceholder: 'எ.கா. சர்மா குடும்பம்',
+    nameHint: 'ஒன்றாகச் செலுத்தும் ஒரு ஜோடி அல்லது குடும்பம்.',
+    rename: 'பெயர் மாற்று',
+    deleteFamily: 'குடும்பத்தை நீக்கு',
+    deleteBody:
+      'யாரும் குழுவை விட்டு வெளியேறவில்லை — அதில் உள்ள அனைவரும் மீண்டும் தனியாக இருப்பார்கள்.',
+    addToFamily: 'ஒரு குடும்பத்தில் சேர்',
+    moveTo: '{name}-க்கு மாற்று',
+    removeFromFamily: 'குடும்பத்திலிருந்து நீக்கு',
+    head: 'குடும்பத்திற்காகத் தீர்க்கிறார்',
+    makeHead: 'குடும்பத்திற்காகத் தீர்க்கச் செய்',
+    whoFor: '{name}',
+    adminOnly: 'குழு நிர்வாகி மட்டுமே குடும்பங்களை மாற்ற முடியும்.',
+    splitBy: 'பிரிப்பது',
+    byPeople: 'நபர்கள்',
+    byFamilies: 'குடும்பங்கள்',
+    byFamily: 'குடும்ப வாரியாக',
+    partOf: '{name} குடும்பத்தில் — குடும்பம் ஒன்றாகத் தீர்த்துக்கொள்கிறது',
+    couldNotSave: 'குடும்பங்களைச் சேமிக்க முடியவில்லை.',
   },
   claims: {
     askToJoinAs: '{name} ஆக சேர அனுமதி கேளுங்கள்',
@@ -17987,6 +18070,7 @@ const hi: UiStrings = {
       budget: 'बजट {amount} तय किया',
       budgetCleared: 'बजट हटाया',
       stops: 'ट्रिप के पड़ाव बदले',
+      families: 'परिवार बदले',
       changed: 'समूह की सेटिंग बदली',
       memberAdded: '{name} को जोड़ा',
       memberRemoved: '{name} को हटाया',
@@ -20314,6 +20398,32 @@ const hi: UiStrings = {
     quietFor: { one: '{n} घंटे बाद', other: '{n} घंटे बाद' },
     noPlaceCount: { one: '{n} की कोई जगह नहीं', other: '{n} की कोई जगह नहीं' },
     stops: { one: '{n} जगह', other: '{n} जगहें' },
+  },
+  families: {
+    title: 'परिवार',
+    rowHint: 'जो लोग साथ में हिसाब चुकाते हैं',
+    summary: { one: '{n} परिवार', other: '{n} परिवार' },
+    people: { one: '{n} व्यक्ति', other: '{n} लोग' },
+    onTheirOwn: 'अकेले',
+    newFamily: 'नया परिवार',
+    namePlaceholder: 'जैसे शर्मा परिवार',
+    nameHint: 'एक जोड़ा या परिवार जो एक साथ भुगतान करता है।',
+    rename: 'नाम बदलें',
+    deleteFamily: 'परिवार हटाएँ',
+    deleteBody: 'कोई समूह से नहीं निकलता — इसमें सब फिर से अकेले हो जाते हैं।',
+    addToFamily: 'किसी परिवार में जोड़ें',
+    moveTo: '{name} में ले जाएँ',
+    removeFromFamily: 'परिवार से निकालें',
+    head: 'परिवार के लिए हिसाब चुकाते हैं',
+    makeHead: 'इन्हें परिवार के लिए हिसाब चुकाने वाला बनाएँ',
+    whoFor: '{name}',
+    adminOnly: 'केवल समूह का एडमिन परिवार बदल सकता है।',
+    splitBy: 'बाँटें',
+    byPeople: 'लोग',
+    byFamilies: 'परिवार',
+    byFamily: 'परिवार के हिसाब से',
+    partOf: '{name} का हिस्सा — परिवार साथ में हिसाब चुकाता है',
+    couldNotSave: 'परिवार सहेजे नहीं जा सके।',
   },
   claims: {
     askToJoinAs: '{name} के रूप में शामिल होने की पूछें',
@@ -23117,6 +23227,7 @@ const ar: UiStrings = {
       budget: 'حدّد الميزانية {amount}',
       budgetCleared: 'أزال الميزانية',
       stops: 'غيّر محطات الرحلة',
+      families: 'غيّر العائلات',
       changed: 'غيّر إعدادات المجموعة',
       memberAdded: 'أضاف {name}',
       memberRemoved: 'أزال {name}',
@@ -25954,6 +26065,46 @@ const ar: UiStrings = {
       many: '{n} محطة',
       other: '{n} محطة',
     },
+  },
+  families: {
+    title: 'العائلات',
+    rowHint: 'من يسدّدون معًا',
+    summary: {
+      zero: '{n} عائلة',
+      one: 'عائلة واحدة',
+      two: 'عائلتان',
+      few: '{n} عائلات',
+      many: '{n} عائلة',
+      other: '{n} عائلة',
+    },
+    people: {
+      zero: '{n} شخص',
+      one: 'شخص واحد',
+      two: 'شخصان',
+      few: '{n} أشخاص',
+      many: '{n} شخصًا',
+      other: '{n} شخص',
+    },
+    onTheirOwn: 'بمفردهم',
+    newFamily: 'عائلة جديدة',
+    namePlaceholder: 'مثال: عائلة شارما',
+    nameHint: 'زوجان أو عائلة يدفعون كواحد.',
+    rename: 'إعادة التسمية',
+    deleteFamily: 'حذف العائلة',
+    deleteBody: 'لا يغادر أحد المجموعة — يعود كل فرد فيها بمفرده.',
+    addToFamily: 'إضافة إلى عائلة',
+    moveTo: 'نقل إلى {name}',
+    removeFromFamily: 'إخراج من العائلة',
+    head: 'يسدّد عن العائلة',
+    makeHead: 'اجعله يسدّد عن العائلة',
+    whoFor: '{name}',
+    adminOnly: 'مشرف المجموعة وحده يمكنه تغيير العائلات.',
+    splitBy: 'القسمة بين',
+    byPeople: 'الأشخاص',
+    byFamilies: 'العائلات',
+    byFamily: 'حسب العائلة',
+    partOf: 'ضمن {name} — تسدّد العائلة معًا',
+    couldNotSave: 'تعذّر حفظ العائلات.',
   },
   claims: {
     askToJoinAs: 'اطلب الانضمام بصفتك {name}',

@@ -74,8 +74,18 @@ import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 import { useRemind } from '@/lib/useRemind';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-/** Everything the settle flow knows and does for one group; the sections below only draw it. */
-export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: () => void) {
+/**
+ * Everything the settle flow knows and does for one group; the sections below only draw it.
+ *
+ * `labelOf` dresses a name for the family lens — "Sharma family (Ravi)" for a
+ * head settling for their family — and is left out in the person lens.
+ */
+export function useSettleFlow(
+  groupId: string,
+  ledger: GroupLedger,
+  onRecorded: () => void,
+  labelOf?: (memberId: string, name: string) => string,
+) {
   const { t, locale } = useStrings();
   const { confirm, notify, choose } = useDialog();
   const { profile } = useAuth();
@@ -107,13 +117,14 @@ export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: 
   );
 
   const nameOf = (memberId: string, bare = false): string => {
-    return memberNameById(lookup, memberId, {
+    const name = memberNameById(lookup, memberId, {
       viewerId: null,
       blocked: blockedIds,
       someone: t.misc.someone,
       leftLabel: t.misc.memberLeft,
       bare,
     });
+    return labelOf ? labelOf(memberId, name) : name;
   };
   const fmt = (value: bigint, code: string = currency): string =>
     format(money(value, code as CurrencyCode), { locale });

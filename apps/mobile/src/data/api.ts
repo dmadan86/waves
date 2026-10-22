@@ -14,7 +14,6 @@ import {
   type MyReferral,
 } from '@/lib/referral';
 import { randomUUID } from 'expo-crypto';
-
 import {
   buildExpenseWriteBody,
   DEFAULT_NOTIFICATION_PREFS,
@@ -28,6 +27,7 @@ import {
   type DeviceSession,
   type ExpenseLocation,
   type FxRecord,
+  type GroupUnits,
   type NotificationPrefs,
   type ParsedReceipt,
   type PaymentMethod,
@@ -870,6 +870,8 @@ export async function updateGroup(
     custom_tag: string | null;
     /** A `GROUP_COVER_COLORS` key, or null to go back to the app's colour. */
     cover_color: string | null;
+    /** The families, or null for none. Admin-only: /sync and the column guard refuse anyone else. */
+    units: GroupUnits | null;
   }>,
 ): Promise<void> {
   const { error } = await backend.from('groups').update(patch).eq('id', groupId);
