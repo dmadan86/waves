@@ -136,6 +136,8 @@ export function buildVoiceSplit(intent: VoiceIntent, input: VoiceSplitInput): Vo
             for (const m of unitMembers(matchedUnit)) {
               if (memberSet.has(m)) expanded.add(m);
             }
+          } else {
+            problems.push({ code: 'participant_unresolved', name: spoken });
           }
         }
         // Ensure payer is included if they weren't named.

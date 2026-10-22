@@ -288,3 +288,16 @@ describe('voice-agent validateSplit — units mode', () => {
     }
   });
 });
+
+it.each(['family dinner', 'family trip'])('keeps %s as a normal expense', (description) => {
+  const intent = parse(`I paid ${description} 600`);
+  expect(intent.splitMode).toBe('equal');
+  expect(intent.remainder).toContain(description);
+});
+
+it('blocks an unknown family rather than saving only the payer', () => {
+  expect(plan('I paid 600 Jones family').problems).toContainEqual({
+    code: 'participant_unresolved',
+    name: 'jones',
+  });
+});

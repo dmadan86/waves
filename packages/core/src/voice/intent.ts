@@ -1245,8 +1245,8 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
         break;
       }
       // bare "family" or "families" alone (e.g. after "split" verb already consumed)
-      if (i > 0 && !free(i - 1)) {
-        // previous token was already consumed (e.g. the split verb)
+      if (i > 0 && ['split', 'per', 'between', 'wise', 'divide', 'share'].includes(at(i - 1))) {
+        // A consumed payer verb such as "paid" is not a split cue.
         mark(i);
         detectedFamilySplit = true;
         break;

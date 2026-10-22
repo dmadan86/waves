@@ -731,13 +731,18 @@ function validateSplit(
     if (participantIds.length === 0) bad('units split needs at least one participant');
     // If unitIds were provided, restrict to those families.
     const allowedUnitIds =
-      Array.isArray(split.unitIds) && (split.unitIds as unknown[]).length > 0
-        ? new Set((split.unitIds as unknown[]).filter((id): id is string => typeof id === 'string'))
+      Array.isArray(split.unitIds) && split.unitIds.length > 0
+        ? new Set(split.unitIds as unknown[])
         : null;
+    if (allowedUnitIds) {
+      for (const id of allowedUnitIds) {
+        if (typeof id !== 'string' || !Object.hasOwn(group.families!, id))
+          bad('unknown family id in units split');
+      }
+    }
     // Build the UnitsParams-compatible shares: one entry per family.
     // We reuse the families from the context to emit per-family member lists.
     const unitShares: VoiceSplitShare[] = [];
-    const familiesUsed = new Set<string>();
     for (const [unitId, fam] of Object.entries(group.families)) {
       if (allowedUnitIds && !allowedUnitIds.has(unitId)) continue;
       const famMembers = fam.memberIds.filter((id) => participantIds.includes(id));
@@ -745,14 +750,11 @@ function validateSplit(
       // Represent family split: one share entry per family member (equal within family).
       for (const mid of famMembers) {
         unitShares.push({ memberId: mid });
-        familiesUsed.add(unitId);
       }
     }
     // Members in no family are a unit of one.
     const placedInFamily = new Set(
-      [...familiesUsed].flatMap(
-        (uid) => (group.families as Record<string, ContextFamily>)[uid]!.memberIds,
-      ),
+      Object.values(group.families!).flatMap((family) => family.memberIds),
     );
     for (const id of participantIds) {
       if (!placedInFamily.has(id)) unitShares.push({ memberId: id });

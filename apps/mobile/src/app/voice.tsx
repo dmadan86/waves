@@ -1013,6 +1013,7 @@ export default function VoiceScreen() {
     async (transcript: string, alternatives?: readonly string[]): Promise<VoiceParseResult> => {
       const final = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
+        families: launchGroup.group.data?.units,
         currentGroupId: launchGroupId,
         alternatives,
         learned: learnedForGroup(nameMemory, launchGroupId),
@@ -1028,7 +1029,7 @@ export default function VoiceScreen() {
       });
       return final;
     },
-    [groupRefs, locale, launchMembers, launchGroupId, nameMemory],
+    [groupRefs, locale, launchMembers, launchGroupId, nameMemory, launchGroup.group.data?.units],
   );
 
   // Drafts minted from heard expenses — the shared shape for the opening batch
@@ -1722,19 +1723,21 @@ export default function VoiceScreen() {
   const who: WhoView | null = (() => {
     // A plain "I paid, split equally" keeps the way it has always been written;
     // the card and the plan exist for sentences that said something more.
-    if (
-      !intent ||
-      (!intent.hasSocialDetail && !whoForced) ||
-      dest.kind !== 'existing' ||
-      targetMembers.length === 0
-    )
-      return null;
+    if (!intent || dest.kind !== 'existing' || targetMembers.length === 0) return null;
+    const destinationIntent =
+      parseVoiceExpenses(intent.transcript, groupRefs, {
+        members: targetMembers,
+        currentGroupId: targetGroupId,
+        learned: targetLearned,
+        families: target.group.data?.units,
+      }).intent ?? intent;
+    if (!destinationIntent.hasSocialDetail && !whoForced) return null;
     const first = drafts[0];
     const firstCurrency = first
       ? voiceSaveCurrency(first.currency, target.group.data?.default_currency ?? dc, dc)
       : dc;
     return planWho(
-      intent,
+      destinationIntent,
       targetMembers,
       whoEdit,
       first ? toMinor(first.amount, firstCurrency) : null,
