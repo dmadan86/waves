@@ -2,10 +2,11 @@
  * Network activity: every connection Waves made from this phone in the last 7
  * days, so the app can be checked against what it says about itself.
  *
- * The list is kept on the phone and never uploaded (see `lib/netLog`). It holds
- * a time, a method, an address with its query string removed and ids masked, a
- * status and a duration — never a header, a body or a token. Reading it makes no
- * connection, so the screen does not add to what it shows.
+ * The list is kept on the phone and never uploaded (see `lib/netLog`). Each call
+ * is shown by name ("Exchange rate"), never by method or address, with its time
+ * and whether it worked. The background sync is not listed call by call: one row
+ * at the top counts it. Reading the list makes no connection, so the screen does
+ * not add to what it shows.
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -25,16 +26,19 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useStrings, type UiStrings } from '@/i18n';
+import { ListRow } from '@/components/standard';
+import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { DEFAULT_TILE_URL } from '@/lib/mapTiles';
 import { router } from '@/lib/navigation';
-import { clearNetLog, useNetLog } from '@/lib/netLog';
+import { clearNetLog, useNetLog, useSyncStats } from '@/lib/netLog';
 import {
-  displayAddress,
-  NET_PURPOSES,
+  callLabel,
+  NET_FILTER_PURPOSES,
+  syncTotal,
   urlParts,
   type NetLogEntry,
+  type SyncStats,
   type NetPurpose,
 } from '@/lib/netLogCore';
 
@@ -64,6 +68,8 @@ function dayKey(time: number): string {
   const d = new Date(time);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+
+const syncTotalNow = (stats: SyncStats): number => syncTotal(stats, Date.now());
 
 /** Newest first, with a heading wherever the day changes. */
 function withDays(entries: readonly NetLogEntry[], t: UiStrings, locale: string): Item[] {
@@ -145,12 +151,13 @@ export default function NetworkActivityScreen() {
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const log = useNetLog();
+  const sync = useSyncStats();
   const [filter, setFilter] = useState<NetPurpose | 'all'>('all');
 
   // The store already keeps to the last 7 days and 1000 entries.
   const recent = log;
   const present = useMemo(
-    () => NET_PURPOSES.filter((purpose) => recent.some((entry) => entry.p === purpose)),
+    () => NET_FILTER_PURPOSES.filter((purpose) => recent.some((entry) => entry.p === purpose)),
     [recent],
   );
   // A filter whose last entry was cleared falls back to everything.
@@ -174,21 +181,30 @@ export default function NetworkActivityScreen() {
     if (ok) await clearNetLog();
   }, [confirm, t.netlog]);
 
-  const statusText = (entry: NetLogEntry): string => {
-    const status =
-      entry.s === 'failed'
-        ? t.netlog.statusFailed
-        : entry.s === 'offline'
-          ? t.netlog.statusOffline
-          : String(entry.s);
-    return `${status} · ${entry.d} ms`;
-  };
+  const statusText = (entry: NetLogEntry): string =>
+    entry.s === 'failed'
+      ? t.netlog.statusFailed
+      : entry.s === 'offline'
+        ? t.netlog.statusOffline
+        : entry.s >= 400
+          ? t.netlog.statusFailed
+          : t.netlog.statusOk;
+
+  const syncCount = syncTotalNow(sync);
 
   const header = (
     <View style={{ gap: theme.spacing.md, paddingBottom: theme.spacing.sm }}>
       <Text variant="caption" tone="muted">
         {t.netlog.explainer}
       </Text>
+      {syncCount > 0 ? (
+        <ListRow
+          leading={<Ionicons name="sync-outline" size={iconSize.lg} color={theme.color.text} />}
+          title={plural(locale, syncCount, t.netlog.syncSummary)}
+          subtitle={t.netlog.syncLast.replace('{time}', timeFormat.format(sync.last))}
+          divider
+        />
+      ) : null}
       {present.length > 0 ? (
         <ScrollView
           horizontal
@@ -303,7 +319,7 @@ export default function NetworkActivityScreen() {
             <CallRow
               entry={item.entry}
               time={timeFormat.format(item.entry.t)}
-              purpose={t.netlog.purposes[PURPOSE_KEY[item.entry.p]]}
+              name={callLabel(item.entry, t.netlog.calls)}
               status={statusText(item.entry)}
               label={t.netlog.rowLabel}
             />
@@ -314,53 +330,39 @@ export default function NetworkActivityScreen() {
   );
 }
 
-/** One connection, in two compact lines. */
+/** One connection, in one line: its name, whether it worked, and when. */
 function CallRow({
   entry,
   time,
-  purpose,
+  name,
   status,
   label,
 }: {
   entry: NetLogEntry;
   time: string;
-  purpose: string;
+  name: string;
   status: string;
   label: string;
 }) {
-  const theme = useTheme();
-  const address = displayAddress(entry.u);
   const bad = entry.s === 'failed' || entry.s === 'offline' || entry.s >= 400;
   return (
     <View
       accessible
       accessibilityLabel={label
         .replace('{time}', time)
-        .replace('{purpose}', purpose)
-        .replace('{method}', entry.m)
-        .replace('{address}', address)
+        .replace('{call}', name)
         .replace('{status}', status)}
-      style={{
-        paddingVertical: theme.spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.color.border,
-        gap: 2,
-      }}
     >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <Text variant="caption" tone="muted">
-          {time}
-        </Text>
-        <Text variant="caption" style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>
-          {purpose}
-        </Text>
-        <Text variant="caption" tone={bad ? 'negative' : 'muted'}>
-          {status}
-        </Text>
-      </Row>
-      <Text variant="caption" tone="muted" style={MONO} numberOfLines={2}>
-        {entry.m} {address}
-      </Text>
+      <ListRow
+        title={name}
+        amount={time}
+        divider
+        trailing={
+          <Text variant="caption" tone={bad ? 'negative' : 'muted'} style={{ minWidth: 48 }}>
+            {status}
+          </Text>
+        }
+      />
     </View>
   );
 }

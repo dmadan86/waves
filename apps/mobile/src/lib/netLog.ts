@@ -20,7 +20,12 @@ import { DEFAULT_TILE_URL } from '@/lib/mapTiles';
 
 import {
   appendEntry,
+  countSync,
+  EMPTY_SYNC_STATS,
   parseStoredLog,
+  parseSyncStats,
+  pruneSyncStats,
+  type SyncStats,
   toEntry,
   trimLog,
   urlParts,
@@ -30,9 +35,11 @@ import {
 } from './netLogCore';
 
 const STORAGE_KEY = 'waves.netLog.v1';
+const SYNC_KEY = 'waves.netLog.sync.v1';
 const SAVE_DELAY_MS = 4000;
 
 let entries: NetLogEntry[] = [];
+let syncStats: SyncStats = EMPTY_SYNC_STATS;
 let loaded = false;
 let loading: Promise<void> | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -61,7 +68,9 @@ async function save(): Promise<void> {
   }
   if (!loaded) return;
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trimLog(entries, Date.now())));
+    const now = Date.now();
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(trimLog(entries, now)));
+    await AsyncStorage.setItem(SYNC_KEY, JSON.stringify(pruneSyncStats(syncStats, now)));
   } catch {
     // Losing a save only loses log lines.
   }
@@ -76,16 +85,25 @@ function scheduleSave(): void {
 export function loadNetLog(): Promise<void> {
   loading ??= (async () => {
     try {
+      const now = Date.now();
       const stored = parseStoredLog(await AsyncStorage.getItem(STORAGE_KEY));
+      const storedSync = parseSyncStats(await AsyncStorage.getItem(SYNC_KEY));
+      // Merge the counts saved earlier with any counted before they arrived.
+      const days = { ...storedSync.days };
+      for (const [day, n] of Object.entries(syncStats.days)) days[day] = (days[day] ?? 0) + n;
+      syncStats = pruneSyncStats({ days, last: Math.max(storedSync.last, syncStats.last) }, now);
+      // Sync calls saved one by one by an earlier version become counts.
+      const legacy = stored.filter((e) => e.p === 'sync');
+      for (const e of legacy) syncStats = countSync(syncStats, e.t, now);
       entries = trimLog(
-        [...stored, ...entries].sort((a, b) => a.t - b.t),
-        Date.now(),
+        [...stored.filter((e) => e.p !== 'sync'), ...entries].sort((a, b) => a.t - b.t),
+        now,
       );
     } catch {
       // Start from what this run has seen.
     }
     loaded = true;
-    if (entries.length) scheduleSave();
+    if (entries.length || Object.keys(syncStats.days).length) scheduleSave();
     notify();
   })();
   return loading;
@@ -94,6 +112,13 @@ export function loadNetLog(): Promise<void> {
 function record(call: RawCall, offline: boolean): void {
   const entry = toEntry(call, { offline, skipLocal: __DEV__, mapHosts });
   if (!entry) return;
+  if (entry.p === 'sync') {
+    // Sync is only counted, never kept call by call.
+    syncStats = countSync(syncStats, entry.t, Date.now());
+    scheduleSave();
+    notify();
+    return;
+  }
   entries = appendEntry(entries, entry, Date.now());
   scheduleSave();
   notify();
@@ -136,9 +161,11 @@ export async function clearNetLog(): Promise<void> {
     saveTimer = null;
   }
   entries = [];
+  syncStats = EMPTY_SYNC_STATS;
   notify();
   try {
     await AsyncStorage.removeItem(STORAGE_KEY);
+    await AsyncStorage.removeItem(SYNC_KEY);
   } catch {
     // Already gone from memory.
   }
@@ -149,6 +176,15 @@ export function subscribeNetLog(listener: () => void): () => void {
   return () => {
     listeners.delete(listener);
   };
+}
+
+export function getSyncStats(): SyncStats {
+  return syncStats;
+}
+
+/** The sync counts, re-rendering when they change. */
+export function useSyncStats(): SyncStats {
+  return useSyncExternalStore(subscribeNetLog, getSyncStats, getSyncStats);
 }
 
 export function getNetLog(): readonly NetLogEntry[] {

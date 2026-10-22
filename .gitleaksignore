@@ -7,3 +7,6 @@
 # still in the commit that first added the file.
 8b7039df8e97956352c527bfe6f144d4b0bce7f3:apps/api/test/friendsExpenses.test.ts:generic-api-key:286
 8b7039df8e97956352c527bfe6f144d4b0bce7f3:apps/api/test/friendsExpenses.test.ts:generic-api-key:301
+
+# Test URL with a port in netLogCore.test.ts (https://api.example.com:8443/...): not a key.
+e00f67edb36f9175463fb31a29f913c7deeeca17:apps/mobile/test/netLogCore.test.ts:generic-api-key:361
