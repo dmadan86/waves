@@ -9,11 +9,12 @@
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { FooterWaves, WAVES_HEIGHT } from '@/components/FooterWaves';
 import { useStrings, type UiStrings } from '@/i18n';
 import type { VoiceStatusKey } from '@/lib/voiceFlowPure';
 
@@ -128,6 +129,7 @@ export function VoiceTop({
       </Text>
       {/* The halo's box is roomy; a short phone trims it rather than scrolling. */}
       <View style={{ marginVertical: compact ? -14 : -4 }}>
+        <MicWaves />
         <FloatingMicrophone
           mode={micMode}
           level={level}
@@ -169,6 +171,43 @@ export function VoiceSheetBody({
     <View style={{ alignSelf: 'stretch', gap: theme.spacing.md }}>
       <LiveTranscript text={transcript} final={final} reserve={reserve} onEdit={onEditTranscript} />
       {children}
+    </View>
+  );
+}
+
+/** The page's waves as a band through the mic, edge to edge, so the mic sits
+ *  in the middle of them as in the mockup. Two halves of the footer shape,
+ *  the lower one turned over, give a ribbon with a wavy top and bottom. */
+function MicWaves() {
+  const { width } = useWindowDimensions();
+  const half = WAVES_HEIGHT / 2;
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: '50%',
+        marginTop: -half,
+        left: '50%',
+        marginLeft: -width / 2,
+        width,
+        height: WAVES_HEIGHT,
+        opacity: 0.8,
+      }}
+    >
+      <FooterWaves bottom={half} />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          transform: [{ rotate: '180deg' }],
+        }}
+      >
+        <FooterWaves bottom={half} />
+      </View>
     </View>
   );
 }
