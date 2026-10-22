@@ -21,6 +21,7 @@
 
 import { guessCategory, type CategoryId } from '../category/categories';
 import { isCurrencyCode, minorUnitScale } from '../money/currency';
+import type { GroupUnits } from '../group/units';
 import { normaliseDigits } from '../text/digits';
 import { normaliseSpokenAmounts } from '../text/spokenAmount';
 import { foldSpokenAmountWords, majorToMinor, maskNonMoneyNumbers } from './amounts';
@@ -37,7 +38,7 @@ import {
   type VoiceNameCandidate,
 } from './names';
 
-export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'full_on';
+export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'full_on' | 'units';
 
 /**
  * `resolved` is filled in; `suggested` is "Did you mean …?" (the suggestion is
@@ -110,6 +111,13 @@ export interface VoiceIntent {
   readonly everyone: boolean;
   readonly splitMode: VoiceSplitMode;
   readonly splitCount?: number;
+  /**
+   * When `splitMode === 'units'` and the speaker named specific families
+   * ("Sharma family and Patel family"), this holds those names (lowercased) so
+   * `buildVoiceSplit` can look them up in `GroupUnits` and expand them to
+   * member ids. Absent means "all families".
+   */
+  readonly familyNames?: readonly string[];
   /** The sentence with the payer, group and split phrases taken out. */
   readonly remainder: string;
   /** Every assumption and doubt, as short codes for the screen to explain. */
@@ -136,6 +144,13 @@ export interface VoiceIntentContext {
   readonly alternatives?: readonly string[];
   /** This user's confirmed corrections for the group being spoken into. */
   readonly learned?: readonly LearnedName[];
+  /**
+   * Families (units) defined in the group being spoken into. When present, the
+   * parser can recognise "split by family" / "per family" / "family wise" and
+   * produce a `units` split mode. Also used to expand a spoken family name
+   * ("Sharma family") into all its member ids in `buildVoiceSplit`.
+   */
+  readonly families?: GroupUnits | null;
 }
 
 /** What the reader settled by hand, per heard phrase ({@link nameKey}): member id. */
@@ -1168,6 +1183,100 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   let everyone = false;
   let splitMode: VoiceSplitMode = 'equal';
   let fullOnNames: RawName[] | null = null;
+  /** Family names as spoken, when the sentence names specific families. */
+  let spokenFamilyNames: string[] | undefined;
+
+  /* ── family split detection ── */
+
+  const hasFamilies =
+    ctx.families !== null && ctx.families !== undefined && Object.keys(ctx.families).length > 0;
+
+  /**
+   * Phrases that mean "split across families as units". Checked before the
+   * normal name-list scanning so they are consumed first.
+   *
+   * English:  "split by family", "per family", "family wise", "familywise",
+   *           "between the families", "among families", "split between families"
+   * Hindi:    "family ke hisab se", "parivaar ke anusaar"
+   * Tamil:    "kudumba vaariyaaga", "kudumba vaari"
+   */
+  const FAMILY_WORDS = new Set(['family', 'families', 'parivaar', 'kudumba', 'kutumba']);
+  const FAMILY_WISE_WORDS = new Set(['wise', 'wari', 'vaariyaaga', 'vaari', 'anusaar']);
+  const FAMILY_BY_PREPS = new Set(['by', 'per', 'ke', 'hisab', 'se', 'wari', 'vari']);
+
+  // Scan for generic "split by family" / "per family" / "family wise" phrases.
+  let detectedFamilySplit = false;
+  for (let i = 0; i < n && !detectedFamilySplit; i += 1) {
+    if (!free(i)) continue;
+    const t = at(i);
+    if (FAMILY_WORDS.has(t)) {
+      // "family wise", "family wari", "families wise"
+      if (free(i + 1) && FAMILY_WISE_WORDS.has(at(i + 1))) {
+        mark(i, i + 2);
+        detectedFamilySplit = true;
+        break;
+      }
+      // "per family" — the word before is a preposition
+      if (i > 0 && free(i - 1) && (at(i - 1) === 'per' || at(i - 1) === 'by')) {
+        mark(i - 1, i + 1);
+        detectedFamilySplit = true;
+        break;
+      }
+      // "between the families", "among families", "among the families"
+      if (i > 0) {
+        let p = i - 1;
+        if (free(p) && (at(p) === 'the' || at(p) === 'all')) p -= 1;
+        if (
+          p >= 0 &&
+          free(p) &&
+          (at(p) === 'between' || at(p) === 'among' || at(p) === 'amongst')
+        ) {
+          mark(p, i + 1);
+          detectedFamilySplit = true;
+          break;
+        }
+      }
+      // "family ke hisab se" (Hindi)
+      if (free(i + 1) && FAMILY_BY_PREPS.has(at(i + 1))) {
+        let end = i + 2;
+        while (end < n && free(end) && FAMILY_BY_PREPS.has(at(end))) end += 1;
+        mark(i, end);
+        detectedFamilySplit = true;
+        break;
+      }
+      // bare "family" or "families" alone (e.g. after "split" verb already consumed)
+      if (i > 0 && ['split', 'per', 'between', 'wise', 'divide', 'share'].includes(at(i - 1))) {
+        // A consumed payer verb such as "paid" is not a split cue.
+        mark(i);
+        detectedFamilySplit = true;
+        break;
+      }
+    }
+  }
+
+  // "split between Sharma family and Patel family" — specific family names.
+  // Scan for "[name] family" patterns when the group has families defined.
+  if (!detectedFamilySplit && hasFamilies) {
+    const familyNames: string[] = [];
+    for (let i = 0; i < n - 1; i += 1) {
+      if (!free(i) || !free(i + 1)) continue;
+      if (at(i + 1) === 'family' && nameLike(i)) {
+        familyNames.push(at(i));
+        mark(i, i + 2);
+        // skip "and"/"aur" separator
+        if (free(i + 2) && (at(i + 2) === 'and' || at(i + 2) === 'aur')) mark(i + 2);
+      }
+    }
+    if (familyNames.length > 0) {
+      detectedFamilySplit = true;
+      spokenFamilyNames = familyNames;
+    }
+  }
+
+  if (detectedFamilySplit) {
+    splitMode = hasFamilies ? 'units' : 'equal';
+    if (!hasFamilies) note('no_families_fallback');
+  }
 
   /** One name phrase going forward, or null. `strict` means it must be somebody known. */
   const phraseAt = (i: number, strict: boolean): { text: string; end: number } | null => {
@@ -1920,6 +2029,9 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     everyone: everyone && !participants,
     splitMode,
     ...(splitCount !== undefined ? { splitCount } : {}),
+    ...(spokenFamilyNames && splitMode === 'units'
+      ? { familyNames: spokenFamilyNames.map((n) => n.toLowerCase()) }
+      : {}),
     remainder,
     notes,
     hasSocialDetail:
