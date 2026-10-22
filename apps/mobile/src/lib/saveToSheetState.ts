@@ -42,3 +42,27 @@ export function groupSubtitle(
   if (!startDate || !endDate) return memberLabel;
   return `${memberLabel} · ${formatDay(startDate)} – ${formatDay(endDate)}`;
 }
+
+/** The 1:1 group a seeded selection stands for, if it is one. */
+export function seededPerson<P extends { name: string; groupId: string }>(
+  selection: DestinationSelectionSeed,
+  people: readonly P[],
+): P | undefined {
+  return selection.kind === 'existing'
+    ? people.find((person) => person.groupId === selection.groupId)
+    : undefined;
+}
+
+/** The group id to keep when the pick is still exactly the seeded 1:1 contact.
+ *  Names are ambiguous (two "Alex" 1:1s), so only a changed pick is resolved by name. */
+export function unchangedSeedGroupId(
+  pick: SaveToPick,
+  seed: { name: string; groupId: string } | undefined,
+): string | null {
+  return seed &&
+    pick.kind === 'people' &&
+    pick.names.length === 1 &&
+    pick.names[0].toLowerCase() === seed.name.toLowerCase()
+    ? seed.groupId
+    : null;
+}

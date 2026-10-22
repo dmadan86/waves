@@ -41,7 +41,9 @@ import {
   canSaveHere,
   groupSubtitle,
   pickPlace,
+  seededPerson,
   togglePersonPick,
+  unchangedSeedGroupId,
   type SaveToPick,
 } from '@/lib/saveToSheetState';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -81,13 +83,10 @@ export function SaveToSheet({
     initialDestinationTab(selection, people),
   );
   // A destination that is really a 1:1 contact reads back as that person.
-  const [pick, setPick] = useState<SaveToPick>(() => {
-    const person =
-      selection.kind === 'existing'
-        ? people.find((candidate) => candidate.groupId === selection.groupId)
-        : undefined;
-    return person ? { kind: 'people', names: [person.name] } : selection;
-  });
+  const [seed] = useState(() => seededPerson(selection, people));
+  const [pick, setPick] = useState<SaveToPick>(() =>
+    seed ? { kind: 'people', names: [seed.name] } : selection,
+  );
   const [groupQuery, setGroupQuery] = useState('');
   const [query, setQuery] = useState('');
 
@@ -253,7 +252,9 @@ export function SaveToSheet({
   const typedIsNew = q.length > 0 && !people.some((person) => person.name.toLowerCase() === q);
 
   const save = () => {
-    if (pick.kind === 'people') onResolvePeople([...pick.names]);
+    const keptGroupId = unchangedSeedGroupId(pick, seed);
+    if (keptGroupId) onChoose({ kind: 'existing', groupId: keptGroupId });
+    else if (pick.kind === 'people') onResolvePeople([...pick.names]);
     else if (pick.kind !== 'none') onChoose(pick);
   };
 

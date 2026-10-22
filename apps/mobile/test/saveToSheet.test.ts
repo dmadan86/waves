@@ -11,6 +11,8 @@ import {
   canSaveHere,
   groupSubtitle,
   pickPlace,
+  seededPerson,
+  unchangedSeedGroupId,
   togglePersonPick,
 } from '../src/lib/saveToSheetState';
 
@@ -36,6 +38,23 @@ describe('single-selection rule', () => {
     expect(none).toEqual({ kind: 'none' });
     expect(canSaveHere(none)).toBe(false);
     expect(canSaveHere({ kind: 'unassigned' })).toBe(true);
+  });
+});
+
+describe('seeded 1:1 contact', () => {
+  const people = [
+    { name: 'Alex', groupId: 'g1' },
+    { name: 'Alex', groupId: 'g2' },
+  ];
+  it('keeps the original group id when unchanged, even with two Alexes', () => {
+    const seed = seededPerson({ kind: 'existing', groupId: 'g2' }, people);
+    expect(unchangedSeedGroupId({ kind: 'people', names: ['Alex'] }, seed)).toBe('g2');
+  });
+  it('resolves by name only once the pick changes', () => {
+    const seed = seededPerson({ kind: 'existing', groupId: 'g2' }, people);
+    expect(unchangedSeedGroupId({ kind: 'people', names: ['Alex', 'Sam'] }, seed)).toBeNull();
+    expect(unchangedSeedGroupId({ kind: 'me' }, seed)).toBeNull();
+    expect(seededPerson({ kind: 'existing', groupId: 'x' }, people)).toBeUndefined();
   });
 });
 
