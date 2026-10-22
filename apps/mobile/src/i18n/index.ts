@@ -706,6 +706,12 @@ export interface UiStrings {
   common: {
     /** The app's name — a wordmark, the same in every locale (not translated). */
     appName: string;
+    /** Toast after a save: the group made; with its name; the expense added ({what} = "Dinner · ₹1,200"); edited; queued while offline. */
+    groupCreated: string;
+    groupCreatedNamed: string;
+    expenseAdded: string;
+    expenseUpdated: string;
+    savedOffline: string;
     back: string;
     /** The way past the door without an account — the Skip pill on the gateway. */
     skip: string;
@@ -6385,6 +6391,11 @@ const en: UiStrings = {
   upgradeTrial: { one: '{n} day of Pro left', other: '{n} days of Pro left' },
   common: {
     appName: 'Waves',
+    groupCreated: 'Group created',
+    groupCreatedNamed: '“{name}” created',
+    expenseAdded: '{what} added',
+    expenseUpdated: 'Expense updated',
+    savedOffline: 'Saved — will sync when online',
     back: 'Back',
     skip: 'Skip',
     loading: 'Loading…',
@@ -11424,6 +11435,11 @@ const ta: UiStrings = {
   upgradeTrial: { one: 'Pro-வில் {n} நாள் மீதம்', other: 'Pro-வில் {n} நாட்கள் மீதம்' },
   common: {
     appName: 'Waves',
+    groupCreated: 'குழு உருவாக்கப்பட்டது',
+    groupCreatedNamed: '“{name}” உருவாக்கப்பட்டது',
+    expenseAdded: '{what} சேர்க்கப்பட்டது',
+    expenseUpdated: 'செலவு புதுப்பிக்கப்பட்டது',
+    savedOffline: 'சேமிக்கப்பட்டது — இணையம் வந்ததும் ஒத்திசைக்கப்படும்',
     back: 'பின்',
     skip: 'தவிர்',
     loading: 'ஏற்றுகிறது…',
@@ -16636,6 +16652,11 @@ const hi: UiStrings = {
   upgradeTrial: { one: 'Pro का {n} दिन बाकी', other: 'Pro के {n} दिन बाकी' },
   common: {
     appName: 'Waves',
+    groupCreated: 'ग्रुप बन गया',
+    groupCreatedNamed: '“{name}” बन गया',
+    expenseAdded: '{what} जोड़ा गया',
+    expenseUpdated: 'खर्च अपडेट हुआ',
+    savedOffline: 'सहेजा गया — ऑनलाइन होने पर सिंक होगा',
     back: 'वापस',
     skip: 'छोड़ें',
     loading: 'लोड हो रहा है…',
@@ -21709,6 +21730,11 @@ const ar: UiStrings = {
   },
   common: {
     appName: 'Waves',
+    groupCreated: 'تم إنشاء المجموعة',
+    groupCreatedNamed: 'تم إنشاء «{name}»',
+    expenseAdded: 'تمت إضافة {what}',
+    expenseUpdated: 'تم تحديث المصروف',
+    savedOffline: 'تم الحفظ — ستتم المزامنة عند الاتصال',
     back: 'رجوع',
     skip: 'تخطي',
     loading: 'جارٍ التحميل…',
