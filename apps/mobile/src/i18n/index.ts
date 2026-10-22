@@ -1408,7 +1408,7 @@ export interface UiStrings {
     settingsRow: string;
     settingsHint: string;
     resetRow: string;
-    resetHint: string;
+    resetHint: PluralForms;
     resetDone: string;
     typingOffline: string;
   };
@@ -7004,9 +7004,9 @@ const en: UiStrings = {
     reimbursableTag: 'Work',
     settingsRow: 'Follow-up questions',
     settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
-    resetRow: 'Reset muted questions',
-    resetHint: 'Ask every kind of follow-up again',
-    resetDone: 'Follow-up questions reset',
+    resetRow: 'Ask muted questions again',
+    resetHint: { one: '{n} muted', other: '{n} muted' },
+    resetDone: 'Muted questions will be asked again',
     typingOffline: 'Typing needs a connection',
   },
   voiceScreen: {
@@ -12037,9 +12037,9 @@ const ta: UiStrings = {
     reimbursableTag: 'அலுவலகம்',
     settingsRow: 'தொடர் கேள்விகள்',
     settingsHint: 'செலவைச் சேர்த்த பிறகு உதவியாளர் அதைப் பற்றி ஒரு சிறு கேள்வி கேட்கலாம்',
-    resetRow: 'முடக்கிய கேள்விகளை மீட்டமை',
-    resetHint: 'எல்லா வகை தொடர் கேள்விகளையும் மீண்டும் கேள்',
-    resetDone: 'தொடர் கேள்விகள் மீட்டமைக்கப்பட்டன',
+    resetRow: 'முடக்கிய கேள்விகளை மீண்டும் கேள்',
+    resetHint: { one: '{n} முடக்கப்பட்டது', other: '{n} முடக்கப்பட்டவை' },
+    resetDone: 'முடக்கிய கேள்விகள் மீண்டும் கேட்கப்படும்',
     typingOffline: 'தட்டச்சு செய்ய இணைப்பு தேவை',
   },
   voiceScreen: {
@@ -17223,9 +17223,9 @@ const hi: UiStrings = {
     reimbursableTag: 'ऑफ़िस',
     settingsRow: 'फ़ॉलो-अप सवाल',
     settingsHint: 'असिस्टेंट खर्च जोड़ने के बाद उसके बारे में एक छोटा सवाल पूछ सकता है',
-    resetRow: 'बंद किए सवाल रीसेट करें',
-    resetHint: 'हर तरह के फ़ॉलो-अप फिर से पूछे जाएँ',
-    resetDone: 'फ़ॉलो-अप सवाल रीसेट हो गए',
+    resetRow: 'बंद किए सवाल फिर से पूछें',
+    resetHint: { one: '{n} बंद', other: '{n} बंद' },
+    resetDone: 'बंद किए सवाल फिर से पूछे जाएँगे',
     typingOffline: 'टाइप करने के लिए कनेक्शन चाहिए',
   },
   voiceScreen: {
@@ -22320,9 +22320,16 @@ const ar: UiStrings = {
     reimbursableTag: 'عمل',
     settingsRow: 'أسئلة المتابعة',
     settingsHint: 'بعد أن يضيف المساعد مصروفًا قد يسأل سؤالًا قصيرًا عنه',
-    resetRow: 'إعادة ضبط الأسئلة المكتومة',
-    resetHint: 'اسأل كل أنواع المتابعة مجددًا',
-    resetDone: 'تمت إعادة ضبط أسئلة المتابعة',
+    resetRow: 'اسأل الأسئلة المكتومة مجددًا',
+    resetHint: {
+      zero: '{n} مكتوم',
+      one: 'سؤال واحد مكتوم',
+      two: 'سؤالان مكتومان',
+      few: '{n} أسئلة مكتومة',
+      many: '{n} سؤالًا مكتومًا',
+      other: '{n} سؤال مكتوم',
+    },
+    resetDone: 'ستُطرح الأسئلة المكتومة مجددًا',
     typingOffline: 'الكتابة تحتاج إلى اتصال',
   },
   voiceScreen: {
