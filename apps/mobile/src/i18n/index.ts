@@ -706,6 +706,12 @@ export interface UiStrings {
   common: {
     /** The app's name — a wordmark, the same in every locale (not translated). */
     appName: string;
+    /** Toast after a save: the group made; with its name; the expense added ({what} = "Dinner · ₹1,200"); edited; queued while offline. */
+    groupCreated: string;
+    groupCreatedNamed: string;
+    expenseAdded: string;
+    expenseUpdated: string;
+    savedOffline: string;
     back: string;
     /** The way past the door without an account — the Skip pill on the gateway. */
     skip: string;
@@ -1036,6 +1042,9 @@ export interface UiStrings {
     title: string;
     row: string;
     rowHint: string;
+    /** The Settings row's hint once the list has loaded: how many are connected. */
+    rowCount: PluralForms;
+    rowNone: string;
     intro: string;
     connectedOn: string;
     disconnect: string;
@@ -1078,9 +1087,7 @@ export interface UiStrings {
   account: {
     facePaying: string;
     faceSettings: string;
-    settled: string;
     nothingSettledYet: string;
-    otherCurrencies: PluralForms;
     saved: string;
     displayName: string;
     /** One line in the name editor: who sees it. */
@@ -1967,6 +1974,10 @@ export interface UiStrings {
     weeklyEmail: string;
     weeklyEmailBody: string;
     failDenied: string;
+    /** Settings row status, from the phone's permission: on / not asked / refused. */
+    rowOn: string;
+    rowOff: string;
+    rowOffInPhone: string;
     failUnsupported: string;
     failNotSignedIn: string;
     failNotConfigured: string;
@@ -2317,22 +2328,16 @@ export interface UiStrings {
   };
   /** Settings › Export your data: the promise card, the tiles and the included note. */
   exportForm: {
-    heroTitle: string;
-    heroBody: string;
     freeBadge: string;
-    chooseFormat: string;
-    chooseFormatSub: string;
     jsonSub: string;
     csvSub: string;
     pdfSub: string;
-    whatSub: string;
     everything: string;
     oneGroup: string;
     oneGroupSub: string;
     includedTitle: string;
     includedBody: string;
     exportAction: string;
-    or: string;
     pickGroup: string;
   };
   /** Settings › Receiving payments: header lines and the country card. */
@@ -4760,13 +4765,16 @@ export interface UiStrings {
     chooseDifferentFile: string;
     whichGroup: string;
     groupNumber: string;
-    whoIsWho: string;
-    whoIsWhoNote: string;
-    tapANameNote: string;
-    /**
-     * Screen-reader label for a who-is-who row. The visible row is a name, a
-     * balance and a badge, none of which says the row is tappable.
-     */
+    whichOneIsYou: string;
+    isThisYou: string;
+    tapYourName: string;
+    weThinkYou: string;
+    thisIsMe: string;
+    thisIsMeFor: string;
+    personIsYou: string;
+    notInFile: string;
+    pickYouFirst: string;
+    tapTagToLink: string;
     personIsMapped: string;
     addAsNew: string;
     newPerson: string;
@@ -4808,7 +4816,6 @@ export interface UiStrings {
     importCount: PluralForms;
     chooseWhoIs: string;
     chooseWhoArePlural: PluralForms;
-    tapYourNameFirst: string;
     imported: string;
     openTheGroup: string;
     importedCount: PluralForms;
@@ -5274,7 +5281,6 @@ export interface UiStrings {
     row: string;
     rowHint: string;
     title: string;
-    intro: string;
     storeTitle: string;
     storeBody: string;
     protectTitle: string;
@@ -5293,6 +5299,7 @@ export interface UiStrings {
     blockedNone: string;
     sessionReplayHint: string;
     policySection: string;
+    dataSection: string;
     supportRow: string;
     supportRowHint: string;
     /** Carries `{date}` — when this policy text last changed. */
@@ -6386,6 +6393,11 @@ const en: UiStrings = {
   upgradeTrial: { one: '{n} day of Pro left', other: '{n} days of Pro left' },
   common: {
     appName: 'Waves',
+    groupCreated: 'Group created',
+    groupCreatedNamed: '“{name}” created',
+    expenseAdded: '{what} added',
+    expenseUpdated: 'Expense updated',
+    savedOffline: 'Saved — will sync when online',
     back: 'Back',
     skip: 'Skip',
     loading: 'Loading…',
@@ -6694,6 +6706,8 @@ const en: UiStrings = {
     title: 'Connected apps',
     row: 'Connected apps',
     rowHint: 'AI assistants that can reach your Waves',
+    rowCount: { one: '{n} connected', other: '{n} connected' },
+    rowNone: 'None connected',
     intro:
       'AI assistants you have allowed to use your Waves. Disconnect one and it loses access straight away.',
     connectedOn: 'Connected {when}',
@@ -6740,9 +6754,7 @@ const en: UiStrings = {
   account: {
     facePaying: 'Paying',
     faceSettings: 'Settings',
-    settled: 'settled',
     nothingSettledYet: 'Nothing settled yet',
-    otherCurrencies: { one: 'and {n} other currency', other: 'and {n} other currencies' },
     saved: 'Saved',
     displayName: 'Display name',
     displayNameHint: 'Everyone you share a group with sees this.',
@@ -7499,6 +7511,9 @@ const en: UiStrings = {
       'Settlements, reminders and the weekly summary. Security alerts about a new sign-in arrive whatever this says.',
     weeklyEmail: 'Weekly email digest',
     weeklyEmailBody: 'Your net balance and pending confirmations, once a week. Off by default.',
+    rowOn: 'On',
+    rowOff: 'Off',
+    rowOffInPhone: 'Off in phone settings',
     failDenied: 'Not enabled — you can turn it on in your phone settings later.',
     failUnsupported:
       'This device cannot receive push notifications. Everything still lands in Activity.',
@@ -7803,16 +7818,10 @@ const en: UiStrings = {
     statCurrencies: { one: '{n} currency', other: '{n} currencies' },
   },
   exportForm: {
-    heroTitle: 'Your data, always yours',
-    heroBody:
-      'Export a complete record of your expenses, settlements and activity whenever you need it — for free.',
     freeBadge: 'No paywall. 100% free.',
-    chooseFormat: 'Choose format',
-    chooseFormatSub: 'Pick the file format that works for you.',
     jsonSub: '(lossless)',
     csvSub: '(spreadsheet)',
     pdfSub: '(print friendly)',
-    whatSub: 'Choose which data you want to include.',
     everything: 'Export everything',
     oneGroup: 'One group',
     oneGroupSub: 'Selected group only',
@@ -7820,7 +7829,6 @@ const en: UiStrings = {
     includedBody:
       'All expenses, who paid, who owed, settlements with their per-expense allocations, and the full activity trail.',
     exportAction: 'Export data',
-    or: 'OR',
     pickGroup: 'Which group?',
   },
   receiving: {
@@ -9842,10 +9850,16 @@ const en: UiStrings = {
     chooseDifferentFile: 'Choose a different file',
     whichGroup: 'Which group',
     groupNumber: 'Group {n}',
-    whoIsWho: 'Who is who',
-    whoIsWhoNote:
-      'The file names people; this group has members. Nothing is imported until every name has somebody against it.',
-    tapANameNote: 'Tap a name to say who they are. Nothing is matched for you.',
+    isThisYou: 'Is this you?',
+    whichOneIsYou: 'Which one is you?',
+    tapYourName: 'Tap your name in the list.',
+    weThinkYou: 'We think this is you. Tap to change.',
+    thisIsMe: 'This is me',
+    thisIsMeFor: 'Mark {name} as me',
+    personIsYou: '{name} is you.',
+    notInFile: "I'm not in this file",
+    pickYouFirst: 'Pick which one is you first, or choose "I\'m not in this file".',
+    tapTagToLink: 'Tap a tag to link someone already in the group.',
     personIsMapped: '{name} is {who}. Tap to change.',
     addAsNew: 'Add as new',
     newPerson: 'New person',
@@ -9891,7 +9905,6 @@ const en: UiStrings = {
     importCount: { one: 'Import {n} expense', other: 'Import {n} expenses' },
     chooseWhoIs: 'Choose who {name} is',
     chooseWhoArePlural: { one: 'Choose who {n} person is', other: 'Choose who {n} people are' },
-    tapYourNameFirst: 'Tap your own name first.',
     imported: 'Imported',
     openTheGroup: 'Open the group',
     importedCount: {
@@ -10334,8 +10347,6 @@ const en: UiStrings = {
     row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
     title: 'Privacy',
-    intro:
-      'Waves holds as little about you as it can and still work. This describes what that is, in plain terms.',
     storeTitle: 'What is stored',
     storeBody:
       'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
@@ -10360,6 +10371,7 @@ const en: UiStrings = {
     blockedNone: 'None',
     sessionReplayHint: 'Off unless you turn it on',
     policySection: 'How Waves protects you',
+    dataSection: 'Your data',
     supportRow: 'Privacy questions',
     supportRowHint: 'Write to us — a person answers',
     lastUpdated: 'Last updated {date}.',
@@ -11427,6 +11439,11 @@ const ta: UiStrings = {
   upgradeTrial: { one: 'Pro-வில் {n} நாள் மீதம்', other: 'Pro-வில் {n} நாட்கள் மீதம்' },
   common: {
     appName: 'Waves',
+    groupCreated: 'குழு உருவாக்கப்பட்டது',
+    groupCreatedNamed: '“{name}” உருவாக்கப்பட்டது',
+    expenseAdded: '{what} சேர்க்கப்பட்டது',
+    expenseUpdated: 'செலவு புதுப்பிக்கப்பட்டது',
+    savedOffline: 'சேமிக்கப்பட்டது — இணையம் வந்ததும் ஒத்திசைக்கப்படும்',
     back: 'பின்',
     skip: 'தவிர்',
     loading: 'ஏற்றுகிறது…',
@@ -11737,6 +11754,8 @@ const ta: UiStrings = {
     title: 'இணைக்கப்பட்ட செயலிகள்',
     row: 'இணைக்கப்பட்ட செயலிகள்',
     rowHint: 'உங்கள் Waves-ஐ அணுகக்கூடிய AI உதவியாளர்கள்',
+    rowCount: { one: '{n} இணைக்கப்பட்டுள்ளது', other: '{n} இணைக்கப்பட்டுள்ளன' },
+    rowNone: 'எதுவும் இணைக்கப்படவில்லை',
     intro:
       'உங்கள் Waves-ஐப் பயன்படுத்த நீங்கள் அனுமதித்த AI உதவியாளர்கள். ஒன்றைத் துண்டித்தால் அதன் அணுகல் உடனே நின்றுவிடும்.',
     connectedOn: 'இணைத்த நாள்: {when}',
@@ -11785,9 +11804,7 @@ const ta: UiStrings = {
   account: {
     facePaying: 'பணம் பெற',
     faceSettings: 'அமைப்புகள்',
-    settled: 'தீர்ந்தது',
     nothingSettledYet: 'இன்னும் எதுவும் தீரவில்லை',
-    otherCurrencies: { one: 'மேலும் {n} நாணயம்', other: 'மேலும் {n} நாணயங்கள்' },
     saved: 'சேமிக்கப்பட்டது',
     displayName: 'காட்டப்படும் பெயர்',
     displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
@@ -12559,6 +12576,9 @@ const ta: UiStrings = {
     weeklyEmail: 'வாராந்திர மின்னஞ்சல் சுருக்கம்',
     weeklyEmailBody:
       'உங்கள் நிகர பாக்கியும் நிலுவையிலுள்ள உறுதிப்படுத்தல்களும், வாரம் ஒருமுறை. இயல்பாக நிறுத்தத்தில்.',
+    rowOn: 'இயக்கத்தில்',
+    rowOff: 'முடக்கத்தில்',
+    rowOffInPhone: 'ஃபோன் அமைப்புகளில் முடக்கத்தில்',
     failDenied: 'இயக்கப்படவில்லை — பின்னர் ஃபோன் அமைப்புகளில் இயக்கிக்கொள்ளலாம்.',
     failUnsupported:
       'இந்தச் சாதனத்தால் அறிவிப்புகளைப் பெற முடியாது. எல்லாம் செயல்பாட்டுப் பக்கத்தில் வந்து சேரும்.',
@@ -12874,16 +12894,10 @@ const ta: UiStrings = {
     statCurrencies: { one: '{n} நாணயம்', other: '{n} நாணயங்கள்' },
   },
   exportForm: {
-    heroTitle: 'உங்கள் தரவு, எப்போதும் உங்களுடையது',
-    heroBody:
-      'உங்கள் செலவுகள், தீர்வுகள், செயல்பாடுகளின் முழுப் பதிவையும் தேவைப்படும்போது ஏற்றுமதி செய்யுங்கள் — இலவசமாக.',
     freeBadge: 'கட்டணம் இல்லை. 100% இலவசம்.',
-    chooseFormat: 'வடிவத்தைத் தேர்ந்தெடு',
-    chooseFormatSub: 'உங்களுக்கு ஏற்ற கோப்பு வடிவத்தைத் தேர்ந்தெடுங்கள்.',
     jsonSub: '(இழப்பில்லை)',
     csvSub: '(விரிதாள்)',
     pdfSub: '(அச்சிட ஏற்றது)',
-    whatSub: 'எந்தத் தரவைச் சேர்க்க வேண்டும் என்பதைத் தேர்ந்தெடுங்கள்.',
     everything: 'அனைத்தையும் ஏற்றுமதி செய்',
     oneGroup: 'ஒரு குழு',
     oneGroupSub: 'தேர்ந்தெடுத்த குழு மட்டும்',
@@ -12891,7 +12905,6 @@ const ta: UiStrings = {
     includedBody:
       'எல்லாச் செலவுகள், யார் செலுத்தினார், யார் தர வேண்டியது, ஒவ்வொரு செலவுக்கான ஒதுக்கீடுகளுடன் தீர்வுகள், முழுச் செயல்பாட்டுப் பதிவு.',
     exportAction: 'தரவை ஏற்றுமதி செய்',
-    or: 'அல்லது',
     pickGroup: 'எந்தக் குழு?',
   },
   receiving: {
@@ -15021,11 +15034,17 @@ const ta: UiStrings = {
     chooseDifferentFile: 'வேறு கோப்பைத் தேர்வு செய்',
     whichGroup: 'எந்தக் குழு',
     groupNumber: 'குழு {n}',
-    whoIsWho: 'யார் யார்',
-    whoIsWhoNote:
-      'கோப்பில் பெயர்கள் உள்ளன; இந்தக் குழுவில் உறுப்பினர்கள் உள்ளனர். ஒவ்வொரு பெயருக்கும் ஒருவரைக் குறிக்கும் வரை எதுவும் இறக்குமதி ஆகாது.',
-    tapANameNote:
-      'ஒரு பெயரைத் தட்டி அவர்கள் யார் என்று சொல்லுங்கள். உங்களுக்காக எதுவும் பொருத்தப்படுவதில்லை.',
+    isThisYou: 'இது நீங்களா?',
+    whichOneIsYou: 'இதில் நீங்கள் யார்?',
+    tapYourName: 'பட்டியலில் உங்கள் பெயரைத் தட்டுங்கள்.',
+    weThinkYou: 'இது நீங்கள்தான் என நினைக்கிறோம். மாற்றத் தட்டுங்கள்.',
+    thisIsMe: 'இது நான்',
+    thisIsMeFor: '{name} என்பதை நான் என்று குறி',
+    personIsYou: '{name} நீங்கள்.',
+    notInFile: 'நான் இந்தக் கோப்பில் இல்லை',
+    pickYouFirst:
+      'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
+    tapTagToLink: 'குழுவில் ஏற்கனவே உள்ளவரை இணைக்க ஒரு குறியைத் தட்டுங்கள்.',
     personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
     newPerson: 'புதிய நபர்',
@@ -15074,7 +15093,6 @@ const ta: UiStrings = {
       one: '{n} நபர் யார் என்று தேர்ந்தெடுக்கவும்',
       other: '{n} நபர்கள் யார் என்று தேர்ந்தெடுக்கவும்',
     },
-    tapYourNameFirst: 'முதலில் உங்கள் பெயரைத் தட்டுங்கள்.',
     imported: 'இறக்குமதி ஆனது',
     openTheGroup: 'குழுவைத் திற',
     importedCount: {
@@ -15548,8 +15566,6 @@ const ta: UiStrings = {
     row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
     title: 'தனியுரிமை',
-    intro:
-      'Waves வேலை செய்ய எவ்வளவு தேவையோ அவ்வளவு மட்டுமே உங்களைப் பற்றி வைத்திருக்கிறது. அது என்ன என்பது இங்கே.',
     storeTitle: 'என்ன சேமிக்கப்படுகிறது',
     storeBody:
       'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
@@ -15574,6 +15590,7 @@ const ta: UiStrings = {
     blockedNone: 'யாரும் இல்லை',
     sessionReplayHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்',
     policySection: 'உங்கள் தரவை எப்படிப் பாதுகாக்கிறோம்',
+    dataSection: 'உங்கள் தரவு',
     supportRow: 'தனியுரிமைக் கேள்விகள்',
     supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
@@ -16641,6 +16658,11 @@ const hi: UiStrings = {
   upgradeTrial: { one: 'Pro का {n} दिन बाकी', other: 'Pro के {n} दिन बाकी' },
   common: {
     appName: 'Waves',
+    groupCreated: 'ग्रुप बन गया',
+    groupCreatedNamed: '“{name}” बन गया',
+    expenseAdded: '{what} जोड़ा गया',
+    expenseUpdated: 'खर्च अपडेट हुआ',
+    savedOffline: 'सहेजा गया — ऑनलाइन होने पर सिंक होगा',
     back: 'वापस',
     skip: 'छोड़ें',
     loading: 'लोड हो रहा है…',
@@ -16948,6 +16970,8 @@ const hi: UiStrings = {
     title: 'जुड़े हुए ऐप',
     row: 'जुड़े हुए ऐप',
     rowHint: 'वे AI असिस्टेंट जो आपके Waves तक पहुँच सकते हैं',
+    rowCount: { one: '{n} जुड़ा है', other: '{n} जुड़े हैं' },
+    rowNone: 'कोई नहीं जुड़ा',
     intro:
       'वे AI असिस्टेंट जिन्हें आपने अपना Waves इस्तेमाल करने की अनुमति दी है। किसी को डिस्कनेक्ट करते ही उसकी पहुँच तुरंत बंद हो जाती है।',
     connectedOn: 'जोड़ा गया: {when}',
@@ -16997,9 +17021,7 @@ const hi: UiStrings = {
   account: {
     facePaying: 'भुगतान',
     faceSettings: 'सेटिंग्स',
-    settled: 'निपटा',
     nothingSettledYet: 'अभी कुछ नहीं निपटा',
-    otherCurrencies: { one: 'और {n} अन्य मुद्रा', other: 'और {n} अन्य मुद्राएँ' },
     saved: 'सेव हो गया',
     displayName: 'दिखने वाला नाम',
     displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
@@ -17753,6 +17775,9 @@ const hi: UiStrings = {
       'हिसाब, याद दिलाने वाले संदेश और साप्ताहिक सारांश। नए साइन-इन की सुरक्षा चेतावनी इससे परे हमेशा आएगी।',
     weeklyEmail: 'साप्ताहिक ईमेल सारांश',
     weeklyEmailBody: 'आपकी कुल बाकी और लंबित पुष्टियाँ, हफ़्ते में एक बार। डिफ़ॉल्ट रूप से बंद।',
+    rowOn: 'चालू',
+    rowOff: 'बंद',
+    rowOffInPhone: 'फ़ोन सेटिंग्स में बंद',
     failDenied: 'चालू नहीं हुआ — आप बाद में फ़ोन सेटिंग्स में इसे चालू कर सकते हैं।',
     failUnsupported: 'यह डिवाइस पुश सूचनाएँ नहीं ले सकता। सब कुछ गतिविधि में आता ही रहेगा।',
     failNotSignedIn: 'पहले साइन इन करें, ताकि पता चले कौन सा फ़ोन आपका है।',
@@ -18056,15 +18081,10 @@ const hi: UiStrings = {
     statCurrencies: { one: '{n} मुद्रा', other: '{n} मुद्राएँ' },
   },
   exportForm: {
-    heroTitle: 'आपका डेटा, हमेशा आपका',
-    heroBody: 'अपने खर्च, हिसाब और गतिविधि का पूरा रिकॉर्ड जब चाहें निर्यात करें — मुफ़्त।',
     freeBadge: 'कोई पेवॉल नहीं। 100% मुफ़्त।',
-    chooseFormat: 'फ़ॉर्मैट चुनें',
-    chooseFormatSub: 'अपने काम का फ़ाइल फ़ॉर्मैट चुनें।',
     jsonSub: '(बिना नुकसान)',
     csvSub: '(स्प्रेडशीट)',
     pdfSub: '(प्रिंट के लिए)',
-    whatSub: 'चुनें कि कौन सा डेटा शामिल करना है।',
     everything: 'सब कुछ निर्यात करें',
     oneGroup: 'एक समूह',
     oneGroupSub: 'केवल चुना हुआ समूह',
@@ -18072,7 +18092,6 @@ const hi: UiStrings = {
     includedBody:
       'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
     exportAction: 'डेटा निर्यात करें',
-    or: 'या',
     pickGroup: 'कौन सा समूह?',
   },
   receiving: {
@@ -20114,10 +20133,16 @@ const hi: UiStrings = {
     chooseDifferentFile: 'दूसरी फ़ाइल चुनें',
     whichGroup: 'कौन-सा समूह',
     groupNumber: 'समूह {n}',
-    whoIsWho: 'कौन कौन है',
-    whoIsWhoNote:
-      'फ़ाइल में नाम हैं; इस समूह में सदस्य हैं। जब तक हर नाम के सामने कोई नहीं होगा, कुछ भी आयात नहीं होगा।',
-    tapANameNote: 'नाम पर टैप करके बताएँ कि वे कौन हैं। आपकी तरफ़ से कोई मिलान नहीं होता।',
+    isThisYou: 'क्या यह आप हैं?',
+    whichOneIsYou: 'इनमें आप कौन हैं?',
+    tapYourName: 'सूची में अपने नाम पर टैप करें।',
+    weThinkYou: 'हमें लगता है यह आप हैं। बदलने के लिए टैप करें।',
+    thisIsMe: 'यह मैं हूँ',
+    thisIsMeFor: '{name} को मैं चुनें',
+    personIsYou: '{name} आप हैं।',
+    notInFile: 'मैं इस फ़ाइल में नहीं हूँ',
+    pickYouFirst: 'पहले चुनें कि आप कौन हैं, या "मैं इस फ़ाइल में नहीं हूँ" चुनें।',
+    tapTagToLink: 'समूह के किसी मौजूदा सदस्य से जोड़ने के लिए टैग पर टैप करें।',
     personIsMapped: '{name} यहाँ {who} हैं। बदलने के लिए टैप करें।',
     addAsNew: 'नए के रूप में जोड़ें',
     newPerson: 'नया व्यक्ति',
@@ -20166,7 +20191,6 @@ const hi: UiStrings = {
       one: 'चुनें कि {n} व्यक्ति कौन है',
       other: 'चुनें कि {n} लोग कौन हैं',
     },
-    tapYourNameFirst: 'पहले अपने नाम पर टैप करें।',
     imported: 'आयात हो गया',
     openTheGroup: 'समूह खोलें',
     importedCount: {
@@ -20612,8 +20636,6 @@ const hi: UiStrings = {
     row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
     title: 'निजता',
-    intro:
-      'Waves आपके बारे में उतना ही रखता है जितना काम करने के लिए ज़रूरी है। वह क्या है, सीधे शब्दों में।',
     storeTitle: 'क्या रखा जाता है',
     storeBody:
       'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
@@ -20638,6 +20660,7 @@ const hi: UiStrings = {
     blockedNone: 'कोई नहीं',
     sessionReplayHint: 'जब तक आप चालू न करें, बंद रहता है',
     policySection: 'हम आपके डेटा की रक्षा कैसे करते हैं',
+    dataSection: 'आपका डेटा',
     supportRow: 'निजता से जुड़े सवाल',
     supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
@@ -21716,6 +21739,11 @@ const ar: UiStrings = {
   },
   common: {
     appName: 'Waves',
+    groupCreated: 'تم إنشاء المجموعة',
+    groupCreatedNamed: 'تم إنشاء «{name}»',
+    expenseAdded: 'تمت إضافة {what}',
+    expenseUpdated: 'تم تحديث المصروف',
+    savedOffline: 'تم الحفظ — ستتم المزامنة عند الاتصال',
     back: 'رجوع',
     skip: 'تخطي',
     loading: 'جارٍ التحميل…',
@@ -22057,6 +22085,14 @@ const ar: UiStrings = {
     title: 'التطبيقات المتصلة',
     row: 'التطبيقات المتصلة',
     rowHint: 'مساعدو الذكاء الاصطناعي الذين يمكنهم الوصول إلى Waves',
+    rowCount: {
+      one: 'متصل: {n}',
+      two: 'متصلان: {n}',
+      few: '{n} متصلة',
+      many: '{n} متصلًا',
+      other: '{n} متصل',
+    },
+    rowNone: 'لا يوجد تطبيق متصل',
     intro: 'مساعدو الذكاء الاصطناعي الذين سمحت لهم باستخدام Waves. عند فصل أحدهم يفقد وصوله فورًا.',
     connectedOn: 'تاريخ الاتصال: {when}',
     disconnect: 'فصل',
@@ -22106,16 +22142,7 @@ const ar: UiStrings = {
   account: {
     facePaying: 'الدفع',
     faceSettings: 'الإعدادات',
-    settled: 'تمت تسويته',
     nothingSettledYet: 'لم تتم تسوية شيء بعد',
-    otherCurrencies: {
-      zero: 'و{n} عملة أخرى',
-      one: 'وعملة أخرى',
-      two: 'وعملتان أخريان',
-      few: 'و{n} عملات أخرى',
-      many: 'و{n} عملة أخرى',
-      other: 'و{n} عملة أخرى',
-    },
     saved: 'تم الحفظ',
     displayName: 'الاسم الظاهر',
     displayNameHint: 'يراه كل من تشاركه مجموعة.',
@@ -22868,6 +22895,9 @@ const ar: UiStrings = {
       'التسويات والتذكيرات والملخص الأسبوعي. تنبيه الأمان عند تسجيل دخول جديد يصل مهما كان هذا الإعداد.',
     weeklyEmail: 'ملخص أسبوعي بالبريد',
     weeklyEmailBody: 'صافي باقيك والتأكيدات المعلّقة، مرة كل أسبوع. متوقف افتراضيًا.',
+    rowOn: 'مفعّلة',
+    rowOff: 'متوقفة',
+    rowOffInPhone: 'متوقفة في إعدادات الهاتف',
     failDenied: 'لم يُفعَّل — يمكنك تفعيله لاحقًا من إعدادات هاتفك.',
     failUnsupported: 'لا يستطيع هذا الجهاز استقبال الإشعارات. كل شيء يصل إلى النشاط رغم ذلك.',
     failNotSignedIn: 'سجّل الدخول أولًا، كي نعرف أي هاتف هو هاتفك.',
@@ -23189,15 +23219,10 @@ const ar: UiStrings = {
     },
   },
   exportForm: {
-    heroTitle: 'بياناتك، دائمًا لك',
-    heroBody: 'صدّر سجلًا كاملًا لمصروفاتك وتسوياتك ونشاطك وقتما تشاء — مجانًا.',
     freeBadge: 'بلا جدار دفع. مجاني 100%.',
-    chooseFormat: 'اختر الصيغة',
-    chooseFormatSub: 'اختر صيغة الملف المناسبة لك.',
     jsonSub: '(بلا فقد)',
     csvSub: '(جدول بيانات)',
     pdfSub: '(للطباعة)',
-    whatSub: 'اختر البيانات التي تريد تضمينها.',
     everything: 'تصدير كل شيء',
     oneGroup: 'مجموعة واحدة',
     oneGroupSub: 'المجموعة المحددة فقط',
@@ -23205,7 +23230,6 @@ const ar: UiStrings = {
     includedBody:
       'كل المصروفات، من دفع، من عليه، التسويات مع توزيعاتها لكل مصروف، وسجل النشاط الكامل.',
     exportAction: 'تصدير البيانات',
-    or: 'أو',
     pickGroup: 'أي مجموعة؟',
   },
   receiving: {
@@ -25635,10 +25659,16 @@ const ar: UiStrings = {
     chooseDifferentFile: 'اختر ملفًا آخر',
     whichGroup: 'أي مجموعة',
     groupNumber: 'مجموعة {n}',
-    whoIsWho: 'من هو من',
-    whoIsWhoNote:
-      'الملف يذكر أسماء؛ وهذه المجموعة لها أعضاء. لا يُستورد شيء حتى يقابل كل اسمٍ شخصٌ ما.',
-    tapANameNote: 'اضغط على اسم لتقول من يكون. لا يُطابَق شيء نيابةً عنك.',
+    isThisYou: 'هل هذا أنت؟',
+    whichOneIsYou: 'أيٌّ منهم أنت؟',
+    tapYourName: 'اضغط على اسمك في القائمة.',
+    weThinkYou: 'نظن أن هذا أنت. اضغط للتغيير.',
+    thisIsMe: 'هذا أنا',
+    thisIsMeFor: 'اعتبر {name} أنا',
+    personIsYou: '{name} هو أنت.',
+    notInFile: 'لستُ في هذا الملف',
+    pickYouFirst: 'اختر أولًا من تكون، أو اختر «لستُ في هذا الملف».',
+    tapTagToLink: 'اضغط على وسم لربط شخص موجود في المجموعة.',
     personIsMapped: '{name} هو {who} هنا. اضغط للتغيير.',
     addAsNew: 'أضفه كشخص جديد',
     newPerson: 'شخص جديد',
@@ -25698,7 +25728,6 @@ const ar: UiStrings = {
       many: 'اختر من يكون {n} شخصًا',
       other: 'اختر من يكون {n} شخص',
     },
-    tapYourNameFirst: 'اضغط أولًا على الاسم الذي يخصّك.',
     imported: 'تم الاستيراد',
     openTheGroup: 'افتح المجموعة',
     importedCount: {
@@ -26261,7 +26290,6 @@ const ar: UiStrings = {
     row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
     title: 'الخصوصية',
-    intro: 'يحتفظ Waves بأقل قدر ممكن عنك مع بقائه صالحًا للعمل. وهذا بيان بما يحتفظ به.',
     storeTitle: 'ما الذي يُحفظ',
     storeBody:
       'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
@@ -26286,6 +26314,7 @@ const ar: UiStrings = {
     blockedNone: 'لا أحد',
     sessionReplayHint: 'متوقف ما لم تفعّله بنفسك',
     policySection: 'كيف نحمي بياناتك',
+    dataSection: 'بياناتك',
     supportRow: 'أسئلة عن الخصوصية',
     supportRowHint: 'راسلنا — يردّ عليك شخص',
     lastUpdated: 'آخر تحديث {date}.',
