@@ -1501,6 +1501,11 @@ export interface UiStrings {
     /** The review step for one or more heard expenses. */
     review: string;
     saveTo: string;
+    /** The "Save to" sheet: the pinned inbox chip, the confirm button, and the two tab searches. */
+    saveForLater: string;
+    saveHere: string;
+    searchGroups: string;
+    searchPeopleShort: string;
     /** The action on the destination row that opens the picker sheet. */
     change: string;
     /** '{name}' is the spoken group name. */
@@ -7073,6 +7078,10 @@ const en: UiStrings = {
     unavailable: 'Speech isn’t available on this phone.',
     review: 'Review',
     saveTo: 'Save to',
+    saveForLater: 'Save for later',
+    saveHere: 'Save here',
+    searchGroups: 'Search groups…',
+    searchPeopleShort: 'Search people…',
     change: 'Change',
     newGroupNamed: 'New group “{name}”',
     thinking: 'Making sense of that…',
@@ -12100,6 +12109,10 @@ const ta: UiStrings = {
     unavailable: 'இந்த ஃபோனில் பேச்சு அங்கீகாரம் இல்லை.',
     review: 'மறுபார்வை',
     saveTo: 'இதில் சேமி',
+    saveForLater: 'பிறகுக்காகச் சேமி',
+    saveHere: 'இங்கே சேமி',
+    searchGroups: 'குழுக்களைத் தேடு…',
+    searchPeopleShort: 'நபர்களைத் தேடு…',
     change: 'மாற்று',
     newGroupNamed: 'புதிய குழு “{name}”',
     thinking: 'புரிந்துகொள்கிறது…',
@@ -17280,6 +17293,10 @@ const hi: UiStrings = {
     unavailable: 'इस फ़ोन पर वॉइस पहचान उपलब्ध नहीं है।',
     review: 'समीक्षा',
     saveTo: 'यहाँ सहेजें',
+    saveForLater: 'बाद के लिए सहेजें',
+    saveHere: 'यहीं सहेजें',
+    searchGroups: 'समूह खोजें…',
+    searchPeopleShort: 'लोग खोजें…',
     change: 'बदलें',
     newGroupNamed: 'नया समूह “{name}”',
     thinking: 'समझा जा रहा है…',
@@ -22371,6 +22388,10 @@ const ar: UiStrings = {
     unavailable: 'التعرّف على الكلام غير متاح على هذا الهاتف.',
     review: 'مراجعة',
     saveTo: 'الحفظ في',
+    saveForLater: 'الحفظ لوقت لاحق',
+    saveHere: 'احفظ هنا',
+    searchGroups: 'ابحث عن المجموعات…',
+    searchPeopleShort: 'ابحث عن الأشخاص…',
     change: 'تغيير',
     newGroupNamed: 'مجموعة جديدة «{name}»',
     thinking: 'جارٍ الفهم…',
