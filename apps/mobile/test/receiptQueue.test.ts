@@ -113,6 +113,7 @@ vi.mock('expo-crypto', () => ({
   }),
 }));
 vi.mock('expo-network', () => ({
+  NetworkStateType: { WIFI: 'WIFI', CELLULAR: 'CELLULAR' },
   getNetworkStateAsync: vi.fn(async () => ({
     isConnected: world.online,
     isInternetReachable: world.online,
@@ -464,6 +465,48 @@ describe('resuming an interrupted upload', () => {
 
     expect(world.put).not.toHaveBeenCalled();
     expect(await storedQueue()).toHaveLength(1);
+  });
+});
+
+describe('the Wi-Fi only preference', () => {
+  const onType = (type: string) =>
+    vi
+      .mocked(Network.getNetworkStateAsync)
+      .mockResolvedValue({ isConnected: true, isInternetReachable: true, type } as never);
+
+  it('sends nothing on mobile data and keeps the capture queued', async () => {
+    parkOnDisk();
+    storage.data.set('waves.sync_network', 'wifi');
+    onType('CELLULAR');
+
+    await flushReceiptQueue();
+
+    expect(world.put).not.toHaveBeenCalled();
+    expect(await storedQueue()).toHaveLength(1);
+  });
+
+  it('stops after the current upload when the phone leaves Wi-Fi mid-flush', async () => {
+    storage.data.set('waves.sync_network', 'wifi');
+    storage.data.set(
+      QUEUE_KEY,
+      JSON.stringify([
+        entryFor(),
+        entryFor({ attachmentId: 'a2', storagePath: 'e1/a2.jpg', fileName: 'a2.jpg' }),
+      ]),
+    );
+    fs.dirs.add('document-root/pending-receipts');
+    fs.files.set(pendingPath('a1.jpg'), new Uint8Array([1]));
+    fs.files.set(pendingPath('a2.jpg'), new Uint8Array([2]));
+    onType('WIFI');
+    world.put.mockImplementation(async () => {
+      onType('CELLULAR');
+      return 'stored';
+    });
+
+    await flushReceiptQueue();
+
+    expect(world.put).toHaveBeenCalledTimes(1);
+    expect(fs.files.has(pendingPath('a2.jpg'))).toBe(true);
   });
 });
 

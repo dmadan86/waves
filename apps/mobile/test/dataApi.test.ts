@@ -44,6 +44,11 @@ vi.mock('@/lib/phoneAuth', () => ({
   attachPhoneCode: h.attachPhoneCode,
   sendPhoneCode: h.sendPhoneCode,
 }));
+const queue = vi.hoisted(() => ({ permits: true, enqueue: vi.fn() }));
+vi.mock('@/lib/receiptQueue', () => ({
+  networkPermits: async () => queue.permits,
+  enqueueReceipt: queue.enqueue,
+}));
 vi.mock('@/lib/storage', () => ({
   imageUrl: h.imageUrl,
   putImage: h.putImage,
@@ -1589,6 +1594,20 @@ describe('kept expense bills', () => {
       p_expense_id: 'e1',
       p_action: 'added',
     });
+  });
+
+  it('parks the bill in the receipt queue instead of uploading when Wi-Fi only blocks it', async () => {
+    queue.permits = false;
+    try {
+      const path = await api.uploadExpenseReceipt({ groupId: 'g1', expenseId: 'e1', base64: 'C' });
+      expect(path).toBe('g1/e1.jpg');
+      expect(h.putImage).not.toHaveBeenCalled();
+      expect(queue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: 'g1', expenseId: 'e1', base64: 'C' }),
+      );
+    } finally {
+      queue.permits = true;
+    }
   });
 
   it('keeps the bill even when the audit line fails to write', async () => {

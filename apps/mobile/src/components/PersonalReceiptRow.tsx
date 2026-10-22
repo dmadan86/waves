@@ -27,6 +27,7 @@ import {
   personalReceiptUrl,
   removePersonalReceipt,
   uploadPersonalReceipt,
+  WifiOnlyError,
 } from '@/lib/personalReceipt';
 import { StoragePaidOnlyError, StorageCapError } from '@/lib/storage';
 
@@ -90,11 +91,13 @@ export function PersonalReceiptRow({
       onChange(key);
     } catch (caught) {
       const body =
-        caught instanceof StoragePaidOnlyError
-          ? t.personalReceipt.paidOnly
-          : caught instanceof StorageCapError
-            ? t.personalReceipt.storageFull
-            : friendlyError(caught, t.personalReceipt.couldNotAdd, 'personalReceipt.add');
+        caught instanceof WifiOnlyError
+          ? t.personalReceipt.waitingWifi
+          : caught instanceof StoragePaidOnlyError
+            ? t.personalReceipt.paidOnly
+            : caught instanceof StorageCapError
+              ? t.personalReceipt.storageFull
+              : friendlyError(caught, t.personalReceipt.couldNotAdd, 'personalReceipt.add');
       await notify({ title: t.personalReceipt.title, body });
     } finally {
       setBusy(false);

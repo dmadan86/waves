@@ -8,6 +8,7 @@ import {
   removePersonalReceipt,
   staleReceiptKeys,
   uploadPersonalReceipt,
+  WifiOnlyError,
 } from '../src/lib/personalReceipt';
 import { entryRecord, type EntryDraft } from '../src/lib/personalEntry';
 
@@ -20,6 +21,8 @@ vi.mock('@/lib/storage', () => ({
   StoragePaidOnlyError: class extends Error {},
   StorageCapError: class extends Error {},
 }));
+const permits = vi.fn(async () => true);
+vi.mock('@/lib/receiptQueue', () => ({ networkPermits: () => permits() }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'uuid-1' }));
 
 const DRAFT: EntryDraft = {
@@ -34,6 +37,7 @@ const DRAFT: EntryDraft = {
 };
 
 beforeEach(() => {
+  permits.mockResolvedValue(true);
   removeImage.mockClear();
   putImage.mockClear();
 });
@@ -98,5 +102,15 @@ describe('personal receipts', () => {
     expect('receiptKey' in entryRecord({ ...DRAFT, receiptKey: null }, null, { txn }).data).toBe(
       false,
     );
+  });
+});
+
+describe('Wi-Fi only', () => {
+  it('does not upload a personal receipt off Wi-Fi', async () => {
+    permits.mockResolvedValue(false);
+    await expect(uploadPersonalReceipt({ ownerId: 'o', base64: 'x' })).rejects.toBeInstanceOf(
+      WifiOnlyError,
+    );
+    expect(putImage).not.toHaveBeenCalled();
   });
 });

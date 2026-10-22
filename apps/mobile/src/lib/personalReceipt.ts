@@ -49,12 +49,18 @@ export function staleReceiptKeys(
   return isOwnReceiptKey(ownerId, saved) ? [saved] : [];
 }
 
+/** Wi‑Fi only and not on Wi‑Fi: the photo was not sent. */
+export class WifiOnlyError extends Error {}
+
 /** Upload a picked photo and return the key to keep on the entry. */
 export async function uploadPersonalReceipt(input: {
   ownerId: string;
   base64: string;
   mimeType?: string | null;
 }): Promise<string> {
+  // The receipt queue is expense-shaped and cannot carry this, so wait for Wi‑Fi instead.
+  const { networkPermits } = await import('@/lib/receiptQueue');
+  if (!(await networkPermits())) throw new WifiOnlyError('waiting for Wi-Fi');
   const key = personalReceiptKey(input.ownerId, randomUUID());
   await putImage({
     bucket: BUCKET,

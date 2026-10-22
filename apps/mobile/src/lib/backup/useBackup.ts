@@ -104,7 +104,7 @@ export interface BackupState {
 export interface BackupActions {
   connect: () => Promise<boolean>;
   disconnect: () => Promise<void>;
-  backupNow: () => Promise<BackupOutcome>;
+  backupNow: (allowMobileData?: boolean) => Promise<BackupOutcome>;
   setFrequency: (frequency: BackupFrequency) => Promise<void>;
   setNetwork: (network: SyncNetworkPreference) => Promise<void>;
   /** Mint a key for this device and hand back its hex, for showing once. */
@@ -295,42 +295,46 @@ export function useBackup(): BackupState & BackupActions {
     await refreshLink();
   }, [ownerId, provider, refreshLink]);
 
-  const backupNow = useCallback(async (): Promise<BackupOutcome> => {
-    setOutcome(null);
-    try {
-      // No key is loaded here any more. Where it comes from depends on the tier
-      // and on what is in the Drive folder, and the engine is the only place
-      // that can see both — on Standard it will mint and escrow one rather than
-      // refuse, which is the whole of the default tier's setup.
-      const result = await runBackup({
-        ownerId,
-        records,
-        tier,
-        network: settings.network,
-        manual: true,
-        onPhase: setPhase,
-      });
-      if (!result.ok) {
-        const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
-        setOutcome(refused);
-        // A dead grant clears the tokens inside the engine; reflect that here so
-        // the screen swaps to "Connect" instead of offering a retry that cannot
-        // work.
-        if (result.refusal === 'auth') await refreshLink();
-        return refused;
+  const backupNow = useCallback(
+    async (allowMobileData = false): Promise<BackupOutcome> => {
+      setOutcome(null);
+      try {
+        // No key is loaded here any more. Where it comes from depends on the tier
+        // and on what is in the Drive folder, and the engine is the only place
+        // that can see both — on Standard it will mint and escrow one rather than
+        // refuse, which is the whole of the default tier's setup.
+        const result = await runBackup({
+          ownerId,
+          records,
+          tier,
+          network: settings.network,
+          manual: true,
+          allowMobileData,
+          onPhase: setPhase,
+        });
+        if (!result.ok) {
+          const refused: BackupOutcome = { kind: 'refused', refusal: result.refusal };
+          setOutcome(refused);
+          // A dead grant clears the tokens inside the engine; reflect that here so
+          // the screen swaps to "Connect" instead of offering a retry that cannot
+          // work.
+          if (result.refusal === 'auth') await refreshLink();
+          return refused;
+        }
+        await saveLastBackup(ownerId, result.last);
+        setSettings((current) => ({ ...current, last: result.last }));
+        // A Standard run may have minted the key itself; the screen's "this phone
+        // holds a key" is only true after that, and nothing else would say so.
+        setHasKey(true);
+        const done: BackupOutcome = { kind: 'ok', records: result.last.records };
+        setOutcome(done);
+        return done;
+      } finally {
+        setPhase(null);
       }
-      await saveLastBackup(ownerId, result.last);
-      setSettings((current) => ({ ...current, last: result.last }));
-      // A Standard run may have minted the key itself; the screen's "this phone
-      // holds a key" is only true after that, and nothing else would say so.
-      setHasKey(true);
-      const done: BackupOutcome = { kind: 'ok', records: result.last.records };
-      setOutcome(done);
-      return done;
-    } finally {
-      setPhase(null);
-    }
-  }, [ownerId, records, tier, settings.network, refreshLink]);
+    },
+    [ownerId, records, tier, settings.network, refreshLink],
+  );
 
   const setFrequencyAction = useCallback(
     async (frequency: BackupFrequency): Promise<void> => {

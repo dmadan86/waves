@@ -32,7 +32,12 @@
 
 import * as Network from 'expo-network';
 
-import { networkAllows, type SyncNetworkPreference } from '../syncNetwork';
+import {
+  loadSyncNetworkPreference,
+  networkAllows,
+  strictestNetwork,
+  SyncNetworkPreference,
+} from '../syncNetwork';
 import { reportHandled } from '../observability';
 import { isAuthFailure } from '../cloud/http';
 import { providerFor } from '../cloud/providers';
@@ -148,6 +153,8 @@ export interface BackupRunInput {
    */
   readonly manual: boolean;
   readonly onPhase?: (phase: BackupPhase) => void;
+  /** A manual run the person confirmed to send over mobile data. */
+  readonly allowMobileData?: boolean;
 }
 
 // One run at a time, process-wide. The automatic check and a button press can
@@ -410,8 +417,11 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
 
     const net = await connection();
     if (!net.online) return { ok: false, refusal: 'offline' };
-    if (!input.manual && !networkAllows(input.network, net.type)) {
-      return { ok: false, refusal: 'network-policy' };
+    // Honours the sync setting too; a manual run on mobile data needs the
+    // person's explicit say-so (`allowMobileData`) rather than a silent bypass.
+    const sync = await loadSyncNetworkPreference().catch(() => SyncNetworkPreference.Both);
+    if (!networkAllows(strictestNetwork(input.network, sync), net.type)) {
+      if (!input.manual || !input.allowMobileData) return { ok: false, refusal: 'network-policy' };
     }
 
     const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);

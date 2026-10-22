@@ -418,6 +418,19 @@ export async function uploadExpenseReceipt(input: {
   mimeType?: string | null;
 }): Promise<string> {
   const path = expenseReceiptPath(input.groupId, input.expenseId);
+  // Wi‑Fi only and not on Wi‑Fi: park the photo in the receipt queue, which sends it later.
+  // (Imported lazily: the queue pulls in the file system, which most api callers never need.)
+  const { enqueueReceipt, networkPermits } = await import('@/lib/receiptQueue');
+  if (!(await networkPermits())) {
+    await enqueueReceipt({
+      expenseId: input.expenseId,
+      groupId: input.groupId,
+      visibility: 'group',
+      base64: input.base64,
+      contentType: normaliseImageMime(input.mimeType),
+    });
+    return path;
+  }
   // The path suffix is fixed at `.jpg` so the viewer can find it without knowing
   // the source format; the real content type still rides so R2 serves it right.
   await putImage({

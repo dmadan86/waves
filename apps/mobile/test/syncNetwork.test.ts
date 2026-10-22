@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   loadSyncNetworkPreference,
   networkAllows,
+  strictestNetwork,
   SyncNetworkPreference,
   SyncNetworkProvider,
   useSyncNetwork,
@@ -138,5 +139,19 @@ describe('the sync-network provider', () => {
       value,
     );
     expect(() => renderHook(() => useSyncNetwork())).toThrow(/inside SyncNetworkProvider/);
+  });
+});
+
+describe('strictestNetwork', () => {
+  const { Wifi, Cellular, Both } = SyncNetworkPreference;
+  it('is Wi-Fi when either setting says Wi-Fi only', () => {
+    expect(strictestNetwork(Both, Wifi)).toBe(Wifi);
+    expect(strictestNetwork(Wifi, Both)).toBe(Wifi);
+    expect(strictestNetwork(Wifi, Cellular)).toBe(Wifi);
+  });
+  it('allows any network only when neither restricts to Wi-Fi', () => {
+    expect(strictestNetwork(Both, Both)).toBe(Both);
+    expect(strictestNetwork(Both, Cellular)).toBe(Both);
+    expect(networkAllows(strictestNetwork(Both, Wifi), CELLULAR)).toBe(false);
   });
 });
