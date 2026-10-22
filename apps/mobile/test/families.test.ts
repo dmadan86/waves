@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GroupUnits, NetBalances } from '@waves/core';
+import { familyStatement, type GroupUnits, type NetBalances } from '@waves/core';
 
 import {
   createFamily,
@@ -103,6 +103,24 @@ describe('family rows and balances', () => {
     ]);
     const transfers = familyTransfers(net, UNITS);
     // Sharma +400, Patel −300, zara −100 → Patel pays Sharma 300, zara pays Sharma 100.
+    const statement = familyStatement(
+      { name: 'Trip', currency: 'INR' },
+      UNITS,
+      'sharma',
+      [
+        {
+          id: 'bill',
+          description: 'Dinner',
+          date: '2026-10-22',
+          currency: 'INR',
+          amount: 600n,
+          payers: { ravi: 500n, anu: 100n },
+          shares: { priya: 200n, sam: 300n, zara: 100n },
+        },
+      ],
+      [],
+    );
+    expect(statement.transfers).toEqual(transfers);
     expect(transfers).toEqual([
       { from: 'sam', to: 'priya', currency: 'INR', amount: 300n },
       { from: 'zara', to: 'priya', currency: 'INR', amount: 100n },
