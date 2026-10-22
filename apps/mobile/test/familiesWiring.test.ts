@@ -21,19 +21,21 @@ describe('families wiring', () => {
     expect(saved).toMatch(/\bsavedUnits,/);
     expect(saved).toMatch(/\bsplitBy,/);
     expect(source).toMatch(/setSavedUnits\(draft\.savedUnits \?\? null\)/);
-    expect(source).toMatch(/if \(draft\.splitBy\) setSplitBy\(draft\.splitBy\)/);
+    expect(source).toMatch(/setSplitBy\(draft\.splitBy \?\? 'people'\)/);
   });
 
-  it('names the viewer for their own family in the Balances lens', () => {
-    expect(read('app/group/[id]/index.tsx')).toMatch(
-      /familyTransfers\(ledger\.net, units, ledger\.myMemberId\)/,
+  it('names the viewer for their own family in the Balances lens, and pends by family', () => {
+    const source = read('app/group/[id]/index.tsx');
+    expect(source).toMatch(/familyTransfers\(ledger\.net, units, ledger\.myMemberId\)/);
+    expect(source).toMatch(
+      /familyLens \? \(memberId\) => unitOf\(units, memberId\) \?\? memberId : undefined/,
     );
   });
 
   it('lists the delete-group debts by family with the Balances labels', () => {
     const source = read('app/group/[id]/settings.tsx');
     const debts = source.slice(source.indexOf('const outstandingDebts'));
-    expect(debts).toMatch(/familyTransfers\(ledger\.net, group\.data\?\.units\)/);
+    expect(debts).toMatch(/warningTransfers\(ledger, group\.data\?\.units\)/);
     expect(debts).toMatch(/familyLabel\(group\.data\?\.units, memberId, nameFor\(memberId\)\)/);
   });
 });

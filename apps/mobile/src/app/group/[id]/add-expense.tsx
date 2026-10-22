@@ -857,7 +857,8 @@ export default function AddExpenseScreen() {
       setDescription(draft.description);
       setSplitKind(draft.splitKind);
       setSavedUnits(draft.savedUnits ?? null);
-      if (draft.splitBy) setSplitBy(draft.splitBy);
+      // A draft from before families carries no choice; it was per person.
+      setSplitBy(draft.splitBy ?? 'people');
       // The payer picker is on the edit form too now, so a draft's payers are a
       // change somebody was in the middle of making rather than stale values to
       // discard. `payers` is the current shape; `payer` is what an older build

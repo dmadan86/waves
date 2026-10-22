@@ -125,6 +125,25 @@ export function familyTransfers(
   return transfers;
 }
 
+/**
+ * The debts the delete-group warning spells out when the group has families:
+ * the family lines, plus any debt between two people of the same family
+ * (which family netting hides). If that still names nothing while the group
+ * is not square — a family lens cannot show a debt it nets away — the
+ * per-person transfers are shown instead, so the warning is never empty.
+ */
+export function warningTransfers(
+  ledger: { net: NetBalances; transfers: readonly Transfer[]; groupSettled: boolean },
+  units: GroupUnits | null | undefined,
+): Transfer[] {
+  const intra = ledger.transfers.filter((transfer) => {
+    const family = unitOf(units, transfer.from);
+    return family !== null && family === unitOf(units, transfer.to);
+  });
+  const lines = [...familyTransfers(ledger.net, units), ...intra];
+  return lines.length === 0 && !ledger.groupSettled ? [...ledger.transfers] : lines;
+}
+
 /** A new family of `memberIds`, each taken out of the family they were in. */
 export function createFamily(
   units: GroupUnits | null | undefined,

@@ -12,6 +12,7 @@ import {
   familyTransfers,
   hasFamilies,
   placeMember,
+  warningTransfers,
   withFamily,
 } from '../src/lib/families';
 import { editStateFromVersion, splitKindOf, splitParamsFor } from '../src/lib/expenseEdit';
@@ -108,6 +109,46 @@ describe('family rows and balances', () => {
     ]);
     expect(familyLabel(UNITS, 'priya', 'Priya')).toBe('Sharma family (Priya)');
     expect(familyLabel(UNITS, 'zara', 'Zara')).toBe('Zara');
+  });
+});
+
+describe('warningTransfers', () => {
+  const inr = (pairs: [string, bigint][]): NetBalances => new Map([['INR', new Map(pairs)]]);
+  const t = (from: string, to: string, amount: bigint) => ({ from, to, currency: 'INR', amount });
+
+  it('never names nothing while the group is not square', () => {
+    // Ravi owes Priya inside the Sharma family: family netting hides it.
+    const ledger = {
+      net: inr([
+        ['ravi', -1000n],
+        ['priya', 1000n],
+      ]),
+      transfers: [t('ravi', 'priya', 1000n)],
+      groupSettled: false,
+    };
+    expect(warningTransfers(ledger, UNITS)).toEqual([t('ravi', 'priya', 1000n)]);
+  });
+
+  it('lists the family lines and the intra-family debts together', () => {
+    const ledger = {
+      net: inr([
+        ['ravi', -1000n],
+        ['priya', 1300n],
+        ['sam', -300n],
+      ]),
+      transfers: [t('sam', 'priya', 300n), t('ravi', 'priya', 1000n)],
+      groupSettled: false,
+    };
+    expect(warningTransfers(ledger, UNITS)).toEqual([
+      t('sam', 'priya', 300n),
+      t('ravi', 'priya', 1000n),
+    ]);
+  });
+
+  it('is empty for a square group', () => {
+    expect(warningTransfers({ net: inr([]), transfers: [], groupSettled: true }, UNITS)).toEqual(
+      [],
+    );
   });
 });
 

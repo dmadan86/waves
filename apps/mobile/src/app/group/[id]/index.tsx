@@ -62,6 +62,7 @@ import {
   moneyAccessibilityLabel,
   paidBy,
   type MemberId,
+  unitOf,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupRecurring } from '@/data/groupRecurring';
@@ -830,6 +831,7 @@ export default function GroupScreen() {
     lensLedger,
     () => setTab(Tab.Balances),
     familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
+    familyLens ? (memberId) => unitOf(units, memberId) ?? memberId : undefined,
   );
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);

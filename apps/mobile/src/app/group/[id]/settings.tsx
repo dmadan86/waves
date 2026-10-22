@@ -85,7 +85,7 @@ import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
-import { familyLabel, familyOf, familyRows, familyTransfers } from '@/lib/families';
+import { familyLabel, familyOf, familyRows, warningTransfers } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { SettleFirstDialog } from '@/components/SettleFirstDialog';
@@ -580,7 +580,7 @@ export default function GroupSettingsScreen() {
     // With families, the debts are the families' — one line per family pair,
     // labelled the way the Balances tab labels them ("Sharma family (Ravi)").
     const byFamily = familiesOn && families.length > 0;
-    const transfers = byFamily ? familyTransfers(ledger.net, group.data?.units) : ledger.transfers;
+    const transfers = byFamily ? warningTransfers(ledger, group.data?.units) : ledger.transfers;
     const labelFor = (memberId: string): string =>
       byFamily ? familyLabel(group.data?.units, memberId, nameFor(memberId)) : nameFor(memberId);
     return orderDebtsForWarning(transfers, currency).map((transfer) => ({
