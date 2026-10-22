@@ -101,6 +101,7 @@ import {
   SettlementStatus,
 } from '@/data/types';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { settleHref } from '@/lib/groupTab';
 
 /** One entry in a member's ⋮ menu. */
 interface MemberAction {
@@ -1432,7 +1433,7 @@ export default function GroupSettingsScreen() {
         )}
         onSettle={() => {
           setSettleFirstOpen(false);
-          router.push(`/group/${groupId}/settle`);
+          router.push(settleHref(groupId));
         }}
         onLeaveAnyway={() => {
           setSettleFirstOpen(false);

@@ -71,10 +71,10 @@ describe('leave() routing in group settings', () => {
     expect(SCREEN).toContain('if (!settled) {');
   });
 
-  it('sends the balance card and Settle up to the group settle route, and Leave anyway to the mutation', () => {
+  it('sends the balance card and Settle up to the group Balances tab, and Leave anyway to the mutation', () => {
     const block = SCREEN.slice(SCREEN.indexOf('<SettleFirstDialog'));
     const dialog = block.slice(0, block.indexOf('/>'));
-    expect(dialog).toContain('router.push(`/group/${groupId}/settle`)');
+    expect(dialog).toContain('router.push(settleHref(groupId))');
     expect(dialog).toContain('leaveNow()');
     expect(SCREEN).toContain('leaveGroup.mutate(ledger.myMemberId');
   });
