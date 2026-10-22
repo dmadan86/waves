@@ -216,6 +216,24 @@ describe('members', () => {
     });
   });
 
+  it('shows a member cloned from another group as on Waves before the server answers', () => {
+    const queue = queued(
+      envelope('m-2', MutationKind.MemberAddGhost, {
+        memberId: 'mem-2',
+        name: 'Matt',
+        email: null,
+        phone: null,
+        profileId: 'p-matt',
+      }),
+    );
+    expect(materialiseMembers(emptyMirror(), queue, { groupId: GROUP })[0]).toMatchObject({
+      id: 'mem-2',
+      ghost_name: 'Matt',
+      profile_id: 'p-matt',
+      pending: true,
+    });
+  });
+
   it('hides people who left unless asked for the past', () => {
     // Pickers for a new bill must not offer them; a past bill still has to name them.
     const row = (id: string, left_at: string | null) => ({
