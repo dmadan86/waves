@@ -1,12 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import {
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  View,
-} from 'react-native';
+import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
 
