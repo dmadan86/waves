@@ -127,7 +127,9 @@ export function VoiceTop({
         {t.voiceScreen.subline}
       </Text>
       {/* The halo's box is roomy; a short phone trims it rather than scrolling. */}
-      <View style={{ marginVertical: compact ? -14 : -4 }}>
+      <View
+        style={{ alignSelf: 'stretch', alignItems: 'center', marginVertical: compact ? -14 : -4 }}
+      >
         <FloatingMicrophone
           mode={micMode}
           level={level}
@@ -137,9 +139,16 @@ export function VoiceTop({
         />
       </View>
       <VoiceStatus status={status} text={statusText(t, status)} />
-      {/* The wave only while the mic is open; the words and cards follow it. */}
+      {/* The wave only while the mic is open, under the mic; the words and cards follow it. */}
       {open && level ? (
-        <View style={{ alignSelf: 'stretch', height: WAVEFORM_HEIGHT, justifyContent: 'center' }}>
+        <View
+          style={{
+            alignSelf: 'stretch',
+            height: WAVEFORM_HEIGHT,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <AudioWaveform level={level} reduceMotion={reduceMotion} />
         </View>
       ) : null}

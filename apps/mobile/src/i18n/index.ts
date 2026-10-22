@@ -1490,10 +1490,6 @@ export interface UiStrings {
     tapToRetry: string;
     /** Offer to install the on-device model when the network engine hears audio
      *  but returns nothing (its recogniser is broken on this device). */
-    setupOffline: string;
-    offlineDownloading: string;
-    offlineReady: string;
-    offlineFailed: string;
     tryAgain: string;
     chooseGroup: string;
     /** '{note}' is the spoken description. */
@@ -1505,6 +1501,11 @@ export interface UiStrings {
     /** The review step for one or more heard expenses. */
     review: string;
     saveTo: string;
+    /** The "Save to" sheet: the pinned inbox chip, the confirm button, and the two tab searches. */
+    saveForLater: string;
+    saveHere: string;
+    searchGroups: string;
+    searchPeopleShort: string;
     /** The action on the destination row that opens the picker sheet. */
     change: string;
     /** '{name}' is the spoken group name. */
@@ -1825,96 +1826,6 @@ export interface UiStrings {
     learnMore: string;
     row: string;
     toggle: string;
-  };
-  offlineVoice: {
-    /** Settings-row label, and the screen's own title. */
-    row: string;
-    title: string;
-    /** Settings-row subtitle. */
-    rowHint: string;
-    intro: string;
-    /** The models Waves itself asks for — one per app language. */
-    appSection: string;
-    appSectionHint: string;
-    /** Models already on the phone that no app language claims. */
-    alsoInstalled: string;
-    /** Everything else the recogniser knows about. */
-    otherLanguages: string;
-    otherLanguagesHint: string;
-    /** How many rows a folded section holds — the whole of what it says while
-     *  it is shut, since the point of folding it is not reading the rest. */
-    sectionCount: PluralForms;
-    /** Per-row state. */
-    installed: string;
-    notInstalled: string;
-    /** A phone that cannot be asked what it holds, so the row claims nothing. */
-    cannotTell: string;
-    download: string;
-    /** Under a row while the phone fetches a model. Android hands the app no
-     *  percentage — the bar is indeterminate and this says why. */
-    downloading: string;
-    noProgress: string;
-    /** The three things a finished download call can mean. */
-    ready: string;
-    dialogOpened: string;
-    scheduled: string;
-    /**
-     * The reasons a download can end badly, decoded from the phone's own error
-     * code by `offlineDownloadReason`. They are separate strings because they
-     * are separate things to go and do: no model exists at all, a model exists
-     * and did not arrive, the connection, the service being busy, or a download
-     * that in fact started and cannot be watched. `failed` is now only the case
-     * where the phone refused without saying why.
-     */
-    languageMissing: string;
-    notDownloaded: string;
-    networkFailed: string;
-    serviceBusy: string;
-    handedOff: string;
-    failed: string;
-    /** A download still unanswered long after it began — Android's listener may
-     *  simply never fire, and the row stops asserting rather than spin forever. */
-    stillWorking: string;
-    /** Android 12 and below can neither list installed models nor fetch one. */
-    tooOld: string;
-    /** iOS installs its dictation languages itself; there is nothing to tap. */
-    iosNote: string;
-    /** An older binary whose native speech module is missing entirely. */
-    unavailable: string;
-    /** A recogniser that only ever works over the network. */
-    noOnDevice: string;
-    /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
-    refresh: string;
-    /**
-     * The phone was asked what models it holds and would not say.
-     *
-     * Its own words, deliberately, and never the network's: reading the
-     * inventory is a local call into the recogniser service on the device, so
-     * the app's generic "check your connection" was naming a fault that cannot
-     * be the cause. It also must not claim the rows are missing — a failed read
-     * is not an empty one, and saying otherwise is what put a Download button
-     * next to a model somebody had just watched arrive.
-     */
-    unreadable: string;
-    unreadableBody: string;
-    /**
-     * The phone was asked again and refused, but its earlier answer still
-     * stands.
-     *
-     * A quieter thing than {@link unreadable}, and kept apart from it because
-     * the difference is the whole point: there the screen knows nothing and
-     * offers a way to recover, here the list is still on the page and is merely
-     * not fresh. Saying "couldn't load" over a list somebody can see is how a
-     * screen teaches people to disbelieve it.
-     */
-    staleNote: string;
-    /** The speech service will not fetch a model for an app it cannot hear
-     *  through — a switch in Settings, not a fault of the phone or the language. */
-    permissionNeeded: string;
-    /** The phone answered, and named no languages at all — so the app's own are
-     *  the only rows on the screen. */
-    empty: string;
-    footnote: string;
   };
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -3247,6 +3158,9 @@ export interface UiStrings {
     refusedKeyLost: string;
     refusedOffline: string;
     refusedNetwork: string;
+    mobileDataTitle: string;
+    mobileDataBody: string;
+    mobileDataConfirm: string;
     refusedAuth: string;
     refusedNoBackup: string;
     refusedBusy: string;
@@ -3446,10 +3360,10 @@ export interface UiStrings {
     rejectConfirm: string;
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
     cancelSettlement: string;
-    /** Uppercase section label above the member balance rows. */
-    groupBalances: string;
-    /** Link that opens the settle flow for the whole group. */
-    settleUpAll: string;
+    /** Section label above the suggested repayments on the Balances tab. */
+    paymentsToSettle: string;
+    /** Section label above the member balance rows. */
+    everyonesBalance: string;
     cancelTitle: string;
     /** `{name}` is the payee who would have confirmed. */
     cancelBody: string;
@@ -3979,6 +3893,8 @@ export interface UiStrings {
     settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
+    settleRecord: string;
+    settleRecordA11y: string;
     settleMarkPaidA11y: string;
     settleReceivedHint: string;
     settleSeeAll: string;
@@ -5242,8 +5158,36 @@ export interface UiStrings {
     clearConfirm: string;
     statusFailed: string;
     statusOffline: string;
-    /** Spoken label for a row: time, purpose, method, address, status. */
+    /** Spoken label for a row: time, call, status. */
     rowLabel: string;
+    statusOk: string;
+    /** The one summary row for background sync; `{n}` is the count in the last 7 days. */
+    syncSummary: PluralForms;
+    /** Under it: when the latest sync was, `{time}`. */
+    syncLast: string;
+    /** What each call is named; an unknown host is shown as it is. */
+    calls: Record<
+      | 'exchangeRate'
+      | 'statement'
+      | 'screenshot'
+      | 'receipt'
+      | 'voice'
+      | 'upload'
+      | 'signIn'
+      | 'analytics'
+      | 'purchases'
+      | 'crashReport'
+      | 'sessionReplay'
+      | 'mapTiles'
+      | 'google'
+      | 'appStore'
+      | 'accountDelete'
+      | 'exportData'
+      | 'invite'
+      | 'connectedApps'
+      | 'serverRequest',
+      string
+    >;
     purposes: {
       sync: string;
       signIn: string;
@@ -5646,6 +5590,7 @@ export interface UiStrings {
     unavailable: string;
     paidOnly: string;
     storageFull: string;
+    waitingWifi: string;
     couldNotAdd: string;
   };
   personal: {
@@ -7124,10 +7069,6 @@ const en: UiStrings = {
     tapToSpeak: 'Tap to speak',
     noAmount: 'Didn’t catch an amount',
     missedNothing: 'Didn’t catch that',
-    setupOffline: 'Set up offline voice',
-    offlineDownloading: 'Downloading the offline voice model… try again in a moment.',
-    offlineReady: 'Offline voice is ready — tap the mic and speak.',
-    offlineFailed: 'Couldn’t set up offline voice on this device.',
     tapToRetry: 'Tap to try again',
     tryAgain: 'Try again',
     chooseGroup: 'Which group?',
@@ -7138,6 +7079,10 @@ const en: UiStrings = {
     unavailable: 'Speech isn’t available on this phone.',
     review: 'Review',
     saveTo: 'Save to',
+    saveForLater: 'Save for later',
+    saveHere: 'Save here',
+    searchGroups: 'Search groups…',
+    searchPeopleShort: 'Search people…',
     change: 'Change',
     newGroupNamed: 'New group “{name}”',
     thinking: 'Making sense of that…',
@@ -7394,60 +7339,6 @@ const en: UiStrings = {
     learnMore: 'Learn more about how voice works and our privacy',
     row: 'Advanced voice',
     toggle: 'Allow cloud voice',
-  },
-  offlineVoice: {
-    row: 'Offline voice',
-    title: 'Offline voice',
-    rowHint: 'Speech models kept on this phone',
-    intro:
-      'With a language downloaded, the mic works with no connection — and keeps working on phones whose online speech service is broken.',
-    appSection: 'Waves languages',
-    appSectionHint: 'These are the ones the mic asks for.',
-    alsoInstalled: 'Also on this phone',
-    otherLanguages: 'Other languages',
-    otherLanguagesHint: 'Your phone can fetch any of these.',
-    sectionCount: { one: '{n} language', other: '{n} languages' },
-    installed: 'On this phone',
-    notInstalled: 'Not downloaded',
-    cannotTell: 'Can’t tell',
-    download: 'Download',
-    downloading: 'Your phone is downloading this.',
-    noProgress: 'Android doesn’t say how far along it is.',
-    ready: 'Downloaded. The mic can use it now.',
-    dialogOpened:
-      'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
-    scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
-    languageMissing:
-      'Your phone’s speech service has no offline model for this language, so there is nothing to fetch. Updating “Speech Recognition & Synthesis” from the Play Store sometimes adds one; until then this language needs a connection.',
-    notDownloaded:
-      'Your phone has this language but hasn’t fetched it yet. It usually waits for Wi‑Fi — try again once you’re on it.',
-    networkFailed: 'The download couldn’t get through. Check your connection and try again.',
-    serviceBusy:
-      'Your phone’s speech service is busy. Close anything else using the mic and try again.',
-    handedOff:
-      'Your phone started the download but won’t report on it. Give it a few minutes, then refresh.',
-    failed: 'Your phone’s speech service refused the download and didn’t say why.',
-    stillWorking:
-      'Your phone hasn’t said whether this finished. Give it a while, then refresh to see if it landed.',
-    tooOld:
-      'This phone’s Android is too old to download models from inside an app. Search Android settings for “voice” to add one.',
-    iosNote:
-      'iPhone downloads its dictation languages itself, and won’t say which ones it already has. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
-    unavailable: 'This build can’t reach the speech models.',
-    noOnDevice:
-      'This phone can’t recognise speech without a connection, so there’s nothing to download.',
-    refresh: 'Refresh',
-    unreadable: 'This phone wouldn’t say what it has',
-    unreadableBody:
-      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
-    staleNote:
-      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
-    permissionNeeded:
-      'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
-    empty:
-      'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
-    footnote:
-      'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -8514,6 +8405,9 @@ const en: UiStrings = {
       'The key for that backup is no longer in your Google account, so it can no longer be opened.',
     refusedOffline: 'No connection. The backup will run when you are back online.',
     refusedNetwork: 'Waiting for Wi‑Fi. Change Back up over to use mobile data.',
+    mobileDataTitle: "You're on mobile data",
+    mobileDataBody: 'Back up anyway?',
+    mobileDataConfirm: 'Back up anyway',
     refusedAuth: 'Google asked for the link again. Reconnect the account.',
     refusedNoBackup: 'There is no backup on this Drive account yet.',
     refusedBusy: 'A backup is already running.',
@@ -8689,8 +8583,8 @@ const en: UiStrings = {
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
-    groupBalances: 'Group balances',
-    settleUpAll: 'Settle up all',
+    paymentsToSettle: 'Payments to settle',
+    everyonesBalance: 'Everyone’s balance',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -9084,6 +8978,8 @@ const en: UiStrings = {
     settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
+    settleRecord: 'Record',
+    settleRecordA11y: 'Record that {name} paid {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
     settleReceivedHint: 'Marks it as received',
     settleSeeAll: 'See all',
@@ -10269,7 +10165,7 @@ const en: UiStrings = {
     rowHint: 'Every connection this phone made, kept only on it',
     title: 'Network activity',
     explainer:
-      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+      'What Waves called from this phone in the last 7 days. Background sync is shown as a count. This list never leaves your phone.',
     empty: 'No connections recorded yet.',
     emptyFiltered: 'Nothing under this filter.',
     today: 'Today',
@@ -10281,7 +10177,31 @@ const en: UiStrings = {
     clearConfirm: 'Clear',
     statusFailed: 'failed',
     statusOffline: 'offline',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'OK',
+    syncSummary: { one: 'Sync · {n} time in 7 days', other: 'Sync · {n} times in 7 days' },
+    syncLast: 'Last sync {time}',
+    calls: {
+      exchangeRate: 'Exchange rate',
+      statement: 'Read a statement',
+      screenshot: 'Read a screenshot',
+      receipt: 'Read a receipt',
+      voice: 'Voice',
+      upload: 'Upload a file',
+      signIn: 'Sign in',
+      analytics: 'Usage event',
+      purchases: 'Purchases',
+      crashReport: 'Crash report',
+      sessionReplay: 'Session replay',
+      mapTiles: 'Map tiles',
+      google: 'Google',
+      appStore: 'Check for update',
+      accountDelete: 'Delete account',
+      exportData: 'Export my data',
+      invite: 'Invite',
+      connectedApps: 'Connected apps',
+      serverRequest: 'Waves server',
+    },
     purposes: {
       sync: 'Sync',
       signIn: 'Sign-in',
@@ -10692,6 +10612,7 @@ const en: UiStrings = {
     unavailable: 'Could not load the photo',
     paidOnly: 'Keeping receipts on Waves needs Plus.',
     storageFull: 'You have reached your storage limit.',
+    waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
     couldNotAdd: 'Could not add the receipt. Try again.',
   },
   personal: {
@@ -12181,11 +12102,6 @@ const ta: UiStrings = {
     tapToSpeak: 'பேச தட்டு',
     noAmount: 'தொகை புரியவில்லை',
     missedNothing: 'புரியவில்லை',
-    setupOffline: 'ஆஃப்லைன் குரலை அமை',
-    offlineDownloading:
-      'ஆஃப்லைன் குரல் மாதிரி பதிவிறங்குகிறது… சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
-    offlineReady: 'ஆஃப்லைன் குரல் தயார் — மைக்கைத் தட்டிப் பேசுங்கள்.',
-    offlineFailed: 'இந்தச் சாதனத்தில் ஆஃப்லைன் குரலை அமைக்க முடியவில்லை.',
     tapToRetry: 'மீண்டும் முயற்சிக்க தட்டு',
     tryAgain: 'மீண்டும் முயற்சி செய்',
     chooseGroup: 'எந்த குழு?',
@@ -12196,6 +12112,10 @@ const ta: UiStrings = {
     unavailable: 'இந்த ஃபோனில் பேச்சு அங்கீகாரம் இல்லை.',
     review: 'மறுபார்வை',
     saveTo: 'இதில் சேமி',
+    saveForLater: 'பிறகுக்காகச் சேமி',
+    saveHere: 'இங்கே சேமி',
+    searchGroups: 'குழுக்களைத் தேடு…',
+    searchPeopleShort: 'நபர்களைத் தேடு…',
     change: 'மாற்று',
     newGroupNamed: 'புதிய குழு “{name}”',
     thinking: 'புரிந்துகொள்கிறது…',
@@ -12455,61 +12375,6 @@ const ta: UiStrings = {
     learnMore: 'குரல் எப்படி செயல்படுகிறது, எங்கள் தனியுரிமை பற்றி மேலும் அறிக',
     row: 'மேம்பட்ட குரல்',
     toggle: 'கிளவுட் குரலை அனுமதி',
-  },
-  offlineVoice: {
-    row: 'ஆஃப்லைன் குரல்',
-    title: 'ஆஃப்லைன் குரல்',
-    rowHint: 'இந்த ஃபோனில் வைத்திருக்கும் பேச்சு மாதிரிகள்',
-    intro:
-      'ஒரு மொழியைப் பதிவிறக்கிய பிறகு இணைப்பு இல்லாமலும் மைக் வேலை செய்யும் — ஆன்லைன் பேச்சுச் சேவை செயலிழந்த ஃபோன்களிலும் தொடர்ந்து வேலை செய்யும்.',
-    appSection: 'Waves மொழிகள்',
-    appSectionHint: 'மைக் கேட்பது இவற்றைத்தான்.',
-    alsoInstalled: 'இந்த ஃபோனில் ஏற்கெனவே உள்ளவை',
-    otherLanguages: 'மற்ற மொழிகள்',
-    otherLanguagesHint: 'இவற்றில் எதையும் உங்கள் ஃபோன் கொண்டுவரும்.',
-    sectionCount: { one: '{n} மொழி', other: '{n} மொழிகள்' },
-    installed: 'ஃபோனில் உள்ளது',
-    notInstalled: 'பதிவிறக்கப்படவில்லை',
-    cannotTell: 'சொல்ல முடியவில்லை',
-    download: 'பதிவிறக்கு',
-    downloading: 'உங்கள் ஃபோன் இதைப் பதிவிறக்குகிறது.',
-    noProgress: 'எவ்வளவு முடிந்தது என்பதை Android சொல்வதில்லை.',
-    ready: 'பதிவிறக்கப்பட்டது. மைக் இப்போது இதைப் பயன்படுத்தும்.',
-    dialogOpened:
-      'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
-    scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
-    languageMissing:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவையிடம் இந்த மொழிக்கான ஆஃப்லைன் மாதிரியே இல்லை, எனவே பதிவிறக்க எதுவும் இல்லை. Play Store-இல் “Speech Recognition & Synthesis” ஐப் புதுப்பித்தால் சில சமயங்களில் ஒன்று சேரும்; அதுவரை இந்த மொழிக்கு இணைப்பு தேவை.',
-    notDownloaded:
-      'இந்த மொழி உங்கள் ஃபோனுக்குத் தெரியும், ஆனால் இன்னும் கொண்டுவரவில்லை. பொதுவாக Wi‑Fi வரும் வரை காத்திருக்கும் — இணைந்ததும் மீண்டும் முயலுங்கள்.',
-    networkFailed:
-      'பதிவிறக்கம் சென்று சேரவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
-    serviceBusy:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவை பணியில் உள்ளது. மைக்கைப் பயன்படுத்தும் மற்றவற்றை மூடிவிட்டு மீண்டும் முயலுங்கள்.',
-    handedOff:
-      'உங்கள் ஃபோன் பதிவிறக்கத்தைத் தொடங்கிவிட்டது, ஆனால் அதைப் பற்றிச் சொல்லாது. சில நிமிடங்கள் கழித்துப் புதுப்பிக்கவும்.',
-    failed: 'உங்கள் ஃபோனின் பேச்சுச் சேவை பதிவிறக்கத்தை மறுத்தது, காரணம் சொல்லவில்லை.',
-    stillWorking:
-      'இது முடிந்ததா என்பதை உங்கள் ஃபோன் இன்னும் சொல்லவில்லை. கொஞ்சம் நேரம் கழித்து, வந்து சேர்ந்ததா எனப் புதுப்பித்துப் பாருங்கள்.',
-    tooOld:
-      'செயலிக்குள் இருந்து மாதிரிகளைப் பதிவிறக்க இந்த ஃபோனின் Android மிகவும் பழையது. Android அமைப்புகளில் “voice” எனத் தேடி ஒன்றைச் சேர்க்கவும்.',
-    iosNote:
-      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும்; எவை ஏற்கெனவே உள்ளன என்பதைச் சொல்லாது. Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
-    unavailable: 'இந்தப் பதிப்பால் பேச்சு மாதிரிகளை அணுக முடியாது.',
-    noOnDevice:
-      'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
-    refresh: 'புதுப்பி',
-    unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
-    unreadableBody:
-      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
-    staleNote:
-      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
-    permissionNeeded:
-      'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
-    empty:
-      'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
-    footnote:
-      'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -13623,6 +13488,9 @@ const ta: UiStrings = {
     refusedOffline: 'இணைப்பு இல்லை. மீண்டும் ஆன்லைனுக்கு வரும்போது காப்பு எடுக்கப்படும்.',
     refusedNetwork:
       'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
+    mobileDataTitle: 'நீங்கள் மொபைல் டேட்டாவில் உள்ளீர்கள்',
+    mobileDataBody: 'எப்படியும் காப்பு எடுக்கவா?',
+    mobileDataConfirm: 'எப்படியும் காப்பு எடு',
     refusedAuth: 'Google மீண்டும் அனுமதி கேட்கிறது. கணக்கை மீண்டும் இணையுங்கள்.',
     refusedNoBackup: 'இந்த Drive கணக்கில் இன்னும் காப்புப்பிரதி இல்லை.',
     refusedBusy: 'ஒரு காப்பு ஏற்கனவே இயங்குகிறது.',
@@ -13804,8 +13672,8 @@ const ta: UiStrings = {
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
-    groupBalances: 'குழு இருப்புகள்',
-    settleUpAll: 'அனைத்தையும் தீர்',
+    paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
+    everyonesBalance: 'அனைவரின் இருப்பு',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -14221,6 +14089,8 @@ const ta: UiStrings = {
     settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
+    settleRecord: 'பதிவு செய்',
+    settleRecordA11y: '{name} {amount} செலுத்தியதைப் பதிவு செய்',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
     settleReceivedHint: 'கிடைத்ததாகக் குறிக்கும்',
     settleSeeAll: 'அனைத்தும் காண்க',
@@ -15485,7 +15355,7 @@ const ta: UiStrings = {
     rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
     title: 'நெட்வொர்க் செயல்பாடு',
     explainer:
-      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த அழைப்புகள். பின்னணி ஒத்திசைவு எண்ணிக்கையாக மட்டும் காட்டப்படும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
     empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
     emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
     today: 'இன்று',
@@ -15497,7 +15367,34 @@ const ta: UiStrings = {
     clearConfirm: 'அழி',
     statusFailed: 'தோல்வி',
     statusOffline: 'ஆஃப்லைன்',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'சரி',
+    syncSummary: {
+      one: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+      other: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+    },
+    syncLast: 'கடைசி ஒத்திசைவு {time}',
+    calls: {
+      exchangeRate: 'நாணய மாற்று விகிதம்',
+      statement: 'அறிக்கையைப் படித்தல்',
+      screenshot: 'ஸ்கிரீன்ஷாட்டைப் படித்தல்',
+      receipt: 'ரசீதைப் படித்தல்',
+      voice: 'குரல்',
+      upload: 'கோப்பைப் பதிவேற்றுதல்',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பயன்பாட்டு நிகழ்வு',
+      purchases: 'வாங்குதல்கள்',
+      crashReport: 'பிழை அறிக்கை',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      mapTiles: 'வரைபட ஓடுகள்',
+      google: 'Google',
+      appStore: 'புதிய பதிப்பு சோதனை',
+      accountDelete: 'கணக்கை நீக்குதல்',
+      exportData: 'என் தரவை ஏற்றுமதி',
+      invite: 'அழைப்பு',
+      connectedApps: 'இணைக்கப்பட்ட ஆப்கள்',
+      serverRequest: 'Waves சர்வர்',
+    },
     purposes: {
       sync: 'ஒத்திசைவு',
       signIn: 'உள்நுழைவு',
@@ -15923,6 +15820,7 @@ const ta: UiStrings = {
     unavailable: 'புகைப்படத்தை ஏற்ற முடியவில்லை',
     paidOnly: 'ரசீதுகளை Waves-இல் சேமிக்க Plus தேவை.',
     storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
+    waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
     couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
   },
   personal: {
@@ -17390,10 +17288,6 @@ const hi: UiStrings = {
     tapToSpeak: 'बोलने के लिए टैप करें',
     noAmount: 'रकम समझ नहीं आई',
     missedNothing: 'समझ नहीं आया',
-    setupOffline: 'ऑफ़लाइन आवाज़ सेट करें',
-    offlineDownloading: 'ऑफ़लाइन आवाज़ मॉडल डाउनलोड हो रहा है… थोड़ी देर में फिर कोशिश करें।',
-    offlineReady: 'ऑफ़लाइन आवाज़ तैयार — माइक दबाकर बोलें।',
-    offlineFailed: 'इस डिवाइस पर ऑफ़लाइन आवाज़ सेट नहीं हो सकी।',
     tapToRetry: 'दोबारा कोशिश के लिए टैप करें',
     tryAgain: 'फिर कोशिश करें',
     chooseGroup: 'कौन सा ग्रुप?',
@@ -17404,6 +17298,10 @@ const hi: UiStrings = {
     unavailable: 'इस फ़ोन पर वॉइस पहचान उपलब्ध नहीं है।',
     review: 'समीक्षा',
     saveTo: 'यहाँ सहेजें',
+    saveForLater: 'बाद के लिए सहेजें',
+    saveHere: 'यहीं सहेजें',
+    searchGroups: 'समूह खोजें…',
+    searchPeopleShort: 'लोग खोजें…',
     change: 'बदलें',
     newGroupNamed: 'नया समूह “{name}”',
     thinking: 'समझा जा रहा है…',
@@ -17660,58 +17558,6 @@ const hi: UiStrings = {
     learnMore: 'वॉइस कैसे काम करती है और हमारी प्राइवेसी के बारे में और जानें',
     row: 'एडवांस्ड वॉइस',
     toggle: 'क्लाउड वॉइस की अनुमति',
-  },
-  offlineVoice: {
-    row: 'ऑफ़लाइन आवाज़',
-    title: 'ऑफ़लाइन आवाज़',
-    rowHint: 'इस फ़ोन पर रखे स्पीच मॉडल',
-    intro:
-      'कोई भाषा डाउनलोड कर लेने पर माइक बिना कनेक्शन के भी काम करता है — और उन फ़ोनों पर भी चलता रहता है जिनकी ऑनलाइन स्पीच सेवा ख़राब है।',
-    appSection: 'Waves की भाषाएँ',
-    appSectionHint: 'माइक यही माँगता है।',
-    alsoInstalled: 'इस फ़ोन पर पहले से मौजूद',
-    otherLanguages: 'दूसरी भाषाएँ',
-    otherLanguagesHint: 'इनमें से कोई भी आपका फ़ोन ला सकता है।',
-    sectionCount: { one: '{n} भाषा', other: '{n} भाषाएँ' },
-    installed: 'फ़ोन पर मौजूद',
-    notInstalled: 'डाउनलोड नहीं है',
-    cannotTell: 'बता नहीं सकते',
-    download: 'डाउनलोड करें',
-    downloading: 'आपका फ़ोन इसे डाउनलोड कर रहा है।',
-    noProgress: 'Android यह नहीं बताता कि कितना हुआ।',
-    ready: 'डाउनलोड हो गया। माइक अब इसे इस्तेमाल कर सकता है।',
-    dialogOpened:
-      'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
-    scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
-    languageMissing:
-      'आपके फ़ोन की स्पीच सेवा के पास इस भाषा का ऑफ़लाइन मॉडल है ही नहीं, इसलिए लाने को कुछ नहीं है। Play Store से “Speech Recognition & Synthesis” अपडेट करने पर कभी‑कभी एक जुड़ जाता है; तब तक इस भाषा को कनेक्शन चाहिए।',
-    notDownloaded:
-      'आपका फ़ोन यह भाषा जानता है, पर अभी लाया नहीं है। आम तौर पर वह Wi‑Fi का इंतज़ार करता है — जुड़ते ही फिर कोशिश करें।',
-    networkFailed: 'डाउनलोड पहुँच ही नहीं पाया। अपना कनेक्शन जाँचकर फिर कोशिश करें।',
-    serviceBusy:
-      'आपके फ़ोन की स्पीच सेवा व्यस्त है। माइक इस्तेमाल कर रही दूसरी चीज़ें बंद करके फिर कोशिश करें।',
-    handedOff:
-      'आपके फ़ोन ने डाउनलोड शुरू कर दिया है पर उसकी ख़बर नहीं देगा। कुछ मिनट बाद ताज़ा करें।',
-    failed: 'आपके फ़ोन की स्पीच सेवा ने डाउनलोड से इनकार कर दिया और वजह नहीं बताई।',
-    stillWorking:
-      'आपके फ़ोन ने अब तक नहीं बताया कि यह पूरा हुआ या नहीं। थोड़ी देर बाद ताज़ा करके देखें कि आया या नहीं।',
-    tooOld:
-      'ऐप के भीतर से मॉडल डाउनलोड करने के लिए इस फ़ोन का Android बहुत पुराना है। Android सेटिंग्स में “voice” खोजकर एक जोड़ें।',
-    iosNote:
-      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है, और यह नहीं बताता कि कौन-सी पहले से मौजूद हैं। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
-    unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
-    noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
-    refresh: 'ताज़ा करें',
-    unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
-    unreadableBody:
-      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
-    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
-    permissionNeeded:
-      'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
-    empty:
-      'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
-    footnote:
-      'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -18784,6 +18630,9 @@ const hi: UiStrings = {
       'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
     refusedOffline: 'कोई कनेक्शन नहीं। ऑनलाइन आते ही बैकअप चल जाएगा।',
     refusedNetwork: 'Wi‑Fi का इंतज़ार है। मोबाइल डेटा इस्तेमाल करने के लिए सेटिंग बदलें।',
+    mobileDataTitle: 'आप मोबाइल डेटा पर हैं',
+    mobileDataBody: 'फिर भी बैकअप लें?',
+    mobileDataConfirm: 'फिर भी बैकअप लें',
     refusedAuth: 'Google ने फिर से अनुमति माँगी है। खाता दोबारा जोड़ें।',
     refusedNoBackup: 'इस Drive खाते पर अभी कोई बैकअप नहीं है।',
     refusedBusy: 'एक बैकअप पहले से चल रहा है।',
@@ -18960,8 +18809,8 @@ const hi: UiStrings = {
       '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
-    groupBalances: 'ग्रुप बैलेंस',
-    settleUpAll: 'सब सेटल करें',
+    paymentsToSettle: 'चुकाने वाले भुगतान',
+    everyonesBalance: 'सबका बैलेंस',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -19364,6 +19213,8 @@ const hi: UiStrings = {
     settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
+    settleRecord: 'दर्ज करें',
+    settleRecordA11y: '{name} ने {amount} चुकाए, यह दर्ज करें',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
     settleReceivedHint: 'इसे मिला हुआ दर्ज करता है',
     settleSeeAll: 'सभी देखें',
@@ -20558,7 +20409,7 @@ const hi: UiStrings = {
     rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
     title: 'नेटवर्क गतिविधि',
     explainer:
-      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो कॉल किए, वे सब। बैकग्राउंड सिंक सिर्फ़ गिनती के रूप में दिखता है। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
     empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
     emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
     today: 'आज',
@@ -20570,7 +20421,31 @@ const hi: UiStrings = {
     clearConfirm: 'साफ़ करें',
     statusFailed: 'विफल',
     statusOffline: 'ऑफ़लाइन',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'ठीक',
+    syncSummary: { one: 'सिंक · 7 दिनों में {n} बार', other: 'सिंक · 7 दिनों में {n} बार' },
+    syncLast: 'आखिरी सिंक {time}',
+    calls: {
+      exchangeRate: 'विनिमय दर',
+      statement: 'स्टेटमेंट पढ़ना',
+      screenshot: 'स्क्रीनशॉट पढ़ना',
+      receipt: 'रसीद पढ़ना',
+      voice: 'आवाज़',
+      upload: 'फ़ाइल अपलोड',
+      signIn: 'साइन इन',
+      analytics: 'उपयोग इवेंट',
+      purchases: 'खरीदारी',
+      crashReport: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      mapTiles: 'मैप टाइल',
+      google: 'Google',
+      appStore: 'अपडेट की जाँच',
+      accountDelete: 'खाता हटाना',
+      exportData: 'मेरा डेटा निर्यात',
+      invite: 'आमंत्रण',
+      connectedApps: 'कनेक्टेड ऐप्स',
+      serverRequest: 'Waves सर्वर',
+    },
     purposes: {
       sync: 'सिंक',
       signIn: 'साइन-इन',
@@ -20980,6 +20855,7 @@ const hi: UiStrings = {
     unavailable: 'फ़ोटो लोड नहीं हो सकी',
     paidOnly: 'Waves पर रसीदें रखने के लिए Plus चाहिए।',
     storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
+    waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
     couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
   },
   personal: {
@@ -22509,10 +22385,6 @@ const ar: UiStrings = {
     tapToSpeak: 'انقر للتحدث',
     noAmount: 'لم أفهم المبلغ',
     missedNothing: 'لم أفهم ذلك',
-    setupOffline: 'إعداد الصوت دون اتصال',
-    offlineDownloading: 'يجري تنزيل نموذج الصوت دون اتصال… أعد المحاولة بعد قليل.',
-    offlineReady: 'الصوت دون اتصال جاهز — انقر الميكروفون وتحدّث.',
-    offlineFailed: 'تعذّر إعداد الصوت دون اتصال على هذا الجهاز.',
     tapToRetry: 'انقر لإعادة المحاولة',
     tryAgain: 'أعد المحاولة',
     chooseGroup: 'أي مجموعة؟',
@@ -22523,6 +22395,10 @@ const ar: UiStrings = {
     unavailable: 'التعرّف على الكلام غير متاح على هذا الهاتف.',
     review: 'مراجعة',
     saveTo: 'الحفظ في',
+    saveForLater: 'الحفظ لوقت لاحق',
+    saveHere: 'احفظ هنا',
+    searchGroups: 'ابحث عن المجموعات…',
+    searchPeopleShort: 'ابحث عن الأشخاص…',
     change: 'تغيير',
     newGroupNamed: 'مجموعة جديدة «{name}»',
     thinking: 'جارٍ الفهم…',
@@ -22779,62 +22655,6 @@ const ar: UiStrings = {
     learnMore: 'اعرف المزيد عن طريقة عمل الصوت وخصوصيتنا',
     row: 'الصوت المتقدم',
     toggle: 'السماح بالصوت السحابي',
-  },
-  offlineVoice: {
-    row: 'الصوت دون اتصال',
-    title: 'الصوت دون اتصال',
-    rowHint: 'نماذج الكلام المحفوظة على هذا الهاتف',
-    intro:
-      'بعد تنزيل لغة يعمل الميكروفون دون اتصال — ويظل يعمل على الهواتف التي تعطّلت فيها خدمة الكلام عبر الإنترنت.',
-    appSection: 'لغات Waves',
-    appSectionHint: 'هذه ما يطلبه الميكروفون.',
-    alsoInstalled: 'موجودة على هذا الهاتف',
-    otherLanguages: 'لغات أخرى',
-    otherLanguagesHint: 'يستطيع هاتفك جلب أيٍّ منها.',
-    sectionCount: {
-      zero: '{n} لغة',
-      one: 'لغة واحدة',
-      two: 'لغتان',
-      few: '{n} لغات',
-      many: '{n} لغة',
-      other: '{n} لغة',
-    },
-    installed: 'على الهاتف',
-    notInstalled: 'غير مُنزَّلة',
-    cannotTell: 'يتعذّر معرفة ذلك',
-    download: 'تنزيل',
-    downloading: 'هاتفك ينزّل هذا الآن.',
-    noProgress: 'لا يخبر Android بمقدار ما اكتمل.',
-    ready: 'اكتمل التنزيل. يمكن للميكروفون استخدامه الآن.',
-    dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
-    scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
-    languageMissing:
-      'لا تملك خدمة الكلام في هاتفك نموذجًا يعمل دون اتصال لهذه اللغة، فليس هناك ما يُجلب. تحديث «Speech Recognition & Synthesis» من متجر Play يضيف لغة أحيانًا؛ وحتى ذلك الحين تحتاج هذه اللغة إلى اتصال.',
-    notDownloaded:
-      'هاتفك يعرف هذه اللغة لكنه لم يجلبها بعد. عادةً ينتظر شبكة Wi‑Fi — أعد المحاولة بعد الاتصال بها.',
-    networkFailed: 'لم يصل التنزيل. تحقّق من اتصالك وأعد المحاولة.',
-    serviceBusy: 'خدمة الكلام في هاتفك مشغولة. أغلق ما يستخدم الميكروفون وأعد المحاولة.',
-    handedOff: 'بدأ هاتفك التنزيل لكنه لن يُبلغ عنه. امهله بضع دقائق ثم حدِّث القائمة.',
-    failed: 'رفضت خدمة الكلام في هاتفك التنزيل ولم تذكر السبب.',
-    stillWorking:
-      'لم يقل هاتفك بعدُ إن كان هذا قد اكتمل. امهله قليلًا ثم حدِّث القائمة لترى إن كان قد وصل.',
-    tooOld:
-      'إصدار Android على هذا الهاتف أقدم من أن ينزّل النماذج من داخل التطبيق. ابحث عن «voice» في إعدادات Android وأضف واحدة.',
-    iosNote:
-      'ينزّل iPhone لغات الإملاء بنفسه، ولا يقول أيّها موجود لديه بالفعل. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
-    unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
-    noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
-    refresh: 'تحديث',
-    unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
-    unreadableBody:
-      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
-    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
-    permissionNeeded:
-      'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
-    empty:
-      'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
-    footnote:
-      'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -24023,6 +23843,9 @@ const ar: UiStrings = {
     refusedKeyLost: 'لم يعد مفتاح تلك النسخة في حساب Google الخاص بك، لذا لا يمكن فتحها.',
     refusedOffline: 'لا اتصال. سيجري النسخ عند عودتك للاتصال.',
     refusedNetwork: 'في انتظار Wi‑Fi. غيّر الإعداد لاستخدام بيانات الجوال.',
+    mobileDataTitle: 'أنت تستخدم بيانات الجوال',
+    mobileDataBody: 'هل تريد النسخ على أي حال؟',
+    mobileDataConfirm: 'انسخ على أي حال',
     refusedAuth: 'طلب Google الإذن من جديد. أعد ربط الحساب.',
     refusedNoBackup: 'لا توجد نسخة على حساب Drive هذا بعد.',
     refusedBusy: 'هناك نسخ جارٍ بالفعل.',
@@ -24220,8 +24043,8 @@ const ar: UiStrings = {
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
-    groupBalances: 'أرصدة المجموعة',
-    settleUpAll: 'تسوية الكل',
+    paymentsToSettle: 'دفعات للتسوية',
+    everyonesBalance: 'رصيد الجميع',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
@@ -24670,6 +24493,8 @@ const ar: UiStrings = {
     settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
+    settleRecord: 'سجّل',
+    settleRecordA11y: 'سجّل أن {name} دفع {amount}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
     settleReceivedHint: 'يحدده كمستلم',
     settleSeeAll: 'عرض الكل',
@@ -26212,7 +26037,7 @@ const ar: UiStrings = {
     rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
     title: 'نشاط الشبكة',
     explainer:
-      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+      'ما طلبه Waves من هذا الهاتف خلال آخر 7 أيام. تظهر المزامنة في الخلفية كعدد فقط. لا تغادر هذه القائمة هاتفك أبدًا.',
     empty: 'لم يُسجَّل أي اتصال بعد.',
     emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
     today: 'اليوم',
@@ -26224,7 +26049,38 @@ const ar: UiStrings = {
     clearConfirm: 'مسح',
     statusFailed: 'فشل',
     statusOffline: 'بلا اتصال',
-    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    rowLabel: '{time}، {call}، {status}',
+    statusOk: 'تم',
+    syncSummary: {
+      zero: 'مزامنة · {n} مرة خلال 7 أيام',
+      one: 'مزامنة · مرة واحدة خلال 7 أيام',
+      two: 'مزامنة · مرتان خلال 7 أيام',
+      few: 'مزامنة · {n} مرات خلال 7 أيام',
+      many: 'مزامنة · {n} مرة خلال 7 أيام',
+      other: 'مزامنة · {n} مرة خلال 7 أيام',
+    },
+    syncLast: 'آخر مزامنة {time}',
+    calls: {
+      exchangeRate: 'سعر الصرف',
+      statement: 'قراءة كشف حساب',
+      screenshot: 'قراءة لقطة شاشة',
+      receipt: 'قراءة إيصال',
+      voice: 'الصوت',
+      upload: 'رفع ملف',
+      signIn: 'تسجيل الدخول',
+      analytics: 'حدث استخدام',
+      purchases: 'المشتريات',
+      crashReport: 'تقرير تعطل',
+      sessionReplay: 'إعادة الجلسة',
+      mapTiles: 'مربعات الخريطة',
+      google: 'Google',
+      appStore: 'التحقق من التحديث',
+      accountDelete: 'حذف الحساب',
+      exportData: 'تصدير بياناتي',
+      invite: 'دعوة',
+      connectedApps: 'التطبيقات المتصلة',
+      serverRequest: 'خادم Waves',
+    },
     purposes: {
       sync: 'المزامنة',
       signIn: 'تسجيل الدخول',
@@ -26651,6 +26507,7 @@ const ar: UiStrings = {
     unavailable: 'تعذّر تحميل الصورة',
     paidOnly: 'حفظ الإيصالات على Waves يتطلب Plus.',
     storageFull: 'لقد بلغت حد التخزين.',
+    waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
     couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
   },
   personal: {

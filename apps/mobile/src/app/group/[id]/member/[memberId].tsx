@@ -59,6 +59,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { settleHref } from '@/lib/groupTab';
 
 /** The crown's gold — there is no theme token for it, and it has to read as
  *  gold on both the light and dark palettes, the one thing a theme colour
@@ -875,7 +876,7 @@ export default function MemberScreen() {
                 />
               }
               style={{ flex: 1.3, height: 46 }}
-              onPress={() => router.push(`/group/${groupId}/settle`)}
+              onPress={() => router.push(settleHref(groupId))}
             />
           ) : null}
           <Button

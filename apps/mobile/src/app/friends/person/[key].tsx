@@ -66,6 +66,7 @@ import { linkableGroups, linkMemberRoute } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { settleHref } from '@/lib/groupTab';
 
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
@@ -120,7 +121,7 @@ export default function PersonDetailScreen() {
       to === 'group'
         ? `/group/${group.groupId}`
         : to === 'history'
-          ? `/group/${group.groupId}/settle`
+          ? settleHref(group.groupId)
           : linkMemberRoute(group),
     );
   const via = (to: 'group' | 'history' | 'link'): void => {

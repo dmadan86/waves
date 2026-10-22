@@ -62,6 +62,7 @@ import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { settleHref } from '@/lib/groupTab';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -230,7 +231,7 @@ function LoansScreenBody() {
                         label={t.personal.settleUp}
                         size="sm"
                         variant="secondary"
-                        onPress={() => router.push(`/group/${loan.synced?.groupId}/settle`)}
+                        onPress={() => router.push(settleHref(loan.synced?.groupId ?? ''))}
                       />
                     ) : (
                       <>

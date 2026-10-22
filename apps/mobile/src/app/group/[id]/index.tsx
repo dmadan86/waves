@@ -1,15 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import {
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import Svg, { Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import {
@@ -39,9 +32,11 @@ import {
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
+import { SectionHeader } from '@/components/standard';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
+import { FooterWaves, WAVES_TUCK } from '@/components/FooterWaves';
 import { MissingRatesCard } from '@/components/MissingRates';
 import { personKeyOf } from '@/data/peopleBalances';
 import { GroupNotFound } from '@/components/GroupNotFound';
@@ -96,7 +91,13 @@ import { PendingPaymentCard } from '@/components/PendingPaymentCard';
 import { SyncBanner } from '@/components/SyncBanner';
 import { useSync } from '@/sync';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { SettleBody } from '@/components/settle/SettleBody';
+import {
+  SettleConfirm,
+  SettleHistory,
+  SettlePayments,
+  useSettleFlow,
+} from '@/components/settle/SettleBody';
+import { groupTabFromParam } from '@/lib/groupTab';
 import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
@@ -113,11 +114,16 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 enum Tab {
   Expenses = 'expenses',
   Balances = 'balances',
-  Settle = 'settle',
   Timeline = 'timeline',
   Map = 'map',
   /** Event groups only: vendor advances and balances (docs/event-organizer.md). */
   Vendors = 'vendors',
+}
+
+/** The tab a `?tab=` link opens; `settle` is the Balances tab's payments. */
+function tabFromParam(param: string | undefined): Tab {
+  const wanted = groupTabFromParam(param);
+  return wanted === 'vendors' ? Tab.Vendors : wanted === 'balances' ? Tab.Balances : Tab.Expenses;
 }
 
 /**
@@ -741,7 +747,13 @@ export default function GroupScreen() {
   // When the reader last opened this group, as it stood before this visit marked
   // it seen: what "new" is measured from, held for the whole visit.
   const lastSeenAt = useGroupBaseline(groupId || null);
-  const [tab, setTab] = useState<Tab>(tabParam === 'vendors' ? Tab.Vendors : Tab.Expenses);
+  const [tab, setTab] = useState<Tab>(tabFromParam(tabParam));
+  // A link to a group already open (Settle up from its own settings) changes the tab.
+  const [seenTabParam, setSeenTabParam] = useState(tabParam);
+  if (tabParam !== seenTabParam) {
+    setSeenTabParam(tabParam);
+    if (tabParam) setTab(tabFromParam(tabParam));
+  }
   const [menuOpen, setMenuOpen] = useState(false);
   // The Expenses tab's filters: who paid, which month, and a text search.
   const [scope, setScope] = useState<ExpenseScope>('all');
@@ -766,6 +778,9 @@ export default function GroupScreen() {
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
   const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
+  // Settling up lives on the Balances tab: its payments, history and confirm sheet.
+  // Once a payment is recorded the user stays here, on the balances that moved.
+  const settleFlow = useSettleFlow(groupId, ledger, () => setTab(Tab.Balances));
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();
@@ -1446,13 +1461,6 @@ export default function GroupScreen() {
                   ),
                 },
                 {
-                  value: Tab.Settle,
-                  label: t.settleUp,
-                  icon: (color) => (
-                    <Ionicons name="cash-outline" size={iconSize.md} color={color} />
-                  ),
-                },
-                {
                   value: Tab.Timeline,
                   label: t.timeline.viewTimeline,
                   icon: (color) => (
@@ -1514,6 +1522,7 @@ export default function GroupScreen() {
 
         {/* The header menu and the month menu live at the screen's root,
             not in the list header, so they open from every tab. */}
+        {settleFlow.loading ? null : <SettleConfirm flow={settleFlow} />}
         <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
         {/* Both drop from the button that opened them, as Friends' sort does. */}
         <SortMenu
@@ -1563,15 +1572,6 @@ export default function GroupScreen() {
               vendorFilter === 'due' || vendorFilter === 'overdue' ? vendorFilter : 'all'
             }
             today={todayInZone(groupData.time_zone ?? 'Asia/Kolkata')}
-          />
-        ) : tab === Tab.Settle ? (
-          // Settling up, as a face of the group rather than a button on its
-          // hero: the same flow as the Settle up screen. Recorded, it shows
-          // the balances that just moved.
-          <SettleBody
-            groupId={groupId}
-            showSummary={false}
-            onRecorded={() => setTab(Tab.Balances)}
           />
         ) : tab === Tab.Timeline || tab === Tab.Map ? (
           // This group's own timeline and map: the Timeline screen's list and
@@ -1807,52 +1807,24 @@ export default function GroupScreen() {
                         locale={locale}
                       />
                     ))}
-                    {/* The balances' own heading, with the one door to settling
-                      everything at once: the Settle up tab is that flow. */}
+                    {/* Settle up is the top of Balances, not a tab: the payments to
+                        make or receive come first, then everyone's balance. */}
                     {tab === Tab.Balances ? (
-                      <Row
-                        style={{
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <Text
-                          variant="caption"
-                          tone="muted"
-                          style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                        >
-                          {t.group.groupBalances}
-                        </Text>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t.group.settleUpAll}
-                          onPress={() => setTab(Tab.Settle)}
-                          hitSlop={8}
-                          style={({ pressed }) => ({
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: theme.spacing.xs,
-                            opacity: pressed ? 0.6 : 1,
-                          })}
-                        >
-                          <Ionicons
-                            name="people-outline"
-                            size={iconSize.md}
-                            color={theme.color.brand}
-                          />
-                          <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                            {t.group.settleUpAll}
-                          </Text>
-                          <Ionicons
-                            name={directionalIcon('chevron-forward')}
-                            size={iconSize.sm}
-                            color={theme.color.brand}
-                          />
-                        </Pressable>
-                      </Row>
+                      <View style={{ gap: theme.spacing.sm }}>
+                        <SectionHeader title={t.group.paymentsToSettle} />
+                        {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
+                        <SectionHeader title={t.group.everyonesBalance} />
+                      </View>
                     ) : null}
                   </View>
                 </View>
+              }
+              ListFooterComponent={
+                tab === Tab.Balances && !settleFlow.loading ? (
+                  <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.xl }}>
+                    <SettleHistory flow={settleFlow} />
+                  </View>
+                ) : null
               }
               ListEmptyComponent={
                 tab === Tab.Expenses && !showEmptyAddCta(visibleExpenses.length) ? (
@@ -1921,36 +1893,3 @@ export default function GroupScreen() {
     </Screen>
   );
 }
-
-/**
- * Two soft waves across the foot of the screen, just above the tab bar — the
- * page's quiet close, on every tab. Decoration only.
- */
-function FooterWaves({ bottom }: { bottom: number }) {
-  const theme = useTheme();
-  const { width } = useWindowDimensions();
-  const dark = theme.scheme === 'dark';
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ position: 'absolute', left: 0, right: 0, bottom }}
-    >
-      <Svg width={width} height={WAVES_HEIGHT} viewBox="0 0 400 90" preserveAspectRatio="none">
-        <Path
-          d="M0 40 Q 60 10 130 30 T 260 38 T 400 20 L400 90 L0 90 Z"
-          fill={dark ? 'rgba(255,255,255,0.04)' : '#ECEAFB'}
-        />
-        <Path
-          d="M0 62 Q 90 40 180 58 T 400 48 L400 90 L0 90 Z"
-          fill={dark ? 'rgba(255,255,255,0.06)' : '#E3E0FA'}
-        />
-      </Svg>
-    </View>
-  );
-}
-
-/** How tall the waves stand, and how far they tuck under the tab bar's rounded top. */
-const WAVES_HEIGHT = 90;
-const WAVES_TUCK = 24;

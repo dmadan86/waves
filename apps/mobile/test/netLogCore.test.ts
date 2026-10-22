@@ -4,11 +4,22 @@
  * fetch wrapper hands back exactly what the real fetch did.
  */
 
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   appendEntry,
-  displayAddress,
+  CALL_KEYS,
+  callLabel,
+  callName,
+  countSync,
+  dayId,
+  EMPTY_SYNC_STATS,
+  NET_FILTER_PURPOSES,
+  parseSyncStats,
+  pruneSyncStats,
+  syncTotal,
   isLocalHost,
   NET_LOG_MAX_AGE_MS,
   NET_LOG_MAX_ENTRIES,
@@ -22,6 +33,10 @@ import {
   type NetLogEntry,
   type RawCall,
 } from '../src/lib/netLogCore';
+
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
+
+const { STRINGS_BY_LANGUAGE } = await import('../src/i18n');
 
 const UUID = '3f2b8c1e-9a4d-4e6f-8b7a-1c2d3e4f5a6b';
 
@@ -87,10 +102,6 @@ describe('redactUrl', () => {
 
   it('cuts an absurdly long path', () => {
     expect(redactUrl(`https://x.test/${'a'.repeat(5000)}`).length).toBeLessThan(260);
-  });
-
-  it('shows host and path without the scheme', () => {
-    expect(displayAddress('https://x.test/a')).toBe('x.test/a');
   });
 });
 
@@ -312,5 +323,131 @@ describe('wrapFetch', () => {
     ) as (...a: unknown[]) => Promise<unknown>;
     await wrapped('https://x.test/').then(() => order.push('caller'));
     expect(order).toContain('caller');
+  });
+});
+
+describe('call names', () => {
+  const entry = (host: string, path: string, p: NetLogEntry['p']) => ({
+    u: `https://${host}${path}`,
+    p,
+  });
+  const en = STRINGS_BY_LANGUAGE.en.netlog.calls;
+  const cases: [string, string, NetLogEntry['p'], string][] = [
+    ['abc.supabase.co', '/functions/v1/fx-rate', 'exchange-rates', 'Exchange rate'],
+    ['abc.supabase.co', '/functions/v1/parse-statement', 'server-task', 'Read a statement'],
+    ['abc.supabase.co', '/functions/v1/receipt-parse', 'server-task', 'Read a receipt'],
+    ['abc.supabase.co', '/functions/v1/voice-stream-token', 'server-task', 'Voice'],
+    ['abc.supabase.co', '/functions/v1/r2-sign', 'files', 'Upload a file'],
+    ['abc.supabase.co', '/functions/v1/phone-verify', 'sign-in', 'Sign in'],
+    ['abc.supabase.co', '/auth/v1/token', 'sign-in', 'Sign in'],
+    ['abc.supabase.co', '/auth/v1/user/oauth/grants', 'sign-in', 'Connected apps'],
+    ['abc.supabase.co', '/storage/v1/object/x', 'files', 'Upload a file'],
+    ['abc.supabase.co', '/functions/v1/brand-new', 'server-task', 'Waves server'],
+    ['abc.supabase.co', '/rest/v1/rpc/waves_track_event', 'analytics', 'Usage event'],
+    ['api.revenuecat.com', '/v1/subscribers/…', 'purchases', 'Purchases'],
+    ['o1.ingest.sentry.io', '/api/1/envelope/', 'crash-reports', 'Crash report'],
+    ['tile.openstreetmap.org', '/15/1/2.png', 'maps', 'Map tiles'],
+    ['itunes.apple.com', '/lookup', 'other', 'Check for update'],
+  ];
+  it.each(cases)('%s%s is named', (host, path, p, label) => {
+    expect(callLabel(entry(host, path, p), en)).toBe(label);
+  });
+
+  it('shows only the host for an unknown address', () => {
+    expect(callName({ u: 'https://api.example.com:81/things', p: 'other' })).toEqual({
+      host: 'api.example.com',
+    });
+    expect(callLabel(entry('api.example.com', '/v2/things', 'other'), en)).toBe('api.example.com');
+  });
+
+  it('has a non-empty name for every call in every language, with no URL or method', () => {
+    for (const strings of Object.values(STRINGS_BY_LANGUAGE)) {
+      for (const key of CALL_KEYS) {
+        const label = strings.netlog.calls[key];
+        expect(label.trim().length).toBeGreaterThan(0);
+        expect(label).not.toMatch(/https?:|\/|\b(GET|POST|PUT|DELETE)\b/);
+      }
+    }
+  });
+
+  it('never renders a path, scheme or method for any case', () => {
+    for (const [host, path, p] of cases) {
+      expect(callLabel(entry(host, path, p), en)).not.toMatch(/\/|:|POST|GET/);
+    }
+  });
+
+  it('keeps sync out of the filter chips', () => {
+    expect(NET_FILTER_PURPOSES).not.toContain('sync');
+    expect(NET_FILTER_PURPOSES).toContain('sign-in');
+  });
+});
+
+describe('sync counting', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = new Date(2026, 9, 21, 12).getTime();
+
+  it('counts per day and sums them', () => {
+    let stats = EMPTY_SYNC_STATS;
+    stats = countSync(stats, now - 1000, now);
+    stats = countSync(stats, now, now);
+    stats = countSync(stats, now - DAY, now);
+    expect(stats.days[dayId(now)]).toBe(2);
+    expect(syncTotal(stats, now)).toBe(3);
+    expect(stats.last).toBe(now);
+  });
+
+  it('does not mutate its input', () => {
+    const stats = countSync(EMPTY_SYNC_STATS, now, now);
+    countSync(stats, now, now);
+    expect(stats.days[dayId(now)]).toBe(1);
+  });
+
+  it('prunes to 7 days, keeping the boundary day', () => {
+    const stats = {
+      days: { [dayId(now - 8 * DAY)]: 5, [dayId(now - 7 * DAY)]: 3, [dayId(now)]: 1 },
+      last: now,
+    };
+    const kept = pruneSyncStats(stats, now);
+    expect(Object.keys(kept.days).sort()).toEqual([dayId(now - 7 * DAY), dayId(now)].sort());
+    expect(syncTotal(stats, now)).toBe(4);
+  });
+
+  it('prunes while counting', () => {
+    const old = { days: { [dayId(now - 30 * DAY)]: 9 }, last: 0 };
+    expect(syncTotal(countSync(old, now, now), now)).toBe(1);
+  });
+
+  it('reads stored counts back, dropping anything malformed', () => {
+    expect(parseSyncStats(null)).toEqual(EMPTY_SYNC_STATS);
+    expect(parseSyncStats('nope')).toEqual(EMPTY_SYNC_STATS);
+    const raw = JSON.stringify({ days: { '2026-10-21': 4, bad: 2, '2026-10-20': 'x' }, last: 7 });
+    expect(parseSyncStats(raw)).toEqual({ days: { '2026-10-21': 4 }, last: 7 });
+  });
+
+  it('files sync calls under the sync purpose, so they are counted not listed', () => {
+    const call = (url: string): RawCall => ({
+      method: 'POST',
+      url,
+      startedAt: 1,
+      durationMs: 1,
+      status: 200,
+    });
+    expect(toEntry(call('https://a.supabase.co/functions/v1/sync'))?.p).toBe('sync');
+    expect(toEntry(call('https://a.supabase.co/rest/v1/groups'))?.p).toBe('sync');
+  });
+});
+
+describe('Network activity screen', () => {
+  const source = readFileSync(
+    new URL('../src/app/settings/network-activity.tsx', import.meta.url),
+    'utf8',
+  );
+  it('draws rows from the standard ListRow, with no address or method', () => {
+    expect(source).toContain("from '@/components/standard'");
+    expect(source).not.toMatch(/displayAddress|entry\.m\b|entry\.u\b|\{entry\.m\}/);
+  });
+  it('shows one sync summary and no Sync filter', () => {
+    expect(source).toContain('syncSummary');
+    expect(source).toContain('NET_FILTER_PURPOSES');
   });
 });
