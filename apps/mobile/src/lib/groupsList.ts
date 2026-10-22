@@ -8,6 +8,9 @@
 export type GroupsFilter = 'all' | 'owed' | 'owe';
 export type GroupsSort = 'amount' | 'recent' | 'name';
 
+/** Latest activity first; the screen keeps no saved sort, so this is every visit's start. */
+export const DEFAULT_GROUPS_SORT: GroupsSort = 'recent';
+
 /** What the list needs to know about one group; the screen fills it in. */
 export interface GroupsEntry {
   readonly id: string;

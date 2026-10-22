@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterGroups, sortGroups, type GroupsEntry } from '@/lib/groupsList';
+import { DEFAULT_GROUPS_SORT, filterGroups, sortGroups, type GroupsEntry } from '@/lib/groupsList';
 
 const e = (
   id: string,
@@ -29,6 +29,11 @@ describe('filterGroups', () => {
 });
 
 describe('sortGroups', () => {
+  it('defaults to latest activity first', () => {
+    expect(DEFAULT_GROUPS_SORT).toBe('recent');
+    expect(ids(sortGroups(rows, DEFAULT_GROUPS_SORT))).toEqual(['Office', 'Goa', 'Trip', 'Flat']);
+  });
+
   it('amount: biggest balance first, settled last', () => {
     expect(ids(sortGroups(rows, 'amount'))).toEqual(['Trip', 'Flat', 'Goa', 'Office']);
   });
