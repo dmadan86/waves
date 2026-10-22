@@ -15,9 +15,9 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Share, TextInput, View } from 'react-native';
 
-import { headOf, type GroupUnits } from '@waves/core';
+import { familyStatement, formatFamilyStatement, headOf, type GroupUnits } from '@waves/core';
 import {
   Button,
   Callout,
@@ -41,7 +41,7 @@ import {
   StandardCard,
 } from '@/components/standard';
 import { useBlockedUsers } from '@/data/blocked';
-import { useGroup, useUpdateGroup } from '@/data/hooks';
+import { toLedgerSnapshots, toSettlementSnapshots, useGroup, useUpdateGroup } from '@/data/hooks';
 import { displayName, isGhost, isViewer, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
@@ -70,7 +70,7 @@ export default function FamiliesScreen() {
   const [menuFamily, setMenuFamily] = useState<string | null>(null);
   const [adding, setAdding] = useState<{ member: MemberRow; pick: string | null } | null>(null);
 
-  const { group, members } = useGroup(groupId);
+  const { group, members, expenses, settlements } = useGroup(groupId);
   const updateGroup = useUpdateGroup(groupId);
   const units = group.data?.units ?? null;
   const people = members.data ?? [];
@@ -89,6 +89,32 @@ export default function FamiliesScreen() {
 
   const nameOf = (member: MemberRow): string =>
     displayName(member, viewerId, blockedIds, t.misc.someone);
+
+  const shareStatement = async (unitId: string): Promise<void> => {
+    if (!group.data || !units) return;
+    try {
+      const descriptions = new Map(
+        expenses.rows.map((expense) => [expense.id, expense.currentVersion?.description ?? '']),
+      );
+      const statement = familyStatement(
+        { name: group.data.name ?? '', currency: group.data.default_currency ?? 'INR' },
+        units,
+        unitId,
+        toLedgerSnapshots(expenses.rows, group.data).map((expense) => ({
+          ...expense,
+          description: descriptions.get(expense.id) ?? '',
+        })),
+        toSettlementSnapshots(settlements.data ?? []),
+        (memberId) => {
+          const member = people.find((person) => person.id === memberId);
+          return member ? nameOf(member) : t.misc.someone;
+        },
+      );
+      await Share.share({ message: formatFamilyStatement(statement) });
+    } catch (caught) {
+      setError(friendlyError(caught, t.families.couldNotShare, 'families'));
+    }
+  };
 
   const save = (next: GroupUnits | null): void => {
     setError(null);
@@ -175,17 +201,20 @@ export default function FamiliesScreen() {
 
   /** A tinted action row of the family menu. */
   const menuRow = (
-    icon: 'pencil' | 'trash-outline',
+    icon: 'pencil' | 'trash-outline' | 'share-outline',
     title: string,
     body: string,
     danger: boolean,
     onPress: () => void,
+    disabled = false,
   ) => {
     const ink = danger ? theme.color.negative : theme.color.brand;
     return (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${title}, ${body}`}
+        accessibilityState={{ disabled }}
+        disabled={disabled}
         onPress={onPress}
         style={({ pressed }) => ({
           flexDirection: 'row',
@@ -194,7 +223,7 @@ export default function FamiliesScreen() {
           padding: theme.spacing.md,
           borderRadius: theme.radius.lg,
           backgroundColor: danger ? theme.color.negativeSoft : theme.color.brandSoft,
-          opacity: pressed ? 0.7 : 1,
+          opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
         })}
       >
         <Ionicons name={icon} size={iconSize.md} color={ink} />
@@ -360,6 +389,17 @@ export default function FamiliesScreen() {
               </View>
               {closeX(() => setMenuFamily(null))}
             </Row>
+            {menuRow(
+              'share-outline',
+              t.families.shareStatement,
+              t.families.shareStatementBody,
+              false,
+              () => {
+                setMenuFamily(null);
+                void shareStatement(menu.id);
+              },
+              group.isLoading || members.isLoading || expenses.isLoading || settlements.isLoading,
+            )}
             {menuRow('pencil', t.families.rename, t.families.renameBody, false, () => {
               setMenuFamily(null);
               setNaming({ familyId: menu.id });
