@@ -22,7 +22,6 @@ import {
   familyEmoji,
   familyRows,
   hasFamilies,
-  unitsSplitParams,
   money as coreMoney,
   guessCategory,
   parseMajor,
@@ -43,6 +42,7 @@ import { captureLocation, coordLabel, geolocationSupported, LocationFailure } fr
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { equalFamilyParams } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { MapPin } from 'lucide-react';
 
@@ -292,7 +292,7 @@ export function ExpenseForm({
       switch (kind) {
         case SplitKind.Equal:
           if (!byFamily) return { kind: 'equal' };
-          return snapshot && !splitTouched ? snapshot : unitsSplitParams(units, participants);
+          return equalFamilyParams(snapshot, splitTouched, units, participants);
         case SplitKind.Exact: {
           const amounts: Record<string, bigint> = {};
           for (const id of participants) {
@@ -605,7 +605,7 @@ export function ExpenseForm({
                 className="chip"
                 aria-pressed={kind === k}
                 onClick={() => {
-                  setSplitTouched(true);
+                  if (k !== kind) setSplitTouched(true);
                   setKind(k);
                 }}
               >
@@ -631,7 +631,7 @@ export function ExpenseForm({
                   className="chip"
                   aria-pressed={byFamily === value}
                   onClick={() => {
-                    setSplitTouched(true);
+                    if (value !== byFamily) setSplitTouched(true);
                     setLens(value);
                   }}
                 >

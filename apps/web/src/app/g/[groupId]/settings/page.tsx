@@ -294,7 +294,15 @@ function GroupSettings({ profileId }: { profileId: string }) {
                 // Only the row is re-read, not the form: unsaved edits above
                 // stay, and the row's new revision is what the form saves against.
                 void run(
-                  () => waves.updateGroup(groupId, { units: next }),
+                  // The whole map goes in one write, so it is conditional on the
+                  // revision it was edited from: a second admin's stale map must
+                  // not undo the first's move (the stale handler reloads).
+                  () =>
+                    waves.updateGroup(
+                      groupId,
+                      { units: next },
+                      { ifUpdatedSeq: group.updated_seq },
+                    ),
                   () => void waves.groupRow(groupId).then((row) => row && setGroup(row)),
                 )
               }

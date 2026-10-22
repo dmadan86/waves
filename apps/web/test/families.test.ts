@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeShares, familyTransfers, unitsSplitParams, type GroupUnits } from '@waves/core';
 
-import { groupSharesByFamily } from '../src/lib/families';
+import { equalFamilyParams, groupSharesByFamily } from '../src/lib/families';
 import { pendingPairKey } from '../src/lib/settlementActions';
 
 const units: GroupUnits = {
@@ -83,5 +83,23 @@ describe('a pending family payment', () => {
       pendingPairKey('priya', 'nita', 'INR', partyOf),
     );
     expect(pendingPairKey('anu', 'sam', 'INR')).not.toBe(pendingPairKey('priya', 'sam', 'INR'));
+  });
+});
+
+describe('editing a saved by-family bill', () => {
+  const saved = { kind: 'units' as const, units: { a: ['A', 'B'], c: ['C'] } };
+  const moved: GroupUnits = {
+    a: { name: 'A', members: ['A'] },
+    c: { name: 'C', members: ['C', 'B'] },
+  };
+  const people = ['A', 'B', 'C'];
+  const sharesOf = (params: ReturnType<typeof equalFamilyParams>) =>
+    computeShares({ amount: 12000n, currency: 'INR', params, participants: people, seed: 'x' });
+
+  it('keeps the saved composition until the split is changed', () => {
+    const kept = sharesOf(equalFamilyParams(saved, false, moved, people));
+    expect([kept.get('A'), kept.get('B'), kept.get('C')]).toEqual([3000n, 3000n, 6000n]);
+    const changed = sharesOf(equalFamilyParams(saved, true, moved, people));
+    expect([changed.get('A'), changed.get('B'), changed.get('C')]).toEqual([6000n, 3000n, 3000n]);
   });
 });

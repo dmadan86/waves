@@ -7,7 +7,7 @@
  * name to show, and its people read as ordinary rows.
  */
 
-import type { GroupUnits, UnitsParams } from '@waves/core';
+import { unitsSplitParams, type GroupUnits, type UnitsParams } from '@waves/core';
 
 export interface ShareRow {
   member_id: string;
@@ -48,4 +48,15 @@ export function groupSharesByFamily(
   }
   for (const share of shares) if (!placed.has(share.member_id)) groups.push(alone(share));
   return groups;
+}
+
+/** The by-family split for an equal bill: a saved bill keeps the composition it
+ *  was written with until the person changes the people or the method. */
+export function equalFamilyParams(
+  snapshot: UnitsParams | null,
+  touched: boolean,
+  units: GroupUnits | null | undefined,
+  participants: readonly string[],
+): UnitsParams {
+  return snapshot && !touched ? snapshot : unitsSplitParams(units, participants);
 }
