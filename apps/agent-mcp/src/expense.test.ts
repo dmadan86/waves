@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildExpenseWriteBody, splitParamsFor, expenseParticipants } from './expense';
+import {
+  buildExpenseWriteBody,
+  splitParamsFor,
+  expenseParticipants,
+  type AgentSplit,
+} from './expense';
 
 describe('MCP expense-write payloads', () => {
   it('defaults omitted currency from the group for rider/traveller splits', () => {
@@ -77,5 +82,20 @@ describe('who ends up on an expense', () => {
 
   it('leaves a lone payer paying for themselves', () => {
     expect(expenseParticipants('me', [])).toEqual(['me']);
+  });
+});
+
+describe('a units split', () => {
+  it('is passed to expense-write as given', () => {
+    const split: AgentSplit = {
+      kind: 'units',
+      units: { sharma: ['a', 'b'], c: ['c'] },
+      weights: { sharma: 2 },
+    };
+    expect(splitParamsFor(split)).toEqual(split);
+    expect(splitParamsFor({ kind: 'units', units: { c: ['c'] } })).toEqual({
+      kind: 'units',
+      units: { c: ['c'] },
+    });
   });
 });

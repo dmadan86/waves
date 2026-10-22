@@ -28,6 +28,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import { headOf, rollUpByFamily, unitIdOf, unitName, type Units } from './families';
 import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense';
 import { findPair, foldName, pairIds, type PairGroup } from './pair';
 import { pairwiseTransfers, simplifyNet, type Transfer } from './settle';
@@ -76,6 +77,18 @@ const SplitSchema = z
       weights: z
         .record(z.string(), z.number().int().positive())
         .describe('memberId → weight, e.g. {"a":2,"b":1}.'),
+    }),
+    z.object({
+      kind: z.literal('units'),
+      units: z
+        .record(z.string(), z.array(MemberId).min(1))
+        .describe(
+          'Split by family: familyId → member ids, from list_members (unitId). Every participant must sit in exactly one entry; someone in no family goes in an entry of their own, keyed by their member id. The amount divides across families first, then equally within each.',
+        ),
+      weights: z
+        .record(z.string(), z.number().positive())
+        .optional()
+        .describe('familyId → weight; omit for equal shares per family.'),
     }),
   ])
   .describe('How to split. Defaults to an equal split across participants.');
@@ -127,6 +140,18 @@ interface Member {
   handle: string | null;
   /** @deprecated Superseded by `handle`; kept while callers move over. */
   vpa: string | null;
+}
+
+const By = z
+  .enum(['member', 'family'])
+  .default('member')
+  .describe('"member" (default) or "family": roll up by the group\'s families.');
+
+/** `groups.units` for a group, or null when it has none. */
+async function loadUnits(supabase: SupabaseClient, groupId: string): Promise<Units | null> {
+  const { data } = await supabase.from('groups').select('units').eq('id', groupId).limit(1);
+  const units = (data?.[0] as { units?: Units | null } | undefined)?.units;
+  return units && Object.keys(units).length > 0 ? units : null;
 }
 
 /** A group's current members, named, with "you" marked and how each is paid. */
@@ -308,12 +333,20 @@ export function buildWavesServer(
     'list_members',
     {
       description:
-        'The members of a group, with their member ids. Expenses and settlements are addressed by member id, not by person, so resolve names here first. "isYou" marks the signed-in user, who must be a party to any settlement.',
+        'The members of a group, with their member ids. Expenses and settlements are addressed by member id, not by person, so resolve names here first. "isYou" marks the signed-in user, who must be a party to any settlement. When the group has families, each member also carries "unitId" and "unitName" (null when in no family); use unitId keys in a {kind:"units"} split.',
       inputSchema: { groupId: GroupId },
     },
     async ({ groupId }): Promise<ToolResult> => {
       const members = await loadMembers(supabase, meId, groupId);
-      return Array.isArray(members) ? ok(members) : members;
+      if (!Array.isArray(members)) return members;
+      const units = await loadUnits(supabase, groupId);
+      if (!units) return ok(members);
+      return ok(
+        members.map((m) => {
+          const unitId = unitIdOf(units, m.memberId);
+          return { ...m, unitId, unitName: unitId ? unitName(units, unitId) : null };
+        }),
+      );
     },
   );
 
@@ -321,10 +354,10 @@ export function buildWavesServer(
     'get_balances',
     {
       description:
-        'Who owes what in a group, per member and currency, in minor units. A positive balance is owed to that member; a negative balance is owed by them. Each row carries the member\'s name and "isYou". Settlements still waiting to be confirmed are not counted yet. For who should pay whom, use settlement_plan.',
-      inputSchema: { groupId: GroupId },
+        'Who owes what in a group, per member and currency, in minor units. A positive balance is owed to that member; a negative balance is owed by them. Each row carries the member\'s name and "isYou". Settlements still waiting to be confirmed are not counted yet. For who should pay whom, use settlement_plan. Pass by:"family" to roll the rows up by family (a family\'s balance is the sum of its members\'; each row carries unitId and the family name, and someone in no family is a family of one); the default "member" is unchanged.',
+      inputSchema: { groupId: GroupId, by: By },
     },
-    async ({ groupId }): Promise<ToolResult> => {
+    async ({ groupId, by }): Promise<ToolResult> => {
       const { data, error } = await supabase
         .from('group_balances')
         .select('member_id, currency, balance')
@@ -333,6 +366,21 @@ export function buildWavesServer(
       const members = await loadMembers(supabase, meId, groupId);
       if (!Array.isArray(members)) return members;
       const byId = new Map(members.map((m) => [m.memberId, m]));
+      if (by === 'family') {
+        const units = await loadUnits(supabase, groupId);
+        return ok(
+          rollUpByFamily(data ?? [], units).map((row) => ({
+            unitId: row.member_id,
+            name:
+              unitName(units, row.member_id) ?? byId.get(row.member_id)?.name ?? 'Former member',
+            isYou: members.some(
+              (m) => m.isYou && (unitIdOf(units, m.memberId) ?? m.memberId) === row.member_id,
+            ),
+            currency: row.currency,
+            balance: String(row.balance),
+          })),
+        );
+      }
       return ok(
         (data ?? []).map((row) => ({
           member_id: row.member_id,
@@ -349,10 +397,10 @@ export function buildWavesServer(
     'settlement_plan',
     {
       description:
-        'Who should pay whom, and how much, to settle a group — the same transfers the app suggests. With "simplify debts" on, the fewest payments that settle everyone; with it off, each real debt between two people. Each side carries a name, "isYou", and the payee\'s rail and handle for payment_link. "pending" lists settlements recorded but not yet confirmed: they are not counted in the plan yet, so check it before telling someone to pay again.',
-      inputSchema: { groupId: GroupId },
+        'Who should pay whom, and how much, to settle a group — the same transfers the app suggests. With "simplify debts" on, the fewest payments that settle everyone; with it off, each real debt between two people. Each side carries a name, "isYou", and the payee\'s rail and handle for payment_link. "pending" lists settlements recorded but not yet confirmed: they are not counted in the plan yet, so check it before telling someone to pay again. Pass by:"family" for transfers between families (always the fewest, over each family\'s net); each family side is its head, whose rail and handle are given, so record the payment head to head. The default "member" is unchanged.',
+      inputSchema: { groupId: GroupId, by: By },
     },
-    async ({ groupId }): Promise<ToolResult> => {
+    async ({ groupId, by }): Promise<ToolResult> => {
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .select('simplify_debts')
@@ -365,13 +413,14 @@ export function buildWavesServer(
       if (!Array.isArray(members)) return members;
 
       let transfers: Transfer[];
-      if (group.simplify_debts) {
+      const units = by === 'family' ? await loadUnits(supabase, groupId) : null;
+      if (by === 'family' || group.simplify_debts) {
         const { data, error } = await supabase
           .from('group_balances')
           .select('member_id, currency, balance')
           .eq('group_id', groupId);
         if (error) return fail(error.message);
-        transfers = simplifyNet(data ?? []);
+        transfers = simplifyNet(by === 'family' ? rollUpByFamily(data ?? [], units) : (data ?? []));
       } else {
         const { data, error } = await supabase
           .from('pairwise_balances')
@@ -388,12 +437,17 @@ export function buildWavesServer(
       if (!Array.isArray(pending)) return pending;
 
       const who = partyOf(members);
+      // A family key stands for its head, who pays and is paid; the family name leads.
+      const side = (key: string) => {
+        const named = unitName(units, key);
+        return named === null ? who(key) : { ...who(headOf(units, key)), unitId: key, name: named };
+      };
       return ok({
         simplified: Boolean(group.simplify_debts),
         settled: transfers.length === 0,
         transfers: transfers.map((t) => ({
-          from: who(t.from),
-          to: { ...who(t.to), ...payee(members, t.to) },
+          from: side(t.from),
+          to: { ...side(t.to), ...payee(members, headOf(units, t.to)) },
           amount: t.amount.toString(),
           currency: t.currency,
         })),

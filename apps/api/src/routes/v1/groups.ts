@@ -16,6 +16,7 @@
 
 import { Hono } from 'hono';
 import { GroupType, type GroupRow, type MemberRow } from '@waves/api-client';
+import { validateGroupUnits, type GroupUnits } from '@waves/core';
 
 import { caller, requireScope, type ApiEnv } from '../../server/authorize';
 import { ApiError } from '../../server/errors';
@@ -36,11 +37,11 @@ import {
   queryFlag,
   toPage,
 } from '../../server/request';
-import { toBalance, toGroup, toMember } from '../../server/resources';
+import { toBalance, toFamilyBalances, toGroup, toMember } from '../../server/resources';
 
 const GROUP_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, cover_emoji, photo_path,
-  start_date, end_date, archived_at, created_at, updated_seq
+  start_date, end_date, archived_at, created_at, updated_seq, units
 `;
 
 const MEMBER_COLUMNS = `
@@ -60,6 +61,7 @@ const EDITABLE = [
   'country_code',
   'start_date',
   'end_date',
+  'units',
 ] as const;
 
 export const groups = new Hono<ApiEnv>();
@@ -196,6 +198,18 @@ groups.patch('/groups/:groupId', requireScope('groups.write'), async (c) => {
     patch.country_code = countryOrThrow(body.country_code, 'country_code');
   if ('start_date' in body) patch.start_date = dateOrThrow(body.start_date, 'start_date');
   if ('end_date' in body) patch.end_date = dateOrThrow(body.end_date, 'end_date');
+  if ('units' in body) {
+    // Same check /sync makes: every id a member of this group, nobody in two
+    // families, a head who is in the family. Admin-only is the column guard's.
+    const members = await me.supabase.from('group_members').select('id').eq('group_id', groupId);
+    if (members.error) throw members.error;
+    const verdict = validateGroupUnits(
+      body.units,
+      new Set((members.data ?? []).map((row) => (row as { id: string }).id)),
+    );
+    if (!verdict.ok) throw new ApiError('invalid_request', verdict.reason);
+    patch.units = verdict.units;
+  }
   if ('archived' in body) {
     patch.archived_at = boolOrThrow(body.archived, 'archived') ? new Date().toISOString() : null;
   }
@@ -388,5 +402,19 @@ groups.get('/groups/:groupId/balances', requireScope('groups.read'), async (c) =
     .select('group_id, member_id, currency, balance')
     .eq('group_id', c.req.param('groupId'));
   if (error) throw error;
+  const by = c.req.query('by');
+  if (by !== undefined && by !== 'member' && by !== 'family') {
+    throw new ApiError('invalid_request', 'by is "member" (the default) or "family".');
+  }
+  if (by === 'family') {
+    const group = await me.supabase
+      .from('groups')
+      .select('units')
+      .eq('id', c.req.param('groupId'))
+      .limit(1);
+    if (group.error) throw group.error;
+    const units = ((group.data ?? [])[0] as { units?: GroupUnits | null } | undefined)?.units;
+    return c.json({ data: toFamilyBalances((data ?? []) as never, units ?? null) });
+  }
   return c.json({ data: (data ?? []).map((row) => toBalance(row as never)) });
 });
