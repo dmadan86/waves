@@ -84,6 +84,8 @@ import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
+import { useFlagEnabled } from '@/lib/flags';
+import { familyRows } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { SettleFirstDialog } from '@/components/SettleFirstDialog';
@@ -151,6 +153,9 @@ export default function GroupSettingsScreen() {
   const addGhost = useAddGhostMember(groupId);
   const muted = useGroupMuted(groupId);
   const setGroupMute = useSetGroupMute();
+  // Families (behind `group_units`): the row says how many, and how many people in them.
+  const familiesOn = useFlagEnabled('group_units');
+  const families = familyRows(group.data?.units, members.data ?? []).families;
 
   // A name is enough to start splitting with someone (ADR-006). Adding by name
   // or from the phone's contacts both live here; the members screen keeps the
@@ -1103,6 +1108,34 @@ export default function GroupSettingsScreen() {
               trailing={chevron}
               onPress={() => setRatesOpen(true)}
             />
+            {familiesOn ? (
+              <>
+                {divider}
+                <PlainListRow
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="people-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={t.families.title}
+                  subtitle={
+                    families.length > 0
+                      ? `${plural(locale, families.length, t.families.summary)} · ${plural(
+                          locale,
+                          families.reduce((sum, family) => sum + family.members.length, 0),
+                          t.families.people,
+                        )}`
+                      : t.families.rowHint
+                  }
+                  trailing={chevron}
+                  onPress={() => router.push(`/group/${groupId}/families`)}
+                />
+              </>
+            ) : null}
             {divider}
             {/* The member's own short tag, shown instead of the automatic type tag
               on Home and the group header: one row here, edited in a sheet. */}

@@ -3,6 +3,7 @@ import type {
   CategoryMeta,
   ExpenseLocation,
   FxRecord,
+  GroupUnits,
   MemberId,
   Payable,
   SplitParams,
@@ -88,6 +89,9 @@ export interface GroupRow {
   custom_tag?: string | null;
   /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon, or null for the app's colour. Optional like `custom_tag`. */
   cover_color?: string | null;
+  /** The families inside the group (`@waves/core` `GroupUnits`), or null for
+   *  none. Admin-set, group-visible. Optional like `custom_tag`. */
+  units?: GroupUnits | null;
   /** Whether a foreign bill with a stored rate counts in `default_currency`
    *  (ADR-003 amendment). Set only through `waves_set_group_convert`; new groups
    *  start true. Absent on a row mirrored before the column existed — which is

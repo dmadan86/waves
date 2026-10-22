@@ -32,7 +32,9 @@ import {
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
-import { SectionHeader } from '@/components/standard';
+import { SectionHeader, SegmentedPills } from '@/components/standard';
+import { familyBalanceItems, familyLabel, familyTransfers, hasFamilies } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -328,6 +330,16 @@ type FeedItem =
       readonly balance: bigint;
       readonly isFirst: boolean;
       readonly isLast: boolean;
+    }
+  | {
+      /** A family in the Families lens: its members' balances added up. */
+      readonly kind: 'family';
+      readonly key: string;
+      readonly id: string;
+      readonly name: string;
+      readonly people: number;
+      readonly balance: bigint;
+      readonly expanded: boolean;
     };
 
 /**
@@ -778,9 +790,26 @@ export default function GroupScreen() {
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
   const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
+  // The family lens (behind `group_units`): balances and settle-up by family,
+  // with People one tap away. A family settles as one — the plan runs over
+  // the families' balances and is recorded between the two heads.
+  const units = group.data?.units ?? null;
+  const familiesOn = useFlagEnabled('group_units') && hasFamilies(units);
+  const [lens, setLens] = useState<'families' | 'people'>('families');
+  const familyLens = familiesOn && lens === 'families';
+  const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
+  const lensLedger = useMemo(
+    () => (familyLens ? { ...ledger, transfers: familyTransfers(ledger.net, units) } : ledger),
+    [familyLens, ledger, units],
+  );
   // Settling up lives on the Balances tab: its payments, history and confirm sheet.
   // Once a payment is recorded the user stays here, on the balances that moved.
-  const settleFlow = useSettleFlow(groupId, ledger, () => setTab(Tab.Balances));
+  const settleFlow = useSettleFlow(
+    groupId,
+    lensLedger,
+    () => setTab(Tab.Balances),
+    familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
+  );
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();
@@ -970,22 +999,44 @@ export default function GroupScreen() {
   // one FeedItem per row, so switching to them renders only the handful of rows
   // on screen — not every member and every activity entry at once, which is what
   // made the tab switch stall (they were mapped in full inside the list footer).
-  const balanceItems: FeedItem[] = useMemo(
-    () =>
-      // Anyone still in the group, plus anyone who left but is still owed or owes:
-      // a departed member's open balance must not vanish from the list.
-      (everyone.data ?? [])
-        .filter((member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n)
-        .map((member, index, arr) => ({
-          kind: 'balance',
-          key: `balance-${member.id}`,
-          member,
-          balance: ledger.balances.get(member.id) ?? 0n,
-          isFirst: index === 0,
-          isLast: index === arr.length - 1,
-        })),
-    [everyone.data, ledger.balances],
-  );
+  const balanceItems: FeedItem[] = useMemo(() => {
+    // Anyone still in the group, plus anyone who left but is still owed or owes:
+    // a departed member's open balance must not vanish from the list.
+    const shown = (everyone.data ?? []).filter(
+      (member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n,
+    );
+    const row = (member: MemberRow, index: number, count: number): FeedItem => ({
+      kind: 'balance',
+      key: `balance-${member.id}`,
+      member,
+      balance: ledger.balances.get(member.id) ?? 0n,
+      isFirst: index === 0,
+      isLast: index === count - 1,
+    });
+    if (!familyLens) return shown.map((member, index) => row(member, index, shown.length));
+    // One row per family, its people unfolding under it on a tap.
+    const items: FeedItem[] = [];
+    for (const item of familyBalanceItems(units, shown, ledger.balances)) {
+      if (item.kind === 'person') {
+        items.push(row(item.member, items.length, 0));
+        continue;
+      }
+      const expanded = openFamilies.has(item.id);
+      items.push({
+        kind: 'family',
+        key: `family-${item.id}`,
+        id: item.id,
+        name: item.name,
+        people: item.members.length,
+        balance: item.balance,
+        expanded,
+      });
+      if (expanded) {
+        item.members.forEach((member, index) => items.push(row(member, index, 0)));
+      }
+    }
+    return items;
+  }, [everyone.data, ledger.balances, familyLens, units, openFamilies]);
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
   // two hand-rolled footers.
@@ -1223,6 +1274,80 @@ export default function GroupScreen() {
           theme={theme}
           nameOf={nameOf}
         />
+      );
+    }
+    if (item.kind === 'family') {
+      const open = () =>
+        setOpenFamilies((current) => {
+          const next = new Set(current);
+          if (next.has(item.id)) next.delete(item.id);
+          else next.add(item.id);
+          return next;
+        });
+      return (
+        <BalanceCard theme={theme}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: item.expanded }}
+            accessibilityLabel={`${item.name}. ${moneyAccessibilityLabel(
+              { minor: item.balance, currency },
+              balanceDirection(item.balance),
+              copyFor(locale).money,
+              { locale },
+            )}`}
+            onPress={open}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Row
+              style={{
+                gap: theme.spacing.md,
+                alignItems: 'center',
+                paddingVertical: ROW_PAD,
+                paddingHorizontal: theme.spacing.md,
+              }}
+            >
+              {/* A family is not a person, so no PersonAvatar: a tinted tile. */}
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="people-outline" size={iconSize.md} color={theme.color.brand} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text variant="subheading" numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {plural(locale, item.people, t.families.people)}
+                </Text>
+              </View>
+              <MoneyText
+                amount={item.balance}
+                currency={currency}
+                locale={locale}
+                mode="balance"
+                tone={
+                  balanceDirection(item.balance) === BalanceDirection.OwedToYou
+                    ? 'brand'
+                    : undefined
+                }
+              />
+              <View style={{ width: iconSize.md, alignItems: 'center' }}>
+                <Ionicons
+                  name={item.expanded ? 'chevron-up' : 'chevron-down'}
+                  size={iconSize.md}
+                  color={theme.color.textFaint}
+                />
+              </View>
+            </Row>
+          </Pressable>
+        </BalanceCard>
       );
     }
     if (item.kind === 'balance') {
@@ -1811,7 +1936,23 @@ export default function GroupScreen() {
                         make or receive come first, then everyone's balance. */}
                     {tab === Tab.Balances ? (
                       <View style={{ gap: theme.spacing.sm }}>
-                        <SectionHeader title={t.group.paymentsToSettle} />
+                        <SectionHeader
+                          title={t.group.paymentsToSettle}
+                          trailing={
+                            familiesOn ? (
+                              <Row style={{ gap: theme.spacing.xs }}>
+                                <SegmentedPills<'families' | 'people'>
+                                  value={lens}
+                                  onChange={setLens}
+                                  options={[
+                                    { value: 'families', label: t.families.byFamilies },
+                                    { value: 'people', label: t.families.byPeople },
+                                  ]}
+                                />
+                              </Row>
+                            ) : undefined
+                          }
+                        />
                         {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
                         <SectionHeader title={t.group.everyonesBalance} />
                       </View>

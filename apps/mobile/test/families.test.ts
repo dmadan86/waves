@@ -1,0 +1,153 @@
+import { describe, expect, it } from 'vitest';
+
+import type { GroupUnits, NetBalances } from '@waves/core';
+
+import {
+  familyBalanceItems,
+  familyLabel,
+  familyOf,
+  familyRows,
+  familyTransfers,
+  hasFamilies,
+  placeMember,
+  withFamily,
+} from '../src/lib/families';
+import { editStateFromVersion, splitKindOf, splitParamsFor } from '../src/lib/expenseEdit';
+import { SplitKind } from '../src/lib/split';
+import type { ExpenseVersionRow } from '../src/data/types';
+
+const UNITS: GroupUnits = {
+  sharma: { name: 'Sharma family', members: ['ravi', 'priya', 'anu'], head: 'priya' },
+  patel: { name: 'Patel family', members: ['sam', 'meera'] },
+};
+const m = (id: string, left_at: string | null = null) => ({ id, left_at });
+const MEMBERS = [m('ravi'), m('priya'), m('anu'), m('sam'), m('meera'), m('zara'), m('bo')];
+
+describe('family rows and balances', () => {
+  it('lists families with their members, then everyone on their own', () => {
+    const { families, onTheirOwn } = familyRows(UNITS, MEMBERS);
+    expect(families.map((f) => [f.id, f.members.map((x) => x.id)])).toEqual([
+      ['sharma', ['ravi', 'priya', 'anu']],
+      ['patel', ['sam', 'meera']],
+    ]);
+    expect(onTheirOwn.map((x) => x.id)).toEqual(['zara', 'bo']);
+    expect(hasFamilies(UNITS)).toBe(true);
+    expect(hasFamilies(null)).toBe(false);
+    expect(familyOf(UNITS, 'anu')?.name).toBe('Sharma family');
+    expect(familyOf(UNITS, 'zara')).toBeNull();
+  });
+
+  it('adds a family’s balances up and leaves singles as they are', () => {
+    const balances = new Map([
+      ['ravi', 500n],
+      ['priya', -200n],
+      ['anu', 100n],
+      ['sam', -300n],
+      ['zara', -100n],
+    ]);
+    // A departed member with no balance is already filtered out by the tab.
+    const items = familyBalanceItems(
+      UNITS,
+      MEMBERS.filter((x) => x.id !== 'meera'),
+      balances,
+    );
+    expect(items).toMatchObject([
+      { kind: 'family', id: 'sharma', balance: 400n },
+      { kind: 'family', id: 'patel', balance: -300n },
+      { kind: 'person', member: { id: 'zara' }, balance: -100n },
+      { kind: 'person', member: { id: 'bo' }, balance: 0n },
+    ]);
+  });
+
+  it('settles family to family, said as the two heads', () => {
+    const net: NetBalances = new Map([
+      [
+        'INR',
+        new Map([
+          ['ravi', 500n],
+          ['priya', -200n],
+          ['anu', 100n],
+          ['sam', -300n],
+          ['meera', 0n],
+          ['zara', -100n],
+        ]),
+      ],
+    ]);
+    const transfers = familyTransfers(net, UNITS);
+    // Sharma +400, Patel −300, zara −100 → Patel pays Sharma 300, zara pays Sharma 100.
+    expect(transfers).toEqual([
+      { from: 'sam', to: 'priya', currency: 'INR', amount: 300n },
+      { from: 'zara', to: 'priya', currency: 'INR', amount: 100n },
+    ]);
+    expect(familyLabel(UNITS, 'priya', 'Priya')).toBe('Sharma family (Priya)');
+    expect(familyLabel(UNITS, 'zara', 'Zara')).toBe('Zara');
+  });
+});
+
+describe('editing families', () => {
+  it('moves a member between families, re-heading a family whose head left', () => {
+    const moved = placeMember(UNITS, 'priya', 'patel');
+    expect(moved?.sharma).toEqual({
+      name: 'Sharma family',
+      members: ['ravi', 'anu'],
+      head: 'ravi',
+    });
+    expect(moved?.patel?.members).toEqual(['sam', 'meera', 'priya']);
+    const alone = placeMember(moved, 'priya', null);
+    expect(alone?.patel?.members).toEqual(['sam', 'meera']);
+    // The last member out deletes the family.
+    const gone = placeMember(placeMember(UNITS, 'sam', null), 'meera', null);
+    expect(gone?.patel).toBeUndefined();
+    expect(withFamily({ only: { name: 'x', members: ['a'] } }, 'only', null)).toBeNull();
+  });
+});
+
+describe('split by family in the editor', () => {
+  const base = {
+    weights: {},
+    percents: {},
+    exacts: {},
+    currency: 'INR',
+    participants: ['ravi', 'anu', 'zara'],
+  };
+
+  it('snapshots the families onto an equal split, and only an equal one', () => {
+    expect(splitParamsFor({ ...base, splitKind: SplitKind.Equal, byFamily: UNITS })).toEqual({
+      kind: 'units',
+      units: { sharma: ['ravi', 'anu'], zara: ['zara'] },
+    });
+    expect(splitParamsFor({ ...base, splitKind: SplitKind.Equal, byFamily: null })).toEqual({
+      kind: 'equal',
+    });
+    expect(
+      splitParamsFor({
+        ...base,
+        splitKind: SplitKind.Shares,
+        byFamily: UNITS,
+        weights: { ravi: '1' },
+      }).kind,
+    ).toBe('shares');
+  });
+
+  it('reopens a by-family bill as equal and an unknown kind as exact from the saved shares', () => {
+    expect(splitKindOf('units')).toBe(SplitKind.Equal);
+    expect(splitKindOf('something_new')).toBe(SplitKind.Exact);
+    const version = {
+      amount: '300',
+      currency: 'INR',
+      description: 'Dinner',
+      expense_date: '2026-10-25',
+      split_type: 'something_new',
+      split_params: { kind: 'something_new' },
+      payers: [{ member_id: 'ravi', amount: '300' }],
+      shares: [
+        { member_id: 'ravi', amount: '100' },
+        { member_id: 'anu', amount: '200' },
+      ],
+    } as unknown as ExpenseVersionRow;
+    const state = editStateFromVersion(version, null);
+    expect(state.splitKind).toBe(SplitKind.Exact);
+    expect(state.exacts).toEqual({ ravi: '1.00', anu: '2.00' });
+    expect(state.participants).toEqual(['ravi', 'anu']);
+  });
+});
