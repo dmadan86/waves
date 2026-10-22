@@ -142,6 +142,7 @@ export function VoiceTop({
               marginTop: -WAVEFORM_HEIGHT / 2,
               height: WAVEFORM_HEIGHT,
               justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
             <AudioWaveform level={level} reduceMotion={reduceMotion} />
