@@ -53,6 +53,7 @@ import {
   peopleSignatureKey,
   resolveIntentPeople,
   type ExpenseLocation,
+  type GroupUnits,
   type LearnedName,
   type SpendQuery,
   type SplitParams,
@@ -317,12 +318,15 @@ function planWho(
   amountMinor: bigint | null,
   draftCount: number,
   learned: readonly LearnedName[],
+  families?: GroupUnits | null,
 ): WhoView {
   const resolved = resolveIntentPeople(intent, members, { learned, picks: edit?.picks });
   const plan = buildVoiceSplit(resolved, {
     memberIds: members.map((member) => member.id),
     meMemberId: members.find((member) => member.isMe)?.id ?? null,
     amountMinor,
+    families,
+    members,
   });
   let { payerId, participants: participantIds, params } = plan;
   let problems = [...plan.problems];
@@ -1736,6 +1740,7 @@ export default function VoiceScreen() {
       first ? toMinor(first.amount, firstCurrency) : null,
       drafts.length,
       targetLearned,
+      target.group.data?.units,
     );
   })();
 

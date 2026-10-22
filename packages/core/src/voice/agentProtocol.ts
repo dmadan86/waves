@@ -151,7 +151,7 @@ export interface VoiceStreamTokenResponse {
   readonly encoding: 'linear16';
 }
 
-export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'shares';
+export type VoiceSplitMode = 'equal' | 'exact' | 'percent' | 'shares' | 'units';
 
 export interface VoiceSplitShare {
   readonly memberId: string;

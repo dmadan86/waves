@@ -148,6 +148,7 @@ export function useAgentLocalData(viewerId: string | null): AgentLocalData {
         convertsToGroupCurrency: group.convert_to_group_currency === true,
         photoPath: group.photo_path,
         coverEmoji: group.cover_emoji,
+        units: group.units,
         members: members.map((member) => ({
           id: member.id,
           name: member.profile?.display_name ?? member.ghost_name ?? '',
