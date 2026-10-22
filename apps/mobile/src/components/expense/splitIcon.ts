@@ -39,6 +39,8 @@ const SPLIT_ICONS: Record<string, IconName> = {
   adjustment: 'options-outline',
   // Line by line, off the bill itself.
   itemized: 'list-outline',
+  // Blocks of unequal size: one share per family, then split inside it.
+  units: 'apps-outline',
 };
 
 /** The glyph for a split type, falling back to the even-split grid for a value

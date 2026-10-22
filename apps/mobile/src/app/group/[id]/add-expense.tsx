@@ -37,6 +37,7 @@ import {
   type MemberId,
   type PaymentMethod,
   type SplitParams,
+  type UnitsParams,
 } from '@waves/core';
 import {
   AmountField,
@@ -130,6 +131,8 @@ import { recogniseReceipt } from '@/lib/ocr';
 import { capturePaymentMethod } from '@/lib/captureAssign';
 import { matchMemberNames, stripMemberNames } from '@/lib/voiceExpense';
 import { fillEntries, SplitKind, type SplitEntries } from '@/lib/split';
+import { hasFamilies } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import {
   agentHandoffCategory,
   agentHandoffDate,
@@ -193,6 +196,10 @@ interface ExpenseDraft {
   amount: string;
   description: string;
   splitKind: SplitKind;
+  /** A saved by-family bill's own composition, while the edit has not touched the split. */
+  savedUnits?: UnitsParams | null;
+  /** Equal between people or between families. Absent on drafts from before families. */
+  splitBy?: 'people' | 'families';
   /**
    * Who paid, before a bill could be paid by several people. Drafts written by
    * an older build still carry it and nothing else, so it is read as a
@@ -461,6 +468,14 @@ export default function AddExpenseScreen() {
   const [amount, setAmount] = useState<bigint>(0n);
   const [description, setDescription] = useState('');
   const [splitKind, setSplitKind] = useState<SplitKind>(SplitKind.Equal);
+  // Equal between people, or equal between families (one share per family,
+  // then equal inside it). Only means anything on an equal split in a group
+  // with families and the `group_units` flag on; starts on families, since a
+  // group that has set them up wants them, and an edit reopens as saved.
+  const [splitBy, setSplitBy] = useState<'people' | 'families'>('families');
+  // A saved by-family bill keeps its own composition until the split or the
+  // people are changed on purpose; a description edit never re-divides it.
+  const [savedUnits, setSavedUnits] = useState<UnitsParams | null>(null);
   /**
    * Who put the money in, and how much each of them put in (minor units).
    *
@@ -841,6 +856,9 @@ export default function AddExpenseScreen() {
       setAmount(routeAmount(draft.amount));
       setDescription(draft.description);
       setSplitKind(draft.splitKind);
+      setSavedUnits(draft.savedUnits ?? null);
+      // A draft from before families carries no choice; it was per person.
+      setSplitBy(draft.splitBy ?? 'people');
       // The payer picker is on the edit form too now, so a draft's payers are a
       // change somebody was in the middle of making rather than stale values to
       // discard. `payers` is the current shape; `payer` is what an older build
@@ -917,6 +935,8 @@ export default function AddExpenseScreen() {
       setBalanceDueDate(seeded.balanceDueDate);
       setParticipants(seeded.participants);
       setSplitKind(seeded.splitKind);
+      setSplitBy(version.split_type === 'units' ? 'families' : 'people');
+      setSavedUnits(seeded.savedUnits ?? null);
       setWeights(seeded.weights);
       setPercents(seeded.percents);
       setExacts(seeded.exacts);
@@ -1302,6 +1322,8 @@ export default function AddExpenseScreen() {
       amount: amount.toString(),
       description,
       splitKind,
+      savedUnits,
+      splitBy,
       payers: Object.fromEntries([...payers].map(([id, paid]) => [id, paid.toString()])),
       lockedPayers: [...lockedPayers],
       currency: expenseCurrency,
@@ -1356,9 +1378,24 @@ export default function AddExpenseScreen() {
     };
   }, [seededFor, editing, captureId, voice, location]);
 
+  const familiesOn = useFlagEnabled('group_units') && hasFamilies(group.data?.units);
+  const byFamily =
+    familiesOn && splitBy === 'families' && splitKind === SplitKind.Equal
+      ? (group.data?.units ?? null)
+      : null;
   const splitParams: SplitParams = useMemo(
-    () => splitParamsFor({ splitKind, weights, percents, exacts, participants, currency }),
-    [splitKind, weights, percents, exacts, currency, participants],
+    () =>
+      splitParamsFor({
+        splitKind,
+        weights,
+        percents,
+        exacts,
+        participants,
+        currency,
+        byFamily,
+        savedUnits,
+      }),
+    [splitKind, weights, percents, exacts, currency, participants, byFamily, savedUnits],
   );
 
   // Preview with the same engine the server uses; if they ever disagree the
@@ -1446,6 +1483,8 @@ export default function AddExpenseScreen() {
           currency,
           fx,
           splitKind,
+          byFamily,
+          savedUnits,
           participants,
           weights,
           percents,
@@ -1757,6 +1796,7 @@ export default function AddExpenseScreen() {
   };
 
   const toggleParticipant = (memberId: MemberId): void => {
+    setSavedUnits(null);
     setParticipants((current) =>
       current.includes(memberId)
         ? current.filter((item) => item !== memberId)
@@ -1764,8 +1804,20 @@ export default function AddExpenseScreen() {
     );
   };
 
+  // A family's tick: everyone in it comes in, or — when they all already are —
+  // everyone in it goes out.
+  const toggleFamily = (memberIds: readonly MemberId[]): void => {
+    setSavedUnits(null);
+    setParticipants((current) =>
+      memberIds.every((id) => current.includes(id))
+        ? current.filter((id) => !memberIds.includes(id))
+        : [...current, ...memberIds.filter((id) => !current.includes(id))],
+    );
+  };
+
   // Ticks everyone in. Whoever is already in keeps their place in the list.
   const selectAllParticipants = (): void => {
+    setSavedUnits(null);
     setParticipants((current) => [
       ...current,
       ...(members.data ?? []).map((member) => member.id).filter((id) => !current.includes(id)),
@@ -2422,7 +2474,36 @@ export default function AddExpenseScreen() {
                 </Pressable>
               ) : null}
             </Row>
-            <SplitKindSegments value={splitKind} onChange={setSplitKind} />
+            <SplitKindSegments
+              value={splitKind}
+              onChange={(next) => {
+                setSavedUnits(null);
+                setSplitKind(next);
+              }}
+            />
+            {/* Equal between people or between families. Only on an equal
+                split: the other kinds are typed per person. */}
+            {familiesOn && splitKind === SplitKind.Equal ? (
+              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                <Text variant="caption" tone="muted">
+                  {t.families.splitBy}
+                </Text>
+                <ChipRow<'people' | 'families'>
+                  options={[
+                    { value: 'people', label: t.families.byPeople },
+                    { value: 'families', label: t.families.byFamilies },
+                  ]}
+                  value={splitBy}
+                  onChange={(next) => {
+                    setSavedUnits(null);
+                    setSplitBy(next);
+                  }}
+                  variant="brand"
+                  onCard
+                  wrap
+                />
+              </Row>
+            ) : null}
             <SplitParticipants
               members={members.data ?? []}
               viewerId={viewerId}
@@ -2436,6 +2517,8 @@ export default function AddExpenseScreen() {
               lineAmount={lineAmount}
               splitIssue={splitIssue}
               onSelectAll={selectAllParticipants}
+              units={byFamily}
+              onToggleFamily={toggleFamily}
             />
           </Card>
 

@@ -25,15 +25,18 @@ import {
   money,
   PayerProblemCode,
   serialisePayers,
+  unitsSplitParams,
   validatePayers,
   type CategoryMeta,
   type CurrencyCode,
   type ExpenseLocation,
   type FxRecord,
+  type GroupUnits,
   type MemberId,
   type PayerMap,
   type PaymentMethod,
   type SplitParams,
+  type UnitsParams,
 } from '@waves/core';
 
 import type { ExpenseVersionRow } from '../data/types';
@@ -66,6 +69,14 @@ export interface ExpenseEditState {
   currency: string;
   fx: FxRecord | null;
   splitKind: SplitKind;
+  /** The group's families when an equal split is "by family" (one share per
+   *  family); null or absent splits per person. Only read for `SplitKind.Equal`. */
+  byFamily?: GroupUnits | null;
+  /** A saved by-family bill's own composition, kept while an edit leaves the
+   *  split alone — so changing the description never re-divides the money by
+   *  today's families (or by nobody, with the flag off). The editor clears it
+   *  the moment the split or the people change. Only read for `SplitKind.Equal`. */
+  savedUnits?: UnitsParams | null;
   participants: MemberId[];
   /** What was typed per member, kept apart per kind (see add-expense). */
   weights: SplitEntries;
@@ -87,16 +98,31 @@ export interface ExpenseEditState {
   balanceDueDate: string | null;
 }
 
-/** The split kind a saved `split_type` reopens as. Itemized and adjustment
- *  splits have no editor of their own and reopen as equal, as they always have. */
-export function splitKindOf(splitType: SplitParams['kind']): SplitKind {
-  return splitType === 'percent'
-    ? SplitKind.Percent
-    : splitType === 'shares'
-      ? SplitKind.Shares
-      : splitType === 'exact'
-        ? SplitKind.Exact
-        : SplitKind.Equal;
+/**
+ * The split kind a saved `split_type` reopens as. Itemized and adjustment
+ * splits have no editor of their own and reopen as equal, as they always have.
+ * A by-family split reopens as equal with the family choice on (the editor
+ * re-snapshots the current families). A kind this build has never met — a
+ * newer server writing an older client — reopens as exact, prefilled from the
+ * saved shares, so the bill opens with its real numbers instead of crashing
+ * or silently re-splitting.
+ */
+export function splitKindOf(splitType: SplitParams['kind'] | (string & {})): SplitKind {
+  switch (splitType) {
+    case 'percent':
+      return SplitKind.Percent;
+    case 'shares':
+      return SplitKind.Shares;
+    case 'exact':
+      return SplitKind.Exact;
+    case 'equal':
+    case 'adjustment':
+    case 'itemized':
+    case 'units':
+      return SplitKind.Equal;
+    default:
+      return SplitKind.Exact;
+  }
 }
 
 /** A saved split's integers, back as the text somebody would have typed. */
@@ -142,6 +168,7 @@ export function editStateFromVersion(
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
     splitKind: splitKindOf(version.split_type),
+    savedUnits: params.kind === 'units' ? params : null,
     participants: version.shares.map((share) => share.member_id),
     weights: params.kind === 'shares' ? textEntries(params.weights, 'shares') : {},
     percents: params.kind === 'percent' ? textEntries(params.basisPoints, 'percent') : {},
@@ -153,7 +180,15 @@ export function editStateFromVersion(
               formatMinorInput(BigInt(minor), version.currency as CurrencyCode),
             ]),
           )
-        : {},
+        : splitKindOf(version.split_type) === SplitKind.Exact
+          ? // An unknown kind: the saved shares are the only numbers this build can trust.
+            Object.fromEntries(
+              version.shares.map((share) => [
+                share.member_id,
+                formatMinorInput(BigInt(share.amount), version.currency as CurrencyCode),
+              ]),
+            )
+          : {},
     payers,
     paymentMethod: (version.payment_method as PaymentMethod | null) ?? 'cash',
     location: version.location ?? null,
@@ -168,9 +203,23 @@ export function editStateFromVersion(
 export function splitParamsFor(
   state: Pick<
     ExpenseEditState,
-    'splitKind' | 'weights' | 'percents' | 'exacts' | 'participants' | 'currency'
+    | 'splitKind'
+    | 'weights'
+    | 'percents'
+    | 'exacts'
+    | 'participants'
+    | 'currency'
+    | 'byFamily'
+    | 'savedUnits'
   >,
 ): SplitParams {
+  // An untouched by-family split keeps the bill's own composition.
+  if (state.splitKind === SplitKind.Equal && state.savedUnits) return state.savedUnits;
+  // Equal by family: one share per family, then equal inside it. The families
+  // are snapshotted onto the bill here, so the server needs nothing else.
+  if (state.splitKind === SplitKind.Equal && state.byFamily) {
+    return unitsSplitParams(state.byFamily, state.participants);
+  }
   if (state.splitKind === SplitKind.Shares) {
     return { kind: 'shares', weights: entryValues('shares', state.weights, state.participants) };
   }

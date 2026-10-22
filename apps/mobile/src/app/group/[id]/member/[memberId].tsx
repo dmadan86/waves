@@ -59,6 +59,8 @@ import { useBottomClearance } from '@/lib/clearance';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { familyOf } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { settleHref } from '@/lib/groupTab';
 
 /** The crown's gold — there is no theme token for it, and it has to read as
@@ -243,6 +245,7 @@ export default function MemberScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  const familiesOn = useFlagEnabled('group_units');
 
   const { group, members, expenses } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
@@ -691,6 +694,9 @@ export default function MemberScreen() {
   const activeMembers = (members.data ?? []).filter((row) => !row.left_at);
   const groupTitle = group.data?.name?.trim() || groupLabel(group.data, members.data, viewerId);
   const membersSummary = groupLabel(undefined, members.data, viewerId);
+  // Their family, when the group has them: the one line that explains why the
+  // person lens can show a debt the family lens does not.
+  const family = familiesOn ? familyOf(group.data?.units, memberId ?? '') : null;
 
   const goToInsights = (): void => router.push(`/group/${groupId}/insights`);
 
@@ -729,6 +735,7 @@ export default function MemberScreen() {
         <Row style={{ gap: theme.spacing.xs, flexWrap: 'wrap' }}>
           {ghost ? <Badge label={t.notJoinedYet} /> : null}
           {blocked ? <Badge label={t.blocked.badge} /> : null}
+          {family ? <Badge label={family.name} /> : null}
           {member.role === 'admin' ? <Badge label={t.people.admin} tone="brand" /> : null}
           {isMe ? <Badge label={t.people.you} tone="positive" /> : null}
         </Row>
@@ -797,6 +804,11 @@ export default function MemberScreen() {
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {membersSummary}
           </Text>
+          {family ? (
+            <Text variant="caption" tone="muted" numberOfLines={2} align="center">
+              {fill(t.families.partOf, { name: family.name })}
+            </Text>
+          ) : null}
           <Row style={{ gap: theme.spacing.xs, marginTop: 2 }}>
             <HeaderPill
               label={`\u{1F465} ${plural(locale, activeMembers.length, t.memberCount)}`}

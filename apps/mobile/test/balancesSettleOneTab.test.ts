@@ -24,7 +24,7 @@ describe('group screen: one Balances tab', () => {
 
   it("shows the payments section, then everyone's balance, on Balances", () => {
     const payments = screen.indexOf('<SettlePayments');
-    const balances = screen.indexOf('t.group.everyonesBalance');
+    const balances = screen.indexOf('title={t.group.everyonesBalance}');
     expect(payments).toBeGreaterThan(-1);
     expect(balances).toBeGreaterThan(payments);
     expect(screen.indexOf('t.group.paymentsToSettle')).toBeLessThan(payments);
@@ -71,7 +71,7 @@ describe('settle deep links map to Balances', () => {
 describe('settling keeps you in the group', () => {
   it('passes onRecorded so recording does not router.back() out of the group', () => {
     expect(read('app/group/[id]/index.tsx')).toMatch(
-      /useSettleFlow\(groupId, ledger, \(\) => setTab\(Tab\.Balances\)\)/,
+      /useSettleFlow\(\s*groupId,\s*lensLedger,\s*\(\) => setTab\(Tab\.Balances\),/,
     );
   });
 

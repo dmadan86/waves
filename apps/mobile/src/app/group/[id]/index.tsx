@@ -32,7 +32,16 @@ import {
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
-import { SectionHeader } from '@/components/standard';
+import { PillButton, SectionHeader } from '@/components/standard';
+import { useDialog } from '@/lib/dialog';
+import {
+  familyBalanceItems,
+  familyEmoji,
+  familyLabel,
+  familyTransfers,
+  hasFamilies,
+} from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -53,6 +62,7 @@ import {
   moneyAccessibilityLabel,
   paidBy,
   type MemberId,
+  unitOf,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupRecurring } from '@/data/groupRecurring';
@@ -328,6 +338,16 @@ type FeedItem =
       readonly balance: bigint;
       readonly isFirst: boolean;
       readonly isLast: boolean;
+    }
+  | {
+      /** A family in the Families lens: its members' balances added up. */
+      readonly kind: 'family';
+      readonly key: string;
+      readonly id: string;
+      readonly name: string;
+      readonly members: readonly MemberRow[];
+      readonly balance: bigint;
+      readonly expanded: boolean;
     };
 
 /**
@@ -778,9 +798,41 @@ export default function GroupScreen() {
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
   const clearA11yRemind = useCallback(() => setA11yRemindId(null), []);
   const ledger = useGroupLedger(groupId, viewerId);
+  // The family lens (behind `group_units`): balances and settle-up by family,
+  // with People one tap away. A family settles as one — the plan runs over
+  // the families' balances and is recorded between the two heads.
+  const units = group.data?.units ?? null;
+  const familiesOn = useFlagEnabled('group_units') && hasFamilies(units);
+  const [lens, setLens] = useState<'families' | 'people'>('families');
+  const familyLens = familiesOn && lens === 'families';
+  const { choose } = useDialog();
+  const pickLens = async (): Promise<void> => {
+    const picked = await choose({
+      title: t.group.everyonesBalance,
+      options: [
+        { id: 'families', label: t.families.byFamily },
+        { id: 'people', label: t.families.byPerson },
+      ],
+    });
+    if (picked === 'families' || picked === 'people') setLens(picked);
+  };
+  const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
+  const lensLedger = useMemo(
+    () =>
+      familyLens
+        ? { ...ledger, transfers: familyTransfers(ledger.net, units, ledger.myMemberId) }
+        : ledger,
+    [familyLens, ledger, units],
+  );
   // Settling up lives on the Balances tab: its payments, history and confirm sheet.
   // Once a payment is recorded the user stays here, on the balances that moved.
-  const settleFlow = useSettleFlow(groupId, ledger, () => setTab(Tab.Balances));
+  const settleFlow = useSettleFlow(
+    groupId,
+    lensLedger,
+    () => setTab(Tab.Balances),
+    familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
+    familyLens ? (memberId) => unitOf(units, memberId) ?? memberId : undefined,
+  );
   const removeDemo = useRemoveDemo();
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();
@@ -970,22 +1022,41 @@ export default function GroupScreen() {
   // one FeedItem per row, so switching to them renders only the handful of rows
   // on screen — not every member and every activity entry at once, which is what
   // made the tab switch stall (they were mapped in full inside the list footer).
-  const balanceItems: FeedItem[] = useMemo(
-    () =>
-      // Anyone still in the group, plus anyone who left but is still owed or owes:
-      // a departed member's open balance must not vanish from the list.
-      (everyone.data ?? [])
-        .filter((member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n)
-        .map((member, index, arr) => ({
-          kind: 'balance',
-          key: `balance-${member.id}`,
-          member,
-          balance: ledger.balances.get(member.id) ?? 0n,
-          isFirst: index === 0,
-          isLast: index === arr.length - 1,
-        })),
-    [everyone.data, ledger.balances],
-  );
+  const balanceItems: FeedItem[] = useMemo(() => {
+    // Anyone still in the group, plus anyone who left but is still owed or owes:
+    // a departed member's open balance must not vanish from the list.
+    const shown = (everyone.data ?? []).filter(
+      (member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n,
+    );
+    const row = (member: MemberRow, index: number, count: number): FeedItem => ({
+      kind: 'balance',
+      key: `balance-${member.id}`,
+      member,
+      balance: ledger.balances.get(member.id) ?? 0n,
+      isFirst: index === 0,
+      isLast: index === count - 1,
+    });
+    if (!familyLens) return shown.map((member, index) => row(member, index, shown.length));
+    // One row per family, its people unfolding under it on a tap.
+    const items: FeedItem[] = [];
+    for (const item of familyBalanceItems(units, shown, ledger.balances)) {
+      if (item.kind === 'person') {
+        items.push(row(item.member, items.length, 0));
+        continue;
+      }
+      const expanded = openFamilies.has(item.id);
+      items.push({
+        kind: 'family',
+        key: `family-${item.id}`,
+        id: item.id,
+        name: item.name,
+        members: item.members,
+        balance: item.balance,
+        expanded,
+      });
+    }
+    return items;
+  }, [everyone.data, ledger.balances, familyLens, units, openFamilies]);
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
   // two hand-rolled footers.
@@ -1225,8 +1296,7 @@ export default function GroupScreen() {
         />
       );
     }
-    if (item.kind === 'balance') {
-      const { member, balance } = item;
+    const balanceBody = (member: MemberRow, balance: bigint): React.JSX.Element => {
       // The name the row is allowed to say — already masked for a blocked
       // person, and it travels with the tap so the destination opens under the
       // same mask rather than flashing the real name while it loads.
@@ -1352,7 +1422,7 @@ export default function GroupScreen() {
         </Row>
       );
       return (
-        <BalanceCard theme={theme}>
+        <>
           {personKey ? (
             <Pressable
               accessibilityRole="button"
@@ -1381,8 +1451,113 @@ export default function GroupScreen() {
           ) : (
             row
           )}
+        </>
+      );
+    };
+    if (item.kind === 'family') {
+      const toggle = () =>
+        setOpenFamilies((current) => {
+          const next = new Set(current);
+          if (next.has(item.id)) next.delete(item.id);
+          else next.add(item.id);
+          return next;
+        });
+      return (
+        <BalanceCard theme={theme}>
+          <Row
+            style={{
+              gap: theme.spacing.md,
+              alignItems: 'center',
+              padding: theme.spacing.md,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: theme.radius.lg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Text style={{ fontSize: 22 }}>{familyEmoji(item.members.length)}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text variant="subheading" numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {plural(locale, item.members.length, t.families.people)}
+              </Text>
+            </View>
+            <MoneyText
+              amount={item.balance}
+              currency={currency}
+              locale={locale}
+              mode="balance"
+              tone={
+                balanceDirection(item.balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
+              }
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: item.expanded }}
+              accessibilityLabel={`${item.name}. ${moneyAccessibilityLabel(
+                { minor: item.balance, currency },
+                balanceDirection(item.balance),
+                copyFor(locale).money,
+                { locale },
+              )}`}
+              onPress={toggle}
+              style={({ pressed }) => ({
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons
+                name={item.expanded ? 'chevron-up' : 'chevron-down'}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          </Row>
+          {item.expanded ? (
+            <View
+              style={{
+                margin: theme.spacing.sm,
+                marginTop: 0,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.surfaceMuted,
+                overflow: 'hidden',
+              }}
+            >
+              {item.members.map((member, index) => (
+                <View key={member.id}>
+                  {index > 0 ? (
+                    <View
+                      style={{
+                        height: 1,
+                        marginHorizontal: theme.spacing.md,
+                        backgroundColor: theme.color.border,
+                      }}
+                    />
+                  ) : null}
+                  {balanceBody(member, ledger.balances.get(member.id) ?? 0n)}
+                </View>
+              ))}
+            </View>
+          ) : null}
         </BalanceCard>
       );
+    }
+    if (item.kind === 'balance') {
+      return <BalanceCard theme={theme}>{balanceBody(item.member, item.balance)}</BalanceCard>;
     }
     return null;
   };
@@ -1813,7 +1988,19 @@ export default function GroupScreen() {
                       <View style={{ gap: theme.spacing.sm }}>
                         <SectionHeader title={t.group.paymentsToSettle} />
                         {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
-                        <SectionHeader title={t.group.everyonesBalance} />
+                        <SectionHeader
+                          title={t.group.everyonesBalance}
+                          trailing={
+                            familiesOn ? (
+                              <PillButton
+                                label={
+                                  lens === 'families' ? t.families.byFamily : t.families.byPerson
+                                }
+                                onPress={() => void pickLens()}
+                              />
+                            ) : undefined
+                          }
+                        />
                       </View>
                     ) : null}
                   </View>

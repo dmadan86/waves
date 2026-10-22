@@ -21,6 +21,7 @@ const SPLIT_LABELS: Record<string, string> = {
   shares: 'By shares',
   adjustment: 'Adjusted',
   itemized: 'Itemized',
+  units: 'By family',
 };
 
 export function splitMethodLabel(splitType: string | null | undefined): string {
