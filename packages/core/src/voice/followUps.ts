@@ -334,6 +334,11 @@ export function setEnabled(prefs: FollowUpPrefs, enabled: boolean): FollowUpPref
   return { ...prefs, enabled };
 }
 
+/** How many question types are muted right now, by choice or by skipping. */
+export function mutedCount(prefs: FollowUpPrefs): number {
+  return FOLLOW_UP_KINDS.filter((kind) => isMuted(prefs, kind)).length;
+}
+
 /** "Reset muted": every type is asked again and what was learned is forgotten. */
 export function resetMuted(prefs: FollowUpPrefs): FollowUpPrefs {
   return { ...prefs, ...DEFAULT_PREFS, enabled: prefs.enabled, wrapUpShown: prefs.wrapUpShown };
