@@ -18,7 +18,7 @@
  * allocations are new, and that is what "lossless" honestly covers (M5).
  */
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
@@ -64,6 +64,7 @@ import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
+import { importGate, maybeSelf, suggestSelf } from '@/lib/importSelf';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -175,6 +176,15 @@ export default function ImportScreen() {
   const [newGroupName, setNewGroupName] = useState('');
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [mapping, setMapping] = useState<Record<string, Mapping>>({});
+  /** "I'm not in this file" — a deliberate answer to "which one is you?". */
+  const [notInFile, setNotInFile] = useState(false);
+  /** The name we guessed was the signed-in person, so the screen can say so. */
+  const [suggested, setSuggested] = useState<string | null>(null);
+  /** Import was tapped before "you" was answered: show the question, loudly. */
+  const [needYou, setNeedYou] = useState(false);
+  const hintedMe = parsed ? maybeSelf(parsed.people, profile?.display_name) : null;
+  const scrollRef = useRef<ScrollView>(null);
+  const youSectionY = useRef(0);
   /**
    * Generated once per parsed file and reused on every retry. This is what
    * makes a second tap after a dropped connection a replay rather than a
@@ -200,9 +210,21 @@ export default function ImportScreen() {
     setParsed(loaded);
     setNewGroupName(loaded.suggestedName);
     setMutationIds([...loaded.expenses, ...loaded.settlements].map(() => randomUUID()));
-    // Claiming a name as yourself is a deliberate act. Guessing by name would
-    // silently merge your ledger with a stranger who shares your first name.
-    setMapping(Object.fromEntries(loaded.people.map((person) => [person, { kind: 'ghost' }])));
+    // Everyone starts as somebody new, except a name that unambiguously matches
+    // the signed-in person: that one is pre-selected as "you" and labelled as a
+    // guess, one tap to change. Two matches is no guess at all (see suggestSelf).
+    const guess = suggestSelf(loaded.people, profile?.display_name);
+    setSuggested(guess);
+    setNotInFile(false);
+    setNeedYou(false);
+    setMapping(
+      Object.fromEntries(
+        loaded.people.map((person) => [
+          person,
+          person === guess ? ({ kind: 'me' } as Mapping) : ({ kind: 'ghost' } as Mapping),
+        ]),
+      ),
+    );
     setTarget(NEW_GROUP);
     setMembers([]);
   };
@@ -306,40 +328,75 @@ export default function ImportScreen() {
 
   const chooseTarget = async (groupId: string): Promise<void> => {
     setTarget(groupId);
+    // Existing-member links belong to the old target; "you" carries over.
     setMapping((current) =>
-      Object.fromEntries(Object.keys(current).map((person) => [person, { kind: 'ghost' }])),
+      Object.fromEntries(
+        Object.entries(current).map(([person, value]) => [
+          person,
+          value.kind === 'me' ? value : ({ kind: 'ghost' } as Mapping),
+        ]),
+      ),
     );
     setMembers(groupId === NEW_GROUP ? [] : await fetchMembers(groupId));
   };
 
-  /** Cycle a column through: new person → you → each existing member → back. */
-  const cycle = (person: string): void => {
+  /** "This is me": one name at most is you, so taking it takes it from the rest. */
+  const chooseMe = (person: string): void => {
+    setNotInFile(false);
+    setNeedYou(false);
+    setMapping((current) => ({
+      ...Object.fromEntries(
+        Object.entries(current).map(([key, value]) => [
+          key,
+          value.kind === 'me' ? ({ kind: 'ghost' } as Mapping) : value,
+        ]),
+      ),
+      [person]: { kind: 'me' },
+    }));
+  };
+
+  /** "I'm not in this file": nobody is you; every name is somebody else. */
+  const chooseNotInFile = (): void => {
+    setNotInFile(true);
+    setNeedYou(false);
+    setMapping((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([key, value]) => [
+          key,
+          value.kind === 'me' ? ({ kind: 'ghost' } as Mapping) : value,
+        ]),
+      ),
+    );
+  };
+
+  /** A tag on somebody else's row: new person, then each existing member, round again. */
+  const cycleOther = (person: string): void => {
     setMapping((current) => {
       const now = current[person] ?? { kind: 'ghost' };
       const others = members.filter((member) => !isViewer(member, viewerId));
-
-      let next: Mapping;
-      if (now.kind === 'ghost') next = { kind: 'me' };
-      else if (now.kind === 'me')
-        next = others[0] ? { kind: 'member', memberId: others[0].id } : { kind: 'ghost' };
-      else {
-        const index = others.findIndex((member) => member.id === now.memberId);
-        const following = others[index + 1];
-        next = following ? { kind: 'member', memberId: following.id } : { kind: 'ghost' };
-      }
-
-      // One column at most can be you; taking the badge takes it from whoever
-      // held it, rather than importing two of you and halving your balance.
-      const cleared =
-        next.kind === 'me'
-          ? Object.fromEntries(
-              Object.entries(current).map(([key, value]) =>
-                value.kind === 'me' ? [key, { kind: 'ghost' } as Mapping] : [key, value],
-              ),
-            )
+      if (now.kind === 'me') return current;
+      if (now.kind === 'ghost') {
+        return others[0]
+          ? { ...current, [person]: { kind: 'member', memberId: others[0].id } }
           : current;
-      return { ...cleared, [person]: next };
+      }
+      const index = others.findIndex((member) => member.id === now.memberId);
+      const following = others[index + 1];
+      return {
+        ...current,
+        [person]: following ? { kind: 'member', memberId: following.id } : { kind: 'ghost' },
+      };
     });
+  };
+
+  /** Import tapped. Never a dead end: until "you" is answered it points at the question. */
+  const onImportPress = (): void => {
+    if (importGate({ claimedByMe, notInFile }) === 'needYou') {
+      setNeedYou(true);
+      scrollRef.current?.scrollTo({ y: Math.max(0, youSectionY.current - 12), animated: true });
+      return;
+    }
+    run();
   };
 
   const describeMapping = (person: string): string => {
@@ -490,6 +547,7 @@ export default function ImportScreen() {
       </Row>
 
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
@@ -721,73 +779,188 @@ export default function ImportScreen() {
             ) : null}
 
             {parsed.expenses.length > 0 ? (
-              <View style={{ gap: 8 }}>
-                <SectionTitle>{t.importLedger.whoIsWho}</SectionTitle>
-                <SoftCard style={{ paddingVertical: 4, paddingHorizontal: 14, gap: 0 }}>
+              <View
+                style={{ gap: 8 }}
+                onLayout={(event) => {
+                  youSectionY.current = event.nativeEvent.layout.y;
+                }}
+              >
+                <SectionTitle>{t.importLedger.whichOneIsYou}</SectionTitle>
+                <Text style={{ fontSize: 13, color: muted, paddingHorizontal: 4 }}>
+                  {suggested !== null && mapping[suggested]?.kind === 'me'
+                    ? t.importLedger.weThinkYou
+                    : t.importLedger.tapYourName}
+                </Text>
+                <SoftCard
+                  style={{
+                    paddingVertical: 4,
+                    paddingHorizontal: 14,
+                    gap: 0,
+                    borderWidth: needYou ? 2 : 0,
+                    borderColor: needYou ? theme.color.negative : 'transparent',
+                  }}
+                >
                   {parsed.people.map((person, index) => {
-                    const claimed = mapping[person]?.kind !== 'ghost';
+                    const isMe = mapping[person]?.kind === 'me';
+                    const linked = mapping[person]?.kind === 'member';
+                    const canLink = members.some((member) => !isViewer(member, viewerId));
                     return (
-                      <Pressable
+                      <View
                         key={person}
-                        onPress={() => cycle(person)}
-                        accessibilityRole="button"
-                        accessibilityLabel={t.importLedger.personIsMapped
-                          .replace('{name}', person)
-                          .replace('{who}', describeMapping(person))}
-                        style={({ pressed }) => ({
+                        style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 12,
-                          paddingVertical: 8,
+                          gap: 8,
                           borderTopWidth: index > 0 ? 1 : 0,
                           borderTopColor: line,
-                          opacity: pressed ? 0.7 : 1,
-                        })}
+                        }}
                       >
-                        <PersonAvatar name={person} size={32} tint={tintForKey(person)} />
-                        <Text
-                          style={{
+                        <Pressable
+                          onPress={() => chooseMe(person)}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: isMe }}
+                          accessibilityLabel={
+                            isMe
+                              ? t.importLedger.personIsYou.replace('{name}', person)
+                              : t.importLedger.thisIsMeFor.replace('{name}', person)
+                          }
+                          style={({ pressed }) => ({
                             flex: 1,
                             minWidth: 0,
-                            fontSize: 15,
-                            fontWeight: '600',
-                            color: ink,
-                          }}
-                          numberOfLines={1}
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 12,
+                            paddingVertical: 10,
+                            opacity: pressed ? 0.7 : 1,
+                          })}
                         >
-                          {person}
-                        </Text>
-                        <MoneyText
-                          amount={parsed.balances[person] ?? 0n}
-                          currency={parsed.currency}
-                          variant="caption"
-                        />
-                        <View
-                          style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 12,
-                            backgroundColor: claimed ? accent : lavender,
-                          }}
-                        >
-                          <Text
+                          <Ionicons
+                            name={isMe ? 'radio-button-on' : 'radio-button-off'}
+                            size={22}
+                            color={isMe ? accent : theme.color.textFaint}
+                          />
+                          <PersonAvatar name={person} size={32} tint={tintForKey(person)} />
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text
+                              style={{ fontSize: 15, fontWeight: '600', color: ink }}
+                              numberOfLines={1}
+                            >
+                              {person}
+                            </Text>
+                            {!isMe && !claimedByMe && !notInFile && person === hintedMe ? (
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: accent }}>
+                                {t.importLedger.isThisYou}
+                              </Text>
+                            ) : null}
+                            <MoneyText
+                              amount={parsed.balances[person] ?? 0n}
+                              currency={parsed.currency}
+                              variant="caption"
+                            />
+                          </View>
+                        </Pressable>
+                        {isMe ? (
+                          <View
                             style={{
-                              fontSize: 12,
-                              fontWeight: '600',
-                              color: claimed ? '#FFFFFF' : accent,
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderRadius: 12,
+                              backgroundColor: accent,
                             }}
-                            numberOfLines={1}
                           >
-                            {describeMapping(person)}
-                          </Text>
-                        </View>
-                      </Pressable>
+                            <Text
+                              style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}
+                              numberOfLines={1}
+                            >
+                              {t.importLedger.thisIsMe}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Pressable
+                            onPress={() => cycleOther(person)}
+                            disabled={!canLink}
+                            accessibilityRole="button"
+                            accessibilityLabel={t.importLedger.personIsMapped
+                              .replace('{name}', person)
+                              .replace('{who}', describeMapping(person))}
+                            hitSlop={6}
+                            style={({ pressed }) => ({
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 2,
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderRadius: 12,
+                              backgroundColor: linked ? accent : lavender,
+                              opacity: pressed ? 0.7 : 1,
+                            })}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                fontWeight: '600',
+                                color: linked ? '#FFFFFF' : accent,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {describeMapping(person)}
+                            </Text>
+                            {canLink ? (
+                              <Ionicons
+                                name="chevron-down"
+                                size={14}
+                                color={linked ? '#FFFFFF' : accent}
+                              />
+                            ) : null}
+                          </Pressable>
+                        )}
+                      </View>
                     );
                   })}
+                  <Pressable
+                    onPress={chooseNotInFile}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: notInFile }}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      paddingVertical: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: line,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Ionicons
+                      name={notInFile ? 'radio-button-on' : 'radio-button-off'}
+                      size={22}
+                      color={notInFile ? accent : theme.color.textFaint}
+                    />
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: ink }}>
+                      {t.importLedger.notInFile}
+                    </Text>
+                  </Pressable>
                 </SoftCard>
-                <Text style={{ fontSize: 12, color: muted, paddingHorizontal: 4 }}>
-                  {t.importLedger.tapANameNote}
-                </Text>
+                {needYou ? (
+                  <Row style={{ alignItems: 'center', gap: 8, paddingHorizontal: 4 }}>
+                    <Ionicons name="arrow-up-circle" size={20} color={theme.color.negative} />
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: theme.color.negative,
+                      }}
+                    >
+                      {t.importLedger.pickYouFirst}
+                    </Text>
+                  </Row>
+                ) : null}
+                {members.some((member) => !isViewer(member, viewerId)) ? (
+                  <Text style={{ fontSize: 12, color: muted, paddingHorizontal: 4 }}>
+                    {t.importLedger.tapTagToLink}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
 
@@ -800,14 +973,9 @@ export default function ImportScreen() {
                       : plural(locale, parsed.expenses.length, t.importLedger.importCount)
                   }
                   icon="cloud-upload-outline"
-                  disabled={busy || !claimedByMe}
-                  onPress={() => run()}
+                  disabled={busy}
+                  onPress={onImportPress}
                 />
-                {!claimedByMe ? (
-                  <Text style={{ fontSize: 13, color: muted, textAlign: 'center' }}>
-                    {t.importLedger.tapYourNameFirst}
-                  </Text>
-                ) : null}
               </>
             ) : null}
           </>
