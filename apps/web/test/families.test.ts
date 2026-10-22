@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { computeShares, familyTransfers, unitsSplitParams, type GroupUnits } from '@waves/core';
 
 import { groupSharesByFamily } from '../src/lib/families';
+import { pendingPairKey } from '../src/lib/settlementActions';
 
 const units: GroupUnits = {
   sharma: { name: 'Sharma family', members: ['ravi', 'priya', 'anu'], head: 'priya' },
@@ -71,5 +72,16 @@ describe('the editor and settle-up share core', () => {
     expect(familyTransfers(net, units)).toEqual([
       expect.objectContaining({ from: 'priya', to: 'sam', amount: 500n }),
     ]);
+  });
+});
+
+describe('a pending family payment', () => {
+  it('counts against the family line for every member', () => {
+    const partyOf = (id: string) =>
+      Object.entries(units).find(([, unit]) => unit.members.includes(id))?.[0] ?? id;
+    expect(pendingPairKey('anu', 'sam', 'INR', partyOf)).toBe(
+      pendingPairKey('priya', 'nita', 'INR', partyOf),
+    );
+    expect(pendingPairKey('anu', 'sam', 'INR')).not.toBe(pendingPairKey('priya', 'sam', 'INR'));
   });
 });

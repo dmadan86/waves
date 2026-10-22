@@ -36,6 +36,7 @@ import {
   railById,
   railsForCurrency,
   toMajorString,
+  unitOf,
   usableFx,
   type CurrencyCode,
 } from '@waves/core';
@@ -48,7 +49,7 @@ import { money } from '@/lib/money';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 import { useFlagEnabled } from '@/lib/flags';
-import { openSettlements, settlementActions } from '@/lib/settlementActions';
+import { openSettlements, pendingPairKey, settlementActions } from '@/lib/settlementActions';
 
 export default function SettlePage() {
   return (
@@ -291,6 +292,16 @@ function GroupSettle({
   // settlement that confirmed itself is one nobody actively agreed to, and its
   // payee may still say it never arrived.
   const pending = openSettlements(settlements);
+  // A payment already marked for this line — by anyone in the paying family —
+  // is waiting on its payee; offering the line again would pay it twice.
+  const partyOf = (id: string) => (familyLens ? (unitOf(units, id) ?? id) : id);
+  const awaiting = new Set(
+    settlements
+      .filter((row) => row.status === 'initiated')
+      .map((row) => pendingPairKey(row.from_member_id, row.to_member_id, row.currency, partyOf)),
+  );
+  const isAwaiting = (transfer: { from: string; to: string; currency: string }) =>
+    awaiting.has(pendingPairKey(transfer.from, transfer.to, transfer.currency, partyOf));
 
   // A failed initial load leaves the ledger empty, which looks identical to a
   // genuinely settled group. Skip the all-settled fallback when an error is
@@ -388,7 +399,8 @@ function GroupSettle({
               const payee = byId.get(transfer.to);
               const rowKey = `${transfer.to}-${transfer.currency}`;
               const noRate = rateless(transfer);
-              const open = !noRate && openSettle === rowKey;
+              const waiting = isAwaiting(transfer);
+              const open = !noRate && !waiting && openSettle === rowKey;
               return (
                 <div key={rowKey}>
                   <div className="item" style={{ cursor: 'default' }}>
@@ -405,6 +417,10 @@ function GroupSettle({
                     </span>
                     {noRate ? (
                       noRateNote(transfer)
+                    ) : waiting ? (
+                      <span className="faint" style={{ marginInlineStart: 10 }}>
+                        {t.settle.pendingHead}
+                      </span>
                     ) : (
                       <button
                         type="button"
