@@ -864,6 +864,7 @@ export interface WebStrings {
       shares: string;
       adjustment: string;
       itemized: string;
+      units: string;
     };
   };
   /** The cross-group activity feed. */
@@ -955,6 +956,30 @@ export interface WebStrings {
     addPerson: string;
     create: string;
     creating: string;
+  };
+  families: {
+    title: string;
+    intro: string;
+    adminOnly: string;
+    newFamily: string;
+    nameLabel: string;
+    create: string;
+    rename: string;
+    save: string;
+    delete: string;
+    deleteConfirm: string;
+    head: string;
+    makeHead: string;
+    removeFromFamily: string;
+    addToFamily: string;
+    onTheirOwn: string;
+    pickPeople: string;
+    splitPeople: string;
+    splitFamilies: string;
+    lensFamilies: string;
+    lensPeople: string;
+    byFamilyNote: string;
+    cancel: string;
   };
   members: {
     title: string;
@@ -1986,6 +2011,7 @@ const en: WebStrings = {
       shares: 'By shares',
       adjustment: 'With adjustments',
       itemized: 'Itemised',
+      units: 'By family',
     },
   },
   activity: {
@@ -2066,6 +2092,31 @@ const en: WebStrings = {
     addPerson: 'Add',
     create: 'Create group',
     creating: 'Creating…',
+  },
+  families: {
+    title: 'Families',
+    intro: 'Group people who travel and settle together. A bill can then be split per family.',
+    adminOnly: 'Only an admin can change families.',
+    newFamily: 'New family',
+    nameLabel: 'Family name',
+    create: 'Create family',
+    rename: 'Rename',
+    save: 'Save',
+    delete: 'Delete family',
+    deleteConfirm:
+      'Delete this family? Its people stay in the group, and past bills keep how they were split.',
+    head: 'Head',
+    makeHead: 'Make head',
+    removeFromFamily: 'Remove from family',
+    addToFamily: 'Add to a family',
+    onTheirOwn: 'On their own',
+    pickPeople: 'Who is in it?',
+    splitPeople: 'People',
+    splitFamilies: 'Families',
+    lensFamilies: 'By family',
+    lensPeople: 'By person',
+    byFamilyNote: 'Each family pays one equal share, split equally inside the family.',
+    cancel: 'Cancel',
   },
   members: {
     title: 'People',
@@ -3082,6 +3133,7 @@ const ta: WebStrings = {
       shares: 'பங்குகளில்',
       adjustment: 'சரிசெய்தல்களுடன்',
       itemized: 'பொருள்வாரியாக',
+      units: 'குடும்பம் வாரியாக',
     },
   },
   activity: {
@@ -3167,6 +3219,33 @@ const ta: WebStrings = {
     addPerson: 'சேர்',
     create: 'குழுவை உருவாக்கு',
     creating: 'உருவாக்குகிறது…',
+  },
+  families: {
+    title: 'குடும்பங்கள்',
+    intro:
+      'ஒன்றாகப் பயணித்து ஒன்றாகத் தீர்த்துக்கொள்பவர்களை இணைக்கவும். பில்லை குடும்பம் வாரியாகப் பிரிக்கலாம்.',
+    adminOnly: 'குடும்பங்களை நிர்வாகி மட்டுமே மாற்ற முடியும்.',
+    newFamily: 'புதிய குடும்பம்',
+    nameLabel: 'குடும்பப் பெயர்',
+    create: 'குடும்பத்தை உருவாக்கு',
+    rename: 'பெயர் மாற்று',
+    save: 'சேமி',
+    delete: 'குடும்பத்தை நீக்கு',
+    deleteConfirm:
+      'இந்தக் குடும்பத்தை நீக்கவா? உறுப்பினர்கள் குழுவில் இருப்பார்கள்; பழைய பில்கள் பிரித்த விதத்தையே வைத்திருக்கும்.',
+    head: 'தலைவர்',
+    makeHead: 'தலைவராக்கு',
+    removeFromFamily: 'குடும்பத்திலிருந்து நீக்கு',
+    addToFamily: 'குடும்பத்தில் சேர்',
+    onTheirOwn: 'தனியாக உள்ளவர்கள்',
+    pickPeople: 'யார் இதில் உள்ளனர்?',
+    splitPeople: 'நபர்கள்',
+    splitFamilies: 'குடும்பங்கள்',
+    lensFamilies: 'குடும்பம் வாரியாக',
+    lensPeople: 'நபர் வாரியாக',
+    byFamilyNote:
+      'ஒவ்வொரு குடும்பமும் ஒரு சம பங்கு செலுத்தும்; அது குடும்பத்தினுள் சமமாகப் பிரியும்.',
+    cancel: 'ரத்து',
   },
   members: {
     title: 'ஆட்கள்',
@@ -4170,6 +4249,7 @@ const hi: WebStrings = {
       shares: 'हिस्सों से',
       adjustment: 'समायोजन के साथ',
       itemized: 'मद-वार',
+      units: 'परिवार के अनुसार',
     },
   },
   activity: {
@@ -4251,6 +4331,32 @@ const hi: WebStrings = {
     addPerson: 'जोड़ें',
     create: 'समूह बनाएँ',
     creating: 'बन रहा है…',
+  },
+  families: {
+    title: 'परिवार',
+    intro:
+      'जो लोग साथ यात्रा करते और साथ हिसाब चुकाते हैं, उन्हें जोड़ें। फिर बिल परिवार के हिसाब से बाँटा जा सकता है।',
+    adminOnly: 'परिवार केवल एडमिन बदल सकता है।',
+    newFamily: 'नया परिवार',
+    nameLabel: 'परिवार का नाम',
+    create: 'परिवार बनाएँ',
+    rename: 'नाम बदलें',
+    save: 'सहेजें',
+    delete: 'परिवार हटाएँ',
+    deleteConfirm:
+      'यह परिवार हटाएँ? इसके लोग ग्रुप में रहेंगे और पुराने बिल जैसे बँटे थे वैसे ही रहेंगे।',
+    head: 'मुखिया',
+    makeHead: 'मुखिया बनाएँ',
+    removeFromFamily: 'परिवार से हटाएँ',
+    addToFamily: 'परिवार में जोड़ें',
+    onTheirOwn: 'अकेले',
+    pickPeople: 'इसमें कौन है?',
+    splitPeople: 'लोग',
+    splitFamilies: 'परिवार',
+    lensFamilies: 'परिवार के अनुसार',
+    lensPeople: 'व्यक्ति के अनुसार',
+    byFamilyNote: 'हर परिवार एक बराबर हिस्सा देता है, जो परिवार के भीतर बराबर बँटता है।',
+    cancel: 'रद्द करें',
   },
   members: {
     title: 'लोग',
@@ -5287,6 +5393,7 @@ const ar: WebStrings = {
       shares: 'بالحصص',
       adjustment: 'مع تعديلات',
       itemized: 'بالأصناف',
+      units: 'حسب العائلة',
     },
   },
   activity: {
@@ -5381,6 +5488,31 @@ const ar: WebStrings = {
     addPerson: 'إضافة',
     create: 'إنشاء المجموعة',
     creating: 'يتم الإنشاء…',
+  },
+  families: {
+    title: 'العائلات',
+    intro: 'اجمع من يسافرون ويسوّون حساباتهم معًا. يمكن بعدها تقسيم الفاتورة على العائلات.',
+    adminOnly: 'يستطيع المشرف فقط تغيير العائلات.',
+    newFamily: 'عائلة جديدة',
+    nameLabel: 'اسم العائلة',
+    create: 'إنشاء العائلة',
+    rename: 'إعادة التسمية',
+    save: 'حفظ',
+    delete: 'حذف العائلة',
+    deleteConfirm:
+      'حذف هذه العائلة؟ يبقى أفرادها في المجموعة وتحتفظ الفواتير السابقة بطريقة تقسيمها.',
+    head: 'رب الأسرة',
+    makeHead: 'تعيين كرب الأسرة',
+    removeFromFamily: 'إزالة من العائلة',
+    addToFamily: 'إضافة إلى عائلة',
+    onTheirOwn: 'بمفردهم',
+    pickPeople: 'من فيها؟',
+    splitPeople: 'الأشخاص',
+    splitFamilies: 'العائلات',
+    lensFamilies: 'حسب العائلة',
+    lensPeople: 'حسب الشخص',
+    byFamilyNote: 'تدفع كل عائلة حصة متساوية واحدة، تُقسَّم بالتساوي داخل العائلة.',
+    cancel: 'إلغاء',
   },
   members: {
     title: 'الأشخاص',
