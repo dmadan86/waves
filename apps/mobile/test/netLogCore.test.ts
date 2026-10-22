@@ -354,7 +354,7 @@ describe('call names', () => {
   });
 
   it('shows only the host for an unknown address', () => {
-    expect(callName({ u: 'https://api.example.com:8443/v2/things', p: 'other' })).toEqual({
+    expect(callName({ u: 'https://api.example.com:81/things', p: 'other' })).toEqual({
       host: 'api.example.com',
     });
     expect(callLabel(entry('api.example.com', '/v2/things', 'other'), en)).toBe('api.example.com');
