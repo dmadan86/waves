@@ -1702,7 +1702,7 @@ const en: WebStrings = {
     storeTitle: 'What is stored',
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     storeBody:
-      'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
+      'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. With them, if you add them from the app: receipt and expense photos, the place an expense happened, and the people you pick from your contacts — only the ones you tap.',
     protectTitle: 'How it is kept',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     protectBody:
@@ -2784,7 +2784,7 @@ const ta: WebStrings = {
     storeSummary:
       'உங்கள் சுயவிவரம், குழுக்கள், செலவுகள், ரசீதுகள், கருத்துகள், அமைப்புகள், யார் யாருக்குக் கடன்.',
     storeBody:
-      'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
+      'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். செயலியில் நீங்கள் சேர்த்தால் அவற்றுடன்: ரசீது மற்றும் செலவுப் படங்கள், செலவு நடந்த இடம், உங்கள் தொடர்புகளிலிருந்து தேர்ந்தெடுத்த நபர்கள் — நீங்கள் தொடுபவர்கள் மட்டும்.',
     protectTitle: 'எப்படி பாதுகாக்கப்படுகிறது',
     protectSummary:
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
@@ -3885,7 +3885,7 @@ const hi: WebStrings = {
     storeSummary:
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     storeBody:
-      'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
+      'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। इनके साथ, अगर आप ऐप में जोड़ें: रसीद और ख़र्च की तस्वीरें, ख़र्च की जगह, और संपर्कों में से चुने लोग — सिर्फ़ वे जिन्हें आप छूते हैं।',
     protectTitle: 'कैसे सुरक्षित रहता है',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     protectBody:
@@ -4986,7 +4986,7 @@ const ar: WebStrings = {
     storeTitle: 'ما الذي يُحفظ',
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     storeBody:
-      'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
+      'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. ومعها، إن أضفتها من التطبيق: صور الإيصالات والمصروفات، ومكان المصروف، والأشخاص الذين تختارهم من جهات اتصالك — من تضغط عليهم فقط.',
     protectTitle: 'كيف يُحمى',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     protectBody:
