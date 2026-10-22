@@ -12,16 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  Avatar,
-  Badge,
-  directionalIcon,
-  iconSize,
-  MoneyText,
-  Row,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Badge, directionalIcon, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { useConfirmSettlement, useDisputeSettlement, useSettlementProof } from '@/data/hooks';
 import {
@@ -38,7 +29,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroPillButton } from '@/components/ScreenHero';
 import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
-import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBlockedUsers } from '@/data/blocked';
@@ -285,6 +276,7 @@ export function GroupHero({
             <GroupPhoto
               photoPath={group.photo_path}
               emoji={group.cover_emoji}
+              color={group.cover_color}
               size={TILE}
               background="#FFFFFF"
             />
@@ -429,20 +421,12 @@ export function GroupHero({
                       borderColor: 'rgba(255,255,255,0.9)',
                     }}
                   >
-                    {isGhost(member) || isBlockedMember(member, blockedIds) ? (
-                      <Avatar
-                        name={displayName(member, null, blockedIds, t.misc.someone)}
-                        ghost
-                        size={FACE}
-                      />
-                    ) : (
-                      // Their photo when they have one; initials otherwise.
-                      <ProfileAvatar
-                        name={displayName(member, null, blockedIds, t.misc.someone)}
-                        avatarUrl={member.profile?.avatar_url ?? null}
-                        size={FACE}
-                      />
-                    )}
+                    <PersonAvatar
+                      name={displayName(member, null, blockedIds, t.misc.someone)}
+                      member={member}
+                      ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
+                      size={FACE}
+                    />
                   </View>
                 ))}
                 {extraMembers > 0 ? (

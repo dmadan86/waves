@@ -48,7 +48,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   currencySymbol,
-  FREQUENCIES,
   Frequency,
   frequencyOf,
   incomeSource,
@@ -77,7 +76,9 @@ import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
+import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
+import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
@@ -91,6 +92,8 @@ import { dateFrom, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 import { routeAmount } from '@/lib/routeAmount';
 import { useSync } from '@/sync';
+import { useViewerId } from '@/lib/auth';
+import { removePersonalReceipt, staleReceiptKeys } from '@/lib/personalReceipt';
 import { useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
@@ -231,6 +234,15 @@ function EntryForm({
     editingTxn ? (editingTxn.paymentMethod ?? null) : 'cash',
   );
 
+  // A work spend to claim back (the agent's "Claim this from work?" sets it too).
+  const [reimbursable, setReimbursable] = useState<boolean>(editingTxn?.reimbursable === true);
+
+  // The receipt photo. `savedReceipt` is what the stored entry holds; the form's
+  // own value only reaches the ledger on Save.
+  const ownerId = useViewerId();
+  const savedReceipt = editingTxn?.receiptKey ?? null;
+  const [receiptKey, setReceiptKey] = useState<string | null>(savedReceipt);
+
   // A repayment carries the loan it settles through from the loans screen; kept
   // as-is on an edit so the link survives.
   const loanId = editingTxn?.loanId ?? paramLoanId;
@@ -260,6 +272,8 @@ function EntryForm({
           loanId,
           recurringId: editingTxn?.recurringId ?? null,
           paymentMethod: loanId ? null : paymentMethod,
+          reimbursable: kind === 'expense' && !loanId && reimbursable,
+          receiptKey: repeat || loanId ? null : receiptKey,
         },
         // Belt and braces: neither a repayment nor an existing transaction can
         // reach a repeat state at all, and a save is the wrong place to find
@@ -267,7 +281,15 @@ function EntryForm({
         canRepeat || editingRule !== undefined ? repeat : null,
         { txn: editingTxn, rule: editingRule },
       ),
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: () => {
+          // The photo the entry no longer points at goes with the save.
+          for (const stale of staleReceiptKeys(ownerId, savedReceipt, receiptKey)) {
+            void removePersonalReceipt(ownerId, stale);
+          }
+          router.back();
+        },
+      },
     );
   };
 
@@ -279,7 +301,16 @@ function EntryForm({
       confirmLabel: t.common.delete,
       tone: 'danger',
     });
-    if (ok) remove.mutate(editing.id, { onSuccess: () => router.back() });
+    if (ok) {
+      remove.mutate(editing.id, {
+        onSuccess: () => {
+          // Deleting the entry deletes its receipt (and any unsaved replacement).
+          void removePersonalReceipt(ownerId, savedReceipt);
+          if (receiptKey !== savedReceipt) void removePersonalReceipt(ownerId, receiptKey);
+          router.back();
+        },
+      });
+    }
   };
 
   const title = editingRule
@@ -382,6 +413,25 @@ function EntryForm({
                     paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
                   }
                   onPress={() => setPicking('method')}
+                />
+              )}
+
+              {/* A work spend to claim back: only a one-off expense can be one. */}
+              {repeat || loanId || kind !== 'expense' ? null : (
+                <DetailRow
+                  icon="briefcase-outline"
+                  label={t.followUps.reimbursableRow}
+                  value={reimbursable ? t.followUps.yes : t.followUps.no}
+                  onPress={() => setReimbursable((on) => !on)}
+                />
+              )}
+
+              {/* A photo of the bill, for a single entry. Private to the owner. */}
+              {repeat || loanId || editingRule ? null : (
+                <PersonalReceiptRow
+                  value={receiptKey}
+                  savedKey={savedReceipt}
+                  onChange={setReceiptKey}
                 />
               )}
             </DetailRows>
@@ -505,6 +555,7 @@ function EntryForm({
       {picking === 'repeat' ? (
         <RepeatSheet
           value={repeat}
+          fallback={NEW_REPEAT}
           canStop={canStopRepeating}
           onChange={(next) => {
             setRepeat(next);
@@ -514,128 +565,6 @@ function EntryForm({
         />
       ) : null}
     </Screen>
-  );
-}
-
-/**
- * How often, as a sheet of named patterns — the same list of choices with a
- * check against the one in force that every other short answer on this form
- * opens.
- *
- * "Never" leads it, because not repeating is what almost every entry is, and
- * because the row it comes back to has to be able to say so. It is offered only
- * while the form is writing a transaction: a rule cannot become a one-off
- * without abandoning the history filed under its id, so an existing one is
- * stopped by pausing or deleting it instead.
- */
-function RepeatSheet({
-  value,
-  canStop,
-  onChange,
-  onClose,
-}: {
-  value: EntryRepeat | null;
-  canStop: boolean;
-  onChange: (next: EntryRepeat | null) => void;
-  onClose: () => void;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const base = value ?? NEW_REPEAT;
-
-  return (
-    <SheetOverlay title={t.personal.repeats} onClose={onClose}>
-      <View style={{ gap: theme.spacing.xs }}>
-        {canStop ? (
-          <ChoiceRow
-            label={t.personal.repeatsNever}
-            selected={value === null}
-            leading={
-              <Ionicons
-                name="close-circle-outline"
-                size={iconSize.md}
-                color={theme.color.textMuted}
-              />
-            }
-            onPress={() => onChange(null)}
-          />
-        ) : null}
-        {FREQUENCIES.map((option) => (
-          <ChoiceRow
-            key={option}
-            label={frequencyLabel(t, option, base.interval)}
-            selected={value?.frequency === option}
-            leading={
-              <Ionicons
-                name="repeat"
-                size={iconSize.md}
-                color={value?.frequency === option ? theme.color.brand : theme.color.textMuted}
-              />
-            }
-            onPress={() => onChange({ ...base, frequency: option })}
-          />
-        ))}
-      </View>
-    </SheetOverlay>
-  );
-}
-
-/** A plain number stepper. Two 44pt targets beat a keyboard for a value that
- *  only ever moves a step at a time, and it cannot be typed into an invalid
- *  state. */
-function DayStepper({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (next: number) => void;
-}) {
-  const theme = useTheme();
-  const step = (delta: number): void => {
-    const next = value + delta;
-    if (next >= min && next <= max) onChange(next);
-  };
-  const button = (delta: number, icon: 'remove' | 'add', disabled: boolean) => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label} ${icon === 'add' ? '+' : '−'}`}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={() => step(delta)}
-      hitSlop={6}
-      style={({ pressed }) => ({
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.color.surfaceMuted,
-        opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
-      })}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.text} />
-    </Pressable>
-  );
-
-  return (
-    <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-      <Text variant="body" style={{ flexShrink: 1, minWidth: 0 }}>
-        {label}
-      </Text>
-      <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-        {button(-1, 'remove', value <= min)}
-        <Text variant="body" style={{ fontWeight: '700', minWidth: 28, textAlign: 'center' }}>
-          {value}
-        </Text>
-        {button(1, 'add', value >= max)}
-      </Row>
-    </Row>
   );
 }
 

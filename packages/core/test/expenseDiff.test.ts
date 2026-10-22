@@ -289,6 +289,27 @@ describe('diffExpenseVersions', () => {
       expect(diffExpenseVersions(version(), version({ payee: 'Landlord' }), ASHA)).toEqual([]);
     });
 
+    it('reports the work tag being switched on and off, and only when both sides carry it', () => {
+      expect(
+        diffExpenseVersions(
+          version({ reimbursable: false }),
+          version({ reimbursable: true }),
+          ASHA,
+        ),
+      ).toEqual([{ field: 'reimbursable', kind: 'flag', oldValue: false, newValue: true }]);
+      expect(
+        diffExpenseVersions(
+          version({ reimbursable: true }),
+          version({ reimbursable: false }),
+          ASHA,
+        ),
+      ).toEqual([{ field: 'reimbursable', kind: 'flag', oldValue: true, newValue: false }]);
+      expect(
+        diffExpenseVersions(version({ reimbursable: true }), version({ reimbursable: true }), ASHA),
+      ).toEqual([]);
+      expect(diffExpenseVersions(version(), version({ reimbursable: true }), ASHA)).toEqual([]);
+    });
+
     it('reports the payment method changing', () => {
       expect(
         diffExpenseVersions(

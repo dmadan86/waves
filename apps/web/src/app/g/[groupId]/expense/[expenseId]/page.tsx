@@ -203,6 +203,9 @@ function ExpenseDetail({
               {openDispute ? (
                 <span className="pill-badge warn">{t.expense.disputedBadge}</span>
               ) : null}
+              {version.reimbursable ? (
+                <span className="pill-badge">{t.expense.workBadge}</span>
+              ) : null}
             </h1>
             <div className="sub">
               {version.expense_date} · {splitLabel}

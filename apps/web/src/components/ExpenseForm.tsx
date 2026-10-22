@@ -86,6 +86,8 @@ export function ExpenseForm({
   const [percent, setPercent] = useState<Record<string, string>>({});
   const [weights, setWeights] = useState<Record<string, string>>({});
 
+  /** "Work expense (to claim)": a tag, never part of the split. */
+  const [reimbursable, setReimbursable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -183,6 +185,7 @@ export function ExpenseForm({
           setPayer(version.payers[0]?.member_id ?? null);
           setParticipants(version.shares.map((s) => s.member_id));
           setLocation(version.location ?? null);
+          setReimbursable(version.reimbursable === true);
           // An expense already carries whatever whoever filed it decided, and
           // that stands: an edit must not let the guesser re-file it.
           setChosenCategory(version.category ?? null);
@@ -343,6 +346,7 @@ export function ExpenseForm({
         expectedShares: Object.fromEntries(preview),
         category,
         location,
+        reimbursable,
         clientMutationId: crypto.randomUUID(),
       });
       router.replace(`/g/${groupId}`);
@@ -368,6 +372,7 @@ export function ExpenseForm({
     category,
     participants,
     location,
+    reimbursable,
     router,
     t.add.defaultDescription,
     t.errors.couldNotSave,
@@ -513,6 +518,17 @@ export function ExpenseForm({
             ) : null}
           </section>
         ) : null}
+
+        <section className="panel">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={reimbursable}
+              onChange={(event) => setReimbursable(event.target.checked)}
+            />
+            <span>{t.add.workExpense}</span>
+          </label>
+        </section>
 
         <section className="panel">
           <div className="panel-head">

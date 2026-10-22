@@ -11,11 +11,12 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { Avatar, Callout, Card, iconSize, Text, tintForKey, useTheme } from '@waves/ui';
+import { Callout, Card, iconSize, Text, tintForKey, useTheme } from '@waves/ui';
 
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useStrings } from '@/i18n';
 import { GHOST } from '@/lib/groupImport/people';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export interface MemberChoice {
   id: string;
@@ -92,7 +93,7 @@ export function PeopleMapper({
                   opacity: pressed ? 0.7 : 1,
                 })}
               >
-                <Avatar name={name} size={36} tint={tintForKey(name)} />
+                <PersonAvatar name={name} size={36} tint={tintForKey(name)} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
                     {name}
@@ -149,7 +150,7 @@ export function PeopleMapper({
           {members.map((member) => (
             <ChoiceRow
               key={member.id}
-              leading={<Avatar name={member.label} size={28} tint={tintForKey(member.id)} />}
+              leading={<PersonAvatar name={member.label} size={28} tint={tintForKey(member.id)} />}
               label={member.label}
               selected={mapping[picking] === member.id}
               onPress={() => {

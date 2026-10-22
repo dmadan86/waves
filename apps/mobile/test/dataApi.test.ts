@@ -44,6 +44,11 @@ vi.mock('@/lib/phoneAuth', () => ({
   attachPhoneCode: h.attachPhoneCode,
   sendPhoneCode: h.sendPhoneCode,
 }));
+const queue = vi.hoisted(() => ({ permits: true, enqueue: vi.fn() }));
+vi.mock('@/lib/receiptQueue', () => ({
+  networkPermits: async () => queue.permits,
+  enqueueReceipt: queue.enqueue,
+}));
 vi.mock('@/lib/storage', () => ({
   imageUrl: h.imageUrl,
   putImage: h.putImage,
@@ -571,6 +576,62 @@ const rpcCases: [string, () => Promise<unknown>, string, unknown, unknown, unkno
     undefined,
   ],
   [
+    'mergeMemberInto',
+    () => api.mergeMemberInto('ghost-1', 'm2'),
+    'waves_merge_member_into',
+    { p_member_id: 'ghost-1', p_into_member_id: 'm2' },
+    { ok: true, member_id: 'm2', bills: 3 },
+    { ok: true, member_id: 'm2', bills: 3 },
+  ],
+  [
+    'requestMemberLink',
+    () => api.requestMemberLink('ghost-1', 'p9'),
+    'waves_request_member_link',
+    { p_member_id: 'ghost-1', p_target_profile_id: 'p9' },
+    { ok: true, status: 'pending', request_id: 'r1' },
+    { ok: true, status: 'pending', request_id: 'r1' },
+  ],
+  [
+    'decideMemberLink',
+    () => api.decideMemberLink('r1', false),
+    'waves_decide_member_link',
+    { p_request_id: 'r1', p_accept: false },
+    { ok: true, status: 'declined' },
+    { ok: true, status: 'declined' },
+  ],
+  [
+    'cancelMemberLink',
+    () => api.cancelMemberLink('r1'),
+    'waves_cancel_member_link',
+    { p_request_id: 'r1' },
+    { ok: true, status: 'cancelled' },
+    { ok: true, status: 'cancelled' },
+  ],
+  [
+    'fetchGroupMemberLinks',
+    () => api.fetchGroupMemberLinks('g1'),
+    'waves_group_member_links',
+    { p_group_id: 'g1' },
+    [{ id: 'r1', member_id: 'ghost-1' }],
+    [{ id: 'r1', member_id: 'ghost-1' }],
+  ],
+  [
+    'fetchMyMemberLinks',
+    () => api.fetchMyMemberLinks(),
+    'waves_my_member_links',
+    undefined,
+    [{ id: 'r1', group_id: 'g1' }],
+    [{ id: 'r1', group_id: 'g1' }],
+  ],
+  [
+    'fetchMemberLinkCandidates',
+    () => api.fetchMemberLinkCandidates('g1'),
+    'waves_member_link_candidates',
+    { p_group_id: 'g1' },
+    [{ profile_id: 'p9', display_name: 'Arun' }],
+    [{ profile_id: 'p9', display_name: 'Arun' }],
+  ],
+  [
     'nudgeToSettle',
     () => api.nudgeToSettle({ groupId: 'g1', toMemberId: 'm2', currency: 'INR' }),
     'waves_nudge_to_settle',
@@ -714,6 +775,13 @@ describe('RPC answers that come back empty', () => {
     ['canAddExpenseAttachment', () => api.canAddExpenseAttachment('e1'), false],
     ['fetchMemberClaims', () => api.fetchMemberClaims('g1'), []],
     ['decideMemberClaim', () => api.decideMemberClaim('c1', false), { ok: false }],
+    ['mergeMemberInto', () => api.mergeMemberInto('ghost-1', 'm2'), { ok: false }],
+    ['requestMemberLink', () => api.requestMemberLink('ghost-1', 'p9'), { ok: false }],
+    ['decideMemberLink', () => api.decideMemberLink('r1', true), { ok: false }],
+    ['cancelMemberLink', () => api.cancelMemberLink('r1'), { ok: false }],
+    ['fetchGroupMemberLinks', () => api.fetchGroupMemberLinks('g1'), []],
+    ['fetchMyMemberLinks', () => api.fetchMyMemberLinks(), []],
+    ['fetchMemberLinkCandidates', () => api.fetchMemberLinkCandidates('g1'), []],
     ['fetchPersonGroupBalances', () => api.fetchPersonGroupBalances('pk'), []],
     ['fetchPersonProfile', () => api.fetchPersonProfile('pk'), null],
     ['findPerson', () => api.findPerson('phone', '+919876543210'), null],
@@ -1526,6 +1594,20 @@ describe('kept expense bills', () => {
       p_expense_id: 'e1',
       p_action: 'added',
     });
+  });
+
+  it('parks the bill in the receipt queue instead of uploading when Wi-Fi only blocks it', async () => {
+    queue.permits = false;
+    try {
+      const path = await api.uploadExpenseReceipt({ groupId: 'g1', expenseId: 'e1', base64: 'C' });
+      expect(path).toBe('g1/e1.jpg');
+      expect(h.putImage).not.toHaveBeenCalled();
+      expect(queue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: 'g1', expenseId: 'e1', base64: 'C' }),
+      );
+    } finally {
+      queue.permits = true;
+    }
   });
 
   it('keeps the bill even when the audit line fails to write', async () => {

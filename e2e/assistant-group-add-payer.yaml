@@ -1,0 +1,39 @@
+# E2E-02. A group add whose words name another payer: the assistant adds it with
+# the speaker as payer (that is what the stub returns), then asks whether the
+# named person paid. Answering "Ravi paid" moves the payer.
+#
+# Seed: E2E_SEED_EXTRAS=assistant (Goa trip gains the ghost Ravi).
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'dinner 1200 Ravi paid, Goa trip'
+
+- extendedWaitUntil:
+    visible: '.*1,200.*'
+    timeout: 25000
+- assertVisible: 'Goa trip'
+- tapOn: 'Confirm'
+
+# The payer question outranks every other (the words name Ravi).
+- extendedWaitUntil:
+    visible: 'Did Ravi pay for this\?'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+- tapOn: 'Ravi paid'
+- extendedWaitUntil:
+    visible: 'Saved with payer'
+    timeout: 10000
+- tapOn: 'Done'
+
+# The group's list now reads the expense as paid by Ravi.
+- extendedWaitUntil:
+    visible: 'Goa trip'
+    timeout: 15000
+- tapOn: 'Goa trip'
+- extendedWaitUntil:
+    visible: 'Ravi paid.*1,200.*'
+    timeout: 15000

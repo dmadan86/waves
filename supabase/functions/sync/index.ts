@@ -81,6 +81,10 @@ type MutationKind =
   | 'plan_item.create'
   | 'plan_item.update'
   | 'plan_item.delete'
+  // A repeating group expense — group-scoped, authorised by membership inside the
+  // RPC. The expenses it produces are posted by the server generator, not here.
+  | 'group_recurring.create'
+  | 'group_recurring.update'
   | 'member_budget.set'
   | 'member_budget.clear'
   | 'group_budget.set'
@@ -183,6 +187,9 @@ const GROUP_UPDATABLE_FIELDS = [
   // The member-typed short tag shown instead of the automatic type tag;
   // paired with `waves_guard_group_columns` in 20261006120000_group_custom_tag.
   'custom_tag',
+  // The palette key behind the group's icon; paired with
+  // `waves_guard_group_columns` in 20261022120000_group_cover_color.
+  'cover_color',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -224,7 +231,7 @@ const EXPENSE_SELECT = `
     fx, receipt_id,
     location, created_at,
     sub_event_id, is_deposit, balance_due_minor, balance_due_date,
-    occurred_at, payee,
+    occurred_at, payee, reimbursable,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
@@ -285,6 +292,8 @@ const GROUP_TABLES = [
   // co-member's private budget is filtered by RLS and simply not returned.
   ['trip_plan_items', '*'],
   ['trip_member_budgets', '*'],
+  // Repeating group expenses. Flat rows; RLS limits them to the group's members.
+  ['group_recurring_expenses', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -533,6 +542,13 @@ export class SyncSession {
           // different rows.
           p_email: (mutation.payload.email as string | undefined) ?? null,
           p_phone: (mutation.payload.phone as string | undefined) ?? null,
+          // Only when the client named an account (a member cloned from another
+          // group): the argument exists from 20261023110000_add_member_by_profile
+          // on, and leaving it out keeps every other add working against a
+          // database that has not had that migration yet.
+          ...(typeof mutation.payload.profileId === 'string'
+            ? { p_profile_id: mutation.payload.profileId }
+            : {}),
         });
       case 'group.create':
         return await this.rpcAsCaller('waves_create_group', {
@@ -592,6 +608,12 @@ export class SyncSession {
         // CHECK refuses a blank one and enforces the 24-character cap).
         if ('custom_tag' in patch)
           patch.custom_tag = optionalString(patch.custom_tag, 'custom_tag');
+        // The icon colour is a palette key, lowercase letters; cleared means
+        // NULL. The column's CHECK enforces the shape, this just normalises.
+        if ('cover_color' in patch) {
+          const key = optionalString(patch.cover_color, 'cover_color');
+          patch.cover_color = key === null ? null : key.toLowerCase();
+        }
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };
@@ -656,6 +678,40 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_remove_plan_item', {
           p_item_id: requireString(mutation.payload.itemId, 'itemId'),
         });
+      case 'group_recurring.create':
+        return await this.rpcAsCaller('waves_create_group_recurring_expense', {
+          p_group_id: mutation.groupId,
+          // Client-chosen id: the RPC returns the same rule for a replay.
+          p_id: requireString(mutation.payload.ruleId, 'ruleId'),
+          p_description: requireString(mutation.payload.description, 'description'),
+          p_category: optionalText(mutation.payload.category, 'category'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_amount: requireString(mutation.payload.amount, 'amount'),
+          p_split_type: requireString(mutation.payload.splitType, 'splitType'),
+          p_split_params: mutation.payload.splitParams ?? {},
+          p_payers: requireLines(mutation.payload.payers, 'payers'),
+          p_shares: requireLines(mutation.payload.shares, 'shares'),
+          p_notes: optionalText(mutation.payload.notes, 'notes'),
+          p_cadence: requireString(mutation.payload.cadence, 'cadence'),
+          p_interval: Number(mutation.payload.interval ?? 1),
+          p_second_day:
+            mutation.payload.secondDay === undefined || mutation.payload.secondDay === null
+              ? null
+              : Number(mutation.payload.secondDay),
+          p_anchor_date: requireString(mutation.payload.anchorDate, 'anchorDate'),
+          p_end_date: optionalText(mutation.payload.endDate, 'endDate'),
+          p_skip_first: mutation.payload.skipFirst === true,
+        });
+      case 'group_recurring.update': {
+        const patch = mutation.payload.patch;
+        if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'patch must be an object');
+        }
+        return await this.rpcAsCaller('waves_update_group_recurring_expense', {
+          p_id: requireString(mutation.payload.ruleId, 'ruleId'),
+          p_patch: patch,
+        });
+      }
       case 'member_budget.set':
         return await this.rpcAsCaller('waves_set_my_trip_budget', {
           p_group_id: mutation.groupId,
@@ -750,6 +806,7 @@ export class SyncSession {
       balanceDueDate?: string | null;
       occurredAt?: string | null;
       payee?: string | null;
+      reimbursable?: boolean | null;
     };
 
     const amount = parseMinor(payload.amount, 'amount');
@@ -840,6 +897,8 @@ export class SyncSession {
         // Absent on a payload queued by an older build: null, so the server
         // carries the previous payee forward instead of wiping it.
         payee: typeof payload.payee === 'string' ? payload.payee : null,
+        // Absent (or null) keeps the flag the expense already has.
+        reimbursable: typeof payload.reimbursable === 'boolean' ? payload.reimbursable : null,
       }),
     );
     if (error) throw error;
@@ -1768,6 +1827,20 @@ function requireString(value: unknown, field: string): string {
     throw new HttpError(400, 'VALIDATION_FAILED', `${field} is required`);
   }
   return value;
+}
+
+/** A non-empty list of `{ memberId, amount }` lines (a repeating expense's payers or shares). */
+function requireLines(value: unknown, field: string): { memberId: string; amount: string }[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be a non-empty list`);
+  }
+  return value.map((line) => {
+    const row = line as { memberId?: unknown; amount?: unknown } | null;
+    if (!row || typeof row.memberId !== 'string' || typeof row.amount !== 'string') {
+      throw new HttpError(400, 'VALIDATION_FAILED', `${field} lines need memberId and amount text`);
+    }
+    return { memberId: row.memberId, amount: row.amount };
+  });
 }
 
 /**

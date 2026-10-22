@@ -28,7 +28,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type CurrencyCode } from '@waves/core';
 import {
-  Avatar,
   Button,
   Card,
   Divider,
@@ -63,8 +62,11 @@ import { useBlockedUsers } from '@/data/blocked';
 import { directionGroups } from '@/lib/friendsTotals';
 import { fill, plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
+import { linkableGroups, linkMemberRoute } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
+import { PersonAvatar } from '@/components/PersonAvatar';
+import { settleHref } from '@/lib/groupTab';
 
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
@@ -78,7 +80,7 @@ export default function PersonDetailScreen() {
   const { key, name } = useLocalSearchParams<{ key: string; name?: string }>();
   const [photoOpen, setPhotoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [pick, setPick] = useState<'group' | 'history' | null>(null);
+  const [pick, setPick] = useState<'group' | 'history' | 'link' | null>(null);
 
   const person = usePairPerson(key ?? '', name);
   const { profile, groups, totals, title, realName, masked, blocked, ready, photo } = person;
@@ -100,6 +102,8 @@ export default function PersonDetailScreen() {
   };
 
   const owingGroups = useMemo(() => groups.filter((group) => group.lines.length > 0), [groups]);
+  // "Link to a Waves user": the groups where this placeholder can be linked.
+  const linkable = useMemo(() => linkableGroups(groups), [groups]);
   const loading = person.loading;
   const empty = !loading && !profile && groups.length === 0;
   const groupCount = groups.length > 0 ? groups.length : (profile?.shared_groups ?? 0);
@@ -110,13 +114,20 @@ export default function PersonDetailScreen() {
     router.push(
       `/friends/person/${encodeURIComponent(key ?? '')}/settle?name=${encodeURIComponent(title)}`,
     );
-  // History and "all groups" live inside a group, so with one group they go
-  // straight there and with several the person picks which.
-  const goGroup = (group: PairGroupRow, to: 'group' | 'history'): void =>
-    router.push(to === 'group' ? `/group/${group.groupId}` : `/group/${group.groupId}/settle`);
-  const via = (to: 'group' | 'history'): void => {
-    const [only] = groups;
-    if (groups.length === 1 && only) goGroup(only, to);
+  // History, "all groups" and linking live inside a group, so with one group
+  // they go straight there and with several the person picks which.
+  const goGroup = (group: PairGroupRow, to: 'group' | 'history' | 'link'): void =>
+    router.push(
+      to === 'group'
+        ? `/group/${group.groupId}`
+        : to === 'history'
+          ? settleHref(group.groupId)
+          : linkMemberRoute(group),
+    );
+  const via = (to: 'group' | 'history' | 'link'): void => {
+    const list = to === 'link' ? linkable : groups;
+    const [only] = list;
+    if (list.length === 1 && only) goGroup(only, to);
     else setPick(to);
   };
 
@@ -153,10 +164,10 @@ export default function PersonDetailScreen() {
                   onPress={() => setPhotoOpen(true)}
                   style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 >
-                  <Avatar name={title} size={64} photoUrl={photo} />
+                  <PersonAvatar name={title} size={64} avatarUrl={photo} />
                 </Pressable>
               ) : (
-                <Avatar
+                <PersonAvatar
                   name={masked ? t.misc.someone : title}
                   size={64}
                   ghost={masked || Boolean(profile?.is_ghost) || person.unregistered}
@@ -250,6 +261,22 @@ export default function PersonDetailScreen() {
                 />
               ) : null}
 
+              {/* An admin says who the placeholder really is — the same door as
+                  on the member page, reached from here because this is where a
+                  person who is "not on Waves" is looked for. */}
+              {person.unregistered && !blocked && ready && linkable.length > 0 ? (
+                <Card
+                  style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.md }}
+                >
+                  <NavRow
+                    icon="link-outline"
+                    title={t.link.row}
+                    body={fill(t.link.rowHint, { name: realName })}
+                    onPress={() => via('link')}
+                  />
+                </Card>
+              ) : null}
+
               {profile && !profile.is_ghost && !blocked && ready ? (
                 <ContactCard profile={profile} />
               ) : null}
@@ -339,8 +366,13 @@ export default function PersonDetailScreen() {
       <PickGroupSheet
         visible={pick !== null}
         onClose={() => setPick(null)}
-        groups={groups}
+        groups={pick === 'link' ? linkable : groups}
         name={realName}
+        body={
+          pick === 'link'
+            ? fill(t.link.pickGroupBody, { name: realName, n: String(linkable.length) })
+            : undefined
+        }
         onPick={(group) => {
           const to = pick ?? 'group';
           setPick(null);

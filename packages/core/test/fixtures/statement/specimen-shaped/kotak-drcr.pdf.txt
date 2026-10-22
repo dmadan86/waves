@@ -1,0 +1,25 @@
+# Synthetic. Shaped like the text layer of Kotak Mahindra Bank's savings-account
+# PDF (as seen in raptar231/indian-bank-statement-parser's kotak_savings fixture,
+# which is not vendored): one "Withdrawal (Dr) / Deposit (Cr)" column with the
+# marker after the figure, dd-Mon-yyyy dates, a Sub Total line.
+KOTAK MAHINDRA BANK LTD
+Savings Account Statement
+A/C No. : 1011000000001
+Account Name : SAMPLE HOLDER
+Branch : SAMPLE MAIN
+IFSC : KKBK0000001
+Statement Period : 01-Jul-2025 to 31-Jul-2025
+Opening Balance : 10,000.00
+
+Date        Narration                            Chq/Ref No.  Withdrawal (Dr) / Deposit (Cr)  Balance
+01-Jul-2025  UPI/DR/426700000001/SAMPLE FOODS/samplefoods@icici/FOOD ORDER 01JUL  347.00 Dr  9,653.00
+02-Jul-2025  NEFT/INWARD/CR-HDFC/SAMPLE EMPLOYER LTD/SAL JUL25/N042700000001  35,000.00 Cr  44,653.00
+05-Jul-2025  UPI/CR/789000000002/SAMPLE FRIEND/REFUND 05JUL  2,000.00 Cr  46,653.00
+08-Jul-2025  ATM-WDL 987654 SAMPLE ATM  1,250.00 Dr  45,403.00
+12-Jul-2025  NEFT/OUTWARD/DR-SBI/SAMPLE ELECTRICITY BOARD/BILL PAY/B042700000002  4,500.00 Dr  40,903.00
+18-Jul-2025  NEFT/INWARD/CR-ICICI/INTEREST CREDIT
+SB-A/1234567890/INT JUL25  125.00 Cr  41,028.00
+31-Jul-2025  UPI/DR/987600000003/SAMPLE MART/PAYMENT 31JUL  205.00 Dr  40,823.00
+
+Sub Total : 6,302.00 Dr  37,125.00 Cr  40,823.00
+Closing Balance : 40,823.00

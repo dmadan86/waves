@@ -1,0 +1,44 @@
+# Synthetic. Shaped like Bank of America's "How to read your statement" checking
+# specimen (HTR-043235, not vendored): sections "Deposits and other additions",
+# "Withdrawals and other subtractions", "Checks", "Service fees", amounts written
+# "- 46.32", MM/DD/YY dates, no per-row balance, a "Daily ledger balances" table.
+Bank of America
+P.O. Box 15284
+Wilmington, DE 19850
+SAMPLE CUSTOMER
+Your Adv Plus Banking
+for July 1, 2012 to July 31, 2012
+Account number: 0000 1234 5678
+Account summary
+Beginning balance on July 1, 2012 $1,500.00
+Deposits and other additions 2,650.00
+Withdrawals and other subtractions -1,352.32
+Checks -225.00
+Service fees -12.00
+Ending balance on July 31, 2012 $2,560.68
+Deposits and other additions
+Date Description Amount
+07/05/12 ACME CORP DES:PAYROLL ID:XXXXX12345 INDN:SAMPLE CUSTOMER CO ID:XXXXX67890 PPD 2,500.00
+07/20/12 Online Banking transfer from SAV 0000 Confirmation# 1234567890 150.00
+Total deposits and other additions $2,650.00
+Withdrawals and other subtractions
+Date Description Amount
+07/02/12 CHECKCARD 0701 SAMPLE GROCERY STORE #123 ANYTOWN CA 24692162183100000000001 - 46.32
+07/09/12 SAMPLE WIRELESS DES:BILL PAY ID:00000 INDN:SAMPLE CUSTOMER CO ID:0000000000 WEB - 85.00
+07/16/12 BKOFAMERICA ATM 07/16 #000001234 WITHDRWL ANYTOWN CA - 200.00
+07/23/12 Online Banking payment to CRD 0000 Confirmation# 0987654321 - 1,021.00
+Total withdrawals and other subtractions - $1,352.32
+Checks
+Date Check # Amount
+07/02/12 1041 - 100.00
+07/18/12 1042 - 125.00
+Total checks - $225.00
+Service fees
+Date Transaction description Amount
+07/31/12 Monthly Maintenance Fee - 12.00
+Total service fees - $12.00
+Daily ledger balances
+Date Balance ($) Date Balance ($) Date Balance ($)
+07/01 1,500.00 07/09 3,768.68 07/20 3,593.68
+07/02 1,353.68 07/16 3,568.68 07/23 2,572.68
+07/05 3,853.68 07/18 3,443.68 07/31 2,560.68

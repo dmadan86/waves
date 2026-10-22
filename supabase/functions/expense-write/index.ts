@@ -82,6 +82,8 @@ interface ExpenseWriteRequest {
   occurredAt?: string | null;
   /** "Paid to"; omitted keeps the stored one, '' clears it. */
   payee?: string | null;
+  /** "Work expense (to claim)"; omitted keeps the stored one. */
+  reimbursable?: boolean | null;
   /**
    * The rate used, when the expense is not in the group's currency (ADR-003).
    * Stored as an exact rational so the conversion can be reproduced a year
@@ -225,6 +227,7 @@ serveWithCors(async (request) => {
         balanceDueDate: body.balanceDueDate ?? null,
         occurredAt: body.occurredAt ?? null,
         payee: typeof body.payee === 'string' ? body.payee : null,
+        reimbursable: typeof body.reimbursable === 'boolean' ? body.reimbursable : null,
       }),
     );
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -30,6 +29,7 @@ import {
   balanceDirection,
   convertWithRecord,
   copyFor,
+  diffExpenseVersions,
   format,
   guessIcon,
   money,
@@ -39,8 +39,9 @@ import {
 } from '@waves/core';
 
 import { builtinCategoryLabel, CategoryRow } from '@/components/Category';
+import { useEntitlement } from '@/lib/useEntitlement';
+import { AssistantCompleteRow } from '@/components/AssistantCompleteRow';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { MapPreview } from '@/components/MapPreview';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { ExpenseComments } from '@/components/ExpenseComments';
@@ -65,6 +66,10 @@ import { useViewerId } from '@/lib/auth';
 import { expenseReceiptPath, expenseReceiptUrl } from '@/data/api';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { useBottomClearance } from '@/lib/clearance';
+import { newMarksSince, type NewMark } from '@/lib/groupNew';
+import { useGroupBaseline } from '@/lib/useGroupUnread';
+import { NewPill } from '@/components/NewMark';
+import { UNREAD_GREEN } from '@/components/UnreadDot';
 import { expenseMemberHref } from '@/lib/expenseMemberRows';
 import { router, useGoBack } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
@@ -75,6 +80,7 @@ import { timeOfDay } from '@/lib/timeline';
 import { eventDetailFacts } from '@/lib/eventDetailFacts';
 import { showsUpcomingPayments, showsVendorTools } from '@/lib/eventOrganizer';
 import { memberNameById } from '@/lib/memberName';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 function splitLabels(t: UiStrings): Record<string, string> {
   return {
@@ -127,10 +133,8 @@ function HeroButton({
   );
 }
 
-/** A member's avatar showing their real picture when they have one. The signing
- *  hook (`useAvatarUrl`) must run per row, so this is its own component rather
- *  than a call inside a `.map`. Falls back to initials — same as the comment
- *  thread below. */
+/** A member's avatar showing their real picture when they have one. `PersonAvatar` signs the photo, falls back to
+ *  initials, and is the same component the comment thread below uses. */
 function MemberAvatar({
   name,
   photo,
@@ -142,18 +146,23 @@ function MemberAvatar({
   ghost: boolean;
   size?: number;
 }): React.JSX.Element {
-  const url = useAvatarUrl(photo);
-  return <Avatar name={name} photoUrl={url} ghost={ghost} size={size} />;
+  return <PersonAvatar name={name} avatarUrl={photo} ghost={ghost} size={size} />;
 }
 
 export default function ExpenseDetailScreen() {
   const theme = useTheme();
   const goBack = useGoBack();
+  const { isPro } = useEntitlement();
   const insets = useSafeAreaInsets();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
-  const { id, expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
+  const {
+    id,
+    expenseId,
+    new: newParam,
+    edited: editedParam,
+  } = useLocalSearchParams<{ id: string; expenseId: string; new?: string; edited?: string }>();
   const groupId = id ?? '';
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -162,7 +171,7 @@ export default function ExpenseDetailScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
 
-  const { group, members, everyone, expenses } = useGroup(groupId);
+  const { group, members, everyone, expenses, activity } = useGroup(groupId);
   const versions = useExpenseVersions(expenseId ?? '');
   const imageEvents = useExpenseImageEvents(expenseId ?? '');
   const scrollRef = useRef<RNScrollView>(null);
@@ -289,6 +298,47 @@ export default function ExpenseDetailScreen() {
       bare: true,
     });
   };
+
+  // Whether this bill is news: added or edited by someone else since the group
+  // was last opened. From the group's list the row hands it over as a param; from
+  // Activity or a notification it is worked out from the log against the same
+  // previous look, so the tag reads the same wherever the bill was opened from.
+  const lastSeenAt = useGroupBaseline(groupId || null);
+  const mark: NewMark | null = useMemo(() => {
+    const mine = new Set(
+      (everyone.data ?? []).filter((m) => isViewer(m, viewerId)).map((m) => String(m.id)),
+    );
+    const found = newMarksSince(activity.data ?? [], (mid) => mine.has(mid), lastSeenAt).get(
+      expenseId ?? '',
+    );
+    if (found) return found;
+    const hinted = newParam === '1' ? 'new' : editedParam === '1' ? 'edited' : null;
+    return hinted ? { kind: hinted, byMemberId: null, at: 0 } : null;
+  }, [activity.data, everyone.data, viewerId, lastSeenAt, expenseId, newParam, editedParam]);
+  // For an edit, which values moved since that look (the activity log keeps no
+  // field list, so it is the version history that says): the first version at or
+  // before the look against the current one.
+  const changedFields: ReadonlySet<string> = useMemo(() => {
+    if (mark?.kind !== 'edited' || lastSeenAt === null) return new Set();
+    const ascending = [...(versions.data ?? [])].sort((a, b) => a.version_no - b.version_no);
+    const current = ascending[ascending.length - 1];
+    const before = ascending.filter((v) => Date.parse(v.created_at) <= lastSeenAt).pop();
+    if (!current || !before || before === current) return new Set();
+    return new Set(diffExpenseVersions(before, current, myMemberId).map((c) => c.field));
+  }, [mark?.kind, lastSeenAt, versions.data, myMemberId]);
+  const markLabel = !mark
+    ? null
+    : mark.byMemberId
+      ? fill(mark.kind === 'new' ? t.expense.fresh.newBy : t.expense.fresh.editedBy, {
+          name: nameOf(mark.byMemberId),
+        })
+      : mark.kind === 'new'
+        ? t.expense.fresh.new
+        : t.expense.fresh.edited;
+  const changedLine = {
+    textDecorationLine: 'underline',
+    textDecorationColor: UNREAD_GREEN,
+  } as const;
 
   if (expenses.isLoading || askingServer) {
     // Shell first: the back button paints instantly on navigation; the title
@@ -566,12 +616,18 @@ export default function ExpenseDetailScreen() {
                 accessibilityHint={t.expense.detailTapHint}
                 style={({ pressed }) => ({ flexShrink: 1, opacity: pressed ? 0.6 : 1 })}
               >
-                <Text variant="subheading" tone="onBrand" numberOfLines={1}>
+                <Text
+                  variant="subheading"
+                  tone="onBrand"
+                  numberOfLines={1}
+                  style={changedFields.has('description') ? changedLine : undefined}
+                >
                   {expenseTitle(version.description, version.category, t, version.category_meta)}
                 </Text>
               </Pressable>
               {deleted ? <Badge label={t.expense.deleted} tone="negative" /> : null}
             </Row>
+            {markLabel ? <NewPill label={markLabel} onDark /> : null}
             <View
               style={{
                 flexDirection: 'row',
@@ -643,7 +699,13 @@ export default function ExpenseDetailScreen() {
               accessibilityLabel={`${t.common.edit}: ${format(money(BigInt(version.amount), currency), { locale })}`}
               accessibilityHint={amountInline ? t.expense.detailTapHint : undefined}
               hitSlop={8}
-              style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                opacity: pressed ? 0.6 : 1,
+                ...(changedFields.has('amount')
+                  ? { borderBottomWidth: 3, borderBottomColor: UNREAD_GREEN }
+                  : null),
+              })}
             >
               <MoneyText
                 amount={BigInt(version.amount)}
@@ -726,7 +788,11 @@ export default function ExpenseDetailScreen() {
           </Pressable>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.onBrand} />
-            <Text variant="caption" tone="onBrand" style={{ fontWeight: '600' }}>
+            <Text
+              variant="caption"
+              tone="onBrand"
+              style={[{ fontWeight: '600' }, changedFields.has('date') ? changedLine : null]}
+            >
               {heroDate}
             </Text>
           </Row>
@@ -897,6 +963,17 @@ export default function ExpenseDetailScreen() {
                   onPress={changeOn('category')}
                   accessibilityHint={t.expense.detailTapHint}
                 />
+                {/* Pro: the assistant's questions, over a bill that is missing its
+                    place, payment or receipt. Draws nothing otherwise. */}
+                {!deleted ? (
+                  <AssistantCompleteRow
+                    groupId={groupId}
+                    expenseId={expense.id}
+                    version={version}
+                    hasLegacyReceipt={receiptUri !== null}
+                    isPro={isPro}
+                  />
+                ) : null}
                 <DetailRow
                   icon="wallet-outline"
                   label={t.paidBy}
@@ -937,6 +1014,16 @@ export default function ExpenseDetailScreen() {
                     icon="send-outline"
                     label={t.expense.payee.label}
                     value={version.payee}
+                    onPress={inlineEditable ? () => openEditor() : undefined}
+                    accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
+                  />
+                ) : null}
+                {/* The work tag, only drawn when set; a tap opens the editor. */}
+                {version.reimbursable ? (
+                  <DetailRow
+                    icon="briefcase-outline"
+                    label={t.expense.reimbursable.row}
+                    value={t.expense.reimbursable.yes}
                     onPress={inlineEditable ? () => openEditor() : undefined}
                     accessibilityHint={inlineEditable ? t.expense.detailTapHint : undefined}
                   />

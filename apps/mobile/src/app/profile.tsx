@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, View } from 'react-native';
+import { AppState, ScrollView, View } from 'react-native';
 
 import {
   Badge,
@@ -9,7 +9,6 @@ import {
   EmptyState,
   IconButton,
   iconSize,
-  MoneyText,
   Row,
   Screen,
   Text,
@@ -22,13 +21,20 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
+import { resetMuted as resetMutedFollowUps, setEnabled as setFollowUpsEnabled } from '@waves/core';
+import { useFollowUpPrefs } from '@/lib/followUpPrefs';
+import { useToast } from '@/lib/toast';
 import { SkeletonList } from '@/components/Skeletons';
-import { useSettledTotals, useVoiceAgentEnabled } from '@/data/hooks';
+import { useVoiceAgentEnabled } from '@/data/hooks';
 import { useDemoActive } from '@/demo/useDemoActive';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
+import { connectedAppsRowHint } from '@/lib/connectedApps';
+import { notificationsRowStatus } from '@/lib/notificationStatus';
+import { pushPermission, type PushPermission } from '@/lib/push';
+import { useConnectedApps } from '@/lib/useConnectedApps';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
 import { router } from '@/lib/navigation';
@@ -64,67 +70,6 @@ import { THEME_HIDDEN, useThemePreference } from '@/lib/theme';
  * the same delete ended up a quiet list row on one screen and a red card on
  * this one.
  */
-/**
- * What has actually changed hands through you.
- *
- * The board this is drawn from puts a points total here. Waves has no points
- * and should not invent any: a score next to somebody's money is a number that
- * means nothing pretending to sit with numbers that mean everything. This is
- * the true version of the same idea — one figure, earned, that appears nowhere
- * else in the app.
- *
- * It is not a balance and is deliberately not coloured like one. Paying and
- * being paid are the same fact here: a debt closed.
- */
-function SettledPill({ profileId, locale }: { profileId: string | null; locale: string }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const totals = useSettledTotals(profileId);
-
-  const entries = [...(totals.data ?? new Map<string, bigint>())].sort((a, b) =>
-    b[1] === a[1] ? 0 : b[1] > a[1] ? 1 : -1,
-  );
-  const top = entries[0];
-
-  // Nothing settled yet is not worth an empty badge — the pill only earns its
-  // place once a real figure has changed hands. Until then, show nothing.
-  if (!top) return null;
-
-  return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-      <Row
-        style={{
-          gap: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          paddingVertical: theme.spacing.sm,
-          borderRadius: theme.radius.pill,
-          backgroundColor: theme.color.buttonPrimary,
-        }}
-      >
-        <Ionicons name="checkmark-done" size={iconSize.base} color={theme.color.onBrand} />
-        <Row style={{ gap: 4 }}>
-          <MoneyText
-            amount={top[1]}
-            currency={top[0] as never}
-            locale={locale}
-            variant="subheading"
-            tone="onBrand"
-          />
-          <Text variant="caption" tone="onBrand">
-            {t.account.settled}
-          </Text>
-        </Row>
-      </Row>
-      {/* No rate turns rupees into euros, so the rest are counted, not added. */}
-      {entries.length > 1 ? (
-        <Text variant="micro" tone="muted">
-          {plural(locale, entries.length - 1, t.account.otherCurrencies)}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
 export default function ProfileScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
   const { t } = useStrings();
@@ -169,6 +114,8 @@ function ProfileForm() {
   const voiceAgentOn = useVoiceAgentEnabled();
   const showVoiceRecorder = voiceAgentOn || __DEV__;
   const voiceConsent = useVoiceConsent(session?.user?.id);
+  const followUps = useFollowUpPrefs(session?.user?.id);
+  const toast = useToast();
   const [consentSheet, setConsentSheet] = useState(false);
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
@@ -192,6 +139,24 @@ function ProfileForm() {
   const { preference: syncNetwork } = useSyncNetwork();
   const { preference: themePreference, overridden: themeOverridden } = useThemePreference();
   const { language, stored: languageChosen, restartNeeded } = useLanguage();
+  const connectedApps = useConnectedApps();
+  // The phone's own permission is local and cheap; the per-kind switches live
+  // on the server, so the row reports only what the phone allows.
+  const [osPush, setOsPush] = useState<PushPermission | null>(null);
+  useEffect(() => {
+    let live = true;
+    const read = () =>
+      void pushPermission().then(
+        (p) => live && setOsPush(p),
+        () => undefined,
+      );
+    read();
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && read());
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, []);
   const demoActive = useDemoActive(profile?.id ?? null, false);
   const removeDemo = useRemoveDemo();
 
@@ -302,7 +267,6 @@ function ProfileForm() {
                 <Badge label={t.common.guest} />
               ) : null}
             </Row>
-            <SettledPill profileId={profile?.id ?? null} locale={locale} />
             {/* Photo errors have nowhere else to land now the form is gone. */}
             {photo.status ? (
               <Text variant="caption" tone="negative">
@@ -395,16 +359,8 @@ function ProfileForm() {
             {
               icon: 'notifications-outline',
               label: t.account.notifications,
+              hint: notificationsRowStatus(osPush, t.notifications),
               route: '/settings/notifications',
-            },
-            // The mic's own settings sit with the rest of "how the app speaks to
-            // you", not under Data: what is managed here is a language, and the
-            // person who needs it is the person whose mic went silent.
-            {
-              icon: 'mic-outline',
-              label: t.offlineVoice.row,
-              hint: t.offlineVoice.rowHint,
-              route: '/settings/offline-voice',
             },
             // Advanced voice (Pro): the switch that grants or revokes sending
             // voice to Deepgram and Google Gemini. Turning it on asks first.
@@ -421,6 +377,32 @@ function ProfileForm() {
                         if (on) setConsentSheet(true);
                         else voiceConsent.revoke();
                       },
+                    },
+                  },
+                ]
+              : []),
+            // Pro voice agent only (the same flag): the short questions it asks
+            // after adding an expense, and a way to un-mute the ones turned off.
+            ...(showVoiceRecorder
+              ? [
+                  {
+                    icon: 'chatbubble-ellipses-outline' as const,
+                    label: t.followUps.settingsRow,
+                    hint: t.followUps.settingsHint,
+                    toggle: {
+                      value: followUps.prefs.enabled,
+                      disabled: !followUps.ready,
+                      onChange: (on: boolean) =>
+                        followUps.update((p) => setFollowUpsEnabled(p, on)),
+                    },
+                  },
+                  {
+                    icon: 'refresh-outline' as const,
+                    label: t.followUps.resetRow,
+                    hint: t.followUps.resetHint,
+                    onPress: () => {
+                      followUps.update(resetMutedFollowUps);
+                      toast.show(t.followUps.resetDone);
                     },
                   },
                 ]
@@ -528,7 +510,10 @@ function ProfileForm() {
             {
               icon: 'sparkles-outline',
               label: t.connectedApps.row,
-              hint: t.connectedApps.rowHint,
+              hint:
+                connectedAppsRowHint(connectedApps.data?.length, t.connectedApps.rowNone, (n) =>
+                  plural(locale, n, t.connectedApps.rowCount),
+                ) ?? t.connectedApps.rowHint,
               route: '/settings/connected-apps',
             },
           ]}

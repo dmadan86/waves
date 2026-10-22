@@ -274,6 +274,9 @@ function GroupDetail({
             <Link className="btn soft" href={`/g/${groupId}/insights`}>
               {t.insights.title}
             </Link>
+            <Link className="btn soft" href={`/g/${groupId}/recurring`}>
+              {t.groupRecurring.title}
+            </Link>
             {/* The two trip reads. Both are offered only when there is
                 something behind them: a recap of a flatshare's whole history is
                 a question nobody asked, and Places on a group where nothing
@@ -572,7 +575,10 @@ function ExpenseRow({
     <Link className="item expense-row" href={`/g/${groupId}/expense/${expense.id}`}>
       <span className="grow">
         <span className="title">{version.description}</span>
-        <span className="meta">{total}</span>
+        <span className="meta">
+          {total}
+          {version.reimbursable ? ` · ${t.expense.workBadge}` : ''}
+        </span>
       </span>
       <span className="row-right">
         {stake !== null && stake !== 0n ? (

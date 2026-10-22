@@ -322,12 +322,15 @@ export function PickGroupSheet({
   groups,
   onPick,
   name,
+  body,
 }: {
   visible: boolean;
   onClose: () => void;
   groups: readonly PairGroupRow[];
   onPick: (group: PairGroupRow) => void;
   name: string;
+  /** Why the pick is being asked, when the default line does not say it. */
+  body?: string;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -340,7 +343,7 @@ export function PickGroupSheet({
     >
       <View style={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.md }}>
         <Text variant="caption" tone="muted">
-          {fill(t.person.pickGroupBody, { name })}
+          {body ?? fill(t.person.pickGroupBody, { name })}
         </Text>
         {groups.map((group) => (
           <PairGroupCard key={group.groupId} group={group} onPress={() => onPick(group)} />

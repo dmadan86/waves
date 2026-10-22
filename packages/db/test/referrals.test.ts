@@ -62,6 +62,9 @@ interface PersonOptions {
 async function person(options: PersonOptions = {}): Promise<string> {
   const id = randomUUID();
   const age = options.ageMinutes ?? 0;
+  // A client role cannot choose a profile's created_at (20261022090000); the
+  // fixture is the server, so drop any claims an earlier asUser left behind.
+  await client.query(`SELECT set_config('request.jwt.claims', '', true)`);
   await client.query(
     `INSERT INTO profiles (id, display_name, default_currency, created_at)
      VALUES ($1, 'Person', 'INR', now() - make_interval(mins => $2))`,

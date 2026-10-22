@@ -192,7 +192,12 @@ export default function ArchivedGroupsScreen() {
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <GroupPhoto photoPath={group.photo_path} emoji={group.cover_emoji} size={52} />
+                  <GroupPhoto
+                    photoPath={group.photo_path}
+                    emoji={group.cover_emoji}
+                    color={group.cover_color}
+                    size={52}
+                  />
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <Text variant="subheading" numberOfLines={1}>
                       {groupLabel(group, membersByGroup.get(group.id) ?? [], profile?.id)}

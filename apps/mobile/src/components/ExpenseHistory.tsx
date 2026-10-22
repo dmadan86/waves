@@ -142,6 +142,7 @@ const CHANGE_ICONS: Record<ExpenseChange['field'], React.ComponentProps<typeof I
     participants: 'people-outline',
     notes: 'document-text-outline',
     payee: 'send-outline',
+    reimbursable: 'briefcase-outline',
     paymentMethod: 'card-outline',
     time: 'time-outline',
     receipt: 'receipt-outline',
@@ -218,6 +219,14 @@ function describeChanges(
           kind: 'text',
           oldText: change.oldText || t.expense.audit.none,
           newText: change.newText || t.expense.audit.none,
+        };
+      case 'flag':
+        return {
+          key: change.field,
+          label: t.expense.audit.reimbursable,
+          kind: 'text',
+          oldText: change.oldValue ? t.expense.reimbursable.yes : t.expense.reimbursable.no,
+          newText: change.newValue ? t.expense.reimbursable.yes : t.expense.reimbursable.no,
         };
       case 'category':
         return {

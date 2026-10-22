@@ -78,6 +78,8 @@ function PersonalTransactionsScreenBody() {
     categoryMode?: string;
     kind?: string;
     month?: string;
+    from?: string;
+    to?: string;
   }>();
   const paramCategory = typeof params.category === 'string' ? params.category : null;
   // The dashboard's columns are buckets: a custom or unknown category is counted
@@ -87,6 +89,12 @@ function PersonalTransactionsScreenBody() {
   const kindParam = params.kind === 'income' || params.kind === 'expense' ? params.kind : null;
   const month =
     typeof params.month === 'string' && /^\d{4}-\d{2}$/.test(params.month) ? params.month : null;
+
+  // An inclusive date range, as the assistant's "Show in Spending" link sends it.
+  const dateParam = (value: unknown): string | null =>
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+  const fromDate = dateParam(params.from);
+  const toDate = dateParam(params.to);
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
   const [query, setQuery] = useState('');
@@ -133,7 +141,9 @@ function PersonalTransactionsScreenBody() {
         matchesCategory(txn.category) &&
         matchesTab(txn) &&
         matchesQuery(txn) &&
-        (!month || txn.date.slice(0, 7) === month),
+        (!month || txn.date.slice(0, 7) === month) &&
+        (!fromDate || txn.date >= fromDate) &&
+        (!toDate || txn.date <= toDate),
     );
 
     const list: LedgerItem[] = [];
@@ -163,7 +173,7 @@ function PersonalTransactionsScreenBody() {
       index = end;
     }
     return list;
-  }, [txns, filter, picked, bucketed, month, tab, query, locale, t]);
+  }, [txns, filter, picked, bucketed, month, fromDate, toDate, tab, query, locale, t]);
 
   const signed = (amount: bigint, currency: string, income: boolean): string =>
     `${income ? '+' : '-'}${format(money(amount < 0n ? -amount : amount, currency), { locale })}`;
@@ -194,12 +204,27 @@ function PersonalTransactionsScreenBody() {
           <Text style={{ fontSize: 20, fontWeight: '700', color: ink }} numberOfLines={1}>
             {(filter ? labelFor(filter) : null) ?? t.personal.transactions}
           </Text>
+          {fromDate && toDate ? (
+            <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
+              {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
+            </Text>
+          ) : null}
           {month ? (
             <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
               {monthName(month, locale)}
             </Text>
           ) : null}
         </View>
+        {/* The assistant, already pointed at the private ledger: what is said or
+            typed there stays personal. */}
+        <IconButton
+          label={t.assistant.openPersonalAssistant}
+          onPress={() =>
+            router.push({ pathname: '/voice', params: { scope: 'personal', source: 'personal' } })
+          }
+        >
+          <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
+        </IconButton>
         <IconButton
           label={t.personal.add}
           onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
@@ -427,6 +452,17 @@ function PersonalTransactionsScreenBody() {
                   {signed(txn.amount, txn.currency, income)}
                 </Text>
                 {method ? <Text style={{ fontSize: 12, color: muted }}>{method}</Text> : null}
+                {txn.reimbursable ? (
+                  <Text style={{ fontSize: 12, color: muted }}>{t.followUps.reimbursableTag}</Text>
+                ) : null}
+                {txn.receiptKey ? (
+                  <Ionicons
+                    name="receipt-outline"
+                    size={14}
+                    color={muted}
+                    accessibilityLabel={t.personalReceipt.attached}
+                  />
+                ) : null}
               </View>
               <Ionicons
                 name={directionalIcon('chevron-forward')}

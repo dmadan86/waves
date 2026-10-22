@@ -24,14 +24,19 @@ import {
 } from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
+import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { SettingsSection, type SettingsRow } from '@/components/SettingsSection';
 import {
+  useCancelMemberLink,
   useClaimMemberAsMe,
   useGhostMergePersonIds,
   useGroup,
   useGroupLedger,
+  useGroupMemberLinks,
+  useMergeMemberInto,
   useRemoveMember,
+  useRequestMemberLink,
   useSetMemberRole,
   useUpdateMember,
 } from '@/data/hooks';
@@ -51,8 +56,10 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
+import { settleHref } from '@/lib/groupTab';
 
 /** The crown's gold — there is no theme token for it, and it has to read as
  *  gold on both the light and dark palettes, the one thing a theme colour
@@ -222,7 +229,12 @@ export default function MemberScreen() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
-  const { id, memberId } = useLocalSearchParams<{ id: string; memberId: string }>();
+  const { id, memberId, link } = useLocalSearchParams<{
+    id: string;
+    memberId: string;
+    /** `1` when Friends sent the viewer here to link this placeholder. */
+    link?: string;
+  }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
   // Identity for "which member am I", from the session rather than the profile:
@@ -239,6 +251,12 @@ export default function MemberScreen() {
   const removeFromGroup = useRemoveMember(groupId);
   const [removing, setRemoving] = useState(false);
   const claimAsMe = useClaimMemberAsMe(groupId);
+  // "Link to a Waves user": what this group's admins have asked and are still
+  // waiting on (empty for everybody else), and the three ways to act on it.
+  const links = useGroupMemberLinks(groupId);
+  const mergeInto = useMergeMemberInto(groupId);
+  const requestLink = useRequestMemberLink(groupId);
+  const cancelLink = useCancelMemberLink(groupId);
   const { blockedIds, block, unblock } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
 
@@ -255,6 +273,12 @@ export default function MemberScreen() {
   const [claimNote, setClaimNote] = useState<{ text: string; ok: boolean } | null>(null);
   /** Which editable row has its sheet open, or null. */
   const [editing, setEditing] = useState<'name' | 'vpa' | null>(null);
+  /** The "Who is Renny?" sheet. */
+  const [linking, setLinking] = useState(false);
+  /** Whether the sheet was opened for Friends already: once per visit. */
+  const [autoLinked, setAutoLinked] = useState(false);
+  /** What came of linking, in its own line: it can be good news. */
+  const [linkNote, setLinkNote] = useState<{ text: string; ok: boolean } | null>(null);
   /** The expense feed's own order — newest first until flipped. */
   const [oldestFirst, setOldestFirst] = useState(false);
 
@@ -360,6 +384,117 @@ export default function MemberScreen() {
 
   const balance = ledger.balances.get(member.id) ?? 0n;
 
+  /** The ask waiting on this placeholder, if an admin has made one. */
+  const pendingLink = links.data?.find((ask) => ask.member_id === member.id) ?? null;
+  const placeholderName = member.ghost_name ?? t.misc.someone;
+
+  // Sent from Friends with "Link to a Waves user" already chosen: open the
+  // sheet once the asks are known (synced in render, the app's idiom). With an
+  // ask waiting, the row below says so instead.
+  if (link === '1' && !autoLinked && ghost && iAmAdmin && !member.left_at && links.isSuccess) {
+    setAutoLinked(true);
+    if (!pendingLink) setLinking(true);
+  }
+
+  /**
+   * A. The same person is already in this group: fold the placeholder into
+   * them. Asked in plain words with what moves, because it cannot be undone.
+   */
+  const confirmMerge = async (into: { memberId: string; name: string }): Promise<void> => {
+    const ok = await confirm({
+      title: fill(t.link.mergeConfirmTitle, { name: placeholderName, who: into.name }),
+      body: fill(t.link.mergeConfirmBody, {
+        name: placeholderName,
+        who: into.name,
+        expenses: plural(locale, involved.length, t.link.mergeExpenses),
+        balance: format(money(balance < 0n ? -balance : balance, currency as CurrencyCode), {
+          locale,
+        }),
+      }),
+      confirmLabel: t.link.mergeAction,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    setLinkNote(null);
+    mergeInto.mutate(
+      { memberId: member.id, intoMemberId: into.memberId },
+      {
+        onSuccess: (verdict) => {
+          if (!verdict.ok) {
+            setLinkNote({ ok: false, text: linkReasonText(verdict.reason, t) });
+            return;
+          }
+          // The placeholder is gone; the person it became is the page to be on.
+          router.replace(`/group/${groupId}/member/${verdict.member_id ?? into.memberId}`);
+        },
+        onError: (caught) =>
+          setLinkNote({ ok: false, text: friendlyError(caught, t.link.failed, 'member.merge') }),
+      },
+    );
+  };
+
+  /**
+   * B. The person is not in this group: ask them. Nothing attaches to anybody's
+   * account until they say yes — their history is theirs to agree to.
+   */
+  const confirmAsk = async (person: LinkPerson): Promise<void> => {
+    const ok = await confirm({
+      title: fill(t.link.askConfirmTitle, { who: person.name }),
+      body: fill(t.link.askConfirmBody, {
+        me: profile?.display_name ?? t.misc.someone,
+        name: placeholderName,
+        group: groupTitle,
+      }),
+      confirmLabel: t.link.askAction,
+    });
+    if (!ok) return;
+    setLinkNote(null);
+    requestLink.mutate(
+      { memberId: member.id, targetProfileId: person.profileId },
+      {
+        onSuccess: (verdict) => {
+          if (verdict.ok) {
+            setLinkNote({ ok: true, text: fill(t.link.askSent, { who: person.name }) });
+            return;
+          }
+          // They joined as themselves since the list was drawn: a merge, then.
+          if (verdict.reason === 'ALREADY_IN_GROUP' && verdict.member_id) {
+            void confirmMerge({ memberId: verdict.member_id, name: person.name });
+            return;
+          }
+          setLinkNote({ ok: false, text: linkReasonText(verdict.reason, t) });
+        },
+        onError: (caught) =>
+          setLinkNote({ ok: false, text: friendlyError(caught, t.link.failed, 'member.link') }),
+      },
+    );
+  };
+
+  const pickPerson = (person: LinkPerson): void => {
+    setLinking(false);
+    if (person.memberId) {
+      void confirmMerge({ memberId: person.memberId, name: person.name });
+    } else {
+      void confirmAsk(person);
+    }
+  };
+
+  const confirmCancelAsk = async (): Promise<void> => {
+    if (!pendingLink) return;
+    const who = pendingLink.target_name ?? t.misc.someone;
+    const ok = await confirm({
+      title: fill(t.link.waiting, { who }),
+      body: t.link.waitingHint,
+      confirmLabel: t.link.cancelAsk,
+      tone: 'danger',
+    });
+    if (!ok) return;
+    cancelLink.mutate(pendingLink.id, {
+      onError: (caught) =>
+        setLinkNote({ ok: false, text: friendlyError(caught, t.link.failed, 'member.linkCancel') }),
+    });
+  };
+
   /**
    * Admin removes this person. Asked in plain words, with what is still open
    * between them and the group when the balance is not square: removing does not
@@ -426,7 +561,29 @@ export default function MemberScreen() {
           },
         ]
       : []),
-    ...(iAmAdmin && !isMe
+    // An admin says who a placeholder really is: a merge when that person is
+    // already here, an ask when they are not. While an ask waits, the row says
+    // so, and a tap takes it back.
+    ...(ghost && iAmAdmin && !member.left_at
+      ? [
+          pendingLink
+            ? {
+                icon: 'hourglass-outline' as const,
+                label: fill(t.link.waiting, { who: pendingLink.target_name ?? t.misc.someone }),
+                hint: t.link.waitingHint,
+                onPress: cancelLink.isPending ? undefined : () => void confirmCancelAsk(),
+              }
+            : {
+                icon: 'link-outline' as const,
+                label: t.link.row,
+                hint: fill(t.link.rowHint, { name: placeholderName }),
+                onPress:
+                  mergeInto.isPending || requestLink.isPending ? undefined : () => setLinking(true),
+              },
+        ]
+      : []),
+    // A guest (not on Waves) cannot hold a role, so the option is not drawn.
+    ...(iAmAdmin && !isMe && !ghost
       ? [
           {
             icon: (member.role === 'admin' ? 'shield-outline' : 'shield-checkmark-outline') as
@@ -435,26 +592,21 @@ export default function MemberScreen() {
             // neutral "Manage role" with the role read off as the subtitle —
             // the tap still toggles it immediately, same as before.
             label: t.people.manageRole,
-            hint: ghost
-              ? t.people.adminNeedsAccount
-              : member.role === 'admin'
-                ? t.people.currentRoleAdmin
-                : t.people.currentRoleMember,
-            onPress:
-              ghost || setRole.isPending
-                ? undefined
-                : () =>
-                    setRole.mutate(
-                      {
-                        memberId: member.id,
-                        role: member.role === 'admin' ? 'member' : 'admin',
-                      },
-                      {
-                        onSuccess: () => setStatus(t.account.saved),
-                        onError: (caught) =>
-                          setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
-                      },
-                    ),
+            hint: member.role === 'admin' ? t.people.currentRoleAdmin : t.people.currentRoleMember,
+            onPress: setRole.isPending
+              ? undefined
+              : () =>
+                  setRole.mutate(
+                    {
+                      memberId: member.id,
+                      role: member.role === 'admin' ? 'member' : 'admin',
+                    },
+                    {
+                      onSuccess: () => setStatus(t.account.saved),
+                      onError: (caught) =>
+                        setStatus(friendlyError(caught, t.couldNotSave, 'member.setRole')),
+                    },
+                  ),
           },
         ]
       : []),
@@ -724,7 +876,7 @@ export default function MemberScreen() {
                 />
               }
               style={{ flex: 1.3, height: 46 }}
-              onPress={() => router.push(`/group/${groupId}/settle`)}
+              onPress={() => router.push(settleHref(groupId))}
             />
           ) : null}
           <Button
@@ -844,6 +996,12 @@ export default function MemberScreen() {
           </Text>
         ) : null}
 
+        {linkNote ? (
+          <Text variant="caption" tone={linkNote.ok ? 'positive' : 'negative'}>
+            {linkNote.text}
+          </Text>
+        ) : null}
+
         {status ? (
           <Text variant="caption" tone={status === t.account.saved ? 'positive' : 'negative'}>
             {status}
@@ -901,6 +1059,19 @@ export default function MemberScreen() {
           </Card>
         </View>
       </ScrollView>
+
+      {/* "Who is Renny?" — picks a person; what the pick means is decided
+          above (`pickPerson`). */}
+      {ghost ? (
+        <LinkMemberSheet
+          visible={linking}
+          groupId={groupId}
+          placeholderName={placeholderName}
+          inGroup={membersAsPeople(members.data ?? [], viewerId, member.id)}
+          onPick={pickPerson}
+          onClose={() => setLinking(false)}
+        />
+      ) : null}
 
       {/* The editors, over the list rather than inside it — see the account
           screen for why a row beats a field with a Save button beside it. */}

@@ -207,11 +207,18 @@ model Profile {
   purchasedPasses     GroupPass[]
   syncMutations       SyncMutation[]
   memberClaims        MemberClaim[]
+  linkRequestsForMe   MemberLinkRequest[] @relation("LinkRequestTarget")
+  linkRequestsMade    MemberLinkRequest[] @relation("LinkRequestRequester")
   deviceSessions      DeviceSession[]
   ghostMerges         GhostMerge[]
   storageObjects      StorageObject[]
   voiceSttUsage       VoiceSttUsage[]
   voiceAgentUsage     VoiceAgentUsage[]
+  voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
+  voiceAgentFollowupSlots VoiceAgentFollowupSlot[]
+  usageRestoreMark        UsageRestoreMark?
+  voiceStreamReservations VoiceStreamReservation[]
+  statementImportSessions StatementImportSession[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
   adsAllowlist        AdsAllowlist?
@@ -275,6 +282,12 @@ model Group {
   /// `groups_custom_tag_shape`). Ordinary member-writable, like `eventTemplate`.
   customTag String? @map("custom_tag")
 
+  /// Palette key ('peach', 'mint', …; `GROUP_COVER_COLORS` in `@waves/core`) for the
+  /// tile behind the group's icon. NULL is the app's default colour. Lowercase
+  /// letters only (CHECK `groups_cover_color_shape`); a key is stored, not a hex,
+  /// so dark mode can map it. Ordinary member-writable, like `coverEmoji`.
+  coverColor String? @map("cover_color")
+
   /// An admin's overall spend ceiling for the trip, in minor units of
   /// `budgetCurrency`. NULL is "no cap set" — a different thing from zero.
   /// Group-visible by design: everyone sees the overall budget; only an admin
@@ -299,6 +312,13 @@ model Group {
   /// own card rate and a per-bill override live off the group (device-local and
   /// on `expense_versions.fx` respectively).
   fxRates Json? @map("fx_rates")
+
+  /// Unused, reserved. Added by 20261023100000_group_trip_stops (already
+  /// applied in production, so the column and its `waves_set_trip_stops` RPC
+  /// stay) for a per-country itinerary the app no longer has: a group just
+  /// pins extra currencies in `fxRates` instead. Nothing reads or writes it;
+  /// it is always NULL.
+  tripStops Json? @map("trip_stops")
 
   /// When the trip is. Both ends inclusive — the last day of a trip is the one
   /// with the most unrecorded spending on it.
@@ -338,6 +358,7 @@ model Group {
   usageEvents        UsageEvent[]
   passes             GroupPass[]
   planItems          TripPlanItem[]
+  recurringExpenses  GroupRecurringExpense[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -345,6 +366,7 @@ model Group {
   imageEvents        ExpenseImageEvent[]
   syncMutations      SyncMutation[]
   memberClaims       MemberClaim[]
+  memberLinkRequests MemberLinkRequest[]
   memberBudgets      TripMemberBudget[]
   storageObjects     StorageObject[]
 
@@ -391,6 +413,10 @@ model GroupMember {
   removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
   /// The admin who removed them.
   removedBy     String?    @map("removed_by") @db.Uuid
+  /// Set when this placeholder was folded into another member of the same
+  /// group (`waves_fold_member_into`): retired, kept for the history that
+  /// names it.
+  mergedIntoMemberId String? @map("merged_into_member_id") @db.Uuid
   updatedSeq    BigInt     @default(0) @map("updated_seq")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -399,6 +425,8 @@ model GroupMember {
   profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
   remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
   importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
+  mergedInto  GroupMember? @relation("MergedInto", fields: [mergedIntoMemberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mergedFrom  GroupMember[] @relation("MergedInto")
 
   authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")
   paidFor            ExpensePayer[]
@@ -407,6 +435,7 @@ model GroupMember {
   settlementsGot     Settlement[]        @relation("SettlementTo")
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
+  recurringExpenses  GroupRecurringExpense[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
@@ -426,6 +455,7 @@ model GroupMember {
   deletedExpenses    Expense[]           @relation("ExpenseDeletedBy")
   claimsOnThisPlace  MemberClaim[]       @relation("ClaimTarget")
   claimsDecided      MemberClaim[]       @relation("ClaimDecider")
+  linkRequests       MemberLinkRequest[]
   tripBudget         TripMemberBudget?
   ghostMerges        GhostMerge[]
   importsRun         ImportBatch[]       @relation("BatchActor")
@@ -434,6 +464,7 @@ model GroupMember {
   @@unique([groupId, profileId])
   @@index([groupId])
   @@index([groupId, updatedSeq])
+  @@index([mergedIntoMemberId])
   @@map("group_members")
   @@schema("public")
 }
@@ -494,6 +525,37 @@ model MemberClaim {
   @@index([groupId, status, createdAt], map: "member_claims_group_id_status_created_at_idx")
   @@index([requesterId, createdAt], map: "member_claims_requester_id_created_at_idx")
   @@map("member_claims")
+  @@schema("public")
+}
+
+/// An admin saying a placeholder member is a particular Waves user, who alone
+/// can accept it (`waves_decide_member_link`). Accepting is the same claim an
+/// approved join request performs; a person already in the group with money
+/// on their own row has the placeholder folded into it instead.
+///
+/// "One open ask per placeholder" is enforced in `waves_request_member_link`
+/// under a row lock, for the same reason `MemberClaim` above gives.
+model MemberLinkRequest {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  memberId        String    @map("member_id") @db.Uuid
+  targetProfileId String    @map("target_profile_id") @db.Uuid
+  requestedBy     String    @map("requested_by") @db.Uuid
+  /// 'pending' | 'accepted' | 'declined' | 'cancelled' (CHECK in migration SQL).
+  status          String    @default("pending")
+  decidedAt       DateTime? @map("decided_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member    GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  target    Profile     @relation("LinkRequestTarget", fields: [targetProfileId], references: [id], onDelete: Cascade)
+  requester Profile     @relation("LinkRequestRequester", fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  @@index([memberId, status], map: "member_link_requests_member_id_status_idx")
+  @@index([targetProfileId, status], map: "member_link_requests_target_profile_id_status_idx")
+  @@index([requestedBy, createdAt], map: "member_link_requests_requested_by_created_at_idx")
+  @@index([groupId, status], map: "member_link_requests_group_id_status_idx")
+  @@map("member_link_requests")
   @@schema("public")
 }
 
@@ -653,6 +715,10 @@ model ExpenseVersion {
   /// forward by waves_apply_expense when an edit from an older client sends
   /// none; a newer client clears it with ''.
   payee            String?
+  /// "Work expense (to claim)": the spender will claim it back from an employer.
+  /// Never part of a balance. Carried forward by waves_apply_expense when an
+  /// edit from an older client sends none (p_reimbursable NULL).
+  reimbursable     Boolean       @default(false)
   /// The import this version came in with (`import_batches`), set on version 1
   /// of an imported expense only; edits carry none. What Undo import acts on.
   importBatchId    String?       @map("import_batch_id") @db.Uuid
@@ -1443,9 +1509,11 @@ model ReferralCode {
 /// in a group of two or more. Days granted are capped at 30 per account.
 model Referral {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  referrerId   String    @map("referrer_id") @db.Uuid
-  refereeId    String    @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
-  code         String
+  /// Null once the referrer's account is deleted: the row (and the days it
+  /// earned) outlives both accounts.
+  referrerId   String?   @map("referrer_id") @db.Uuid
+  refereeId    String?   @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code         String?
   source       String    @default("code")
   status       String    @default("claimed")
   rejectReason String?   @map("reject_reason")
@@ -1453,14 +1521,23 @@ model Referral {
   qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
   referrerDays Int       @default(0) @map("referrer_days")
   refereeDays  Int       @default(0) @map("referee_days")
+  /// Salted identity hashes of the friend, stamped when evaluated.
   identityKeys String[]  @default([]) @map("identity_keys")
+  /// The referrer's identity hashes, stamped at the same time, so the lifetime
+  /// cap follows the person through a delete-and-sign-up-again.
+  referrerKeys String[]  @default([]) @map("referrer_keys")
+  /// Device hashes of the friend and of the referrer: the same phone on both
+  /// sides is a self-referral.
+  deviceKeys         String[] @default([]) @map("device_keys")
+  referrerDeviceKeys String[] @default([]) @map("referrer_device_keys")
 
-  referrer     Profile      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade, map: "referrals_referrer_fkey")
-  referee      Profile      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade, map: "referrals_referee_fkey")
-  referralCode ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+  referrer     Profile?      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull, map: "referrals_referrer_fkey")
+  referee      Profile?      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: SetNull, map: "referrals_referee_fkey")
+  referralCode ReferralCode? @relation(fields: [code], references: [code], onDelete: SetNull)
 
   @@index([referrerId, status], map: "referrals_referrer_idx")
   @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
+  @@index([referrerKeys], map: "referrals_referrer_keys_idx", type: Gin)
   @@map("referrals")
   @@schema("public")
 }
@@ -1491,8 +1568,14 @@ model ProTrial {
   /// Voice commands used from the trial's pool.
   voiceUsed    Int      @default(0) @map("voice_used")
   identityKeys String[] @default([]) @map("identity_keys")
+  /// Salted hashes of the device ids registered to the account: an install
+  /// signal. On its own it only marks `deviceReused`; with a relay-only email
+  /// it refuses the trial (outcome 'refused_device').
+  deviceKeys   String[] @default([]) @map("device_keys")
+  deviceReused Boolean  @default(false) @map("device_reused")
 
   @@index([identityKeys], map: "pro_trials_identity_idx", type: Gin)
+  @@index([deviceKeys], map: "pro_trials_device_idx", type: Gin)
   @@map("pro_trials")
   @@schema("public")
 }
@@ -2331,12 +2414,149 @@ model VoiceAgentUsage {
   /// Seconds of audio streamed through the `voice-stream` relay this month
   /// (`waves_voice_stream_seconds`): the measured, billed quantity.
   streamSeconds Decimal  @default(0) @map("stream_seconds") @db.Decimal(10, 2)
+  /// Follow-up turns about a just-saved expense this month
+  /// (`waves_voice_agent_followup`): outside the command allowance, capped at 300.
+  followups     Int      @default(0)
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@id([profileId, month])
   @@map("voice_agent_usage")
+  @@schema("public")
+}
+
+/// Follow-up turns taken per (person, saved expense id) in the current window:
+/// at most 3 per 10 minutes (`waves_voice_agent_followup`). Service role only.
+model VoiceAgentFollowupTurns {
+  profileId   String   @map("profile_id") @db.Uuid
+  expenseId   String   @map("expense_id")
+  windowStart DateTime @default(now()) @map("window_start") @db.Timestamptz(6)
+  turns       Int      @default(0)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, expenseId])
+  @@map("voice_agent_followup_turns")
+  @@schema("public")
+}
+
+/// A follow-up turn needs a slot: a metered command that produced an action the
+/// app will save opens one (`waves_voice_agent_followup_open`, 3 turns for 10
+/// minutes); `waves_voice_agent_followup` takes a turn from the newest open one.
+model VoiceAgentFollowupSlot {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  turnsLeft Int      @map("turns_left")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, expiresAt], map: "voice_agent_followup_slots_profile_idx")
+  @@map("voice_agent_followup_slots")
+  @@schema("public")
+}
+
+/// One stream's reserved seconds (`waves_voice_stream_mint`), settled exactly
+/// once against its own month by the relay (`waves_voice_stream_settle`).
+model VoiceStreamReservation {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  month     String
+  seconds   Decimal   @db.Decimal(10, 2)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  settledAt DateTime? @map("settled_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt], map: "voice_stream_reservations_open_idx")
+  @@map("voice_stream_reservations")
+  @@schema("public")
+}
+
+/// Requests one statement import id has made (`waves_statement_import_chunk`):
+/// a continuation token no longer buys unbounded reads of one "file".
+model StatementImportSession {
+  profileId String   @map("profile_id") @db.Uuid
+  importId  String   @map("import_id")
+  chunks    Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, importId])
+  @@map("statement_import_sessions")
+  @@schema("public")
+}
+
+/// Every AdMob SSV transaction id ever verified, with its outcome. No relation
+/// to profiles on purpose: replay memory that survives "delete and sign up again".
+model AdSsvTransaction {
+  transactionId String   @id @map("transaction_id")
+  profileId     String?  @map("profile_id") @db.Uuid
+  kind          String?
+  adUnit        String?  @map("ad_unit")
+  outcome       String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([profileId, createdAt], map: "ad_ssv_transactions_profile_idx")
+  @@map("ad_ssv_transactions")
+  @@schema("public")
+}
+
+/// Which profiles have had their deleted-account restoration run
+/// (`waves_usage_guard`). No row: the next reservation restores first, and
+/// refuses if it cannot. Cascades with the profile.
+model UsageRestoreMark {
+  profileId   String   @id @map("profile_id") @db.Uuid
+  /// sha256 of the sorted canonical identity keys the restoration ran for
+  /// ('' while unverified); a reservation under a different one restores again.
+  fingerprint String   @default("")
+  restoredAt  DateTime @default(now()) @map("restored_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("usage_restore_marks")
+  @@schema("public")
+}
+
+/// One row per identity hash ever verified or deleted. No relation to profiles:
+/// it is the memory that outlives the account. Hashes only.
+model IdentityTombstone {
+  identityKey    String    @id @map("identity_key")
+  firstSeenAt    DateTime  @default(now()) @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  seenCount      Int       @default(1) @map("seen_count")
+  deletedCount   Int       @default(0) @map("deleted_count")
+  lastDeletedAt  DateTime? @map("last_deleted_at") @db.Timestamptz(6)
+  lastAuthUserId String?   @map("last_auth_user_id") @db.Uuid
+
+  @@map("identity_tombstones")
+  @@schema("public")
+}
+
+/// The month's meters at the moment an account was deleted, keyed by the auth
+/// user id and the identity hashes, restored onto the next profile for either
+/// (`waves_usage_snapshot` / `waves_usage_restore`). No relation to profiles.
+model UsageCarryover {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authUserId   String   @map("auth_user_id") @db.Uuid
+  identityKeys String[] @default([]) @map("identity_keys")
+  /// 'YYYY-MM' for a monthly meter, 'YYYY-MM-DD' for an ad reward.
+  month        String
+  /// voice:count | voice:stream_mints | voice:followups | voice:stream_seconds | ai:<feature> | ad:<kind>
+  feature      String
+  amount       Decimal  @db.Decimal(12, 2)
+  /// The ad's ORIGINAL transaction id (never a restored 'carry:' id); one
+  /// carry-over row per reward, ever.
+  ref          String?  @unique(map: "usage_carryover_ref_key")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([authUserId, month], map: "usage_carryover_auth_user_idx")
+  @@index([identityKeys], map: "usage_carryover_identity_idx", type: Gin)
+  @@map("usage_carryover")
   @@schema("public")
 }
 
@@ -2579,5 +2799,60 @@ model ReceiptParseCache {
   @@id([sha256, model, schemaVersion, currency])
   @@index([createdAt], map: "receipt_parse_cache_created_idx")
   @@map("receipt_parse_cache")
+  @@schema("public")
+}
+
+/// A repeating group expense (a flat's monthly rent). The server generator
+/// (`waves_generate_recurring_expenses`) posts one real expense per occurrence
+/// through `waves_apply_expense`, idempotently — see the
+/// `20261021130000_group_recurring_expenses` migration. Written only through
+/// `waves_create_group_recurring_expense` / `waves_update_group_recurring_expense`.
+model GroupRecurringExpense {
+  id              String    @id @db.Uuid
+  groupId         String    @map("group_id") @db.Uuid
+  /// The member the generated expenses are recorded as written by.
+  createdBy       String    @map("created_by") @db.Uuid
+  description     String
+  category        String?
+  currency        String    @db.Char(3)
+  amount          BigInt
+  splitType       String    @map("split_type")
+  splitParams     Json      @map("split_params")
+  /// [{ memberId, amount }] in minor units, summing to `amount`.
+  payers          Json
+  shares          Json
+  notes           String?
+  /// weekly | semimonthly | monthly | yearly
+  cadence         String
+  interval        Int       @default(1)
+  secondDay       Int?      @map("second_day")
+  anchorDate      DateTime  @map("anchor_date") @db.Date
+  nextDate        DateTime  @map("next_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  /// active | paused | stopped
+  status          String    @default("active")
+  lastGeneratedOn DateTime? @map("last_generated_on") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq      BigInt    @default(0) @map("updated_seq")
+
+  group  Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author GroupMember @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([groupId, updatedSeq])
+  @@index([nextDate], map: "group_recurring_expenses_due_idx")
+  @@map("group_recurring_expenses")
+  @@schema("public")
+}
+
+/// Internal to `waves_generate_recurring_expenses`: "this transaction is posting
+/// as member M", read by `waves_assert_expense_caller`. No grants, RLS on —
+/// only SECURITY DEFINER code touches it. Rows live for one write.
+model WavesRecurringAuthoring {
+  txid     BigInt
+  memberId String @map("member_id") @db.Uuid
+
+  @@id([txid, memberId])
+  @@map("waves_recurring_authoring")
   @@schema("public")
 }

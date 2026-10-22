@@ -187,19 +187,21 @@ price, and are Pro from the moment the migration runs.
    - URL: `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`
      (production: `https://ywojpnfyxxltvihqmcni.supabase.co/functions/v1/revenuecat-webhook`)
    - Authorization header value: the secret (bare, or `Bearer <secret>`).
-   - Environment: both, while testing. To drop sandbox events in production
-     later, set `REVENUECAT_IGNORE_SANDBOX=true` on the function.
+   - Environment: production. Sandbox and Test Store events are DROPPED by
+     default; a staging project that should write them sets
+     `REVENUECAT_ALLOW_SANDBOX=true` on the function (opt-in; the old
+     `REVENUECAT_IGNORE_SANDBOX` is no longer read).
 6. Press **Send test event**: the function answers 200 `{"outcome":"ignored"}`
    and a `TEST` row appears in `revenuecat_events`.
 
 ### 5. Env keys
 
-| Where                                       | Key                                  | Value                         |
-| ------------------------------------------- | ------------------------------------ | ----------------------------- |
-| EAS (`eas env:create`, or `eas.json` `env`) | `EXPO_PUBLIC_REVENUECAT_IOS_KEY`     | `appl_…` (public)             |
-| EAS                                         | `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | `goog_…` (public)             |
-| Supabase function secrets                   | `REVENUECAT_WEBHOOK_SECRET`          | the webhook secret            |
-| Supabase (optional)                         | `REVENUECAT_IGNORE_SANDBOX`          | `true` to drop sandbox events |
+| Where                                       | Key                                  | Value                                               |
+| ------------------------------------------- | ------------------------------------ | --------------------------------------------------- |
+| EAS (`eas env:create`, or `eas.json` `env`) | `EXPO_PUBLIC_REVENUECAT_IOS_KEY`     | `appl_…` (public)                                   |
+| EAS                                         | `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | `goog_…` (public)                                   |
+| Supabase function secrets                   | `REVENUECAT_WEBHOOK_SECRET`          | the webhook secret                                  |
+| Supabase (staging only)                     | `REVENUECAT_ALLOW_SANDBOX`           | `true` to WRITE sandbox events (dropped by default) |
 
 The SDK keys are public by design; the webhook secret is not and never goes in
 the app. A new native build is required (`react-native-purchases` is native;

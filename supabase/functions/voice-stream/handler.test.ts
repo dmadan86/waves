@@ -148,18 +148,27 @@ function makeDeps(
           const used = over.mints ?? 0;
           const budget = args.p_free_budget;
           return {
-            data: { allowed: used < budget, mints: used + 1, budget, tier: 'free' },
+            data: {
+              allowed: used < budget,
+              mints: used + 1,
+              budget,
+              tier: 'free',
+              reserved_seconds: 20,
+              reservation: 'res-1',
+            },
             error: null,
           };
         }
-        if (name === 'waves_voice_stream_seconds') return { data: 1, error: null };
+        if (name === 'waves_voice_stream_seconds' || name === 'waves_voice_stream_settle') {
+          return { data: 1, error: null };
+        }
         return { data: true, error: null };
       },
       from: (t: string) => {
         serviceReads.push(t);
         const q: Record<string, unknown> = {};
         const chain = () => q;
-        for (const m of ['select', 'eq']) q[m] = chain;
+        for (const m of ['select', 'eq', 'in']) q[m] = chain;
         q.maybeSingle = async () => ({
           data:
             t === 'voice_agent_usage'
@@ -397,8 +406,8 @@ describe('runRelay: piping', () => {
     expect(line?.profile).toMatch(/^[0-9a-f]{12}$/);
     expect(JSON.stringify(line)).not.toContain(ME);
     expect(made.rpcCalls).toContainEqual({
-      name: 'waves_voice_stream_seconds',
-      args: { p_profile: ME, p_seconds: 0.3 },
+      name: 'waves_voice_stream_settle',
+      args: { p_reservation: 'res-1', p_seconds: 0.3 },
     });
   });
 
@@ -513,14 +522,19 @@ describe('runRelay: failure modes (docs/voice-failure-modes.md)', () => {
   const chaosEnv = (flags: string) => ({ VOICE_CHAOS_ENABLED: '1', VOICE_CHAOS: flags });
 
   it('Deepgram refusing the upstream socket (401/5xx closes before open) → 4503', async () => {
-    const { client, upstreams, done } = await started({}, false);
+    const { client, upstreams, done, rpcCalls } = await started({}, false);
     upstreams[0]!.drop();
     expect(client.texts).toContainEqual(
       expect.objectContaining({ type: 'Error', status: 503, code: 'VOICE_AGENT_UNAVAILABLE' }),
     );
     expect(client.closed?.code).toBe(4503);
-    // Nothing was forwarded, so nothing is metered.
+    // Nothing was forwarded: the stream settles with 0 s and gives back the
+    // 20 s its mint reserved (review M9 of PR #1350).
     await expect(done).resolves.toMatchObject({ bytes: 0 });
+    expect(rpcCalls).toContainEqual({
+      name: 'waves_voice_stream_settle',
+      args: { p_reservation: 'res-1', p_seconds: 0 },
+    });
   });
 
   it('a slow database does not hold the stream: it opens without keyterms', async () => {

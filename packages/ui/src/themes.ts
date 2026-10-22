@@ -41,11 +41,14 @@ export interface Theme {
     readonly brandPressed: string;
     readonly brandSoft: string;
     readonly onBrand: string;
-    /** The fill of a primary button. A near-black, separate from the purple
-        `brand` accent: buttons are ink, links and glyphs stay brand. */
+    /** The fill of a primary button: the brand violet, so every action button
+        is one colour. */
     readonly buttonPrimary: string;
     readonly buttonPrimaryPressed: string;
     readonly onButtonPrimary: string;
+    /** The navy of a selected pill or segment. Not an action button. */
+    readonly selectedFill: string;
+    readonly onSelectedFill: string;
     /** The bar a skeleton placeholder is painted in — a shade off the surface it sits on. */
     readonly skeleton: string;
     /** Semantic money colours — see tokens.ts. */
@@ -109,9 +112,11 @@ export const lightTheme: Theme = {
     brandPressed: '#5638C4',
     brandSoft: '#E9E4FF',
     onBrand: palette.white,
-    buttonPrimary: '#181818',
-    buttonPrimaryPressed: '#2E2E2E',
+    buttonPrimary: '#6C4EE3',
+    buttonPrimaryPressed: '#5638C4',
     onButtonPrimary: palette.white,
+    selectedFill: '#181818',
+    onSelectedFill: palette.white,
     skeleton: palette.ink200,
     positive: palette.positive,
     positiveSoft: palette.mint,
@@ -148,9 +153,11 @@ export const darkTheme: Theme = {
     brandPressed: '#6C4EE3',
     brandSoft: '#2A2250',
     onBrand: palette.white,
-    buttonPrimary: '#181818',
-    buttonPrimaryPressed: '#2E2E2E',
+    buttonPrimary: '#8B6FF0',
+    buttonPrimaryPressed: '#6C4EE3',
     onButtonPrimary: palette.white,
+    selectedFill: '#181818',
+    onSelectedFill: palette.white,
     skeleton: palette.night600,
     positive: '#60A5FA',
     positiveSoft: '#17325C',

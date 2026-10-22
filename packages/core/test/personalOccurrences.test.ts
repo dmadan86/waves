@@ -21,6 +21,7 @@ import {
   occurrences,
   stepOccurrence,
   unpostedOccurrences,
+  recurringCatchUp,
   recurringOccurrenceId,
   type PersonalRecurring,
   type PersonalTxn,
@@ -318,5 +319,66 @@ describe('unpostedOccurrences', () => {
 
   it('still reports where the schedule moves to', () => {
     expect(unpostedOccurrences(auto, [], '2026-03-20').nextDate).toBe('2026-04-05');
+  });
+});
+
+describe('personal recurring remembers its anchor day (RC-07 for the personal ledger)', () => {
+  const rule = (anchorDate: string, over: object = {}) => ({
+    cadence: 'monthly' as const,
+    interval: 1,
+    secondDay: null,
+    anchorDate,
+    ...over,
+  });
+  const walk = (r: ReturnType<typeof rule>, count: number): string[] => {
+    const out = [r.anchorDate];
+    while (out.length < count) out.push(stepOccurrence(r, out[out.length - 1]!));
+    return out;
+  };
+
+  it('RC-07 a rule on the 31st fires 31, 28, 31, 30, 31 and never sticks on 28', () => {
+    expect(walk(rule('2026-01-31'), 6)).toEqual([
+      '2026-01-31',
+      '2026-02-28',
+      '2026-03-31',
+      '2026-04-30',
+      '2026-05-31',
+      '2026-06-30',
+    ]);
+  });
+
+  it('a Feb 29 yearly rule goes Feb 28 in common years and back to Feb 29 on leap years', () => {
+    expect(walk(rule('2028-02-29', { cadence: 'yearly' }), 6)).toEqual([
+      '2028-02-29',
+      '2029-02-28',
+      '2030-02-28',
+      '2031-02-28',
+      '2032-02-29',
+      '2033-02-28',
+    ]);
+  });
+
+  it('every-5-months keeps the anchor day, and weekly stays exact', () => {
+    expect(walk(rule('2026-01-31', { interval: 5 }), 3)).toEqual([
+      '2026-01-31',
+      '2026-06-30',
+      '2026-11-30',
+    ]);
+    expect(walk(rule('2026-03-15', { cadence: 'weekly', interval: 2 }), 3)).toEqual([
+      '2026-03-15',
+      '2026-03-29',
+      '2026-04-12',
+    ]);
+  });
+
+  it('a date off the anchor grid, or before the anchor, steps from itself as it always did', () => {
+    expect(stepOccurrence(rule('2026-01-31'), '2026-02-10')).toBe('2026-03-10');
+    expect(stepOccurrence(rule('2026-06-15'), '2026-01-31')).toBe('2026-02-28');
+  });
+
+  it('catch-up after February lands back on the 31st', () => {
+    const r = { ...rule('2026-01-31'), nextDate: '2026-02-28', endDate: null } as never;
+    expect(recurringCatchUp(r, '2026-04-02').nextDate).toBe('2026-04-30');
+    expect(recurringCatchUp(r, '2026-04-02').dates).toEqual(['2026-02-28', '2026-03-31']);
   });
 });

@@ -1,0 +1,52 @@
+# E2E-11. Profile -> "Follow-up questions" off means no question after an add;
+# on brings them back.
+#
+# The switch is found to the right of its row's title: the row has no test id.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+
+# Off.
+- openLink: waves:///profile
+- scrollUntilVisible:
+    element: 'Follow-up questions'
+    direction: DOWN
+- tapOn:
+    rightOf: 'Follow-up questions'
+
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*250.*Personal.*'
+    timeout: 15000
+- assertNotVisible: 'How did you pay\?'
+- assertNotVisible: 'Skip'
+
+# On.
+- runFlow: assistant-close.yaml
+- openLink: waves:///profile
+- scrollUntilVisible:
+    element: 'Follow-up questions'
+    direction: DOWN
+- tapOn:
+    rightOf: 'Follow-up questions'
+
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'How did you pay\?'
+    timeout: 15000

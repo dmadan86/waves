@@ -76,6 +76,17 @@ export interface PersonalTxn {
    *  'other'. Absent on entries written before the field existed, and on ones
    *  where nobody said; the ledger's arithmetic never reads it. */
   readonly paymentMethod?: string | null;
+  /** Where it happened, as a name ("Phoenix Mall"). Set by the voice agent's
+   *  follow-up question; absent otherwise. Never part of any total. */
+  readonly place?: string | null;
+  /** A work spend to claim back. Never changes a total; it only marks the entry. */
+  readonly reimbursable?: boolean;
+  /** The object key of a receipt photo kept for this entry, in the private
+   *  `receipts` bucket under `personal/<owner id>/…`. Only the owner can be
+   *  signed a URL for it (r2-sign). Absent when there is none. Lives in the
+   *  blob, not a column, so it needs no migration and the server never sees
+   *  which entries have one. */
+  readonly receiptKey?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -112,6 +123,19 @@ export interface PersonalRecurring {
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
+/**
+ * The group-side half of a loan shared with the other person: the 1:1 group,
+ * the one expense that books the debt there, and the two member rows. The loan
+ * and that expense are linked by these ids so nothing is counted twice and
+ * either side can be found from the other (see `syncedLoan.ts`).
+ */
+export interface SyncedLoanLink {
+  readonly groupId: string;
+  readonly expenseId: string;
+  readonly myMemberId: string;
+  readonly otherMemberId: string;
+}
+
 export interface PersonalLoan {
   readonly id: string;
   readonly direction: LoanDirection;
@@ -122,6 +146,12 @@ export interface PersonalLoan {
   readonly note: string | null;
   readonly startDate: string;
   readonly status: 'active' | 'closed';
+  /** Set once the loan is shared with the other person as a debt in a 1:1 group. */
+  readonly synced?: SyncedLoanLink | null;
+  /** How many times the loan has been unshared. Each share books its debt under
+   *  an expense id derived from this, because an unshared expense is soft-deleted
+   *  and a later write to the same id would not bring it back. Absent means 0. */
+  readonly shareSeq?: number;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -173,6 +203,9 @@ const KNOWN_TXN = [
   'loanId',
   'recurringId',
   'paymentMethod',
+  'place',
+  'reimbursable',
+  'receiptKey',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -197,6 +230,8 @@ const KNOWN_LOAN = [
   'note',
   'startDate',
   'status',
+  'synced',
+  'shareSeq',
 ];
 const KNOWN_BUDGET = ['category', 'limit', 'currency'];
 
@@ -242,6 +277,9 @@ function withCarried(
 
 export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTxn {
   const paymentMethod = str(data.paymentMethod);
+  const place = str(data.place);
+  const reimbursable = data.reimbursable === true;
+  const receiptKey = str(data.receiptKey);
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -255,6 +293,9 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     // Only when the blob has one, so an entry without it decodes exactly as it
     // did before the field existed.
     ...(paymentMethod !== null ? { paymentMethod } : {}),
+    ...(place !== null ? { place } : {}),
+    ...(reimbursable ? { reimbursable } : {}),
+    ...(receiptKey !== null ? { receiptKey } : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -287,7 +328,31 @@ export function decodeRecurring(id: string, data: Record<string, unknown>): Pers
   };
 }
 
+/** The link, or null unless all four ids are present strings (a half link is no link). */
+function decodeSyncedLink(raw: unknown): SyncedLoanLink | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const link = raw as Record<string, unknown>;
+  const { groupId, expenseId, myMemberId, otherMemberId } = link;
+  if (
+    typeof groupId !== 'string' ||
+    typeof expenseId !== 'string' ||
+    typeof myMemberId !== 'string' ||
+    typeof otherMemberId !== 'string' ||
+    !groupId ||
+    !expenseId ||
+    !myMemberId ||
+    !otherMemberId
+  ) {
+    return null;
+  }
+  return { groupId, expenseId, myMemberId, otherMemberId };
+}
+
 export function decodeLoan(id: string, data: Record<string, unknown>): PersonalLoan {
+  const synced = decodeSyncedLink(data.synced);
+  // A `synced` value this version cannot read (a newer shape) is kept verbatim.
+  const unread = synced === null && data.synced != null ? { synced: data.synced } : null;
+  const carried = carry(data, KNOWN_LOAN);
   return {
     id,
     direction: oneOf(data.direction, ['borrowed', 'lent'] as const, 'borrowed'),
@@ -297,7 +362,11 @@ export function decodeLoan(id: string, data: Record<string, unknown>): PersonalL
     note: str(data.note),
     startDate: str(data.startDate) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
-    carried: carry(data, KNOWN_LOAN),
+    synced,
+    ...(typeof data.shareSeq === 'number' && Number.isInteger(data.shareSeq) && data.shareSeq > 0
+      ? { shareSeq: data.shareSeq }
+      : {}),
+    carried: unread ? { ...carried, ...unread } : carried,
   };
 }
 
@@ -330,6 +399,9 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       // Written only when set, so an entry that never had one stays byte-for-byte
       // the blob it always was.
       ...(txn.paymentMethod ? { paymentMethod: txn.paymentMethod } : {}),
+      ...(txn.place ? { place: txn.place } : {}),
+      ...(txn.reimbursable ? { reimbursable: true } : {}),
+      ...(txn.receiptKey ? { receiptKey: txn.receiptKey } : {}),
     },
     txn.carried,
   );
@@ -366,6 +438,8 @@ export function encodeLoan(loan: Omit<PersonalLoan, 'id'>): Record<string, unkno
       note: loan.note,
       startDate: loan.startDate,
       status: loan.status,
+      ...(loan.synced ? { synced: loan.synced } : {}),
+      ...(loan.shareSeq ? { shareSeq: loan.shareSeq } : {}),
     },
     loan.carried,
   );

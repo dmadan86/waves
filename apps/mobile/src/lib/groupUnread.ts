@@ -116,7 +116,19 @@ const loaded = new Map<string, GroupsSeen>();
 /** Marks made before the stored value was read, merged in once it is. */
 const early = new Map<string, GroupsSeen>();
 const loading = new Set<string>();
+/**
+ * Open visits to a group screen, keyed `profile|group`: how many screens hold
+ * the visit open, and the last look as it stood *before* the visit marked the
+ * group seen (`undefined` until that first mark; `null` when there was no
+ * record). It lives for the visit and no longer, so the group can keep showing
+ * what was new on arrival after the dot has cleared.
+ */
+const visits = new Map<string, { holders: number; baseline: number | null | undefined }>();
 const listeners = new Set<() => void>();
+
+function visitKey(profileId: string, groupId: string): string {
+  return `${profileId}|${groupId}`;
+}
 
 function emit(): void {
   for (const listener of listeners) listener();
@@ -140,7 +152,12 @@ function load(profileId: string): void {
       let merged: GroupsSeen = stored;
       const marks = early.get(profileId);
       if (marks) {
-        for (const [id, at] of Object.entries(marks)) merged = markSeenIn(merged, id, at);
+        for (const [id, at] of Object.entries(marks)) {
+          const visit = visits.get(visitKey(profileId, id));
+          if (visit && visit.baseline === undefined)
+            visit.baseline = (stored as GroupsSeen)[id] ?? null;
+          merged = markSeenIn(merged, id, at);
+        }
         early.delete(profileId);
       }
       loaded.set(profileId, merged);
@@ -155,6 +172,9 @@ function subscribe(listener: () => void): () => void {
     listeners.delete(listener);
   };
 }
+
+/** For hooks that read the visit baselines: same listeners as the reads. */
+export const subscribeGroupsSeen = subscribe;
 
 /** One profile's reads, or `null` while they load (or with no profile). */
 export function useGroupsSeen(profileId: string | null): GroupsSeen | null {
@@ -172,6 +192,10 @@ export function useGroupsSeen(profileId: string | null): GroupsSeen | null {
 export function markGroupSeen(profileId: string | null, groupId: string, at: number): void {
   if (!profileId || !groupId) return;
   const current = loaded.get(profileId);
+  const visit = visits.get(visitKey(profileId, groupId));
+  // The first mark of a visit is the one that moves the last look, so it is
+  // the moment to keep what it was.
+  if (current && visit && visit.baseline === undefined) visit.baseline = current[groupId] ?? null;
   if (!current) {
     // Not read yet (a deep link straight into a group): hold the mark and
     // merge it in after the read, so a half-known map never overwrites the
@@ -181,10 +205,40 @@ export function markGroupSeen(profileId: string | null, groupId: string, at: num
     return;
   }
   const next = markSeenIn(current, groupId, at);
-  if (next === current) return;
+  if (next === current) {
+    if (visit && visit.baseline !== undefined) emit();
+    return;
+  }
   loaded.set(profileId, next);
   persist(profileId);
   emit();
+}
+
+/**
+ * Hold a visit to `groupId` open (a group screen mounting); the returned
+ * function lets go of it. Marks made while it is open record the last look they
+ * replaced, readable from `visitBaseline`.
+ */
+export function beginGroupVisit(profileId: string | null, groupId: string | null): () => void {
+  if (!profileId || !groupId) return () => {};
+  const key = visitKey(profileId, groupId);
+  const visit = visits.get(key) ?? { holders: 0, baseline: undefined };
+  visit.holders += 1;
+  visits.set(key, visit);
+  return () => {
+    visit.holders -= 1;
+    if (visit.holders <= 0 && visits.get(key) === visit) visits.delete(key);
+  };
+}
+
+/**
+ * The last look from before the open visit to `groupId` marked it seen: a ms
+ * time, or `null` when there is nothing to compare with (no visit, not marked
+ * yet, or no record — a first run, so nothing counts as new).
+ */
+export function visitBaseline(profileId: string | null, groupId: string | null): number | null {
+  if (!profileId || !groupId) return null;
+  return visits.get(visitKey(profileId, groupId))?.baseline ?? null;
 }
 
 /** Start quiet: record the never-seen groups as read now (see `seedMissing`). */
@@ -211,5 +265,6 @@ export function resetGroupsSeenForTests(): void {
   loaded.clear();
   early.clear();
   loading.clear();
+  visits.clear();
   listeners.clear();
 }

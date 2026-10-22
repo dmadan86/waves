@@ -17,7 +17,7 @@ import { useTheme } from '@waves/ui';
 const SIZE = 10;
 const RING = 2;
 /** Off the money palette on purpose: a group's news is neither owed nor owing. */
-const GREEN = '#22C55E';
+export const UNREAD_GREEN = '#22C55E';
 
 export function UnreadDot({ ring }: { ring?: string }): React.JSX.Element {
   const theme = useTheme();
@@ -35,7 +35,7 @@ export function UnreadDot({ ring }: { ring?: string }): React.JSX.Element {
         borderRadius: SIZE / 2 + RING,
         borderWidth: RING,
         borderColor: ring ?? theme.color.surface,
-        backgroundColor: GREEN,
+        backgroundColor: UNREAD_GREEN,
       }}
     />
   );

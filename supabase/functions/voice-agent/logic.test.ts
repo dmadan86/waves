@@ -411,3 +411,112 @@ describe('misheard amounts and tappable clarification', () => {
     if (long.ok) expect(long.clarifyOptions?.[0]?.label).toHaveLength(40);
   });
 });
+
+describe('update_expense (follow-up turns)', () => {
+  const saved = (kind: 'personal' | 'group' = 'personal') => ({
+    ...context(),
+    saved: {
+      id: 'exp-1',
+      kind,
+      groupId: kind === 'group' ? 'g-goa' : null,
+      question: 'Where was this?',
+    },
+  });
+  const ok = (input: unknown, ctx: VoiceContext = saved()) =>
+    parseToolCalls(call('update_expense', input), ctx);
+
+  it('accepts a place and a payment method for the saved expense', () => {
+    const r = ok({ expenseId: 'exp-1', place: ' Taj ', paymentMethod: 'Card' });
+    expect(r).toEqual({
+      ok: true,
+      actions: [],
+      update: { expenseId: 'exp-1', place: 'Taj', paymentMethod: 'card' },
+    });
+  });
+
+  it('rejects another expense id', () => {
+    const r = ok({ expenseId: 'exp-2', place: 'Taj' });
+    expect(r.ok).toBe(false);
+  });
+
+  it('is refused outside a follow-up', () => {
+    expect(ok({ expenseId: 'exp-1', place: 'Taj' }, context()).ok).toBe(false);
+  });
+
+  it('refuses to add or settle anything in a follow-up', () => {
+    const r = parseToolCalls(
+      call('add_personal', { description: 'x', amountMinor: '100', currency: 'INR' }),
+      saved(),
+    );
+    expect(r.ok).toBe(false);
+    const s = parseToolCalls(
+      [
+        { name: 'update_expense', input: { expenseId: 'exp-1', place: 'Taj' } },
+        { name: 'nudge', input: { groupId: 'g-goa', toMemberId: 'm-anu', currency: 'INR' } },
+      ],
+      saved(),
+    );
+    expect(s.ok).toBe(false);
+  });
+
+  it('requires at least one real change and a known payment method', () => {
+    expect(ok({ expenseId: 'exp-1' }).ok).toBe(false);
+    expect(ok({ expenseId: 'exp-1', place: '  ' }).ok).toBe(false);
+    expect(ok({ expenseId: 'exp-1', paymentMethod: 'bitcoin' }).ok).toBe(false);
+    expect(ok({ expenseId: 'exp-1', wantsReceipt: 'yes' }).ok).toBe(false);
+    expect(ok({ expenseId: 'exp-1', wantsReceipt: true })).toMatchObject({
+      ok: true,
+      update: { wantsReceipt: true },
+    });
+  });
+
+  it("splitWith: members must be the caller's own groups and never the caller", () => {
+    const good = ok({
+      expenseId: 'exp-1',
+      splitWith: { groupId: 'g-goa', memberIds: ['m-anu', 'm-anu'] },
+    });
+    expect(good).toMatchObject({
+      ok: true,
+      update: { splitWith: { groupId: 'g-goa', memberIds: ['m-anu'] } },
+    });
+    expect(
+      ok({ expenseId: 'exp-1', splitWith: { groupId: 'g-nope', memberIds: ['m-anu'] } }).ok,
+    ).toBe(false);
+    expect(
+      ok({ expenseId: 'exp-1', splitWith: { groupId: 'g-goa', memberIds: ['m-sam'] } }).ok,
+    ).toBe(false);
+    expect(
+      ok({ expenseId: 'exp-1', splitWith: { groupId: 'g-goa', memberIds: ['m-me'] } }).ok,
+    ).toBe(false);
+    expect(ok({ expenseId: 'exp-1', splitWith: { groupId: 'g-goa', memberIds: [] } }).ok).toBe(
+      false,
+    );
+  });
+
+  it('a group expense cannot be shared from here', () => {
+    expect(
+      ok(
+        { expenseId: 'exp-1', splitWith: { groupId: 'g-goa', memberIds: ['m-anu'] } },
+        saved('group'),
+      ).ok,
+    ).toBe(false);
+  });
+
+  it('still lets the model ask or answer', () => {
+    expect(
+      parseToolCalls(call('ask_clarification', { question: 'Which place?' }), saved()),
+    ).toMatchObject({
+      ok: true,
+      clarify: 'Which place?',
+    });
+  });
+
+  it('keeps the static prompt identical; only the context carries the follow-up', () => {
+    expect(systemPrompt(saved())).toContain('FOLLOW-UP about a personal expense');
+    expect(systemPrompt(saved())).toContain('expenseId exp-1');
+    expect(systemPrompt(context())).not.toContain('FOLLOW-UP about');
+    expect(
+      systemPrompt(saved()).startsWith(systemPrompt(context()).split('\n\nContext:')[0]!),
+    ).toBe(true);
+  });
+});

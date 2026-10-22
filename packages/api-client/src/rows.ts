@@ -35,6 +35,8 @@ export interface GroupRow {
   photo_path: string | null;
   /** Member-typed short tag; null when unset. Optional: narrow selects omit it. */
   custom_tag?: string | null;
+  /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon; null is the app's default. Optional: narrow selects omit it. */
+  cover_color?: string | null;
   start_date: string | null;
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */
@@ -637,4 +639,27 @@ export interface GuestMemberRow {
   left_at: string | null;
   invite_email: string | null;
   invite_phone: string | null;
+}
+
+/**
+ * A repeating group expense: a flat's monthly rent. The server posts one real
+ * expense per occurrence on its date; this row is only the rule. `amount` is
+ * minor units as a decimal string.
+ */
+export interface GroupRecurringRow {
+  id: string;
+  group_id: string;
+  created_by: string;
+  description: string;
+  category: string | null;
+  currency: string;
+  amount: string;
+  cadence: 'weekly' | 'semimonthly' | 'monthly' | 'yearly';
+  interval: number;
+  second_day: number | null;
+  anchor_date: string;
+  next_date: string;
+  end_date: string | null;
+  status: 'active' | 'paused' | 'stopped';
+  last_generated_on: string | null;
 }

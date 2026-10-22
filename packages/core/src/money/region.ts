@@ -76,6 +76,36 @@ export function currencyForCountry(countryCode: string | null | undefined): Curr
   return CURRENCY_BY_COUNTRY[country] ?? null;
 }
 
+/**
+ * The table above read the other way: the country a currency is at home in.
+ *
+ * One answer per currency, and for a currency several countries share it is
+ * the first country listed for it — the euro resolves to Germany, which only
+ * matters where something national hangs off the country (a payment rail,
+ * say). It never guesses: a currency the table does not know is null, and the
+ * caller keeps whatever it had.
+ */
+const COUNTRY_BY_CURRENCY: Readonly<Record<string, string>> = Object.entries(
+  CURRENCY_BY_COUNTRY,
+).reduce<Record<string, string>>((acc, [country, currency]) => {
+  if (!(currency in acc)) acc[currency] = country;
+  return acc;
+}, {});
+
+/**
+ * The country a currency belongs to, or null — `INR` is India, `AED` the
+ * Emirates, `USD` the United States, `EUR` Germany (see above).
+ *
+ * This is what the settle screen asks when it needs to know which ways of
+ * paying back fit a group: a group that counts in rupees offers UPI, whatever
+ * country happens to be on its row. The group's currency is the one thing
+ * about it that everybody set on purpose.
+ */
+export function countryForCurrency(currency: string | null | undefined): string | null {
+  const code = (currency ?? '').trim().toUpperCase();
+  return COUNTRY_BY_CURRENCY[code] ?? null;
+}
+
 /** Whether this looks like an ISO-3166 alpha-2 code at all. */
 export function isCountryCode(value: string | null | undefined): boolean {
   return /^[A-Za-z]{2}$/.test((value ?? '').trim());

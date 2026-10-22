@@ -8,7 +8,7 @@
  *
  * The one exception is the voice widget's everyday case: an expense with no
  * group, which saves itself as a draft only the reader sees ("Saved for
- * later") and lands on Review. A group, a person or a command still waits.
+ * later") and says so on the voice screen. A group, a person or a command still waits.
  *
  * Source-reading, like `screenHeroShape.test.ts`: the voice screen pulls in the
  * mic, Reanimated and the sheets, which this node-environment suite cannot
@@ -51,8 +51,10 @@ describe('a linked-in transcript', () => {
     expect(listen).toContain('heardFromLink.current = false;');
   });
 
-  it('offers a Confirm button while held', () => {
-    expect(voice).toMatch(/needsConfirm \? \(\s*<Button\s+label=\{t\.voice\.autoConfirm\}/);
+  it('offers a Confirm button in the footer while held', () => {
+    expect(voice).toMatch(
+      /autoBanner\?\.needsConfirm\s*\?\s*\{\s*primary:\s*\{\s*label: t\.voice\.autoConfirm/,
+    );
   });
 });
 
@@ -82,8 +84,10 @@ describe('a linked-in expense with no group', () => {
     expect(canSave).not.toContain('locating');
   });
 
-  it('lands on Review, where the saved expense is at the top', () => {
+  it('stays on the voice screen and says it was saved for later', () => {
+    // The whole voice flow is one screen now: no jump to Review after a save.
     const inbox = between("if (dest.kind === 'unassigned') {", 'return;');
-    expect(inbox).toContain("router.replace('/captures')");
+    expect(inbox).toContain('t.voiceScreen.savedForLater');
+    expect(inbox).not.toContain('router.');
   });
 });

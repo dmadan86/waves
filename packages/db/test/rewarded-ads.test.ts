@@ -419,11 +419,10 @@ describe('scan credit', () => {
 
   it('counts scans already used against the larger limit', async () => {
     const a = await person();
+    // The scan meter is ai_usage ('receipt_scan') since 20261022100000; the
+    // reservation function is what the edge function calls per scan.
     for (let i = 0; i < 20; i += 1) {
-      await client.query(
-        `INSERT INTO usage_events (profile_id, kind) VALUES ($1, 'receipt_scan')`,
-        [a],
-      );
+      await client.query(`SELECT public.waves_receipt_scan_reserve($1)`, [a]);
     }
     expect(await scansAs(a)).toMatchObject({ used: 20, limit: 20, remaining: 0 });
     await grant(a, 'scan');

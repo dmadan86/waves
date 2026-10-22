@@ -23,10 +23,17 @@ import { plural, useStrings, type UiStrings } from '@/i18n';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { useAuth } from '@/lib/auth';
 import { PressableScale } from '@/lib/anim';
-import { filterGroups, sortGroups, type GroupsFilter, type GroupsSort } from '@/lib/groupsList';
+import {
+  DEFAULT_GROUPS_SORT,
+  filterGroups,
+  sortGroups,
+  type GroupsFilter,
+  type GroupsSort,
+} from '@/lib/groupsList';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
+import { useCoverTile } from '@/lib/groupCoverColor';
 import { UnreadDot } from '@/components/UnreadDot';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { SkeletonList } from '@/components/Skeletons';
@@ -51,11 +58,10 @@ const SCENE_INTO_CARD = 34;
  * The full, browsable list of every group — the "All groups" door off the
  * dashboard's capped preview.
  *
- * A money screen has a sharper job than a directory — it should answer "where
- * do I need to act?" before it answers "what do I have?". So by default the
- * groups that owe or are owed (or are waiting on a confirmation) sort to the
- * top, biggest balances first; the settled ones fall below a quiet "Settled"
- * label, dimmed, present but not competing. The chips under the search field
+ * Groups open latest-activity first, like the dashboard. The money-first order
+ * (groups that owe or are owed, or wait on a confirmation, on top, biggest
+ * balances first, the settled ones below a quiet "Settled" label) is one pick
+ * away in the sort menu. The chips under the search field
  * narrow the roster to what you are owed or what you owe, and the round button
  * at their end re-sorts it by recent activity or name.
  *
@@ -79,7 +85,7 @@ export default function AllGroupsScreen() {
 
   const [query, setQuery] = useState('');
   const [filter] = useState<GroupsFilter>('all');
-  const [sort, setSort] = useState<GroupsSort>('amount');
+  const [sort, setSort] = useState<GroupsSort>(DEFAULT_GROUPS_SORT);
   const [sortDesc, setSortDesc] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
@@ -264,6 +270,7 @@ export default function AllGroupsScreen() {
                   groupId={group.id}
                   label={row.item.label}
                   coverEmoji={group.cover_emoji}
+                  coverColor={group.cover_color}
                   balance={balance}
                   currency={group.default_currency}
                   locale={locale}
@@ -622,6 +629,7 @@ const GroupListRow = memo(function GroupListRow({
   groupId,
   label,
   coverEmoji,
+  coverColor,
   balance,
   currency,
   locale,
@@ -635,6 +643,7 @@ const GroupListRow = memo(function GroupListRow({
   groupId: string;
   label: string;
   coverEmoji: string | null;
+  coverColor?: string | null;
   balance: bigint;
   currency: string;
   locale: string;
@@ -652,6 +661,7 @@ const GroupListRow = memo(function GroupListRow({
   unread?: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
+  const tile = useCoverTile(coverColor, theme.color.brandSoft);
   const { t } = useStrings();
 
   return (
@@ -687,12 +697,12 @@ const GroupListRow = memo(function GroupListRow({
               width: 38,
               height: 38,
               borderRadius: 19,
-              backgroundColor: theme.color.brandSoft,
+              backgroundColor: tile.backgroundColor,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <GroupMark emoji={coverEmoji} size={20} />
+            <GroupMark emoji={coverEmoji} size={20} color={tile.ink} />
             {unread ? <UnreadDot /> : null}
           </View>
           <View style={{ flex: 1, gap: 1 }}>

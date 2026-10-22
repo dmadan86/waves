@@ -46,6 +46,7 @@ import { router } from '@/lib/navigation';
 import { isPhoneCountryError, normaliseContactPhone } from '@/lib/phone';
 import { type PickedContact } from '@/components/ContactPicker';
 import { CoverEmojiPicker } from '@/components/CoverEmojiPicker';
+import { coverTone } from '@/lib/groupCoverColor';
 import { GroupTagField } from '@/components/GroupTagField';
 import { GROUP_TAG_MAX, normaliseGroupTag } from '@/lib/groupTypeTag';
 import {
@@ -64,6 +65,7 @@ import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
+import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -76,8 +78,10 @@ import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
 import { useSync } from '@/sync';
-import { displayName, GroupType, isViewer } from '@/data/types';
+import { useToast } from '@/lib/toast';
+import { displayName, GroupType } from '@/data/types';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 
 /**
@@ -154,7 +158,8 @@ export default function NewGroupScreen() {
   const viewerId = useViewerId();
   const currency = useDefaultCurrency();
   const guard = useGuestGuard();
-  const { mutate } = useSync();
+  const { mutate, status } = useSync();
+  const toast = useToast();
 
   // Cloning: `?from=<groupId>` opens this screen filled from an existing group.
   // The source is read straight from the local mirror (synchronous once
@@ -251,7 +256,9 @@ export default function NewGroupScreen() {
   // People to add on Create — a typed name carries no address, a contact carries
   // whatever the phone had. Same shape either way, so the create loop treats
   // them alike.
-  const [ghosts, setGhosts] = useState<PickedContact[]>([]);
+  const [ghosts, setGhosts] = useState<(PickedContact & { readonly profileId?: string | null })[]>(
+    [],
+  );
   // People from your other groups to offer on the Suggested row: the
   // placeholders this screen can add, the ones in the most groups first, and
   // nobody already picked above.
@@ -314,6 +321,8 @@ export default function NewGroupScreen() {
   // Null until somebody picks: the icon is otherwise read from the name, so an
   // untouched group still gets a sensible cover.
   const [pickedEmoji, setPickedEmoji] = useState<string | null>(null);
+  // The colour behind the icon (a `GROUP_COVER_COLORS` key); null is the app's own.
+  const [pickedColor, setPickedColor] = useState<string | null>(null);
   // Null until toggled, so it can follow the group type's default until then.
   const [simplify, setSimplify] = useState<boolean | null>(null);
   // Optional starting budget for a trip, minor units. Zero is "not set".
@@ -419,16 +428,9 @@ export default function NewGroupScreen() {
     }
     // The people become the same removable chips a fresh group builds up — minus
     // whoever is making the clone (they are the new group's creator) and anyone
-    // who had left. Each carries whatever address the source row held, so the
-    // ones already on Waves can be tapped on their shoulder when re-added.
-    const seededGhosts: PickedContact[] = members
-      .filter((member) => !member.left_at)
-      .filter((member) => !isViewer(member, viewerId))
-      .map((member) => ({
-        name: displayName(member, viewerId),
-        email: member.invite_email ?? null,
-        phone: member.invite_phone ?? null,
-      }));
+    // who had left. A member on Waves is carried by their account, so they join
+    // the copy as themselves; a placeholder keeps whatever address it had.
+    const seededGhosts = membersToClone(members, viewerId);
     // Applied off the effect body, in a microtask: this is a one-time hydrate
     // from the local mirror, and putting the writes in a callback keeps the
     // React Compiler's no-synchronous-setState-in-effect rule satisfied (the
@@ -442,6 +444,7 @@ export default function NewGroupScreen() {
       setCustomTag(group.custom_tag ?? '');
       setPickedType(group.type);
       setPickedEmoji(group.cover_emoji ?? null);
+      setPickedColor(group.cover_color ?? null);
       setSimplify(group.simplify_debts);
       if (budgetMinor !== null) setBudget(budgetMinor);
       if (group.start_date && group.end_date) {
@@ -550,6 +553,9 @@ export default function NewGroupScreen() {
           memberId: randomUUID(),
           name: ghost.name,
           email: ghost.email,
+          // Set for a member cloned from another group who is on Waves: the
+          // server adds the account itself rather than a placeholder.
+          profileId: ghost.profileId ?? null,
           // Read a bare local number in this group's region before queueing it —
           // the country chosen for the group above, else the account/device — so
           // the server is never handed an unroutable number to refuse.
@@ -607,6 +613,12 @@ export default function NewGroupScreen() {
         await mutate(MutationKind.GroupUpdate, groupId, { custom_tag: tagToSave });
       }
 
+      // The icon colour is not part of the create call either; a picked one
+      // rides behind it on the same ordered queue, and none is simply not sent.
+      if (pickedColor) {
+        await mutate(MutationKind.GroupUpdate, groupId, { cover_color: pickedColor });
+      }
+
       // Trip dates are not part of the create call, so they ride behind it as
       // an update on the same ordered queue — only when a trip was actually
       // given a start and end, since that is what turns the reminders on.
@@ -649,6 +661,13 @@ export default function NewGroupScreen() {
           source: row.source,
         });
       }
+
+      // Said on the screen the person lands on (the toast lives above the stack),
+      // so the jump to the new group is explained, not silent.
+      toast.show(
+        saveToastText(t, { kind: 'group', name, offline: isQueuedOffline(status) }),
+        'positive',
+      );
 
       // Made to hold a waiting capture: hand that capture to this group's
       // add-expense form instead of opening the group, so the person lands where
@@ -774,13 +793,19 @@ export default function NewGroupScreen() {
                 width: cover,
                 height: cover,
                 borderRadius: 16,
-                backgroundColor: theme.color.brandSoft,
+                backgroundColor: coverTone(pickedColor, theme)?.bg ?? theme.color.brandSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <GroupPhoto photoPath={null} emoji={emoji} size={Math.round(cover * 0.56)} />
+              <GroupPhoto
+                photoPath={null}
+                emoji={emoji}
+                color={pickedColor}
+                bare
+                size={Math.round(cover * 0.56)}
+              />
               {/* The camera as a white disc inside the cover's corner, its glyph in
                   the accent, lifted by a soft shadow. */}
               <View
@@ -892,6 +917,8 @@ export default function NewGroupScreen() {
           <CoverEmojiPicker
             value={emoji}
             onChange={setPickedEmoji}
+            color={pickedColor}
+            onColorChange={setPickedColor}
             open={iconOpen}
             onOpenChange={setIconOpen}
           />
