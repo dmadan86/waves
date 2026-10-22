@@ -1,0 +1,47 @@
+# E2E-01. A typed personal add goes card -> Confirm -> "Added" -> follow-ups.
+#
+# Seed: E2E_SEED_EXTRAS=assistant (Pro voice agent for the login user).
+# Server: VOICE_AGENT_STUB=1 on staging, so the sentence below always becomes
+# add_personal ₹8,000 with the category stated.
+#
+# With no history and no location, the follow-up scorer's order for ₹8,000 is
+# fixed: the receipt question first (a spend 40x the INR floor), then the payment
+# method (the category is stated, there is no place to offer). Then Personal's
+# ledger shows the entry.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 8000 rupees to my personal expense'
+
+# The confirm card: the amount and who it is for.
+- extendedWaitUntil:
+    visible: '.*8,000.*'
+    timeout: 25000
+- assertVisible: 'Just for you'
+- tapOn: 'Confirm'
+
+# Saved, and the first follow-up arrives with it.
+- extendedWaitUntil:
+    visible: 'Added.*8,000.*Personal.*'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+- assertVisible: 'Got a receipt.*'
+- tapOn: 'Skip'
+
+# The second question: how it was paid.
+- assertVisible: 'How did you pay\?'
+- tapOn: 'UPI'
+- extendedWaitUntil:
+    visible: 'Saved with payment method'
+    timeout: 10000
+- tapOn: 'Done'
+
+# It is in Personal.
+- openLink: waves:///personal/transactions
+- extendedWaitUntil:
+    visible: '.*8,000.*'
+    timeout: 15000

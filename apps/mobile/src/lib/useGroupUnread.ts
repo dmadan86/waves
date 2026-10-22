@@ -4,12 +4,20 @@
  * from the pure rules so their tests never load the sync layer.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { useNewestActivityFromOthersByGroup } from '@/data/hooks';
 import { useViewerId } from '@/lib/auth';
-import { markGroupSeen, seedGroupsSeen, unreadGroupIds, useGroupsSeen } from '@/lib/groupUnread';
+import {
+  beginGroupVisit,
+  markGroupSeen,
+  seedGroupsSeen,
+  subscribeGroupsSeen,
+  unreadGroupIds,
+  useGroupsSeen,
+  visitBaseline,
+} from '@/lib/groupUnread';
 
 /**
  * The ids among `groupIds` with news from someone else since the reader last
@@ -40,6 +48,9 @@ export function useGroupUnread(groupIds: readonly string[]): ReadonlySet<string>
  */
 export function useMarkGroupSeen(groupId: string | null): void {
   const viewerId = useViewerId();
+  // The visit opens before the focus effect below marks the group, so the mark
+  // can keep the last look it replaces (see `useGroupBaseline`).
+  useEffect(() => beginGroupVisit(viewerId, groupId), [viewerId, groupId]);
   const newestByGroup = useNewestActivityFromOthersByGroup(viewerId);
   const newest = groupId ? (newestByGroup.get(groupId) ?? 0) : 0;
   useFocusEffect(
@@ -47,4 +58,24 @@ export function useMarkGroupSeen(groupId: string | null): void {
       if (groupId) markGroupSeen(viewerId, groupId, Math.max(Date.now(), newest));
     }, [viewerId, groupId, newest]),
   );
+}
+
+/**
+ * When the reader last opened `groupId` *before this visit* — what "new" is
+ * measured from. Fixed for the visit, so the highlight survives the group
+ * marking itself seen, and survives opening an expense and coming back. Outside
+ * a visit (an expense opened from Activity or a notification) it is the stored
+ * last look, which is still the previous one as long as the group was not
+ * opened since. Null while unknown, which marks nothing.
+ */
+export function useGroupBaseline(groupId: string | null): number | null {
+  const viewerId = useViewerId();
+  const seen = useGroupsSeen(viewerId);
+  const visit = useSyncExternalStore(
+    subscribeGroupsSeen,
+    () => visitBaseline(viewerId, groupId),
+    () => visitBaseline(viewerId, groupId),
+  );
+  if (visit !== null) return visit;
+  return groupId && seen ? (seen[groupId] ?? null) : null;
 }

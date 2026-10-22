@@ -72,6 +72,10 @@ const api = vi.hoisted(() => ({
   fetchReceipt: vi.fn(),
   fetchMemberClaims: vi.fn(),
   decideMemberClaim: vi.fn(() => Promise.resolve({ ok: true })),
+  mergeMemberInto: vi.fn(() => Promise.resolve({ ok: true, member_id: 'm-2' })),
+  requestMemberLink: vi.fn(() => Promise.resolve({ ok: true, status: 'pending' })),
+  decideMemberLink: vi.fn(() => Promise.resolve({ ok: true, status: 'accepted' })),
+  cancelMemberLink: vi.fn(() => Promise.resolve({ ok: true, status: 'cancelled' })),
   recordSettlement: vi.fn(),
   leaveGroup: vi.fn(() => Promise.resolve()),
   updateGroup: vi.fn(),
@@ -245,6 +249,63 @@ describe('members', () => {
     expect(api.setMemberRole).toHaveBeenCalledWith('m-2', 'admin');
     role.onSuccess?.();
     expect(syncModule.engineFlush).toHaveBeenCalled();
+  });
+
+  it('useMergeMemberInto folds a placeholder and refreshes the whole group', async () => {
+    const merge = mutation<{ memberId: string; intoMemberId: string }>(() =>
+      hooks.useMergeMemberInto('g-1'),
+    );
+    await merge.mutationFn({ memberId: 'ghost-1', intoMemberId: 'm-2' });
+    expect(api.mergeMemberInto).toHaveBeenCalledWith('ghost-1', 'm-2');
+    await merge.onSuccess?.();
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['group', 'g-1', 'member-links'],
+    });
+    await vi.waitFor(() =>
+      expect(query.client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['group', 'g-1'] }),
+    );
+  });
+
+  it('useRequestMemberLink and useCancelMemberLink refresh the asks the admin is waiting on', async () => {
+    const ask = mutation<{ memberId: string; targetProfileId: string }>(() =>
+      hooks.useRequestMemberLink('g-1'),
+    );
+    await ask.mutationFn({ memberId: 'ghost-1', targetProfileId: 'p-9' });
+    expect(api.requestMemberLink).toHaveBeenCalledWith('ghost-1', 'p-9');
+    await ask.onSuccess?.();
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['group', 'g-1', 'member-links'],
+    });
+
+    const cancel = mutation<string>(() => hooks.useCancelMemberLink('g-1'));
+    await cancel.mutationFn('r-1');
+    expect(api.cancelMemberLink).toHaveBeenCalledWith('r-1');
+    await cancel.onSuccess?.();
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['group', 'g-1', 'member-links'],
+    });
+  });
+
+  it('useDecideMemberLink refreshes my asks, and the group list only when I accepted', async () => {
+    const decide = mutation<{ requestId: string; accept: boolean }>(() =>
+      hooks.useDecideMemberLink(),
+    );
+    // The hook reads the variables back in onSuccess, which the harness's
+    // captured shape does not model.
+    const onSuccess = decide.onSuccess as unknown as (
+      verdict: { ok: boolean },
+      variables: { requestId: string; accept: boolean },
+    ) => Promise<void>;
+    await decide.mutationFn({ requestId: 'r-1', accept: false });
+    expect(api.decideMemberLink).toHaveBeenCalledWith('r-1', false);
+    await onSuccess({ ok: true }, { requestId: 'r-1', accept: false });
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['member-links', 'mine'],
+    });
+    expect(query.client.invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ['groups'] });
+
+    await onSuccess({ ok: true }, { requestId: 'r-1', accept: true });
+    expect(query.client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['groups'] });
   });
 
   it('useDecideMemberClaim refreshes the claims and the members together', async () => {

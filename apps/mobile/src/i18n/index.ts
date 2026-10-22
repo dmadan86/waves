@@ -353,6 +353,17 @@ export interface UiStrings {
   nothingIn: string;
   /** Under the month chart — says the columns are a way in, not just a picture. */
   tapMonthForDays: string;
+  spendTotal: string;
+  spendInCurrency: string;
+  spendVsLast: string;
+  spendDonutTotal: string;
+  spendTopCategories: string;
+  spendSeeAll: string;
+  spendShowLess: string;
+  spendLastMonths: string;
+  spendSeeDays: string;
+  spendPickMonth: string;
+  spendPickCurrency: string;
   nothingToChart: string;
   /** The ten categories of TDR §8, in the language the phone is set to. */
   categories: Record<CategoryId, string>;
@@ -695,6 +706,12 @@ export interface UiStrings {
   common: {
     /** The app's name — a wordmark, the same in every locale (not translated). */
     appName: string;
+    /** Toast after a save: the group made; with its name; the expense added ({what} = "Dinner · ₹1,200"); edited; queued while offline. */
+    groupCreated: string;
+    groupCreatedNamed: string;
+    expenseAdded: string;
+    expenseUpdated: string;
+    savedOffline: string;
     back: string;
     /** The way past the door without an account — the Skip pill on the gateway. */
     skip: string;
@@ -1025,6 +1042,9 @@ export interface UiStrings {
     title: string;
     row: string;
     rowHint: string;
+    /** The Settings row's hint once the list has loaded: how many are connected. */
+    rowCount: PluralForms;
+    rowNone: string;
     intro: string;
     connectedOn: string;
     disconnect: string;
@@ -1067,9 +1087,7 @@ export interface UiStrings {
   account: {
     facePaying: string;
     faceSettings: string;
-    settled: string;
     nothingSettledYet: string;
-    otherCurrencies: PluralForms;
     saved: string;
     displayName: string;
     /** One line in the name editor: who sees it. */
@@ -1185,7 +1203,261 @@ export interface UiStrings {
     usedOfLimit: string;
     resetUsage: string;
   };
+  /** The assistant's own chrome: intro card, Free teaser, typed composer. */
+  assistant: {
+    introBody: string;
+    introAction: string;
+    /** `{question}` is one of the teaser questions below. */
+    teaserLine: string;
+    teaserPlace: string;
+    teaserReceipt: string;
+    teaserPayment: string;
+    teaserCta: string;
+    teaserDismiss: string;
+    composerPlaceholder: string;
+    composerLabel: string;
+    composerSend: string;
+    composerTypeInstead: string;
+    composerUseMic: string;
+    proSheetTitle: string;
+    proSheetBody: string;
+    proSheetCta: string;
+    proSheetLater: string;
+    planRowTitle: string;
+    planRowPill: string;
+    personalScope: string;
+    openPersonalAssistant: string;
+    completeRow: string;
+    completeRowHint: string;
+    completeSheetTitle: string;
+    /** The 4th "Try saying…" example, in quotes like its siblings. */
+    tryWhoOwes: string;
+  };
+  groupRecurring: {
+    title: string;
+    sub: string;
+    empty: string;
+    emptyHint: string;
+    repeat: string;
+    never: string;
+    startsNext: string;
+    ends: string;
+    endsNever: string;
+    endsOn: string;
+    pickEnd: string;
+    next: string;
+    lastAdded: string;
+    paused: string;
+    ended: string;
+    pause: string;
+    resume: string;
+    stop: string;
+    stopTitle: string;
+    stopBody: string;
+    edit: string;
+    editTitle: string;
+    editHint: string;
+    save: string;
+    amountLabel: string;
+    addedToast: string;
+    couldNotSave: string;
+    rowCount: string;
+    rowNone: string;
+    voiceDone: string;
+    offlineNote: string;
+    nextOn: string;
+    notesLabel: string;
+    severalPayers: string;
+    splitKept: string;
+    problemName: string;
+    problemAmount: string;
+    problemPeople: string;
+    problemPayers: string;
+    problemSplit: string;
+    problemDates: string;
+    currencyNote: string;
+  };
   /** Speak-an-expense quick add, reached from the bar's mic. */
+  /** The follow-ups and answers done on the voice screen itself (sheets, in-card UI). */
+  inline: {
+    close: string;
+    groupLabel: string;
+    peopleLabel: string;
+    you: string;
+    needSomeone: string;
+    peopleCount: string;
+    retry: string;
+    splitTitle: string;
+    splitConfirm: string;
+    tripTitle: string;
+    tripConfirm: string;
+    attendanceTitle: string;
+    attendanceSave: string;
+    attendanceDone: string;
+    movedDone: string;
+    splitDone: string;
+    itemizeTitle: string;
+    itemizeHint: string;
+    itemChipA11y: string;
+    everyone: string;
+    everyoneA11y: string;
+    itemizeCharges: string;
+    itemizeLeft: string;
+    itemizeSave: string;
+    itemizeDone: string;
+    receiptThumb: string;
+    attaching: string;
+    attached: string;
+    attachFailed: string;
+    removeReceipt: string;
+    removeFailed: string;
+    receiptDone: string;
+    loanSharing: string;
+    loanShared: string;
+    loanShareFailed: string;
+    settleTitle: string;
+    settleAllDone: string;
+    settleRecorded: string;
+    settleFailed: string;
+    settleOthers: string;
+    owesYou: string;
+    youOwe: string;
+    recordPayment: string;
+    recordA11y: string;
+    showAll: string;
+    showLess: string;
+    noMatches: string;
+  };
+  followUps: {
+    added: string;
+    wherePersonal: string;
+    skip: string;
+    dontAsk: string;
+    done: string;
+    yes: string;
+    no: string;
+    working: string;
+    placeAsk: string;
+    placeElse: string;
+    receiptAsk: string;
+    receiptScan: string;
+    receiptPick: string;
+    splitByItem: string;
+    splitAsk: string;
+    splitSomeone: string;
+    paymentAsk: string;
+    payCash: string;
+    payUpi: string;
+    payCard: string;
+    payCredit: string;
+    payDebit: string;
+    tripAsk: string;
+    tripMove: string;
+    tripNo: string;
+    attendanceAsk: string;
+    attendanceEveryone: string;
+    attendancePick: string;
+    payerAsk: string;
+    payerYes: string;
+    payerNo: string;
+    recurringAsk: string;
+    recurringYes: string;
+    duplicateAsk: string;
+    duplicateSame: string;
+    duplicateDifferent: string;
+    currencyAsk: string;
+    currencyKeep: string;
+    categoryAsk: string;
+    dateAsk: string;
+    dateYes: string;
+    dateNo: string;
+    lendAsk: string;
+    lendYes: string;
+    lendNo: string;
+    lendShare: string;
+    wrapupAsk: string;
+    wrapupYes: string;
+    wrapupNo: string;
+    workAsk: string;
+    workYes: string;
+    saved: string;
+    savedWith: string;
+    itemPlace: string;
+    itemPayment: string;
+    itemCategory: string;
+    itemDate: string;
+    itemPayer: string;
+    itemCurrency: string;
+    itemRecurring: string;
+    itemLend: string;
+    itemWork: string;
+    removedDuplicate: string;
+    handedOff: string;
+    gotIt: string;
+    couldNotUse: string;
+    listening: string;
+    stopListening: string;
+    transcribing: string;
+    micDenied: string;
+    noSpeech: string;
+    voiceFailed: string;
+    turnsUsed: string;
+    couldNotSave: string;
+    reimbursableRow: string;
+    reimbursableTag: string;
+    settingsRow: string;
+    settingsHint: string;
+    resetRow: string;
+    resetHint: string;
+    resetDone: string;
+    typingOffline: string;
+  };
+  /** The Speak-an-expense capture surface (voice.tsx, VoiceCapture). */
+  voiceScreen: {
+    headline: string;
+    subline: string;
+    statusReady: string;
+    statusStarting: string;
+    statusListening: string;
+    statusProcessing: string;
+    statusNoSpeech: string;
+    statusNoAmount: string;
+    statusPermission: string;
+    statusError: string;
+    statusExpenseReady: string;
+    statusCheck: string;
+    statusSaving: string;
+    statusSaved: string;
+    micStart: string;
+    micStop: string;
+    micRetry: string;
+    micBusy: string;
+    hearing: string;
+    youSaid: string;
+    editHeard: string;
+    suggestionsTitle: string;
+    category: string;
+    splitWith: string;
+    justYou: string;
+    addExpense: string;
+    retry: string;
+    openSettings: string;
+    permissionBody: string;
+    date: string;
+    savedTitle: string;
+    savedTo: string;
+    savedForLater: string;
+    savedSettled: string;
+    savedReminded: string;
+    savedMembers: string;
+    addAnother: string;
+    done: string;
+    splitEquallyWith: string;
+    paidByName: string;
+    splitDifferently: string;
+    details: string;
+    addAll: string;
+  };
   voice: {
     /** Mic label + screen title. */
     speakExpense: string;
@@ -1218,10 +1490,6 @@ export interface UiStrings {
     tapToRetry: string;
     /** Offer to install the on-device model when the network engine hears audio
      *  but returns nothing (its recogniser is broken on this device). */
-    setupOffline: string;
-    offlineDownloading: string;
-    offlineReady: string;
-    offlineFailed: string;
     tryAgain: string;
     chooseGroup: string;
     /** '{note}' is the spoken description. */
@@ -1233,6 +1501,11 @@ export interface UiStrings {
     /** The review step for one or more heard expenses. */
     review: string;
     saveTo: string;
+    /** The "Save to" sheet: the pinned inbox chip, the confirm button, and the two tab searches. */
+    saveForLater: string;
+    saveHere: string;
+    searchGroups: string;
+    searchPeopleShort: string;
     /** The action on the destination row that opens the picker sheet. */
     change: string;
     /** '{name}' is the spoken group name. */
@@ -1243,8 +1516,6 @@ export interface UiStrings {
     /** The brief confirmation after a save, shown wherever the reader lands.
         '{n}' is how many were written. */
     savedCount: PluralForms;
-    /** A bare count of the drafts in the review, shown by the total. `{n}`. */
-    count: PluralForms;
     /** The Save button when no group is chosen: the batch is kept as a draft
         (the capture inbox) rather than written into a group. */
     saveDraft: string;
@@ -1256,8 +1527,6 @@ export interface UiStrings {
     /** The row that adds a brand-new person (a 1:1 IOU) by name. */
     addPerson: string;
     addPersonPlaceholder: string;
-    /** The affordance under the review items to speak and append more expenses. */
-    addMore: string;
     /** The two destination tabs in the "Save to" picker. */
     groupsTab: string;
     peopleTab: string;
@@ -1288,14 +1557,8 @@ export interface UiStrings {
     autoUndo: string;
     /** Paid by label on the review. */
     paidBy: string;
-    /** Split label on the review. */
-    splitLabel: string;
     /** The speaker, in a list of people. */
     youLabel: string;
-    /** Summary: equal split across the whole group. */
-    splitEveryone: string;
-    /** Summary: equal split. {names} is a comma list. */
-    splitEqual: string;
     /** Summary: exact amounts. {names} is a comma list with amounts. */
     splitExact: string;
     /** Summary: percentages. {names} is a comma list with percentages. */
@@ -1304,17 +1567,7 @@ export interface UiStrings {
     splitFullOn: string;
     /** Prompt when nobody could be matched as the payer. */
     whoPaid: string;
-    /** What was heard when a name was matched by sound. {heard}. */
-    heardAs: string;
-    /** Title of the who-paid sheet. */
-    whoTitle: string;
-    /** Section: who paid. */
-    whoPaidSection: string;
-    /** Section: who shares. */
-    whoSharesSection: string;
-    /** Hint: changing people resets to an equal split. */
-    whoResets: string;
-    /** Hint: a spoken name nobody matched. {name}. */
+    /** Question: a spoken name nobody matched. {name}. */
     whoUnknown: string;
     /** Question: one member fits a heard name but not surely enough to fill in. {name}. */
     didYouMean: string;
@@ -1362,38 +1615,66 @@ export interface UiStrings {
     ansGroupSettled: string;
     /** A spoken name that matched no contact. '{name}'. */
     ansNoPerson: string;
-    /** The button on the answer card that reopens the mic for another question. */
-    askAgain: string;
+    /** On-device money answers ("how much did I spend on food"): {amount} {when} {category} {count} {what} {date} {left} {limit} {over} {group} {month} {year}. */
+    sqSumAll: string;
+    sqSumCat: string;
+    sqNothingAll: string;
+    sqNothingCat: string;
+    sqBiggest: string;
+    sqCountAll: string;
+    sqCountCat: string;
+    sqBudgetLeft: string;
+    sqBudgetOver: string;
+    sqNoBudgetCat: string;
+    sqNoBudgetAny: string;
+    sqSetOne: string;
+    sqOverall: string;
+    sqNoGroup: string;
+    sqShow: string;
+    sqAnd: string;
+    sqInGroup: string;
+    sqWhenToday: string;
+    sqWhenYesterday: string;
+    sqWhenThisWeek: string;
+    sqWhenLastWeek: string;
+    sqWhenThisMonth: string;
+    sqWhenLastMonth: string;
+    sqWhenThisYear: string;
+    sqWhenLastYear: string;
+    sqWhenLast7: string;
+    sqWhenLast30: string;
+    sqWhenInMonth: string;
+    sqWhenInYear: string;
+    sqChipToday: string;
+    sqChipYesterday: string;
+    sqChipThisWeek: string;
+    sqChipLastWeek: string;
+    sqChipThisMonth: string;
+    sqChipLastMonth: string;
+    sqChipThisYear: string;
+    sqChipLastYear: string;
+    sqChipLast7: string;
+    sqChipLast30: string;
     /** Shown while the advanced voice agent reads the clip. */
     agentUnderstanding: string;
-    /** Under "Understanding…", while the words are being worked out. */
-    agentUnderstandingHint: string;
     agentHeard: string;
-    agentConfirm: string;
-    agentConfirmAll: string;
     agentEdit: string;
-    agentDiscard: string;
     agentDone: string;
     agentCouldNotRun: string;
     agentProblem: string;
-    agentClarifyTitle: string;
-    agentTryAgain: string;
     /** After the assistant asks something: speak the answer. */
     agentAnswer: string;
-    /** Clarification with tappable options: the primary button, and the way to answer by speaking. */
-    agentContinue: string;
-    agentTypeInstead: string;
     agentTypePlaceholder: string;
     agentTypeSend: string;
     agentTypeMic: string;
-    /** Accessibility hint on an option row. */
-    agentOptionHint: string;
+    agentOtherGroup: string;
+    agentSearchGroups: string;
+    agentNoGroupMatch: string;
     agentNothingToDo: string;
     agentQuotaLeft: string;
     agentTrialQuotaLeft: string;
     /** The same, with the day the pool closes. */
     agentTrialQuotaLeftUntil: string;
-    confirmSubtitle: string;
     confirmUnderstood: string;
     confirmEditHint: string;
     confirmEditAll: string;
@@ -1408,7 +1689,6 @@ export interface UiStrings {
     confirmNotePlaceholder: string;
     confirmAdd: string;
     confirmClear: string;
-    confirmQuotaInfo: string;
     confirmPersonMissing: string;
     confirmPickGroup: string;
     confirmNeedAmount: string;
@@ -1421,16 +1701,7 @@ export interface UiStrings {
     confirmNoteHint: string;
     confirmToday: string;
     confirmYesterday: string;
-    /** Engine badge on the voice screen. */
-    engineCloud: string;
-    engineOnDevice: string;
-    engineReasonFree: string;
-    engineReasonQuota: string;
-    engineReasonOffline: string;
-    /** Online, but the cloud voice (stream or agent) failed or timed out. */
-    engineReasonCloudDown: string;
     /** Cloud voice switched off in Settings. */
-    engineReasonOff: string;
     agentQuotaFallback: string;
     /** Card text (the next ones too): {placeholders} are filled in. */
     agentAdd: string;
@@ -1556,95 +1827,30 @@ export interface UiStrings {
     row: string;
     toggle: string;
   };
-  offlineVoice: {
-    /** Settings-row label, and the screen's own title. */
-    row: string;
-    title: string;
-    /** Settings-row subtitle. */
-    rowHint: string;
-    intro: string;
-    /** The models Waves itself asks for — one per app language. */
-    appSection: string;
-    appSectionHint: string;
-    /** Models already on the phone that no app language claims. */
-    alsoInstalled: string;
-    /** Everything else the recogniser knows about. */
-    otherLanguages: string;
-    otherLanguagesHint: string;
-    /** How many rows a folded section holds — the whole of what it says while
-     *  it is shut, since the point of folding it is not reading the rest. */
-    sectionCount: PluralForms;
-    /** Per-row state. */
-    installed: string;
-    notInstalled: string;
-    /** A phone that cannot be asked what it holds, so the row claims nothing. */
-    cannotTell: string;
-    download: string;
-    /** Under a row while the phone fetches a model. Android hands the app no
-     *  percentage — the bar is indeterminate and this says why. */
-    downloading: string;
-    noProgress: string;
-    /** The three things a finished download call can mean. */
-    ready: string;
-    dialogOpened: string;
-    scheduled: string;
-    /**
-     * The reasons a download can end badly, decoded from the phone's own error
-     * code by `offlineDownloadReason`. They are separate strings because they
-     * are separate things to go and do: no model exists at all, a model exists
-     * and did not arrive, the connection, the service being busy, or a download
-     * that in fact started and cannot be watched. `failed` is now only the case
-     * where the phone refused without saying why.
-     */
-    languageMissing: string;
-    notDownloaded: string;
-    networkFailed: string;
-    serviceBusy: string;
-    handedOff: string;
-    failed: string;
-    /** A download still unanswered long after it began — Android's listener may
-     *  simply never fire, and the row stops asserting rather than spin forever. */
-    stillWorking: string;
-    /** Android 12 and below can neither list installed models nor fetch one. */
-    tooOld: string;
-    /** iOS installs its dictation languages itself; there is nothing to tap. */
-    iosNote: string;
-    /** An older binary whose native speech module is missing entirely. */
-    unavailable: string;
-    /** A recogniser that only ever works over the network. */
-    noOnDevice: string;
-    /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
-    refresh: string;
-    /**
-     * The phone was asked what models it holds and would not say.
-     *
-     * Its own words, deliberately, and never the network's: reading the
-     * inventory is a local call into the recogniser service on the device, so
-     * the app's generic "check your connection" was naming a fault that cannot
-     * be the cause. It also must not claim the rows are missing — a failed read
-     * is not an empty one, and saying otherwise is what put a Download button
-     * next to a model somebody had just watched arrive.
-     */
-    unreadable: string;
-    unreadableBody: string;
-    /**
-     * The phone was asked again and refused, but its earlier answer still
-     * stands.
-     *
-     * A quieter thing than {@link unreadable}, and kept apart from it because
-     * the difference is the whole point: there the screen knows nothing and
-     * offers a way to recover, here the list is still on the page and is merely
-     * not fresh. Saying "couldn't load" over a list somebody can see is how a
-     * screen teaches people to disbelieve it.
-     */
-    staleNote: string;
-    /** The speech service will not fetch a model for an app it cannot hear
-     *  through — a switch in Settings, not a fault of the phone or the language. */
-    permissionNeeded: string;
-    /** The phone answered, and named no languages at all — so the app's own are
-     *  the only rows on the screen. */
-    empty: string;
-    footnote: string;
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: string;
+    changedDate: string;
+    changedName: string;
+    changedCurrency: string;
+    changedGroup: string;
+    changedPayer: string;
+    personalName: string;
+    undo: string;
+    restore: string;
+    removed: string;
+    restored: string;
+    undone: string;
+    change: string;
+    unchanged: string;
+    couldNotUndo: string;
+    undoLoanSettled: string;
+    couldNotChange: string;
+    needsConnection: string;
+    couldNotUse: string;
+    undoA11y: string;
+    restoreA11y: string;
+    updated: string;
   };
   /** Notification preferences, and what the phone will and will not allow. */
   notifications: {
@@ -1679,6 +1885,10 @@ export interface UiStrings {
     weeklyEmail: string;
     weeklyEmailBody: string;
     failDenied: string;
+    /** Settings row status, from the phone's permission: on / not asked / refused. */
+    rowOn: string;
+    rowOff: string;
+    rowOffInPhone: string;
     failUnsupported: string;
     failNotSignedIn: string;
     failNotConfigured: string;
@@ -2029,22 +2239,16 @@ export interface UiStrings {
   };
   /** Settings › Export your data: the promise card, the tiles and the included note. */
   exportForm: {
-    heroTitle: string;
-    heroBody: string;
     freeBadge: string;
-    chooseFormat: string;
-    chooseFormatSub: string;
     jsonSub: string;
     csvSub: string;
     pdfSub: string;
-    whatSub: string;
     everything: string;
     oneGroup: string;
     oneGroupSub: string;
     includedTitle: string;
     includedBody: string;
     exportAction: string;
-    or: string;
     pickGroup: string;
   };
   /** Settings › Receiving payments: header lines and the country card. */
@@ -2073,6 +2277,45 @@ export interface UiStrings {
     importUndoneHeadline: string;
     /** "{who} undid an import". */
     importUndoneSentence: string;
+    /**
+     * The group's own settings and people changing (`group_updated`,
+     * `member_*`, `claimed`, `merged`): each a verb-first headline with
+     * `{name}`-style holes, and `sentence` putting `{who}` in front of
+     * `{event}` for the spoken label ("{who} {event}", "{who} ने {event}").
+     */
+    group: {
+      renamed: string;
+      nameCleared: string;
+      description: string;
+      type: string;
+      datesSet: string;
+      datesCleared: string;
+      tag: string;
+      tagCleared: string;
+      currency: string;
+      convertOn: string;
+      convertOff: string;
+      cover: string;
+      currencyAdded: string;
+      currencyRemoved: string;
+      rateChanged: string;
+      archived: string;
+      unarchived: string;
+      simplifyOn: string;
+      simplifyOff: string;
+      budget: string;
+      budgetCleared: string;
+      stops: string;
+      changed: string;
+      memberAdded: string;
+      memberRemoved: string;
+      memberLeft: string;
+      madeAdmin: string;
+      madeMember: string;
+      claimed: string;
+      merged: string;
+      sentence: string;
+    };
   };
   /** Create a new group: header line, field labels and examples, row subtitles. */
   newGroupForm: {
@@ -2312,6 +2555,59 @@ export interface UiStrings {
     ball: string;
     star: string;
     people: string;
+    bag: string;
+    gamepad: string;
+    more: string;
+  };
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: string;
+      home: string;
+      food: string;
+      events: string;
+      friends: string;
+      work: string;
+      sport: string;
+      money: string;
+      other: string;
+    };
+    colour: string;
+    defaultColour: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    quick: {
+      food: string;
+      travel: string;
+      home: string;
+      friends: string;
+      shopping: string;
+      event: string;
+      car: string;
+      wallet: string;
+      game: string;
+      other: string;
+    };
+    colours: {
+      lilac: string;
+      pink: string;
+      peach: string;
+      coral: string;
+      butter: string;
+      mint: string;
+      sage: string;
+      sky: string;
+      indigo: string;
+      teal: string;
+      berry: string;
+      slate: string;
+      iris: string;
+      blue: string;
+      aqua: string;
+      green: string;
+      yellow: string;
+      orange: string;
+    };
   };
   groupPhoto: {
     paidHint: string;
@@ -2862,6 +3158,9 @@ export interface UiStrings {
     refusedKeyLost: string;
     refusedOffline: string;
     refusedNetwork: string;
+    mobileDataTitle: string;
+    mobileDataBody: string;
+    mobileDataConfirm: string;
     refusedAuth: string;
     refusedNoBackup: string;
     refusedBusy: string;
@@ -2968,6 +3267,32 @@ export interface UiStrings {
     muteNotifications: string;
     muteNotificationsBody: string;
     simplifyDebtsHint: string;
+    createdOn: string;
+    changePill: string;
+    editGroup: string;
+    editGroupHint: string;
+    groupDetails: string;
+    simplifyDebtsSub: string;
+    muteSub: string;
+    addMembers: string;
+    membersTitle: string;
+    inviteToGroup: string;
+    inviteToGroupHint: string;
+    groupActions: string;
+    exitActions: string;
+    exitActionsMember: string;
+    exitActionsHint: string;
+    archiveHintShort: string;
+    deleteHintShort: string;
+    adminTitle: string;
+    openMember: string;
+    memberMenu: string;
+    coverSubtitle: string;
+    coverTabIcon: string;
+    coverTabPhoto: string;
+    chooseIconStep: string;
+    chooseColourStep: string;
+    seeAll: string;
     membersHint: string;
     bringThingsIn: string;
     importMessages: string;
@@ -2985,6 +3310,11 @@ export interface UiStrings {
     settleFirstBody: string;
     leaveQuestion: string;
     leaveBody: string;
+    settleFirstBalance: string;
+    leaveAnyway: string;
+    settleFirstSettle: string;
+    settleFirstBalanceLabel: string;
+    settleFirstClose: string;
     leave: string;
     archiveQuestion: string;
     archiveBody: string;
@@ -3030,10 +3360,10 @@ export interface UiStrings {
     rejectConfirm: string;
     /** Payer's action to withdraw a payment they recorded, and its prompt. */
     cancelSettlement: string;
-    /** Uppercase section label above the member balance rows. */
-    groupBalances: string;
-    /** Link that opens the settle flow for the whole group. */
-    settleUpAll: string;
+    /** Section label above the suggested repayments on the Balances tab. */
+    paymentsToSettle: string;
+    /** Section label above the member balance rows. */
+    everyonesBalance: string;
     cancelTitle: string;
     /** `{name}` is the payee who would have confirmed. */
     cancelBody: string;
@@ -3398,6 +3728,12 @@ export interface UiStrings {
     noRateShort: string;
     /** An expense you neither paid for nor have a share of. */
     notInvolved: string;
+    /** The short pill captions on a ledger row's right side (the long forms above
+     *  stay as the spoken label). */
+    pillBorrowed: string;
+    pillLent: string;
+    settledShort: string;
+    notInSplit: string;
     /** Detail-screen banner title when you are not a party to the bill. */
     notInvolvedTitle: string;
     /** The small tag beside the total; the title and body are its spoken label. */
@@ -3451,6 +3787,20 @@ export interface UiStrings {
     /** "Created by Asha" / "Edited by Ravi" — the head of one audit entry. */
     createdByName: string;
     editedByName: string;
+    /** What others did since the reader last opened the group (highlighted rows). */
+    fresh: {
+      new: string;
+      edited: string;
+      /** Screen-reader words appended to a highlighted row. */
+      newA11y: string;
+      editedA11y: string;
+      /** Detail-screen tag: "New · by Ravi" / "Edited · by Ravi". */
+      newBy: string;
+      editedBy: string;
+      /** "3 new" pill that scrolls to the first one. */
+      count: string;
+      jump: string;
+    };
     /** Shown, quietly, on an edit that saved without changing anything we can see. */
     noChanges: string;
     /** Field names on the edit-history audit, each shown as old → new. */
@@ -3483,6 +3833,8 @@ export interface UiStrings {
       splitDetails: string;
       /** "Paid to" — who outside the group the money went to. */
       payee: string;
+      /** The work / reimbursable tag switched on or off. */
+      reimbursable: string;
     };
     /**
      * "Paid to": who outside the group the money went to (a landlord, a rental
@@ -3500,6 +3852,15 @@ export interface UiStrings {
       used: string;
       /** The tail of a ledger row's subtitle: "You paid ₹1,000 · to {payee}". */
       to: string;
+    };
+    /** "Work expense (to claim)": a tag on a group expense the spender will claim back. */
+    reimbursable: {
+      /** The row on the add / edit form and the expense detail. */
+      row: string;
+      /** The small chip on a ledger row. */
+      chip: string;
+      yes: string;
+      no: string;
     };
   };
   /** Starting a group, joining one by link, and the odds and ends around both. */
@@ -3532,6 +3893,8 @@ export interface UiStrings {
     settleConfirmPaidYes: string;
     settleRemindA11y: string;
     settlePayA11y: string;
+    settleRecord: string;
+    settleRecordA11y: string;
     settleMarkPaidA11y: string;
     settleReceivedHint: string;
     settleSeeAll: string;
@@ -4318,13 +4681,16 @@ export interface UiStrings {
     chooseDifferentFile: string;
     whichGroup: string;
     groupNumber: string;
-    whoIsWho: string;
-    whoIsWhoNote: string;
-    tapANameNote: string;
-    /**
-     * Screen-reader label for a who-is-who row. The visible row is a name, a
-     * balance and a badge, none of which says the row is tappable.
-     */
+    whichOneIsYou: string;
+    isThisYou: string;
+    tapYourName: string;
+    weThinkYou: string;
+    thisIsMe: string;
+    thisIsMeFor: string;
+    personIsYou: string;
+    notInFile: string;
+    pickYouFirst: string;
+    tapTagToLink: string;
     personIsMapped: string;
     addAsNew: string;
     newPerson: string;
@@ -4366,7 +4732,6 @@ export interface UiStrings {
     importCount: PluralForms;
     chooseWhoIs: string;
     chooseWhoArePlural: PluralForms;
-    tapYourNameFirst: string;
     imported: string;
     openTheGroup: string;
     importedCount: PluralForms;
@@ -4448,6 +4813,14 @@ export interface UiStrings {
     breakfast: string;
     endOfDay: string;
     clearDates: string;
+    /** Under the title of the dates sheet. */
+    datesSheetSubtitle: string;
+    startDate: string;
+    endDate: string;
+    /** "{n} days selected" under the calendar. */
+    daysSelected: PluralForms;
+    noDatesSelected: string;
+    saveDates: string;
     nobodyPickedYet: string;
     personCount: PluralForms;
     alreadyAddedName: string;
@@ -4707,6 +5080,52 @@ export interface UiStrings {
     youHaveHistory: string;
     theyHaveHistory: string;
   };
+  /**
+   * "Link to a Waves user": an admin saying which real person a placeholder is
+   * (link_placeholder_member). Merge when they are already here; ask them
+   * when they are not. And the card the person asked sees.
+   */
+  link: {
+    row: string;
+    rowHint: string;
+    pickGroupBody: string;
+    waiting: string;
+    waitingHint: string;
+    cancelAsk: string;
+    sheetTitle: string;
+    sheetHint: string;
+    inThisGroup: string;
+    peopleYouKnow: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    notFound: string;
+    searching: string;
+    lookUp: string;
+    mergeConfirmTitle: string;
+    mergeConfirmBody: string;
+    mergeExpenses: PluralForms;
+    mergeAction: string;
+    mergeDone: string;
+    askConfirmTitle: string;
+    askConfirmBody: string;
+    askAction: string;
+    askSent: string;
+    failed: string;
+    guest: string;
+    thatIsYou: string;
+    rateLimited: string;
+    notAllowed: string;
+    cardTitle: string;
+    cardBody: string;
+    cardHint: string;
+    accept: string;
+    notMe: string;
+    accepted: string;
+    declined: string;
+    needsAccount: string;
+    placeTaken: string;
+    empty: string;
+  };
   /** The rest: one or two strings each, from a dozen screens. */
   /** Feedback, the policy screens, and erasure. */
   blocked: {
@@ -4739,8 +5158,36 @@ export interface UiStrings {
     clearConfirm: string;
     statusFailed: string;
     statusOffline: string;
-    /** Spoken label for a row: time, purpose, method, address, status. */
+    /** Spoken label for a row: time, call, status. */
     rowLabel: string;
+    statusOk: string;
+    /** The one summary row for background sync; `{n}` is the count in the last 7 days. */
+    syncSummary: PluralForms;
+    /** Under it: when the latest sync was, `{time}`. */
+    syncLast: string;
+    /** What each call is named; an unknown host is shown as it is. */
+    calls: Record<
+      | 'exchangeRate'
+      | 'statement'
+      | 'screenshot'
+      | 'receipt'
+      | 'voice'
+      | 'upload'
+      | 'signIn'
+      | 'analytics'
+      | 'purchases'
+      | 'crashReport'
+      | 'sessionReplay'
+      | 'mapTiles'
+      | 'google'
+      | 'appStore'
+      | 'accountDelete'
+      | 'exportData'
+      | 'invite'
+      | 'connectedApps'
+      | 'serverRequest',
+      string
+    >;
     purposes: {
       sync: string;
       signIn: string;
@@ -4778,7 +5225,6 @@ export interface UiStrings {
     row: string;
     rowHint: string;
     title: string;
-    intro: string;
     storeTitle: string;
     storeBody: string;
     protectTitle: string;
@@ -4797,6 +5243,7 @@ export interface UiStrings {
     blockedNone: string;
     sessionReplayHint: string;
     policySection: string;
+    dataSection: string;
     supportRow: string;
     supportRowHint: string;
     /** Carries `{date}` — when this policy text last changed. */
@@ -4920,6 +5367,24 @@ export interface UiStrings {
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
+    tagSheetSubtitle: string;
+    tagPopular: string;
+    saveTag: string;
+    tagChips: Record<
+      | 'weekend'
+      | 'roadTrip'
+      | 'holiday'
+      | 'officeOffsite'
+      | 'birthday'
+      | 'wedding'
+      | 'family'
+      | 'friends'
+      | 'other',
+      string
+    >;
+    groupTypeTitle: string;
+    datesRow: string;
+    groupTypeInfo: string;
     /** A few tap-to-fill tag ideas per group type. */
     tagSuggestions: Record<
       'trip' | 'home' | 'couple' | 'event' | 'friends' | 'other',
@@ -5014,9 +5479,23 @@ export interface UiStrings {
     settlesIn: string;
     settlesInHint: string;
     settlesInLocked: string;
+    convertAllTitle: string;
+    convertShort: string;
+    /** The settings row listing the currencies pinned beside the group's own. */
+    otherCurrencies: string;
+    /** The currency picker's leading cards: the group's pinned currencies. */
+    groupCurrencies: string;
+    settleInShort: string;
+    balancesIn: string;
+    groupCurrencyLine: string;
+    currencyOnly: string;
     tripRates: string;
     tripRatesBody: string;
     addRate: string;
+    otherCurrenciesSubtitleTrip: string;
+    otherCurrenciesSubtitleGroup: string;
+    ratesInfoFetched: string;
+    ratesInfoKept: string;
     editRate: string;
     newRate: string;
     removeRate: string;
@@ -5095,6 +5574,25 @@ export interface UiStrings {
   };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
+  personalReceipt: {
+    title: string;
+    add: string;
+    attached: string;
+    saving: string;
+    addTitle: string;
+    camera: string;
+    library: string;
+    remove: string;
+    removeTitle: string;
+    removeBody: string;
+    replace: string;
+    private: string;
+    unavailable: string;
+    paidOnly: string;
+    storageFull: string;
+    waitingWifi: string;
+    couldNotAdd: string;
+  };
   personal: {
     /** The Personal tab's first-visit intro cards, and their skip. */
     introCards: readonly { title: string; body: string }[];
@@ -5236,6 +5734,21 @@ export interface UiStrings {
     principal: string;
     outstanding: string;
     recordPayment: string;
+    shareWith: string;
+    shareTitle: string;
+    shareBody: string;
+    shareAction: string;
+    shareWho: string;
+    pickContact: string;
+    visibleTo: string;
+    settleUp: string;
+    stopSharing: string;
+    stopSharingBody: string;
+    cannotStopSharing: string;
+    shareFailed: string;
+    shareToggle: string;
+    deleteSharedBody: string;
+    deleteSharedKept: string;
     closeLoan: string;
     reopenLoan: string;
     paidOff: string;
@@ -5546,6 +6059,17 @@ const en: UiStrings = {
   totalIn: 'total in {currency}',
   nothingIn: 'nothing in {currency}',
   tapMonthForDays: 'Tap a month to see its days.',
+  spendTotal: 'Total spending',
+  spendInCurrency: 'in {currency}',
+  spendVsLast: 'vs last month',
+  spendDonutTotal: 'Total',
+  spendTopCategories: 'Top categories',
+  spendSeeAll: 'See all',
+  spendShowLess: 'Show less',
+  spendLastMonths: 'Last {n} months',
+  spendSeeDays: 'See the days in {month}',
+  spendPickMonth: 'Choose a month',
+  spendPickCurrency: 'Choose a currency',
   nothingToChart: 'Add a few expenses and this fills in.',
   categories: {
     food: 'Food & drink',
@@ -5814,6 +6338,11 @@ const en: UiStrings = {
   upgradeTrial: { one: '{n} day of Pro left', other: '{n} days of Pro left' },
   common: {
     appName: 'Waves',
+    groupCreated: 'Group created',
+    groupCreatedNamed: '“{name}” created',
+    expenseAdded: '{what} added',
+    expenseUpdated: 'Expense updated',
+    savedOffline: 'Saved — will sync when online',
     back: 'Back',
     skip: 'Skip',
     loading: 'Loading…',
@@ -6122,6 +6651,8 @@ const en: UiStrings = {
     title: 'Connected apps',
     row: 'Connected apps',
     rowHint: 'AI assistants that can reach your Waves',
+    rowCount: { one: '{n} connected', other: '{n} connected' },
+    rowNone: 'None connected',
     intro:
       'AI assistants you have allowed to use your Waves. Disconnect one and it loses access straight away.',
     connectedOn: 'Connected {when}',
@@ -6168,9 +6699,7 @@ const en: UiStrings = {
   account: {
     facePaying: 'Paying',
     faceSettings: 'Settings',
-    settled: 'settled',
     nothingSettledYet: 'Nothing settled yet',
-    otherCurrencies: { one: 'and {n} other currency', other: 'and {n} other currencies' },
     saved: 'Saved',
     displayName: 'Display name',
     displayNameHint: 'Everyone you share a group with sees this.',
@@ -6273,6 +6802,258 @@ const en: UiStrings = {
     usedOfLimit: '{used} / {limit} tokens used',
     resetUsage: 'Reset',
   },
+  assistant: {
+    introBody:
+      "I'll ask one or two quick things so the expense is complete. Skip anything; “Don't ask this again” mutes it for good.",
+    introAction: 'Got it',
+    teaserLine: 'Pro would ask: {question}',
+    teaserPlace: 'Where was this?',
+    teaserReceipt: 'Got a receipt?',
+    teaserPayment: 'How did you pay?',
+    teaserCta: 'See Pro',
+    teaserDismiss: 'Dismiss',
+    composerPlaceholder: 'Ask or add… e.g. 800 lunch with Anu',
+    composerLabel: 'Type a command or a question',
+    composerSend: 'Send',
+    composerTypeInstead: 'Type instead',
+    composerUseMic: 'Use the mic',
+    proSheetTitle: 'Corrections by chat are Pro',
+    proSheetBody:
+      'Change an amount, date or place by typing it, and undo with one word. It comes with Pro.',
+    proSheetCta: 'See Pro',
+    proSheetLater: 'Not now',
+    planRowTitle: 'Assistant follow-ups',
+    planRowPill: 'AI',
+    personalScope: 'Adding to Personal',
+    openPersonalAssistant: 'Ask the assistant',
+    completeRow: 'Complete this expense',
+    completeRowHint: 'Add the place, how you paid or a receipt',
+    completeSheetTitle: 'Complete this expense',
+    tryWhoOwes: '“Who owes me?”',
+  },
+  groupRecurring: {
+    title: 'Repeating',
+    sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
+    empty: 'Nothing repeating yet',
+    emptyHint: 'Add an expense and turn on Repeat.',
+    repeat: 'Repeat',
+    never: 'Does not repeat',
+    startsNext: 'Starts {date}',
+    ends: 'Ends',
+    endsNever: 'Never',
+    endsOn: 'Ends {date}',
+    pickEnd: 'Pick an end date',
+    next: 'Next {date}',
+    lastAdded: 'Last added {date}',
+    paused: 'Paused',
+    ended: 'Ended',
+    pause: 'Pause',
+    resume: 'Resume',
+    stop: 'Stop repeating',
+    stopTitle: 'Stop "{name}"?',
+    stopBody: 'No more will be added. Expenses already added stay. This cannot be undone.',
+    edit: 'Edit',
+    editTitle: 'Edit repeating expense',
+    editHint: 'Changes apply to future ones. Expenses already added stay as they are.',
+    save: 'Save',
+    amountLabel: 'Amount',
+    addedToast: 'Repeats {freq} from {date}',
+    couldNotSave: "Couldn't update. Try again.",
+    rowCount: 'Repeating ({n})',
+    rowNone: 'Repeating',
+    voiceDone: 'Will repeat monthly',
+    offlineNote: "Saved. It will start once you're back online.",
+    nextOn: 'Next on',
+    notesLabel: 'Notes',
+    severalPayers: 'Several people paid. Their shares follow the amount.',
+    splitKept:
+      'This split keeps its saved amounts. To change it, stop this one and make a new one.',
+    problemName: 'Give it a name.',
+    problemAmount: 'Enter an amount.',
+    problemPeople: 'Pick who it is split with.',
+    problemPayers: 'The payers do not add up to the amount.',
+    problemSplit: 'The split does not add up to the amount.',
+    problemDates: 'Check the dates: the end cannot be before the start.',
+    currencyNote: 'Currency stays {currency}.',
+  },
+  inline: {
+    close: 'Close',
+    groupLabel: 'Group',
+    peopleLabel: 'People',
+    you: 'You',
+    needSomeone: 'Pick at least one person.',
+    peopleCount: '{count} sharing',
+    retry: 'Try again',
+    splitTitle: 'Split {amount}',
+    splitConfirm: 'Split',
+    tripTitle: 'Move to the trip',
+    tripConfirm: 'Move here',
+    attendanceTitle: 'Who was there?',
+    attendanceSave: 'Save',
+    attendanceDone: 'Updated who was there ✓',
+    movedDone: 'Moved to {group} ✓',
+    splitDone: 'Split with {names} ✓',
+    itemizeTitle: 'Split by item',
+    itemizeHint: 'Tap who had each item.',
+    itemChipA11y: '{name} had {item}',
+    everyone: 'Everyone',
+    everyoneA11y: 'Everyone shared {item}',
+    itemizeCharges: 'Tax and extras {amount} are shared by what each person had.',
+    itemizeLeft: '{count} left to assign',
+    itemizeSave: 'Save split',
+    itemizeDone: 'Split by item ✓',
+    receiptThumb: 'Receipt photo',
+    attaching: 'Attaching…',
+    attached: 'Attached ✓',
+    attachFailed: "Couldn't attach the receipt.",
+    removeReceipt: 'Remove',
+    removeFailed: "Couldn't remove the receipt.",
+    receiptDone: 'Receipt attached ✓',
+    loanSharing: 'Sharing with {name}…',
+    loanShared: 'Shared with {name} ✓ They can see it and settle it.',
+    loanShareFailed: "Loan saved, but couldn't share it with {name}.",
+    settleTitle: 'Settle up',
+    settleAllDone: 'All settled up ✓',
+    settleRecorded: 'Payment recorded ✓',
+    settleFailed: "Couldn't record the payment.",
+    settleOthers: '{count} more between other people',
+    owesYou: '{name} owes you {amount}',
+    youOwe: 'You owe {name} {amount}',
+    recordPayment: 'Record payment',
+    recordA11y: 'Record payment, {name}, {amount}',
+    showAll: 'Show all ({count})',
+    showLess: 'Show less',
+    noMatches: 'Nothing to show.',
+  },
+  followUps: {
+    added: 'Added {amount} to {where} ✓',
+    wherePersonal: 'Personal',
+    skip: 'Skip',
+    dontAsk: "Don't ask this again",
+    done: 'Done',
+    yes: 'Yes',
+    no: 'No',
+    working: 'Updating…',
+    placeAsk: 'Where was this?',
+    placeElse: 'Somewhere else',
+    receiptAsk: "Got a receipt? I'll keep it with the expense.",
+    receiptScan: 'Scan',
+    receiptPick: 'Pick photo',
+    splitByItem: 'Split by item',
+    splitAsk: 'Split it with anyone? You usually split {category} with {name}.',
+    splitSomeone: 'Someone else',
+    paymentAsk: 'How did you pay?',
+    payCash: 'Cash',
+    payUpi: 'UPI',
+    payCard: 'Card',
+    payCredit: 'Credit card',
+    payDebit: 'Debit card',
+    tripAsk: 'Was this for {trip}?',
+    tripMove: 'Move to {trip}',
+    tripNo: 'No, personal',
+    attendanceAsk: 'Was everyone there?',
+    attendanceEveryone: 'Everyone',
+    attendancePick: 'Pick people',
+    payerAsk: 'Did {name} pay for this?',
+    payerYes: '{name} paid',
+    payerNo: 'No, I did',
+    recurringAsk: 'This looks monthly — repeat it every month?',
+    recurringYes: 'Repeat monthly',
+    duplicateAsk: '{name} already added {amount} “{description}” — same bill?',
+    duplicateSame: 'Same, remove mine',
+    duplicateDifferent: 'Different',
+    currencyAsk: 'Was this in {currency}?',
+    currencyKeep: 'Keep {currency}',
+    categoryAsk: 'What kind of spend was this?',
+    dateAsk: 'Was this yesterday?',
+    dateYes: 'Yes, yesterday',
+    dateNo: 'No, today',
+    lendAsk: 'Should {name} pay you back?',
+    lendYes: 'Yes, {name} owes me',
+    lendNo: 'No, it was a gift',
+    lendShare: 'Yes, and show it to {name}',
+    wrapupAsk: '{trip} looks finished. Settle up now?',
+    wrapupYes: 'Settle up',
+    wrapupNo: 'Not yet',
+    workAsk: 'Claim this from work?',
+    workYes: 'Yes, tag it',
+    saved: 'Saved ✓',
+    savedWith: 'Saved with {items}',
+    itemPlace: 'place',
+    itemPayment: 'payment method',
+    itemCategory: 'category',
+    itemDate: 'date',
+    itemPayer: 'payer',
+    itemCurrency: 'currency',
+    itemRecurring: 'monthly repeat',
+    itemLend: 'loan',
+    itemWork: 'work tag',
+    removedDuplicate: 'Removed the duplicate',
+    handedOff: 'Opened it for you',
+    gotIt: 'Got it',
+    couldNotUse: "I couldn't use that",
+    listening: 'Listening…',
+    stopListening: 'Done speaking',
+    transcribing: 'Working it out…',
+    micDenied: 'Microphone is off. Type your answer instead.',
+    noSpeech: "Didn't catch that. Tap the mic to try again.",
+    voiceFailed: "Couldn't hear that. Tap the mic to try again.",
+    turnsUsed: "That's all the questions for this expense. Pick a choice.",
+    couldNotSave: "Couldn't save that. Try again?",
+    reimbursableRow: 'Work expense (to claim)',
+    reimbursableTag: 'Work',
+    settingsRow: 'Follow-up questions',
+    settingsHint: 'After the assistant adds an expense, it may ask a short question about it',
+    resetRow: 'Reset muted questions',
+    resetHint: 'Ask every kind of follow-up again',
+    resetDone: 'Follow-up questions reset',
+    typingOffline: 'Typing needs a connection',
+  },
+  voiceScreen: {
+    headline: 'Just say it naturally',
+    subline: 'I’ll understand and organize it for you.',
+    statusReady: 'Tap and speak',
+    statusStarting: 'Getting the mic ready…',
+    statusListening: 'Listening…',
+    statusProcessing: 'Understanding your expense…',
+    statusNoSpeech: 'Couldn’t hear that',
+    statusNoAmount: 'Heard you, but no amount',
+    statusPermission: 'Microphone access needed',
+    statusError: 'Something went wrong',
+    statusExpenseReady: 'Expense ready',
+    statusCheck: 'Check one detail',
+    statusSaving: 'Adding…',
+    statusSaved: 'Added',
+    micStart: 'Start listening',
+    micStop: 'Stop listening',
+    micRetry: 'Try again',
+    micBusy: 'Working on it',
+    hearing: 'Hearing',
+    youSaid: 'You said',
+    editHeard: 'Edit text',
+    suggestionsTitle: 'Try saying something like:',
+    category: 'Category',
+    splitWith: 'Split with',
+    justYou: 'Just you',
+    addExpense: 'Add expense',
+    retry: 'Try again',
+    openSettings: 'Open settings',
+    permissionBody: 'Allow microphone access to speak an expense, or type it instead.',
+    date: 'Date',
+    savedTitle: 'Added',
+    savedTo: 'Added to {where}',
+    savedForLater: 'Saved for later in Unassigned',
+    savedSettled: 'Settled up with {name}',
+    savedReminded: 'Reminder sent to {name}',
+    savedMembers: 'Added {name} to {group}',
+    addAnother: 'Add another',
+    done: 'Done',
+    splitEquallyWith: 'Split equally with: {names}',
+    paidByName: 'Paid by {name}',
+    splitDifferently: 'Split differently',
+    details: 'Details',
+    addAll: 'Add all',
+  },
   voice: {
     speakExpense: 'Speak an expense',
     micHint: 'Tap to open, or hold and talk',
@@ -6288,10 +7069,6 @@ const en: UiStrings = {
     tapToSpeak: 'Tap to speak',
     noAmount: 'Didn’t catch an amount',
     missedNothing: 'Didn’t catch that',
-    setupOffline: 'Set up offline voice',
-    offlineDownloading: 'Downloading the offline voice model… try again in a moment.',
-    offlineReady: 'Offline voice is ready — tap the mic and speak.',
-    offlineFailed: 'Couldn’t set up offline voice on this device.',
     tapToRetry: 'Tap to try again',
     tryAgain: 'Try again',
     chooseGroup: 'Which group?',
@@ -6302,18 +7079,20 @@ const en: UiStrings = {
     unavailable: 'Speech isn’t available on this phone.',
     review: 'Review',
     saveTo: 'Save to',
+    saveForLater: 'Save for later',
+    saveHere: 'Save here',
+    searchGroups: 'Search groups…',
+    searchPeopleShort: 'Search people…',
     change: 'Change',
     newGroupNamed: 'New group “{name}”',
     thinking: 'Making sense of that…',
     save: { one: 'Save {n} expense', other: 'Save {n} expenses' },
     savedCount: { one: '{n} expense saved', other: '{n} expenses saved' },
-    count: { one: '{n} expense', other: '{n} expenses' },
     saveDraft: 'Save to inbox',
     draftNeedsAmounts: 'Enter an amount for each expense, or remove it, to keep this draft.',
     people: 'People',
     addPerson: 'Add a person',
     addPersonPlaceholder: 'Their name',
-    addMore: 'Add another',
     groupsTab: 'Groups',
     peopleTab: 'People',
     justMe: 'Just me',
@@ -6329,20 +7108,12 @@ const en: UiStrings = {
     autoAddingPerson: 'Adding {name} to {group}',
     autoUndo: 'Undo',
     paidBy: 'Paid by',
-    splitLabel: 'Split',
     youLabel: 'You',
-    splitEveryone: 'Equally between everyone',
-    splitEqual: 'Equally · {names}',
     splitExact: 'Exact · {names}',
     splitPercent: 'By percent · {names}',
     splitFullOn: 'All on {names}',
     whoPaid: 'Who paid?',
-    heardAs: 'Heard “{heard}”',
-    whoTitle: 'Who paid and who shares',
-    whoPaidSection: 'Paid by',
-    whoSharesSection: 'Shared between',
-    whoResets: 'Changing who shares splits it equally.',
-    whoUnknown: 'Who is “{name}”? Pick them below.',
+    whoUnknown: 'Who is “{name}”?',
     didYouMean: 'Did you mean {name}?',
     didYouMeanYes: 'Yes',
     whichOf: '{names} or {last}?',
@@ -6367,31 +7138,62 @@ const en: UiStrings = {
     ansGroupOwe: 'In {group}, you owe {amount}',
     ansGroupSettled: "You're all settled up in {group}",
     ansNoPerson: "Couldn't find {name}",
-    askAgain: 'Ask again',
+    sqSumAll: 'You spent {amount} {when}',
+    sqSumCat: 'You spent {amount} on {category} {when}',
+    sqNothingAll: 'Nothing spent {when}',
+    sqNothingCat: 'Nothing on {category} {when}',
+    sqBiggest: 'Biggest: {amount} {what} on {date}',
+    sqCountAll: 'Expenses {when}: {count}',
+    sqCountCat: 'Expenses on {category} {when}: {count}',
+    sqBudgetLeft: '{left} left of your {limit} {category} budget {when}',
+    sqBudgetOver: '{over} over your {limit} {category} budget {when}',
+    sqNoBudgetCat: 'No {category} budget set',
+    sqNoBudgetAny: 'No overall budget set',
+    sqSetOne: 'Set one',
+    sqOverall: 'overall',
+    sqNoGroup: "Couldn't find a group called {group}",
+    sqShow: 'Show in Spending',
+    sqAnd: '{a} and {b}',
+    sqInGroup: 'in {group}',
+    sqWhenToday: 'today',
+    sqWhenYesterday: 'yesterday',
+    sqWhenThisWeek: 'this week',
+    sqWhenLastWeek: 'last week',
+    sqWhenThisMonth: 'this month',
+    sqWhenLastMonth: 'last month',
+    sqWhenThisYear: 'this year',
+    sqWhenLastYear: 'last year',
+    sqWhenLast7: 'in the last 7 days',
+    sqWhenLast30: 'in the last 30 days',
+    sqWhenInMonth: 'in {month}',
+    sqWhenInYear: 'in {year}',
+    sqChipToday: 'Today',
+    sqChipYesterday: 'Yesterday',
+    sqChipThisWeek: 'This week',
+    sqChipLastWeek: 'Last week',
+    sqChipThisMonth: 'This month',
+    sqChipLastMonth: 'Last month',
+    sqChipThisYear: 'This year',
+    sqChipLastYear: 'Last year',
+    sqChipLast7: 'Last 7 days',
+    sqChipLast30: 'Last 30 days',
     agentUnderstanding: 'Understanding…',
-    agentUnderstandingHint: 'Just a moment, I’m listening.',
     agentHeard: 'Heard',
-    agentConfirm: 'Confirm',
-    agentConfirmAll: 'Confirm all',
     agentEdit: 'Edit',
-    agentDiscard: 'Discard',
     agentDone: 'Done',
     agentCouldNotRun: "Couldn't do that. Try again.",
     agentProblem: "Couldn't match this to your people or groups.",
-    agentClarifyTitle: "I didn't quite get that",
-    agentTryAgain: 'Try again',
     agentAnswer: 'Answer',
-    agentContinue: 'Continue',
-    agentTypeInstead: 'Type instead',
     agentTypePlaceholder: 'Type your answer',
     agentTypeSend: 'Send answer',
     agentTypeMic: 'Answer by voice',
-    agentOptionHint: 'Double tap to choose this answer',
+    agentOtherGroup: 'Another group',
+    agentSearchGroups: 'Search your groups',
+    agentNoGroupMatch: 'No group by that name',
     agentNothingToDo: 'Nothing to add from that. Try again.',
     agentQuotaLeft: '{percent}% of your advanced commands left this month',
     agentTrialQuotaLeft: '{percent}% of your Pro trial commands left',
     agentTrialQuotaLeftUntil: '{percent}% of your trial voice commands left · until {date}',
-    confirmSubtitle: "Tell me what you spent, and I'll add it for you.",
     confirmUnderstood: 'I understood this',
     confirmEditHint: 'You can edit if something looks wrong.',
     confirmEditAll: 'Edit all',
@@ -6406,7 +7208,6 @@ const en: UiStrings = {
     confirmNotePlaceholder: 'What was it for?',
     confirmAdd: 'Add expense',
     confirmClear: 'Clear',
-    confirmQuotaInfo: 'About advanced commands',
     confirmPersonMissing: "{name} isn't in this group",
     confirmPickGroup: 'Pick a group to add this to',
     confirmNeedAmount: 'Enter an amount',
@@ -6419,13 +7220,6 @@ const en: UiStrings = {
     confirmNoteHint: 'Add a note (optional)',
     confirmToday: 'Today',
     confirmYesterday: 'Yesterday',
-    engineCloud: 'Cloud',
-    engineOnDevice: 'On-device',
-    engineReasonFree: 'Free plan',
-    engineReasonQuota: 'Monthly limit reached',
-    engineReasonOffline: 'Offline',
-    engineReasonCloudDown: 'Cloud unavailable',
-    engineReasonOff: 'Off in settings',
     agentQuotaFallback: 'Advanced voice limit reached this month. Using basic voice.',
     agentAdd: 'Add {amount}',
     agentPaid: '{name} paid',
@@ -6546,59 +7340,31 @@ const en: UiStrings = {
     row: 'Advanced voice',
     toggle: 'Allow cloud voice',
   },
-  offlineVoice: {
-    row: 'Offline voice',
-    title: 'Offline voice',
-    rowHint: 'Speech models kept on this phone',
-    intro:
-      'With a language downloaded, the mic works with no connection — and keeps working on phones whose online speech service is broken.',
-    appSection: 'Waves languages',
-    appSectionHint: 'These are the ones the mic asks for.',
-    alsoInstalled: 'Also on this phone',
-    otherLanguages: 'Other languages',
-    otherLanguagesHint: 'Your phone can fetch any of these.',
-    sectionCount: { one: '{n} language', other: '{n} languages' },
-    installed: 'On this phone',
-    notInstalled: 'Not downloaded',
-    cannotTell: 'Can’t tell',
-    download: 'Download',
-    downloading: 'Your phone is downloading this.',
-    noProgress: 'Android doesn’t say how far along it is.',
-    ready: 'Downloaded. The mic can use it now.',
-    dialogOpened:
-      'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
-    scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
-    languageMissing:
-      'Your phone’s speech service has no offline model for this language, so there is nothing to fetch. Updating “Speech Recognition & Synthesis” from the Play Store sometimes adds one; until then this language needs a connection.',
-    notDownloaded:
-      'Your phone has this language but hasn’t fetched it yet. It usually waits for Wi‑Fi — try again once you’re on it.',
-    networkFailed: 'The download couldn’t get through. Check your connection and try again.',
-    serviceBusy:
-      'Your phone’s speech service is busy. Close anything else using the mic and try again.',
-    handedOff:
-      'Your phone started the download but won’t report on it. Give it a few minutes, then refresh.',
-    failed: 'Your phone’s speech service refused the download and didn’t say why.',
-    stillWorking:
-      'Your phone hasn’t said whether this finished. Give it a while, then refresh to see if it landed.',
-    tooOld:
-      'This phone’s Android is too old to download models from inside an app. Search Android settings for “voice” to add one.',
-    iosNote:
-      'iPhone downloads its dictation languages itself, and won’t say which ones it already has. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
-    unavailable: 'This build can’t reach the speech models.',
-    noOnDevice:
-      'This phone can’t recognise speech without a connection, so there’s nothing to download.',
-    refresh: 'Refresh',
-    unreadable: 'This phone wouldn’t say what it has',
-    unreadableBody:
-      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
-    staleNote:
-      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
-    permissionNeeded:
-      'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
-    empty:
-      'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
-    footnote:
-      'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: 'Changed to {amount}',
+    changedDate: 'Dated {date}',
+    changedName: 'Renamed to {name}',
+    changedCurrency: 'Now in {currency}',
+    changedGroup: 'Moved to {where}',
+    changedPayer: '{name} paid',
+    personalName: 'Personal',
+    undo: 'Undo',
+    restore: 'Restore',
+    removed: 'Removed {amount} {description}',
+    restored: 'Restored ✓',
+    undone: 'Undone ✓',
+    change: 'Change',
+    unchanged: 'Nothing to change',
+    couldNotUndo: "Couldn't undo that. Try again?",
+    undoLoanSettled:
+      "Some of this loan has already been repaid in the group, so it can't be undone here. Settle the rest instead.",
+    couldNotChange: "Couldn't change that. Try again?",
+    needsConnection: 'Typing needs a connection',
+    couldNotUse: "I couldn't use that",
+    undoA11y: 'Undo {amount} {description}',
+    restoreA11y: 'Restore {amount} {description}',
+    updated: 'Updated ✓',
   },
   notifications: {
     title: 'Notifications',
@@ -6636,6 +7402,9 @@ const en: UiStrings = {
       'Settlements, reminders and the weekly summary. Security alerts about a new sign-in arrive whatever this says.',
     weeklyEmail: 'Weekly email digest',
     weeklyEmailBody: 'Your net balance and pending confirmations, once a week. Off by default.',
+    rowOn: 'On',
+    rowOff: 'Off',
+    rowOffInPhone: 'Off in phone settings',
     failDenied: 'Not enabled — you can turn it on in your phone settings later.',
     failUnsupported:
       'This device cannot receive push notifications. Everything still lands in Activity.',
@@ -6940,16 +7709,10 @@ const en: UiStrings = {
     statCurrencies: { one: '{n} currency', other: '{n} currencies' },
   },
   exportForm: {
-    heroTitle: 'Your data, always yours',
-    heroBody:
-      'Export a complete record of your expenses, settlements and activity whenever you need it — for free.',
     freeBadge: 'No paywall. 100% free.',
-    chooseFormat: 'Choose format',
-    chooseFormatSub: 'Pick the file format that works for you.',
     jsonSub: '(lossless)',
     csvSub: '(spreadsheet)',
     pdfSub: '(print friendly)',
-    whatSub: 'Choose which data you want to include.',
     everything: 'Export everything',
     oneGroup: 'One group',
     oneGroupSub: 'Selected group only',
@@ -6957,7 +7720,6 @@ const en: UiStrings = {
     includedBody:
       'All expenses, who paid, who owed, settlements with their per-expense allocations, and the full activity trail.',
     exportAction: 'Export data',
-    or: 'OR',
     pickGroup: 'Which group?',
   },
   receiving: {
@@ -6981,6 +7743,39 @@ const en: UiStrings = {
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
     importUndoneHeadline: 'Import undone',
     importUndoneSentence: '{who} undid an import',
+    group: {
+      renamed: 'Renamed the group to {name}',
+      nameCleared: 'Cleared the group name',
+      description: 'Changed the description',
+      type: 'Changed the group type to {type}',
+      datesSet: 'Set the dates to {range}',
+      datesCleared: 'Cleared the dates',
+      tag: 'Changed the tag to {tag}',
+      tagCleared: 'Cleared the tag',
+      currency: 'Changed the currency to {code}',
+      convertOn: 'Turned on Convert to {code}',
+      convertOff: 'Turned off Convert',
+      cover: 'Changed the cover',
+      currencyAdded: 'Added {code}',
+      currencyRemoved: 'Removed {code}',
+      rateChanged: 'Changed the {code} rate',
+      archived: 'Archived the group',
+      unarchived: 'Unarchived the group',
+      simplifyOn: 'Turned on Fewer repayments',
+      simplifyOff: 'Turned off Fewer repayments',
+      budget: 'Set the budget to {amount}',
+      budgetCleared: 'Cleared the budget',
+      stops: 'Changed the trip stops',
+      changed: 'Changed the group settings',
+      memberAdded: 'Added {name}',
+      memberRemoved: 'Removed {name}',
+      memberLeft: 'Left the group',
+      madeAdmin: 'Made {name} an admin',
+      madeMember: 'Made {name} a member',
+      claimed: 'Claimed their place',
+      merged: 'Merged {name} into one person',
+      sentence: '{who} {event}',
+    },
   },
   newGroupForm: {
     title: 'Create a new group',
@@ -7163,6 +7958,59 @@ const en: UiStrings = {
     ball: 'Sport',
     star: 'Favourite',
     people: 'Friends',
+    bag: 'Shopping',
+    gamepad: 'Game',
+    more: 'Other',
+  },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'Travel',
+      home: 'Home',
+      food: 'Food & drink',
+      events: 'Events',
+      friends: 'Friends & family',
+      work: 'Work',
+      sport: 'Sport & fun',
+      money: 'Money',
+      other: 'Other',
+    },
+    colour: 'Colour',
+    defaultColour: 'Default',
+    searchPlaceholder: 'Search icons',
+    noMatches: 'No icon matches that',
+    quick: {
+      food: 'Food',
+      travel: 'Travel',
+      home: 'Home',
+      friends: 'Friends',
+      shopping: 'Shopping',
+      event: 'Event',
+      car: 'Car',
+      wallet: 'Wallet',
+      game: 'Game',
+      other: 'Other',
+    },
+    colours: {
+      lilac: 'Lilac',
+      pink: 'Pink',
+      peach: 'Peach',
+      coral: 'Coral',
+      butter: 'Butter',
+      mint: 'Mint',
+      sage: 'Sage',
+      sky: 'Sky',
+      indigo: 'Indigo',
+      teal: 'Teal',
+      berry: 'Berry',
+      slate: 'Slate',
+      iris: 'Indigo',
+      blue: 'Blue',
+      aqua: 'Aqua',
+      green: 'Green',
+      yellow: 'Yellow',
+      orange: 'Orange',
+    },
   },
   groupPhoto: {
     paidHint: 'Group photos are a Pro feature. Pick an icon, or upgrade to add a photo.',
@@ -7557,6 +8405,9 @@ const en: UiStrings = {
       'The key for that backup is no longer in your Google account, so it can no longer be opened.',
     refusedOffline: 'No connection. The backup will run when you are back online.',
     refusedNetwork: 'Waiting for Wi‑Fi. Change Back up over to use mobile data.',
+    mobileDataTitle: "You're on mobile data",
+    mobileDataBody: 'Back up anyway?',
+    mobileDataConfirm: 'Back up anyway',
     refusedAuth: 'Google asked for the link again. Reconnect the account.',
     refusedNoBackup: 'There is no backup on this Drive account yet.',
     refusedBusy: 'A backup is already running.',
@@ -7639,7 +8490,7 @@ const en: UiStrings = {
     descriptionPlaceholder: 'What is this group for?',
     changeCover: 'Group cover',
     chooseIcon: 'Choose an icon',
-    chooseIconHint: 'One of the drawn marks',
+    chooseIconHint: 'Pick an icon and a colour',
     usePhotoHint: 'A picture from this phone',
     photoIsPaid: 'Photos come with Pro',
     removePhoto: 'Remove photo',
@@ -7651,6 +8502,32 @@ const en: UiStrings = {
     muteNotificationsBody:
       "Stop pushes about this group. You'll still see everything in the app, and no one else is told.",
     simplifyDebtsHint: 'Fewest payments to settle up',
+    createdOn: 'Created {date}',
+    changePill: 'Change',
+    editGroup: 'Edit group',
+    editGroupHint: 'Changes save automatically',
+    groupDetails: 'Group details',
+    simplifyDebtsSub: 'Suggests the minimum number of payments when settling',
+    muteSub: 'Turn off group notifications',
+    addMembers: 'Add members',
+    membersTitle: 'Members ({n})',
+    inviteToGroup: 'Invite to group',
+    inviteToGroupHint: 'Share a link or QR so they can join easily',
+    groupActions: 'Group actions',
+    exitActions: 'Archive, leave or delete',
+    exitActionsMember: 'Archive or leave',
+    exitActionsHint: 'Hide it, step out, or remove it',
+    archiveHintShort: 'Hide from your list, can be unarchived',
+    deleteHintShort: 'Permanently delete for everyone',
+    adminTitle: 'Admin',
+    openMember: 'Open member',
+    memberMenu: 'Member options',
+    coverSubtitle: 'Choose how your group looks',
+    coverTabIcon: 'Icon & colour',
+    coverTabPhoto: 'Photo',
+    chooseIconStep: '1. Choose an icon',
+    chooseColourStep: '2. Choose a colour',
+    seeAll: 'See all',
     membersHint: 'Add people, rename, set UPI IDs',
     bringThingsIn: 'Bring things in',
     importMessages: 'Import from messages',
@@ -7667,6 +8544,11 @@ const en: UiStrings = {
       'You still have a balance in this group. Leaving now would strand it — settle up, then leave.',
     leaveQuestion: 'Leave this group?',
     leaveBody: 'Your past expenses stay in the group history.',
+    settleFirstBalance: 'Your balance',
+    leaveAnyway: 'Leave anyway',
+    settleFirstSettle: 'Settle up',
+    settleFirstBalanceLabel: 'Your balance is {amount}. Opens settle up.',
+    settleFirstClose: 'Close',
     leave: 'Leave',
     archiveQuestion: 'Archive this group?',
     archiveBody:
@@ -7701,8 +8583,8 @@ const en: UiStrings = {
       '{name} recorded paying you. This clears the pending payment and doesn’t change any balance.',
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
-    groupBalances: 'Group balances',
-    settleUpAll: 'Settle up all',
+    paymentsToSettle: 'Payments to settle',
+    everyonesBalance: 'Everyone’s balance',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -7974,6 +8856,10 @@ const en: UiStrings = {
     youBorrowed: 'you borrowed',
     noRateShort: 'no rate yet',
     notInvolved: 'not involved',
+    pillBorrowed: 'Borrowed',
+    pillLent: 'Lent',
+    settledShort: 'Settled',
+    notInSplit: 'Not in split',
     notInvolvedTitle: "You're not in this split",
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: "You're viewing this as a group member — nothing here touches your balance.",
@@ -8007,6 +8893,16 @@ const en: UiStrings = {
     note: 'Note',
     createdByName: 'Created by {name}',
     editedByName: 'Edited by {name}',
+    fresh: {
+      new: 'New',
+      edited: 'Edited',
+      newA11y: 'new',
+      editedA11y: 'edited',
+      newBy: 'New · by {name}',
+      editedBy: 'Edited · by {name}',
+      count: '{n} new',
+      jump: 'Jump to the first new expense',
+    },
     noChanges: 'Saved again, nothing changed',
     audit: {
       amount: 'Amount',
@@ -8032,6 +8928,7 @@ const en: UiStrings = {
       subEvent: 'Event part',
       splitDetails: 'Split details updated',
       payee: 'Paid to',
+      reimbursable: 'Work expense',
     },
     payee: {
       label: 'Paid to',
@@ -8041,6 +8938,12 @@ const en: UiStrings = {
       clear: 'Clear',
       used: 'Used before',
       to: 'to {payee}',
+    },
+    reimbursable: {
+      row: 'Work expense (to claim)',
+      chip: 'Work',
+      yes: 'Yes',
+      no: 'No',
     },
   },
   misc: {
@@ -8075,6 +8978,8 @@ const en: UiStrings = {
     settleConfirmPaidYes: 'Yes, paid',
     settleRemindA11y: 'Remind {name} about {amount}',
     settlePayA11y: 'Pay {name} {amount}',
+    settleRecord: 'Record',
+    settleRecordA11y: 'Record that {name} paid {amount}',
     settleMarkPaidA11y: 'Mark {amount} to {name} as paid',
     settleReceivedHint: 'Marks it as received',
     settleSeeAll: 'See all',
@@ -8841,10 +9746,16 @@ const en: UiStrings = {
     chooseDifferentFile: 'Choose a different file',
     whichGroup: 'Which group',
     groupNumber: 'Group {n}',
-    whoIsWho: 'Who is who',
-    whoIsWhoNote:
-      'The file names people; this group has members. Nothing is imported until every name has somebody against it.',
-    tapANameNote: 'Tap a name to say who they are. Nothing is matched for you.',
+    isThisYou: 'Is this you?',
+    whichOneIsYou: 'Which one is you?',
+    tapYourName: 'Tap your name in the list.',
+    weThinkYou: 'We think this is you. Tap to change.',
+    thisIsMe: 'This is me',
+    thisIsMeFor: 'Mark {name} as me',
+    personIsYou: '{name} is you.',
+    notInFile: "I'm not in this file",
+    pickYouFirst: 'Pick which one is you first, or choose "I\'m not in this file".',
+    tapTagToLink: 'Tap a tag to link someone already in the group.',
     personIsMapped: '{name} is {who}. Tap to change.',
     addAsNew: 'Add as new',
     newPerson: 'New person',
@@ -8890,7 +9801,6 @@ const en: UiStrings = {
     importCount: { one: 'Import {n} expense', other: 'Import {n} expenses' },
     chooseWhoIs: 'Choose who {name} is',
     chooseWhoArePlural: { one: 'Choose who {n} person is', other: 'Choose who {n} people are' },
-    tapYourNameFirst: 'Tap your own name first.',
     imported: 'Imported',
     openTheGroup: 'Open the group',
     importedCount: {
@@ -8965,6 +9875,12 @@ const en: UiStrings = {
     breakfast: 'Breakfast',
     endOfDay: 'End of day',
     clearDates: 'Clear dates',
+    datesSheetSubtitle: 'Select the start and end dates for this group',
+    startDate: 'Start date',
+    endDate: 'End date',
+    daysSelected: { one: '{n} day selected', other: '{n} days selected' },
+    noDatesSelected: 'No dates selected',
+    saveDates: 'Save dates',
     nobodyPickedYet: 'Nobody picked yet',
     personCount: { one: '{n} person', other: '{n} people' },
     alreadyAddedName: '{name}, already added',
@@ -9186,6 +10102,50 @@ const en: UiStrings = {
     theyHaveHistory:
       'They already have expenses in this group as themselves, so the two cannot be combined.',
   },
+  link: {
+    row: 'Link to a Waves user',
+    rowHint: 'Say which person {name} really is.',
+    pickGroupBody:
+      '{name} is a placeholder in {n} groups. Each links on its own: pick one, then come back for the others.',
+    waiting: 'Waiting for {who} to accept',
+    waitingHint: 'Nothing changes until they say yes.',
+    cancelAsk: 'Cancel the ask',
+    sheetTitle: 'Who is {name}?',
+    sheetHint: 'Pick the person, or find them by phone number or email.',
+    inThisGroup: 'Already in this group',
+    peopleYouKnow: 'People you know',
+    searchPlaceholder: 'Name, phone number or email',
+    noMatches: 'Nobody by that name. Try their phone number or email.',
+    notFound: 'Nobody on Waves with that number or email, or they do not want to be found.',
+    searching: 'Looking…',
+    lookUp: 'Look up',
+    mergeConfirmTitle: 'Merge {name} into {who}?',
+    mergeConfirmBody:
+      "{name}'s {expenses} and {balance} balance move to {who}. This can't be undone.",
+    mergeExpenses: { one: '{n} expense', other: '{n} expenses' },
+    mergeAction: 'Merge',
+    mergeDone: 'Done. Everything under {name} is {who}’s now.',
+    askConfirmTitle: 'Ask {who}?',
+    askConfirmBody:
+      'They get a message: “{me} says you are {name} in {group}”. Nothing changes until they accept.',
+    askAction: 'Ask them',
+    askSent: 'Asked. You will hear when {who} answers.',
+    failed: 'That could not be done just now. Try again in a moment.',
+    guest: 'They are using Waves as a guest. Ask them to sign up first.',
+    thatIsYou: 'That is you. Use “This is me” instead.',
+    rateLimited: 'You have asked a lot of people today. Try again tomorrow.',
+    notAllowed: 'Only an admin of this group can do this.',
+    cardTitle: 'Is this you?',
+    cardBody: '{who} says you are {name} in {group}.',
+    cardHint: 'Accept, and everything filed under that name becomes yours.',
+    accept: 'Yes, that is me',
+    notMe: 'Not me',
+    accepted: 'Done. You are in {group} now.',
+    declined: 'Told them.',
+    needsAccount: 'Sign up first — a guest cannot take a place in a group.',
+    placeTaken: 'That place belongs to somebody now.',
+    empty: 'Nothing is waiting on you.',
+  },
   blocked: {
     row: 'Blocked people',
     rowHint: 'Names and faces you have hidden',
@@ -9205,7 +10165,7 @@ const en: UiStrings = {
     rowHint: 'Every connection this phone made, kept only on it',
     title: 'Network activity',
     explainer:
-      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+      'What Waves called from this phone in the last 7 days. Background sync is shown as a count. This list never leaves your phone.',
     empty: 'No connections recorded yet.',
     emptyFiltered: 'Nothing under this filter.',
     today: 'Today',
@@ -9217,7 +10177,31 @@ const en: UiStrings = {
     clearConfirm: 'Clear',
     statusFailed: 'failed',
     statusOffline: 'offline',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'OK',
+    syncSummary: { one: 'Sync · {n} time in 7 days', other: 'Sync · {n} times in 7 days' },
+    syncLast: 'Last sync {time}',
+    calls: {
+      exchangeRate: 'Exchange rate',
+      statement: 'Read a statement',
+      screenshot: 'Read a screenshot',
+      receipt: 'Read a receipt',
+      voice: 'Voice',
+      upload: 'Upload a file',
+      signIn: 'Sign in',
+      analytics: 'Usage event',
+      purchases: 'Purchases',
+      crashReport: 'Crash report',
+      sessionReplay: 'Session replay',
+      mapTiles: 'Map tiles',
+      google: 'Google',
+      appStore: 'Check for update',
+      accountDelete: 'Delete account',
+      exportData: 'Export my data',
+      invite: 'Invite',
+      connectedApps: 'Connected apps',
+      serverRequest: 'Waves server',
+    },
     purposes: {
       sync: 'Sync',
       signIn: 'Sign-in',
@@ -9283,8 +10267,6 @@ const en: UiStrings = {
     row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
     title: 'Privacy',
-    intro:
-      'Waves holds as little about you as it can and still work. This describes what that is, in plain terms.',
     storeTitle: 'What is stored',
     storeBody:
       'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
@@ -9309,6 +10291,7 @@ const en: UiStrings = {
     blockedNone: 'None',
     sessionReplayHint: 'Off unless you turn it on',
     policySection: 'How Waves protects you',
+    dataSection: 'Your data',
     supportRow: 'Privacy questions',
     supportRowHint: 'Write to us — a person answers',
     lastUpdated: 'Last updated {date}.',
@@ -9435,6 +10418,24 @@ const en: UiStrings = {
     typeOther: 'Other',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
+    tagSheetSubtitle: "Add a tag so it's easy to find later.",
+    tagPopular: 'Popular tags',
+    saveTag: 'Save tag',
+    tagChips: {
+      weekend: 'Weekend',
+      roadTrip: 'Road trip',
+      holiday: 'Holiday',
+      officeOffsite: 'Office offsite',
+      birthday: 'Birthday',
+      wedding: 'Wedding',
+      family: 'Family',
+      friends: 'Friends',
+      other: 'Other',
+    },
+    groupTypeTitle: 'Group type',
+    datesRow: 'Dates',
+    groupTypeInfo:
+      'The type sets the group’s label, default cover and trip tools. Nothing already recorded changes.',
     tagSuggestions: {
       trip: ['Weekend', 'Road trip', 'Holiday'],
       home: ['Rent', 'Flatmates', 'Bills'],
@@ -9524,10 +10525,22 @@ const en: UiStrings = {
     settlesIn: 'Settles in',
     settlesInHint: 'Every balance is counted in this currency.',
     settlesInLocked: 'Locked — this group already has entries.',
+    convertAllTitle: 'Settle in {currency} for all expenses',
+    convertShort: 'Bills paid in other currencies count in {currency}',
+    otherCurrencies: 'Other currencies',
+    groupCurrencies: "This group's currencies",
+    settleInShort: 'Count foreign bills in {currency}',
+    balancesIn: 'Balances in {currency}',
+    groupCurrencyLine: '{name} · group currency',
+    currencyOnly: '{currency} only',
     tripRates: 'Trip rates',
     tripRatesBody:
       'Pin a rate for each currency you will pay in, and every bill converts the same way — no typing it again per bill.',
     addRate: 'Add a currency',
+    otherCurrenciesSubtitleTrip: 'Add currencies used in this trip',
+    otherCurrenciesSubtitleGroup: 'Add currencies used in this group',
+    ratesInfoFetched: 'Rates are fetched when you add a currency.',
+    ratesInfoKept: 'Bills already saved keep the rate they were added with.',
     editRate: 'Edit rate',
     newRate: 'New rate',
     removeRate: 'Remove this rate',
@@ -9583,6 +10596,25 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalReceipt: {
+    title: 'Receipt',
+    add: 'Add',
+    attached: 'Attached',
+    saving: 'Saving…',
+    addTitle: 'Add a receipt',
+    camera: 'Take a photo',
+    library: 'Choose from library',
+    remove: 'Remove',
+    removeTitle: 'Remove this receipt?',
+    removeBody: 'The photo is deleted from Waves. The entry stays.',
+    replace: 'Replace photo',
+    private: 'Only you can see this',
+    unavailable: 'Could not load the photo',
+    paidOnly: 'Keeping receipts on Waves needs Plus.',
+    storageFull: 'You have reached your storage limit.',
+    waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
+    couldNotAdd: 'Could not add the receipt. Try again.',
+  },
   personal: {
     introCards: [
       {
@@ -9743,6 +10775,24 @@ const en: UiStrings = {
     principal: 'Amount',
     outstanding: 'Outstanding',
     recordPayment: 'Record payment',
+    shareWith: 'Share with {name}',
+    shareTitle: 'Share this loan',
+    shareBody:
+      '{name} will see it as a balance between you and can settle it with you. If they are not on Waves yet, they see it when they join.',
+    shareAction: 'Share',
+    shareWho: 'Who is it with?',
+    pickContact: 'Pick from contacts',
+    visibleTo: 'Visible to {name}',
+    settleUp: 'Settle up',
+    stopSharing: 'Stop sharing',
+    stopSharingBody: 'This takes the debt off their side. Your private loan stays.',
+    cannotStopSharing:
+      'Part of this is already repaid, so it cannot be unshared. Settle the rest instead.',
+    shareFailed: 'Could not share this loan. Try again.',
+    shareToggle: 'Also show this to {name}',
+    deleteSharedBody: 'This also removes the debt from their side.',
+    deleteSharedKept:
+      'Part of this is already repaid, so the debt stays in your balance with {name}.',
     closeLoan: 'Close',
     reopenLoan: 'Reopen',
     paidOff: 'Paid off',
@@ -10027,6 +11077,17 @@ const ta: UiStrings = {
   totalIn: '{currency} இல் மொத்தம்',
   nothingIn: '{currency} இல் ஏதுமில்லை',
   tapMonthForDays: 'நாட்களைக் காண மாதத்தைத் தட்டவும்.',
+  spendTotal: 'மொத்த செலவு',
+  spendInCurrency: '{currency} இல்',
+  spendVsLast: 'கடந்த மாதத்துடன் ஒப்பிட',
+  spendDonutTotal: 'மொத்தம்',
+  spendTopCategories: 'முக்கிய வகைகள்',
+  spendSeeAll: 'அனைத்தும்',
+  spendShowLess: 'குறைவாகக் காட்டு',
+  spendLastMonths: 'கடந்த {n} மாதங்கள்',
+  spendSeeDays: '{month} மாத நாட்களைக் காண்க',
+  spendPickMonth: 'மாதத்தைத் தேர்வு செய்',
+  spendPickCurrency: 'நாணயத்தைத் தேர்வு செய்',
   nothingToChart: 'சில செலவுகளைச் சேர்த்தால் இது நிரம்பும்.',
   categories: {
     food: 'உணவு',
@@ -10299,6 +11360,11 @@ const ta: UiStrings = {
   upgradeTrial: { one: 'Pro-வில் {n} நாள் மீதம்', other: 'Pro-வில் {n} நாட்கள் மீதம்' },
   common: {
     appName: 'Waves',
+    groupCreated: 'குழு உருவாக்கப்பட்டது',
+    groupCreatedNamed: '“{name}” உருவாக்கப்பட்டது',
+    expenseAdded: '{what} சேர்க்கப்பட்டது',
+    expenseUpdated: 'செலவு புதுப்பிக்கப்பட்டது',
+    savedOffline: 'சேமிக்கப்பட்டது — இணையம் வந்ததும் ஒத்திசைக்கப்படும்',
     back: 'பின்',
     skip: 'தவிர்',
     loading: 'ஏற்றுகிறது…',
@@ -10609,6 +11675,8 @@ const ta: UiStrings = {
     title: 'இணைக்கப்பட்ட செயலிகள்',
     row: 'இணைக்கப்பட்ட செயலிகள்',
     rowHint: 'உங்கள் Waves-ஐ அணுகக்கூடிய AI உதவியாளர்கள்',
+    rowCount: { one: '{n} இணைக்கப்பட்டுள்ளது', other: '{n} இணைக்கப்பட்டுள்ளன' },
+    rowNone: 'எதுவும் இணைக்கப்படவில்லை',
     intro:
       'உங்கள் Waves-ஐப் பயன்படுத்த நீங்கள் அனுமதித்த AI உதவியாளர்கள். ஒன்றைத் துண்டித்தால் அதன் அணுகல் உடனே நின்றுவிடும்.',
     connectedOn: 'இணைத்த நாள்: {when}',
@@ -10657,9 +11725,7 @@ const ta: UiStrings = {
   account: {
     facePaying: 'பணம் பெற',
     faceSettings: 'அமைப்புகள்',
-    settled: 'தீர்ந்தது',
     nothingSettledYet: 'இன்னும் எதுவும் தீரவில்லை',
-    otherCurrencies: { one: 'மேலும் {n} நாணயம்', other: 'மேலும் {n} நாணயங்கள்' },
     saved: 'சேமிக்கப்பட்டது',
     displayName: 'காட்டப்படும் பெயர்',
     displayNameHint: 'நீங்கள் குழு பகிரும் அனைவரும் இதைப் பார்ப்பார்கள்.',
@@ -10767,6 +11833,260 @@ const ta: UiStrings = {
     usedOfLimit: '{used} / {limit} டோக்கன்கள் பயன்படுத்தப்பட்டன',
     resetUsage: 'மீட்டமை',
   },
+  assistant: {
+    introBody:
+      'செலவு முழுமையாக இருக்க ஒன்றிரண்டு சிறு கேள்விகள் கேட்பேன். எதை வேண்டுமானாலும் தவிர்க்கலாம்; “இதை மீண்டும் கேட்காதே” என்றால் அது எப்போதும் நிறுத்தப்படும்.',
+    introAction: 'புரிந்தது',
+    teaserLine: 'Pro கேட்கும்: {question}',
+    teaserPlace: 'இது எங்கே நடந்தது?',
+    teaserReceipt: 'ரசீது இருக்கிறதா?',
+    teaserPayment: 'எப்படி பணம் செலுத்தினீர்கள்?',
+    teaserCta: 'Pro பார்க்க',
+    teaserDismiss: 'மூடு',
+    composerPlaceholder: 'கேளுங்கள் அல்லது சேர்க்கவும்… எ.கா. அனுவுடன் மதிய உணவு 800',
+    composerLabel: 'கட்டளை அல்லது கேள்வியை தட்டச்சு செய்யுங்கள்',
+    composerSend: 'அனுப்பு',
+    composerTypeInstead: 'தட்டச்சு செய்ய',
+    composerUseMic: 'மைக் பயன்படுத்து',
+    proSheetTitle: 'அரட்டை மூலம் திருத்தம் Pro-வில் உள்ளது',
+    proSheetBody:
+      'தொகை, தேதி அல்லது இடத்தை தட்டச்சு செய்து மாற்றலாம், ஒரே சொல்லில் செயல்தவிர்க்கலாம். இது Pro-வுடன் வரும்.',
+    proSheetCta: 'Pro பார்க்க',
+    proSheetLater: 'இப்போது வேண்டாம்',
+    planRowTitle: 'உதவியாளர் பின்தொடர் கேள்விகள்',
+    planRowPill: 'AI',
+    personalScope: 'தனிப்பட்டதில் சேர்க்கிறீர்கள்',
+    openPersonalAssistant: 'உதவியாளரிடம் கேளுங்கள்',
+    completeRow: 'இந்தச் செலவை முழுமையாக்குங்கள்',
+    completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
+    completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
+    tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  groupRecurring: {
+    title: 'மீண்டும் வரும் செலவுகள்',
+    sub: 'வாடகை, கட்டணங்கள் மற்றும் அட்டவணைப்படி வரும் செலவுகள். ஒவ்வொன்றும் அதன் தேதியில் அனைவருக்கும் சேர்க்கப்படும்.',
+    empty: 'இன்னும் எதுவும் மீண்டும் வருவதில்லை',
+    emptyHint: "செலவைச் சேர்த்து 'மீண்டும்' என்பதை இயக்கவும்.",
+    repeat: 'மீண்டும்',
+    never: 'மீண்டும் வராது',
+    startsNext: '{date} முதல்',
+    ends: 'முடிவு',
+    endsNever: 'ஒருபோதும் இல்லை',
+    endsOn: '{date} அன்று முடியும்',
+    pickEnd: 'முடிவு தேதியைத் தேர்வுசெய்க',
+    next: 'அடுத்தது {date}',
+    lastAdded: 'கடைசியாக {date} அன்று சேர்ந்தது',
+    paused: 'இடைநிறுத்தப்பட்டது',
+    ended: 'முடிந்தது',
+    pause: 'இடைநிறுத்து',
+    resume: 'மீண்டும் தொடங்கு',
+    stop: 'மீண்டும் வருவதை நிறுத்து',
+    stopTitle: '"{name}" நிறுத்தவா?',
+    stopBody:
+      'இனி எதுவும் சேர்க்கப்படாது. ஏற்கனவே சேர்ந்தவை இருக்கும். இதைத் திரும்பப் பெற முடியாது.',
+    edit: 'திருத்து',
+    editTitle: 'மீண்டும் வரும் செலவைத் திருத்து',
+    editHint: 'மாற்றங்கள் இனி வரும் செலவுகளுக்கு மட்டும். சேர்ந்தவை அப்படியே இருக்கும்.',
+    save: 'சேமி',
+    amountLabel: 'தொகை',
+    addedToast: '{freq} மீண்டும் வரும், {date} முதல்',
+    couldNotSave: 'புதுப்பிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    rowCount: 'மீண்டும் வருபவை ({n})',
+    rowNone: 'மீண்டும் வருபவை',
+    voiceDone: 'மாதந்தோறும் மீண்டும் வரும்',
+    offlineNote: 'சேமிக்கப்பட்டது. இணையம் வந்ததும் தொடங்கும்.',
+    nextOn: 'அடுத்த தேதி',
+    notesLabel: 'குறிப்புகள்',
+    severalPayers: 'பலர் செலுத்தினர். அவர்களின் பங்குகள் தொகையைப் பின்தொடரும்.',
+    splitKept:
+      'இந்தப் பிரிப்பு சேமித்த தொகைகளையே வைத்திருக்கும். மாற்ற, இதை நிறுத்தி புதியதை உருவாக்குங்கள்.',
+    problemName: 'ஒரு பெயர் கொடுங்கள்.',
+    problemAmount: 'தொகையை உள்ளிடுங்கள்.',
+    problemPeople: 'யாருடன் பிரிக்கப்படும் என்பதைத் தேர்வுசெய்க.',
+    problemPayers: 'செலுத்தியவர்களின் கூட்டுத்தொகை தொகைக்குச் சமமாக இல்லை.',
+    problemSplit: 'பிரிப்பின் கூட்டுத்தொகை தொகைக்குச் சமமாக இல்லை.',
+    problemDates: 'தேதிகளைச் சரிபார்க்கவும்: முடிவு தொடக்கத்துக்கு முன் இருக்க முடியாது.',
+    currencyNote: 'நாணயம் {currency} ஆகவே இருக்கும்.',
+  },
+  inline: {
+    close: 'மூடு',
+    groupLabel: 'குழு',
+    peopleLabel: 'நபர்கள்',
+    you: 'நீங்கள்',
+    needSomeone: 'குறைந்தது ஒருவரைத் தேர்ந்தெடுங்கள்.',
+    peopleCount: '{count} பேர் பகிர்கிறார்கள்',
+    retry: 'மீண்டும் முயற்சிக்கவும்',
+    splitTitle: '{amount} பிரிக்கவும்',
+    splitConfirm: 'பிரி',
+    tripTitle: 'பயணத்துக்கு மாற்று',
+    tripConfirm: 'இங்கே மாற்று',
+    attendanceTitle: 'யார் இருந்தார்கள்?',
+    attendanceSave: 'சேமி',
+    attendanceDone: 'யார் இருந்தார்கள் என்பது புதுப்பிக்கப்பட்டது ✓',
+    movedDone: '{group} குழுவுக்கு மாற்றப்பட்டது ✓',
+    splitDone: '{names} உடன் பிரிக்கப்பட்டது ✓',
+    itemizeTitle: 'பொருள் வாரியாகப் பிரி',
+    itemizeHint: 'ஒவ்வொரு பொருளையும் யார் எடுத்தார்கள் எனத் தட்டவும்.',
+    itemChipA11y: '{item} ஐ {name} எடுத்தார்',
+    everyone: 'அனைவரும்',
+    everyoneA11y: '{item} ஐ அனைவரும் பகிர்ந்தனர்',
+    itemizeCharges:
+      'வரி மற்றும் கூடுதல் கட்டணம் {amount}, ஒவ்வொருவரின் பொருள்களுக்கு ஏற்ப பகிரப்படும்.',
+    itemizeLeft: '{count} இன்னும் ஒதுக்க வேண்டும்',
+    itemizeSave: 'பிரிவைச் சேமி',
+    itemizeDone: 'பொருள் வாரியாகப் பிரிக்கப்பட்டது ✓',
+    receiptThumb: 'ரசீது புகைப்படம்',
+    attaching: 'இணைக்கிறது…',
+    attached: 'இணைக்கப்பட்டது ✓',
+    attachFailed: 'ரசீதை இணைக்க முடியவில்லை.',
+    removeReceipt: 'நீக்கு',
+    removeFailed: 'ரசீதை நீக்க முடியவில்லை.',
+    receiptDone: 'ரசீது இணைக்கப்பட்டது ✓',
+    loanSharing: '{name} உடன் பகிர்கிறது…',
+    loanShared: '{name} உடன் பகிரப்பட்டது ✓ அவர்கள் பார்த்து தீர்த்துக்கொள்ளலாம்.',
+    loanShareFailed: 'கடன் சேமிக்கப்பட்டது, ஆனால் {name} உடன் பகிர முடியவில்லை.',
+    settleTitle: 'கணக்கைத் தீர்',
+    settleAllDone: 'அனைத்தும் தீர்ந்தது ✓',
+    settleRecorded: 'பணம் செலுத்தல் பதிவானது ✓',
+    settleFailed: 'பணம் செலுத்தலைப் பதிவு செய்ய முடியவில்லை.',
+    settleOthers: 'மற்றவர்களுக்கிடையே இன்னும் {count}',
+    owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
+    youOwe: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
+    recordPayment: 'பணம் செலுத்தலைப் பதிவு செய்',
+    recordA11y: 'பணம் செலுத்தலைப் பதிவு செய், {name}, {amount}',
+    showAll: 'அனைத்தையும் காட்டு ({count})',
+    showLess: 'குறைவாகக் காட்டு',
+    noMatches: 'காட்ட எதுவும் இல்லை.',
+  },
+  followUps: {
+    added: '{amount} {where}-இல் சேர்க்கப்பட்டது ✓',
+    wherePersonal: 'தனிப்பட்டது',
+    skip: 'தவிர்',
+    dontAsk: 'இதை மீண்டும் கேட்காதே',
+    done: 'முடிந்தது',
+    yes: 'ஆம்',
+    no: 'இல்லை',
+    working: 'புதுப்பிக்கிறது…',
+    placeAsk: 'இது எங்கே?',
+    placeElse: 'வேறு இடம்',
+    receiptAsk: 'ரசீது இருக்கிறதா? செலவுடன் சேர்த்து வைத்துக்கொள்கிறேன்.',
+    receiptScan: 'ஸ்கேன்',
+    receiptPick: 'புகைப்படம் தேர்',
+    splitByItem: 'பொருள் வாரியாகப் பிரி',
+    splitAsk: 'யாருடனாவது பிரிக்கவா? நீங்கள் வழக்கமாக {category} செலவை {name} உடன் பிரிப்பீர்கள்.',
+    splitSomeone: 'வேறொருவர்',
+    paymentAsk: 'எப்படி பணம் செலுத்தினீர்கள்?',
+    payCash: 'பணம்',
+    payUpi: 'UPI',
+    payCard: 'கார்டு',
+    payCredit: 'கிரெடிட் கார்டு',
+    payDebit: 'டெபிட் கார்டு',
+    tripAsk: 'இது {trip}-க்கானதா?',
+    tripMove: '{trip}-க்கு மாற்று',
+    tripNo: 'இல்லை, தனிப்பட்டது',
+    attendanceAsk: 'எல்லோரும் இருந்தார்களா?',
+    attendanceEveryone: 'எல்லோரும்',
+    attendancePick: 'நபர்களைத் தேர்',
+    payerAsk: 'இதை {name} செலுத்தினாரா?',
+    payerYes: '{name} செலுத்தினார்',
+    payerNo: 'இல்லை, நான் செலுத்தினேன்',
+    recurringAsk: 'இது மாதாந்திரம் போல் தெரிகிறது — ஒவ்வொரு மாதமும் மீண்டும் சேர்க்கவா?',
+    recurringYes: 'மாதந்தோறும் மீண்டும்',
+    duplicateAsk: '{name} ஏற்கனவே {amount} “{description}” சேர்த்துள்ளார் — அதே பில்லா?',
+    duplicateSame: 'அதே, என்னுடையதை நீக்கு',
+    duplicateDifferent: 'வேறு',
+    currencyAsk: 'இது {currency}-இல் செலவா?',
+    currencyKeep: '{currency} அப்படியே இருக்கட்டும்',
+    categoryAsk: 'இது என்ன வகை செலவு?',
+    dateAsk: 'இது நேற்றா?',
+    dateYes: 'ஆம், நேற்று',
+    dateNo: 'இல்லை, இன்று',
+    lendAsk: '{name} உங்களுக்குத் திருப்பித் தர வேண்டுமா?',
+    lendYes: 'ஆம், {name} எனக்குத் தர வேண்டும்',
+    lendNo: 'இல்லை, அது பரிசு',
+    lendShare: 'ஆம், {name}-க்கும் காட்டு',
+    wrapupAsk: '{trip} முடிந்தது போல் தெரிகிறது. இப்போது கணக்கைத் தீர்க்கவா?',
+    wrapupYes: 'கணக்கைத் தீர்',
+    wrapupNo: 'இன்னும் இல்லை',
+    workAsk: 'இதை அலுவலகத்திடம் கோரவா?',
+    workYes: 'ஆம், குறியிடு',
+    saved: 'சேமிக்கப்பட்டது ✓',
+    savedWith: '{items} உடன் சேமிக்கப்பட்டது',
+    itemPlace: 'இடம்',
+    itemPayment: 'செலுத்தும் முறை',
+    itemCategory: 'வகை',
+    itemDate: 'தேதி',
+    itemPayer: 'செலுத்தியவர்',
+    itemCurrency: 'நாணயம்',
+    itemRecurring: 'மாதாந்திர மீள்',
+    itemLend: 'கடன்',
+    itemWork: 'அலுவலக குறி',
+    removedDuplicate: 'நகலை நீக்கினேன்',
+    handedOff: 'உங்களுக்காகத் திறந்தேன்',
+    gotIt: 'சரி',
+    couldNotUse: 'இதை என்னால் பயன்படுத்த முடியவில்லை',
+    listening: 'கேட்டுக்கொண்டிருக்கிறது…',
+    stopListening: 'பேசி முடித்தேன்',
+    transcribing: 'புரிந்துகொள்கிறது…',
+    micDenied: 'மைக்ரோஃபோன் அணைந்துள்ளது. பதிலை தட்டச்சு செய்யுங்கள்.',
+    noSpeech: 'கேட்கவில்லை. மைக்கை தட்டி மீண்டும் முயலுங்கள்.',
+    voiceFailed: 'கேட்க முடியவில்லை. மைக்கை தட்டி மீண்டும் முயலுங்கள்.',
+    turnsUsed: 'இந்தச் செலவுக்கான கேள்விகள் முடிந்தன. ஒரு விருப்பத்தைத் தேர்ந்தெடுங்கள்.',
+    couldNotSave: 'சேமிக்க முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    reimbursableRow: 'அலுவலகச் செலவு (கோர வேண்டும்)',
+    reimbursableTag: 'அலுவலகம்',
+    settingsRow: 'தொடர் கேள்விகள்',
+    settingsHint: 'செலவைச் சேர்த்த பிறகு உதவியாளர் அதைப் பற்றி ஒரு சிறு கேள்வி கேட்கலாம்',
+    resetRow: 'முடக்கிய கேள்விகளை மீட்டமை',
+    resetHint: 'எல்லா வகை தொடர் கேள்விகளையும் மீண்டும் கேள்',
+    resetDone: 'தொடர் கேள்விகள் மீட்டமைக்கப்பட்டன',
+    typingOffline: 'தட்டச்சு செய்ய இணைப்பு தேவை',
+  },
+  voiceScreen: {
+    headline: 'இயல்பாகச் சொல்லுங்கள்',
+    subline: 'நான் புரிந்துகொண்டு உங்கள் செலவை ஒழுங்குபடுத்துகிறேன்.',
+    statusReady: 'தட்டிப் பேசுங்கள்',
+    statusStarting: 'மைக் தயாராகிறது…',
+    statusListening: 'கேட்கிறேன்…',
+    statusProcessing: 'உங்கள் செலவைப் புரிந்துகொள்கிறேன்…',
+    statusNoSpeech: 'கேட்கவில்லை',
+    statusNoAmount: 'கேட்டேன், ஆனால் தொகை இல்லை',
+    statusPermission: 'மைக்ரோஃபோன் அனுமதி தேவை',
+    statusError: 'ஏதோ தவறு நடந்தது',
+    statusExpenseReady: 'செலவு தயார்',
+    statusCheck: 'ஒரு விவரத்தைச் சரிபாருங்கள்',
+    statusSaving: 'சேர்க்கிறேன்…',
+    statusSaved: 'சேர்த்தாகிவிட்டது',
+    micStart: 'கேட்கத் தொடங்கு',
+    micStop: 'கேட்பதை நிறுத்து',
+    micRetry: 'மீண்டும் முயலவும்',
+    micBusy: 'செயலில் உள்ளது',
+    hearing: 'கேட்கிறேன்',
+    youSaid: 'நீங்கள் சொன்னது',
+    editHeard: 'உரையைத் திருத்து',
+    suggestionsTitle: 'இப்படிச் சொல்லிப் பாருங்கள்:',
+    category: 'வகை',
+    splitWith: 'யாருடன் பகிர்வது',
+    justYou: 'நீங்கள் மட்டும்',
+    addExpense: 'செலவைச் சேர்',
+    retry: 'மீண்டும் முயலவும்',
+    openSettings: 'அமைப்புகளைத் திற',
+    permissionBody: 'செலவைச் சொல்ல மைக்ரோஃபோன் அனுமதி தாருங்கள், அல்லது தட்டச்சு செய்யுங்கள்.',
+    date: 'தேதி',
+    savedTitle: 'சேர்த்தாகிவிட்டது',
+    savedTo: '{where} இல் சேர்க்கப்பட்டது',
+    savedForLater: 'பின்னர் பார்க்க ஒதுக்கப்படாதவற்றில் சேமிக்கப்பட்டது',
+    savedSettled: '{name} உடன் கணக்கு தீர்க்கப்பட்டது',
+    savedReminded: '{name} க்கு நினைவூட்டல் அனுப்பப்பட்டது',
+    savedMembers: '{name} ஐ {group} இல் சேர்த்தோம்',
+    addAnother: 'இன்னொன்றைச் சேர்',
+    done: 'முடிந்தது',
+    splitEquallyWith: 'சமமாகப் பகிர்வது: {names}',
+    paidByName: '{name} செலுத்தினார்',
+    splitDifferently: 'வேறு விதமாகப் பகிர்',
+    details: 'விவரங்கள்',
+    addAll: 'அனைத்தையும் சேர்',
+  },
   voice: {
     speakExpense: 'செலவைப் பேசு',
     micHint: 'திறக்க தட்டு, அல்லது அழுத்திப் பிடித்துப் பேசு',
@@ -10782,11 +12102,6 @@ const ta: UiStrings = {
     tapToSpeak: 'பேச தட்டு',
     noAmount: 'தொகை புரியவில்லை',
     missedNothing: 'புரியவில்லை',
-    setupOffline: 'ஆஃப்லைன் குரலை அமை',
-    offlineDownloading:
-      'ஆஃப்லைன் குரல் மாதிரி பதிவிறங்குகிறது… சிறிது நேரத்தில் மீண்டும் முயற்சிக்கவும்.',
-    offlineReady: 'ஆஃப்லைன் குரல் தயார் — மைக்கைத் தட்டிப் பேசுங்கள்.',
-    offlineFailed: 'இந்தச் சாதனத்தில் ஆஃப்லைன் குரலை அமைக்க முடியவில்லை.',
     tapToRetry: 'மீண்டும் முயற்சிக்க தட்டு',
     tryAgain: 'மீண்டும் முயற்சி செய்',
     chooseGroup: 'எந்த குழு?',
@@ -10797,19 +12112,21 @@ const ta: UiStrings = {
     unavailable: 'இந்த ஃபோனில் பேச்சு அங்கீகாரம் இல்லை.',
     review: 'மறுபார்வை',
     saveTo: 'இதில் சேமி',
+    saveForLater: 'பிறகுக்காகச் சேமி',
+    saveHere: 'இங்கே சேமி',
+    searchGroups: 'குழுக்களைத் தேடு…',
+    searchPeopleShort: 'நபர்களைத் தேடு…',
     change: 'மாற்று',
     newGroupNamed: 'புதிய குழு “{name}”',
     thinking: 'புரிந்துகொள்கிறது…',
     save: { one: '{n} செலவைச் சேமி', other: '{n} செலவுகளைச் சேமி' },
     savedCount: { one: '{n} செலவு சேமிக்கப்பட்டது', other: '{n} செலவுகள் சேமிக்கப்பட்டன' },
-    count: { one: '{n} செலவு', other: '{n} செலவுகள்' },
     saveDraft: 'இன்பாக்ஸில் சேமி',
     draftNeedsAmounts:
       'இந்த வரைவைச் சேமிக்க ஒவ்வொரு செலவுக்கும் தொகையை உள்ளிடவும், அல்லது அதை நீக்கவும்.',
     people: 'நபர்கள்',
     addPerson: 'ஒரு நபரைச் சேர்',
     addPersonPlaceholder: 'அவர்களின் பெயர்',
-    addMore: 'மற்றொன்றைச் சேர்',
     groupsTab: 'குழுக்கள்',
     peopleTab: 'நபர்கள்',
     justMe: 'நான் மட்டும்',
@@ -10825,20 +12142,12 @@ const ta: UiStrings = {
     autoAddingPerson: '{group} இல் {name} சேர்க்கிறது',
     autoUndo: 'செயல்தவிர்',
     paidBy: 'செலுத்தியவர்',
-    splitLabel: 'பிரிப்பு',
     youLabel: 'நீங்கள்',
-    splitEveryone: 'அனைவரும் சமமாக',
-    splitEqual: 'சமமாக · {names}',
     splitExact: 'சரியான தொகை · {names}',
     splitPercent: 'சதவீதம் · {names}',
     splitFullOn: 'முழுவதும் {names} மீது',
     whoPaid: 'யார் செலுத்தினார்?',
-    heardAs: 'கேட்டது “{heard}”',
-    whoTitle: 'யார் செலுத்தினார், யார் பகிர்கிறார்',
-    whoPaidSection: 'செலுத்தியவர்',
-    whoSharesSection: 'பகிர்பவர்கள்',
-    whoResets: 'பகிர்பவர்களை மாற்றினால் சமமாகப் பிரிக்கப்படும்.',
-    whoUnknown: '“{name}” யார்? கீழே தேர்ந்தெடுக்கவும்.',
+    whoUnknown: '“{name}” யார்?',
     didYouMean: '{name} என்று சொன்னீர்களா?',
     didYouMeanYes: 'ஆம்',
     whichOf: '{names} அல்லது {last}?',
@@ -10864,31 +12173,62 @@ const ta: UiStrings = {
     ansGroupOwe: '{group} இல், நீங்கள் {amount} தர வேண்டும்',
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
     ansNoPerson: '{name} கிடைக்கவில்லை',
-    askAgain: 'மீண்டும் கேள்',
+    sqSumAll: '{when} நீங்கள் {amount} செலவழித்தீர்கள்',
+    sqSumCat: '{when} {category}க்கு நீங்கள் {amount} செலவழித்தீர்கள்',
+    sqNothingAll: '{when} செலவு எதுவும் இல்லை',
+    sqNothingCat: '{when} {category} செலவு எதுவும் இல்லை',
+    sqBiggest: 'மிகப் பெரியது: {amount} {what}, {date}',
+    sqCountAll: '{when} செலவுகள்: {count}',
+    sqCountCat: '{when} {category} செலவுகள்: {count}',
+    sqBudgetLeft: '{when} உங்கள் {limit} {category} பட்ஜெட்டில் {left} மீதம்',
+    sqBudgetOver: '{when} உங்கள் {limit} {category} பட்ஜெட்டை {over} மீறிவிட்டீர்கள்',
+    sqNoBudgetCat: '{category} பட்ஜெட் அமைக்கப்படவில்லை',
+    sqNoBudgetAny: 'மொத்த பட்ஜெட் அமைக்கப்படவில்லை',
+    sqSetOne: 'அமைக்கவும்',
+    sqOverall: 'மொத்த',
+    sqNoGroup: '{group} என்ற குழு கிடைக்கவில்லை',
+    sqShow: 'செலவுகளில் காட்டு',
+    sqAnd: '{a} மற்றும் {b}',
+    sqInGroup: '{group} இல்',
+    sqWhenToday: 'இன்று',
+    sqWhenYesterday: 'நேற்று',
+    sqWhenThisWeek: 'இந்த வாரம்',
+    sqWhenLastWeek: 'கடந்த வாரம்',
+    sqWhenThisMonth: 'இந்த மாதம்',
+    sqWhenLastMonth: 'கடந்த மாதம்',
+    sqWhenThisYear: 'இந்த ஆண்டு',
+    sqWhenLastYear: 'கடந்த ஆண்டு',
+    sqWhenLast7: 'கடந்த 7 நாட்களில்',
+    sqWhenLast30: 'கடந்த 30 நாட்களில்',
+    sqWhenInMonth: '{month} மாதத்தில்',
+    sqWhenInYear: '{year} ஆண்டில்',
+    sqChipToday: 'இன்று',
+    sqChipYesterday: 'நேற்று',
+    sqChipThisWeek: 'இந்த வாரம்',
+    sqChipLastWeek: 'கடந்த வாரம்',
+    sqChipThisMonth: 'இந்த மாதம்',
+    sqChipLastMonth: 'கடந்த மாதம்',
+    sqChipThisYear: 'இந்த ஆண்டு',
+    sqChipLastYear: 'கடந்த ஆண்டு',
+    sqChipLast7: 'கடந்த 7 நாட்கள்',
+    sqChipLast30: 'கடந்த 30 நாட்கள்',
     agentUnderstanding: 'புரிந்துகொள்கிறது…',
-    agentUnderstandingHint: 'ஒரு நொடி, கேட்டுக்கொண்டிருக்கிறேன்.',
     agentHeard: 'கேட்டது',
-    agentConfirm: 'உறுதிப்படுத்து',
-    agentConfirmAll: 'அனைத்தையும் உறுதிப்படுத்து',
     agentEdit: 'திருத்து',
-    agentDiscard: 'நீக்கு',
     agentDone: 'முடிந்தது',
     agentCouldNotRun: 'இதைச் செய்ய முடியவில்லை. மீண்டும் முயலுங்கள்.',
     agentProblem: 'இதை உங்கள் நபர்கள் அல்லது குழுக்களுடன் பொருத்த முடியவில்லை.',
-    agentClarifyTitle: 'எனக்கு சரியாகப் புரியவில்லை',
-    agentTryAgain: 'மீண்டும் முயல்',
     agentAnswer: 'பதில் சொல்',
-    agentContinue: 'தொடர்க',
-    agentTypeInstead: 'பதிலாக தட்டச்சு செய்',
     agentTypePlaceholder: 'உங்கள் பதிலை தட்டச்சு செய்யுங்கள்',
     agentTypeSend: 'பதிலை அனுப்பு',
     agentTypeMic: 'குரலில் பதிலளி',
-    agentOptionHint: 'இந்தப் பதிலைத் தேர்ந்தெடுக்க இருமுறை தட்டவும்',
+    agentOtherGroup: 'வேறு குழு',
+    agentSearchGroups: 'உங்கள் குழுக்களைத் தேடுங்கள்',
+    agentNoGroupMatch: 'அந்தப் பெயரில் குழு இல்லை',
     agentNothingToDo: 'இதிலிருந்து சேர்க்க எதுவும் இல்லை. மீண்டும் முயலுங்கள்.',
     agentQuotaLeft: 'இந்த மாதம் உங்கள் மேம்பட்ட கட்டளைகளில் {percent}% மீதம்',
     agentTrialQuotaLeft: 'உங்கள் Pro சோதனைக் கட்டளைகளில் {percent}% மீதம்',
     agentTrialQuotaLeftUntil: 'உங்கள் சோதனைக் குரல் கட்டளைகளில் {percent}% மீதம் · {date} வரை',
-    confirmSubtitle: 'நீங்கள் எவ்வளவு செலவழித்தீர்கள் என்று சொல்லுங்கள், நான் சேர்க்கிறேன்.',
     confirmUnderstood: 'இதை புரிந்துகொண்டேன்',
     confirmEditHint: 'ஏதாவது தவறாக இருந்தால் திருத்தலாம்.',
     confirmEditAll: 'எல்லாவற்றையும் திருத்து',
@@ -10903,7 +12243,6 @@ const ta: UiStrings = {
     confirmNotePlaceholder: 'எதற்காக?',
     confirmAdd: 'செலவைச் சேர்',
     confirmClear: 'அழி',
-    confirmQuotaInfo: 'மேம்பட்ட கட்டளைகள் பற்றி',
     confirmPersonMissing: '{name} இந்த குழுவில் இல்லை',
     confirmPickGroup: 'இதைச் சேர்க்க குழுவைத் தேர்வு செய்யுங்கள்',
     confirmNeedAmount: 'தொகையை உள்ளிடுங்கள்',
@@ -10916,13 +12255,6 @@ const ta: UiStrings = {
     confirmNoteHint: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     confirmToday: 'இன்று',
     confirmYesterday: 'நேற்று',
-    engineCloud: 'கிளவுட்',
-    engineOnDevice: 'சாதனத்தில்',
-    engineReasonFree: 'இலவசத் திட்டம்',
-    engineReasonQuota: 'மாத வரம்பு முடிந்தது',
-    engineReasonOffline: 'இணைப்பு இல்லை',
-    engineReasonCloudDown: 'கிளவுட் கிடைக்கவில்லை',
-    engineReasonOff: 'அமைப்புகளில் ஆஃப்',
     agentQuotaFallback:
       'இந்த மாத மேம்பட்ட குரல் வரம்பு முடிந்தது. அடிப்படை குரலைப் பயன்படுத்துகிறது.',
     agentAdd: '{amount} சேர்',
@@ -11044,60 +12376,31 @@ const ta: UiStrings = {
     row: 'மேம்பட்ட குரல்',
     toggle: 'கிளவுட் குரலை அனுமதி',
   },
-  offlineVoice: {
-    row: 'ஆஃப்லைன் குரல்',
-    title: 'ஆஃப்லைன் குரல்',
-    rowHint: 'இந்த ஃபோனில் வைத்திருக்கும் பேச்சு மாதிரிகள்',
-    intro:
-      'ஒரு மொழியைப் பதிவிறக்கிய பிறகு இணைப்பு இல்லாமலும் மைக் வேலை செய்யும் — ஆன்லைன் பேச்சுச் சேவை செயலிழந்த ஃபோன்களிலும் தொடர்ந்து வேலை செய்யும்.',
-    appSection: 'Waves மொழிகள்',
-    appSectionHint: 'மைக் கேட்பது இவற்றைத்தான்.',
-    alsoInstalled: 'இந்த ஃபோனில் ஏற்கெனவே உள்ளவை',
-    otherLanguages: 'மற்ற மொழிகள்',
-    otherLanguagesHint: 'இவற்றில் எதையும் உங்கள் ஃபோன் கொண்டுவரும்.',
-    sectionCount: { one: '{n} மொழி', other: '{n} மொழிகள்' },
-    installed: 'ஃபோனில் உள்ளது',
-    notInstalled: 'பதிவிறக்கப்படவில்லை',
-    cannotTell: 'சொல்ல முடியவில்லை',
-    download: 'பதிவிறக்கு',
-    downloading: 'உங்கள் ஃபோன் இதைப் பதிவிறக்குகிறது.',
-    noProgress: 'எவ்வளவு முடிந்தது என்பதை Android சொல்வதில்லை.',
-    ready: 'பதிவிறக்கப்பட்டது. மைக் இப்போது இதைப் பயன்படுத்தும்.',
-    dialogOpened:
-      'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
-    scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
-    languageMissing:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவையிடம் இந்த மொழிக்கான ஆஃப்லைன் மாதிரியே இல்லை, எனவே பதிவிறக்க எதுவும் இல்லை. Play Store-இல் “Speech Recognition & Synthesis” ஐப் புதுப்பித்தால் சில சமயங்களில் ஒன்று சேரும்; அதுவரை இந்த மொழிக்கு இணைப்பு தேவை.',
-    notDownloaded:
-      'இந்த மொழி உங்கள் ஃபோனுக்குத் தெரியும், ஆனால் இன்னும் கொண்டுவரவில்லை. பொதுவாக Wi‑Fi வரும் வரை காத்திருக்கும் — இணைந்ததும் மீண்டும் முயலுங்கள்.',
-    networkFailed:
-      'பதிவிறக்கம் சென்று சேரவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
-    serviceBusy:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவை பணியில் உள்ளது. மைக்கைப் பயன்படுத்தும் மற்றவற்றை மூடிவிட்டு மீண்டும் முயலுங்கள்.',
-    handedOff:
-      'உங்கள் ஃபோன் பதிவிறக்கத்தைத் தொடங்கிவிட்டது, ஆனால் அதைப் பற்றிச் சொல்லாது. சில நிமிடங்கள் கழித்துப் புதுப்பிக்கவும்.',
-    failed: 'உங்கள் ஃபோனின் பேச்சுச் சேவை பதிவிறக்கத்தை மறுத்தது, காரணம் சொல்லவில்லை.',
-    stillWorking:
-      'இது முடிந்ததா என்பதை உங்கள் ஃபோன் இன்னும் சொல்லவில்லை. கொஞ்சம் நேரம் கழித்து, வந்து சேர்ந்ததா எனப் புதுப்பித்துப் பாருங்கள்.',
-    tooOld:
-      'செயலிக்குள் இருந்து மாதிரிகளைப் பதிவிறக்க இந்த ஃபோனின் Android மிகவும் பழையது. Android அமைப்புகளில் “voice” எனத் தேடி ஒன்றைச் சேர்க்கவும்.',
-    iosNote:
-      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும்; எவை ஏற்கெனவே உள்ளன என்பதைச் சொல்லாது. Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
-    unavailable: 'இந்தப் பதிப்பால் பேச்சு மாதிரிகளை அணுக முடியாது.',
-    noOnDevice:
-      'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
-    refresh: 'புதுப்பி',
-    unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
-    unreadableBody:
-      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
-    staleNote:
-      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
-    permissionNeeded:
-      'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
-    empty:
-      'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
-    footnote:
-      'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: '{amount} ஆக மாற்றப்பட்டது',
+    changedDate: 'தேதி {date}',
+    changedName: 'பெயர் {name} ஆக மாற்றப்பட்டது',
+    changedCurrency: 'இப்போது {currency} இல்',
+    changedGroup: '{where} க்கு மாற்றப்பட்டது',
+    changedPayer: '{name} செலுத்தினார்',
+    personalName: 'தனிப்பட்டது',
+    undo: 'செயல்தவிர்',
+    restore: 'மீட்டெடு',
+    removed: '{amount} {description} நீக்கப்பட்டது',
+    restored: 'மீட்டெடுக்கப்பட்டது ✓',
+    undone: 'செயல்தவிர்க்கப்பட்டது ✓',
+    change: 'மாற்று',
+    unchanged: 'மாற்ற எதுவுமில்லை',
+    couldNotUndo: 'செயல்தவிர்க்க முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    undoLoanSettled:
+      'இந்தக் கடனில் ஒரு பகுதி குழுவில் ஏற்கெனவே திருப்பிச் செலுத்தப்பட்டுவிட்டது, அதனால் இங்கே செயல்தவிர்க்க முடியாது. மீதியைத் தீர்த்துவிடுங்கள்.',
+    couldNotChange: 'மாற்ற முடியவில்லை. மீண்டும் முயல்கிறீர்களா?',
+    needsConnection: 'தட்டச்சுக்கு இணைய இணைப்பு தேவை',
+    couldNotUse: 'இதைப் பயன்படுத்த முடியவில்லை',
+    undoA11y: 'செயல்தவிர்: {amount} {description}',
+    restoreA11y: 'மீட்டெடு: {amount} {description}',
+    updated: 'புதுப்பிக்கப்பட்டது ✓',
   },
   notifications: {
     title: 'அறிவிப்புகள்',
@@ -11138,6 +12441,9 @@ const ta: UiStrings = {
     weeklyEmail: 'வாராந்திர மின்னஞ்சல் சுருக்கம்',
     weeklyEmailBody:
       'உங்கள் நிகர பாக்கியும் நிலுவையிலுள்ள உறுதிப்படுத்தல்களும், வாரம் ஒருமுறை. இயல்பாக நிறுத்தத்தில்.',
+    rowOn: 'இயக்கத்தில்',
+    rowOff: 'முடக்கத்தில்',
+    rowOffInPhone: 'ஃபோன் அமைப்புகளில் முடக்கத்தில்',
     failDenied: 'இயக்கப்படவில்லை — பின்னர் ஃபோன் அமைப்புகளில் இயக்கிக்கொள்ளலாம்.',
     failUnsupported:
       'இந்தச் சாதனத்தால் அறிவிப்புகளைப் பெற முடியாது. எல்லாம் செயல்பாட்டுப் பக்கத்தில் வந்து சேரும்.',
@@ -11453,16 +12759,10 @@ const ta: UiStrings = {
     statCurrencies: { one: '{n} நாணயம்', other: '{n} நாணயங்கள்' },
   },
   exportForm: {
-    heroTitle: 'உங்கள் தரவு, எப்போதும் உங்களுடையது',
-    heroBody:
-      'உங்கள் செலவுகள், தீர்வுகள், செயல்பாடுகளின் முழுப் பதிவையும் தேவைப்படும்போது ஏற்றுமதி செய்யுங்கள் — இலவசமாக.',
     freeBadge: 'கட்டணம் இல்லை. 100% இலவசம்.',
-    chooseFormat: 'வடிவத்தைத் தேர்ந்தெடு',
-    chooseFormatSub: 'உங்களுக்கு ஏற்ற கோப்பு வடிவத்தைத் தேர்ந்தெடுங்கள்.',
     jsonSub: '(இழப்பில்லை)',
     csvSub: '(விரிதாள்)',
     pdfSub: '(அச்சிட ஏற்றது)',
-    whatSub: 'எந்தத் தரவைச் சேர்க்க வேண்டும் என்பதைத் தேர்ந்தெடுங்கள்.',
     everything: 'அனைத்தையும் ஏற்றுமதி செய்',
     oneGroup: 'ஒரு குழு',
     oneGroupSub: 'தேர்ந்தெடுத்த குழு மட்டும்',
@@ -11470,7 +12770,6 @@ const ta: UiStrings = {
     includedBody:
       'எல்லாச் செலவுகள், யார் செலுத்தினார், யார் தர வேண்டியது, ஒவ்வொரு செலவுக்கான ஒதுக்கீடுகளுடன் தீர்வுகள், முழுச் செயல்பாட்டுப் பதிவு.',
     exportAction: 'தரவை ஏற்றுமதி செய்',
-    or: 'அல்லது',
     pickGroup: 'எந்தக் குழு?',
   },
   receiving: {
@@ -11500,6 +12799,39 @@ const ta: UiStrings = {
     },
     importUndoneHeadline: 'இறக்குமதி ரத்து செய்யப்பட்டது',
     importUndoneSentence: '{who} இறக்குமதியை ரத்து செய்தார்',
+    group: {
+      renamed: 'குழுவின் பெயர் {name} என மாற்றப்பட்டது',
+      nameCleared: 'குழுவின் பெயர் நீக்கப்பட்டது',
+      description: 'விளக்கம் மாற்றப்பட்டது',
+      type: 'குழு வகை {type} என மாற்றப்பட்டது',
+      datesSet: 'தேதிகள் {range} என அமைக்கப்பட்டன',
+      datesCleared: 'தேதிகள் நீக்கப்பட்டன',
+      tag: 'டேக் {tag} என மாற்றப்பட்டது',
+      tagCleared: 'டேக் நீக்கப்பட்டது',
+      currency: 'நாணயம் {code} என மாற்றப்பட்டது',
+      convertOn: '{code}-க்கு மாற்றுதல் இயக்கப்பட்டது',
+      convertOff: 'மாற்றுதல் நிறுத்தப்பட்டது',
+      cover: 'அட்டை மாற்றப்பட்டது',
+      currencyAdded: '{code} சேர்க்கப்பட்டது',
+      currencyRemoved: '{code} நீக்கப்பட்டது',
+      rateChanged: '{code} விகிதம் மாற்றப்பட்டது',
+      archived: 'குழு காப்பகப்படுத்தப்பட்டது',
+      unarchived: 'குழு காப்பகத்திலிருந்து மீட்கப்பட்டது',
+      simplifyOn: 'குறைவான திருப்பிச் செலுத்தல் இயக்கப்பட்டது',
+      simplifyOff: 'குறைவான திருப்பிச் செலுத்தல் நிறுத்தப்பட்டது',
+      budget: 'பட்ஜெட் {amount} என அமைக்கப்பட்டது',
+      budgetCleared: 'பட்ஜெட் நீக்கப்பட்டது',
+      stops: 'பயண நிறுத்தங்கள் மாற்றப்பட்டன',
+      changed: 'குழு அமைப்புகள் மாற்றப்பட்டன',
+      memberAdded: '{name} சேர்க்கப்பட்டார்',
+      memberRemoved: '{name} நீக்கப்பட்டார்',
+      memberLeft: 'குழுவிலிருந்து வெளியேறினார்',
+      madeAdmin: '{name} நிர்வாகியாக்கப்பட்டார்',
+      madeMember: '{name} உறுப்பினராக்கப்பட்டார்',
+      claimed: 'தம் இடத்தை உரிமை கொண்டார்',
+      merged: '{name} ஒரே நபராக இணைக்கப்பட்டார்',
+      sentence: '{who}: {event}',
+    },
   },
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
@@ -11686,6 +13018,59 @@ const ta: UiStrings = {
     ball: 'விளையாட்டு',
     star: 'பிடித்தது',
     people: 'நண்பர்கள்',
+    bag: 'ஷாப்பிங்',
+    gamepad: 'விளையாட்டு',
+    more: 'மற்றவை',
+  },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'பயணம்',
+      home: 'வீடு',
+      food: 'உணவு & பானம்',
+      events: 'நிகழ்வுகள்',
+      friends: 'நண்பர்கள் & குடும்பம்',
+      work: 'வேலை',
+      sport: 'விளையாட்டு & வேடிக்கை',
+      money: 'பணம்',
+      other: 'மற்றவை',
+    },
+    colour: 'நிறம்',
+    defaultColour: 'இயல்புநிலை',
+    searchPlaceholder: 'ஐகான்களைத் தேடு',
+    noMatches: 'பொருந்தும் ஐகான் இல்லை',
+    quick: {
+      food: 'உணவு',
+      travel: 'பயணம்',
+      home: 'வீடு',
+      friends: 'நண்பர்கள்',
+      shopping: 'ஷாப்பிங்',
+      event: 'நிகழ்வு',
+      car: 'கார்',
+      wallet: 'பணப்பை',
+      game: 'விளையாட்டு',
+      other: 'மற்றவை',
+    },
+    colours: {
+      lilac: 'இளஞ்சிவப்பு ஊதா',
+      pink: 'இளஞ்சிவப்பு',
+      peach: 'பீச்',
+      coral: 'பவளம்',
+      butter: 'வெண்ணெய் மஞ்சள்',
+      mint: 'புதினா',
+      sage: 'இளம் பச்சை',
+      sky: 'வான நீலம்',
+      indigo: 'கருநீலம்',
+      teal: 'நீலப்பச்சை',
+      berry: 'பெர்ரி',
+      slate: 'சாம்பல்',
+      iris: 'கருநீலம்',
+      blue: 'நீலம்',
+      aqua: 'நீலப்பச்சை',
+      green: 'பச்சை',
+      yellow: 'மஞ்சள்',
+      orange: 'ஆரஞ்சு',
+    },
   },
   groupPhoto: {
     paidHint:
@@ -12103,6 +13488,9 @@ const ta: UiStrings = {
     refusedOffline: 'இணைப்பு இல்லை. மீண்டும் ஆன்லைனுக்கு வரும்போது காப்பு எடுக்கப்படும்.',
     refusedNetwork:
       'Wi‑Fi-க்காகக் காத்திருக்கிறது. மொபைல் டேட்டாவைப் பயன்படுத்த அமைப்பை மாற்றுங்கள்.',
+    mobileDataTitle: 'நீங்கள் மொபைல் டேட்டாவில் உள்ளீர்கள்',
+    mobileDataBody: 'எப்படியும் காப்பு எடுக்கவா?',
+    mobileDataConfirm: 'எப்படியும் காப்பு எடு',
     refusedAuth: 'Google மீண்டும் அனுமதி கேட்கிறது. கணக்கை மீண்டும் இணையுங்கள்.',
     refusedNoBackup: 'இந்த Drive கணக்கில் இன்னும் காப்புப்பிரதி இல்லை.',
     refusedBusy: 'ஒரு காப்பு ஏற்கனவே இயங்குகிறது.',
@@ -12189,7 +13577,7 @@ const ta: UiStrings = {
     descriptionPlaceholder: 'இந்தக் குழு எதற்காக?',
     changeCover: 'குழுவின் அட்டை',
     chooseIcon: 'ஐகானைத் தேர்ந்தெடு',
-    chooseIconHint: 'வரையப்பட்ட அடையாளங்களில் ஒன்று',
+    chooseIconHint: 'ஒரு ஐகானையும் நிறத்தையும் தேர்ந்தெடு',
     usePhotoHint: 'இந்த ஃபோனிலிருந்து ஒரு படம்',
     photoIsPaid: 'புகைப்படங்கள் Pro-உடன் வரும்',
     removePhoto: 'புகைப்படத்தை நீக்கு',
@@ -12201,6 +13589,32 @@ const ta: UiStrings = {
     muteNotificationsBody:
       'இந்தக் குழுவைப் பற்றிய புஷ் அறிவிப்புகள் உங்களுக்கு வராது. பயன்பாட்டில் எல்லாம் தெரியும்; மற்றவர்களுக்குத் தெரியாது.',
     simplifyDebtsHint: 'தீர்க குறைந்தபட்ச பணம் செலுத்தல்கள்',
+    createdOn: 'உருவாக்கியது {date}',
+    changePill: 'மாற்று',
+    editGroup: 'குழுவைத் திருத்து',
+    editGroupHint: 'மாற்றங்கள் தானாகவே சேமிக்கப்படும்',
+    groupDetails: 'குழு விவரங்கள்',
+    simplifyDebtsSub: 'தீர்வு செய்யும்போது குறைந்தபட்ச கட்டணங்களைப் பரிந்துரைக்கும்',
+    muteSub: 'குழு அறிவிப்புகளை நிறுத்து',
+    addMembers: 'உறுப்பினர்களைச் சேர்',
+    membersTitle: 'உறுப்பினர்கள் ({n})',
+    inviteToGroup: 'குழுவுக்கு அழை',
+    inviteToGroupHint: 'இணைப்பு அல்லது QR பகிர்ந்தால் எளிதாகச் சேரலாம்',
+    groupActions: 'குழு செயல்கள்',
+    exitActions: 'காப்பகம், வெளியேறு அல்லது நீக்கு',
+    exitActionsMember: 'காப்பகம் அல்லது வெளியேறு',
+    exitActionsHint: 'மறை, வெளியேறு அல்லது நீக்கு',
+    archiveHintShort: 'உங்கள் பட்டியலில் இருந்து மறை, மீண்டும் கொண்டுவரலாம்',
+    deleteHintShort: 'அனைவருக்கும் நிரந்தரமாக நீக்கு',
+    adminTitle: 'நிர்வாகி',
+    openMember: 'உறுப்பினரைத் திற',
+    memberMenu: 'உறுப்பினர் விருப்பங்கள்',
+    coverSubtitle: 'உங்கள் குழு எப்படித் தெரிய வேண்டும் எனத் தேர்ந்தெடுக்கவும்',
+    coverTabIcon: 'ஐகான் & நிறம்',
+    coverTabPhoto: 'புகைப்படம்',
+    chooseIconStep: '1. ஐகானைத் தேர்ந்தெடுக்கவும்',
+    chooseColourStep: '2. நிறத்தைத் தேர்ந்தெடுக்கவும்',
+    seeAll: 'அனைத்தும்',
     membersHint: 'ஆட்களைச் சேர், பெயர் மாற்று, UPI ID அமை',
     bringThingsIn: 'கொண்டுவருதல்',
     importMessages: 'செய்திகளிலிருந்து இறக்குமதி',
@@ -12218,6 +13632,11 @@ const ta: UiStrings = {
       'இந்தக் குழுவில் உங்களுக்கு இன்னும் இருப்பு உள்ளது. இப்போது விலகினால் அது தொங்கிவிடும் — தீர்த்துவிட்டு விலகுங்கள்.',
     leaveQuestion: 'இந்தக் குழுவிலிருந்து விலகவா?',
     leaveBody: 'உங்கள் பழைய செலவுகள் குழு வரலாற்றில் இருக்கும்.',
+    settleFirstBalance: 'உங்கள் இருப்பு',
+    leaveAnyway: 'எப்படியும் விலகு',
+    settleFirstSettle: 'கணக்கைத் தீர்',
+    settleFirstBalanceLabel: 'உங்கள் இருப்பு {amount}. கணக்கு தீர்க்கும் திரையைத் திறக்கும்.',
+    settleFirstClose: 'மூடு',
     leave: 'விலகு',
     archiveQuestion: 'இந்தக் குழுவைக் காப்பகப்படுத்தவா?',
     archiveBody:
@@ -12253,8 +13672,8 @@ const ta: UiStrings = {
       '{name} உங்களுக்குப் பணம் கொடுத்ததாகப் பதிவு செய்தார். இது நிலுவைப் பணத்தை நீக்கும்; எந்த இருப்பும் மாறாது.',
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
-    groupBalances: 'குழு இருப்புகள்',
-    settleUpAll: 'அனைத்தையும் தீர்',
+    paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
+    everyonesBalance: 'அனைவரின் இருப்பு',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -12544,6 +13963,10 @@ const ta: UiStrings = {
     youBorrowed: 'நீங்கள் வாங்கியது',
     noRateShort: 'விகிதம் இல்லை',
     notInvolved: 'உங்களுக்கு தொடர்பில்லை',
+    pillBorrowed: 'வாங்கியது',
+    pillLent: 'கொடுத்தது',
+    settledShort: 'சரி',
+    notInSplit: 'இதில் இல்லை',
     notInvolvedTitle: 'இந்த பங்கீட்டில் நீங்கள் இல்லை',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -12578,6 +14001,16 @@ const ta: UiStrings = {
     note: 'குறிப்பு',
     createdByName: '{name} உருவாக்கியது',
     editedByName: '{name} திருத்தியது',
+    fresh: {
+      new: 'புதியது',
+      edited: 'திருத்தியது',
+      newA11y: 'புதியது',
+      editedA11y: 'திருத்தப்பட்டது',
+      newBy: 'புதியது · {name}',
+      editedBy: 'திருத்தம் · {name}',
+      count: '{n} புதியவை',
+      jump: 'முதல் புதிய செலவுக்குச் செல்',
+    },
     noChanges: 'மீண்டும் சேமிக்கப்பட்டது, எதுவும் மாறவில்லை',
     audit: {
       amount: 'தொகை',
@@ -12603,6 +14036,7 @@ const ta: UiStrings = {
       subEvent: 'நிகழ்வின் பகுதி',
       splitDetails: 'பிரிப்பு விவரங்கள் புதுப்பிக்கப்பட்டன',
       payee: 'பணம் பெற்றவர்',
+      reimbursable: 'பணி செலவு',
     },
     payee: {
       label: 'பணம் பெற்றவர்',
@@ -12612,6 +14046,12 @@ const ta: UiStrings = {
       clear: 'அழி',
       used: 'முன்பு பயன்படுத்தியவை',
       to: '{payee}-க்கு',
+    },
+    reimbursable: {
+      row: 'பணி செலவு (திரும்பப் பெற)',
+      chip: 'பணி',
+      yes: 'ஆம்',
+      no: 'இல்லை',
     },
   },
   misc: {
@@ -12649,6 +14089,8 @@ const ta: UiStrings = {
     settleConfirmPaidYes: 'ஆம், செலுத்தினேன்',
     settleRemindA11y: '{amount} பற்றி {name}க்கு நினைவூட்டு',
     settlePayA11y: '{name}க்கு {amount} செலுத்து',
+    settleRecord: 'பதிவு செய்',
+    settleRecordA11y: '{name} {amount} செலுத்தியதைப் பதிவு செய்',
     settleMarkPaidA11y: '{name}க்கு {amount} செலுத்தியதாகக் குறி',
     settleReceivedHint: 'கிடைத்ததாகக் குறிக்கும்',
     settleSeeAll: 'அனைத்தும் காண்க',
@@ -13462,11 +14904,17 @@ const ta: UiStrings = {
     chooseDifferentFile: 'வேறு கோப்பைத் தேர்வு செய்',
     whichGroup: 'எந்தக் குழு',
     groupNumber: 'குழு {n}',
-    whoIsWho: 'யார் யார்',
-    whoIsWhoNote:
-      'கோப்பில் பெயர்கள் உள்ளன; இந்தக் குழுவில் உறுப்பினர்கள் உள்ளனர். ஒவ்வொரு பெயருக்கும் ஒருவரைக் குறிக்கும் வரை எதுவும் இறக்குமதி ஆகாது.',
-    tapANameNote:
-      'ஒரு பெயரைத் தட்டி அவர்கள் யார் என்று சொல்லுங்கள். உங்களுக்காக எதுவும் பொருத்தப்படுவதில்லை.',
+    isThisYou: 'இது நீங்களா?',
+    whichOneIsYou: 'இதில் நீங்கள் யார்?',
+    tapYourName: 'பட்டியலில் உங்கள் பெயரைத் தட்டுங்கள்.',
+    weThinkYou: 'இது நீங்கள்தான் என நினைக்கிறோம். மாற்றத் தட்டுங்கள்.',
+    thisIsMe: 'இது நான்',
+    thisIsMeFor: '{name} என்பதை நான் என்று குறி',
+    personIsYou: '{name} நீங்கள்.',
+    notInFile: 'நான் இந்தக் கோப்பில் இல்லை',
+    pickYouFirst:
+      'முதலில் நீங்கள் யார் என்று தேர்ந்தெடுங்கள், அல்லது "நான் இந்தக் கோப்பில் இல்லை" என்பதைத் தட்டுங்கள்.',
+    tapTagToLink: 'குழுவில் ஏற்கனவே உள்ளவரை இணைக்க ஒரு குறியைத் தட்டுங்கள்.',
     personIsMapped: '{name} இங்கே {who}. மாற்றத் தட்டுங்கள்.',
     addAsNew: 'புதியவராகச் சேர்',
     newPerson: 'புதிய நபர்',
@@ -13515,7 +14963,6 @@ const ta: UiStrings = {
       one: '{n} நபர் யார் என்று தேர்ந்தெடுக்கவும்',
       other: '{n} நபர்கள் யார் என்று தேர்ந்தெடுக்கவும்',
     },
-    tapYourNameFirst: 'முதலில் உங்கள் பெயரைத் தட்டுங்கள்.',
     imported: 'இறக்குமதி ஆனது',
     openTheGroup: 'குழுவைத் திற',
     importedCount: {
@@ -13595,6 +15042,15 @@ const ta: UiStrings = {
     breakfast: 'காலை உணவு',
     endOfDay: 'நாள் முடிவு',
     clearDates: 'தேதிகளை அழி',
+    datesSheetSubtitle: 'இந்தக் குழுவின் தொடக்க, முடிவு தேதிகளைத் தேர்ந்தெடுக்கவும்',
+    startDate: 'தொடக்க தேதி',
+    endDate: 'முடிவு தேதி',
+    daysSelected: {
+      one: '{n} நாள் தேர்ந்தெடுக்கப்பட்டது',
+      other: '{n} நாட்கள் தேர்ந்தெடுக்கப்பட்டன',
+    },
+    noDatesSelected: 'தேதிகள் தேர்ந்தெடுக்கப்படவில்லை',
+    saveDates: 'தேதிகளைச் சேமி',
     nobodyPickedYet: 'இன்னும் யாரையும் தேர்ந்தெடுக்கவில்லை',
     personCount: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     alreadyAddedName: '{name}, ஏற்கனவே சேர்க்கப்பட்டது',
@@ -13834,6 +15290,51 @@ const ta: UiStrings = {
     theyHaveHistory:
       'இந்தக் குழுவில் அவர் பெயரிலேயே ஏற்கனவே செலவுகள் உள்ளன, எனவே இரண்டையும் இணைக்க முடியாது.',
   },
+  link: {
+    row: 'Waves பயனருடன் இணைக்கவும்',
+    rowHint: '{name} உண்மையில் யார் என்று சொல்லுங்கள்.',
+    pickGroupBody:
+      '{name} {n} குழுக்களில் இடம்பிடிப்பாளராக உள்ளார். ஒவ்வொன்றும் தனித்தனியாக இணைக்கப்படும்: ஒன்றைத் தேர்ந்தெடுத்து, மற்றவற்றுக்குப் பிறகு திரும்பி வாருங்கள்.',
+    waiting: '{who} ஏற்கும் வரை காத்திருக்கிறது',
+    waitingHint: 'அவர் சம்மதிக்கும் வரை எதுவும் மாறாது.',
+    cancelAsk: 'கேட்டதை ரத்து செய்',
+    sheetTitle: '{name} யார்?',
+    sheetHint: 'நபரைத் தேர்வு செய்யுங்கள், அல்லது தொலைபேசி எண் அல்லது மின்னஞ்சல் மூலம் தேடுங்கள்.',
+    inThisGroup: 'ஏற்கனவே இந்தக் குழுவில்',
+    peopleYouKnow: 'உங்களுக்குத் தெரிந்தவர்கள்',
+    searchPlaceholder: 'பெயர், தொலைபேசி எண் அல்லது மின்னஞ்சல்',
+    noMatches: 'அந்தப் பெயரில் யாரும் இல்லை. தொலைபேசி எண் அல்லது மின்னஞ்சலை முயலுங்கள்.',
+    notFound:
+      'அந்த எண் அல்லது மின்னஞ்சலுடன் Waves இல் யாரும் இல்லை, அல்லது அவர் கண்டறியப்பட விரும்பவில்லை.',
+    searching: 'தேடுகிறது…',
+    lookUp: 'தேடு',
+    mergeConfirmTitle: '{name} ஐ {who} உடன் இணைக்கவா?',
+    mergeConfirmBody:
+      '{name} இன் {expenses} மற்றும் {balance} இருப்பு {who} க்கு மாறும். இதைத் திரும்பப் பெற முடியாது.',
+    mergeExpenses: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    mergeAction: 'இணை',
+    mergeDone: 'முடிந்தது. {name} பெயரில் உள்ளவை அனைத்தும் இப்போது {who} உடையவை.',
+    askConfirmTitle: '{who} ஐக் கேட்கவா?',
+    askConfirmBody:
+      'அவருக்கு ஒரு செய்தி போகும்: “{group} இல் நீங்கள்தான் {name} என்கிறார் {me}”. அவர் ஏற்கும் வரை எதுவும் மாறாது.',
+    askAction: 'அவரைக் கேள்',
+    askSent: 'கேட்கப்பட்டது. {who} பதிலளித்ததும் உங்களுக்குத் தெரியும்.',
+    failed: 'இப்போது செய்ய முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    guest: 'அவர் Waves ஐ விருந்தினராகப் பயன்படுத்துகிறார். முதலில் பதிவு செய்யச் சொல்லுங்கள்.',
+    thatIsYou: 'அது நீங்கள்தான். “இது நான்தான்” ஐப் பயன்படுத்துங்கள்.',
+    rateLimited: 'இன்று நிறைய பேரைக் கேட்டுவிட்டீர்கள். நாளை முயலுங்கள்.',
+    notAllowed: 'இந்தக் குழுவின் நிர்வாகி மட்டுமே இதைச் செய்ய முடியும்.',
+    cardTitle: 'இது நீங்களா?',
+    cardBody: '{group} இல் நீங்கள்தான் {name} என்கிறார் {who}.',
+    cardHint: 'ஏற்றுக்கொண்டால் அந்தப் பெயரில் பதிவானவை அனைத்தும் உங்களுடையதாகும்.',
+    accept: 'ஆம், அது நான்தான்',
+    notMe: 'நான் இல்லை',
+    accepted: 'முடிந்தது. நீங்கள் இப்போது {group} இல் இருக்கிறீர்கள்.',
+    declined: 'சொல்லிவிட்டோம்.',
+    needsAccount: 'முதலில் பதிவு செய்யுங்கள் — விருந்தினர் ஒரு குழுவில் இடம் பெற முடியாது.',
+    placeTaken: 'அந்த இடம் இப்போது வேறொருவருடையது.',
+    empty: 'உங்களுக்காக எதுவும் காத்திருக்கவில்லை.',
+  },
   blocked: {
     row: 'தடுக்கப்பட்டவர்கள்',
     rowHint: 'நீங்கள் மறைத்த பெயர்களும் முகங்களும்',
@@ -13854,7 +15355,7 @@ const ta: UiStrings = {
     rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
     title: 'நெட்வொர்க் செயல்பாடு',
     explainer:
-      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த அழைப்புகள். பின்னணி ஒத்திசைவு எண்ணிக்கையாக மட்டும் காட்டப்படும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
     empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
     emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
     today: 'இன்று',
@@ -13866,7 +15367,34 @@ const ta: UiStrings = {
     clearConfirm: 'அழி',
     statusFailed: 'தோல்வி',
     statusOffline: 'ஆஃப்லைன்',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'சரி',
+    syncSummary: {
+      one: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+      other: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+    },
+    syncLast: 'கடைசி ஒத்திசைவு {time}',
+    calls: {
+      exchangeRate: 'நாணய மாற்று விகிதம்',
+      statement: 'அறிக்கையைப் படித்தல்',
+      screenshot: 'ஸ்கிரீன்ஷாட்டைப் படித்தல்',
+      receipt: 'ரசீதைப் படித்தல்',
+      voice: 'குரல்',
+      upload: 'கோப்பைப் பதிவேற்றுதல்',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பயன்பாட்டு நிகழ்வு',
+      purchases: 'வாங்குதல்கள்',
+      crashReport: 'பிழை அறிக்கை',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      mapTiles: 'வரைபட ஓடுகள்',
+      google: 'Google',
+      appStore: 'புதிய பதிப்பு சோதனை',
+      accountDelete: 'கணக்கை நீக்குதல்',
+      exportData: 'என் தரவை ஏற்றுமதி',
+      invite: 'அழைப்பு',
+      connectedApps: 'இணைக்கப்பட்ட ஆப்கள்',
+      serverRequest: 'Waves சர்வர்',
+    },
     purposes: {
       sync: 'ஒத்திசைவு',
       signIn: 'உள்நுழைவு',
@@ -13935,8 +15463,6 @@ const ta: UiStrings = {
     row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
     title: 'தனியுரிமை',
-    intro:
-      'Waves வேலை செய்ய எவ்வளவு தேவையோ அவ்வளவு மட்டுமே உங்களைப் பற்றி வைத்திருக்கிறது. அது என்ன என்பது இங்கே.',
     storeTitle: 'என்ன சேமிக்கப்படுகிறது',
     storeBody:
       'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
@@ -13961,6 +15487,7 @@ const ta: UiStrings = {
     blockedNone: 'யாரும் இல்லை',
     sessionReplayHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்',
     policySection: 'உங்கள் தரவை எப்படிப் பாதுகாக்கிறோம்',
+    dataSection: 'உங்கள் தரவு',
     supportRow: 'தனியுரிமைக் கேள்விகள்',
     supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
@@ -14094,6 +15621,24 @@ const ta: UiStrings = {
     typeOther: 'மற்றவை',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
+    tagSheetSubtitle: 'பின்னர் எளிதாகக் கண்டறிய ஒரு குறிச்சொல்லைச் சேர்க்கவும்.',
+    tagPopular: 'பிரபல குறிச்சொற்கள்',
+    saveTag: 'குறிச்சொல்லைச் சேமி',
+    tagChips: {
+      weekend: 'வார இறுதி',
+      roadTrip: 'சாலைப் பயணம்',
+      holiday: 'விடுமுறை',
+      officeOffsite: 'அலுவலக சுற்றுலா',
+      birthday: 'பிறந்தநாள்',
+      wedding: 'திருமணம்',
+      family: 'குடும்பம்',
+      friends: 'நண்பர்கள்',
+      other: 'மற்றவை',
+    },
+    groupTypeTitle: 'குழு வகை',
+    datesRow: 'தேதிகள்',
+    groupTypeInfo:
+      'வகை குழுவின் பெயர்ச்சொல், இயல்பு அட்டை, பயணக் கருவிகளை அமைக்கும். ஏற்கெனவே பதிவானவை மாறாது.',
     tagSuggestions: {
       trip: ['வார இறுதி', 'சாலைப் பயணம்', 'விடுமுறை'],
       home: ['வாடகை', 'அறை நண்பர்கள்', 'கட்டணங்கள்'],
@@ -14187,10 +15732,22 @@ const ta: UiStrings = {
     settlesIn: 'கணக்கு இந்த நாணயத்தில்',
     settlesInHint: 'இந்தக் குழுவின் எல்லா இருப்புகளும் இந்த நாணயத்தில் கணக்கிடப்படும்.',
     settlesInLocked: 'பூட்டப்பட்டது — ஏற்கெனவே பதிவுகள் உள்ளன.',
+    convertAllTitle: 'எல்லாச் செலவுகளையும் {currency}-இல் கணக்கிடு',
+    convertShort: 'வேறு நாணயங்களில் செலுத்திய பில்கள் {currency}-இல் கணக்கிடப்படும்',
+    otherCurrencies: 'பிற நாணயங்கள்',
+    groupCurrencies: 'இந்தக் குழுவின் நாணயங்கள்',
+    settleInShort: 'வெளிநாட்டு பில்களை {currency}-இல் கணக்கிடு',
+    balancesIn: '{currency}-இல் இருப்புகள்',
+    groupCurrencyLine: '{name} · குழு நாணயம்',
+    currencyOnly: '{currency} மட்டும்',
     tripRates: 'பயண மாற்று விகிதங்கள்',
     tripRatesBody:
       'நீங்கள் செலவழிக்கும் ஒவ்வொரு நாணயத்துக்கும் ஒரு விகிதத்தை ஒரே முறை குறியுங்கள் — ஒவ்வொரு பில்லுக்கும் மீண்டும் தட்டச்சு செய்ய வேண்டாம்.',
     addRate: 'ஒரு நாணயத்தைச் சேர்க்க',
+    otherCurrenciesSubtitleTrip: 'இந்தப் பயணத்தில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    otherCurrenciesSubtitleGroup: 'இந்தக் குழுவில் பயன்படுத்தும் நாணயங்களைச் சேர்க்கவும்',
+    ratesInfoFetched: 'நாணயத்தைச் சேர்க்கும்போது விகிதம் பெறப்படும்.',
+    ratesInfoKept: 'ஏற்கனவே சேமித்த பில்கள் சேர்க்கப்பட்ட விகிதத்தையே வைத்திருக்கும்.',
     editRate: 'விகிதத்தைத் திருத்து',
     newRate: 'புதிய விகிதம்',
     removeRate: 'இந்த விகிதத்தை நீக்கு',
@@ -14247,6 +15804,25 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalReceipt: {
+    title: 'ரசீது',
+    add: 'சேர்',
+    attached: 'இணைக்கப்பட்டது',
+    saving: 'சேமிக்கிறது…',
+    addTitle: 'ரசீதைச் சேர்',
+    camera: 'புகைப்படம் எடு',
+    library: 'கேலரியில் இருந்து தேர்ந்தெடு',
+    remove: 'நீக்கு',
+    removeTitle: 'இந்த ரசீதை நீக்கவா?',
+    removeBody: 'புகைப்படம் Waves-இல் இருந்து அழிக்கப்படும். பதிவு அப்படியே இருக்கும்.',
+    replace: 'புகைப்படத்தை மாற்று',
+    private: 'இதை உங்களால் மட்டுமே பார்க்க முடியும்',
+    unavailable: 'புகைப்படத்தை ஏற்ற முடியவில்லை',
+    paidOnly: 'ரசீதுகளை Waves-இல் சேமிக்க Plus தேவை.',
+    storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
+    waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
+    couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
+  },
   personal: {
     introCards: [
       {
@@ -14408,6 +15984,25 @@ const ta: UiStrings = {
     principal: 'தொகை',
     outstanding: 'நிலுவைத் தொகை',
     recordPayment: 'கட்டணத்தைப் பதிவு செய்',
+    shareWith: '{name} உடன் பகிர்',
+    shareTitle: 'இந்தக் கடனைப் பகிர்',
+    shareBody:
+      'உங்கள் இருவருக்கும் இடையிலான கணக்காக {name} இதைப் பார்ப்பார்; உங்களுடன் தீர்த்துக்கொள்ளலாம். அவர் இன்னும் Waves-இல் இல்லையெனில், சேர்ந்ததும் தெரியும்.',
+    shareAction: 'பகிர்',
+    shareWho: 'யாருடன்?',
+    pickContact: 'தொடர்புகளிலிருந்து தேர்வு',
+    visibleTo: '{name}-க்குத் தெரியும்',
+    settleUp: 'கணக்கைத் தீர்',
+    stopSharing: 'பகிர்வை நிறுத்து',
+    stopSharingBody:
+      'அவர் பக்கத்திலிருந்து இந்தக் கடன் நீக்கப்படும். உங்கள் தனிப்பட்ட கடன் இருக்கும்.',
+    cannotStopSharing:
+      'இதில் ஒரு பகுதி ஏற்கெனவே திருப்பிச் செலுத்தப்பட்டதால் பகிர்வை நிறுத்த முடியாது. மீதியைத் தீர்க்கவும்.',
+    shareFailed: 'இந்தக் கடனைப் பகிர முடியவில்லை. மீண்டும் முயலவும்.',
+    shareToggle: 'இதை {name}-க்கும் காட்டு',
+    deleteSharedBody: 'அவர் பக்கத்திலிருந்தும் இந்தக் கடன் நீக்கப்படும்.',
+    deleteSharedKept:
+      'இதில் ஒரு பகுதி ஏற்கெனவே செலுத்தப்பட்டதால், கடன் {name} உடனான உங்கள் இருப்பில் இருக்கும்.',
     closeLoan: 'மூடு',
     reopenLoan: 'மீண்டும் திற',
     paidOff: 'அடைக்கப்பட்டது',
@@ -14682,6 +16277,17 @@ const hi: UiStrings = {
   totalIn: '{currency} में कुल',
   nothingIn: '{currency} में कुछ नहीं',
   tapMonthForDays: 'दिन देखने के लिए महीने पर टैप करें।',
+  spendTotal: 'कुल खर्च',
+  spendInCurrency: '{currency} में',
+  spendVsLast: 'पिछले महीने की तुलना में',
+  spendDonutTotal: 'कुल',
+  spendTopCategories: 'शीर्ष श्रेणियाँ',
+  spendSeeAll: 'सभी देखें',
+  spendShowLess: 'कम दिखाएँ',
+  spendLastMonths: 'पिछले {n} महीने',
+  spendSeeDays: '{month} के दिन देखें',
+  spendPickMonth: 'महीना चुनें',
+  spendPickCurrency: 'मुद्रा चुनें',
   nothingToChart: 'कुछ खर्च जोड़ें, यह अपने आप भर जाएगा।',
   categories: {
     food: 'खाना-पीना',
@@ -14950,6 +16556,11 @@ const hi: UiStrings = {
   upgradeTrial: { one: 'Pro का {n} दिन बाकी', other: 'Pro के {n} दिन बाकी' },
   common: {
     appName: 'Waves',
+    groupCreated: 'ग्रुप बन गया',
+    groupCreatedNamed: '“{name}” बन गया',
+    expenseAdded: '{what} जोड़ा गया',
+    expenseUpdated: 'खर्च अपडेट हुआ',
+    savedOffline: 'सहेजा गया — ऑनलाइन होने पर सिंक होगा',
     back: 'वापस',
     skip: 'छोड़ें',
     loading: 'लोड हो रहा है…',
@@ -15257,6 +16868,8 @@ const hi: UiStrings = {
     title: 'जुड़े हुए ऐप',
     row: 'जुड़े हुए ऐप',
     rowHint: 'वे AI असिस्टेंट जो आपके Waves तक पहुँच सकते हैं',
+    rowCount: { one: '{n} जुड़ा है', other: '{n} जुड़े हैं' },
+    rowNone: 'कोई नहीं जुड़ा',
     intro:
       'वे AI असिस्टेंट जिन्हें आपने अपना Waves इस्तेमाल करने की अनुमति दी है। किसी को डिस्कनेक्ट करते ही उसकी पहुँच तुरंत बंद हो जाती है।',
     connectedOn: 'जोड़ा गया: {when}',
@@ -15306,9 +16919,7 @@ const hi: UiStrings = {
   account: {
     facePaying: 'भुगतान',
     faceSettings: 'सेटिंग्स',
-    settled: 'निपटा',
     nothingSettledYet: 'अभी कुछ नहीं निपटा',
-    otherCurrencies: { one: 'और {n} अन्य मुद्रा', other: 'और {n} अन्य मुद्राएँ' },
     saved: 'सेव हो गया',
     displayName: 'दिखने वाला नाम',
     displayNameHint: 'जिन ग्रुप में आप हैं, उनमें सब यही देखते हैं।',
@@ -15412,6 +17023,256 @@ const hi: UiStrings = {
     usedOfLimit: '{used} / {limit} टोकन इस्तेमाल हुए',
     resetUsage: 'रीसेट',
   },
+  assistant: {
+    introBody:
+      'खर्च पूरा दर्ज हो, इसके लिए मैं एक-दो छोटे सवाल पूछूँगा। कोई भी सवाल छोड़ सकते हैं; “यह दोबारा न पूछें” उसे हमेशा के लिए बंद कर देता है।',
+    introAction: 'समझ गया',
+    teaserLine: 'Pro पूछता: {question}',
+    teaserPlace: 'यह कहाँ हुआ था?',
+    teaserReceipt: 'क्या रसीद है?',
+    teaserPayment: 'भुगतान कैसे किया?',
+    teaserCta: 'Pro देखें',
+    teaserDismiss: 'हटाएँ',
+    composerPlaceholder: 'पूछें या जोड़ें… जैसे अनु के साथ लंच 800',
+    composerLabel: 'कमांड या सवाल लिखें',
+    composerSend: 'भेजें',
+    composerTypeInstead: 'लिखकर बताएँ',
+    composerUseMic: 'माइक इस्तेमाल करें',
+    proSheetTitle: 'चैट से सुधार Pro में है',
+    proSheetBody: 'रकम, तारीख या जगह लिखकर बदलें, और एक शब्द से वापस करें। यह Pro के साथ मिलता है।',
+    proSheetCta: 'Pro देखें',
+    proSheetLater: 'अभी नहीं',
+    planRowTitle: 'असिस्टेंट के फ़ॉलो-अप',
+    planRowPill: 'AI',
+    personalScope: 'निजी में जोड़ रहे हैं',
+    openPersonalAssistant: 'असिस्टेंट से पूछें',
+    completeRow: 'यह खर्च पूरा करें',
+    completeRowHint: 'जगह, भुगतान का तरीका या रसीद जोड़ें',
+    completeSheetTitle: 'यह खर्च पूरा करें',
+    tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
+  },
+  groupRecurring: {
+    title: 'दोहराए जाने वाले',
+    sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
+    empty: 'अभी कुछ भी दोहराया नहीं जा रहा',
+    emptyHint: "खर्च जोड़ें और 'दोहराएँ' चालू करें।",
+    repeat: 'दोहराएँ',
+    never: 'दोहराया नहीं जाएगा',
+    startsNext: '{date} से शुरू',
+    ends: 'समाप्त',
+    endsNever: 'कभी नहीं',
+    endsOn: '{date} को समाप्त',
+    pickEnd: 'समाप्ति तिथि चुनें',
+    next: 'अगला {date}',
+    lastAdded: 'पिछली बार {date} को जुड़ा',
+    paused: 'रुका हुआ',
+    ended: 'समाप्त',
+    pause: 'रोकें',
+    resume: 'फिर शुरू करें',
+    stop: 'दोहराना बंद करें',
+    stopTitle: '"{name}" बंद करें?',
+    stopBody: 'आगे कुछ नहीं जुड़ेगा। जो खर्च जुड़ चुके हैं वे रहेंगे। इसे वापस नहीं किया जा सकता।',
+    edit: 'बदलें',
+    editTitle: 'दोहराया जाने वाला खर्च बदलें',
+    editHint: 'बदलाव आगे के खर्चों पर लागू होंगे। जुड़ चुके खर्च जैसे हैं वैसे रहेंगे।',
+    save: 'सहेजें',
+    amountLabel: 'राशि',
+    addedToast: '{freq} दोहराएगा, {date} से',
+    couldNotSave: 'अपडेट नहीं हो सका। फिर कोशिश करें।',
+    rowCount: 'दोहराए जाने वाले ({n})',
+    rowNone: 'दोहराए जाने वाले',
+    voiceDone: 'हर महीने दोहराया जाएगा',
+    offlineNote: 'सहेज लिया। ऑनलाइन होते ही शुरू होगा।',
+    nextOn: 'अगली तारीख',
+    notesLabel: 'टिप्पणी',
+    severalPayers: 'कई लोगों ने भुगतान किया। उनके हिस्से राशि के साथ बदलेंगे।',
+    splitKept: 'इस बँटवारे की सहेजी राशियाँ वैसी ही रहेंगी। बदलने के लिए इसे बंद करके नया बनाएँ।',
+    problemName: 'इसे एक नाम दें।',
+    problemAmount: 'राशि दर्ज करें।',
+    problemPeople: 'चुनें कि किनके साथ बँटेगा।',
+    problemPayers: 'भुगतान करने वालों का जोड़ राशि के बराबर नहीं है।',
+    problemSplit: 'बँटवारे का जोड़ राशि के बराबर नहीं है।',
+    problemDates: 'तारीखें जाँचें: अंत शुरुआत से पहले नहीं हो सकता।',
+    currencyNote: 'मुद्रा {currency} ही रहेगी।',
+  },
+  inline: {
+    close: 'बंद करें',
+    groupLabel: 'ग्रुप',
+    peopleLabel: 'लोग',
+    you: 'आप',
+    needSomeone: 'कम से कम एक व्यक्ति चुनें।',
+    peopleCount: '{count} लोग बाँट रहे हैं',
+    retry: 'फिर कोशिश करें',
+    splitTitle: '{amount} बाँटें',
+    splitConfirm: 'बाँटें',
+    tripTitle: 'ट्रिप में ले जाएँ',
+    tripConfirm: 'यहाँ ले जाएँ',
+    attendanceTitle: 'कौन-कौन था?',
+    attendanceSave: 'सहेजें',
+    attendanceDone: 'कौन था, अपडेट हो गया ✓',
+    movedDone: '{group} में ले गए ✓',
+    splitDone: '{names} के साथ बाँटा ✓',
+    itemizeTitle: 'आइटम के हिसाब से बाँटें',
+    itemizeHint: 'हर आइटम पर चुनें कि किसने लिया।',
+    itemChipA11y: '{name} ने {item} लिया',
+    everyone: 'सब',
+    everyoneA11y: '{item} सबने मिलकर लिया',
+    itemizeCharges: 'टैक्स और अतिरिक्त शुल्क {amount}, हर किसी के आइटम के अनुपात में बँटेंगे।',
+    itemizeLeft: '{count} आइटम बाकी हैं',
+    itemizeSave: 'बँटवारा सहेजें',
+    itemizeDone: 'आइटम के हिसाब से बँट गया ✓',
+    receiptThumb: 'रसीद की फ़ोटो',
+    attaching: 'जोड़ रहे हैं…',
+    attached: 'जुड़ गई ✓',
+    attachFailed: 'रसीद नहीं जुड़ सकी।',
+    removeReceipt: 'हटाएँ',
+    removeFailed: 'रसीद हटाई नहीं जा सकी।',
+    receiptDone: 'रसीद जुड़ गई ✓',
+    loanSharing: '{name} के साथ साझा कर रहे हैं…',
+    loanShared: '{name} के साथ साझा हो गया ✓ वे इसे देख और चुका सकते हैं।',
+    loanShareFailed: 'उधार सहेज लिया, पर {name} के साथ साझा नहीं हो सका।',
+    settleTitle: 'हिसाब चुकाएँ',
+    settleAllDone: 'सब हिसाब बराबर ✓',
+    settleRecorded: 'भुगतान दर्ज हो गया ✓',
+    settleFailed: 'भुगतान दर्ज नहीं हो सका।',
+    settleOthers: 'दूसरे लोगों के बीच {count} और',
+    owesYou: '{name} पर आपके {amount} बकाया हैं',
+    youOwe: 'आप पर {name} के {amount} बकाया हैं',
+    recordPayment: 'भुगतान दर्ज करें',
+    recordA11y: 'भुगतान दर्ज करें, {name}, {amount}',
+    showAll: 'सब दिखाएँ ({count})',
+    showLess: 'कम दिखाएँ',
+    noMatches: 'दिखाने के लिए कुछ नहीं।',
+  },
+  followUps: {
+    added: '{amount} {where} में जोड़ा ✓',
+    wherePersonal: 'निजी',
+    skip: 'छोड़ें',
+    dontAsk: 'यह दोबारा न पूछें',
+    done: 'हो गया',
+    yes: 'हाँ',
+    no: 'नहीं',
+    working: 'अपडेट हो रहा है…',
+    placeAsk: 'यह कहाँ था?',
+    placeElse: 'कहीं और',
+    receiptAsk: 'रसीद है? मैं इसे खर्च के साथ रख लूँगा।',
+    receiptScan: 'स्कैन करें',
+    receiptPick: 'फ़ोटो चुनें',
+    splitByItem: 'आइटम के हिसाब से बाँटें',
+    splitAsk: 'किसी के साथ बाँटना है? आप आमतौर पर {category} {name} के साथ बाँटते हैं।',
+    splitSomeone: 'कोई और',
+    paymentAsk: 'भुगतान कैसे किया?',
+    payCash: 'नकद',
+    payUpi: 'UPI',
+    payCard: 'कार्ड',
+    payCredit: 'क्रेडिट कार्ड',
+    payDebit: 'डेबिट कार्ड',
+    tripAsk: 'क्या यह {trip} के लिए था?',
+    tripMove: '{trip} में ले जाएँ',
+    tripNo: 'नहीं, निजी',
+    attendanceAsk: 'क्या सब लोग थे?',
+    attendanceEveryone: 'सब लोग',
+    attendancePick: 'लोग चुनें',
+    payerAsk: 'क्या {name} ने इसका भुगतान किया?',
+    payerYes: '{name} ने दिया',
+    payerNo: 'नहीं, मैंने दिया',
+    recurringAsk: 'यह हर महीने का लगता है — क्या इसे हर महीने दोहराएँ?',
+    recurringYes: 'हर महीने दोहराएँ',
+    duplicateAsk: '{name} ने पहले ही {amount} “{description}” जोड़ा है — क्या यह वही बिल है?',
+    duplicateSame: 'वही है, मेरा हटाएँ',
+    duplicateDifferent: 'अलग है',
+    currencyAsk: 'क्या यह {currency} में था?',
+    currencyKeep: '{currency} ही रखें',
+    categoryAsk: 'यह किस तरह का खर्च था?',
+    dateAsk: 'क्या यह कल का था?',
+    dateYes: 'हाँ, कल का',
+    dateNo: 'नहीं, आज का',
+    lendAsk: 'क्या {name} आपको पैसे लौटाएगा?',
+    lendYes: 'हाँ, {name} पर बकाया है',
+    lendNo: 'नहीं, यह तोहफ़ा था',
+    lendShare: 'हाँ, और {name} को भी दिखाएँ',
+    wrapupAsk: '{trip} खत्म लगता है। अभी हिसाब चुकाएँ?',
+    wrapupYes: 'हिसाब चुकाएँ',
+    wrapupNo: 'अभी नहीं',
+    workAsk: 'क्या इसे ऑफ़िस से क्लेम करना है?',
+    workYes: 'हाँ, टैग करें',
+    saved: 'सहेजा गया ✓',
+    savedWith: '{items} के साथ सहेजा गया',
+    itemPlace: 'जगह',
+    itemPayment: 'भुगतान का तरीका',
+    itemCategory: 'श्रेणी',
+    itemDate: 'तारीख़',
+    itemPayer: 'भुगतानकर्ता',
+    itemCurrency: 'मुद्रा',
+    itemRecurring: 'मासिक दोहराव',
+    itemLend: 'उधार',
+    itemWork: 'ऑफ़िस टैग',
+    removedDuplicate: 'डुप्लिकेट हटा दिया',
+    handedOff: 'आपके लिए खोल दिया',
+    gotIt: 'ठीक है',
+    couldNotUse: 'मैं इसे समझ नहीं पाया',
+    listening: 'सुन रहा है…',
+    stopListening: 'बोल लिया',
+    transcribing: 'समझ रहा है…',
+    micDenied: 'माइक्रोफ़ोन बंद है। जवाब टाइप करें।',
+    noSpeech: 'सुनाई नहीं दिया। माइक दबाकर फिर कोशिश करें।',
+    voiceFailed: 'सुन नहीं पाया। माइक दबाकर फिर कोशिश करें।',
+    turnsUsed: 'इस खर्च के सवाल पूरे हो गए। कोई विकल्प चुनें।',
+    couldNotSave: 'सहेज नहीं पाया। फिर कोशिश करें?',
+    reimbursableRow: 'ऑफ़िस का खर्च (क्लेम करना है)',
+    reimbursableTag: 'ऑफ़िस',
+    settingsRow: 'फ़ॉलो-अप सवाल',
+    settingsHint: 'असिस्टेंट खर्च जोड़ने के बाद उसके बारे में एक छोटा सवाल पूछ सकता है',
+    resetRow: 'बंद किए सवाल रीसेट करें',
+    resetHint: 'हर तरह के फ़ॉलो-अप फिर से पूछे जाएँ',
+    resetDone: 'फ़ॉलो-अप सवाल रीसेट हो गए',
+    typingOffline: 'टाइप करने के लिए कनेक्शन चाहिए',
+  },
+  voiceScreen: {
+    headline: 'बस सहज रूप से बोलिए',
+    subline: 'मैं समझकर आपका खर्च व्यवस्थित कर दूँगा।',
+    statusReady: 'टैप करें और बोलें',
+    statusStarting: 'माइक तैयार हो रहा है…',
+    statusListening: 'सुन रहा हूँ…',
+    statusProcessing: 'आपका खर्च समझ रहा हूँ…',
+    statusNoSpeech: 'सुनाई नहीं दिया',
+    statusNoAmount: 'सुना, पर कोई रकम नहीं मिली',
+    statusPermission: 'माइक्रोफ़ोन की अनुमति चाहिए',
+    statusError: 'कुछ गड़बड़ हो गई',
+    statusExpenseReady: 'खर्च तैयार है',
+    statusCheck: 'एक बात जाँच लें',
+    statusSaving: 'जोड़ रहा हूँ…',
+    statusSaved: 'जोड़ दिया',
+    micStart: 'सुनना शुरू करें',
+    micStop: 'सुनना बंद करें',
+    micRetry: 'फिर से कोशिश करें',
+    micBusy: 'काम चल रहा है',
+    hearing: 'सुन रहा हूँ',
+    youSaid: 'आपने कहा',
+    editHeard: 'टेक्स्ट बदलें',
+    suggestionsTitle: 'ऐसे बोलकर देखें:',
+    category: 'श्रेणी',
+    splitWith: 'किसके साथ बाँटें',
+    justYou: 'सिर्फ़ आप',
+    addExpense: 'खर्च जोड़ें',
+    retry: 'फिर से कोशिश करें',
+    openSettings: 'सेटिंग्स खोलें',
+    permissionBody: 'खर्च बोलने के लिए माइक्रोफ़ोन की अनुमति दें, या उसे टाइप करें।',
+    date: 'तारीख़',
+    savedTitle: 'जोड़ दिया',
+    savedTo: '{where} में जोड़ दिया',
+    savedForLater: 'बाद के लिए ‘अनअसाइन्ड’ में सहेजा',
+    savedSettled: '{name} के साथ हिसाब बराबर किया',
+    savedReminded: '{name} को याद दिलाया गया',
+    savedMembers: '{name} को {group} में जोड़ा',
+    addAnother: 'एक और जोड़ें',
+    done: 'हो गया',
+    splitEquallyWith: 'इनके साथ बराबर बाँटें: {names}',
+    paidByName: '{name} ने भुगतान किया',
+    splitDifferently: 'अलग तरह से बाँटें',
+    details: 'विवरण',
+    addAll: 'सभी जोड़ें',
+  },
   voice: {
     speakExpense: 'खर्च बोलें',
     micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
@@ -15427,10 +17288,6 @@ const hi: UiStrings = {
     tapToSpeak: 'बोलने के लिए टैप करें',
     noAmount: 'रकम समझ नहीं आई',
     missedNothing: 'समझ नहीं आया',
-    setupOffline: 'ऑफ़लाइन आवाज़ सेट करें',
-    offlineDownloading: 'ऑफ़लाइन आवाज़ मॉडल डाउनलोड हो रहा है… थोड़ी देर में फिर कोशिश करें।',
-    offlineReady: 'ऑफ़लाइन आवाज़ तैयार — माइक दबाकर बोलें।',
-    offlineFailed: 'इस डिवाइस पर ऑफ़लाइन आवाज़ सेट नहीं हो सकी।',
     tapToRetry: 'दोबारा कोशिश के लिए टैप करें',
     tryAgain: 'फिर कोशिश करें',
     chooseGroup: 'कौन सा ग्रुप?',
@@ -15441,18 +17298,20 @@ const hi: UiStrings = {
     unavailable: 'इस फ़ोन पर वॉइस पहचान उपलब्ध नहीं है।',
     review: 'समीक्षा',
     saveTo: 'यहाँ सहेजें',
+    saveForLater: 'बाद के लिए सहेजें',
+    saveHere: 'यहीं सहेजें',
+    searchGroups: 'समूह खोजें…',
+    searchPeopleShort: 'लोग खोजें…',
     change: 'बदलें',
     newGroupNamed: 'नया समूह “{name}”',
     thinking: 'समझा जा रहा है…',
     save: { one: '{n} खर्च सहेजें', other: '{n} खर्च सहेजें' },
     savedCount: { one: '{n} खर्च सहेजा गया', other: '{n} खर्च सहेजे गए' },
-    count: { one: '{n} खर्च', other: '{n} खर्च' },
     saveDraft: 'इनबॉक्स में सहेजें',
     draftNeedsAmounts: 'यह ड्राफ़्ट रखने के लिए हर खर्च में राशि भरें, या उसे हटाएँ।',
     people: 'लोग',
     addPerson: 'व्यक्ति जोड़ें',
     addPersonPlaceholder: 'उनका नाम',
-    addMore: 'एक और जोड़ें',
     groupsTab: 'ग्रुप',
     peopleTab: 'लोग',
     justMe: 'सिर्फ़ मैं',
@@ -15468,20 +17327,12 @@ const hi: UiStrings = {
     autoAddingPerson: '{group} में {name} जोड़ रहे हैं',
     autoUndo: 'पूर्ववत करें',
     paidBy: 'भुगतान किसने किया',
-    splitLabel: 'बँटवारा',
     youLabel: 'आप',
-    splitEveryone: 'सबमें बराबर',
-    splitEqual: 'बराबर · {names}',
     splitExact: 'सटीक रकम · {names}',
     splitPercent: 'प्रतिशत · {names}',
     splitFullOn: 'पूरा {names} पर',
     whoPaid: 'किसने भुगतान किया?',
-    heardAs: 'सुना “{heard}”',
-    whoTitle: 'किसने भुगतान किया और कौन बाँटेगा',
-    whoPaidSection: 'भुगतान किसने किया',
-    whoSharesSection: 'इनके बीच बँटेगा',
-    whoResets: 'लोग बदलने पर बराबर बँटवारा हो जाएगा।',
-    whoUnknown: '“{name}” कौन है? नीचे से चुनें।',
+    whoUnknown: '“{name}” कौन है?',
     didYouMean: 'क्या आपका मतलब {name} था?',
     didYouMeanYes: 'हाँ',
     whichOf: '{names} या {last}?',
@@ -15506,31 +17357,62 @@ const hi: UiStrings = {
     ansGroupOwe: '{group} में, आप {amount} देते हैं',
     ansGroupSettled: '{group} में सब हिसाब बराबर है',
     ansNoPerson: '{name} नहीं मिला',
-    askAgain: 'फिर पूछें',
+    sqSumAll: '{when} आपने {amount} खर्च किए',
+    sqSumCat: '{when} {category} पर आपने {amount} खर्च किए',
+    sqNothingAll: '{when} कोई खर्च नहीं',
+    sqNothingCat: '{when} {category} पर कुछ नहीं',
+    sqBiggest: 'सबसे बड़ा: {amount} {what}, {date}',
+    sqCountAll: '{when} खर्चे: {count}',
+    sqCountCat: '{when} {category} पर खर्चे: {count}',
+    sqBudgetLeft: '{when} आपके {limit} के {category} बजट में से {left} बचे हैं',
+    sqBudgetOver: '{when} आपके {limit} के {category} बजट से {over} ज़्यादा हो गया',
+    sqNoBudgetCat: '{category} का बजट सेट नहीं है',
+    sqNoBudgetAny: 'कुल बजट सेट नहीं है',
+    sqSetOne: 'सेट करें',
+    sqOverall: 'कुल',
+    sqNoGroup: '{group} नाम का ग्रुप नहीं मिला',
+    sqShow: 'खर्च में दिखाएं',
+    sqAnd: '{a} और {b}',
+    sqInGroup: '{group} में',
+    sqWhenToday: 'आज',
+    sqWhenYesterday: 'कल',
+    sqWhenThisWeek: 'इस हफ़्ते',
+    sqWhenLastWeek: 'पिछले हफ़्ते',
+    sqWhenThisMonth: 'इस महीने',
+    sqWhenLastMonth: 'पिछले महीने',
+    sqWhenThisYear: 'इस साल',
+    sqWhenLastYear: 'पिछले साल',
+    sqWhenLast7: 'पिछले 7 दिनों में',
+    sqWhenLast30: 'पिछले 30 दिनों में',
+    sqWhenInMonth: '{month} में',
+    sqWhenInYear: '{year} में',
+    sqChipToday: 'आज',
+    sqChipYesterday: 'कल',
+    sqChipThisWeek: 'इस हफ़्ते',
+    sqChipLastWeek: 'पिछले हफ़्ते',
+    sqChipThisMonth: 'इस महीने',
+    sqChipLastMonth: 'पिछले महीने',
+    sqChipThisYear: 'इस साल',
+    sqChipLastYear: 'पिछले साल',
+    sqChipLast7: 'पिछले 7 दिन',
+    sqChipLast30: 'पिछले 30 दिन',
     agentUnderstanding: 'समझा जा रहा है…',
-    agentUnderstandingHint: 'बस एक पल, मैं सुन रहा हूँ।',
     agentHeard: 'सुना',
-    agentConfirm: 'पुष्टि करें',
-    agentConfirmAll: 'सभी की पुष्टि करें',
     agentEdit: 'बदलें',
-    agentDiscard: 'हटाएँ',
     agentDone: 'हो गया',
     agentCouldNotRun: 'यह नहीं हो सका। फिर कोशिश करें।',
     agentProblem: 'इसे आपके लोगों या ग्रुप से मिलाया नहीं जा सका।',
-    agentClarifyTitle: 'मैं ठीक से समझ नहीं पाया',
-    agentTryAgain: 'फिर कोशिश करें',
     agentAnswer: 'जवाब दें',
-    agentContinue: 'जारी रखें',
-    agentTypeInstead: 'इसके बजाय टाइप करें',
     agentTypePlaceholder: 'अपना जवाब टाइप करें',
     agentTypeSend: 'जवाब भेजें',
     agentTypeMic: 'बोलकर जवाब दें',
-    agentOptionHint: 'यह जवाब चुनने के लिए दो बार टैप करें',
+    agentOtherGroup: 'कोई और ग्रुप',
+    agentSearchGroups: 'अपने ग्रुप खोजें',
+    agentNoGroupMatch: 'इस नाम का कोई ग्रुप नहीं',
     agentNothingToDo: 'इसमें जोड़ने को कुछ नहीं मिला। फिर कोशिश करें।',
     agentQuotaLeft: 'इस महीने आपके एडवांस्ड कमांड का {percent}% बाकी',
     agentTrialQuotaLeft: 'आपके Pro ट्रायल कमांड का {percent}% बाकी',
     agentTrialQuotaLeftUntil: 'आपके ट्रायल वॉइस कमांड का {percent}% बाकी · {date} तक',
-    confirmSubtitle: 'बताइए कितना खर्च किया, मैं जोड़ दूँगा।',
     confirmUnderstood: 'मैंने यह समझा',
     confirmEditHint: 'कुछ गलत लगे तो बदल सकते हैं।',
     confirmEditAll: 'सब बदलें',
@@ -15545,7 +17427,6 @@ const hi: UiStrings = {
     confirmNotePlaceholder: 'किसलिए था?',
     confirmAdd: 'खर्च जोड़ें',
     confirmClear: 'हटाएँ',
-    confirmQuotaInfo: 'एडवांस्ड कमांड के बारे में',
     confirmPersonMissing: '{name} इस ग्रुप में नहीं है',
     confirmPickGroup: 'इसे जोड़ने के लिए ग्रुप चुनें',
     confirmNeedAmount: 'राशि डालें',
@@ -15558,13 +17439,6 @@ const hi: UiStrings = {
     confirmNoteHint: 'नोट जोड़ें (वैकल्पिक)',
     confirmToday: 'आज',
     confirmYesterday: 'कल',
-    engineCloud: 'क्लाउड',
-    engineOnDevice: 'ऑन-डिवाइस',
-    engineReasonFree: 'फ्री प्लान',
-    engineReasonQuota: 'मासिक सीमा पूरी',
-    engineReasonOffline: 'ऑफ़लाइन',
-    engineReasonCloudDown: 'क्लाउड उपलब्ध नहीं',
-    engineReasonOff: 'सेटिंग्स में बंद',
     agentQuotaFallback: 'इस महीने की एडवांस्ड वॉइस सीमा पूरी हो गई। बेसिक वॉइस इस्तेमाल हो रही है।',
     agentAdd: '{amount} जोड़ें',
     agentPaid: '{name} ने भुगतान किया',
@@ -15685,57 +17559,31 @@ const hi: UiStrings = {
     row: 'एडवांस्ड वॉइस',
     toggle: 'क्लाउड वॉइस की अनुमति',
   },
-  offlineVoice: {
-    row: 'ऑफ़लाइन आवाज़',
-    title: 'ऑफ़लाइन आवाज़',
-    rowHint: 'इस फ़ोन पर रखे स्पीच मॉडल',
-    intro:
-      'कोई भाषा डाउनलोड कर लेने पर माइक बिना कनेक्शन के भी काम करता है — और उन फ़ोनों पर भी चलता रहता है जिनकी ऑनलाइन स्पीच सेवा ख़राब है।',
-    appSection: 'Waves की भाषाएँ',
-    appSectionHint: 'माइक यही माँगता है।',
-    alsoInstalled: 'इस फ़ोन पर पहले से मौजूद',
-    otherLanguages: 'दूसरी भाषाएँ',
-    otherLanguagesHint: 'इनमें से कोई भी आपका फ़ोन ला सकता है।',
-    sectionCount: { one: '{n} भाषा', other: '{n} भाषाएँ' },
-    installed: 'फ़ोन पर मौजूद',
-    notInstalled: 'डाउनलोड नहीं है',
-    cannotTell: 'बता नहीं सकते',
-    download: 'डाउनलोड करें',
-    downloading: 'आपका फ़ोन इसे डाउनलोड कर रहा है।',
-    noProgress: 'Android यह नहीं बताता कि कितना हुआ।',
-    ready: 'डाउनलोड हो गया। माइक अब इसे इस्तेमाल कर सकता है।',
-    dialogOpened:
-      'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
-    scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
-    languageMissing:
-      'आपके फ़ोन की स्पीच सेवा के पास इस भाषा का ऑफ़लाइन मॉडल है ही नहीं, इसलिए लाने को कुछ नहीं है। Play Store से “Speech Recognition & Synthesis” अपडेट करने पर कभी‑कभी एक जुड़ जाता है; तब तक इस भाषा को कनेक्शन चाहिए।',
-    notDownloaded:
-      'आपका फ़ोन यह भाषा जानता है, पर अभी लाया नहीं है। आम तौर पर वह Wi‑Fi का इंतज़ार करता है — जुड़ते ही फिर कोशिश करें।',
-    networkFailed: 'डाउनलोड पहुँच ही नहीं पाया। अपना कनेक्शन जाँचकर फिर कोशिश करें।',
-    serviceBusy:
-      'आपके फ़ोन की स्पीच सेवा व्यस्त है। माइक इस्तेमाल कर रही दूसरी चीज़ें बंद करके फिर कोशिश करें।',
-    handedOff:
-      'आपके फ़ोन ने डाउनलोड शुरू कर दिया है पर उसकी ख़बर नहीं देगा। कुछ मिनट बाद ताज़ा करें।',
-    failed: 'आपके फ़ोन की स्पीच सेवा ने डाउनलोड से इनकार कर दिया और वजह नहीं बताई।',
-    stillWorking:
-      'आपके फ़ोन ने अब तक नहीं बताया कि यह पूरा हुआ या नहीं। थोड़ी देर बाद ताज़ा करके देखें कि आया या नहीं।',
-    tooOld:
-      'ऐप के भीतर से मॉडल डाउनलोड करने के लिए इस फ़ोन का Android बहुत पुराना है। Android सेटिंग्स में “voice” खोजकर एक जोड़ें।',
-    iosNote:
-      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है, और यह नहीं बताता कि कौन-सी पहले से मौजूद हैं। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
-    unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
-    noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
-    refresh: 'ताज़ा करें',
-    unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
-    unreadableBody:
-      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
-    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
-    permissionNeeded:
-      'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
-    empty:
-      'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
-    footnote:
-      'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: '{amount} कर दिया',
+    changedDate: 'तारीख {date}',
+    changedName: 'नाम बदलकर {name} किया',
+    changedCurrency: 'अब {currency} में',
+    changedGroup: '{where} में ले गए',
+    changedPayer: '{name} ने भुगतान किया',
+    personalName: 'निजी',
+    undo: 'पूर्ववत करें',
+    restore: 'वापस लाएं',
+    removed: '{amount} {description} हटाया',
+    restored: 'वापस आ गया ✓',
+    undone: 'पूर्ववत हो गया ✓',
+    change: 'बदलें',
+    unchanged: 'बदलने को कुछ नहीं',
+    couldNotUndo: 'पूर्ववत नहीं हो सका। फिर कोशिश करें?',
+    undoLoanSettled:
+      'इस कर्ज़ का कुछ हिस्सा ग्रुप में पहले ही चुका दिया गया है, इसलिए इसे यहाँ पूर्ववत नहीं किया जा सकता। बाकी का हिसाब चुकता करें।',
+    couldNotChange: 'बदल नहीं सका। फिर कोशिश करें?',
+    needsConnection: 'टाइप करने के लिए इंटरनेट चाहिए',
+    couldNotUse: 'मैं इसे समझ नहीं पाया',
+    undoA11y: 'पूर्ववत करें: {amount} {description}',
+    restoreA11y: 'वापस लाएं: {amount} {description}',
+    updated: 'अपडेट हो गया ✓',
   },
   notifications: {
     title: 'सूचनाएँ',
@@ -15773,6 +17621,9 @@ const hi: UiStrings = {
       'हिसाब, याद दिलाने वाले संदेश और साप्ताहिक सारांश। नए साइन-इन की सुरक्षा चेतावनी इससे परे हमेशा आएगी।',
     weeklyEmail: 'साप्ताहिक ईमेल सारांश',
     weeklyEmailBody: 'आपकी कुल बाकी और लंबित पुष्टियाँ, हफ़्ते में एक बार। डिफ़ॉल्ट रूप से बंद।',
+    rowOn: 'चालू',
+    rowOff: 'बंद',
+    rowOffInPhone: 'फ़ोन सेटिंग्स में बंद',
     failDenied: 'चालू नहीं हुआ — आप बाद में फ़ोन सेटिंग्स में इसे चालू कर सकते हैं।',
     failUnsupported: 'यह डिवाइस पुश सूचनाएँ नहीं ले सकता। सब कुछ गतिविधि में आता ही रहेगा।',
     failNotSignedIn: 'पहले साइन इन करें, ताकि पता चले कौन सा फ़ोन आपका है।',
@@ -16076,15 +17927,10 @@ const hi: UiStrings = {
     statCurrencies: { one: '{n} मुद्रा', other: '{n} मुद्राएँ' },
   },
   exportForm: {
-    heroTitle: 'आपका डेटा, हमेशा आपका',
-    heroBody: 'अपने खर्च, हिसाब और गतिविधि का पूरा रिकॉर्ड जब चाहें निर्यात करें — मुफ़्त।',
     freeBadge: 'कोई पेवॉल नहीं। 100% मुफ़्त।',
-    chooseFormat: 'फ़ॉर्मैट चुनें',
-    chooseFormatSub: 'अपने काम का फ़ाइल फ़ॉर्मैट चुनें।',
     jsonSub: '(बिना नुकसान)',
     csvSub: '(स्प्रेडशीट)',
     pdfSub: '(प्रिंट के लिए)',
-    whatSub: 'चुनें कि कौन सा डेटा शामिल करना है।',
     everything: 'सब कुछ निर्यात करें',
     oneGroup: 'एक समूह',
     oneGroupSub: 'केवल चुना हुआ समूह',
@@ -16092,7 +17938,6 @@ const hi: UiStrings = {
     includedBody:
       'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
     exportAction: 'डेटा निर्यात करें',
-    or: 'या',
     pickGroup: 'कौन सा समूह?',
   },
   receiving: {
@@ -16119,6 +17964,39 @@ const hi: UiStrings = {
     },
     importUndoneHeadline: 'इम्पोर्ट वापस लिया गया',
     importUndoneSentence: '{who} ने इम्पोर्ट वापस लिया',
+    group: {
+      renamed: 'समूह का नाम बदलकर {name} रखा',
+      nameCleared: 'समूह का नाम हटाया',
+      description: 'विवरण बदला',
+      type: 'समूह का प्रकार बदलकर {type} किया',
+      datesSet: 'तारीखें {range} तय कीं',
+      datesCleared: 'तारीखें हटाईं',
+      tag: 'टैग बदलकर {tag} किया',
+      tagCleared: 'टैग हटाया',
+      currency: 'मुद्रा बदलकर {code} की',
+      convertOn: '{code} में बदलना चालू किया',
+      convertOff: 'मुद्रा बदलना बंद किया',
+      cover: 'कवर बदला',
+      currencyAdded: '{code} जोड़ा',
+      currencyRemoved: '{code} हटाया',
+      rateChanged: '{code} की दर बदली',
+      archived: 'समूह आर्काइव किया',
+      unarchived: 'समूह आर्काइव से वापस लाया',
+      simplifyOn: 'कम भुगतान चालू किया',
+      simplifyOff: 'कम भुगतान बंद किया',
+      budget: 'बजट {amount} तय किया',
+      budgetCleared: 'बजट हटाया',
+      stops: 'ट्रिप के पड़ाव बदले',
+      changed: 'समूह की सेटिंग बदली',
+      memberAdded: '{name} को जोड़ा',
+      memberRemoved: '{name} को हटाया',
+      memberLeft: 'समूह छोड़ा',
+      madeAdmin: '{name} को एडमिन बनाया',
+      madeMember: '{name} को सदस्य बनाया',
+      claimed: 'अपनी जगह ली',
+      merged: '{name} को एक ही व्यक्ति में मिलाया',
+      sentence: '{who} ने {event}',
+    },
   },
   newGroupForm: {
     title: 'नया समूह बनाएँ',
@@ -16304,6 +18182,59 @@ const hi: UiStrings = {
     ball: 'खेल',
     star: 'पसंदीदा',
     people: 'दोस्त',
+    bag: 'खरीदारी',
+    gamepad: 'गेम',
+    more: 'अन्य',
+  },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'यात्रा',
+      home: 'घर',
+      food: 'खाना-पीना',
+      events: 'आयोजन',
+      friends: 'दोस्त और परिवार',
+      work: 'काम',
+      sport: 'खेल और मस्ती',
+      money: 'पैसा',
+      other: 'अन्य',
+    },
+    colour: 'रंग',
+    defaultColour: 'डिफ़ॉल्ट',
+    searchPlaceholder: 'आइकन खोजें',
+    noMatches: 'कोई आइकन नहीं मिला',
+    quick: {
+      food: 'खाना',
+      travel: 'यात्रा',
+      home: 'घर',
+      friends: 'दोस्त',
+      shopping: 'खरीदारी',
+      event: 'इवेंट',
+      car: 'कार',
+      wallet: 'वॉलेट',
+      game: 'गेम',
+      other: 'अन्य',
+    },
+    colours: {
+      lilac: 'बैंगनी',
+      pink: 'गुलाबी',
+      peach: 'आड़ू',
+      coral: 'मूंगा',
+      butter: 'मक्खनी',
+      mint: 'पुदीना',
+      sage: 'हल्का हरा',
+      sky: 'आसमानी',
+      indigo: 'नील',
+      teal: 'हरा-नीला',
+      berry: 'बेरी',
+      slate: 'स्लेटी',
+      iris: 'नीलम',
+      blue: 'नीला',
+      aqua: 'फिरोज़ी',
+      green: 'हरा',
+      yellow: 'पीला',
+      orange: 'नारंगी',
+    },
   },
   groupPhoto: {
     paidHint: 'ग्रुप फ़ोटो एक Pro सुविधा है। कोई आइकन चुनें, या फ़ोटो जोड़ने के लिए अपग्रेड करें।',
@@ -16699,6 +18630,9 @@ const hi: UiStrings = {
       'उस बैकअप की चाबी अब आपके Google खाते में नहीं है, इसलिए उसे खोला नहीं जा सकता।',
     refusedOffline: 'कोई कनेक्शन नहीं। ऑनलाइन आते ही बैकअप चल जाएगा।',
     refusedNetwork: 'Wi‑Fi का इंतज़ार है। मोबाइल डेटा इस्तेमाल करने के लिए सेटिंग बदलें।',
+    mobileDataTitle: 'आप मोबाइल डेटा पर हैं',
+    mobileDataBody: 'फिर भी बैकअप लें?',
+    mobileDataConfirm: 'फिर भी बैकअप लें',
     refusedAuth: 'Google ने फिर से अनुमति माँगी है। खाता दोबारा जोड़ें।',
     refusedNoBackup: 'इस Drive खाते पर अभी कोई बैकअप नहीं है।',
     refusedBusy: 'एक बैकअप पहले से चल रहा है।',
@@ -16782,7 +18716,7 @@ const hi: UiStrings = {
     descriptionPlaceholder: 'यह समूह किसलिए है?',
     changeCover: 'समूह का कवर',
     chooseIcon: 'आइकन चुनें',
-    chooseIconHint: 'बने-बनाए चिह्नों में से एक',
+    chooseIconHint: 'एक आइकन और एक रंग चुनें',
     usePhotoHint: 'इसी फ़ोन से एक तस्वीर',
     photoIsPaid: 'फ़ोटो Pro के साथ आती हैं',
     removePhoto: 'फ़ोटो हटाएँ',
@@ -16794,6 +18728,32 @@ const hi: UiStrings = {
     muteNotificationsBody:
       'इस ग्रुप की पुश सूचनाएँ आपको नहीं आएँगी। ऐप में सब कुछ दिखता रहेगा, और किसी और को पता नहीं चलेगा।',
     simplifyDebtsHint: 'सेटल करने के लिए कम से कम भुगतान',
+    createdOn: 'बनाया गया {date}',
+    changePill: 'बदलें',
+    editGroup: 'ग्रुप संपादित करें',
+    editGroupHint: 'बदलाव अपने आप सेव हो जाते हैं',
+    groupDetails: 'ग्रुप विवरण',
+    simplifyDebtsSub: 'हिसाब चुकाते समय कम से कम भुगतान सुझाता है',
+    muteSub: 'ग्रुप की सूचनाएँ बंद करें',
+    addMembers: 'सदस्य जोड़ें',
+    membersTitle: 'सदस्य ({n})',
+    inviteToGroup: 'ग्रुप में बुलाएँ',
+    inviteToGroupHint: 'लिंक या QR शेयर करें ताकि वे आसानी से जुड़ सकें',
+    groupActions: 'ग्रुप कार्रवाइयाँ',
+    exitActions: 'आर्काइव करें, छोड़ें या हटाएँ',
+    exitActionsMember: 'आर्काइव करें या छोड़ें',
+    exitActionsHint: 'छिपाएँ, बाहर निकलें या हटाएँ',
+    archiveHintShort: 'अपनी सूची से छिपाएँ, बाद में वापस ला सकते हैं',
+    deleteHintShort: 'सबके लिए हमेशा के लिए हटाएँ',
+    adminTitle: 'एडमिन',
+    openMember: 'सदस्य खोलें',
+    memberMenu: 'सदस्य विकल्प',
+    coverSubtitle: 'चुनें कि आपका ग्रुप कैसा दिखे',
+    coverTabIcon: 'आइकन और रंग',
+    coverTabPhoto: 'फ़ोटो',
+    chooseIconStep: '1. आइकन चुनें',
+    chooseColourStep: '2. रंग चुनें',
+    seeAll: 'सभी देखें',
     membersHint: 'लोग जोड़ें, नाम बदलें, UPI ID सेट करें',
     bringThingsIn: 'बाहर से लाएँ',
     importMessages: 'मैसेज से आयात',
@@ -16810,6 +18770,11 @@ const hi: UiStrings = {
       'इस समूह में अभी आपका हिसाब बाकी है। अभी छोड़ने पर वह अधर में रह जाएगा — पहले चुकाएँ, फिर छोड़ें।',
     leaveQuestion: 'यह समूह छोड़ें?',
     leaveBody: 'आपके पुराने खर्च समूह के इतिहास में बने रहेंगे।',
+    settleFirstBalance: 'आपका बकाया',
+    leaveAnyway: 'फिर भी छोड़ें',
+    settleFirstSettle: 'हिसाब चुकाएँ',
+    settleFirstBalanceLabel: 'आपका बकाया {amount} है। हिसाब चुकाने की स्क्रीन खुलती है।',
+    settleFirstClose: 'बंद करें',
     leave: 'छोड़ें',
     archiveQuestion: 'यह समूह संग्रहित करें?',
     archiveBody:
@@ -16844,8 +18809,8 @@ const hi: UiStrings = {
       '{name} ने आपको भुगतान करना दर्ज किया। इससे लंबित भुगतान हट जाएगा और कोई बैलेंस नहीं बदलेगा।',
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
-    groupBalances: 'ग्रुप बैलेंस',
-    settleUpAll: 'सब सेटल करें',
+    paymentsToSettle: 'चुकाने वाले भुगतान',
+    everyonesBalance: 'सबका बैलेंस',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -17125,6 +19090,10 @@ const hi: UiStrings = {
     youBorrowed: 'आपने लिए',
     noRateShort: 'दर नहीं',
     notInvolved: 'आप इसमें नहीं',
+    pillBorrowed: 'उधार लिया',
+    pillLent: 'उधार दिया',
+    settledShort: 'चुकता',
+    notInSplit: 'इसमें नहीं',
     notInvolvedTitle: 'आप इस बँटवारे में नहीं हैं',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody:
@@ -17159,6 +19128,16 @@ const hi: UiStrings = {
     note: 'नोट',
     createdByName: '{name} ने बनाया',
     editedByName: '{name} ने बदला',
+    fresh: {
+      new: 'नया',
+      edited: 'बदला',
+      newA11y: 'नया',
+      editedA11y: 'बदला गया',
+      newBy: 'नया · {name} द्वारा',
+      editedBy: 'बदला · {name} द्वारा',
+      count: '{n} नए',
+      jump: 'पहले नए खर्च पर जाएँ',
+    },
     noChanges: 'फिर से सहेजा, कुछ नहीं बदला',
     audit: {
       amount: 'राशि',
@@ -17184,6 +19163,7 @@ const hi: UiStrings = {
       subEvent: 'आयोजन का हिस्सा',
       splitDetails: 'बँटवारे का विवरण अपडेट हुआ',
       payee: 'किसको भुगतान',
+      reimbursable: 'कार्य खर्च',
     },
     payee: {
       label: 'किसको भुगतान',
@@ -17193,6 +19173,12 @@ const hi: UiStrings = {
       clear: 'हटाएँ',
       used: 'पहले इस्तेमाल किए',
       to: '{payee} को',
+    },
+    reimbursable: {
+      row: 'कार्य खर्च (दावा करना है)',
+      chip: 'कार्य',
+      yes: 'हाँ',
+      no: 'नहीं',
     },
   },
   misc: {
@@ -17227,6 +19213,8 @@ const hi: UiStrings = {
     settleConfirmPaidYes: 'हाँ, चुकाया',
     settleRemindA11y: '{name} को {amount} के बारे में याद दिलाएँ',
     settlePayA11y: '{name} को {amount} चुकाएँ',
+    settleRecord: 'दर्ज करें',
+    settleRecordA11y: '{name} ने {amount} चुकाए, यह दर्ज करें',
     settleMarkPaidA11y: '{name} को {amount} चुकाया हुआ मानें',
     settleReceivedHint: 'इसे मिला हुआ दर्ज करता है',
     settleSeeAll: 'सभी देखें',
@@ -17996,10 +19984,16 @@ const hi: UiStrings = {
     chooseDifferentFile: 'दूसरी फ़ाइल चुनें',
     whichGroup: 'कौन-सा समूह',
     groupNumber: 'समूह {n}',
-    whoIsWho: 'कौन कौन है',
-    whoIsWhoNote:
-      'फ़ाइल में नाम हैं; इस समूह में सदस्य हैं। जब तक हर नाम के सामने कोई नहीं होगा, कुछ भी आयात नहीं होगा।',
-    tapANameNote: 'नाम पर टैप करके बताएँ कि वे कौन हैं। आपकी तरफ़ से कोई मिलान नहीं होता।',
+    isThisYou: 'क्या यह आप हैं?',
+    whichOneIsYou: 'इनमें आप कौन हैं?',
+    tapYourName: 'सूची में अपने नाम पर टैप करें।',
+    weThinkYou: 'हमें लगता है यह आप हैं। बदलने के लिए टैप करें।',
+    thisIsMe: 'यह मैं हूँ',
+    thisIsMeFor: '{name} को मैं चुनें',
+    personIsYou: '{name} आप हैं।',
+    notInFile: 'मैं इस फ़ाइल में नहीं हूँ',
+    pickYouFirst: 'पहले चुनें कि आप कौन हैं, या "मैं इस फ़ाइल में नहीं हूँ" चुनें।',
+    tapTagToLink: 'समूह के किसी मौजूदा सदस्य से जोड़ने के लिए टैग पर टैप करें।',
     personIsMapped: '{name} यहाँ {who} हैं। बदलने के लिए टैप करें।',
     addAsNew: 'नए के रूप में जोड़ें',
     newPerson: 'नया व्यक्ति',
@@ -18048,7 +20042,6 @@ const hi: UiStrings = {
       one: 'चुनें कि {n} व्यक्ति कौन है',
       other: 'चुनें कि {n} लोग कौन हैं',
     },
-    tapYourNameFirst: 'पहले अपने नाम पर टैप करें।',
     imported: 'आयात हो गया',
     openTheGroup: 'समूह खोलें',
     importedCount: {
@@ -18122,6 +20115,12 @@ const hi: UiStrings = {
     breakfast: 'नाश्ता',
     endOfDay: 'दिन का अंत',
     clearDates: 'तारीखें हटाएँ',
+    datesSheetSubtitle: 'इस ग्रुप की शुरुआत और समाप्ति की तारीखें चुनें',
+    startDate: 'शुरू होने की तारीख',
+    endDate: 'समाप्ति की तारीख',
+    daysSelected: { one: '{n} दिन चुना गया', other: '{n} दिन चुने गए' },
+    noDatesSelected: 'कोई तारीख नहीं चुनी गई',
+    saveDates: 'तारीखें सहेजें',
     nobodyPickedYet: 'अभी किसी को नहीं चुना',
     personCount: { one: '{n} व्यक्ति', other: '{n} लोग' },
     alreadyAddedName: '{name}, पहले से जुड़ा है',
@@ -18346,6 +20345,50 @@ const hi: UiStrings = {
     theyHaveHistory:
       'इस ग्रुप में उनके अपने नाम से पहले से खर्च हैं, इसलिए दोनों को जोड़ा नहीं जा सकता।',
   },
+  link: {
+    row: 'Waves यूज़र से जोड़ें',
+    rowHint: 'बताएँ कि {name} असल में कौन है।',
+    pickGroupBody:
+      '{name} {n} समूहों में प्लेसहोल्डर है। हर समूह अलग से जुड़ता है: एक चुनें, फिर बाकी के लिए लौटें।',
+    waiting: '{who} के स्वीकार करने का इंतज़ार',
+    waitingHint: 'जब तक वे हाँ न कहें, कुछ नहीं बदलेगा।',
+    cancelAsk: 'पूछना रद्द करें',
+    sheetTitle: '{name} कौन है?',
+    sheetHint: 'व्यक्ति चुनें, या फ़ोन नंबर या ईमेल से ढूँढें।',
+    inThisGroup: 'पहले से इस ग्रुप में',
+    peopleYouKnow: 'जिन्हें आप जानते हैं',
+    searchPlaceholder: 'नाम, फ़ोन नंबर या ईमेल',
+    noMatches: 'इस नाम का कोई नहीं। फ़ोन नंबर या ईमेल आज़माएँ।',
+    notFound: 'इस नंबर या ईमेल से Waves पर कोई नहीं, या वे ढूँढे जाना नहीं चाहते।',
+    searching: 'ढूँढ रहे हैं…',
+    lookUp: 'ढूँढें',
+    mergeConfirmTitle: '{name} को {who} में मिला दें?',
+    mergeConfirmBody:
+      '{name} के {expenses} और {balance} बैलेंस {who} के हो जाएँगे। इसे वापस नहीं किया जा सकता।',
+    mergeExpenses: { one: '{n} खर्च', other: '{n} खर्च' },
+    mergeAction: 'मिला दें',
+    mergeDone: 'हो गया। {name} के नाम सब कुछ अब {who} का है।',
+    askConfirmTitle: '{who} से पूछें?',
+    askConfirmBody:
+      'उन्हें संदेश जाएगा: “{me} का कहना है कि {group} में {name} आप हैं”। जब तक वे स्वीकार न करें, कुछ नहीं बदलेगा।',
+    askAction: 'उनसे पूछें',
+    askSent: 'पूछ लिया। {who} के जवाब देने पर आपको पता चलेगा।',
+    failed: 'अभी नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    guest: 'वे Waves पर मेहमान हैं। पहले उन्हें साइन अप करने को कहें।',
+    thatIsYou: 'वह आप ही हैं। “यह मैं हूँ” इस्तेमाल करें।',
+    rateLimited: 'आज आपने बहुत लोगों से पूछ लिया। कल फिर कोशिश करें।',
+    notAllowed: 'यह सिर्फ़ इस ग्रुप का एडमिन कर सकता है।',
+    cardTitle: 'क्या यह आप हैं?',
+    cardBody: '{who} का कहना है कि {group} में {name} आप हैं।',
+    cardHint: 'स्वीकार करें, और उस नाम पर दर्ज सब कुछ आपका हो जाएगा।',
+    accept: 'हाँ, यह मैं हूँ',
+    notMe: 'मैं नहीं',
+    accepted: 'हो गया। अब आप {group} में हैं।',
+    declined: 'उन्हें बता दिया।',
+    needsAccount: 'पहले साइन अप करें — मेहमान ग्रुप में जगह नहीं ले सकता।',
+    placeTaken: 'वह जगह अब किसी और की है।',
+    empty: 'आपके लिए कुछ भी इंतज़ार में नहीं है।',
+  },
   blocked: {
     row: 'अवरोधित लोग',
     rowHint: 'जिन नाम और चेहरों को आपने छिपाया है',
@@ -18366,7 +20409,7 @@ const hi: UiStrings = {
     rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
     title: 'नेटवर्क गतिविधि',
     explainer:
-      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो कॉल किए, वे सब। बैकग्राउंड सिंक सिर्फ़ गिनती के रूप में दिखता है। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
     empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
     emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
     today: 'आज',
@@ -18378,7 +20421,31 @@ const hi: UiStrings = {
     clearConfirm: 'साफ़ करें',
     statusFailed: 'विफल',
     statusOffline: 'ऑफ़लाइन',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'ठीक',
+    syncSummary: { one: 'सिंक · 7 दिनों में {n} बार', other: 'सिंक · 7 दिनों में {n} बार' },
+    syncLast: 'आखिरी सिंक {time}',
+    calls: {
+      exchangeRate: 'विनिमय दर',
+      statement: 'स्टेटमेंट पढ़ना',
+      screenshot: 'स्क्रीनशॉट पढ़ना',
+      receipt: 'रसीद पढ़ना',
+      voice: 'आवाज़',
+      upload: 'फ़ाइल अपलोड',
+      signIn: 'साइन इन',
+      analytics: 'उपयोग इवेंट',
+      purchases: 'खरीदारी',
+      crashReport: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      mapTiles: 'मैप टाइल',
+      google: 'Google',
+      appStore: 'अपडेट की जाँच',
+      accountDelete: 'खाता हटाना',
+      exportData: 'मेरा डेटा निर्यात',
+      invite: 'आमंत्रण',
+      connectedApps: 'कनेक्टेड ऐप्स',
+      serverRequest: 'Waves सर्वर',
+    },
     purposes: {
       sync: 'सिंक',
       signIn: 'साइन-इन',
@@ -18444,8 +20511,6 @@ const hi: UiStrings = {
     row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
     title: 'निजता',
-    intro:
-      'Waves आपके बारे में उतना ही रखता है जितना काम करने के लिए ज़रूरी है। वह क्या है, सीधे शब्दों में।',
     storeTitle: 'क्या रखा जाता है',
     storeBody:
       'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
@@ -18470,6 +20535,7 @@ const hi: UiStrings = {
     blockedNone: 'कोई नहीं',
     sessionReplayHint: 'जब तक आप चालू न करें, बंद रहता है',
     policySection: 'हम आपके डेटा की रक्षा कैसे करते हैं',
+    dataSection: 'आपका डेटा',
     supportRow: 'निजता से जुड़े सवाल',
     supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
@@ -18597,6 +20663,24 @@ const hi: UiStrings = {
     typeOther: 'अन्य',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
+    tagSheetSubtitle: 'टैग जोड़ें ताकि बाद में ढूँढना आसान हो।',
+    tagPopular: 'लोकप्रिय टैग',
+    saveTag: 'टैग सहेजें',
+    tagChips: {
+      weekend: 'वीकेंड',
+      roadTrip: 'रोड ट्रिप',
+      holiday: 'छुट्टी',
+      officeOffsite: 'ऑफ़िस ऑफ़साइट',
+      birthday: 'जन्मदिन',
+      wedding: 'शादी',
+      family: 'परिवार',
+      friends: 'दोस्त',
+      other: 'अन्य',
+    },
+    groupTypeTitle: 'समूह का प्रकार',
+    datesRow: 'तारीखें',
+    groupTypeInfo:
+      'प्रकार से समूह का लेबल, डिफ़ॉल्ट कवर और ट्रिप टूल तय होते हैं। पहले से दर्ज कुछ भी नहीं बदलता।',
     tagSuggestions: {
       trip: ['वीकेंड', 'रोड ट्रिप', 'छुट्टी'],
       home: ['किराया', 'फ्लैटमेट', 'बिल'],
@@ -18685,10 +20769,22 @@ const hi: UiStrings = {
     settlesIn: 'हिसाब इस मुद्रा में',
     settlesInHint: 'इस समूह का हर बैलेंस इसी मुद्रा में गिना जाता है।',
     settlesInLocked: 'बंद — इस समूह में पहले से एंट्री हैं।',
+    convertAllTitle: 'सभी खर्चों का हिसाब {currency} में',
+    convertShort: 'दूसरी मुद्राओं में चुकाए बिल {currency} में गिने जाते हैं',
+    otherCurrencies: 'अन्य मुद्राएँ',
+    groupCurrencies: 'इस समूह की मुद्राएँ',
+    settleInShort: 'विदेशी बिल {currency} में गिनें',
+    balancesIn: '{currency} में बैलेंस',
+    groupCurrencyLine: '{name} · समूह की मुद्रा',
+    currencyOnly: 'सिर्फ़ {currency}',
     tripRates: 'यात्रा दरें',
     tripRatesBody:
       'जिस मुद्रा में ख़र्च करेंगे उसकी दर एक बार लगा दें — फिर हर बिल उसी दर से बदलेगा, बार-बार टाइप नहीं करना पड़ेगा।',
     addRate: 'मुद्रा जोड़ें',
+    otherCurrenciesSubtitleTrip: 'इस यात्रा में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    otherCurrenciesSubtitleGroup: 'इस ग्रुप में इस्तेमाल होने वाली मुद्राएँ जोड़ें',
+    ratesInfoFetched: 'मुद्रा जोड़ते समय दर ले ली जाती है।',
+    ratesInfoKept: 'पहले से सहेजे बिल अपनी जोड़ी गई दर पर ही रहते हैं।',
     editRate: 'दर बदलें',
     newRate: 'नई दर',
     removeRate: 'यह दर हटाएँ',
@@ -18743,6 +20839,25 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalReceipt: {
+    title: 'रसीद',
+    add: 'जोड़ें',
+    attached: 'जुड़ी है',
+    saving: 'सहेज रहे हैं…',
+    addTitle: 'रसीद जोड़ें',
+    camera: 'फ़ोटो लें',
+    library: 'गैलरी से चुनें',
+    remove: 'हटाएँ',
+    removeTitle: 'यह रसीद हटाएँ?',
+    removeBody: 'फ़ोटो Waves से मिट जाएगी। एंट्री बनी रहेगी।',
+    replace: 'फ़ोटो बदलें',
+    private: 'इसे सिर्फ़ आप देख सकते हैं',
+    unavailable: 'फ़ोटो लोड नहीं हो सकी',
+    paidOnly: 'Waves पर रसीदें रखने के लिए Plus चाहिए।',
+    storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
+    waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
+    couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
+  },
   personal: {
     introCards: [
       {
@@ -18900,6 +21015,24 @@ const hi: UiStrings = {
     principal: 'राशि',
     outstanding: 'बकाया',
     recordPayment: 'भुगतान दर्ज करें',
+    shareWith: '{name} के साथ साझा करें',
+    shareTitle: 'यह उधार साझा करें',
+    shareBody:
+      '{name} इसे आप दोनों के बीच के हिसाब के रूप में देखेंगे और आपके साथ चुका सकेंगे। अगर वे अभी Waves पर नहीं हैं, तो जुड़ते ही दिखेगा।',
+    shareAction: 'साझा करें',
+    shareWho: 'यह किसके साथ है?',
+    pickContact: 'संपर्कों से चुनें',
+    visibleTo: '{name} को दिखता है',
+    settleUp: 'हिसाब चुकाएँ',
+    stopSharing: 'साझा करना बंद करें',
+    stopSharingBody: 'इससे उनकी ओर से यह कर्ज़ हट जाएगा। आपका निजी उधार बना रहेगा।',
+    cannotStopSharing:
+      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए साझा करना बंद नहीं हो सकता। बाकी चुका दें।',
+    shareFailed: 'यह उधार साझा नहीं हो सका। फिर कोशिश करें।',
+    shareToggle: 'यह {name} को भी दिखाएँ',
+    deleteSharedBody: 'इससे उनकी ओर से भी यह कर्ज़ हट जाएगा।',
+    deleteSharedKept:
+      'इसका कुछ हिस्सा चुकाया जा चुका है, इसलिए कर्ज़ {name} के साथ आपके हिसाब में बना रहेगा।',
     closeLoan: 'बंद करें',
     reopenLoan: 'फिर खोलें',
     paidOff: 'चुका दिया',
@@ -19190,6 +21323,17 @@ const ar: UiStrings = {
   totalIn: 'الإجمالي بعملة {currency}',
   nothingIn: 'لا شيء بعملة {currency}',
   tapMonthForDays: 'اضغط على شهر لرؤية أيامه.',
+  spendTotal: 'إجمالي الإنفاق',
+  spendInCurrency: 'بـ{currency}',
+  spendVsLast: 'مقارنة بالشهر الماضي',
+  spendDonutTotal: 'الإجمالي',
+  spendTopCategories: 'أعلى الفئات',
+  spendSeeAll: 'عرض الكل',
+  spendShowLess: 'عرض أقل',
+  spendLastMonths: 'آخر {n} أشهر',
+  spendSeeDays: 'عرض أيام {month}',
+  spendPickMonth: 'اختر شهراً',
+  spendPickCurrency: 'اختر عملة',
   nothingToChart: 'أضف بعض المصروفات وسيمتلئ هذا.',
   categories: {
     food: 'طعام وشراب',
@@ -19471,6 +21615,11 @@ const ar: UiStrings = {
   },
   common: {
     appName: 'Waves',
+    groupCreated: 'تم إنشاء المجموعة',
+    groupCreatedNamed: 'تم إنشاء «{name}»',
+    expenseAdded: 'تمت إضافة {what}',
+    expenseUpdated: 'تم تحديث المصروف',
+    savedOffline: 'تم الحفظ — ستتم المزامنة عند الاتصال',
     back: 'رجوع',
     skip: 'تخطي',
     loading: 'جارٍ التحميل…',
@@ -19812,6 +21961,14 @@ const ar: UiStrings = {
     title: 'التطبيقات المتصلة',
     row: 'التطبيقات المتصلة',
     rowHint: 'مساعدو الذكاء الاصطناعي الذين يمكنهم الوصول إلى Waves',
+    rowCount: {
+      one: 'متصل: {n}',
+      two: 'متصلان: {n}',
+      few: '{n} متصلة',
+      many: '{n} متصلًا',
+      other: '{n} متصل',
+    },
+    rowNone: 'لا يوجد تطبيق متصل',
     intro: 'مساعدو الذكاء الاصطناعي الذين سمحت لهم باستخدام Waves. عند فصل أحدهم يفقد وصوله فورًا.',
     connectedOn: 'تاريخ الاتصال: {when}',
     disconnect: 'فصل',
@@ -19861,16 +22018,7 @@ const ar: UiStrings = {
   account: {
     facePaying: 'الدفع',
     faceSettings: 'الإعدادات',
-    settled: 'تمت تسويته',
     nothingSettledYet: 'لم تتم تسوية شيء بعد',
-    otherCurrencies: {
-      zero: 'و{n} عملة أخرى',
-      one: 'وعملة أخرى',
-      two: 'وعملتان أخريان',
-      few: 'و{n} عملات أخرى',
-      many: 'و{n} عملة أخرى',
-      other: 'و{n} عملة أخرى',
-    },
     saved: 'تم الحفظ',
     displayName: 'الاسم الظاهر',
     displayNameHint: 'يراه كل من تشاركه مجموعة.',
@@ -19972,6 +22120,256 @@ const ar: UiStrings = {
     usedOfLimit: 'استُخدم {used} / {limit} رمز',
     resetUsage: 'إعادة تعيين',
   },
+  assistant: {
+    introBody:
+      'سأطرح عليك سؤالاً أو اثنين سريعين ليكتمل المصروف. يمكنك تخطي أي سؤال، وخيار «لا تسأل عن هذا مجدداً» يوقفه نهائياً.',
+    introAction: 'فهمت',
+    teaserLine: 'سيسأل Pro: {question}',
+    teaserPlace: 'أين كان هذا؟',
+    teaserReceipt: 'هل لديك إيصال؟',
+    teaserPayment: 'كيف دفعت؟',
+    teaserCta: 'عرض Pro',
+    teaserDismiss: 'إغلاق',
+    composerPlaceholder: 'اسأل أو أضف… مثل ٨٠٠ غداء مع أنو',
+    composerLabel: 'اكتب أمراً أو سؤالاً',
+    composerSend: 'إرسال',
+    composerTypeInstead: 'اكتب بدلاً من ذلك',
+    composerUseMic: 'استخدم الميكروفون',
+    proSheetTitle: 'التصحيح بالمحادثة ضمن Pro',
+    proSheetBody: 'غيّر مبلغاً أو تاريخاً أو مكاناً بكتابته، وتراجع بكلمة واحدة. يأتي مع Pro.',
+    proSheetCta: 'عرض Pro',
+    proSheetLater: 'ليس الآن',
+    planRowTitle: 'أسئلة المساعد التكميلية',
+    planRowPill: 'AI',
+    personalScope: 'الإضافة إلى الشخصي',
+    openPersonalAssistant: 'اسأل المساعد',
+    completeRow: 'أكمل هذا المصروف',
+    completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
+    completeSheetTitle: 'أكمل هذا المصروف',
+    tryWhoOwes: '«من يدين لي؟»',
+  },
+  groupRecurring: {
+    title: 'المتكررة',
+    sub: 'الإيجار والفواتير وكل ما يتكرر في موعد محدد. يُضاف كل واحد في تاريخه للجميع.',
+    empty: 'لا شيء متكرر بعد',
+    emptyHint: 'أضف مصروفًا وفعّل «تكرار».',
+    repeat: 'تكرار',
+    never: 'لا يتكرر',
+    startsNext: 'يبدأ في {date}',
+    ends: 'ينتهي',
+    endsNever: 'أبدًا',
+    endsOn: 'ينتهي في {date}',
+    pickEnd: 'اختر تاريخ الانتهاء',
+    next: 'التالي {date}',
+    lastAdded: 'آخر إضافة {date}',
+    paused: 'متوقف مؤقتًا',
+    ended: 'انتهى',
+    pause: 'إيقاف مؤقت',
+    resume: 'استئناف',
+    stop: 'إيقاف التكرار',
+    stopTitle: 'إيقاف «{name}»؟',
+    stopBody: 'لن يُضاف المزيد. تبقى المصروفات المضافة. لا يمكن التراجع عن هذا.',
+    edit: 'تعديل',
+    editTitle: 'تعديل المصروف المتكرر',
+    editHint: 'تسري التغييرات على القادم فقط. تبقى المصروفات المضافة كما هي.',
+    save: 'حفظ',
+    amountLabel: 'المبلغ',
+    addedToast: 'يتكرر {freq} ابتداءً من {date}',
+    couldNotSave: 'تعذّر التحديث. حاول مرة أخرى.',
+    rowCount: 'المتكررة ({n})',
+    rowNone: 'المتكررة',
+    voiceDone: 'سيتكرر شهريًا',
+    offlineNote: 'تم الحفظ. سيبدأ عند عودة الاتصال.',
+    nextOn: 'التالي في',
+    notesLabel: 'ملاحظات',
+    severalPayers: 'دفع عدة أشخاص. تتبع حصصهم المبلغ.',
+    splitKept: 'يحتفظ هذا التقسيم بمبالغه المحفوظة. لتغييره أوقف هذا وأنشئ واحدًا جديدًا.',
+    problemName: 'أعطه اسمًا.',
+    problemAmount: 'أدخل مبلغًا.',
+    problemPeople: 'اختر من سيتقاسم المبلغ.',
+    problemPayers: 'مجموع الدافعين لا يساوي المبلغ.',
+    problemSplit: 'مجموع التقسيم لا يساوي المبلغ.',
+    problemDates: 'تحقق من التواريخ: لا يمكن أن يسبق الانتهاءُ البدايةَ.',
+    currencyNote: 'تبقى العملة {currency}.',
+  },
+  inline: {
+    close: 'إغلاق',
+    groupLabel: 'المجموعة',
+    peopleLabel: 'الأشخاص',
+    you: 'أنت',
+    needSomeone: 'اختر شخصًا واحدًا على الأقل.',
+    peopleCount: '{count} يتشاركون',
+    retry: 'حاول مرة أخرى',
+    splitTitle: 'تقسيم {amount}',
+    splitConfirm: 'قسّم',
+    tripTitle: 'نقل إلى الرحلة',
+    tripConfirm: 'انقل إلى هنا',
+    attendanceTitle: 'من كان حاضرًا؟',
+    attendanceSave: 'حفظ',
+    attendanceDone: 'تم تحديث من كان حاضرًا ✓',
+    movedDone: 'تم النقل إلى {group} ✓',
+    splitDone: 'تم التقسيم مع {names} ✓',
+    itemizeTitle: 'التقسيم حسب البند',
+    itemizeHint: 'اضغط على من تناول كل بند.',
+    itemChipA11y: '{name} تناول {item}',
+    everyone: 'الجميع',
+    everyoneA11y: 'الجميع تشاركوا {item}',
+    itemizeCharges: 'الضريبة والرسوم الإضافية {amount} تُوزَّع بحسب ما تناوله كل شخص.',
+    itemizeLeft: 'تبقّى {count} للتوزيع',
+    itemizeSave: 'حفظ التقسيم',
+    itemizeDone: 'تم التقسيم حسب البند ✓',
+    receiptThumb: 'صورة الإيصال',
+    attaching: 'جارٍ الإرفاق…',
+    attached: 'تم الإرفاق ✓',
+    attachFailed: 'تعذّر إرفاق الإيصال.',
+    removeReceipt: 'إزالة',
+    removeFailed: 'تعذّرت إزالة الإيصال.',
+    receiptDone: 'تم إرفاق الإيصال ✓',
+    loanSharing: 'جارٍ المشاركة مع {name}…',
+    loanShared: 'تمت المشاركة مع {name} ✓ يمكنه رؤيته وتسويته.',
+    loanShareFailed: 'تم حفظ القرض، لكن تعذّرت مشاركته مع {name}.',
+    settleTitle: 'تسوية الحساب',
+    settleAllDone: 'تمت التسوية بالكامل ✓',
+    settleRecorded: 'تم تسجيل الدفعة ✓',
+    settleFailed: 'تعذّر تسجيل الدفعة.',
+    settleOthers: '{count} أخرى بين أشخاص آخرين',
+    owesYou: '{name} مدين لك بـ {amount}',
+    youOwe: 'أنت مدين لـ {name} بـ {amount}',
+    recordPayment: 'تسجيل دفعة',
+    recordA11y: 'تسجيل دفعة، {name}، {amount}',
+    showAll: 'عرض الكل ({count})',
+    showLess: 'عرض أقل',
+    noMatches: 'لا شيء لعرضه.',
+  },
+  followUps: {
+    added: 'تمت إضافة {amount} إلى {where} ✓',
+    wherePersonal: 'شخصي',
+    skip: 'تخطَّ',
+    dontAsk: 'لا تسأل عن هذا مجددًا',
+    done: 'تم',
+    yes: 'نعم',
+    no: 'لا',
+    working: 'جارٍ التحديث…',
+    placeAsk: 'أين كان هذا؟',
+    placeElse: 'مكان آخر',
+    receiptAsk: 'هل لديك إيصال؟ سأحتفظ به مع المصروف.',
+    receiptScan: 'مسح',
+    receiptPick: 'اختيار صورة',
+    splitByItem: 'التقسيم حسب الصنف',
+    splitAsk: 'هل تقسّمه مع أحد؟ عادةً تقسّم {category} مع {name}.',
+    splitSomeone: 'شخص آخر',
+    paymentAsk: 'كيف دفعت؟',
+    payCash: 'نقدًا',
+    payUpi: 'UPI',
+    payCard: 'بطاقة',
+    payCredit: 'بطاقة ائتمان',
+    payDebit: 'بطاقة خصم',
+    tripAsk: 'هل كان هذا من أجل {trip}؟',
+    tripMove: 'انقله إلى {trip}',
+    tripNo: 'لا، شخصي',
+    attendanceAsk: 'هل كان الجميع حاضرين؟',
+    attendanceEveryone: 'الجميع',
+    attendancePick: 'اختر الأشخاص',
+    payerAsk: 'هل دفع {name} هذا المبلغ؟',
+    payerYes: 'دفع {name}',
+    payerNo: 'لا، أنا دفعت',
+    recurringAsk: 'يبدو هذا شهريًا — هل تكرره كل شهر؟',
+    recurringYes: 'كرّره شهريًا',
+    duplicateAsk: 'أضاف {name} بالفعل {amount} «{description}» — هل هي الفاتورة نفسها؟',
+    duplicateSame: 'نفسها، احذف مصروفي',
+    duplicateDifferent: 'مختلفة',
+    currencyAsk: 'هل كان هذا بعملة {currency}؟',
+    currencyKeep: 'أبقِ {currency}',
+    categoryAsk: 'ما نوع هذا المصروف؟',
+    dateAsk: 'هل كان هذا أمس؟',
+    dateYes: 'نعم، أمس',
+    dateNo: 'لا، اليوم',
+    lendAsk: 'هل يجب أن يردّ {name} المبلغ لك؟',
+    lendYes: 'نعم، {name} مدين لي',
+    lendNo: 'لا، كان هدية',
+    lendShare: 'نعم، وأظهره لـ {name} أيضًا',
+    wrapupAsk: 'يبدو أن {trip} انتهت. هل نسوّي الحسابات الآن؟',
+    wrapupYes: 'سوِّ الحسابات',
+    wrapupNo: 'ليس بعد',
+    workAsk: 'هل تطالب بهذا المبلغ من العمل؟',
+    workYes: 'نعم، ضع وسمًا',
+    saved: 'تم الحفظ ✓',
+    savedWith: 'تم الحفظ مع {items}',
+    itemPlace: 'المكان',
+    itemPayment: 'طريقة الدفع',
+    itemCategory: 'الفئة',
+    itemDate: 'التاريخ',
+    itemPayer: 'الدافع',
+    itemCurrency: 'العملة',
+    itemRecurring: 'التكرار الشهري',
+    itemLend: 'القرض',
+    itemWork: 'وسم العمل',
+    removedDuplicate: 'تم حذف المكرر',
+    handedOff: 'فتحته لك',
+    gotIt: 'حسنًا',
+    couldNotUse: 'لم أستطع استخدام ذلك',
+    listening: 'جارٍ الاستماع…',
+    stopListening: 'انتهيت من الكلام',
+    transcribing: 'جارٍ الفهم…',
+    micDenied: 'الميكروفون متوقف. اكتب إجابتك بدلاً من ذلك.',
+    noSpeech: 'لم أسمع ذلك. اضغط على الميكروفون وحاول مرة أخرى.',
+    voiceFailed: 'تعذّر سماع ذلك. اضغط على الميكروفون وحاول مرة أخرى.',
+    turnsUsed: 'انتهت أسئلة هذا المصروف. اختر أحد الخيارات.',
+    couldNotSave: 'تعذّر الحفظ. حاول مجددًا؟',
+    reimbursableRow: 'مصروف عمل (للمطالبة)',
+    reimbursableTag: 'عمل',
+    settingsRow: 'أسئلة المتابعة',
+    settingsHint: 'بعد أن يضيف المساعد مصروفًا قد يسأل سؤالًا قصيرًا عنه',
+    resetRow: 'إعادة ضبط الأسئلة المكتومة',
+    resetHint: 'اسأل كل أنواع المتابعة مجددًا',
+    resetDone: 'تمت إعادة ضبط أسئلة المتابعة',
+    typingOffline: 'الكتابة تحتاج إلى اتصال',
+  },
+  voiceScreen: {
+    headline: 'قلها ببساطة',
+    subline: 'سأفهم مصروفك وأنظّمه.',
+    statusReady: 'اضغط وتحدّث',
+    statusStarting: 'جارٍ تجهيز الميكروفون…',
+    statusListening: 'أستمع…',
+    statusProcessing: 'أفهم مصروفك…',
+    statusNoSpeech: 'لم أسمع ذلك',
+    statusNoAmount: 'سمعتك، لكن بلا مبلغ',
+    statusPermission: 'يلزم إذن الميكروفون',
+    statusError: 'حدث خطأ ما',
+    statusExpenseReady: 'المصروف جاهز',
+    statusCheck: 'راجع تفصيلًا واحدًا',
+    statusSaving: 'جارٍ الإضافة…',
+    statusSaved: 'تمت الإضافة',
+    micStart: 'ابدأ الاستماع',
+    micStop: 'أوقف الاستماع',
+    micRetry: 'حاول مرة أخرى',
+    micBusy: 'جارٍ العمل',
+    hearing: 'أسمع',
+    youSaid: 'قلتَ',
+    editHeard: 'عدّل النص',
+    suggestionsTitle: 'جرّب أن تقول شيئًا مثل:',
+    category: 'الفئة',
+    splitWith: 'التقسيم مع',
+    justYou: 'أنت فقط',
+    addExpense: 'أضف المصروف',
+    retry: 'حاول مرة أخرى',
+    openSettings: 'افتح الإعدادات',
+    permissionBody: 'اسمح بالوصول إلى الميكروفون لتقول مصروفًا، أو اكتبه بدلًا من ذلك.',
+    date: 'التاريخ',
+    savedTitle: 'تمت الإضافة',
+    savedTo: 'أُضيف إلى {where}',
+    savedForLater: 'حُفظ لوقت لاحق في غير المصنّف',
+    savedSettled: 'تمت التسوية مع {name}',
+    savedReminded: 'أُرسل تذكير إلى {name}',
+    savedMembers: 'أُضيف {name} إلى {group}',
+    addAnother: 'أضف آخر',
+    done: 'تم',
+    splitEquallyWith: 'تقسيم بالتساوي مع: {names}',
+    paidByName: 'دفع {name}',
+    splitDifferently: 'قسّم بشكل مختلف',
+    details: 'التفاصيل',
+    addAll: 'إضافة الكل',
+  },
   voice: {
     speakExpense: 'انطق مصروفًا',
     micHint: 'انقر للفتح، أو اضغط مطوّلًا وتحدّث',
@@ -19987,10 +22385,6 @@ const ar: UiStrings = {
     tapToSpeak: 'انقر للتحدث',
     noAmount: 'لم أفهم المبلغ',
     missedNothing: 'لم أفهم ذلك',
-    setupOffline: 'إعداد الصوت دون اتصال',
-    offlineDownloading: 'يجري تنزيل نموذج الصوت دون اتصال… أعد المحاولة بعد قليل.',
-    offlineReady: 'الصوت دون اتصال جاهز — انقر الميكروفون وتحدّث.',
-    offlineFailed: 'تعذّر إعداد الصوت دون اتصال على هذا الجهاز.',
     tapToRetry: 'انقر لإعادة المحاولة',
     tryAgain: 'أعد المحاولة',
     chooseGroup: 'أي مجموعة؟',
@@ -20001,25 +22395,20 @@ const ar: UiStrings = {
     unavailable: 'التعرّف على الكلام غير متاح على هذا الهاتف.',
     review: 'مراجعة',
     saveTo: 'الحفظ في',
+    saveForLater: 'الحفظ لوقت لاحق',
+    saveHere: 'احفظ هنا',
+    searchGroups: 'ابحث عن المجموعات…',
+    searchPeopleShort: 'ابحث عن الأشخاص…',
     change: 'تغيير',
     newGroupNamed: 'مجموعة جديدة «{name}»',
     thinking: 'جارٍ الفهم…',
     save: { one: 'حفظ مصروف', other: 'حفظ {n} مصاريف' },
     savedCount: { one: 'تم حفظ مصروف', other: 'تم حفظ {n} مصاريف' },
-    count: {
-      zero: 'لا مصاريف',
-      one: 'مصروف واحد',
-      two: 'مصروفان',
-      few: '{n} مصاريف',
-      many: '{n} مصروفًا',
-      other: '{n} مصروف',
-    },
     saveDraft: 'الحفظ في الوارد',
     draftNeedsAmounts: 'أدخل مبلغًا لكل مصروف، أو احذفه، للاحتفاظ بهذه المسودة.',
     people: 'الأشخاص',
     addPerson: 'إضافة شخص',
     addPersonPlaceholder: 'اسمه',
-    addMore: 'أضف آخر',
     groupsTab: 'المجموعات',
     peopleTab: 'الأشخاص',
     justMe: 'أنا فقط',
@@ -20035,20 +22424,12 @@ const ar: UiStrings = {
     autoAddingPerson: 'إضافة {name} إلى {group}',
     autoUndo: 'تراجع',
     paidBy: 'دفع',
-    splitLabel: 'التقسيم',
     youLabel: 'أنت',
-    splitEveryone: 'بالتساوي بين الجميع',
-    splitEqual: 'بالتساوي · {names}',
     splitExact: 'مبالغ محددة · {names}',
     splitPercent: 'بالنسبة المئوية · {names}',
     splitFullOn: 'كامل المبلغ على {names}',
     whoPaid: 'من دفع؟',
-    heardAs: 'سُمع “{heard}”',
-    whoTitle: 'من دفع ومن يشارك',
-    whoPaidSection: 'دفع',
-    whoSharesSection: 'مقسوم بين',
-    whoResets: 'تغيير المشاركين يقسم المبلغ بالتساوي.',
-    whoUnknown: 'من هو “{name}”؟ اختره أدناه.',
+    whoUnknown: 'من هو “{name}”؟',
     didYouMean: 'هل تقصد {name}؟',
     didYouMeanYes: 'نعم',
     whichOf: '{names} أو {last}؟',
@@ -20073,31 +22454,62 @@ const ar: UiStrings = {
     ansGroupOwe: 'في {group}، عليك {amount}',
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
     ansNoPerson: 'تعذر العثور على {name}',
-    askAgain: 'اسأل مرة أخرى',
+    sqSumAll: '{when} أنفقت {amount}',
+    sqSumCat: '{when} أنفقت {amount} على {category}',
+    sqNothingAll: 'لا إنفاق {when}',
+    sqNothingCat: 'لا شيء على {category} {when}',
+    sqBiggest: 'الأكبر: {amount} {what} في {date}',
+    sqCountAll: 'المصروفات {when}: {count}',
+    sqCountCat: 'مصروفات {category} {when}: {count}',
+    sqBudgetLeft: 'تبقى {left} من ميزانية {category} البالغة {limit} {when}',
+    sqBudgetOver: 'تجاوزت ميزانية {category} البالغة {limit} بمقدار {over} {when}',
+    sqNoBudgetCat: 'لم تُحدد ميزانية {category}',
+    sqNoBudgetAny: 'لم تُحدد ميزانية إجمالية',
+    sqSetOne: 'حددها',
+    sqOverall: 'الإجمالية',
+    sqNoGroup: 'تعذر العثور على مجموعة باسم {group}',
+    sqShow: 'اعرض في الإنفاق',
+    sqAnd: '{a} و{b}',
+    sqInGroup: 'في {group}',
+    sqWhenToday: 'اليوم',
+    sqWhenYesterday: 'أمس',
+    sqWhenThisWeek: 'هذا الأسبوع',
+    sqWhenLastWeek: 'الأسبوع الماضي',
+    sqWhenThisMonth: 'هذا الشهر',
+    sqWhenLastMonth: 'الشهر الماضي',
+    sqWhenThisYear: 'هذه السنة',
+    sqWhenLastYear: 'السنة الماضية',
+    sqWhenLast7: 'في آخر 7 أيام',
+    sqWhenLast30: 'في آخر 30 يومًا',
+    sqWhenInMonth: 'في {month}',
+    sqWhenInYear: 'في {year}',
+    sqChipToday: 'اليوم',
+    sqChipYesterday: 'أمس',
+    sqChipThisWeek: 'هذا الأسبوع',
+    sqChipLastWeek: 'الأسبوع الماضي',
+    sqChipThisMonth: 'هذا الشهر',
+    sqChipLastMonth: 'الشهر الماضي',
+    sqChipThisYear: 'هذه السنة',
+    sqChipLastYear: 'السنة الماضية',
+    sqChipLast7: 'آخر 7 أيام',
+    sqChipLast30: 'آخر 30 يومًا',
     agentUnderstanding: 'جارٍ الفهم…',
-    agentUnderstandingHint: 'لحظة واحدة، أنا أستمع.',
     agentHeard: 'سمعتُ',
-    agentConfirm: 'تأكيد',
-    agentConfirmAll: 'تأكيد الكل',
     agentEdit: 'تعديل',
-    agentDiscard: 'تجاهل',
     agentDone: 'تم',
     agentCouldNotRun: 'تعذّر تنفيذ ذلك. حاول مرة أخرى.',
     agentProblem: 'تعذّر مطابقة هذا مع أشخاصك أو مجموعاتك.',
-    agentClarifyTitle: 'لم أفهم تمامًا',
-    agentTryAgain: 'حاول مرة أخرى',
     agentAnswer: 'أجب',
-    agentContinue: 'متابعة',
-    agentTypeInstead: 'اكتب بدلاً من ذلك',
     agentTypePlaceholder: 'اكتب إجابتك',
     agentTypeSend: 'إرسال الإجابة',
     agentTypeMic: 'أجب بالصوت',
-    agentOptionHint: 'انقر مرتين لاختيار هذه الإجابة',
+    agentOtherGroup: 'مجموعة أخرى',
+    agentSearchGroups: 'ابحث في مجموعاتك',
+    agentNoGroupMatch: 'لا توجد مجموعة بهذا الاسم',
     agentNothingToDo: 'لا شيء لإضافته من ذلك. حاول مرة أخرى.',
     agentQuotaLeft: 'تبقّى {percent}% من أوامرك المتقدمة هذا الشهر',
     agentTrialQuotaLeft: 'تبقّى {percent}% من أوامر تجربة Pro',
     agentTrialQuotaLeftUntil: 'تبقّى {percent}% من أوامرك الصوتية في التجربة · حتى {date}',
-    confirmSubtitle: 'أخبرني بما أنفقته وسأضيفه لك.',
     confirmUnderstood: 'فهمتُ هذا',
     confirmEditHint: 'يمكنك التعديل إذا بدا شيء خاطئًا.',
     confirmEditAll: 'تعديل الكل',
@@ -20112,7 +22524,6 @@ const ar: UiStrings = {
     confirmNotePlaceholder: 'لأي غرض؟',
     confirmAdd: 'إضافة المصروف',
     confirmClear: 'مسح',
-    confirmQuotaInfo: 'عن الأوامر المتقدمة',
     confirmPersonMissing: '{name} ليس في هذه المجموعة',
     confirmPickGroup: 'اختر مجموعة لإضافته إليها',
     confirmNeedAmount: 'أدخل مبلغًا',
@@ -20125,13 +22536,6 @@ const ar: UiStrings = {
     confirmNoteHint: 'أضف ملاحظة (اختياري)',
     confirmToday: 'اليوم',
     confirmYesterday: 'أمس',
-    engineCloud: 'السحابة',
-    engineOnDevice: 'على الجهاز',
-    engineReasonFree: 'الخطة المجانية',
-    engineReasonQuota: 'بلغتَ الحد الشهري',
-    engineReasonOffline: 'غير متصل',
-    engineReasonCloudDown: 'السحابة غير متاحة',
-    engineReasonOff: 'متوقف في الإعدادات',
     agentQuotaFallback: 'بلغتَ حد الصوت المتقدم لهذا الشهر. يُستخدم الصوت الأساسي.',
     agentAdd: 'أضف {amount}',
     agentPaid: 'دفع {name}',
@@ -20252,61 +22656,31 @@ const ar: UiStrings = {
     row: 'الصوت المتقدم',
     toggle: 'السماح بالصوت السحابي',
   },
-  offlineVoice: {
-    row: 'الصوت دون اتصال',
-    title: 'الصوت دون اتصال',
-    rowHint: 'نماذج الكلام المحفوظة على هذا الهاتف',
-    intro:
-      'بعد تنزيل لغة يعمل الميكروفون دون اتصال — ويظل يعمل على الهواتف التي تعطّلت فيها خدمة الكلام عبر الإنترنت.',
-    appSection: 'لغات Waves',
-    appSectionHint: 'هذه ما يطلبه الميكروفون.',
-    alsoInstalled: 'موجودة على هذا الهاتف',
-    otherLanguages: 'لغات أخرى',
-    otherLanguagesHint: 'يستطيع هاتفك جلب أيٍّ منها.',
-    sectionCount: {
-      zero: '{n} لغة',
-      one: 'لغة واحدة',
-      two: 'لغتان',
-      few: '{n} لغات',
-      many: '{n} لغة',
-      other: '{n} لغة',
-    },
-    installed: 'على الهاتف',
-    notInstalled: 'غير مُنزَّلة',
-    cannotTell: 'يتعذّر معرفة ذلك',
-    download: 'تنزيل',
-    downloading: 'هاتفك ينزّل هذا الآن.',
-    noProgress: 'لا يخبر Android بمقدار ما اكتمل.',
-    ready: 'اكتمل التنزيل. يمكن للميكروفون استخدامه الآن.',
-    dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
-    scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
-    languageMissing:
-      'لا تملك خدمة الكلام في هاتفك نموذجًا يعمل دون اتصال لهذه اللغة، فليس هناك ما يُجلب. تحديث «Speech Recognition & Synthesis» من متجر Play يضيف لغة أحيانًا؛ وحتى ذلك الحين تحتاج هذه اللغة إلى اتصال.',
-    notDownloaded:
-      'هاتفك يعرف هذه اللغة لكنه لم يجلبها بعد. عادةً ينتظر شبكة Wi‑Fi — أعد المحاولة بعد الاتصال بها.',
-    networkFailed: 'لم يصل التنزيل. تحقّق من اتصالك وأعد المحاولة.',
-    serviceBusy: 'خدمة الكلام في هاتفك مشغولة. أغلق ما يستخدم الميكروفون وأعد المحاولة.',
-    handedOff: 'بدأ هاتفك التنزيل لكنه لن يُبلغ عنه. امهله بضع دقائق ثم حدِّث القائمة.',
-    failed: 'رفضت خدمة الكلام في هاتفك التنزيل ولم تذكر السبب.',
-    stillWorking:
-      'لم يقل هاتفك بعدُ إن كان هذا قد اكتمل. امهله قليلًا ثم حدِّث القائمة لترى إن كان قد وصل.',
-    tooOld:
-      'إصدار Android على هذا الهاتف أقدم من أن ينزّل النماذج من داخل التطبيق. ابحث عن «voice» في إعدادات Android وأضف واحدة.',
-    iosNote:
-      'ينزّل iPhone لغات الإملاء بنفسه، ولا يقول أيّها موجود لديه بالفعل. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
-    unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
-    noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
-    refresh: 'تحديث',
-    unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
-    unreadableBody:
-      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
-    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
-    permissionNeeded:
-      'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
-    empty:
-      'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
-    footnote:
-      'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
+  /** Corrections and undo after the assistant saves an expense. */
+  corrections: {
+    changedAmount: 'تم التغيير إلى {amount}',
+    changedDate: 'التاريخ {date}',
+    changedName: 'تمت إعادة التسمية إلى {name}',
+    changedCurrency: 'الآن بعملة {currency}',
+    changedGroup: 'نُقل إلى {where}',
+    changedPayer: 'دفع {name}',
+    personalName: 'شخصي',
+    undo: 'تراجع',
+    restore: 'استعادة',
+    removed: 'حُذف {amount} {description}',
+    restored: 'تمت الاستعادة ✓',
+    undone: 'تم التراجع ✓',
+    change: 'تغيير',
+    unchanged: 'لا شيء لتغييره',
+    couldNotUndo: 'تعذّر التراجع. حاول مرة أخرى؟',
+    undoLoanSettled:
+      'سُدّد جزء من هذا الدَّين في المجموعة بالفعل، لذا لا يمكن التراجع عنه هنا. سوِّ الباقي بدلًا من ذلك.',
+    couldNotChange: 'تعذّر التغيير. حاول مرة أخرى؟',
+    needsConnection: 'الكتابة تحتاج إلى اتصال',
+    couldNotUse: 'لم أستطع استخدام ذلك',
+    undoA11y: 'تراجع: {amount} {description}',
+    restoreA11y: 'استعادة: {amount} {description}',
+    updated: 'تم التحديث ✓',
   },
   notifications: {
     title: 'الإشعارات',
@@ -20341,6 +22715,9 @@ const ar: UiStrings = {
       'التسويات والتذكيرات والملخص الأسبوعي. تنبيه الأمان عند تسجيل دخول جديد يصل مهما كان هذا الإعداد.',
     weeklyEmail: 'ملخص أسبوعي بالبريد',
     weeklyEmailBody: 'صافي باقيك والتأكيدات المعلّقة، مرة كل أسبوع. متوقف افتراضيًا.',
+    rowOn: 'مفعّلة',
+    rowOff: 'متوقفة',
+    rowOffInPhone: 'متوقفة في إعدادات الهاتف',
     failDenied: 'لم يُفعَّل — يمكنك تفعيله لاحقًا من إعدادات هاتفك.',
     failUnsupported: 'لا يستطيع هذا الجهاز استقبال الإشعارات. كل شيء يصل إلى النشاط رغم ذلك.',
     failNotSignedIn: 'سجّل الدخول أولًا، كي نعرف أي هاتف هو هاتفك.',
@@ -20662,15 +23039,10 @@ const ar: UiStrings = {
     },
   },
   exportForm: {
-    heroTitle: 'بياناتك، دائمًا لك',
-    heroBody: 'صدّر سجلًا كاملًا لمصروفاتك وتسوياتك ونشاطك وقتما تشاء — مجانًا.',
     freeBadge: 'بلا جدار دفع. مجاني 100%.',
-    chooseFormat: 'اختر الصيغة',
-    chooseFormatSub: 'اختر صيغة الملف المناسبة لك.',
     jsonSub: '(بلا فقد)',
     csvSub: '(جدول بيانات)',
     pdfSub: '(للطباعة)',
-    whatSub: 'اختر البيانات التي تريد تضمينها.',
     everything: 'تصدير كل شيء',
     oneGroup: 'مجموعة واحدة',
     oneGroupSub: 'المجموعة المحددة فقط',
@@ -20678,7 +23050,6 @@ const ar: UiStrings = {
     includedBody:
       'كل المصروفات، من دفع، من عليه، التسويات مع توزيعاتها لكل مصروف، وسجل النشاط الكامل.',
     exportAction: 'تصدير البيانات',
-    or: 'أو',
     pickGroup: 'أي مجموعة؟',
   },
   receiving: {
@@ -20716,6 +23087,39 @@ const ar: UiStrings = {
     },
     importUndoneHeadline: 'تم التراجع عن الاستيراد',
     importUndoneSentence: '{who} تراجع عن استيراد',
+    group: {
+      renamed: 'غيّر اسم المجموعة إلى {name}',
+      nameCleared: 'أزال اسم المجموعة',
+      description: 'غيّر الوصف',
+      type: 'غيّر نوع المجموعة إلى {type}',
+      datesSet: 'حدّد التواريخ {range}',
+      datesCleared: 'أزال التواريخ',
+      tag: 'غيّر الوسم إلى {tag}',
+      tagCleared: 'أزال الوسم',
+      currency: 'غيّر العملة إلى {code}',
+      convertOn: 'فعّل التحويل إلى {code}',
+      convertOff: 'أوقف التحويل',
+      cover: 'غيّر الغلاف',
+      currencyAdded: 'أضاف {code}',
+      currencyRemoved: 'أزال {code}',
+      rateChanged: 'غيّر سعر {code}',
+      archived: 'أرشف المجموعة',
+      unarchived: 'أعاد المجموعة من الأرشيف',
+      simplifyOn: 'فعّل تقليل المدفوعات',
+      simplifyOff: 'أوقف تقليل المدفوعات',
+      budget: 'حدّد الميزانية {amount}',
+      budgetCleared: 'أزال الميزانية',
+      stops: 'غيّر محطات الرحلة',
+      changed: 'غيّر إعدادات المجموعة',
+      memberAdded: 'أضاف {name}',
+      memberRemoved: 'أزال {name}',
+      memberLeft: 'غادر المجموعة',
+      madeAdmin: 'جعل {name} مشرفًا',
+      madeMember: 'جعل {name} عضوًا',
+      claimed: 'أخذ مكانه',
+      merged: 'دمج {name} في شخص واحد',
+      sentence: '{who} {event}',
+    },
   },
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
@@ -20937,6 +23341,59 @@ const ar: UiStrings = {
     ball: 'رياضة',
     star: 'مفضّل',
     people: 'أصدقاء',
+    bag: 'تسوق',
+    gamepad: 'لعبة',
+    more: 'أخرى',
+  },
+  /** The icon-and-colour sheet behind a group's mark (`components/CoverEmojiPicker.tsx`). */
+  groupIconPicker: {
+    categories: {
+      travel: 'سفر',
+      home: 'المنزل',
+      food: 'طعام وشراب',
+      events: 'مناسبات',
+      friends: 'أصدقاء وعائلة',
+      work: 'عمل',
+      sport: 'رياضة ومرح',
+      money: 'مال',
+      other: 'أخرى',
+    },
+    colour: 'اللون',
+    defaultColour: 'الافتراضي',
+    searchPlaceholder: 'ابحث عن أيقونة',
+    noMatches: 'لا توجد أيقونة مطابقة',
+    quick: {
+      food: 'طعام',
+      travel: 'سفر',
+      home: 'منزل',
+      friends: 'أصدقاء',
+      shopping: 'تسوق',
+      event: 'مناسبة',
+      car: 'سيارة',
+      wallet: 'محفظة',
+      game: 'لعبة',
+      other: 'أخرى',
+    },
+    colours: {
+      lilac: 'بنفسجي فاتح',
+      pink: 'وردي',
+      peach: 'خوخي',
+      coral: 'مرجاني',
+      butter: 'أصفر زبدي',
+      mint: 'نعناعي',
+      sage: 'أخضر مريمية',
+      sky: 'أزرق سماوي',
+      indigo: 'نيلي',
+      teal: 'أخضر مزرق',
+      berry: 'توتي',
+      slate: 'رمادي أردوازي',
+      iris: 'نيلي',
+      blue: 'أزرق',
+      aqua: 'سماوي',
+      green: 'أخضر',
+      yellow: 'أصفر',
+      orange: 'برتقالي',
+    },
   },
   groupPhoto: {
     paidHint: 'صور المجموعة ميزة Pro. اختر أيقونة، أو قم بالترقية لإضافة صورة.',
@@ -21386,6 +23843,9 @@ const ar: UiStrings = {
     refusedKeyLost: 'لم يعد مفتاح تلك النسخة في حساب Google الخاص بك، لذا لا يمكن فتحها.',
     refusedOffline: 'لا اتصال. سيجري النسخ عند عودتك للاتصال.',
     refusedNetwork: 'في انتظار Wi‑Fi. غيّر الإعداد لاستخدام بيانات الجوال.',
+    mobileDataTitle: 'أنت تستخدم بيانات الجوال',
+    mobileDataBody: 'هل تريد النسخ على أي حال؟',
+    mobileDataConfirm: 'انسخ على أي حال',
     refusedAuth: 'طلب Google الإذن من جديد. أعد ربط الحساب.',
     refusedNoBackup: 'لا توجد نسخة على حساب Drive هذا بعد.',
     refusedBusy: 'هناك نسخ جارٍ بالفعل.',
@@ -21486,7 +23946,7 @@ const ar: UiStrings = {
     descriptionPlaceholder: 'ما الغرض من هذه المجموعة؟',
     changeCover: 'غلاف المجموعة',
     chooseIcon: 'اختر أيقونة',
-    chooseIconHint: 'أحد الرموز المرسومة',
+    chooseIconHint: 'اختر أيقونة ولونًا',
     usePhotoHint: 'صورة من هذا الهاتف',
     photoIsPaid: 'الصور تأتي مع Pro',
     removePhoto: 'إزالة الصورة',
@@ -21498,6 +23958,32 @@ const ar: UiStrings = {
     muteNotificationsBody:
       'لن تصلك إشعارات عن هذه المجموعة. سترى كل شيء في التطبيق، ولن يعلم أحد غيرك.',
     simplifyDebtsHint: 'أقل عدد من المدفوعات للتسوية',
+    createdOn: 'أُنشئت {date}',
+    changePill: 'تغيير',
+    editGroup: 'تعديل المجموعة',
+    editGroupHint: 'تُحفظ التغييرات تلقائيًا',
+    groupDetails: 'تفاصيل المجموعة',
+    simplifyDebtsSub: 'يقترح أقل عدد من الدفعات عند التسوية',
+    muteSub: 'إيقاف إشعارات المجموعة',
+    addMembers: 'إضافة أعضاء',
+    membersTitle: 'الأعضاء ({n})',
+    inviteToGroup: 'دعوة إلى المجموعة',
+    inviteToGroupHint: 'شارك رابطًا أو رمز QR ليتمكنوا من الانضمام بسهولة',
+    groupActions: 'إجراءات المجموعة',
+    exitActions: 'أرشفة أو مغادرة أو حذف',
+    exitActionsMember: 'أرشفة أو مغادرة',
+    exitActionsHint: 'إخفاء أو خروج أو إزالة',
+    archiveHintShort: 'إخفاء من قائمتك، ويمكن إلغاء الأرشفة',
+    deleteHintShort: 'حذف نهائي للجميع',
+    adminTitle: 'مشرف',
+    openMember: 'فتح العضو',
+    memberMenu: 'خيارات العضو',
+    coverSubtitle: 'اختر شكل مجموعتك',
+    coverTabIcon: 'أيقونة ولون',
+    coverTabPhoto: 'صورة',
+    chooseIconStep: '1. اختر أيقونة',
+    chooseColourStep: '2. اختر لونًا',
+    seeAll: 'عرض الكل',
     membersHint: 'أضف أشخاصًا، غيّر الأسماء، اضبط معرّفات الدفع',
     bringThingsIn: 'استيراد',
     importMessages: 'استيراد من الرسائل',
@@ -21514,6 +24000,11 @@ const ar: UiStrings = {
       'ما زال لك رصيد في هذه المجموعة. المغادرة الآن تتركه معلّقًا — سوِّ الحساب ثم غادر.',
     leaveQuestion: 'مغادرة هذه المجموعة؟',
     leaveBody: 'تبقى مصروفاتك السابقة في سجل المجموعة.',
+    settleFirstBalance: 'رصيدك',
+    leaveAnyway: 'غادر على أي حال',
+    settleFirstSettle: 'سوِّ الحساب',
+    settleFirstBalanceLabel: 'رصيدك {amount}. يفتح تسوية الحساب.',
+    settleFirstClose: 'إغلاق',
     leave: 'مغادرة',
     archiveQuestion: 'أرشفة هذه المجموعة؟',
     archiveBody:
@@ -21552,8 +24043,8 @@ const ar: UiStrings = {
     rejectBody: 'سجّل {name} أنه دفع لك. هذا يمسح الدفعة المعلّقة ولا يغيّر أي رصيد.',
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
-    groupBalances: 'أرصدة المجموعة',
-    settleUpAll: 'تسوية الكل',
+    paymentsToSettle: 'دفعات للتسوية',
+    everyonesBalance: 'رصيد الجميع',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
@@ -21861,6 +24352,10 @@ const ar: UiStrings = {
     youBorrowed: 'اقترضت',
     noRateShort: 'لا يوجد سعر',
     notInvolved: 'لست ضمنها',
+    pillBorrowed: 'اقترضت',
+    pillLent: 'أقرضت',
+    settledShort: 'مسدّد',
+    notInSplit: 'خارج القسمة',
     notInvolvedTitle: 'أنت لست ضمن هذه القسمة',
     notInvolvedChip: 'Not in this split',
     notInvolvedBody: 'أنت تشاهدها كعضو في المجموعة — لا شيء هنا يؤثّر على رصيدك.',
@@ -21915,6 +24410,16 @@ const ar: UiStrings = {
     note: 'ملاحظة',
     createdByName: 'أنشأها {name}',
     editedByName: 'عدّلها {name}',
+    fresh: {
+      new: 'جديد',
+      edited: 'معدّل',
+      newA11y: 'جديد',
+      editedA11y: 'معدّل',
+      newBy: 'جديد · بواسطة {name}',
+      editedBy: 'معدّل · بواسطة {name}',
+      count: '{n} جديد',
+      jump: 'انتقل إلى أول مصروف جديد',
+    },
     noChanges: 'حُفظ مجددًا دون أي تغيير',
     audit: {
       amount: 'المبلغ',
@@ -21940,6 +24445,7 @@ const ar: UiStrings = {
       subEvent: 'جزء من الفعالية',
       splitDetails: 'تم تحديث تفاصيل التقسيم',
       payee: 'المدفوع له',
+      reimbursable: 'مصروف عمل',
     },
     payee: {
       label: 'المدفوع له',
@@ -21949,6 +24455,12 @@ const ar: UiStrings = {
       clear: 'مسح',
       used: 'مستخدم من قبل',
       to: 'إلى {payee}',
+    },
+    reimbursable: {
+      row: 'مصروف عمل (للمطالبة به)',
+      chip: 'عمل',
+      yes: 'نعم',
+      no: 'لا',
     },
   },
   misc: {
@@ -21981,6 +24493,8 @@ const ar: UiStrings = {
     settleConfirmPaidYes: 'نعم، دفعت',
     settleRemindA11y: 'ذكّر {name} بمبلغ {amount}',
     settlePayA11y: 'ادفع {amount} إلى {name}',
+    settleRecord: 'سجّل',
+    settleRecordA11y: 'سجّل أن {name} دفع {amount}',
     settleMarkPaidA11y: 'تحديد {amount} إلى {name} كمدفوع',
     settleReceivedHint: 'يحدده كمستلم',
     settleSeeAll: 'عرض الكل',
@@ -22970,10 +25484,16 @@ const ar: UiStrings = {
     chooseDifferentFile: 'اختر ملفًا آخر',
     whichGroup: 'أي مجموعة',
     groupNumber: 'مجموعة {n}',
-    whoIsWho: 'من هو من',
-    whoIsWhoNote:
-      'الملف يذكر أسماء؛ وهذه المجموعة لها أعضاء. لا يُستورد شيء حتى يقابل كل اسمٍ شخصٌ ما.',
-    tapANameNote: 'اضغط على اسم لتقول من يكون. لا يُطابَق شيء نيابةً عنك.',
+    isThisYou: 'هل هذا أنت؟',
+    whichOneIsYou: 'أيٌّ منهم أنت؟',
+    tapYourName: 'اضغط على اسمك في القائمة.',
+    weThinkYou: 'نظن أن هذا أنت. اضغط للتغيير.',
+    thisIsMe: 'هذا أنا',
+    thisIsMeFor: 'اعتبر {name} أنا',
+    personIsYou: '{name} هو أنت.',
+    notInFile: 'لستُ في هذا الملف',
+    pickYouFirst: 'اختر أولًا من تكون، أو اختر «لستُ في هذا الملف».',
+    tapTagToLink: 'اضغط على وسم لربط شخص موجود في المجموعة.',
     personIsMapped: '{name} هو {who} هنا. اضغط للتغيير.',
     addAsNew: 'أضفه كشخص جديد',
     newPerson: 'شخص جديد',
@@ -23033,7 +25553,6 @@ const ar: UiStrings = {
       many: 'اختر من يكون {n} شخصًا',
       other: 'اختر من يكون {n} شخص',
     },
-    tapYourNameFirst: 'اضغط أولًا على الاسم الذي يخصّك.',
     imported: 'تم الاستيراد',
     openTheGroup: 'افتح المجموعة',
     importedCount: {
@@ -23167,6 +25686,19 @@ const ar: UiStrings = {
     breakfast: 'الإفطار',
     endOfDay: 'نهاية اليوم',
     clearDates: 'امسح التواريخ',
+    datesSheetSubtitle: 'اختر تاريخَي البداية والنهاية لهذه المجموعة',
+    startDate: 'تاريخ البداية',
+    endDate: 'تاريخ النهاية',
+    daysSelected: {
+      zero: 'لم يُحدَّد أي يوم',
+      one: 'تم تحديد يوم واحد',
+      two: 'تم تحديد يومين',
+      few: 'تم تحديد {n} أيام',
+      many: 'تم تحديد {n} يومًا',
+      other: 'تم تحديد {n} يوم',
+    },
+    noDatesSelected: 'لم تُحدَّد تواريخ',
+    saveDates: 'حفظ التواريخ',
     nobodyPickedYet: 'لم تختر أحدًا بعد',
     personCount: {
       zero: '{n} شخص',
@@ -23444,6 +25976,49 @@ const ar: UiStrings = {
     youHaveHistory: 'لديك مصروفات في هذه المجموعة باسمك بالفعل، لذا لا يمكن دمج الاثنين.',
     theyHaveHistory: 'لديه مصروفات في هذه المجموعة باسمه بالفعل، لذا لا يمكن دمج الاثنين.',
   },
+  link: {
+    row: 'ربط بمستخدم Waves',
+    rowHint: 'قل من هو {name} فعلًا.',
+    pickGroupBody:
+      '{name} عنصر نائب في {n} مجموعات. كل مجموعة تُربط على حدة: اختر واحدة ثم عد للبقية.',
+    waiting: 'بانتظار قبول {who}',
+    waitingHint: 'لا يتغيّر شيء حتى يوافق.',
+    cancelAsk: 'إلغاء الطلب',
+    sheetTitle: 'من هو {name}؟',
+    sheetHint: 'اختر الشخص، أو ابحث عنه برقم الهاتف أو البريد الإلكتروني.',
+    inThisGroup: 'في هذه المجموعة بالفعل',
+    peopleYouKnow: 'أشخاص تعرفهم',
+    searchPlaceholder: 'الاسم أو رقم الهاتف أو البريد',
+    noMatches: 'لا أحد بهذا الاسم. جرّب رقم هاتفه أو بريده.',
+    notFound: 'لا أحد على Waves بهذا الرقم أو البريد، أو أنه لا يريد أن يُعثر عليه.',
+    searching: 'جارٍ البحث…',
+    lookUp: 'ابحث',
+    mergeConfirmTitle: 'دمج {name} في {who}؟',
+    mergeConfirmBody:
+      '{expenses} ورصيد {balance} الخاصة بـ {name} تنتقل إلى {who}. لا يمكن التراجع عن هذا.',
+    mergeExpenses: { one: 'مصروف واحد', other: '{n} مصروفات' },
+    mergeAction: 'دمج',
+    mergeDone: 'تم. كل ما تحت اسم {name} صار لـ {who}.',
+    askConfirmTitle: 'سؤال {who}؟',
+    askConfirmBody: 'تصله رسالة: «{me} يقول إنك {name} في {group}». لا يتغيّر شيء حتى يقبل.',
+    askAction: 'اسأله',
+    askSent: 'تم السؤال. ستعرف عندما يجيب {who}.',
+    failed: 'تعذّر ذلك الآن. حاول مرة أخرى بعد قليل.',
+    guest: 'يستخدم Waves كضيف. اطلب منه التسجيل أولًا.',
+    thatIsYou: 'هذا أنت. استخدم «هذا أنا» بدلًا من ذلك.',
+    rateLimited: 'سألت كثيرين اليوم. حاول غدًا.',
+    notAllowed: 'مشرف هذه المجموعة وحده يستطيع فعل ذلك.',
+    cardTitle: 'هل هذا أنت؟',
+    cardBody: '{who} يقول إنك {name} في {group}.',
+    cardHint: 'اقبل، وكل ما سُجّل بذلك الاسم يصبح لك.',
+    accept: 'نعم، هذا أنا',
+    notMe: 'ليس أنا',
+    accepted: 'تم. أنت الآن في {group}.',
+    declined: 'أخبرناه.',
+    needsAccount: 'سجّل أولًا — لا يمكن لضيف أن يأخذ مكانًا في مجموعة.',
+    placeTaken: 'ذلك المكان صار لشخص آخر الآن.',
+    empty: 'لا شيء بانتظارك.',
+  },
   blocked: {
     row: 'الأشخاص المحظورون',
     rowHint: 'الأسماء والوجوه التي أخفيتها',
@@ -23462,7 +26037,7 @@ const ar: UiStrings = {
     rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
     title: 'نشاط الشبكة',
     explainer:
-      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+      'ما طلبه Waves من هذا الهاتف خلال آخر 7 أيام. تظهر المزامنة في الخلفية كعدد فقط. لا تغادر هذه القائمة هاتفك أبدًا.',
     empty: 'لم يُسجَّل أي اتصال بعد.',
     emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
     today: 'اليوم',
@@ -23474,7 +26049,38 @@ const ar: UiStrings = {
     clearConfirm: 'مسح',
     statusFailed: 'فشل',
     statusOffline: 'بلا اتصال',
-    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    rowLabel: '{time}، {call}، {status}',
+    statusOk: 'تم',
+    syncSummary: {
+      zero: 'مزامنة · {n} مرة خلال 7 أيام',
+      one: 'مزامنة · مرة واحدة خلال 7 أيام',
+      two: 'مزامنة · مرتان خلال 7 أيام',
+      few: 'مزامنة · {n} مرات خلال 7 أيام',
+      many: 'مزامنة · {n} مرة خلال 7 أيام',
+      other: 'مزامنة · {n} مرة خلال 7 أيام',
+    },
+    syncLast: 'آخر مزامنة {time}',
+    calls: {
+      exchangeRate: 'سعر الصرف',
+      statement: 'قراءة كشف حساب',
+      screenshot: 'قراءة لقطة شاشة',
+      receipt: 'قراءة إيصال',
+      voice: 'الصوت',
+      upload: 'رفع ملف',
+      signIn: 'تسجيل الدخول',
+      analytics: 'حدث استخدام',
+      purchases: 'المشتريات',
+      crashReport: 'تقرير تعطل',
+      sessionReplay: 'إعادة الجلسة',
+      mapTiles: 'مربعات الخريطة',
+      google: 'Google',
+      appStore: 'التحقق من التحديث',
+      accountDelete: 'حذف الحساب',
+      exportData: 'تصدير بياناتي',
+      invite: 'دعوة',
+      connectedApps: 'التطبيقات المتصلة',
+      serverRequest: 'خادم Waves',
+    },
     purposes: {
       sync: 'المزامنة',
       signIn: 'تسجيل الدخول',
@@ -23540,7 +26146,6 @@ const ar: UiStrings = {
     row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
     title: 'الخصوصية',
-    intro: 'يحتفظ Waves بأقل قدر ممكن عنك مع بقائه صالحًا للعمل. وهذا بيان بما يحتفظ به.',
     storeTitle: 'ما الذي يُحفظ',
     storeBody:
       'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
@@ -23565,6 +26170,7 @@ const ar: UiStrings = {
     blockedNone: 'لا أحد',
     sessionReplayHint: 'متوقف ما لم تفعّله بنفسك',
     policySection: 'كيف نحمي بياناتك',
+    dataSection: 'بياناتك',
     supportRow: 'أسئلة عن الخصوصية',
     supportRowHint: 'راسلنا — يردّ عليك شخص',
     lastUpdated: 'آخر تحديث {date}.',
@@ -23706,6 +26312,24 @@ const ar: UiStrings = {
     typeOther: 'أخرى',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
+    tagSheetSubtitle: 'أضف وسمًا ليسهل العثور عليها لاحقًا.',
+    tagPopular: 'الوسوم الشائعة',
+    saveTag: 'حفظ الوسم',
+    tagChips: {
+      weekend: 'عطلة نهاية الأسبوع',
+      roadTrip: 'رحلة برية',
+      holiday: 'إجازة',
+      officeOffsite: 'رحلة الشركة',
+      birthday: 'عيد ميلاد',
+      wedding: 'زفاف',
+      family: 'العائلة',
+      friends: 'الأصدقاء',
+      other: 'أخرى',
+    },
+    groupTypeTitle: 'نوع المجموعة',
+    datesRow: 'التواريخ',
+    groupTypeInfo:
+      'يحدد النوع تسمية المجموعة وغلافها الافتراضي وأدوات الرحلة. لا يتغير أي شيء سُجّل من قبل.',
     tagSuggestions: {
       trip: ['عطلة نهاية الأسبوع', 'رحلة برية', 'إجازة'],
       home: ['الإيجار', 'زملاء السكن', 'الفواتير'],
@@ -23798,10 +26422,22 @@ const ar: UiStrings = {
     settlesIn: 'التسوية بـ',
     settlesInHint: 'كل رصيد في هذه المجموعة يُحسب بهذه العملة.',
     settlesInLocked: 'مقفل — في المجموعة قيود بالفعل.',
+    convertAllTitle: 'التسوية بعملة {currency} لكل المصروفات',
+    convertShort: 'تُحتسب الفواتير المدفوعة بعملات أخرى بـ {currency}',
+    otherCurrencies: 'عملات أخرى',
+    groupCurrencies: 'عملات هذه المجموعة',
+    settleInShort: 'احتساب الفواتير الأجنبية بـ {currency}',
+    balancesIn: 'الأرصدة بـ {currency}',
+    groupCurrencyLine: '{name} · عملة المجموعة',
+    currencyOnly: '{currency} فقط',
     tripRates: 'أسعار الرحلة',
     tripRatesBody:
       'ثبّت سعراً لكل عملة ستدفع بها، فتتحوّل كل فاتورة بالطريقة نفسها — دون كتابته من جديد مع كل فاتورة.',
     addRate: 'أضف عملة',
+    otherCurrenciesSubtitleTrip: 'أضف العملات المستخدمة في هذه الرحلة',
+    otherCurrenciesSubtitleGroup: 'أضف العملات المستخدمة في هذه المجموعة',
+    ratesInfoFetched: 'يتم جلب الأسعار عند إضافة عملة.',
+    ratesInfoKept: 'الفواتير المحفوظة مسبقًا تحتفظ بالسعر الذي أُضيفت به.',
     editRate: 'تعديل السعر',
     newRate: 'سعر جديد',
     removeRate: 'احذف هذا السعر',
@@ -23855,6 +26491,25 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalReceipt: {
+    title: 'الإيصال',
+    add: 'إضافة',
+    attached: 'مرفق',
+    saving: 'جارٍ الحفظ…',
+    addTitle: 'إضافة إيصال',
+    camera: 'التقاط صورة',
+    library: 'اختيار من المعرض',
+    remove: 'حذف',
+    removeTitle: 'حذف هذا الإيصال؟',
+    removeBody: 'ستُحذف الصورة من Waves. يبقى القيد كما هو.',
+    replace: 'استبدال الصورة',
+    private: 'أنت وحدك من يراه',
+    unavailable: 'تعذّر تحميل الصورة',
+    paidOnly: 'حفظ الإيصالات على Waves يتطلب Plus.',
+    storageFull: 'لقد بلغت حد التخزين.',
+    waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
+    couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
+  },
   personal: {
     introCards: [
       {
@@ -24026,6 +26681,22 @@ const ar: UiStrings = {
     principal: 'المبلغ',
     outstanding: 'المتبقي',
     recordPayment: 'تسجيل دفعة',
+    shareWith: 'مشاركة مع {name}',
+    shareTitle: 'مشاركة هذا القرض',
+    shareBody:
+      'سيرى {name} هذا كرصيد بينكما ويمكنه تسويته معك. إذا لم يكن على Waves بعد، سيظهر له عند انضمامه.',
+    shareAction: 'مشاركة',
+    shareWho: 'مع من؟',
+    pickContact: 'اختيار من جهات الاتصال',
+    visibleTo: 'ظاهر لـ {name}',
+    settleUp: 'تسوية الحساب',
+    stopSharing: 'إيقاف المشاركة',
+    stopSharingBody: 'سيُزال الدين من جهته. يبقى قرضك الخاص.',
+    cannotStopSharing: 'تم سداد جزء منه، لذا لا يمكن إيقاف المشاركة. سوِّ الباقي بدلًا من ذلك.',
+    shareFailed: 'تعذّرت مشاركة هذا القرض. حاول مرة أخرى.',
+    shareToggle: 'أظهر هذا لـ {name} أيضًا',
+    deleteSharedBody: 'سيُزال الدين أيضًا من جهته.',
+    deleteSharedKept: 'تم سداد جزء منه، لذا يبقى الدين في رصيدك مع {name}.',
     closeLoan: 'إغلاق',
     reopenLoan: 'إعادة فتح',
     paidOff: 'مسدَّد',

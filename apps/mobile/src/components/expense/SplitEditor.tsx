@@ -15,13 +15,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { currencySymbol, sanitiseMinorInput, type CurrencyCode, type MemberId } from '@waves/core';
-import { amountKeyboard, Avatar, Chip, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import { amountKeyboard, Chip, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { splitIcon } from '@/components/expense/splitIcon';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { SplitKind, type SplitEntries } from '@/lib/split';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
  * The number beside one person in a weighted or exact split.
@@ -421,7 +422,12 @@ export function SplitParticipants({
                 flex: 1,
               }}
             >
-              <Avatar name={displayName(member)} ghost={isGhost(member)} size={card ? 44 : 38} />
+              <PersonAvatar
+                member={member}
+                name={displayName(member)}
+                ghost={isGhost(member)}
+                size={card ? 44 : 38}
+              />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="subheading" numberOfLines={1}>
                   {name}

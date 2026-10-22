@@ -1,0 +1,17 @@
+# E2E-10. A balance question is answered, not added: "who owes me" names the
+# people who owe the login user (Flat 4B: Sam and Priya, ₹300 each).
+#
+# Seed: E2E_SEED_EXTRAS=assistant.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'who owes me'
+- extendedWaitUntil:
+    visible: '.*Priya.*'
+    timeout: 25000
+- assertVisible: '.*Sam.*'
+- assertNotVisible: 'Confirm'

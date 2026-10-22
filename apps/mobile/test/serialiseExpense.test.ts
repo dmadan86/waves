@@ -56,6 +56,13 @@ describe('serialiseExpense', () => {
     expect('payee' in JSON.parse(JSON.stringify(serialiseExpense(base)))).toBe(false);
   });
 
+  it('carries the work tag through the queue, and leaves it out when the caller did not say', () => {
+    expect(serialiseExpense({ ...base, reimbursable: true }).reimbursable).toBe(true);
+    expect(serialiseExpense({ ...base, reimbursable: false }).reimbursable).toBe(false);
+    // Absent survives JSON as absent, so the server keeps the stored flag.
+    expect('reimbursable' in JSON.parse(JSON.stringify(serialiseExpense(base)))).toBe(false);
+  });
+
   it('serialises money as decimal strings, never bigint or float', () => {
     const out = serialiseExpense({
       ...base,

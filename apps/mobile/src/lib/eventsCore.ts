@@ -18,12 +18,41 @@ export const EVENT_NAMES = [
   'signup_started',
   'onboarding_completed',
   'premium_viewed',
+  // Waves Assistant (the voice agent and its follow-up questions). Which step
+  // happened, never what was said: see `assistantTelemetry` for the props.
+  'assistant_opened',
+  'assistant_command',
+  'assistant_followup_shown',
+  'assistant_followup_answered',
+  'assistant_followup_skipped',
+  'assistant_followup_muted',
+  'assistant_correction',
+  'assistant_undo',
+  'assistant_question_answered',
+  'assistant_teaser_viewed',
 ] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** The keys a prop may use, and no others. */
-export const PROP_KEYS = ['method', 'source', 'medium', 'campaign', 'screen', 'variant'] as const;
+export const PROP_KEYS = [
+  'method',
+  'source',
+  'medium',
+  'campaign',
+  'screen',
+  'variant',
+  // The assistant's enum words: the follow-up kind, how a step ended, which
+  // path handled it, personal or group, how a mute happened, the field a
+  // correction changed, and what an undo undid.
+  'kind',
+  'outcome',
+  'path',
+  'scope',
+  'how',
+  'field',
+  'what',
+] as const;
 
 export type EventProps = Partial<Record<(typeof PROP_KEYS)[number], string>>;
 

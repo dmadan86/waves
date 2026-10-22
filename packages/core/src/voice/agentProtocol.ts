@@ -66,6 +66,65 @@ export interface VoiceAgentRequest {
    * quota}`, or 402 when the allowance is spent.
    */
   readonly meterOnly?: boolean;
+  /**
+   * Set when this turn is a free-text answer to a follow-up question about an
+   * expense the person has just saved. The model may then only call
+   * `update_expense`, and only for this id.
+   */
+  readonly savedExpense?: VoiceSavedExpense;
+}
+
+/** The expense a follow-up turn is about. The app saved it; nothing here writes. */
+export interface VoiceSavedExpense {
+  readonly id: string;
+  readonly kind: 'personal' | 'group';
+  /** The group, for a group expense. */
+  readonly groupId?: string | null;
+  /** What was asked, so a bare "at Taj" is read as the answer. */
+  readonly question?: string;
+}
+
+/** How a saved expense was paid: the union of the personal and group lists. */
+export const VOICE_PAYMENT_METHODS = [
+  'cash',
+  'upi',
+  'card',
+  'credit',
+  'debit',
+  'bank',
+  'wallet',
+] as const;
+
+/**
+ * Changes to the just-saved expense that a follow-up answer asks for. Every
+ * field is optional; the app applies the ones it supports for that expense and
+ * the person sees what changed.
+ */
+export interface VoiceExpenseUpdate {
+  readonly expenseId: string;
+  readonly place?: string;
+  readonly note?: string;
+  readonly category?: string;
+  readonly paymentMethod?: string;
+  /** The person wants to add a receipt: the app opens the receipt flow. */
+  readonly wantsReceipt?: boolean;
+  /** Share it with these members of one of their groups (hands off to that group). */
+  readonly splitWith?: { readonly groupId: string; readonly memberIds: readonly string[] };
+  /** A corrected amount, in minor units as decimal text ("80000"). */
+  readonly amountMinor?: string;
+  /** A corrected ISO currency code; relabels, never converts. */
+  readonly currency?: string;
+  /** A corrected date, YYYY-MM-DD. */
+  readonly date?: string;
+  /** A corrected description. */
+  readonly description?: string;
+  /**
+   * Move the expense to this group of the caller's; null moves a group expense
+   * to the personal ledger. The app saves the new entry, then removes the old.
+   */
+  readonly groupId?: string | null;
+  /** The members of the expense's group who share it. */
+  readonly participants?: readonly string[];
 }
 
 /**
@@ -178,6 +237,10 @@ export interface VoiceAgentResponse {
   readonly clarify?: string;
   /** With `clarify`: 2-4 concrete answers the person can tap instead of speaking. */
   readonly clarifyOptions?: readonly VoiceClarifyOption[];
+  /** For a follow-up turn: what to change on the just-saved expense. */
+  readonly update?: VoiceExpenseUpdate;
+  /** For a follow-up turn: "undo" / "delete that" — remove the just-saved expense. */
+  readonly delete?: { readonly expenseId: string };
   readonly quota: {
     readonly used: number;
     readonly limit: number;
@@ -204,6 +267,8 @@ export enum VoiceAgentError {
   Unavailable = 'VOICE_AGENT_UNAVAILABLE',
   /** [413] Clip longer than VOICE_AGENT_MAX_CLIP_MS. */
   ClipTooLong = 'VOICE_AGENT_CLIP_TOO_LONG',
+  /** [415] A container the server cannot measure the length of (only WAV and MP4/M4A are accepted). */
+  ClipUnreadable = 'VOICE_AGENT_CLIP_UNREADABLE',
   /** [422] Nothing intelligible was heard. */
   NothingHeard = 'VOICE_AGENT_NOTHING_HEARD',
 }

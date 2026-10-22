@@ -1,0 +1,18 @@
+Account Name : Mr. SAMPLE USER
+Account Number : 0000001111111111
+Account Statement from 1 Apr 2021 to 31 Mar 2022
+Txn Date Value Description Ref No./Cheque Debit Credit Balance
+Date No.
+1 Apr 1 Apr BY UPI-SHOPEE 4,000.00 12,000.00
+2021 2021 412345678901 UPI REF-
+5 Apr 5 Apr TO UPI-AMAZON 2,500.00 9,500.00
+2021 2021 UPI/210000000000/AMZN PAY
+10 Apr 10 Apr NEFT-OTH 1,000.00 8,500.00
+2021 2021 N286170387881124
+15 Apr 15 Apr BY TRANSFER-INB 5,000.00 13,500.00
+2021 2021 IMPS/P2A/705111111111/XXX MAA000000
+20 Apr 20 Apr ATM WDL 3,000.00 10,500.00
+2021 2021 CASH 100001
+Please do not share your ATM, Debit/Credit card number, PIN and OTP with anyone over mail, SMS, phone call or any other
+media. Bank never asks for such information.
+**This is a computer generated statement and does not require a signature.

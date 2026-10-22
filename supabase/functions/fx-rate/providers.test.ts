@@ -10,7 +10,7 @@
  * side; and the whole chain stays inside one overall budget.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CircuitBreaker } from '../_shared/resilience.ts';
 import {
@@ -324,15 +324,28 @@ describe('latency', () => {
     () =>
       new Promise((resolve) => setTimeout(() => resolve(response.clone()), ms));
 
+  afterEach(() => vi.useRealTimers());
+
   it('the whole chain is capped by its budget, not the sum of every timeout', async () => {
+    // Virtual time: the deadlines and the chain's clock both run on fake timers,
+    // so the outcome does not depend on how loaded the runner is.
+    vi.useFakeTimers();
     const { fn, calls } = fakeFetch({ 'https://': hang });
     const started = Date.now();
-    const result = await fetchFromChain(vndInr, { fetchFn: fn, timeoutMs: 80, budgetMs: 100 });
-    const took = Date.now() - started;
+    let finished = NaN;
+    const pending = fetchFromChain(vndInr, { fetchFn: fn, timeoutMs: 80, budgetMs: 100 }).then(
+      (chain) => {
+        finished = Date.now();
+        return chain;
+      },
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    const result = await pending;
+    const took = finished - started;
     expect(result).toMatchObject({ ok: false, unsupported: false });
     // ECB spends 80 of the 100, currency-api the last 20; ExchangeRate-API
-    // is never reached (3 × 80 would be 240).
-    expect(took).toBeLessThan(200);
+    // is never reached (3 x 80 would be 240).
+    expect(took).toBeLessThanOrEqual(100);
     expect(calls.some((url) => url.startsWith(ERAPI))).toBe(false);
   });
 

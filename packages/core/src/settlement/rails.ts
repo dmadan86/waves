@@ -31,6 +31,7 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
+import { countryForCurrency } from '../money/region';
 
 export enum RailId {
   // Instant, national, free at the point of use.
@@ -318,6 +319,25 @@ export function railsFor(countryCode: string | null | undefined): readonly Payme
 /** The rail a country leads with — what the settle screen selects by default. */
 export function defaultRailFor(countryCode: string | null | undefined): RailId {
   return railsFor(countryCode)[0]?.id ?? RailId.Cash;
+}
+
+/**
+ * What a group that counts in this currency can pay with, best first.
+ *
+ * The settle screen goes by the group's currency, not by a country on its row:
+ * the currency is the one thing about a group everybody chose on purpose, and
+ * a group that counts in rupees squares up over UPI wherever its members are.
+ * The currency names its home country (`countryForCurrency`), and that
+ * country's rails follow — so a currency nobody mapped still gets the global
+ * rails and cash, never an empty list.
+ */
+export function railsForCurrency(currency: string | null | undefined): readonly PaymentRail[] {
+  return railsFor(countryForCurrency(currency));
+}
+
+/** The rail a currency leads with — what the settle screen selects by default. */
+export function defaultRailForCurrency(currency: string | null | undefined): RailId {
+  return railsForCurrency(currency)[0]?.id ?? RailId.Cash;
 }
 
 // ─────────────────────────────────────────────────── handles ──

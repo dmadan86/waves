@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { Text, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { GROUP_TAG_MAX } from '@/lib/groupTypeTag';
@@ -19,6 +19,7 @@ export function GroupTagField({
   onCommit,
   type,
   filled = false,
+  card = false,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -28,13 +29,118 @@ export function GroupTagField({
   /** The create screen's look: a tag icon on the label, a filled 44pt pill
    *  input and pill chips, instead of settings' underlined field. */
   filled?: boolean;
+  /** Settings' standard-card look: a collapsible "Tag (optional)" title, a tag icon
+   *  on a lavender round tile beside a bare input, and lavender suggestion pills. */
+  card?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const [focused, setFocused] = useState(false);
+  // Open while empty so the suggestions are one tap away; folded once a tag is set.
+  const [open, setOpen] = useState(value.trim() === '');
   const suggestions =
     (t.extras.tagSuggestions as Record<string, readonly string[]>)[type ?? 'other'] ??
     t.extras.tagSuggestions.other;
+
+  if (card) {
+    // "Tag (optional)": the bracketed part is set muted, in whatever language it comes.
+    const match = /^(.*?)\s*([(（].*)$/.exec(t.extras.tagLabel);
+    const head = match?.[1] || t.extras.tagLabel;
+    const note = match?.[2] ?? '';
+    return (
+      <View style={{ gap: theme.spacing.md }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.extras.tagLabel}
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpen(!open)}
+          style={{ flexDirection: 'row', alignItems: 'center', minHeight: 32 }}
+        >
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: '700' }}>
+            {head}
+            {note ? (
+              <Text tone="muted" style={{ fontSize: 17, fontWeight: '400' }}>
+                {` ${note}`}
+              </Text>
+            ) : null}
+          </Text>
+          <Ionicons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={iconSize.lg}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+        {open ? (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="pricetag-outline" size={iconSize.md} color={theme.color.brand} />
+              </View>
+              <TextInput
+                value={value}
+                onChangeText={onChange}
+                onBlur={() => onCommit?.(value)}
+                accessibilityLabel={t.extras.tagLabel}
+                placeholder={t.extras.tagPlaceholder}
+                placeholderTextColor={theme.color.textFaint}
+                maxLength={GROUP_TAG_MAX}
+                returnKeyType="done"
+                autoCorrect={false}
+                style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 8 }}
+              />
+            </View>
+            {/* One line that scrolls sideways, so the suggestions never take two rows. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ gap: theme.spacing.sm }}
+            >
+              {suggestions.map((suggestion) => {
+                const selected = value.trim() === suggestion;
+                return (
+                  <Pressable
+                    key={suggestion}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={suggestion}
+                    onPress={() => {
+                      const next = selected ? '' : suggestion;
+                      onChange(next);
+                      onCommit?.(next);
+                    }}
+                    style={({ pressed }) => ({
+                      paddingHorizontal: theme.spacing.lg,
+                      height: 36,
+                      justifyContent: 'center',
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brandSoft,
+                      borderWidth: selected ? 1.5 : 0,
+                      borderColor: theme.color.brand,
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                      {suggestion}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: theme.spacing.xs }}>

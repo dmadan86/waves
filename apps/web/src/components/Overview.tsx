@@ -235,7 +235,11 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
                     aria-pressed={entry.group.id === effectiveId}
                     onClick={() => setSelectedId(entry.group.id)}
                   >
-                    <span className="tile-emoji" aria-hidden>
+                    <span
+                      className="tile-emoji"
+                      aria-hidden
+                      data-cover={entry.group.cover_color ?? undefined}
+                    >
                       {entry.group.cover_emoji ?? '💫'}
                     </span>
                     <span className="grow">
@@ -405,7 +409,7 @@ function DetailPanel({
   return (
     <>
       <div className="detail-hero">
-        <div className="avatar" aria-hidden>
+        <div className="avatar" aria-hidden data-cover={entry.group.cover_color ?? undefined}>
           {entry.group.cover_emoji ?? '💫'}
         </div>
         <h3>{label}</h3>

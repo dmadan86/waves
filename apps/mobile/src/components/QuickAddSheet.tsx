@@ -53,7 +53,7 @@ export function useQuickAddActions(): QuickAddAction[] {
       icon: 'mic-outline',
       label: t.voice.speakExpense,
       tintKey: 'voice',
-      onPress: () => router.push('/voice'),
+      onPress: () => router.push({ pathname: '/voice', params: { source: 'quick' } }),
     },
   ];
 }

@@ -159,16 +159,23 @@ export function receiptModels(env: (name: string) => string | undefined): string
   return fromEnv.length > 0 ? fromEnv : RECEIPT_MODELS;
 }
 /**
- * ADR-011: a scan costs real money, so the quota is enforced server-side — and
- * the number now comes from `waves_receipt_scan_quota()`, which reads what the
- * person is entitled to. It used to be a 20 here and a second 20 inside that
- * function, which is two places to forget when somebody pays.
- *
- * This is only the floor to fall back to. Not zero, because a database that
- * answered oddly should not lock out somebody who has paid; not unlimited, for
- * the obvious reason.
+ * ADR-011: a scan costs real money, so the quota is enforced server-side, as an
+ * atomic reservation (`waves_receipt_scan_reserve`, service role) taken before
+ * the model is asked and never after: a burst of parallel requests at the last
+ * scan admits exactly one, and a database that cannot answer refuses (there is
+ * no fallback allowance — a spend gate fails closed).
  */
-const FALLBACK_SCAN_LIMIT = 20;
+
+/** A pasted bill is a few hundred characters; this is many bills. */
+export const MAX_RAW_TEXT_CHARS = 8_000;
+const SOURCES: ReadonlySet<string> = new Set(['camera', 'gallery', 'text_paste']);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface ScanReservation {
+  used: number;
+  limit: number;
+  allowed: boolean;
+}
 
 /** 32-bit FNV-1a, enough to notice that a prompt changed (not a security hash). */
 function fnv1a(text: string): string {
@@ -255,6 +262,18 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
     if (!body.storagePath && !body.rawText) {
       throw new HttpError(400, 'NOTHING_TO_PARSE', 'Send a photo or some text');
     }
+    // Everything the recorder will refuse is refused HERE, before any spend: a
+    // scan whose record step fails after the model answered used to be a scan
+    // nobody paid for.
+    if (typeof body.rawText === 'string' && body.rawText.length > MAX_RAW_TEXT_CHARS) {
+      throw new HttpError(413, 'TEXT_TOO_LONG', 'That is too much text for one bill');
+    }
+    if (body.source !== undefined && !SOURCES.has(String(body.source))) {
+      throw new HttpError(400, 'BAD_SOURCE', 'source must be camera, gallery or text_paste');
+    }
+    if (body.receiptId !== undefined && !UUID.test(String(body.receiptId))) {
+      throw new HttpError(400, 'BAD_RECEIPT_ID', 'receiptId must be a uuid');
+    }
 
     const caller = deps.caller;
     const { profileId } = await requireMembership(caller, body.groupId);
@@ -265,22 +284,45 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
     // spent what you are entitled to this month.
     await deps.rateLimit(profileId);
 
-    const { data: quota } = await caller.rpc('waves_receipt_scan_quota');
-    const row = quota as { used?: number; limit?: number } | null;
-    const used = Number(row?.used ?? 0);
-    const limit = Number.isFinite(Number(row?.limit)) ? Number(row?.limit) : FALLBACK_SCAN_LIMIT;
+    // A receipt id that already exists in ANOTHER group is refused by the
+    // recorder; find that out before the model is paid, not after.
+    if (body.receiptId) {
+      const { data: existing, error: lookupError } = await service
+        .from('receipts')
+        .select('group_id')
+        .eq('id', body.receiptId)
+        .maybeSingle();
+      if (lookupError) throw new HttpError(503, 'SCANNING_UNAVAILABLE', lookupError.message);
+      const owner = (existing as { group_id?: string } | null)?.group_id;
+      if (owner && owner !== body.groupId) {
+        throw new HttpError(403, 'FORBIDDEN', 'That receipt belongs to a different group');
+      }
+    }
 
-    // Quota before the model call, never after — the point is not to spend the
-    // money, not to notice afterwards that we did. A cache hit spends nothing,
-    // so it is not refused for quota and does not count against it (below).
-    const assertQuota = (): void => {
-      if (used >= limit) {
+    // The reservation: one scan taken atomically against the month, before the
+    // model call, never after. A cache hit spends nothing, so it is served
+    // without one and does not count (below). Fails closed: no answer from the
+    // database is a refusal, never a free scan.
+    const reserveScan = async (): Promise<ScanReservation> => {
+      const { data, error } = await service.rpc('waves_receipt_scan_reserve', {
+        p_profile: profileId,
+      });
+      const row = data as ScanReservation | null;
+      if (error || !row || typeof row.allowed !== 'boolean') {
+        throw new HttpError(
+          503,
+          'SCANNING_UNAVAILABLE',
+          'Receipt scanning is not available right now',
+        );
+      }
+      if (!row.allowed) {
         throw new HttpError(
           429,
           'SCAN_QUOTA_REACHED',
-          `You have used all ${limit} scans this month. Adding items by hand is free and always will be.`,
+          `You have used all ${row.limit} scans this month. Adding items by hand is free and always will be.`,
         );
       }
+      return row;
     };
 
     // The per-group receipt ceiling (ADR-011). Checked before the model call
@@ -337,7 +379,11 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
         throw new HttpError(400, 'IMAGE_UNREADABLE', message);
       }
       if (!body.rawText) {
-        cacheKey = await sha256Hex(bytes);
+        // Keyed with the group, so the same photo bytes in another group are
+        // another entry: a hit never hands one group another's parse.
+        cacheKey = await sha256Hex(
+          new Uint8Array([...new TextEncoder().encode(`${body.groupId}|`), ...bytes]),
+        );
         cached = await cacheGet(service, cacheKey, version, currency);
       }
       if (!cached) {
@@ -371,11 +417,21 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       });
       if (recordError) throw new HttpError(500, 'INTERNAL', recordError.message);
       console.log(JSON.stringify({ fn: 'receipt-parse', cache: 'hit' }));
-      return json({ receiptId, status, parsed: cached, check, quota: { used, limit } });
+      const { data: quotaNow } = await caller.rpc('waves_receipt_scan_quota');
+      const q = quotaNow as { used?: number; limit?: number } | null;
+      return json({
+        receiptId,
+        status,
+        parsed: cached,
+        check,
+        quota: { used: Number(q?.used ?? 0), limit: Number(q?.limit ?? 0) },
+      });
     }
 
-    assertQuota();
+    // Cheap refusals before the reservation (a refused request reserves nothing),
+    // then the reservation, then the spend.
     await assertGroupCeiling();
+    const { used, limit } = await reserveScan();
 
     content.push({
       type: 'text',
@@ -397,6 +453,9 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       await cachePut(service, cacheKey, version, currency, parsed);
     }
 
+    // The scan was reserved above; the recorder must not count it twice
+    // (p_reserved). Whatever happens from here, the reservation stands: the
+    // model has been paid.
     const { data: receiptId, error: recordError } = await service.rpc('waves_record_receipt', {
       p_group_id: body.groupId,
       p_receipt_id: body.receiptId ?? null,
@@ -408,6 +467,8 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       p_status: status,
       p_input_tokens: usage.prompt_tokens ?? 0,
       p_output_tokens: usage.completion_tokens ?? 0,
+      p_cached: false,
+      p_reserved: true,
     });
     console.log(JSON.stringify({ fn: 'receipt-parse', cache: 'miss', model: answeredBy, usage }));
     if (recordError) throw new HttpError(500, 'INTERNAL', recordError.message);
@@ -417,7 +478,7 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       status,
       parsed,
       check,
-      quota: { used: used + 1, limit },
+      quota: { used, limit },
     });
   }
 }

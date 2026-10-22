@@ -105,6 +105,10 @@ function parseRaw(text: string, allowSerial: boolean, currentYear: number): RawD
   let match = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T ].*)?$/.exec(value);
   if (match) return { t: 'ymd', y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
 
+  // `20260208`: the compact form corporate exports (Westpac, OFX) use.
+  match = /^((?:19|20)\d{2})(\d{2})(\d{2})$/.exec(value);
+  if (match) return { t: 'ymd', y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
+
   match = /^(\d{1,2})(?:st|nd|rd|th)?[-/. ]+([A-Za-z]{3,9})\.?,?[-/. ]+(\d{2}|\d{4})(?: .*)?$/.exec(
     value,
   );

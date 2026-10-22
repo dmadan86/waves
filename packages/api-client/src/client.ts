@@ -54,6 +54,7 @@ import {
   type ProfileRow,
   type NotificationRow,
   type PersonBalanceRow,
+  type GroupRecurringRow,
   type PlanItemRow,
   type MemberBudgetRow,
   type CategoryTagRecord,
@@ -74,7 +75,7 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, convert_to_group_currency,
-  cover_emoji, photo_path,
+  cover_emoji, cover_color, photo_path,
   start_date, end_date, time_zone, budget_minor, budget_currency,
   archived_at, created_at, updated_seq
 `;
@@ -106,10 +107,15 @@ const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
     id, version_no, description, category, category_meta, expense_date, currency, amount,
-    split_type, split_params, location, receipt_id, receipt_share_url, fx,
+    split_type, split_params, location, receipt_id, receipt_share_url, fx, reimbursable,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
   )
+`;
+
+const GROUP_RECURRING_COLUMNS = `
+  id, group_id, created_by, description, category, currency, amount, cadence, interval,
+  second_day, anchor_date, next_date, end_date, status, last_generated_on
 `;
 
 const PLAN_ITEM_COLUMNS = `
@@ -483,6 +489,32 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .eq('group_id', groupId)
           .order('created_at', { ascending: false }),
       );
+    },
+
+    /** The group's repeating expenses (rules), newest first. */
+    groupRecurring(groupId: string): Promise<GroupRecurringRow[]> {
+      return read<GroupRecurringRow>(
+        supabase
+          .from('group_recurring_expenses')
+          .select(GROUP_RECURRING_COLUMNS)
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false }),
+      );
+    },
+
+    /**
+     * Pause, resume or stop a repeating expense. `stopped` is final. Any live
+     * member may; the RPC checks membership itself. Editing the amount or split
+     * is a phone action, where the split maths and the offline queue live.
+     */
+    async setGroupRecurringStatus(
+      ruleId: string,
+      status: 'active' | 'paused' | 'stopped',
+    ): Promise<void> {
+      await rpc<null>('waves_update_group_recurring_expense', {
+        p_id: ruleId,
+        p_patch: { status },
+      });
     },
 
     /**
@@ -1688,6 +1720,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           payers: input.payers,
           expectedShares: input.expectedShares,
           notes: input.notes ?? null,
+          reimbursable: input.reimbursable,
           paymentMethod: input.paymentMethod ?? null,
           categoryMeta: input.categoryMeta ?? null,
           location: input.location ?? null,
@@ -1720,6 +1753,8 @@ export interface WriteExpenseInput {
   payers: Record<string, bigint>;
   expectedShares?: Record<string, bigint>;
   notes?: string | null;
+  /** "Work expense (to claim)". Leave it out to keep what the expense has. */
+  reimbursable?: boolean | null;
   /** How the money moved: cash | upi | credit | debit | forex. */
   paymentMethod?: PaymentMethod | null;
   /** Denormalised custom-tag display (extends TDR §8); null for a built-in. */

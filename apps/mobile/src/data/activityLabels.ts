@@ -1,5 +1,6 @@
 /**
- * The import lines of the activity feed in one language.
+ * The localized lines of the activity feed in one language: the import lines
+ * and the group-settings / people lines.
  *
  * Apart from `data/activity.ts` (which stays free of the locale tables so the
  * pure wording tests, and anything that imports it, need no native modules)
@@ -8,9 +9,18 @@
 
 import { plural, type PluralForms } from '@/i18n';
 
-import type { ActivityLabels } from './activity';
+import {
+  type ActivityLabels,
+  type GroupChangeStrings,
+  type GroupTypeNames,
+  groupChangeLabels,
+} from './activity';
 
-/** The import lines in one locale, from the `activityScreen` strings. */
+/**
+ * The lines in one locale, from the `activityScreen` strings. `typeNames`
+ * names each kind of group ('trip' → "Trip") in the same language, for
+ * "Changed the group type to Trip"; left out, the keys fall back to English.
+ */
 export function activityLabels(
   locale: string,
   strings: {
@@ -18,7 +28,9 @@ export function activityLabels(
     importedSentence: PluralForms;
     importUndoneHeadline: string;
     importUndoneSentence: string;
+    group: GroupChangeStrings;
   },
+  typeNames?: GroupTypeNames,
 ): ActivityLabels {
   return {
     importedHeadline: (count) => plural(locale, count, strings.importedHeadline),
@@ -26,5 +38,6 @@ export function activityLabels(
       plural(locale, count, strings.importedSentence).replaceAll('{who}', who),
     importUndoneHeadline: strings.importUndoneHeadline,
     importUndoneSentence: (who) => strings.importUndoneSentence.replaceAll('{who}', who),
+    group: groupChangeLabels(locale, strings.group, typeNames),
   };
 }

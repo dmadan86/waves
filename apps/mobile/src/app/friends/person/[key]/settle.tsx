@@ -19,7 +19,6 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   directionalIcon,
-  Avatar,
   Card,
   iconSize,
   MoneyText,
@@ -46,6 +45,9 @@ import { directionGroups, type CurrencyTotal } from '@/lib/friendsTotals';
 import { fill, plural, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
+import { PersonAvatar } from '@/components/PersonAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
+import { settleHref } from '@/lib/groupTab';
 
 export default function PairSettleScreen() {
   const theme = useTheme();
@@ -53,6 +55,7 @@ export default function PairSettleScreen() {
   const { t, locale } = useStrings();
   const { key, name } = useLocalSearchParams<{ key: string; name?: string }>();
   const person = usePairPerson(key ?? '', name);
+  const me = useViewerIdentity();
   const { groups, totals, title, photo, masked } = person;
   const [pick, setPick] = useState<{ groups: PairGroupRow[]; to: 'settle' | 'history' } | null>(
     null,
@@ -79,7 +82,7 @@ export default function PairSettleScreen() {
       ).length
     : 0;
 
-  const settleIn = (group: PairGroupRow): void => router.push(`/group/${group.groupId}/settle`);
+  const settleIn = (group: PairGroupRow): void => router.push(settleHref(group.groupId));
   const settleGroups = (list: PairGroupRow[]): void => {
     const [only] = list;
     if (list.length === 1 && only) settleIn(only);
@@ -126,9 +129,10 @@ export default function PairSettleScreen() {
             style={{ alignItems: 'flex-start', justifyContent: 'center', gap: theme.spacing.lg }}
           >
             <PairAvatar label={t.person.you}>
-              <Avatar
+              <PersonAvatar
                 name={t.person.you}
                 size={52}
+                avatarUrl={me.avatarUrl}
                 mark={(color) => <Ionicons name="person" size={iconSize.xl} color={color} />}
               />
             </PairAvatar>
@@ -141,10 +145,10 @@ export default function PairSettleScreen() {
               />
             </View>
             <PairAvatar label={title}>
-              <Avatar
+              <PersonAvatar
                 name={masked ? t.misc.someone : title}
                 size={52}
-                photoUrl={photo}
+                avatarUrl={photo}
                 ghost={masked || person.unregistered}
               />
             </PairAvatar>
@@ -241,10 +245,10 @@ export default function PairSettleScreen() {
                         rest={direction.rest}
                         single={here.length <= 1}
                         avatar={
-                          <Avatar
+                          <PersonAvatar
                             name={masked ? t.misc.someone : title}
                             size={44}
-                            photoUrl={photo}
+                            avatarUrl={photo}
                             ghost={masked || person.unregistered}
                           />
                         }

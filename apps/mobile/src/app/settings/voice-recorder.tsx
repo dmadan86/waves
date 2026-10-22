@@ -462,14 +462,14 @@ export default function VoiceRecorderScreen() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor:
-                      phase === 'recording' ? theme.color.negative : theme.color.text,
+                      phase === 'recording' ? theme.color.negative : theme.color.brand,
                     opacity: phase === 'saving' ? 0.5 : 1,
                   }}
                 >
                   <Ionicons
                     name={phase === 'recording' ? 'stop' : 'mic'}
                     size={iconSize.lg}
-                    color={theme.color.bg}
+                    color={theme.color.onBrand}
                   />
                 </Pressable>
                 <Text variant="caption" tone="muted">

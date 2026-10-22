@@ -103,6 +103,14 @@ import {
   fetchMemberClaims,
   decideMemberClaim,
   claimMemberAsMe,
+  cancelMemberLink,
+  decideMemberLink,
+  fetchGroupMemberLinks,
+  fetchMemberLinkCandidates,
+  fetchMyMemberLinks,
+  mergeMemberInto,
+  requestMemberLink,
+  type LinkVerdict,
   type PlanItemRow,
   type MemberBudgetRow,
   type GroupBudget,
@@ -163,6 +171,9 @@ export const keys = {
   activity: (id: string) => ['group', id, 'activity'] as const,
   balances: (id: string) => ['group', id, 'balances'] as const,
   memberClaims: (id: string) => ['group', id, 'member-claims'] as const,
+  memberLinks: (id: string) => ['group', id, 'member-links'] as const,
+  myMemberLinks: ['member-links', 'mine'] as const,
+  linkCandidates: (id: string) => ['group', id, 'link-candidates'] as const,
   memberBudgets: (id: string) => ['group', id, 'member-budgets'] as const,
   groupBudget: (id: string) => ['group', id, 'budget'] as const,
   currencyReadiness: (id: string) => ['group', id, 'currency-readiness'] as const,
@@ -342,36 +353,6 @@ export function useArchivedGroups(): LocalRead<GroupRow[]> {
     [mirror, queue],
   );
   return useLocalRead(groups);
-}
-
-/**
- * How much has changed hands through this person, per currency. Not a balance
- * — see `fetchSettledTotals`.
- */
-export function useSettledTotals(profileId: string | null): LocalRead<Map<string, bigint>> {
-  const { mirror } = useSync();
-
-  const totals = useMemo(() => {
-    const mine = new Set(
-      (rowsFor(mirror, SyncTable.GroupMembers) as unknown as MemberRow[])
-        .filter((member) => isViewer(member, profileId))
-        .map((member) => member.id),
-    );
-
-    const out = new Map<string, bigint>();
-    for (const row of rowsFor(mirror, SyncTable.Settlements) as unknown as SettlementRow[]) {
-      if (
-        row.status !== SettlementStatus.Confirmed &&
-        row.status !== SettlementStatus.AutoConfirmed
-      )
-        continue;
-      if (!mine.has(row.from_member_id) && !mine.has(row.to_member_id)) continue;
-      out.set(row.currency, (out.get(row.currency) ?? 0n) + BigInt(row.amount));
-    }
-    return out;
-  }, [mirror, profileId]);
-
-  return useLocalRead(totals);
 }
 
 /** Today's local calendar month, as the `YYYY-MM` prefix `snapshot.date` uses. */
@@ -1048,6 +1029,10 @@ export interface PairGroupMeta {
   otherName: string;
   /** Every row of them here is a guest added by name. */
   otherIsGhost: boolean;
+  /** The viewer runs this group, so may say who a placeholder in it really is. */
+  viewerIsAdmin: boolean;
+  /** `otherMemberId` is a row that has left or been retired: nothing can be done to it. */
+  otherHasLeft: boolean;
 }
 
 export interface PairView {
@@ -1137,6 +1122,7 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
         endDate: group.end_date,
         simplify: simplifies,
         otherMemberId: (others.find((member) => member.left_at === null) ?? others[0]).id,
+        otherHasLeft: !others.some((member) => member.left_at === null),
         viewerMemberId: me.id,
         otherName: (() => {
           const head = others.find((member) => member.left_at === null) ?? others[0];
@@ -1148,6 +1134,7 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
           );
         })(),
         otherIsGhost: others.every((member) => isGhost(member)),
+        viewerIsAdmin: me.role === 'admin',
       });
     }
 
@@ -1162,6 +1149,66 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
   }, [mirror, queue, profileId, personKey, demoActive]);
 
   return useLocalRead(view);
+}
+
+/**
+ * What the other person owes you (or you them) in each group a shared loan
+ * lives in, read off the same pairwise ledger the Friends list sums. Keyed
+ * group → currency → net (positive: they owe you), so a loan's outstanding
+ * amount (`syncedOutstanding` in core) is the group balance, never a figure of
+ * the personal ledger's own. `groups` is the set of group ids still present on
+ * this device, so a link to a deleted group can be told from a square balance.
+ */
+export interface SyncedLoanNets {
+  nets: ReadonlyMap<string, ReadonlyMap<string, bigint>>;
+  groups: ReadonlySet<string>;
+}
+
+const NO_NETS: SyncedLoanNets = { nets: new Map(), groups: new Set() };
+
+export function useSyncedLoanNets(
+  profileId: string | null,
+  links: readonly { groupId: string; myMemberId: string; otherMemberId: string }[],
+): SyncedLoanNets {
+  const { mirror, queue } = useSync();
+  const key = links
+    .map((link) => `${link.groupId}:${link.myMemberId}:${link.otherMemberId}`)
+    .join();
+  return useMemo<SyncedLoanNets>(() => {
+    if (!profileId || links.length === 0) return NO_NETS;
+    const rows = materialiseLedgerGroups(mirror, queue) as unknown as GroupRow[];
+    const present = new Set(rows.map((group) => group.id));
+    const nets = new Map<string, ReadonlyMap<string, bigint>>();
+    for (const link of links) {
+      if (!present.has(link.groupId) || nets.has(link.groupId)) continue;
+      const group = rows.find((row) => row.id === link.groupId);
+      if (!group) continue;
+      const snapshots = (
+        materialiseExpenses(mirror, queue, { groupId: link.groupId }) as unknown as ExpenseRow[]
+      )
+        .map((expense) => toSnapshot(expense))
+        .filter((snapshot): snapshot is ExpenseSnapshot => snapshot !== null);
+      const settlements = toSettlementSnapshots(
+        materialiseSettlements(mirror, queue, {
+          groupId: link.groupId,
+        }) as unknown as SettlementRow[],
+      );
+      const pair = pairBalances([
+        {
+          groupId: link.groupId,
+          simplify: false,
+          viewerMemberId: link.myMemberId,
+          otherMemberIds: [link.otherMemberId],
+          edges: computePairwiseBalances(ledgerSnapshotsOf(snapshots, group), settlements),
+          suggested: null,
+        },
+      ]);
+      nets.set(link.groupId, new Map(pair.totals.map((total) => [total.currency, total.net])));
+    }
+    return { nets, groups: present };
+    // `key` stands for `links`, which callers rebuild every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mirror, queue, profileId, key]);
 }
 
 /**
@@ -3090,6 +3137,96 @@ export function useClaimMemberAsMe(groupId: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.memberClaims(groupId) });
       invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+// ──────────── an admin saying who a placeholder is (link_placeholder_member) ──
+
+/** The asks this group's admins are waiting on. Empty for everybody else. */
+export function useGroupMemberLinks(groupId: string) {
+  return useQuery({
+    queryKey: keys.memberLinks(groupId),
+    queryFn: () => fetchGroupMemberLinks(groupId),
+    enabled: groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+/** The asks addressed to me, for the card on Home. */
+export function useMyMemberLinks(enabled = true) {
+  return useQuery({
+    queryKey: keys.myMemberLinks,
+    queryFn: fetchMyMemberLinks,
+    enabled,
+  });
+}
+
+/** Who a placeholder could be; fetched only while the sheet is open. */
+export function useMemberLinkCandidates(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.linkCandidates(groupId),
+    queryFn: () => fetchMemberLinkCandidates(groupId),
+    enabled: enabled && groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+/**
+ * Folding a placeholder into a member who is already here. Everything about
+ * the group changes at once — members, bills, balances — so the whole group
+ * is invalidated, not one list.
+ */
+export function useMergeMemberInto(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, intoMemberId }: { memberId: string; intoMemberId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<LinkVerdict>()
+        : mergeMemberInto(memberId, intoMemberId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+      invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+/** Asking somebody outside the group whether they are the placeholder. */
+export function useRequestMemberLink(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, targetProfileId }: { memberId: string; targetProfileId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<LinkVerdict>()
+        : requestMemberLink(memberId, targetProfileId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+    },
+  });
+}
+
+/** Taking an ask back. */
+export function useCancelMemberLink(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<LinkVerdict>() : cancelMemberLink(requestId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.memberLinks(groupId) });
+    },
+  });
+}
+
+/**
+ * Answering an ask addressed to me. Accepting puts me in a group I may not
+ * have had before, so the group list is refreshed along with the asks.
+ */
+export function useDecideMemberLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ requestId, accept }: { requestId: string; accept: boolean }) =>
+      decideMemberLink(requestId, accept),
+    onSuccess: async (_verdict, { accept }) => {
+      await queryClient.invalidateQueries({ queryKey: keys.myMemberLinks });
+      if (accept) await queryClient.invalidateQueries({ queryKey: keys.groups });
     },
   });
 }

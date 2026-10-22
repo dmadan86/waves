@@ -216,6 +216,24 @@ describe('members', () => {
     });
   });
 
+  it('shows a member cloned from another group as on Waves before the server answers', () => {
+    const queue = queued(
+      envelope('m-2', MutationKind.MemberAddGhost, {
+        memberId: 'mem-2',
+        name: 'Matt',
+        email: null,
+        phone: null,
+        profileId: 'p-matt',
+      }),
+    );
+    expect(materialiseMembers(emptyMirror(), queue, { groupId: GROUP })[0]).toMatchObject({
+      id: 'mem-2',
+      ghost_name: 'Matt',
+      profile_id: 'p-matt',
+      pending: true,
+    });
+  });
+
   it('hides people who left unless asked for the past', () => {
     // Pickers for a new bill must not offer them; a past bill still has to name them.
     const row = (id: string, left_at: string | null) => ({
@@ -365,6 +383,39 @@ describe('groups', () => {
     const queue = queued(envelope('m-2', MutationKind.GroupUpdate, { name: 'Goa 2026' }));
     const [row] = materialiseGroups(mirror, queue);
     expect(row).toMatchObject({ id: GROUP, name: 'Goa 2026', pending: true });
+  });
+
+  it('shows a cover colour set (or cleared) offline over the synced row', () => {
+    const mirror = reconcile(emptyMirror(), [
+      {
+        table: SyncTable.Groups,
+        groupId: GROUP,
+        seq: 1,
+        row: {
+          id: GROUP,
+          name: 'Goa',
+          default_currency: 'INR',
+          created_at: AT,
+          archived_at: null,
+          cover_color: 'mint',
+        },
+      },
+    ]).state;
+
+    const [synced] = materialiseGroups(mirror, []);
+    expect(synced).toMatchObject({ cover_color: 'mint' });
+
+    const [set] = materialiseGroups(
+      mirror,
+      queued(envelope('m-5', MutationKind.GroupUpdate, { cover_color: 'peach' })),
+    );
+    expect(set).toMatchObject({ cover_color: 'peach', pending: true });
+
+    const [cleared] = materialiseGroups(
+      mirror,
+      queued(envelope('m-6', MutationKind.GroupUpdate, { cover_color: null })),
+    );
+    expect(cleared?.cover_color).toBeNull();
   });
 
   it('shows a custom tag set (or cleared) offline over the synced row', () => {

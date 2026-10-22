@@ -20,6 +20,8 @@ import {
 import {
   CategoryId,
   currencySymbol,
+  deterministicId,
+  Frequency,
   format,
   formatMinorInput,
   guessCategory,
@@ -39,7 +41,6 @@ import {
 import {
   AmountField,
   amountKeyboard,
-  Avatar,
   Button,
   Callout,
   Card,
@@ -60,6 +61,7 @@ import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
 import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
+import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
 import { captureLocationIfGranted, locationUnchanged, reverseGeocode } from '@/lib/location';
 import { friendlyError } from '@/lib/errors';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -87,10 +89,17 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { tripRateFor } from '@/lib/tripRates';
 import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
+import { useDeletePersonalRecord, usePersonalRecords } from '@/data/personal';
+import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
+import { useCreateGroupRecurring } from '@/data/groupRecurring';
+import { frequencyLabel } from '@/lib/frequencyLabel';
+import { reportHandled } from '@/lib/observability';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
+import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
+import { useToast } from '@/lib/toast';
 import { useViewerId } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { handoverKey } from '@/lib/handover';
@@ -145,7 +154,9 @@ import {
   releaseHeldReceipts,
 } from '@/lib/receiptQueue';
 import { useDialog } from '@/lib/dialog';
+import { moveAfterSave, rememberMove } from '@/lib/personalHandoff';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -216,6 +227,8 @@ interface ExpenseDraft {
   location?: ExpenseLocation | null;
   /** "Paid to". Optional: a draft from an older build has none. */
   payee?: string | null;
+  /** "Work expense (to claim)". Optional: a draft from an older build has none. */
+  reimbursable?: boolean;
 }
 
 /**
@@ -288,6 +301,15 @@ async function sendHeldReceipts(expenseId: string): Promise<void> {
   }
 }
 
+/** What the Repeat row holds; `null` is a one-off. */
+interface GroupRepeat {
+  readonly frequency: Frequency;
+  readonly interval: number;
+  readonly secondDay: number;
+}
+
+const NEW_GROUP_REPEAT: GroupRepeat = { frequency: Frequency.Monthly, interval: 2, secondDay: 15 };
+
 export default function AddExpenseScreen() {
   const theme = useTheme();
   // The room the pinned action bar leaves under Save for the system navigation
@@ -323,9 +345,13 @@ export default function AddExpenseScreen() {
     subEventId: handedSubEventId,
     settlesExpenseId,
     deposit,
+    movePersonal,
   } = useLocalSearchParams<{
     id: string;
     expenseId?: string;
+    /** A personal entry this expense replaces (split / move to trip): deleted
+     *  only once the save below succeeded, never before (decision D7). */
+    movePersonal?: string;
     captureId?: string;
     /** '1' when opened from the voice quick-add — seeds amount/description like a capture. */
     voice?: string;
@@ -391,7 +417,10 @@ export default function AddExpenseScreen() {
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
-  const { mutate } = useSync();
+  const { mutate, status: syncStatus } = useSync();
+  const toast = useToast();
+  const personalRecords = usePersonalRecords();
+  const removePersonal = useDeletePersonalRecord();
   const assignCapture = useAssignCapture();
   const guard = useGuestGuard();
 
@@ -498,6 +527,12 @@ export default function AddExpenseScreen() {
   const [category, setCategory] = useState<string | null>(CategoryId.Food);
   const [categoryMeta, setCategoryMeta] = useState<CategoryMeta | null>(null);
   const [categoryChosen, setCategoryChosen] = useState(false);
+  // "Repeat" (a flat's monthly rent): null is a one-off. Only offered when adding,
+  // never when editing an expense that already exists; the rule it makes starts at
+  // the occurrence after this one, since this one is being saved right now.
+  const [repeat, setRepeat] = useState<GroupRepeat | null>(null);
+  const [pickingRepeat, setPickingRepeat] = useState(false);
+  const createRecurring = useCreateGroupRecurring(groupId);
   // The create-tag sheet, opened from the category sheet's "＋ New tag" row.
   const [editingTag, setEditingTag] = useState(false);
   // The two "more details" rows open their options in sheets, and those sheets
@@ -513,6 +548,8 @@ export default function AddExpenseScreen() {
    */
   const [payee, setPayee] = useState<string | null>(null);
   const [pickingPayee, setPickingPayee] = useState(false);
+  /** "Work expense (to claim)": a tag on the expense, never part of the split. */
+  const [reimbursable, setReimbursable] = useState(false);
   /**
    * Names to bias the recogniser towards. "You" and "Someone" are placeholders
    * this screen prints, not things anybody says out loud, so they would only
@@ -838,6 +875,7 @@ export default function AddExpenseScreen() {
       setCategoryChosen(draft.categoryChosen ?? false);
       setLocation(draft.location ?? null);
       setPayee(draft.payee !== undefined ? draft.payee : (version?.payee ?? null));
+      setReimbursable(draft.reimbursable ?? version?.reimbursable === true);
     } else if (version) {
       // The saved version as an edit starts from it — the same seeding the
       // expense screen's pop-ups use (lib/expenseEdit), so the two write the same
@@ -872,6 +910,7 @@ export default function AddExpenseScreen() {
       setPaymentMethod(seeded.paymentMethod);
       setLocation(seeded.location);
       setPayee(seeded.payee);
+      setReimbursable(seeded.reimbursable);
       setSubEventId(seeded.subEventId);
       setIsDeposit(seeded.isDeposit);
       setBalanceDueMinor(seeded.balanceDueMinor);
@@ -1276,6 +1315,7 @@ export default function AddExpenseScreen() {
       categoryChosen,
       location,
       payee,
+      reimbursable,
     },
     { enabled: seededFor !== null && !draftsPaused },
   );
@@ -1391,40 +1431,96 @@ export default function AddExpenseScreen() {
       // through from the version being edited (the write nulls whatever it is
       // not given), `expectedShares` is seeded with this expense's id, and
       // `baseVersionNo` lets the server spot a concurrent edit (TDR §4.4).
-      await mutate(
-        expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
-        groupId,
-        expenseWritePayload({
-          expenseId: targetExpenseId,
-          state: {
-            amount,
-            description,
-            category,
-            categoryMeta,
-            // A chosen day wins outright. Untouched, a capture keeps the day it
-            // was caught, a saved expense keeps the day it has, and only a new
-            // one is today's (expenseDateFor).
-            expenseDate,
-            occurredAt,
-            currency,
-            fx,
-            splitKind,
-            participants,
-            weights,
-            percents,
-            exacts,
-            payers,
-            paymentMethod,
-            location,
-            payee,
-            subEventId: effectiveSubEventId,
-            isDeposit: effectiveIsDeposit,
-            balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
-            balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
-          },
-          editing: editing?.currentVersion,
-        }),
-      );
+      const writePayload = expenseWritePayload({
+        expenseId: targetExpenseId,
+        state: {
+          amount,
+          description,
+          category,
+          categoryMeta,
+          // A chosen day wins outright. Untouched, a capture keeps the day it
+          // was caught, a saved expense keeps the day it has, and only a new
+          // one is today's (expenseDateFor).
+          expenseDate,
+          occurredAt,
+          currency,
+          fx,
+          splitKind,
+          participants,
+          weights,
+          percents,
+          exacts,
+          payers,
+          paymentMethod,
+          location,
+          payee,
+          reimbursable,
+          subEventId: effectiveSubEventId,
+          isDeposit: effectiveIsDeposit,
+          balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
+          balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
+        },
+        editing: editing?.currentVersion,
+      });
+      const writeExpense = (): Promise<unknown> =>
+        mutate(
+          expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
+          groupId,
+          writePayload,
+        );
+      const movedFrom = !expenseId && movePersonal ? movePersonal : null;
+      if (movedFrom) {
+        // Split / move to trip: the personal entry goes only after the group
+        // save succeeded; a failed save throws before the delete is reached.
+        const record = personalRecords.find((r) => r.id === movedFrom);
+        const result = await moveAfterSave(writeExpense, () =>
+          removePersonal.mutateAsync(movedFrom),
+        );
+        if (record && result.removed) {
+          rememberMove({
+            personalId: movedFrom,
+            data: record.data,
+            groupId,
+            expenseId: targetExpenseId,
+          });
+        }
+      } else {
+        await writeExpense();
+      }
+      // The rule goes in only after the expense is safely queued. Its id comes
+      // from the expense's, so saving again after a failure later in this
+      // function finds the same rule instead of making a second.
+      if (repeat && !expenseId) {
+        try {
+          await createRecurring.mutateAsync({
+            ruleId: deterministicId(`recurring:${targetExpenseId}`),
+            template: {
+              description: String(writePayload.description ?? ''),
+              category: (writePayload.category as string | null) ?? null,
+              currency: String(writePayload.currency),
+              amount,
+              splitParams: writePayload.splitParams as SplitParams,
+              participants: writePayload.participants as MemberId[],
+              payers: Object.fromEntries(
+                Object.entries(writePayload.payers as Record<string, string>).map(([id, value]) => [
+                  id,
+                  BigInt(value),
+                ]),
+              ),
+            },
+            when: {
+              frequency: repeat.frequency,
+              interval: repeat.interval,
+              secondDay: repeat.secondDay,
+              anchorDate: expenseDate,
+              skipFirst: true,
+            },
+          });
+        } catch (ruleError) {
+          reportHandled(ruleError, 'expense.repeat');
+          setScanNote(t.groupRecurring.couldNotSave);
+        }
+      }
       // Paying a vendor's balance: the advance it settles is rewritten with its
       // balance cleared (a new version of that expense, via the ordinary edit
       // path), so the Vendors tab shows the vendor as paid off.
@@ -1489,6 +1585,17 @@ export default function AddExpenseScreen() {
         }
       }
 
+      toast.show(
+        saveToastText(t, {
+          kind: 'expense',
+          editing: Boolean(expenseId),
+          label: [description.trim(), format(money(amount, currency), { locale })]
+            .filter(Boolean)
+            .join(' · '),
+          offline: isQueuedOffline(syncStatus),
+        }),
+        'positive',
+      );
       router.back();
     } catch (caught) {
       // Not saved: what was typed is still the only copy, so keep drafting it.
@@ -2127,7 +2234,11 @@ export default function AddExpenseScreen() {
                               opacity: isPayer ? 1 : 0.45,
                             }}
                           >
-                            <Avatar name={displayName(member)} ghost={isGhost(member)} />
+                            <PersonAvatar
+                              member={member}
+                              name={displayName(member)}
+                              ghost={isGhost(member)}
+                            />
                             <Text
                               variant="micro"
                               tone={isPayer ? 'brand' : 'muted'}
@@ -2151,7 +2262,8 @@ export default function AddExpenseScreen() {
                               key={memberId}
                               style={{ gap: theme.spacing.md, alignItems: 'center' }}
                             >
-                              <Avatar
+                              <PersonAvatar
+                                member={member}
                                 name={member ? displayName(member) : name}
                                 ghost={member ? isGhost(member) : false}
                                 size={32}
@@ -2437,6 +2549,48 @@ export default function AddExpenseScreen() {
                 dense
               />
 
+              {/* A rent, a subscription: the same expense again on a schedule,
+                  added for everyone on its date. New expenses only. */}
+              {!GROUP_REPEAT_HIDDEN && !expenseId && !fx ? (
+                <View>
+                  <DetailRow
+                    icon={repeat ? 'repeat' : 'repeat-outline'}
+                    tint={theme.tint.mint}
+                    dense
+                    label={t.groupRecurring.repeat}
+                    value={
+                      repeat
+                        ? frequencyLabel(t, repeat.frequency, repeat.interval)
+                        : t.groupRecurring.never
+                    }
+                    placeholder={!repeat}
+                    onPress={() => setPickingRepeat(true)}
+                  />
+                  {repeat?.frequency === Frequency.TwiceAMonth ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <DayStepper
+                        label={t.personal.secondDay}
+                        value={repeat.secondDay}
+                        min={1}
+                        max={31}
+                        onChange={(secondDay) => setRepeat({ ...repeat, secondDay })}
+                      />
+                    </View>
+                  ) : null}
+                  {repeat?.frequency === Frequency.EveryNMonths ? (
+                    <View style={{ paddingBottom: theme.spacing.sm }}>
+                      <DayStepper
+                        label={t.personal.everyNMonths}
+                        value={repeat.interval}
+                        min={2}
+                        max={24}
+                        onChange={(interval) => setRepeat({ ...repeat, interval })}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               {/* Who outside the group the money went to: the landlord, the
                   car rental, the maid. Optional, so a faint "Add" until set. */}
               <DetailRow
@@ -2447,6 +2601,17 @@ export default function AddExpenseScreen() {
                 value={payee ?? t.expense.payee.add}
                 placeholder={!payee}
                 onPress={() => setPickingPayee(true)}
+              />
+
+              {/* A tag, not a split: the spender will claim this back from work. */}
+              <DetailRow
+                icon="briefcase-outline"
+                tint={theme.tint.sky}
+                dense
+                label={t.expense.reimbursable.row}
+                value={reimbursable ? t.expense.reimbursable.yes : t.expense.reimbursable.no}
+                placeholder={!reimbursable}
+                onPress={() => setReimbursable((on) => !on)}
               />
 
               {/* What it was paid in, as a named row rather than only as the
@@ -2577,6 +2742,9 @@ export default function AddExpenseScreen() {
       {pickingCurrency ? (
         <CurrencySheet
           value={currency}
+          // The group's own currencies lead the picker: its own, then every
+          // one it has pinned a rate for.
+          featured={[groupCurrency, ...(groupFxRates.data ?? []).map((row) => row.from)]}
           onPick={chooseCurrency}
           onClose={() => setPickingCurrency(false)}
         />
@@ -2605,6 +2773,19 @@ export default function AddExpenseScreen() {
       ) : null}
 
       {/* How it was paid — a tag on the expense, defaulting to cash. */}
+      {pickingRepeat ? (
+        <RepeatSheet
+          value={repeat}
+          fallback={NEW_GROUP_REPEAT}
+          canStop
+          onChange={(next) => {
+            setRepeat(next);
+            setPickingRepeat(false);
+          }}
+          onClose={() => setPickingRepeat(false)}
+        />
+      ) : null}
+
       {pickingPayment ? (
         <PaymentMethodSheet
           value={paymentMethod}

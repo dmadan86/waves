@@ -51,7 +51,7 @@ export default function LanguageScreen() {
           <Ionicons
             name={directionalIcon('chevron-back')}
             size={iconSize.lg}
-            color={theme.color.buttonPrimary}
+            color={theme.color.text}
           />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>

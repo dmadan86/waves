@@ -1,0 +1,77 @@
+{
+  "meProfileId": "profile-me",
+  "today": "2026-10-21",
+  "currentGroupId": "g-goa",
+  "groups": [
+    { "id": "g-goa", "name": "Goa trip", "type": "trip", "default_currency": "INR" },
+    { "id": "g-home", "name": "Flat 4B", "type": "home", "default_currency": "INR" },
+    { "id": "g-london", "name": "London", "type": "trip", "default_currency": "GBP" }
+  ],
+  "members": [
+    {
+      "id": "m-me",
+      "group_id": "g-goa",
+      "profile_id": "profile-me",
+      "ghost_name": null,
+      "profile": { "display_name": "Madan" }
+    },
+    {
+      "id": "m-anu",
+      "group_id": "g-goa",
+      "profile_id": null,
+      "ghost_name": "Anu",
+      "profile": null
+    },
+    {
+      "id": "m-ravi",
+      "group_id": "g-goa",
+      "profile_id": null,
+      "ghost_name": "Ravi",
+      "profile": null
+    },
+    {
+      "id": "m-me2",
+      "group_id": "g-home",
+      "profile_id": "profile-me",
+      "ghost_name": null,
+      "profile": { "display_name": "Madan" }
+    },
+    {
+      "id": "m-sam",
+      "group_id": "g-home",
+      "profile_id": null,
+      "ghost_name": "Sam",
+      "profile": null
+    },
+    {
+      "id": "m-me3",
+      "group_id": "g-london",
+      "profile_id": "profile-me",
+      "ghost_name": null,
+      "profile": { "display_name": "Madan" }
+    },
+    {
+      "id": "m-priya",
+      "group_id": "g-london",
+      "profile_id": null,
+      "ghost_name": "Priya",
+      "profile": null
+    }
+  ],
+  "balances": [
+    { "group_id": "g-goa", "member_id": "m-anu", "currency": "INR", "balance": "-125000" },
+    { "group_id": "g-goa", "member_id": "m-ravi", "currency": "INR", "balance": "-50000" },
+    { "group_id": "g-goa", "member_id": "m-me", "currency": "INR", "balance": "175000" },
+    { "group_id": "g-home", "member_id": "m-sam", "currency": "INR", "balance": "30000" },
+    { "group_id": "g-home", "member_id": "m-me2", "currency": "INR", "balance": "-30000" }
+  ],
+  "saved": {
+    "personal": { "id": "exp-personal-1", "kind": "personal", "question": "Where was this?" },
+    "group": {
+      "id": "exp-group-1",
+      "kind": "group",
+      "groupId": "g-goa",
+      "question": "Any note for this?"
+    }
+  }
+}

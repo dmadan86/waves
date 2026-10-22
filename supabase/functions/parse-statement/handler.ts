@@ -55,6 +55,11 @@ export const MAX_IMAGE_BYTES = 3.75 * 1024 * 1024;
 export const MONTHLY_REQUEST_LIMIT = PRO_MONTHLY_STATEMENT_IMPORTS * STATEMENT_MAX_CHUNKS * 2;
 /** How long a file's continuation stays good. */
 export const CONTINUATION_TTL_MS = 60 * 60 * 1000;
+/**
+ * Requests one import id may make in total (`waves_statement_import_chunk`):
+ * every chunk of the longest statement, and as many again for retries.
+ */
+export const MAX_CHUNKS_PER_IMPORT = STATEMENT_MAX_CHUNKS * 2;
 const MODEL_TIMEOUT_MS = 90_000;
 const MAX_PAGE_NUMBER = 500;
 
@@ -153,6 +158,8 @@ interface Quota {
   limit: number;
   tier?: string;
   allowed: boolean;
+  /** The UTC month ('YYYY-MM') the reservation was taken in: what a refund names. */
+  month?: string;
 }
 
 interface Hints {
@@ -395,21 +402,46 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
     }
   }
 
-  // One use per FILE: only a file's first request reserves.
+  // One use per FILE: only a file's first request reserves. A refund gives back
+  // exactly the month the reservation named, and only while no model has been
+  // asked: after that the cost is real and the use stays spent.
   let quota: Quota | null = null;
-  let fileReserved = false;
-  let chunkReserved = false;
+  let fileReserved: Quota | null = null;
+  let chunkReserved: Quota | null = null;
   let refunded = false;
+  let spent = false;
   const refund = async (): Promise<void> => {
-    if (refunded) return;
+    if (refunded || spent) return;
     refunded = true;
-    const give = (feature: string): Promise<unknown> =>
+    const give = (feature: string, q: Quota): Promise<unknown> =>
       Promise.resolve(
-        deps.service.rpc('waves_ai_usage_refund', { p_profile: profileId, p_feature: feature }),
+        deps.service.rpc('waves_ai_usage_refund', {
+          p_profile: profileId,
+          p_feature: feature,
+          p_month: q.month ?? null,
+        }),
       ).catch(() => null);
-    if (fileReserved) await give(FEATURE);
-    if (chunkReserved) await give(CHUNK_FEATURE);
+    if (fileReserved) await give(FEATURE, fileReserved);
+    if (chunkReserved) await give(CHUNK_FEATURE, chunkReserved);
   };
+
+  // One import id may make a bounded number of requests, however long its
+  // continuation token stays valid: a "file" is at most this many chunks.
+  {
+    const { data: sessionData, error: sessionError } = await deps.service.rpc(
+      'waves_statement_import_chunk',
+      { p_profile: profileId, p_import_id: importId, p_max_chunks: MAX_CHUNKS_PER_IMPORT },
+    );
+    const session = sessionData as { chunks?: number; allowed?: boolean } | null;
+    if (sessionError || !session || typeof session.allowed !== 'boolean') throw unavailable();
+    if (!session.allowed) {
+      throw fail(
+        429,
+        'STATEMENT_IMPORT_TOO_MANY_CHUNKS',
+        'This import has read as many pages as one statement allows; start a new import',
+      );
+    }
+  }
 
   if (continuation === null) {
     const { data, error } = await deps.service.rpc('waves_statement_import_quota', {
@@ -417,7 +449,7 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
       p_pro_limit: PRO_MONTHLY_STATEMENT_IMPORTS,
     });
     quota = data as Quota | null;
-    if (error || !quota) throw unavailable();
+    if (error || !quota || typeof quota.allowed !== 'boolean') throw unavailable();
     if (!quota.allowed) {
       return json(
         {
@@ -429,7 +461,7 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
         429,
       );
     }
-    fileReserved = true;
+    fileReserved = quota;
   }
 
   try {
@@ -442,7 +474,7 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
       },
     );
     const chunks = chunkData as Quota | null;
-    if (chunkError || !chunks) throw unavailable();
+    if (chunkError || !chunks || typeof chunks.allowed !== 'boolean') throw unavailable();
     if (!chunks.allowed) {
       throw fail(
         429,
@@ -450,7 +482,7 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
         'You have read as many statement pages as this month allows',
       );
     }
-    chunkReserved = true;
+    chunkReserved = chunks;
 
     // An empty STATEMENT_IMPORT_MODEL= or IMPORT_VISION_MODEL= line means unset.
     const configured = (deps.env('STATEMENT_IMPORT_MODEL') ?? deps.env('IMPORT_VISION_MODEL') ?? '')
@@ -500,6 +532,8 @@ export async function handleParseStatement(request: Request, deps: Deps): Promis
 
       let response: Response;
       try {
+        // From here on a provider has been asked: the reservations stay spent.
+        spent = true;
         response = await ask(true);
         // A model that does not know the effort knob says so with a 400; ask plainly.
         if (response.status === 400) response = await ask(false);

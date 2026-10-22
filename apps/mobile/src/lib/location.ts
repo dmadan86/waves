@@ -57,6 +57,7 @@ interface LocationGeocodedAddress {
   subregion?: string | null;
   city?: string | null;
   region?: string | null;
+  isoCountryCode?: string | null;
 }
 
 /**
@@ -339,4 +340,42 @@ export function mapsUrl(location: ExpenseLocation): string {
 /** What to show for a location that has no name: a trimmed coordinate pair. */
 export function coordLabel(location: ExpenseLocation): string {
   return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+}
+
+/** Where the phone is now: a coordinate, a short name, and the country. */
+export interface CurrentPlace {
+  readonly lat: number;
+  readonly lng: number;
+  readonly name: string | null;
+  /** ISO 3166-1 alpha-2, when the lookup gave one. */
+  readonly countryCode: string | null;
+}
+
+/**
+ * The current place, only if location permission was *already* granted — it
+ * never prompts. Used by the follow-up questions ("Where was this — Phoenix
+ * Mall?") and nothing else; null on any failure, no permission, or no module.
+ * The reverse geocode is raced against a short timeout so a question is never
+ * held up by an offline lookup.
+ */
+export async function currentPlaceIfGranted(timeoutMs = 1500): Promise<CurrentPlace | null> {
+  const fix = await captureLocationIfGranted();
+  if (!fix) return null;
+  const Location = loadLocation();
+  if (!Location) return { lat: fix.lat, lng: fix.lng, name: null, countryCode: null };
+  try {
+    const addresses = await Promise.race([
+      Location.reverseGeocodeAsync({ latitude: fix.lat, longitude: fix.lng }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+    const first = addresses?.[0];
+    return {
+      lat: fix.lat,
+      lng: fix.lng,
+      name: placeName(first),
+      countryCode: first?.isoCountryCode?.trim().toUpperCase() || null,
+    };
+  } catch {
+    return { lat: fix.lat, lng: fix.lng, name: null, countryCode: null };
+  }
 }

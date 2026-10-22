@@ -1,55 +1,56 @@
 /**
  * The agent's question, with tappable answers. The agent could not settle
  * which of several amounts, groups or people was meant, so it offers 2-4
- * choices: each a tinted row (round icon, bold label, secondary line, radio), a
- * primary Continue that stays off until one is picked, and "Type instead", which
- * opens an inline field (with a mic to go back to speaking).
+ * choices: the question is the card's title, each choice a tinted row, and a
+ * tap answers at once (no Continue). When the agent asked which group, "Another
+ * group" opens a searchable list of the reader's other groups in the card
+ * itself; a tap there answers at once too. The rows share one look: a tinted
+ * icon circle, a bold title over a muted detail, and a chevron.
  *
- * Nothing here animates, so reduced motion needs no special case. Selection is
- * state in this card only; Continue hands the chosen option's `answer` up.
+ * Nothing here animates, so reduced motion needs no special case.
  */
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import type { VoiceClarifyOption } from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
-import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
-import { useStrings } from '@/i18n';
-import { clarifyOptionViews } from '@/lib/voiceClarifyPure';
+import { isRtl, useStrings } from '@/i18n';
+import { sceneCardColor } from '@/components/voice/sceneCard';
+import {
+  clarifyOptionViews,
+  filterGroupChoices,
+  type ClarifyOptionView,
+} from '@/lib/voiceClarifyPure';
 
-const ART = require('../../assets/images/voice-consent-art.webp') as number;
-// The art is 325x276; fixed sizes because a percentage width with an aspect
-// ratio renders zoomed and cropped on Android.
-const ART_W = 110;
-const ART_H = 94;
+/** Past this many groups the list gets a search field. */
+const SEARCH_FROM = 6;
 
 export interface VoiceClarifyCardProps {
   question: string;
   options: readonly VoiceClarifyOption[];
-  /** Continue: the chosen option's answer text. */
-  onContinue: (answer: string) => void;
-  /** The person typed an answer in their own words. */
-  onTyped: (text: string) => void;
-  /** Back to the mic from the typing field. */
-  onVoice: () => void;
+  /** The reader's other groups, for a which-group question (see otherGroupChoices). */
+  moreChoices?: readonly ClarifyOptionView[];
+  /** A row was tapped: its answer text. */
+  onPick: (answer: string) => void;
 }
 
 export function VoiceClarifyCard({
   question,
   options,
-  onContinue,
-  onTyped,
-  onVoice,
+  moreChoices = [],
+  onPick,
 }: VoiceClarifyCardProps) {
   const theme = useTheme();
   const { t } = useStrings();
-  const views = clarifyOptionViews(options);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [typing, setTyping] = useState(false);
-  const chosen = selected === null ? undefined : views[selected];
+  const offered = clarifyOptionViews(options);
+  const [browsing, setBrowsing] = useState(false);
+  const [query, setQuery] = useState('');
+  const others = moreChoices;
+  const chevron = isRtl() ? 'chevron-back' : 'chevron-forward';
+  const shown = filterGroupChoices(others, query);
 
   return (
     <View
@@ -57,47 +58,31 @@ export function VoiceClarifyCard({
         gap: theme.spacing.md,
         padding: theme.spacing.lg,
         borderRadius: theme.radius.xl,
-        backgroundColor: theme.color.surface,
+        backgroundColor: sceneCardColor(theme.scheme, theme.color.surface),
+        ...theme.shadow.soft,
       }}
     >
-      <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-        <Image
-          source={ART}
-          accessibilityIgnoresInvertColors
-          importantForAccessibility="no"
-          resizeMode="contain"
-          style={{ width: ART_W, height: ART_H }}
-        />
-        <Text variant="heading" style={{ textAlign: 'center' }}>
-          {t.voice.agentClarifyTitle}
-        </Text>
-        <Text tone="muted" style={{ textAlign: 'center' }}>
-          {question}
-        </Text>
-      </View>
+      <Text accessibilityRole="header" style={{ fontWeight: '800', fontSize: 20, lineHeight: 26 }}>
+        {question}
+      </Text>
 
-      <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }}>
-        {views.map((view, index) => {
+      <View style={{ gap: theme.spacing.sm }}>
+        {offered.map((view, index) => {
           const tint = theme.tint[view.tint];
-          const on = selected === index;
           return (
             <Pressable
               key={`${index}-${view.answer}`}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on, checked: on }}
+              accessibilityRole="button"
               accessibilityLabel={view.detail ? `${view.label}, ${view.detail}` : view.label}
-              accessibilityHint={t.voice.agentOptionHint}
-              onPress={() => setSelected(index)}
+              onPress={() => onPick(view.answer)}
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.md,
-                paddingHorizontal: theme.spacing.md,
+                paddingHorizontal: theme.spacing.sm,
                 paddingVertical: theme.spacing.sm,
                 borderRadius: theme.radius.lg,
-                borderWidth: on ? 2 : 1,
-                borderColor: on ? theme.color.brand : theme.color.border,
-                backgroundColor: tint.bg,
+                backgroundColor: theme.color.surfaceMuted,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
@@ -108,104 +93,135 @@ export function VoiceClarifyCard({
                   borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: theme.color.surface,
+                  backgroundColor: tint.bg,
                 }}
               >
                 <Ionicons
                   name={view.icon as React.ComponentProps<typeof Ionicons>['name']}
-                  size={iconSize.xl}
+                  size={iconSize.lg}
                   color={tint.ink}
                 />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 20, fontWeight: '800', color: tint.ink }}
-                >
+                <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '800' }}>
                   {view.label}
                 </Text>
                 {view.detail ? (
-                  <Text numberOfLines={1} style={{ color: tint.inkMuted }}>
+                  <Text numberOfLines={1} tone="muted">
                     {view.detail}
                   </Text>
                 ) : null}
               </View>
-              <View
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  borderWidth: 2,
-                  borderColor: on ? theme.color.brand : theme.color.textMuted,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {on ? (
-                  <View
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
-                      backgroundColor: theme.color.brand,
-                    }}
-                  />
-                ) : null}
-              </View>
+              <Ionicons name={chevron} size={iconSize.base} color={theme.color.textMuted} />
             </Pressable>
           );
         })}
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.voice.agentContinue}
-        accessibilityState={{ disabled: !chosen }}
-        disabled={!chosen}
-        onPress={() => chosen && onContinue(chosen.answer)}
-        style={({ pressed }) => ({
-          height: 52,
-          borderRadius: theme.radius.pill,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.brand,
-          opacity: !chosen ? 0.4 : pressed ? 0.85 : 1,
-        })}
-      >
-        <Text style={{ color: theme.color.onBrand, fontWeight: '700', fontSize: 17 }}>
-          {t.voice.agentContinue}
-        </Text>
-      </Pressable>
-
-      {typing ? (
-        <VoiceTypedAnswer onSubmit={onTyped} onVoice={onVoice} />
-      ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.voice.agentTypeInstead}
-          onPress={() => setTyping(true)}
-          style={({ pressed }) => ({
-            alignSelf: 'center',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            paddingHorizontal: theme.spacing.lg,
-            height: 40,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.brandSoft,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Ionicons
-            name="chatbox-ellipses-outline"
-            size={iconSize.base}
-            color={theme.color.brand}
-          />
-          <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
-            {t.voice.agentTypeInstead}
-          </Text>
-        </Pressable>
-      )}
+      {others.length > 0 ? (
+        browsing ? (
+          <View
+            style={{
+              gap: theme.spacing.xs,
+              padding: theme.spacing.sm,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+            }}
+          >
+            {others.length > SEARCH_FROM ? (
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                autoFocus
+                placeholder={t.voice.agentSearchGroups}
+                placeholderTextColor={theme.color.textFaint}
+                accessibilityLabel={t.voice.agentSearchGroups}
+                style={{
+                  height: 44,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.surfaceMuted,
+                  fontSize: 16,
+                  color: theme.color.text,
+                }}
+              />
+            ) : null}
+            {shown.map((choice) => (
+              <Pressable
+                key={choice.answer}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  choice.detail ? `${choice.label}, ${choice.detail}` : choice.label
+                }
+                onPress={() => onPick(choice.answer)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  minHeight: 44,
+                  paddingHorizontal: theme.spacing.sm,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: pressed ? theme.color.brandSoft : 'transparent',
+                })}
+              >
+                <Ionicons
+                  name="people-outline"
+                  size={iconSize.base}
+                  color={theme.color.textMuted}
+                />
+                <Text numberOfLines={1} style={{ flex: 1, fontWeight: '600' }}>
+                  {choice.label}
+                </Text>
+                {choice.detail ? (
+                  <Text numberOfLines={1} tone="muted" style={{ maxWidth: '40%' }}>
+                    {choice.detail}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
+            {shown.length === 0 ? (
+              <Text tone="muted" style={{ padding: theme.spacing.sm }}>
+                {t.voice.agentNoGroupMatch}
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.voice.agentOtherGroup}
+            accessibilityState={{ expanded: false }}
+            onPress={() => setBrowsing(true)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: theme.spacing.sm,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.color.surfaceMuted,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.tint.lilac.bg,
+              }}
+            >
+              <Ionicons name="pricetag" size={iconSize.lg} color={theme.tint.lilac.ink} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 17, fontWeight: '800' }}>
+              {t.voice.agentOtherGroup}
+            </Text>
+            <Ionicons name="chevron-down" size={iconSize.base} color={theme.color.textMuted} />
+          </Pressable>
+        )
+      ) : null}
     </View>
   );
 }

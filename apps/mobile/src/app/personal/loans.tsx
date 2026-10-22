@@ -8,12 +8,17 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
+  canUnlink,
+  cleanCounterpart,
   encodeLoan,
   format,
   loanOutstanding,
+  shareBlocker,
+  syncedOutstanding,
   currencySymbol,
   money,
   type LoanDirection,
@@ -34,7 +39,13 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import type { PickedContact } from '@/components/ContactPicker';
 import { DetailRow } from '@/components/DetailRows';
+import { LoanPersonPicker } from '@/components/LoanPersonPicker';
+import { useSyncedLoanNets } from '@/data/hooks';
+import { useShareLoan, useUnshareLoan } from '@/data/syncedLoans';
+import { friendlyError } from '@/lib/errors';
+import { useViewerId } from '@/lib/auth';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import {
   localIsoDate,
@@ -44,13 +55,14 @@ import {
   useUpsertPersonalRecord,
 } from '@/data/personal';
 import { useDefaultCurrency } from '@/lib/currency';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useDialog } from '@/lib/dialog';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { settleHref } from '@/lib/groupTab';
 
 function LoansScreenBody() {
   const theme = useTheme();
@@ -65,6 +77,29 @@ function LoansScreenBody() {
   const [today] = useState(() => todayIso());
   const [editing, setEditing] = useState<PersonalLoan | null>(null);
   const [creating, setCreating] = useState(false);
+  const { share } = useLocalSearchParams<{ share?: string }>();
+  const [sharing, setSharing] = useState<PersonalLoan | null>(null);
+  const [shareDismissed, setShareDismissed] = useState(false);
+
+  // A shared loan's outstanding amount is the balance in its 1:1 group (repaid
+  // through the ordinary settle-up flow), not the personal ledger's own sum.
+  const viewerId = useViewerId();
+  const nets = useSyncedLoanNets(
+    viewerId,
+    loans.flatMap((loan) => (loan.synced ? [loan.synced] : [])),
+  );
+  const syncedLeft = syncedOutstanding(loans, nets.nets);
+  const leftOf = (loan: PersonalLoan): bigint => {
+    if (!loan.synced) return loanOutstanding(loan, txns);
+    // Until the group is on this device the principal is the honest figure.
+    if (!nets.groups.has(loan.synced.groupId)) return loan.principal;
+    return syncedLeft.get(loan.id) ?? 0n;
+  };
+
+  // The assistant hands a fresh loan over with `?share=<id>`: open its share
+  // sheet once the record has landed in the ledger.
+  const wanted = share ? (loans.find((loan) => loan.id === share) ?? null) : null;
+  const shareLoanTarget = sharing ?? (wanted && !wanted.synced && !shareDismissed ? wanted : null);
 
   const sorted = [...loans].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
@@ -132,7 +167,7 @@ function LoansScreenBody() {
           </View>
         ) : (
           sorted.map((loan) => {
-            const left = loanOutstanding(loan, txns);
+            const left = leftOf(loan);
             const borrowed = loan.direction === 'borrowed';
             const settled = loan.status === 'closed' || left === 0n;
             return (
@@ -165,6 +200,18 @@ function LoansScreenBody() {
                           locale,
                         })}
                       </Text>
+                      {loan.synced ? (
+                        <Row style={{ alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Ionicons name="people-outline" size={12} color={theme.color.brand} />
+                          <Text
+                            variant="micro"
+                            style={{ color: theme.color.brand }}
+                            numberOfLines={1}
+                          >
+                            {fill(t.personal.visibleTo, { name: loan.counterpart })}
+                          </Text>
+                        </Row>
+                      ) : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text variant="micro" tone="faint">
@@ -179,17 +226,38 @@ function LoansScreenBody() {
                 {!settled ? (
                   <>
                     <Divider />
-                    <Button
-                      label={t.personal.recordPayment}
-                      size="sm"
-                      variant="secondary"
-                      onPress={() =>
-                        router.push({
-                          pathname: '/personal/entry',
-                          params: { loanId: loan.id, kind: borrowed ? 'expense' : 'income' },
-                        })
-                      }
-                    />
+                    {loan.synced ? (
+                      <Button
+                        label={t.personal.settleUp}
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => router.push(settleHref(loan.synced?.groupId ?? ''))}
+                      />
+                    ) : (
+                      <>
+                        <Button
+                          label={t.personal.recordPayment}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() =>
+                            router.push({
+                              pathname: '/personal/entry',
+                              params: { loanId: loan.id, kind: borrowed ? 'expense' : 'income' },
+                            })
+                          }
+                        />
+                        {shareBlocker(loan) === null ? (
+                          <Button
+                            label={fill(t.personal.shareWith, {
+                              name: cleanCounterpart(loan.counterpart),
+                            })}
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => setSharing(loan)}
+                          />
+                        ) : null}
+                      </>
+                    )}
                   </>
                 ) : null}
               </Card>
@@ -199,15 +267,33 @@ function LoansScreenBody() {
       </ScrollView>
 
       {creating ? (
-        <LoanEditor currency={dc} today={today} names={names} onClose={() => setCreating(false)} />
+        <LoanEditor
+          loans={loans}
+          currency={dc}
+          today={today}
+          names={names}
+          onClose={() => setCreating(false)}
+        />
       ) : null}
       {editing ? (
         <LoanEditor
+          loans={loans}
           loan={editing}
+          left={leftOf(editing)}
           currency={dc}
           today={today}
           names={names}
           onClose={() => setEditing(null)}
+        />
+      ) : null}
+      {shareLoanTarget ? (
+        <ShareLoanSheet
+          loans={loans}
+          loan={shareLoanTarget}
+          onClose={() => {
+            setSharing(null);
+            setShareDismissed(true);
+          }}
         />
       ) : null}
     </Screen>
@@ -215,13 +301,18 @@ function LoansScreenBody() {
 }
 
 function LoanEditor({
+  loans,
   loan,
+  left,
   currency,
   today,
   names,
   onClose,
 }: {
+  loans: readonly PersonalLoan[];
   loan?: PersonalLoan;
+  /** What is still outstanding (shared loans: the group balance). */
+  left?: bigint;
   currency: string;
   today: string;
   /** People earlier loans were with, offered under the "With" field. */
@@ -235,6 +326,18 @@ function LoanEditor({
   const { confirm } = useDialog();
   const upsert = useUpsertPersonalRecord();
   const remove = useDeletePersonalRecord();
+  const shareLoan = useShareLoan(loans);
+  const unshare = useUnshareLoan();
+  const [alsoShare, setAlsoShare] = useState(false);
+  const [contact, setContact] = useState<PickedContact | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // A shared loan's amount, side and person are the debt in the group: editing
+  // them here would quietly disagree with what the other person sees.
+  const locked = Boolean(loan?.synced);
+  const unlinkable = loan?.synced
+    ? canUnlink(loan, new Map([[loan.id, left ?? loan.principal]]))
+    : false;
 
   const [direction, setDirection] = useState<LoanDirection>(loan?.direction ?? 'borrowed');
   const [counterpart, setCounterpart] = useState(loan?.counterpart ?? '');
@@ -244,27 +347,57 @@ function LoanEditor({
   const [showDate, setShowDate] = useState(false);
   const [closed, setClosed] = useState(loan?.status === 'closed');
 
-  const canSave = principal > 0n && counterpart.trim().length > 0 && !upsert.isPending;
+  const busy = upsert.isPending || shareLoan.isPending || unshare.isPending;
+  const canSave = principal > 0n && counterpart.trim().length > 0 && !busy;
 
-  const onSave = (): void => {
+  const onSave = async (): Promise<void> => {
     if (!canSave) return;
-    upsert.mutate(
-      {
+    setError(null);
+    const next = {
+      carried: loan?.carried,
+      direction,
+      counterpart: locked ? (loan?.counterpart ?? '') : cleanCounterpart(counterpart),
+      principal,
+      currency: loan?.currency ?? currency,
+      note: note.trim() || null,
+      startDate,
+      status: closed ? ('closed' as const) : ('active' as const),
+      synced: loan?.synced ?? null,
+    };
+    try {
+      const recordId = await upsert.mutateAsync({
         recordId: loan?.id,
         recordKind: 'loan',
-        data: encodeLoan({
-          carried: loan?.carried,
-          direction,
-          counterpart: counterpart.trim(),
-          principal,
-          currency: loan?.currency ?? currency,
-          note: note.trim() || null,
-          startDate,
-          status: closed ? 'closed' : 'active',
-        }),
-      },
-      { onSuccess: onClose },
-    );
+        data: encodeLoan(next),
+      });
+      if (!loan && alsoShare) {
+        await shareLoan.mutateAsync({
+          loan: { ...next, id: recordId },
+          person: { name: next.counterpart, email: contact?.email, phone: contact?.phone },
+        });
+      }
+      onClose();
+    } catch (caught) {
+      setError(friendlyError(caught, t.personal.shareFailed, 'loans.save'));
+    }
+  };
+
+  const stopSharing = (): void => {
+    if (!loan) return;
+    void confirm({
+      title: t.personal.stopSharing,
+      body: t.personal.stopSharingBody,
+      confirmLabel: t.personal.stopSharing,
+      tone: 'danger',
+    }).then(async (ok) => {
+      if (!ok) return;
+      try {
+        await unshare.mutateAsync(loan);
+        onClose();
+      } catch (caught) {
+        setError(friendlyError(caught, t.personal.shareFailed, 'loans.unshare'));
+      }
+    });
   };
 
   const loanCurrency = loan?.currency ?? currency;
@@ -332,8 +465,10 @@ function LoanEditor({
                 key={tab.value}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
+                disabled={locked}
                 onPress={() => setDirection(tab.value)}
                 style={{
+                  opacity: locked && !on ? 0.4 : 1,
                   flex: 1,
                   height: 42,
                   borderRadius: 21,
@@ -360,7 +495,7 @@ function LoanEditor({
         </Row>
 
         <FieldLabel>{t.personal.loanAmount}</FieldLabel>
-        <View style={fieldBox}>
+        <View style={fieldBox} pointerEvents={locked ? 'none' : 'auto'}>
           <Text style={{ fontSize: 22, fontWeight: '600', color: ink }}>
             {currencySymbol(loanCurrency, locale)}
           </Text>
@@ -385,6 +520,7 @@ function LoanEditor({
             <Ionicons name="person-outline" size={20} color={muted} />
             <TextInput
               value={counterpart}
+              editable={!locked}
               onChangeText={setCounterpart}
               placeholder={t.personal.counterpartPlaceholder}
               placeholderTextColor={theme.color.textFaint}
@@ -393,7 +529,17 @@ function LoanEditor({
             />
             {/* Only a dropdown when there is somebody to offer: a chevron over
                 an empty list would be a control that does nothing. */}
-            {others.length > 0 ? (
+            {!locked ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.personal.pickContact}
+                onPress={() => setPickerOpen(true)}
+                hitSlop={10}
+              >
+                <Ionicons name="person-add-outline" size={20} color={ink} />
+              </Pressable>
+            ) : null}
+            {others.length > 0 && !locked ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t.personal.pickName}
@@ -436,6 +582,31 @@ function LoanEditor({
             </View>
           ) : null}
         </View>
+
+        {loan?.synced ? (
+          <Row style={{ alignItems: 'center', gap: 6 }}>
+            <Ionicons name="people-outline" size={16} color={accent} />
+            <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: accent }}>
+              {fill(t.personal.visibleTo, { name: loan.counterpart })}
+            </Text>
+          </Row>
+        ) : !loan && counterpart.trim().length > 0 ? (
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: alsoShare }}
+            onPress={() => setAlsoShare((on) => !on)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+          >
+            <Ionicons
+              name={alsoShare ? 'checkbox' : 'square-outline'}
+              size={22}
+              color={alsoShare ? accent : muted}
+            />
+            <Text style={{ flex: 1, fontSize: 15, color: ink }}>
+              {fill(t.personal.shareToggle, { name: cleanCounterpart(counterpart) })}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <FieldLabel>{t.personal.notePlaceholder}</FieldLabel>
         {/* The shared note field, so the mic comes with it. The person the
@@ -492,7 +663,7 @@ function LoanEditor({
           accessibilityLabel={t.personal.save}
           accessibilityState={{ disabled: !canSave }}
           disabled={!canSave}
-          onPress={onSave}
+          onPress={() => void onSave()}
           style={({ pressed }) => ({
             marginTop: 6,
             height: 54,
@@ -514,6 +685,27 @@ function LoanEditor({
           </Text>
         </Pressable>
 
+        {error ? (
+          <Text variant="caption" style={{ color: theme.color.negative }}>
+            {error}
+          </Text>
+        ) : null}
+
+        {loan?.synced ? (
+          unlinkable ? (
+            <Button
+              label={t.personal.stopSharing}
+              variant="secondary"
+              fullWidth
+              onPress={stopSharing}
+            />
+          ) : (
+            <Text variant="caption" tone="muted">
+              {t.personal.cannotStopSharing}
+            </Text>
+          )
+        ) : null}
+
         {loan ? (
           <Button
             label={t.common.delete}
@@ -522,16 +714,121 @@ function LoanEditor({
             onPress={() =>
               void confirm({
                 title: t.common.delete,
-                body: t.personal.deleteConfirm,
+                body: loan.synced
+                  ? `${t.personal.deleteConfirm} ${
+                      unlinkable
+                        ? t.personal.deleteSharedBody
+                        : fill(t.personal.deleteSharedKept, { name: loan.counterpart })
+                    }`
+                  : t.personal.deleteConfirm,
                 confirmLabel: t.common.delete,
                 tone: 'danger',
-              }).then((ok) => {
-                if (ok) remove.mutate(loan.id, { onSuccess: onClose });
+              }).then(async (ok) => {
+                if (!ok) return;
+                try {
+                  // Take the debt off the other person's side too, but only
+                  // while nothing has been repaid on it.
+                  if (loan.synced && unlinkable) await unshare.mutateAsync(loan);
+                  await remove.mutateAsync(loan.id);
+                  onClose();
+                } catch (caught) {
+                  setError(friendlyError(caught, t.personal.shareFailed, 'loans.delete'));
+                }
               })
             }
           />
         ) : null}
+
+        <LoanPersonPicker
+          visible={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onPick={(picked) => {
+            setCounterpart(picked.name);
+            setContact(picked);
+          }}
+        />
       </ScrollView>
+    </Sheet>
+  );
+}
+
+/**
+ * Share an existing private loan with the person it is with: one tap, or pick
+ * them from contacts first so a Waves account (matched on email or number) sees
+ * it straight away.
+ */
+function ShareLoanSheet({
+  loans,
+  loan,
+  onClose,
+}: {
+  loans: readonly PersonalLoan[];
+  loan: PersonalLoan;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const { ink, muted } = useLoanInks();
+  const shareLoan = useShareLoan(loans);
+  const [contact, setContact] = useState<PickedContact | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const name = cleanCounterpart(contact?.name ?? loan.counterpart);
+
+  const onShare = async (): Promise<void> => {
+    setError(null);
+    try {
+      await shareLoan.mutateAsync({
+        loan,
+        person: { name, email: contact?.email, phone: contact?.phone },
+      });
+      onClose();
+    } catch (caught) {
+      setError(friendlyError(caught, t.personal.shareFailed, 'loans.share'));
+    }
+  };
+
+  return (
+    <Sheet visible onClose={onClose}>
+      <View style={{ gap: theme.spacing.md }}>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: ink }}>{t.personal.shareTitle}</Text>
+        <Text style={{ fontSize: 14, lineHeight: 20, color: muted }}>
+          {fill(t.personal.shareBody, { name })}
+        </Text>
+        <Row style={{ alignItems: 'center', gap: 10 }}>
+          <Ionicons name="person-outline" size={20} color={ink} />
+          <View style={{ flex: 1 }}>
+            <Text variant="micro" tone="muted">
+              {t.personal.shareWho}
+            </Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: ink }} numberOfLines={1}>
+              {name}
+            </Text>
+          </View>
+          <Button
+            label={t.personal.pickContact}
+            size="sm"
+            variant="secondary"
+            onPress={() => setPickerOpen(true)}
+          />
+        </Row>
+        {error ? (
+          <Text variant="caption" style={{ color: theme.color.negative }}>
+            {error}
+          </Text>
+        ) : null}
+        <Button
+          label={t.personal.shareAction}
+          fullWidth
+          onPress={() => void onShare()}
+          disabled={shareLoan.isPending}
+        />
+      </View>
+      <LoanPersonPicker
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={setContact}
+      />
     </Sheet>
   );
 }

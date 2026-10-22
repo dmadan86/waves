@@ -64,6 +64,8 @@ export interface DiffVersion {
   readonly notes?: string | null;
   /** "Paid to": who outside the group the money went to. */
   readonly payee?: string | null;
+  /** "Work expense (to claim)". */
+  readonly reimbursable?: boolean;
   readonly payment_method?: string | null;
   /** The time of day the spend happened, a full ISO timestamp. */
   readonly occurred_at?: string | null;
@@ -180,6 +182,13 @@ export type ExpenseChange =
       readonly kind: 'text';
       readonly oldText: string;
       readonly newText: string;
+    }
+  | {
+      /** The work / reimbursable tag was switched on or off. */
+      readonly field: 'reimbursable';
+      readonly kind: 'flag';
+      readonly oldValue: boolean;
+      readonly newValue: boolean;
     }
   | {
       readonly field: 'paymentMethod';
@@ -474,6 +483,17 @@ export function diffExpenseVersions(
     const newPayee = cleanPayee(cur.payee) ?? '';
     if (oldPayee !== newPayee) {
       changes.push({ field: 'payee', kind: 'text', oldText: oldPayee, newText: newPayee });
+    }
+  }
+
+  if (prev.reimbursable !== undefined && cur.reimbursable !== undefined) {
+    if (prev.reimbursable !== cur.reimbursable) {
+      changes.push({
+        field: 'reimbursable',
+        kind: 'flag',
+        oldValue: prev.reimbursable,
+        newValue: cur.reimbursable,
+      });
     }
   }
 

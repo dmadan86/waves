@@ -1,0 +1,34 @@
+# Synthetic. Shaped like Wells Fargo's sample checking statement (tester.pdf,
+# not vendored): MM/DD dates without a year, a period that crosses New Year,
+# a narration whose amount wraps to the next line, an "Ending daily balance"
+# column, and a "Daily ledger balance summary" with three date/balance pairs per line.
+Wells Fargo Everyday Checking
+Account number: 1234567890
+Statement period activity summary
+December 16, 2025 - January 15, 2026
+SAMPLE CUSTOMER
+123 ANY STREET
+ANYTOWN CA 90000
+Beginning balance on 12/16 $2,000.00
+Deposits/Additions 1,540.76
+Withdrawals/Subtractions - 528.45
+Ending balance on 1/15 $3,012.31
+Transaction history
+Date Check Number Description Deposits/Additions Withdrawals/Subtractions Ending daily balance
+12/16 Purchase authorized on 12/15 Sample Market Anytown CA S000000000000001 Card 0001 45.20 1,954.80
+12/20 Online Transfer From Sample Savings xxxxxx0002 Ref #IB000000001 500.00 2,454.80
+12/31 Recurring Payment authorized on 12/30 Sample Streaming 15.99 2,438.81
+12/31 The Insurance Co.
+Monthly Deposit 40.76 2,479.57
+01/02 1001 Check 250.00 2,229.57
+01/05 ATM Withdrawal authorized on 01/05 100 Main St Anytown CA 0000001 ATM ID 0001 Card 0001 200.00 2,029.57
+01/10 Sample Employer Payroll 260110 000000000 Sample Customer 1,000.00 3,029.57
+01/14 Purchase authorized on 01/13 Sample Cafe Anytown CA S000000000000002 Card 0001 7.26 3,022.31
+01/15 Monthly Service Fee 10.00 3,012.31
+Ending balance on 1/15 3,012.31
+Totals $1,540.76 $528.45
+Daily ledger balance summary
+Date Balance Date Balance Date Balance
+12/16 1,954.80 12/31 2,479.57 01/10 3,029.57
+12/20 2,454.80 01/02 2,229.57 01/14 3,022.31
+01/05 2,029.57 01/15 3,012.31

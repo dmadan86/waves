@@ -1,0 +1,41 @@
+# E2E-08. Offline, the sentence is read on the phone, the follow-up chips still
+# work, and typing an answer is not offered. Back online, the entry is there.
+#
+# Android only (setAirplaneMode). ₹450, not the spec's ₹180: INR's small-spend
+# floor is ₹200, under which the assistant asks nothing at all.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+- runFlow: assistant-open.yaml
+
+- setAirplaneMode: enabled
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'coffee 450 just for me'
+- extendedWaitUntil:
+    visible: '.*450.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*450.*'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+
+# A question with chips, and no way to type an answer while offline.
+- extendedWaitUntil:
+    visible: 'How did you pay\?'
+    timeout: 10000
+- assertNotVisible: 'Type instead'
+- tapOn: 'Cash'
+- extendedWaitUntil:
+    visible: 'Saved with payment method'
+    timeout: 10000
+- tapOn: 'Done'
+
+# Back online: the entry is in the ledger.
+- setAirplaneMode: disabled
+- openLink: waves:///personal/transactions
+- extendedWaitUntil:
+    visible: '.*450.*'
+    timeout: 30000

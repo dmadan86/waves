@@ -51,6 +51,13 @@ export enum MutationKind {
   PlanItemCreate = 'plan_item.create',
   PlanItemUpdate = 'plan_item.update',
   PlanItemDelete = 'plan_item.delete',
+  // A repeating group expense (a flat's monthly rent). Group-scoped and authorised
+  // by membership, like the plan: any live member creates, edits, pauses, resumes
+  // or stops one. The rule is the only thing queued — the expenses it produces
+  // are posted by the server generator, never by a client, so a rule made offline
+  // cannot double-post when two phones come back at once.
+  GroupRecurringCreate = 'group_recurring.create',
+  GroupRecurringUpdate = 'group_recurring.update',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -157,6 +164,9 @@ export interface ExpenseCreatePayload {
   /** "Paid to": who outside the group the money went to. Absent (an older
    *  build) keeps what the server already has; '' clears it. */
   readonly payee?: string | null;
+  /** "Work expense (to claim)". Absent (an older build) keeps what the server
+   *  already has; true/false replaces it. */
+  readonly reimbursable?: boolean | null;
 }
 
 /** The four ways an expense is paid for; optional everywhere it appears. */
@@ -325,6 +335,69 @@ export interface MemberBudgetSetPayload {
   readonly amountMinor: string;
   readonly currency?: CurrencyCode | null;
   readonly visibility: 'private' | 'group';
+}
+
+/** One side of a rule's stored expense: a member and what they paid / owe. */
+export interface GroupRecurringLine {
+  readonly memberId: MemberId;
+  /** Minor units as a decimal string. */
+  readonly amount: string;
+}
+
+/**
+ * A repeating group expense. `payers` and `shares` are the expense already
+ * computed on the phone (the split maths lives in @waves/core), each summing to
+ * `amount`; the server checks that and never re-derives it. `ruleId` is
+ * client-chosen and the idempotency key, so a replayed create returns the same
+ * rule.
+ */
+export interface GroupRecurringCreatePayload {
+  readonly ruleId: string;
+  readonly description: string;
+  readonly category?: string | null;
+  readonly currency: CurrencyCode;
+  readonly amount: string;
+  readonly splitType: string;
+  readonly splitParams: unknown;
+  readonly payers: readonly GroupRecurringLine[];
+  readonly shares: readonly GroupRecurringLine[];
+  readonly notes?: string | null;
+  readonly cadence: 'weekly' | 'semimonthly' | 'monthly' | 'yearly';
+  readonly interval: number;
+  readonly secondDay?: number | null;
+  readonly anchorDate: string;
+  readonly endDate?: string | null;
+  /** The first occurrence is an expense the person just added by hand, so the
+   *  rule starts at the one after it (that date must not be posted twice). */
+  readonly skipFirst?: boolean;
+}
+
+/**
+ * Edit, pause, resume or stop. Keys are the RPC's own (snake_case); an absent
+ * key leaves the value alone and `end_date: null` clears the end. `stopped` is
+ * final.
+ */
+export interface GroupRecurringPatch {
+  readonly status?: 'active' | 'paused' | 'stopped';
+  readonly description?: string;
+  readonly category?: string | null;
+  readonly currency?: CurrencyCode;
+  readonly amount?: string;
+  readonly split_type?: string;
+  readonly split_params?: unknown;
+  readonly payers?: readonly GroupRecurringLine[];
+  readonly shares?: readonly GroupRecurringLine[];
+  readonly notes?: string | null;
+  readonly cadence?: 'weekly' | 'semimonthly' | 'monthly' | 'yearly';
+  readonly interval?: number;
+  readonly second_day?: number | null;
+  readonly anchor_date?: string;
+  readonly end_date?: string | null;
+}
+
+export interface GroupRecurringUpdatePayload {
+  readonly ruleId: string;
+  readonly patch: GroupRecurringPatch;
 }
 
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
@@ -506,6 +579,9 @@ export enum SyncTable {
   /** Group-scoped, read+write (A23). The trip plan is not money, so it never
    * touches a balance — but it is a group's shared list and belongs offline. */
   TripPlanItems = 'trip_plan_items',
+  /** Group-scoped, read+write. A repeating group expense; the expenses it
+   * produces arrive as ordinary `expenses` rows. */
+  GroupRecurringExpenses = 'group_recurring_expenses',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

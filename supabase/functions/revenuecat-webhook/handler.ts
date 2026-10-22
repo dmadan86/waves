@@ -45,6 +45,15 @@ export function safeEqual(left: string, right: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Whether sandbox / Test Store events may write subscriptions. Opt-in only:
+ * exactly `REVENUECAT_ALLOW_SANDBOX=true`. The retired `REVENUECAT_IGNORE_SANDBOX`
+ * is not read, so an unset or mistyped variable cannot open production.
+ */
+export function allowSandbox(env: (name: string) => string | undefined): boolean {
+  return env('REVENUECAT_ALLOW_SANDBOX') === 'true';
+}
+
 /** True when the Authorization header carries the configured secret. */
 export function authorized(header: string | null, secret: string): boolean {
   if (!header) return false;
@@ -80,9 +89,11 @@ export async function handleRevenueCatWebhook(request: Request, deps: Deps): Pro
     throw new HttpError(400, 'BAD_EVENT', 'Missing event or event id');
   }
 
-  const mapped = mapEvent(event, {
-    ignoreSandbox: deps.env('REVENUECAT_IGNORE_SANDBOX') === 'true',
-  });
+  // Sandbox and Test Store events are dropped unless this deployment opts IN
+  // (`REVENUECAT_ALLOW_SANDBOX=true`, for a staging project). A TestFlight or
+  // Play-internal build makes free sandbox purchases; before this they became
+  // real Pro rows whenever the old opt-out variable was left unset.
+  const mapped = mapEvent(event, { ignoreSandbox: !allowSandbox(deps.env) });
 
   const { data, error } = await deps.service.rpc('waves_revenuecat_apply', {
     p_event_id: mapped.eventId,

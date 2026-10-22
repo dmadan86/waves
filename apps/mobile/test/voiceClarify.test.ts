@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { clarifyFollowUp, clarifyOptionViews, typedFollowUp } from '../src/lib/voiceClarifyPure';
+import {
+  clarifyFollowUp,
+  clarifyOptionViews,
+  filterGroupChoices,
+  otherGroupChoices,
+  typedFollowUp,
+} from '../src/lib/voiceClarifyPure';
 
 describe('typedFollowUp', () => {
   it('builds the same payload a spoken answer does, from trimmed text', () => {
@@ -42,6 +48,24 @@ describe('clarifyOptionViews', () => {
     expect(views[1]!.detail).toBeNull();
   });
 
+  it('titles each option by its detail when every option has the same title', () => {
+    const views = clarifyOptionViews([
+      { label: '₹80,000', detail: 'Goa trip (split in group)', answer: 'goa' },
+      { label: '₹80,000', detail: 'Just for me', answer: 'me' },
+    ]);
+    expect(views.map((v) => [v.label, v.detail])).toEqual([
+      ['Goa trip (split in group)', null],
+      ['Just for me', null],
+    ]);
+    // One option missing a detail keeps the titles as they were.
+    expect(
+      clarifyOptionViews([
+        { label: '₹80,000', detail: 'Goa', answer: 'goa' },
+        { label: '₹80,000', answer: 'me' },
+      ])[0]!.label,
+    ).toBe('₹80,000');
+  });
+
   it('shows nothing (the old speak/type card) when absent, too few or too many', () => {
     expect(clarifyOptionViews(undefined)).toEqual([]);
     expect(clarifyOptionViews([two[0]!])).toEqual([]);
@@ -64,5 +88,44 @@ describe('clarifyFollowUp', () => {
       question: 'Which amount?',
       answer: '500 rupees for Breakfast',
     });
+  });
+});
+
+describe('otherGroupChoices', () => {
+  const groups = [
+    { name: 'Goa trip', detail: 'Trip' },
+    { name: 'Vietnam' },
+    { name: 'Flatmates', detail: 'Home' },
+    { name: 'Office lunch' },
+    { name: '  ' },
+    { name: 'flatmates' },
+  ];
+  const groupQuestion = clarifyOptionViews([
+    { label: 'Goa trip', icon: 'trip', answer: 'Goa trip' },
+    { label: 'Vietnam', icon: 'trip', answer: 'Vietnam' },
+    { label: 'Personal', icon: 'person', answer: 'Personal' },
+  ]);
+
+  it('offers every group not already shown, by name, once each', () => {
+    const rest = otherGroupChoices(groupQuestion, groups);
+    expect(rest.map((r) => r.label)).toEqual(['Flatmates', 'Office lunch']);
+    expect(rest[0]).toMatchObject({ answer: 'Flatmates', detail: 'Home', icon: 'people-outline' });
+  });
+
+  it('adds nothing when the question is not about groups', () => {
+    expect(otherGroupChoices(clarifyOptionViews(two), groups)).toEqual([]);
+  });
+
+  it('adds nothing when every group is already offered', () => {
+    expect(otherGroupChoices(groupQuestion, [{ name: 'Goa trip' }, { name: 'vietnam' }])).toEqual(
+      [],
+    );
+  });
+
+  it('filters by any part of the name, ignoring case', () => {
+    const rest = otherGroupChoices(groupQuestion, groups);
+    expect(filterGroupChoices(rest, ' LUNCH ').map((r) => r.label)).toEqual(['Office lunch']);
+    expect(filterGroupChoices(rest, '')).toHaveLength(2);
+    expect(filterGroupChoices(rest, 'zzz')).toEqual([]);
   });
 });

@@ -7,6 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  connectedAppsRowHint,
   disconnectApp,
   listConnectedApps,
   withoutApp,
@@ -92,5 +93,17 @@ describe('disconnectApp', () => {
       { clientId: 'b', name: '', logoUri: null, scopes: [], grantedAt: '' },
     ];
     expect(withoutApp(apps, 'a').map((app) => app.clientId)).toEqual(['b']);
+  });
+});
+
+describe('connectedAppsRowHint', () => {
+  const format = (n: number) => `${n} connected`;
+  it('stays silent until the list is read, so a failed load never says "None"', () => {
+    expect(connectedAppsRowHint(undefined, 'None connected', format)).toBeNull();
+  });
+  it('says none, one and many', () => {
+    expect(connectedAppsRowHint(0, 'None connected', format)).toBe('None connected');
+    expect(connectedAppsRowHint(1, 'None connected', format)).toBe('1 connected');
+    expect(connectedAppsRowHint(2, 'None connected', format)).toBe('2 connected');
   });
 });

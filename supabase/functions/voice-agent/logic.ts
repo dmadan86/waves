@@ -13,6 +13,8 @@ import {
   minorUnitExponent,
   type VoiceAgentAction,
   type VoiceClarifyOption,
+  type VoiceExpenseUpdate,
+  type VoiceSavedExpense,
   type VoiceSplitMode,
   type VoiceSplitShare,
 } from '../_shared/core.js';
@@ -38,6 +40,7 @@ export const CLARIFY_ICONS = [
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 4;
 const SPLIT_MODES: readonly VoiceSplitMode[] = ['equal', 'exact', 'percent', 'shares'];
+const PAYMENT_METHODS = ['cash', 'upi', 'card', 'credit', 'debit', 'bank', 'wallet'] as const;
 
 // ── context ────────────────────────────────────────────────────────────────
 
@@ -62,6 +65,8 @@ export interface VoiceContext {
   readonly groups: readonly ContextGroup[];
   readonly currentGroupId: string | null;
   readonly today: string;
+  /** Set for a follow-up turn: the expense the person just saved. */
+  readonly saved?: VoiceSavedExpense;
 }
 
 export interface RawGroup {
@@ -166,6 +171,18 @@ export function keyterms(context: VoiceContext, maxWords = MAX_KEYTERM_WORDS): s
 /** The compact context block the model reads. */
 export function contextText(context: VoiceContext): string {
   const lines = [`Today: ${context.today}`];
+  if (context.saved) {
+    const where =
+      context.saved.kind === 'group'
+        ? `a group expense in ${context.saved.groupId ?? '?'}`
+        : 'a personal expense';
+    lines.push(
+      `FOLLOW-UP about ${where} already saved, expenseId ${context.saved.id}.` +
+        (context.saved.question
+          ? ` You asked: ${context.saved.question.replace(/\s+/g, ' ').slice(0, 200)}`
+          : ''),
+    );
+  }
   for (const g of context.groups) {
     const exp = safeExponent(g.currency);
     const tag = g.id === context.currentGroupId ? ' [CURRENT]' : '';
@@ -211,7 +228,9 @@ Rules:
 - "<amount> for <thing> in/and/at <group name>" (e.g. "500 rupees for breakfast in Goa trip") is ONE expense in that group: the amount belongs to the thing, the group name only says where. Never read a group name as a second item or a second amount.
 - The transcript comes from speech recognition and can be wrong. A number right after "split" or similar filler, or a figure in a currency the speaker never named that does not fit the group's currency (e.g. "$3,030.30" after "Split,"), is most likely a transcription artifact of something like "split three ways" or "split equally". Prefer the amount spoken with a currency word that matches the group ("500 rupees" in a rupee group) and ignore the artifact. "split N ways", "split between N" and "split, 3" are head-counts: hints about who shares it, never amounts.
 - Ask only when it is genuinely ambiguous after the rules above. When you do ask which of several concrete values, groups or people was meant, also pass options (2-4): label is the value itself, detail says what it is, answer is the words to send back so the choice is complete on its own (e.g. "500 rupees for Breakfast"). Leave options out for open questions.
-- If the message includes an earlier command and your question about it, the new words answer that question: complete the earlier command with them.`;
+- If the message includes an earlier command and your question about it, the new words answer that question: complete the earlier command with them.
+- If the context has a FOLLOW-UP line, the message answers a question about an expense that is already saved. Call only update_expense, with exactly that expenseId, filling just what was said (place, note, category, paymentMethod, wantsReceipt, splitWith). Never add, settle or create anything new, and never invent a place or person. If nothing in the message fits, call ask_clarification or answer_question.
+- A FOLLOW-UP message that says a new number, date or description is a correction: call update_expense with that field (amountMinor, date, description, currency, or groupId to move it to another of the caller's groups, or "personal" to move a group expense to the personal ledger). A new currency only relabels, never converts. "undo", "delete that", "remove it", "hata do", "cancel that" mean delete_expense with that expenseId.`;
 
 /** Everything per-request: today's date, the caller's groups, members and balances. */
 export function dynamicContextText(context: VoiceContext): string {
@@ -342,6 +361,65 @@ export const TOOLS = [
     },
   },
   {
+    name: 'update_expense',
+    description:
+      'Only in a FOLLOW-UP turn: enrich the expense that was just saved with what the person said. Never for a new expense.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        expenseId: str('The expenseId from the FOLLOW-UP line, exactly'),
+        place: str('Where it was, as said (a venue or area)'),
+        note: str('A short note to keep with it'),
+        category: str('Optional category word'),
+        paymentMethod: {
+          type: 'string',
+          enum: [...PAYMENT_METHODS],
+          description: 'How it was paid',
+        },
+        wantsReceipt: {
+          type: 'boolean',
+          description: 'True if they want to add a receipt or bill photo',
+        },
+        amountMinor: str('A corrected amount, integer minor units as a digit string'),
+        currency: str('A corrected ISO 4217 code; relabels only, never converts'),
+        date: str('A corrected date, YYYY-MM-DD, resolved against today'),
+        description: str('A corrected short description'),
+        groupId: str(
+          'Move it to this group id from the context, or "personal" for the personal ledger',
+        ),
+        participants: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "Member ids of the expense's group who share it",
+        },
+        splitWith: {
+          type: 'object',
+          description: 'Share it with these people (personal expenses only)',
+          properties: {
+            groupId: str('Group id from the context'),
+            memberIds: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Member ids, not the caller',
+            },
+          },
+          required: ['groupId', 'memberIds'],
+        },
+      },
+      required: ['expenseId'],
+    },
+  },
+  {
+    name: 'delete_expense',
+    description:
+      'Only in a FOLLOW-UP turn: the person says undo, delete that, remove it or cancel. Removes the expense that was just saved.',
+    input_schema: {
+      type: 'object',
+      properties: { expenseId: str('The expenseId from the FOLLOW-UP line, exactly') },
+      required: ['expenseId'],
+    },
+  },
+  {
     name: 'answer_question',
     description: 'Answer a question about balances or groups, in one short spoken-style sentence.',
     input_schema: {
@@ -400,6 +478,8 @@ export type Parsed =
       answer?: string;
       clarify?: string;
       clarifyOptions?: VoiceClarifyOption[];
+      update?: VoiceExpenseUpdate;
+      delete?: { expenseId: string };
     }
   | { ok: false; reason: string };
 
@@ -416,9 +496,27 @@ export function parseToolCalls(calls: readonly ToolCall[], context: VoiceContext
     let answer: string | undefined;
     let clarify: string | undefined;
     let clarifyOptions: VoiceClarifyOption[] | undefined;
+    let update: VoiceExpenseUpdate | undefined;
+    let deleted: { expenseId: string } | undefined;
     for (const call of calls) {
       const input = asRecord(call.input);
-      if (call.name === 'answer_question') {
+      if (call.name === 'update_expense') {
+        if (!context.saved) bad('update_expense outside a follow-up');
+        if (update) bad('one update per turn');
+        update = validateUpdate(input, context);
+      } else if (call.name === 'delete_expense') {
+        if (!context.saved) bad('delete_expense outside a follow-up');
+        if (deleted) bad('one delete per turn');
+        if (input.expenseId !== context.saved.id) bad('delete is for a different expense');
+        deleted = { expenseId: context.saved.id };
+      } else if (
+        context.saved &&
+        call.name !== 'answer_question' &&
+        call.name !== 'ask_clarification'
+      ) {
+        // A follow-up may enrich the saved expense and nothing else.
+        bad(`${call.name} is not allowed in a follow-up`);
+      } else if (call.name === 'answer_question') {
         answer = text(input.text, 'text', 600);
       } else if (call.name === 'ask_clarification') {
         clarify = text(input.question, 'question', 300);
@@ -427,6 +525,7 @@ export function parseToolCalls(calls: readonly ToolCall[], context: VoiceContext
         actions.push(validateAction(call.name, input, context));
       }
     }
+    if (deleted && update) bad('cannot update and delete the same expense');
     if (clarify) {
       return {
         ok: true,
@@ -435,8 +534,15 @@ export function parseToolCalls(calls: readonly ToolCall[], context: VoiceContext
         ...(clarifyOptions ? { clarifyOptions } : {}),
       };
     }
-    if (actions.length === 0 && !answer) return { ok: false, reason: 'nothing to return' };
-    return { ok: true, actions, ...(answer ? { answer } : {}) };
+    if (actions.length === 0 && !answer && !update && !deleted)
+      return { ok: false, reason: 'nothing to return' };
+    return {
+      ok: true,
+      actions,
+      ...(answer ? { answer } : {}),
+      ...(update ? { update } : {}),
+      ...(deleted ? { delete: deleted } : {}),
+    };
   } catch (error) {
     if (error instanceof Invalid) return { ok: false, reason: error.message };
     throw error;
@@ -569,6 +675,135 @@ function validateSplit(
     if (shares.some((s) => !(Number(s.value) > 0))) bad('share weights must be positive');
   }
   return { mode, shares };
+}
+
+/**
+ * A follow-up answer's changes to the just-saved expense. The id must be the
+ * one the app said it saved; a person named must be in the caller's own groups,
+ * and never the caller; the group must be one of theirs; at least one field.
+ */
+function validateUpdate(input: Record<string, unknown>, context: VoiceContext): VoiceExpenseUpdate {
+  const saved = context.saved as VoiceSavedExpense;
+  if (input.expenseId !== saved.id) bad('update is for a different expense');
+  const place =
+    input.place === undefined || input.place === null || input.place === ''
+      ? undefined
+      : text(input.place, 'place', 120);
+  const note =
+    input.note === undefined || input.note === null || input.note === ''
+      ? undefined
+      : text(input.note, 'note', 200);
+  const category = optionalCategory(input.category);
+  let paymentMethod: string | undefined;
+  if (
+    input.paymentMethod !== undefined &&
+    input.paymentMethod !== null &&
+    input.paymentMethod !== ''
+  ) {
+    const raw =
+      typeof input.paymentMethod === 'string' ? input.paymentMethod.trim().toLowerCase() : '';
+    if (!(PAYMENT_METHODS as readonly string[]).includes(raw)) bad('unknown payment method');
+    paymentMethod = raw;
+  }
+  if (input.wantsReceipt !== undefined && typeof input.wantsReceipt !== 'boolean')
+    bad('wantsReceipt must be a boolean');
+  const wantsReceipt = input.wantsReceipt === true ? true : undefined;
+  let splitWith: VoiceExpenseUpdate['splitWith'];
+  if (input.splitWith !== undefined && input.splitWith !== null) {
+    if (saved.kind !== 'personal') bad('only a personal expense can be shared from here');
+    const raw = asRecord(input.splitWith);
+    const group = groupOf(context, raw.groupId);
+    if (!Array.isArray(raw.memberIds) || raw.memberIds.length === 0 || raw.memberIds.length > 10) {
+      bad('splitWith needs 1-10 members');
+    }
+    const ids: string[] = [];
+    for (const id of raw.memberIds as unknown[]) {
+      const member = memberOf(group, id);
+      if (member.me) bad('cannot split with yourself');
+      if (!ids.includes(member.id)) ids.push(member.id);
+    }
+    splitWith = { groupId: group.id, memberIds: ids };
+  }
+  // Corrections: a new amount, date, description, currency, ledger or set of sharers.
+  const amountMinor =
+    input.amountMinor === undefined || input.amountMinor === null || input.amountMinor === ''
+      ? undefined
+      : amount(input.amountMinor, 'amountMinor').toString();
+  const currency =
+    input.currency === undefined || input.currency === null || input.currency === ''
+      ? undefined
+      : currencyOf(input.currency);
+  const date = dateOf(input.date);
+  const description =
+    input.description === undefined || input.description === null || input.description === ''
+      ? undefined
+      : text(input.description, 'description', 120);
+
+  let groupId: string | null | undefined;
+  let target: ContextGroup | undefined;
+  if (input.groupId !== undefined && input.groupId !== '') {
+    const wantsPersonal =
+      input.groupId === null ||
+      (typeof input.groupId === 'string' && input.groupId.trim().toLowerCase() === 'personal');
+    if (wantsPersonal) {
+      if (saved.kind !== 'group') bad('only a group expense can move to personal');
+      groupId = null;
+    } else {
+      target = groupOf(context, input.groupId);
+      // Moving to where it already is changes nothing.
+      if (!(saved.kind === 'group' && saved.groupId === target.id)) groupId = target.id;
+    }
+  }
+  let participants: string[] | undefined;
+  if (input.participants !== undefined && input.participants !== null) {
+    const home = target ?? (saved.kind === 'group' ? groupOf(context, saved.groupId) : undefined);
+    if (!home) bad('participants need a group');
+    if (
+      !Array.isArray(input.participants) ||
+      input.participants.length === 0 ||
+      input.participants.length > 40
+    ) {
+      bad('participants needs 1-40 members');
+    }
+    const ids: string[] = [];
+    for (const id of input.participants as unknown[]) {
+      const member = memberOf(home, id);
+      if (!ids.includes(member.id)) ids.push(member.id);
+    }
+    participants = ids;
+  }
+
+  if (
+    !place &&
+    !note &&
+    !category &&
+    !paymentMethod &&
+    !wantsReceipt &&
+    !splitWith &&
+    !amountMinor &&
+    !currency &&
+    !date &&
+    !description &&
+    groupId === undefined &&
+    !participants
+  ) {
+    bad('update changes nothing');
+  }
+  return {
+    expenseId: saved.id,
+    ...(amountMinor ? { amountMinor } : {}),
+    ...(currency ? { currency } : {}),
+    ...(date ? { date } : {}),
+    ...(description ? { description } : {}),
+    ...(groupId !== undefined ? { groupId } : {}),
+    ...(participants ? { participants } : {}),
+    ...(place ? { place } : {}),
+    ...(note ? { note } : {}),
+    ...(category ? { category } : {}),
+    ...(paymentMethod ? { paymentMethod } : {}),
+    ...(wantsReceipt ? { wantsReceipt } : {}),
+    ...(splitWith ? { splitWith } : {}),
+  };
 }
 
 function validateAction(

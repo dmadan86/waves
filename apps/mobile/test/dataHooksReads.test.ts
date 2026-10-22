@@ -309,41 +309,6 @@ describe('useGroupPeopleSignatures', () => {
   });
 });
 
-describe('useSettledTotals', () => {
-  it('sums confirmed settlements I was either side of, per currency', () => {
-    sync.mirror = mirrorOf({
-      [SyncTable.GroupMembers]: [
-        memberRow('me-1', 'g-1', ME),
-        memberRow('o-1', 'g-1', 'p-2'),
-        memberRow('o-2', 'g-1', 'p-3'),
-      ],
-      [SyncTable.Settlements]: [
-        settlementRow('s1', 'g-1', { from: 'me-1', to: 'o-1', amount: 500n }),
-        settlementRow('s2', 'g-1', {
-          from: 'o-1',
-          to: 'me-1',
-          amount: 250n,
-          status: 'auto_confirmed',
-        }),
-        settlementRow('s3', 'g-1', { from: 'o-1', to: 'me-1', amount: 900n, currency: 'USD' }),
-        // Only claimed, never agreed: not money that changed hands yet.
-        settlementRow('s4', 'g-1', {
-          from: 'me-1',
-          to: 'o-1',
-          amount: 10_000n,
-          status: 'initiated',
-        }),
-        // Between two other people.
-        settlementRow('s5', 'g-1', { from: 'o-1', to: 'o-2', amount: 7_000n }),
-      ],
-    });
-    const totals = render(() => hooks.useSettledTotals(ME)).data;
-    expect(totals.get('INR')).toBe(750n);
-    expect(totals.get('USD')).toBe(900n);
-    expect(totals.size).toBe(2);
-  });
-});
-
 describe('useHomeSummary', () => {
   beforeEach(() => {
     vi.useFakeTimers({ now: new Date(2026, 1, 15, 12, 0, 0) });

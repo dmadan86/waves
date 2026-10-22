@@ -23,6 +23,7 @@ import { format, money, type CurrencyCode } from '@waves/core';
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { StakeCaptionPill, stakeColorFor } from '@/components/standard/StakePill';
 import { expenseTitle } from '@/data/expenseTitle';
 import { fill, plural, useStrings } from '@/i18n';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -112,7 +113,6 @@ function useInks() {
     ink: dark ? theme.color.text : SPEC_INK,
     muted: dark ? theme.color.textMuted : SPEC_MUTED,
     rail: dark ? theme.color.border : '#E3E1F0',
-    lent: dark ? '#8FB4FF' : '#2E63E0',
   };
 }
 
@@ -227,8 +227,9 @@ function EntryRow({
   onOpen: (entry: TimelineEntry) => void;
 }) {
   const theme = useTheme();
-  const { ink, muted, rail, lent } = useInks();
+  const { ink, muted, rail } = useInks();
   const { t, locale } = useStrings();
+  const stakeColor = stakeColorFor(entry.myNet, theme);
   const title = expenseTitle(entry.description, entry.category, t, entry.categoryMeta);
   const time = entry.at !== null ? timeParts(entry.at, locale) : null;
   const amount = formatMoney(entry.amount, entry.currency, locale);
@@ -328,17 +329,20 @@ function EntryRow({
               <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, color: muted }}>
                 {people}
               </Text>
-              {share ? (
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '500',
-                    color: entry.myNet > 0n ? lent : theme.color.negative,
-                  }}
-                >
-                  {share}
-                </Text>
+              {entry.myNet !== 0n ? (
+                <Row style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 13, fontWeight: '700', color: stakeColor }}
+                  >
+                    {formatMoney(
+                      entry.myNet < 0n ? -entry.myNet : entry.myNet,
+                      entry.currency,
+                      locale,
+                    )}
+                  </Text>
+                  <StakeCaptionPill stake={entry.myNet} strings={t.expense} />
+                </Row>
               ) : null}
             </Row>
             {entry.place ? (

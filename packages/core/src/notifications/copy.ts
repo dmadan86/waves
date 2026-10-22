@@ -63,6 +63,16 @@ export enum NotificationKind {
   GhostClaimApproved = 'ghost_claim_approved',
   GhostClaimDeclined = 'ghost_claim_declined',
   /**
+   * The other direction (link_placeholder_member): an admin says a placeholder
+   * is you. Only you can accept, so it is asked; the admin hears the answer.
+   * `MemberLinked` is the merge case — you were already in the group, and the
+   * placeholder's history has just been folded onto you.
+   */
+  MemberLinkRequested = 'member_link_requested',
+  MemberLinkAccepted = 'member_link_accepted',
+  MemberLinkDeclined = 'member_link_declined',
+  MemberLinked = 'member_linked',
+  /**
    * Somebody added you to a group by your email or number, and you already
    * have an account (the clone flow's "notify the people who are on Waves").
    * A tap, not a claim request: you are already in.
@@ -255,6 +265,22 @@ const en: CopyStrings = {
       title: 'Not confirmed',
       body: '{group} did not confirm that place. You can still join as yourself.',
     },
+    [NotificationKind.MemberLinkRequested]: {
+      title: '{actor} says you are {name} in {group}',
+      body: 'Accept to take that place and what is filed under it. Not you? Say so.',
+    },
+    [NotificationKind.MemberLinkAccepted]: {
+      title: '{actor} confirmed they are {name}',
+      body: 'Everything filed under that name in {group} is theirs now.',
+    },
+    [NotificationKind.MemberLinkDeclined]: {
+      title: '{actor} says they are not {name}',
+      body: '{name} in {group} stays as it is.',
+    },
+    [NotificationKind.MemberLinked]: {
+      title: 'Everything under {name} is yours now',
+      body: 'An admin of {group} said that was you.',
+    },
     [NotificationKind.GroupAdded]: {
       title: '{actor} added you to {group}',
       body: 'Tap to open the group',
@@ -387,6 +413,22 @@ const ta: CopyStrings = {
       title: 'உறுதி செய்யப்படவில்லை',
       body: '{group} அந்த இடத்தை உறுதி செய்யவில்லை. நீங்களாகவே சேரலாம்.',
     },
+    [NotificationKind.MemberLinkRequested]: {
+      title: '{group} இல் நீங்கள்தான் {name} என்கிறார் {actor}',
+      body: 'ஏற்றுக்கொண்டால் அந்த இடமும் அதன் பதிவுகளும் உங்களுடையதாகும். நீங்கள் இல்லையா? சொல்லுங்கள்.',
+    },
+    [NotificationKind.MemberLinkAccepted]: {
+      title: 'தாங்கள்தான் {name} என {actor} உறுதி செய்தார்',
+      body: '{group} இல் அந்தப் பெயரில் பதிவானவை அனைத்தும் இப்போது அவருடையவை.',
+    },
+    [NotificationKind.MemberLinkDeclined]: {
+      title: 'தாங்கள் {name} இல்லை என்கிறார் {actor}',
+      body: '{group} இல் {name} அப்படியே இருக்கும்.',
+    },
+    [NotificationKind.MemberLinked]: {
+      title: '{name} பெயரில் உள்ளவை அனைத்தும் இப்போது உங்களுடையவை',
+      body: '{group} குழுவின் நிர்வாகி அது நீங்கள்தான் என்றார்.',
+    },
     [NotificationKind.GroupAdded]: {
       title: '{actor} உங்களை {group} இல் சேர்த்தார்',
       body: 'குழுவைத் திறக்கத் தட்டவும்',
@@ -516,6 +558,22 @@ const hi: CopyStrings = {
       title: 'पुष्टि नहीं हुई',
       body: '{group} ने वह जगह पक्की नहीं की। आप अपने नाम से शामिल हो सकते हैं।',
     },
+    [NotificationKind.MemberLinkRequested]: {
+      title: '{actor} का कहना है कि {group} में {name} आप हैं',
+      body: 'स्वीकार करें तो वह जगह और उसके नाम दर्ज सब कुछ आपका हो जाएगा। आप नहीं हैं? बता दें।',
+    },
+    [NotificationKind.MemberLinkAccepted]: {
+      title: '{actor} ने पुष्टि की कि वे {name} हैं',
+      body: '{group} में उस नाम पर दर्ज सब कुछ अब उनका है।',
+    },
+    [NotificationKind.MemberLinkDeclined]: {
+      title: '{actor} कहते हैं कि वे {name} नहीं हैं',
+      body: '{group} में {name} जैसा है वैसा ही रहेगा।',
+    },
+    [NotificationKind.MemberLinked]: {
+      title: '{name} के नाम दर्ज सब कुछ अब आपका है',
+      body: '{group} के एडमिन ने कहा कि वह आप ही हैं।',
+    },
     [NotificationKind.GroupAdded]: {
       title: '{actor} ने आपको {group} में जोड़ा',
       body: 'ग्रुप खोलने के लिए टैप करें',
@@ -644,6 +702,22 @@ const ar: CopyStrings = {
     [NotificationKind.GhostClaimDeclined]: {
       title: 'لم يتم التأكيد',
       body: 'لم تؤكّد {group} ذلك المكان. ما زال بإمكانك الانضمام باسمك.',
+    },
+    [NotificationKind.MemberLinkRequested]: {
+      title: '{actor} يقول إنك {name} في {group}',
+      body: 'اقبل لتأخذ ذلك المكان وما سُجّل باسمه. لست أنت؟ قل ذلك.',
+    },
+    [NotificationKind.MemberLinkAccepted]: {
+      title: '{actor} أكّد أنه {name}',
+      body: 'كل ما سُجّل بذلك الاسم في {group} صار له الآن.',
+    },
+    [NotificationKind.MemberLinkDeclined]: {
+      title: '{actor} يقول إنه ليس {name}',
+      body: '{name} في {group} يبقى كما هو.',
+    },
+    [NotificationKind.MemberLinked]: {
+      title: 'كل ما تحت اسم {name} صار لك الآن',
+      body: 'قال مشرف {group} إن ذلك أنت.',
     },
     [NotificationKind.GroupAdded]: {
       title: 'أضافك {actor} إلى {group}',

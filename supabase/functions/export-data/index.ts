@@ -19,7 +19,14 @@ import {
   requireMembership,
 } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
-import { formatMinor, LEDGER_TABLE_COLUMNS, PdfBuilder } from '../_shared/core.js';
+import {
+  formatMinor,
+  LEDGER_TABLE_COLUMNS,
+  memberAmounts,
+  PdfBuilder,
+  splitMethodLabel,
+  wrapText,
+} from '../_shared/core.js';
 
 interface ExportRequest {
   /** Omit to export every group the caller belongs to. */
@@ -194,6 +201,8 @@ serveWithCors(async (request) => {
           currency: string;
           amount: bigint;
           payers: string;
+          paidDetail: string;
+          splitDetail: string;
         }[] = [];
 
         for (const expense of entry.expenses) {
@@ -214,6 +223,8 @@ serveWithCors(async (request) => {
             payers: (current.payers ?? [])
               .map((payer: Record<string, unknown>) => nameOf(payer.member_id as string))
               .join(' + '),
+            paidDetail: memberAmounts(current.payers, currency, nameOf),
+            splitDetail: `${splitMethodLabel(current.split_type)}: ${memberAmounts(current.shares, currency, nameOf)}`,
           });
         }
 
@@ -256,6 +267,9 @@ serveWithCors(async (request) => {
               ],
               9,
             );
+            // Small lines under the row; long lists wrap instead of being clipped.
+            for (const line of wrapText(`Paid by: ${row.paidDetail}`, 120)) pdf.body(line, 7);
+            for (const line of wrapText(`Split - ${row.splitDetail}`, 120)) pdf.body(line, 7);
           }
         }
 
@@ -307,6 +321,9 @@ serveWithCors(async (request) => {
         'owed_amount_minor',
         'status',
         'version',
+        'Paid by',
+        'Split method',
+        'Split between',
       ],
     ];
 
@@ -340,6 +357,9 @@ serveWithCors(async (request) => {
             share.amount,
             expense.deleted_at ? 'deleted' : 'active',
             `v${current.version_no}`,
+            memberAmounts(current.payers, current.currency, nameOf, '; '),
+            splitMethodLabel(current.split_type),
+            memberAmounts(current.shares, current.currency, nameOf, '; '),
           ]);
         }
       }
@@ -357,6 +377,9 @@ serveWithCors(async (request) => {
           nameOf(settlement.to_member_id),
           settlement.amount,
           settlement.status,
+          '',
+          '',
+          '',
           '',
         ]);
       }

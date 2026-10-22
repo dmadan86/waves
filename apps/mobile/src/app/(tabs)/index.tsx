@@ -22,6 +22,7 @@ import {
 } from '@waves/ui';
 
 import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
+import { useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
@@ -36,8 +37,10 @@ import { router } from '@/lib/navigation';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
 import { GroupMark } from '@/components/GroupMark';
+import { useCoverTile } from '@/lib/groupCoverColor';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
+import { LinkRequestsCard } from '@/components/LinkRequestsCard';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -208,6 +211,9 @@ export default function HomeScreen() {
   // The ref makes this fire exactly once — without it the effect would re-run
   // each time the tour advances (its value changes) and snap back to step one.
   // It remembers itself when finished; "Take the tour again" in the menu replays.
+  // Repeating group expenses that came due while the app was closed.
+  useRecurringCatchUp();
+
   const tourStarted = useRef(false);
   useEffect(() => {
     if (tourStarted.current) return;
@@ -557,6 +563,11 @@ export default function HomeScreen() {
               the person tapped Import, came home, and watches it fill. */}
           <ImportProgressBanner />
 
+          {/* "Madan says you are Renny in Goa trip": somebody has named this
+              person as a placeholder in their group, and only they can say
+              yes. Drawn only while something is waiting. */}
+          <LinkRequestsCard enabled={session !== null && !isGuest} />
+
           {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
@@ -713,6 +724,7 @@ export default function HomeScreen() {
                             : null
                         }
                         coverEmoji={group.cover_emoji}
+                        coverColor={group.cover_color}
                         groupType={group.type}
                         eventTemplate={group.event_template}
                         customTag={group.custom_tag}
@@ -974,6 +986,7 @@ function GroupRow({
   memberLabel,
   draftLabel,
   coverEmoji,
+  coverColor,
   groupType,
   eventTemplate,
   customTag,
@@ -999,6 +1012,7 @@ function GroupRow({
    *  is waiting on the reader. */
   draftLabel: string | null;
   coverEmoji: string | null;
+  coverColor: string | null | undefined;
   /** What kind of group — drawn as a small tag on the member-count line. */
   groupType: string | null | undefined;
   eventTemplate: string | null | undefined;
@@ -1058,6 +1072,7 @@ function GroupRow({
   // every line of the list. The spoken label still carries it in full: a screen
   // reader is given the label instead of the text inside the row, so anything
   // said only on screen is not said quietly, it is not said.
+  const tile = useCoverTile(coverColor, theme.color.surfaceMuted);
   const typeTag = useGroupTypeTag(groupType, eventTemplate, customTag);
   const typeSpoken = useGroupTypeTagSpoken(typeTag);
   const spoken =
@@ -1090,12 +1105,12 @@ function GroupRow({
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: theme.color.surfaceMuted,
+            backgroundColor: tile.backgroundColor,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <GroupMark emoji={coverEmoji} size={22} />
+          <GroupMark emoji={coverEmoji} size={22} color={tile.ink} />
           {unread ? <UnreadDot /> : null}
         </View>
         <View style={{ flex: 1, gap: 2 }}>

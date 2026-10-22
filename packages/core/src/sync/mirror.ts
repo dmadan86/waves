@@ -42,6 +42,8 @@ import type {
   ExpenseLocation,
   GroupMuteClearPayload,
   GroupMuteSetPayload,
+  GroupRecurringCreatePayload,
+  GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
   MutationEnvelope,
   PersonalDeletePayload,
@@ -56,6 +58,7 @@ import type {
 } from './protocol';
 import type { QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
+import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
 export type MirrorRow = Readonly<Record<string, unknown>>;
@@ -65,6 +68,8 @@ export interface MirrorState {
   readonly cursors: Readonly<Record<string, number>>;
   readonly tables: Readonly<Record<SyncTable, Readonly<Record<string, MirrorRow>>>>;
 }
+
+const UNSAFE_IDS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
 const TABLES: readonly SyncTable[] = [
   SyncTable.Groups,
@@ -80,6 +85,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.GhostMerges,
   SyncTable.CategoryTags,
   SyncTable.TripPlanItems,
+  SyncTable.GroupRecurringExpenses,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -132,7 +138,8 @@ export function reconcile(state: MirrorState, changes: readonly SyncChange[]): R
     }
 
     const id = idOf(change.row);
-    if (id === undefined) continue;
+    // Server-supplied keys: never let them reach Object.prototype or an unknown table.
+    if (id === undefined || UNSAFE_IDS.has(id) || !Object.hasOwn(tables, change.table)) continue;
 
     const key = `${change.table}:${id}`;
     if ((winningSeq.get(key) ?? -1) > change.seq) continue;
@@ -205,6 +212,9 @@ export interface MirrorExpense extends MirrorRow {
     /** "Paid to", or null; optional because a row mirrored before it existed
      *  does not carry the column. */
     readonly payee?: string | null;
+    /** "Work expense (to claim)"; optional because a row mirrored before it
+     *  existed does not carry the column (read as false). */
+    readonly reimbursable?: boolean;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -319,6 +329,8 @@ function applyPending(
           // An older queued payload has no payee: keep the one the version it
           // replaces carries, exactly as the server will.
           payee: resolvePayee(payload.payee, existing?.currentVersion?.payee),
+          // Same carry-forward: a payload that does not say keeps the old flag.
+          reimbursable: payload.reimbursable ?? existing?.currentVersion?.reimbursable ?? false,
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,
@@ -581,13 +593,16 @@ export function materialiseMembers(
       name: string;
       email?: string | null;
       phone?: string | null;
+      profileId?: string | null;
     };
     const id = payload.memberId ?? `pending:${mutation.clientMutationId}`;
     if (byId.has(id)) continue;
     byId.set(id, {
       id,
       group_id: mutation.groupId,
-      profile_id: null,
+      // A known account (a member cloned from another group) is on Waves from
+      // the first render; the name stands in until their profile row arrives.
+      profile_id: payload.profileId ?? null,
       ghost_name: payload.name,
       left_at: null,
       invite_email: payload.email ?? null,
@@ -1102,7 +1117,10 @@ export function materialisePersonalRecords(
           record_kind: payload.recordKind,
           data: { ...payload.data },
           created_at: existing?.created_at ?? mutation.clientCreatedAt,
-          deleted_at: existing?.deleted_at ?? null,
+          // The server clears `deleted_at` on every upsert (an edit after a
+          // remove un-deletes the record), so the overlay does too: an offline
+          // undo that re-upserts the original id must show at once.
+          deleted_at: null,
           pending: true,
         });
         break;
@@ -1392,6 +1410,143 @@ export function materialiseExpenseImageEvents(
 /** The plan to render: what has not been removed. */
 export function openPlanItems(items: readonly MirrorPlanItem[]): MirrorPlanItem[] {
   return items.filter((item) => item.deleted_at === null);
+}
+
+// ───────────────────────────────────────── repeating group expenses ──
+//
+// A rule made or paused in a dead zone must read as made or paused straight away,
+// so the queue is replayed over the pulled rows like everything else. Only the
+// rule is overlaid: the expenses it posts come from the server generator and
+// arrive as ordinary expense rows, so there is nothing to predict for them here.
+
+export interface MirrorGroupRecurring extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly created_by: string;
+  readonly description: string;
+  readonly category: string | null;
+  readonly currency: string;
+  readonly amount: string;
+  readonly split_type: string;
+  readonly split_params: unknown;
+  readonly payers: readonly { readonly memberId: string; readonly amount: string }[];
+  readonly shares: readonly { readonly memberId: string; readonly amount: string }[];
+  readonly notes: string | null;
+  readonly cadence: 'weekly' | 'semimonthly' | 'monthly' | 'yearly';
+  readonly interval: number;
+  readonly second_day: number | null;
+  readonly anchor_date: string;
+  readonly next_date: string;
+  readonly end_date: string | null;
+  readonly status: 'active' | 'paused' | 'stopped';
+  readonly last_generated_on: string | null;
+  readonly pending?: boolean;
+}
+
+/**
+ * The rules of one group: server rows with queued create / edit / pause / stop on
+ * top, newest first. `today` (the app's own date string, never read from a clock
+ * in here) lets a queued schedule edit or resume show the date the server will
+ * pick — the first occurrence from today, with nothing back-paid.
+ */
+export function materialiseGroupRecurring(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: {
+    readonly groupId: string;
+    readonly myMemberId?: string | null;
+    readonly today?: string;
+  },
+): MirrorGroupRecurring[] {
+  const byId = new Map<string, MirrorGroupRecurring>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.GroupRecurringExpenses,
+    options.groupId,
+  ) as MirrorGroupRecurring[]) {
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId) continue;
+
+    if (mutation.kind === 'group_recurring.create') {
+      const payload = mutation.payload as unknown as GroupRecurringCreatePayload;
+      if (byId.has(payload.ruleId)) continue;
+      byId.set(payload.ruleId, {
+        id: payload.ruleId,
+        group_id: mutation.groupId,
+        created_by: options.myMemberId ?? '',
+        description: payload.description,
+        category: payload.category ?? null,
+        currency: payload.currency,
+        amount: payload.amount,
+        split_type: payload.splitType,
+        split_params: payload.splitParams,
+        payers: payload.payers,
+        shares: payload.shares,
+        notes: payload.notes ?? null,
+        cadence: payload.cadence,
+        interval: payload.interval,
+        second_day: payload.cadence === 'semimonthly' ? (payload.secondDay ?? null) : null,
+        anchor_date: payload.anchorDate,
+        next_date: payload.skipFirst
+          ? nextOccurrenceAfter(
+              {
+                cadence: payload.cadence,
+                interval: payload.interval,
+                secondDay: payload.secondDay ?? null,
+                anchorDate: payload.anchorDate,
+              },
+              payload.anchorDate,
+            )
+          : payload.anchorDate,
+        end_date: payload.endDate ?? null,
+        status: 'active',
+        last_generated_on: payload.skipFirst ? payload.anchorDate : null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'group_recurring.update') {
+      const { ruleId, patch } = mutation.payload as unknown as GroupRecurringUpdatePayload;
+      const existing = byId.get(ruleId);
+      // A stopped rule is final; the server refuses the change, so do not show it.
+      if (!existing || existing.status === 'stopped') continue;
+      const next: Record<string, unknown> = { ...existing, pending: true };
+      for (const [key, value] of Object.entries(patch)) {
+        if (value !== undefined) next[key] = value;
+      }
+      const merged = next as unknown as MirrorGroupRecurring;
+      if (merged.cadence !== 'semimonthly')
+        (next as { second_day: number | null }).second_day = null;
+      const scheduleChanged =
+        merged.cadence !== existing.cadence ||
+        merged.interval !== existing.interval ||
+        merged.second_day !== existing.second_day ||
+        merged.anchor_date !== existing.anchor_date;
+      const resumed = existing.status === 'paused' && merged.status === 'active';
+      if (options.today && (scheduleChanged || (resumed && existing.next_date < options.today))) {
+        next.next_date = firstOccurrenceOnOrAfter(
+          {
+            cadence: merged.cadence,
+            interval: merged.interval,
+            secondDay: merged.second_day,
+            anchorDate: merged.anchor_date,
+          },
+          scheduleChanged && options.today < merged.anchor_date
+            ? merged.anchor_date
+            : options.today,
+        );
+      }
+      byId.set(ruleId, next as unknown as MirrorGroupRecurring);
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => {
+    const left = String(a.created_at ?? '');
+    const right = String(b.created_at ?? '');
+    return left === right ? String(a.id).localeCompare(String(b.id)) : right.localeCompare(left);
+  });
 }
 
 export interface MirrorMemberBudget extends MirrorRow {

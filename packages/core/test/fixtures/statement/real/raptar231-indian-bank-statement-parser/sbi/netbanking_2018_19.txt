@@ -1,0 +1,18 @@
+Account Name : Mr. SAMPLE USER
+Account Number : 0000001111111111
+Account Statement from 16 Apr 2018 to 16 Oct 2018
+Txn Date Value Description Ref No./Cheque Debit Credit Balance
+Date No.
+18 Apr 18 Apr BY TRANSFER-INB SALARY- 25,000.00 35,000.00
+2018 2018 SALARY CREDIT-
+19 Apr 19 Apr ATM WDL-ATM CASH 2,000.00 33,000.00
+2018 2018
+22 Apr 22 Apr BY TRANSFER-INB IMPS- 1,500.00 34,500.00
+2018 2018 IMPS/P2A/708521222222/XXX MAA000000
+25 Apr 25 Apr TO TRANSFER-INB AMAZON- 1,200.00 33,300.00
+2018 2018 NEFT*HDFC0000240*N286170
+30 Apr 30 Apr CREDIT INTEREST- 15.00 33,315.00
+2018 2018
+Please do not share your ATM, Debit/Credit card number, PIN and OTP with anyone over mail, SMS, phone call or any other
+media. Bank never asks for such information.
+**This is a computer generated statement and does not require a signature.

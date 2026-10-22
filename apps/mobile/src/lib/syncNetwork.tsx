@@ -86,6 +86,20 @@ export function networkAllows(
     : type === NetworkStateType.CELLULAR;
 }
 
+/**
+ * The network rule for bulk uploads that have their own setting (backups): Wi‑Fi
+ * if either that setting or the sync setting says Wi‑Fi only, so choosing
+ * "Wi‑Fi only" for sync is never undone by a second, forgotten setting.
+ */
+export function strictestNetwork(
+  own: SyncNetworkPreference,
+  sync: SyncNetworkPreference,
+): SyncNetworkPreference {
+  return own === SyncNetworkPreference.Wifi || sync === SyncNetworkPreference.Wifi
+    ? SyncNetworkPreference.Wifi
+    : SyncNetworkPreference.Both;
+}
+
 interface SyncNetworkValue {
   preference: SyncNetworkPreference;
   /** True while the stored preference is still being read. */

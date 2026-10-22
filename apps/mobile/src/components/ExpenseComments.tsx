@@ -23,7 +23,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
-import { Avatar, Button, Callout, iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
+import { Button, Callout, iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
 
 import {
   useAddExpenseComment,
@@ -34,12 +34,12 @@ import {
   type ExpenseCommentRow,
 } from '@/data/hooks';
 import { MAX_COMMENT_LENGTH, sanitizeCommentMarkdown } from '@waves/core';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { CommentMarkdown } from '@/components/CommentMarkdown';
 import { RichCommentInput } from '@/components/RichCommentInput';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { useToast } from '@/lib/toast';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 function whenLabel(iso: string | null, locale: string): string {
   if (!iso) return '';
@@ -68,14 +68,13 @@ const PAGE = 20;
 type Selection = { start: number; end: number };
 
 /**
- * One author's avatar. `useAvatarUrl` signs the private-bucket path so the real
+ * One author's avatar. `PersonAvatar` signs the private-bucket path so the real
  * picture can load; it's a hook, so it lives in its own component instance —
  * one per row — rather than being called inside a `.map`. Falls back to initials
  * when the person has no picture.
  */
 function CommentAvatar({ name, photo }: { name: string; photo: string | null }): React.JSX.Element {
-  const url = useAvatarUrl(photo);
-  return <Avatar name={name} size={AVATAR} photoUrl={url} />;
+  return <PersonAvatar name={name} size={AVATAR} avatarUrl={photo} />;
 }
 
 export function ExpenseComments({
@@ -358,8 +357,8 @@ export function ExpenseComments({
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignSelf: 'flex-start' })}
         >
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons name="chevron-up" size={14} color={theme.color.buttonPrimary} />
-            <Text variant="caption" style={{ color: theme.color.buttonPrimary, fontWeight: '600' }}>
+            <Ionicons name="chevron-up" size={14} color={theme.color.text} />
+            <Text variant="caption" style={{ color: theme.color.text, fontWeight: '600' }}>
               {`${t.comments.showEarlier} (${hidden})`}
             </Text>
           </Row>
@@ -504,7 +503,7 @@ export function ExpenseComments({
               disabled={busy || editorBody.trim() === ''}
               onPress={send}
             />
-            {busy ? <ActivityIndicator color={theme.color.buttonPrimary} /> : null}
+            {busy ? <ActivityIndicator color={theme.color.text} /> : null}
           </Row>
         </View>
       </Popup>

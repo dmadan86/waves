@@ -18,6 +18,7 @@ export function SplitMoney({
   color,
   fontSize = 17,
   weight = '700',
+  strike = false,
 }: {
   amount: bigint;
   currency: string;
@@ -25,6 +26,8 @@ export function SplitMoney({
   color: string;
   fontSize?: number;
   weight?: '600' | '700' | '800';
+  /** Struck through, for a figure that no longer stands (a deleted bill). */
+  strike?: boolean;
 }) {
   const text = format(money(amount < 0n ? -amount : amount, currency as never), { locale });
   let decimal = '.';
@@ -43,7 +46,13 @@ export function SplitMoney({
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.6}
-      style={{ color, fontSize, lineHeight: Math.round(fontSize * 1.25), fontWeight: weight }}
+      style={{
+        color,
+        fontSize,
+        lineHeight: Math.round(fontSize * 1.25),
+        fontWeight: weight,
+        textDecorationLine: strike ? 'line-through' : 'none',
+      }}
     >
       {whole}
       {minor ? <Text style={{ color, fontWeight: '500', opacity: 0.55 }}>{minor}</Text> : null}

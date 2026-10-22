@@ -1,0 +1,64 @@
+# E2E-04. "Don't ask this again" mutes a question type for good, and Profile's
+# "Reset muted questions" brings it back.
+#
+# ₹250 is above the INR floor (so questions are asked) and below the receipt
+# threshold, so the payment question is the first and only one.
+appId: app.waves.mobile
+---
+- runFlow: login.yaml
+
+# 1. Ask, then mute the payment question.
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'How did you pay\?'
+    timeout: 15000
+- runFlow: assistant-intro.yaml
+- tapOn: "Don't ask this again"
+
+# 2. Another expense: the payment question is gone.
+- runFlow: assistant-close.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'Added.*250.*Personal.*'
+    timeout: 15000
+- assertNotVisible: 'How did you pay\?'
+
+# 3. Profile -> Reset muted questions.
+- runFlow: assistant-close.yaml
+- openLink: waves:///profile
+- scrollUntilVisible:
+    element: 'Reset muted questions'
+    direction: DOWN
+- tapOn: 'Reset muted questions'
+- assertVisible: 'Follow-up questions reset'
+
+# 4. And it is asked again.
+- runFlow: assistant-close.yaml
+- runFlow: assistant-open.yaml
+- runFlow:
+    file: assistant-say.yaml
+    env:
+      SENTENCE: 'add 250 rupees to my personal expense'
+- extendedWaitUntil:
+    visible: '.*250.*'
+    timeout: 25000
+- tapOn: 'Confirm'
+- extendedWaitUntil:
+    visible: 'How did you pay\?'
+    timeout: 15000

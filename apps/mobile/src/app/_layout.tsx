@@ -807,6 +807,7 @@ function AuthGate() {
               Here it pushes like the rest, and back pops back to where it was
               opened from. */}
           <Stack.Screen name="profile" options={slide} />
+          <Stack.Screen name="link-requests" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
@@ -848,6 +849,8 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/month" />
           <Stack.Screen name="group/[id]/pending" />
           <Stack.Screen name="group/[id]/plan" />
+          <Stack.Screen name="group/[id]/recurring" />
+          <Stack.Screen name="group/[id]/recurring-edit" />
           <Stack.Screen name="group/[id]/recap" />
           <Stack.Screen name="receipt/[id]" options={slide} />
           <Stack.Screen name="friends/add-person" />
@@ -870,7 +873,6 @@ function AuthGate() {
           <Stack.Screen name="settings/lock" />
           <Stack.Screen name="settings/devices" />
           <Stack.Screen name="settings/connected-apps" />
-          <Stack.Screen name="settings/offline-voice" />
           <Stack.Screen name="settings/voice-recorder" />
           <Stack.Screen name="settings/recent" />
           <Stack.Screen name="settings/sync" />

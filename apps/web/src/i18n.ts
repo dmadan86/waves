@@ -223,6 +223,8 @@ export interface WebStrings {
     amountIn: string;
     notAnAmount: string;
     whoPaid: string;
+    /** The tick on the form: a tag for an expense the spender will claim back from work. */
+    workExpense: string;
     you: string;
     splitBetween: string;
     splitEquallyNote: string;
@@ -308,6 +310,29 @@ export interface WebStrings {
     title: string;
     empty: string;
     emptyBody: string;
+  };
+  groupRecurring: {
+    title: string;
+    sub: string;
+    empty: string;
+    next: string;
+    lastAdded: string;
+    paused: string;
+    ended: string;
+    pause: string;
+    resume: string;
+    stop: string;
+    stopConfirm: string;
+    editInApp: string;
+    weekly: string;
+    twiceAMonth: string;
+    monthly: string;
+    yearly: string;
+    fortnightly: string;
+    quarterly: string;
+    halfYearly: string;
+    monthsInterval: string;
+    couldNotSave: string;
   };
   /**
    * The trip, day by day (A45): what was planned, beside what it cost.
@@ -820,6 +845,8 @@ export interface WebStrings {
     confirmDelete: string;
     restore: string;
     deletedBadge: string;
+    /** The small tag on a work expense (to claim). */
+    workBadge: string;
     disputes: string;
     reasonPlaceholder: string;
     raiseDispute: string;
@@ -1482,6 +1509,7 @@ const en: WebStrings = {
     amountIn: 'Amount in {currency}',
     notAnAmount: 'That is not an amount.',
     whoPaid: 'Who paid',
+    workExpense: 'Work expense (to claim)',
     you: 'You',
     splitBetween: 'Split between',
     splitEquallyNote: 'Split equally. For exact shares or an itemised bill, use the app.',
@@ -1542,6 +1570,29 @@ const en: WebStrings = {
     title: 'Places',
     empty: 'No places yet',
     emptyBody: 'Add a location to an expense to see it here.',
+  },
+  groupRecurring: {
+    title: 'Repeating',
+    sub: 'Added on their date, for everyone. Make one from the app with Repeat on a new expense.',
+    empty: 'Nothing repeating yet',
+    next: 'Next {date}',
+    lastAdded: 'Last added {date}',
+    paused: 'Paused',
+    ended: 'Ended',
+    pause: 'Pause',
+    resume: 'Resume',
+    stop: 'Stop repeating',
+    stopConfirm: 'Stop "{name}"? No more will be added. This cannot be undone.',
+    editInApp: 'To change the amount or split, use the app.',
+    weekly: 'Weekly',
+    twiceAMonth: 'Twice a month',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    fortnightly: 'Fortnightly',
+    quarterly: 'Quarterly',
+    halfYearly: 'Half-yearly',
+    monthsInterval: 'Every {n} months',
+    couldNotSave: "Couldn't update. Try again.",
   },
   plan: {
     title: 'Plan',
@@ -1917,6 +1968,7 @@ const en: WebStrings = {
     confirmDelete: 'Tap again to delete',
     restore: 'Restore',
     deletedBadge: 'Deleted',
+    workBadge: 'Work',
     disputes: 'Disagreements',
     reasonPlaceholder: "What's wrong with it? (optional)",
     raiseDispute: 'Flag as wrong',
@@ -2529,6 +2581,7 @@ const ta: WebStrings = {
     amountIn: '{currency} இல் தொகை',
     notAnAmount: 'அது ஒரு தொகை அல்ல.',
     whoPaid: 'யார் கொடுத்தார்கள்',
+    workExpense: 'பணி செலவு (திரும்பப் பெற)',
     you: 'நீங்கள்',
     splitBetween: 'யாருக்கிடையே',
     splitEquallyNote:
@@ -2591,6 +2644,29 @@ const ta: WebStrings = {
     title: 'இடங்கள்',
     empty: 'இன்னும் இடங்கள் இல்லை',
     emptyBody: 'ஒரு செலவுக்கு இடத்தைச் சேர்த்தால் அது இங்கே தெரியும்.',
+  },
+  groupRecurring: {
+    title: 'மீண்டும் வரும் செலவுகள்',
+    sub: "அவற்றின் தேதியில் அனைவருக்கும் சேர்க்கப்படும். செயலியில் புதிய செலவில் 'மீண்டும்' மூலம் உருவாக்கவும்.",
+    empty: 'இன்னும் எதுவும் மீண்டும் வருவதில்லை',
+    next: 'அடுத்தது {date}',
+    lastAdded: 'கடைசியாக {date} அன்று சேர்ந்தது',
+    paused: 'இடைநிறுத்தப்பட்டது',
+    ended: 'முடிந்தது',
+    pause: 'இடைநிறுத்து',
+    resume: 'மீண்டும் தொடங்கு',
+    stop: 'மீண்டும் வருவதை நிறுத்து',
+    stopConfirm: '"{name}" நிறுத்தவா? இனி எதுவும் சேர்க்கப்படாது. இதைத் திரும்பப் பெற முடியாது.',
+    editInApp: 'தொகை அல்லது பிரிப்பை மாற்ற செயலியைப் பயன்படுத்தவும்.',
+    weekly: 'வாரந்தோறும்',
+    twiceAMonth: 'மாதம் இருமுறை',
+    monthly: 'மாதந்தோறும்',
+    yearly: 'ஆண்டுதோறும்',
+    fortnightly: 'இரு வாரங்களுக்கு ஒருமுறை',
+    quarterly: 'காலாண்டுக்கு ஒருமுறை',
+    halfYearly: 'அரையாண்டுக்கு ஒருமுறை',
+    monthsInterval: '{n} மாதங்களுக்கு ஒருமுறை',
+    couldNotSave: 'புதுப்பிக்க முடியவில்லை. மீண்டும் முயலவும்.',
   },
   plan: {
     title: 'திட்டம்',
@@ -2988,6 +3064,7 @@ const ta: WebStrings = {
     confirmDelete: 'நீக்க மீண்டும் தட்டவும்',
     restore: 'மீட்டமை',
     deletedBadge: 'நீக்கப்பட்டது',
+    workBadge: 'பணி',
     disputes: 'கருத்து வேறுபாடுகள்',
     reasonPlaceholder: 'என்ன தவறு? (விருப்பம்)',
     raiseDispute: 'தவறு எனக் குறி',
@@ -3614,6 +3691,7 @@ const hi: WebStrings = {
     amountIn: '{currency} में रकम',
     notAnAmount: 'यह रकम नहीं है।',
     whoPaid: 'किसने दिया',
+    workExpense: 'कार्य खर्च (दावा करना है)',
     you: 'आप',
     splitBetween: 'किनके बीच',
     splitEquallyNote: 'बराबर बाँटा गया। सटीक हिस्सों या चीज़-वार बिल के लिए ऐप इस्तेमाल करें।',
@@ -3674,6 +3752,29 @@ const hi: WebStrings = {
     title: 'जगहें',
     empty: 'अभी कोई जगह नहीं',
     emptyBody: 'किसी खर्च में जगह जोड़ें, वह यहाँ दिखेगी.',
+  },
+  groupRecurring: {
+    title: 'दोहराए जाने वाले',
+    sub: "अपनी तारीख पर सबके लिए जुड़ते हैं। ऐप में नए खर्च पर 'दोहराएँ' से बनाएँ।",
+    empty: 'अभी कुछ भी दोहराया नहीं जा रहा',
+    next: 'अगला {date}',
+    lastAdded: 'पिछली बार {date} को जुड़ा',
+    paused: 'रुका हुआ',
+    ended: 'समाप्त',
+    pause: 'रोकें',
+    resume: 'फिर शुरू करें',
+    stop: 'दोहराना बंद करें',
+    stopConfirm: '"{name}" बंद करें? आगे कुछ नहीं जुड़ेगा। इसे वापस नहीं किया जा सकता।',
+    editInApp: 'राशि या बँटवारा बदलने के लिए ऐप का उपयोग करें।',
+    weekly: 'साप्ताहिक',
+    twiceAMonth: 'महीने में दो बार',
+    monthly: 'मासिक',
+    yearly: 'वार्षिक',
+    fortnightly: 'पाक्षिक',
+    quarterly: 'तिमाही',
+    halfYearly: 'छमाही',
+    monthsInterval: 'हर {n} महीने',
+    couldNotSave: 'अपडेट नहीं हो सका। फिर कोशिश करें।',
   },
   plan: {
     title: 'योजना',
@@ -4051,6 +4152,7 @@ const hi: WebStrings = {
     confirmDelete: 'हटाने के लिए फिर से टैप करें',
     restore: 'बहाल करें',
     deletedBadge: 'हटाया गया',
+    workBadge: 'कार्य',
     disputes: 'असहमति',
     reasonPlaceholder: 'इसमें क्या ग़लत है? (वैकल्पिक)',
     raiseDispute: 'ग़लत बताएँ',
@@ -4673,6 +4775,7 @@ const ar: WebStrings = {
     amountIn: 'المبلغ بـ {currency}',
     notAnAmount: 'هذا ليس مبلغًا.',
     whoPaid: 'من دفع',
+    workExpense: 'مصروف عمل (للمطالبة به)',
     you: 'أنت',
     splitBetween: 'التقسيم بين',
     splitEquallyNote: 'قُسّم بالتساوي. للحصص المحددة أو فاتورة بالأصناف، استخدم التطبيق.',
@@ -4733,6 +4836,29 @@ const ar: WebStrings = {
     title: 'الأماكن',
     empty: 'لا أماكن بعد',
     emptyBody: 'أضف موقعًا إلى مصروف لتراه هنا.',
+  },
+  groupRecurring: {
+    title: 'المتكررة',
+    sub: 'تُضاف في تاريخها للجميع. أنشئ واحدًا من التطبيق بخيار «تكرار» على مصروف جديد.',
+    empty: 'لا شيء متكرر بعد',
+    next: 'التالي {date}',
+    lastAdded: 'آخر إضافة {date}',
+    paused: 'متوقف مؤقتًا',
+    ended: 'انتهى',
+    pause: 'إيقاف مؤقت',
+    resume: 'استئناف',
+    stop: 'إيقاف التكرار',
+    stopConfirm: 'إيقاف «{name}»؟ لن يُضاف المزيد. لا يمكن التراجع عن هذا.',
+    editInApp: 'لتغيير المبلغ أو التقسيم استخدم التطبيق.',
+    weekly: 'أسبوعيًا',
+    twiceAMonth: 'مرتان في الشهر',
+    monthly: 'شهريًا',
+    yearly: 'سنويًا',
+    fortnightly: 'كل أسبوعين',
+    quarterly: 'كل ربع سنة',
+    halfYearly: 'كل نصف سنة',
+    monthsInterval: 'كل {n} أشهر',
+    couldNotSave: 'تعذّر التحديث. حاول مرة أخرى.',
   },
   plan: {
     title: 'الخطة',
@@ -5143,6 +5269,7 @@ const ar: WebStrings = {
     confirmDelete: 'اضغط مرة أخرى للحذف',
     restore: 'استعادة',
     deletedBadge: 'محذوف',
+    workBadge: 'عمل',
     disputes: 'اعتراضات',
     reasonPlaceholder: 'ما الخطأ فيه؟ (اختياري)',
     raiseDispute: 'وسمه كخطأ',

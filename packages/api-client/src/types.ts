@@ -72,6 +72,8 @@ export interface ExpenseVersion {
   /** The rate stored on this version (`expense_versions.fx`), or null. Balances
    *  in a converting group count the bill in the group currency at this rate. */
   fx?: FxRecord | null;
+  /** "Work expense (to claim)"; absent on a row read before the column existed. */
+  reimbursable?: boolean;
   payers: { member_id: MemberId; amount: string }[];
   shares: { member_id: MemberId; amount: string }[];
 }

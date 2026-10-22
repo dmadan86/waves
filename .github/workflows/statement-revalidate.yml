@@ -1,0 +1,94 @@
+name: Statement import revalidation
+
+# Banks change their exports without telling anyone. On the first of every
+# month this re-fetches the vendored real-format samples from upstream, reports
+# drift, runs the core statement tests, and files (or updates) one issue with
+# the report and the manual checklist. See docs/statement-revalidation.md.
+
+on:
+  schedule:
+    - cron: '0 4 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  revalidate:
+    name: refetch fixtures and run the statement tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Re-fetch upstream samples and run the statement tests
+        id: revalidate
+        # The script exits non-zero on a test failure; the issue is filed either way.
+        continue-on-error: true
+        run: node scripts/statement-revalidate.mjs --out report.md
+
+      - name: Keep the report for the issue job
+        run: |
+          echo "${{ steps.revalidate.outcome }}" > outcome.txt
+          [ -f report.md ] || echo "_The script produced no report._" > report.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: revalidation-report
+          path: |
+            report.md
+            outcome.txt
+
+      - name: Fail the run when the tests failed
+        if: steps.revalidate.outcome == 'failure'
+        run: exit 1
+
+  # Only this job can write issues, and it runs no third-party action and none
+  # of the repository's code: it reads the report and files it.
+  file-issue:
+    name: open or update this month's issue
+    needs: revalidate
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: revalidation-report
+      - name: Open or update this month's issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          OUTCOME="$(cat outcome.txt)"
+          MONTH="$(date -u +%Y-%m)"
+          TITLE="Monthly statement import revalidation — ${MONTH}"
+          LABEL="statement-import"
+          gh label create "$LABEL" --description "Bank statement import: fixtures, parsers, monthly revalidation" --color 1D76DB 2>/dev/null || true
+
+          {
+            echo "Automated run: ${RUN_URL} — tests **${OUTCOME}**."
+            echo
+            cat report.md
+            echo
+            echo "## Manual checklist"
+            echo
+            echo "- [ ] Export a fresh statement from HDFC, SBI, ICICI, Axis, Kotak (and one US/UK/UAE/AU bank if available)"
+            echo "- [ ] Import each into Waves on a test account"
+            echo "- [ ] Confirm row count, totals and signs against the bank's own figures"
+            echo "- [ ] Update fixtures under packages/core/test/fixtures/statement if a bank changed its format"
+          } > body.md
+
+          EXISTING="$(gh issue list --state open --search "\"${TITLE}\" in:title" --json number,title --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file body.md
+            echo "Commented on #$EXISTING"
+          else
+            gh issue create --title "$TITLE" --label "$LABEL" --body-file body.md
+          fi

@@ -57,7 +57,6 @@ import { Pressable, Text as RNText, ScrollView, View } from 'react-native';
 
 import { CategoryId, format as formatMoney, guessCategory, SmsKind } from '@waves/core';
 import {
-  Avatar,
   Badge,
   Button,
   Card,
@@ -96,6 +95,7 @@ import { useSmsInboxReader } from '@/lib/smsFeature';
 import { bankFromSender, bankFromText, merchantName } from '@/lib/smsPlain';
 import { useToast } from '@/lib/toast';
 import { type CategoryChoice, useSmsRowPlacement } from '@/lib/useSmsRowPlacement';
+import { PersonAvatar } from '@/components/PersonAvatar';
 
 export default function SmsMessageScreen(): React.JSX.Element | null {
   const theme = useTheme();
@@ -327,7 +327,7 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
         {/* The summary: what the app made of it, and what it is for. */}
         <Card style={{ gap: theme.spacing.md }}>
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <Avatar name={name} size={48} />
+            <PersonAvatar name={name} size={48} />
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <Text variant="subheading" numberOfLines={1}>
                 {name}

@@ -17,7 +17,7 @@ export interface VoiceTypedAnswerProps {
   /** Send the typed text (already non-blank). */
   onSubmit: (text: string) => void;
   /** Go back to speaking the answer. */
-  onVoice: () => void;
+  onVoice?: () => void;
   autoFocus?: boolean;
 }
 
@@ -57,22 +57,24 @@ export function VoiceTypedAnswer({ onSubmit, onVoice, autoFocus = true }: VoiceT
         onSubmitEditing={submit}
         style={{ flex: 1, fontSize: 16, color: theme.color.text, paddingVertical: 0 }}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.voice.agentTypeMic}
-        onPress={onVoice}
-        hitSlop={6}
-        style={({ pressed }) => ({
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.brand} />
-      </Pressable>
+      {onVoice ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.voice.agentTypeMic}
+          onPress={onVoice}
+          hitSlop={6}
+          style={({ pressed }) => ({
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.brand} />
+        </Pressable>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.voice.agentTypeSend}
