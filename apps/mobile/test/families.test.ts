@@ -4,6 +4,7 @@ import type { GroupUnits, NetBalances } from '@waves/core';
 
 import {
   familyBalanceItems,
+  familyEmoji,
   familyLabel,
   familyOf,
   familyRows,
@@ -204,5 +205,11 @@ describe('split by family in the editor', () => {
     expect(state.splitKind).toBe(SplitKind.Exact);
     expect(state.exacts).toEqual({ ravi: '1.00', anu: '2.00' });
     expect(state.participants).toEqual(['ravi', 'anu']);
+  });
+});
+
+describe('familyEmoji', () => {
+  it('picks by size', () => {
+    expect([0, 1, 2, 3, 6].map(familyEmoji)).toEqual(['🏠', '🏠', '👫', '👨‍👩‍👧', '👨‍👩‍👧']);
   });
 });

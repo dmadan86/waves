@@ -1,8 +1,8 @@
 /**
  * Families inside a group: who travels and settles together.
  *
- * One card per family with its people, then everyone on their own, then a
- * "New family" button. Every change is a tap and a small sheet or a choice
+ * One card per family with its people, then everyone on their own; a round +
+ * at the top starts a new family. Every change is a tap and a small sheet or a choice
  * dialog on this screen — nothing jumps elsewhere. Only an admin may change
  * the families (the server refuses anyone else); everybody can read them.
  *
@@ -15,10 +15,21 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { headOf, type GroupUnits } from '@waves/core';
-import { Callout, IconButton, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  Callout,
+  directionalIcon,
+  IconButton,
+  iconSize,
+  Row,
+  Screen,
+  Sheet,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -37,7 +48,7 @@ import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
-import { familyRows, placeMember, withFamily } from '@/lib/families';
+import { familyEmoji, familyRows, placeMember, withFamily } from '@/lib/families';
 
 export default function FamiliesScreen() {
   const theme = useTheme();
@@ -48,6 +59,9 @@ export default function FamiliesScreen() {
   const viewerId = useViewerId();
   const { blockedIds } = useBlockedUsers();
   const { choose, confirm } = useDialog();
+  // The two sheets: a family's menu, and "add to a family" for one person on their own.
+  const [menuFamily, setMenuFamily] = useState<string | null>(null);
+  const [adding, setAdding] = useState<{ member: MemberRow; pick: string | null } | null>(null);
 
   const { group, members } = useGroup(groupId);
   const updateGroup = useUpdateGroup(groupId);
@@ -85,24 +99,14 @@ export default function FamiliesScreen() {
     setNaming(null);
   };
 
-  const familyMenu = async (familyId: string, name: string): Promise<void> => {
-    const picked = await choose({
-      title: name,
-      options: [
-        { id: 'rename', label: t.families.rename },
-        { id: 'delete', label: t.families.deleteFamily },
-      ],
+  const deleteFamily = async (familyId: string): Promise<void> => {
+    const ok = await confirm({
+      title: t.families.deleteFamily,
+      body: t.families.deleteBody,
+      confirmLabel: t.common.delete,
+      tone: 'danger',
     });
-    if (picked === 'rename') setNaming({ familyId });
-    if (picked === 'delete') {
-      const ok = await confirm({
-        title: t.families.deleteFamily,
-        body: t.families.deleteBody,
-        confirmLabel: t.common.delete,
-        tone: 'danger',
-      });
-      if (ok) save(withFamily(units, familyId, null));
-    }
+    if (ok) save(withFamily(units, familyId, null));
   };
 
   /** What to do with somebody who is in a family: make them its head, move them, take them out. */
@@ -126,23 +130,76 @@ export default function FamiliesScreen() {
     else if (picked?.startsWith('move:')) save(placeMember(units, member.id, picked.slice(5)));
   };
 
-  /** Somebody on their own: into one of the families, or into a new one. */
-  const addToFamily = async (member: MemberRow): Promise<void> => {
-    const picked = await choose({
-      title: nameOf(member),
-      body: t.families.addToFamily,
-      options: [
-        ...families.map((family) => ({ id: family.id, label: family.unit.name })),
-        { id: 'new', label: t.families.newFamily },
-      ],
-    });
-    if (picked === 'new') setNaming({ withMember: member.id });
-    else if (picked) save(placeMember(units, member.id, picked));
-  };
-
   const avatar = (member: MemberRow) => (
     <PersonAvatar member={member} name={displayName(member)} ghost={isGhost(member)} size={36} />
   );
+
+  const emojiTile = (count: number, size: number) => (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.brandSoft,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ fontSize: size * 0.5 }}>{familyEmoji(count)}</Text>
+    </View>
+  );
+
+  const closeX = (onPress: () => void) => (
+    <IconButton label={t.common.close} onPress={onPress}>
+      <Ionicons name="close" size={iconSize.md} color={theme.color.text} />
+    </IconButton>
+  );
+
+  const menu = families.find((family) => family.id === menuFamily) ?? null;
+  const headName = (family: (typeof families)[number]): string => {
+    const head = family.members.find((member) => member.id === headOf(family.unit));
+    return head ? nameOf(head) : '';
+  };
+
+  /** A tinted action row of the family menu. */
+  const menuRow = (
+    icon: 'pencil' | 'trash-outline',
+    title: string,
+    body: string,
+    danger: boolean,
+    onPress: () => void,
+  ) => {
+    const ink = danger ? theme.color.negative : theme.color.brand;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${body}`}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          padding: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: danger ? theme.color.negativeSoft : theme.color.brandSoft,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={ink} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{ fontWeight: '700', color: danger ? theme.color.negative : theme.color.text }}
+          >
+            {title}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {body}
+          </Text>
+        </View>
+        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
+      </Pressable>
+    );
+  };
 
   return (
     <Screen edges={[]}>
@@ -150,7 +207,30 @@ export default function FamiliesScreen() {
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader title={t.families.title} />
+        <ScenicHeader
+          title={t.families.title}
+          subtitle={t.families.subtitle}
+          action={
+            // A family is never empty, so a new one starts with the first person on their own.
+            isAdmin && onTheirOwn[0] ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.families.newFamily}
+                onPress={() => setNaming({ withMember: onTheirOwn[0].id })}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.buttonPrimary,
+                }}
+              >
+                <Ionicons name="add" size={iconSize.lg} color="#FFFFFF" />
+              </Pressable>
+            ) : undefined
+          }
+        />
         <ScenicBody>
           {error ? <Callout tone="negative">{error}</Callout> : null}
           {!isAdmin ? (
@@ -159,9 +239,20 @@ export default function FamiliesScreen() {
             </Text>
           ) : null}
 
+          {families.length > 0 ? (
+            <SectionHeader
+              title={t.families.title}
+              trailing={
+                <Text variant="caption" tone="muted">
+                  {plural(locale, families.length, t.families.summary)}
+                </Text>
+              }
+            />
+          ) : null}
           {families.map((family) => (
             <StandardCard key={family.id}>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                {emojiTile(family.members.length, 48)}
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text variant="subheading" numberOfLines={1}>
                     {family.unit.name}
@@ -171,10 +262,7 @@ export default function FamiliesScreen() {
                   </Text>
                 </View>
                 {isAdmin ? (
-                  <IconButton
-                    label={t.group.more}
-                    onPress={() => void familyMenu(family.id, family.unit.name)}
-                  >
+                  <IconButton label={t.group.more} onPress={() => setMenuFamily(family.id)}>
                     <Ionicons
                       name="ellipsis-horizontal"
                       size={iconSize.md}
@@ -183,22 +271,38 @@ export default function FamiliesScreen() {
                   </IconButton>
                 ) : null}
               </Row>
-              {family.members.map((member, index) => (
-                <ListRow
-                  key={member.id}
-                  leading={avatar(member)}
-                  title={nameOf(member)}
-                  subtitle={headOf(family.unit) === member.id ? t.families.head : undefined}
-                  divider={index < family.members.length - 1}
-                  onPress={isAdmin ? () => void memberMenu(member, family.id) : undefined}
-                />
-              ))}
+              <View
+                style={{
+                  marginTop: theme.spacing.sm,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                {family.members.map((member, index) => (
+                  <ListRow
+                    key={member.id}
+                    leading={avatar(member)}
+                    title={nameOf(member)}
+                    subtitle={headOf(family.unit) === member.id ? t.families.head : undefined}
+                    divider={index < family.members.length - 1}
+                    onPress={isAdmin ? () => void memberMenu(member, family.id) : undefined}
+                  />
+                ))}
+              </View>
             </StandardCard>
           ))}
 
           {onTheirOwn.length > 0 ? (
             <View style={{ gap: theme.spacing.md }}>
-              <SectionHeader title={t.families.onTheirOwn} />
+              <SectionHeader
+                title={t.families.onTheirOwn}
+                trailing={
+                  <Text variant="caption" tone="muted">
+                    {plural(locale, onTheirOwn.length, t.families.people)}
+                  </Text>
+                }
+              />
               <StandardCard>
                 {onTheirOwn.map((member, index) => (
                   <ListRow
@@ -206,7 +310,11 @@ export default function FamiliesScreen() {
                     leading={avatar(member)}
                     title={nameOf(member)}
                     divider={index < onTheirOwn.length - 1}
-                    onPress={isAdmin ? () => void addToFamily(member) : undefined}
+                    onPress={
+                      isAdmin
+                        ? () => setAdding({ member, pick: families[0]?.id ?? null })
+                        : undefined
+                    }
                   />
                 ))}
               </StandardCard>
@@ -214,6 +322,168 @@ export default function FamiliesScreen() {
           ) : null}
         </ScenicBody>
       </ScrollView>
+
+      <Sheet
+        visible={menu !== null}
+        onClose={() => setMenuFamily(null)}
+        closeLabel={t.common.close}
+      >
+        {menu ? (
+          <View style={{ gap: theme.spacing.md }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              {emojiTile(menu.members.length, 64)}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="title" numberOfLines={1}>
+                  {menu.unit.name}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {plural(locale, menu.members.length, t.families.people)}
+                </Text>
+              </View>
+              {closeX(() => setMenuFamily(null))}
+            </Row>
+            {menuRow('pencil', t.families.rename, t.families.renameBody, false, () => {
+              setMenuFamily(null);
+              setNaming({ familyId: menu.id });
+            })}
+            {menuRow(
+              'trash-outline',
+              t.families.deleteFamily,
+              t.families.deleteRowBody,
+              true,
+              () => {
+                setMenuFamily(null);
+                void deleteFamily(menu.id);
+              },
+            )}
+            <Button
+              label={t.common.cancel}
+              variant="secondary"
+              fullWidth
+              onPress={() => setMenuFamily(null)}
+            />
+          </View>
+        ) : null}
+      </Sheet>
+
+      <Sheet visible={adding !== null} onClose={() => setAdding(null)} closeLabel={t.common.close}>
+        {adding ? (
+          <View style={{ gap: theme.spacing.md }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              {avatar(adding.member)}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="title" numberOfLines={1}>
+                  {nameOf(adding.member)}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {t.families.addToFamily}
+                </Text>
+              </View>
+              {closeX(() => setAdding(null))}
+            </Row>
+            {families.map((family) => {
+              const on = adding.pick === family.id;
+              return (
+                <Pressable
+                  key={family.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => setAdding({ ...adding, pick: family.id })}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    padding: theme.spacing.md,
+                    borderRadius: theme.radius.lg,
+                    borderWidth: 1.5,
+                    borderColor: on ? theme.color.brand : 'transparent',
+                    backgroundColor: on ? theme.color.brandSoft : theme.color.surfaceMuted,
+                  }}
+                >
+                  {emojiTile(family.members.length, 44)}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontWeight: '700' }}>
+                      {family.unit.name}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {fill(t.families.settlesWith, {
+                        count: plural(locale, family.members.length, t.families.members),
+                        name: headName(family),
+                      })}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={iconSize.xl}
+                    color={on ? theme.color.brand : theme.color.border}
+                  />
+                </Pressable>
+              );
+            })}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                const member = adding.member;
+                setAdding(null);
+                setNaming({ withMember: member.id });
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.md,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                borderWidth: 1.5,
+                borderStyle: 'dashed',
+                borderColor: theme.color.brand,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="add" size={iconSize.lg} color={theme.color.brand} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontWeight: '700', color: theme.color.brand }}>
+                  {t.families.newFamily}
+                </Text>
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {fill(t.families.newFamilyBody, { name: nameOf(adding.member) })}
+                </Text>
+              </View>
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+            </Pressable>
+            <Button
+              label={fill(t.families.addTo, {
+                name: families.find((family) => family.id === adding.pick)?.unit.name ?? '',
+              })}
+              fullWidth
+              disabled={adding.pick === null}
+              onPress={() => {
+                if (adding.pick) save(placeMember(units, adding.member.id, adding.pick));
+                setAdding(null);
+              }}
+            />
+            <Button
+              label={t.common.cancel}
+              variant="ghost"
+              fullWidth
+              onPress={() => setAdding(null)}
+            />
+          </View>
+        ) : null}
+      </Sheet>
 
       <EditTextSheet
         visible={naming !== null}
