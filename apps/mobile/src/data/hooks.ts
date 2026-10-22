@@ -355,36 +355,6 @@ export function useArchivedGroups(): LocalRead<GroupRow[]> {
   return useLocalRead(groups);
 }
 
-/**
- * How much has changed hands through this person, per currency. Not a balance
- * — see `fetchSettledTotals`.
- */
-export function useSettledTotals(profileId: string | null): LocalRead<Map<string, bigint>> {
-  const { mirror } = useSync();
-
-  const totals = useMemo(() => {
-    const mine = new Set(
-      (rowsFor(mirror, SyncTable.GroupMembers) as unknown as MemberRow[])
-        .filter((member) => isViewer(member, profileId))
-        .map((member) => member.id),
-    );
-
-    const out = new Map<string, bigint>();
-    for (const row of rowsFor(mirror, SyncTable.Settlements) as unknown as SettlementRow[]) {
-      if (
-        row.status !== SettlementStatus.Confirmed &&
-        row.status !== SettlementStatus.AutoConfirmed
-      )
-        continue;
-      if (!mine.has(row.from_member_id) && !mine.has(row.to_member_id)) continue;
-      out.set(row.currency, (out.get(row.currency) ?? 0n) + BigInt(row.amount));
-    }
-    return out;
-  }, [mirror, profileId]);
-
-  return useLocalRead(totals);
-}
-
 /** Today's local calendar month, as the `YYYY-MM` prefix `snapshot.date` uses. */
 function localMonthPrefix(): string {
   return new Intl.DateTimeFormat('en-CA').format(new Date()).slice(0, 7);
