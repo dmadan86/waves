@@ -340,6 +340,10 @@ describe('a malformed families map', () => {
 describe('validateGroupUnits', () => {
   const members = new Set(['a', 'b', 'c', 'd']);
 
+  it('rejects a family id equal to a member id (rollup keys would collide)', () => {
+    expect(validateGroupUnits({ b: { name: 'Family A', members: ['a'] } }, members).ok).toBe(false);
+  });
+
   it('normalises a good map and clears on null or empty', () => {
     expect(validateGroupUnits(null, members)).toEqual({ ok: true, units: null });
     expect(validateGroupUnits({}, members)).toEqual({ ok: true, units: null });

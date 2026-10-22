@@ -39,6 +39,8 @@ export interface GroupRow {
   custom_tag?: string | null;
   /** Palette key (`GROUP_COVER_COLORS`) behind the group's icon; null is the app's default. Optional: narrow selects omit it. */
   cover_color?: string | null;
+  /** Families inside the group (`GroupUnits` in `@waves/core`); null is none. Optional: narrow selects omit it. */
+  units?: Record<string, { name: string; members: string[]; head?: string }> | null;
   start_date: string | null;
   end_date: string | null;
   /** The trip is on ITS day, not the reader's — the planner compares dates in this zone. */

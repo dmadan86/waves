@@ -519,3 +519,72 @@ describe('payment_link', () => {
     expect(queries).toHaveLength(0);
   });
 });
+
+describe('families', () => {
+  const [A, B, C] = [
+    '11111111-1111-4111-8111-111111111111',
+    '22222222-2222-4222-8222-222222222222',
+    '33333333-3333-4333-8333-333333333333',
+  ];
+  const member = (id: string, name: string) => ({
+    id,
+    group_id: GROUP,
+    profile_id: null,
+    ghost_name: name,
+    role: 'member',
+  });
+  const answers = {
+    group_members: { data: [member(A, 'Ravi'), member(B, 'Priya'), member(C, 'Asha')] },
+    groups: { data: [{ units: { sharma: { name: 'Sharma', members: [A, B], head: B } } }] },
+    group_balances: {
+      data: [
+        { member_id: A, currency: 'INR', balance: '-3000' },
+        { member_id: B, currency: 'INR', balance: '1000' },
+        { member_id: C, currency: 'INR', balance: '2000' },
+      ],
+    },
+  };
+
+  it('list_members adds unitId and unitName', async () => {
+    const { json } = await call(fakeSupabase(answers).client, 'list_members', { groupId: GROUP });
+    expect((json as Record<string, unknown>[]).map((m) => [m.unitId, m.unitName])).toEqual([
+      ['sharma', 'Sharma'],
+      ['sharma', 'Sharma'],
+      [null, null],
+    ]);
+  });
+
+  it('get_balances by family rolls up; the default stays per member', async () => {
+    const family = await call(fakeSupabase(answers).client, 'get_balances', {
+      groupId: GROUP,
+      by: 'family',
+    });
+    expect(family.json).toEqual([
+      { unitId: 'sharma', name: 'Sharma', isYou: false, currency: 'INR', balance: '-2000' },
+      { unitId: C, name: 'Asha', isYou: false, currency: 'INR', balance: '2000' },
+    ]);
+    const plain = await call(fakeSupabase(answers).client, 'get_balances', { groupId: GROUP });
+    expect((plain.json as unknown[]).length).toBe(3);
+  });
+
+  it('fails by family when the families cannot be read, instead of falling back to people', async () => {
+    const broken = { ...answers, groups: { error: { message: 'boom' } } };
+    for (const name of ['get_balances', 'settlement_plan', 'list_members']) {
+      const r = await call(fakeSupabase(broken).client, name, { groupId: GROUP, by: 'family' });
+      expect(r.isError).toBe(true);
+    }
+  });
+
+  it('add_expense accepts a units split and the balance reads offer a family lens', async () => {
+    const client = await connect(fakeSupabase({}).client);
+    const { tools } = await client.listTools();
+    await client.close();
+    const schema = (name: string) =>
+      JSON.stringify(tools.find((t) => t.name === name)?.inputSchema);
+    expect(schema('add_expense')).toContain('"units"');
+    expect(schema('edit_expense')).toContain('"units"');
+    for (const name of ['get_balances', 'settlement_plan']) {
+      expect(schema(name)).toContain('"family"');
+    }
+  });
+});

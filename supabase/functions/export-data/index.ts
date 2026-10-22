@@ -20,6 +20,8 @@ import {
 } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
 import {
+  familyName,
+  familySubtotals,
   formatMinor,
   LEDGER_TABLE_COLUMNS,
   memberAmounts,
@@ -27,6 +29,8 @@ import {
   splitMethodLabel,
   wrapText,
 } from '../_shared/core.js';
+
+type GroupUnits = Parameters<typeof familyName>[0];
 
 interface ExportRequest {
   /** Omit to export every group the caller belongs to. */
@@ -203,7 +207,15 @@ serveWithCors(async (request) => {
           payers: string;
           paidDetail: string;
           splitDetail: string;
+          payerRows: { member_id: string | null; amount: bigint | number | string }[];
+          shareRows: { member_id: string | null; amount: bigint | number | string }[];
         }[] = [];
+        const units = group?.units as GroupUnits | null | undefined;
+        // A share's owner with their family beside the name; unchanged without families.
+        const nameWithFamily = (memberId: string | null): string => {
+          const family = familyName(units, memberId);
+          return family ? `${nameOf(memberId)} (${family})` : nameOf(memberId);
+        };
 
         for (const expense of entry.expenses) {
           if (expense.deleted_at) continue;
@@ -223,8 +235,10 @@ serveWithCors(async (request) => {
             payers: (current.payers ?? [])
               .map((payer: Record<string, unknown>) => nameOf(payer.member_id as string))
               .join(' + '),
-            paidDetail: memberAmounts(current.payers, currency, nameOf),
-            splitDetail: `${splitMethodLabel(current.split_type)}: ${memberAmounts(current.shares, currency, nameOf)}`,
+            paidDetail: memberAmounts(current.payers, currency, nameWithFamily),
+            splitDetail: `${splitMethodLabel(current.split_type)}: ${memberAmounts(current.shares, currency, nameWithFamily)}`,
+            payerRows: current.payers ?? [],
+            shareRows: current.shares ?? [],
           });
         }
 
@@ -273,6 +287,27 @@ serveWithCors(async (request) => {
           }
         }
 
+        // Per-family block (only when the group has families): paid, share, net.
+        const subtotals = familySubtotals(
+          units,
+          activeExpenses.map((row) => ({
+            currency: row.currency,
+            payers: row.payerRows,
+            shares: row.shareRows,
+          })),
+        );
+        if (subtotals.length > 0) {
+          pdf.subheading('Families', 11);
+          for (const row of subtotals) {
+            pdf.body(
+              `${row.family}: paid ${formatMinor(row.paid, row.currency)}, share ` +
+                `${formatMinor(row.share, row.currency)}, net ${formatMinor(row.net, row.currency)} ` +
+                row.currency,
+              9,
+            );
+          }
+        }
+
         // Settlements — the per-person detail, matching the CSV's fidelity.
         if (entry.settlements.length > 0) {
           pdf.subheading('Settlements', 11);
@@ -308,6 +343,11 @@ serveWithCors(async (request) => {
       return /["\n]|,|;/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
     };
 
+    // The Family column exists only when some exported group has families, so a
+    // file without any is byte-for-byte what it was.
+    const anyFamilies = exported.some(
+      (entry) => Object.keys((entry.group?.units as object | null) ?? {}).length > 0,
+    );
     const rows: string[][] = [
       [
         'group',
@@ -324,6 +364,7 @@ serveWithCors(async (request) => {
         'Paid by',
         'Split method',
         'Split between',
+        ...(anyFamilies ? ['Family'] : []),
       ],
     ];
 
@@ -335,53 +376,98 @@ serveWithCors(async (request) => {
         );
       };
 
+      const units = entry.group?.units as GroupUnits | null | undefined;
+      const family = (cells: string[], memberId: string | null): string[] =>
+        anyFamilies ? [...cells, familyName(units, memberId)] : cells;
+      const live: Parameters<typeof familySubtotals>[1] = [];
+
       for (const expense of entry.expenses) {
         const current = expense.versions?.find(
           (version: Record<string, unknown>) => version.id === expense.current_version_id,
         );
         if (!current) continue;
+        if (!expense.deleted_at) {
+          live.push({
+            currency: String(current.currency).toUpperCase(),
+            payers: current.payers,
+            shares: current.shares,
+          });
+        }
         const payers = (current.payers ?? [])
           .map((payer: Record<string, unknown>) => nameOf(payer.member_id as string))
           .join(' + ');
 
         for (const share of current.shares ?? []) {
-          rows.push([
-            entry.group?.name ?? '',
-            expense.deleted_at ? 'expense (deleted)' : 'expense',
-            current.expense_date,
-            current.description,
-            current.currency,
-            current.amount,
-            payers,
-            nameOf(share.member_id),
-            share.amount,
-            expense.deleted_at ? 'deleted' : 'active',
-            `v${current.version_no}`,
-            memberAmounts(current.payers, current.currency, nameOf, '; '),
-            splitMethodLabel(current.split_type),
-            memberAmounts(current.shares, current.currency, nameOf, '; '),
-          ]);
+          rows.push(
+            family(
+              [
+                entry.group?.name ?? '',
+                expense.deleted_at ? 'expense (deleted)' : 'expense',
+                current.expense_date,
+                current.description,
+                current.currency,
+                current.amount,
+                payers,
+                nameOf(share.member_id),
+                share.amount,
+                expense.deleted_at ? 'deleted' : 'active',
+                `v${current.version_no}`,
+                memberAmounts(current.payers, current.currency, nameOf, '; '),
+                splitMethodLabel(current.split_type),
+                memberAmounts(current.shares, current.currency, nameOf, '; '),
+              ],
+              share.member_id,
+            ),
+          );
         }
+      }
+
+      // Per-family subtotals, one row each: description is the family, amount_minor
+      // what it paid, owed_amount_minor its share, status its net (paid - share).
+      // The importer reads only 'expense' and 'settlement' rows, so these are inert there.
+      for (const sub of familySubtotals(units, live)) {
+        rows.push([
+          entry.group?.name ?? '',
+          'family subtotal',
+          '',
+          sub.family,
+          sub.currency,
+          String(sub.paid),
+          '',
+          sub.family,
+          String(sub.share),
+          String(sub.net),
+          '',
+          '',
+          '',
+          '',
+          sub.family,
+        ]);
       }
 
       // Per-person settlement detail — the part competitors leave out.
       for (const settlement of entry.settlements) {
-        rows.push([
-          entry.group?.name ?? '',
-          'settlement',
-          settlement.initiated_at?.slice(0, 10) ?? '',
-          settlement.note ?? `${settlement.method} payment`,
-          settlement.currency,
-          settlement.amount,
-          nameOf(settlement.from_member_id),
-          nameOf(settlement.to_member_id),
-          settlement.amount,
-          settlement.status,
-          '',
-          '',
-          '',
-          '',
-        ]);
+        rows.push(
+          family(
+            [
+              entry.group?.name ?? '',
+              'settlement',
+              settlement.initiated_at?.slice(0, 10) ?? '',
+              settlement.note ?? `${settlement.method} payment`,
+              settlement.currency,
+              settlement.amount,
+              nameOf(settlement.from_member_id),
+              nameOf(settlement.to_member_id),
+              settlement.amount,
+              settlement.status,
+              '',
+              '',
+              '',
+              '',
+            ],
+            null,
+          ),
+        );
       }
     }
 

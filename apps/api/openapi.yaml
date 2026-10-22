@@ -568,6 +568,15 @@ paths:
       tags: [Groups]
       operationId: listGroupBalances
       summary: What each member is owed in a group
+      parameters:
+        - name: by
+          in: query
+          required: false
+          description: >-
+            `member` (the default) or `family`. `family` returns `FamilyBalance`
+            rows instead: one per family per currency, each the sum of its
+            members' balances, with anyone in no family as a family of one.
+          schema: { type: string, enum: [member, family] }
       description: >-
         One row per member per currency. Positive means the member is owed;
         negative means they owe. Returns the complete list — not paginated,
@@ -2389,11 +2398,29 @@ components:
         - end_date
         - archived_at
         - created_at
+        - units
         - revision
       properties:
         id:
           type: string
           format: uuid
+        units:
+          type: [object, 'null']
+          description: >-
+            Families inside the group, by family id. Each has a `name` (1 to 24
+            characters), its `members` (member ids of this group, nobody in two
+            families) and optionally a `head` who settles for the family. Null
+            is none. Anyone in no family is a family of one.
+          additionalProperties:
+            type: object
+            required: [name, members]
+            properties:
+              name: { type: string, minLength: 1, maxLength: 24 }
+              members:
+                type: array
+                minItems: 1
+                items: { type: string, format: uuid }
+              head: { type: string, format: uuid }
         name:
           type: [string, 'null']
           description: >-
@@ -2508,6 +2535,26 @@ components:
         - member_id: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed
           currency: INR
           amount: '84250'
+
+    FamilyBalance:
+      type: object
+      description: >-
+        A family's position in one currency (`?by=family`): the sum of its
+        members' balances. Someone in no family appears as a family of one,
+        `unit_id` their own member id and `name` null.
+      required: [unit_id, name, member_ids, currency, amount]
+      properties:
+        unit_id: { type: string }
+        name: { type: [string, 'null'] }
+        member_ids:
+          type: array
+          items: { type: string, format: uuid }
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Positive means the family is owed. Negative means it owes.
 
     Expense:
       type: object
@@ -2687,6 +2734,30 @@ components:
                 two thirds.
               additionalProperties:
                 type: integer
+        - title: Units
+          type: object
+          required: [kind, units]
+          properties:
+            kind:
+              type: string
+              const: units
+            units:
+              type: object
+              description: >-
+                Family id to its member ids among `participants` ("split by
+                family"). The amount divides across families first, then within
+                each. Anyone in no family is a family of one keyed by their
+                member id. Every participant must appear exactly once.
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+            weights:
+              type: object
+              description: Family id to a weight; absent means 1 each, so families split equally.
+              additionalProperties:
+                type: number
         - title: Adjustment
           type: object
           required: [kind, adjustments]
@@ -2958,7 +3029,9 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Balance'
+            oneOf:
+              - $ref: '#/components/schemas/Balance'
+              - $ref: '#/components/schemas/FamilyBalance'
 
     FriendList:
       type: object
@@ -3067,9 +3140,26 @@ components:
       minProperties: 1
       description: >-
         Send at least one of `name`, `type`, `cover_emoji`, `simplify_debts`,
-        `default_currency`, `country_code`, `start_date`, `end_date` or
+        `default_currency`, `country_code`, `start_date`, `end_date`, `units` or
         `archived`. `if_revision` alone is not enough.
       properties:
+        units:
+          type: [object, 'null']
+          description: >-
+            Families inside the group, by family id. Each has a `name` (1 to 24
+            characters), its `members` (member ids of this group, nobody in two
+            families) and optionally a `head` who settles for the family. Null
+            is none. Anyone in no family is a family of one.
+          additionalProperties:
+            type: object
+            required: [name, members]
+            properties:
+              name: { type: string, minLength: 1, maxLength: 24 }
+              members:
+                type: array
+                minItems: 1
+                items: { type: string, format: uuid }
+              head: { type: string, format: uuid }
         name:
           type: [string, 'null']
           minLength: 1

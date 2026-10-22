@@ -6,6 +6,7 @@
  * fonts cannot draw a rupee sign anyway.
  */
 
+import { unitOf, type GroupUnits } from '../group/units';
 import { formatMinor } from './pdf';
 
 export interface MemberAmount {
@@ -54,4 +55,59 @@ export function wrapText(text: string, maxChars: number): string[] {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+/** The "Family" column: the member's family name, or '' (no family, or a group without any). */
+export function familyName(units: GroupUnits | null | undefined, memberId: string | null): string {
+  const id = memberId ? unitOf(units, memberId) : null;
+  return id ? (units?.[id]?.name ?? '') : '';
+}
+
+export interface FamilySubtotal {
+  readonly family: string;
+  readonly currency: string;
+  /** What the family's members paid, their share of the bills, and paid - share (positive: owed). */
+  readonly paid: bigint;
+  readonly share: bigint;
+  readonly net: bigint;
+}
+
+/**
+ * The per-family block under the ledger: one row per family per currency
+ * (never mixed, ADR-004), over the active expenses given. People in no family
+ * are left out; empty when the group has no families.
+ */
+export function familySubtotals(
+  units: GroupUnits | null | undefined,
+  expenses: readonly {
+    readonly currency: string;
+    readonly payers: readonly MemberAmount[] | null | undefined;
+    readonly shares: readonly MemberAmount[] | null | undefined;
+  }[],
+): FamilySubtotal[] {
+  const sums = new Map<string, { family: string; currency: string; paid: bigint; share: bigint }>();
+  const add = (
+    currency: string,
+    rows: readonly MemberAmount[] | null | undefined,
+    field: 'paid' | 'share',
+  ): void => {
+    for (const row of rows ?? []) {
+      const unitId = row.member_id ? unitOf(units, row.member_id) : null;
+      if (!unitId) continue;
+      const key = `${unitId}\u0000${currency}`;
+      const sum = sums.get(key) ?? {
+        family: units?.[unitId]?.name ?? '',
+        currency,
+        paid: 0n,
+        share: 0n,
+      };
+      sum[field] += BigInt(row.amount);
+      sums.set(key, sum);
+    }
+  };
+  for (const expense of expenses) {
+    add(expense.currency, expense.payers, 'paid');
+    add(expense.currency, expense.shares, 'share');
+  }
+  return [...sums.values()].map((sum) => ({ ...sum, net: sum.paid - sum.share }));
 }

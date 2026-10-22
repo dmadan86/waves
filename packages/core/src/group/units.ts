@@ -139,6 +139,10 @@ export function validateGroupUnits(raw: unknown, memberIds: ReadonlySet<MemberId
   for (const [unitId, value] of entries) {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(unitId))
       return { ok: false, reason: `bad unit id ${unitId}` };
+    // A family id shares a key space with the member ids of people in no family
+    // (rollups key by `unitOf(...) ?? memberId`), so a collision would merge two
+    // balances into one and net real debts away.
+    if (memberIds.has(unitId)) return { ok: false, reason: `unit id ${unitId} is a member id` };
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return { ok: false, reason: `unit ${unitId} must be an object` };
     }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { memberAmounts, PdfBuilder, splitMethodLabel, wrapText } from '../src/export';
+import {
+  familyName,
+  familySubtotals,
+  memberAmounts,
+  PdfBuilder,
+  splitMethodLabel,
+  wrapText,
+} from '../src/export';
 
 const names: Record<string, string> = { m: 'Madan', r: 'Renny', h: 'Hethu', x: 'Left Lee' };
 const nameOf = (id: string | null): string => names[id ?? ''] ?? 'unknown';
@@ -61,5 +68,48 @@ describe('export paid-by / split text', () => {
       .build();
     expect(pdf).toContain('(Paid by: Madan 600.00) Tj');
     expect(pdf).toContain('(Split - Equally: Madan 300.00, Renny 300.00) Tj');
+  });
+});
+
+describe('export families', () => {
+  const units = {
+    sharma: { name: 'Sharma family', members: ['m', 'r'], head: 'm' },
+    rao: { name: 'Rao', members: ['h'] },
+  };
+
+  it('names the family beside a member, and nothing without families', () => {
+    expect(familyName(units, 'r')).toBe('Sharma family');
+    expect(familyName(units, 'x')).toBe('');
+    expect(familyName(null, 'r')).toBe('');
+    expect(familyName(units, null)).toBe('');
+  });
+
+  it('totals what each family paid, its share and the net, per currency', () => {
+    const expenses = [
+      {
+        currency: 'INR',
+        payers: [{ member_id: 'm', amount: '30000' }],
+        shares: [
+          { member_id: 'm', amount: '10000' },
+          { member_id: 'r', amount: '10000' },
+          { member_id: 'h', amount: '5000' },
+          { member_id: 'x', amount: '5000' },
+        ],
+      },
+      {
+        currency: 'USD',
+        payers: [{ member_id: 'h', amount: 900n }],
+        shares: [{ member_id: 'h', amount: 900n }],
+      },
+    ];
+    expect(familySubtotals(units, expenses)).toEqual([
+      { family: 'Sharma family', currency: 'INR', paid: 30000n, share: 20000n, net: 10000n },
+      { family: 'Rao', currency: 'INR', paid: 0n, share: 5000n, net: -5000n },
+      { family: 'Rao', currency: 'USD', paid: 900n, share: 900n, net: 0n },
+    ]);
+  });
+
+  it('is empty for a group without families', () => {
+    expect(familySubtotals(null, [{ currency: 'INR', payers: [], shares: [] }])).toEqual([]);
   });
 });
