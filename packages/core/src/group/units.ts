@@ -28,18 +28,31 @@ export type GroupUnits = Readonly<Record<string, GroupUnit>>;
 export const MAX_UNITS = 50;
 export const MAX_UNIT_NAME = 24;
 
+/**
+ * A unit's members as this build can read them: the map is validated on the
+ * way in, but a reader must not crash on a row written past that boundary
+ * (a malformed entry reads as a family with nobody in it).
+ */
+export function unitMembers(unit: GroupUnit | null | undefined): readonly MemberId[] {
+  const members = (unit as { members?: unknown } | null | undefined)?.members;
+  return Array.isArray(members)
+    ? members.filter((member): member is MemberId => typeof member === 'string')
+    : [];
+}
+
 /** The unit a member belongs to, or null for a unit of one. */
 export function unitOf(units: GroupUnits | null | undefined, memberId: MemberId): string | null {
   if (!units) return null;
   for (const [unitId, unit] of Object.entries(units)) {
-    if (unit.members.includes(memberId)) return unitId;
+    if (unitMembers(unit).includes(memberId)) return unitId;
   }
   return null;
 }
 
 /** Who settles for a unit: its head when still a member, else its first member. */
 export function headOf(unit: GroupUnit): MemberId | undefined {
-  return unit.head && unit.members.includes(unit.head) ? unit.head : unit.members[0];
+  const members = unitMembers(unit);
+  return unit.head && members.includes(unit.head) ? unit.head : members[0];
 }
 
 /** Members in no unit, in the order given. */
@@ -63,7 +76,7 @@ export function unitsSplitParams(
   const snapshot: Record<string, MemberId[]> = {};
   const placed = new Set<MemberId>();
   for (const [unitId, unit] of Object.entries(units ?? {})) {
-    const members = unit.members.filter((member) => chosen.has(member) && !placed.has(member));
+    const members = unitMembers(unit).filter((member) => chosen.has(member) && !placed.has(member));
     if (members.length === 0) continue;
     snapshot[unitId] = members;
     for (const member of members) placed.add(member);

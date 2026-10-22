@@ -102,6 +102,29 @@ describe('editing families', () => {
   });
 });
 
+describe('a malformed families map', () => {
+  it('reads as families with nobody in them rather than crashing', () => {
+    const bad = {
+      u: {},
+      v: null,
+      w: { name: 'Odd', members: 'ravi' },
+      ok: { name: 'Patel family', members: ['sam', 3, 'meera'] },
+    } as unknown as GroupUnits;
+    const { families, onTheirOwn } = familyRows(bad, MEMBERS);
+    expect(families.map((f) => [f.id, f.members.map((x) => x.id)])).toEqual([
+      ['ok', ['sam', 'meera']],
+    ]);
+    expect(onTheirOwn.map((x) => x.id)).toEqual(['ravi', 'priya', 'anu', 'zara', 'bo']);
+    expect(familyOf(bad, 'ravi')).toBeNull();
+    expect(familyBalanceItems(bad, MEMBERS, new Map([['sam', 5n]]))[0]).toMatchObject({
+      kind: 'family',
+      id: 'ok',
+      balance: 5n,
+    });
+    expect(placeMember(bad, 'zara', 'u')?.u).toEqual({ members: ['zara'] });
+  });
+});
+
 describe('split by family in the editor', () => {
   const base = {
     weights: {},
@@ -127,6 +150,38 @@ describe('split by family in the editor', () => {
         weights: { ravi: '1' },
       }).kind,
     ).toBe('shares');
+  });
+
+  it('keeps a saved by-family bill’s own composition until the split is touched', () => {
+    const saved = { kind: 'units', units: { fam: ['anu', 'ravi'], zara: ['zara'] } } as const;
+    const version = {
+      amount: '300',
+      currency: 'INR',
+      description: 'Dinner',
+      expense_date: '2026-10-25',
+      split_type: 'units',
+      split_params: saved,
+      payers: [{ member_id: 'zara', amount: '300' }],
+      shares: [
+        { member_id: 'anu', amount: '75' },
+        { member_id: 'ravi', amount: '75' },
+        { member_id: 'zara', amount: '150' },
+      ],
+    } as unknown as ExpenseVersionRow;
+    const state = editStateFromVersion(version, null);
+    expect(state.splitKind).toBe(SplitKind.Equal);
+    expect(state.savedUnits).toEqual(saved);
+    // Flag off (no families offered) and families since changed: still the bill's own.
+    expect(splitParamsFor({ ...state, byFamily: null })).toEqual(saved);
+    expect(splitParamsFor({ ...state, byFamily: UNITS })).toEqual(saved);
+    // The split touched: rebuilt from today's families, or per person.
+    expect(splitParamsFor({ ...state, savedUnits: null, byFamily: UNITS })).toEqual({
+      kind: 'units',
+      units: { sharma: ['ravi', 'anu'], zara: ['zara'] },
+    });
+    expect(splitParamsFor({ ...state, savedUnits: null, byFamily: null })).toEqual({
+      kind: 'equal',
+    });
   });
 
   it('reopens a by-family bill as equal and an unknown kind as exact from the saved shares', () => {
