@@ -113,12 +113,37 @@ describe('linkReasonText', () => {
 
 describe('linkableGroups / linkMemberRoute', () => {
   const groups = [
-    { groupId: 'g1', otherMemberId: 'm1', viewerIsAdmin: true, otherIsGhost: true },
-    { groupId: 'g2', otherMemberId: 'm2', viewerIsAdmin: false, otherIsGhost: true },
-    { groupId: 'g3', otherMemberId: 'm3', viewerIsAdmin: true, otherIsGhost: false },
+    {
+      groupId: 'g1',
+      otherMemberId: 'm1',
+      viewerIsAdmin: true,
+      otherIsGhost: true,
+      otherHasLeft: false,
+    },
+    {
+      groupId: 'g2',
+      otherMemberId: 'm2',
+      viewerIsAdmin: false,
+      otherIsGhost: true,
+      otherHasLeft: false,
+    },
+    {
+      groupId: 'g3',
+      otherMemberId: 'm3',
+      viewerIsAdmin: true,
+      otherIsGhost: false,
+      otherHasLeft: false,
+    },
+    {
+      groupId: 'g4',
+      otherMemberId: 'm4',
+      viewerIsAdmin: true,
+      otherIsGhost: true,
+      otherHasLeft: true,
+    },
   ];
 
-  it('offers only the groups the viewer runs where the person is still a placeholder', () => {
+  it('offers only the groups the viewer runs where the person is a placeholder still here', () => {
     expect(linkableGroups(groups).map((group) => group.groupId)).toEqual(['g1']);
   });
 
