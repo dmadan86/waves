@@ -21,6 +21,7 @@ import {
   type MemberId,
   type ShareMap,
   type SplitParams,
+  type UnitsParams,
 } from './types';
 
 const TOTAL_BASIS_POINTS = 10000;
@@ -135,7 +136,67 @@ function computeByType(
 
     case 'itemized':
       return splitItemized(input.amount, input.params, participants, participantSet, input.seed);
+
+    case 'units':
+      return splitByUnits(input.amount, input.params, participants, participantSet, input.seed);
   }
+}
+
+/**
+ * Two-stage split: the total across units by weight (default 1 each), then
+ * each unit's amount equally among its members. Σ is exact by construction;
+ * a unit's subtotal is within one minor unit of its ideal, and its members
+ * within one of each other. Every participant must sit in exactly one unit.
+ */
+function splitByUnits(
+  amount: bigint,
+  params: UnitsParams,
+  participants: readonly MemberId[],
+  participantSet: ReadonlySet<MemberId>,
+  seed: string,
+): ShareMap {
+  const seen = new Set<MemberId>();
+  const unitWeights = new Map<string, bigint>();
+  let positive = false;
+  for (const [unitId, members] of Object.entries(params.units)) {
+    if (members.length === 0) {
+      throw new SplitError(SplitErrorCode.EmptyParticipants, `Unit "${unitId}" has no members`);
+    }
+    for (const member of members) {
+      requireParticipant(member, participantSet);
+      if (seen.has(member)) {
+        throw new SplitError(
+          SplitErrorCode.DuplicateParticipant,
+          `"${member}" is in more than one unit`,
+        );
+      }
+      seen.add(member);
+    }
+    const centiWeight = toCentiWeight(params.weights?.[unitId] ?? 1, unitId);
+    if (centiWeight > 0n) positive = true;
+    unitWeights.set(unitId, centiWeight);
+  }
+  for (const member of participants) {
+    if (!seen.has(member)) {
+      throw new SplitError(SplitErrorCode.UnknownMember, `"${member}" is in no unit`);
+    }
+  }
+  if (!positive) {
+    throw new SplitError(
+      SplitErrorCode.NoPositiveWeight,
+      'At least one unit needs a positive weight',
+    );
+  }
+
+  const perUnit = distributeProportionally(amount, unitWeights, seed);
+  const shares = new Map<MemberId, bigint>();
+  for (const [unitId, unitAmount] of perUnit) {
+    const members = params.units[unitId] ?? [];
+    for (const [member, share] of splitEqually(unitAmount, members, `${seed}:unit:${unitId}`)) {
+      shares.set(member, share);
+    }
+  }
+  return shares;
 }
 
 /**
