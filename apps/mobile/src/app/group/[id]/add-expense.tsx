@@ -98,6 +98,8 @@ import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '
 import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
+import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
+import { useToast } from '@/lib/toast';
 import { useViewerId } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { handoverKey } from '@/lib/handover';
@@ -415,7 +417,8 @@ export default function AddExpenseScreen() {
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
-  const { mutate } = useSync();
+  const { mutate, status: syncStatus } = useSync();
+  const toast = useToast();
   const personalRecords = usePersonalRecords();
   const removePersonal = useDeletePersonalRecord();
   const assignCapture = useAssignCapture();
@@ -1582,6 +1585,17 @@ export default function AddExpenseScreen() {
         }
       }
 
+      toast.show(
+        saveToastText(t, {
+          kind: 'expense',
+          editing: Boolean(expenseId),
+          label: [description.trim(), format(money(amount, currency), { locale })]
+            .filter(Boolean)
+            .join(' · '),
+          offline: isQueuedOffline(syncStatus),
+        }),
+        'positive',
+      );
       router.back();
     } catch (caught) {
       // Not saved: what was typed is still the only copy, so keep drafting it.

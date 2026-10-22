@@ -78,7 +78,9 @@ import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useGuestGuard } from '@/lib/guestGuard';
+import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
 import { useSync } from '@/sync';
+import { useToast } from '@/lib/toast';
 import { displayName, GroupType } from '@/data/types';
 import { deviceCountry, fill, useStrings } from '@/i18n';
 
@@ -156,7 +158,8 @@ export default function NewGroupScreen() {
   const viewerId = useViewerId();
   const currency = useDefaultCurrency();
   const guard = useGuestGuard();
-  const { mutate } = useSync();
+  const { mutate, status } = useSync();
+  const toast = useToast();
 
   // Cloning: `?from=<groupId>` opens this screen filled from an existing group.
   // The source is read straight from the local mirror (synchronous once
@@ -658,6 +661,13 @@ export default function NewGroupScreen() {
           source: row.source,
         });
       }
+
+      // Said on the screen the person lands on (the toast lives above the stack),
+      // so the jump to the new group is explained, not silent.
+      toast.show(
+        saveToastText(t, { kind: 'group', name, offline: isQueuedOffline(status) }),
+        'positive',
+      );
 
       // Made to hold a waiting capture: hand that capture to this group's
       // add-expense form instead of opening the group, so the person lands where
