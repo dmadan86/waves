@@ -85,7 +85,7 @@ import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
-import { familyOf, familyRows } from '@/lib/families';
+import { familyLabel, familyOf, familyRows, familyTransfers } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { SettleFirstDialog } from '@/components/SettleFirstDialog';
@@ -577,13 +577,19 @@ export default function GroupSettingsScreen() {
       // arriving in another language is not the moment for it.
       return member ? displayName(member, undefined, blockedIds, t.misc.someone) : t.misc.someone;
     };
-    return orderDebtsForWarning(ledger.transfers, currency).map((transfer) => ({
+    // With families, the debts are the families' — one line per family pair,
+    // labelled the way the Balances tab labels them ("Sharma family (Ravi)").
+    const byFamily = familiesOn && families.length > 0;
+    const transfers = byFamily ? familyTransfers(ledger.net, group.data?.units) : ledger.transfers;
+    const labelFor = (memberId: string): string =>
+      byFamily ? familyLabel(group.data?.units, memberId, nameFor(memberId)) : nameFor(memberId);
+    return orderDebtsForWarning(transfers, currency).map((transfer) => ({
       // Two members and a currency are exactly one debt in `transfers`, so this
       // is stable across a re-render and unique within the list.
       key: `${transfer.from}:${transfer.to}:${transfer.currency}`,
       label: fill(t.group.deleteOwesWho, {
-        from: nameFor(transfer.from),
-        to: nameFor(transfer.to),
+        from: labelFor(transfer.from),
+        to: labelFor(transfer.to),
       }),
       amount: { minor: transfer.amount, currency: transfer.currency as CurrencyCode },
     }));

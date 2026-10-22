@@ -100,22 +100,41 @@ export function familyBalanceItems<M extends { id: MemberId }>(
 
 /**
  * Who pays whom when families settle as one: `simplify` over the family
- * balances, each family then named by its head so the existing
- * `settlement.create` (member → member) records it. A person on their own is
- * their own head. Families whose head is unknown (an empty family) are
- * dropped — there is nobody to pay.
+ * balances, each family then named by one of its people so the existing
+ * `settlement.create` (member → member) records it. That person is the
+ * viewer for their own family — so anyone in the paying family sees "you
+ * pay" and can record it themselves, which is what the settlement RPC
+ * allows (a party to the payment) — and the head for every other family. A
+ * person on their own is their own head. Families whose head is unknown (an
+ * empty family) are dropped — there is nobody to pay.
  */
 export function familyTransfers(
   net: NetBalances,
   units: GroupUnits | null | undefined,
+  viewer: MemberId | null = null,
 ): Transfer[] {
+  const mine = viewer ? unitOf(units, viewer) : null;
+  const partyFor = (key: string): MemberId | undefined =>
+    viewer && key === mine ? viewer : headsFor(units, key);
   const transfers: Transfer[] = [];
   for (const transfer of simplify(unitNetBalances(net, units))) {
-    const from = headsFor(units, transfer.from);
-    const to = headsFor(units, transfer.to);
+    const from = partyFor(transfer.from);
+    const to = partyFor(transfer.to);
     if (from && to && from !== to) transfers.push({ ...transfer, from, to });
   }
   return transfers;
+}
+
+/** A new family of `memberIds`, each taken out of the family they were in. */
+export function createFamily(
+  units: GroupUnits | null | undefined,
+  id: string,
+  name: string,
+  memberIds: readonly MemberId[],
+): GroupUnits | null {
+  let next: GroupUnits | null = units ?? null;
+  for (const memberId of memberIds) next = placeMember(next, memberId, null);
+  return withFamily(next, id, { name, members: [...memberIds] });
 }
 
 /** "Sharma family (Ravi)" for a head on a family-lens settle row; the plain

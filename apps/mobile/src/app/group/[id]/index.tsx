@@ -817,7 +817,10 @@ export default function GroupScreen() {
   };
   const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
   const lensLedger = useMemo(
-    () => (familyLens ? { ...ledger, transfers: familyTransfers(ledger.net, units) } : ledger),
+    () =>
+      familyLens
+        ? { ...ledger, transfers: familyTransfers(ledger.net, units, ledger.myMemberId) }
+        : ledger,
     [familyLens, ledger, units],
   );
   // Settling up lives on the Balances tab: its payments, history and confirm sheet.

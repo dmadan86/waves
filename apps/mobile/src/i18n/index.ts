@@ -5089,6 +5089,8 @@ export interface UiStrings {
     renameBody: string;
     deleteRowBody: string;
     addTo: string;
+    whoIsIn: string;
+    create: string;
   };
   claims: {
     askToJoinAs: string;
@@ -10142,6 +10144,8 @@ const en: UiStrings = {
     renameBody: 'Change the family name',
     deleteRowBody: 'Permanently remove this family',
     addTo: 'Add to {name}',
+    whoIsIn: 'Who is in it?',
+    create: 'Create family',
   },
   claims: {
     askToJoinAs: 'Ask to join as {name}',
@@ -15366,6 +15370,8 @@ const ta: UiStrings = {
     renameBody: 'குடும்பத்தின் பெயரை மாற்று',
     deleteRowBody: 'இந்தக் குடும்பத்தை நிரந்தரமாக நீக்கு',
     addTo: '{name} இல் சேர்',
+    whoIsIn: 'இதில் யார் இருக்கிறார்கள்?',
+    create: 'குடும்பத்தை உருவாக்கு',
   },
   claims: {
     askToJoinAs: '{name} ஆக சேர அனுமதி கேளுங்கள்',
@@ -20456,6 +20462,8 @@ const hi: UiStrings = {
     renameBody: 'परिवार का नाम बदलें',
     deleteRowBody: 'इस परिवार को हमेशा के लिए हटाएँ',
     addTo: '{name} में जोड़ें',
+    whoIsIn: 'इसमें कौन-कौन हैं?',
+    create: 'परिवार बनाएँ',
   },
   claims: {
     askToJoinAs: '{name} के रूप में शामिल होने की पूछें',
@@ -26152,6 +26160,8 @@ const ar: UiStrings = {
     renameBody: 'غيّر اسم العائلة',
     deleteRowBody: 'احذف هذه العائلة نهائيًا',
     addTo: 'إضافة إلى {name}',
+    whoIsIn: 'من فيها؟',
+    create: 'إنشاء العائلة',
   },
   claims: {
     askToJoinAs: 'اطلب الانضمام بصفتك {name}',
