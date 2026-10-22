@@ -30,6 +30,8 @@ import {
   type SimplifyItem,
 } from '@waves/core';
 
+import { familyLabel, familyTransfers, hasFamilies } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { memberLookup, useGhostMergePersonIds, useGroup, useGroupLedger } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
 import { personKeyOf } from '@/data/peopleBalances';
@@ -218,9 +220,17 @@ export default function SimplifyScreen() {
     [ledger.myMemberId, mergePersonIds, viewerId],
   );
 
+  // In a group with families the plan runs over the families, named by their
+  // heads — the same lens and labels the Balances tab settles with.
+  const units = group.data?.units ?? null;
+  const familiesOn = useFlagEnabled('group_units') && hasFamilies(units);
+  const transfers = useMemo(
+    () => (familiesOn ? familyTransfers(ledger.net, units) : ledger.transfers),
+    [familiesOn, ledger.net, ledger.transfers, units],
+  );
   const items = useMemo(
-    () => simplifyItems(ledger.transfers, ledger.myMemberId),
-    [ledger.myMemberId, ledger.transfers],
+    () => simplifyItems(transfers, ledger.myMemberId),
+    [ledger.myMemberId, transfers],
   );
 
   const renderItem = useCallback(
@@ -237,7 +247,9 @@ export default function SimplifyScreen() {
 
       const { transfer, side, personId, isLast } = item;
       const person = lookup.get(personId);
-      const personName = nameOf(personId);
+      const label = (memberId: string): string =>
+        familiesOn ? familyLabel(units, memberId, nameOf(memberId)) : nameOf(memberId);
+      const personName = label(personId);
       // Three sentences for three positions, rather than one sentence with the
       // reader's name dropped into it. `youPayName` and `namePaysYou` are the
       // settle screen's own words, so the screen that proposes a payment and
@@ -248,8 +260,8 @@ export default function SimplifyScreen() {
           : side === SimplifySide.YouReceive
             ? fill(t.namePaysYou, { name: personName })
             : fill(t.simplifyPaysWhom, {
-                from: nameOf(transfer.from),
-                to: nameOf(transfer.to),
+                from: label(transfer.from),
+                to: label(transfer.to),
               });
       const personKey = personKeyFor(person);
 
@@ -284,7 +296,7 @@ export default function SimplifyScreen() {
         />
       );
     },
-    [blockedIds, locale, lookup, nameOf, personKeyFor, t, theme.spacing.sm],
+    [blockedIds, familiesOn, locale, lookup, nameOf, personKeyFor, t, theme.spacing.sm, units],
   );
 
   return (
@@ -345,7 +357,7 @@ export default function SimplifyScreen() {
                   {group.data?.simplify_debts ? t.simplifyOn : t.simplifyOff}
                 </Text>
                 <Badge
-                  label={plural(locale, ledger.transfers.length, t.simplifyPaymentsCount)}
+                  label={plural(locale, transfers.length, t.simplifyPaymentsCount)}
                   tone="brand"
                 />
               </Row>

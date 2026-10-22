@@ -735,6 +735,7 @@ export default function MemberScreen() {
         <Row style={{ gap: theme.spacing.xs, flexWrap: 'wrap' }}>
           {ghost ? <Badge label={t.notJoinedYet} /> : null}
           {blocked ? <Badge label={t.blocked.badge} /> : null}
+          {family ? <Badge label={family.name} /> : null}
           {member.role === 'admin' ? <Badge label={t.people.admin} tone="brand" /> : null}
           {isMe ? <Badge label={t.people.you} tone="positive" /> : null}
         </Row>
