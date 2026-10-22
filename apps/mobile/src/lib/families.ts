@@ -25,6 +25,11 @@ export interface FamilyGroup<M extends { id: MemberId }> {
   readonly members: readonly M[];
 }
 
+/** A family's emoji, from its size: no emoji is stored. */
+export function familyEmoji(count: number): string {
+  return count <= 1 ? '🏠' : count === 2 ? '👫' : '👨‍👩‍👧';
+}
+
 /** Whether the group has at least one family. */
 export function hasFamilies(units: GroupUnits | null | undefined): boolean {
   return Boolean(units && Object.keys(units).length > 0);

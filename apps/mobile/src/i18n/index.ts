@@ -5081,6 +5081,13 @@ export interface UiStrings {
     byFamily: string;
     partOf: string;
     couldNotSave: string;
+    subtitle: string;
+    members: PluralForms;
+    settlesWith: string;
+    newFamilyBody: string;
+    renameBody: string;
+    deleteRowBody: string;
+    addTo: string;
   };
   claims: {
     askToJoinAs: string;
@@ -10126,6 +10133,13 @@ const en: UiStrings = {
     byFamily: 'By family',
     partOf: 'Part of {name} — the family settles together',
     couldNotSave: 'Could not save the families.',
+    subtitle: 'Manage your families and people',
+    members: { one: '{n} member', other: '{n} members' },
+    settlesWith: '{count} · Settles with {name}',
+    newFamilyBody: 'Create a new family and add {name}',
+    renameBody: 'Change the family name',
+    deleteRowBody: 'Permanently remove this family',
+    addTo: 'Add to {name}',
   },
   claims: {
     askToJoinAs: 'Ask to join as {name}',
@@ -15342,6 +15356,13 @@ const ta: UiStrings = {
     byFamily: 'குடும்ப வாரியாக',
     partOf: '{name} குடும்பத்தில் — குடும்பம் ஒன்றாகத் தீர்த்துக்கொள்கிறது',
     couldNotSave: 'குடும்பங்களைச் சேமிக்க முடியவில்லை.',
+    subtitle: 'உங்கள் குடும்பங்களையும் நபர்களையும் நிர்வகிக்கவும்',
+    members: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
+    settlesWith: '{count} · {name} உடன் தீர்ப்பார்கள்',
+    newFamilyBody: 'புதிய குடும்பத்தை உருவாக்கி {name} ஐச் சேர்',
+    renameBody: 'குடும்பத்தின் பெயரை மாற்று',
+    deleteRowBody: 'இந்தக் குடும்பத்தை நிரந்தரமாக நீக்கு',
+    addTo: '{name} இல் சேர்',
   },
   claims: {
     askToJoinAs: '{name} ஆக சேர அனுமதி கேளுங்கள்',
@@ -20424,6 +20445,13 @@ const hi: UiStrings = {
     byFamily: 'परिवार के हिसाब से',
     partOf: '{name} का हिस्सा — परिवार साथ में हिसाब चुकाता है',
     couldNotSave: 'परिवार सहेजे नहीं जा सके।',
+    subtitle: 'अपने परिवार और लोगों को संभालें',
+    members: { one: '{n} सदस्य', other: '{n} सदस्य' },
+    settlesWith: '{count} · {name} के साथ हिसाब',
+    newFamilyBody: 'नया परिवार बनाएँ और {name} को जोड़ें',
+    renameBody: 'परिवार का नाम बदलें',
+    deleteRowBody: 'इस परिवार को हमेशा के लिए हटाएँ',
+    addTo: '{name} में जोड़ें',
   },
   claims: {
     askToJoinAs: '{name} के रूप में शामिल होने की पूछें',
@@ -26105,6 +26133,20 @@ const ar: UiStrings = {
     byFamily: 'حسب العائلة',
     partOf: 'ضمن {name} — تسدّد العائلة معًا',
     couldNotSave: 'تعذّر حفظ العائلات.',
+    subtitle: 'إدارة عائلاتك والأشخاص',
+    members: {
+      zero: '{n} عضو',
+      one: 'عضو واحد',
+      two: 'عضوان',
+      few: '{n} أعضاء',
+      many: '{n} عضوًا',
+      other: '{n} عضو',
+    },
+    settlesWith: '{count} · يسدّد مع {name}',
+    newFamilyBody: 'أنشئ عائلة جديدة وأضف {name}',
+    renameBody: 'غيّر اسم العائلة',
+    deleteRowBody: 'احذف هذه العائلة نهائيًا',
+    addTo: 'إضافة إلى {name}',
   },
   claims: {
     askToJoinAs: 'اطلب الانضمام بصفتك {name}',
