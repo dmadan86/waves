@@ -5079,6 +5079,7 @@ export interface UiStrings {
     byPeople: string;
     byFamilies: string;
     byFamily: string;
+    byPerson: string;
     partOf: string;
     couldNotSave: string;
     subtitle: string;
@@ -10131,6 +10132,7 @@ const en: UiStrings = {
     byPeople: 'People',
     byFamilies: 'Families',
     byFamily: 'By family',
+    byPerson: 'By person',
     partOf: 'Part of {name} — the family settles together',
     couldNotSave: 'Could not save the families.',
     subtitle: 'Manage your families and people',
@@ -15354,6 +15356,7 @@ const ta: UiStrings = {
     byPeople: 'நபர்கள்',
     byFamilies: 'குடும்பங்கள்',
     byFamily: 'குடும்ப வாரியாக',
+    byPerson: 'நபர் வாரியாக',
     partOf: '{name} குடும்பத்தில் — குடும்பம் ஒன்றாகத் தீர்த்துக்கொள்கிறது',
     couldNotSave: 'குடும்பங்களைச் சேமிக்க முடியவில்லை.',
     subtitle: 'உங்கள் குடும்பங்களையும் நபர்களையும் நிர்வகிக்கவும்',
@@ -20443,6 +20446,7 @@ const hi: UiStrings = {
     byPeople: 'लोग',
     byFamilies: 'परिवार',
     byFamily: 'परिवार के हिसाब से',
+    byPerson: 'व्यक्ति के हिसाब से',
     partOf: '{name} का हिस्सा — परिवार साथ में हिसाब चुकाता है',
     couldNotSave: 'परिवार सहेजे नहीं जा सके।',
     subtitle: 'अपने परिवार और लोगों को संभालें',
@@ -26131,6 +26135,7 @@ const ar: UiStrings = {
     byPeople: 'الأشخاص',
     byFamilies: 'العائلات',
     byFamily: 'حسب العائلة',
+    byPerson: 'حسب الشخص',
     partOf: 'ضمن {name} — تسدّد العائلة معًا',
     couldNotSave: 'تعذّر حفظ العائلات.',
     subtitle: 'إدارة عائلاتك والأشخاص',

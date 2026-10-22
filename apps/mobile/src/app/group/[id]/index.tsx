@@ -32,8 +32,15 @@ import {
 import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
-import { SectionHeader, SegmentedPills } from '@/components/standard';
-import { familyBalanceItems, familyLabel, familyTransfers, hasFamilies } from '@/lib/families';
+import { PillButton, SectionHeader } from '@/components/standard';
+import { useDialog } from '@/lib/dialog';
+import {
+  familyBalanceItems,
+  familyEmoji,
+  familyLabel,
+  familyTransfers,
+  hasFamilies,
+} from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { useRemind } from '@/lib/useRemind';
@@ -337,7 +344,7 @@ type FeedItem =
       readonly key: string;
       readonly id: string;
       readonly name: string;
-      readonly people: number;
+      readonly members: readonly MemberRow[];
       readonly balance: bigint;
       readonly expanded: boolean;
     };
@@ -797,6 +804,17 @@ export default function GroupScreen() {
   const familiesOn = useFlagEnabled('group_units') && hasFamilies(units);
   const [lens, setLens] = useState<'families' | 'people'>('families');
   const familyLens = familiesOn && lens === 'families';
+  const { choose } = useDialog();
+  const pickLens = async (): Promise<void> => {
+    const picked = await choose({
+      title: t.group.everyonesBalance,
+      options: [
+        { id: 'families', label: t.families.byFamily },
+        { id: 'people', label: t.families.byPerson },
+      ],
+    });
+    if (picked === 'families' || picked === 'people') setLens(picked);
+  };
   const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
   const lensLedger = useMemo(
     () => (familyLens ? { ...ledger, transfers: familyTransfers(ledger.net, units) } : ledger),
@@ -1027,13 +1045,10 @@ export default function GroupScreen() {
         key: `family-${item.id}`,
         id: item.id,
         name: item.name,
-        people: item.members.length,
+        members: item.members,
         balance: item.balance,
         expanded,
       });
-      if (expanded) {
-        item.members.forEach((member, index) => items.push(row(member, index, 0)));
-      }
     }
     return items;
   }, [everyone.data, ledger.balances, familyLens, units, openFamilies]);
@@ -1276,82 +1291,7 @@ export default function GroupScreen() {
         />
       );
     }
-    if (item.kind === 'family') {
-      const open = () =>
-        setOpenFamilies((current) => {
-          const next = new Set(current);
-          if (next.has(item.id)) next.delete(item.id);
-          else next.add(item.id);
-          return next;
-        });
-      return (
-        <BalanceCard theme={theme}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: item.expanded }}
-            accessibilityLabel={`${item.name}. ${moneyAccessibilityLabel(
-              { minor: item.balance, currency },
-              balanceDirection(item.balance),
-              copyFor(locale).money,
-              { locale },
-            )}`}
-            onPress={open}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Row
-              style={{
-                gap: theme.spacing.md,
-                alignItems: 'center',
-                paddingVertical: ROW_PAD,
-                paddingHorizontal: theme.spacing.md,
-              }}
-            >
-              {/* A family is not a person, so no PersonAvatar: a tinted tile. */}
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Ionicons name="people-outline" size={iconSize.md} color={theme.color.brand} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text variant="subheading" numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text variant="caption" tone="muted" numberOfLines={1}>
-                  {plural(locale, item.people, t.families.people)}
-                </Text>
-              </View>
-              <MoneyText
-                amount={item.balance}
-                currency={currency}
-                locale={locale}
-                mode="balance"
-                tone={
-                  balanceDirection(item.balance) === BalanceDirection.OwedToYou
-                    ? 'brand'
-                    : undefined
-                }
-              />
-              <View style={{ width: iconSize.md, alignItems: 'center' }}>
-                <Ionicons
-                  name={item.expanded ? 'chevron-up' : 'chevron-down'}
-                  size={iconSize.md}
-                  color={theme.color.textFaint}
-                />
-              </View>
-            </Row>
-          </Pressable>
-        </BalanceCard>
-      );
-    }
-    if (item.kind === 'balance') {
-      const { member, balance } = item;
+    const balanceBody = (member: MemberRow, balance: bigint): React.JSX.Element => {
       // The name the row is allowed to say — already masked for a blocked
       // person, and it travels with the tap so the destination opens under the
       // same mask rather than flashing the real name while it loads.
@@ -1477,7 +1417,7 @@ export default function GroupScreen() {
         </Row>
       );
       return (
-        <BalanceCard theme={theme}>
+        <>
           {personKey ? (
             <Pressable
               accessibilityRole="button"
@@ -1506,8 +1446,113 @@ export default function GroupScreen() {
           ) : (
             row
           )}
+        </>
+      );
+    };
+    if (item.kind === 'family') {
+      const toggle = () =>
+        setOpenFamilies((current) => {
+          const next = new Set(current);
+          if (next.has(item.id)) next.delete(item.id);
+          else next.add(item.id);
+          return next;
+        });
+      return (
+        <BalanceCard theme={theme}>
+          <Row
+            style={{
+              gap: theme.spacing.md,
+              alignItems: 'center',
+              padding: theme.spacing.md,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: theme.radius.lg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Text style={{ fontSize: 22 }}>{familyEmoji(item.members.length)}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text variant="subheading" numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {plural(locale, item.members.length, t.families.people)}
+              </Text>
+            </View>
+            <MoneyText
+              amount={item.balance}
+              currency={currency}
+              locale={locale}
+              mode="balance"
+              tone={
+                balanceDirection(item.balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
+              }
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: item.expanded }}
+              accessibilityLabel={`${item.name}. ${moneyAccessibilityLabel(
+                { minor: item.balance, currency },
+                balanceDirection(item.balance),
+                copyFor(locale).money,
+                { locale },
+              )}`}
+              onPress={toggle}
+              style={({ pressed }) => ({
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons
+                name={item.expanded ? 'chevron-up' : 'chevron-down'}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          </Row>
+          {item.expanded ? (
+            <View
+              style={{
+                margin: theme.spacing.sm,
+                marginTop: 0,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.surfaceMuted,
+                overflow: 'hidden',
+              }}
+            >
+              {item.members.map((member, index) => (
+                <View key={member.id}>
+                  {index > 0 ? (
+                    <View
+                      style={{
+                        height: 1,
+                        marginHorizontal: theme.spacing.md,
+                        backgroundColor: theme.color.border,
+                      }}
+                    />
+                  ) : null}
+                  {balanceBody(member, ledger.balances.get(member.id) ?? 0n)}
+                </View>
+              ))}
+            </View>
+          ) : null}
         </BalanceCard>
       );
+    }
+    if (item.kind === 'balance') {
+      return <BalanceCard theme={theme}>{balanceBody(item.member, item.balance)}</BalanceCard>;
     }
     return null;
   };
@@ -1936,25 +1981,21 @@ export default function GroupScreen() {
                         make or receive come first, then everyone's balance. */}
                     {tab === Tab.Balances ? (
                       <View style={{ gap: theme.spacing.sm }}>
+                        <SectionHeader title={t.group.paymentsToSettle} />
+                        {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
                         <SectionHeader
-                          title={t.group.paymentsToSettle}
+                          title={t.group.everyonesBalance}
                           trailing={
                             familiesOn ? (
-                              <Row style={{ gap: theme.spacing.xs }}>
-                                <SegmentedPills<'families' | 'people'>
-                                  value={lens}
-                                  onChange={setLens}
-                                  options={[
-                                    { value: 'families', label: t.families.byFamilies },
-                                    { value: 'people', label: t.families.byPeople },
-                                  ]}
-                                />
-                              </Row>
+                              <PillButton
+                                label={
+                                  lens === 'families' ? t.families.byFamily : t.families.byPerson
+                                }
+                                onPress={() => void pickLens()}
+                              />
                             ) : undefined
                           }
                         />
-                        {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
-                        <SectionHeader title={t.group.everyonesBalance} />
                       </View>
                     ) : null}
                   </View>
