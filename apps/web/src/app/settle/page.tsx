@@ -36,7 +36,6 @@ import {
   railById,
   railsForCurrency,
   toMajorString,
-  unitOf,
   usableFx,
   type CurrencyCode,
 } from '@waves/core';
@@ -234,21 +233,18 @@ function GroupSettle({
   }
 
   // Families settle as one: the lines are family to family, named by their
-  // heads, and anyone in the paying family may record the payment.
+  // heads, except the reader's own family, which names the reader: whoever pays records it.
   const units = group.units ?? null;
   const familyLens = familiesOn && hasFamilies(units);
-  const transfers = familyLens ? familyTransfers(ledger.net, units) : ledger.transfers;
-  const myFamily = familyLens && myMemberId ? unitOf(units, myMemberId) : null;
-  const isMine = (memberId: string) =>
-    memberId === myMemberId || (myFamily !== null && unitOf(units, memberId) === myFamily);
+  const transfers = familyLens ? familyTransfers(ledger.net, units, myMemberId) : ledger.transfers;
   const labelFor = (member: MemberRow | undefined) =>
     member
       ? familyLens
         ? familyLabel(units, member.id, memberName(member))
         : memberName(member)
       : t.settle.title;
-  const iOwe = transfers.filter((transfer) => isMine(transfer.from));
-  const owesMe = transfers.filter((transfer) => isMine(transfer.to));
+  const iOwe = transfers.filter((transfer) => transfer.from === myMemberId);
+  const owesMe = transfers.filter((transfer) => transfer.to === myMemberId);
 
   // A group that settles in its own currency (ADR-003 amendment) takes only that
   // currency: the server refuses anything else. A debt still in another currency

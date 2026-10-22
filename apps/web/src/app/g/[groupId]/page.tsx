@@ -252,7 +252,13 @@ function GroupDetail({
     const name = member ? pastNameOf(member, t.group.memberLeft) : t.join.someone;
     return familyLens ? familyLabel(group.units, memberId, name) : name;
   };
-  const transfers = familyLens ? familyTransfers(ledger.net, group.units) : ledger.transfers;
+  const transfers = familyLens
+    ? familyTransfers(
+        ledger.net,
+        group.units,
+        members.find((member) => member.profile_id === profileId)?.id ?? null,
+      )
+    : ledger.transfers;
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const hasPlaces = live.some((expense) => expense.currentVersion?.location);
 
