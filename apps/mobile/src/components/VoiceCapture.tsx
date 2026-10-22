@@ -15,10 +15,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { Linking, Pressable, View } from 'react-native';
+import { Linking } from 'react-native';
 import { useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
-import { Text, useTheme } from '@waves/ui';
+import { Text } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
@@ -45,7 +45,7 @@ import {
   type VoiceCloudConsent,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
-import { createModelProbe, planAgentWait } from '@/lib/voiceStartPure';
+import { planAgentWait } from '@/lib/voiceStartPure';
 import { VoiceErrorState } from '@/components/voice/VoiceErrorState';
 import type { MicMode } from '@/components/voice/FloatingMicrophone';
 import { VoiceSheetBody } from '@/components/voice/VoiceStage';
@@ -165,16 +165,6 @@ const STOP_ECHO_MS = 1500;
 const EARLY_MISS_MS = 3000;
 /** How long to wait for the aborted session's `end` before retrying anyway. */
 const EARLY_RETRY_FALLBACK_MS = 1500;
-
-/**
- * How long an attempt may listen with no transcript at all before it is judged
- * mute. A live recogniser emits interim results within about a second of speech;
- * this beat past that with nothing back means this engine is not transcribing.
- * On an on-device attempt that triggers a one-time fall back to the network
- * engine (which speaks English on any connected phone) — the field's silent
- * on-device model, heard-but-no-words, fixed in place.
- */
-const PROGRESS_MS = 3800;
 
 /** What the capture knows about a finished sentence besides its text. */
 export interface VoiceDoneInfo {
@@ -300,58 +290,6 @@ function recognitionAvailable(): boolean {
 }
 
 /**
- * Whether an on-device English model is actually installed on this phone.
- *
- * `supportsOnDeviceRecognition()` only says the phone can do on-device work at
- * all — not that the model for the language we are about to ask for is present.
- * Requiring on-device for a locale whose model is not downloaded is the quiet
- * failure this screen hit: the recogniser starts, hears the words, and returns
- * nothing, because it was told to use a model that is not there. So on-device is
- * requested only when English is in `installedLocales`; otherwise the mic falls
- * back to network recognition, which speaks English everywhere. (An empty or
- * throwing probe — Android 12 and below, a missing service — resolves to `false`
- * and the network path, which works, rather than the on-device path, which may
- * not.)
- */
-async function probeEnglishInstalled(): Promise<boolean> {
-  let supportsOnDevice = false;
-  try {
-    supportsOnDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
-  } catch {
-    supportsOnDevice = false;
-  }
-  if (!supportsOnDevice) return false;
-
-  let androidRecognitionServicePackage: string | undefined;
-  try {
-    const pkg = ExpoSpeechRecognitionModule.getDefaultRecognitionService?.().packageName;
-    if (pkg) androidRecognitionServicePackage = pkg;
-  } catch {
-    // iOS / older builds have no Android service concept — query without one.
-  }
-  const { installedLocales } = await ExpoSpeechRecognitionModule.getSupportedLocales(
-    androidRecognitionServicePackage ? { androidRecognitionServicePackage } : {},
-  );
-  return (installedLocales ?? []).some(
-    (tag) => tag.trim().split(/[-_]/)[0]?.toLowerCase() === 'en',
-  );
-}
-
-/**
- * The installed-model answer, asked once and shared (see `createModelProbe`).
- *
- * `getSupportedLocales` is slow on Android, and it used to be asked on every
- * start, between the tap and the mic. It is now warmed after the app's first
- * frame, so a start reads an answer that is already in hand. A `true` is kept
- * for the process: the probe is flaky right after a recognition session ends
- * (Android's RecognitionService is briefly busy and answers a false "no"), and
- * a model is not uninstalled between two utterances. A `false` is asked again
- * after the app returns to the foreground, in case one was installed meanwhile.
- */
-const modelProbe = createModelProbe(probeEnglishInstalled);
-const englishInstalledOnDevice = (): Promise<boolean> => modelProbe.get();
-
-/**
  * The microphone and speech permissions, known granted for this foreground.
  *
  * `requestPermissionsAsync` was called on every start. The cheap
@@ -379,7 +317,7 @@ async function ensurePermission(): Promise<{ granted: boolean; canAskAgain: bool
 
 /**
  * Get the slow parts of a start out of the way before anybody taps: the
- * installed-model probe and the permission read. Never prompts and never opens
+ * permission read. Never prompts and never opens
  * the mic. Called after the app's first frame and again on each return to the
  * foreground (see `useVoiceWarmup`).
  */
@@ -388,7 +326,6 @@ export function warmVoiceCapture(): void {
   // Not while a session is live or tearing down: that is exactly when the
   // locale probe answers a false "no", and the answer is now kept.
   if (speechMic.state !== 'idle') return;
-  void modelProbe.get();
   void ExpoSpeechRecognitionModule.getPermissionsAsync()
     .then((current) => {
       if (current.granted) permissionGranted = true;
@@ -398,11 +335,9 @@ export function warmVoiceCapture(): void {
 
 /**
  * The app went to the background: forget what may have changed while it was
- * away — a negative model answer (one may get installed from Settings) and the
- * permission grant (it may be revoked, or lapse if it was one-time).
+ * away — the permission grant (it may be revoked, or lapse if it was one-time).
  */
 export function coolVoiceCapture(): void {
-  modelProbe.invalidate();
   permissionGranted = false;
 }
 
@@ -426,7 +361,6 @@ export function VoiceCapture({
   canPick,
   onStage,
 }: VoiceCaptureProps) {
-  const theme = useTheme();
   const { t, locale } = useStrings();
 
   const [available] = useState(recognitionAvailable);
@@ -441,7 +375,6 @@ export function VoiceCapture({
     initialCapture,
   );
   const listening = micState.mic === 'listening';
-  const live = micState.final ? '' : micState.transcript;
   // The latest entitlement, read when the mic actually opens: the auto-start on
   // mount captured whatever the first render held, which is how a tap could open
   // on the on-device engine before the flag had loaded.
@@ -542,9 +475,6 @@ export function VoiceCapture({
   // device where voice silently does nothing can be told apart — audio-but-no-
   // words (engine broken) from no-audio (mic/permission) — without a cable.
   const gotResult = useRef(false);
-  const usedOnDevice = useRef(false);
-  // A one-time on-device -> network fallback has already been spent this attempt.
-  const retried = useRef(false);
   // The no-transcript watchdog (see PROGRESS_MS), armed at open.
   const progress = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The early-miss retry (see EARLY_MISS_MS): when the recogniser opened, whether
@@ -572,20 +502,7 @@ export function VoiceCapture({
   }, []);
   // The latest `start`, reached indirectly so the fallback watchdog inside
   // `start` can re-enter it without naming the still-declaring const.
-  const startRef = useRef<(forceNetwork?: boolean) => void>(() => {});
-  // Which engine the current attempt used — the setup-offline offer keys off a
-  // network miss (its recogniser can be dead on a device with no on-device model).
-  const [engine, setEngine] = useState<'on-device' | 'network' | null>(null);
-  // On-device recognition is supported here but the English model is not yet
-  // installed — probed once on mount. Surfaces the setup offer before a failure,
-  // for devices whose network recogniser is unreliable.
-  const [offlineEligible, setOfflineEligible] = useState(false);
-  // A one-off setup for a device whose network recogniser hears audio but returns
-  // no words: pull the on-device English model down, then recognition runs
-  // on-device and skips the broken network path. A status line for the download.
-  const [downloading, setDownloading] = useState(false);
-  const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
-
+  const startRef = useRef<() => void>(() => {});
   useSpeechRecognitionEvent('start', () => {
     if (!speechMic.owns(session)) return;
     clearStall();
@@ -625,7 +542,7 @@ export function VoiceCapture({
     earlyRetryPending.current = false;
     if (!mounted.current) return;
     autoRetrying.current = true;
-    void startRef.current(false);
+    void startRef.current();
   };
 
   useSpeechRecognitionEvent('error', (event) => {
@@ -824,355 +741,295 @@ export function VoiceCapture({
     [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t],
   );
 
-  const openMic = useCallback(
-    async (forceNetwork = false): Promise<void> => {
-      // One start at a time from this panel, and one capture at a time in the app.
-      // A live stream is a capture in progress too.
-      if (starting.current || stream.current) return;
-      starting.current = true;
-      const mark = startTimer();
-      // A fresh user-initiated start re-arms the one-time network fallback; a
-      // fallback re-entry keeps it spent. Either way, drop the old attempt's
-      // watchdogs before opening the next.
-      if (!forceNetwork) retried.current = false;
-      // A tap is a fresh capture with its own one early-miss retry; the silent
-      // retry itself must not re-arm it, or a dead mic would loop.
-      if (!autoRetrying.current) earlyRetryUsed.current = false;
-      autoRetrying.current = false;
-      earlyRetryPending.current = false;
-      clearStall();
-      clearMaxListen();
-      clearProgress();
-      // Still holding the mic from a session the panel has already given up on —
-      // an error whose `end` never arrived, say. The tap is a deliberate retry, so
-      // let go of the old session here; the claim below then waits for its
-      // teardown rather than opening a second recogniser on top of it.
-      if (speechMic.owns(session)) speechMic.release(session);
-      // Speaking again is the retry: the reducer's `start` clears every miss and
-      // error as the mic opens; the screen drops any parsed miss it still holds.
+  const openMic = useCallback(async (): Promise<void> => {
+    // One start at a time from this panel, and one capture at a time in the app.
+    // A live stream is a capture in progress too.
+    if (starting.current || stream.current) return;
+    starting.current = true;
+    const mark = startTimer();
+    // A fresh user-initiated start re-arms the one-time network fallback; a
+    // fallback re-entry keeps it spent. Either way, drop the old attempt's
+    // watchdogs before opening the next.
+    // A tap is a fresh capture with its own one early-miss retry; the silent
+    // retry itself must not re-arm it, or a dead mic would loop.
+    if (!autoRetrying.current) earlyRetryUsed.current = false;
+    autoRetrying.current = false;
+    earlyRetryPending.current = false;
+    clearStall();
+    clearMaxListen();
+    clearProgress();
+    // Still holding the mic from a session the panel has already given up on —
+    // an error whose `end` never arrived, say. The tap is a deliberate retry, so
+    // let go of the old session here; the claim below then waits for its
+    // teardown rather than opening a second recogniser on top of it.
+    if (speechMic.owns(session)) speechMic.release(session);
+    // Speaking again is the retry: the reducer's `start` clears every miss and
+    // error as the mic opens; the screen drops any parsed miss it still holds.
+    dispatch({ type: 'start' });
+    onListen?.();
+    latest.current = '';
+    latestAlternatives.current = [];
+    level.set(0);
+    gotResult.current = false;
+
+    // Claim the recogniser first, and wait here for any previous session's
+    // teardown to land. Everything below must give it back — a claimed mic that
+    // is never released is one nothing can reopen.
+    const claimed = await speechMic.acquire(session);
+    mark('mic claimed');
+    if (!mounted.current) {
+      starting.current = false;
+      if (claimed) speechMic.release(session);
+      return;
+    }
+    if (!claimed) {
+      starting.current = false;
+      dispatch({ type: 'error', message: t.misc.dictationFailed });
+      return;
+    }
+
+    const give = (): void => {
+      starting.current = false;
+      speechMic.release(session);
+    };
+
+    const permission = await ensurePermission();
+    mark('permission');
+    if (!mounted.current) return give();
+    if (!permission.granted) {
+      // Settings is the cure only once the system stops asking; while it can
+      // still ask, tapping the mic again brings the prompt back.
+      dispatch({
+        type: 'error',
+        message: permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked,
+        permission: true,
+        settings: !permission.canAskAgain,
+      });
+      return give();
+    }
+
+    // How long to wait for the entitlement, if at all. It used to be up to
+    // 1.5 s on every cold start, nearly always to learn "not Pro"; now the
+    // last answer this phone saw decides (see `planAgentWait`).
+    const wait = planAgentWait({
+      ready: agentReadyRef.current,
+      streamLive: streamLiveRef.current,
+      lastKnown: agentLastKnownRef.current,
+      streamAvailable: streamingAvailable(),
+    });
+    // The connection check only matters to a stream; asked alongside the
+    // recorder and the wait rather than after them.
+    const onlineCheck = wait.earlyCapture || streamLiveRef.current ? checkOnline() : null;
+
+    // Advanced voice records from the press: the mic starts here, before the
+    // flag wait, the online check and the token, and buffers until the stream
+    // attaches — otherwise the first words fell into those round trips. Only
+    // once the recorder has reported started does the panel say "Listening".
+    if (wait.earlyCapture) {
+      capture.current = await startCapture({ onLevel: sampleLevel });
+      mark('recorder started');
+      if (!mounted.current) {
+        await dropCapture();
+        return give();
+      }
+      // "Listening" only when this recording is the one that will be heard.
+      // While the entitlement is still unknown it may yet be dropped for the
+      // on-device recogniser, so the panel stays on "Starting…" until then.
+      if (capture.current && streamLiveRef.current) dispatch({ type: 'opened' });
+    }
+
+    // Advanced voice: stream to Deepgram via the relay. A refusal (offline, 503,
+    // 429) or a stream that will not open drops straight to the on-device
+    // recogniser below, unchanged.
+    // Tap, hold, retry and auto-start all come through here, so none of them
+    // can pick a different engine. The entitlement is read now, not from the
+    // render this start was created in; a flag still loading is waited for.
+    for (let waited = 0; !agentReadyRef.current && waited < wait.waitMs; waited += 50) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    }
+    if (wait.waitMs > 0) mark(agentReadyRef.current ? 'agent status in' : 'agent wait gave up');
+    if (!mounted.current) {
+      await dropCapture();
+      return give();
+    }
+    const online = streamLiveRef.current ? await (onlineCheck ?? checkOnline()) : true;
+    if (!mounted.current) {
+      await dropCapture();
+      return give();
+    }
+    const plan = planMicStart({
+      // Advanced voice is on for them when they could stream or only lack consent.
+      enabled: streamLiveRef.current || cloudConsentRef.current !== 'granted',
+      consent: cloudConsentRef.current,
+      online,
+      held: pushToTalk.getSnapshot().holding,
+      streamAvailable: streamingAvailable(),
+    });
+    endRules.current = plan;
+    if (plan.stream) {
+      const opened = capture.current ? await beginStream(capture.current) : 'failed';
+      mark(`stream ${opened}`);
+      if (opened === 'streaming') {
+        reportEngine(CLOUD);
+        return;
+      }
+      // The relay, the socket or the mic would not open: carry on locally.
+      // A 402 from the relay is the month's allowance, not the connection.
+      reportEngine(
+        resolveEngine({
+          enabled: true,
+          online: await checkOnline(),
+          quotaReached: opened === 'quota',
+          streamOk: false,
+          streamAvailable: streamingAvailable(),
+        }),
+      );
+    } else if (plan.fallback) reportEngine(plan.fallback);
+    // On-device from here: the early recording is dropped (and the mic freed
+    // for the recogniser), and "Listening" waits for the recogniser itself.
+    if (capture.current) {
+      await dropCapture();
+      // Back to "getting ready" until the recogniser itself is open.
       dispatch({ type: 'start' });
-      onListen?.();
-      latest.current = '';
-      latestAlternatives.current = [];
       level.set(0);
-      gotResult.current = false;
+    }
+    if (!mounted.current) return give();
+    // A push-to-talk cancel that landed while the token was in flight.
+    const endedEarly = pendingEnd.current as 'send' | 'cancel' | null;
+    if (endedEarly === 'cancel') {
+      pendingEnd.current = null;
+      dispatch({ type: 'cancel' });
+      return give();
+    }
 
-      // Claim the recogniser first, and wait here for any previous session's
-      // teardown to land. Everything below must give it back — a claimed mic that
-      // is never released is one nothing can reopen.
-      const claimed = await speechMic.acquire(session);
-      mark('mic claimed');
-      if (!mounted.current) {
-        starting.current = false;
-        if (claimed) speechMic.release(session);
-        return;
-      }
-      if (!claimed) {
-        starting.current = false;
-        dispatch({ type: 'error', message: t.misc.dictationFailed });
-        return;
-      }
-
-      const give = (): void => {
-        starting.current = false;
-        speechMic.release(session);
-      };
-
-      const permission = await ensurePermission();
-      mark('permission');
-      if (!mounted.current) return give();
-      if (!permission.granted) {
-        // Settings is the cure only once the system stops asking; while it can
-        // still ask, tapping the mic again brings the prompt back.
-        dispatch({
-          type: 'error',
-          message: permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked,
-          permission: true,
-          settings: !permission.canAskAgain,
-        });
-        return give();
-      }
-
-      // How long to wait for the entitlement, if at all. It used to be up to
-      // 1.5 s on every cold start, nearly always to learn "not Pro"; now the
-      // last answer this phone saw decides (see `planAgentWait`).
-      const wait = planAgentWait({
-        ready: agentReadyRef.current,
-        streamLive: streamLiveRef.current,
-        lastKnown: agentLastKnownRef.current,
-        streamAvailable: streamingAvailable(),
+    try {
+      ExpoSpeechRecognitionModule.start({
+        // Recognition is English-only — the surface each speaker reads is still
+        // localised, but the mic listens in English (device region where it can,
+        // else en-IN), so there is one locale to get right and no chip to miss.
+        lang: englishSpeechLocale(locale),
+        interimResults: true,
+        // The n-best list: names are scored across every hypothesis, so an
+        // engine that heard "rainy" first and "Renny" second still finds her.
+        maxAlternatives: MAX_ALTERNATIVES,
+        // One sentence, then it settles — the same shape a note dictation uses.
+        continuous: false,
+        // Meter the input so the waveform can ride real loudness (~10 Hz is
+        // plenty for a smooth wave and cheap to ease over).
+        volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
+        contextualStrings: hints && hints.length > 0 ? [...hints] : undefined,
+        iosTaskHint: 'dictation',
+        // People start with a greeting and a beat of thought — "hello… uh… add
+        // 500 to Goa". Android's default endpointing finalises on that first
+        // pause, ending the session on the greeting alone. Give it room: keep
+        // listening for at least a few seconds, and do not treat a pause to
+        // think (two or three seconds) as the end of speech. (Android-only extras; iOS endpointing is
+        // already more forgiving and ignores these.)
+        androidIntentOptions: {
+          EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 6000,
+          EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3500,
+          EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
+        },
       });
-      // The connection check only matters to a stream; asked alongside the
-      // recorder and the wait rather than after them.
-      const onlineCheck = wait.earlyCapture || streamLiveRef.current ? checkOnline() : null;
+      speechMic.opened(session);
+      mark('recogniser started');
+      dispatch({ type: 'opened' });
+      openedAt.current = Date.now();
+      stoppedAt.current = 0;
+      starting.current = false;
 
-      // Advanced voice records from the press: the mic starts here, before the
-      // flag wait, the online check and the token, and buffers until the stream
-      // attaches — otherwise the first words fell into those round trips. Only
-      // once the recorder has reported started does the panel say "Listening".
-      if (wait.earlyCapture) {
-        capture.current = await startCapture({ onLevel: sampleLevel });
-        mark('recorder started');
-        if (!mounted.current) {
-          await dropCapture();
-          return give();
-        }
-        // "Listening" only when this recording is the one that will be heard.
-        // While the entitlement is still unknown it may yet be dropped for the
-        // on-device recogniser, so the panel stays on "Starting…" until then.
-        if (capture.current && streamLiveRef.current) dispatch({ type: 'opened' });
-      }
-
-      // Advanced voice: stream to Deepgram via the relay. A refusal (offline, 503,
-      // 429) or a stream that will not open drops straight to the on-device
-      // recogniser below, unchanged.
-      // Tap, hold, retry and auto-start all come through here, so none of them
-      // can pick a different engine. The entitlement is read now, not from the
-      // render this start was created in; a flag still loading is waited for.
-      for (let waited = 0; !agentReadyRef.current && waited < wait.waitMs; waited += 50) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 50));
-      }
-      if (wait.waitMs > 0) mark(agentReadyRef.current ? 'agent status in' : 'agent wait gave up');
-      if (!mounted.current) {
-        await dropCapture();
-        return give();
-      }
-      const online = streamLiveRef.current ? await (onlineCheck ?? checkOnline()) : true;
-      if (!mounted.current) {
-        await dropCapture();
-        return give();
-      }
-      const plan = planMicStart({
-        // Advanced voice is on for them when they could stream or only lack consent.
-        enabled: streamLiveRef.current || cloudConsentRef.current !== 'granted',
-        consent: cloudConsentRef.current,
-        online,
-        held: pushToTalk.getSnapshot().holding,
-        streamAvailable: streamingAvailable(),
-      });
-      endRules.current = plan;
-      if (plan.stream) {
-        const opened = capture.current ? await beginStream(capture.current) : 'failed';
-        mark(`stream ${opened}`);
-        if (opened === 'streaming') {
-          reportEngine(CLOUD);
-          return;
-        }
-        // The relay, the socket or the mic would not open: carry on locally.
-        // A 402 from the relay is the month's allowance, not the connection.
-        reportEngine(
-          resolveEngine({
-            enabled: true,
-            online: await checkOnline(),
-            quotaReached: opened === 'quota',
-            streamOk: false,
-            streamAvailable: streamingAvailable(),
-          }),
-        );
-      } else if (plan.fallback) reportEngine(plan.fallback);
-      // On-device from here: the early recording is dropped (and the mic freed
-      // for the recogniser), and "Listening" waits for the recogniser itself.
-      if (capture.current) {
-        await dropCapture();
-        // Back to "getting ready" until the recogniser itself is open.
-        dispatch({ type: 'start' });
-        level.set(0);
-      }
-      if (!mounted.current) return give();
-      // A push-to-talk cancel that landed while the token was in flight.
-      const endedEarly = pendingEnd.current as 'send' | 'cancel' | null;
-      if (endedEarly === 'cancel') {
+      // The finger lifted while this was still opening. Apply that ending now
+      // it can be applied: `stop` squeezes out whatever was said, `release`
+      // aborts and — by dropping ownership — makes the `end` that follows
+      // belong to nobody, so no transcript and no miss reaches the screen.
+      if (pendingEnd.current !== null) {
+        const ending = pendingEnd.current;
         pendingEnd.current = null;
-        dispatch({ type: 'cancel' });
-        return give();
-      }
-
-      // On-device only when an English model is actually installed; otherwise the
-      // recogniser is left to use the network, which speaks English on every phone.
-      // Requiring on-device for a model that is not there is what returned silence.
-      const onDevice = forceNetwork ? false : await englishInstalledOnDevice();
-      mark(`model probe (${onDevice ? 'on-device' : 'network'})`);
-      if (!mounted.current) return give();
-      usedOnDevice.current = onDevice;
-      setEngine(onDevice ? 'on-device' : 'network');
-
-      try {
-        ExpoSpeechRecognitionModule.start({
-          // Recognition is English-only — the surface each speaker reads is still
-          // localised, but the mic listens in English (device region where it can,
-          // else en-IN), so there is one locale to get right and no chip to miss.
-          lang: englishSpeechLocale(locale),
-          interimResults: true,
-          // The n-best list: names are scored across every hypothesis, so an
-          // engine that heard "rainy" first and "Renny" second still finds her.
-          maxAlternatives: MAX_ALTERNATIVES,
-          // One sentence, then it settles — the same shape a note dictation uses.
-          continuous: false,
-          requiresOnDeviceRecognition: onDevice,
-          addsPunctuation: onDevice,
-          // Meter the input so the waveform can ride real loudness (~10 Hz is
-          // plenty for a smooth wave and cheap to ease over).
-          volumeChangeEventOptions: { enabled: true, intervalMillis: 100 },
-          contextualStrings: hints && hints.length > 0 ? [...hints] : undefined,
-          iosTaskHint: 'dictation',
-          // People start with a greeting and a beat of thought — "hello… uh… add
-          // 500 to Goa". Android's default endpointing finalises on that first
-          // pause, ending the session on the greeting alone. Give it room: keep
-          // listening for at least a few seconds, and do not treat a pause to
-          // think (two or three seconds) as the end of speech. (Android-only extras; iOS endpointing is
-          // already more forgiving and ignores these.)
-          androidIntentOptions: {
-            EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 6000,
-            EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3500,
-            EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
-          },
-        });
-        speechMic.opened(session);
-        mark('recogniser started');
-        dispatch({ type: 'opened' });
-        openedAt.current = Date.now();
-        stoppedAt.current = 0;
-        starting.current = false;
-
-        // The finger lifted while this was still opening. Apply that ending now
-        // it can be applied: `stop` squeezes out whatever was said, `release`
-        // aborts and — by dropping ownership — makes the `end` that follows
-        // belong to nobody, so no transcript and no miss reaches the screen.
-        if (pendingEnd.current !== null) {
-          const ending = pendingEnd.current;
-          pendingEnd.current = null;
-          if (ending === 'cancel') {
-            clearStall();
-            clearMaxListen();
-            clearProgress();
-            dispatch({ type: 'cancel' });
-            level.set(withTiming(0, { duration: 150 }));
-            speechMic.release(session);
-            return;
-          }
-          stopListening();
-        }
-
-        // No transcript yet; if none arrives by PROGRESS_MS this engine is not
-        // transcribing. An on-device attempt falls back once to the network engine
-        // (the field's silent on-device model); a network attempt that is already
-        // mute is left to STALL / the hard cap to resolve.
-        clearProgress();
-        progress.current = setTimeout(() => {
-          progress.current = null;
-          if (!mounted.current || !speechMic.owns(session) || gotResult.current) return;
-          if (usedOnDevice.current && !retried.current) {
-            retried.current = true;
-            startRef.current(true);
-          }
-        }, PROGRESS_MS);
-
-        // Nothing has come back yet; if nothing ever does, the recogniser was
-        // torn down under us and the panel must say so rather than pretend.
-        clearStall();
-        stall.current = setTimeout(() => {
-          stall.current = null;
-          if (!mounted.current || !speechMic.owns(session)) return;
+        if (ending === 'cancel') {
+          clearStall();
           clearMaxListen();
           clearProgress();
+          dispatch({ type: 'cancel' });
           level.set(withTiming(0, { duration: 150 }));
-          dispatch({ type: 'error', message: t.misc.dictationFailed });
           speechMic.release(session);
-        }, STALL_MS);
-
-        // The hard cap: a recogniser that meters audio but never finalises would
-        // otherwise sit on "listening" forever (STALL is cleared by those volume
-        // events). At the cap, stop() to squeeze out any partial as a final; if it
-        // is still holding on after HARD_STOP_MS, release() aborts it and the
-        // capture lands on the calm miss with a diagnostic.
-        clearMaxListen();
-        maxListen.current = setTimeout(() => {
-          maxListen.current = null;
-          if (!mounted.current || !speechMic.owns(session)) return;
-          stopListening();
-          setTimeout(() => {
-            if (!mounted.current || !speechMic.owns(session)) return;
-            level.set(withTiming(0, { duration: 150 }));
-            const said = latest.current.trim();
-            if (said) {
-              dispatch({ type: 'final', text: said });
-              onDone(said, { streamed: false, alternatives: latestAlternatives.current });
-            } else dispatch({ type: 'noSpeech' });
-            speechMic.release(session);
-          }, HARD_STOP_MS);
-        }, MAX_LISTEN_MS);
-      } catch {
-        dispatch({ type: 'error', message: t.misc.dictationFailed });
-        give();
+          return;
+        }
+        stopListening();
       }
-    },
-    [
-      clearMaxListen,
-      clearProgress,
-      clearStall,
-      hints,
-      level,
-      locale,
-      onDone,
-      onListen,
-      beginStream,
-      dropCapture,
-      sampleLevel,
-      session,
-      stopListening,
-      reportEngine,
-      t,
-    ],
-  );
+
+      // Nothing has come back yet; if nothing ever does, the recogniser was
+      // torn down under us and the panel must say so rather than pretend.
+      clearStall();
+      stall.current = setTimeout(() => {
+        stall.current = null;
+        if (!mounted.current || !speechMic.owns(session)) return;
+        clearMaxListen();
+        clearProgress();
+        level.set(withTiming(0, { duration: 150 }));
+        dispatch({ type: 'error', message: t.misc.dictationFailed });
+        speechMic.release(session);
+      }, STALL_MS);
+
+      // The hard cap: a recogniser that meters audio but never finalises would
+      // otherwise sit on "listening" forever (STALL is cleared by those volume
+      // events). At the cap, stop() to squeeze out any partial as a final; if it
+      // is still holding on after HARD_STOP_MS, release() aborts it and the
+      // capture lands on the calm miss with a diagnostic.
+      clearMaxListen();
+      maxListen.current = setTimeout(() => {
+        maxListen.current = null;
+        if (!mounted.current || !speechMic.owns(session)) return;
+        stopListening();
+        setTimeout(() => {
+          if (!mounted.current || !speechMic.owns(session)) return;
+          level.set(withTiming(0, { duration: 150 }));
+          const said = latest.current.trim();
+          if (said) {
+            dispatch({ type: 'final', text: said });
+            onDone(said, { streamed: false, alternatives: latestAlternatives.current });
+          } else dispatch({ type: 'noSpeech' });
+          speechMic.release(session);
+        }, HARD_STOP_MS);
+      }, MAX_LISTEN_MS);
+    } catch {
+      dispatch({ type: 'error', message: t.misc.dictationFailed });
+      give();
+    }
+  }, [
+    clearMaxListen,
+    clearProgress,
+    clearStall,
+    hints,
+    level,
+    locale,
+    onDone,
+    onListen,
+    beginStream,
+    dropCapture,
+    sampleLevel,
+    session,
+    stopListening,
+    reportEngine,
+    t,
+  ]);
 
   // Every way in — tap, hold, auto-start, retry — shows "Starting…" the instant
   // it is asked, and drops it once the mic is open (or has failed to open).
-  const start = useCallback(
-    async (forceNetwork = false): Promise<void> => {
-      // A start already on its way owns the "Starting…" state; leave it be.
-      if (starting.current || stream.current) return;
-      dispatch({ type: 'start' });
-      try {
-        await openMic(forceNetwork);
-      } finally {
-        if (mounted.current) dispatch({ type: 'settled' });
-      }
-    },
-    [openMic],
-  );
+  const start = useCallback(async (): Promise<void> => {
+    // A start already on its way owns the "Starting…" state; leave it be.
+    if (starting.current || stream.current) return;
+    dispatch({ type: 'start' });
+    try {
+      await openMic();
+    } finally {
+      if (mounted.current) dispatch({ type: 'settled' });
+    }
+  }, [openMic]);
 
   // Point the recursion handle at the current start on every change.
   useEffect(() => {
     startRef.current = start;
   }, [start]);
-
-  const setupOffline = useCallback(async (): Promise<void> => {
-    if (downloading) return;
-    setDownloading(true);
-    setDownloadMsg(t.voice.offlineDownloading);
-    try {
-      const { status } = await ExpoSpeechRecognitionModule.androidTriggerOfflineModelDownload({
-        locale: englishSpeechLocale(locale),
-      });
-      if (!mounted.current) return;
-      if (status === 'download_success') {
-        // The model is on the device now: latch it so the next capture asks for
-        // on-device recognition (see englishInstalledOnDevice), and open the mic.
-        modelProbe.confirm();
-        setOfflineEligible(false);
-        setDownloadMsg(t.voice.offlineReady);
-        void start();
-      } else {
-        // Android 13 opens a system download dialog; 14+ may schedule for Wi-Fi.
-        // Either way it is not ready this instant — invite a retry shortly.
-        setDownloadMsg(t.voice.offlineDownloading);
-      }
-    } catch {
-      if (mounted.current) setDownloadMsg(t.voice.offlineFailed);
-    } finally {
-      if (mounted.current) setDownloading(false);
-    }
-  }, [downloading, locale, start, t]);
 
   const stop = useCallback((): void => {
     if (stream.current) {
@@ -1242,33 +1099,6 @@ export function VoiceCapture({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endSignal?.seq]);
 
-  // Probe once: is on-device supported but not yet installed? If so, the offline
-  // model is worth offering up front — on some devices the network engine hears
-  // audio but returns nothing, and the on-device model is the only path that
-  // works. A pure read; never triggers a download on its own.
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        if (!recognitionAvailable()) return;
-        let supports = false;
-        try {
-          supports = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
-        } catch {
-          supports = false;
-        }
-        if (!supports) return;
-        const installed = await englishInstalledOnDevice();
-        if (alive && !installed) setOfflineEligible(true);
-      } catch {
-        // A failing probe just means no proactive offer — the on-miss one remains.
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
   // Open the mic as the screen appears — the reader tapped a mic to get here, so
   // making them tap a second one to start would be a step too many. Suppressed
   // when arriving on a miss (`autoStart` false): the recovery copy should be read
@@ -1323,14 +1153,6 @@ export function VoiceCapture({
   const shownTranscript = micState.transcript || (missed ? heard : '');
   const shownFinal = micState.final || (!micState.transcript && Boolean(missed && heard));
 
-  // The on-device setup offer: the standing offer while idle (on-device is
-  // supported but the English model is missing), or the way out of a miss the
-  // network engine caused.
-  const showMiss = flow === 'no_speech';
-  const offerOffline =
-    (flow === 'idle' && !live && offlineEligible) ||
-    (showMiss && (engine === 'network' || offlineEligible));
-
   // Hand the stage the mic's state before paint, so it never shows a stale frame.
   const toggleRef = useRef(toggle);
   useEffect(() => {
@@ -1366,32 +1188,6 @@ export function VoiceCapture({
 
       {showSuggestions(flow, shownTranscript) ? (
         <VoiceSuggestions suggestions={suggestions} onPick={onSuggestion} canPick={canPick} />
-      ) : null}
-
-      {offerOffline ? (
-        <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-          <Pressable
-            accessibilityRole="button"
-            disabled={downloading}
-            accessibilityState={{ disabled: downloading }}
-            onPress={() => void setupOffline()}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: downloading ? 0.5 : pressed ? 0.6 : 1,
-            })}
-          >
-            <Text tone="brand" style={{ fontWeight: '600' }}>
-              {t.voice.setupOffline}
-            </Text>
-          </Pressable>
-          {downloadMsg ? (
-            <Text variant="caption" tone="muted" align="center">
-              {downloadMsg}
-            </Text>
-          ) : null}
-        </View>
       ) : null}
     </VoiceSheetBody>
   );

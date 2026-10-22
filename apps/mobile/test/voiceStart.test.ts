@@ -3,12 +3,11 @@
  * decided by the last-known answer, and the installed-model probe asked once.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   AGENT_WAIT_MS,
   AGENT_WAIT_UNKNOWN_MS,
-  createModelProbe,
   parseLastKnown,
   planAgentWait,
 } from '@/lib/voiceStartPure';
@@ -74,51 +73,5 @@ describe('parseLastKnown', () => {
     expect(parseLastKnown(null)).toBeNull();
     expect(parseLastKnown(undefined)).toBeNull();
     expect(parseLastKnown('yes')).toBeNull();
-  });
-});
-
-describe('createModelProbe', () => {
-  it('asks once and shares the answer, in flight and after', async () => {
-    const probe = vi.fn(async () => false);
-    const models = createModelProbe(probe);
-    const [a, b] = await Promise.all([models.get(), models.get()]);
-    expect([a, b]).toEqual([false, false]);
-    await expect(models.get()).resolves.toBe(false);
-    expect(probe).toHaveBeenCalledTimes(1);
-  });
-
-  it('asks again after a negative is invalidated (back in the foreground)', async () => {
-    const probe = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(false);
-    probe.mockResolvedValueOnce(true);
-    const models = createModelProbe(probe);
-    await expect(models.get()).resolves.toBe(false);
-    models.invalidate();
-    await expect(models.get()).resolves.toBe(true);
-    expect(probe).toHaveBeenCalledTimes(2);
-  });
-
-  it('keeps a positive for good: a re-probe right after a session lies', async () => {
-    const probe = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(true);
-    probe.mockResolvedValue(false);
-    const models = createModelProbe(probe);
-    await expect(models.get()).resolves.toBe(true);
-    models.invalidate();
-    await expect(models.get()).resolves.toBe(true);
-    expect(probe).toHaveBeenCalledTimes(1);
-  });
-
-  it('reads a throwing probe as false', async () => {
-    const models = createModelProbe(async () => {
-      throw new Error('service busy');
-    });
-    await expect(models.get()).resolves.toBe(false);
-  });
-
-  it('takes a confirmation from a finished download without probing', async () => {
-    const probe = vi.fn(async () => false);
-    const models = createModelProbe(probe);
-    models.confirm();
-    await expect(models.get()).resolves.toBe(true);
-    expect(probe).not.toHaveBeenCalled();
   });
 });

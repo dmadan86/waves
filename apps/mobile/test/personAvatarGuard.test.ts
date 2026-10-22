@@ -20,7 +20,6 @@ const ALLOWED: Record<string, string> = {
   'components/ProfileAvatar.tsx': 'the viewer-portrait wrapper (camera badge, picker)',
   'components/GroupCard.tsx': 'draws a group cover mark, not a person',
   'app/clone-group.tsx': 'draws a group cover emoji, not a person',
-  'app/settings/offline-voice.tsx': 'draws a language/model glyph, not a person',
   'components/invite/SharedInviteCard.tsx':
     'rendered off-screen to a shareable image: a signed photo would not be loaded at capture, and a face should not leak into a shared picture',
   'app/group/[id]/member/[memberId].tsx': 'the expense rows there use a label badge, not a person',
