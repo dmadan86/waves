@@ -5273,7 +5273,6 @@ export interface UiStrings {
     row: string;
     rowHint: string;
     title: string;
-    intro: string;
     storeTitle: string;
     storeBody: string;
     protectTitle: string;
@@ -5292,6 +5291,7 @@ export interface UiStrings {
     blockedNone: string;
     sessionReplayHint: string;
     policySection: string;
+    dataSection: string;
     supportRow: string;
     supportRowHint: string;
     /** Carries `{date}` — when this policy text last changed. */
@@ -10331,8 +10331,6 @@ const en: UiStrings = {
     row: 'Privacy',
     rowHint: 'What is stored, and how it is kept',
     title: 'Privacy',
-    intro:
-      'Waves holds as little about you as it can and still work. This describes what that is, in plain terms.',
     storeTitle: 'What is stored',
     storeBody:
       'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
@@ -10357,6 +10355,7 @@ const en: UiStrings = {
     blockedNone: 'None',
     sessionReplayHint: 'Off unless you turn it on',
     policySection: 'How Waves protects you',
+    dataSection: 'Your data',
     supportRow: 'Privacy questions',
     supportRowHint: 'Write to us — a person answers',
     lastUpdated: 'Last updated {date}.',
@@ -15543,8 +15542,6 @@ const ta: UiStrings = {
     row: 'தனியுரிமை',
     rowHint: 'என்ன சேமிக்கப்படுகிறது, எப்படி பாதுகாக்கப்படுகிறது',
     title: 'தனியுரிமை',
-    intro:
-      'Waves வேலை செய்ய எவ்வளவு தேவையோ அவ்வளவு மட்டுமே உங்களைப் பற்றி வைத்திருக்கிறது. அது என்ன என்பது இங்கே.',
     storeTitle: 'என்ன சேமிக்கப்படுகிறது',
     storeBody:
       'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
@@ -15569,6 +15566,7 @@ const ta: UiStrings = {
     blockedNone: 'யாரும் இல்லை',
     sessionReplayHint: 'நீங்கள் இயக்கும் வரை அணைந்தே இருக்கும்',
     policySection: 'உங்கள் தரவை எப்படிப் பாதுகாக்கிறோம்',
+    dataSection: 'உங்கள் தரவு',
     supportRow: 'தனியுரிமைக் கேள்விகள்',
     supportRowHint: 'எங்களுக்கு எழுதுங்கள் — ஒரு நபர் பதிலளிப்பார்',
     lastUpdated: 'கடைசியாகப் புதுப்பிக்கப்பட்டது {date}.',
@@ -20605,8 +20603,6 @@ const hi: UiStrings = {
     row: 'निजता',
     rowHint: 'क्या रखा जाता है, और कैसे सुरक्षित रहता है',
     title: 'निजता',
-    intro:
-      'Waves आपके बारे में उतना ही रखता है जितना काम करने के लिए ज़रूरी है। वह क्या है, सीधे शब्दों में।',
     storeTitle: 'क्या रखा जाता है',
     storeBody:
       'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
@@ -20631,6 +20627,7 @@ const hi: UiStrings = {
     blockedNone: 'कोई नहीं',
     sessionReplayHint: 'जब तक आप चालू न करें, बंद रहता है',
     policySection: 'हम आपके डेटा की रक्षा कैसे करते हैं',
+    dataSection: 'आपका डेटा',
     supportRow: 'निजता से जुड़े सवाल',
     supportRowHint: 'हमें लिखें — जवाब एक व्यक्ति देता है',
     lastUpdated: 'अंतिम बार {date} को अपडेट किया गया।',
@@ -26252,7 +26249,6 @@ const ar: UiStrings = {
     row: 'الخصوصية',
     rowHint: 'ما الذي يُحفظ، وكيف يُحمى',
     title: 'الخصوصية',
-    intro: 'يحتفظ Waves بأقل قدر ممكن عنك مع بقائه صالحًا للعمل. وهذا بيان بما يحتفظ به.',
     storeTitle: 'ما الذي يُحفظ',
     storeBody:
       'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
@@ -26277,6 +26273,7 @@ const ar: UiStrings = {
     blockedNone: 'لا أحد',
     sessionReplayHint: 'متوقف ما لم تفعّله بنفسك',
     policySection: 'كيف نحمي بياناتك',
+    dataSection: 'بياناتك',
     supportRow: 'أسئلة عن الخصوصية',
     supportRowHint: 'راسلنا — يردّ عليك شخص',
     lastUpdated: 'آخر تحديث {date}.',
