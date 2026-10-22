@@ -1819,96 +1819,6 @@ export interface UiStrings {
     row: string;
     toggle: string;
   };
-  offlineVoice: {
-    /** Settings-row label, and the screen's own title. */
-    row: string;
-    title: string;
-    /** Settings-row subtitle. */
-    rowHint: string;
-    intro: string;
-    /** The models Waves itself asks for — one per app language. */
-    appSection: string;
-    appSectionHint: string;
-    /** Models already on the phone that no app language claims. */
-    alsoInstalled: string;
-    /** Everything else the recogniser knows about. */
-    otherLanguages: string;
-    otherLanguagesHint: string;
-    /** How many rows a folded section holds — the whole of what it says while
-     *  it is shut, since the point of folding it is not reading the rest. */
-    sectionCount: PluralForms;
-    /** Per-row state. */
-    installed: string;
-    notInstalled: string;
-    /** A phone that cannot be asked what it holds, so the row claims nothing. */
-    cannotTell: string;
-    download: string;
-    /** Under a row while the phone fetches a model. Android hands the app no
-     *  percentage — the bar is indeterminate and this says why. */
-    downloading: string;
-    noProgress: string;
-    /** The three things a finished download call can mean. */
-    ready: string;
-    dialogOpened: string;
-    scheduled: string;
-    /**
-     * The reasons a download can end badly, decoded from the phone's own error
-     * code by `offlineDownloadReason`. They are separate strings because they
-     * are separate things to go and do: no model exists at all, a model exists
-     * and did not arrive, the connection, the service being busy, or a download
-     * that in fact started and cannot be watched. `failed` is now only the case
-     * where the phone refused without saying why.
-     */
-    languageMissing: string;
-    notDownloaded: string;
-    networkFailed: string;
-    serviceBusy: string;
-    handedOff: string;
-    failed: string;
-    /** A download still unanswered long after it began — Android's listener may
-     *  simply never fire, and the row stops asserting rather than spin forever. */
-    stillWorking: string;
-    /** Android 12 and below can neither list installed models nor fetch one. */
-    tooOld: string;
-    /** iOS installs its dictation languages itself; there is nothing to tap. */
-    iosNote: string;
-    /** An older binary whose native speech module is missing entirely. */
-    unavailable: string;
-    /** A recogniser that only ever works over the network. */
-    noOnDevice: string;
-    /** Re-reads the phone's lists, so a download finished elsewhere shows up. */
-    refresh: string;
-    /**
-     * The phone was asked what models it holds and would not say.
-     *
-     * Its own words, deliberately, and never the network's: reading the
-     * inventory is a local call into the recogniser service on the device, so
-     * the app's generic "check your connection" was naming a fault that cannot
-     * be the cause. It also must not claim the rows are missing — a failed read
-     * is not an empty one, and saying otherwise is what put a Download button
-     * next to a model somebody had just watched arrive.
-     */
-    unreadable: string;
-    unreadableBody: string;
-    /**
-     * The phone was asked again and refused, but its earlier answer still
-     * stands.
-     *
-     * A quieter thing than {@link unreadable}, and kept apart from it because
-     * the difference is the whole point: there the screen knows nothing and
-     * offers a way to recover, here the list is still on the page and is merely
-     * not fresh. Saying "couldn't load" over a list somebody can see is how a
-     * screen teaches people to disbelieve it.
-     */
-    staleNote: string;
-    /** The speech service will not fetch a model for an app it cannot hear
-     *  through — a switch in Settings, not a fault of the phone or the language. */
-    permissionNeeded: string;
-    /** The phone answered, and named no languages at all — so the app's own are
-     *  the only rows on the screen. */
-    empty: string;
-    footnote: string;
-  };
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
     changedAmount: string;
@@ -7382,60 +7292,6 @@ const en: UiStrings = {
     row: 'Advanced voice',
     toggle: 'Allow cloud voice',
   },
-  offlineVoice: {
-    row: 'Offline voice',
-    title: 'Offline voice',
-    rowHint: 'Speech models kept on this phone',
-    intro:
-      'With a language downloaded, the mic works with no connection — and keeps working on phones whose online speech service is broken.',
-    appSection: 'Waves languages',
-    appSectionHint: 'These are the ones the mic asks for.',
-    alsoInstalled: 'Also on this phone',
-    otherLanguages: 'Other languages',
-    otherLanguagesHint: 'Your phone can fetch any of these.',
-    sectionCount: { one: '{n} language', other: '{n} languages' },
-    installed: 'On this phone',
-    notInstalled: 'Not downloaded',
-    cannotTell: 'Can’t tell',
-    download: 'Download',
-    downloading: 'Your phone is downloading this.',
-    noProgress: 'Android doesn’t say how far along it is.',
-    ready: 'Downloaded. The mic can use it now.',
-    dialogOpened:
-      'Your phone has taken over with its own download screen. Finish there, then come back and refresh.',
-    scheduled: 'Queued. Your phone will finish it, usually once you’re on Wi‑Fi.',
-    languageMissing:
-      'Your phone’s speech service has no offline model for this language, so there is nothing to fetch. Updating “Speech Recognition & Synthesis” from the Play Store sometimes adds one; until then this language needs a connection.',
-    notDownloaded:
-      'Your phone has this language but hasn’t fetched it yet. It usually waits for Wi‑Fi — try again once you’re on it.',
-    networkFailed: 'The download couldn’t get through. Check your connection and try again.',
-    serviceBusy:
-      'Your phone’s speech service is busy. Close anything else using the mic and try again.',
-    handedOff:
-      'Your phone started the download but won’t report on it. Give it a few minutes, then refresh.',
-    failed: 'Your phone’s speech service refused the download and didn’t say why.',
-    stillWorking:
-      'Your phone hasn’t said whether this finished. Give it a while, then refresh to see if it landed.',
-    tooOld:
-      'This phone’s Android is too old to download models from inside an app. Search Android settings for “voice” to add one.',
-    iosNote:
-      'iPhone downloads its dictation languages itself, and won’t say which ones it already has. Add one under Settings › General › Keyboard › Dictation Languages and the mic will use it.',
-    unavailable: 'This build can’t reach the speech models.',
-    noOnDevice:
-      'This phone can’t recognise speech without a connection, so there’s nothing to download.',
-    refresh: 'Refresh',
-    unreadable: 'This phone wouldn’t say what it has',
-    unreadableBody:
-      'Its own speech service didn’t answer, so there’s no telling which languages are already here. Nothing on this screen needs a connection — try again, or just download the language you want.',
-    staleNote:
-      'Couldn’t check with the phone again just now, so the ticks below may be out of date.',
-    permissionNeeded:
-      'Your phone’s speech service needs the microphone before it will fetch a model. Allow it in Settings, then try again.',
-    empty:
-      'Your phone didn’t name any languages it can recognise, so only the ones Waves asks for are listed. A download may still work.',
-    footnote:
-      'The models belong to your phone, not to Waves. With one installed, what you say is turned into text on the device and never leaves it.',
-  },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
     changedAmount: 'Changed to {amount}',
@@ -12435,61 +12291,6 @@ const ta: UiStrings = {
     learnMore: 'குரல் எப்படி செயல்படுகிறது, எங்கள் தனியுரிமை பற்றி மேலும் அறிக',
     row: 'மேம்பட்ட குரல்',
     toggle: 'கிளவுட் குரலை அனுமதி',
-  },
-  offlineVoice: {
-    row: 'ஆஃப்லைன் குரல்',
-    title: 'ஆஃப்லைன் குரல்',
-    rowHint: 'இந்த ஃபோனில் வைத்திருக்கும் பேச்சு மாதிரிகள்',
-    intro:
-      'ஒரு மொழியைப் பதிவிறக்கிய பிறகு இணைப்பு இல்லாமலும் மைக் வேலை செய்யும் — ஆன்லைன் பேச்சுச் சேவை செயலிழந்த ஃபோன்களிலும் தொடர்ந்து வேலை செய்யும்.',
-    appSection: 'Waves மொழிகள்',
-    appSectionHint: 'மைக் கேட்பது இவற்றைத்தான்.',
-    alsoInstalled: 'இந்த ஃபோனில் ஏற்கெனவே உள்ளவை',
-    otherLanguages: 'மற்ற மொழிகள்',
-    otherLanguagesHint: 'இவற்றில் எதையும் உங்கள் ஃபோன் கொண்டுவரும்.',
-    sectionCount: { one: '{n} மொழி', other: '{n} மொழிகள்' },
-    installed: 'ஃபோனில் உள்ளது',
-    notInstalled: 'பதிவிறக்கப்படவில்லை',
-    cannotTell: 'சொல்ல முடியவில்லை',
-    download: 'பதிவிறக்கு',
-    downloading: 'உங்கள் ஃபோன் இதைப் பதிவிறக்குகிறது.',
-    noProgress: 'எவ்வளவு முடிந்தது என்பதை Android சொல்வதில்லை.',
-    ready: 'பதிவிறக்கப்பட்டது. மைக் இப்போது இதைப் பயன்படுத்தும்.',
-    dialogOpened:
-      'உங்கள் ஃபோன் தன் சொந்தப் பதிவிறக்கத் திரையைத் திறந்துவிட்டது. அங்கே முடித்துவிட்டு, திரும்பி வந்து புதுப்பிக்கவும்.',
-    scheduled: 'வரிசையில் உள்ளது. பொதுவாக Wi‑Fi இணைப்பில் உங்கள் ஃபோன் இதை முடிக்கும்.',
-    languageMissing:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவையிடம் இந்த மொழிக்கான ஆஃப்லைன் மாதிரியே இல்லை, எனவே பதிவிறக்க எதுவும் இல்லை. Play Store-இல் “Speech Recognition & Synthesis” ஐப் புதுப்பித்தால் சில சமயங்களில் ஒன்று சேரும்; அதுவரை இந்த மொழிக்கு இணைப்பு தேவை.',
-    notDownloaded:
-      'இந்த மொழி உங்கள் ஃபோனுக்குத் தெரியும், ஆனால் இன்னும் கொண்டுவரவில்லை. பொதுவாக Wi‑Fi வரும் வரை காத்திருக்கும் — இணைந்ததும் மீண்டும் முயலுங்கள்.',
-    networkFailed:
-      'பதிவிறக்கம் சென்று சேரவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
-    serviceBusy:
-      'உங்கள் ஃபோனின் பேச்சுச் சேவை பணியில் உள்ளது. மைக்கைப் பயன்படுத்தும் மற்றவற்றை மூடிவிட்டு மீண்டும் முயலுங்கள்.',
-    handedOff:
-      'உங்கள் ஃபோன் பதிவிறக்கத்தைத் தொடங்கிவிட்டது, ஆனால் அதைப் பற்றிச் சொல்லாது. சில நிமிடங்கள் கழித்துப் புதுப்பிக்கவும்.',
-    failed: 'உங்கள் ஃபோனின் பேச்சுச் சேவை பதிவிறக்கத்தை மறுத்தது, காரணம் சொல்லவில்லை.',
-    stillWorking:
-      'இது முடிந்ததா என்பதை உங்கள் ஃபோன் இன்னும் சொல்லவில்லை. கொஞ்சம் நேரம் கழித்து, வந்து சேர்ந்ததா எனப் புதுப்பித்துப் பாருங்கள்.',
-    tooOld:
-      'செயலிக்குள் இருந்து மாதிரிகளைப் பதிவிறக்க இந்த ஃபோனின் Android மிகவும் பழையது. Android அமைப்புகளில் “voice” எனத் தேடி ஒன்றைச் சேர்க்கவும்.',
-    iosNote:
-      'iPhone தன் டிக்டேஷன் மொழிகளைத் தானே பதிவிறக்கும்; எவை ஏற்கெனவே உள்ளன என்பதைச் சொல்லாது. Settings › General › Keyboard › Dictation Languages இல் ஒன்றைச் சேர்த்தால் மைக் அதைப் பயன்படுத்தும்.',
-    unavailable: 'இந்தப் பதிப்பால் பேச்சு மாதிரிகளை அணுக முடியாது.',
-    noOnDevice:
-      'இணைப்பு இல்லாமல் பேச்சை இந்த ஃபோனால் அடையாளம் காண முடியாது, எனவே பதிவிறக்க எதுவும் இல்லை.',
-    refresh: 'புதுப்பி',
-    unreadable: 'இந்தத் தொலைபேசி தன்னிடம் என்ன இருக்கிறது எனச் சொல்லவில்லை',
-    unreadableBody:
-      'அதன் சொந்தப் பேச்சுச் சேவை பதிலளிக்கவில்லை, எனவே எந்த மொழிகள் ஏற்கெனவே இங்கு உள்ளன எனத் தெரியவில்லை. இந்தத் திரையில் எதற்கும் இணைய இணைப்பு தேவையில்லை — மீண்டும் முயலுங்கள், அல்லது வேண்டிய மொழியை நேரடியாகப் பதிவிறக்குங்கள்.',
-    staleNote:
-      'இப்போது தொலைபேசியிடம் மீண்டும் சரிபார்க்க முடியவில்லை, எனவே கீழுள்ள குறிகள் பழையவையாக இருக்கலாம்.',
-    permissionNeeded:
-      'மாதிரியைப் பெறுவதற்கு முன் உங்கள் தொலைபேசியின் பேச்சுச் சேவைக்கு ஒலிவாங்கி அனுமதி தேவை. அமைப்புகளில் அனுமதித்துவிட்டு மீண்டும் முயலுங்கள்.',
-    empty:
-      'தான் அடையாளம் காணக்கூடிய மொழிகள் எதையும் உங்கள் ஃபோன் சொல்லவில்லை, எனவே Waves கேட்பவை மட்டுமே பட்டியலில் உள்ளன. பதிவிறக்கம் இன்னும் வேலை செய்யக்கூடும்.',
-    footnote:
-      'மாதிரிகள் உங்கள் ஃபோனுடையவை, Waves உடையவை அல்ல. ஒன்று இருந்தால், நீங்கள் பேசுவது ஃபோனிலேயே உரையாக மாறும், வெளியே செல்லாது.',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
@@ -17634,58 +17435,6 @@ const hi: UiStrings = {
     row: 'एडवांस्ड वॉइस',
     toggle: 'क्लाउड वॉइस की अनुमति',
   },
-  offlineVoice: {
-    row: 'ऑफ़लाइन आवाज़',
-    title: 'ऑफ़लाइन आवाज़',
-    rowHint: 'इस फ़ोन पर रखे स्पीच मॉडल',
-    intro:
-      'कोई भाषा डाउनलोड कर लेने पर माइक बिना कनेक्शन के भी काम करता है — और उन फ़ोनों पर भी चलता रहता है जिनकी ऑनलाइन स्पीच सेवा ख़राब है।',
-    appSection: 'Waves की भाषाएँ',
-    appSectionHint: 'माइक यही माँगता है।',
-    alsoInstalled: 'इस फ़ोन पर पहले से मौजूद',
-    otherLanguages: 'दूसरी भाषाएँ',
-    otherLanguagesHint: 'इनमें से कोई भी आपका फ़ोन ला सकता है।',
-    sectionCount: { one: '{n} भाषा', other: '{n} भाषाएँ' },
-    installed: 'फ़ोन पर मौजूद',
-    notInstalled: 'डाउनलोड नहीं है',
-    cannotTell: 'बता नहीं सकते',
-    download: 'डाउनलोड करें',
-    downloading: 'आपका फ़ोन इसे डाउनलोड कर रहा है।',
-    noProgress: 'Android यह नहीं बताता कि कितना हुआ।',
-    ready: 'डाउनलोड हो गया। माइक अब इसे इस्तेमाल कर सकता है।',
-    dialogOpened:
-      'आपके फ़ोन ने अपनी डाउनलोड स्क्रीन खोल दी है। वहीं पूरा करें, फिर लौटकर ताज़ा करें।',
-    scheduled: 'क़तार में है। आपका फ़ोन इसे पूरा कर देगा, आम तौर पर Wi‑Fi पर।',
-    languageMissing:
-      'आपके फ़ोन की स्पीच सेवा के पास इस भाषा का ऑफ़लाइन मॉडल है ही नहीं, इसलिए लाने को कुछ नहीं है। Play Store से “Speech Recognition & Synthesis” अपडेट करने पर कभी‑कभी एक जुड़ जाता है; तब तक इस भाषा को कनेक्शन चाहिए।',
-    notDownloaded:
-      'आपका फ़ोन यह भाषा जानता है, पर अभी लाया नहीं है। आम तौर पर वह Wi‑Fi का इंतज़ार करता है — जुड़ते ही फिर कोशिश करें।',
-    networkFailed: 'डाउनलोड पहुँच ही नहीं पाया। अपना कनेक्शन जाँचकर फिर कोशिश करें।',
-    serviceBusy:
-      'आपके फ़ोन की स्पीच सेवा व्यस्त है। माइक इस्तेमाल कर रही दूसरी चीज़ें बंद करके फिर कोशिश करें।',
-    handedOff:
-      'आपके फ़ोन ने डाउनलोड शुरू कर दिया है पर उसकी ख़बर नहीं देगा। कुछ मिनट बाद ताज़ा करें।',
-    failed: 'आपके फ़ोन की स्पीच सेवा ने डाउनलोड से इनकार कर दिया और वजह नहीं बताई।',
-    stillWorking:
-      'आपके फ़ोन ने अब तक नहीं बताया कि यह पूरा हुआ या नहीं। थोड़ी देर बाद ताज़ा करके देखें कि आया या नहीं।',
-    tooOld:
-      'ऐप के भीतर से मॉडल डाउनलोड करने के लिए इस फ़ोन का Android बहुत पुराना है। Android सेटिंग्स में “voice” खोजकर एक जोड़ें।',
-    iosNote:
-      'iPhone अपनी डिक्टेशन भाषाएँ ख़ुद डाउनलोड करता है, और यह नहीं बताता कि कौन-सी पहले से मौजूद हैं। Settings › General › Keyboard › Dictation Languages में एक जोड़ें, माइक उसे इस्तेमाल करने लगेगा।',
-    unavailable: 'यह बिल्ड स्पीच मॉडल तक नहीं पहुँच सकता।',
-    noOnDevice: 'यह फ़ोन बिना कनेक्शन के बोली नहीं पहचान सकता, इसलिए डाउनलोड करने को कुछ नहीं है।',
-    refresh: 'ताज़ा करें',
-    unreadable: 'यह फ़ोन नहीं बता रहा कि उसके पास क्या है',
-    unreadableBody:
-      'इसकी अपनी स्पीच सेवा ने जवाब नहीं दिया, इसलिए पता नहीं चल रहा कि कौन-सी भाषाएँ पहले से मौजूद हैं। इस स्क्रीन पर किसी चीज़ को कनेक्शन की ज़रूरत नहीं है — फिर कोशिश करें, या जो भाषा चाहिए उसे सीधे डाउनलोड कर लें।',
-    staleNote: 'अभी फ़ोन से दोबारा पूछा नहीं जा सका, इसलिए नीचे के निशान पुराने हो सकते हैं।',
-    permissionNeeded:
-      'मॉडल लाने से पहले आपके फ़ोन की स्पीच सेवा को माइक्रोफ़ोन चाहिए। सेटिंग्स में अनुमति दें, फिर कोशिश करें।',
-    empty:
-      'आपके फ़ोन ने ऐसी कोई भाषा नहीं बताई जिसे वह पहचान सके, इसलिए सिर्फ़ वही सूचीबद्ध हैं जो Waves माँगता है। डाउनलोड फिर भी काम कर सकता है।',
-    footnote:
-      'मॉडल आपके फ़ोन के हैं, Waves के नहीं। एक मौजूद हो तो आप जो कहते हैं वह फ़ोन पर ही लिखाई में बदलता है और बाहर नहीं जाता।',
-  },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {
     changedAmount: '{amount} कर दिया',
@@ -22745,62 +22494,6 @@ const ar: UiStrings = {
     learnMore: 'اعرف المزيد عن طريقة عمل الصوت وخصوصيتنا',
     row: 'الصوت المتقدم',
     toggle: 'السماح بالصوت السحابي',
-  },
-  offlineVoice: {
-    row: 'الصوت دون اتصال',
-    title: 'الصوت دون اتصال',
-    rowHint: 'نماذج الكلام المحفوظة على هذا الهاتف',
-    intro:
-      'بعد تنزيل لغة يعمل الميكروفون دون اتصال — ويظل يعمل على الهواتف التي تعطّلت فيها خدمة الكلام عبر الإنترنت.',
-    appSection: 'لغات Waves',
-    appSectionHint: 'هذه ما يطلبه الميكروفون.',
-    alsoInstalled: 'موجودة على هذا الهاتف',
-    otherLanguages: 'لغات أخرى',
-    otherLanguagesHint: 'يستطيع هاتفك جلب أيٍّ منها.',
-    sectionCount: {
-      zero: '{n} لغة',
-      one: 'لغة واحدة',
-      two: 'لغتان',
-      few: '{n} لغات',
-      many: '{n} لغة',
-      other: '{n} لغة',
-    },
-    installed: 'على الهاتف',
-    notInstalled: 'غير مُنزَّلة',
-    cannotTell: 'يتعذّر معرفة ذلك',
-    download: 'تنزيل',
-    downloading: 'هاتفك ينزّل هذا الآن.',
-    noProgress: 'لا يخبر Android بمقدار ما اكتمل.',
-    ready: 'اكتمل التنزيل. يمكن للميكروفون استخدامه الآن.',
-    dialogOpened: 'فتح هاتفك شاشة التنزيل الخاصة به. أكمِل هناك ثم عُد وحدِّث القائمة.',
-    scheduled: 'في الانتظار. سيُكمل هاتفك التنزيل، غالبًا عند اتصاله بشبكة Wi‑Fi.',
-    languageMissing:
-      'لا تملك خدمة الكلام في هاتفك نموذجًا يعمل دون اتصال لهذه اللغة، فليس هناك ما يُجلب. تحديث «Speech Recognition & Synthesis» من متجر Play يضيف لغة أحيانًا؛ وحتى ذلك الحين تحتاج هذه اللغة إلى اتصال.',
-    notDownloaded:
-      'هاتفك يعرف هذه اللغة لكنه لم يجلبها بعد. عادةً ينتظر شبكة Wi‑Fi — أعد المحاولة بعد الاتصال بها.',
-    networkFailed: 'لم يصل التنزيل. تحقّق من اتصالك وأعد المحاولة.',
-    serviceBusy: 'خدمة الكلام في هاتفك مشغولة. أغلق ما يستخدم الميكروفون وأعد المحاولة.',
-    handedOff: 'بدأ هاتفك التنزيل لكنه لن يُبلغ عنه. امهله بضع دقائق ثم حدِّث القائمة.',
-    failed: 'رفضت خدمة الكلام في هاتفك التنزيل ولم تذكر السبب.',
-    stillWorking:
-      'لم يقل هاتفك بعدُ إن كان هذا قد اكتمل. امهله قليلًا ثم حدِّث القائمة لترى إن كان قد وصل.',
-    tooOld:
-      'إصدار Android على هذا الهاتف أقدم من أن ينزّل النماذج من داخل التطبيق. ابحث عن «voice» في إعدادات Android وأضف واحدة.',
-    iosNote:
-      'ينزّل iPhone لغات الإملاء بنفسه، ولا يقول أيّها موجود لديه بالفعل. أضف لغة من Settings ‹ General ‹ Keyboard ‹ Dictation Languages وسيستخدمها الميكروفون.',
-    unavailable: 'لا يستطيع هذا الإصدار الوصول إلى نماذج الكلام.',
-    noOnDevice: 'لا يستطيع هذا الهاتف التعرّف على الكلام دون اتصال، فلا شيء لتنزيله.',
-    refresh: 'تحديث',
-    unreadable: 'لم يخبرنا هذا الهاتف بما لديه',
-    unreadableBody:
-      'لم تُجب خدمة الكلام في الهاتف نفسه، لذا لا سبيل لمعرفة اللغات الموجودة هنا بالفعل. لا شيء في هذه الشاشة يحتاج إلى اتصال — أعد المحاولة، أو نزّل اللغة التي تريدها مباشرةً.',
-    staleNote: 'تعذّرت مراجعة الهاتف مرة أخرى الآن، لذا قد تكون العلامات أدناه قديمة.',
-    permissionNeeded:
-      'تحتاج خدمة الكلام في هاتفك إلى إذن الميكروفون قبل جلب النموذج. اسمح به في الإعدادات ثم أعد المحاولة.',
-    empty:
-      'لم يذكر هاتفك أي لغة يستطيع التعرّف عليها، لذا لا تظهر سوى اللغات التي يطلبها Waves. وقد ينجح التنزيل رغم ذلك.',
-    footnote:
-      'النماذج ملك لهاتفك لا لـ Waves. وبوجود واحدة يتحوّل ما تقوله إلى نص على الجهاز ولا يغادره.',
   },
   /** Corrections and undo after the assistant saves an expense. */
   corrections: {

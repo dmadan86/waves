@@ -402,15 +402,6 @@ function ProfileForm() {
               label: t.account.notifications,
               route: '/settings/notifications',
             },
-            // The mic's own settings sit with the rest of "how the app speaks to
-            // you", not under Data: what is managed here is a language, and the
-            // person who needs it is the person whose mic went silent.
-            {
-              icon: 'mic-outline',
-              label: t.offlineVoice.row,
-              hint: t.offlineVoice.rowHint,
-              route: '/settings/offline-voice',
-            },
             // Advanced voice (Pro): the switch that grants or revokes sending
             // voice to Deepgram and Google Gemini. Turning it on asks first.
             ...(voiceAgentOn
