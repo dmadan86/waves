@@ -198,6 +198,8 @@ interface ExpenseDraft {
   splitKind: SplitKind;
   /** A saved by-family bill's own composition, while the edit has not touched the split. */
   savedUnits?: UnitsParams | null;
+  /** Equal between people or between families. Absent on drafts from before families. */
+  splitBy?: 'people' | 'families';
   /**
    * Who paid, before a bill could be paid by several people. Drafts written by
    * an older build still carry it and nothing else, so it is read as a
@@ -855,6 +857,7 @@ export default function AddExpenseScreen() {
       setDescription(draft.description);
       setSplitKind(draft.splitKind);
       setSavedUnits(draft.savedUnits ?? null);
+      if (draft.splitBy) setSplitBy(draft.splitBy);
       // The payer picker is on the edit form too now, so a draft's payers are a
       // change somebody was in the middle of making rather than stale values to
       // discard. `payers` is the current shape; `payer` is what an older build
@@ -1319,6 +1322,7 @@ export default function AddExpenseScreen() {
       description,
       splitKind,
       savedUnits,
+      splitBy,
       payers: Object.fromEntries([...payers].map(([id, paid]) => [id, paid.toString()])),
       lockedPayers: [...lockedPayers],
       currency: expenseCurrency,

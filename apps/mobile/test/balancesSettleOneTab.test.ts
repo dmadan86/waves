@@ -24,7 +24,7 @@ describe('group screen: one Balances tab', () => {
 
   it("shows the payments section, then everyone's balance, on Balances", () => {
     const payments = screen.indexOf('<SettlePayments');
-    const balances = screen.indexOf('t.group.everyonesBalance');
+    const balances = screen.indexOf('title={t.group.everyonesBalance}');
     expect(payments).toBeGreaterThan(-1);
     expect(balances).toBeGreaterThan(payments);
     expect(screen.indexOf('t.group.paymentsToSettle')).toBeLessThan(payments);

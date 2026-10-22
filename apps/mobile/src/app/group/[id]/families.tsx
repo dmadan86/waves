@@ -15,7 +15,7 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { headOf, type GroupUnits } from '@waves/core';
 import {
@@ -48,7 +48,14 @@ import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
-import { familyEmoji, familyRows, placeMember, withFamily } from '@/lib/families';
+import {
+  createFamily,
+  familyEmoji,
+  familyOf,
+  familyRows,
+  placeMember,
+  withFamily,
+} from '@/lib/families';
 
 export default function FamiliesScreen() {
   const theme = useTheme();
@@ -74,6 +81,11 @@ export default function FamiliesScreen() {
   // The name sheet: a new family started with one person from the "on their
   // own" list (a family is never empty), or a rename.
   const [naming, setNaming] = useState<{ familyId: string } | { withMember: string } | null>(null);
+  // The pick-people sheet behind "+" when nobody is on their own: a name and
+  // a tick per person, each shown with the family they would leave.
+  const [picking, setPicking] = useState<{ name: string; picked: ReadonlySet<string> } | null>(
+    null,
+  );
 
   const nameOf = (member: MemberRow): string =>
     displayName(member, viewerId, blockedIds, t.misc.someone);
@@ -211,12 +223,18 @@ export default function FamiliesScreen() {
           title={t.families.title}
           subtitle={t.families.subtitle}
           action={
-            // A family is never empty, so a new one starts with the first person on their own.
-            isAdmin && onTheirOwn[0] ? (
+            // A family is never empty: a new one starts with the first person
+            // on their own, or — when everyone is already placed — with the
+            // people the admin picks out of their families.
+            isAdmin ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t.families.newFamily}
-                onPress={() => setNaming({ withMember: onTheirOwn[0].id })}
+                onPress={() =>
+                  onTheirOwn[0]
+                    ? setNaming({ withMember: onTheirOwn[0].id })
+                    : setPicking({ name: '', picked: new Set() })
+                }
                 style={{
                   width: 40,
                   height: 40,
@@ -480,6 +498,96 @@ export default function FamiliesScreen() {
               variant="ghost"
               fullWidth
               onPress={() => setAdding(null)}
+            />
+          </View>
+        ) : null}
+      </Sheet>
+
+      <Sheet
+        visible={picking !== null}
+        onClose={() => setPicking(null)}
+        closeLabel={t.common.close}
+      >
+        {picking ? (
+          <View style={{ gap: theme.spacing.md }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="title">{t.families.newFamily}</Text>
+                <Text variant="caption" tone="muted">
+                  {t.families.nameHint}
+                </Text>
+              </View>
+              {closeX(() => setPicking(null))}
+            </Row>
+            <TextInput
+              value={picking.name}
+              onChangeText={(name) => setPicking({ ...picking, name })}
+              autoCapitalize="words"
+              autoCorrect={false}
+              accessibilityLabel={t.families.newFamily}
+              placeholder={t.families.namePlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              style={{
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                borderRadius: theme.radius.lg,
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                fontSize: 16,
+                color: theme.color.text,
+                backgroundColor: theme.color.surface,
+              }}
+            />
+            <Text variant="caption" tone="muted">
+              {t.families.whoIsIn}
+            </Text>
+            <View
+              style={{
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.surfaceMuted,
+              }}
+            >
+              {people.map((member, index) => {
+                const on = picking.picked.has(member.id);
+                return (
+                  <ListRow
+                    key={member.id}
+                    leading={avatar(member)}
+                    title={nameOf(member)}
+                    subtitle={familyOf(units, member.id)?.name ?? t.families.onTheirOwn}
+                    divider={index < people.length - 1}
+                    onPress={() => {
+                      const picked = new Set(picking.picked);
+                      if (on) picked.delete(member.id);
+                      else picked.add(member.id);
+                      setPicking({ ...picking, picked });
+                    }}
+                    trailing={
+                      <Ionicons
+                        name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={iconSize.xl}
+                        color={on ? theme.color.brand : theme.color.border}
+                      />
+                    }
+                  />
+                );
+              })}
+            </View>
+            <Button
+              label={t.families.create}
+              fullWidth
+              disabled={picking.name.trim() === '' || picking.picked.size === 0}
+              onPress={() => {
+                save(createFamily(units, randomUUID(), picking.name.trim(), [...picking.picked]));
+                setPicking(null);
+              }}
+            />
+            <Button
+              label={t.common.cancel}
+              variant="ghost"
+              fullWidth
+              onPress={() => setPicking(null)}
             />
           </View>
         ) : null}

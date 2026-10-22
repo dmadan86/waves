@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { GroupUnits, NetBalances } from '@waves/core';
 
 import {
+  createFamily,
   familyBalanceItems,
   familyEmoji,
   familyLabel,
@@ -60,6 +61,31 @@ describe('family rows and balances', () => {
     ]);
   });
 
+  it('names the viewer for their own family, so anyone in it can record the payment', () => {
+    const net: NetBalances = new Map([
+      [
+        'INR',
+        new Map([
+          ['ravi', 500n],
+          ['priya', -200n],
+          ['anu', 100n],
+          ['sam', -300n],
+          ['meera', 0n],
+          ['zara', -100n],
+        ]),
+      ],
+    ]);
+    // Meera is in the paying Patel family but not its head: the line is hers to record.
+    expect(familyTransfers(net, UNITS, 'meera')).toEqual([
+      { from: 'meera', to: 'priya', currency: 'INR', amount: 300n },
+      { from: 'zara', to: 'priya', currency: 'INR', amount: 100n },
+    ]);
+    // Anu is in the receiving Sharma family: both lines come to her.
+    expect(familyTransfers(net, UNITS, 'anu').map((x) => x.to)).toEqual(['anu', 'anu']);
+    // Somebody on their own is unchanged.
+    expect(familyTransfers(net, UNITS, 'zara')).toEqual(familyTransfers(net, UNITS));
+  });
+
   it('settles family to family, said as the two heads', () => {
     const net: NetBalances = new Map([
       [
@@ -86,6 +112,16 @@ describe('family rows and balances', () => {
 });
 
 describe('editing families', () => {
+  it('creates a family out of people already in other families', () => {
+    const next = createFamily(UNITS, 'new', 'Newlyweds', ['priya', 'sam']);
+    expect(next?.new).toEqual({ name: 'Newlyweds', members: ['priya', 'sam'] });
+    expect(next?.sharma).toEqual({ name: 'Sharma family', members: ['ravi', 'anu'], head: 'ravi' });
+    expect(next?.patel?.members).toEqual(['meera']);
+    expect(createFamily(null, 'solo', 'Solo', ['zara'])).toEqual({
+      solo: { name: 'Solo', members: ['zara'] },
+    });
+  });
+
   it('moves a member between families, re-heading a family whose head left', () => {
     const moved = placeMember(UNITS, 'priya', 'patel');
     expect(moved?.sharma).toEqual({
