@@ -195,6 +195,16 @@ GET        /v1/friends                           POST  /v1/friends/expenses
 GET|POST   /v1/categories                        PATCH|DELETE /v1/categories/{id}
 ```
 
+**Families.** A group may carry `units` (family id to `{name, members, head?}`),
+read on `GET /v1/groups/{id}` and written by an admin with `PATCH` (validated
+like `/sync`: members of this group, nobody in two families). Split a bill by
+family with `split: {"kind": "units", "units": {"sharma": [ravi, priya]}}`; the
+amount divides across families first, then within each. Every participant must
+sit in exactly one entry; someone in no family is a family of one, keyed by their
+member id. `GET
+/v1/groups/{id}/balances?by=family` rolls the member balances up by family
+(default `by=member`, unchanged).
+
 The contract is `apps/api/openapi.yaml`, and it is the contract — the
 documentation site reads it.
 

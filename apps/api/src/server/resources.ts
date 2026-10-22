@@ -29,6 +29,7 @@ import type {
   ProfileRow,
   Settlement,
 } from '@waves/api-client';
+import { unitMembers, unitNetBalances, type GroupUnits } from '@waves/core';
 
 export interface UserResource {
   id: string;
@@ -66,6 +67,8 @@ export interface GroupResource {
   end_date: string | null;
   archived_at: string | null;
   created_at: string;
+  /** Families inside the group, by id; null when there are none. */
+  units: GroupUnits | null;
   /**
    * The row's revision. Send it back as `if_revision` on an update and a
    * concurrent edit is refused rather than silently overwritten — the same
@@ -88,6 +91,7 @@ export function toGroup(row: GroupRow): GroupResource {
     end_date: row.end_date,
     archived_at: row.archived_at,
     created_at: row.created_at,
+    units: (row.units as GroupUnits | null | undefined) ?? null,
     revision: Number(row.updated_seq),
   };
 }
@@ -124,6 +128,44 @@ export interface BalanceResource {
 
 export function toBalance(row: BalanceRow): BalanceResource {
   return { member_id: row.member_id, currency: row.currency, amount: String(row.balance) };
+}
+
+export interface FamilyBalanceResource {
+  /** The family's id, or the member's own id for someone in no family. */
+  unit_id: string;
+  /** Null for someone in no family. */
+  name: string | null;
+  member_ids: string[];
+  currency: string;
+  /** Sum of the members' balances. Positive: the family is owed. Minor units. */
+  amount: string;
+}
+
+/** `GET /balances?by=family`: member balances rolled up by family; Σ is unchanged. */
+export function toFamilyBalances(
+  rows: readonly BalanceRow[],
+  units: GroupUnits | null,
+): FamilyBalanceResource[] {
+  const net = new Map<string, Map<string, bigint>>();
+  for (const row of rows) {
+    const perMember = net.get(row.currency) ?? new Map<string, bigint>();
+    perMember.set(row.member_id, BigInt(row.balance));
+    net.set(row.currency, perMember);
+  }
+  const out: FamilyBalanceResource[] = [];
+  for (const [currency, perUnit] of unitNetBalances(net, units)) {
+    for (const [unitId, amount] of perUnit) {
+      const unit = units?.[unitId];
+      out.push({
+        unit_id: unitId,
+        name: unit?.name ?? null,
+        member_ids: unit ? [...unitMembers(unit)] : [unitId],
+        currency,
+        amount: String(amount),
+      });
+    }
+  }
+  return out;
 }
 
 export interface ExpenseResource {
