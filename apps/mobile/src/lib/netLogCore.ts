@@ -10,6 +10,11 @@
  * runs are replaced with `…` before anything is stored; a phone number can
  * therefore never reach the list. Keep it that way: `redactUrl` is the only door
  * a URL goes through.
+ *
+ * WHAT IS SHOWN. Never the address or the method: each entry is shown as the
+ * call it was ("Exchange rate", "Read a statement"), or, for a host Waves does
+ * not know, the bare host. The background sync is not stored call by call at
+ * all; it is only counted per day (`SyncStats`).
  */
 
 /** The labels a connection can be filed under; the screen translates each. */
@@ -41,6 +46,9 @@ export const NET_PURPOSES: readonly NetPurpose[] = [
   'maps',
   'other',
 ];
+
+/** Purposes the Network activity screen offers as filters: sync is only counted. */
+export const NET_FILTER_PURPOSES: readonly NetPurpose[] = NET_PURPOSES.filter((p) => p !== 'sync');
 
 /** How a call ended: the HTTP status, or why there was none. */
 export type NetStatus = number | 'failed' | 'offline';
@@ -111,11 +119,6 @@ export function urlParts(url: string): UrlParts | null {
 export function redactUrl(url: string): string {
   const parts = urlParts(url);
   return parts ? `${parts.scheme}://${parts.host}${parts.path}` : UNREADABLE_URL;
-}
-
-/** Host and path of a stored (already redacted) address, for display. */
-export function displayAddress(redacted: string): string {
-  return redacted.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
 }
 
 /** A development server, which the log leaves out of a dev build. */
@@ -240,6 +243,203 @@ export function appendEntry(
   maxAgeMs: number = NET_LOG_MAX_AGE_MS,
 ): NetLogEntry[] {
   return trimLog([...entries, entry], now, maxEntries, maxAgeMs);
+}
+
+/** The calls Waves can name; the screen translates each. */
+export type CallKey =
+  | 'exchangeRate'
+  | 'statement'
+  | 'screenshot'
+  | 'receipt'
+  | 'voice'
+  | 'upload'
+  | 'signIn'
+  | 'analytics'
+  | 'purchases'
+  | 'crashReport'
+  | 'sessionReplay'
+  | 'mapTiles'
+  | 'google'
+  | 'appStore'
+  | 'accountDelete'
+  | 'exportData'
+  | 'invite'
+  | 'connectedApps'
+  | 'serverRequest';
+
+export const CALL_KEYS: readonly CallKey[] = [
+  'exchangeRate',
+  'statement',
+  'screenshot',
+  'receipt',
+  'voice',
+  'upload',
+  'signIn',
+  'analytics',
+  'purchases',
+  'crashReport',
+  'sessionReplay',
+  'mapTiles',
+  'google',
+  'appStore',
+  'accountDelete',
+  'exportData',
+  'invite',
+  'connectedApps',
+  'serverRequest',
+];
+
+function functionCall(name: string): CallKey {
+  switch (name) {
+    case 'fx-rate':
+      return 'exchangeRate';
+    case 'parse-statement':
+      return 'statement';
+    case 'import-screenshot':
+      return 'screenshot';
+    case 'receipt-parse':
+      return 'receipt';
+    case 'voice-agent':
+    case 'voice-stream':
+    case 'voice-stream-token':
+      return 'voice';
+    case 'r2-sign':
+      return 'upload';
+    case 'otp-send':
+    case 'phone-verify':
+    case 'auth-email-send':
+      return 'signIn';
+    case 'account-delete':
+      return 'accountDelete';
+    case 'export-data':
+      return 'exportData';
+    case 'invite-accept':
+    case 'invite-mint':
+      return 'invite';
+    default:
+      return 'serverRequest';
+  }
+}
+
+/** What a stored entry is shown as: a known call, or just the host. */
+export type CallName = { key: CallKey } | { host: string };
+
+/**
+ * Name the call behind a stored entry. Reads its (already redacted) address and
+ * purpose; the result carries no path, scheme or method.
+ */
+export function callName(entry: Pick<NetLogEntry, 'u' | 'p'>): CallName {
+  const parts = urlParts(entry.u);
+  const host = parts ? parts.host.replace(/:\d+$/, '') : '';
+  const fn = parts ? /^\/functions\/v1\/([^/?#]+)/.exec(parts.path) : null;
+  if (fn) return { key: functionCall(fn[1]) };
+  if (parts && /^\/auth\/v1\/user\/oauth\//.test(parts.path)) return { key: 'connectedApps' };
+  switch (entry.p) {
+    case 'exchange-rates':
+      return { key: 'exchangeRate' };
+    case 'sign-in':
+      return { key: 'signIn' };
+    case 'analytics':
+      return { key: 'analytics' };
+    case 'files':
+      return { key: 'upload' };
+    case 'purchases':
+      return { key: 'purchases' };
+    case 'crash-reports':
+      return { key: 'crashReport' };
+    case 'session-replay':
+      return { key: 'sessionReplay' };
+    case 'maps':
+      return { key: 'mapTiles' };
+    case 'google':
+      return { key: 'google' };
+    case 'server-task':
+      return { key: 'serverRequest' };
+    default:
+      break;
+  }
+  if (host === 'itunes.apple.com') return { key: 'appStore' };
+  return { host: host || UNREADABLE_URL };
+}
+
+/** The words for a call: a translated name, or the host as it is. */
+export function callLabel(
+  entry: Pick<NetLogEntry, 'u' | 'p'>,
+  names: Record<CallKey, string>,
+): string {
+  const name = callName(entry);
+  return 'key' in name ? names[name.key] : name.host;
+}
+
+/** How many sync calls were made, per local day, plus when the latest was. */
+export interface SyncStats {
+  /** `YYYY-MM-DD` (local) -> count. */
+  days: Record<string, number>;
+  /** Epoch ms of the latest sync call, 0 when none. */
+  last: number;
+}
+
+export const EMPTY_SYNC_STATS: SyncStats = { days: {}, last: 0 };
+
+export function dayId(time: number): string {
+  const d = new Date(time);
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Drop days older than the age limit (the cutoff day itself is kept). */
+export function pruneSyncStats(
+  stats: SyncStats,
+  now: number,
+  maxAgeMs: number = NET_LOG_MAX_AGE_MS,
+): SyncStats {
+  const oldest = dayId(now - maxAgeMs);
+  const days: Record<string, number> = {};
+  for (const [day, n] of Object.entries(stats.days)) if (day >= oldest) days[day] = n;
+  return { days, last: stats.last };
+}
+
+/** Count one sync call at `time`, pruning to the last 7 days. */
+export function countSync(
+  stats: SyncStats,
+  time: number,
+  now: number,
+  maxAgeMs: number = NET_LOG_MAX_AGE_MS,
+): SyncStats {
+  const id = dayId(time);
+  return pruneSyncStats(
+    { days: { ...stats.days, [id]: (stats.days[id] ?? 0) + 1 }, last: Math.max(stats.last, time) },
+    now,
+    maxAgeMs,
+  );
+}
+
+/** Sync calls in the window. */
+export function syncTotal(
+  stats: SyncStats,
+  now: number,
+  maxAgeMs: number = NET_LOG_MAX_AGE_MS,
+): number {
+  return Object.values(pruneSyncStats(stats, now, maxAgeMs).days).reduce((a, b) => a + b, 0);
+}
+
+/** Read stored counts back, keeping only well-formed days. */
+export function parseSyncStats(raw: string | null): SyncStats {
+  if (!raw) return EMPTY_SYNC_STATS;
+  try {
+    const data = JSON.parse(raw) as { days?: unknown; last?: unknown } | null;
+    const days: Record<string, number> = {};
+    if (data && typeof data.days === 'object' && data.days !== null) {
+      for (const [day, n] of Object.entries(data.days)) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(day) && typeof n === 'number' && n > 0) {
+          days[day] = Math.floor(n);
+        }
+      }
+    }
+    return { days, last: typeof data?.last === 'number' ? data.last : 0 };
+  } catch {
+    return EMPTY_SYNC_STATS;
+  }
 }
 
 /** Read a stored list back, keeping only well-formed entries. */

@@ -5243,8 +5243,36 @@ export interface UiStrings {
     clearConfirm: string;
     statusFailed: string;
     statusOffline: string;
-    /** Spoken label for a row: time, purpose, method, address, status. */
+    /** Spoken label for a row: time, call, status. */
     rowLabel: string;
+    statusOk: string;
+    /** The one summary row for background sync; `{n}` is the count in the last 7 days. */
+    syncSummary: PluralForms;
+    /** Under it: when the latest sync was, `{time}`. */
+    syncLast: string;
+    /** What each call is named; an unknown host is shown as it is. */
+    calls: Record<
+      | 'exchangeRate'
+      | 'statement'
+      | 'screenshot'
+      | 'receipt'
+      | 'voice'
+      | 'upload'
+      | 'signIn'
+      | 'analytics'
+      | 'purchases'
+      | 'crashReport'
+      | 'sessionReplay'
+      | 'mapTiles'
+      | 'google'
+      | 'appStore'
+      | 'accountDelete'
+      | 'exportData'
+      | 'invite'
+      | 'connectedApps'
+      | 'serverRequest',
+      string
+    >;
     purposes: {
       sync: string;
       signIn: string;
@@ -10270,7 +10298,7 @@ const en: UiStrings = {
     rowHint: 'Every connection this phone made, kept only on it',
     title: 'Network activity',
     explainer:
-      'Every connection Waves made from this phone in the last 7 days. This list never leaves your phone.',
+      'What Waves called from this phone in the last 7 days. Background sync is shown as a count. This list never leaves your phone.',
     empty: 'No connections recorded yet.',
     emptyFiltered: 'Nothing under this filter.',
     today: 'Today',
@@ -10282,7 +10310,31 @@ const en: UiStrings = {
     clearConfirm: 'Clear',
     statusFailed: 'failed',
     statusOffline: 'offline',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'OK',
+    syncSummary: { one: 'Sync · {n} time in 7 days', other: 'Sync · {n} times in 7 days' },
+    syncLast: 'Last sync {time}',
+    calls: {
+      exchangeRate: 'Exchange rate',
+      statement: 'Read a statement',
+      screenshot: 'Read a screenshot',
+      receipt: 'Read a receipt',
+      voice: 'Voice',
+      upload: 'Upload a file',
+      signIn: 'Sign in',
+      analytics: 'Usage event',
+      purchases: 'Purchases',
+      crashReport: 'Crash report',
+      sessionReplay: 'Session replay',
+      mapTiles: 'Map tiles',
+      google: 'Google',
+      appStore: 'Check for update',
+      accountDelete: 'Delete account',
+      exportData: 'Export my data',
+      invite: 'Invite',
+      connectedApps: 'Connected apps',
+      serverRequest: 'Waves server',
+    },
     purposes: {
       sync: 'Sync',
       signIn: 'Sign-in',
@@ -15486,7 +15538,7 @@ const ta: UiStrings = {
     rowHint: 'இந்த ஃபோன் செய்த ஒவ்வொரு இணைப்பும், இதில் மட்டுமே சேமிக்கப்படும்',
     title: 'நெட்வொர்க் செயல்பாடு',
     explainer:
-      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த ஒவ்வொரு இணைப்பும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
+      'கடந்த 7 நாட்களில் இந்த ஃபோனிலிருந்து Waves செய்த அழைப்புகள். பின்னணி ஒத்திசைவு எண்ணிக்கையாக மட்டும் காட்டப்படும். இந்தப் பட்டியல் உங்கள் ஃபோனை விட்டு வெளியே செல்லாது.',
     empty: 'இதுவரை இணைப்புகள் எதுவும் பதிவாகவில்லை.',
     emptyFiltered: 'இந்த வடிகட்டியில் எதுவும் இல்லை.',
     today: 'இன்று',
@@ -15498,7 +15550,34 @@ const ta: UiStrings = {
     clearConfirm: 'அழி',
     statusFailed: 'தோல்வி',
     statusOffline: 'ஆஃப்லைன்',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'சரி',
+    syncSummary: {
+      one: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+      other: 'ஒத்திசைவு · 7 நாட்களில் {n} முறை',
+    },
+    syncLast: 'கடைசி ஒத்திசைவு {time}',
+    calls: {
+      exchangeRate: 'நாணய மாற்று விகிதம்',
+      statement: 'அறிக்கையைப் படித்தல்',
+      screenshot: 'ஸ்கிரீன்ஷாட்டைப் படித்தல்',
+      receipt: 'ரசீதைப் படித்தல்',
+      voice: 'குரல்',
+      upload: 'கோப்பைப் பதிவேற்றுதல்',
+      signIn: 'உள்நுழைவு',
+      analytics: 'பயன்பாட்டு நிகழ்வு',
+      purchases: 'வாங்குதல்கள்',
+      crashReport: 'பிழை அறிக்கை',
+      sessionReplay: 'அமர்வு மறுஒளிபரப்பு',
+      mapTiles: 'வரைபட ஓடுகள்',
+      google: 'Google',
+      appStore: 'புதிய பதிப்பு சோதனை',
+      accountDelete: 'கணக்கை நீக்குதல்',
+      exportData: 'என் தரவை ஏற்றுமதி',
+      invite: 'அழைப்பு',
+      connectedApps: 'இணைக்கப்பட்ட ஆப்கள்',
+      serverRequest: 'Waves சர்வர்',
+    },
     purposes: {
       sync: 'ஒத்திசைவு',
       signIn: 'உள்நுழைவு',
@@ -20559,7 +20638,7 @@ const hi: UiStrings = {
     rowHint: 'इस फ़ोन के हर कनेक्शन की सूची, जो सिर्फ़ इसी में रहती है',
     title: 'नेटवर्क गतिविधि',
     explainer:
-      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो भी कनेक्शन बनाए, वे सब। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
+      'पिछले 7 दिनों में Waves ने इस फ़ोन से जो कॉल किए, वे सब। बैकग्राउंड सिंक सिर्फ़ गिनती के रूप में दिखता है। यह सूची आपके फ़ोन से बाहर कभी नहीं जाती।',
     empty: 'अभी तक कोई कनेक्शन दर्ज नहीं हुआ।',
     emptyFiltered: 'इस फ़िल्टर में कुछ नहीं है।',
     today: 'आज',
@@ -20571,7 +20650,31 @@ const hi: UiStrings = {
     clearConfirm: 'साफ़ करें',
     statusFailed: 'विफल',
     statusOffline: 'ऑफ़लाइन',
-    rowLabel: '{time}, {purpose}, {method} {address}, {status}',
+    rowLabel: '{time}, {call}, {status}',
+    statusOk: 'ठीक',
+    syncSummary: { one: 'सिंक · 7 दिनों में {n} बार', other: 'सिंक · 7 दिनों में {n} बार' },
+    syncLast: 'आखिरी सिंक {time}',
+    calls: {
+      exchangeRate: 'विनिमय दर',
+      statement: 'स्टेटमेंट पढ़ना',
+      screenshot: 'स्क्रीनशॉट पढ़ना',
+      receipt: 'रसीद पढ़ना',
+      voice: 'आवाज़',
+      upload: 'फ़ाइल अपलोड',
+      signIn: 'साइन इन',
+      analytics: 'उपयोग इवेंट',
+      purchases: 'खरीदारी',
+      crashReport: 'क्रैश रिपोर्ट',
+      sessionReplay: 'सेशन रीप्ले',
+      mapTiles: 'मैप टाइल',
+      google: 'Google',
+      appStore: 'अपडेट की जाँच',
+      accountDelete: 'खाता हटाना',
+      exportData: 'मेरा डेटा निर्यात',
+      invite: 'आमंत्रण',
+      connectedApps: 'कनेक्टेड ऐप्स',
+      serverRequest: 'Waves सर्वर',
+    },
     purposes: {
       sync: 'सिंक',
       signIn: 'साइन-इन',
@@ -26213,7 +26316,7 @@ const ar: UiStrings = {
     rowHint: 'كل اتصال أجراه هذا الهاتف، ويبقى عليه فقط',
     title: 'نشاط الشبكة',
     explainer:
-      'كل اتصال أجراه Waves من هذا الهاتف خلال آخر 7 أيام. لا تغادر هذه القائمة هاتفك أبدًا.',
+      'ما طلبه Waves من هذا الهاتف خلال آخر 7 أيام. تظهر المزامنة في الخلفية كعدد فقط. لا تغادر هذه القائمة هاتفك أبدًا.',
     empty: 'لم يُسجَّل أي اتصال بعد.',
     emptyFiltered: 'لا شيء ضمن هذا المرشِّح.',
     today: 'اليوم',
@@ -26225,7 +26328,38 @@ const ar: UiStrings = {
     clearConfirm: 'مسح',
     statusFailed: 'فشل',
     statusOffline: 'بلا اتصال',
-    rowLabel: '{time}، {purpose}، {method} {address}، {status}',
+    rowLabel: '{time}، {call}، {status}',
+    statusOk: 'تم',
+    syncSummary: {
+      zero: 'مزامنة · {n} مرة خلال 7 أيام',
+      one: 'مزامنة · مرة واحدة خلال 7 أيام',
+      two: 'مزامنة · مرتان خلال 7 أيام',
+      few: 'مزامنة · {n} مرات خلال 7 أيام',
+      many: 'مزامنة · {n} مرة خلال 7 أيام',
+      other: 'مزامنة · {n} مرة خلال 7 أيام',
+    },
+    syncLast: 'آخر مزامنة {time}',
+    calls: {
+      exchangeRate: 'سعر الصرف',
+      statement: 'قراءة كشف حساب',
+      screenshot: 'قراءة لقطة شاشة',
+      receipt: 'قراءة إيصال',
+      voice: 'الصوت',
+      upload: 'رفع ملف',
+      signIn: 'تسجيل الدخول',
+      analytics: 'حدث استخدام',
+      purchases: 'المشتريات',
+      crashReport: 'تقرير تعطل',
+      sessionReplay: 'إعادة الجلسة',
+      mapTiles: 'مربعات الخريطة',
+      google: 'Google',
+      appStore: 'التحقق من التحديث',
+      accountDelete: 'حذف الحساب',
+      exportData: 'تصدير بياناتي',
+      invite: 'دعوة',
+      connectedApps: 'التطبيقات المتصلة',
+      serverRequest: 'خادم Waves',
+    },
     purposes: {
       sync: 'المزامنة',
       signIn: 'تسجيل الدخول',
