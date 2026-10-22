@@ -567,6 +567,14 @@ describe('families', () => {
     expect((plain.json as unknown[]).length).toBe(3);
   });
 
+  it('fails by family when the families cannot be read, instead of falling back to people', async () => {
+    const broken = { ...answers, groups: { error: { message: 'boom' } } };
+    for (const name of ['get_balances', 'settlement_plan', 'list_members']) {
+      const r = await call(fakeSupabase(broken).client, name, { groupId: GROUP, by: 'family' });
+      expect(r.isError).toBe(true);
+    }
+  });
+
   it('add_expense accepts a units split and the balance reads offer a family lens', async () => {
     const client = await connect(fakeSupabase({}).client);
     const { tools } = await client.listTools();

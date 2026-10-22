@@ -15,6 +15,7 @@ const GROUP = randomUUID();
 
 const backend = {
   units: null as unknown,
+  role: 'admin',
   patches: [] as Record<string, unknown>[],
   written: [] as Record<string, unknown>[],
 };
@@ -24,7 +25,14 @@ function query(table: string) {
   const q: Record<string, unknown> = {
     then: (resolve: (v: unknown) => unknown) => {
       if (table === 'group_members') {
-        return resolve({ data: [RAVI, PRIYA, ASHA].map((id) => ({ id })), error: null });
+        return resolve({
+          data: [RAVI, PRIYA, ASHA].map((id) => ({
+            id,
+            role: id === RAVI ? backend.role : 'member',
+            profile_id: id === RAVI ? ME : null,
+          })),
+          error: null,
+        });
       }
       if (table === 'group_balances') {
         return resolve({
@@ -113,6 +121,7 @@ beforeEach(() => {
   vi.stubEnv('WAVES_API_WEB_URL', 'https://app.example.test');
   vi.stubEnv('WAVES_API_ALLOWED_ORIGINS', 'https://app.example.test');
   backend.units = SHARMA;
+  backend.role = 'admin';
   backend.patches = [];
   backend.written = [];
 });
@@ -152,6 +161,21 @@ describe('groups.units', () => {
     ['an array', [RAVI]],
   ])('refuses %s with a 400', async (_label, units) => {
     const response = await call('PATCH', `/v1/groups/${GROUP}`, { units });
+    expect(response.status).toBe(400);
+    expect(backend.patches).toEqual([]);
+  });
+
+  it('refuses a non-admin with a 403 before the database is asked', async () => {
+    backend.role = 'member';
+    const response = await call('PATCH', `/v1/groups/${GROUP}`, { units: SHARMA });
+    expect(response.status).toBe(403);
+    expect(backend.patches).toEqual([]);
+  });
+
+  it('refuses a family id that is a member id (it would net two balances away)', async () => {
+    const response = await call('PATCH', `/v1/groups/${GROUP}`, {
+      units: { [ASHA]: { name: 'Family A', members: [RAVI] } },
+    });
     expect(response.status).toBe(400);
     expect(backend.patches).toEqual([]);
   });

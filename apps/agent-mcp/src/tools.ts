@@ -148,10 +148,14 @@ const By = z
   .describe('"member" (default) or "family": roll up by the group\'s families.');
 
 /** `groups.units` for a group, or null when it has none. */
-async function loadUnits(supabase: SupabaseClient, groupId: string): Promise<Units | null> {
-  const { data } = await supabase.from('groups').select('units').eq('id', groupId).limit(1);
+async function loadUnits(
+  supabase: SupabaseClient,
+  groupId: string,
+): Promise<{ units: Units | null } | ToolResult> {
+  const { data, error } = await supabase.from('groups').select('units').eq('id', groupId).limit(1);
+  if (error) return fail(error.message);
   const units = (data?.[0] as { units?: Units | null } | undefined)?.units;
-  return units && Object.keys(units).length > 0 ? units : null;
+  return { units: units && Object.keys(units).length > 0 ? units : null };
 }
 
 /** A group's current members, named, with "you" marked and how each is paid. */
@@ -339,7 +343,9 @@ export function buildWavesServer(
     async ({ groupId }): Promise<ToolResult> => {
       const members = await loadMembers(supabase, meId, groupId);
       if (!Array.isArray(members)) return members;
-      const units = await loadUnits(supabase, groupId);
+      const loaded = await loadUnits(supabase, groupId);
+      if (!('units' in loaded)) return loaded;
+      const { units } = loaded;
       if (!units) return ok(members);
       return ok(
         members.map((m) => {
@@ -367,7 +373,9 @@ export function buildWavesServer(
       if (!Array.isArray(members)) return members;
       const byId = new Map(members.map((m) => [m.memberId, m]));
       if (by === 'family') {
-        const units = await loadUnits(supabase, groupId);
+        const loaded = await loadUnits(supabase, groupId);
+        if (!('units' in loaded)) return loaded;
+        const { units } = loaded;
         return ok(
           rollUpByFamily(data ?? [], units).map((row) => ({
             unitId: row.member_id,
@@ -413,7 +421,9 @@ export function buildWavesServer(
       if (!Array.isArray(members)) return members;
 
       let transfers: Transfer[];
-      const units = by === 'family' ? await loadUnits(supabase, groupId) : null;
+      const loaded = by === 'family' ? await loadUnits(supabase, groupId) : { units: null };
+      if (!('units' in loaded)) return loaded;
+      const { units } = loaded;
       if (by === 'family' || group.simplify_debts) {
         const { data, error } = await supabase
           .from('group_balances')

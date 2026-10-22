@@ -201,12 +201,18 @@ groups.patch('/groups/:groupId', requireScope('groups.write'), async (c) => {
   if ('units' in body) {
     // Same check /sync makes: every id a member of this group, nobody in two
     // families, a head who is in the family. Admin-only is the column guard's.
-    const members = await me.supabase.from('group_members').select('id').eq('group_id', groupId);
+    const members = await me.supabase
+      .from('group_members')
+      .select('id, role, profile_id')
+      .eq('group_id', groupId);
     if (members.error) throw members.error;
-    const verdict = validateGroupUnits(
-      body.units,
-      new Set((members.data ?? []).map((row) => (row as { id: string }).id)),
-    );
+    const rows = (members.data ?? []) as { id: string; role: string; profile_id: string | null }[];
+    // Same gate as /sync's NOT_AN_ADMIN, so a non-admin gets a 403 rather than the
+    // column guard's raw database error.
+    if (!rows.some((row) => row.profile_id === me.profileId && row.role === 'admin')) {
+      throw new ApiError('forbidden', 'Only an admin changes the families.');
+    }
+    const verdict = validateGroupUnits(body.units, new Set(rows.map((row) => row.id)));
     if (!verdict.ok) throw new ApiError('invalid_request', verdict.reason);
     patch.units = verdict.units;
   }
