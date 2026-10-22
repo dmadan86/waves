@@ -85,3 +85,18 @@ export function withoutApp(apps: readonly ConnectedApp[], clientId: string): Con
 
 /** Where the empty state sends people to learn how to connect an assistant. */
 export const CONNECT_GUIDE_URL = 'https://wavs.co.in/mcp';
+
+/**
+ * What the Settings row says under "Connected apps": how many assistants have
+ * access. `null` while the list is unread or failed to load, so the caller
+ * keeps its generic hint -- "None connected" about a fetch that never
+ * succeeded would be a false comfort.
+ */
+export function connectedAppsRowHint(
+  count: number | undefined,
+  none: string,
+  format: (count: number) => string,
+): string | null {
+  if (count === undefined) return null;
+  return count === 0 ? none : format(count);
+}

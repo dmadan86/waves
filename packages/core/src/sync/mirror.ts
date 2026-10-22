@@ -590,13 +590,16 @@ export function materialiseMembers(
       name: string;
       email?: string | null;
       phone?: string | null;
+      profileId?: string | null;
     };
     const id = payload.memberId ?? `pending:${mutation.clientMutationId}`;
     if (byId.has(id)) continue;
     byId.set(id, {
       id,
       group_id: mutation.groupId,
-      profile_id: null,
+      // A known account (a member cloned from another group) is on Waves from
+      // the first render; the name stands in until their profile row arrives.
+      profile_id: payload.profileId ?? null,
       ghost_name: payload.name,
       left_at: null,
       invite_email: payload.email ?? null,
