@@ -5057,6 +5057,10 @@ export interface UiStrings {
   };
   /** Families inside a group: the settings screen, the split choice, the balances lens. */
   families: {
+    shareStatement: string;
+    shareStatementBody: string;
+    couldNotShare: string;
+
     title: string;
     rowHint: string;
     summary: PluralForms;
@@ -10112,6 +10116,10 @@ const en: UiStrings = {
     stops: { one: '{n} stop', other: '{n} stops' },
   },
   families: {
+    shareStatement: 'Share statement',
+    shareStatementBody: 'Send this family their bill',
+    couldNotShare: 'Could not share the statement.',
+
     title: 'Families',
     rowHint: 'People who settle together',
     summary: { one: '{n} family', other: '{n} families' },
@@ -15337,6 +15345,10 @@ const ta: UiStrings = {
     stops: { one: '{n} இடம்', other: '{n} இடங்கள்' },
   },
   families: {
+    shareStatement: 'அறிக்கையைப் பகிரவும்',
+    shareStatementBody: 'இந்தக் குடும்பத்திற்கு அவர்களின் கணக்கை அனுப்பவும்',
+    couldNotShare: 'அறிக்கையைப் பகிர முடியவில்லை.',
+
     title: 'குடும்பங்கள்',
     rowHint: 'ஒன்றாகத் தீர்த்துக்கொள்பவர்கள்',
     summary: { one: '{n} குடும்பம்', other: '{n} குடும்பங்கள்' },
@@ -20430,6 +20442,10 @@ const hi: UiStrings = {
     stops: { one: '{n} जगह', other: '{n} जगहें' },
   },
   families: {
+    shareStatement: 'विवरण साझा करें',
+    shareStatementBody: 'इस परिवार को उनका बिल भेजें',
+    couldNotShare: 'विवरण साझा नहीं हो सका।',
+
     title: 'परिवार',
     rowHint: 'जो लोग साथ में हिसाब चुकाते हैं',
     summary: { one: '{n} परिवार', other: '{n} परिवार' },
@@ -26107,6 +26123,10 @@ const ar: UiStrings = {
     },
   },
   families: {
+    shareStatement: 'مشاركة الكشف',
+    shareStatementBody: 'أرسل لهذه العائلة فاتورتها',
+    couldNotShare: 'تعذرت مشاركة الكشف.',
+
     title: 'العائلات',
     rowHint: 'من يسدّدون معًا',
     summary: {
