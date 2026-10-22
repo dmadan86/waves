@@ -21,7 +21,11 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
-import { resetMuted as resetMutedFollowUps, setEnabled as setFollowUpsEnabled } from '@waves/core';
+import {
+  mutedCount as mutedFollowUpCount,
+  resetMuted as resetMutedFollowUps,
+  setEnabled as setFollowUpsEnabled,
+} from '@waves/core';
 import { useFollowUpPrefs } from '@/lib/followUpPrefs';
 import { useToast } from '@/lib/toast';
 import { SkeletonList } from '@/components/Skeletons';
@@ -115,6 +119,7 @@ function ProfileForm() {
   const showVoiceRecorder = voiceAgentOn || __DEV__;
   const voiceConsent = useVoiceConsent(session?.user?.id);
   const followUps = useFollowUpPrefs(session?.user?.id);
+  const mutedFollowUps = mutedFollowUpCount(followUps.prefs);
   const toast = useToast();
   const [consentSheet, setConsentSheet] = useState(false);
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
@@ -396,15 +401,20 @@ function ProfileForm() {
                         followUps.update((p) => setFollowUpsEnabled(p, on)),
                     },
                   },
-                  {
-                    icon: 'refresh-outline' as const,
-                    label: t.followUps.resetRow,
-                    hint: t.followUps.resetHint,
-                    onPress: () => {
-                      followUps.update(resetMutedFollowUps);
-                      toast.show(t.followUps.resetDone);
-                    },
-                  },
+                  // Only worth showing while something is muted; it vanishes after the reset.
+                  ...(mutedFollowUps > 0
+                    ? [
+                        {
+                          icon: 'refresh-outline' as const,
+                          label: t.followUps.resetRow,
+                          hint: plural(locale, mutedFollowUps, t.followUps.resetHint),
+                          onPress: () => {
+                            followUps.update(resetMutedFollowUps);
+                            toast.show(t.followUps.resetDone);
+                          },
+                        },
+                      ]
+                    : []),
                 ]
               : []),
             // Testers only: the server flag for advanced voice, or a dev build.
