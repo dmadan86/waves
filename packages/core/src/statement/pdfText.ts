@@ -65,10 +65,10 @@ const DATE_AMOUNT_PAIRS = new RegExp(
 );
 const YEAR_LINE = /^\s*((?:19|20)\d{2})\s*$/;
 /** SBI prints the year of a row's two dates on the line below: `2021 2021 412345678901 UPI REF-`. */
-const YEAR_PREFIX = /^\s*((?:19|20)\d{2})(?:\s+(?:19|20)\d{2})*(?:\s+(.*))?$/;
+const YEAR_PREFIX = /^\s*((?:19|20)\d{2})(?:\s+(?:19|20)\d{2})*(?:\s+([\s\S]*))?$/;
 
 const FURNITURE =
-  /\b(?:registered office|gstin|computer generated|page\s*(?:no\s*\.?\s*:?\s*)?\d+|statement of account|statement summary|account summary|transaction overview|www\.|https?:|customer care|toll free|generated on|end of statement|closing balance|opening balance|beginning balance|ending balance|brought forward|carried forward|totals?|sub\s?total|all dates are|please do not share|contents of this statement|does not require|legends? used)\b/i;
+  /\b(?:registered office|gstin|computer generated|page\s*(?:no[\s.:]{0,32})?\d+|statement of account|statement summary|account summary|transaction overview|www\.|https?:|customer care|toll free|generated on|end of statement|closing balance|opening balance|beginning balance|ending balance|brought forward|carried forward|totals?|sub\s?total|all dates are|please do not share|contents of this statement|does not require|legends? used)\b/i;
 /** `Account No : 5010…`, `Page No .: 1`: a labelled field, never part of a narration. */
 const LABEL = /^[^:\n]{1,48}:(?:\s|$)/;
 /** The table's own header, repeated on every page. */

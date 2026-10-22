@@ -25,9 +25,9 @@ const claude = (calls: Call[], usage?: Record<string, number>) =>
 /** Route actual provider URLs, retaining each provider's native tool-call shape. */
 function scriptedLlm(calls: Call[], transcript = 'at Blue Tokai'): FetchImpl {
   return (url) => {
-    if (hostOf(url).endsWith('deepgram.com')) return deepgram(transcript);
-    if (hostOf(url).endsWith('anthropic.com')) return claude(calls);
-    if (hostOf(url).startsWith('generativelanguage.'))
+    if (isHost(url, 'deepgram.com')) return deepgram(transcript);
+    if (isHost(url, 'anthropic.com')) return claude(calls);
+    if (isHost(url, 'generativelanguage.googleapis.com'))
       return new Response(
         JSON.stringify({
           candidates: [
@@ -39,7 +39,7 @@ function scriptedLlm(calls: Call[], transcript = 'at Blue Tokai'): FetchImpl {
           ],
         }),
       );
-    if (hostOf(url).endsWith('openrouter.ai') || hostOf(url).endsWith('deepseek.com'))
+    if (isHost(url, 'openrouter.ai') || isHost(url, 'deepseek.com'))
       return new Response(
         JSON.stringify({
           choices: [
@@ -233,9 +233,7 @@ describe('follow-up handler integration', () => {
     const { deps } = makeDeps({
       limits: { llmAttemptMs: 25, minAttemptMs: 5 },
       fetchImpl: (url, init) =>
-        hostOf(url).endsWith('openrouter.ai')
-          ? hang(url, init)
-          : scriptedLlm([update()])(url, init),
+        isHost(url, 'openrouter.ai') ? hang(url, init) : scriptedLlm([update()])(url, init),
     });
     expect((await run(deps, { savedExpense: saved })).update.place).toBe('Blue Tokai');
     expect(logs()[0]).toMatchObject({ escalated: true, failures: ['openrouter:timeout'] });
@@ -322,7 +320,7 @@ describe('follow-up handler integration', () => {
     const { deps, fetchMock } = makeDeps();
     const body = await (await handleVoiceAgent(clip({ transcript: 'typed command' }), deps)).json();
     expect(body.transcript).toBe('typed command');
-    expect(fetchMock.mock.calls.some(([u]) => u.includes('deepgram'))).toBe(false);
+    expect(fetchMock.mock.calls.some(([u]) => isHost(u, 'deepgram.com'))).toBe(false);
   });
   it('EH-13 Anthropic logs cache usage and computed cost without names or transcript', async () => {
     const { deps } = makeDeps({
@@ -458,7 +456,7 @@ describe('follow-up handler integration', () => {
     });
     expect((await run(deps)).answer).toBe('Done.');
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls.every(([u]) => u.includes('openrouter'))).toBe(true);
+    expect(fetchMock.mock.calls.every(([u]) => isHost(u, 'openrouter.ai'))).toBe(true);
     const p = payloads(fetchMock);
     expect(p[0].reasoning).toEqual({ effort: 'low' });
     expect(p[1]).not.toHaveProperty('reasoning');
@@ -468,7 +466,7 @@ describe('follow-up handler integration', () => {
     const { deps, fetchMock } = makeDeps({
       env: { VOICE_LLM_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'ds', OPENROUTER_API_KEY: '' },
       fetchImpl: (url, init) =>
-        hostOf(url).endsWith('deepseek.com')
+        isHost(url, 'deepseek.com')
           ? new Response(
               JSON.stringify({
                 choices: [
@@ -485,14 +483,14 @@ describe('follow-up handler integration', () => {
     const body = await run(deps);
     expect(body.answer).toBe('Done.');
     expect(body.actions).toEqual([]);
-    expect(fetchMock.mock.calls.filter(([u]) => u.includes('deepseek'))).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter(([u]) => isHost(u, 'deepseek.com'))).toHaveLength(2);
     expect(fetchMock.mock.calls.at(-1)![0]).toContain('generativelanguage');
     expect(logs()[0].escalated).toBe(true);
   });
   it('EH-24 non-JSON 200 counts toward breaker failure', async () => {
     const { deps } = makeDeps({
       fetchImpl: (url, init) =>
-        hostOf(url).endsWith('openrouter.ai')
+        isHost(url, 'openrouter.ai')
           ? new Response('<html>bad</html>')
           : scriptedLlm([answer])(url, init),
     });
@@ -527,7 +525,7 @@ describe('follow-up handler integration', () => {
     ]) {
       const { deps, fetchMock } = makeDeps();
       await handleVoiceAgent(clip({ locale }), deps);
-      const dg = fetchMock.mock.calls.find(([u]) => u.includes('deepgram'))!;
+      const dg = fetchMock.mock.calls.find(([u]) => isHost(u, 'deepgram.com'))!;
       expect(new URL(dg[0]).searchParams.get('language')).toBe(language);
     }
   });
@@ -540,6 +538,8 @@ describe('follow-up handler integration', () => {
   });
 });
 
-function hostOf(url: string): string {
-  return new URL(url).hostname;
+/** Exact host or a subdomain of it, never a substring of the URL. */
+function isHost(url: string, domain: string): boolean {
+  const host = new URL(url).hostname;
+  return host === domain || host.endsWith(`.${domain}`);
 }

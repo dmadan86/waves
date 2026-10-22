@@ -84,8 +84,8 @@ function makeDeps(
   const fetchMock = vi.fn(
     over.fetchImpl ??
       ((url: string) => {
-        if (hostOf(url).endsWith('api.deepgram.com')) return deepgram('at Blue Tokai');
-        if (hostOf(url).endsWith('api.anthropic.com'))
+        if (isHost(url, 'api.deepgram.com')) return deepgram('at Blue Tokai');
+        if (isHost(url, 'api.anthropic.com'))
           return claude({
             name: 'update_expense',
             input: { expenseId: fixtures.saved.personal.id, place: 'Blue Tokai' },
@@ -478,6 +478,8 @@ describe('tool validation and injection boundaries', () => {
   });
 });
 
-function hostOf(url: string): string {
-  return new URL(url).hostname;
+/** Exact host or a subdomain of it, never a substring of the URL. */
+function isHost(url: string, domain: string): boolean {
+  const host = new URL(url).hostname;
+  return host === domain || host.endsWith(`.${domain}`);
 }

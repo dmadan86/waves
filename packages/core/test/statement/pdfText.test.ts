@@ -90,3 +90,20 @@ describe('a misread amount', () => {
     expect(result.rows[3]!.warnings).not.toContain('balance_mismatch');
   });
 });
+
+describe('pathological whitespace', () => {
+  // Statement text is user-uploaded and also parsed server-side: no input may go super-linear.
+  const bad = [
+    `page${'\t'.repeat(50_000)}no${'\t'.repeat(50_000)}`,
+    `page${'\t'.repeat(50_000)}`,
+    `2020${'\t\t'.repeat(25_000)}x\ry`,
+    '\t\t'.repeat(25_000),
+    ' \t'.repeat(25_000),
+  ];
+
+  it.each(bad.map((text, i) => [i, text] as const))('case %i parses in under 50 ms', (_i, text) => {
+    const start = performance.now();
+    parseStatementText([`${text}\n${text}`], { today: '2026-10-17' });
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+});

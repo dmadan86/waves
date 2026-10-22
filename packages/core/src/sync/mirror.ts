@@ -69,6 +69,8 @@ export interface MirrorState {
   readonly tables: Readonly<Record<SyncTable, Readonly<Record<string, MirrorRow>>>>;
 }
 
+const UNSAFE_IDS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
+
 const TABLES: readonly SyncTable[] = [
   SyncTable.Groups,
   SyncTable.GroupMembers,
@@ -136,7 +138,8 @@ export function reconcile(state: MirrorState, changes: readonly SyncChange[]): R
     }
 
     const id = idOf(change.row);
-    if (id === undefined) continue;
+    // Server-supplied keys: never let them reach Object.prototype or an unknown table.
+    if (id === undefined || UNSAFE_IDS.has(id) || !Object.hasOwn(tables, change.table)) continue;
 
     const key = `${change.table}:${id}`;
     if ((winningSeq.get(key) ?? -1) > change.seq) continue;
