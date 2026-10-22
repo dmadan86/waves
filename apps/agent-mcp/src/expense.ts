@@ -7,7 +7,12 @@
 export type AgentSplit =
   | { readonly kind: 'equal' }
   | { readonly kind: 'exact'; readonly amounts: Record<string, string> }
-  | { readonly kind: 'shares'; readonly weights: Record<string, number> };
+  | { readonly kind: 'shares'; readonly weights: Record<string, number> }
+  | {
+      readonly kind: 'units';
+      readonly units: Record<string, string[]>;
+      readonly weights?: Record<string, number>;
+    };
 
 export interface AgentExpenseInput {
   readonly groupId: string;
@@ -50,6 +55,11 @@ export interface ExpenseWriteBody {
 export function splitParamsFor(split: AgentSplit | undefined): AgentSplit {
   if (!split || split.kind === 'equal') return { kind: 'equal' };
   if (split.kind === 'exact') return { kind: 'exact', amounts: split.amounts };
+  if (split.kind === 'units') {
+    return split.weights
+      ? { kind: 'units', units: split.units, weights: split.weights }
+      : { kind: 'units', units: split.units };
+  }
   return { kind: 'shares', weights: split.weights };
 }
 
