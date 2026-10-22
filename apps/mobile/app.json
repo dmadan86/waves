@@ -160,7 +160,7 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Waves uses the microphone only while you hold the mic button, to write down what you say.",
+          "microphonePermission": "Waves uses the microphone only while you hold the mic button, to write down what you say. With advanced voice on, the sound is sent to our transcription service and not stored.",
           "speechRecognitionPermission": "Waves turns what you say into the note on an expense, so you can add one without typing at the table.",
           "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
@@ -173,14 +173,14 @@
           "enableBackgroundAudio": false,
           "enableDeviceDetection": false,
           "iosConfig": {
-            "microphoneUsageDescription": "Waves uses the microphone only while you hold the mic button, to write down what you say."
+            "microphoneUsageDescription": "Waves uses the microphone only while you hold the mic button, to write down what you say. With advanced voice on, the sound is sent to our transcription service and not stored."
           }
         }
       ],
       [
         "react-native-document-scanner-plugin",
         {
-          "cameraPermission": "Waves uses the camera to scan a bill, so the total and the items come out filled in instead of typed. The photograph stays on this phone whenever it can be read here."
+          "cameraPermission": "Waves uses the camera to scan a bill, so the total and the items come out filled in instead of typed. The photo is uploaded to Waves and read by an AI service."
         }
       ],
       [
@@ -192,7 +192,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Waves uses your location only when you tap to add a place to an expense, so you can remember where you spent. It is never tracked in the background.",
+          "locationWhenInUsePermission": "Waves attaches where you are to a new expense, so you can remember where you spent. You can remove it before saving. Location is read only while you use the app, never in the background.",
           "isAndroidForegroundServiceEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
