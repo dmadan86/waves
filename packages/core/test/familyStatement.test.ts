@@ -54,10 +54,32 @@ describe('family statement', () => {
     expect(formatFamilyStatement(result)).toContain('Settlements');
   });
   it('handles a family without expenses and settlement-only balances', () => {
-    expect(statement([]).totals[0]).toEqual({ currency: 'INR', paid: 0n, share: 0n, net: 0n });
+    expect(statement([]).totals).toEqual([]);
     expect(formatFamilyStatement(statement([]))).toContain('No expenses.');
     expect(formatFamilyStatement(statement([]))).toContain('All settled.');
     expect(statement([], [payment]).totals[0]?.net).toBe(20n);
+  });
+  it('does not produce a phantom group-currency total when the family has only foreign-currency activity', () => {
+    // Group currency is INR, but this family's only expense is in USD.
+    const usdExpense: FamilyStatementExpense = {
+      id: 'u',
+      description: 'Hotel',
+      date: '2026-10-22',
+      currency: 'USD',
+      amount: 200n,
+      payers: { a: 200n },
+      shares: { a: 100n, b: 100n },
+    };
+    const result = familyStatement(
+      { name: 'Trip', currency: 'INR' },
+      units,
+      'family',
+      [usdExpense],
+      [],
+    );
+    const currencies = result.totals.map((t) => t.currency);
+    expect(currencies).toEqual(['USD']);
+    expect(currencies).not.toContain('INR');
   });
   it('excludes deleted bills, includes payer-only bills and separates currencies', () => {
     const paid = {

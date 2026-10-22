@@ -53,9 +53,11 @@ export function familyStatement(
   const net = computeNetBalances(expenses, settlements);
   const rolled = unitNetBalances(net, units);
   const currencies = new Set([
-    group.currency,
     ...lines.map((line) => line.currency),
     ...payments.map((payment) => payment.currency),
+    ...[...rolled.entries()]
+      .filter(([, unitMap]) => (unitMap.get(unitId) ?? 0n) !== 0n)
+      .map(([currency]) => currency),
   ]);
   const totals = [...currencies].sort().map((currency) => ({
     currency,
@@ -122,7 +124,7 @@ export function formatFamilyStatement(statement: FamilyStatement): string {
       amount(payment.amount, payment.currency),
     );
   }
-  lines.push('', 'Totals');
+  if (statement.totals.length) lines.push('', 'Totals');
   for (const total of statement.totals) {
     lines.push(
       `Paid: ${amount(total.paid, total.currency)}`,
