@@ -655,7 +655,11 @@ export function VoiceCapture({
     const selfInflicted =
       event.error === 'audio-capture' && Date.now() - stoppedAt.current < STOP_ECHO_MS;
     const message = selfInflicted ? '' : dictationError(event.error, t.misc.dictationErrors);
-    if (message) {
+    // Silence is not a failure: it gets the "Didn't catch that" state, not
+    // "Something went wrong" over the same advice.
+    if (event.error === 'no-speech' || event.error === 'speech-timeout')
+      dispatch({ type: 'noSpeech' });
+    else if (message) {
       const permission = isPermissionError(event.error);
       dispatch({ type: 'error', message, permission, settings: permission });
     } else dispatch({ type: 'closed' });
