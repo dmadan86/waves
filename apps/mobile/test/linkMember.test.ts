@@ -7,7 +7,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { Language, STRINGS_BY_LANGUAGE, type UiStrings } from '@/i18n';
-import { channelFor, linkReasonText, matchPeople, membersAsPeople } from '@/lib/linkMember';
+import {
+  channelFor,
+  linkableGroups,
+  linkMemberRoute,
+  linkReasonText,
+  matchPeople,
+  membersAsPeople,
+} from '@/lib/linkMember';
 
 vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
@@ -101,5 +108,21 @@ describe('linkReasonText', () => {
         expect(strings.link[key], `${language}.link.${key}`).toBeTruthy();
       }
     }
+  });
+});
+
+describe('linkableGroups / linkMemberRoute', () => {
+  const groups = [
+    { groupId: 'g1', otherMemberId: 'm1', viewerIsAdmin: true, otherIsGhost: true },
+    { groupId: 'g2', otherMemberId: 'm2', viewerIsAdmin: false, otherIsGhost: true },
+    { groupId: 'g3', otherMemberId: 'm3', viewerIsAdmin: true, otherIsGhost: false },
+  ];
+
+  it('offers only the groups the viewer runs where the person is still a placeholder', () => {
+    expect(linkableGroups(groups).map((group) => group.groupId)).toEqual(['g1']);
+  });
+
+  it("routes to that placeholder's member page with the sheet open", () => {
+    expect(linkMemberRoute(groups[0]!)).toBe('/group/g1/member/m1?link=1');
   });
 });

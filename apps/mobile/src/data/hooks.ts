@@ -1059,6 +1059,8 @@ export interface PairGroupMeta {
   otherName: string;
   /** Every row of them here is a guest added by name. */
   otherIsGhost: boolean;
+  /** The viewer runs this group, so may say who a placeholder in it really is. */
+  viewerIsAdmin: boolean;
 }
 
 export interface PairView {
@@ -1159,6 +1161,7 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
           );
         })(),
         otherIsGhost: others.every((member) => isGhost(member)),
+        viewerIsAdmin: me.role === 'admin',
       });
     }
 

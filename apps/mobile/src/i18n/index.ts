@@ -5165,6 +5165,7 @@ export interface UiStrings {
   link: {
     row: string;
     rowHint: string;
+    pickGroupBody: string;
     waiting: string;
     waitingHint: string;
     cancelAsk: string;
@@ -10195,6 +10196,8 @@ const en: UiStrings = {
   link: {
     row: 'Link to a Waves user',
     rowHint: 'Say which person {name} really is.',
+    pickGroupBody:
+      '{name} is a placeholder in {n} groups. Each links on its own: pick one, then come back for the others.',
     waiting: 'Waiting for {who} to accept',
     waitingHint: 'Nothing changes until they say yes.',
     cancelAsk: 'Cancel the ask',
@@ -15402,6 +15405,8 @@ const ta: UiStrings = {
   link: {
     row: 'Waves பயனருடன் இணைக்கவும்',
     rowHint: '{name} உண்மையில் யார் என்று சொல்லுங்கள்.',
+    pickGroupBody:
+      '{name} {n} குழுக்களில் இடம்பிடிப்பாளராக உள்ளார். ஒவ்வொன்றும் தனித்தனியாக இணைக்கப்படும்: ஒன்றைத் தேர்ந்தெடுத்து, மற்றவற்றுக்குப் பிறகு திரும்பி வாருங்கள்.',
     waiting: '{who} ஏற்கும் வரை காத்திருக்கிறது',
     waitingHint: 'அவர் சம்மதிக்கும் வரை எதுவும் மாறாது.',
     cancelAsk: 'கேட்டதை ரத்து செய்',
@@ -20468,6 +20473,8 @@ const hi: UiStrings = {
   link: {
     row: 'Waves यूज़र से जोड़ें',
     rowHint: 'बताएँ कि {name} असल में कौन है।',
+    pickGroupBody:
+      '{name} {n} समूहों में प्लेसहोल्डर है। हर समूह अलग से जुड़ता है: एक चुनें, फिर बाकी के लिए लौटें।',
     waiting: '{who} के स्वीकार करने का इंतज़ार',
     waitingHint: 'जब तक वे हाँ न कहें, कुछ नहीं बदलेगा।',
     cancelAsk: 'पूछना रद्द करें',
@@ -26118,6 +26125,8 @@ const ar: UiStrings = {
   link: {
     row: 'ربط بمستخدم Waves',
     rowHint: 'قل من هو {name} فعلًا.',
+    pickGroupBody:
+      '{name} عنصر نائب في {n} مجموعات. كل مجموعة تُربط على حدة: اختر واحدة ثم عد للبقية.',
     waiting: 'بانتظار قبول {who}',
     waitingHint: 'لا يتغيّر شيء حتى يوافق.',
     cancelAsk: 'إلغاء الطلب',

@@ -228,7 +228,12 @@ export default function MemberScreen() {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
-  const { id, memberId } = useLocalSearchParams<{ id: string; memberId: string }>();
+  const { id, memberId, link } = useLocalSearchParams<{
+    id: string;
+    memberId: string;
+    /** `1` when Friends sent the viewer here to link this placeholder. */
+    link?: string;
+  }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
   // Identity for "which member am I", from the session rather than the profile:
@@ -269,6 +274,8 @@ export default function MemberScreen() {
   const [editing, setEditing] = useState<'name' | 'vpa' | null>(null);
   /** The "Who is Renny?" sheet. */
   const [linking, setLinking] = useState(false);
+  /** Whether the sheet was opened for Friends already: once per visit. */
+  const [autoLinked, setAutoLinked] = useState(false);
   /** What came of linking, in its own line: it can be good news. */
   const [linkNote, setLinkNote] = useState<{ text: string; ok: boolean } | null>(null);
   /** The expense feed's own order — newest first until flipped. */
@@ -379,6 +386,14 @@ export default function MemberScreen() {
   /** The ask waiting on this placeholder, if an admin has made one. */
   const pendingLink = links.data?.find((ask) => ask.member_id === member.id) ?? null;
   const placeholderName = member.ghost_name ?? t.misc.someone;
+
+  // Sent from Friends with "Link to a Waves user" already chosen: open the
+  // sheet once the asks are known (synced in render, the app's idiom). With an
+  // ask waiting, the row below says so instead.
+  if (link === '1' && !autoLinked && ghost && iAmAdmin && !member.left_at && links.isSuccess) {
+    setAutoLinked(true);
+    if (!pendingLink) setLinking(true);
+  }
 
   /**
    * A. The same person is already in this group: fold the placeholder into
