@@ -20,6 +20,22 @@ export interface SettlePlanSplit {
   readonly others: readonly PlanTransfer[];
 }
 
+/**
+ * The key a pending (initiated, unconfirmed) payment is matched to a plan
+ * line by: payer, payee and currency. `partyOf` widens a member to the party
+ * they settle as — their family in the Families lens — so a payment one
+ * family member has already marked counts against the family's line for
+ * everyone in it, rather than only for the exact pair who recorded it.
+ */
+export function pendingPairKey(
+  from: string,
+  to: string,
+  currency: string,
+  partyOf: (memberId: string) => string = (memberId) => memberId,
+): string {
+  return `${partyOf(from)}>${partyOf(to)}>${currency}`;
+}
+
 /** Zero-amount transfers are noise and are dropped. Order is preserved. */
 export function splitSettlePlan(
   transfers: readonly PlanTransfer[],

@@ -110,6 +110,7 @@ export interface GroupChangeLabels {
   budget(amountMinor: string, currency: string): string;
   budgetCleared: string;
   stops: string;
+  families: string;
   /** A field this build has not met. */
   changed: string;
   memberAdded(name: string): string;
@@ -151,6 +152,7 @@ export interface GroupChangeStrings {
   budget: string;
   budgetCleared: string;
   stops: string;
+  families: string;
   changed: string;
   memberAdded: string;
   memberRemoved: string;
@@ -188,6 +190,7 @@ export const ENGLISH_GROUP_STRINGS: GroupChangeStrings = {
   budget: 'Set the budget to {amount}',
   budgetCleared: 'Cleared the budget',
   stops: 'Changed the trip stops',
+  families: 'Changed the families',
   changed: 'Changed the group settings',
   memberAdded: 'Added {name}',
   memberRemoved: 'Removed {name}',
@@ -264,6 +267,7 @@ export function groupChangeLabels(
       fill(strings.budget, { amount: money(amountMinor, currency) }),
     budgetCleared: strings.budgetCleared,
     stops: strings.stops,
+    families: strings.families,
     changed: strings.changed,
     memberAdded: (name) => fill(strings.memberAdded, { name }),
     memberRemoved: (name) => fill(strings.memberRemoved, { name }),
@@ -383,6 +387,8 @@ function groupChangeHeadline(entry: ActivityRow, g: GroupChangeLabels): string {
     }
     case 'stops':
       return g.stops;
+    case 'families':
+      return g.families;
     default:
       return g.changed;
   }
@@ -744,6 +750,8 @@ export function groupChangeIcon(
       return 'wallet-outline';
     case 'stops':
       return 'map-outline';
+    case 'families':
+      return 'people-outline';
     default:
       return verbIcon('group_updated');
   }

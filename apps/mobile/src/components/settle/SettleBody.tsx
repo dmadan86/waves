@@ -68,14 +68,27 @@ import { groupDebtsByPerson, joinAmounts, type PersonAmount } from '@/lib/debtsB
 import { isRatelessTransfer } from '@/lib/settleCurrency';
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
 import { useAddRate } from '@/lib/useAddRate';
-import { splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
+import { pendingPairKey, splitSettlePlan, type PlanTransfer } from '@/lib/settlePlan';
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 import { useRemind } from '@/lib/useRemind';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-/** Everything the settle flow knows and does for one group; the sections below only draw it. */
-export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: () => void) {
+/**
+ * Everything the settle flow knows and does for one group; the sections below only draw it.
+ *
+ * `labelOf` dresses a name for the family lens — "Sharma family (Ravi)" for a
+ * head settling for their family — and `partyOf` says which family a member
+ * settles as, so a payment one family member has marked shows as pending on
+ * the family's line for all of them. Both are left out in the person lens.
+ */
+export function useSettleFlow(
+  groupId: string,
+  ledger: GroupLedger,
+  onRecorded: () => void,
+  labelOf?: (memberId: string, name: string) => string,
+  partyOf?: (memberId: string) => string,
+) {
   const { t, locale } = useStrings();
   const { confirm, notify, choose } = useDialog();
   const { profile } = useAuth();
@@ -107,13 +120,14 @@ export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: 
   );
 
   const nameOf = (memberId: string, bare = false): string => {
-    return memberNameById(lookup, memberId, {
+    const name = memberNameById(lookup, memberId, {
       viewerId: null,
       blocked: blockedIds,
       someone: t.misc.someone,
       leftLabel: t.misc.memberLeft,
       bare,
     });
+    return labelOf ? labelOf(memberId, name) : name;
   };
   const fmt = (value: bigint, code: string = currency): string =>
     format(money(value, code as CurrencyCode), { locale });
@@ -254,10 +268,10 @@ export function useSettleFlow(groupId: string, ledger: GroupLedger, onRecorded: 
   const pendingPairs = new Set(
     (settlements.data ?? [])
       .filter((row) => row.status === SettlementStatus.Initiated)
-      .map((row) => `${row.from_member_id}>${row.to_member_id}>${row.currency}`),
+      .map((row) => pendingPairKey(row.from_member_id, row.to_member_id, row.currency, partyOf)),
   );
   const isPending = (transfer: PlanTransfer): boolean =>
-    pendingPairs.has(`${transfer.from}>${transfer.to}>${transfer.currency}`);
+    pendingPairs.has(pendingPairKey(transfer.from, transfer.to, transfer.currency, partyOf));
 
   // Members on either end of a payment between others: what the filter offers.
   const otherMembers = Array.from(

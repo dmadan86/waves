@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { splitSettlePlan, type PlanTransfer } from '../src/lib/settlePlan';
+import { pendingPairKey, splitSettlePlan, type PlanTransfer } from '../src/lib/settlePlan';
 
 const t = (from: string, to: string, amount: bigint, currency = 'INR'): PlanTransfer => ({
   from,
@@ -26,5 +26,22 @@ describe('splitSettlePlan', () => {
   it('drops zero-amount transfers', () => {
     const split = splitSettlePlan([t('a', 'me', 0n)], 'me');
     expect(split.owesMe).toEqual([]);
+  });
+});
+
+describe('pendingPairKey', () => {
+  const family: Record<string, string> = { a1: 'A', a2: 'A', b: 'B' };
+  const partyOf = (id: string): string => family[id] ?? id;
+
+  it('matches a payment another member of the family already marked', () => {
+    const marked = pendingPairKey('a1', 'b', 'INR', partyOf);
+    expect(pendingPairKey('a2', 'b', 'INR', partyOf)).toBe(marked);
+    expect(pendingPairKey('a2', 'b', 'USD', partyOf)).not.toBe(marked);
+    expect(pendingPairKey('b', 'a2', 'INR', partyOf)).not.toBe(marked);
+  });
+
+  it('is the exact pair in the person lens', () => {
+    expect(pendingPairKey('a2', 'b', 'INR')).not.toBe(pendingPairKey('a1', 'b', 'INR'));
+    expect(pendingPairKey('a1', 'b', 'INR')).toBe('a1>b>INR');
   });
 });

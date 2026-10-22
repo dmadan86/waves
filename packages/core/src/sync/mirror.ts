@@ -15,6 +15,7 @@
  * only moves when the server actually disagrees.
  */
 
+import type { GroupUnits } from '../group/units';
 import { computeShares } from '../split/computeShares';
 import { resolvePayee } from '../expense/payee';
 import type { MemberId, SplitParams, SplitType } from '../split/types';
@@ -645,6 +646,9 @@ export interface MirrorGroup extends MirrorRow {
    *  (ADR-003 amendment). Absent on a row mirrored before the column existed,
    *  which is exactly a group that has not opted in. */
   readonly convert_to_group_currency?: boolean;
+  /** The families inside the group (`group/units.ts`), or null for none.
+   *  Group-visible, admin-set, member-shaped like `category_budgets`. */
+  readonly units?: GroupUnits | null;
   readonly pending?: boolean;
 }
 

@@ -55,6 +55,7 @@ import {
   type ExpenseSnapshot,
   type MemberId,
   type MirrorCategoryTag,
+  type NetBalances,
   type PairBalances,
   type PairGroupInput,
   type SettlementSnapshot,
@@ -1507,6 +1508,9 @@ export function toSettlementSnapshots(rows: readonly SettlementRow[]): Settlemen
 
 export interface GroupLedger {
   balances: Map<MemberId, bigint>;
+  /** Every member's balance in every currency — what `simplify` ran over; the
+   *  family lens rolls it up by family and simplifies again. */
+  net: NetBalances;
   transfers: Transfer[];
   myMemberId: MemberId | null;
   myBalance: bigint;
@@ -1616,6 +1620,7 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
 
     return {
       balances: computed,
+      net,
       transfers,
       myMemberId,
       myBalance,

@@ -19,6 +19,8 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { familyOf } from '@/lib/families';
+import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
 import {
   useAddGhostMember,
@@ -60,6 +62,7 @@ export default function MembersScreen() {
   const [claimError, setClaimError] = useState<string | null>(null);
 
   const currency = group.data?.default_currency ?? 'INR';
+  const familiesOn = useFlagEnabled('group_units');
   const ghosts = (members.data ?? []).filter(isGhost);
 
   /**
@@ -287,6 +290,9 @@ export default function MembersScreen() {
                 onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
                 trailing={
                   <Row style={{ gap: theme.spacing.sm }}>
+                    {familiesOn && familyOf(group.data?.units, member.id) ? (
+                      <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
+                    ) : null}
                     {member.role === 'admin' && !isGhost(member) ? (
                       <Badge label={t.people.admin} tone="brand" />
                     ) : null}

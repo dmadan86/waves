@@ -39,6 +39,8 @@ export function ScenicHeader({
   onBack,
   children,
   trailing,
+  subtitle,
+  action,
   titleAlign = 'center',
   circleBack = false,
   wash = false,
@@ -51,6 +53,10 @@ export function ScenicHeader({
   children?: ReactNode;
   /** One pill at the right-hand end; on a narrow phone it drops to its own row. */
   trailing?: ReactNode;
+  /** A line under the title. */
+  subtitle?: string;
+  /** One round control at the top-right, in the back button's place on the far side. */
+  action?: ReactNode;
   /** 'start' sets the title against the back button, for a screen with an identity row under it. */
   titleAlign?: 'center' | 'start';
   /** A white circle behind the back chevron, so it reads over a busy photo. */
@@ -156,8 +162,15 @@ export function ScenicHeader({
           >
             {title}
           </Text>
-          {titleAlign === 'start' ? null : <View style={{ width: 40 }} />}
+          {titleAlign === 'start' && !action ? null : (
+            <View style={{ width: 40, alignItems: 'flex-end' }}>{action}</View>
+          )}
         </Row>
+        {subtitle ? (
+          <Text variant="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
+            {subtitle}
+          </Text>
+        ) : null}
         {children || trailing ? (
           <Row
             style={{

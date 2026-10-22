@@ -14,12 +14,19 @@ import { useCallback, useEffect, useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { currencySymbol, sanitiseMinorInput, type CurrencyCode, type MemberId } from '@waves/core';
+import {
+  currencySymbol,
+  sanitiseMinorInput,
+  type CurrencyCode,
+  type GroupUnits,
+  type MemberId,
+} from '@waves/core';
 import { amountKeyboard, Chip, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { splitIcon } from '@/components/expense/splitIcon';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
+import { familyRows } from '@/lib/families';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { SplitKind, type SplitEntries } from '@/lib/split';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -339,6 +346,8 @@ export function SplitParticipants({
   lineAmount,
   splitIssue,
   onSelectAll,
+  units,
+  onToggleFamily,
 }: {
   members: readonly MemberRow[];
   viewerId: string | null | undefined;
@@ -355,10 +364,99 @@ export function SplitParticipants({
    *  people on hairline-separated rows, each share in the brand colour. Left
    *  off, the list is the plain one the split pop-up uses. */
   onSelectAll?: () => void;
+  /** Split by family: the people are listed under their family, each family
+   *  with one tick for all of its members and its subtotal; everyone in no
+   *  family follows under "On their own". Null or absent lists people flat. */
+  units?: GroupUnits | null;
+  /** Ticks a whole family in (or, when all of them are in, out). */
+  onToggleFamily?: (memberIds: readonly MemberId[]) => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const card = onSelectAll !== undefined;
+  const grouped = units ? familyRows(units, members) : null;
+
+  const memberRow = (member: MemberRow, index: number, inFamily: boolean): React.JSX.Element => {
+    const selected = participants.includes(member.id);
+    const name = displayName(member, viewerId);
+    return (
+      <View
+        key={member.id}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          // The avatar is 38pt and the share field has a 44pt floor, so the
+          // row is tall enough to tap without padding stretching it.
+          paddingVertical: card ? theme.spacing.sm : theme.spacing.xs,
+          // A family's people sit in from its header; their hairlines stay.
+          paddingStart: inFamily ? theme.spacing.xl : 0,
+          ...(card && (index > 0 || inFamily)
+            ? { borderTopWidth: 1, borderTopColor: theme.color.border }
+            : null),
+        }}
+      >
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: selected }}
+          accessibilityLabel={name}
+          onPress={() => onToggle(member.id)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+            flex: 1,
+          }}
+        >
+          <PersonAvatar
+            member={member}
+            name={displayName(member)}
+            ghost={isGhost(member)}
+            size={card && !inFamily ? 44 : 38}
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="subheading" numberOfLines={1}>
+              {name}
+            </Text>
+            {selected && amount > 0n ? (
+              <MoneyText
+                amount={lineAmount(member.id)}
+                currency={currency}
+                locale={locale}
+                variant="caption"
+                // This person's share = money owed toward the bill, so it
+                // wears the owe colour, matching the who-owes-what list.
+                // Forced red: a positive share would read as "owed to you"
+                // under sign-derived colour. The group add-expense card
+                // draws it in the brand colour instead, as the rest of that
+                // card's figures are.
+                tone={card ? 'brand' : 'negative'}
+              />
+            ) : null}
+          </View>
+        </Pressable>
+
+        {splitKind !== SplitKind.Equal && selected ? (
+          <SplitEntryField
+            kind={splitKind}
+            currency={currency}
+            value={entries[member.id] ?? ''}
+            onChange={(text) => onEntryChange(member.id, text)}
+            name={name}
+          />
+        ) : null}
+
+        <Pressable accessible={false} onPress={() => onToggle(member.id)} hitSlop={8}>
+          <Ionicons
+            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+            size={iconSize.xl}
+            color={selected ? theme.color.brand : theme.color.textFaint}
+          />
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
     <View style={{ gap: card ? 0 : theme.spacing.sm }}>
       <Row
@@ -392,84 +490,92 @@ export function SplitParticipants({
         </Row>
       </Row>
 
-      {members.map((member, index) => {
-        const selected = participants.includes(member.id);
-        const name = displayName(member, viewerId);
-        return (
-          <View
-            key={member.id}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-              // The avatar is 38pt and the share field has a 44pt floor, so the
-              // row is tall enough to tap without padding stretching it.
-              paddingVertical: card ? theme.spacing.sm : theme.spacing.xs,
-              ...(card && index > 0
-                ? { borderTopWidth: 1, borderTopColor: theme.color.border }
-                : null),
-            }}
-          >
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected }}
-              accessibilityLabel={name}
-              onPress={() => onToggle(member.id)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.md,
-                flex: 1,
-              }}
+      {grouped ? (
+        <>
+          {grouped.families
+            .filter((family) => family.members.length > 0)
+            .map((family, index) => {
+              const ids = family.members.map((member) => member.id);
+              const chosen = ids.filter((id) => participants.includes(id));
+              const allIn = chosen.length === ids.length;
+              const subtotal = chosen.reduce((sum, id) => sum + lineAmount(id), 0n);
+              return (
+                <View key={`family-${family.id}`}>
+                  {/* The family's own row: one tick for everyone in it, and
+                      what the family as a whole is down for. */}
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: allIn }}
+                    accessibilityLabel={family.unit.name}
+                    onPress={() => onToggleFamily?.(ids)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.md,
+                      paddingVertical: theme.spacing.sm,
+                      ...(index > 0
+                        ? { borderTopWidth: 1, borderTopColor: theme.color.border }
+                        : null),
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons
+                        name="people-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text variant="subheading" numberOfLines={1}>
+                        {family.unit.name}
+                      </Text>
+                      <Text variant="caption" tone="muted">
+                        {plural(locale, ids.length, t.families.people)}
+                      </Text>
+                    </View>
+                    {chosen.length > 0 && amount > 0n ? (
+                      <MoneyText
+                        amount={subtotal}
+                        currency={currency}
+                        locale={locale}
+                        tone="brand"
+                      />
+                    ) : null}
+                    <Ionicons
+                      name={allIn ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={iconSize.xl}
+                      color={allIn ? theme.color.brand : theme.color.textFaint}
+                    />
+                  </Pressable>
+                  {family.members.map((member, memberIndex) =>
+                    memberRow(member, memberIndex, true),
+                  )}
+                </View>
+              );
+            })}
+          {grouped.onTheirOwn.length > 0 ? (
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ paddingTop: theme.spacing.md, paddingBottom: theme.spacing.xs }}
             >
-              <PersonAvatar
-                member={member}
-                name={displayName(member)}
-                ghost={isGhost(member)}
-                size={card ? 44 : 38}
-              />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text variant="subheading" numberOfLines={1}>
-                  {name}
-                </Text>
-                {selected && amount > 0n ? (
-                  <MoneyText
-                    amount={lineAmount(member.id)}
-                    currency={currency}
-                    locale={locale}
-                    variant="caption"
-                    // This person's share = money owed toward the bill, so it
-                    // wears the owe colour, matching the who-owes-what list.
-                    // Forced red: a positive share would read as "owed to you"
-                    // under sign-derived colour. The group add-expense card
-                    // draws it in the brand colour instead, as the rest of that
-                    // card's figures are.
-                    tone={card ? 'brand' : 'negative'}
-                  />
-                ) : null}
-              </View>
-            </Pressable>
-
-            {splitKind !== SplitKind.Equal && selected ? (
-              <SplitEntryField
-                kind={splitKind}
-                currency={currency}
-                value={entries[member.id] ?? ''}
-                onChange={(text) => onEntryChange(member.id, text)}
-                name={name}
-              />
-            ) : null}
-
-            <Pressable accessible={false} onPress={() => onToggle(member.id)} hitSlop={8}>
-              <Ionicons
-                name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                size={iconSize.xl}
-                color={selected ? theme.color.brand : theme.color.textFaint}
-              />
-            </Pressable>
-          </View>
-        );
-      })}
+              {t.families.onTheirOwn}
+            </Text>
+          ) : null}
+          {grouped.onTheirOwn.map((member, index) => memberRow(member, index, false))}
+        </>
+      ) : (
+        members.map((member, index) => memberRow(member, index, false))
+      )}
 
       {splitIssue ? (
         <Text

@@ -48,6 +48,7 @@ enum SplitType {
   shares
   adjustment
   itemized
+  units
 
   @@schema("public")
 }
@@ -312,6 +313,15 @@ model Group {
   /// own card rate and a per-bill override live off the group (device-local and
   /// on `expense_versions.fx` respectively).
   fxRates Json? @map("fx_rates")
+
+  /// The families inside the group, as a JSON map keyed by a client-minted
+  /// unit id: `{ "<unitId>": { name, members: [memberId…], head? } }`. A
+  /// person in no family is an implicit family of one. Group-visible like
+  /// `categoryBudgets`; written only by an admin through `group.update`
+  /// (`waves_guard_group_columns` refuses anyone else). NULL is "no families".
+  /// The ledger never reads it: a by-family bill snapshots its own
+  /// composition in `split_params` (`units` split kind).
+  units Json?
 
   /// Unused, reserved. Added by 20261023100000_group_trip_stops (already
   /// applied in production, so the column and its `waves_set_trip_stops` RPC

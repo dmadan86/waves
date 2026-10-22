@@ -84,6 +84,8 @@ import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
+import { useFlagEnabled } from '@/lib/flags';
+import { familyLabel, familyOf, familyRows, warningTransfers } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
 import { useBlockedUsers } from '@/data/blocked';
 import { SettleFirstDialog } from '@/components/SettleFirstDialog';
@@ -151,6 +153,9 @@ export default function GroupSettingsScreen() {
   const addGhost = useAddGhostMember(groupId);
   const muted = useGroupMuted(groupId);
   const setGroupMute = useSetGroupMute();
+  // Families (behind `group_units`): the row says how many, and how many people in them.
+  const familiesOn = useFlagEnabled('group_units');
+  const families = familyRows(group.data?.units, members.data ?? []).families;
 
   // A name is enough to start splitting with someone (ADR-006). Adding by name
   // or from the phone's contacts both live here; the members screen keeps the
@@ -572,13 +577,19 @@ export default function GroupSettingsScreen() {
       // arriving in another language is not the moment for it.
       return member ? displayName(member, undefined, blockedIds, t.misc.someone) : t.misc.someone;
     };
-    return orderDebtsForWarning(ledger.transfers, currency).map((transfer) => ({
+    // With families, the debts are the families' — one line per family pair,
+    // labelled the way the Balances tab labels them ("Sharma family (Ravi)").
+    const byFamily = familiesOn && families.length > 0;
+    const transfers = byFamily ? warningTransfers(ledger, group.data?.units) : ledger.transfers;
+    const labelFor = (memberId: string): string =>
+      byFamily ? familyLabel(group.data?.units, memberId, nameFor(memberId)) : nameFor(memberId);
+    return orderDebtsForWarning(transfers, currency).map((transfer) => ({
       // Two members and a currency are exactly one debt in `transfers`, so this
       // is stable across a re-render and unique within the list.
       key: `${transfer.from}:${transfer.to}:${transfer.currency}`,
       label: fill(t.group.deleteOwesWho, {
-        from: nameFor(transfer.from),
-        to: nameFor(transfer.to),
+        from: labelFor(transfer.from),
+        to: labelFor(transfer.to),
       }),
       amount: { minor: transfer.amount, currency: transfer.currency as CurrencyCode },
     }));
@@ -1103,6 +1114,34 @@ export default function GroupSettingsScreen() {
               trailing={chevron}
               onPress={() => setRatesOpen(true)}
             />
+            {familiesOn ? (
+              <>
+                {divider}
+                <PlainListRow
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="people-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={t.families.title}
+                  subtitle={
+                    families.length > 0
+                      ? `${plural(locale, families.length, t.families.summary)} · ${plural(
+                          locale,
+                          families.reduce((sum, family) => sum + family.members.length, 0),
+                          t.families.people,
+                        )}`
+                      : t.families.rowHint
+                  }
+                  trailing={chevron}
+                  onPress={() => router.push(`/group/${groupId}/families`)}
+                />
+              </>
+            ) : null}
             {divider}
             {/* The member's own short tag, shown instead of the automatic type tag
               on Home and the group header: one row here, edited in a sheet. */}
@@ -1199,6 +1238,23 @@ export default function GroupSettingsScreen() {
                     divider={!isMe}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        {familiesOn && familyOf(group.data?.units, member.id) ? (
+                          <View
+                            style={{
+                              paddingHorizontal: theme.spacing.md,
+                              paddingVertical: 4,
+                              borderRadius: theme.radius.pill,
+                              backgroundColor: theme.color.brandSoft,
+                            }}
+                          >
+                            <Text
+                              variant="caption"
+                              style={{ color: theme.color.brand, fontWeight: '700' }}
+                            >
+                              {familyOf(group.data?.units, member.id)?.name}
+                            </Text>
+                          </View>
+                        ) : null}
                         {member.role === 'admin' && !isGhost(member) ? (
                           <View
                             style={{
