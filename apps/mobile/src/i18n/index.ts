@@ -2317,22 +2317,16 @@ export interface UiStrings {
   };
   /** Settings › Export your data: the promise card, the tiles and the included note. */
   exportForm: {
-    heroTitle: string;
-    heroBody: string;
     freeBadge: string;
-    chooseFormat: string;
-    chooseFormatSub: string;
     jsonSub: string;
     csvSub: string;
     pdfSub: string;
-    whatSub: string;
     everything: string;
     oneGroup: string;
     oneGroupSub: string;
     includedTitle: string;
     includedBody: string;
     exportAction: string;
-    or: string;
     pickGroup: string;
   };
   /** Settings › Receiving payments: header lines and the country card. */
@@ -7802,16 +7796,10 @@ const en: UiStrings = {
     statCurrencies: { one: '{n} currency', other: '{n} currencies' },
   },
   exportForm: {
-    heroTitle: 'Your data, always yours',
-    heroBody:
-      'Export a complete record of your expenses, settlements and activity whenever you need it — for free.',
     freeBadge: 'No paywall. 100% free.',
-    chooseFormat: 'Choose format',
-    chooseFormatSub: 'Pick the file format that works for you.',
     jsonSub: '(lossless)',
     csvSub: '(spreadsheet)',
     pdfSub: '(print friendly)',
-    whatSub: 'Choose which data you want to include.',
     everything: 'Export everything',
     oneGroup: 'One group',
     oneGroupSub: 'Selected group only',
@@ -7819,7 +7807,6 @@ const en: UiStrings = {
     includedBody:
       'All expenses, who paid, who owed, settlements with their per-expense allocations, and the full activity trail.',
     exportAction: 'Export data',
-    or: 'OR',
     pickGroup: 'Which group?',
   },
   receiving: {
@@ -12870,16 +12857,10 @@ const ta: UiStrings = {
     statCurrencies: { one: '{n} நாணயம்', other: '{n} நாணயங்கள்' },
   },
   exportForm: {
-    heroTitle: 'உங்கள் தரவு, எப்போதும் உங்களுடையது',
-    heroBody:
-      'உங்கள் செலவுகள், தீர்வுகள், செயல்பாடுகளின் முழுப் பதிவையும் தேவைப்படும்போது ஏற்றுமதி செய்யுங்கள் — இலவசமாக.',
     freeBadge: 'கட்டணம் இல்லை. 100% இலவசம்.',
-    chooseFormat: 'வடிவத்தைத் தேர்ந்தெடு',
-    chooseFormatSub: 'உங்களுக்கு ஏற்ற கோப்பு வடிவத்தைத் தேர்ந்தெடுங்கள்.',
     jsonSub: '(இழப்பில்லை)',
     csvSub: '(விரிதாள்)',
     pdfSub: '(அச்சிட ஏற்றது)',
-    whatSub: 'எந்தத் தரவைச் சேர்க்க வேண்டும் என்பதைத் தேர்ந்தெடுங்கள்.',
     everything: 'அனைத்தையும் ஏற்றுமதி செய்',
     oneGroup: 'ஒரு குழு',
     oneGroupSub: 'தேர்ந்தெடுத்த குழு மட்டும்',
@@ -12887,7 +12868,6 @@ const ta: UiStrings = {
     includedBody:
       'எல்லாச் செலவுகள், யார் செலுத்தினார், யார் தர வேண்டியது, ஒவ்வொரு செலவுக்கான ஒதுக்கீடுகளுடன் தீர்வுகள், முழுச் செயல்பாட்டுப் பதிவு.',
     exportAction: 'தரவை ஏற்றுமதி செய்',
-    or: 'அல்லது',
     pickGroup: 'எந்தக் குழு?',
   },
   receiving: {
@@ -18049,15 +18029,10 @@ const hi: UiStrings = {
     statCurrencies: { one: '{n} मुद्रा', other: '{n} मुद्राएँ' },
   },
   exportForm: {
-    heroTitle: 'आपका डेटा, हमेशा आपका',
-    heroBody: 'अपने खर्च, हिसाब और गतिविधि का पूरा रिकॉर्ड जब चाहें निर्यात करें — मुफ़्त।',
     freeBadge: 'कोई पेवॉल नहीं। 100% मुफ़्त।',
-    chooseFormat: 'फ़ॉर्मैट चुनें',
-    chooseFormatSub: 'अपने काम का फ़ाइल फ़ॉर्मैट चुनें।',
     jsonSub: '(बिना नुकसान)',
     csvSub: '(स्प्रेडशीट)',
     pdfSub: '(प्रिंट के लिए)',
-    whatSub: 'चुनें कि कौन सा डेटा शामिल करना है।',
     everything: 'सब कुछ निर्यात करें',
     oneGroup: 'एक समूह',
     oneGroupSub: 'केवल चुना हुआ समूह',
@@ -18065,7 +18040,6 @@ const hi: UiStrings = {
     includedBody:
       'सभी खर्च, किसने दिए, किसे देने थे, हर खर्च के बँटवारे के साथ हिसाब, और पूरी गतिविधि।',
     exportAction: 'डेटा निर्यात करें',
-    or: 'या',
     pickGroup: 'कौन सा समूह?',
   },
   receiving: {
@@ -23179,15 +23153,10 @@ const ar: UiStrings = {
     },
   },
   exportForm: {
-    heroTitle: 'بياناتك، دائمًا لك',
-    heroBody: 'صدّر سجلًا كاملًا لمصروفاتك وتسوياتك ونشاطك وقتما تشاء — مجانًا.',
     freeBadge: 'بلا جدار دفع. مجاني 100%.',
-    chooseFormat: 'اختر الصيغة',
-    chooseFormatSub: 'اختر صيغة الملف المناسبة لك.',
     jsonSub: '(بلا فقد)',
     csvSub: '(جدول بيانات)',
     pdfSub: '(للطباعة)',
-    whatSub: 'اختر البيانات التي تريد تضمينها.',
     everything: 'تصدير كل شيء',
     oneGroup: 'مجموعة واحدة',
     oneGroupSub: 'المجموعة المحددة فقط',
@@ -23195,7 +23164,6 @@ const ar: UiStrings = {
     includedBody:
       'كل المصروفات، من دفع، من عليه، التسويات مع توزيعاتها لكل مصروف، وسجل النشاط الكامل.',
     exportAction: 'تصدير البيانات',
-    or: 'أو',
     pickGroup: 'أي مجموعة؟',
   },
   receiving: {
