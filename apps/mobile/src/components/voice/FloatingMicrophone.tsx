@@ -75,21 +75,6 @@ export function FloatingMicrophone({
     <View
       style={{ width: MIC_BOX, height: MIC_BOX, alignItems: 'center', justifyContent: 'center' }}
     >
-      {/* While listening the voice wave runs behind the mic; this page-coloured
-          disc, as wide as the level ring at its loudest, stops it at the ring's
-          edge instead of showing through the see-through ring. */}
-      {live ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            width: MIC_DIAMETER * 1.45,
-            height: MIC_DIAMETER * 1.45,
-            borderRadius: (MIC_DIAMETER * 1.45) / 2,
-            backgroundColor: theme.color.bg,
-          }}
-        />
-      ) : null}
       {/* The still glow: a soft lavender halo that is there in every state, so
           the button reads as lifted off the page without anything moving. */}
       <View

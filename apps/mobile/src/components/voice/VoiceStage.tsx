@@ -130,24 +130,6 @@ export function VoiceTop({
       <View
         style={{ alignSelf: 'stretch', alignItems: 'center', marginVertical: compact ? -14 : -4 }}
       >
-        {/* While listening, the voice wave runs through the mic, as in the mockup. */}
-        {open && level ? (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: '50%',
-              marginTop: -WAVEFORM_HEIGHT / 2,
-              height: WAVEFORM_HEIGHT,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <AudioWaveform level={level} reduceMotion={reduceMotion} />
-          </View>
-        ) : null}
         <FloatingMicrophone
           mode={micMode}
           level={level}
@@ -157,6 +139,19 @@ export function VoiceTop({
         />
       </View>
       <VoiceStatus status={status} text={statusText(t, status)} />
+      {/* The wave only while the mic is open, under the mic; the words and cards follow it. */}
+      {open && level ? (
+        <View
+          style={{
+            alignSelf: 'stretch',
+            height: WAVEFORM_HEIGHT,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <AudioWaveform level={level} reduceMotion={reduceMotion} />
+        </View>
+      ) : null}
     </View>
   );
 }
