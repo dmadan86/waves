@@ -380,7 +380,7 @@ export function pendingReceiptUri(
 }
 
 /** Does the sync network preference allow this connection type? Fails open. */
-async function networkPermits(): Promise<boolean> {
+export async function networkPermits(): Promise<boolean> {
   try {
     const { type } = await Network.getNetworkStateAsync();
     return networkAllows(await loadSyncNetworkPreference(), type);
@@ -797,6 +797,8 @@ async function runFlush(): Promise<FlushResult> {
   // sticks on screen at done < total until some later flush completes.
   try {
     for (const entry of due) {
+      // Rechecked per upload: a switch to mobile data mid-flush leaves the rest queued.
+      if (!(await networkPermits())) break;
       const file = pendingFile(entry);
       if (!file.exists) {
         // The bytes are gone (a wipe, a failed write) — nothing to send; drop it.

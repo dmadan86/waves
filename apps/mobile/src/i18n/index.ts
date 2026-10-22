@@ -5602,6 +5602,7 @@ export interface UiStrings {
     unavailable: string;
     paidOnly: string;
     storageFull: string;
+    waitingWifi: string;
     couldNotAdd: string;
   };
   personal: {
@@ -10611,6 +10612,7 @@ const en: UiStrings = {
     unavailable: 'Could not load the photo',
     paidOnly: 'Keeping receipts on Waves needs Plus.',
     storageFull: 'You have reached your storage limit.',
+    waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
     couldNotAdd: 'Could not add the receipt. Try again.',
   },
   personal: {
@@ -15805,6 +15807,7 @@ const ta: UiStrings = {
     unavailable: 'புகைப்படத்தை ஏற்ற முடியவில்லை',
     paidOnly: 'ரசீதுகளை Waves-இல் சேமிக்க Plus தேவை.',
     storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
+    waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
     couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
   },
   personal: {
@@ -20824,6 +20827,7 @@ const hi: UiStrings = {
     unavailable: 'फ़ोटो लोड नहीं हो सकी',
     paidOnly: 'Waves पर रसीदें रखने के लिए Plus चाहिए।',
     storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
+    waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
     couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
   },
   personal: {
@@ -26457,6 +26461,7 @@ const ar: UiStrings = {
     unavailable: 'تعذّر تحميل الصورة',
     paidOnly: 'حفظ الإيصالات على Waves يتطلب Plus.',
     storageFull: 'لقد بلغت حد التخزين.',
+    waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
     couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
   },
   personal: {
