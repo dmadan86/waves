@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
+import { parseSplitParams, type GroupUnits, type UnitsParams } from '@waves/core';
 import {
   nameOf,
   pastNameOf,
@@ -34,6 +35,7 @@ import { money } from '@/lib/money';
 import { coordLabel, mapsUrl } from '@/lib/geo';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { groupSharesByFamily } from '@/lib/families';
 import { MapPin } from 'lucide-react';
 
 export default function ExpensePage() {
@@ -78,6 +80,7 @@ function ExpenseDetail({
   // leave. `members` is who is in it now, for anything that acts on the present.
   const [everyone, setEveryone] = useState<Member[]>([]);
   const members = everyone.filter((m) => !m.left_at);
+  const [units, setUnits] = useState<GroupUnits | null>(null);
   const [versions, setVersions] = useState<ExpenseVersionSummary[]>([]);
   const [disputes, setDisputes] = useState<DisputeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,12 +90,14 @@ function ExpenseDetail({
   const [reason, setReason] = useState('');
 
   const load = useCallback(async () => {
-    const [e, m, v, d] = await Promise.all([
+    const [e, m, v, d, g] = await Promise.all([
       waves.expense(expenseId),
       waves.allMembers(groupId),
       waves.expenseVersions(expenseId),
       waves.disputes(groupId),
+      waves.group(groupId),
     ]);
+    setUnits(g?.units ?? null);
     setExpense(e);
     setEveryone(m);
     setVersions(v);
@@ -189,6 +194,16 @@ function ExpenseDetail({
   const openDispute = disputes.find((d) => d.status === 'open') ?? null;
   const myOpenDispute = openDispute && myMember && openDispute.member_id === myMember.id;
 
+  let unitsSplit: UnitsParams | null = null;
+  if (version.split_type === 'units') {
+    try {
+      const parsed = parseSplitParams(version.split_params);
+      if (parsed.kind === 'units') unitsSplit = parsed;
+    } catch {
+      // An unreadable snapshot reads as a flat list.
+    }
+  }
+
   const splitKind = version.split_type as keyof typeof t.expense.splitKind;
   const splitLabel = t.expense.splitKind[splitKind] ?? version.split_type;
 
@@ -262,14 +277,32 @@ function ExpenseDetail({
             <h2>{t.expense.splitLabel}</h2>
           </div>
           <div className="list">
-            {version.shares.map((share) => (
-              <div key={share.member_id} className="item" style={{ cursor: 'default' }}>
-                <span className="grow">
-                  <span className="title" style={{ fontWeight: 500 }}>
-                    {nameFor(share.member_id)}
-                  </span>
-                </span>
-                <span className="amount neg">{money(BigInt(share.amount), currency, locale)}</span>
+            {groupSharesByFamily(version.shares, unitsSplit, units).map((group) => (
+              <div key={group.rows[0]?.member_id}>
+                {group.name ? (
+                  <div className="item" style={{ cursor: 'default' }}>
+                    <span className="grow">
+                      <span className="title">{group.name}</span>
+                    </span>
+                    <span className="amount neg">{money(group.total, currency, locale)}</span>
+                  </div>
+                ) : null}
+                {group.rows.map((share) => (
+                  <div
+                    key={share.member_id}
+                    className="item"
+                    style={{ cursor: 'default', paddingInlineStart: group.name ? 16 : undefined }}
+                  >
+                    <span className="grow">
+                      <span className="title" style={{ fontWeight: 500 }}>
+                        {nameFor(share.member_id)}
+                      </span>
+                    </span>
+                    <span className={group.name ? 'amount' : 'amount neg'}>
+                      {money(BigInt(share.amount), currency, locale)}
+                    </span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

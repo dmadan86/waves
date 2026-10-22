@@ -68,3 +68,19 @@ export function settlementActions(
 export function openSettlements<T extends SettlementFacts>(settlements: readonly T[]): T[] {
   return settlements.filter((settlement) => settlementActions(settlement, null).isOpen);
 }
+
+/**
+ * The key a pending payment is matched to a settle line by: payer, payee and
+ * currency, each widened by `partyOf` to the party they settle as (their
+ * family in the Families lens). One family member's pending payment then
+ * counts against the family's line for everyone in it, so a second member
+ * cannot pay the same family debt twice.
+ */
+export function pendingPairKey(
+  from: string,
+  to: string,
+  currency: string,
+  partyOf: (memberId: string) => string = (memberId) => memberId,
+): string {
+  return `${partyOf(from)}>${partyOf(to)}>${currency}`;
+}

@@ -29,6 +29,7 @@ import {
   type CategoryMeta,
   type ExpenseLocation,
   type FxRecord,
+  type GroupUnits,
   type PaymentMethod,
   type DeviceSession,
   type Viewer,
@@ -75,7 +76,7 @@ const PROFILE_COLUMNS =
 
 const GROUP_ROW_COLUMNS = `
   id, name, type, country_code, default_currency, simplify_debts, convert_to_group_currency,
-  cover_emoji, cover_color, photo_path,
+  cover_emoji, cover_color, photo_path, units,
   start_date, end_date, time_zone, budget_minor, budget_currency,
   archived_at, created_at, updated_seq
 `;
@@ -438,7 +439,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
         supabase
           .from('groups')
           .select(
-            'id, name, type, cover_emoji, default_currency, simplify_debts, convert_to_group_currency',
+            'id, name, type, cover_emoji, default_currency, simplify_debts, convert_to_group_currency, units',
           )
           .eq('id', groupId)
           // Null for a deleted group rather than a row that opens: RLS still
@@ -1012,6 +1013,8 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
         archived_at: string | null;
         start_date: string | null;
         end_date: string | null;
+        /** Admin-only; the server validates the shape. */
+        units: GroupUnits | null;
       }>,
       options: { ifUpdatedSeq?: number } = {},
     ): Promise<void> {

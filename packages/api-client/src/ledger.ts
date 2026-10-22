@@ -20,6 +20,7 @@ import {
   type CurrencyCode,
   type ExpenseSnapshot,
   type MemberId,
+  type NetBalances,
   type SettlementSnapshot,
   type Transfer,
 } from '@waves/core';
@@ -29,6 +30,8 @@ import type { Expense, Settlement } from './types';
 export interface GroupLedger {
   /** memberId → net position in the group's currency. Positive: they are owed. */
   balances: Map<MemberId, bigint>;
+  /** Every currency's balances, for rolling up by family. */
+  net: NetBalances;
   /** Who should pay whom to end up square (ADR-009). */
   transfers: Transfer[];
 }
@@ -85,6 +88,7 @@ export function computeLedger(
     // has one default. Anything in another currency still counts in core's
     // answer; it is simply not this view's job to add them together (ADR-003).
     balances: balances.get(currency as CurrencyCode) ?? new Map(),
+    net: balances,
     transfers: simplify(balances),
   };
 }

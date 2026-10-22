@@ -9,7 +9,7 @@
  * a number.
  */
 
-import type { NotificationPrefs, RailId } from '@waves/core';
+import type { GroupUnits, NotificationPrefs, RailId } from '@waves/core';
 
 export enum GroupType {
   Trip = 'trip',
@@ -32,6 +32,8 @@ export interface GroupRow {
    *  amendment). Optional: absent from a read that did not select it. */
   convert_to_group_currency?: boolean;
   cover_emoji: string | null;
+  /** Families (`groups.units`); null when the group has none. */
+  units?: GroupUnits | null;
   photo_path: string | null;
   /** Member-typed short tag; null when unset. Optional: narrow selects omit it. */
   custom_tag?: string | null;
