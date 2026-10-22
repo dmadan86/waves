@@ -47,6 +47,7 @@ import { router } from '@/lib/navigation';
 import { usePairPerson, type PairGroupRow } from '@/lib/usePairPerson';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
+import { settleHref } from '@/lib/groupTab';
 
 export default function PairSettleScreen() {
   const theme = useTheme();
@@ -81,7 +82,7 @@ export default function PairSettleScreen() {
       ).length
     : 0;
 
-  const settleIn = (group: PairGroupRow): void => router.push(`/group/${group.groupId}/settle`);
+  const settleIn = (group: PairGroupRow): void => router.push(settleHref(group.groupId));
   const settleGroups = (list: PairGroupRow[]): void => {
     const [only] = list;
     if (list.length === 1 && only) settleIn(only);

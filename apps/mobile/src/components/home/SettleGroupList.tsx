@@ -23,6 +23,7 @@ import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { arrangeSettleCandidates, type SettleChip } from '@/lib/settlePicker';
+import { settleHref } from '@/lib/groupTab';
 
 export interface SettleCandidate {
   id: string;
@@ -108,7 +109,7 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${item.title}, ${meta}, ${status}`}
-        onPress={() => router.push(`/group/${item.id}/settle`)}
+        onPress={() => router.push(settleHref(item.id))}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
