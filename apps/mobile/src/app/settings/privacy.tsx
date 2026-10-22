@@ -68,7 +68,7 @@ import { useToast } from '@/lib/toast';
  */
 
 /** When the policy text below last changed. Shown, because an undated policy is not one. */
-const POLICY_UPDATED = '2026-09-10';
+const POLICY_UPDATED = '2026-10-22';
 
 export default function PrivacyScreen() {
   const theme = useTheme();

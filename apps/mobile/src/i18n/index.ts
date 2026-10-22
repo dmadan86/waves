@@ -7330,7 +7330,7 @@ const en: UiStrings = {
     step1Body: 'Your voice is sent to Deepgram to turn it into text.',
     step2Title: '2. Understand the expense',
     step2Body:
-      'The text, with your group and member names and balances, goes to Google Gemini (via OpenRouter) to work out the expense.',
+      'The text, with your group and member names and balances, goes to a language model (currently Google Gemini or Anthropic Claude, via OpenRouter) to work out the expense.',
     step3Title: '3. Your privacy is protected',
     step3Body:
       "Waves doesn't store the recording, and Deepgram is told not to use it for training. OpenRouter only sends the text to providers that don't store it or train on it.",
@@ -10269,7 +10269,7 @@ const en: UiStrings = {
     title: 'Privacy',
     storeTitle: 'What is stored',
     storeBody:
-      'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. Nothing else: no contacts are uploaded, and there is no advertising identifier.',
+      'Your display name, and whichever of a phone number, email or sign-in identity you used. Optionally a payment handle, so somebody can pay you back, and a country, which decides which payment rails you are offered, and an optional postal address if you add one. The groups you are in, the expenses in them, and who owes whom. With them, if you add them: receipt and expense photos, the place an expense happened (attached automatically once you allow location; you can move or remove the pin before saving), and the people you pick from your contacts — only the ones you tap, never your whole address book.',
     protectTitle: 'How it is kept',
     protectBody:
       'Every table is behind row-level security in the database, so a request can only ever read rows your own account is entitled to — not a filter applied by the app, but a rule the database enforces. Receipt images sit in a private bucket reached through short-lived signed links. Crash reports are scrubbed of addresses, phone numbers, payment handles and keys before they leave the phone. Each receipt can be visible to everybody in the group, or only to the people on that expense — you choose per image. You can require your fingerprint or face to open the app.',
@@ -10279,11 +10279,11 @@ const en: UiStrings = {
     couldNotSave: 'That did not save. Please try again in a moment.',
     analyticsTitle: 'How the app is used',
     analyticsBody:
-      "To improve the app, Waves counts a few anonymous steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. On Android, the install also counts which ad or link it came from (its campaign tag, such as meta or diwali_in), with no advertising identifier. These counts are kept in Waves' own database, never sent to advertisers, and there is no advertising identifier. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, there is no advertising identifier, and nothing here is sold or shared.",
+      "To improve the app, Waves counts a few app steps — that the app was installed, that sign-up was started, that onboarding was finished, and that the plans were viewed. They are always on, counted against a random install ID and, once you have an account, against that account. On Android, the install also counts which ad or link it came from (its campaign tag, such as meta or diwali_in). These counts are kept in Waves' own database and never sent to advertisers. The reward-ad software (Google AdMob) can read the device's advertising ID, but only to serve an ad when you choose to watch one; it is never used to personalize ads. Waves can also record how screens are used — which ones people get stuck on, where a tap lands — through Microsoft Clarity. It ships switched off and records nothing unless it is turned on. It is never used for advertising, and nothing here is sold or shared.",
     sessionReplayRow: 'Record how I use the app',
     servicesTitle: 'Who else touches your data',
     servicesBody:
-      "Waves runs on Supabase — the database and sign-in, on servers we control. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Anonymous usage goes to Microsoft Clarity, and only if you turn it on above. Free accounts can choose to watch a reward ad, served by Google AdMob: non-personalized, only when you tap Watch, and AdMob receives the device and network details it needs to show the ad and prevent fraud. Your data is never sold. Bank statements you choose to import are read with AI: the file is opened on your phone, account numbers are hidden first, the pages are sent to our AI provider (OpenRouter, only to providers that don't store them or train on them), and nothing is kept. Bank messages (SMS) still never leave this phone.",
+      "Waves runs on Supabase — the database and sign-in, on servers we control. Receipts and photos sit in Cloudflare R2. Crash reports go to Sentry, scrubbed of your details before they leave the phone. Session replay goes to Microsoft Clarity, and only if you turn it on above. Phone sign-in codes are sent through Google Firebase or Twilio, email through Resend, push notifications through Expo, and subscriptions through RevenueCat. Free accounts can choose to watch a reward ad, served by Google AdMob: non-personalized, only when you tap Watch, and AdMob receives the device and network details it needs to show the ad and prevent fraud. Your data is never sold. AI: with advanced voice on, your recording is streamed to Deepgram to become text and is not stored; the text, with your group names and balances, goes to a language model through OpenRouter, which is told to route it only to providers that don't store it or train on it. A receipt you scan is uploaded and read the same way, and the photo stays attached to the expense. Bank statements you choose to import are opened on your phone; in a text statement account numbers are hidden first, while a scanned one is sent as page images; the pages go through OpenRouter and nothing is kept. Bank messages (SMS) still never leave this phone.",
     retentionTitle: 'How long we keep it',
     retentionBody:
       "Your data stays while your account is open. If the account goes untouched for 3 years, we delete it and the personal data with it. You never have to wait for that — export or delete everything yourself, any time, from Settings. A group you close and leave untouched for a year and a half is moved to your archive automatically — nothing is deleted, and you can reopen it whenever you like. Some of what you leave behind survives deleting your account, and you should know it before you do. What you added to a shared group stays — the expenses and settlements, the notes and comments on them, and the images you added, whether a receipt, a proof of payment or a trip photo — because it is also the other members' record of who owed whom, and taking it out would silently change somebody else's balance to settle a debt nobody paid. Your name, photo, contact details and payment handles are removed from those groups, where you become an unnamed former member; notifications and activity already written to other people can still carry the name you had at the time. And if you write an answer into the box asking why you are leaving, that answer is kept exactly as you typed it, with the link back to you removed. Nothing is kept for advertising, and nothing is kept because a law obliges us to.",
@@ -10300,9 +10300,9 @@ const en: UiStrings = {
     storeSummary: 'Your profile, groups, expenses, receipts, comments, settings and who owes whom.',
     protectSummary: 'Database rules on every read, private receipt links, scrubbed crash reports.',
     servicesSummary:
-      'Supabase for the database, Sentry for crashes, Clarity only if you allow it, Google AdMob only if you watch a reward ad.',
+      'Supabase for the database, Cloudflare for photos, Sentry for crashes, Deepgram and OpenRouter for voice and scans, Clarity only if you allow it, Google AdMob only if you watch a reward ad.',
     analyticsSummary:
-      "Reward ads only if you choose to watch one, never personalized. A few anonymous app steps are counted in Waves' own database. Screen recording is off unless you turn it on.",
+      "Reward ads only if you choose to watch one, never personalized. A few app steps are always counted in Waves' own database. Screen recording is off unless you turn it on.",
     retentionSummary:
       'Kept while your account is open, deleted after 3 untouched years. Shared records stay on without your name.',
     choicesSummary: 'Export everything, mute anything, or delete your account.',
@@ -12366,7 +12366,7 @@ const ta: UiStrings = {
     step1Body: 'உங்கள் குரல் எழுத்தாக மாற்ற Deepgram-க்கு அனுப்பப்படும்.',
     step2Title: '2. செலவைப் புரிந்துகொள்ளுதல்',
     step2Body:
-      'அந்த எழுத்து, உங்கள் குழு மற்றும் உறுப்பினர் பெயர்கள், இருப்புகளுடன், செலவைப் புரிந்துகொள்ள Google Gemini-க்கு (OpenRouter வழியாக) செல்லும்.',
+      'அந்த எழுத்து, உங்கள் குழு மற்றும் உறுப்பினர் பெயர்கள், இருப்புகளுடன், செலவைப் புரிந்துகொள்ள ஒரு மொழி மாதிரிக்கு (தற்போது Google Gemini அல்லது Anthropic Claude, OpenRouter வழியாக) செல்லும்.',
     step3Title: '3. உங்கள் தனியுரிமை பாதுகாக்கப்படுகிறது',
     step3Body:
       'Waves பதிவைச் சேமிக்காது; பயிற்சிக்குப் பயன்படுத்த வேண்டாம் என்று Deepgram-க்குச் சொல்லப்பட்டுள்ளது. அந்த எழுத்தைச் சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டுமே OpenRouter அனுப்பும்.',
@@ -15465,7 +15465,7 @@ const ta: UiStrings = {
     title: 'தனியுரிமை',
     storeTitle: 'என்ன சேமிக்கப்படுகிறது',
     storeBody:
-      'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். வேறு எதுவும் இல்லை: தொடர்புகள் பதிவேற்றப்படுவதில்லை, விளம்பர அடையாளம் இல்லை.',
+      'உங்கள் பெயர், நீங்கள் பயன்படுத்திய தொலைபேசி எண், மின்னஞ்சல் அல்லது உள்நுழைவு அடையாளம். விருப்பப்படி ஒரு பணப் பரிமாற்ற முகவரி, ஒரு நாடு, மற்றும் நீங்கள் சேர்த்தால் ஒரு அஞ்சல் முகவரி. நீங்கள் இருக்கும் குழுக்கள், அவற்றின் செலவுகள், யார் யாருக்குக் கடன்பட்டவர். நீங்கள் சேர்த்தால் அவற்றுடன்: ரசீது மற்றும் செலவுப் படங்கள், செலவு நடந்த இடம் (இருப்பிட அனுமதி கொடுத்தபின் தானாகவே இணைக்கப்படும்; சேமிக்கும் முன் பின்னை நகர்த்தலாம் அல்லது நீக்கலாம்), மற்றும் உங்கள் தொடர்புகளிலிருந்து நீங்கள் தேர்ந்தெடுக்கும் நபர்கள் — நீங்கள் தொடுபவர்கள் மட்டும், முழு முகவரிப் புத்தகம் ஒருபோதும் இல்லை.',
     protectTitle: 'எப்படி பாதுகாக்கப்படுகிறது',
     protectBody:
       'ஒவ்வொரு அட்டவணையும் தரவுத்தளத்தில் வரிசை-நிலை பாதுகாப்பின் பின்னால் உள்ளது — செயலி வடிகட்டுவதல்ல, தரவுத்தளமே அமல்படுத்தும் விதி. ரசீது படங்கள் தனிப்பட்ட இடத்தில், குறுகிய கால இணைப்புகள் வழியாக மட்டுமே. செயலி முறிவு அறிக்கைகளிலிருந்து முகவரிகள், எண்கள், பணமுகவரிகள் தொலைபேசியை விட்டு வெளியேறும் முன்பே நீக்கப்படுகின்றன. ஒவ்வொரு ரசீதும் குழுவில் உள்ள அனைவருக்கும் தெரியலாம், அல்லது அந்தச் செலவில் உள்ளவர்களுக்கு மட்டும் — படத்துக்குப் படம் நீங்கள் தேர்வு செய்யலாம்.',
@@ -15475,11 +15475,11 @@ const ta: UiStrings = {
     couldNotSave: 'இது சேமிக்கப்படவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
     analyticsTitle: 'செயலி எப்படி பயன்படுத்தப்படுகிறது',
     analyticsBody:
-      'பயன்பாட்டை மேம்படுத்த, Waves சில பெயர் குறிப்பிடாத படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. நிறுவலுடன், அது எந்த விளம்பரம் அல்லது இணைப்பிலிருந்து வந்தது (அதன் பிரச்சாரக் குறிச்சொல்) என்பதும் எண்ணப்படுகிறது; விளம்பர அடையாளம் இல்லை. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை; விளம்பர அடையாளமும் இல்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, விளம்பர அடையாளம் இல்லை, எதுவும் விற்கப்படுவதில்லை.',
+      'பயன்பாட்டை மேம்படுத்த, Waves சில செயலிப் படிகளை எண்ணுகிறது — செயலி நிறுவப்பட்டது, பதிவு தொடங்கப்பட்டது, தொடக்க வழிகாட்டி முடிந்தது, திட்டங்கள் பார்க்கப்பட்டன. இவை எப்போதும் இயக்கத்தில் இருக்கும்; ஒரு சீரற்ற நிறுவல் அடையாளத்துடனும், கணக்கு உருவானபின் அந்தக் கணக்குடனும் எண்ணப்படும். Android-இல், நிறுவல் எந்த விளம்பரம் அல்லது இணைப்பிலிருந்து வந்தது (அதன் பிரச்சாரக் குறிச்சொல்) என்பதும் எண்ணப்படுகிறது. இந்த எண்ணிக்கைகள் Waves-ன் சொந்தத் தரவுத்தளத்திலேயே இருக்கும்; விளம்பரதாரர்களுக்கு ஒருபோதும் அனுப்பப்படுவதில்லை. வெகுமதி விளம்பர மென்பொருள் (Google AdMob) சாதனத்தின் விளம்பர அடையாளத்தைப் படிக்கலாம் — நீங்கள் விளம்பரம் பார்க்கத் தேர்வு செய்யும்போது அதைக் காட்ட மட்டுமே; விளம்பரங்களைத் தனிப்பயனாக்க ஒருபோதும் பயன்படுத்தப்படுவதில்லை. எந்தத் திரையில் சிக்கல் வருகிறது என்பதைப் புரிந்துகொள்ள Microsoft Clarity மூலம் பயன்பாட்டைப் பதிவு செய்ய முடியும். இது இயல்பாக அணைக்கப்பட்டே வருகிறது; இயக்கப்படாத வரை எதுவும் பதிவாகாது. விளம்பரத்திற்கு ஒருபோதும் பயன்படுத்தப்படுவதில்லை, எதுவும் விற்கப்படுவதில்லை.',
     sessionReplayRow: 'நான் செயலியைப் பயன்படுத்தும் விதத்தைப் பதிவு செய்',
     servicesTitle: 'உங்கள் தரவை வேறு யார் தொடுகிறார்கள்',
     servicesBody:
-      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அநாமதேய பயன்பாட்டு தரவு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம்; அது Google AdMob மூலம் வழங்கப்படுகிறது — தனிப்பயனாக்கப்படாதது, நீங்கள் ‘பாருங்கள்’ என்பதைத் தொட்டால் மட்டுமே; விளம்பரத்தைக் காட்டவும் மோசடியைத் தடுக்கவும் தேவையான சாதன, பிணைய விவரங்களை AdMob பெறும். உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை. நீங்கள் இறக்குமதி செய்யத் தேர்ந்தெடுக்கும் வங்கி கணக்கு விவரங்கள் AI மூலம் படிக்கப்படுகின்றன: கோப்பு உங்கள் தொலைபேசியிலேயே திறக்கப்படுகிறது, கணக்கு எண்கள் முதலில் மறைக்கப்படுகின்றன, பக்கங்கள் எங்கள் AI வழங்குநருக்கு (OpenRouter; சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டும்) அனுப்பப்படுகின்றன, எதுவும் சேமிக்கப்படுவதில்லை. வங்கி SMS செய்திகள் இன்னும் ஒருபோதும் இந்தத் தொலைபேசியை விட்டு வெளியே செல்லாது.',
+      'Waves Supabase-இல் இயங்குகிறது — தரவுத்தளமும் உள்நுழைவும், நாங்கள் நிர்வகிக்கும் சேவையகங்களில். ரசீதுகளும் படங்களும் Cloudflare R2-இல் இருக்கும். செயலிழப்பு அறிக்கைகள் உங்கள் விவரங்கள் நீக்கப்பட்ட பிறகே Sentry-க்குச் செல்கின்றன. அமர்வு மறுஒளிபரப்பு Microsoft Clarity-க்குச் செல்கிறது, மேலே நீங்கள் இயக்கினால் மட்டுமே. தொலைபேசி உள்நுழைவுக் குறியீடுகள் Google Firebase அல்லது Twilio வழியாகவும், மின்னஞ்சல் Resend வழியாகவும், புஷ் அறிவிப்புகள் Expo வழியாகவும், சந்தாக்கள் RevenueCat வழியாகவும் செல்கின்றன. இலவசக் கணக்குகள் விருப்பத்தின் பேரில் ஒரு வெகுமதி விளம்பரத்தைப் பார்க்கலாம்; அது Google AdMob மூலம் வழங்கப்படுகிறது — தனிப்பயனாக்கப்படாதது, நீங்கள் ‘பாருங்கள்’ என்பதைத் தொட்டால் மட்டுமே; விளம்பரத்தைக் காட்டவும் மோசடியைத் தடுக்கவும் தேவையான சாதன, பிணைய விவரங்களை AdMob பெறும். உங்கள் தரவு ஒருபோதும் விற்கப்படுவதில்லை. AI: மேம்பட்ட குரல் இயக்கத்தில் இருந்தால், உங்கள் பதிவு எழுத்தாக மாற Deepgram-க்கு நேரலையாக அனுப்பப்படும், சேமிக்கப்படாது; அந்த எழுத்து, உங்கள் குழுப் பெயர்கள் மற்றும் இருப்புகளுடன், OpenRouter வழியாக ஒரு மொழி மாதிரிக்குச் செல்லும் — சேமிக்காத, பயிற்சிக்குப் பயன்படுத்தாத வழங்குநர்களுக்கு மட்டும் அனுப்பச் சொல்லப்பட்டுள்ளது. நீங்கள் ஸ்கேன் செய்யும் ரசீது பதிவேற்றப்பட்டு அதே வழியில் படிக்கப்படும்; படம் செலவுடன் இணைந்தே இருக்கும். நீங்கள் இறக்குமதி செய்யத் தேர்ந்தெடுக்கும் வங்கிக் கணக்கு விவரக் கோப்பு உங்கள் தொலைபேசியிலேயே திறக்கப்படும்; எழுத்துக் கோப்பில் கணக்கு எண்கள் முதலில் மறைக்கப்படும், ஸ்கேன் செய்யப்பட்டது பக்கப் படங்களாகவே அனுப்பப்படும்; பக்கங்கள் OpenRouter வழியாகச் சென்று, எதுவும் சேமிக்கப்படாது. வங்கி SMS செய்திகள் இன்னும் ஒருபோதும் இந்தத் தொலைபேசியை விட்டு வெளியே செல்லாது.',
     retentionTitle: 'எவ்வளவு காலம் வைத்திருக்கிறோம்',
     retentionBody:
       'உங்கள் கணக்கு திறந்திருக்கும் வரை தரவு இருக்கும். கணக்கு 3 ஆண்டுகள் தொடப்படாமல் இருந்தால், அதை அதிலுள்ள தனிப்பட்ட தரவுடன் நீக்குகிறோம். அதற்காகக் காத்திருக்க வேண்டாம் — அமைப்புகளில் எப்போது வேண்டுமானாலும் எல்லாவற்றையும் ஏற்றுமதி செய்யலாம் அல்லது நீக்கலாம். நீங்கள் மூடி, ஒன்றரை ஆண்டுகளாகத் தொடாமல் விட்ட குழு தானாகவே உங்கள் காப்பகத்திற்கு நகர்த்தப்படுகிறது — எதுவும் நீக்கப்படாது, எப்போது வேண்டுமானாலும் மீண்டும் திறக்கலாம். கணக்கை நீக்கிய பிறகும் நீங்கள் விட்டுச் செல்வதில் சில தொடரும்; நீக்கும் முன் அதைத் தெரிந்து கொள்ளுங்கள். பகிர்ந்த குழுவில் நீங்கள் சேர்த்தவை — செலவுகள், தீர்வுகள், அவற்றின் குறிப்புகளும் கருத்துகளும், நீங்கள் சேர்த்த படங்கள், அது ரசீதாக இருந்தாலும், பணம் கட்டிய சான்றாக இருந்தாலும், பயணப் புகைப்படமாக இருந்தாலும் — அப்படியே இருக்கும், ஏனெனில் அவை மற்ற உறுப்பினர்களின் பதிவும் கூட; அவற்றை நீக்கினால் யாரும் கட்டாத கடன் தீர்ந்தது போல் இன்னொருவரின் இருப்பு அமைதியாக மாறிவிடும். உங்கள் பெயர், புகைப்படம், தொடர்பு விவரங்கள், பணம் பெறும் முகவரி ஆகியவை அந்தக் குழுக்களிலிருந்து நீக்கப்படும்; அங்கே நீங்கள் பெயரில்லாத முன்னாள் உறுப்பினராகிவிடுவீர்கள். ஆனால் ஏற்கெனவே மற்றவர்களுக்குச் சென்ற அறிவிப்புகளிலும் செயல்பதிவிலும் அப்போது இருந்த உங்கள் பெயர் இருக்கக்கூடும். ஏன் வெளியேறுகிறீர்கள் என்ற கேள்விக்கு நீங்கள் பதில் எழுதினால், அது நீங்கள் எழுதியபடியே, உங்களுடனான தொடர்பு நீக்கப்பட்டு, வைக்கப்படும். விளம்பரத்திற்காக எதுவும் வைக்கப்படுவதில்லை; சட்டம் கட்டாயப்படுத்துவதால் எதுவும் வைக்கப்படுவதில்லை.',
@@ -15498,9 +15498,9 @@ const ta: UiStrings = {
     protectSummary:
       'ஒவ்வொரு வாசிப்பிலும் தரவுத்தள விதிகள், தனிப்பட்ட ரசீது இணைப்புகள், சுத்தம் செய்யப்பட்ட பிழை அறிக்கைகள்.',
     servicesSummary:
-      'தரவுத்தளத்திற்கு Supabase, பிழைகளுக்கு Sentry, நீங்கள் அனுமதித்தால் மட்டுமே Clarity, வெகுமதி விளம்பரம் பார்த்தால் மட்டுமே Google AdMob.',
+      'தரவுத்தளத்திற்கு Supabase, படங்களுக்கு Cloudflare, பிழைகளுக்கு Sentry, குரல் மற்றும் ஸ்கேன்களுக்கு Deepgram மற்றும் OpenRouter, நீங்கள் அனுமதித்தால் மட்டுமே Clarity, வெகுமதி விளம்பரம் பார்த்தால் மட்டுமே Google AdMob.',
     analyticsSummary:
-      'நீங்கள் பார்க்க விரும்பினால் மட்டுமே வெகுமதி விளம்பரங்கள், ஒருபோதும் தனிப்பயனாக்கப்படாதவை. சில பெயர் குறிப்பிடாத படிகள் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
+      'நீங்கள் பார்க்க விரும்பினால் மட்டுமே வெகுமதி விளம்பரங்கள், ஒருபோதும் தனிப்பயனாக்கப்படாதவை. சில செயலிப் படிகள் எப்போதும் Waves-ன் சொந்தத் தரவுத்தளத்தில் எண்ணப்படும். நீங்கள் இயக்கும் வரை திரைப் பதிவு இல்லை.',
     retentionSummary:
       'கணக்கு திறந்திருக்கும் வரை; 3 ஆண்டுகள் தொடாவிட்டால் நீக்கப்படும். பகிர்ந்த பதிவுகள் உங்கள் பெயர் இல்லாமல் தொடரும்.',
     choicesSummary:
@@ -17549,7 +17549,7 @@ const hi: UiStrings = {
     step1Body: 'आपकी आवाज़ टेक्स्ट बनाने के लिए Deepgram को भेजी जाती है।',
     step2Title: '2. खर्च को समझना',
     step2Body:
-      'वह टेक्स्ट, आपके ग्रुप और सदस्यों के नाम व बैलेंस के साथ, खर्च समझने के लिए Google Gemini (OpenRouter के ज़रिए) को जाता है।',
+      'वह टेक्स्ट, आपके ग्रुप और सदस्यों के नाम व बैलेंस के साथ, खर्च समझने के लिए एक लैंग्वेज मॉडल (फ़िलहाल Google Gemini या Anthropic Claude, OpenRouter के ज़रिए) को जाता है।',
     step3Title: '3. आपकी प्राइवेसी सुरक्षित है',
     step3Body:
       'Waves रिकॉर्डिंग सेव नहीं करता, और Deepgram को इसे ट्रेनिंग में इस्तेमाल न करने के लिए कहा गया है। OpenRouter टेक्स्ट सिर्फ़ उन्हीं प्रोवाइडर को भेजता है जो इसे न सेव करते हैं, न इससे ट्रेनिंग करते हैं।',
@@ -20513,7 +20513,7 @@ const hi: UiStrings = {
     title: 'निजता',
     storeTitle: 'क्या रखा जाता है',
     storeBody:
-      'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। और कुछ नहीं: कोई संपर्क अपलोड नहीं होते, कोई विज्ञापन पहचानकर्ता नहीं।',
+      'आपका नाम, और फ़ोन नंबर, ईमेल या साइन-इन पहचान में से जो आपने इस्तेमाल किया। वैकल्पिक रूप से एक भुगतान पता, ताकि कोई आपको लौटा सके, एक देश, और यदि आप जोड़ें तो एक डाक पता। आप जिन समूहों में हैं, उनके ख़र्चे, और कौन किसका देनदार है। इनके साथ, अगर आप जोड़ें: रसीद और ख़र्च की तस्वीरें, ख़र्च की जगह (लोकेशन की अनुमति देने के बाद अपने-आप जुड़ती है; सहेजने से पहले पिन हटा या खिसका सकते हैं), और आपके संपर्कों में से चुने लोग — सिर्फ़ वे जिन्हें आप छूते हैं, कभी पूरी संपर्क सूची नहीं।',
     protectTitle: 'कैसे सुरक्षित रहता है',
     protectBody:
       'हर तालिका डेटाबेस में row-level security के पीछे है — ऐप का लगाया फ़िल्टर नहीं, बल्कि डेटाबेस का लागू किया नियम। रसीद की तस्वीरें एक निजी जगह में, छोटी अवधि के लिंक से ही पहुँच में। क्रैश रिपोर्ट से पते, नंबर और भुगतान पते फ़ोन छोड़ने से पहले ही हटा दिए जाते हैं। हर रसीद पूरे समूह को दिख सकती है, या केवल उस ख़र्च में शामिल लोगों को — यह आप हर तस्वीर के लिए चुनते हैं।',
@@ -20523,11 +20523,11 @@ const hi: UiStrings = {
     couldNotSave: 'यह सहेजा नहीं जा सका। थोड़ी देर बाद फिर कोशिश करें।',
     analyticsTitle: 'ऐप कैसे इस्तेमाल होता है',
     analyticsBody:
-      'ऐप को बेहतर बनाने के लिए Waves कुछ गुमनाम चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। इंस्टॉल के साथ यह भी गिना जाता है कि वह किस विज्ञापन या लिंक से आया (उसका कैंपेन टैग), और कोई विज्ञापन पहचानकर्ता नहीं है। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं, विज्ञापनदाताओं को कभी नहीं भेजी जातीं, और कोई विज्ञापन पहचानकर्ता नहीं है। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, कोई विज्ञापन पहचानकर्ता नहीं है, और कुछ भी बेचा या साझा नहीं जाता।',
+      'ऐप को बेहतर बनाने के लिए Waves कुछ ऐप-चरण गिनता है — ऐप इंस्टॉल हुआ, साइन-अप शुरू हुआ, ऑनबोर्डिंग पूरी हुई, और प्लान देखे गए। ये हमेशा चालू रहते हैं, एक यादृच्छिक इंस्टॉल पहचान के साथ और, खाता बनने के बाद, उस खाते के साथ गिने जाते हैं। Android पर इंस्टॉल के साथ यह भी गिना जाता है कि वह किस विज्ञापन या लिंक से आया (उसका कैंपेन टैग)। ये गिनतियाँ Waves के अपने डेटाबेस में रहती हैं और विज्ञापनदाताओं को कभी नहीं भेजी जातीं। इनाम वाले विज्ञापन का सॉफ़्टवेयर (Google AdMob) डिवाइस का विज्ञापन पहचानकर्ता पढ़ सकता है, लेकिन सिर्फ़ तब विज्ञापन दिखाने के लिए जब आप देखना चुनें; विज्ञापन निजीकृत करने में इसका उपयोग कभी नहीं होता। Microsoft Clarity के ज़रिए यह दर्ज किया जा सकता है कि कौन-सी स्क्रीन उलझाती है। यह बंद अवस्था में ही आता है और चालू किए बिना कुछ दर्ज नहीं करता। इसका उपयोग विज्ञापन के लिए कभी नहीं होता, और कुछ भी बेचा या साझा नहीं जाता।',
     sessionReplayRow: 'ऐप के मेरे इस्तेमाल को दर्ज करने दें',
     servicesTitle: 'आपका डेटा और कौन छूता है',
     servicesBody:
-      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। गुमनाम उपयोग डेटा Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं, जिसे Google AdMob दिखाता है: निजीकृत नहीं, और सिर्फ़ तब जब आप ‘देखें’ दबाएँ; विज्ञापन दिखाने और धोखाधड़ी रोकने के लिए ज़रूरी डिवाइस और नेटवर्क जानकारी AdMob को मिलती है। आपका डेटा कभी बेचा नहीं जाता। आपके चुने हुए बैंक स्टेटमेंट AI से पढ़े जाते हैं: फ़ाइल आपके फ़ोन पर खुलती है, खाता नंबर पहले छिपा दिए जाते हैं, पन्ने हमारे AI प्रोवाइडर (OpenRouter, सिर्फ़ उन प्रोवाइडर को जो इन्हें न सेव करते हैं, न इनसे ट्रेनिंग करते हैं) को भेजे जाते हैं, और कुछ भी सहेजा नहीं जाता। बैंक संदेश (SMS) अब भी इस फ़ोन से बाहर कभी नहीं जाते।',
+      'Waves Supabase पर चलता है — डेटाबेस और साइन-इन, हमारे नियंत्रण वाले सर्वर पर। रसीदें और तस्वीरें Cloudflare R2 में रहती हैं। क्रैश रिपोर्ट फ़ोन छोड़ने से पहले आपके विवरण हटाकर Sentry को जाती हैं। सेशन रीप्ले Microsoft Clarity को जाता है, और सिर्फ़ तभी जब आप इसे ऊपर चालू करें। फ़ोन साइन-इन कोड Google Firebase या Twilio से, ईमेल Resend से, पुश सूचनाएँ Expo से और सदस्यता RevenueCat से भेजी जाती हैं। मुफ़्त खाते चाहें तो एक इनाम वाला विज्ञापन देख सकते हैं, जिसे Google AdMob दिखाता है: निजीकृत नहीं, और सिर्फ़ तब जब आप ‘देखें’ दबाएँ; विज्ञापन दिखाने और धोखाधड़ी रोकने के लिए ज़रूरी डिवाइस और नेटवर्क जानकारी AdMob को मिलती है। आपका डेटा कभी बेचा नहीं जाता। AI: एडवांस्ड वॉइस चालू हो तो आपकी रिकॉर्डिंग टेक्स्ट बनाने के लिए Deepgram को स्ट्रीम होती है और सहेजी नहीं जाती; वह टेक्स्ट, आपके ग्रुप के नाम और बैलेंस के साथ, OpenRouter के ज़रिए एक लैंग्वेज मॉडल को जाता है, जिसे सिर्फ़ उन्हीं प्रोवाइडर को भेजने को कहा गया है जो इसे न सेव करते हैं, न इससे ट्रेनिंग करते हैं। स्कैन की गई रसीद अपलोड होकर उसी तरह पढ़ी जाती है, और तस्वीर ख़र्च के साथ जुड़ी रहती है। आपके चुने हुए बैंक स्टेटमेंट आपके फ़ोन पर खुलते हैं; टेक्स्ट स्टेटमेंट में खाता नंबर पहले छिपा दिए जाते हैं, जबकि स्कैन किया हुआ स्टेटमेंट पन्नों की तस्वीरों के रूप में जाता है; पन्ने OpenRouter के ज़रिए जाते हैं और कुछ भी सहेजा नहीं जाता। बैंक संदेश (SMS) अब भी इस फ़ोन से बाहर कभी नहीं जाते।',
     retentionTitle: 'हम इसे कब तक रखते हैं',
     retentionBody:
       'जब तक आपका खाता खुला है, आपका डेटा रहता है। अगर खाता 3 साल तक अछूता रहे, तो हम उसे और उसके निजी डेटा को हटा देते हैं। इसके लिए इंतज़ार करने की ज़रूरत नहीं — सेटिंग्स में कभी भी सब कुछ ख़ुद निर्यात या हटा सकते हैं। जिस समूह को आप बंद कर दें और डेढ़ साल तक न छूएं, वह अपने-आप आपके संग्रह में चला जाता है — कुछ भी नहीं हटता, और आप उसे कभी भी दोबारा खोल सकते हैं। खाता मिटाने के बाद भी आपकी छोड़ी हुई कुछ चीज़ें बनी रहती हैं, और मिटाने से पहले यह जान लेना चाहिए। साझा समूह में आपने जो जोड़ा — ख़र्च और भुगतान, उन पर लिखे नोट और टिप्पणियाँ, और आपकी जोड़ी हुई तस्वीरें, चाहे वह रसीद हो, भुगतान का सबूत हो या यात्रा की फ़ोटो — वह बना रहता है, क्योंकि वह बाक़ी सदस्यों का भी रिकॉर्ड है; उसे हटाने से किसी और का हिसाब चुपचाप बदल जाता, जैसे कोई क़र्ज़ बिना चुकाए चुक गया हो। आपका नाम, फ़ोटो, संपर्क विवरण और भुगतान पता उन समूहों से हटा दिए जाते हैं और वहाँ आप एक अनाम पूर्व सदस्य बन जाते हैं; लेकिन जो सूचनाएँ और गतिविधि पहले ही दूसरों तक पहुँच चुकी हैं, उनमें उस समय का आपका नाम रह सकता है। और अगर आप “क्यों जा रहे हैं” वाले बॉक्स में कुछ लिखते हैं, तो वह जवाब जैसा आपने लिखा वैसा ही रखा जाता है, आपसे उसका नाता हटाकर। विज्ञापन के लिए कुछ नहीं रखा जाता, और किसी क़ानूनी बाध्यता के कारण भी कुछ नहीं रखा जाता।',
@@ -20545,9 +20545,9 @@ const hi: UiStrings = {
       'आपकी प्रोफ़ाइल, समूह, ख़र्च, रसीदें, टिप्पणियाँ, सेटिंग्स और कौन किसका देनदार है।',
     protectSummary: 'हर पठन पर डेटाबेस नियम, निजी रसीद लिंक, साफ़ की गई क्रैश रिपोर्ट।',
     servicesSummary:
-      'डेटाबेस के लिए Supabase, क्रैश के लिए Sentry, अनुमति देने पर ही Clarity, और इनाम वाला विज्ञापन देखने पर ही Google AdMob।',
+      'डेटाबेस के लिए Supabase, तस्वीरों के लिए Cloudflare, क्रैश के लिए Sentry, वॉइस और स्कैन के लिए Deepgram और OpenRouter, अनुमति देने पर ही Clarity, और इनाम वाला विज्ञापन देखने पर ही Google AdMob।',
     analyticsSummary:
-      'इनाम वाले विज्ञापन सिर्फ़ तब जब आप देखना चुनें, कभी निजीकृत नहीं। कुछ गुमनाम ऐप-चरण Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
+      'इनाम वाले विज्ञापन सिर्फ़ तब जब आप देखना चुनें, कभी निजीकृत नहीं। कुछ ऐप-चरण हमेशा Waves के अपने डेटाबेस में गिने जाते हैं। आपके चालू किए बिना स्क्रीन रिकॉर्डिंग नहीं।',
     retentionSummary:
       'खाता खुला रहने तक; 3 साल अछूता रहा तो हटा दिया जाता है। साझा रिकॉर्ड आपके नाम के बिना बने रहते हैं।',
     choicesSummary: 'सब कुछ निर्यात करें, कोई भी सूचना बंद करें, या खाता हटाएँ।',
@@ -22653,7 +22653,7 @@ const ar: UiStrings = {
     step1Body: 'يُرسَل صوتك إلى Deepgram لتحويله إلى نص.',
     step2Title: '2. فهم المصروف',
     step2Body:
-      'ثم يذهب النص، مع أسماء مجموعاتك وأعضائها وأرصدتهم، إلى Google Gemini (عبر OpenRouter) لاستخلاص المصروف.',
+      'ثم يذهب النص، مع أسماء مجموعاتك وأعضائها وأرصدتهم، إلى نموذج لغوي (حاليًا Google Gemini أو Anthropic Claude، عبر OpenRouter) لاستخلاص المصروف.',
     step3Title: '3. خصوصيتك محمية',
     step3Body:
       'لا يحفظ Waves التسجيل، وقد طُلب من Deepgram عدم استخدامه للتدريب. ولا يرسل OpenRouter النص إلا إلى مزوّدين لا يحفظونه ولا يستخدمونه للتدريب.',
@@ -26155,7 +26155,7 @@ const ar: UiStrings = {
     title: 'الخصوصية',
     storeTitle: 'ما الذي يُحفظ',
     storeBody:
-      'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. لا شيء غير ذلك: لا تُرفع جهات الاتصال، ولا يوجد معرّف إعلاني.',
+      'اسمك، وما استخدمته من رقم هاتف أو بريد أو هوية دخول. واختياريًا عنوان دفع كي يتمكن أحدهم من ردّ المال إليك، وبلد، وعنوان بريدي اختياري إن أضفته. المجموعات التي تشارك فيها ومصروفاتها ومن يدين لمن. ومعها، إن أضفتها: صور الإيصالات والمصروفات، ومكان المصروف (يُرفق تلقائيًا بعد أن تسمح بالوصول إلى الموقع؛ ويمكنك نقل الدبوس أو إزالته قبل الحفظ)، والأشخاص الذين تختارهم من جهات اتصالك — من تضغط عليهم فقط، ولا يُرفع دفتر عناوينك كله أبدًا.',
     protectTitle: 'كيف يُحمى',
     protectBody:
       'كل جدول محميّ بأمان على مستوى الصف داخل قاعدة البيانات — ليس ترشيحًا يجريه التطبيق، بل قاعدة تفرضها قاعدة البيانات نفسها. صور الإيصالات في مكان خاص لا يُوصل إليه إلا بروابط قصيرة الأجل. وتُنقّى تقارير الأعطال من العناوين والأرقام وعناوين الدفع قبل مغادرتها الهاتف. ويمكن أن يظهر كل إيصال لجميع أفراد المجموعة أو لمن شارك في ذلك المصروف فقط — تختار ذلك لكل صورة.',
@@ -26165,11 +26165,11 @@ const ar: UiStrings = {
     couldNotSave: 'لم يُحفظ هذا. أعد المحاولة بعد قليل.',
     analyticsTitle: 'كيف يُستخدم التطبيق',
     analyticsBody:
-      'لتحسين التطبيق، يحصي Waves بضع خطوات مجهولة الهوية — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. ويُحصى مع التثبيت أيضًا الإعلان أو الرابط الذي جاء منه (وسم حملته)، دون أي معرّف إعلاني. تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها، ولا تُرسل إلى المعلنين أبدًا، ولا يوجد معرّف إعلاني. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يوجد معرّف إعلاني، ولا يُباع شيء أو يُشارَك.',
+      'لتحسين التطبيق، يحصي Waves بضع خطوات في التطبيق — تثبيت التطبيق، وبدء التسجيل، وإنهاء التعريف بالتطبيق، وعرض الباقات. وهي تعمل دائمًا، وتُحصى مقابل معرّف تثبيت عشوائي، ومقابل حسابك بعد إنشائه. وعلى Android يُحصى مع التثبيت أيضًا الإعلان أو الرابط الذي جاء منه (وسم حملته). تُحفظ هذه الأعداد في قاعدة بيانات Waves نفسها ولا تُرسل إلى المعلنين أبدًا. ويمكن لبرنامج إعلانات المكافأة (Google AdMob) قراءة المعرّف الإعلاني للجهاز، لكن فقط لعرض إعلان حين تختار مشاهدته؛ ولا يُستخدم أبدًا لتخصيص الإعلانات. ويمكن لـ Microsoft Clarity تسجيل كيفية استخدام الشاشات لمعرفة أين يتعثر الناس. يأتي مُعطّلًا ولا يسجّل شيئًا ما لم يُفعّل. ولا يُستخدم للإعلانات أبدًا، ولا يُباع شيء أو يُشارَك.',
     sessionReplayRow: 'سجّل كيف أستخدم التطبيق',
     servicesTitle: 'من غيرنا يلمس بياناتك',
     servicesBody:
-      'يعمل بـاقي على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. بيانات الاستخدام المجهولة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة تعرضه Google AdMob: غير مخصَّص، ولا يظهر إلا عندما تضغط «شاهد»، وتتلقى AdMob بيانات الجهاز والشبكة اللازمة لعرض الإعلان ومنع الاحتيال. بياناتك لا تُباع أبدًا. تُقرأ كشوف الحساب البنكية التي تختار استيرادها بالذكاء الاصطناعي: يُفتح الملف على هاتفك، وتُخفى أرقام الحسابات أولًا، وتُرسل الصفحات إلى مزوّد الذكاء الاصطناعي لدينا (OpenRouter، ولا يرسلها إلا إلى مزوّدين لا يحفظونها ولا يستخدمونها للتدريب)، ولا يُحفظ شيء. أما الرسائل البنكية (SMS) فلا تغادر هذا الهاتف أبدًا.',
+      'يعمل Waves على Supabase — قاعدة البيانات وتسجيل الدخول، على خوادم نتحكّم بها. الإيصالات والصور محفوظة في Cloudflare R2. تقارير الأعطال تذهب إلى Sentry بعد إزالة تفاصيلك قبل أن تغادر الهاتف. إعادة تشغيل الجلسة تذهب إلى Microsoft Clarity، وفقط إذا فعّلتها أعلاه. رموز الدخول بالهاتف تُرسل عبر Google Firebase أو Twilio، والبريد عبر Resend، والإشعارات عبر Expo، والاشتراكات عبر RevenueCat. يمكن للحسابات المجانية اختيار مشاهدة إعلان مكافأة تعرضه Google AdMob: غير مخصَّص، ولا يظهر إلا عندما تضغط «شاهد»، وتتلقى AdMob بيانات الجهاز والشبكة اللازمة لعرض الإعلان ومنع الاحتيال. بياناتك لا تُباع أبدًا. الذكاء الاصطناعي: مع تفعيل الصوت المتقدم، يُبثّ تسجيلك إلى Deepgram لتحويله إلى نص ولا يُحفظ؛ ثم يذهب النص، مع أسماء مجموعاتك وأرصدتها، إلى نموذج لغوي عبر OpenRouter الذي طُلب منه ألا يرسله إلا إلى مزوّدين لا يحفظونه ولا يستخدمونه للتدريب. والإيصال الذي تمسحه يُرفع ويُقرأ بالطريقة نفسها، وتبقى الصورة مرفقة بالمصروف. وكشوف الحساب البنكية التي تختار استيرادها تُفتح على هاتفك؛ في الكشف النصي تُخفى أرقام الحسابات أولًا، أما الكشف الممسوح ضوئيًا فيُرسل كصور صفحات؛ وتمرّ الصفحات عبر OpenRouter ولا يُحفظ شيء. أما الرسائل البنكية (SMS) فلا تغادر هذا الهاتف أبدًا.',
     retentionTitle: 'كم نحتفظ بها',
     retentionBody:
       'تبقى بياناتك ما دام حسابك مفتوحًا. إذا بقي الحساب دون استخدام لمدة 3 سنوات، نحذفه ونحذف معه البيانات الشخصية. لا داعي للانتظار — يمكنك تصدير كل شيء أو حذفه بنفسك في أي وقت من الإعدادات. المجموعة التي تغلقها وتتركها دون استخدام لمدة عام ونصف تُنقل تلقائيًا إلى أرشيفك — لا يُحذف شيء، ويمكنك إعادة فتحها في أي وقت. ويبقى بعض ما تتركه خلفك حتى بعد حذف حسابك، ومن حقك معرفته قبل أن تحذف. ما أضفته إلى مجموعة مشتركة — المصروفات والتسويات، والملاحظات والتعليقات عليها، والصور التي أضفتها، سواء كانت إيصالًا أو إثبات دفع أو صورة رحلة — يبقى، لأنه سجلّ بقية الأعضاء أيضًا، وإزالته تغيّر رصيد شخص آخر بصمت وكأن دَينًا سُدّد دون أن يدفعه أحد. أما اسمك وصورتك وبيانات التواصل وعناوين الدفع فتُزال من تلك المجموعات، وتصبح فيها عضوًا سابقًا بلا اسم؛ غير أن الإشعارات وسجل النشاط التي وصلت إلى آخرين من قبل قد تظل تحمل اسمك وقتها. وإذا كتبت شيئًا في خانة سبب المغادرة، فيُحفظ ما كتبته كما هو بعد إزالة ما يربطه بك. لا يُحتفظ بشيء لأغراض إعلانية، ولا يُحتفظ بشيء لأن قانونًا يلزمنا بذلك.',
@@ -26186,9 +26186,9 @@ const ar: UiStrings = {
     storeSummary: 'ملفك الشخصي ومجموعاتك ومصروفاتك وإيصالاتك وتعليقاتك وإعداداتك ومن يدين لمن.',
     protectSummary: 'قواعد قاعدة البيانات عند كل قراءة، وروابط إيصالات خاصة، وتقارير أعطال منقّاة.',
     servicesSummary:
-      'Supabase لقاعدة البيانات، وSentry للأعطال، وClarity فقط إن سمحت، وGoogle AdMob فقط إن شاهدت إعلان مكافأة.',
+      'Supabase لقاعدة البيانات، وCloudflare للصور، وSentry للأعطال، وDeepgram وOpenRouter للصوت والمسح، وClarity فقط إن سمحت، وGoogle AdMob فقط إن شاهدت إعلان مكافأة.',
     analyticsSummary:
-      'إعلانات المكافأة فقط إن اخترت مشاهدتها، ولا تُخصَّص لك أبدًا. تُحصى بضع خطوات مجهولة في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
+      'إعلانات المكافأة فقط إن اخترت مشاهدتها، ولا تُخصَّص لك أبدًا. تُحصى بضع خطوات في التطبيق دائمًا في قاعدة بيانات Waves نفسها. ولا تسجيل للشاشة ما لم تفعّله.',
     retentionSummary:
       'يبقى ما دام حسابك مفتوحًا، ويُحذف بعد ثلاث سنوات دون استخدام. وتبقى السجلات المشتركة دون اسمك.',
     choicesSummary: 'صدّر كل شيء، أوقف أي إشعار، أو احذف حسابك.',

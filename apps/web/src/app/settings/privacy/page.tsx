@@ -56,7 +56,7 @@ import { fill } from '@/i18n';
  * a constant rather than a build stamp because a redeploy is not a policy
  * change, and a date that moves on its own teaches people to ignore it.
  */
-const POLICY_UPDATED = '2026-09-22';
+const POLICY_UPDATED = '2026-10-22';
 
 export default function PrivacyPage() {
   return <AppFrame current={Section.Settings}>{() => <Privacy />}</AppFrame>;
