@@ -67,6 +67,24 @@ export function membersAsPeople(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * From Friends, where one placeholder may sit in several groups: the groups the
+ * viewer can link it in — admin there, and the person still a placeholder who
+ * has not left. Each
+ * is linked on its own page, because the merge-or-ask decision and the consent
+ * of the person asked are per group.
+ */
+export function linkableGroups<
+  T extends { viewerIsAdmin: boolean; otherIsGhost: boolean; otherHasLeft: boolean },
+>(groups: readonly T[]): T[] {
+  return groups.filter((group) => group.viewerIsAdmin && group.otherIsGhost && !group.otherHasLeft);
+}
+
+/** The placeholder's member page, with "Who is Renny?" already open. */
+export function linkMemberRoute(group: { groupId: string; otherMemberId: string }): string {
+  return `/group/${group.groupId}/member/${group.otherMemberId}?link=1`;
+}
+
 /** The server's one-word reasons, in the viewer's language. */
 export function linkReasonText(reason: string | undefined, t: UiStrings): string {
   switch (reason) {

@@ -1029,6 +1029,10 @@ export interface PairGroupMeta {
   otherName: string;
   /** Every row of them here is a guest added by name. */
   otherIsGhost: boolean;
+  /** The viewer runs this group, so may say who a placeholder in it really is. */
+  viewerIsAdmin: boolean;
+  /** `otherMemberId` is a row that has left or been retired: nothing can be done to it. */
+  otherHasLeft: boolean;
 }
 
 export interface PairView {
@@ -1118,6 +1122,7 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
         endDate: group.end_date,
         simplify: simplifies,
         otherMemberId: (others.find((member) => member.left_at === null) ?? others[0]).id,
+        otherHasLeft: !others.some((member) => member.left_at === null),
         viewerMemberId: me.id,
         otherName: (() => {
           const head = others.find((member) => member.left_at === null) ?? others[0];
@@ -1129,6 +1134,7 @@ export function usePairBalances(profileId: string | null, personKey: string): Lo
           );
         })(),
         otherIsGhost: others.every((member) => isGhost(member)),
+        viewerIsAdmin: me.role === 'admin',
       });
     }
 
