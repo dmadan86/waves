@@ -19,6 +19,10 @@ import { useRouter } from 'next/navigation';
 import {
   CATEGORIES,
   computeShares,
+  familyEmoji,
+  familyRows,
+  hasFamilies,
+  unitsSplitParams,
   money as coreMoney,
   guessCategory,
   parseMajor,
@@ -28,6 +32,7 @@ import {
   type CurrencyCode,
   type ExpenseLocation,
   type SplitParams,
+  type UnitsParams,
 } from '@waves/core';
 import { nameOf, type Group, type Member } from '@waves/api-client';
 
@@ -35,9 +40,10 @@ import { waves } from '@/lib/waves';
 import { money as fmtMoney } from '@/lib/money';
 import { tooManyPayersForWeb } from '@/lib/editable';
 import { captureLocation, coordLabel, geolocationSupported, LocationFailure } from '@/lib/geo';
-import { fill } from '@/i18n';
+import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { useFlagEnabled } from '@/lib/flags';
 import { MapPin } from 'lucide-react';
 
 enum SplitKind {
@@ -85,6 +91,13 @@ export function ExpenseForm({
   const [exact, setExact] = useState<Record<string, string>>({});
   const [percent, setPercent] = useState<Record<string, string>>({});
   const [weights, setWeights] = useState<Record<string, string>>({});
+  // Families (units split). `snapshot` is the composition a saved by-family bill
+  // was written with: an edit keeps it until the people or the method change,
+  // so moving a member between families later never rewrites an old bill.
+  const familiesOn = useFlagEnabled('group_units');
+  const [snapshot, setSnapshot] = useState<UnitsParams | null>(null);
+  const [splitTouched, setSplitTouched] = useState(false);
+  const [lens, setLens] = useState<boolean | null>(null);
 
   /** "Work expense (to claim)": a tag, never part of the split. */
   const [reimbursable, setReimbursable] = useState(false);
@@ -198,6 +211,10 @@ export function ExpenseForm({
               case 'equal':
                 setKind(SplitKind.Equal);
                 break;
+              case 'units':
+                setKind(SplitKind.Equal);
+                setSnapshot(parsed);
+                break;
               case 'exact':
                 setKind(SplitKind.Exact);
                 setExact(
@@ -264,12 +281,18 @@ export function ExpenseForm({
     }
   }, [amountText, currency]);
 
+  const units = group?.units ?? null;
+  const familiesAvail = familiesOn && hasFamilies(units);
+  const showLens = kind === SplitKind.Equal && (familiesAvail || snapshot !== null);
+  const byFamily = showLens && (lens ?? (snapshot !== null || (!editing && familiesAvail)));
+
   const params = useMemo<SplitParams | null>(() => {
     if (participants.length === 0) return null;
     try {
       switch (kind) {
         case SplitKind.Equal:
-          return { kind: 'equal' };
+          if (!byFamily) return { kind: 'equal' };
+          return snapshot && !splitTouched ? snapshot : unitsSplitParams(units, participants);
         case SplitKind.Exact: {
           const amounts: Record<string, bigint> = {};
           for (const id of participants) {
@@ -302,7 +325,18 @@ export function ExpenseForm({
       return null;
     }
     return null;
-  }, [kind, participants, exact, percent, weights, currency]);
+  }, [
+    kind,
+    byFamily,
+    snapshot,
+    splitTouched,
+    units,
+    participants,
+    exact,
+    percent,
+    weights,
+    currency,
+  ]);
 
   // The same computation the server runs — a preview only where it is valid.
   const preview = useMemo(() => {
@@ -320,7 +354,17 @@ export function ExpenseForm({
     }
   }, [amount, currency, params, participants, targetExpenseId]);
 
+  const toggleFamily = useCallback((ids: readonly string[]) => {
+    setSplitTouched(true);
+    setParticipants((current) =>
+      ids.every((id) => current.includes(id))
+        ? current.filter((id) => !ids.includes(id))
+        : [...current, ...ids.filter((id) => !current.includes(id))],
+    );
+  }, []);
+
   const toggle = useCallback((memberId: string) => {
+    setSplitTouched(true);
     setParticipants((current) =>
       current.includes(memberId)
         ? current.filter((item) => item !== memberId)
@@ -560,7 +604,10 @@ export function ExpenseForm({
                 type="button"
                 className="chip"
                 aria-pressed={kind === k}
-                onClick={() => setKind(k)}
+                onClick={() => {
+                  setSplitTouched(true);
+                  setKind(k);
+                }}
               >
                 {t.expense.splitKind[k]}
               </button>
@@ -575,19 +622,98 @@ export function ExpenseForm({
             </Link>
           </div>
 
-          <div className="people">
-            {members.map((member) => (
-              <button
-                key={member.id}
-                type="button"
-                className="chip"
-                aria-pressed={participants.includes(member.id)}
-                onClick={() => toggle(member.id)}
-              >
-                {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
-              </button>
-            ))}
-          </div>
+          {showLens ? (
+            <div className="people" style={{ marginBottom: 12 }}>
+              {[false, true].map((value) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  className="chip"
+                  aria-pressed={byFamily === value}
+                  onClick={() => {
+                    setSplitTouched(true);
+                    setLens(value);
+                  }}
+                >
+                  {value ? t.families.splitFamilies : t.families.splitPeople}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {byFamily ? (
+            <div className="list">
+              {(() => {
+                const { families, onTheirOwn } = familyRows(units, members);
+                const chip = (member: Member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    className="chip"
+                    aria-pressed={participants.includes(member.id)}
+                    onClick={() => toggle(member.id)}
+                  >
+                    {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                  </button>
+                );
+                return (
+                  <>
+                    {families
+                      .filter((family) => family.members.length > 0)
+                      .map((family) => {
+                        const ids = family.members.map((member) => member.id);
+                        const total = preview
+                          ? ids.reduce((sum, id) => sum + (preview.get(id) ?? 0n), 0n)
+                          : null;
+                        return (
+                          <div key={family.id}>
+                            <div className="item" style={{ cursor: 'default' }}>
+                              <button
+                                type="button"
+                                className="chip"
+                                aria-pressed={ids.every((id) => participants.includes(id))}
+                                onClick={() => toggleFamily(ids)}
+                              >
+                                {familyEmoji(ids.length)} {family.unit.name}
+                              </button>
+                              <span className="grow faint">
+                                {plural(locale, ids.length, t.group.peopleCount)}
+                              </span>
+                              {total !== null && total > 0n ? (
+                                <span className="amount">{fmtMoney(total, currency, locale)}</span>
+                              ) : null}
+                            </div>
+                            <div className="people" style={{ paddingInlineStart: 16 }}>
+                              {family.members.map(chip)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {onTheirOwn.length > 0 ? (
+                      <div>
+                        <p className="faint">{t.families.onTheirOwn}</p>
+                        <div className="people">{onTheirOwn.map(chip)}</div>
+                      </div>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="people">
+              {members.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={participants.includes(member.id)}
+                  onClick={() => toggle(member.id)}
+                >
+                  {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                </button>
+              ))}
+            </div>
+          )}
 
           {kind !== SplitKind.Equal ? (
             <div className="list" style={{ marginTop: 12 }}>
@@ -623,7 +749,7 @@ export function ExpenseForm({
             </div>
           ) : (
             <p className="faint" style={{ marginTop: 10 }}>
-              {t.add.splitEquallyNote}
+              {byFamily ? t.families.byFamilyNote : t.add.splitEquallyNote}
             </p>
           )}
 

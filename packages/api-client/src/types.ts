@@ -6,7 +6,7 @@
  * columns nobody renders is asking RLS to prove more than it has to.
  */
 
-import type { CategoryMeta, ExpenseLocation, FxRecord, SplitParams } from '@waves/core';
+import type { CategoryMeta, ExpenseLocation, FxRecord, GroupUnits, SplitParams } from '@waves/core';
 import type { GroupType } from './rows';
 
 export type MemberId = string;
@@ -20,6 +20,8 @@ export interface Group {
   /** Foreign bills with a stored rate count in `default_currency` (ADR-003
    *  amendment). Optional: absent from a read that did not select it. */
   convert_to_group_currency?: boolean;
+  /** Families (`groups.units`); null or absent when the group has none. */
+  units?: GroupUnits | null;
   /**
    * What kind of group this is — read, not decoration: it decides which of the
    * trip screens a group leads to. Optional because the guest link's own read

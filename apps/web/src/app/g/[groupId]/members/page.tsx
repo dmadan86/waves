@@ -30,6 +30,8 @@ import { waves } from '@/lib/waves';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { useFlagEnabled } from '@/lib/flags';
+import { familyOf } from '@waves/core';
 
 export default function MembersPage() {
   return (
@@ -51,6 +53,7 @@ function Members({ profileId }: { profileId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const familiesOn = useFlagEnabled('group_units');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -147,9 +150,13 @@ function Members({ profileId }: { profileId: string }) {
                         {isMe ? ` · ${t.members.you}` : ''}
                       </Link>
                       <span className="meta">
-                        {member.role === 'admin' ? t.members.admin : ''}
-                        {member.role === 'admin' && isGhost ? ' · ' : ''}
-                        {isGhost ? t.members.ghost : ''}
+                        {[
+                          member.role === 'admin' ? t.members.admin : '',
+                          isGhost ? t.members.ghost : '',
+                          familiesOn ? (familyOf(group?.units, member.id)?.name ?? '') : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </span>
                     </span>
                     {iAmAdmin && !isMe && member.profile_id ? (

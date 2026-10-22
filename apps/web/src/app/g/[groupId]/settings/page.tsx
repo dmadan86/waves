@@ -22,14 +22,16 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
-import { GroupType, WavesApiError, type GroupRow } from '@waves/api-client';
+import { GroupType, WavesApiError, type GroupRow, type Member } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
+import { FamiliesEditor } from '@/components/FamiliesEditor';
 import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { waves } from '@/lib/waves';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { useFlagEnabled } from '@/lib/flags';
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD', 'CAD', 'JPY'] as const;
 const EMOJI = ['🏖️', '🏠', '❤️', '🎉', '👥', '🍽️', '✈️', '🎬', '🏔️', '🛒'] as const;
@@ -51,6 +53,8 @@ function GroupSettings({ profileId }: { profileId: string }) {
   const [group, setGroup] = useState<GroupRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [iAmAdmin, setIAmAdmin] = useState(false);
+  const [people, setPeople] = useState<Member[]>([]);
+  const familiesOn = useFlagEnabled('group_units');
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState<string | null>(null);
   const [currency, setCurrency] = useState('INR');
@@ -66,6 +70,7 @@ function GroupSettings({ profileId }: { profileId: string }) {
     // borrowed URL lands here. Leaving `group` null is the signal for the
     // missing-group panel below — never an editable form over defaults.
     setGroup(row);
+    setPeople(members);
     if (!row) return;
     setName(row.name ?? '');
     setEmoji(row.cover_emoji);
@@ -276,6 +281,26 @@ function GroupSettings({ profileId }: { profileId: string }) {
         </section>
 
         {error ? <p className="error">{error}</p> : null}
+
+        {familiesOn ? (
+          <section className="panel">
+            <h2>{t.families.title}</h2>
+            <FamiliesEditor
+              units={group.units ?? null}
+              members={people}
+              canEdit={iAmAdmin && !archived}
+              busy={busy}
+              onChange={(next) =>
+                // Only the row is re-read, not the form: unsaved edits above
+                // stay, and the row's new revision is what the form saves against.
+                void run(
+                  () => waves.updateGroup(groupId, { units: next }),
+                  () => void waves.groupRow(groupId).then((row) => row && setGroup(row)),
+                )
+              }
+            />
+          </section>
+        ) : null}
 
         <section className="panel">
           <h2>{t.exportData.title}</h2>

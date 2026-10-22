@@ -29,10 +29,14 @@ import {
 import {
   buildPaymentUri,
   defaultRailForCurrency,
+  familyLabel,
+  familyTransfers,
+  hasFamilies,
   payableFor,
   railById,
   railsForCurrency,
   toMajorString,
+  unitOf,
   usableFx,
   type CurrencyCode,
 } from '@waves/core';
@@ -44,6 +48,7 @@ import { waves } from '@/lib/waves';
 import { money } from '@/lib/money';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { useFlagEnabled } from '@/lib/flags';
 import { openSettlements, settlementActions } from '@/lib/settlementActions';
 
 export default function SettlePage() {
@@ -176,6 +181,7 @@ function GroupSettle({
   const [nudged, setNudged] = useState<Set<string>>(new Set());
   const [openSettle, setOpenSettle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const familiesOn = useFlagEnabled('group_units');
 
   useEffect(() => {
     // The component is keyed by group id, so a group switch remounts with
@@ -227,8 +233,22 @@ function GroupSettle({
     );
   }
 
-  const iOwe = ledger.transfers.filter((transfer) => transfer.from === myMemberId);
-  const owesMe = ledger.transfers.filter((transfer) => transfer.to === myMemberId);
+  // Families settle as one: the lines are family to family, named by their
+  // heads, and anyone in the paying family may record the payment.
+  const units = group.units ?? null;
+  const familyLens = familiesOn && hasFamilies(units);
+  const transfers = familyLens ? familyTransfers(ledger.net, units) : ledger.transfers;
+  const myFamily = familyLens && myMemberId ? unitOf(units, myMemberId) : null;
+  const isMine = (memberId: string) =>
+    memberId === myMemberId || (myFamily !== null && unitOf(units, memberId) === myFamily);
+  const labelFor = (member: MemberRow | undefined) =>
+    member
+      ? familyLens
+        ? familyLabel(units, member.id, memberName(member))
+        : memberName(member)
+      : t.settle.title;
+  const iOwe = transfers.filter((transfer) => isMine(transfer.from));
+  const owesMe = transfers.filter((transfer) => isMine(transfer.to));
 
   // A group that settles in its own currency (ADR-003 amendment) takes only that
   // currency: the server refuses anything else. A debt still in another currency
@@ -377,7 +397,7 @@ function GroupSettle({
                 <div key={rowKey}>
                   <div className="item" style={{ cursor: 'default' }}>
                     <span className="grow">
-                      <span className="title">{payee ? memberName(payee) : t.settle.title}</span>
+                      <span className="title">{labelFor(payee)}</span>
                       {noRate ? (
                         <span className="faint" style={{ display: 'block' }}>
                           {t.settle.noRateHint.replace('{currency}', groupCurrency)}
@@ -437,7 +457,7 @@ function GroupSettle({
                   style={{ cursor: 'default' }}
                 >
                   <span className="grow">
-                    <span className="title">{payer ? memberName(payer) : t.settle.title}</span>
+                    <span className="title">{labelFor(payer)}</span>
                   </span>
                   <span className="amount pos">
                     {money(transfer.amount, transfer.currency, locale)}

@@ -32,7 +32,16 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { History, Receipt, Scale } from 'lucide-react';
 
-import { myStake, simplifyItems, SimplifySide } from '@waves/core';
+import {
+  familyBalanceItems,
+  familyEmoji,
+  familyLabel,
+  familyTransfers,
+  hasFamilies,
+  myStake,
+  simplifyItems,
+  SimplifySide,
+} from '@waves/core';
 import {
   computeLedger,
   GroupType,
@@ -56,6 +65,7 @@ import { describeActivity, VerbIcon } from '@/lib/activity';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { useFlagEnabled } from '@/lib/flags';
 
 enum Face {
   Expenses = 'expenses',
@@ -106,6 +116,10 @@ function GroupDetail({
   const [error, setError] = useState<string | null>(null);
 
   const [face, setFace] = useState<Face>(Face.Expenses);
+  // The family lens on Balances: families by default once the group has any.
+  const familiesOn = useFlagEnabled('group_units');
+  const [byPerson, setByPerson] = useState(false);
+  const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     let active = true;
@@ -232,10 +246,13 @@ function GroupDetail({
    * "Someone", which inside an otherwise-Tamil sentence is worse than the gap
    * it fills.
    */
+  const familyLens = familiesOn && hasFamilies(group.units) && !byPerson;
   const who = (memberId: string) => {
     const member = byId.get(memberId);
-    return member ? pastNameOf(member, t.group.memberLeft) : t.join.someone;
+    const name = member ? pastNameOf(member, t.group.memberLeft) : t.join.someone;
+    return familyLens ? familyLabel(group.units, memberId, name) : name;
   };
+  const transfers = familyLens ? familyTransfers(ledger.net, group.units) : ledger.transfers;
   const live = expenses.filter((expense) => !expense.deleted_at && expense.currentVersion);
   const hasPlaces = live.some((expense) => expense.currentVersion?.location);
 
@@ -361,30 +378,83 @@ function GroupDetail({
               <div className="panel-head">
                 <h2>{t.group.whereEveryoneStands}</h2>
               </div>
+              {familiesOn && hasFamilies(group.units) ? (
+                <div className="people" style={{ marginBottom: 10 }}>
+                  {[false, true].map((value) => (
+                    <button
+                      key={String(value)}
+                      type="button"
+                      className="chip"
+                      aria-pressed={byPerson === value}
+                      onClick={() => setByPerson(value)}
+                    >
+                      {value ? t.families.lensPeople : t.families.lensFamilies}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <div className="list">
                 {/* Somebody who left but still owes or is owed stays on the list. */}
-                {everyone
-                  .filter((m) => !m.left_at || (ledger.balances.get(m.id) ?? 0n) !== 0n)
-                  .map((member) => {
-                    const net = ledger.balances.get(member.id) ?? 0n;
-                    const cls = net > 0n ? 'pos' : net < 0n ? 'neg' : 'zero';
+                {(() => {
+                  const net = (id: string) => ledger.balances.get(id) ?? 0n;
+                  const figure = (value: bigint) => (
+                    <span className={`amount ${value > 0n ? 'pos' : value < 0n ? 'neg' : 'zero'}`}>
+                      {value === 0n
+                        ? t.group.settledUp
+                        : `${value > 0n ? '+' : '−'}${money(value < 0n ? -value : value, currency, locale)}`}
+                    </span>
+                  );
+                  const personRow = (member: Member, indented: boolean) => (
+                    <div
+                      key={member.id}
+                      className="item"
+                      style={{ cursor: 'default', paddingInlineStart: indented ? 28 : undefined }}
+                    >
+                      <span className="grow">
+                        <span className="title">{pastNameOf(member, t.group.memberLeft)}</span>
+                      </span>
+                      {figure(net(member.id))}
+                    </div>
+                  );
+                  const shown = everyone.filter((m) => !m.left_at || net(m.id) !== 0n);
+                  if (!familyLens) return shown.map((member) => personRow(member, false));
+                  return familyBalanceItems(group.units, shown, ledger.balances).map((item) => {
+                    if (item.kind === 'person') return personRow(item.member, false);
+                    const open = openFamilies.has(item.id);
                     return (
-                      <div key={member.id} className="item" style={{ cursor: 'default' }}>
-                        <span className="grow">
-                          <span className="title">{pastNameOf(member, t.group.memberLeft)}</span>
-                        </span>
-                        <span className={`amount ${cls}`}>
-                          {net === 0n
-                            ? t.group.settledUp
-                            : `${net > 0n ? '+' : '−'}${money(net < 0n ? -net : net, currency, locale)}`}
-                        </span>
+                      <div key={item.id}>
+                        <button
+                          type="button"
+                          className="item"
+                          aria-expanded={open}
+                          onClick={() =>
+                            setOpenFamilies((current) => {
+                              const next = new Set(current);
+                              if (!next.delete(item.id)) next.add(item.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <span className="tile-emoji" aria-hidden>
+                            {familyEmoji(item.members.length)}
+                          </span>
+                          <span className="grow">
+                            <span className="title">{item.name}</span>
+                            <span className="meta">
+                              {plural(locale, item.members.length, t.group.peopleCount)}
+                            </span>
+                          </span>
+                          {figure(item.balance)}
+                        </button>
+                        {open ? item.members.map((member) => personRow(member, true)) : null}
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
             </section>
 
-            {ledger.transfers.length > 0 ? (
+            {transfers.length > 0 ? (
               <section className="panel">
                 <div className="panel-head">
                   <h2>{t.group.whoPaysWhom}</h2>
@@ -398,7 +468,7 @@ function GroupDetail({
                     with the phone so the two screens cannot order the same
                     ledger differently. */}
                 <div className="list">
-                  {simplifyItems(ledger.transfers, myMember?.id ?? null).map((item) =>
+                  {simplifyItems(transfers, myMember?.id ?? null).map((item) =>
                     item.kind === 'heading' ? (
                       <h3 key={item.key} className="row-heading">
                         {item.section === 'yours' ? t.group.yourPayments : t.group.otherPayments}
