@@ -24,7 +24,6 @@ import { exportData } from '@/data/api';
 import { useGroupLabeller, useGroups } from '@/data/hooks';
 import { friendlyError } from '@/lib/errors';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 
 enum Format {
   Json = 'json',
@@ -268,22 +267,6 @@ export default function ExportScreen() {
           ) : null}
           {error ? <Callout tone="negative">{error}</Callout> : null}
         </View>
-
-        <StandardCard style={{ paddingVertical: theme.spacing.sm }}>
-          <ListRow
-            leading={
-              <RowTile tint={theme.color.brandSoft}>
-                <Ionicons
-                  name="cloud-upload-outline"
-                  size={iconSize.lg}
-                  color={theme.color.brand}
-                />
-              </RowTile>
-            }
-            title={t.exportData.importInstead}
-            onPress={() => router.push('/settings/import')}
-          />
-        </StandardCard>
       </ScrollView>
 
       {/* What the file holds. */}

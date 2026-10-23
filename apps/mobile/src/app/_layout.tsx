@@ -868,6 +868,7 @@ function AuthGate() {
           <Stack.Screen name="personal/budgets" />
           <Stack.Screen name="personal/source/[id]" />
           <Stack.Screen name="settings/notifications" />
+          <Stack.Screen name="settings/data" />
           <Stack.Screen name="settings/export" />
           <Stack.Screen name="settings/import" />
           <Stack.Screen name="settings/lock" />
