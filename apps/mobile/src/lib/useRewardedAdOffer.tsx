@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { RewardedAdSheet, type AdSheetState } from '@/components/RewardedAdSheet';
 import { fill, useStrings } from '@/i18n';
@@ -21,6 +21,7 @@ import { defaultRewardedAdDeps, readAdsStatus } from '@/lib/adsSdk';
 import { router } from '@/lib/navigation';
 import { runRewardedAd } from '@/lib/rewardedAd';
 import { rewardAmount, type AdKind, type AdOutcome, type AdsStatus } from '@/lib/rewardedAdsPure';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { useToast } from '@/lib/toast';
 
 /**
@@ -35,19 +36,41 @@ export interface RewardedAdOffer {
   offer(kind: AdKind): Promise<void>;
   /** Render once, anywhere in the screen. */
   sheet: React.JSX.Element;
+  canOffer(kind: AdKind): boolean;
 }
 
 export function useRewardedAdOffer(): RewardedAdOffer {
   const { t } = useStrings();
   const viewerId = useViewerId();
+  const { isPaid } = useEntitlement();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const eligibility = useQuery({
+    queryKey: ['adsStatus', viewerId],
+    queryFn: readAdsStatus,
+    enabled: !!viewerId,
+    staleTime: 0,
+    refetchInterval: 30_000,
+  });
+  const [, setQuietTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setQuietTick(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
   const [kind, setKind] = useState<AdKind>('voice');
   const [status, setStatus] = useState<AdsStatus | null>(null);
   const [visible, setVisible] = useState(false);
   const [state, setState] = useState<AdSheetState>({ step: 'ready' });
   const mounted = useRef(true);
   const running = useRef(false);
+  const canOffer = (next: AdKind): boolean =>
+    !!viewerId &&
+    !isPaid &&
+    eligibility.data?.eligible === true &&
+    !visible &&
+    !running.current &&
+    Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
+
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -57,7 +80,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
 
   const offer = useCallback(
     async (next: AdKind): Promise<void> => {
-      if (!viewerId || running.current) return;
+      if (!viewerId || isPaid || running.current) return;
       if (Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
       const current = await readAdsStatus().catch(() => null);
       if (!mounted.current || !current?.eligible) return;
@@ -66,7 +89,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       setState({ step: 'ready' });
       setVisible(true);
     },
-    [viewerId],
+    [viewerId, isPaid],
   );
 
   const close = useCallback(() => {
@@ -110,11 +133,16 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   );
 
   const watch = useCallback(async (): Promise<void> => {
-    if (!viewerId || running.current) return;
+    if (!viewerId || isPaid || running.current) return;
     running.current = true;
     setState({ step: 'busy', confirming: false });
     try {
-      const before = (await readAdsStatus().catch(() => null)) ?? status;
+      const before = await readAdsStatus().catch(() => null);
+      if (!before?.eligible) {
+        setVisible(false);
+        void eligibility.refetch();
+        return;
+      }
       const outcome = await runRewardedAd(
         { profileId: viewerId, kind, baselineUsedToday: before?.usedToday ?? 0 },
         {
@@ -128,6 +156,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         // Whatever the screens cached about the allowance is stale now.
         void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
         void queryClient.invalidateQueries({ queryKey: ['voiceAccess'] });
+        void queryClient.invalidateQueries({ queryKey: ['adsStatus'] });
       }
       if (!mounted.current) return;
       const shown = message(outcome);
@@ -136,7 +165,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     } finally {
       running.current = false;
     }
-  }, [kind, message, queryClient, status, toast, viewerId]);
+  }, [kind, message, queryClient, toast, viewerId, eligibility, isPaid]);
 
   const upgrade = useCallback(() => {
     setVisible(false);
@@ -146,7 +175,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const sheet = useMemo(
     () => (
       <RewardedAdSheet
-        visible={visible}
+        visible={visible && !isPaid}
         kind={kind}
         amount={status ? rewardAmount(status, kind) : 2}
         state={state}
@@ -155,8 +184,8 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         onClose={close}
       />
     ),
-    [close, kind, state, status, upgrade, visible, watch],
+    [close, kind, state, status, upgrade, visible, watch, isPaid],
   );
 
-  return { offer, sheet };
+  return { offer, sheet, canOffer };
 }

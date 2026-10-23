@@ -1,3 +1,4 @@
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DateTimePicker, {
@@ -2001,6 +2002,7 @@ export default function AddExpenseScreen() {
               small pill beside it, the same split `ReceiptField` on the
               no-group capture screen draws. New expenses only: an existing
               one's bills are already managed by the gallery beneath this. */}
+            {!editing ? <RewardedAdEntry kind="scan" /> : null}
             {!editing ? (
               <Card padded={false} style={{ padding: theme.spacing.md }}>
                 <Pressable

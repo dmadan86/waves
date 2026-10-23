@@ -1786,6 +1786,9 @@ export interface UiStrings {
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
   rewardedAds: {
+    entryVoice: string;
+    entryScan: string;
+    adLabel: string;
     voiceTitle: string;
     scanTitle: string;
     voiceBody: string;
@@ -7339,6 +7342,9 @@ const en: UiStrings = {
     traps: 'Read the sentence exactly as written.',
   },
   rewardedAds: {
+    entryVoice: 'Watch a short video for 2 more voice commands',
+    entryScan: 'Watch a short video for 2 more scans',
+    adLabel: 'Ad',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
@@ -12418,6 +12424,9 @@ const ta: UiStrings = {
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   rewardedAds: {
+    entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    entryScan: 'மேலும் 2 ஸ்கேன்களுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    adLabel: 'விளம்பரம்',
     voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     voiceBody:
@@ -17645,6 +17654,9 @@ const hi: UiStrings = {
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   rewardedAds: {
+    entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
+    entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
+    adLabel: 'विज्ञापन',
     voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
     scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
     voiceBody:
@@ -22791,6 +22803,9 @@ const ar: UiStrings = {
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   rewardedAds: {
+    entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
+    entryScan: 'شاهد فيديو قصيرًا للحصول على عمليتي مسح إضافيتين',
+    adLabel: 'إعلان',
     voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
     scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
     voiceBody:
