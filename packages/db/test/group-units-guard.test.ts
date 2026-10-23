@@ -69,7 +69,7 @@ describe('groups.units through a direct write', () => {
       [groupId],
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.payload).toMatchObject({ from: 0, to: 1 });
+    expect(rows[0]!.payload).toMatchObject({ field: 'families', from: null, fromCount: 0, toCount: 1 });
   });
 
   it('refuses an ordinary member', async () => {

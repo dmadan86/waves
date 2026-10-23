@@ -2307,6 +2307,10 @@ export interface UiStrings {
       budgetCleared: string;
       stops: string;
       families: string;
+      familiesSetup: string;
+      familiesAdded: string;
+      familiesRemoved: string;
+      familiesCleared: string;
       changed: string;
       memberAdded: string;
       memberRemoved: string;
@@ -7811,6 +7815,10 @@ const en: UiStrings = {
       budgetCleared: 'Cleared the budget',
       stops: 'Changed the trip stops',
       families: 'Changed the families',
+      familiesSetup: 'Set up the families',
+      familiesAdded: 'Added a family',
+      familiesRemoved: 'Removed a family',
+      familiesCleared: 'Removed all families',
       changed: 'Changed the group settings',
       memberAdded: 'Added {name}',
       memberRemoved: 'Removed {name}',
@@ -12910,6 +12918,10 @@ const ta: UiStrings = {
       budgetCleared: 'பட்ஜெட் நீக்கப்பட்டது',
       stops: 'பயண நிறுத்தங்கள் மாற்றப்பட்டன',
       families: 'குடும்பங்கள் மாற்றப்பட்டன',
+      familiesSetup: 'குடும்பங்கள் அமைக்கப்பட்டன',
+      familiesAdded: 'ஒரு குடும்பம் சேர்க்கப்பட்டது',
+      familiesRemoved: 'ஒரு குடும்பம் நீக்கப்பட்டது',
+      familiesCleared: 'அனைத்து குடும்பங்களும் நீக்கப்பட்டன',
       changed: 'குழு அமைப்புகள் மாற்றப்பட்டன',
       memberAdded: '{name} சேர்க்கப்பட்டார்',
       memberRemoved: '{name} நீக்கப்பட்டார்',
@@ -18119,6 +18131,10 @@ const hi: UiStrings = {
       budgetCleared: 'बजट हटाया',
       stops: 'ट्रिप के पड़ाव बदले',
       families: 'परिवार बदले',
+      familiesSetup: 'परिवार बनाए',
+      familiesAdded: 'एक परिवार जोड़ा',
+      familiesRemoved: 'एक परिवार हटाया',
+      familiesCleared: 'सभी परिवार हटाए',
       changed: 'समूह की सेटिंग बदली',
       memberAdded: '{name} को जोड़ा',
       memberRemoved: '{name} को हटाया',
@@ -23291,6 +23307,10 @@ const ar: UiStrings = {
       budgetCleared: 'أزال الميزانية',
       stops: 'غيّر محطات الرحلة',
       families: 'غيّر العائلات',
+      familiesSetup: 'أنشأ العائلات',
+      familiesAdded: 'أضاف عائلة',
+      familiesRemoved: 'حذف عائلة',
+      familiesCleared: 'حذف جميع العائلات',
       changed: 'غيّر إعدادات المجموعة',
       memberAdded: 'أضاف {name}',
       memberRemoved: 'أزال {name}',

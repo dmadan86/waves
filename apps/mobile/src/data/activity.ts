@@ -18,6 +18,7 @@ import type Ionicons from '@expo/vector-icons/Ionicons';
 import { format as formatMoney, isCurrencyCode } from '@waves/core';
 
 import { formatShortDateRange } from '@/lib/tripDateRange';
+import { familiesHeadline, type FamiliesStrings } from '@/lib/familyChanges';
 
 import { actorName, type ActivityRow } from './types';
 
@@ -110,7 +111,14 @@ export interface GroupChangeLabels {
   budget(amountMinor: string, currency: string): string;
   budgetCleared: string;
   stops: string;
-  families: string;
+  /** Returns a specific headline ('Created Sharma family', 'Renamed …', etc.)
+   *  when the payload carries full unit maps, or a count-based headline ('Added
+   *  a family', 'Removed a family', etc.) when it only carries counts. Falls
+   *  back to the static string when neither is available. */
+  families(
+    payload: { from?: unknown; to?: unknown; fromCount?: unknown; toCount?: unknown },
+    memberNames?: ReadonlyMap<string, string>,
+  ): string;
   /** A field this build has not met. */
   changed: string;
   memberAdded(name: string): string;
@@ -153,6 +161,10 @@ export interface GroupChangeStrings {
   budgetCleared: string;
   stops: string;
   families: string;
+  familiesSetup: string;
+  familiesAdded: string;
+  familiesRemoved: string;
+  familiesCleared: string;
   changed: string;
   memberAdded: string;
   memberRemoved: string;
@@ -191,6 +203,10 @@ export const ENGLISH_GROUP_STRINGS: GroupChangeStrings = {
   budgetCleared: 'Cleared the budget',
   stops: 'Changed the trip stops',
   families: 'Changed the families',
+  familiesSetup: 'Set up the families',
+  familiesAdded: 'Added a family',
+  familiesRemoved: 'Removed a family',
+  familiesCleared: 'Removed all families',
   changed: 'Changed the group settings',
   memberAdded: 'Added {name}',
   memberRemoved: 'Removed {name}',
@@ -267,7 +283,16 @@ export function groupChangeLabels(
       fill(strings.budget, { amount: money(amountMinor, currency) }),
     budgetCleared: strings.budgetCleared,
     stops: strings.stops,
-    families: strings.families,
+    families: (payload, memberNames) => {
+      const familiesStrings: FamiliesStrings = {
+        setupFamilies: strings.familiesSetup,
+        addedFamily: strings.familiesAdded,
+        removedFamily: strings.familiesRemoved,
+        clearedFamilies: strings.familiesCleared,
+        changedFamilies: strings.families,
+      };
+      return familiesHeadline(payload, familiesStrings, memberNames) ?? strings.families;
+    },
     changed: strings.changed,
     memberAdded: (name) => fill(strings.memberAdded, { name }),
     memberRemoved: (name) => fill(strings.memberRemoved, { name }),
@@ -388,7 +413,7 @@ function groupChangeHeadline(entry: ActivityRow, g: GroupChangeLabels): string {
     case 'stops':
       return g.stops;
     case 'families':
-      return g.families;
+      return g.families(payload);
     default:
       return g.changed;
   }
