@@ -184,6 +184,22 @@ describe('groups', () => {
     expect(onlyMutate()).toEqual([MutationKind.GroupUpdate, 'g-1', { name: 'New' }]);
   });
 
+  it('useUpdateGroup carries baseUnits through when the caller sends it (content guard)', async () => {
+    // The families screen passes the units map it was editing FROM alongside
+    // the new units map, so the server can compare by content and reject a
+    // stale concurrent admin edit without being confused by an unrelated rename.
+    const baseUnits = { fam1: { name: 'Sharma', members: ['m-1'] } };
+    await mutation<Record<string, unknown>>(() => hooks.useUpdateGroup('g-1')).mutationFn({
+      units: { fam1: { name: 'Sharma', members: ['m-1', 'm-2'] } },
+      baseUnits,
+    });
+    expect(onlyMutate()).toEqual([
+      MutationKind.GroupUpdate,
+      'g-1',
+      { units: { fam1: { name: 'Sharma', members: ['m-1', 'm-2'] } }, baseUnits },
+    ]);
+  });
+
   it('useLeaveGroup forgets the group locally before refreshing', async () => {
     const leave = mutation<string>(() => hooks.useLeaveGroup('g-1'));
     await leave.mutationFn('m-1');

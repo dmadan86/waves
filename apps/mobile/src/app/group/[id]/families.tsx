@@ -11,7 +11,7 @@
  * sync. The ledger is untouched: a family is a lens over per-person balances.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
@@ -48,6 +48,7 @@ import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
+import { useSync } from '@/sync/provider';
 import {
   createFamily,
   familyEmoji,
@@ -72,12 +73,37 @@ export default function FamiliesScreen() {
 
   const { group, members, expenses, settlements } = useGroup(groupId);
   const updateGroup = useUpdateGroup(groupId);
+  const { rejected, flush, discard } = useSync();
   const units = group.data?.units ?? null;
   const people = members.data ?? [];
   const isAdmin = people.some((member) => isViewer(member, viewerId) && member.role === 'admin');
   const { families, onTheirOwn } = familyRows(units, people);
 
-  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [conflicted, setConflicted] = useState(false);
+
+  // Detect a UNITS_CONFLICT rejection for this group: another admin saved the
+  // families while this admin's queued edit was waiting. Trigger a flush when
+  // a new conflict appears so the mirror catches up to the latest map.
+  const conflictId =
+    rejected.find(
+      (r) => r.groupId === groupId && r.kind === 'group.update' && r.code === 'UNITS_CONFLICT',
+    )?.clientMutationId ?? null;
+  const flushedConflictRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (conflictId !== null && conflictId !== flushedConflictRef.current) {
+      flushedConflictRef.current = conflictId;
+      // Latch the notice: discarding removes the rejection, and the user still
+      // needs to know their edit was undone. Cleared by their next save.
+      setConflicted(true);
+      // Discard the rejected mutation so the group is not permanently blocked,
+      // then flush to pull the server's latest families into the mirror.
+      void discard(conflictId).then(() => flush());
+    }
+  }, [conflictId, flush, discard]);
+
+  // The callout shows either the conflict notice or a save-error fallback.
+  const error = conflicted ? t.families.changedElsewhere : saveError;
   // The name sheet: a new family started with one person from the "on their
   // own" list (a family is never empty), or a rename.
   const [naming, setNaming] = useState<{ familyId: string } | { withMember: string } | null>(null);
@@ -112,15 +138,25 @@ export default function FamiliesScreen() {
       );
       await Share.share({ message: formatFamilyStatement(statement) });
     } catch (caught) {
-      setError(friendlyError(caught, t.families.couldNotShare, 'families'));
+      setSaveError(friendlyError(caught, t.families.couldNotShare, 'families'));
     }
   };
 
   const save = (next: GroupUnits | null): void => {
-    setError(null);
+    setSaveError(null);
+    setConflicted(false);
+    // Send the units map the screen is currently showing (mirror/optimistic
+    // value) as `baseUnits`. The server compares this to the DB value by
+    // content, not by seq, so an unrelated rename by another admin does not
+    // block a families edit, and consecutive local edits chain correctly
+    // because each base is the previous optimistic result.
+    const baseUnits = units;
     updateGroup.mutate(
-      { units: next },
-      { onError: (caught) => setError(friendlyError(caught, t.families.couldNotSave, 'families')) },
+      { units: next, baseUnits },
+      {
+        onError: (caught) =>
+          setSaveError(friendlyError(caught, t.families.couldNotSave, 'families')),
+      },
     );
   };
 

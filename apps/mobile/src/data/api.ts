@@ -872,9 +872,20 @@ export async function updateGroup(
     cover_color: string | null;
     /** The families, or null for none. Admin-only: /sync and the column guard refuse anyone else. */
     units: GroupUnits | null;
+    /**
+     * Content-guard token: the units map the edit was made FROM (the screen's
+     * current mirror/optimistic value). Sent alongside `units` so /sync can
+     * compare by content and detect a concurrent edit without being confused by
+     * an unrelated group rename (which bumps updated_seq but not units).
+     * Never written to the groups row — only read by the guard on the server.
+     */
+    baseUnits: GroupUnits | null;
   }>,
 ): Promise<void> {
-  const { error } = await backend.from('groups').update(patch).eq('id', groupId);
+  // baseUnits is a sync-only guard token consumed by /sync on the server;
+  // it must never reach the groups column (PostgREST would reject it).
+  const { baseUnits: _, ...dbPatch } = { ...patch };
+  const { error } = await backend.from('groups').update(dbPatch).eq('id', groupId);
   if (error) throw new Error(error.message);
 }
 
