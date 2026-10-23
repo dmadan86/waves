@@ -4949,6 +4949,44 @@ export interface UiStrings {
     privacy: string;
   };
   /**
+   * The simplified plan screen (`/settings/upgrade`): two cards (Free and Pro)
+   * with a single purchase CTA and a period toggle.
+   */
+  planScreen: {
+    /** Free card header: "Free · ₹0" */
+    freeCardTitle: string;
+    /** Free card subtitle */
+    freeCardSubtitle: string;
+    /** Free feature: unlimited expenses and splits */
+    freeFeatureExpenses: string;
+    /** Free feature: balances and settle up */
+    freeFeatureBalances: string;
+    /** Free feature: N scans a month (use {scans} placeholder) */
+    freeFeatureScans: string;
+    /** Free feature: N AI voice commands a month (use {commands} placeholder) */
+    freeFeatureVoice: string;
+    /** Free feature: ads with optional video for extras */
+    freeFeatureAds: string;
+    /** Pro card subtitle: "Everything in Free, plus:" */
+    proCardSubtitle: string;
+    /** Pro feature: no ads */
+    proFeatureNoAds: string;
+    /** Pro feature: N scans a month (use {scans} placeholder) */
+    proFeatureScans: string;
+    /** Pro feature: N AI voice commands a month (use {commands} placeholder) */
+    proFeatureVoice: string;
+    /** Pro feature: use on N devices (use {devices} placeholder) */
+    proFeatureDevices: string;
+    /** CTA buy button: "Get Pro · {price}/{period}" */
+    ctaGetPro: string;
+    /** CTA when already on Pro */
+    alreadyPro: string;
+    /** Small link: "Have a code?" */
+    haveCode: string;
+    /** Screen title */
+    title: string;
+  };
+  /**
    * Typing in a promotion code.
    *
    * Every refusal gets its own sentence. "That did not work" for a code that
@@ -10030,6 +10068,24 @@ const en: UiStrings = {
     alwaysFree: 'Always free',
     redeemTitle: 'Redeem a code',
     redeemHint: 'If somebody gave you one.',
+  },
+  planScreen: {
+    freeCardTitle: 'Free · ₹0',
+    freeCardSubtitle: 'The ledger, free forever.',
+    freeFeatureExpenses: 'Unlimited expenses and splits',
+    freeFeatureBalances: 'Balances and settle up',
+    freeFeatureScans: '{scans} receipt scans a month',
+    freeFeatureVoice: '{commands} AI voice commands a month',
+    freeFeatureAds: 'Ads, with optional videos for extras',
+    proCardSubtitle: 'Everything in Free, plus:',
+    proFeatureNoAds: 'No ads',
+    proFeatureScans: '{scans} receipt scans a month',
+    proFeatureVoice: '{commands} AI voice commands a month',
+    proFeatureDevices: 'Use on {devices} devices',
+    ctaGetPro: 'Get Pro · {price}/{period}',
+    alreadyPro: "You're on Pro",
+    haveCode: 'Have a code?',
+    title: 'Plans',
   },
   promo: {
     clear: 'Clear',
@@ -15257,6 +15313,24 @@ const ta: UiStrings = {
     redeemTitle: 'குறியீட்டைப் பயன்படுத்து',
     redeemHint: 'யாராவது கொடுத்திருந்தால்.',
   },
+  planScreen: {
+    freeCardTitle: 'இலவசம் · ₹0',
+    freeCardSubtitle: 'கணக்கேடு, என்றும் இலவசம்.',
+    freeFeatureExpenses: 'வரம்பற்ற செலவுகள் மற்றும் பிரிப்பு',
+    freeFeatureBalances: 'இருப்புகள் மற்றும் தீர்வு',
+    freeFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
+    freeFeatureVoice: 'மாதத்திற்கு {commands} AI குரல் கட்டளைகள்',
+    freeFeatureAds: 'விளம்பரங்கள், கூடுதல் வசதிகளுக்கு விரும்பினால் வீடியோ',
+    proCardSubtitle: 'இலவசத்தில் உள்ள அனைத்தும், கூடுதலாக:',
+    proFeatureNoAds: 'விளம்பரங்கள் இல்லை',
+    proFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
+    proFeatureVoice: 'மாதத்திற்கு {commands} AI குரல் கட்டளைகள்',
+    proFeatureDevices: '{devices} சாதனங்களில் பயன்படுத்தவும்',
+    ctaGetPro: 'Pro பெறுக · {price}/{period}',
+    alreadyPro: 'நீங்கள் Pro-இல் உள்ளீர்கள்',
+    haveCode: 'குறியீடு இருக்கிறதா?',
+    title: 'திட்டங்கள்',
+  },
   promo: {
     clear: 'அழி',
     row: 'குறியீட்டைப் பயன்படுத்து',
@@ -20360,6 +20434,24 @@ const hi: UiStrings = {
     alwaysFree: 'हमेशा मुफ़्त',
     redeemTitle: 'कोड इस्तेमाल करें',
     redeemHint: 'अगर किसी ने आपको दिया हो।',
+  },
+  planScreen: {
+    freeCardTitle: 'मुफ़्त · ₹0',
+    freeCardSubtitle: 'कणक, हमेशा के लिए मुफ़्त।',
+    freeFeatureExpenses: 'असीमित खर्चे और बँटवारा',
+    freeFeatureBalances: 'बैलेंस और हिसाब चुकाना',
+    freeFeatureScans: 'हर महीने {scans} रसीद स्कैन',
+    freeFeatureVoice: 'हर महीने {commands} AI वॉइस कमांड',
+    freeFeatureAds: 'विज्ञापन, अतिरिक्त सुविधाओं के लिए वैकल्पिक वीडियो',
+    proCardSubtitle: 'मुफ़्त वाला सब कुछ, साथ में:',
+    proFeatureNoAds: 'कोई विज्ञापन नहीं',
+    proFeatureScans: 'हर महीने {scans} रसीद स्कैन',
+    proFeatureVoice: 'हर महीने {commands} AI वॉइस कमांड',
+    proFeatureDevices: '{devices} डिवाइस पर उपयोग करें',
+    ctaGetPro: 'Pro लें · {price}/{period}',
+    alreadyPro: 'आप Pro पर हैं',
+    haveCode: 'कोई कोड है?',
+    title: 'प्लान',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -26017,6 +26109,24 @@ const ar: UiStrings = {
     alwaysFree: 'مجاني دائمًا',
     redeemTitle: 'استخدام رمز',
     redeemHint: 'إذا أعطاك أحدهم واحدًا.',
+  },
+  planScreen: {
+    freeCardTitle: 'مجاني · ₹0',
+    freeCardSubtitle: 'السجل، مجاني للأبد.',
+    freeFeatureExpenses: 'مصروفات وتقسيم غير محدودة',
+    freeFeatureBalances: 'الأرصدة والتسوية',
+    freeFeatureScans: '{scans} مسحًا للإيصالات شهريًا',
+    freeFeatureVoice: '{commands} أمر صوتي ذكي شهريًا',
+    freeFeatureAds: 'إعلانات، مع مقاطع فيديو اختيارية لمزايا إضافية',
+    proCardSubtitle: 'كل ما في المجاني، إضافةً إلى:',
+    proFeatureNoAds: 'بلا إعلانات',
+    proFeatureScans: '{scans} مسحًا للإيصالات شهريًا',
+    proFeatureVoice: '{commands} أمر صوتي ذكي شهريًا',
+    proFeatureDevices: 'استخدام على {devices} أجهزة',
+    ctaGetPro: 'احصل على Pro · {price}/{period}',
+    alreadyPro: 'أنت على Pro',
+    haveCode: 'لديك رمز؟',
+    title: 'الخطط',
   },
   promo: {
     clear: 'مسح',
