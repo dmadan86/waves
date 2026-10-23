@@ -270,9 +270,10 @@ describe('group.update units — content guard (baseUnits)', () => {
     const scoped = callerWithUnits('admin', goodUnits, 5, [0]);
     const session = new SyncSession(scoped.client, service(), OWNER);
 
-    await expect(
-      session.apply(updateUnitsWithBase(goodUnits, goodUnits)),
-    ).resolves.not.toMatchObject({ code: 'UNITS_CONFLICT' });
+    await expect(session.apply(updateUnitsWithBase(goodUnits, goodUnits))).rejects.toMatchObject({
+      status: 503,
+      code: 'BUSY',
+    });
     expect(scoped.update).toHaveBeenCalledTimes(5);
   });
 

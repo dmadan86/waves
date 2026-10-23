@@ -398,10 +398,10 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       recurringId: txn.recurringId,
       // Written only when set, so an entry that never had one stays byte-for-byte
       // the blob it always was.
-      ...(txn.paymentMethod ? { paymentMethod: txn.paymentMethod } : {}),
-      ...(txn.place ? { place: txn.place } : {}),
-      ...(txn.reimbursable ? { reimbursable: true } : {}),
-      ...(txn.receiptKey ? { receiptKey: txn.receiptKey } : {}),
+      paymentMethod: txn.paymentMethod ?? null,
+      place: txn.place ?? null,
+      reimbursable: !!txn.reimbursable,
+      receiptKey: txn.receiptKey ?? null,
     },
     txn.carried,
   );

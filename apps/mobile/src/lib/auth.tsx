@@ -261,7 +261,7 @@ async function loadProfile(
 ): Promise<boolean> {
   const read = async (): Promise<Profile | null> => {
     const { data, error } = await backend
-      .from('profiles')
+      .rpc('waves_my_profile')
       .select(PROFILE_COLUMNS)
       .eq('id', user.id)
       .maybeSingle();
@@ -801,13 +801,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async updateProfile(patch) {
         if (!session?.user) throw new Error('Not signed in');
-        const { data, error } = await backend
+        const { error: updateError } = await backend
           .from('profiles')
           .update(patch)
+          .eq('id', session.user.id);
+        if (updateError) throw updateError;
+        const { data, error } = await backend
+          .rpc('waves_my_profile')
+          .select(PROFILE_COLUMNS)
           .eq('id', session.user.id)
-          .select(
-            'id, display_name, avatar_url, default_vpa, payment_rail, payment_handle, country_code, address, default_currency, locale',
-          )
           .single();
         if (error) throw error;
         setProfileState({ owner: session.user.id, profile: data as Profile, settled: false });
