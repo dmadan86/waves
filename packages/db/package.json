@@ -21,15 +21,15 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@prisma/client": "7.10.0",
+    "@prisma/client": "7.10.1",
     "@waves/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "dotenv": "^18.0.7",
+    "dotenv": "^18.0.8",
     "pg": "^8.23.1",
     "@types/pg": "^8.23.1",
-    "prisma": "7.10.0",
+    "prisma": "7.10.1",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
   }
