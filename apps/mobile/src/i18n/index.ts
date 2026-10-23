@@ -3058,6 +3058,19 @@ export interface UiStrings {
     phaseCollecting: string;
     phaseSealing: string;
     phaseUploading: string;
+    notificationPreparing: string;
+    notificationPreparingBody: string;
+    notificationUploading: string;
+    notificationUploadingBody: string;
+    notificationComplete: string;
+    notificationCompleteBody: string;
+    notificationFailed: string;
+    notificationFailedBody: string;
+    notificationPaused: string;
+    notificationPausedBody: string;
+    notificationCancelled: string;
+    backgroundHint: string;
+    interruptedHint: string;
     backedUp: PluralForms;
     backupFailed: string;
     /** Under a button held down by some other in-flight action on the screen. */
@@ -8354,6 +8367,19 @@ const en: UiStrings = {
     phaseCollecting: 'Gathering your records…',
     phaseSealing: 'Locking the backup…',
     phaseUploading: 'Uploading to Drive…',
+    notificationPreparing: 'Waves · Preparing backup',
+    notificationPreparingBody: 'Getting your data ready…',
+    notificationUploading: 'Waves · Backing up',
+    notificationUploadingBody: 'Uploading securely',
+    notificationComplete: 'Waves · Backup complete',
+    notificationCompleteBody: 'Your data is safely backed up.',
+    notificationFailed: 'Waves · Backup couldn’t finish',
+    notificationFailedBody: 'Tap to retry.',
+    notificationPaused: 'Waves · Backup paused',
+    notificationPausedBody: 'Waiting for an internet connection.',
+    notificationCancelled: 'Waves · Backup cancelled',
+    backgroundHint: 'You can continue using Waves.',
+    interruptedHint: 'Backup could not finish. Tap Back up now to retry.',
     backedUp: {
       one: '{n} record backed up',
       other: '{n} records backed up',
@@ -13471,6 +13497,19 @@ const ta: UiStrings = {
     phaseCollecting: 'உங்கள் பதிவுகளைச் சேகரிக்கிறது…',
     phaseSealing: 'காப்புப்பிரதியைப் பூட்டுகிறது…',
     phaseUploading: 'Drive-க்கு பதிவேற்றுகிறது…',
+    notificationPreparing: 'Waves · காப்புப்பிரதி தயாராகிறது',
+    notificationPreparingBody: 'தரவு தயாராகிறது…',
+    notificationUploading: 'Waves · காப்புப்பிரதி எடுக்கிறது',
+    notificationUploadingBody: 'பாதுகாப்பாகப் பதிவேற்றுகிறது',
+    notificationComplete: 'Waves · காப்புப்பிரதி முடிந்தது',
+    notificationCompleteBody: 'உங்கள் தரவு பாதுகாப்பாகச் சேமிக்கப்பட்டது.',
+    notificationFailed: 'Waves · காப்புப்பிரதி முடியவில்லை',
+    notificationFailedBody: 'மீண்டும் முயற்சிக்கத் தட்டவும்.',
+    notificationPaused: 'Waves · காப்புப்பிரதி இடைநிறுத்தப்பட்டது',
+    notificationPausedBody: 'இணைய இணைப்புக்காகக் காத்திருக்கிறது.',
+    notificationCancelled: 'Waves · காப்புப்பிரதி ரத்தானது',
+    backgroundHint: 'Waves-ஐ தொடர்ந்து பயன்படுத்தலாம்.',
+    interruptedHint: 'காப்புப்பிரதி முடியவில்லை. மீண்டும் காப்புப்பிரதி எடுக்கவும்.',
     backedUp: {
       one: '{n} பதிவு காப்பு செய்யப்பட்டது',
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
@@ -18666,6 +18705,19 @@ const hi: UiStrings = {
     phaseCollecting: 'आपके रिकॉर्ड जुटाए जा रहे हैं…',
     phaseSealing: 'बैकअप बंद किया जा रहा है…',
     phaseUploading: 'Drive पर भेजा जा रहा है…',
+    notificationPreparing: 'Waves · बैकअप की तैयारी',
+    notificationPreparingBody: 'आपका डेटा तैयार हो रहा है…',
+    notificationUploading: 'Waves · बैकअप जारी',
+    notificationUploadingBody: 'सुरक्षित रूप से अपलोड हो रहा है',
+    notificationComplete: 'Waves · बैकअप पूरा',
+    notificationCompleteBody: 'आपका डेटा सुरक्षित है।',
+    notificationFailed: 'Waves · बैकअप पूरा नहीं हुआ',
+    notificationFailedBody: 'फिर कोशिश करने के लिए टैप करें।',
+    notificationPaused: 'Waves · बैकअप रुका है',
+    notificationPausedBody: 'इंटरनेट कनेक्शन की प्रतीक्षा है।',
+    notificationCancelled: 'Waves · बैकअप रद्द',
+    backgroundHint: 'आप Waves का उपयोग जारी रख सकते हैं।',
+    interruptedHint: 'बैकअप पूरा नहीं हुआ। फिर से बैकअप लें।',
     backedUp: {
       one: '{n} रिकॉर्ड का बैकअप हो गया',
       other: '{n} रिकॉर्ड का बैकअप हो गया',
@@ -23918,6 +23970,19 @@ const ar: UiStrings = {
     phaseCollecting: 'يجمع سجلاتك…',
     phaseSealing: 'يقفل النسخة…',
     phaseUploading: 'يرفع إلى Drive…',
+    notificationPreparing: 'Waves · جارٍ تحضير النسخ',
+    notificationPreparingBody: 'جارٍ تجهيز بياناتك…',
+    notificationUploading: 'Waves · جارٍ النسخ الاحتياطي',
+    notificationUploadingBody: 'جارٍ الرفع بأمان',
+    notificationComplete: 'Waves · اكتمل النسخ',
+    notificationCompleteBody: 'تم نسخ بياناتك بأمان.',
+    notificationFailed: 'Waves · تعذّر إكمال النسخ',
+    notificationFailedBody: 'اضغط للمحاولة مجددًا.',
+    notificationPaused: 'Waves · النسخ متوقف مؤقتًا',
+    notificationPausedBody: 'في انتظار اتصال بالإنترنت.',
+    notificationCancelled: 'Waves · أُلغي النسخ',
+    backgroundHint: 'يمكنك متابعة استخدام Waves.',
+    interruptedHint: 'لم يكتمل النسخ الاحتياطي. حاول النسخ مرة أخرى.',
     backedUp: {
       zero: 'لا سجلات لنسخها',
       one: 'نُسخ سجل واحد',

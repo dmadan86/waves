@@ -40,6 +40,11 @@ export interface CloudFile {
   readonly modifiedAt: number | null;
 }
 
+export interface UploadControl {
+  signal?: AbortSignal;
+  onProgress?: (sent: number, total: number) => void;
+}
+
 export interface CloudProvider {
   readonly id: CloudProviderId;
   readonly label: string;
@@ -66,9 +71,12 @@ export interface CloudProvider {
     name: string,
     content: string,
     existingId: string | null,
+    control?: UploadControl,
   ): Promise<CloudFile>;
+  /** Atomically publish a verified staging file by renaming it. */
+  commit?(tokens: CloudTokens, remoteId: string, name: string): Promise<CloudFile>;
   /** Read a file's whole text back. */
-  read(tokens: CloudTokens, remoteId: string): Promise<string>;
+  read(tokens: CloudTokens, remoteId: string, signal?: AbortSignal): Promise<string>;
   /**
    * Delete a file from the app's private storage, for good.
    *

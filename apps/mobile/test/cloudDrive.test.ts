@@ -123,11 +123,13 @@ describe('http helpers', () => {
     });
   });
 
-  it('throws the status and body for any non-2xx', async () => {
+  it('throws a structured status without retaining private response bodies for any non-2xx', async () => {
     respond(403, 'forbidden');
     const error = await requestText('https://x', { headers: {} }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CloudHttpError);
-    expect(error).toMatchObject({ status: 403, body: 'forbidden' });
+    expect(error).toMatchObject({ status: 403 });
+    expect(error).not.toHaveProperty('body');
+    expect(String(error)).not.toContain('forbidden');
     expect(isAuthFailure(error)).toBe(true);
 
     respond(500, 'x');
@@ -354,5 +356,22 @@ describe('stored tokens', () => {
     h.secureFails = true;
     expect(await loadTokens('gdrive', 'alice')).toBeNull();
     await expect(saveTokens('gdrive', 'alice', TOKENS)).resolves.toBeUndefined();
+  });
+});
+
+describe('Drive quota failures', () => {
+  it('does not mistake quota or rate limits for revoked authentication', () => {
+    for (const reason of [
+      'storageQuotaExceeded',
+      'quotaExceeded',
+      'rateLimitExceeded',
+      'userRateLimitExceeded',
+    ]) {
+      const error = new CloudHttpError(403, JSON.stringify({ error: { errors: [{ reason }] } }));
+      expect(isAuthFailure(error)).toBe(false);
+      expect(error).not.toHaveProperty('body');
+      expect(error.message).not.toContain(reason);
+    }
+    expect(isAuthFailure(new CloudHttpError(401, ''))).toBe(true);
   });
 });

@@ -1,0 +1,7 @@
+apply plugin: 'expo-module-gradle-plugin'
+group = 'expo.modules.wavesbackup'
+version = '1.0.0'
+android {
+  namespace 'expo.modules.wavesbackup'
+  defaultConfig { minSdkVersion 24 }
+}
