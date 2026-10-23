@@ -224,14 +224,16 @@ async function assertRestrictedPath(
   bucket: LogicalBucket,
   subjectId: string,
   path: string,
-  deleting = false,
+  deletingWith: SupabaseClient | null = null,
 ): Promise<void> {
   const table = bucket === 'settlement-proofs' ? 'settlement_proofs' : 'expense_attachments';
   const subjectCol = bucket === 'settlement-proofs' ? 'settlement_id' : 'expense_id';
   let query = caller.from(table).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
-  if (deleting) {
+  if (deletingWith) {
+    // The subject may itself be deleted by now (a removed bill), which the
+    // caller can no longer see; authorizeWrite already proved the caller a party.
     const { data: memberId, error } = await caller.rpc('waves_my_member_id', {
-      p_group_id: await groupOfSubject(caller, bucket, subjectId),
+      p_group_id: await groupOfSubject(deletingWith, bucket, subjectId),
     });
     if (error) throw new HttpError(500, 'INTERNAL', error.message);
     query = query.eq('uploader_member_id', memberId);
@@ -753,7 +755,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       // The uploader may remove bytes after the RPC soft-deletes their row.
       // Keep the uploader check so another party cannot erase their files.
       if (restricted) {
-        await assertRestrictedPath(caller, bucket, subjectId as string, authPath, true);
+        await assertRestrictedPath(caller, bucket, subjectId as string, authPath, service);
       }
       await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
       // A legacy object may still live on Supabase Storage (dual-read); remove it
