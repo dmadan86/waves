@@ -16,7 +16,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-firebase/app": "26.4.0",
     "@react-native-firebase/app-check": "26.4.0",
-    "@react-native-firebase/auth": "26.4.0",
+    "@react-native-firebase/auth": "27.0.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "@sentry/react-native": "~8.31.0",
     "@shopify/flash-list": "2.3.3",
