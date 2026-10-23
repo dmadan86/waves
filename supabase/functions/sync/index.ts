@@ -35,6 +35,7 @@ import {
   sanitiseCategoryMeta,
   sanitiseExpenseLocation,
   stampFields,
+  unitsEqual,
   validateGroupUnits,
   verifyClientShares,
   type FxRecord,
@@ -511,6 +512,63 @@ export class SyncSession {
     return verdict.units;
   }
 
+  /**
+   * Write a `units` patch only when the current DB units match `base`.
+   *
+   * Reads the current `groups.units` and `updated_seq`, compares using
+   * `unitsEqual` (key-order-insensitive; null and {} are equal).
+   *
+   * If the content matches → update with `.eq('updated_seq', readSeq)` so that
+   * a concurrent writer who won the race (but didn't change units either) will
+   * also succeed, while a writer who changed units will trigger a re-read.
+   *
+   * If the conditional write touches zero rows a concurrent write landed
+   * between our read and our write. Re-read once: if units still match base,
+   * write again (the other writer only changed something else, e.g. the name);
+   * if units differ → genuine conflict.
+   */
+  private async guardedUnitsWrite(
+    groupId: string,
+    patch: Record<string, unknown>,
+    base: Record<string, unknown> | null,
+  ): Promise<{ ok: boolean }> {
+    const read = async () => {
+      const { data, error } = await this.caller
+        .from('groups')
+        .select('units, updated_seq')
+        .eq('id', groupId)
+        .maybeSingle();
+      if (error) throw new HttpError(500, 'INTERNAL', error.message);
+      return data as { units: unknown; updated_seq: unknown } | null;
+    };
+
+    const tryWrite = async (readSeq: unknown) => {
+      const { data, error } = await this.caller
+        .from('groups')
+        .update(patch)
+        .eq('id', groupId)
+        .eq('updated_seq', readSeq as string)
+        .select('id');
+      if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
+      return (data?.length ?? 0) > 0;
+    };
+
+    const row = await read();
+    const current = (row?.units ?? null) as Record<string, unknown> | null;
+    if (!unitsEqual(current, base)) return { ok: false };
+
+    const wrote = await tryWrite(row?.updated_seq ?? 0);
+    if (wrote) return { ok: true };
+
+    // Race: someone wrote between our select and our update.
+    const row2 = await read();
+    const current2 = (row2?.units ?? null) as Record<string, unknown> | null;
+    if (!unitsEqual(current2, base)) return { ok: false };
+
+    // A second lost race is reported as a conflict, never as a silent success.
+    return { ok: await tryWrite(row2?.updated_seq ?? 0) };
+  }
+
   private async dispatch(mutation: MutationEnvelope): Promise<unknown> {
     switch (mutation.kind) {
       case 'expense.create':
@@ -640,8 +698,33 @@ export class SyncSession {
         // only this group's members (one family each), with a head who is in
         // it. The SQL guard repeats the admin gate for direct PostgREST
         // writers; the shape is this boundary's job.
-        if ('units' in patch)
+        if ('units' in patch) {
           patch.units = await this.validatedUnits(mutation.groupId, patch.units);
+          // Content guard: when the mobile client sends the units map it was
+          // editing FROM (baseUnits), compare it to the current DB value.
+          // Two admins concurrently editing families are detected by content
+          // difference, not by the seq counter — so an unrelated rename (seq
+          // bumps, units unchanged) does not block a families edit, and two
+          // consecutive edits by the same admin chain correctly because each
+          // base is the previous optimistic result.
+          // Absent baseUnits means an older build — let it through unchanged.
+          const baseUnits = mutation.payload.baseUnits;
+          if (baseUnits !== undefined) {
+            const writeResult = await this.guardedUnitsWrite(
+              mutation.groupId,
+              patch,
+              baseUnits as Record<string, unknown> | null,
+            );
+            if (!writeResult.ok) {
+              throw new HttpError(
+                409,
+                'UNITS_CONFLICT',
+                'The families were changed by someone else. Reload and try again.',
+              );
+            }
+            return { groupId: mutation.groupId };
+          }
+        }
         const { error } = await this.caller.from('groups').update(patch).eq('id', mutation.groupId);
         if (error) throw new HttpError(400, 'VALIDATION_FAILED', error.message);
         return { groupId: mutation.groupId };

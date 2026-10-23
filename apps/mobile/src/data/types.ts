@@ -109,6 +109,12 @@ export interface GroupRow {
    * could drop and an id cannot.
    */
   isDemo?: boolean;
+  /**
+   * Sync sequence stamp, bumped on every write by a DB trigger. Present on
+   * every mirrored row; absent only on a pending (queue-only) row. Used by
+   * the families screen to guard against concurrent admin overwrites.
+   */
+  updated_seq?: number | null;
 }
 
 export interface MemberRow {

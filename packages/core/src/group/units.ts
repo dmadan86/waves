@@ -117,6 +117,41 @@ export function headsFor(units: GroupUnits | null | undefined, key: string): Mem
   return unit ? headOf(unit) : key;
 }
 
+/**
+ * Canonical deep-equal for two `groups.units` values, used by the sync
+ * content guard.
+ *
+ * Key-order-insensitive: `{ a: …, b: … }` equals `{ b: …, a: … }`.
+ * Null and an empty object are treated as equal (both mean "no families").
+ * Member-list order IS significant — a reorder is a real edit.
+ */
+export function unitsEqual(
+  a: GroupUnits | null | undefined,
+  b: GroupUnits | null | undefined,
+): boolean {
+  // Normalise: null / undefined / {} → canonical empty sentinel.
+  const aEntries = Object.entries(a ?? {});
+  const bEntries = Object.entries(b ?? {});
+  if (aEntries.length === 0 && bEntries.length === 0) return true;
+  if (aEntries.length !== bEntries.length) return false;
+
+  const bMap = new Map(bEntries);
+  for (const [id, aUnit] of aEntries) {
+    const bUnit = bMap.get(id);
+    if (!bUnit) return false;
+    if (aUnit.name !== bUnit.name) return false;
+    const aMembers = unitMembers(aUnit);
+    const bMembers = unitMembers(bUnit);
+    if (aMembers.length !== bMembers.length) return false;
+    if (aMembers.some((m, i) => m !== bMembers[i])) return false;
+    // Absent head and undefined head are both "no explicit head" — equal.
+    const aHead = aUnit.head ?? null;
+    const bHead = bUnit.head ?? null;
+    if (aHead !== bHead) return false;
+  }
+  return true;
+}
+
 export type UnitsVerdict = { ok: true; units: GroupUnits | null } | { ok: false; reason: string };
 
 /**
