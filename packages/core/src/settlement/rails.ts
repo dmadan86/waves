@@ -506,6 +506,7 @@ export function buildPaymentUri(
   const bareMajor = /^\d+(\.\d+)?$/.test(major) ? major : null;
 
   if (rail.id === RailId.Upi) {
+    if (input.currency !== 'INR') return null;
     // Built by hand rather than with URLSearchParams: this package has to
     // compile unchanged for React Native, Deno and the browser.
     const params: [string, string][] = [

@@ -78,10 +78,10 @@ serveWithCors(async (request) => {
 
     // The caller's own profile row — the account data they gave us, including the
     // optional postal address (ADR-012 portability, and the privacy screen's
-    // promise that everything stored is exportable). Read as the service so it
-    // is the whole row, not the RLS-narrowed view.
-    const { data: me, error: meError } = await service
-      .from('profiles')
+    // promise that everything stored is exportable). The owner-only RPC also
+    // includes private columns that cannot be selected from profiles directly.
+    const { data: me, error: meError } = await caller
+      .rpc('waves_my_profile')
       .select(
         'id, display_name, country_code, address, default_currency, default_vpa, payment_rail, payment_handle, locale, created_at',
       )

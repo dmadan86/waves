@@ -28,7 +28,7 @@ export const identity = new Hono<ApiEnv>();
 identity.get('/me', requireScope('identity.read'), async (c) => {
   const me = caller(c);
   const { data, error } = await me.supabase
-    .from('profiles')
+    .rpc('waves_my_profile')
     .select(PROFILE_COLUMNS)
     .eq('id', me.profileId)
     .limit(1);
@@ -71,7 +71,7 @@ identity.patch('/me', requireScope('identity.write'), async (c) => {
   if (error) throw error;
 
   const { data } = await me.supabase
-    .from('profiles')
+    .rpc('waves_my_profile')
     .select(PROFILE_COLUMNS)
     .eq('id', me.profileId)
     .limit(1);

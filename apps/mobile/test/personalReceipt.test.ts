@@ -99,9 +99,7 @@ describe('personal receipts', () => {
       txn,
     });
     expect(edited.data.receiptKey).toBe(key);
-    expect('receiptKey' in entryRecord({ ...DRAFT, receiptKey: null }, null, { txn }).data).toBe(
-      false,
-    );
+    expect(entryRecord({ ...DRAFT, receiptKey: null }, null, { txn }).data.receiptKey).toBeNull();
   });
 });
 

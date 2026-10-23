@@ -68,6 +68,10 @@ describe('a one-off entry', () => {
       date: '2026-09-12',
       loanId: null,
       recurringId: null,
+      place: null,
+      paymentMethod: null,
+      reimbursable: false,
+      receiptKey: null,
     });
   });
 

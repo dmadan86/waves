@@ -150,6 +150,6 @@ describe('the payment method on a transaction', () => {
   it('leaves an entry without one exactly as it was', () => {
     const txn = decodeTxn('t2', base);
     expect('paymentMethod' in txn).toBe(false);
-    expect('paymentMethod' in encodeTxn(txn)).toBe(false);
+    expect(encodeTxn(txn).paymentMethod).toBeNull();
   });
 });
