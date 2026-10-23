@@ -110,6 +110,8 @@ export async function watchGate(
 export function startAdSession() {
   if (!sessionStartedAt) sessionStartedAt = Date.now();
 }
+// Sync + status RPC can take seconds on Indian mobile data; past this the ad would feel unrelated to the save.
+const SHOW_WINDOW_MS = 5000;
 export async function afterGroupExpense(
   profileId: string,
   paid: boolean,
@@ -134,7 +136,7 @@ export async function afterGroupExpense(
       )
     )
       return;
-    if (Date.now() - savedAt >= 1500) return;
+    if (Date.now() - savedAt >= SHOW_WINDOW_MS) return;
     const status = await readGateStatus(profileId);
     if (!status?.enabled) return;
     const deps = defaultRewardedAdDeps();
@@ -191,7 +193,7 @@ export async function afterGroupExpense(
       prepared,
       () =>
         AppState.currentState === 'active' &&
-        Date.now() - savedAt < 1500 &&
+        Date.now() - savedAt < SHOW_WINDOW_MS &&
         !adsAreQuiet(Date.now()) &&
         Date.now() - adClocks(profileId).lastAdAt >= 60000,
     );
