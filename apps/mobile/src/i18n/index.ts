@@ -6745,7 +6745,7 @@ const en: UiStrings = {
   },
   yourData: {
     title: 'Your data',
-    rowHint: 'Save a copy or bring data in',
+    rowHint: 'Import or export your data',
     exportSection: 'Export',
     importSection: 'Import',
     exportHint: 'Save as JSON, CSV or PDF',
@@ -11818,7 +11818,7 @@ const ta: UiStrings = {
   },
   yourData: {
     title: 'உங்கள் தரவு',
-    rowHint: 'நகலைச் சேமிக்கவும் அல்லது தரவை இறக்குமதி செய்யவும்',
+    rowHint: 'உங்கள் தரவை இறக்குமதி அல்லது ஏற்றுமதி செய்யவும்',
     exportSection: 'ஏற்றுமதி',
     importSection: 'இறக்குமதி',
     exportHint: 'JSON, CSV அல்லது PDF ஆகச் சேமிக்கவும்',
@@ -17060,7 +17060,7 @@ const hi: UiStrings = {
   },
   yourData: {
     title: 'आपका डेटा',
-    rowHint: 'कॉपी सहेजें या डेटा लाएँ',
+    rowHint: 'अपना डेटा इम्पोर्ट या एक्सपोर्ट करें',
     exportSection: 'निर्यात',
     importSection: 'आयात',
     exportHint: 'JSON, CSV या PDF में सहेजें',
@@ -22205,7 +22205,7 @@ const ar: UiStrings = {
   },
   yourData: {
     title: 'بياناتك',
-    rowHint: 'احفظ نسخة أو استورد بيانات',
+    rowHint: 'استيراد بياناتك أو تصديرها',
     exportSection: 'تصدير',
     importSection: 'استيراد',
     exportHint: 'احفظ بصيغة JSON أو CSV أو PDF',
