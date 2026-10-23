@@ -5086,6 +5086,8 @@ export interface UiStrings {
     byPerson: string;
     partOf: string;
     couldNotSave: string;
+    /** Shown when the server rejects a families save because another admin edited them first. */
+    changedElsewhere: string;
     subtitle: string;
     members: PluralForms;
     settlesWith: string;
@@ -10145,6 +10147,8 @@ const en: UiStrings = {
     byPerson: 'By person',
     partOf: 'Part of {name} — the family settles together',
     couldNotSave: 'Could not save the families.',
+    changedElsewhere:
+      'Someone else changed the families. Here are the latest — make your change again.',
     subtitle: 'Manage your families and people',
     members: { one: '{n} member', other: '{n} members' },
     settlesWith: '{count} · Settles with {name}',
@@ -15375,6 +15379,8 @@ const ta: UiStrings = {
     byPerson: 'நபர் வாரியாக',
     partOf: '{name} குடும்பத்தில் — குடும்பம் ஒன்றாகத் தீர்த்துக்கொள்கிறது',
     couldNotSave: 'குடும்பங்களைச் சேமிக்க முடியவில்லை.',
+    changedElsewhere:
+      'வேறொருவர் குடும்பங்களை மாற்றிவிட்டார். இதோ புதிய நிலை — மீண்டும் உங்கள் மாற்றத்தைச் செய்யுங்கள்.',
     subtitle: 'உங்கள் குடும்பங்களையும் நபர்களையும் நிர்வகிக்கவும்',
     members: { one: '{n} உறுப்பினர்', other: '{n} உறுப்பினர்கள்' },
     settlesWith: '{count} · {name} உடன் தீர்ப்பார்கள்',
@@ -20471,6 +20477,7 @@ const hi: UiStrings = {
     byPerson: 'व्यक्ति के हिसाब से',
     partOf: '{name} का हिस्सा — परिवार साथ में हिसाब चुकाता है',
     couldNotSave: 'परिवार सहेजे नहीं जा सके।',
+    changedElsewhere: 'किसी और ने परिवार बदल दिए। ये रहा ताज़ा हाल — अपना बदलाव फिर से करें।',
     subtitle: 'अपने परिवार और लोगों को संभालें',
     members: { one: '{n} सदस्य', other: '{n} सदस्य' },
     settlesWith: '{count} · {name} के साथ हिसाब',
@@ -26166,6 +26173,7 @@ const ar: UiStrings = {
     byPerson: 'حسب الشخص',
     partOf: 'ضمن {name} — تسدّد العائلة معًا',
     couldNotSave: 'تعذّر حفظ العائلات.',
+    changedElsewhere: 'غيّر شخص آخر العائلات. إليك الوضع الحالي — أجرِ تغييرك من جديد.',
     subtitle: 'إدارة عائلاتك والأشخاص',
     members: {
       zero: '{n} عضو',

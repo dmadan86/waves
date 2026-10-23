@@ -539,6 +539,8 @@ export enum SyncRejectionCode {
   ValidationFailed = 'VALIDATION_FAILED',
   ConflictSuperseded = 'CONFLICT_SUPERSEDED',
   RateLimited = 'RATE_LIMITED',
+  /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
+  UnitsConflict = 'UNITS_CONFLICT',
 }
 
 export interface SyncResponse {
