@@ -69,13 +69,13 @@ export interface ExpenseEditState {
   currency: string;
   fx: FxRecord | null;
   splitKind: SplitKind;
-  /** The group's families when an equal split is "by family" (one share per
-   *  family); null or absent splits per person. Only read for `SplitKind.Equal`. */
+  /** The group's families for the family editor; null or absent splits per person. */
   byFamily?: GroupUnits | null;
+  familyBySize?: boolean;
   /** A saved by-family bill's own composition, kept while an edit leaves the
    *  split alone — so changing the description never re-divides the money by
    *  today's families (or by nobody, with the flag off). The editor clears it
-   *  the moment the split or the people change. Only read for `SplitKind.Equal`. */
+   *  the moment the split or the people change. */
   savedUnits?: UnitsParams | null;
   participants: MemberId[];
   /** What was typed per member, kept apart per kind (see add-expense). */
@@ -167,15 +167,30 @@ export function editStateFromVersion(
     reimbursable: version.reimbursable === true,
     currency: version.currency,
     fx: (version.fx as FxRecord | null | undefined) ?? null,
-    splitKind: splitKindOf(version.split_type),
+    splitKind:
+      params.kind === 'units'
+        ? params.mode === 'exact'
+          ? SplitKind.Exact
+          : params.mode === 'percent'
+            ? SplitKind.Percent
+            : params.weights && params.mode === 'weights'
+              ? SplitKind.Shares
+              : SplitKind.Equal
+        : splitKindOf(version.split_type),
     savedUnits: params.kind === 'units' ? params : null,
     participants: version.shares.map((share) => share.member_id),
-    weights: params.kind === 'shares' ? textEntries(params.weights, 'shares') : {},
-    percents: params.kind === 'percent' ? textEntries(params.basisPoints, 'percent') : {},
+    weights:
+      params.kind === 'shares' || params.kind === 'units'
+        ? textEntries(params.weights ?? {}, 'shares')
+        : {},
+    percents:
+      params.kind === 'percent' || params.kind === 'units'
+        ? textEntries(params.basisPoints ?? {}, 'percent')
+        : {},
     exacts:
-      params.kind === 'exact'
+      params.kind === 'exact' || (params.kind === 'units' && params.mode === 'exact')
         ? Object.fromEntries(
-            Object.entries(params.amounts).map(([memberId, minor]) => [
+            Object.entries(params.amounts ?? {}).map(([memberId, minor]) => [
               memberId,
               formatMinorInput(BigInt(minor), version.currency as CurrencyCode),
             ]),
@@ -210,15 +225,25 @@ export function splitParamsFor(
     | 'participants'
     | 'currency'
     | 'byFamily'
+    | 'familyBySize'
     | 'savedUnits'
   >,
 ): SplitParams {
-  // An untouched by-family split keeps the bill's own composition.
-  if (state.splitKind === SplitKind.Equal && state.savedUnits) return state.savedUnits;
-  // Equal by family: one share per family, then equal inside it. The families
-  // are snapshotted onto the bill here, so the server needs nothing else.
-  if (state.splitKind === SplitKind.Equal && state.byFamily) {
-    return unitsSplitParams(state.byFamily, state.participants);
+  if (state.savedUnits) return state.savedUnits;
+  if (state.byFamily) {
+    const base = unitsSplitParams(
+      state.byFamily,
+      state.participants,
+      state.splitKind === SplitKind.Equal && state.familyBySize,
+    );
+    const ids = Object.keys(base.units);
+    if (state.splitKind === SplitKind.Shares)
+      return { ...base, mode: 'weights', weights: entryValues('shares', state.weights, ids) };
+    if (state.splitKind === SplitKind.Percent)
+      return { ...base, mode: 'percent', basisPoints: entryValues('percent', state.percents, ids) };
+    if (state.splitKind === SplitKind.Exact)
+      return { ...base, mode: 'exact', amounts: exactValues(state.exacts, ids, state.currency) };
+    return base;
   }
   if (state.splitKind === SplitKind.Shares) {
     return { kind: 'shares', weights: entryValues('shares', state.weights, state.participants) };

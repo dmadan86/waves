@@ -958,6 +958,10 @@ export interface WebStrings {
     creating: string;
   };
   families: {
+    countsAsChild: string;
+    eachFamilyPays: string;
+    same: string;
+    bySize: string;
     title: string;
     intro: string;
     adminOnly: string;
@@ -2094,6 +2098,10 @@ const en: WebStrings = {
     creating: 'Creating…',
   },
   families: {
+    countsAsChild: 'Counts as a child (½ share)',
+    eachFamilyPays: 'Each family pays',
+    same: 'Same',
+    bySize: 'By size',
     title: 'Families',
     intro: 'Group people who travel and settle together. A bill can then be split per family.',
     adminOnly: 'Only an admin can change families.',
@@ -2115,7 +2123,7 @@ const en: WebStrings = {
     splitFamilies: 'Families',
     lensFamilies: 'By family',
     lensPeople: 'By person',
-    byFamilyNote: 'Each family pays one equal share, split equally inside the family.',
+    byFamilyNote: 'Within each family, adults count as 1 share and children as ½.',
     cancel: 'Cancel',
   },
   members: {
@@ -3221,6 +3229,10 @@ const ta: WebStrings = {
     creating: 'உருவாக்குகிறது…',
   },
   families: {
+    countsAsChild: 'குழந்தையாகக் கணக்கிடு (½ பங்கு)',
+    eachFamilyPays: 'ஒவ்வொரு குடும்பமும் செலுத்துவது',
+    same: 'சமமாக',
+    bySize: 'அளவின்படி',
     title: 'குடும்பங்கள்',
     intro:
       'ஒன்றாகப் பயணித்து ஒன்றாகத் தீர்த்துக்கொள்பவர்களை இணைக்கவும். பில்லை குடும்பம் வாரியாகப் பிரிக்கலாம்.',
@@ -3244,7 +3256,7 @@ const ta: WebStrings = {
     lensFamilies: 'குடும்பம் வாரியாக',
     lensPeople: 'நபர் வாரியாக',
     byFamilyNote:
-      'ஒவ்வொரு குடும்பமும் ஒரு சம பங்கு செலுத்தும்; அது குடும்பத்தினுள் சமமாகப் பிரியும்.',
+      'ஒவ்வொரு குடும்பத்திலும் பெரியவர்கள் 1 பங்காகவும் குழந்தைகள் ½ பங்காகவும் கணக்கிடப்படுவர்.',
     cancel: 'ரத்து',
   },
   members: {
@@ -4333,6 +4345,10 @@ const hi: WebStrings = {
     creating: 'बन रहा है…',
   },
   families: {
+    countsAsChild: 'बच्चे के रूप में गिनें (½ हिस्सा)',
+    eachFamilyPays: 'हर परिवार दे',
+    same: 'बराबर',
+    bySize: 'आकार के अनुसार',
     title: 'परिवार',
     intro:
       'जो लोग साथ यात्रा करते और साथ हिसाब चुकाते हैं, उन्हें जोड़ें। फिर बिल परिवार के हिसाब से बाँटा जा सकता है।',
@@ -4355,7 +4371,7 @@ const hi: WebStrings = {
     splitFamilies: 'परिवार',
     lensFamilies: 'परिवार के अनुसार',
     lensPeople: 'व्यक्ति के अनुसार',
-    byFamilyNote: 'हर परिवार एक बराबर हिस्सा देता है, जो परिवार के भीतर बराबर बँटता है।',
+    byFamilyNote: 'हर परिवार में वयस्कों का 1 हिस्सा और बच्चों का ½ हिस्सा गिना जाता है।',
     cancel: 'रद्द करें',
   },
   members: {
@@ -5490,6 +5506,10 @@ const ar: WebStrings = {
     creating: 'يتم الإنشاء…',
   },
   families: {
+    countsAsChild: 'يُحسب كطفل (½ حصة)',
+    eachFamilyPays: 'تدفع كل عائلة',
+    same: 'بالتساوي',
+    bySize: 'حسب الحجم',
     title: 'العائلات',
     intro: 'اجمع من يسافرون ويسوّون حساباتهم معًا. يمكن بعدها تقسيم الفاتورة على العائلات.',
     adminOnly: 'يستطيع المشرف فقط تغيير العائلات.',
@@ -5511,7 +5531,7 @@ const ar: WebStrings = {
     splitFamilies: 'العائلات',
     lensFamilies: 'حسب العائلة',
     lensPeople: 'حسب الشخص',
-    byFamilyNote: 'تدفع كل عائلة حصة متساوية واحدة، تُقسَّم بالتساوي داخل العائلة.',
+    byFamilyNote: 'داخل كل عائلة، يُحسب البالغ بحصة واحدة والطفل بنصف حصة.',
     cancel: 'إلغاء',
   },
   members: {

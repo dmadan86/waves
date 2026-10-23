@@ -1282,7 +1282,7 @@ export default function ExpenseDetailScreen() {
                         </Row>
                       ) : null}
                       <ListRow
-                        title={nameOf(row.memberId)}
+                        title={`${nameOf(row.memberId)}${version.split_params.kind === 'units' && version.split_params.memberWeights?.[row.memberId] === 0.5 ? ' ½' : ''}`}
                         quiet
                         onPress={openMember}
                         accessibilityLabel={rowLabel}

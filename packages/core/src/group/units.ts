@@ -20,6 +20,7 @@ export interface GroupUnit {
   readonly members: readonly MemberId[];
   /** Who settles for the family; one of `members`. Absent means the first. */
   readonly head?: MemberId;
+  readonly weights?: Readonly<Record<MemberId, number>>;
 }
 
 /** `groups.units`: unit id → unit. */
@@ -71,20 +72,31 @@ export function unassignedMembers(
 export function unitsSplitParams(
   units: GroupUnits | null | undefined,
   participants: readonly MemberId[],
+  bySize = false,
 ): UnitsParams {
   const chosen = new Set(participants);
   const snapshot: Record<string, MemberId[]> = {};
   const placed = new Set<MemberId>();
+  const memberWeights: Record<string, number> = {};
   for (const [unitId, unit] of Object.entries(units ?? {})) {
     const members = unitMembers(unit).filter((member) => chosen.has(member) && !placed.has(member));
     if (members.length === 0) continue;
     snapshot[unitId] = members;
-    for (const member of members) placed.add(member);
+    for (const member of members) {
+      placed.add(member);
+      const weight = unit.weights?.[member] ?? 1;
+      if (weight !== 1) memberWeights[member] = weight;
+    }
   }
   for (const member of participants) {
     if (!placed.has(member)) snapshot[member] = [member];
   }
-  return { kind: 'units', units: snapshot };
+  return {
+    kind: 'units',
+    units: snapshot,
+    ...(bySize ? { bySize: true } : {}),
+    ...(Object.keys(memberWeights).length ? { memberWeights } : {}),
+  };
 }
 
 /** Per-member balances rolled up by unit: a family's balance is the sum of its
@@ -148,6 +160,12 @@ export function unitsEqual(
     const aHead = aUnit.head ?? null;
     const bHead = bUnit.head ?? null;
     if (aHead !== bHead) return false;
+    for (const member of new Set([
+      ...Object.keys(aUnit.weights ?? {}),
+      ...Object.keys(bUnit.weights ?? {}),
+    ])) {
+      if ((aUnit.weights?.[member] ?? 1) !== (bUnit.weights?.[member] ?? 1)) return false;
+    }
   }
   return true;
 }
@@ -203,11 +221,61 @@ export function validateGroupUnits(raw: unknown, memberIds: ReadonlySet<MemberId
         return { ok: false, reason: `family "${name}" has a head who is not in it` };
       }
     }
+    const weights: Record<string, number> = {};
+    if (unit.weights !== undefined) {
+      if (
+        typeof unit.weights !== 'object' ||
+        unit.weights === null ||
+        Array.isArray(unit.weights)
+      ) {
+        return { ok: false, reason: 'weights must be an object' };
+      }
+      for (const [member, weight] of Object.entries(unit.weights)) {
+        if (
+          !members.includes(member) ||
+          typeof weight !== 'number' ||
+          !Number.isFinite(weight) ||
+          weight <= 0 ||
+          weight > 10
+        ) {
+          return {
+            ok: false,
+            reason: 'member weights must be in (0, 10] and name a family member',
+          };
+        }
+        if (weight !== 1) weights[member] = weight;
+      }
+    }
     units[unitId] = {
       name,
+      ...(Object.keys(weights).length ? { weights } : {}),
       members,
       ...(typeof unit.head === 'string' ? { head: unit.head } : {}),
     };
   }
   return { ok: true, units };
+}
+
+/** Render a saved bill using its own membership and weights, with today's family names. */
+export function unitsFromSnapshot(
+  split: UnitsParams,
+  units: GroupUnits | null | undefined,
+  nameOf: (member: MemberId) => string = (id) => id,
+): GroupUnits {
+  return Object.fromEntries(
+    Object.entries(split.units)
+      .filter(([id, members]) => members.length !== 1 || members[0] !== id)
+      .map(([id, members]) => [
+        id,
+        {
+          name: units?.[id]?.name ?? members.map(nameOf).join(', '),
+          members,
+          weights: Object.fromEntries(
+            members
+              .filter((member) => split.memberWeights?.[member] !== undefined)
+              .map((member) => [member, split.memberWeights![member]!]),
+          ),
+        },
+      ]),
+  );
 }

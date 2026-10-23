@@ -196,7 +196,18 @@ export function placeMember(
         current,
         members.length === 0
           ? null
-          : { ...unit, members, ...(unit.head === memberId ? { head: members[0] } : {}) },
+          : {
+              ...unit,
+              members,
+              ...(unit.weights
+                ? {
+                    weights: Object.fromEntries(
+                      Object.entries(unit.weights).filter(([id]) => id !== memberId),
+                    ),
+                  }
+                : {}),
+              ...(unit.head === memberId ? { head: members[0] } : {}),
+            },
       );
     }
   }
