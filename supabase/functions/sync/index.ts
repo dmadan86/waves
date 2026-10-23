@@ -472,6 +472,17 @@ export class SyncSession {
 
       return { clientMutationId, status: 'applied', result };
     } catch (error) {
+      // Only deterministic client errors belong in the permanent rejection queue.
+      if (error instanceof HttpError) {
+        if (error.status >= 500) throw error;
+      } else {
+        const db = error as { code?: string; message?: string } | null;
+        const raised = /^[A-Z_]+:/.test(db?.message ?? '');
+        // An overlapping replay can hit a unique key before its first request
+        // records the result. Fail the request so the next replay can find it.
+        if (!raised && db?.code !== '42501' && !(db?.code?.startsWith('23') && db.code !== '23505'))
+          throw error;
+      }
       const { code, message } = classify(error);
       return { clientMutationId, status: 'rejected', code, message };
     }

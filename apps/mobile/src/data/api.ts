@@ -1531,7 +1531,7 @@ export { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs };
 
 export async function fetchNotificationPrefs(profileId: string): Promise<NotificationPrefs> {
   const { data, error } = await backend
-    .from('profiles')
+    .rpc('waves_my_profile')
     .select('notification_prefs')
     .eq('id', profileId)
     .single();
