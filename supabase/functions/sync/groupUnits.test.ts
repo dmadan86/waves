@@ -225,15 +225,15 @@ describe('group.update units — content guard (baseUnits)', () => {
     expect(scoped.update).toHaveBeenCalled();
   });
 
-  it('reports a conflict when the conditional write loses the race twice', async () => {
-    // Units still match, but another write lands between read and update both times.
-    const scoped = callerWithUnits('admin', goodUnits, 5, [0, 0]);
+  it('keeps retrying lost races while the families still match, never a false conflict', async () => {
+    // Units still match, but another write lands between read and update every time.
+    const scoped = callerWithUnits('admin', goodUnits, 5, [0]);
     const session = new SyncSession(scoped.client, service(), OWNER);
 
-    const outcome = await session.apply(updateUnitsWithBase(goodUnits, goodUnits));
-
-    expect(outcome).toMatchObject({ status: 'rejected', code: 'UNITS_CONFLICT' });
-    expect(scoped.update).toHaveBeenCalledTimes(2);
+    await expect(
+      session.apply(updateUnitsWithBase(goodUnits, goodUnits)),
+    ).resolves.not.toMatchObject({ code: 'UNITS_CONFLICT' });
+    expect(scoped.update).toHaveBeenCalledTimes(5);
   });
 
   it('applies on the retry when only the first conditional write loses the race', async () => {

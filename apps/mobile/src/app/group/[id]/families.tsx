@@ -80,6 +80,7 @@ export default function FamiliesScreen() {
   const { families, onTheirOwn } = familyRows(units, people);
 
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [conflicted, setConflicted] = useState(false);
 
   // Detect a UNITS_CONFLICT rejection for this group: another admin saved the
   // families while this admin's queued edit was waiting. Trigger a flush when
@@ -92,6 +93,9 @@ export default function FamiliesScreen() {
   useEffect(() => {
     if (conflictId !== null && conflictId !== flushedConflictRef.current) {
       flushedConflictRef.current = conflictId;
+      // Latch the notice: discarding removes the rejection, and the user still
+      // needs to know their edit was undone. Cleared by their next save.
+      setConflicted(true);
       // Discard the rejected mutation so the group is not permanently blocked,
       // then flush to pull the server's latest families into the mirror.
       void discard(conflictId).then(() => flush());
@@ -99,7 +103,7 @@ export default function FamiliesScreen() {
   }, [conflictId, flush, discard]);
 
   // The callout shows either the conflict notice or a save-error fallback.
-  const error = conflictId !== null ? t.families.changedElsewhere : saveError;
+  const error = conflicted ? t.families.changedElsewhere : saveError;
   // The name sheet: a new family started with one person from the "on their
   // own" list (a family is never empty), or a rename.
   const [naming, setNaming] = useState<{ familyId: string } | { withMember: string } | null>(null);
@@ -140,6 +144,7 @@ export default function FamiliesScreen() {
 
   const save = (next: GroupUnits | null): void => {
     setSaveError(null);
+    setConflicted(false);
     // Send the units map the screen is currently showing (mirror/optimistic
     // value) as `baseUnits`. The server compares this to the DB value by
     // content, not by seq, so an unrelated rename by another admin does not

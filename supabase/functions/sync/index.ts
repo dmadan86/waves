@@ -553,20 +553,15 @@ export class SyncSession {
       return (data?.length ?? 0) > 0;
     };
 
-    const row = await read();
-    const current = (row?.units ?? null) as Record<string, unknown> | null;
-    if (!unitsEqual(current, base)) return { ok: false };
-
-    const wrote = await tryWrite(row?.updated_seq ?? 0);
-    if (wrote) return { ok: true };
-
-    // Race: someone wrote between our select and our update.
-    const row2 = await read();
-    const current2 = (row2?.units ?? null) as Record<string, unknown> | null;
-    if (!unitsEqual(current2, base)) return { ok: false };
-
-    // A second lost race is reported as a conflict, never as a silent success.
-    return { ok: await tryWrite(row2?.updated_seq ?? 0) };
+    // Lost races (another write between read and update) are retried; only a
+    // different families map is a conflict. Constant churn is a transient error.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const row = await read();
+      const current = (row?.units ?? null) as Record<string, unknown> | null;
+      if (!unitsEqual(current, base)) return { ok: false };
+      if (await tryWrite(row?.updated_seq ?? 0)) return { ok: true };
+    }
+    throw new HttpError(503, 'BUSY', 'The group is changing too fast; try again.');
   }
 
   private async dispatch(mutation: MutationEnvelope): Promise<unknown> {
