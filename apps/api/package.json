@@ -16,7 +16,7 @@
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
     "hono": "^4.13.13",
-    "next": "^16.4.0",
+    "next": "^16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
