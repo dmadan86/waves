@@ -366,3 +366,12 @@ describe('how a person is paid', () => {
     expect(payableFor({ payment_rail: 'pix' })).toBeNull();
   });
 });
+
+it.each(['AED', 'USD', 'EUR'])('does not build a UPI link for %s', (currency) => {
+  expect(
+    buildPaymentUri(
+      { railId: 'upi', handle: 'me@bank', payeeName: 'Me', amount: 10000n, currency },
+      major,
+    ),
+  ).toBeNull();
+});

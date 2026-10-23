@@ -1401,7 +1401,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
       const id = auth.user?.id;
       if (!id) return null;
       const rows = await read<ProfileRow>(
-        supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', id).limit(1),
+        supabase.rpc('waves_my_profile').select(PROFILE_COLUMNS).eq('id', id).limit(1),
       );
       return rows[0] ?? null;
     },

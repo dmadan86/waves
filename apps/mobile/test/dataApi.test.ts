@@ -80,7 +80,8 @@ vi.mock('@/lib/backend', () => {
     backendConfigured: true,
     backend: {
       from,
-      rpc: h.rpc,
+      rpc: (name: string, ...args: unknown[]) =>
+        name === 'waves_my_profile' ? from(name) : h.rpc(name, ...args),
       functions: { invoke: h.invoke },
       auth: { updateUser: h.updateUser, verifyOtp: h.verifyOtp },
     },
@@ -213,7 +214,7 @@ describe('fetchNotificationPrefs', () => {
 
     expect(prefs).toEqual({ ...api.DEFAULT_NOTIFICATION_PREFS, [someKey]: flipped });
     const { table, ops } = onlyChain();
-    expect(table).toBe('profiles');
+    expect(table).toBe('waves_my_profile');
     expect(op(ops, 'eq')).toEqual(['id', 'p1']);
     expect(opNames(ops)).toContain('single');
   });
