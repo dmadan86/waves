@@ -1,3 +1,4 @@
+import { logAdEvent } from '@/lib/adEvents';
 import { useEffect, useState } from 'react';
 import { Platform, Text as NativeText } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,9 +34,11 @@ type NativeAd = {
   headline: string;
   body: string;
   callToAction?: string;
+  addAdEventListener(event: string, callback: () => void): { remove(): void };
   destroy(): void;
 };
 type NativeSdk = {
+  NativeAdEventType: { IMPRESSION: string };
   NativeAd: { createForAdRequest(id: string, options: object): Promise<NativeAd> };
   NativeAdView: React.ComponentType<React.PropsWithChildren<{ nativeAd: NativeAd }>>;
   NativeAsset: React.ComponentType<React.PropsWithChildren<{ assetType: string }>>;
@@ -62,6 +65,7 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
     if (!eligible || !viewerId || !visible || Platform.OS === 'web') return;
     let cancelled = false;
     let ad: NativeAd | undefined;
+    let impression: { remove(): void } | undefined;
     void (async () => {
       try {
         // Fresh server verdict immediately before loading: never request for paid users.
@@ -84,14 +88,23 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
           ),
           { requestNonPersonalizedAdsOnly: true },
         );
+        let reported = false;
+        impression = ad.addAdEventListener(native.NativeAdEventType.IMPRESSION, () => {
+          if (!reported) {
+            reported = true;
+            logAdEvent(viewerId, 'native_list', 'shown');
+          }
+        });
         if (cancelled) ad.destroy();
         else setLoaded({ sdk: native, ad });
       } catch {
+        logAdEvent(viewerId, 'native_list', 'failed');
         /* No fill, unavailable native module or storage failure: omit the card. */
       }
     })();
     return () => {
       cancelled = true;
+      impression?.remove();
       ad?.destroy();
       setLoaded(null);
     };

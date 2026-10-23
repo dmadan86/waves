@@ -1785,6 +1785,7 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  adGates: { groupTitle: string; exportTitle: string; body: string; watch: string; failed: string };
   rewardedAds: {
     entryVoice: string;
     entryScan: string;
@@ -7341,6 +7342,13 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  adGates: {
+    groupTitle: 'Watch a short video to create this group',
+    exportTitle: 'Watch a short video to export',
+    body: 'Watch to continue, or cancel. If no ad is available, you can continue for free.',
+    watch: 'Watch',
+    failed: "We couldn't load the video right now. Please try again in a moment.",
+  },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
     entryScan: 'Watch a short video for 2 more scans',
@@ -12422,6 +12430,13 @@ const ta: UiStrings = {
     onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
+  },
+  adGates: {
+    groupTitle: 'இந்தக் குழுவை உருவாக்க ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    exportTitle: 'ஏற்றுமதி செய்ய ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    body: 'தொடர பார்க்கவும் அல்லது ரத்து செய்யவும். விளம்பரம் கிடைக்காவிட்டால் இலவசமாகத் தொடரலாம்.',
+    watch: 'பார்க்கவும்',
+    failed: 'இப்போது வீடியோவை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -17653,6 +17668,13 @@ const hi: UiStrings = {
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
+  adGates: {
+    groupTitle: 'यह समूह बनाने के लिए छोटा वीडियो देखें',
+    exportTitle: 'निर्यात करने के लिए छोटा वीडियो देखें',
+    body: 'जारी रखने के लिए देखें या रद्द करें। विज्ञापन उपलब्ध न हो तो मुफ़्त में आगे बढ़ सकते हैं।',
+    watch: 'देखें',
+    failed: 'अभी वीडियो लोड नहीं हो सका। कृपया थोड़ी देर में फिर से कोशिश करें।',
+  },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
     entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
@@ -22801,6 +22823,13 @@ const ar: UiStrings = {
     onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
+  },
+  adGates: {
+    groupTitle: 'شاهد فيديو قصيرًا لإنشاء هذه المجموعة',
+    exportTitle: 'شاهد فيديو قصيرًا للتصدير',
+    body: 'شاهد للمتابعة أو ألغِ. إذا لم يتوفر إعلان، يمكنك المتابعة مجانًا.',
+    watch: 'شاهد',
+    failed: 'تعذّر تحميل الفيديو الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
