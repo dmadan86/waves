@@ -1,19 +1,18 @@
 /**
  * Settle up from the dashboard and Friends. Settling happens inside a group —
  * that is where the debts are — so it first asks which one: the groups where
- * you owe or are owed, each opening that group's settle screen. Type chips
- * narrow the list. A person square
+ * you owe or are owed, each opening that group's settle screen. A person square
  * everywhere is told so rather than shown an empty list.
  *
  * The body of the `/settle-up` screen, under its header.
  */
 
 import { coverTone } from '@/lib/groupCoverColor';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, Pressable, View } from 'react-native';
 
-import { ChipRow, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SplitMoney } from '@/components/SplitMoney';
@@ -22,7 +21,6 @@ import { GroupType } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
-import { arrangeSettleCandidates, type SettleChip } from '@/lib/settlePicker';
 import { settleHref } from '@/lib/groupTab';
 
 export interface SettleCandidate {
@@ -45,25 +43,28 @@ export interface SettleCandidate {
 const DISC = 48;
 const ROW_HEIGHT = 74;
 
-const chipIcon = (name: keyof typeof Ionicons.glyphMap) =>
-  function ChipIcon(color: string) {
-    return <Ionicons name={name} size={iconSize.sm} color={color} />;
-  };
-
 function Separator() {
   return <View style={{ height: 8 }} />;
 }
+
+const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
 
 export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[] }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
-  const [chip, setChip] = useState<SettleChip>('all');
   const d = t.homeDash;
 
+  // Biggest balance first — the order people want — with ties keeping the
+  // given order (stable sort).
   const visible = useMemo(
-    () => arrangeSettleCandidates(groups, { query: '', chip, sort: 'balance', locale }),
-    [groups, chip, locale],
+    () =>
+      [...groups].sort((a, b) => {
+        const x = absBig(a.balance);
+        const y = absBig(b.balance);
+        return x === y ? 0 : y > x ? 1 : -1;
+      }),
+    [groups],
   );
 
   const tintFor = (type: GroupType) => {
@@ -81,18 +82,6 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
         return theme.tint.peach;
     }
   };
-
-  const chipOptions: readonly {
-    value: SettleChip;
-    label: string;
-    icon?: (c: string) => ReactNode;
-  }[] = [
-    { value: 'all', label: d.settleChipAll },
-    { value: 'yours', label: d.settleChipYours, icon: chipIcon('person-outline') },
-    { value: 'trips', label: d.settleChipTrips, icon: chipIcon('paper-plane-outline') },
-    { value: 'family', label: d.settleChipFamily, icon: chipIcon('home-outline') },
-    { value: 'friends', label: d.settleChipFriends, icon: chipIcon('people-outline') },
-  ];
 
   const renderRow = ({ item }: { item: SettleCandidate }) => {
     const owed = item.balance > 0n;
@@ -180,32 +169,25 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
 
   const empty = (
     <Text variant="body" tone="muted" align="center" style={{ paddingVertical: theme.spacing.xl }}>
-      {groups.length === 0 ? d.settleEmpty : t.captures.assignNoMatch}
+      {d.settleEmpty}
     </Text>
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Chips only: search and a sort sheet were cut as clutter on a list
-          this short — biggest balance first is the order people want. */}
-      <View style={{ paddingHorizontal: theme.spacing.xl }}>
-        <ChipRow options={chipOptions} value={chip} onChange={setChip} variant="brand" />
-      </View>
-      <FlatList
-        data={visible}
-        keyExtractor={(item) => item.id}
-        renderItem={renderRow}
-        ListEmptyComponent={empty}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={Separator}
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.md,
-          paddingBottom: clearance,
-        }}
-      />
-    </View>
+    <FlatList
+      data={visible}
+      keyExtractor={(item) => item.id}
+      renderItem={renderRow}
+      ListEmptyComponent={empty}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      ItemSeparatorComponent={Separator}
+      style={{ flex: 1 }}
+      contentContainerStyle={{
+        paddingHorizontal: theme.spacing.xl,
+        paddingTop: theme.spacing.md,
+        paddingBottom: clearance,
+      }}
+    />
   );
 }
