@@ -39,6 +39,11 @@ export default defineConfig({
       '@expo/vector-icons/Ionicons': fileURLToPath(
         new URL('./test/mocks/ionicons.ts', import.meta.url),
       ),
+      // expo-localization calls into the Expo native module which is unavailable
+      // in Node; replace it with an in-process stub for vitest runs.
+      'expo-localization': fileURLToPath(
+        new URL('./test/mocks/expo-localization.ts', import.meta.url),
+      ),
     },
   },
 });

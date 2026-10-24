@@ -47,7 +47,7 @@ describe('entry points', () => {
   });
 
   it('6: the plans screen lists the assistant’s follow-ups with an AI pill', () => {
-    const paywall = src('app/paywall.tsx');
+    const paywall = src('app/settings/upgrade.tsx');
     expect(paywall).toContain('t.assistant.planRowTitle');
     expect(paywall).toContain('t.assistant.planRowPill');
   });
