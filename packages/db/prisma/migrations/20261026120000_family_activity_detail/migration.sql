@@ -174,3 +174,6 @@ BEGIN
   RETURN NEW;
 END
 $$;
+
+-- Trigger function: same caller model as before (CREATE OR REPLACE keeps grants; stated for the CI guard).
+REVOKE ALL ON FUNCTION public.waves_log_group_changes() FROM PUBLIC, anon;
