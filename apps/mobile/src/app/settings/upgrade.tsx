@@ -20,7 +20,7 @@ import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
-import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
 import { RewardedAdEntry } from '@/components/RewardedAdEntry';
@@ -81,7 +81,7 @@ export default function UpgradeScreen() {
   );
   const [attempt, setAttempt] = useState(0);
   const [period, setPeriod] = useState<PlanPeriod>('monthly');
-  const [selected, setSelected] = useState<PaidTier>(defaultSelectedTier());
+  const [selected] = useState<PaidTier>(defaultSelectedTier());
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
