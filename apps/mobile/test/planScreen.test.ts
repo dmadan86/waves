@@ -141,6 +141,11 @@ const REQUIRED_PLAN_SCREEN_KEYS: (keyof typeof EN.planScreen)[] = [
   'alreadyPro',
   'haveCode',
   'title',
+  'heroEyebrow',
+  'heroTitle',
+  'heroBody',
+  'freePrice',
+  'freeCaption',
 ];
 
 describe('planScreen i18n completeness', () => {

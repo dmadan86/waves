@@ -1,24 +1,14 @@
 /**
- * Simplified plan screen — the single place to understand what Waves costs.
- *
- * Two cards: Free (always, forever) and Pro (priced from RevenueCat). A small
- * Monthly / Yearly segmented toggle appears only when both periods are sold; if
- * only yearly exists it is selected automatically (fixing the blank-screen bug
- * where the default was monthly but no monthly card existed).
- *
- * One primary button: "Get Pro · ₹79/mo". When the person is already on Pro it
- * becomes "You're on Pro" with a Manage subscription link. When the offering
- * has not loaded yet a loading state is shown; on error a short message and a
- * Retry. Small links (Restore, Terms, Privacy, Have a code?) sit below.
- *
- * /paywall redirects here. All purchase logic reuses the existing helpers in
- * lib/purchases.ts and lib/pricing.ts.
+ * Simplified plan screen — two cards (Free and Pro), faithfully matching the
+ * compact mockup layout. All purchase/restore/manage logic is unchanged.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Pressable, ScrollView, View } from 'react-native';
 import type { PurchasesOffering } from 'react-native-purchases';
 
 import {
@@ -59,6 +49,8 @@ import {
 import { reportHandled } from '@/lib/observability';
 import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
+
+const CROWN_ART = require('../../../assets/images/plan-crown.png') as number;
 
 type LoadState =
   | { status: 'loading' }
@@ -104,8 +96,6 @@ export default function UpgradeScreen() {
 
   const offering = load.status === 'ready' ? load.offering : null;
 
-  // Pick the available periods; if monthly is not in the offering, default
-  // to yearly (fixes the empty-screen bug).
   const periods = useMemo(() => periodsInOffering(offering), [offering]);
   const resolvedPeriod: PlanPeriod = useMemo(() => {
     if (periods.includes(period)) return period;
@@ -181,7 +171,6 @@ export default function UpgradeScreen() {
     });
   };
 
-  // CTA label
   const periodLabel = resolvedPeriod === 'yearly' ? t.paywall.perYear : t.paywall.perMonth;
   const ctaLabel = isPaid
     ? t.planScreen.alreadyPro
@@ -192,6 +181,26 @@ export default function UpgradeScreen() {
         : fill(t.planScreen.ctaGetPro, { price: '—', period: periodLabel });
 
   const ctaDisabled = isPaid || purchasing || !chosen || !plansLive;
+
+  // Free card features
+  const freeFeatures: Array<{ text: string; dimmed?: boolean }> = [
+    { text: t.planScreen.freeFeatureExpenses },
+    { text: t.planScreen.freeFeatureBalances },
+    { text: fill(t.planScreen.freeFeatureScans, { scans: FREE_MONTHLY_SCANS }) },
+    { text: fill(t.planScreen.freeFeatureVoice, { commands: VOICE_AGENT_FREE_MONTHLY }) },
+    { text: t.planScreen.freeFeatureAds, dimmed: true },
+  ];
+
+  // Pro card features
+  const proFeatures: Array<{ text: string; aiPill?: boolean }> = [
+    { text: t.planScreen.proFeatureNoAds },
+    { text: fill(t.planScreen.proFeatureScans, { scans: PRO_MONTHLY_SCANS }) },
+    { text: fill(t.planScreen.proFeatureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }) },
+    { text: t.assistant.planRowTitle, aiPill: true },
+    ...(PRO_DEVICE_LIMIT > 1
+      ? [{ text: fill(t.planScreen.proFeatureDevices, { devices: PRO_DEVICE_LIMIT }) }]
+      : []),
+  ];
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -206,83 +215,335 @@ export default function UpgradeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Period toggle ─────────────────────────────────────────── */}
-        {plansLive && periods.length > 1 ? (
-          <PeriodToggle
-            period={resolvedPeriod}
-            periods={periods}
-            savings={savings}
-            onChange={setPeriod}
+        {/* ── Hero row ──────────────────────────────────────────────── */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text
+              style={{
+                color: theme.color.brand,
+                fontSize: 10,
+                fontWeight: '700',
+                letterSpacing: 1.2,
+                textTransform: 'uppercase',
+              }}
+            >
+              {t.planScreen.heroEyebrow}
+            </Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', lineHeight: 28 }} numberOfLines={2}>
+              {t.planScreen.heroTitle}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t.planScreen.heroBody}
+            </Text>
+          </View>
+          <Image
+            source={CROWN_ART}
+            style={{ width: 130, height: 118, resizeMode: 'contain' }}
+            accessibilityIgnoresInvertColors
           />
-        ) : null}
+        </View>
 
         {/* ── Free card ─────────────────────────────────────────────── */}
-        <PlanCard
-          title={t.planScreen.freeCardTitle}
-          subtitle={t.planScreen.freeCardSubtitle}
-          current={!isPaid}
-          features={[
-            t.planScreen.freeFeatureExpenses,
-            t.planScreen.freeFeatureBalances,
-            fill(t.planScreen.freeFeatureScans, { scans: FREE_MONTHLY_SCANS }),
-            fill(t.planScreen.freeFeatureVoice, { commands: VOICE_AGENT_FREE_MONTHLY }),
-            t.planScreen.freeFeatureAds,
-          ]}
-          dimmedFeatures={new Set([t.planScreen.freeFeatureAds])}
-          icon="wallet-outline"
-        />
+        <View
+          style={{
+            backgroundColor: theme.color.surface,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            padding: theme.spacing.md,
+            gap: theme.spacing.sm,
+          }}
+        >
+          {/* Card header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 14,
+                backgroundColor: theme.color.brandSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="wallet-outline" size={26} color={theme.color.brand} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+                <Text style={{ fontWeight: '800', fontSize: 17, flex: 1 }}>Free</Text>
+                {!isPaid ? (
+                  <View
+                    style={{
+                      backgroundColor: theme.color.brandSoft,
+                      borderRadius: theme.radius.pill,
+                      paddingHorizontal: theme.spacing.sm,
+                      paddingVertical: 2,
+                    }}
+                  >
+                    <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                      {t.paywall.currentPlan}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text variant="caption" tone="muted">
+                {t.planScreen.freePrice}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t.planScreen.freeCaption}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: theme.color.border }} />
+
+          {/* Feature list */}
+          <View style={{ gap: 8 }}>
+            {freeFeatures.map((feat) => (
+              <View
+                key={feat.text}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: feat.dimmed
+                      ? theme.color.surfaceMuted
+                      : theme.color.brand,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons
+                    name={feat.dimmed ? 'remove' : 'checkmark'}
+                    size={13}
+                    color={feat.dimmed ? theme.color.textMuted : theme.color.onBrand}
+                  />
+                </View>
+                <Text
+                  variant="caption"
+                  style={{
+                    flex: 1,
+                    color: feat.dimmed ? theme.color.textMuted : theme.color.text,
+                  }}
+                >
+                  {feat.text}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
         {/* ── Pro card ──────────────────────────────────────────────── */}
-        {load.status === 'loading' ? (
-          <Text
-            variant="caption"
-            tone="muted"
-            align="center"
-            style={{ marginTop: theme.spacing.sm }}
+        <View
+          style={{
+            borderRadius: 20,
+            borderWidth: 1.5,
+            borderColor: theme.color.brand,
+            overflow: 'hidden',
+            shadowColor: '#2A1E6B',
+            shadowOpacity: theme.scheme !== 'dark' ? 0.1 : 0,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 3,
+          }}
+        >
+          <LinearGradient
+            colors={[`${theme.color.brand}18`, `${theme.color.brand}08`, 'transparent'] as const}
+            style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}
           >
-            {t.paywall.loading}
-          </Text>
-        ) : load.status === 'error' ? (
-          <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted" align="center">
-              {t.paywall.unavailable}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setLoad({ status: 'loading' });
-                setAttempt((n) => n + 1);
-              }}
-              hitSlop={8}
-            >
-              <Text tone="brand" style={{ fontWeight: '700' }}>
-                {t.paywall.retry}
+            {/* Card header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  backgroundColor: theme.color.brand,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <MaterialCommunityIcons name="crown" size={26} color={theme.color.onBrand} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+                >
+                  <Text style={{ fontWeight: '800', fontSize: 17 }}>Pro</Text>
+                  {chosen && !isPaid ? (
+                    <Text variant="caption" tone="muted">
+                      {chosen.priceString}
+                      {periodLabel}
+                    </Text>
+                  ) : null}
+                  {isPaid ? (
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <View
+                        style={{
+                          backgroundColor: theme.color.brandSoft,
+                          borderRadius: theme.radius.pill,
+                          paddingHorizontal: theme.spacing.sm,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                          {t.paywall.currentPlan}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+                <Text variant="caption" tone="muted">
+                  {t.planScreen.proCardSubtitle}
+                </Text>
+              </View>
+            </View>
+
+            {load.status === 'loading' ? (
+              <Text
+                variant="caption"
+                tone="muted"
+                align="center"
+                style={{ marginTop: theme.spacing.sm }}
+              >
+                {t.paywall.loading}
               </Text>
-            </Pressable>
-          </View>
-        ) : (
-          <PlanCard
-            title={`Pro${chosen ? ` · ${chosen.priceString}${periodLabel}` : ''}`}
-            subtitle={t.planScreen.proCardSubtitle}
-            current={isPaid}
-            highlighted
-            features={[
-              t.planScreen.proFeatureNoAds,
-              fill(t.planScreen.proFeatureScans, { scans: PRO_MONTHLY_SCANS }),
-              fill(t.planScreen.proFeatureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }),
-              t.assistant.planRowTitle,
-              ...(PRO_DEVICE_LIMIT > 1
-                ? [fill(t.planScreen.proFeatureDevices, { devices: PRO_DEVICE_LIMIT })]
-                : []),
-            ]}
-            aiFeatures={new Set([t.assistant.planRowTitle])}
-            aiPillLabel={t.assistant.planRowPill}
-            icon="star-outline"
-            onSelect={
-              !isPaid && cards.length > 0 ? () => setSelected(PlanTier.Pro as PaidTier) : undefined
-            }
-          />
-        )}
+            ) : load.status === 'error' ? (
+              <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                <Text variant="caption" tone="muted" align="center">
+                  {t.paywall.unavailable}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setLoad({ status: 'loading' });
+                    setAttempt((n) => n + 1);
+                  }}
+                  hitSlop={8}
+                >
+                  <Text tone="brand" style={{ fontWeight: '700' }}>
+                    {t.paywall.retry}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <View
+                  style={{ height: 1, backgroundColor: theme.color.brand, opacity: 0.15 }}
+                />
+
+                {/* Feature list */}
+                <View style={{ gap: 8 }}>
+                  {proFeatures.map((feat) => (
+                    <View
+                      key={feat.text}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: theme.spacing.sm,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: theme.color.brand,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons name="checkmark" size={13} color={theme.color.onBrand} />
+                      </View>
+                      <Text variant="caption" style={{ flex: 1 }}>
+                        {feat.text}
+                      </Text>
+                      {feat.aiPill && t.assistant.planRowPill ? (
+                        <View
+                          style={{
+                            backgroundColor: theme.color.brandSoft,
+                            borderRadius: theme.radius.pill,
+                            paddingHorizontal: 6,
+                            paddingVertical: 1,
+                          }}
+                        >
+                          <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                            {t.assistant.planRowPill}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+
+                {/* Period toggle inside the card (compact, only when both periods available) */}
+                {plansLive && periods.length > 1 ? (
+                  <PeriodToggle
+                    period={resolvedPeriod}
+                    periods={periods}
+                    savings={savings}
+                    onChange={setPeriod}
+                  />
+                ) : null}
+
+                {/* CTA button */}
+                {isPaid ? (
+                  <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                    <Text style={{ fontWeight: '700', fontSize: 17 }}>
+                      {t.planScreen.alreadyPro}
+                    </Text>
+                    {canManage ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.upgradeScreen.manageSubscription}
+                        onPress={onManage}
+                        hitSlop={8}
+                      >
+                        <Text tone="brand" style={{ fontWeight: '600' }}>
+                          {t.upgradeScreen.manageSubscription}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : plansLive ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={ctaLabel}
+                    accessibilityState={{ disabled: ctaDisabled, busy: purchasing }}
+                    disabled={ctaDisabled}
+                    onPress={() => void buy()}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: theme.spacing.sm,
+                      height: 52,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: pressed
+                        ? theme.color.brandPressed
+                        : theme.color.brand,
+                      opacity: ctaDisabled ? 0.5 : 1,
+                    })}
+                  >
+                    {!purchasing ? (
+                      <MaterialCommunityIcons
+                        name="crown"
+                        size={iconSize.md}
+                        color={theme.color.onBrand}
+                      />
+                    ) : null}
+                    <Text tone="onBrand" style={{ fontSize: 17, fontWeight: '700' }}>
+                      {purchasing ? t.paywall.subscribing : 'Upgrade to Pro'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
+          </LinearGradient>
+        </View>
 
         {/* ── Renewal note ──────────────────────────────────────────── */}
         {plansLive && !isPaid ? (
@@ -292,65 +553,14 @@ export default function UpgradeScreen() {
         ) : null}
       </ScrollView>
 
-      {/* ── Bottom action area ────────────────────────────────────── */}
+      {/* ── Small links row ─────────────────────────────────────────── */}
       <View
         style={{
           paddingHorizontal: theme.spacing.lg,
           paddingTop: theme.spacing.sm,
           paddingBottom: theme.spacing.md,
-          gap: theme.spacing.sm,
         }}
       >
-        {isPaid ? (
-          /* Already Pro: label + manage link */
-          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Text style={{ fontWeight: '700', fontSize: 17 }}>{t.planScreen.alreadyPro}</Text>
-            {canManage ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.upgradeScreen.manageSubscription}
-                onPress={onManage}
-                hitSlop={8}
-              >
-                <Text tone="brand" style={{ fontWeight: '600' }}>
-                  {t.upgradeScreen.manageSubscription}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : plansLive ? (
-          /* Buy button */
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={ctaLabel}
-            accessibilityState={{ disabled: ctaDisabled, busy: purchasing }}
-            disabled={ctaDisabled}
-            onPress={() => void buy()}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              height: 52,
-              borderRadius: theme.radius.pill,
-              backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
-              opacity: ctaDisabled ? 0.5 : 1,
-            })}
-          >
-            <Text tone="onBrand" style={{ fontSize: 17, fontWeight: '700' }}>
-              {ctaLabel}
-            </Text>
-            {!purchasing ? (
-              <Ionicons
-                name={directionalIcon('arrow-forward')}
-                size={iconSize.md}
-                color={theme.color.onBrand}
-              />
-            ) : null}
-          </Pressable>
-        ) : null}
-
-        {/* ── Small links row ─────────────────────────────────────── */}
         <Row style={{ alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
           {plansLive && !isPaid ? (
             <>
@@ -414,7 +624,7 @@ export default function UpgradeScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// PeriodToggle sub-component (compact version for inside Pro card)
 // ---------------------------------------------------------------------------
 
 function PeriodToggle({
@@ -435,10 +645,10 @@ function PeriodToggle({
       accessibilityRole="tablist"
       style={{
         flexDirection: 'row',
-        alignSelf: 'center',
-        backgroundColor: theme.color.surface,
+        alignSelf: 'stretch',
+        backgroundColor: `${theme.color.brand}10`,
         borderRadius: theme.radius.pill,
-        padding: 4,
+        padding: 3,
       }}
     >
       {periods.map((value) => {
@@ -455,25 +665,29 @@ function PeriodToggle({
             accessibilityState={{ selected: active }}
             onPress={() => onChange(value)}
             style={{
+              flex: 1,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              minWidth: 110,
-              paddingHorizontal: theme.spacing.md,
-              paddingVertical: 8,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 7,
               borderRadius: theme.radius.pill,
               backgroundColor: active ? theme.color.brand : 'transparent',
             }}
           >
             <Text
-              style={{ fontWeight: '700', color: active ? theme.color.onBrand : theme.color.text }}
+              style={{
+                fontWeight: '700',
+                fontSize: 13,
+                color: active ? theme.color.onBrand : theme.color.text,
+              }}
             >
               {label}
             </Text>
             {savePill ? (
               <Text
-                variant="caption"
+                variant="micro"
                 style={{
                   fontWeight: '700',
                   color: active ? theme.color.onBrand : theme.color.brand,
@@ -487,146 +701,5 @@ function PeriodToggle({
         );
       })}
     </View>
-  );
-}
-
-function PlanCard({
-  title,
-  subtitle,
-  features,
-  dimmedFeatures,
-  aiFeatures,
-  aiPillLabel,
-  icon,
-  current,
-  highlighted,
-  onSelect,
-}: {
-  title: string;
-  subtitle: string;
-  features: string[];
-  dimmedFeatures?: Set<string>;
-  aiFeatures?: Set<string>;
-  aiPillLabel?: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  current: boolean;
-  highlighted?: boolean;
-  onSelect?: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  return (
-    <Pressable
-      accessibilityRole={onSelect ? 'radio' : 'none'}
-      accessibilityState={onSelect ? { selected: current } : undefined}
-      onPress={onSelect}
-      style={({ pressed }) => ({
-        backgroundColor: theme.color.surface,
-        borderRadius: theme.radius.lg,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
-        borderWidth: highlighted ? 1.5 : 1,
-        borderColor: highlighted ? theme.color.brand : theme.color.border,
-        gap: theme.spacing.sm,
-        opacity: onSelect && pressed ? 0.95 : 1,
-        shadowColor: '#2A1E6B',
-        shadowOpacity: highlighted && theme.scheme !== 'dark' ? 0.08 : 0,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: highlighted ? 3 : 0,
-      })}
-    >
-      {/* Card header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: highlighted ? theme.color.brand : theme.color.brandSoft,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons
-            name={icon}
-            size={22}
-            color={highlighted ? theme.color.onBrand : theme.color.brand}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '800', fontSize: 17 }}>{title}</Text>
-          <Text variant="caption" tone="muted">
-            {subtitle}
-          </Text>
-        </View>
-        {current ? (
-          <View
-            style={{
-              backgroundColor: theme.color.brandSoft,
-              borderRadius: theme.radius.pill,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: 2,
-            }}
-          >
-            <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-              {t.paywall.currentPlan}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={{ height: 1, backgroundColor: theme.color.border }} />
-
-      {/* Feature list */}
-      <View style={{ gap: 8 }}>
-        {features.map((feature) => {
-          const dimmed = dimmedFeatures?.has(feature);
-          return (
-            <View
-              key={feature}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
-            >
-              <View
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: dimmed ? theme.color.surfaceMuted : theme.color.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons
-                  name={dimmed ? 'remove' : 'checkmark'}
-                  size={13}
-                  color={dimmed ? theme.color.textMuted : theme.color.onBrand}
-                />
-              </View>
-              <Text
-                variant="caption"
-                style={{ flex: 1, color: dimmed ? theme.color.textMuted : theme.color.text }}
-              >
-                {feature}
-              </Text>
-              {aiFeatures?.has(feature) && aiPillLabel ? (
-                <View
-                  style={{
-                    backgroundColor: theme.color.brand,
-                    borderRadius: theme.radius.pill,
-                    paddingHorizontal: 6,
-                    paddingVertical: 1,
-                  }}
-                >
-                  <Text variant="micro" tone="onBrand" style={{ fontWeight: '700' }}>
-                    {aiPillLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          );
-        })}
-      </View>
-    </Pressable>
   );
 }

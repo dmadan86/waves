@@ -4985,6 +4985,16 @@ export interface UiStrings {
     haveCode: string;
     /** Screen title */
     title: string;
+    /** Hero eyebrow line */
+    heroEyebrow: string;
+    /** Hero heading */
+    heroTitle: string;
+    /** Hero body copy */
+    heroBody: string;
+    /** Free card price line */
+    freePrice: string;
+    /** Free card caption */
+    freeCaption: string;
   };
   /**
    * Typing in a promotion code.
@@ -10086,6 +10096,12 @@ const en: UiStrings = {
     alreadyPro: "You're on Pro",
     haveCode: 'Have a code?',
     title: 'Plans',
+    heroEyebrow: 'GET MORE WITH WAVES',
+    heroTitle: 'Simple plans to do more',
+    heroBody:
+      'Manage expenses, scan receipts and use AI with limits on Free, or go Pro for an ad-free experience.',
+    freePrice: '₹0 • Free forever',
+    freeCaption: 'A great way to get started.',
   },
   promo: {
     clear: 'Clear',
@@ -15330,6 +15346,12 @@ const ta: UiStrings = {
     alreadyPro: 'நீங்கள் Pro-இல் உள்ளீர்கள்',
     haveCode: 'குறியீடு இருக்கிறதா?',
     title: 'திட்டங்கள்',
+    heroEyebrow: 'WAVES-உடன் இன்னும் அதிகம் பெறுங்கள்',
+    heroTitle: 'மேலும் செய்ய எளிய திட்டங்கள்',
+    heroBody:
+      'Free-இல் வரம்புகளுடன் செலவுகளை நிர்வகித்து, ரசீதுகளை ஸ்கேன் செய்து, AI பயன்படுத்துங்கள்; அல்லது விளம்பரமற்ற அனுபவத்திற்கு Pro-ஆக மாறுங்கள்.',
+    freePrice: '₹0 • என்றும் இலவசம்',
+    freeCaption: 'தொடங்க ஒரு சிறந்த வழி.',
   },
   promo: {
     clear: 'அழி',
@@ -20452,6 +20474,12 @@ const hi: UiStrings = {
     alreadyPro: 'आप Pro पर हैं',
     haveCode: 'कोई कोड है?',
     title: 'प्लान',
+    heroEyebrow: 'WAVES के साथ और पाएँ',
+    heroTitle: 'अधिक करने के लिए आसान प्लान',
+    heroBody:
+      'Free में सीमाओं के साथ खर्च प्रबंधित करें, रसीदें स्कैन करें और AI का उपयोग करें; या बिना विज्ञापन के अनुभव के लिए Pro लें।',
+    freePrice: '₹0 • हमेशा मुफ़्त',
+    freeCaption: 'शुरू करने का एक बढ़िया तरीका।',
   },
   promo: {
     clear: 'मिटाएँ',
@@ -26127,6 +26155,12 @@ const ar: UiStrings = {
     alreadyPro: 'أنت على Pro',
     haveCode: 'لديك رمز؟',
     title: 'الخطط',
+    heroEyebrow: 'احصل على المزيد مع WAVES',
+    heroTitle: 'خطط بسيطة لإنجاز المزيد',
+    heroBody:
+      'أدِر مصروفاتك وامسح الإيصالات واستخدم الذكاء الاصطناعي بحدود في الطبقة المجانية، أو انتقل إلى Pro لتجربة خالية من الإعلانات.',
+    freePrice: '₹0 • مجاني للأبد',
+    freeCaption: 'طريقة رائعة للبدء.',
   },
   promo: {
     clear: 'مسح',
