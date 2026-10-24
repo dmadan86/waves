@@ -124,7 +124,7 @@ export function uploadRaw(
     xhr.onload = () => {
       cleanup();
       if (xhr.status >= 200 && xhr.status < 300) resolve(parse(xhr.responseText));
-      else reject(new CloudHttpError(xhr.status, 'upload failed'));
+      else reject(new CloudHttpError(xhr.status, xhr.responseText ?? ''));
     };
     xhr.ontimeout = () => {
       cleanup();
