@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { familyStatement, type GroupUnits, type NetBalances } from '@waves/core';
+import { computeShares, familyStatement, type GroupUnits, type NetBalances } from '@waves/core';
 
 import {
   createFamily,
@@ -230,7 +230,7 @@ describe('split by family in the editor', () => {
     participants: ['ravi', 'anu', 'zara'],
   };
 
-  it('snapshots the families onto an equal split, and only an equal one', () => {
+  it('snapshots the families for equal and custom splits', () => {
     expect(splitParamsFor({ ...base, splitKind: SplitKind.Equal, byFamily: UNITS })).toEqual({
       kind: 'units',
       units: { sharma: ['ravi', 'anu'], zara: ['zara'] },
@@ -245,7 +245,7 @@ describe('split by family in the editor', () => {
         byFamily: UNITS,
         weights: { ravi: '1' },
       }).kind,
-    ).toBe('shares');
+    ).toBe('units');
   });
 
   it('keeps a saved by-family bill’s own composition until the split is touched', () => {
@@ -307,4 +307,109 @@ describe('familyEmoji', () => {
   it('picks by size', () => {
     expect([0, 1, 2, 3, 6].map(familyEmoji)).toEqual(['🏠', '🏠', '👫', '👨‍👩‍👧', '👨‍👩‍👧']);
   });
+});
+
+describe('weighted family choices', () => {
+  const units: GroupUnits = {
+    sharma: { ...UNITS.sharma!, weights: { anu: 0.5 } },
+    patel: UNITS.patel!,
+  };
+  const base = {
+    byFamily: units,
+    currency: 'INR',
+    participants: ['ravi', 'priya', 'anu', 'sam', 'meera'],
+    weights: {},
+    percents: {},
+    exacts: {},
+  };
+
+  it('defaults to same per family and lets by-size count a child as half', () => {
+    const same = splitParamsFor({ ...base, splitKind: SplitKind.Equal });
+    const size = splitParamsFor({ ...base, splitKind: SplitKind.Equal, familyBySize: true });
+    expect(same).toMatchObject({ kind: 'units', memberWeights: { anu: 0.5 } });
+    expect(size).toMatchObject({ kind: 'units', bySize: true });
+    const calculate = (params: typeof same) =>
+      computeShares({
+        amount: 900n,
+        currency: 'INR',
+        params,
+        participants: base.participants,
+        seed: 'bill',
+      });
+    expect(calculate(same).get('anu')).toBe(90n);
+    expect(calculate(size).get('anu')).toBe(100n);
+  });
+
+  it.each([SplitKind.Shares, SplitKind.Exact, SplitKind.Percent])(
+    'uses family fields for %s and keeps the total exact',
+    (splitKind) => {
+      const params = splitParamsFor({
+        ...base,
+        splitKind,
+        familyBySize: true,
+        weights: { sharma: '2', patel: '1' },
+        exacts: { sharma: '6', patel: '3' },
+        percents: { sharma: '66.67', patel: '33.33' },
+      });
+      expect(params.kind).toBe('units');
+      const shares = computeShares({
+        amount: 900n,
+        currency: 'INR',
+        params,
+        participants: base.participants,
+        seed: 'bill',
+      });
+      expect([...shares.values()].reduce((sum, amount) => sum + amount, 0n)).toBe(900n);
+      expect(shares.get('anu')).toBe(120n);
+      if (params.kind === 'units') expect(params.bySize).toBeUndefined();
+    },
+  );
+
+  it.each(['weights', 'exact', 'percent'] as const)(
+    'reopens %s with the saved fields and membership',
+    (mode) => {
+      const snapshot = {
+        kind: 'units' as const,
+        units: { old: ['ravi', 'anu'] },
+        memberWeights: { anu: 0.5 },
+        mode,
+        ...(mode === 'exact'
+          ? { amounts: { old: 300n } }
+          : mode === 'percent'
+            ? { basisPoints: { old: 10000 } }
+            : { weights: { old: 2 } }),
+      };
+      const state = editStateFromVersion(
+        {
+          amount: '300',
+          currency: 'INR',
+          description: 'Dinner',
+          expense_date: '2026-10-25',
+          split_type: 'units',
+          split_params: snapshot,
+          payers: [{ member_id: 'ravi', amount: '300' }],
+          shares: [
+            { member_id: 'ravi', amount: '200' },
+            { member_id: 'anu', amount: '100' },
+          ],
+        } as unknown as ExpenseVersionRow,
+        null,
+      );
+      expect(state.splitKind).toBe(
+        mode === 'weights'
+          ? SplitKind.Shares
+          : mode === 'exact'
+            ? SplitKind.Exact
+            : SplitKind.Percent,
+      );
+      expect(splitParamsFor({ ...state, byFamily: units })).toEqual(snapshot);
+      expect(
+        mode === 'weights'
+          ? state.weights.old
+          : mode === 'exact'
+            ? state.exacts.old
+            : state.percents.old,
+      ).toBe(mode === 'weights' ? '2' : mode === 'exact' ? '3.00' : '100');
+    },
+  );
 });

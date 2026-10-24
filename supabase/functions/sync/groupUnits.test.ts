@@ -151,6 +151,46 @@ describe('group.update units', () => {
     });
   });
 
+  it('stores child weights and omits default adult weights', async () => {
+    const scoped = caller('admin');
+    const session = new SyncSession(scoped.client, service(), OWNER);
+    expect(
+      await session.apply(
+        updateUnits({
+          sharma: { name: 'Sharma', members: [RAVI, PRIYA], weights: { [RAVI]: 1, [PRIYA]: 0.5 } },
+        }),
+      ),
+    ).toMatchObject({ status: 'applied' });
+    expect(scoped.update).toHaveBeenCalledWith({
+      units: { sharma: { name: 'Sharma', members: [RAVI, PRIYA], weights: { [PRIYA]: 0.5 } } },
+    });
+  });
+
+  it.each([0, -1, 10.01, '0.5', null, NaN, Infinity])(
+    'rejects invalid member weight %s',
+    async (weight) => {
+      const scoped = caller('admin');
+      const session = new SyncSession(scoped.client, service(), OWNER);
+      expect(
+        await session.apply(
+          updateUnits({ sharma: { name: 'Sharma', members: [RAVI], weights: { [RAVI]: weight } } }),
+        ),
+      ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+      expect(scoped.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a weight naming someone outside that family', async () => {
+    const scoped = caller('admin');
+    const session = new SyncSession(scoped.client, service(), OWNER);
+    expect(
+      await session.apply(
+        updateUnits({ sharma: { name: 'Sharma', members: [RAVI], weights: { [PRIYA]: 0.5 } } }),
+      ),
+    ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.update).not.toHaveBeenCalled();
+  });
+
   it('clears the families on null', async () => {
     const scoped = caller('admin');
     const session = new SyncSession(scoped.client, service(), OWNER);

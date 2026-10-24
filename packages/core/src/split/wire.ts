@@ -42,6 +42,11 @@ export type WireSplitParams = Record<string, unknown>;
 
 export function serialiseSplitParams(params: SplitParams): WireSplitParams {
   switch (params.kind) {
+    case 'units':
+      return {
+        ...params,
+        ...(params.amounts ? { amounts: mapValues(params.amounts, String) } : {}),
+      };
     case 'exact':
       return { kind: 'exact', amounts: mapValues(params.amounts, String) };
     case 'adjustment':
@@ -127,8 +132,63 @@ export function parseSplitParams(raw: unknown): SplitParams {
       };
     }
 
-    case 'units':
-      return unitsParams(params.units, params.weights);
+    case 'units': {
+      const result = unitsParams(params.units, params.weights);
+      if (params.bySize !== undefined && typeof params.bySize !== 'boolean') {
+        throw new SplitWireError('BAD_SHAPE', 'bySize must be a boolean');
+      }
+      if (
+        params.mode !== undefined &&
+        !['weights', 'exact', 'percent'].includes(String(params.mode))
+      ) {
+        throw new SplitWireError('BAD_SHAPE', 'Unknown family split mode');
+      }
+      const members = new Set(Object.values(result.units).flat());
+      const memberWeights: Record<string, number> = {};
+      if (params.memberWeights !== undefined) {
+        requireRecord(params.memberWeights, 'memberWeights');
+        for (const [id, raw] of Object.entries(params.memberWeights)) {
+          const weight = raw;
+          if (typeof weight !== 'number' || !Number.isFinite(weight))
+            throw new SplitWireError('BAD_SHAPE', 'Invalid member weight');
+          if (!members.has(id) || weight <= 0 || weight > 10) {
+            throw new SplitWireError('BAD_SHAPE', 'Invalid member weight');
+          }
+          memberWeights[id] = weight;
+        }
+      }
+      for (const field of ['amounts', 'basisPoints'] as const) {
+        if (params[field] === undefined) continue;
+        requireRecord(params[field], field);
+        for (const id of Object.keys(params[field])) {
+          if (!Object.prototype.hasOwnProperty.call(result.units, id)) {
+            throw new SplitWireError('BAD_SHAPE', `Unknown unit ${id}`);
+          }
+        }
+      }
+      if (
+        (params.mode === 'exact' && params.amounts === undefined) ||
+        (params.mode === 'percent' && params.basisPoints === undefined)
+      ) {
+        throw new SplitWireError('BAD_SHAPE', 'Missing family split values');
+      }
+      return {
+        ...result,
+        ...(params.bySize === undefined ? {} : { bySize: params.bySize }),
+        ...(params.mode === undefined ? {} : { mode: params.mode as UnitsParams['mode'] }),
+        ...(params.memberWeights === undefined ? {} : { memberWeights }),
+        ...(params.amounts === undefined
+          ? {}
+          : { amounts: minorUnitMap(params.amounts, 'amounts') }),
+        ...(params.basisPoints === undefined
+          ? {}
+          : {
+              basisPoints: mapValues(params.basisPoints as Record<string, unknown>, (value) =>
+                safeNumberInteger(value, 'basisPoints'),
+              ),
+            }),
+      };
+    }
 
     default:
       throw new SplitWireError('UNKNOWN_KIND', `Unknown split kind: ${String(params.kind)}`);

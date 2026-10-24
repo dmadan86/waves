@@ -22,6 +22,9 @@ import {
   familyEmoji,
   familyRows,
   hasFamilies,
+  headOf,
+  unitsSplitParams,
+  unitsFromSnapshot,
   money as coreMoney,
   guessCategory,
   parseMajor,
@@ -42,7 +45,7 @@ import { captureLocation, coordLabel, geolocationSupported, LocationFailure } fr
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
-import { equalFamilyParams } from '@/lib/families';
+import { familyParamsFor } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { MapPin } from 'lucide-react';
 
@@ -97,6 +100,8 @@ export function ExpenseForm({
   const familiesOn = useFlagEnabled('group_units');
   const [snapshot, setSnapshot] = useState<UnitsParams | null>(null);
   const [splitTouched, setSplitTouched] = useState(false);
+  const [familyBySize, setFamilyBySize] = useState(false);
+  const [payerFamily, setPayerFamily] = useState<string | null>(null);
   const [lens, setLens] = useState<boolean | null>(null);
 
   /** "Work expense (to claim)": a tag, never part of the split. */
@@ -212,8 +217,38 @@ export function ExpenseForm({
                 setKind(SplitKind.Equal);
                 break;
               case 'units':
-                setKind(SplitKind.Equal);
+                setKind(
+                  parsed.mode === 'exact'
+                    ? SplitKind.Exact
+                    : parsed.mode === 'percent'
+                      ? SplitKind.Percent
+                      : parsed.mode === 'weights'
+                        ? SplitKind.Shares
+                        : SplitKind.Equal,
+                );
                 setSnapshot(parsed);
+                setFamilyBySize(parsed.bySize ?? false);
+                setWeights(
+                  Object.fromEntries(
+                    Object.entries(parsed.weights ?? {}).map(([id, value]) => [id, String(value)]),
+                  ),
+                );
+                setPercent(
+                  Object.fromEntries(
+                    Object.entries(parsed.basisPoints ?? {}).map(([id, value]) => [
+                      id,
+                      String(value / 100),
+                    ]),
+                  ),
+                );
+                setExact(
+                  Object.fromEntries(
+                    Object.entries(parsed.amounts ?? {}).map(([id, value]) => [
+                      id,
+                      toMajorString(coreMoney(value, currency)),
+                    ]),
+                  ),
+                );
                 break;
               case 'exact':
                 setKind(SplitKind.Exact);
@@ -283,28 +318,48 @@ export function ExpenseForm({
 
   const units = group?.units ?? null;
   const familiesAvail = familiesOn && hasFamilies(units);
-  const showLens = kind === SplitKind.Equal && (familiesAvail || snapshot !== null);
+  const showLens = familiesAvail || snapshot !== null;
   const byFamily = showLens && (lens ?? (snapshot !== null || (!editing && familiesAvail)));
+
+  const editorUnits =
+    snapshot && !splitTouched
+      ? unitsFromSnapshot(snapshot, units, (id) => {
+          const member = members.find((row) => row.id === id);
+          return member ? nameOf(member) : t.join.someone;
+        })
+      : units;
 
   const params = useMemo<SplitParams | null>(() => {
     if (participants.length === 0) return null;
     try {
+      if (byFamily && snapshot && !splitTouched) return snapshot;
+      if (byFamily)
+        return familyParamsFor({
+          units,
+          participants,
+          kind,
+          bySize: familyBySize,
+          currency,
+          exact,
+          percent,
+          weights,
+        });
+      const ids = participants;
       switch (kind) {
         case SplitKind.Equal:
-          if (!byFamily) return { kind: 'equal' };
-          return equalFamilyParams(snapshot, splitTouched, units, participants);
+          return { kind: 'equal' };
         case SplitKind.Exact: {
           const amounts: Record<string, bigint> = {};
-          for (const id of participants) {
+          for (const id of ids) {
             amounts[id] = parseMajor(exact[id]?.trim() || '0', currency).minor;
           }
           return { kind: 'exact', amounts };
         }
         case SplitKind.Percent: {
           const basisPoints: Record<string, number> = {};
-          for (const id of participants) {
+          for (const id of ids) {
             const raw = percent[id]?.trim() || '0';
-            if (!/^\d+(\.\d+)?$/.test(raw)) return null;
+            if (!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
             const value = Number.parseFloat(raw);
             basisPoints[id] = Math.round(value * 100);
           }
@@ -312,10 +367,10 @@ export function ExpenseForm({
         }
         case SplitKind.Shares: {
           const w: Record<string, number> = {};
-          for (const id of participants) {
-            const raw = weights[id]?.trim() || '0';
-            if (!/^\d+$/.test(raw)) return null;
-            const value = Number.parseInt(raw, 10);
+          for (const id of ids) {
+            const raw = weights[id]?.trim() || '1';
+            if (!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
+            const value = Number(raw);
             w[id] = value;
           }
           return { kind: 'shares', weights: w };
@@ -328,6 +383,7 @@ export function ExpenseForm({
   }, [
     kind,
     byFamily,
+    familyBySize,
     snapshot,
     splitTouched,
     units,
@@ -578,14 +634,38 @@ export function ExpenseForm({
           <div className="panel-head">
             <h2>{t.add.whoPaid}</h2>
           </div>
+          {payerFamily && units?.[payerFamily] ? <p>{units[payerFamily].name}</p> : null}
           <div className="people">
+            {familiesAvail
+              ? Object.entries(units ?? {}).map(([id, unit]) => {
+                  const head = headOf(unit);
+                  if (!head || !members.some((member) => member.id === head)) return null;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className="chip"
+                      aria-pressed={payerFamily === id}
+                      onClick={() => {
+                        setPayer(head);
+                        setPayerFamily(id);
+                      }}
+                    >
+                      {unit.name}
+                    </button>
+                  );
+                })
+              : null}
             {members.map((member) => (
               <button
                 key={member.id}
                 type="button"
                 className="chip"
                 aria-pressed={payer === member.id}
-                onClick={() => setPayer(member.id)}
+                onClick={() => {
+                  setPayer(member.id);
+                  setPayerFamily(null);
+                }}
               >
                 {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
               </button>
@@ -641,10 +721,29 @@ export function ExpenseForm({
             </div>
           ) : null}
 
+          {byFamily && kind === SplitKind.Equal ? (
+            <div className="people" style={{ marginBottom: 12 }}>
+              <span>{t.families.eachFamilyPays}</span>
+              {[false, true].map((value) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  className="chip"
+                  aria-pressed={familyBySize === value}
+                  onClick={() => {
+                    setFamilyBySize(value);
+                    setSplitTouched(true);
+                  }}
+                >
+                  {value ? t.families.bySize : t.families.same}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {byFamily ? (
             <div className="list">
               {(() => {
-                const { families, onTheirOwn } = familyRows(units, members);
+                const { families, onTheirOwn } = familyRows(editorUnits, members);
                 const chip = (member: Member) => (
                   <button
                     key={member.id}
@@ -654,6 +753,11 @@ export function ExpenseForm({
                     onClick={() => toggle(member.id)}
                   >
                     {member.profile_id === myProfileId ? t.add.you : nameOf(member)}
+                    {Object.values(editorUnits ?? {}).some(
+                      (unit) => unit.weights?.[member.id] === 0.5,
+                    )
+                      ? ' ½'
+                      : ''}
                   </button>
                 );
                 return (
@@ -717,14 +821,20 @@ export function ExpenseForm({
 
           {kind !== SplitKind.Equal ? (
             <div className="list" style={{ marginTop: 12 }}>
-              {participants.map((id) => {
+              {(byFamily
+                ? Object.keys(
+                    (snapshot && !splitTouched ? snapshot : unitsSplitParams(units, participants))
+                      .units,
+                  )
+                : participants
+              ).map((id) => {
                 const member = members.find((m) => m.id === id);
                 const value =
                   kind === SplitKind.Exact
                     ? (exact[id] ?? '')
                     : kind === SplitKind.Percent
                       ? (percent[id] ?? '')
-                      : (weights[id] ?? '');
+                      : (weights[id] ?? '1');
                 const setter =
                   kind === SplitKind.Exact
                     ? setExact
@@ -733,12 +843,19 @@ export function ExpenseForm({
                       : setWeights;
                 return (
                   <div key={id} className="split-input">
-                    <span className="grow">{member ? nameOf(member) : id}</span>
+                    <span className="grow">
+                      {byFamily && units?.[id] ? units[id].name : member ? nameOf(member) : id}
+                    </span>
                     <input
                       value={value}
                       inputMode={kind === SplitKind.Shares ? 'numeric' : 'decimal'}
-                      onChange={(e) => setter((cur) => ({ ...cur, [id]: e.target.value }))}
-                      aria-label={member ? nameOf(member) : id}
+                      onChange={(e) => {
+                        setSplitTouched(true);
+                        setter((cur) => ({ ...cur, [id]: e.target.value }));
+                      }}
+                      aria-label={
+                        byFamily && units?.[id] ? units[id].name : member ? nameOf(member) : id
+                      }
                     />
                     <span className="unit">
                       {kind === SplitKind.Exact ? currency : kind === SplitKind.Percent ? '%' : '×'}
