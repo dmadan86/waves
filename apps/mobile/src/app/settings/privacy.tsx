@@ -4,12 +4,15 @@ import { ScrollView, View } from 'react-native';
 
 import { iconSize, Sheet, Text, Toggle, useTabBarClearance, useTheme } from '@waves/ui';
 
+import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { PlainHeader } from '@/components/standard/PlainHeader';
 import { RowTile } from '@/components/standard/RowTile';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard/parts';
 import { useBlockedUsers } from '@/data/blocked';
+import { useVoiceAgentEnabled } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { clarityConfigured } from '@/lib/clarity';
 import { openAdPrivacyOptions } from '@/lib/adsSdk';
 import { router } from '@/lib/navigation';
@@ -81,6 +84,9 @@ export default function PrivacyScreen() {
   // data to manage).
   const { session } = useAuth();
   const { blocked } = useBlockedUsers();
+  const voiceAgentOn = useVoiceAgentEnabled();
+  const voiceConsent = useVoiceConsent(session?.user?.id);
+  const [consentSheet, setConsentSheet] = useState(false);
 
   // The session-replay opt-in, mirrored from storage. Only meaningful when a
   // Clarity project is configured; on a build without one the switch is hidden
@@ -201,7 +207,7 @@ export default function PrivacyScreen() {
                   leading={tile('person-remove-outline')}
                   title={t.blocked.row}
                   subtitle={t.blocked.rowHint}
-                  divider={adChoices || clarityConfigured}
+                  divider={adChoices || clarityConfigured || voiceAgentOn}
                   trailing={
                     <Text variant="caption" tone="muted">
                       {blocked.length > 0
@@ -218,7 +224,7 @@ export default function PrivacyScreen() {
                     leading={tile('options-outline')}
                     title={t.rewardedAds.adChoicesRow}
                     subtitle={t.rewardedAds.adChoicesHint}
-                    divider={clarityConfigured}
+                    divider={clarityConfigured || voiceAgentOn}
                     onPress={() => {
                       void openAdPrivacyOptions().then((result) => {
                         if (result === 'none') toast.show(t.rewardedAds.adChoicesNone, 'info');
@@ -234,11 +240,32 @@ export default function PrivacyScreen() {
                     leading={tile('videocam-outline')}
                     title={t.privacy.sessionReplayRow}
                     subtitle={t.privacy.sessionReplayHint}
+                    divider={voiceAgentOn}
                     trailing={
                       <Toggle
                         value={replay}
                         onValueChange={onReplayChange}
                         accessibilityLabel={t.privacy.sessionReplayRow}
+                      />
+                    }
+                  />
+                ) : null}
+                {/* Advanced voice (Pro): revoke or re-grant consent to send voice to
+                    cloud providers. Visible only when the agent is enabled. */}
+                {voiceAgentOn ? (
+                  <ListRow
+                    leading={tile('cloud-outline')}
+                    title={t.voiceConsent.row}
+                    subtitle={t.voiceConsent.toggle}
+                    trailing={
+                      <Toggle
+                        value={voiceConsent.state === 'granted'}
+                        disabled={!voiceConsent.ready}
+                        onValueChange={(on: boolean) => {
+                          if (on) setConsentSheet(true);
+                          else voiceConsent.revoke();
+                        }}
+                        accessibilityLabel={t.voiceConsent.row}
                       />
                     }
                   />
@@ -324,6 +351,14 @@ export default function PrivacyScreen() {
           </ScrollView>
         ) : null}
       </Sheet>
+      <VoiceConsentSheet
+        visible={consentSheet}
+        onAllow={() => {
+          voiceConsent.allow();
+          setConsentSheet(false);
+        }}
+        onNotNow={() => setConsentSheet(false)}
+      />
     </View>
   );
 }
