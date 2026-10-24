@@ -1,5 +1,5 @@
 import { noteAdFailure } from './adEvents';
-import type { AdsSdk, RewardedAdDeps, RewardedAdLike } from './rewardedAd';
+import { gatherConsentSafe, type AdsSdk, type RewardedAdDeps, type RewardedAdLike } from './rewardedAd';
 import { ADS_REQUEST_CONFIGURATION, AD_LOAD_TIMEOUT_MS } from './rewardedAdsPure';
 import type { GateResult } from './adPacingPure';
 
@@ -15,7 +15,7 @@ export async function prepareInterstitial(
   try {
     if (!(await deps.isOnline())) return null;
     const sdk = await deps.loadSdk();
-    if (!sdk.InterstitialAd || !(await sdk.AdsConsent.gatherConsent()).canRequestAds) return null;
+    if (!sdk.InterstitialAd || !(await gatherConsentSafe(sdk)).canRequestAds) return null;
     await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
     await sdk.MobileAds().initialize();
     const ad = sdk.InterstitialAd.createForAdRequest(deps.unitId(), {
@@ -71,7 +71,7 @@ export async function runGateAd(
       return 'failed';
     }
     const sdk: AdsSdk = prepared?.sdk ?? (await deps.loadSdk());
-    const consent = prepared ? { canRequestAds: true } : await sdk.AdsConsent.gatherConsent();
+    const consent = prepared ? { canRequestAds: true } : await gatherConsentSafe(sdk);
     if (!consent.canRequestAds) {
       noteAdFailure('consent: cannot request ads');
       return 'failed';

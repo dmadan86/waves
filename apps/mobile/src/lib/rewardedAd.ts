@@ -33,6 +33,15 @@ export interface RewardedAdLike {
   show(): Promise<void>;
 }
 
+/** UMP fails when AdMob has no consent form set up; requests are non-personalized, so ads may still load. */
+export async function gatherConsentSafe(sdk: Pick<AdsSdk, 'AdsConsent'>): Promise<{ canRequestAds: boolean }> {
+  try {
+    return await sdk.AdsConsent.gatherConsent();
+  } catch {
+    return { canRequestAds: true };
+  }
+}
+
 export interface AdsSdk {
   MobileAds(): {
     setRequestConfiguration(config: Record<string, unknown>): Promise<unknown>;
@@ -82,7 +91,7 @@ export async function runRewardedAd(
 
   try {
     // The consent form shows itself only where the law asks for one.
-    const consent = await sdk.AdsConsent.gatherConsent();
+    const consent = await gatherConsentSafe(sdk);
     if (!consent.canRequestAds) return 'consent';
     await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
     await sdk.MobileAds().initialize();

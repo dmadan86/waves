@@ -11,6 +11,7 @@ import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
 import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
+import { gatherConsentSafe } from '@/lib/rewardedAd';
 import { nativeEligible, nativeUnitId, NATIVE_DAILY_CAP } from '@/lib/nativeAdsPure';
 
 // Serialize reservations across both screens. Reserve before requesting: failed
@@ -72,7 +73,7 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
         const current = await readAdsStatus();
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
-        const consent = await sdk.AdsConsent.gatherConsent();
+        const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
