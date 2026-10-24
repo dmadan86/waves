@@ -12,7 +12,7 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { useFlagEnabled } from '@/lib/flags';
 import { gatesBusy, readGateStatus, watchGate } from '@/lib/adGates';
 import { gateAllows, gateRequired } from '@/lib/adPacingPure';
-import { logAdEvent } from '@/lib/adEvents';
+import { lastFailureWasBlocked, logAdEvent } from '@/lib/adEvents';
 import { router } from '@/lib/navigation';
 
 const IMG_VIDEO = require('../../assets/images/ad-video.png') as number;
@@ -33,6 +33,7 @@ export function useAdGate() {
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const resolve = useRef<((allowed: boolean) => void) | null>(null);
   const checking = useRef(false);
   const watching = useRef(false);
@@ -119,6 +120,7 @@ export function useAdGate() {
       watching.current = false;
       if (mounted.current) {
         setBusy(false);
+        setBlocked(lastFailureWasBlocked());
         setFailed(true);
       }
       return;
@@ -179,7 +181,7 @@ export function useAdGate() {
               {g.failedTitle}
             </Text>
             <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-              {g.failedBody}
+              {blocked ? g.blockedBody : g.failedBody}
             </Text>
 
             <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>

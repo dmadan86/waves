@@ -1795,6 +1795,8 @@ export interface UiStrings {
     tryAgainBtn: string;
     failedTitle: string;
     failedBody: string;
+    /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
+    blockedBody: string;
     footer: string;
   };
   rewardedAds: {
@@ -7363,6 +7365,7 @@ const en: UiStrings = {
     tryAgainBtn: 'Try again',
     failedTitle: "Oops! The video didn't load",
     failedBody: "We couldn't load the ad right now. Please try again in a moment.",
+    blockedBody: 'An ad blocker or Private DNS on this phone is stopping the video. Turn it off for a moment and try again, or go Pro for no ads.',
     footer: 'Thanks for supporting Waves! 💜',
   },
   rewardedAds: {
@@ -12457,6 +12460,7 @@ const ta: UiStrings = {
     tryAgainBtn: 'மீண்டும் முயலவும்',
     failedTitle: 'அச்சச்சோ! வீடியோ ஏற்றப்படவில்லை',
     failedBody: 'இப்போது விளம்பரத்தை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
+    blockedBody: 'இந்த போனில் உள்ள விளம்பரத் தடுப்பான் அல்லது Private DNS வீடியோவைத் தடுக்கிறது. சிறிது நேரம் அதை அணைத்து மீண்டும் முயலவும், அல்லது விளம்பரமின்றி Pro-க்கு மாறவும்.',
     footer: 'Waves-ஐ ஆதரித்ததற்கு நன்றி! 💜',
   },
   rewardedAds: {
@@ -17699,6 +17703,7 @@ const hi: UiStrings = {
     tryAgainBtn: 'फिर कोशिश करें',
     failedTitle: 'उफ़! वीडियो लोड नहीं हुआ',
     failedBody: 'अभी विज्ञापन लोड नहीं हो सका। कृपया थोड़ी देर में फिर से कोशिश करें।',
+    blockedBody: 'इस फ़ोन पर ऐड ब्लॉकर या Private DNS वीडियो को रोक रहा है। उसे थोड़ी देर के लिए बंद करके फिर कोशिश करें, या बिना विज्ञापन के लिए Pro लें।',
     footer: 'Waves को सपोर्ट करने के लिए धन्यवाद! 💜',
   },
   rewardedAds: {
@@ -22860,6 +22865,7 @@ const ar: UiStrings = {
     tryAgainBtn: 'حاول مرة أخرى',
     failedTitle: 'عذرًا! لم يتحمّل الفيديو',
     failedBody: 'تعذّر تحميل الإعلان الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
+    blockedBody: 'مانع إعلانات أو Private DNS على هذا الهاتف يمنع الفيديو. أوقفه قليلًا وحاول مجددًا، أو اشترك في Pro بلا إعلانات.',
     footer: 'شكرًا لدعمك Waves! 💜',
   },
   rewardedAds: {

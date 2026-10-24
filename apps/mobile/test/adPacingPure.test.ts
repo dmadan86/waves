@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  looksAdBlocked,
   AD_PACING_DEFAULTS as defaults,
   gateAllows,
   gateRequired,
@@ -121,4 +122,13 @@ it('gates every export and group after the first, never paid or disabled users',
   expect(gateRequired({ ...group, placement: 'export_rewarded' })).toBe(true);
   expect(gateRequired({ ...group, placement: 'export_rewarded', paid: true })).toBe(false);
   expect(gateRequired({ ...group, createdGroups: 2, enabled: false })).toBe(false);
+});
+
+describe('looksAdBlocked', () => {
+  it('spots blocking DNS but not ordinary failures', () => {
+    expect(looksAdBlocked('Failed to connect to googleads.g.doubleclick.net/0.0.0.0:443')).toBe(true);
+    expect(looksAdBlocked('Unable to resolve host "googleads.g.doubleclick.net"')).toBe(true);
+    expect(looksAdBlocked('3 No fill.')).toBe(false);
+    expect(looksAdBlocked('timeout')).toBe(false);
+  });
 });

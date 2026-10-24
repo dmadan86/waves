@@ -2,6 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adTimeout } from '@/lib/adTimeout';
 import { backend } from '@/lib/backend';
+import { looksAdBlocked } from './adPacingPure';
 
 export type AdPlacement =
   | 'expense_interstitial'
@@ -31,6 +32,12 @@ export function noteAdFailure(reason: unknown): void {
   const e = reason as { code?: unknown; message?: unknown } | null;
   lastFailure = String(e?.code ?? '') + ' ' + String(e?.message ?? reason ?? '');
   lastFailure = lastFailure.trim().slice(0, 200);
+  lastBlocked = looksAdBlocked(lastFailure);
+}
+let lastBlocked = false;
+/** Whether the latest failed ad looked blocked, for the gate sheet's copy. */
+export function lastFailureWasBlocked(): boolean {
+  return lastBlocked;
 }
 let queue = Promise.resolve();
 export function logAdEvent(
