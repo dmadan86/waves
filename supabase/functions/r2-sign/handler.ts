@@ -224,16 +224,23 @@ async function assertRestrictedPath(
   bucket: LogicalBucket,
   subjectId: string,
   path: string,
+  deletingWith: SupabaseClient | null = null,
 ): Promise<void> {
   const table = bucket === 'settlement-proofs' ? 'settlement_proofs' : 'expense_attachments';
   const subjectCol = bucket === 'settlement-proofs' ? 'settlement_id' : 'expense_id';
-  const { data, error } = await caller
-    .from(table)
-    .select('id')
-    .eq(subjectCol, subjectId)
-    .eq('storage_path', path)
-    .is('deleted_at', null)
-    .maybeSingle();
+  let query = caller.from(table).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
+  if (deletingWith) {
+    // The subject may itself be deleted by now (a removed bill), which the
+    // caller can no longer see; authorizeWrite already proved the caller a party.
+    const { data: memberId, error } = await caller.rpc('waves_my_member_id', {
+      p_group_id: await groupOfSubject(deletingWith, bucket, subjectId),
+    });
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    query = query.eq('uploader_member_id', memberId);
+  } else {
+    query = query.is('deleted_at', null);
+  }
+  const { data, error } = await query.maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
   if (!data) throw new HttpError(403, 'NOT_VISIBLE', 'Not visible to you');
 }
@@ -745,14 +752,10 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     // ── delete an object and forget it ────────────────────────────────────
     if (action === 'delete') {
       await authorizeWrite(caller, service, uid, bucket, authPath, subjectId, 'delete');
-      // authorizeWrite proves party + subject-scoped path, but not that this
-      // exact object is a live attachment/proof the caller may take down. For a
-      // restricted bucket, require a live row that references this path (the same
-      // check a `get` makes): otherwise any party to the subject could delete a
-      // co-party's bytes out of band — the row and audit trail left pointing at
-      // nothing — bypassing the author/admin-only delete matrix in the DB RPCs.
+      // The uploader may remove bytes after the RPC soft-deletes their row.
+      // Keep the uploader check so another party cannot erase their files.
       if (restricted) {
-        await assertRestrictedPath(caller, bucket, subjectId as string, authPath);
+        await assertRestrictedPath(caller, bucket, subjectId as string, authPath, service);
       }
       await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
       // A legacy object may still live on Supabase Storage (dual-read); remove it

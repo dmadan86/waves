@@ -111,6 +111,10 @@ vi.mock('@/lib/backend', () => {
         },
       ),
       from: (table: string) => query(table),
+      rpc: (name: string) => {
+        expect(name).toBe('waves_my_profile');
+        return query(name);
+      },
     },
   };
 });

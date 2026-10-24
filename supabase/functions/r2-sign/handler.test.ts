@@ -1115,3 +1115,55 @@ describe('personal receipts are owner-only (personal ledger entries)', () => {
     expect(service.rpc).not.toHaveBeenCalledWith('is_group_admin', expect.anything());
   });
 });
+
+describe('restricted deletion after soft delete', () => {
+  it.each(['settlement-proofs', 'expense-attachments'])(
+    'allows only the uploader to remove soft-deleted %s bytes',
+    async (bucket) => {
+      const proof = bucket === 'settlement-proofs';
+      const table = proof ? 'settlement_proofs' : 'expense_attachments';
+      const subject = proof ? 'settlements' : 'expenses';
+      for (const owner of [true, false]) {
+        const caller = client({
+          rpc: {
+            waves_my_member_id: { data: 'member-1' },
+            [proof ? 'waves_is_settlement_party' : 'waves_is_expense_party']: { data: true },
+          },
+          from: { [subject]: { data: { group_id: 'group-1' }, error: null } },
+        });
+        const filters: Record<string, unknown> = {};
+        const row = {
+          select: () => row,
+          eq: (key: string, value: unknown) => {
+            filters[key] = value;
+            return row;
+          },
+          is: () => {
+            throw new Error('soft-deleted rows must remain deletable');
+          },
+          maybeSingle: async () => ({
+            data:
+              filters.uploader_member_id === (owner ? 'member-1' : 'member-2')
+                ? { id: 'row-1' }
+                : null,
+            error: null,
+          }),
+        };
+        caller.from.mockImplementation((name: string) =>
+          name === table ? row : chain({ data: { group_id: 'group-1' }, error: null }),
+        );
+        const service = client({
+          from: { [subject]: { data: { group_id: 'group-1' }, error: null } },
+        });
+        const { deps, r2fetch } = makeDeps({ caller, service });
+        const response = await handleR2Sign(
+          post({ action: 'delete', bucket, subjectId: 'subject-1', path: 'subject-1/proof.webp' }),
+          deps,
+        );
+        expect(response.status).toBe(owner ? 200 : 403);
+        if (owner) expect(r2fetch).toHaveBeenCalledWith(expect.any(String), { method: 'DELETE' });
+        else expect(r2fetch).not.toHaveBeenCalled();
+      }
+    },
+  );
+});
