@@ -587,6 +587,19 @@ function AccountForm() {
           />
         </SoftCard>
 
+        {/* How people pay you — lives here so the two halves of the financial
+            profile (who you are, how you receive money) stay on the same screen,
+            reached from one row in Settings rather than two. */}
+        <SoftCard style={{ paddingVertical: 0, paddingBottom: 4, gap: 0 }}>
+          <DetailRow
+            icon="card-outline"
+            tint={theme.tint.sky}
+            label={t.account.facePaying}
+            sub={t.account.howPeoplePayYou}
+            onPress={() => router.push('/settings/paying')}
+          />
+        </SoftCard>
+
         {/* One line of bad news for the rows above. Silent when a save worked:
             the row already shows the new value. */}
         {rowStatus ? (

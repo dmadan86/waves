@@ -35,7 +35,6 @@ describe('export screen', () => {
       'ready',
       'webNote',
       'freeBadge',
-      'importInstead',
       'shareTitle',
       'exportFailed',
     ]) {
@@ -44,7 +43,7 @@ describe('export screen', () => {
     expect(src).toContain('exportData({');
     expect(src).toContain('groupId: scope');
     expect(src).toContain('Sharing.shareAsync');
-    expect(src).toContain("router.push('/settings/import')");
+    expect(src).not.toContain("router.push('/settings/import')");
     expect(src).toContain('<Callout tone="negative">');
     expect(src).toContain('showIncluded');
     expect(src).toContain('pickingGroup');
