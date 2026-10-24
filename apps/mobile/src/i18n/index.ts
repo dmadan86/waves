@@ -765,7 +765,6 @@ export interface UiStrings {
     ready: string;
     webNote: string;
     shareTitle: string;
-    importInstead: string;
   };
   /**
    * A per-group export to PDF or Excel, reached from the group's ••• menu. A
@@ -1083,6 +1082,14 @@ export interface UiStrings {
     gateAction: string;
     gateDismiss: string;
   };
+  yourData: {
+    title: string;
+    rowHint: string;
+    exportSection: string;
+    importSection: string;
+    exportHint: string;
+    importHint: string;
+  };
   /** The account screen and its three faces. */
   account: {
     facePaying: string;
@@ -1135,10 +1142,7 @@ export interface UiStrings {
     yourAccountHint: string;
     notifications: string;
     notificationsHint: string;
-    exportDataRow: string;
-    exportHint: string;
     importSplitwise: string;
-    importHint: string;
     themeRow: string;
     languageFollowingPhone: string;
     languageRestartHint: string;
@@ -6452,7 +6456,6 @@ const en: UiStrings = {
     ready: 'Export ready',
     webNote: 'On web the file is written to the app cache; use a device to share it onward.',
     shareTitle: 'Your Waves export',
-    importInstead: 'Import from Splitwise',
   },
   groupExport: {
     menu: 'Export',
@@ -6749,6 +6752,14 @@ const en: UiStrings = {
     gateAction: 'Log out other devices',
     gateDismiss: 'Not now',
   },
+  yourData: {
+    title: 'Your data',
+    rowHint: 'Import or export your data',
+    exportSection: 'Export',
+    importSection: 'Import',
+    exportHint: 'Save as JSON, CSV or PDF',
+    importHint: 'Bring in a Splitwise CSV or Waves JSON file',
+  },
   account: {
     facePaying: 'Paying',
     faceSettings: 'Settings',
@@ -6796,10 +6807,7 @@ const en: UiStrings = {
     yourAccountHint: 'Email, phone, or a linked account',
     notifications: 'Notifications',
     notificationsHint: 'Only what involves me',
-    exportDataRow: 'Export data',
-    exportHint: 'JSON + CSV, lossless, free',
     importSplitwise: 'Import your data',
-    importHint: 'Bring your history across from another app',
     themeRow: 'Appearance',
     languageFollowingPhone: 'Following your phone — {language}',
     languageRestartHint: '{language} · reopen Waves to mirror it',
@@ -9796,7 +9804,7 @@ const en: UiStrings = {
     splitwiseTitle: 'Import a Splitwise export',
     ledgerTitle: 'Import a ledger',
     splitwiseHowTo: 'In Splitwise: open a group, then Export as spreadsheet.',
-    wavesHowTo: 'In Waves: Settings, then Export.',
+    wavesHowTo: 'In Waves: Settings → Your data → Export your data.',
     bringHistory: 'Bring your history across',
     free: 'free',
     ledgerHowTo: 'Everyone named in the file joins the group. They don’t need the app.',
@@ -11523,7 +11531,6 @@ const ta: UiStrings = {
     webNote:
       'வலையில் கோப்பு ஆப்பின் தற்காலிக இடத்தில் எழுதப்படுகிறது; மேலும் பகிர ஒரு சாதனத்தைப் பயன்படுத்துங்கள்.',
     shareTitle: 'உங்கள் Waves ஏற்றுமதி',
-    importInstead: 'Splitwise இலிருந்து இறக்குமதி',
   },
   groupExport: {
     menu: 'ஏற்றுமதி',
@@ -11825,6 +11832,14 @@ const ta: UiStrings = {
     gateAction: 'மற்ற சாதனங்களில் வெளியேறு',
     gateDismiss: 'இப்போது வேண்டாம்',
   },
+  yourData: {
+    title: 'உங்கள் தரவு',
+    rowHint: 'உங்கள் தரவை இறக்குமதி அல்லது ஏற்றுமதி செய்யவும்',
+    exportSection: 'ஏற்றுமதி',
+    importSection: 'இறக்குமதி',
+    exportHint: 'JSON, CSV அல்லது PDF ஆகச் சேமிக்கவும்',
+    importHint: 'Splitwise CSV அல்லது Waves JSON கோப்பை இறக்குமதி செய்யவும்',
+  },
   account: {
     facePaying: 'பணம் பெற',
     faceSettings: 'அமைப்புகள்',
@@ -11874,10 +11889,7 @@ const ta: UiStrings = {
     yourAccountHint: 'மின்னஞ்சல், தொலைபேசி, அல்லது இணைத்த கணக்கு',
     notifications: 'அறிவிப்புகள்',
     notificationsHint: 'என்னைச் சார்ந்தவை மட்டும்',
-    exportDataRow: 'தரவை ஏற்றுமதி செய்',
-    exportHint: 'JSON + CSV, முழுமையானது, இலவசம்',
     importSplitwise: 'உங்கள் தரவை இறக்குமதி செய்',
-    importHint: 'மற்றொரு செயலியிலிருந்து உங்கள் வரலாற்றைக் கொண்டுவா',
     themeRow: 'தோற்றம்',
     languageFollowingPhone: 'உங்கள் ஃபோனைப் பின்பற்றுகிறது — {language}',
     languageRestartHint: '{language} · பிரதிபலிக்க Waves-ஐ மீண்டும் திற',
@@ -15005,7 +15017,7 @@ const ta: UiStrings = {
     splitwiseTitle: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     ledgerTitle: 'ஒரு கணக்கை இறக்குமதி செய்',
     splitwiseHowTo: 'Splitwise-இல்: குழுவைத் திறந்து, Export as spreadsheet.',
-    wavesHowTo: 'Waves-இல்: அமைப்புகள், பிறகு ஏற்றுமதி.',
+    wavesHowTo: 'Waves-இல்: அமைப்புகள் → உங்கள் தரவு → தரவை ஏற்றுமதி செய்.',
     bringHistory: 'உங்கள் வரலாற்றைக் கொண்டு வாருங்கள்',
     free: 'இலவசம்',
     ledgerHowTo:
@@ -16772,7 +16784,6 @@ const hi: UiStrings = {
     webNote:
       'वेब पर फ़ाइल ऐप के कैश में लिखी जाती है; आगे साझा करने के लिए किसी डिवाइस का उपयोग करें।',
     shareTitle: 'आपका Waves निर्यात',
-    importInstead: 'Splitwise से आयात करें',
   },
   groupExport: {
     menu: 'निर्यात',
@@ -17072,6 +17083,14 @@ const hi: UiStrings = {
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
     gateDismiss: 'अभी नहीं',
   },
+  yourData: {
+    title: 'आपका डेटा',
+    rowHint: 'अपना डेटा इम्पोर्ट या एक्सपोर्ट करें',
+    exportSection: 'निर्यात',
+    importSection: 'आयात',
+    exportHint: 'JSON, CSV या PDF में सहेजें',
+    importHint: 'Splitwise CSV या Waves JSON फ़ाइल से डेटा लाएँ',
+  },
   account: {
     facePaying: 'भुगतान',
     faceSettings: 'सेटिंग्स',
@@ -17119,10 +17138,7 @@ const hi: UiStrings = {
     yourAccountHint: 'ईमेल, फ़ोन, या कोई लिंक किया खाता',
     notifications: 'सूचनाएँ',
     notificationsHint: 'सिर्फ़ वही जिनसे मेरा वास्ता है',
-    exportDataRow: 'डेटा निर्यात',
-    exportHint: 'JSON + CSV, कुछ छूटता नहीं, मुफ़्त',
     importSplitwise: 'अपना डेटा आयात करें',
-    importHint: 'किसी दूसरे ऐप से अपना इतिहास ले आएँ',
     themeRow: 'रूप-रंग',
     languageFollowingPhone: 'आपके फ़ोन के अनुसार — {language}',
     languageRestartHint: '{language} · दिशा बदलने के लिए Waves दोबारा खोलें',
@@ -20137,7 +20153,7 @@ const hi: UiStrings = {
     splitwiseTitle: 'Splitwise निर्यात आयात करें',
     ledgerTitle: 'हिसाब आयात करें',
     splitwiseHowTo: 'Splitwise में: समूह खोलें, फिर Export as spreadsheet।',
-    wavesHowTo: 'Waves में: सेटिंग्स, फिर निर्यात।',
+    wavesHowTo: 'Waves में: सेटिंग्स → आपका डेटा → डेटा निर्यात करें।',
     bringHistory: 'अपना इतिहास ले आएँ',
     free: 'मुफ़्त',
     ledgerHowTo: 'फ़ाइल में जिनका नाम है वे सब समूह में जुड़ जाते हैं। उन्हें ऐप की ज़रूरत नहीं।',
@@ -21879,7 +21895,6 @@ const ar: UiStrings = {
     ready: 'التصدير جاهز',
     webNote: 'على الويب يُكتب الملف في ذاكرة التطبيق المؤقتة؛ استخدم جهازًا لمشاركته.',
     shareTitle: 'تصدير Waves الخاص بك',
-    importInstead: 'استيراد من Splitwise',
   },
   groupExport: {
     menu: 'تصدير',
@@ -22220,6 +22235,14 @@ const ar: UiStrings = {
     gateAction: 'تسجيل الخروج من الأجهزة الأخرى',
     gateDismiss: 'ليس الآن',
   },
+  yourData: {
+    title: 'بياناتك',
+    rowHint: 'استيراد بياناتك أو تصديرها',
+    exportSection: 'تصدير',
+    importSection: 'استيراد',
+    exportHint: 'احفظ بصيغة JSON أو CSV أو PDF',
+    importHint: 'استورد ملف Splitwise CSV أو Waves JSON',
+  },
   account: {
     facePaying: 'الدفع',
     faceSettings: 'الإعدادات',
@@ -22266,10 +22289,7 @@ const ar: UiStrings = {
     yourAccountHint: 'بريد، هاتف، أو حساب مرتبط',
     notifications: 'الإشعارات',
     notificationsHint: 'ما يخصّني فقط',
-    exportDataRow: 'تصدير البيانات',
-    exportHint: 'JSON + CSV، بلا فقدان، مجانًا',
     importSplitwise: 'استيراد بياناتك',
-    importHint: 'أحضر سجلّك من تطبيق آخر',
     themeRow: 'المظهر',
     languageFollowingPhone: 'يتبع هاتفك — {language}',
     languageRestartHint: '{language} · أعد فتح Waves لعكس الاتجاه',
@@ -25693,7 +25713,7 @@ const ar: UiStrings = {
     splitwiseTitle: 'استيراد ملف Splitwise',
     ledgerTitle: 'استيراد دفتر',
     splitwiseHowTo: 'في Splitwise: افتح مجموعة، ثم Export as spreadsheet.',
-    wavesHowTo: 'في Waves: الإعدادات، ثم تصدير.',
+    wavesHowTo: 'في Waves: الإعدادات ← بياناتك ← تصدير بياناتك.',
     bringHistory: 'أحضر سجلّك معك',
     free: 'مجانًا',
     ledgerHowTo: 'كل من ورد اسمه في الملف ينضم إلى المجموعة. لا يحتاجون التطبيق.',

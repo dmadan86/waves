@@ -282,13 +282,7 @@ function ProfileForm() {
               hint: t.account.yourAccountHint,
               route: '/settings/account',
             },
-            {
-              icon: 'card-outline',
-              label: t.account.facePaying,
-              hint: t.account.howPeoplePayYou,
-              route: '/settings/paying',
-            },
-            // "Plan", not "Upgrade": the row opened a page that sells nothing, so
+            // \"Plan\", not \"Upgrade\": the row opened a page that sells nothing, so
             // its old name promised a purchase the app doesn't have. The honest
             // label states what it is; the hint says the plan is free.
             {
@@ -390,14 +384,10 @@ function ProfileForm() {
               route: '/settings/categories',
             },
             {
-              icon: 'download-outline',
-              label: t.account.exportDataRow,
-              route: '/settings/export',
-            },
-            {
-              icon: 'cloud-upload-outline',
-              label: t.account.importSplitwise,
-              route: '/settings/import',
+              icon: 'server-outline',
+              label: t.yourData.title,
+              hint: t.yourData.rowHint,
+              route: '/settings/data',
             },
             {
               icon: 'cloud-outline',
