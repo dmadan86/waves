@@ -1,3 +1,4 @@
+vi.mock('@/lib/adEvents', () => ({ noteAdFailure: vi.fn() }));
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runGateAd, prepareInterstitial } from '@/lib/adGateRunner';
 import { gateAllows } from '@/lib/adPacingPure';
