@@ -920,6 +920,14 @@ describe('group settings in the feed', () => {
       'Cleared the budget',
     ],
     [{ field: 'stops', from: 0, to: 2 }, 'Changed the trip stops'],
+    // families: count-based headlines
+    [{ field: 'families', from: 0, to: 3 }, 'Set up the families'],
+    [{ field: 'families', from: 2, to: 3 }, 'Added a family'],
+    [{ field: 'families', from: 3, to: 2 }, 'Removed a family'],
+    [{ field: 'families', from: 2, to: 0 }, 'Removed all families'],
+    [{ field: 'families', from: 1, to: 4 }, 'Changed the families'],
+    // families: older rows without counts fall back to the static string
+    [{ field: 'families' }, 'Changed the families'],
     [{ field: 'something_newer' }, 'Changed the group settings'],
   ])('%j → %s', (payload, headline) => {
     const entry = change(payload);
