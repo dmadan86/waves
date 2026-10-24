@@ -210,14 +210,28 @@ describe('groups', () => {
     expect(syncModule.engineFlush).toHaveBeenCalledWith({ groupIds: ['g-1'] });
   });
 
-  it('useDeleteGroup deletes through the RPC, then forgets it here', async () => {
-    const del = mutation<void>(() => hooks.useDeleteGroup('g-1'));
-    await del.mutationFn(undefined);
-    expect(api.deleteGroup).toHaveBeenCalledWith('g-1');
-    await del.onSuccess?.();
-    expect(sync.forgetGroup).toHaveBeenCalledWith('g-1');
-    await settled();
-  });
+  it.each(['delete', 'leave'] as const)(
+    '%s navigates after success but before forgetting the group',
+    async (action) => {
+      const navigate = vi.fn(() => {
+        expect(sync.forgetGroup).not.toHaveBeenCalled();
+      });
+      const write = mutation<string | undefined>(() =>
+        action === 'delete'
+          ? hooks.useDeleteGroup('g-1', navigate)
+          : hooks.useLeaveGroup('g-1', navigate),
+      );
+      await write.mutationFn(action === 'delete' ? undefined : 'm-1');
+      expect(navigate).not.toHaveBeenCalled();
+      expect(action === 'delete' ? api.deleteGroup : api.leaveGroup).toHaveBeenCalledWith(
+        action === 'delete' ? 'g-1' : 'm-1',
+      );
+      await write.onSuccess?.();
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(sync.forgetGroup).toHaveBeenCalledWith('g-1');
+      await settled();
+    },
+  );
 });
 
 describe('members', () => {

@@ -532,7 +532,7 @@ export default function VoiceScreen() {
   // The single expense's editor is open (a tap on the preview); Save finishes it.
   const [editingDraft, setEditingDraft] = useState(false);
   // The optional Details (category, date, place) are unfolded.
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   // The whole flow stays on this screen: a save lands here, on a compact
   // success state with Add another and Done, and the follow-up questions run
   // right under it. `expense` carries what the follow-ups need.
@@ -1326,7 +1326,7 @@ export default function VoiceScreen() {
     captureActive.current = false;
     setHeardText(transcript);
     setEditingDraft(false);
-    setDetailsOpen(false);
+    setDetailsOpen(true);
     // A money question is never an expense and never needs the agent.
     if (micMode !== 'append' && !agentFollowUp && tryMoneyQuestion(transcript)) {
       // The cloud engine heard it, so the command counts like any fast-path one.
@@ -2457,7 +2457,7 @@ export default function VoiceScreen() {
     setLocation(null);
     setHeardText('');
     setEditingDraft(false);
-    setDetailsOpen(false);
+    setDetailsOpen(true);
     setError(null);
     setAnswer(null);
     setAgentSession(null);
