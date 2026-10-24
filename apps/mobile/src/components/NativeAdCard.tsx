@@ -1,4 +1,4 @@
-import { logAdEvent } from '@/lib/adEvents';
+import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { useEffect, useState } from 'react';
 import { Platform, Text as NativeText } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -97,7 +97,8 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
         });
         if (cancelled) ad.destroy();
         else setLoaded({ sdk: native, ad });
-      } catch {
+      } catch (error) {
+        noteAdFailure(error);
         logAdEvent(viewerId, 'native_list', 'failed');
         /* No fill, unavailable native module or storage failure: omit the card. */
       }

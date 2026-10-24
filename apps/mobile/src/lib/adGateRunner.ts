@@ -1,3 +1,4 @@
+import { noteAdFailure } from './adEvents';
 import type { AdsSdk, RewardedAdDeps, RewardedAdLike } from './rewardedAd';
 import { ADS_REQUEST_CONFIGURATION, AD_LOAD_TIMEOUT_MS } from './rewardedAdsPure';
 import type { GateResult } from './adPacingPure';
@@ -30,13 +31,21 @@ export async function prepareInterstitial(
         offs.forEach((off) => off());
         resolve(value);
       };
-      const timer = setTimeout(() => finish(null), AD_LOAD_TIMEOUT_MS);
+      const timer = setTimeout(() => {
+        noteAdFailure('timeout');
+        finish(null);
+      }, AD_LOAD_TIMEOUT_MS);
       offs.push(
         ad.addAdEventListener(sdk.AdEventType.LOADED, () =>
           finish({ sdk, ad, loadedAt: Date.now() }),
         ),
       );
-      offs.push(ad.addAdEventListener(sdk.AdEventType.ERROR, () => finish(null)));
+      offs.push(
+        ad.addAdEventListener(sdk.AdEventType.ERROR, (error?: unknown) => {
+          noteAdFailure(error);
+          finish(null);
+        }),
+      );
       try {
         ad.load();
       } catch {
@@ -57,16 +66,25 @@ export async function runGateAd(
   canShow: () => boolean = () => true,
 ): Promise<GateResult> {
   try {
-    if (!(await deps.isOnline())) return 'failed';
+    if (!(await deps.isOnline())) {
+      noteAdFailure('offline');
+      return 'failed';
+    }
     const sdk: AdsSdk = prepared?.sdk ?? (await deps.loadSdk());
     const consent = prepared ? { canRequestAds: true } : await sdk.AdsConsent.gatherConsent();
-    if (!consent.canRequestAds) return 'failed';
+    if (!consent.canRequestAds) {
+      noteAdFailure('consent: cannot request ads');
+      return 'failed';
+    }
     if (!prepared) {
       await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
       await sdk.MobileAds().initialize();
     }
     const factory = rewarded ? sdk.RewardedAd : sdk.InterstitialAd;
-    if (!factory) return 'failed';
+    if (!factory) {
+      noteAdFailure('no ad factory in SDK');
+      return 'failed';
+    }
     const ad =
       prepared?.ad ??
       factory.createForAdRequest(deps.unitId(), { requestNonPersonalizedAdsOnly: true });
@@ -82,7 +100,10 @@ export async function runGateAd(
         cleanups.forEach((off) => off());
         resolve(result);
       };
-      const timer = setTimeout(() => finish('failed'), AD_LOAD_TIMEOUT_MS);
+      const timer = setTimeout(() => {
+        noteAdFailure('timeout');
+        finish('failed');
+      }, AD_LOAD_TIMEOUT_MS);
       const listen = (event: string, callback: () => void) =>
         cleanups.push(ad.addAdEventListener(event, callback));
       listen(rewarded ? sdk.RewardedAdEventType.LOADED : sdk.AdEventType.LOADED, () => {
@@ -110,7 +131,12 @@ export async function runGateAd(
       listen(sdk.AdEventType.CLOSED, () =>
         finish(rewarded ? (earned ? 'completed' : 'skipped') : 'skipped'),
       );
-      listen(sdk.AdEventType.ERROR, () => finish('failed'));
+      cleanups.push(
+        ad.addAdEventListener(sdk.AdEventType.ERROR, (error?: unknown) => {
+          noteAdFailure(error);
+          finish('failed');
+        }),
+      );
       try {
         if (prepared) {
           clearTimeout(timer);
@@ -121,7 +147,8 @@ export async function runGateAd(
         finish('failed');
       }
     });
-  } catch {
+  } catch (error) {
+    noteAdFailure(error);
     return 'failed';
   }
 }

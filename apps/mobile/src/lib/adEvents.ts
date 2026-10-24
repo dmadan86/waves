@@ -23,6 +23,14 @@ interface PendingEvent {
   createdAt: string;
   placement: AdPlacement;
   outcome: AdEventOutcome;
+  detail?: string;
+}
+// Why the last ad attempt failed (SDK error code/message), attached to the next 'failed' event.
+let lastFailure: string | undefined;
+export function noteAdFailure(reason: unknown): void {
+  const e = reason as { code?: unknown; message?: unknown } | null;
+  lastFailure = String(e?.code ?? '') + ' ' + String(e?.message ?? reason ?? '');
+  lastFailure = lastFailure.trim().slice(0, 200);
 }
 let queue = Promise.resolve();
 export function logAdEvent(
@@ -44,7 +52,9 @@ export function logAdEvent(
     createdAt: new Date().toISOString(),
     placement,
     outcome,
+    ...(outcome === 'failed' && lastFailure ? { detail: lastFailure } : {}),
   };
+  if (outcome === 'failed') lastFailure = undefined;
   // Persist before sending. A temporary connection failure is retried on the next
   // event/status read. An account change never attributes an old event to a new user.
   queue = queue
@@ -69,6 +79,7 @@ async function flush(profileId: string) {
         p_event_id: row.id,
         p_occurred_at: row.createdAt,
         p_profile: profileId,
+        ...(row.detail ? { p_detail: row.detail } : {}),
       }),
     );
     if (!result || result.error) return;
