@@ -60,9 +60,9 @@ function parseUnits(raw: unknown): ReadonlyMap<string, Unit> {
   return result;
 }
 
-/** Look up the display name for a member id, falling back to the id itself. */
+/** Look up the display name for a member id; a raw id means nothing to a person, so say "someone". */
 function memberName(memberId: string, memberNames: ReadonlyMap<string, string>): string {
-  return memberNames.get(memberId) ?? memberId;
+  return memberNames.get(memberId) ?? 'someone';
 }
 
 // ─────────────────────────────────────── change descriptors ──

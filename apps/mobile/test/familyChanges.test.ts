@@ -292,14 +292,14 @@ describe('diffFamilyMaps — member name lookup', () => {
     });
   });
 
-  it('falls back to the raw id for unknown member ids', () => {
+  it('falls back to someone for unknown member ids', () => {
     const from = { u1: unit('Family1', ['m-ravi']) };
     const to = { u1: unit('Family1', ['m-ravi', 'm-xyz']) };
     const changes = diffFamilyMaps(from, to, NAMES);
     const added = changes.find(
       (c): c is Extract<FamilyChange, { kind: 'memberAdded' }> => c.kind === 'memberAdded',
     );
-    expect(added?.member).toBe('m-xyz');
+    expect(added?.member).toBe('someone');
   });
 });
 
