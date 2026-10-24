@@ -1787,17 +1787,18 @@ export interface UiStrings {
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
   adGates: {
     title: string;
-    body: string;
+    groupBody: string;
+    exportBody: string;
     watchBtn: string;
-    proTitle: string;
-    proSubtitle: string;
-    proBtn: string;
-    tryAgainBtn: string;
+    proLink: string;
     failedTitle: string;
     failedBody: string;
+    groupRetryBtn: string;
+    exportRetryBtn: string;
+    /** Shown instead of failedTitle when an ad blocker or blocking Private DNS stopped the ad. */
+    blockedTitle: string;
     /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
     blockedBody: string;
-    footer: string;
   };
   rewardedAds: {
     entryVoice: string;
@@ -7356,17 +7357,17 @@ const en: UiStrings = {
     traps: 'Read the sentence exactly as written.',
   },
   adGates: {
-    title: "We don't love ads either 💜",
-    body: 'Building and maintaining Waves costs money. To keep Waves free for everyone, we occasionally show a short ad.',
-    watchBtn: 'Watch a short ad & continue',
-    proTitle: 'Prefer an ad-free experience?',
-    proSubtitle: 'Upgrade to Waves Pro and enjoy Waves without interruptions.',
-    proBtn: 'Explore Waves Pro',
-    tryAgainBtn: 'Try again',
-    failedTitle: "Oops! The video didn't load",
-    failedBody: "We couldn't load the ad right now. Please try again in a moment.",
-    blockedBody: 'An ad blocker or Private DNS on this phone is stopping the video. Turn it off for a moment and try again, or go Pro for no ads.',
-    footer: 'Thanks for supporting Waves! 💜',
+    title: 'Watch a short ad',
+    groupBody: 'Then you can create this group.',
+    exportBody: 'Then you can export.',
+    watchBtn: 'Watch ad',
+    proLink: 'Get Pro for no ads',
+    failedTitle: 'The ad could not load',
+    failedBody: 'Please try again.',
+    groupRetryBtn: 'Retry ad to create group',
+    exportRetryBtn: 'Retry ad to export',
+    blockedTitle: 'The ad seems blocked',
+    blockedBody: 'Turn off ad blocking or Private DNS.',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -12451,17 +12452,17 @@ const ta: UiStrings = {
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   adGates: {
-    title: 'நாங்களும் விளம்பரங்களை விரும்புவதில்லை 💜',
-    body: 'Waves-ஐ உருவாக்கி பராமரிக்க பணம் தேவைப்படுகிறது. எல்லோருக்கும் இலவசமாக வழங்க, அவ்வப்போது ஒரு குறுகிய விளம்பரம் காண்பிக்கிறோம்.',
-    watchBtn: 'ஒரு சிறு விளம்பரம் பார்த்து தொடரவும்',
-    proTitle: 'விளம்பரமற்ற அனுபவம் வேண்டுமா?',
-    proSubtitle: 'Waves Pro-க்கு மேம்படுத்தி, இடையூறின்றி Waves-ஐ அனுபவியுங்கள்.',
-    proBtn: 'Waves Pro ஆராயுங்கள்',
-    tryAgainBtn: 'மீண்டும் முயலவும்',
-    failedTitle: 'அச்சச்சோ! வீடியோ ஏற்றப்படவில்லை',
-    failedBody: 'இப்போது விளம்பரத்தை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
-    blockedBody: 'இந்த போனில் உள்ள விளம்பரத் தடுப்பான் அல்லது Private DNS வீடியோவைத் தடுக்கிறது. சிறிது நேரம் அதை அணைத்து மீண்டும் முயலவும், அல்லது விளம்பரமின்றி Pro-க்கு மாறவும்.',
-    footer: 'Waves-ஐ ஆதரித்ததற்கு நன்றி! 💜',
+    title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
+    groupBody: 'பிறகு இந்தக் குழுவை உருவாக்கலாம்.',
+    exportBody: 'பிறகு ஏற்றுமதி செய்யலாம்.',
+    watchBtn: 'விளம்பரம் பாருங்கள்',
+    proLink: 'விளம்பரமின்றி Pro பெறுங்கள்',
+    failedTitle: 'விளம்பரம் ஏற்றப்படவில்லை',
+    failedBody: 'மீண்டும் முயலவும்.',
+    groupRetryBtn: 'குழு உருவாக்க விளம்பரம் மீண்டும் பாருங்கள்',
+    exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
+    blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
+    blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -17694,17 +17695,17 @@ const hi: UiStrings = {
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   adGates: {
-    title: 'हम भी विज्ञापन पसंद नहीं करते 💜',
-    body: 'Waves को बनाने और चलाने में पैसा लगता है। सभी के लिए मुफ़्त रखने के लिए हम कभी-कभी एक छोटा विज्ञापन दिखाते हैं।',
-    watchBtn: 'छोटा विज्ञापन देखें और जारी रखें',
-    proTitle: 'विज्ञापन-मुक्त अनुभव चाहिए?',
-    proSubtitle: 'Waves Pro में अपग्रेड करें और बिना किसी रुकावट के Waves का आनंद लें।',
-    proBtn: 'Waves Pro देखें',
-    tryAgainBtn: 'फिर कोशिश करें',
-    failedTitle: 'उफ़! वीडियो लोड नहीं हुआ',
-    failedBody: 'अभी विज्ञापन लोड नहीं हो सका। कृपया थोड़ी देर में फिर से कोशिश करें।',
-    blockedBody: 'इस फ़ोन पर ऐड ब्लॉकर या Private DNS वीडियो को रोक रहा है। उसे थोड़ी देर के लिए बंद करके फिर कोशिश करें, या बिना विज्ञापन के लिए Pro लें।',
-    footer: 'Waves को सपोर्ट करने के लिए धन्यवाद! 💜',
+    title: 'एक छोटा विज्ञापन देखें',
+    groupBody: 'फिर आप यह ग्रुप बना सकते हैं।',
+    exportBody: 'फिर आप एक्सपोर्ट कर सकते हैं।',
+    watchBtn: 'विज्ञापन देखें',
+    proLink: 'बिना विज्ञापन के Pro लें',
+    failedTitle: 'विज्ञापन लोड नहीं हो सका',
+    failedBody: 'कृपया फिर से कोशिश करें।',
+    groupRetryBtn: 'ग्रुप बनाने के लिए विज्ञापन दोबारा देखें',
+    exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
+    blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
+    blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -22856,17 +22857,17 @@ const ar: UiStrings = {
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   adGates: {
-    title: 'نحن أيضًا لا نحبّ الإعلانات 💜',
-    body: 'يتطلّب بناء Waves وصيانته تكاليف. للإبقاء على Waves مجانيًا للجميع، نعرض أحيانًا إعلانًا قصيرًا.',
-    watchBtn: 'شاهد إعلانًا قصيرًا وتابع',
-    proTitle: 'تفضّل تجربة خالية من الإعلانات؟',
-    proSubtitle: 'انتقل إلى Waves Pro واستمتع بـ Waves دون انقطاع.',
-    proBtn: 'استكشف Waves Pro',
-    tryAgainBtn: 'حاول مرة أخرى',
-    failedTitle: 'عذرًا! لم يتحمّل الفيديو',
-    failedBody: 'تعذّر تحميل الإعلان الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
-    blockedBody: 'مانع إعلانات أو Private DNS على هذا الهاتف يمنع الفيديو. أوقفه قليلًا وحاول مجددًا، أو اشترك في Pro بلا إعلانات.',
-    footer: 'شكرًا لدعمك Waves! 💜',
+    title: 'شاهد إعلانًا قصيرًا',
+    groupBody: 'ثم يمكنك إنشاء هذه المجموعة.',
+    exportBody: 'ثم يمكنك التصدير.',
+    watchBtn: 'شاهد الإعلان',
+    proLink: 'احصل على Pro بلا إعلانات',
+    failedTitle: 'تعذّر تحميل الإعلان',
+    failedBody: 'يُرجى المحاولة مرة أخرى.',
+    groupRetryBtn: 'أعد الإعلان لإنشاء المجموعة',
+    exportRetryBtn: 'أعد الإعلان للتصدير',
+    blockedTitle: 'يبدو أن الإعلان محجوب',
+    blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',

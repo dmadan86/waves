@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Button, IconButton, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 
@@ -134,6 +133,7 @@ export function useAdGate() {
   };
 
   const g = t.adGates;
+  const isGroup = placement === 'group_create_rewarded';
 
   return {
     requireAd,
@@ -166,7 +166,7 @@ export function useAdGate() {
         </View>
 
         {/* ── Illustration ──────────────────────────────────────── */}
-        <View style={{ alignItems: 'center', marginBottom: theme.spacing.sm }}>
+        <View style={{ alignItems: 'center', marginBottom: 8 }}>
           <Image
             source={failed ? IMG_FAILED : IMG_VIDEO}
             style={{ width: ILL_W, height: ILL_H }}
@@ -175,137 +175,98 @@ export function useAdGate() {
         </View>
 
         {failed ? (
-          /* ── State B: failed ──────────────────────────────────── */
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="heading" accessibilityRole="header" style={{ textAlign: 'center' }}>
-              {g.failedTitle}
+          /* ── State B: failed / blocked ────────────────────────── */
+          <View>
+            <Text
+              variant="heading"
+              accessibilityRole="header"
+              style={{ textAlign: 'center', marginBottom: 4 }}
+            >
+              {blocked ? g.blockedTitle : g.failedTitle}
             </Text>
-            <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+            <Text
+              variant="body"
+              tone="muted"
+              style={{ textAlign: 'center', marginBottom: 12 }}
+            >
               {blocked ? g.blockedBody : g.failedBody}
             </Text>
 
-            <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
-              {busy ? (
-                <ActivityIndicator color={theme.color.brand} />
-              ) : (
-                <Button
-                  label={g.tryAgainBtn}
-                  variant="brand"
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => void watch()}
-                  icon={
-                    <Ionicons
-                      name="refresh"
-                      size={iconSize.md}
-                      color={theme.color.onBrand}
-                    />
-                  }
-                />
-              )}
+            {busy ? (
+              <ActivityIndicator color={theme.color.brand} style={{ marginBottom: 8 }} />
+            ) : (
               <Button
-                label={g.proBtn}
-                variant="secondary"
+                label={isGroup ? g.groupRetryBtn : g.exportRetryBtn}
+                variant="brand"
                 fullWidth
                 disabled={busy}
-                onPress={goUpgrade}
+                onPress={() => void watch()}
                 icon={
-                  <MaterialCommunityIcons
-                    name="crown"
+                  <Ionicons
+                    name="refresh"
                     size={iconSize.md}
-                    color={theme.color.brand}
+                    color={theme.color.onBrand}
                   />
                 }
               />
-            </View>
+            )}
+
+            <Pressable
+              accessibilityRole="link"
+              onPress={goUpgrade}
+              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 }}
+            >
+              <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+                {g.proLink}
+              </Text>
+            </Pressable>
           </View>
         ) : (
           /* ── State A: ask ─────────────────────────────────────── */
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="heading" accessibilityRole="header" style={{ textAlign: 'center' }}>
+          <View>
+            <Text
+              variant="heading"
+              accessibilityRole="header"
+              style={{ textAlign: 'center', marginBottom: 4 }}
+            >
               {g.title}
             </Text>
-            <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-              {g.body}
+            <Text
+              variant="body"
+              tone="muted"
+              style={{ textAlign: 'center', marginBottom: 12 }}
+            >
+              {isGroup ? g.groupBody : g.exportBody}
             </Text>
 
-            {/* Soft Pro upgrade card */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={g.proTitle}
-              onPress={goUpgrade}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                backgroundColor: pressed
-                  ? theme.color.brandSoft
-                  : theme.color.brandSoft,
-                borderRadius: theme.radius.xxl,
-                padding: theme.spacing.md,
-                opacity: pressed ? 0.75 : 1,
-              })}
-            >
-              {/* Gold crown on pale yellow circle */}
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: '#FFF8E1',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <MaterialCommunityIcons name="crown" size={iconSize.xl} color="#F5B400" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="subheading">{g.proTitle}</Text>
-                <Text variant="caption" tone="muted">
-                  {g.proSubtitle}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textMuted} />
-            </Pressable>
-
-            <View style={{ gap: theme.spacing.sm }}>
-              {busy ? (
-                <ActivityIndicator color={theme.color.brand} />
-              ) : (
-                <Button
-                  label={g.watchBtn}
-                  variant="brand"
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => void watch()}
-                  icon={
-                    <Ionicons
-                      name="play-circle"
-                      size={iconSize.md}
-                      color={theme.color.onBrand}
-                    />
-                  }
-                />
-              )}
+            {busy ? (
+              <ActivityIndicator color={theme.color.brand} style={{ marginBottom: 8 }} />
+            ) : (
               <Button
-                label={g.proBtn}
-                variant="secondary"
+                label={g.watchBtn}
+                variant="brand"
                 fullWidth
                 disabled={busy}
-                onPress={goUpgrade}
+                onPress={() => void watch()}
                 icon={
-                  <MaterialCommunityIcons
-                    name="crown"
+                  <Ionicons
+                    name="play-circle"
                     size={iconSize.md}
-                    color={theme.color.brand}
+                    color={theme.color.onBrand}
                   />
                 }
               />
-            </View>
+            )}
 
-            <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
-              {g.footer}
-            </Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={goUpgrade}
+              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 }}
+            >
+              <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+                {g.proLink}
+              </Text>
+            </Pressable>
           </View>
         )}
       </Sheet>
