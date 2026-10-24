@@ -99,6 +99,9 @@ type RowView = {
   headline: string;
   who: string | null;
   groupId: string | null;
+  /** The group's name, for the cross-group feed's subtitle. Null in a scoped
+   *  (single-group) feed where it would be redundant. */
+  groupName: string | null;
   timestamp: string;
   tintKey: TintName;
   glyph: { family: GlyphFamily; name: string };
@@ -181,6 +184,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       ? actorName(entry.actor, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone)
       : null,
     groupId: g?.id ?? null,
+    groupName: ctx.scoped ? null : g?.name?.trim() || null,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
     glyph,
@@ -304,6 +308,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
             on this device, gets a badge. */}
         <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
+          {view.groupName ? <MetaText>{`${view.groupName} ·`}</MetaText> : null}
           {view.tag ? (
             <>
               <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
