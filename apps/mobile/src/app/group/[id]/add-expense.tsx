@@ -2122,6 +2122,7 @@ export default function AddExpenseScreen() {
                 canManage={editing ? isExpenseParty : true}
                 canRemoveLegacy={isExpenseParty || iAmGroupAdmin}
                 legacyReceiptPath={receiptUri ? receiptPath : null}
+                legacyReceiptUri={pendingReceipt?.uri}
                 externalAdd={!editing}
                 onLegacyRemoved={() => {
                   setReceiptUri(null);

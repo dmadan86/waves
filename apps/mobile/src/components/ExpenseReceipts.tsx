@@ -26,6 +26,7 @@ import { iconSize, Row, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 import { canAddExpenseAttachment } from '@/data/api';
 import { router } from '@/lib/navigation';
 import { receiptCapStatus } from '@/lib/receiptCapGate';
+import { receiptDisplayUri } from '@/lib/receiptDisplayUri';
 import { saveImageToDevice } from '@/lib/saveImage';
 
 import { ViewerButton } from '@/components/ViewerButton';
@@ -76,7 +77,7 @@ const THUMB = 96;
 /** One gallery entry: the legacy kept bill, an uploaded attachment, or a capture
  *  still on its way up — parked on the device, sending, or refused. */
 type GalleryItem =
-  | { kind: 'legacy'; key: string; path: string; visibility: 'group' }
+  | { kind: 'legacy'; key: string; path: string; uri: string | null; visibility: 'group' }
   | { kind: 'attachment'; key: string; row: ExpenseAttachmentRow }
   | { kind: 'pending'; key: string; entry: PendingReceiptView };
 
@@ -92,6 +93,7 @@ type GalleryItem =
  */
 function localUri(it: GalleryItem): string | null {
   if (it.kind === 'pending') return pendingReceiptUri(it.entry);
+  if (it.kind === 'legacy' && it.uri) return it.uri;
   const bucket = it.kind === 'legacy' ? 'receipts' : 'expense-attachments';
   const path = it.kind === 'legacy' ? it.path : it.row.storagePath;
   return cachedImageUri(bucket, path);
@@ -159,11 +161,11 @@ function useResolvedUrls(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId, keys]);
   // `undefined` = still resolving, `null` = resolved to nothing, string = URL.
-  // A resolved null stands: it means the mint came back empty (offline, or a
-  // refused signature), which the tile reports rather than spinning forever.
+  // Without a device copy, a resolved null means the mint came back empty
+  // (offline, or a refused signature), rather than still resolving.
   return items.map((it) => {
     const resolved = urls[it.key];
-    return resolved !== undefined ? resolved : (localUri(it) ?? undefined);
+    return receiptDisplayUri(localUri(it), resolved);
   });
 }
 
@@ -309,6 +311,8 @@ interface ExpenseReceiptsProps {
   canRemoveLegacy: boolean;
   /** The fixed key of the legacy kept bill, when one exists; null otherwise. */
   legacyReceiptPath: string | null;
+  /** Staged bill on this device, before its legacy storage object exists. */
+  legacyReceiptUri?: string | null;
   /** Called after the legacy bill is removed, so the parent can hide its item. */
   onLegacyRemoved?: () => void;
   /** When true, this section renders no add affordance of its own — the parent
@@ -336,6 +340,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
       canManage,
       canRemoveLegacy,
       legacyReceiptPath,
+      legacyReceiptUri = null,
       onLegacyRemoved,
       externalAdd = false,
       draft = false,
@@ -479,7 +484,13 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
     const items = useMemo<GalleryItem[]>(() => {
       const list: GalleryItem[] = [];
       if (legacyReceiptPath) {
-        list.push({ kind: 'legacy', key: 'legacy', path: legacyReceiptPath, visibility: 'group' });
+        list.push({
+          kind: 'legacy',
+          key: 'legacy',
+          path: legacyReceiptPath,
+          uri: legacyReceiptUri,
+          visibility: 'group',
+        });
       }
       // Captures the queue is still carrying come first, newest first — the same
       // order the attachment rows below are in, and the same place the row will
@@ -507,7 +518,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
         list.push({ kind: 'attachment', key: row.id, row });
       }
       return list;
-    }, [legacyReceiptPath, attachments.data, pending, removedIds]);
+    }, [legacyReceiptPath, legacyReceiptUri, attachments.data, pending, removedIds]);
 
     const urls = useResolvedUrls(expenseId, items);
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
