@@ -1,3 +1,4 @@
+import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
 /**
  * React Query hooks + the realtime bridge.
  *
@@ -1818,6 +1819,7 @@ export function useCreateGroup() {
   const { profile } = useAuth();
   return useMutation({
     mutationFn: async (input: Parameters<typeof createGroup>[0]) => {
+      if (!(await requestActionAd('group_create_rewarded'))) throw new AdGateCancelledError();
       const groupId = input.groupId ?? randomUUID();
       // Always name the creator's membership id, even when the caller did not,
       // so any expense made in this group offline references a member that will

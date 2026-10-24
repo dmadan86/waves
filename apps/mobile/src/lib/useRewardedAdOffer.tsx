@@ -1,3 +1,4 @@
+import { logAdEvent } from '@/lib/adEvents';
 /**
  * Offering a rewarded ad at a natural moment: `offer('voice')` when the AI voice
  * monthly limit is hit, `offer('scan')` when the receipt-scan limit is hit.
@@ -147,10 +148,20 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         { profileId: viewerId, kind, baselineUsedToday: before?.usedToday ?? 0 },
         {
           ...defaultRewardedAdDeps(),
+          onShown: () => logAdEvent(viewerId, 'quota_rewarded', 'shown'),
           onPhase: (phase) => {
             if (mounted.current) setState({ step: 'busy', confirming: phase === 'confirming' });
           },
         },
+      );
+      logAdEvent(
+        viewerId,
+        'quota_rewarded',
+        outcome === 'credited' || outcome === 'pending'
+          ? 'completed'
+          : outcome === 'closed-early'
+            ? 'skipped'
+            : 'failed',
       );
       if (outcome === 'credited' || outcome === 'pending') {
         // Whatever the screens cached about the allowance is stale now.

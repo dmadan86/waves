@@ -1,3 +1,4 @@
+import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { useEffect, useState } from 'react';
 import { Platform, Text as NativeText } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +11,7 @@ import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
 import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
+import { gatherConsentSafe } from '@/lib/rewardedAd';
 import { nativeEligible, nativeUnitId, NATIVE_DAILY_CAP } from '@/lib/nativeAdsPure';
 
 // Serialize reservations across both screens. Reserve before requesting: failed
@@ -33,9 +35,11 @@ type NativeAd = {
   headline: string;
   body: string;
   callToAction?: string;
+  addAdEventListener(event: string, callback: () => void): { remove(): void };
   destroy(): void;
 };
 type NativeSdk = {
+  NativeAdEventType: { IMPRESSION: string };
   NativeAd: { createForAdRequest(id: string, options: object): Promise<NativeAd> };
   NativeAdView: React.ComponentType<React.PropsWithChildren<{ nativeAd: NativeAd }>>;
   NativeAsset: React.ComponentType<React.PropsWithChildren<{ assetType: string }>>;
@@ -62,13 +66,14 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
     if (!eligible || !viewerId || !visible || Platform.OS === 'web') return;
     let cancelled = false;
     let ad: NativeAd | undefined;
+    let impression: { remove(): void } | undefined;
     void (async () => {
       try {
         // Fresh server verdict immediately before loading: never request for paid users.
         const current = await readAdsStatus();
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
-        const consent = await sdk.AdsConsent.gatherConsent();
+        const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
@@ -84,14 +89,24 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
           ),
           { requestNonPersonalizedAdsOnly: true },
         );
+        let reported = false;
+        impression = ad.addAdEventListener(native.NativeAdEventType.IMPRESSION, () => {
+          if (!reported) {
+            reported = true;
+            logAdEvent(viewerId, 'native_list', 'shown');
+          }
+        });
         if (cancelled) ad.destroy();
         else setLoaded({ sdk: native, ad });
-      } catch {
+      } catch (error) {
+        noteAdFailure(error);
+        logAdEvent(viewerId, 'native_list', 'failed');
         /* No fill, unavailable native module or storage failure: omit the card. */
       }
     })();
     return () => {
       cancelled = true;
+      impression?.remove();
       ad?.destroy();
       setLoaded(null);
     };
