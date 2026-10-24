@@ -30,6 +30,7 @@ describe('basic voice assistant request detection', () => {
     'Paid 200 for a show',
     'Wholesale groceries 100',
     '500 for what we ate',
+    'Can you please add 500 for tea shop',
   ])('keeps expenses: %s', (words) => {
     expect(isVoiceAssistantRequest(words)).toBe(false);
   });
