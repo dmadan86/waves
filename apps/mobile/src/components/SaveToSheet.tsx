@@ -6,6 +6,10 @@
  * pinned chips, a group and a set of people are mutually exclusive by
  * construction. Groups are single-select; people are a set the parent resolves
  * into an existing 1:1 group or a new one.
+ *
+ * Layout goal: ~8 rows visible on a 6.5-inch phone. Rows are compact
+ * single-line entries (~44-48dp) inside a flat Card with thin Dividers
+ * between them, not individual padded cards. Leading icons/avatars are 28-32dp.
  */
 
 import { useState } from 'react';
@@ -15,6 +19,8 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import {
   Avatar,
   Button,
+  Card,
+  Divider,
   iconSize,
   Row,
   SegmentedTabs,
@@ -54,6 +60,9 @@ export interface SaveToPerson extends PersonChoice {
   /** No account yet — the row says so instead of showing a balance. */
   isGhost?: boolean;
 }
+
+/** Leading icon circle diameter (32dp) — avatar/icon size for compact rows. */
+const LEAD_CIRCLE = 32;
 
 export function SaveToSheet({
   selection,
@@ -104,14 +113,16 @@ export function SaveToSheet({
       new Date(iso),
     );
 
-  const radio = (on: boolean) => (
+  // Radio/check indicator on the trailing edge.
+  const radio = (on: boolean, checkbox = false) => (
     <Ionicons
-      name={on ? 'checkmark-circle' : 'ellipse-outline'}
-      size={iconSize.xl}
+      name={on ? (checkbox ? 'checkmark-circle' : 'checkmark-circle') : 'ellipse-outline'}
+      size={iconSize.md}
       color={on ? theme.color.brand : theme.color.border}
     />
   );
 
+  // Pinned shortcut chips (Inbox / Just me) above the tabs — kept as before.
   const chip = (
     key: string,
     on: boolean,
@@ -129,7 +140,7 @@ export function SaveToSheet({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.sm,
-        minHeight: 48,
+        minHeight: 44,
         paddingHorizontal: theme.spacing.sm,
         borderRadius: theme.radius.pill,
         borderWidth: 1.5,
@@ -152,7 +163,12 @@ export function SaveToSheet({
     </Pressable>
   );
 
-  const row = (
+  /**
+   * Compact single-line row: ~44-48dp tall, 28-32dp leading icon/avatar,
+   * name + optional short muted subtitle inline, radio/check on the right.
+   * No per-row card or border — rows live inside a flat Card with Dividers.
+   */
+  const compactRow = (
     key: string,
     on: boolean,
     onPress: () => void,
@@ -170,42 +186,53 @@ export function SaveToSheet({
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.md,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1.5,
-        borderColor: on ? theme.color.brand : 'transparent',
-        backgroundColor: on ? theme.color.brandSoft : theme.color.surface,
+        gap: theme.spacing.sm,
+        minHeight: 44,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
         opacity: pressed ? 0.6 : 1,
       })}
     >
       {lead}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          flex: 1,
+          fontWeight: on ? '600' : '400',
+          color: on ? theme.color.brand : theme.color.text,
+        }}
+      >
+        {title}
         {subtitle ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
+          <Text variant="caption" tone="muted">
+            {'  '}
             {subtitle}
           </Text>
         ) : null}
-      </View>
-      {radio(on)}
+      </Text>
+      {radio(on, checkbox)}
     </Pressable>
   );
 
-  const iconTile = (name: React.ComponentProps<typeof Ionicons>['name']) => (
+  /**
+   * 32×32 icon circle for rows that have no avatar (create, typed-name, etc.).
+   */
+  const iconCircle = (name: React.ComponentProps<typeof Ionicons>['name'], tinted = false) => (
     <View
       style={{
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: LEAD_CIRCLE,
+        height: LEAD_CIRCLE,
+        borderRadius: LEAD_CIRCLE / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.surfaceMuted,
+        backgroundColor: tinted ? theme.color.brandSoft : theme.color.surfaceMuted,
       }}
     >
-      <Ionicons name={name} size={iconSize.lg} color={theme.color.brand} />
+      <Ionicons
+        name={name}
+        size={iconSize.sm}
+        color={tinted ? theme.color.brand : theme.color.textMuted}
+      />
     </View>
   );
 
@@ -228,7 +255,7 @@ export function SaveToSheet({
         alignItems: 'center',
       }}
     >
-      <Ionicons name="search" size={iconSize.lg} color={theme.color.brand} />
+      <Ionicons name="search" size={iconSize.sm} color={theme.color.brand} />
       <TextInput
         value={value}
         onChangeText={onChange}
@@ -238,7 +265,7 @@ export function SaveToSheet({
         onSubmitEditing={onSubmit}
         returnKeyType="done"
         autoCorrect={false}
-        style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 8 }}
+        style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 6 }}
       />
       {trailing}
     </Row>
@@ -251,6 +278,11 @@ export function SaveToSheet({
   const contacts = people.filter((person) => !q || person.name.toLowerCase().includes(q));
   const typedIsNew = q.length > 0 && !people.some((person) => person.name.toLowerCase() === q);
 
+  // Build group rows array so we know where to put Dividers.
+  const groupRowItems: { key: string; node: GroupRow | 'create' }[] = [];
+  if (createRow) groupRowItems.push({ key: 'create', node: 'create' });
+  for (const group of visibleGroups) groupRowItems.push({ key: group.id, node: group });
+
   const save = () => {
     const keptGroupId = unchangedSeedGroupId(pick, seed);
     if (keptGroupId) onChoose({ kind: 'existing', groupId: keptGroupId });
@@ -262,7 +294,7 @@ export function SaveToSheet({
     <View style={{ flexShrink: 1, gap: theme.spacing.md }}>
       <ScrollView
         style={{ flexShrink: 1 }}
-        contentContainerStyle={{ gap: theme.spacing.md }}
+        contentContainerStyle={{ gap: theme.spacing.sm }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -274,7 +306,7 @@ export function SaveToSheet({
             t.voice.saveForLater,
             <Ionicons
               name={pick.kind === 'unassigned' ? 'checkmark-circle' : 'file-tray-full-outline'}
-              size={iconSize.xl}
+              size={iconSize.md}
               color={pick.kind === 'unassigned' ? theme.color.brand : theme.color.textMuted}
             />,
           )}
@@ -284,7 +316,7 @@ export function SaveToSheet({
                 pick.kind === 'me',
                 () => setPick(pickPlace({ kind: 'me' })),
                 viewer.name,
-                <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={36} />,
+                <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={28} />,
               )
             : null}
         </Row>
@@ -296,12 +328,12 @@ export function SaveToSheet({
             {
               value: 'groups',
               label: t.voice.groupsTab,
-              icon: (color) => <Ionicons name="people" size={iconSize.lg} color={color} />,
+              icon: (color) => <Ionicons name="people" size={iconSize.sm} color={color} />,
             },
             {
               value: 'people',
               label: t.voice.peopleTab,
-              icon: (color) => <Ionicons name="person" size={iconSize.lg} color={color} />,
+              icon: (color) => <Ionicons name="person" size={iconSize.sm} color={color} />,
             },
           ]}
         />
@@ -309,37 +341,56 @@ export function SaveToSheet({
         {tab === 'groups' ? (
           <View style={{ gap: theme.spacing.sm }}>
             {search(groupQuery, setGroupQuery, t.voice.searchGroups)}
-            {createRow
-              ? row(
-                  'create',
-                  pick.kind === 'create',
-                  () => setPick(pickPlace({ kind: 'create' })),
-                  iconTile('add-circle-outline'),
-                  createRow.label,
-                  null,
-                )
-              : null}
-            {visibleGroups.map((group) => {
-              const title = labelFor(group);
-              return row(
-                group.id,
-                pick.kind === 'existing' && pick.groupId === group.id,
-                () => setPick(pickPlace({ kind: 'existing', groupId: group.id })),
-                <Avatar
-                  name={title}
-                  mark={(color) => <GroupMark emoji={group.cover_emoji} size={26} color={color} />}
-                  size={48}
-                  tint={tintForKey(group.id)}
-                />,
-                title,
-                groupSubtitle(
-                  plural(locale, summary.memberCountFor(group.id), t.memberCount),
-                  group.start_date,
-                  group.end_date,
-                  formatDay,
-                ),
-              );
-            })}
+            {groupRowItems.length > 0 ? (
+              <Card padded={false} flat style={{ overflow: 'hidden' }}>
+                {groupRowItems.map((item, index) => {
+                  const isLast = index === groupRowItems.length - 1;
+                  if (item.node === 'create') {
+                    return (
+                      <View key="create">
+                        {compactRow(
+                          'create',
+                          pick.kind === 'create',
+                          () => setPick(pickPlace({ kind: 'create' })),
+                          iconCircle('add-circle-outline', pick.kind === 'create'),
+                          createRow!.label,
+                          null,
+                        )}
+                        {!isLast ? <Divider /> : null}
+                      </View>
+                    );
+                  }
+                  const group = item.node as GroupRow;
+                  const title = labelFor(group);
+                  const isOn = pick.kind === 'existing' && pick.groupId === group.id;
+                  return (
+                    <View key={group.id}>
+                      {compactRow(
+                        group.id,
+                        isOn,
+                        () => setPick(pickPlace({ kind: 'existing', groupId: group.id })),
+                        <Avatar
+                          name={title}
+                          mark={(color) => (
+                            <GroupMark emoji={group.cover_emoji} size={18} color={color} />
+                          )}
+                          size={LEAD_CIRCLE}
+                          tint={tintForKey(group.id)}
+                        />,
+                        title,
+                        groupSubtitle(
+                          plural(locale, summary.memberCountFor(group.id), t.memberCount),
+                          group.start_date,
+                          group.end_date,
+                          formatDay,
+                        ),
+                      )}
+                      {!isLast ? <Divider /> : null}
+                    </View>
+                  );
+                })}
+              </Card>
+            ) : null}
             {visibleGroups.length === 0 ? (
               <Text tone="muted" align="center" style={{ paddingVertical: theme.spacing.lg }}>
                 {groupQuery.trim() ? t.captures.assignNoMatch : t.voice.noGroups}
@@ -361,50 +412,79 @@ export function SaveToSheet({
                   onPress={addTyped}
                   hitSlop={8}
                 >
-                  <Ionicons name="add-circle" size={iconSize.xl} color={theme.color.brand} />
+                  <Ionicons name="add-circle" size={iconSize.md} color={theme.color.brand} />
                 </Pressable>
               ) : null,
             )}
-            {contacts.map((person) =>
-              row(
-                person.groupId,
-                isPicked(person.name),
-                () => setPick((current) => togglePersonPick(current, person.name)),
-                <PersonAvatar
-                  name={person.name}
-                  avatarUrl={person.avatarUrl}
-                  ghost={person.isGhost}
-                  size={48}
-                />,
-                person.name,
-                person.isGhost ? t.remindSheet.notOnWaves : null,
-                true,
-              ),
-            )}
-            {typedIsNew
-              ? row(
-                  'add-typed',
-                  false,
-                  addTyped,
-                  iconTile('person-add-outline'),
-                  t.voice.addNamed.replace('{name}', query.trim()),
-                  null,
-                )
-              : null}
+
+            {/* Contacts + typed-name rows inside a flat card with Dividers. */}
+            {contacts.length > 0 || typedIsNew ? (
+              <Card padded={false} flat style={{ overflow: 'hidden' }}>
+                {contacts.map((person, index) => {
+                  const on = isPicked(person.name);
+                  const isLast = index === contacts.length - 1 && !typedIsNew;
+                  return (
+                    <View key={person.groupId}>
+                      {compactRow(
+                        person.groupId,
+                        on,
+                        () => setPick((current) => togglePersonPick(current, person.name)),
+                        <PersonAvatar
+                          name={person.name}
+                          avatarUrl={person.avatarUrl}
+                          ghost={person.isGhost}
+                          size={LEAD_CIRCLE}
+                        />,
+                        person.name,
+                        person.isGhost ? t.remindSheet.notOnWaves : null,
+                        true,
+                      )}
+                      {!isLast ? <Divider /> : null}
+                    </View>
+                  );
+                })}
+                {typedIsNew ? (
+                  <View>
+                    {contacts.length > 0 ? <Divider /> : null}
+                    {compactRow(
+                      'add-typed',
+                      false,
+                      addTyped,
+                      iconCircle('person-add-outline'),
+                      t.voice.addNamed.replace('{name}', query.trim()),
+                      null,
+                    )}
+                  </View>
+                ) : null}
+              </Card>
+            ) : null}
+
             {/* Names typed in (nobody in the list) stay visible and removable. */}
-            {pickedNames
-              .filter((name) => !people.some((p) => p.name.toLowerCase() === name.toLowerCase()))
-              .map((name) =>
-                row(
-                  `typed-${name}`,
-                  true,
-                  () => setPick((current) => togglePersonPick(current, name)),
-                  iconTile('person-outline'),
-                  name,
-                  null,
-                  true,
-                ),
-              )}
+            {pickedNames.filter(
+              (name) => !people.some((p) => p.name.toLowerCase() === name.toLowerCase()),
+            ).length > 0 ? (
+              <Card padded={false} flat style={{ overflow: 'hidden' }}>
+                {pickedNames
+                  .filter(
+                    (name) => !people.some((p) => p.name.toLowerCase() === name.toLowerCase()),
+                  )
+                  .map((name, index, arr) => (
+                    <View key={`typed-${name}`}>
+                      {compactRow(
+                        `typed-${name}`,
+                        true,
+                        () => setPick((current) => togglePersonPick(current, name)),
+                        iconCircle('person-outline', true),
+                        name,
+                        null,
+                        true,
+                      )}
+                      {index < arr.length - 1 ? <Divider /> : null}
+                    </View>
+                  ))}
+              </Card>
+            ) : null}
+
             {contacts.length === 0 && !typedIsNew && pickedNames.length === 0 ? (
               <Text tone="muted" align="center" style={{ paddingVertical: theme.spacing.lg }}>
                 {t.voice.noPeople}
