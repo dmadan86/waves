@@ -296,6 +296,7 @@ function ExpenseDetail({
                     <span className="grow">
                       <span className="title" style={{ fontWeight: 500 }}>
                         {nameFor(share.member_id)}
+                        {unitsSplit?.memberWeights?.[share.member_id] === 0.5 ? ' ½' : ''}
                       </span>
                     </span>
                     <span className={group.name ? 'amount' : 'amount neg'}>

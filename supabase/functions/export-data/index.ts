@@ -27,6 +27,7 @@ import {
   memberAmounts,
   PdfBuilder,
   splitMethodLabel,
+  splitMemberName,
   wrapText,
 } from '../_shared/core.js';
 
@@ -226,6 +227,8 @@ serveWithCors(async (request) => {
           const currency = String(current.currency).toUpperCase();
           const amount = BigInt(current.amount);
           totals.set(currency, (totals.get(currency) ?? 0n) + amount);
+          const shareName = (id: string | null) =>
+            splitMemberName(current.split_params, id, nameWithFamily(id));
           activeExpenses.push({
             date: String(current.expense_date ?? ''),
             description: String(current.description ?? ''),
@@ -236,7 +239,7 @@ serveWithCors(async (request) => {
               .map((payer: Record<string, unknown>) => nameOf(payer.member_id as string))
               .join(' + '),
             paidDetail: memberAmounts(current.payers, currency, nameWithFamily),
-            splitDetail: `${splitMethodLabel(current.split_type)}: ${memberAmounts(current.shares, currency, nameWithFamily)}`,
+            splitDetail: `${splitMethodLabel(current.split_type)}: ${memberAmounts(current.shares, currency, shareName)}`,
             payerRows: current.payers ?? [],
             shareRows: current.shares ?? [],
           });
@@ -397,6 +400,8 @@ serveWithCors(async (request) => {
           .map((payer: Record<string, unknown>) => nameOf(payer.member_id as string))
           .join(' + ');
 
+        const shareName = (id: string | null) =>
+          splitMemberName(current.split_params, id, nameOf(id));
         for (const share of current.shares ?? []) {
           rows.push(
             family(
@@ -408,13 +413,13 @@ serveWithCors(async (request) => {
                 current.currency,
                 current.amount,
                 payers,
-                nameOf(share.member_id),
+                shareName(share.member_id),
                 share.amount,
                 expense.deleted_at ? 'deleted' : 'active',
                 `v${current.version_no}`,
                 memberAmounts(current.payers, current.currency, nameOf, '; '),
                 splitMethodLabel(current.split_type),
-                memberAmounts(current.shares, current.currency, nameOf, '; '),
+                memberAmounts(current.shares, current.currency, shareName, '; '),
               ],
               share.member_id,
             ),

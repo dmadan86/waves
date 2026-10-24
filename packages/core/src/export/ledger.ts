@@ -111,3 +111,10 @@ export function familySubtotals(
   }
   return [...sums.values()].map((sum) => ({ ...sum, net: sum.paid - sum.share }));
 }
+
+/** Child marker comes from the bill snapshot, so later family edits cannot change it. */
+export function splitMemberName(params: unknown, memberId: string | null, name: string): string {
+  if (!params || typeof params !== 'object' || !memberId) return name;
+  const split = params as { kind?: unknown; memberWeights?: Record<string, unknown> };
+  return split.kind === 'units' && split.memberWeights?.[memberId] === 0.5 ? `${name} ½` : name;
+}

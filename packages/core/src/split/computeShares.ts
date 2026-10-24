@@ -138,7 +138,14 @@ function computeByType(
       return splitItemized(input.amount, input.params, participants, participantSet, input.seed);
 
     case 'units':
-      return splitByUnits(input.amount, input.params, participants, participantSet, input.seed);
+      return splitByUnits(
+        input.amount,
+        input.params,
+        participants,
+        participantSet,
+        input.seed,
+        input.currency,
+      );
   }
 }
 
@@ -154,9 +161,11 @@ function splitByUnits(
   participants: readonly MemberId[],
   participantSet: ReadonlySet<MemberId>,
   seed: string,
+  currency: ComputeSharesInput['currency'],
 ): ShareMap {
   const seen = new Set<MemberId>();
   const unitWeights = new Map<string, bigint>();
+  const memberWeights = scaledMemberWeights(participants, params.memberWeights);
   let positive = false;
   for (const [unitId, members] of Object.entries(params.units)) {
     if (members.length === 0) {
@@ -172,7 +181,9 @@ function splitByUnits(
       }
       seen.add(member);
     }
-    const centiWeight = toCentiWeight(params.weights?.[unitId] ?? 1, unitId);
+    const centiWeight = params.bySize
+      ? members.reduce((sum, member) => sum + (memberWeights.get(member) ?? 0n), 0n)
+      : toCentiWeight(params.weights?.[unitId] ?? 1, unitId);
     if (centiWeight > 0n) positive = true;
     unitWeights.set(unitId, centiWeight);
   }
@@ -188,15 +199,72 @@ function splitByUnits(
     );
   }
 
-  const perUnit = distributeProportionally(amount, unitWeights, seed);
+  for (const values of [params.weights, params.amounts, params.basisPoints]) {
+    for (const id of Object.keys(values ?? {})) {
+      if (!Object.prototype.hasOwnProperty.call(params.units, id)) {
+        throw new SplitError(SplitErrorCode.UnknownMember, `Unknown unit ${id}`);
+      }
+    }
+  }
+  for (const [member, weight] of Object.entries(params.memberWeights ?? {})) {
+    requireParticipant(member, seen);
+    if (weight <= 0 || weight > 10) {
+      throw new SplitError(SplitErrorCode.InvalidWeight, `Invalid member weight for ${member}`);
+    }
+  }
+  if (params.mode !== undefined && !['weights', 'exact', 'percent'].includes(params.mode)) {
+    throw new SplitError(SplitErrorCode.InvalidWeight, 'Unknown family split mode');
+  }
+  const perUnit =
+    params.mode === 'exact'
+      ? computeShares({
+          amount,
+          currency,
+          participants: [...unitWeights.keys()],
+          seed,
+          params: { kind: 'exact', amounts: params.amounts ?? {} },
+        })
+      : params.mode === 'percent'
+        ? computeShares({
+            amount,
+            currency,
+            participants: [...unitWeights.keys()],
+            seed,
+            params: { kind: 'percent', basisPoints: params.basisPoints ?? {} },
+          })
+        : distributeProportionally(amount, unitWeights, seed);
   const shares = new Map<MemberId, bigint>();
   for (const [unitId, unitAmount] of perUnit) {
     const members = params.units[unitId] ?? [];
-    for (const [member, share] of splitEqually(unitAmount, members, `${seed}:unit:${unitId}`)) {
+    for (const [member, share] of distributeProportionally(
+      unitAmount,
+      new Map(members.map((member) => [member, memberWeights.get(member)!])),
+      `${seed}:unit:${unitId}`,
+    )) {
       shares.set(member, share);
     }
   }
   return shares;
+}
+
+/** Convert finite decimal member weights to a shared integer scale without rounding. */
+function scaledMemberWeights(
+  members: readonly MemberId[],
+  weights: UnitsParams['memberWeights'],
+): Map<MemberId, bigint> {
+  const decimals = members.map((member) => {
+    const weight = weights?.[member] ?? 1;
+    if (!Number.isFinite(weight) || weight <= 0 || weight > 10) {
+      throw new SplitError(SplitErrorCode.InvalidWeight, `Invalid member weight for ${member}`);
+    }
+    const [mantissa = '', exponent = '0'] = String(weight).split('e');
+    const [whole = '', fraction = ''] = mantissa.split('.');
+    return { member, digits: BigInt(whole + fraction), scale: fraction.length - Number(exponent) };
+  });
+  const scale = Math.max(0, ...decimals.map((value) => value.scale));
+  return new Map(
+    decimals.map((value) => [value.member, value.digits * 10n ** BigInt(scale - value.scale)]),
+  );
 }
 
 /**

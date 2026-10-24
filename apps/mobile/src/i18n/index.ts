@@ -5135,6 +5135,10 @@ export interface UiStrings {
   };
   /** Families inside a group: the settings screen, the split choice, the balances lens. */
   families: {
+    countsAsChild: string;
+    eachFamilyPays: string;
+    same: string;
+    bySize: string;
     shareStatement: string;
     shareStatementBody: string;
     couldNotShare: string;
@@ -10248,6 +10252,10 @@ const en: UiStrings = {
     stops: { one: '{n} stop', other: '{n} stops' },
   },
   families: {
+    countsAsChild: 'Counts as a child (½ share)',
+    eachFamilyPays: 'Each family pays',
+    same: 'Same',
+    bySize: 'By size',
     shareStatement: 'Share statement',
     shareStatementBody: 'Send this family their bill',
     couldNotShare: 'Could not share the statement.',
@@ -15533,6 +15541,10 @@ const ta: UiStrings = {
     stops: { one: '{n} இடம்', other: '{n} இடங்கள்' },
   },
   families: {
+    countsAsChild: 'குழந்தையாகக் கணக்கிடு (½ பங்கு)',
+    eachFamilyPays: 'ஒவ்வொரு குடும்பமும் செலுத்துவது',
+    same: 'சமமாக',
+    bySize: 'அளவின்படி',
     shareStatement: 'அறிக்கையைப் பகிரவும்',
     shareStatementBody: 'இந்தக் குடும்பத்திற்கு அவர்களின் கணக்கை அனுப்பவும்',
     couldNotShare: 'அறிக்கையைப் பகிர முடியவில்லை.',
@@ -20684,6 +20696,10 @@ const hi: UiStrings = {
     stops: { one: '{n} जगह', other: '{n} जगहें' },
   },
   families: {
+    countsAsChild: 'बच्चे के रूप में गिनें (½ हिस्सा)',
+    eachFamilyPays: 'हर परिवार दे',
+    same: 'बराबर',
+    bySize: 'आकार के अनुसार',
     shareStatement: 'विवरण साझा करें',
     shareStatementBody: 'इस परिवार को उनका बिल भेजें',
     couldNotShare: 'विवरण साझा नहीं हो सका।',
@@ -26418,6 +26434,10 @@ const ar: UiStrings = {
     },
   },
   families: {
+    countsAsChild: 'يُحسب كطفل (½ حصة)',
+    eachFamilyPays: 'تدفع كل عائلة',
+    same: 'بالتساوي',
+    bySize: 'حسب الحجم',
     shareStatement: 'مشاركة الكشف',
     shareStatementBody: 'أرسل لهذه العائلة فاتورتها',
     couldNotShare: 'تعذرت مشاركة الكشف.',

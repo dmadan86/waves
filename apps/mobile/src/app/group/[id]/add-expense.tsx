@@ -31,6 +31,9 @@ import {
   money,
   MutationKind,
   rebalancePayers,
+  headOf,
+  unitsSplitParams,
+  unitsFromSnapshot,
   subEventsForTemplate,
   validatePayers,
   type CategoryMeta,
@@ -203,6 +206,7 @@ interface ExpenseDraft {
   savedUnits?: UnitsParams | null;
   /** Equal between people or between families. Absent on drafts from before families. */
   splitBy?: 'people' | 'families';
+  familyBySize?: boolean;
   /**
    * Who paid, before a bill could be paid by several people. Drafts written by
    * an older build still carry it and nothing else, so it is read as a
@@ -478,10 +482,9 @@ export default function AddExpenseScreen() {
   const [amount, setAmount] = useState<bigint>(0n);
   const [description, setDescription] = useState('');
   const [splitKind, setSplitKind] = useState<SplitKind>(SplitKind.Equal);
-  // Equal between people, or equal between families (one share per family,
-  // then equal inside it). Only means anything on an equal split in a group
-  // with families and the `group_units` flag on; starts on families, since a
-  // group that has set them up wants them, and an edit reopens as saved.
+  // Family splits start with one share per family; an edit reopens as saved.
+  const [familyBySize, setFamilyBySize] = useState(false);
+  const [payerFamily, setPayerFamily] = useState<string | null>(null);
   const [splitBy, setSplitBy] = useState<'people' | 'families'>('families');
   // A saved by-family bill keeps its own composition until the split or the
   // people are changed on purpose; a description edit never re-divides it.
@@ -869,6 +872,7 @@ export default function AddExpenseScreen() {
       setSavedUnits(draft.savedUnits ?? null);
       // A draft from before families carries no choice; it was per person.
       setSplitBy(draft.splitBy ?? 'people');
+      setFamilyBySize(draft.familyBySize ?? false);
       // The payer picker is on the edit form too now, so a draft's payers are a
       // change somebody was in the middle of making rather than stale values to
       // discard. `payers` is the current shape; `payer` is what an older build
@@ -947,6 +951,7 @@ export default function AddExpenseScreen() {
       setSplitKind(seeded.splitKind);
       setSplitBy(version.split_type === 'units' ? 'families' : 'people');
       setSavedUnits(seeded.savedUnits ?? null);
+      setFamilyBySize(seeded.savedUnits?.bySize ?? false);
       setWeights(seeded.weights);
       setPercents(seeded.percents);
       setExacts(seeded.exacts);
@@ -977,17 +982,24 @@ export default function AddExpenseScreen() {
   // Everybody in a weighted split needs a number to start from, and the set
   // changes as people are ticked on and off. `fillEntries` returns null once
   // there is nothing left to fill, which is what stops this looping.
+  const familiesOn = useFlagEnabled('group_units') && hasFamilies(group.data?.units);
+  const entryIds = savedUnits
+    ? Object.keys(savedUnits.units)
+    : familiesOn && splitBy === 'families' && group.data?.units
+      ? Object.keys(unitsSplitParams(group.data.units, participants).units)
+      : participants;
   if (splitKind === SplitKind.Shares) {
-    const filled = fillEntries('shares', weights, participants);
+    const filled = fillEntries('shares', weights, entryIds);
     if (filled) setWeights(filled);
   } else if (splitKind === SplitKind.Percent) {
-    const filled = fillEntries('percent', percents, participants);
+    const filled = fillEntries('percent', percents, entryIds);
     if (filled) setPercents(filled);
   }
 
   const entries =
     splitKind === SplitKind.Shares ? weights : splitKind === SplitKind.Exact ? exacts : percents;
   const setEntry = (memberId: MemberId, text: string): void => {
+    setSavedUnits(null);
     const update = (current: SplitEntries): SplitEntries => ({ ...current, [memberId]: text });
     if (splitKind === SplitKind.Shares) setWeights(update);
     else if (splitKind === SplitKind.Exact) setExacts(update);
@@ -1147,6 +1159,12 @@ export default function AddExpenseScreen() {
   // it. The full lane of avatars (and, in several-payer mode, each one's own
   // figure) only draws once the row is tapped open.
   const payerSummary = (() => {
+    if (
+      payerFamily &&
+      payerIds.length === 1 &&
+      payerIds[0] === headOf(group.data?.units?.[payerFamily] ?? { name: '', members: [] })
+    )
+      return group.data?.units?.[payerFamily]?.name ?? '';
     const names = payerIds.map((memberId) => {
       const member = (members.data ?? []).find((row) => row.id === memberId);
       return member ? displayName(member, viewerId) : t.misc.someone;
@@ -1206,6 +1224,7 @@ export default function AddExpenseScreen() {
    * several-payer mode it adds or removes them.
    */
   const togglePayer = (memberId: MemberId): void => {
+    setPayerFamily(null);
     // Null is the tap that does nothing — the last payer cannot be removed.
     run(planToggle({ many: manyPayers, payers, locked: effectiveLocks, amount, memberId }));
   };
@@ -1334,6 +1353,7 @@ export default function AddExpenseScreen() {
       splitKind,
       savedUnits,
       splitBy,
+      familyBySize,
       payers: Object.fromEntries([...payers].map(([id, paid]) => [id, paid.toString()])),
       lockedPayers: [...lockedPayers],
       currency: expenseCurrency,
@@ -1388,11 +1408,18 @@ export default function AddExpenseScreen() {
     };
   }, [seededFor, editing, captureId, voice, location]);
 
-  const familiesOn = useFlagEnabled('group_units') && hasFamilies(group.data?.units);
-  const byFamily =
-    familiesOn && splitBy === 'families' && splitKind === SplitKind.Equal
-      ? (group.data?.units ?? null)
-      : null;
+  const byFamily = useMemo(
+    () =>
+      savedUnits
+        ? unitsFromSnapshot(savedUnits, group.data?.units, (id) => {
+            const member = (members.data ?? []).find((row) => row.id === id);
+            return member ? displayName(member, viewerId) : t.misc.someone;
+          })
+        : familiesOn && splitBy === 'families'
+          ? (group.data?.units ?? null)
+          : null,
+    [savedUnits, group.data?.units, members.data, viewerId, t.misc.someone, familiesOn, splitBy],
+  );
   const splitParams: SplitParams = useMemo(
     () =>
       splitParamsFor({
@@ -1403,9 +1430,20 @@ export default function AddExpenseScreen() {
         participants,
         currency,
         byFamily,
+        familyBySize,
         savedUnits,
       }),
-    [splitKind, weights, percents, exacts, currency, participants, byFamily, savedUnits],
+    [
+      splitKind,
+      weights,
+      percents,
+      exacts,
+      currency,
+      participants,
+      byFamily,
+      familyBySize,
+      savedUnits,
+    ],
   );
 
   // Preview with the same engine the server uses; if they ever disagree the
@@ -1421,7 +1459,17 @@ export default function AddExpenseScreen() {
   // against — then the weighted check (lib/expenseEdit.splitIssueFor, shared
   // with the expense screen's split pop-up).
   const splitIssue = splitIssueFor(
-    { splitKind, weights, percents, exacts, participants, currency, amount },
+    {
+      splitKind,
+      weights,
+      percents,
+      exacts,
+      participants: byFamily
+        ? Object.keys(splitParams.kind === 'units' ? splitParams.units : {})
+        : participants,
+      currency,
+      amount,
+    },
     t.expense,
     locale,
   );
@@ -1494,6 +1542,7 @@ export default function AddExpenseScreen() {
           fx,
           splitKind,
           byFamily,
+          familyBySize,
           savedUnits,
           participants,
           weights,
@@ -1861,7 +1910,11 @@ export default function AddExpenseScreen() {
           // empty form is noise, not guidance.
           payerMessage;
   const canSave =
-    amount > 0n && participants.length > 0 && splitIssue === null && payerProblem === null;
+    amount > 0n &&
+    participants.length > 0 &&
+    preview !== null &&
+    splitIssue === null &&
+    payerProblem === null;
 
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number
@@ -2287,6 +2340,53 @@ export default function AddExpenseScreen() {
                         paddingRight: theme.spacing.xl,
                       }}
                     >
+                      {familiesOn && !manyPayers
+                        ? Object.entries(group.data?.units ?? {}).map(([id, unit]) => {
+                            const head = headOf(unit);
+                            if (!head || !(members.data ?? []).some((member) => member.id === head))
+                              return null;
+                            return (
+                              <Pressable
+                                key={id}
+                                accessibilityRole="radio"
+                                accessibilityState={{
+                                  selected: payerFamily === id && payers.has(head),
+                                }}
+                                accessibilityLabel={`${t.paidBy}: ${unit.name}`}
+                                onPress={() => {
+                                  seedSolePayer(head, amount);
+                                  setPayerFamily(id);
+                                }}
+                                style={{
+                                  width: PAYER_TILE_WIDTH,
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  opacity: payerFamily === id ? 1 : 0.45,
+                                }}
+                              >
+                                <View
+                                  style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: theme.color.brandSoft,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <Ionicons
+                                    name="people-outline"
+                                    size={iconSize.lg}
+                                    color={theme.color.brand}
+                                  />
+                                </View>
+                                <Text variant="micro" numberOfLines={1}>
+                                  {unit.name}
+                                </Text>
+                              </Pressable>
+                            );
+                          })
+                        : null}
                       {payerChoices.map((member) => {
                         const isPayer = payers.has(member.id);
                         return (
@@ -2503,9 +2603,8 @@ export default function AddExpenseScreen() {
                 setSplitKind(next);
               }}
             />
-            {/* Equal between people or between families. Only on an equal
-                split: the other kinds are typed per person. */}
-            {familiesOn && splitKind === SplitKind.Equal ? (
+            {/* Custom editors use family rows in the family lens. */}
+            {familiesOn ? (
               <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
                 <Text variant="caption" tone="muted">
                   {t.families.splitBy}
@@ -2523,6 +2622,26 @@ export default function AddExpenseScreen() {
                   variant="brand"
                   onCard
                   wrap
+                />
+              </Row>
+            ) : null}
+            {byFamily && splitKind === SplitKind.Equal ? (
+              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                <Text variant="caption" tone="muted">
+                  {t.families.eachFamilyPays}
+                </Text>
+                <ChipRow<'same' | 'size'>
+                  options={[
+                    { value: 'same', label: t.families.same },
+                    { value: 'size', label: t.families.bySize },
+                  ]}
+                  value={familyBySize ? 'size' : 'same'}
+                  onChange={(next) => {
+                    setSavedUnits(null);
+                    setFamilyBySize(next === 'size');
+                  }}
+                  variant="brand"
+                  onCard
                 />
               </Row>
             ) : null}

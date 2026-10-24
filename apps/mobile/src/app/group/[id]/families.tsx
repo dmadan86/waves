@@ -186,11 +186,15 @@ export default function FamiliesScreen() {
   /** What to do with somebody who is in a family: make them its head, move them, take them out. */
   const memberMenu = async (member: MemberRow, familyId: string): Promise<void> => {
     const unit = units?.[familyId];
-    if (!unit) return;
+    if (!unit || !isAdmin) return;
     const others = families.filter((family) => family.id !== familyId);
     const picked = await choose({
       title: nameOf(member),
       options: [
+        {
+          id: 'child',
+          label: `${unit.weights?.[member.id] === 0.5 ? '✓ ' : ''}${t.families.countsAsChild}`,
+        },
         ...(headOf(unit) === member.id ? [] : [{ id: 'head', label: t.families.makeHead }]),
         ...others.map((family) => ({
           id: `move:${family.id}`,
@@ -199,7 +203,12 @@ export default function FamiliesScreen() {
         { id: 'remove', label: t.families.removeFromFamily },
       ],
     });
-    if (picked === 'head') save(withFamily(units, familyId, { ...unit, head: member.id }));
+    if (picked === 'child') {
+      const weights = { ...unit.weights };
+      if (weights[member.id] === 0.5) delete weights[member.id];
+      else weights[member.id] = 0.5;
+      save(withFamily(units, familyId, { ...unit, weights }));
+    } else if (picked === 'head') save(withFamily(units, familyId, { ...unit, head: member.id }));
     else if (picked === 'remove') save(placeMember(units, member.id, null));
     else if (picked?.startsWith('move:')) save(placeMember(units, member.id, picked.slice(5)));
   };
@@ -366,7 +375,7 @@ export default function FamiliesScreen() {
                   <ListRow
                     key={member.id}
                     leading={avatar(member)}
-                    title={nameOf(member)}
+                    title={`${nameOf(member)}${family.unit.weights?.[member.id] === 0.5 ? ' ½' : ''}`}
                     subtitle={headOf(family.unit) === member.id ? t.families.head : undefined}
                     divider={index < family.members.length - 1}
                     onPress={isAdmin ? () => void memberMenu(member, family.id) : undefined}

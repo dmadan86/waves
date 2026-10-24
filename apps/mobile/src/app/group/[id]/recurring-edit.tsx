@@ -139,8 +139,10 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
   const template = useMemo(() => templateFromState(state, rule, notes), [state, rule, notes]);
   const problem = recurringEditProblem({ template, when });
   const patch = recurringFullPatch(rule, { template, when });
-  const splitIssue = splitIssueFor(state, t.expense, locale);
-  const blocker = editBlocker(state, { ...t.expense }, locale);
+  // A by-family rule keeps its own split (no controls here), so its typed entries must not be checked.
+  const checked = editableSplit ? state : { ...state, splitKind: SplitKind.Equal };
+  const splitIssue = splitIssueFor(checked, t.expense, locale);
+  const blocker = editBlocker(checked, { ...t.expense }, locale);
   const message = !problem
     ? null
     : problem === 'name'

@@ -417,6 +417,11 @@ export function SplitParticipants({
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant="subheading" numberOfLines={1}>
               {name}
+              {inFamily &&
+              units &&
+              Object.values(units).some((unit) => unit.weights?.[member.id] === 0.5)
+                ? ' ½'
+                : ''}
             </Text>
             {selected && amount > 0n ? (
               <MoneyText
@@ -436,7 +441,7 @@ export function SplitParticipants({
           </View>
         </Pressable>
 
-        {splitKind !== SplitKind.Equal && selected ? (
+        {splitKind !== SplitKind.Equal && selected && !inFamily ? (
           <SplitEntryField
             kind={splitKind}
             currency={currency}
@@ -556,6 +561,15 @@ export function SplitParticipants({
                       color={allIn ? theme.color.brand : theme.color.textFaint}
                     />
                   </Pressable>
+                  {chosen.length > 0 && splitKind !== SplitKind.Equal ? (
+                    <SplitEntryField
+                      kind={splitKind}
+                      currency={currency}
+                      value={entries[family.id] ?? ''}
+                      onChange={(text) => onEntryChange(family.id, text)}
+                      name={family.unit.name}
+                    />
+                  ) : null}
                   {family.members.map((member, memberIndex) =>
                     memberRow(member, memberIndex, true),
                   )}

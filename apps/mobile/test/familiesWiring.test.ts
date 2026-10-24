@@ -38,4 +38,18 @@ describe('families wiring', () => {
     expect(debts).toMatch(/warningTransfers\(ledger, group\.data\?\.units\)/);
     expect(debts).toMatch(/familyLabel\(group\.data\?\.units, memberId, nameFor\(memberId\)\)/);
   });
+  it('offers family modes, child toggles and a head-backed family payer', () => {
+    const source = read('app/group/[id]/add-expense.tsx');
+    expect(source).toContain('t.families.eachFamilyPays');
+    expect(source).toContain('setFamilyBySize');
+    expect(source).toContain('const head = headOf(unit)');
+    expect(source).toMatch(/seedSolePayer\(head, amount\)/);
+    expect(source).toContain('setPayerFamily(id)');
+    const screen = read('app/group/[id]/families.tsx');
+    expect(screen).toContain('!unit || !isAdmin');
+    expect(screen).toContain('t.families.countsAsChild');
+    expect(screen).toContain('weights[member.id] = 0.5');
+    const split = read('components/expense/SplitEditor.tsx');
+    expect(split).toContain('onEntryChange(family.id, text)');
+  });
 });

@@ -7,7 +7,7 @@
  * name to show, and its people read as ordinary rows.
  */
 
-import { unitsSplitParams, type GroupUnits, type UnitsParams } from '@waves/core';
+import { parseMajor, unitsSplitParams, type GroupUnits, type UnitsParams } from '@waves/core';
 
 export interface ShareRow {
   member_id: string;
@@ -59,4 +59,46 @@ export function equalFamilyParams(
   participants: readonly string[],
 ): UnitsParams {
   return snapshot && !touched ? snapshot : unitsSplitParams(units, participants);
+}
+
+/** The family rows use the same text fields as the person editor. */
+export function familyParamsFor(input: {
+  units: GroupUnits | null | undefined;
+  participants: readonly string[];
+  kind: 'equal' | 'shares' | 'exact' | 'percent';
+  bySize: boolean;
+  currency: string;
+  exact: Readonly<Record<string, string>>;
+  percent: Readonly<Record<string, string>>;
+  weights: Readonly<Record<string, string>>;
+}): UnitsParams {
+  const base = unitsSplitParams(
+    input.units,
+    input.participants,
+    input.kind === 'equal' && input.bySize,
+  );
+  const ids = Object.keys(base.units);
+  if (input.kind === 'equal') return base;
+  if (input.kind === 'exact')
+    return {
+      ...base,
+      mode: 'exact',
+      amounts: Object.fromEntries(
+        ids.map((id) => [id, parseMajor(input.exact[id]?.trim() || '0', input.currency).minor]),
+      ),
+    };
+  const values = Object.fromEntries(
+    ids.map((id) => {
+      const raw =
+        (input.kind === 'percent' ? input.percent[id] : input.weights[id])?.trim() ||
+        (input.kind === 'shares' ? '1' : '0');
+      if (!/^\d+(\.\d{1,2})?$/.test(raw)) throw new Error('Invalid split value');
+      if (input.kind === 'shares') return [id, Number(raw)];
+      const [whole = '0', fraction = ''] = raw.split('.');
+      return [id, Number(whole) * 100 + Number(fraction.padEnd(2, '0'))];
+    }),
+  );
+  return input.kind === 'shares'
+    ? { ...base, mode: 'weights', weights: values }
+    : { ...base, mode: 'percent', basisPoints: values };
 }
