@@ -7345,7 +7345,7 @@ const en: UiStrings = {
   adGates: {
     groupTitle: 'Watch a short video to create this group',
     exportTitle: 'Watch a short video to export',
-    body: 'Watch to continue, or cancel. If no ad is available, you can continue for free.',
+    body: 'Free users watch a short video to keep Waves free.',
     watch: 'Watch',
     failed: "We couldn't load the video right now. Please try again in a moment.",
   },
