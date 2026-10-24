@@ -30,7 +30,7 @@ import {
 } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { Link, useLocalSearchParams, useNavigation } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -104,6 +104,7 @@ import { SaveToSheet, type SaveToPerson } from '@/components/SaveToSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { isVoiceAssistantRequest } from '@/lib/voiceAssistantRequest';
 import { useVoiceStreamsToCloud } from '@/lib/useVoiceRouting';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
 import { checkOnline } from '@/lib/voiceStream';
@@ -1414,6 +1415,13 @@ export default function VoiceScreen() {
         tryBalanceQuery(transcript))
     )
       return;
+    if (isVoiceAssistantRequest(transcript)) {
+      setHeardText(transcript);
+      setNoAmount(true);
+      setAttempt((current) => current + 1);
+      setPhase('listening');
+      return;
+    }
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
@@ -2663,6 +2671,7 @@ export default function VoiceScreen() {
     : phase === 'listening'
       ? 'ready'
       : stageStatusKey(stageInput);
+  const basicQuestion = noAmount && isVoiceAssistantRequest(heardText);
   const topMicMode: StageMicMode = listeningLive
     ? (capStage?.micMode ?? 'start')
     : phase === 'listening'
@@ -2738,6 +2747,7 @@ export default function VoiceScreen() {
           {!stageSettled ? (
             <VoiceTop
               status={topStatus}
+              statusMessage={basicQuestion ? t.voiceScreen.statusQuestion : undefined}
               micMode={topMicMode}
               onMicPress={onTopMic}
               reduceMotion={reduceMotion}
@@ -2746,6 +2756,13 @@ export default function VoiceScreen() {
             />
           ) : null}
           <RewardedAdEntry kind="voice" />
+          {basicQuestion ? (
+            <Link href="/paywall" asChild>
+              <Text tone="brand" accessibilityRole="link" style={{ textAlign: 'center' }}>
+                {t.rewardedAds.upgrade}
+              </Text>
+            </Link>
+          ) : null}
           {error ? <Callout tone="negative">{error}</Callout> : null}
           {agentQuotaNote && phase !== 'agent' ? (
             <Text variant="caption" tone="muted">
@@ -3054,7 +3071,11 @@ export default function VoiceScreen() {
               ) : null}
               {typedMode ? (
                 <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
-                  {noAmount ? <Callout tone="warning">{t.voice.noAmount}</Callout> : null}
+                  {noAmount ? (
+                    <Callout tone="warning">
+                      {basicQuestion ? t.voiceScreen.statusQuestion : t.voice.noAmount}
+                    </Callout>
+                  ) : null}
                   <AssistantComposer
                     value={typedDraft}
                     onChangeText={setTypedDraft}

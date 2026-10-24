@@ -1422,6 +1422,7 @@ export interface UiStrings {
     statusProcessing: string;
     statusNoSpeech: string;
     statusNoAmount: string;
+    statusQuestion: string;
     statusPermission: string;
     statusError: string;
     statusExpenseReady: string;
@@ -7070,6 +7071,7 @@ const en: UiStrings = {
     statusProcessing: 'Understanding your expense…',
     statusNoSpeech: 'Couldn’t hear that',
     statusNoAmount: 'Heard you, but no amount',
+    statusQuestion: 'That’s a question. Watch a short video or go Pro to ask Waves.',
     statusPermission: 'Microphone access needed',
     statusError: 'Something went wrong',
     statusExpenseReady: 'Expense ready',
@@ -12152,6 +12154,8 @@ const ta: UiStrings = {
     statusProcessing: 'உங்கள் செலவைப் புரிந்துகொள்கிறேன்…',
     statusNoSpeech: 'கேட்கவில்லை',
     statusNoAmount: 'கேட்டேன், ஆனால் தொகை இல்லை',
+    statusQuestion:
+      'அது ஒரு கேள்வி. Waves-இடம் கேட்க ஒரு சிறிய வீடியோவைப் பாருங்கள் அல்லது Pro-க்கு மாறுங்கள்.',
     statusPermission: 'மைக்ரோஃபோன் அனுமதி தேவை',
     statusError: 'ஏதோ தவறு நடந்தது',
     statusExpenseReady: 'செலவு தயார்',
@@ -17389,6 +17393,7 @@ const hi: UiStrings = {
     statusProcessing: 'आपका खर्च समझ रहा हूँ…',
     statusNoSpeech: 'सुनाई नहीं दिया',
     statusNoAmount: 'सुना, पर कोई रकम नहीं मिली',
+    statusQuestion: 'यह एक सवाल है। Waves से पूछने के लिए छोटा वीडियो देखें या Pro लें।',
     statusPermission: 'माइक्रोफ़ोन की अनुमति चाहिए',
     statusError: 'कुछ गड़बड़ हो गई',
     statusExpenseReady: 'खर्च तैयार है',
@@ -22541,6 +22546,7 @@ const ar: UiStrings = {
     statusProcessing: 'أفهم مصروفك…',
     statusNoSpeech: 'لم أسمع ذلك',
     statusNoAmount: 'سمعتك، لكن بلا مبلغ',
+    statusQuestion: 'هذا سؤال. شاهد فيديو قصيرًا أو اشترك في Pro لسؤال Waves.',
     statusPermission: 'يلزم إذن الميكروفون',
     statusError: 'حدث خطأ ما',
     statusExpenseReady: 'المصروف جاهز',

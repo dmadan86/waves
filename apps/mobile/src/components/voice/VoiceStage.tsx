@@ -96,6 +96,7 @@ export function VoiceHeader({ children }: { children?: ReactNode }) {
 
 export interface VoiceTopProps {
   status: VoiceStatusKey;
+  statusMessage?: string;
   micMode: MicMode;
   onMicPress: () => void;
   reduceMotion: boolean;
@@ -106,6 +107,7 @@ export interface VoiceTopProps {
 
 export function VoiceTop({
   status,
+  statusMessage,
   micMode,
   onMicPress,
   reduceMotion,
@@ -138,7 +140,7 @@ export function VoiceTop({
           reduceMotion={reduceMotion}
         />
       </View>
-      <VoiceStatus status={status} text={statusText(t, status)} />
+      <VoiceStatus status={status} text={statusMessage ?? statusText(t, status)} />
       {/* The wave only while the mic is open, under the mic; the words and cards follow it. */}
       {open && level ? (
         <View
