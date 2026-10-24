@@ -51,6 +51,7 @@ import {
 import { reportHandled } from '@/lib/observability';
 import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
+import { useProTrial } from '@/lib/useProTrial';
 
 const CROWN_ART = require('../../../assets/images/plan-crown.png') as number;
 
@@ -71,7 +72,9 @@ export default function UpgradeScreen() {
   const { info } = useCustomerTier();
 
   const plansLive = useFlagEnabled('paywall') && purchasesAvailable();
-  const { isPaid } = entitlement;
+  // On the automatic Pro trial the person has Pro but has not paid, so Pro stays buyable.
+  const trial = useProTrial();
+  const isPaid = entitlement.isPaid && !(trial !== null && entitlement.tier === PlanTier.Pro);
 
   const [load, setLoad] = useState<LoadState>(() =>
     plansLive ? { status: 'loading' } : { status: 'ready', offering: null },
