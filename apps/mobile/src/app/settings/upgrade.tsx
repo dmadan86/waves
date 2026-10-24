@@ -192,7 +192,7 @@ export default function UpgradeScreen() {
   const ctaDisabled = isPaid || purchasing || !chosen || !plansLive;
 
   // Free card features
-  const freeFeatures: Array<{ text: string; dimmed?: boolean }> = [
+  const freeFeatures: { text: string; dimmed?: boolean }[] = [
     { text: t.planScreen.freeFeatureExpenses },
     { text: t.planScreen.freeFeatureBalances },
     { text: fill(t.planScreen.freeFeatureScans, { scans: FREE_MONTHLY_SCANS }) },
@@ -201,7 +201,7 @@ export default function UpgradeScreen() {
   ];
 
   // Pro card features
-  const proFeatures: Array<{ text: string; aiPill?: boolean }> = [
+  const proFeatures: { text: string; aiPill?: boolean }[] = [
     { text: t.planScreen.proFeatureNoAds },
     { text: fill(t.planScreen.proFeatureScans, { scans: PRO_MONTHLY_SCANS }) },
     { text: fill(t.planScreen.proFeatureVoice, { commands: VOICE_AGENT_PRO_MONTHLY }) },
