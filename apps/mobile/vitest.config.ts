@@ -28,6 +28,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/lib/backup/native': fileURLToPath(
+        new URL('./test/mocks/backup-native.ts', import.meta.url),
+      ),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       // The v3 async-storage ESM build can't be resolved by Node under vitest;
       // swap in an in-memory stub so importing it doesn't crash collection.

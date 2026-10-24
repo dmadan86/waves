@@ -26,6 +26,7 @@ import { usePersonalRecords } from '@/data/personal';
 import { useAuth } from '@/lib/auth';
 import { reportHandled } from '@/lib/observability';
 
+import { recoverBackground } from './background';
 import { runBackup } from './engine';
 import { loadRecoveryKey } from './recoveryKey';
 import { isDue } from './schedule';
@@ -59,6 +60,7 @@ export function AutoBackup() {
       if (now - lastCheckRef.current < CHECK_THROTTLE_MS) return;
       lastCheckRef.current = now;
 
+      await recoverBackground(ownerId);
       const settings = await loadBackupSettings(ownerId);
       if (!isDue(settings.last?.at ?? null, settings.frequency, now)) return;
 

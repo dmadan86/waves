@@ -16,12 +16,12 @@
  * but they cannot open it, and it would be meaningless if they did, because it
  * is sealed with a key Google does not have (see `backup/recoveryKey.ts`).
  *
- * There is exactly one file, overwritten in place, so the appDataFolder never
- * accumulates and a restore never has to choose between candidates.
+ * Backups are staged privately, verified, then renamed to the canonical name.
+ * The previous canonical file is removed only after that commit succeeds.
  */
 
 import { isExpired } from './oauth';
-import { CloudHttpError, requestJson, requestRaw, requestText } from './http';
+import { CloudHttpError, requestJson, requestRaw, requestText, uploadRaw } from './http';
 import { isConfigured as clientConfigured } from './config';
 import {
   nativeAuthAvailable,
@@ -29,7 +29,7 @@ import {
   nativeReauthorize,
   nativeRevoke,
 } from './nativeGoogle';
-import type { CloudFile, CloudProvider, CloudTokens } from './types';
+import type { CloudFile, CloudProvider, CloudTokens, UploadControl } from './types';
 
 /** Where a grant is handed back when somebody unlinks. */
 const REVOCATION_ENDPOINT = 'https://oauth2.googleapis.com/revoke';
@@ -114,7 +114,7 @@ export const googleDrive: CloudProvider = {
     const q = encodeURIComponent(`name='${safe}' and trashed=false`);
     const found = await requestJson(
       `https://www.googleapis.com/drive/v3/files?spaces=${APP_DATA}&q=${q}` +
-        `&fields=files(${FILE_FIELDS})&pageSize=10`,
+        `&fields=files(${FILE_FIELDS})&pageSize=10&orderBy=modifiedTime%20desc`,
       { headers: authHeader(tokens) },
     );
     const files = (found.files as Record<string, unknown>[] | undefined) ?? [];
@@ -132,6 +132,7 @@ export const googleDrive: CloudProvider = {
     name: string,
     content: string,
     existingId: string | null,
+    control?: UploadControl,
   ): Promise<CloudFile> {
     // An overwrite is a plain media PATCH: the name and the parent are already
     // right, and re-sending `parents` on an update is an error in Drive v3.
@@ -160,23 +161,44 @@ export const googleDrive: CloudProvider = {
       `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n` +
       `--${boundary}--`;
 
-    const created = await requestRaw(
-      `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=${FILE_FIELDS}`,
-      {
-        method: 'POST',
-        headers: {
-          ...authHeader(tokens),
-          'Content-Type': `multipart/related; boundary=${boundary}`,
-        },
-        body,
-      },
-    );
+    const created = control
+      ? await uploadRaw(
+          `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=${FILE_FIELDS}`,
+          { ...authHeader(tokens), 'Content-Type': `multipart/related; boundary=${boundary}` },
+          body,
+          control,
+        )
+      : await requestRaw(
+          `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=${FILE_FIELDS}`,
+          {
+            method: 'POST',
+            headers: {
+              ...authHeader(tokens),
+              'Content-Type': `multipart/related; boundary=${boundary}`,
+            },
+            body,
+          },
+        );
     return toFile(created);
   },
 
-  read(tokens: CloudTokens, remoteId: string): Promise<string> {
+  async commit(tokens, remoteId, name) {
+    return toFile(
+      await requestJson(
+        `https://www.googleapis.com/drive/v3/files/${remoteId}?fields=${FILE_FIELDS}`,
+        {
+          method: 'PATCH',
+          headers: authHeader(tokens),
+          body: { name },
+        },
+      ),
+    );
+  },
+
+  read(tokens: CloudTokens, remoteId: string, signal?: AbortSignal): Promise<string> {
     return requestText(`https://www.googleapis.com/drive/v3/files/${remoteId}?alt=media`, {
       headers: authHeader(tokens),
+      signal,
     });
   },
 

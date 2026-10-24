@@ -24,6 +24,10 @@ const hoisted = vi.hoisted(() => ({
   failPut: null as string | null,
   /** When set, `remove` throws. */
   failRemove: false,
+  corruptStaging: false,
+  failCommit: false,
+  beforeCommit: null as (() => Promise<void>) | null,
+  beforeUpload: null as (() => Promise<void>) | null,
   /** When set, the next `read` of this remote id throws instead of answering. */
   failRead: null as string | null,
   nextId: 1,
@@ -50,6 +54,7 @@ vi.mock('expo-crypto', () => ({
 }));
 
 vi.mock('expo-network', () => ({
+  addNetworkStateListener: () => ({ remove() {} }),
   getNetworkStateAsync: async () => ({ isInternetReachable: true, type: 'wifi' }),
   NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular' },
 }));
@@ -90,16 +95,34 @@ vi.mock('@/lib/cloud/providers', () => {
     },
     async put(_tokens: unknown, name: string, content: string, existingId: string | null) {
       hoisted.calls.push(`put:${name}`);
-      if (hoisted.failPut === name) throw new Error('drive said no');
+      if (name.endsWith('.pending')) await hoisted.beforeUpload?.();
+      if (hoisted.failPut === name || `${hoisted.failPut}.pending` === name)
+        throw new Error('drive said no');
       const remoteId = existingId ?? `file-${hoisted.nextId++}`;
       hoisted.folder.set(name, { remoteId, name, content });
       return { remoteId, name, size: content.length, modifiedAt: null };
+    },
+    async commit(_tokens: unknown, remoteId: string, name: string) {
+      await hoisted.beforeCommit?.();
+      if (hoisted.failCommit) throw new Error('Backup commit rejected');
+      hoisted.calls.push(`put:${name}`);
+      for (const [oldName, file] of hoisted.folder) {
+        if (file.remoteId === remoteId) {
+          hoisted.folder.delete(oldName);
+          hoisted.folder.set(name, { ...file, name });
+          return { remoteId, name, size: file.content.length, modifiedAt: null };
+        }
+      }
+      throw new Error('no staging file');
     },
     async read(_tokens: unknown, remoteId: string) {
       hoisted.calls.push(`read:${remoteId}`);
       if (hoisted.failRead === remoteId) throw new Error('drive said 500');
       for (const file of hoisted.folder.values())
-        if (file.remoteId === remoteId) return file.content;
+        if (file.remoteId === remoteId)
+          return hoisted.corruptStaging && file.name.endsWith('.pending')
+            ? 'corrupt'
+            : file.content;
       throw new Error('no such file');
     },
     async remove(_tokens: unknown, remoteId: string) {
@@ -171,6 +194,10 @@ beforeEach(async () => {
   hoisted.calls.length = 0;
   hoisted.failPut = null;
   hoisted.failRemove = false;
+  hoisted.corruptStaging = false;
+  hoisted.failCommit = false;
+  hoisted.beforeCommit = null;
+  hoisted.beforeUpload = null;
   hoisted.failRead = null;
   hoisted.nextId = 1;
   await AsyncStorage.clear();
@@ -422,6 +449,8 @@ describe('turning Extra protection on', () => {
     expect((await loadBackupSettings(OWNER)).tier).toBe(BackupTier.Extra);
 
     hoisted.failRemove = false;
+    hoisted.corruptStaging = false;
+    hoisted.beforeUpload = null;
     expect((await run(BackupTier.Extra)).ok).toBe(true);
     expect(hoisted.folder.has(ESCROW)).toBe(false);
   });
@@ -509,5 +538,66 @@ describe('a second phone that has not heard about an upgrade', () => {
     expect(result.ok === false && result.refusal).toBe('needs-key');
     expect(hoisted.folder.get(BLOB)!.content).toBe(blobBefore);
     expect(hoisted.folder.has(ESCROW)).toBe(false);
+  });
+});
+
+describe('background backup safety', () => {
+  it('preserves the last good backup and removes staging when verification fails, then retries', async () => {
+    await run(BackupTier.Standard);
+    const good = hoisted.folder.get(BLOB)!.content;
+    hoisted.corruptStaging = true;
+    await expect(run(BackupTier.Standard, [row('new')])).rejects.toThrow('verification');
+    expect(hoisted.folder.get(BLOB)!.content).toBe(good);
+    expect(hoisted.folder.has(`${BLOB}.pending`)).toBe(false);
+    hoisted.corruptStaging = false;
+    expect((await run(BackupTier.Standard, [row('new')])).ok).toBe(true);
+    expect((await loadBackupSettings(OWNER)).last).not.toBeNull();
+  });
+  it('guards duplicate starts and cancels before commit without replacing the good backup', async () => {
+    const { cancelBackup, backupSnapshot } = await import('@/lib/backup/background');
+    await run(BackupTier.Standard);
+    const good = hoisted.folder.get(BLOB)!.content;
+    let release!: () => void;
+    hoisted.beforeUpload = () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    const pending = run(BackupTier.Standard, [row('new')]);
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+    expect(await run(BackupTier.Standard)).toEqual({ ok: false, refusal: 'busy' });
+    cancelBackup();
+    release();
+    expect(await pending).toEqual({ ok: false, refusal: 'cancelled' });
+    expect(backupSnapshot().status).toBe('cancelled');
+    expect(hoisted.folder.get(BLOB)!.content).toBe(good);
+    expect(hoisted.folder.has(`${BLOB}.pending`)).toBe(false);
+    hoisted.beforeUpload = null;
+    expect((await run(BackupTier.Standard)).ok).toBe(true);
+  });
+});
+
+describe('verified atomic publication', () => {
+  it('cannot reach 100 percent before the server acknowledges commit', async () => {
+    const { backupSnapshot } = await import('@/lib/backup/background');
+    let release!: () => void;
+    hoisted.beforeCommit = () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    const pending = run(BackupTier.Standard);
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+    expect(backupSnapshot()).toEqual({ status: 'uploading', percent: 95 });
+    expect(hoisted.folder.has(BLOB)).toBe(false);
+    release();
+    expect((await pending).ok).toBe(true);
+    expect(backupSnapshot()).toEqual({ status: 'complete', percent: 100 });
+  });
+  it('leaves the previous backup readable when commit fails', async () => {
+    await run(BackupTier.Standard);
+    const previous = hoisted.folder.get(BLOB)!.content;
+    hoisted.failCommit = true;
+    await expect(run(BackupTier.Standard, [row('new')])).rejects.toThrow('commit rejected');
+    expect(hoisted.folder.get(BLOB)!.content).toBe(previous);
+    expect(hoisted.folder.has(`${BLOB}.pending`)).toBe(false);
   });
 });
