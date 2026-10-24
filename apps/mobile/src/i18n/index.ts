@@ -1785,7 +1785,18 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
-  adGates: { groupTitle: string; exportTitle: string; body: string; watch: string; failed: string };
+  adGates: {
+    title: string;
+    body: string;
+    watchBtn: string;
+    proTitle: string;
+    proSubtitle: string;
+    proBtn: string;
+    tryAgainBtn: string;
+    failedTitle: string;
+    failedBody: string;
+    footer: string;
+  };
   rewardedAds: {
     entryVoice: string;
     entryScan: string;
@@ -7343,11 +7354,16 @@ const en: UiStrings = {
     traps: 'Read the sentence exactly as written.',
   },
   adGates: {
-    groupTitle: 'Watch a short video to create this group',
-    exportTitle: 'Watch a short video to export',
-    body: 'Free users watch a short video to keep Waves free.',
-    watch: 'Watch',
-    failed: "We couldn't load the video right now. Please try again in a moment.",
+    title: "We don't love ads either 💜",
+    body: 'Building and maintaining Waves costs money. To keep Waves free for everyone, we occasionally show a short ad.',
+    watchBtn: 'Watch a short ad & continue',
+    proTitle: 'Prefer an ad-free experience?',
+    proSubtitle: 'Upgrade to Waves Pro and enjoy Waves without interruptions.',
+    proBtn: 'Explore Waves Pro',
+    tryAgainBtn: 'Try again',
+    failedTitle: "Oops! The video didn't load",
+    failedBody: "We couldn't load the ad right now. Please try again in a moment.",
+    footer: 'Thanks for supporting Waves! 💜',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -12432,11 +12448,16 @@ const ta: UiStrings = {
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   adGates: {
-    groupTitle: 'இந்தக் குழுவை உருவாக்க ஒரு சிறிய காணொளியைப் பாருங்கள்',
-    exportTitle: 'ஏற்றுமதி செய்ய ஒரு சிறிய காணொளியைப் பாருங்கள்',
-    body: 'Waves இலவசமாக இருக்க, ஒரு சிறிய வீடியோவைப் பாருங்கள்.',
-    watch: 'பார்க்கவும்',
-    failed: 'இப்போது வீடியோவை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
+    title: 'நாங்களும் விளம்பரங்களை விரும்புவதில்லை 💜',
+    body: 'Waves-ஐ உருவாக்கி பராமரிக்க பணம் தேவைப்படுகிறது. எல்லோருக்கும் இலவசமாக வழங்க, அவ்வப்போது ஒரு குறுகிய விளம்பரம் காண்பிக்கிறோம்.',
+    watchBtn: 'ஒரு சிறு விளம்பரம் பார்த்து தொடரவும்',
+    proTitle: 'விளம்பரமற்ற அனுபவம் வேண்டுமா?',
+    proSubtitle: 'Waves Pro-க்கு மேம்படுத்தி, இடையூறின்றி Waves-ஐ அனுபவியுங்கள்.',
+    proBtn: 'Waves Pro ஆராயுங்கள்',
+    tryAgainBtn: 'மீண்டும் முயலவும்',
+    failedTitle: 'அச்சச்சோ! வீடியோ ஏற்றப்படவில்லை',
+    failedBody: 'இப்போது விளம்பரத்தை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
+    footer: 'Waves-ஐ ஆதரித்ததற்கு நன்றி! 💜',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -17669,11 +17690,16 @@ const hi: UiStrings = {
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   adGates: {
-    groupTitle: 'यह समूह बनाने के लिए छोटा वीडियो देखें',
-    exportTitle: 'निर्यात करने के लिए छोटा वीडियो देखें',
-    body: 'Waves को मुफ़्त रखने के लिए एक छोटा वीडियो देखें।',
-    watch: 'देखें',
-    failed: 'अभी वीडियो लोड नहीं हो सका। कृपया थोड़ी देर में फिर से कोशिश करें।',
+    title: 'हम भी विज्ञापन पसंद नहीं करते 💜',
+    body: 'Waves को बनाने और चलाने में पैसा लगता है। सभी के लिए मुफ़्त रखने के लिए हम कभी-कभी एक छोटा विज्ञापन दिखाते हैं।',
+    watchBtn: 'छोटा विज्ञापन देखें और जारी रखें',
+    proTitle: 'विज्ञापन-मुक्त अनुभव चाहिए?',
+    proSubtitle: 'Waves Pro में अपग्रेड करें और बिना किसी रुकावट के Waves का आनंद लें।',
+    proBtn: 'Waves Pro देखें',
+    tryAgainBtn: 'फिर कोशिश करें',
+    failedTitle: 'उफ़! वीडियो लोड नहीं हुआ',
+    failedBody: 'अभी विज्ञापन लोड नहीं हो सका। कृपया थोड़ी देर में फिर से कोशिश करें।',
+    footer: 'Waves को सपोर्ट करने के लिए धन्यवाद! 💜',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -22825,11 +22851,16 @@ const ar: UiStrings = {
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   adGates: {
-    groupTitle: 'شاهد فيديو قصيرًا لإنشاء هذه المجموعة',
-    exportTitle: 'شاهد فيديو قصيرًا للتصدير',
-    body: 'شاهد فيديو قصيرًا ليبقى Waves مجانيًا.',
-    watch: 'شاهد',
-    failed: 'تعذّر تحميل الفيديو الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
+    title: 'نحن أيضًا لا نحبّ الإعلانات 💜',
+    body: 'يتطلّب بناء Waves وصيانته تكاليف. للإبقاء على Waves مجانيًا للجميع، نعرض أحيانًا إعلانًا قصيرًا.',
+    watchBtn: 'شاهد إعلانًا قصيرًا وتابع',
+    proTitle: 'تفضّل تجربة خالية من الإعلانات؟',
+    proSubtitle: 'انتقل إلى Waves Pro واستمتع بـ Waves دون انقطاع.',
+    proBtn: 'استكشف Waves Pro',
+    tryAgainBtn: 'حاول مرة أخرى',
+    failedTitle: 'عذرًا! لم يتحمّل الفيديو',
+    failedBody: 'تعذّر تحميل الإعلان الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
+    footer: 'شكرًا لدعمك Waves! 💜',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
