@@ -14763,7 +14763,8 @@ const ta: UiStrings = {
     emptyLink: 'Excel, CSV அல்லது Splitwise-இலிருந்து இறக்குமதி',
     titleNamed: '{group} குழுவில் இறக்குமதி',
     titleLead: 'இதில் இறக்குமதி',
-    sourceIntro: 'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
+    sourceIntro:
+      'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
     sourceFileTitle: 'Excel அல்லது CSV-இலிருந்து',
     sourceFileHint: 'உங்கள் போனில் உள்ள கோப்பைத் தேர்ந்தெடுங்கள் (Google Sheets, Excel…)',
     sourceSplitwiseTitle: 'Splitwise-இலிருந்து',
