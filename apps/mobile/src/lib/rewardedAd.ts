@@ -33,6 +33,17 @@ export interface RewardedAdLike {
   show(): Promise<void>;
 }
 
+/** UMP fails when AdMob has no consent form set up; requests are non-personalized, so ads may still load. */
+export async function gatherConsentSafe(
+  sdk: Pick<AdsSdk, 'AdsConsent'>,
+): Promise<{ canRequestAds: boolean }> {
+  try {
+    return await sdk.AdsConsent.gatherConsent();
+  } catch {
+    return { canRequestAds: true };
+  }
+}
+
 export interface AdsSdk {
   MobileAds(): {
     setRequestConfiguration(config: Record<string, unknown>): Promise<unknown>;
@@ -46,7 +57,8 @@ export interface AdsSdk {
   RewardedAd: {
     createForAdRequest(unitId: string, options: Record<string, unknown>): RewardedAdLike;
   };
-  AdEventType: { LOADED: string; CLOSED: string; ERROR: string };
+  InterstitialAd?: AdsSdk['RewardedAd'];
+  AdEventType: { LOADED: string; CLOSED: string; ERROR: string; OPENED?: string };
   RewardedAdEventType: { LOADED: string; EARNED_REWARD: string };
 }
 
@@ -58,6 +70,7 @@ export interface RewardedAdDeps {
   readStatus(): Promise<AdsStatus | null>;
   sleep(ms: number): Promise<void>;
   onPhase?(phase: AdPhase): void;
+  onShown?(): void;
 }
 
 /** Where the attempt is, for the sheet's spinner text. */
@@ -80,7 +93,7 @@ export async function runRewardedAd(
 
   try {
     // The consent form shows itself only where the law asks for one.
-    const consent = await sdk.AdsConsent.gatherConsent();
+    const consent = await gatherConsentSafe(sdk);
     if (!consent.canRequestAds) return 'consent';
     await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
     await sdk.MobileAds().initialize();
@@ -108,6 +121,7 @@ export async function runRewardedAd(
     };
     const timer = setTimeout(() => finish('no-fill'), AD_LOAD_TIMEOUT_MS);
     cleanups.push(
+      ad.addAdEventListener(sdk.AdEventType.OPENED ?? 'opened', () => deps.onShown?.()),
       ad.addAdEventListener(sdk.RewardedAdEventType.LOADED, () => {
         clearTimeout(timer);
         phase('showing');

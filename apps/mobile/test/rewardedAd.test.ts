@@ -120,6 +120,7 @@ describe('runRewardedAd', () => {
       maxAdContentRating: 'PG',
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
+      testDeviceIdentifiers: [],
     });
   });
 
@@ -198,9 +199,9 @@ describe('runRewardedAd', () => {
     expect(f.initialize).not.toHaveBeenCalled();
   });
 
-  it('turns a consent failure into a friendly outcome, never a throw', async () => {
+  it('still loads the ad when the consent check itself errors', async () => {
     const f = fakeSdk({ consentFails: true, onLoad: watched });
-    expect(await runRewardedAd(input, deps({ sdk: f.sdk }))).toBe('offline');
+    expect(await runRewardedAd(input, deps({ sdk: f.sdk }))).toBe('credited');
   });
 
   it('gives up on an ad that never loads', async () => {
