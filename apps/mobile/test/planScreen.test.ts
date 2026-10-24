@@ -10,11 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  FREE_MONTHLY_SCANS,
-  PRO_MONTHLY_SCANS,
-  PRO_DEVICE_LIMIT,
-} from '@waves/core';
+import { FREE_MONTHLY_SCANS, PRO_MONTHLY_SCANS, PRO_DEVICE_LIMIT } from '@waves/core';
 import { VOICE_AGENT_FREE_MONTHLY, VOICE_AGENT_PRO_MONTHLY } from '@waves/core';
 
 import { periodsInOffering, planCardsFromOffering, type OfferingLike } from '../src/lib/pricing';
