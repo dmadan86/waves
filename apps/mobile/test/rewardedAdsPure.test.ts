@@ -57,6 +57,7 @@ describe('ad request', () => {
       maxAdContentRating: 'PG',
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
+      testDeviceIdentifiers: [],
     });
   });
 });

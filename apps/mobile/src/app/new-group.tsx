@@ -1,3 +1,4 @@
+import { AdGateCancelledError } from '@/lib/adGateBridge';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
@@ -691,6 +692,7 @@ export default function NewGroupScreen() {
       const nudgeTrip = type === GroupType.Trip && !(tripDates.start_date && tripDates.end_date);
       router.replace(nudgeTrip ? `/group/${groupId}?welcome=trip` : `/group/${groupId}`);
     } catch (caught) {
+      if (caught instanceof AdGateCancelledError) return;
       setError(
         isPhoneCountryError(caught)
           ? t.people.phoneNeedsCountryCode
