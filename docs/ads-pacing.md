@@ -20,15 +20,15 @@ Group creation: the server counts all groups created by the profile, including s
 
 ## Knobs (one `ad_reward_settings` row; editable at `/ads`)
 
-| Column | Default | Meaning |
-| --- | ---: | --- |
-| gap_min / gap_max | 3 / 5 | Inclusive expense gap; minimum cannot exceed maximum |
-| cooldown_seconds | 180 | Between interstitials |
-| interstitial_daily_cap | 3 | Per profile, UTC day; zero disables |
-| grace_days / grace_expenses | 3 / 5 | Both must pass; expense progress is device-local |
-| rewarded_quiet_seconds | 300 | No interstitials after any rewarded placement |
-| session_grace_seconds | 60 | First minute on the expense flow stays quiet |
-| session_cap | 2 | Interstitial attempts per app process/session |
+| Column                      | Default | Meaning                                              |
+| --------------------------- | ------: | ---------------------------------------------------- |
+| gap_min / gap_max           |   3 / 5 | Inclusive expense gap; minimum cannot exceed maximum |
+| cooldown_seconds            |     180 | Between interstitials                                |
+| interstitial_daily_cap      |       3 | Per profile, UTC day; zero disables                  |
+| grace_days / grace_expenses |   3 / 5 | Both must pass; expense progress is device-local     |
+| rewarded_quiet_seconds      |     300 | No interstitials after any rewarded placement        |
+| session_grace_seconds       |      60 | First minute on the expense flow stays quiet         |
+| session_cap                 |       2 | Interstitial attempts per app process/session        |
 
 The universal 60-second separation and 1.5-second transition deadline are safety constraints, not monetization knobs. Paid/trial/guest checks reuse the existing quota eligibility's plan helpers. `waves_my_ad_gate_status` keeps the new `ads_gates` rollout independent of `ads_rewarded`; the existing allowlist works only when the gates master flag is enabled. Migration seeds `ads_gates` off, 0%. No migration is applied by this change.
 

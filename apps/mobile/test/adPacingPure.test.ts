@@ -126,7 +126,9 @@ it('gates every export and group after the first, never paid or disabled users',
 
 describe('looksAdBlocked', () => {
   it('spots blocking DNS but not ordinary failures', () => {
-    expect(looksAdBlocked('Failed to connect to googleads.g.doubleclick.net/0.0.0.0:443')).toBe(true);
+    expect(looksAdBlocked('Failed to connect to googleads.g.doubleclick.net/0.0.0.0:443')).toBe(
+      true,
+    );
     expect(looksAdBlocked('Unable to resolve host "googleads.g.doubleclick.net"')).toBe(true);
     expect(looksAdBlocked('3 No fill.')).toBe(false);
     expect(looksAdBlocked('timeout')).toBe(false);

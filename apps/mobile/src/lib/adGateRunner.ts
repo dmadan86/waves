@@ -1,5 +1,10 @@
 import { noteAdFailure } from './adEvents';
-import { gatherConsentSafe, type AdsSdk, type RewardedAdDeps, type RewardedAdLike } from './rewardedAd';
+import {
+  gatherConsentSafe,
+  type AdsSdk,
+  type RewardedAdDeps,
+  type RewardedAdLike,
+} from './rewardedAd';
 import { ADS_REQUEST_CONFIGURATION, AD_LOAD_TIMEOUT_MS } from './rewardedAdsPure';
 import type { GateResult } from './adPacingPure';
 
