@@ -146,8 +146,8 @@ export default function GroupSettingsScreen() {
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
   const removeDemo = useRemoveDemo();
-  const leaveGroup = useLeaveGroup(groupId);
-  const deleteGroup = useDeleteGroup(groupId);
+  const leaveGroup = useLeaveGroup(groupId, () => router.dismissTo('/'));
+  const deleteGroup = useDeleteGroup(groupId, () => router.dismissTo('/'));
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
   const { blockedIds } = useBlockedUsers();
   const addGhost = useAddGhostMember(groupId);
@@ -498,7 +498,7 @@ export default function GroupSettingsScreen() {
 
   const leaveNow = (): void => {
     if (!ledger.myMemberId) return;
-    leaveGroup.mutate(ledger.myMemberId, { onSuccess: () => router.replace('/') });
+    leaveGroup.mutate(ledger.myMemberId);
   };
 
   const leave = async (): Promise<void> => {
@@ -633,7 +633,6 @@ export default function GroupSettingsScreen() {
     setDeleteError(null);
 
     deleteGroup.mutate(undefined, {
-      onSuccess: () => router.replace('/'),
       onError: (caught) => {
         // The one coded refusal left carries a `code` (set in api.deleteGroup);
         // show its localized line directly. Anything else is unknown and goes

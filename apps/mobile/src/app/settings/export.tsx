@@ -1,3 +1,4 @@
+import { useAdGate } from '@/lib/useAdGate';
 /**
  * Export your data — every expense, settlement and activity row, as a file to
  * keep, free, whoever you are.
@@ -45,6 +46,7 @@ const FORMAT_SUB: Record<Format, 'jsonSub' | 'csvSub' | 'pdfSub'> = {
 };
 
 export default function ExportScreen() {
+  const adGate = useAdGate();
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   const clearance = useTabBarClearance();
@@ -68,6 +70,7 @@ export default function ExportScreen() {
     setError(null);
     setDone(null);
     try {
+      if (!(await adGate.requireAd('export_rewarded'))) return;
       const result = await exportData({
         format,
         groupId: scope === 'all' ? undefined : scope,
@@ -121,6 +124,7 @@ export default function ExportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      {adGate.sheet}
       <PlainHeader title={t.exportData.title} />
 
       <ScrollView

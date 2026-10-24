@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, TextInput } from 'react-native';
 
 import {
   currencySymbol,
@@ -97,6 +97,7 @@ export function AmountField({
   // The well's rule brightens when the field has the keyboard, the oldest "type
   // here" signal there is. Tracked in state so the border can answer the focus.
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // The text↔minor rules live in @waves/core, because the per-payer amount
   // fields on the expense form parse the same keystrokes and two copies of
@@ -166,7 +167,10 @@ export function AmountField({
   const ruleActive = onBrand ? theme.color.onBrand : theme.color.brand;
 
   return (
-    <View
+    <Pressable
+      onPress={() => inputRef.current?.focus()}
+      accessible={false}
+      focusable={false}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -196,6 +200,7 @@ export function AmountField({
     >
       {showSymbol ? (
         <Text
+          accessible={false}
           style={{
             fontSize: symbolSize,
             lineHeight: metrics.line,
@@ -207,6 +212,7 @@ export function AmountField({
         </Text>
       ) : null}
       <TextInput
+        ref={inputRef}
         value={text}
         onChangeText={onType}
         keyboardType={amountKeyboard(currency)}
@@ -237,6 +243,6 @@ export function AmountField({
           flexShrink: hero ? 1 : 0,
         }}
       />
-    </View>
+    </Pressable>
   );
 }

@@ -1,3 +1,4 @@
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
@@ -597,6 +598,7 @@ export default function ItemizeScreen() {
                 />
               </Row>
             ) : null}
+            <RewardedAdEntry kind="scan" />
             {scanning ? <ActivityIndicator color={theme.color.brand} /> : null}
             {scanNote ? (
               <Text variant="caption" tone="brand">
