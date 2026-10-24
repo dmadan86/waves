@@ -1,3 +1,5 @@
+import { NativeAdCard } from '@/components/NativeAdCard';
+import { nativePosition } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -116,6 +118,7 @@ type RowView = {
 };
 
 type FeedRow =
+  | { kind: 'ad'; key: string }
   | { kind: 'header'; key: string; date: string }
   | { kind: 'row'; key: string; firstOfDay: boolean; view: RowView };
 
@@ -394,6 +397,7 @@ const HERO_BODY = 112;
 const SHEET_OVERLAP = 20;
 
 export default function ActivityScreen() {
+  const [adVisible, setAdVisible] = useState(false);
   const theme = useTheme();
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
@@ -524,6 +528,11 @@ export default function ActivityScreen() {
           view: toRowView(entry, ctx),
         });
       });
+    }
+    if (nativePosition(visibleEntries.length) !== null) {
+      let count = 0;
+      const eighth = rows.findIndex((row) => row.kind === 'row' && ++count === 8);
+      rows.splice(eighth + 1, 0, { kind: 'ad', key: 'native-ad' });
     }
     return rows;
   }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);
@@ -941,10 +950,20 @@ export default function ActivityScreen() {
         <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
+          onViewableItemsChanged={({ viewableItems }) =>
+            setAdVisible(
+              (seen) =>
+                seen ||
+                viewableItems.some(({ index }) => {
+                  const slot = listData.findIndex((row) => row.kind === 'ad');
+                  return slot >= 0 && index !== null && index >= slot - 1;
+                }),
+            )
+          }
           // The row text is locale-formatted and the row's colours come from the
           // theme, so a language or light/dark switch has to re-run renderItem
           // even though the data array is unchanged.
-          extraData={`${locale}|${theme.scheme}`}
+          extraData={`${locale}|${theme.scheme}|${adVisible}`}
           keyExtractor={(item) => item.key}
           // Day headings and event rows are structurally different subtrees;
           // typing them lets FlashList recycle like with like.
@@ -965,7 +984,9 @@ export default function ActivityScreen() {
             />
           }
           renderItem={({ item, index }) =>
-            item.kind === 'header' ? (
+            item.kind === 'ad' ? (
+              <NativeAdCard visible={adVisible} />
+            ) : item.kind === 'header' ? (
               <Text
                 variant="caption"
                 tone="muted"

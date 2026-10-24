@@ -1,3 +1,4 @@
+import { quietAdsFor } from '@/lib/adSensitiveMoment';
 /**
  * Choose your plan — the paywall, presented as a sheet.
  *
@@ -68,6 +69,10 @@ function planName(t: UiStrings, _tier: PlanTier): string {
 }
 
 export default function PaywallScreen() {
+  useEffect(() => {
+    quietAdsFor();
+    return () => quietAdsFor();
+  }, []);
   const theme = useTheme();
   const { t, language } = useStrings();
   const toast = useToast();

@@ -1,3 +1,4 @@
+import { AdGateHost } from '@/components/AdGateHost';
 // Backfills Intl.RelativeTimeFormat (absent on Android Hermes) before anything
 // renders, so relative time works app-wide. Side-effect import, must be first.
 import '@/lib/intlPolyfill';
@@ -297,6 +298,7 @@ function RootLayout() {
                                 bridge never turns a wrist tap into a capture
                                 while the app is locked or on a build we have
                                 stopped trusting. */}
+                                            <AdGateHost />
                                             <WatchBridgeProvider />
                                             {/* Same reasoning, one step further: an
                                 automatic backup must not run on a build we
