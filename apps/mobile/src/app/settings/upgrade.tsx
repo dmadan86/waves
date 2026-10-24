@@ -136,7 +136,7 @@ export default function UpgradeScreen() {
 
   const buy = useCallback(async () => {
     if (!chosen || purchasing || !offering) return;
-    if (chosen.tier === entitlement.tier) return;
+    if (isPaid) return;
     const pkg = offering.availablePackages.find((p) => p.identifier === chosen.packageId);
     if (!pkg) return;
     setPurchasing(true);
@@ -154,7 +154,7 @@ export default function UpgradeScreen() {
     } finally {
       setPurchasing(false);
     }
-  }, [chosen, purchasing, offering, entitlement.tier, toast, t, queryClient]);
+  }, [chosen, purchasing, offering, isPaid, toast, t, queryClient]);
 
   const onRestore = useCallback(async () => {
     setRestoring(true);
