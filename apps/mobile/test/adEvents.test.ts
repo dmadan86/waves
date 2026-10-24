@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { adClocks, flushAdEvents, logAdEvent } from '@/lib/adEvents';
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock('@/lib/backend', () => ({ backend: { rpc } }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-import { adClocks, flushAdEvents, logAdEvent } from '@/lib/adEvents';
 
 beforeEach(async () => {
   await AsyncStorage.clear();

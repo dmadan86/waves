@@ -38,7 +38,9 @@ export function useAdGate() {
   const watching = useRef(false);
   const mounted = useRef(true);
   const paid = useRef(isPaid);
-  paid.current = isPaid;
+  useEffect(() => {
+    paid.current = isPaid;
+  });
 
   useEffect(() => {
     mounted.current = true;
@@ -184,11 +186,7 @@ export function useAdGate() {
             >
               {blocked ? g.blockedTitle : g.failedTitle}
             </Text>
-            <Text
-              variant="body"
-              tone="muted"
-              style={{ textAlign: 'center', marginBottom: 12 }}
-            >
+            <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
               {blocked ? g.blockedBody : g.failedBody}
             </Text>
 
@@ -201,20 +199,19 @@ export function useAdGate() {
                 fullWidth
                 disabled={busy}
                 onPress={() => void watch()}
-                icon={
-                  <Ionicons
-                    name="refresh"
-                    size={iconSize.md}
-                    color={theme.color.onBrand}
-                  />
-                }
+                icon={<Ionicons name="refresh" size={iconSize.md} color={theme.color.onBrand} />}
               />
             )}
 
             <Pressable
               accessibilityRole="link"
               onPress={goUpgrade}
-              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 }}
+              style={{
+                alignItems: 'center',
+                minHeight: 44,
+                justifyContent: 'center',
+                marginTop: 8,
+              }}
             >
               <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
                 {g.proLink}
@@ -231,11 +228,7 @@ export function useAdGate() {
             >
               {g.title}
             </Text>
-            <Text
-              variant="body"
-              tone="muted"
-              style={{ textAlign: 'center', marginBottom: 12 }}
-            >
+            <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
               {isGroup ? g.groupBody : g.exportBody}
             </Text>
 
@@ -249,11 +242,7 @@ export function useAdGate() {
                 disabled={busy}
                 onPress={() => void watch()}
                 icon={
-                  <Ionicons
-                    name="play-circle"
-                    size={iconSize.md}
-                    color={theme.color.onBrand}
-                  />
+                  <Ionicons name="play-circle" size={iconSize.md} color={theme.color.onBrand} />
                 }
               />
             )}
@@ -261,7 +250,12 @@ export function useAdGate() {
             <Pressable
               accessibilityRole="link"
               onPress={goUpgrade}
-              style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 }}
+              style={{
+                alignItems: 'center',
+                minHeight: 44,
+                justifyContent: 'center',
+                marginTop: 8,
+              }}
             >
               <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
                 {g.proLink}

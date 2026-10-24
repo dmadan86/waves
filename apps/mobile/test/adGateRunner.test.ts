@@ -1,8 +1,8 @@
-vi.mock('@/lib/adEvents', () => ({ noteAdFailure: vi.fn() }));
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runGateAd, prepareInterstitial } from '@/lib/adGateRunner';
 import { gateAllows } from '@/lib/adPacingPure';
 import type { AdsSdk } from '@/lib/rewardedAd';
+vi.mock('@/lib/adEvents', () => ({ noteAdFailure: vi.fn() }));
 function fixture(mode: 'completed' | 'skipped' | 'error' | 'timeout' | 'throw' = 'completed') {
   const listeners = new Map<string, () => void>();
   const emit = (name: string) => listeners.get(name)?.();

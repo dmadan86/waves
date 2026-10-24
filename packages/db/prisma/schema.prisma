@@ -222,6 +222,7 @@ model Profile {
   statementImportSessions StatementImportSession[]
   voiceAgentAllowlist VoiceAgentAllowlist?
   adRewards           AdReward[]
+  adEvents            AdEvent[]
   adsAllowlist        AdsAllowlist?
   aiUsage             AiUsage[]
   screenshotImportAllowlist ScreenshotImportAllowlist?
@@ -1594,13 +1595,40 @@ model ProTrial {
 /// `waves_ads_grant` / `waves_ads_eligibility`; tune in SQL, no app release needed.
 /// Service-role only.
 model AdRewardSettings {
-  id                Boolean @id @default(true)
-  voicePerAd        Int     @default(2) @map("voice_per_ad")
-  scansPerAd        Int     @default(2) @map("scans_per_ad")
-  dailyCap          Int     @default(3) @map("daily_cap")
-  minAccountAgeDays Int     @default(7) @map("min_account_age_days")
+  id                   Boolean @id @default(true)
+  voicePerAd           Int     @default(2) @map("voice_per_ad")
+  scansPerAd           Int     @default(2) @map("scans_per_ad")
+  dailyCap             Int     @default(3) @map("daily_cap")
+  minAccountAgeDays    Int     @default(7) @map("min_account_age_days")
+  gapMin               Int     @default(3) @map("gap_min")
+  gapMax               Int     @default(5) @map("gap_max")
+  cooldownSeconds      Int     @default(180) @map("cooldown_seconds")
+  interstitialDailyCap Int     @default(3) @map("interstitial_daily_cap")
+  graceDays            Int     @default(3) @map("grace_days")
+  graceExpenses        Int     @default(5) @map("grace_expenses")
+  rewardedQuietSeconds Int     @default(300) @map("rewarded_quiet_seconds")
+  sessionGraceSeconds  Int     @default(60) @map("session_grace_seconds")
+  sessionCap           Int     @default(2) @map("session_cap")
 
   @@map("ad_reward_settings")
+  @@schema("public")
+}
+
+/// Ad impressions/outcomes per placement, written by `waves_log_ad_event`. Insert-only
+/// for users (no SELECT policy); analytics are service-role aggregates.
+model AdEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  placement String
+  outcome   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  detail    String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt], map: "ad_events_profile_created_idx")
+  @@index([createdAt], map: "ad_events_created_idx")
+  @@map("ad_events")
   @@schema("public")
 }
 
