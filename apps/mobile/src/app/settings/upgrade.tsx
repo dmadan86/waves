@@ -23,7 +23,9 @@ import {
 import { directionalIcon, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { PlainHeader } from '@/components/standard/PlainHeader';
+import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { openLegal } from '@/lib/legal';
 import { router } from '@/lib/navigation';
 import { useTrackPremiumViewed } from '@/lib/premiumViewed';
@@ -58,6 +60,10 @@ type LoadState =
   | { status: 'ready'; offering: PurchasesOffering | null };
 
 export default function UpgradeScreen() {
+  useEffect(() => {
+    quietAdsFor();
+    return () => quietAdsFor();
+  }, []);
   const theme = useTheme();
   const { t, language } = useStrings();
   const toast = useToast();
@@ -215,6 +221,8 @@ export default function UpgradeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <RewardedAdEntry kind="voice" />
+        <RewardedAdEntry kind="scan" />
         {/* ── Hero row ──────────────────────────────────────────────── */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <View style={{ flex: 1, gap: 6 }}>
@@ -309,9 +317,7 @@ export default function UpgradeScreen() {
                     width: 20,
                     height: 20,
                     borderRadius: 10,
-                    backgroundColor: feat.dimmed
-                      ? theme.color.surfaceMuted
-                      : theme.color.brand,
+                    backgroundColor: feat.dimmed ? theme.color.surfaceMuted : theme.color.brand,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -369,9 +375,7 @@ export default function UpgradeScreen() {
                 <MaterialCommunityIcons name="crown" size={26} color={theme.color.onBrand} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
-                >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                   <Text style={{ fontWeight: '800', fontSize: 17 }}>Pro</Text>
                   {chosen && !isPaid ? (
                     <Text variant="caption" tone="muted">
@@ -431,9 +435,7 @@ export default function UpgradeScreen() {
               </View>
             ) : (
               <>
-                <View
-                  style={{ height: 1, backgroundColor: theme.color.brand, opacity: 0.15 }}
-                />
+                <View style={{ height: 1, backgroundColor: theme.color.brand, opacity: 0.15 }} />
 
                 {/* Feature list */}
                 <View style={{ gap: 8 }}>
@@ -522,9 +524,7 @@ export default function UpgradeScreen() {
                       gap: theme.spacing.sm,
                       height: 52,
                       borderRadius: theme.radius.pill,
-                      backgroundColor: pressed
-                        ? theme.color.brandPressed
-                        : theme.color.brand,
+                      backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
                       opacity: ctaDisabled ? 0.5 : 1,
                     })}
                   >

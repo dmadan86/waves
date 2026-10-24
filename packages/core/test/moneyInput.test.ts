@@ -18,6 +18,13 @@ import {
 const CURRENCIES: CurrencyCode[] = ['INR', 'USD', 'EUR', 'JPY'];
 
 describe('sanitiseMinorInput', () => {
+  it('starts typing from an empty or zero amount without keeping a leading zero', () => {
+    for (const currency of CURRENCIES) {
+      expect(sanitiseMinorInput(`${formatMinorInput(0n, currency)}5`, currency)).toBe('5');
+      expect(sanitiseMinorInput('05', currency)).toBe('5');
+    }
+  });
+
   it('strips anything that is not a digit or a separator', () => {
     expect(sanitiseMinorInput('₹1,2 3abc', 'INR')).toBe('123');
   });
