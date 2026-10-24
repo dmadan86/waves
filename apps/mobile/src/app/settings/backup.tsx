@@ -128,6 +128,7 @@ import {
   iconSize,
   ListRow,
   Popup,
+  ProgressBar,
   Row,
   Screen,
   SectionHeader,
@@ -321,6 +322,8 @@ export default function BackupSettingsScreen() {
   const refusalLine = (outcome: BackupOutcome): string => {
     if (outcome.kind === 'ok') return plural(locale, outcome.records, t.backup.backedUp);
     switch (outcome.refusal) {
+      case 'cancelled':
+        return t.common.cancel;
       case 'not-configured':
         return t.backup.unavailable;
       case 'not-connected':
@@ -345,13 +348,15 @@ export default function BackupSettingsScreen() {
   };
 
   const phaseLine =
-    backup.phase === 'collecting'
-      ? t.backup.phaseCollecting
-      : backup.phase === 'sealing'
-        ? t.backup.phaseSealing
-        : backup.phase === 'uploading'
-          ? t.backup.phaseUploading
-          : null;
+    backup.progress.status === 'paused'
+      ? t.backup.notificationPausedBody
+      : backup.phase === 'collecting'
+        ? t.backup.phaseCollecting
+        : backup.phase === 'sealing'
+          ? t.backup.phaseSealing
+          : backup.phase === 'uploading'
+            ? t.backup.phaseUploading
+            : null;
 
   /**
    * Why linking failed, said in a way that points at whoever can fix it.
@@ -1018,9 +1023,27 @@ export default function BackupSettingsScreen() {
                     run says what it did. Scoped to this button's own action, so
                     pressing something else on the screen does not make this one
                     sprout a progress line. */}
+                {backup.progress.status === 'failed' && !running ? (
+                  <Text variant="micro" tone="muted" align="center">
+                    {t.backup.interruptedHint}
+                  </Text>
+                ) : null}
+                {running ? (
+                  <ProgressBar
+                    progress={
+                      backup.progress.percent === null ? null : backup.progress.percent / 100
+                    }
+                  />
+                ) : null}
+                {running && (backup.progress.percent ?? 0) < 95 ? (
+                  <Button label={t.common.cancel} onPress={backup.cancel} />
+                ) : null}
                 {phaseLine ? (
                   <Text variant="micro" tone="muted" align="center">
                     {phaseLine}
+                    {backup.progress.percent !== null ? ` ${backup.progress.percent}%` : ''}
+                    {'\n'}
+                    {t.backup.backgroundHint}
                   </Text>
                 ) : pending === 'backup' ? (
                   <Text variant="micro" tone="muted" align="center">

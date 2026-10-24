@@ -47,6 +47,7 @@ vi.mock('expo-crypto', () => ({
 }));
 
 vi.mock('expo-network', () => ({
+  addNetworkStateListener: () => ({ remove() {} }),
   getNetworkStateAsync: async () => ({ isInternetReachable: true, type: 'wifi' }),
   NetworkStateType: { WIFI: 'wifi', CELLULAR: 'cellular' },
 }));
@@ -88,6 +89,12 @@ vi.mock('@/lib/cloud/providers', async () => {
     account: async () => 'someone@example.com',
     find: hoisted.find,
     put: hoisted.put,
+    commit: async (_tokens: unknown, remoteId: string, name: string) => ({
+      remoteId,
+      name,
+      size: 100,
+      modifiedAt: null,
+    }),
     read: hoisted.read,
     remove: hoisted.remove,
   };
@@ -122,12 +129,12 @@ beforeEach(async () => {
   await saveRecoveryKey(OWNER, KEY);
   hoisted.refresh = 'ok';
   hoisted.find.mockReset().mockResolvedValue(null);
-  hoisted.put.mockReset().mockResolvedValue({
-    remoteId: 'file-1',
-    name: 'x.json',
-    size: 100,
-    modifiedAt: null,
-  });
+  hoisted.put
+    .mockReset()
+    .mockImplementation(async (_tokens: unknown, name: string, content: string) => {
+      hoisted.read.mockResolvedValue(content);
+      return { remoteId: 'file-1', name, size: content.length, modifiedAt: null };
+    });
   hoisted.read.mockReset();
   hoisted.remove.mockReset().mockResolvedValue(undefined);
 });

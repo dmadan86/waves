@@ -25,6 +25,8 @@ import { usePersonalRecordIds, usePersonalRecords } from '@/data/personal';
 import { useAuth } from '@/lib/auth';
 import { useSync } from '@/sync';
 
+import { backupSnapshot, subscribeBackup, recoverBackground, cancelBackup } from './background';
+import { active } from './progress';
 import { providerFor } from '../cloud/providers';
 import { loadTokens, saveTokens } from '../cloud/tokens';
 import type { CloudTokens } from '../cloud/types';
@@ -104,6 +106,8 @@ export interface BackupState {
 export interface BackupActions {
   connect: () => Promise<boolean>;
   disconnect: () => Promise<void>;
+  progress: import('./progress').RunProgress;
+  cancel: () => void;
   backupNow: (allowMobileData?: boolean) => Promise<BackupOutcome>;
   setFrequency: (frequency: BackupFrequency) => Promise<void>;
   setNetwork: (network: SyncNetworkPreference) => Promise<void>;
@@ -139,6 +143,11 @@ export function useBackup(): BackupState & BackupActions {
   const records = usePersonalRecords();
   const localIds = usePersonalRecordIds();
 
+  const [progress, setProgress] = useState(backupSnapshot);
+  useEffect(() => subscribeBackup(() => setProgress(backupSnapshot())), []);
+  useEffect(() => {
+    if (ownerId) void recoverBackground(ownerId);
+  }, [ownerId]);
   /**
    * Whose local reads have landed, rather than a boolean somebody has to
    * remember to raise again. `loading` is then derived, so switching accounts
@@ -152,7 +161,10 @@ export function useBackup(): BackupState & BackupActions {
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
   const [hasKey, setHasKey] = useState(false);
-  const [phase, setPhase] = useState<BackupPhase | null>(null);
+  const [localPhase, setPhase] = useState<BackupPhase | null>(null);
+  const phase: BackupPhase | null = active(progress)
+    ? (localPhase ?? (progress.status === 'preparing' ? 'collecting' : 'uploading'))
+    : null;
   const [outcome, setOutcome] = useState<BackupOutcome | null>(null);
 
   const provider = providerFor(PRIMARY_PROVIDER);
@@ -262,7 +274,7 @@ export function useBackup(): BackupState & BackupActions {
     return () => {
       alive = false;
     };
-  }, [ownerId, fillAddress]);
+  }, [ownerId, fillAddress, progress.status]);
 
   const connect = useCallback(async (): Promise<boolean> => {
     if (!ownerId) return false;
@@ -469,6 +481,8 @@ export function useBackup(): BackupState & BackupActions {
     outcome,
     connect,
     disconnect,
+    progress,
+    cancel: cancelBackup,
     backupNow,
     setFrequency: setFrequencyAction,
     setNetwork: setNetworkAction,

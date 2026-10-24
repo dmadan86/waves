@@ -31,6 +31,9 @@
  */
 
 import * as Network from 'expo-network';
+import { beginBackground, finishBackground, publishBackup, cancelBackup } from './background';
+import { waitForConnection } from './reconnect';
+import { uploadPercent } from './progress';
 
 import {
   loadSyncNetworkPreference,
@@ -67,7 +70,7 @@ import {
   saveRecoveryKey,
   sealBackup,
 } from './recoveryKey';
-import { clearBackupSettings, saveTier, type LastBackup } from './settings';
+import { clearBackupSettings, saveLastBackup, saveTier, type LastBackup } from './settings';
 import {
   advanceUpgrade,
   BackupTier,
@@ -111,6 +114,7 @@ export type BackupPhase = 'collecting' | 'sealing' | 'uploading';
 /** A run that did not happen, and why — each one has a different way out. */
 export type BackupRefusal =
   /** Another run is already going. */
+  | 'cancelled'
   | 'busy'
   /** This build has no OAuth client id for the provider. */
   | 'not-configured'
@@ -239,6 +243,7 @@ async function freshTokens(id: CloudProviderId, ownerId: string): Promise<TokenL
  */
 export async function clearBackupState(ownerId: string): Promise<void> {
   if (!ownerId) return;
+  cancelBackup();
   const failures: unknown[] = [];
   await clearTokens(PRIMARY_PROVIDER, ownerId).catch((error: unknown) => failures.push(error));
   await clearRecoveryKey(ownerId).catch((error: unknown) => failures.push(error));
@@ -338,6 +343,7 @@ async function keyForRun(
   tokens: CloudTokens,
   input: BackupRunInput,
   folder: FolderState,
+  signal?: AbortSignal,
 ): Promise<Uint8Array | 'needs-key' | null> {
   // A Standard phone that finds a blob and *no* escrow beside it is looking at
   // one of two things, and they need opposite answers. Either the folder lost
@@ -354,7 +360,7 @@ async function keyForRun(
   // the one read — which happens only in this narrow case, never on an ordinary
   // run where the escrow is sitting right there.
   if (input.tier === BackupTier.Standard && folder.blob && !folder.escrow) {
-    const remoteTier = parseFile(await provider.read(tokens, folder.blob.remoteId)).tier;
+    const remoteTier = parseFile(await provider.read(tokens, folder.blob.remoteId, signal)).tier;
     // The file's tier beats the phone's — the phone may simply not have heard
     // yet. Answering `needs-key` sends the screen to "I already have a key",
     // which is exactly what this phone needs from its owner.
@@ -411,7 +417,33 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
   if (running) return { ok: false, refusal: 'busy' };
   // Claimed before the first await, so two triggers cannot both pass the check.
   running = true;
+  let controller = new AbortController();
+  let timedOut = false;
+  let waiting = false;
+  let userCancelled = false;
+  let committing = false;
+  let networkInterrupted = false;
+  let dispose: (() => void) | undefined;
+  let networkSubscription: { remove(): void } | undefined;
+  let terminal: 'complete' | 'failed' | 'cancelled' = 'failed';
+  const checkCancelled = () => {
+    if (controller.signal.aborted) throw new Error('Backup cancelled');
+  };
   try {
+    dispose = await beginBackground(
+      input.ownerId,
+      (reason) => {
+        if (reason === 'timeout') {
+          timedOut = true;
+          networkInterrupted = true;
+        } else {
+          userCancelled = true;
+          networkInterrupted = false;
+        }
+        if (!committing) controller.abort();
+      },
+      input.manual,
+    );
     const provider = providerFor(PRIMARY_PROVIDER);
     if (!provider.isConfigured()) return { ok: false, refusal: 'not-configured' };
 
@@ -424,6 +456,17 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       if (!input.manual || !input.allowMobileData) return { ok: false, refusal: 'network-policy' };
     }
 
+    networkSubscription = Network.addNetworkStateListener?.((state) => {
+      if (
+        state.isConnected === false ||
+        state.isInternetReachable === false ||
+        (!(input.manual && input.allowMobileData) &&
+          !networkAllows(strictestNetwork(input.network, sync), state.type ?? null))
+      ) {
+        networkInterrupted = true;
+        if (!committing && !waiting) controller.abort();
+      }
+    });
     const lookup = await freshTokens(PRIMARY_PROVIDER, input.ownerId);
     if (lookup.kind !== 'ok') {
       return { ok: false, refusal: lookup.kind === 'auth' ? 'auth' : 'not-connected' };
@@ -432,7 +475,7 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
 
     try {
       const folder = await readFolder(provider, tokens, input.ownerId);
-      const key = await keyForRun(provider, tokens, input, folder);
+      const key = await keyForRun(provider, tokens, input, folder, controller.signal);
       // Somebody else's Extra blob. Refusing leaves it exactly as it is.
       if (key === 'needs-key') return { ok: false, refusal: 'needs-key' };
       // Extra protection with nothing in the keystore. The person holds the
@@ -440,20 +483,96 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       // second one that would seal the next backup away from the first.
       if (!key) return { ok: false, refusal: 'no-key' };
 
+      checkCancelled();
       input.onPhase?.('collecting');
+      publishBackup({ status: 'preparing', percent: 5 });
       const body = buildBody(input.ownerId, input.records, new Date());
 
       input.onPhase?.('sealing');
+      publishBackup({ status: 'preparing', percent: 10 });
       const sealed = sealBackup(key, backupNonce(), JSON.stringify(body), backupAad(input.ownerId));
       const content = JSON.stringify(buildFile(sealed, body.createdAt, input.tier));
 
       input.onPhase?.('uploading');
-      const stored = await provider.put(
-        tokens,
-        backupFileName(input.ownerId),
-        content,
-        folder.blob?.remoteId ?? null,
-      );
+      checkCancelled();
+      publishBackup({ status: 'uploading', percent: null });
+      const stagingName = `${backupFileName(input.ownerId)}.pending`;
+      // A previous process may have died after creating the private staging file.
+      const abandoned = await provider.find(tokens, stagingName);
+      if (abandoned) await provider.remove(tokens, abandoned.remoteId);
+      let staged: CloudFile | undefined;
+      let committed = false;
+      let stored: CloudFile;
+      try {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            staged = await provider.put(tokens, stagingName, content, null, {
+              signal: controller.signal,
+              onProgress: (sent, total) => {
+                if (!controller.signal.aborted)
+                  publishBackup({ status: 'uploading', percent: uploadPercent(sent, total) });
+              },
+            });
+            break;
+          } catch (error) {
+            // Only claim to be waiting for internet when the interface is actually offline.
+            if (
+              attempt > 0 ||
+              !networkInterrupted ||
+              timedOut ||
+              userCancelled ||
+              (await connection()).online
+            )
+              throw error;
+            controller = new AbortController();
+            waiting = true;
+            publishBackup({ status: 'paused', percent: null });
+            await waitForConnection(
+              async () => {
+                const current = await connection();
+                const permitted =
+                  (input.manual && !!input.allowMobileData) ||
+                  networkAllows(strictestNetwork(input.network, sync), current.type);
+                if (current.online && !permitted) throw new Error('Backup network policy changed');
+                return current.online && permitted;
+              },
+              controller.signal,
+              60,
+              (wake) => {
+                const listener = Network.addNetworkStateListener(wake);
+                return () => listener.remove();
+              },
+            );
+            waiting = false;
+            networkInterrupted = false;
+            const partial = await provider.find(tokens, stagingName);
+            if (partial) await provider.remove(tokens, partial.remoteId);
+            publishBackup({ status: 'uploading', percent: null });
+          }
+        }
+        if (!staged) throw new Error('Backup upload incomplete');
+        checkCancelled();
+        publishBackup({ status: 'uploading', percent: 95 });
+        const readBack = await provider.read(tokens, staged.remoteId, controller.signal);
+        if (readBack !== content) throw new Error('Backup verification failed');
+        parseBody(
+          openBackup(key, parseFile(readBack).sealed, backupAad(input.ownerId)),
+          input.ownerId,
+        );
+        checkCancelled();
+        // Once commit begins cancellation is unsafe: success may already be on Drive.
+        if (!provider.commit) throw new Error('Backup provider cannot commit safely');
+        committing = true;
+        stored = await provider.commit(tokens, staged.remoteId, backupFileName(input.ownerId));
+        if (stored.remoteId !== staged.remoteId || stored.name !== backupFileName(input.ownerId))
+          throw new Error('Backup commit verification failed');
+        committed = true;
+        // Newest canonical file wins, including if the process dies before this cleanup.
+        if (folder.blob) await provider.remove(tokens, folder.blob.remoteId).catch(() => undefined);
+      } finally {
+        if (staged && !committed)
+          await provider.remove(tokens, staged.remoteId).catch(() => undefined);
+      }
 
       // The sweep. An upgrade whose escrow delete failed leaves behind a key
       // file that opens nothing — `keyForRestore` reads the blob's tier, not
@@ -463,6 +582,12 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
         await provider.remove(tokens, folder.escrow.remoteId).catch(() => undefined);
       }
 
+      await saveLastBackup(input.ownerId, {
+        at: Date.now(),
+        size: stored.size > 0 ? stored.size : content.length,
+        records: body.records.length,
+      });
+      terminal = 'complete';
       return {
         ok: true,
         last: {
@@ -483,7 +608,16 @@ export async function runBackup(input: BackupRunInput): Promise<BackupResult> {
       }
       throw error;
     }
+  } catch (error) {
+    if (controller.signal.aborted && !networkInterrupted) {
+      terminal = 'cancelled';
+      return { ok: false, refusal: 'cancelled' };
+    }
+    throw error;
   } finally {
+    networkSubscription?.remove();
+    dispose?.();
+    await finishBackground(input.ownerId, terminal).catch(() => undefined);
     running = false;
   }
 }
