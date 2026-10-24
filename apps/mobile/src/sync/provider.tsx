@@ -356,7 +356,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         kind,
         groupId,
         clientCreatedAt: new Date().toISOString(),
-        payload,
+        // JSON has no bigint: exact split amounts arrive as bigint and go out as decimal strings.
+        payload: JSON.parse(
+          JSON.stringify(payload, (_key, value: unknown) =>
+            typeof value === 'bigint' ? value.toString() : value,
+          ),
+        ) as Record<string, unknown>,
       };
       await syncEngine.enqueue(envelope);
       return envelope.clientMutationId;
