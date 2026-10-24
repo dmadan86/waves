@@ -1786,7 +1786,25 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  adGates: {
+    title: string;
+    groupBody: string;
+    exportBody: string;
+    watchBtn: string;
+    proLink: string;
+    failedTitle: string;
+    failedBody: string;
+    groupRetryBtn: string;
+    exportRetryBtn: string;
+    /** Shown instead of failedTitle when an ad blocker or blocking Private DNS stopped the ad. */
+    blockedTitle: string;
+    /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
+    blockedBody: string;
+  };
   rewardedAds: {
+    entryVoice: string;
+    entryScan: string;
+    adLabel: string;
     voiceTitle: string;
     scanTitle: string;
     voiceBody: string;
@@ -7330,7 +7348,23 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  adGates: {
+    title: 'Watch a short ad',
+    groupBody: 'Then you can create this group.',
+    exportBody: 'Then you can export.',
+    watchBtn: 'Watch ad',
+    proLink: 'Get Pro for no ads',
+    failedTitle: 'The ad could not load',
+    failedBody: 'Please try again.',
+    groupRetryBtn: 'Retry ad to create group',
+    exportRetryBtn: 'Retry ad to export',
+    blockedTitle: 'The ad seems blocked',
+    blockedBody: 'Turn off ad blocking or Private DNS.',
+  },
   rewardedAds: {
+    entryVoice: 'Watch a short video for 2 more voice commands',
+    entryScan: 'Watch a short video for 2 more scans',
+    adLabel: 'Ad',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
@@ -9578,16 +9612,16 @@ const en: UiStrings = {
   },
   groupImport: {
     menu: 'Import expenses',
-    emptyLink: 'Have these in a spreadsheet? Import',
+    emptyLink: 'Import from Excel, CSV or Splitwise',
     titleNamed: 'Import into {group}',
     titleLead: 'Import into',
-    sourceIntro: 'Bring in expenses you already keep somewhere else.',
-    sourceFileTitle: 'Spreadsheet or CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise export',
-    sourceSplitwiseHint: 'In Splitwise: open your group, then export as spreadsheet',
-    sourceShotTitle: 'Screenshot',
-    sourceShotHint: 'A photo of a list, a bank app or a chat',
+    sourceIntro: 'Where are these expenses now? Pick one, then choose the file.',
+    sourceFileTitle: 'From Excel or CSV',
+    sourceFileHint: 'Pick a file on your phone (Google Sheets, Excel, Tricount…)',
+    sourceSplitwiseTitle: 'From Splitwise',
+    sourceSplitwiseHint: 'Pick the file you downloaded from Splitwise',
+    sourceShotTitle: 'From a screenshot',
+    sourceShotHint: 'Pick a photo of a list, bank app or chat',
     proBadge: 'PRO',
     seeExamples: 'See CSV examples and get a template',
     nothingAdded: 'Nothing is added until you review it.',
@@ -12401,7 +12435,23 @@ const ta: UiStrings = {
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
+  adGates: {
+    title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
+    groupBody: 'பிறகு இந்தக் குழுவை உருவாக்கலாம்.',
+    exportBody: 'பிறகு ஏற்றுமதி செய்யலாம்.',
+    watchBtn: 'விளம்பரம் பாருங்கள்',
+    proLink: 'விளம்பரமின்றி Pro பெறுங்கள்',
+    failedTitle: 'விளம்பரம் ஏற்றப்படவில்லை',
+    failedBody: 'மீண்டும் முயலவும்.',
+    groupRetryBtn: 'குழு உருவாக்க விளம்பரம் மீண்டும் பாருங்கள்',
+    exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
+    blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
+    blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
+  },
   rewardedAds: {
+    entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    entryScan: 'மேலும் 2 ஸ்கேன்களுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
+    adLabel: 'விளம்பரம்',
     voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     voiceBody:
@@ -14764,16 +14814,17 @@ const ta: UiStrings = {
   },
   groupImport: {
     menu: 'செலவுகளை இறக்குமதி செய்',
-    emptyLink: 'ஸ்ப்ரெட்ஷீட்டில் வைத்திருக்கிறீர்களா? இறக்குமதி செய்யுங்கள்',
+    emptyLink: 'Excel, CSV அல்லது Splitwise-இலிருந்து இறக்குமதி',
     titleNamed: '{group} குழுவில் இறக்குமதி',
     titleLead: 'இதில் இறக்குமதி',
-    sourceIntro: 'வேறு இடத்தில் வைத்திருக்கும் செலவுகளை இங்கே கொண்டு வாருங்கள்.',
-    sourceFileTitle: 'ஸ்ப்ரெட்ஷீட் அல்லது CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise ஏற்றுமதி',
-    sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
-    sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
-    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படம்',
+    sourceIntro:
+      'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
+    sourceFileTitle: 'Excel அல்லது CSV-இலிருந்து',
+    sourceFileHint: 'உங்கள் போனில் உள்ள கோப்பைத் தேர்ந்தெடுங்கள் (Google Sheets, Excel…)',
+    sourceSplitwiseTitle: 'Splitwise-இலிருந்து',
+    sourceSplitwiseHint: 'Splitwise-இலிருந்து பதிவிறக்கிய கோப்பைத் தேர்ந்தெடுங்கள்',
+    sourceShotTitle: 'ஸ்கிரீன்ஷாட்டிலிருந்து',
+    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படத்தைத் தேர்ந்தெடுங்கள்',
     proBadge: 'PRO',
     seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
     nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
@@ -17619,7 +17670,23 @@ const hi: UiStrings = {
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
+  adGates: {
+    title: 'एक छोटा विज्ञापन देखें',
+    groupBody: 'फिर आप यह ग्रुप बना सकते हैं।',
+    exportBody: 'फिर आप एक्सपोर्ट कर सकते हैं।',
+    watchBtn: 'विज्ञापन देखें',
+    proLink: 'बिना विज्ञापन के Pro लें',
+    failedTitle: 'विज्ञापन लोड नहीं हो सका',
+    failedBody: 'कृपया फिर से कोशिश करें।',
+    groupRetryBtn: 'ग्रुप बनाने के लिए विज्ञापन दोबारा देखें',
+    exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
+    blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
+    blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
+  },
   rewardedAds: {
+    entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
+    entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
+    adLabel: 'विज्ञापन',
     voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
     scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
     voiceBody:
@@ -19883,16 +19950,16 @@ const hi: UiStrings = {
   },
   groupImport: {
     menu: 'खर्च इम्पोर्ट करें',
-    emptyLink: 'ये स्प्रेडशीट में हैं? इम्पोर्ट करें',
+    emptyLink: 'Excel, CSV या Splitwise से इम्पोर्ट करें',
     titleNamed: '{group} में इम्पोर्ट',
     titleLead: 'इसमें इम्पोर्ट करें',
-    sourceIntro: 'जो खर्च आप कहीं और रखते हैं, उन्हें यहाँ ले आइए।',
-    sourceFileTitle: 'स्प्रेडशीट या CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise एक्सपोर्ट',
-    sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
-    sourceShotTitle: 'स्क्रीनशॉट',
-    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो',
+    sourceIntro: 'ये खर्च अभी कहाँ हैं? एक चुनें, फिर फ़ाइल चुनें।',
+    sourceFileTitle: 'Excel या CSV से',
+    sourceFileHint: 'अपने फ़ोन से फ़ाइल चुनें (Google Sheets, Excel…)',
+    sourceSplitwiseTitle: 'Splitwise से',
+    sourceSplitwiseHint: 'Splitwise से डाउनलोड की गई फ़ाइल चुनें',
+    sourceShotTitle: 'स्क्रीनशॉट से',
+    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो चुनें',
     proBadge: 'PRO',
     seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
     nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
@@ -22756,7 +22823,23 @@ const ar: UiStrings = {
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
+  adGates: {
+    title: 'شاهد إعلانًا قصيرًا',
+    groupBody: 'ثم يمكنك إنشاء هذه المجموعة.',
+    exportBody: 'ثم يمكنك التصدير.',
+    watchBtn: 'شاهد الإعلان',
+    proLink: 'احصل على Pro بلا إعلانات',
+    failedTitle: 'تعذّر تحميل الإعلان',
+    failedBody: 'يُرجى المحاولة مرة أخرى.',
+    groupRetryBtn: 'أعد الإعلان لإنشاء المجموعة',
+    exportRetryBtn: 'أعد الإعلان للتصدير',
+    blockedTitle: 'يبدو أن الإعلان محجوب',
+    blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
+  },
   rewardedAds: {
+    entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
+    entryScan: 'شاهد فيديو قصيرًا للحصول على عمليتي مسح إضافيتين',
+    adLabel: 'إعلان',
     voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
     scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
     voiceBody:
@@ -25376,16 +25459,16 @@ const ar: UiStrings = {
   },
   groupImport: {
     menu: 'استيراد المصاريف',
-    emptyLink: 'لديك هذه في جدول بيانات؟ استوردها',
+    emptyLink: 'استيراد من Excel أو CSV أو Splitwise',
     titleNamed: 'الاستيراد إلى {group}',
     titleLead: 'الاستيراد إلى',
-    sourceIntro: 'أحضر المصاريف التي تحتفظ بها في مكان آخر.',
-    sourceFileTitle: 'جدول بيانات أو CSV',
-    sourceFileHint: 'Google Sheets وExcel وTricount وSettle Up…',
-    sourceSplitwiseTitle: 'ملف تصدير Splitwise',
-    sourceSplitwiseHint: 'في Splitwise: مجموعتك ثم «Export as spreadsheet»',
-    sourceShotTitle: 'لقطة شاشة',
-    sourceShotHint: 'صورة لقائمة أو تطبيق بنكي أو محادثة',
+    sourceIntro: 'أين هذه المصاريف الآن؟ اختر واحدًا، ثم اختر الملف.',
+    sourceFileTitle: 'من Excel أو CSV',
+    sourceFileHint: 'اختر ملفًا من هاتفك (Google Sheets وExcel…)',
+    sourceSplitwiseTitle: 'من Splitwise',
+    sourceSplitwiseHint: 'اختر الملف الذي نزّلته من Splitwise',
+    sourceShotTitle: 'من لقطة شاشة',
+    sourceShotHint: 'اختر صورة لقائمة أو تطبيق بنكي أو محادثة',
     proBadge: 'PRO',
     seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
     nothingAdded: 'لن يُضاف شيء حتى تراجعه.',

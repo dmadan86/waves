@@ -1,3 +1,4 @@
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
  *
@@ -2754,6 +2755,7 @@ export default function VoiceScreen() {
               compact={compactTop}
             />
           ) : null}
+          <RewardedAdEntry kind="voice" />
           {basicQuestion ? (
             <Link href="/paywall" asChild>
               <Text tone="brand" accessibilityRole="link" style={{ textAlign: 'center' }}>

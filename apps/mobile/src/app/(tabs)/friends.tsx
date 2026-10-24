@@ -1,3 +1,5 @@
+import { NativeAdCard } from '@/components/NativeAdCard';
+import { nativePosition } from '@/lib/nativeAdsPure';
 /**
  * Everybody you are not square with, across every group.
  *
@@ -258,6 +260,7 @@ function findDuplicates(rows: PersonBalanceRow[]): DuplicateInfo {
 }
 
 export default function FriendsScreen() {
+  const [adVisible, setAdVisible] = useState(false);
   const theme = useTheme();
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
@@ -528,11 +531,14 @@ export default function FriendsScreen() {
                 fast fling never outruns recycling into blank rows). */}
             <FlashList
               data={persons}
+              onViewableItemsChanged={({ viewableItems }) =>
+                setAdVisible((seen) => seen || viewableItems.some(({ index }) => index === 7))
+              }
               // Selection state lives outside the row data, so the list has to
               // be told to re-render its rows when it changes (the tick, the
               // fill). The length rides along because the last row draws the
               // card's foot.
-              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}`}
+              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}|${adVisible}`}
               keyExtractor={(item) => item.person_key}
               // A single-currency row and a multi-currency (stacked amounts) row
               // are structurally different subtrees; typing them lets FlashList
@@ -557,34 +563,39 @@ export default function FriendsScreen() {
                 const first = index === 0;
                 const last = index === persons.length - 1;
                 return (
-                  <View
-                    style={{
-                      backgroundColor: theme.color.surface,
-                      borderColor: theme.color.border,
-                      borderLeftWidth: 1,
-                      borderRightWidth: 1,
-                      borderTopWidth: first ? 1 : 0,
-                      borderBottomWidth: last ? 1 : 0,
-                      borderTopLeftRadius: first ? theme.radius.lg : 0,
-                      borderTopRightRadius: first ? theme.radius.lg : 0,
-                      borderBottomLeftRadius: last ? theme.radius.lg : 0,
-                      borderBottomRightRadius: last ? theme.radius.lg : 0,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <PersonRow
-                      person={item}
-                      locale={locale}
-                      t={t}
-                      hidden={balanceHidden || !balanceReady}
-                      divider={!first}
-                      duplicate={duplicates.keys.has(item.person_key)}
-                      selectMode={selectMode}
-                      selected={selectedKeys.has(item.person_key)}
-                      onEnterSelect={enterSelect}
-                      onToggleSelect={toggleSelect}
-                    />
-                  </View>
+                  <>
+                    <View
+                      style={{
+                        backgroundColor: theme.color.surface,
+                        borderColor: theme.color.border,
+                        borderLeftWidth: 1,
+                        borderRightWidth: 1,
+                        borderTopWidth: first ? 1 : 0,
+                        borderBottomWidth: last ? 1 : 0,
+                        borderTopLeftRadius: first ? theme.radius.lg : 0,
+                        borderTopRightRadius: first ? theme.radius.lg : 0,
+                        borderBottomLeftRadius: last ? theme.radius.lg : 0,
+                        borderBottomRightRadius: last ? theme.radius.lg : 0,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <PersonRow
+                        person={item}
+                        locale={locale}
+                        t={t}
+                        hidden={balanceHidden || !balanceReady}
+                        divider={!first}
+                        duplicate={duplicates.keys.has(item.person_key)}
+                        selectMode={selectMode}
+                        selected={selectedKeys.has(item.person_key)}
+                        onEnterSelect={enterSelect}
+                        onToggleSelect={toggleSelect}
+                      />
+                    </View>
+                    {index === 7 && nativePosition(persons.length) !== null && !selectMode ? (
+                      <NativeAdCard visible={adVisible} />
+                    ) : null}
+                  </>
                 );
               }}
             />

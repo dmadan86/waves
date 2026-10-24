@@ -28,7 +28,7 @@ export function EmptyStateCta({
   const dark = theme.scheme === 'dark';
   const accent = dark ? theme.color.brand : SPEC_ACCENT;
   return (
-    <View style={{ alignItems: 'center', gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
+    <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.md }}>
       <Image
         source={GROUP_EMPTY_ART}
         resizeMode="contain"
@@ -38,8 +38,8 @@ export function EmptyStateCta({
       />
       <Text
         style={{
-          fontSize: 26,
-          lineHeight: 32,
+          fontSize: 19,
+          lineHeight: 24,
           fontWeight: '800',
           textAlign: 'center',
           color: dark ? theme.color.text : SPEC_INK,
@@ -49,8 +49,8 @@ export function EmptyStateCta({
       </Text>
       <Text
         style={{
-          fontSize: 16,
-          lineHeight: 23,
+          fontSize: 14,
+          lineHeight: 20,
           textAlign: 'center',
           maxWidth: 300,
           color: dark ? theme.color.textMuted : SPEC_MUTED,
@@ -63,13 +63,13 @@ export function EmptyStateCta({
         accessibilityLabel={action}
         onPress={onAdd}
         style={({ pressed }) => ({
-          marginTop: theme.spacing.md,
+          marginTop: theme.spacing.sm,
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.sm,
-          height: 54,
-          paddingHorizontal: theme.spacing.xxl,
-          borderRadius: 27,
+          height: 44,
+          paddingHorizontal: theme.spacing.xl,
+          borderRadius: 22,
           backgroundColor: accent,
           shadowColor: accent,
           shadowOpacity: 0.3,
@@ -79,8 +79,8 @@ export function EmptyStateCta({
           opacity: pressed ? 0.85 : 1,
         })}
       >
-        <Ionicons name="add" size={24} color="#FFFFFF" />
-        <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
+        <Ionicons name="add" size={20} color="#FFFFFF" />
+        <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
       </Pressable>
       {secondary ? (
         <Pressable
@@ -104,4 +104,4 @@ export function EmptyStateCta({
  *  height, 1536 × 1024) and how wide it sits. */
 const GROUP_EMPTY_ART = require('../../assets/images/group-empty.webp') as number;
 const EMPTY_ART_RATIO = 1536 / 1024;
-const EMPTY_ART_WIDTH = 200;
+const EMPTY_ART_WIDTH = 120;
