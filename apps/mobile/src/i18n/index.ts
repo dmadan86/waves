@@ -765,7 +765,6 @@ export interface UiStrings {
     ready: string;
     webNote: string;
     shareTitle: string;
-    importInstead: string;
   };
   /**
    * A per-group export to PDF or Excel, reached from the group's ••• menu. A
@@ -1083,6 +1082,14 @@ export interface UiStrings {
     gateAction: string;
     gateDismiss: string;
   };
+  yourData: {
+    title: string;
+    rowHint: string;
+    exportSection: string;
+    importSection: string;
+    exportHint: string;
+    importHint: string;
+  };
   /** The account screen and its three faces. */
   account: {
     facePaying: string;
@@ -1135,10 +1142,7 @@ export interface UiStrings {
     yourAccountHint: string;
     notifications: string;
     notificationsHint: string;
-    exportDataRow: string;
-    exportHint: string;
     importSplitwise: string;
-    importHint: string;
     themeRow: string;
     languageFollowingPhone: string;
     languageRestartHint: string;
@@ -1422,6 +1426,7 @@ export interface UiStrings {
     statusProcessing: string;
     statusNoSpeech: string;
     statusNoAmount: string;
+    statusQuestion: string;
     statusPermission: string;
     statusError: string;
     statusExpenseReady: string;
@@ -6499,7 +6504,6 @@ const en: UiStrings = {
     ready: 'Export ready',
     webNote: 'On web the file is written to the app cache; use a device to share it onward.',
     shareTitle: 'Your Waves export',
-    importInstead: 'Import from Splitwise',
   },
   groupExport: {
     menu: 'Export',
@@ -6796,6 +6800,14 @@ const en: UiStrings = {
     gateAction: 'Log out other devices',
     gateDismiss: 'Not now',
   },
+  yourData: {
+    title: 'Your data',
+    rowHint: 'Import or export your data',
+    exportSection: 'Export',
+    importSection: 'Import',
+    exportHint: 'Save as JSON, CSV or PDF',
+    importHint: 'Bring in a Splitwise CSV or Waves JSON file',
+  },
   account: {
     facePaying: 'Paying',
     faceSettings: 'Settings',
@@ -6843,10 +6855,7 @@ const en: UiStrings = {
     yourAccountHint: 'Email, phone, or a linked account',
     notifications: 'Notifications',
     notificationsHint: 'Only what involves me',
-    exportDataRow: 'Export data',
-    exportHint: 'JSON + CSV, lossless, free',
     importSplitwise: 'Import your data',
-    importHint: 'Bring your history across from another app',
     themeRow: 'Appearance',
     languageFollowingPhone: 'Following your phone — {language}',
     languageRestartHint: '{language} · reopen Waves to mirror it',
@@ -7118,6 +7127,7 @@ const en: UiStrings = {
     statusProcessing: 'Understanding your expense…',
     statusNoSpeech: 'Couldn’t hear that',
     statusNoAmount: 'Heard you, but no amount',
+    statusQuestion: 'That’s a question. Watch a short video or go Pro to ask Waves.',
     statusPermission: 'Microphone access needed',
     statusError: 'Something went wrong',
     statusExpenseReady: 'Expense ready',
@@ -9658,16 +9668,16 @@ const en: UiStrings = {
   },
   groupImport: {
     menu: 'Import expenses',
-    emptyLink: 'Have these in a spreadsheet? Import',
+    emptyLink: 'Import from Excel, CSV or Splitwise',
     titleNamed: 'Import into {group}',
     titleLead: 'Import into',
-    sourceIntro: 'Bring in expenses you already keep somewhere else.',
-    sourceFileTitle: 'Spreadsheet or CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise export',
-    sourceSplitwiseHint: 'In Splitwise: open your group, then export as spreadsheet',
-    sourceShotTitle: 'Screenshot',
-    sourceShotHint: 'A photo of a list, a bank app or a chat',
+    sourceIntro: 'Where are these expenses now? Pick one, then choose the file.',
+    sourceFileTitle: 'From Excel or CSV',
+    sourceFileHint: 'Pick a file on your phone (Google Sheets, Excel, Tricount…)',
+    sourceSplitwiseTitle: 'From Splitwise',
+    sourceSplitwiseHint: 'Pick the file you downloaded from Splitwise',
+    sourceShotTitle: 'From a screenshot',
+    sourceShotHint: 'Pick a photo of a list, bank app or chat',
     proBadge: 'PRO',
     seeExamples: 'See CSV examples and get a template',
     nothingAdded: 'Nothing is added until you review it.',
@@ -9842,7 +9852,7 @@ const en: UiStrings = {
     splitwiseTitle: 'Import a Splitwise export',
     ledgerTitle: 'Import a ledger',
     splitwiseHowTo: 'In Splitwise: open a group, then Export as spreadsheet.',
-    wavesHowTo: 'In Waves: Settings, then Export.',
+    wavesHowTo: 'In Waves: Settings → Your data → Export your data.',
     bringHistory: 'Bring your history across',
     free: 'free',
     ledgerHowTo: 'Everyone named in the file joins the group. They don’t need the app.',
@@ -11593,7 +11603,6 @@ const ta: UiStrings = {
     webNote:
       'வலையில் கோப்பு ஆப்பின் தற்காலிக இடத்தில் எழுதப்படுகிறது; மேலும் பகிர ஒரு சாதனத்தைப் பயன்படுத்துங்கள்.',
     shareTitle: 'உங்கள் Waves ஏற்றுமதி',
-    importInstead: 'Splitwise இலிருந்து இறக்குமதி',
   },
   groupExport: {
     menu: 'ஏற்றுமதி',
@@ -11895,6 +11904,14 @@ const ta: UiStrings = {
     gateAction: 'மற்ற சாதனங்களில் வெளியேறு',
     gateDismiss: 'இப்போது வேண்டாம்',
   },
+  yourData: {
+    title: 'உங்கள் தரவு',
+    rowHint: 'உங்கள் தரவை இறக்குமதி அல்லது ஏற்றுமதி செய்யவும்',
+    exportSection: 'ஏற்றுமதி',
+    importSection: 'இறக்குமதி',
+    exportHint: 'JSON, CSV அல்லது PDF ஆகச் சேமிக்கவும்',
+    importHint: 'Splitwise CSV அல்லது Waves JSON கோப்பை இறக்குமதி செய்யவும்',
+  },
   account: {
     facePaying: 'பணம் பெற',
     faceSettings: 'அமைப்புகள்',
@@ -11944,10 +11961,7 @@ const ta: UiStrings = {
     yourAccountHint: 'மின்னஞ்சல், தொலைபேசி, அல்லது இணைத்த கணக்கு',
     notifications: 'அறிவிப்புகள்',
     notificationsHint: 'என்னைச் சார்ந்தவை மட்டும்',
-    exportDataRow: 'தரவை ஏற்றுமதி செய்',
-    exportHint: 'JSON + CSV, முழுமையானது, இலவசம்',
     importSplitwise: 'உங்கள் தரவை இறக்குமதி செய்',
-    importHint: 'மற்றொரு செயலியிலிருந்து உங்கள் வரலாற்றைக் கொண்டுவா',
     themeRow: 'தோற்றம்',
     languageFollowingPhone: 'உங்கள் ஃபோனைப் பின்பற்றுகிறது — {language}',
     languageRestartHint: '{language} · பிரதிபலிக்க Waves-ஐ மீண்டும் திற',
@@ -12224,6 +12238,8 @@ const ta: UiStrings = {
     statusProcessing: 'உங்கள் செலவைப் புரிந்துகொள்கிறேன்…',
     statusNoSpeech: 'கேட்கவில்லை',
     statusNoAmount: 'கேட்டேன், ஆனால் தொகை இல்லை',
+    statusQuestion:
+      'அது ஒரு கேள்வி. Waves-இடம் கேட்க ஒரு சிறிய வீடியோவைப் பாருங்கள் அல்லது Pro-க்கு மாறுங்கள்.',
     statusPermission: 'மைக்ரோஃபோன் அனுமதி தேவை',
     statusError: 'ஏதோ தவறு நடந்தது',
     statusExpenseReady: 'செலவு தயார்',
@@ -14882,16 +14898,17 @@ const ta: UiStrings = {
   },
   groupImport: {
     menu: 'செலவுகளை இறக்குமதி செய்',
-    emptyLink: 'ஸ்ப்ரெட்ஷீட்டில் வைத்திருக்கிறீர்களா? இறக்குமதி செய்யுங்கள்',
+    emptyLink: 'Excel, CSV அல்லது Splitwise-இலிருந்து இறக்குமதி',
     titleNamed: '{group} குழுவில் இறக்குமதி',
     titleLead: 'இதில் இறக்குமதி',
-    sourceIntro: 'வேறு இடத்தில் வைத்திருக்கும் செலவுகளை இங்கே கொண்டு வாருங்கள்.',
-    sourceFileTitle: 'ஸ்ப்ரெட்ஷீட் அல்லது CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise ஏற்றுமதி',
-    sourceSplitwiseHint: 'Splitwise-ல்: உங்கள் குழு, பிறகு “Export as spreadsheet”',
-    sourceShotTitle: 'ஸ்கிரீன்ஷாட்',
-    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படம்',
+    sourceIntro:
+      'இந்தச் செலவுகள் இப்போது எங்கே உள்ளன? ஒன்றைத் தேர்ந்து, பிறகு கோப்பைத் தேர்ந்தெடுங்கள்.',
+    sourceFileTitle: 'Excel அல்லது CSV-இலிருந்து',
+    sourceFileHint: 'உங்கள் போனில் உள்ள கோப்பைத் தேர்ந்தெடுங்கள் (Google Sheets, Excel…)',
+    sourceSplitwiseTitle: 'Splitwise-இலிருந்து',
+    sourceSplitwiseHint: 'Splitwise-இலிருந்து பதிவிறக்கிய கோப்பைத் தேர்ந்தெடுங்கள்',
+    sourceShotTitle: 'ஸ்கிரீன்ஷாட்டிலிருந்து',
+    sourceShotHint: 'பட்டியல், வங்கி ஆப் அல்லது அரட்டையின் படத்தைத் தேர்ந்தெடுங்கள்',
     proBadge: 'PRO',
     seeExamples: 'CSV எடுத்துக்காட்டுகளையும் டெம்ப்ளேட்டையும் பாருங்கள்',
     nothingAdded: 'நீங்கள் சரிபார்க்கும் வரை எதுவும் சேர்க்கப்படாது.',
@@ -15072,7 +15089,7 @@ const ta: UiStrings = {
     splitwiseTitle: 'Splitwise ஏற்றுமதியை இறக்குமதி செய்',
     ledgerTitle: 'ஒரு கணக்கை இறக்குமதி செய்',
     splitwiseHowTo: 'Splitwise-இல்: குழுவைத் திறந்து, Export as spreadsheet.',
-    wavesHowTo: 'Waves-இல்: அமைப்புகள், பிறகு ஏற்றுமதி.',
+    wavesHowTo: 'Waves-இல்: அமைப்புகள் → உங்கள் தரவு → தரவை ஏற்றுமதி செய்.',
     bringHistory: 'உங்கள் வரலாற்றைக் கொண்டு வாருங்கள்',
     free: 'இலவசம்',
     ledgerHowTo:
@@ -16863,7 +16880,6 @@ const hi: UiStrings = {
     webNote:
       'वेब पर फ़ाइल ऐप के कैश में लिखी जाती है; आगे साझा करने के लिए किसी डिवाइस का उपयोग करें।',
     shareTitle: 'आपका Waves निर्यात',
-    importInstead: 'Splitwise से आयात करें',
   },
   groupExport: {
     menu: 'निर्यात',
@@ -17163,6 +17179,14 @@ const hi: UiStrings = {
     gateAction: 'दूसरे डिवाइस से साइन आउट करें',
     gateDismiss: 'अभी नहीं',
   },
+  yourData: {
+    title: 'आपका डेटा',
+    rowHint: 'अपना डेटा इम्पोर्ट या एक्सपोर्ट करें',
+    exportSection: 'निर्यात',
+    importSection: 'आयात',
+    exportHint: 'JSON, CSV या PDF में सहेजें',
+    importHint: 'Splitwise CSV या Waves JSON फ़ाइल से डेटा लाएँ',
+  },
   account: {
     facePaying: 'भुगतान',
     faceSettings: 'सेटिंग्स',
@@ -17210,10 +17234,7 @@ const hi: UiStrings = {
     yourAccountHint: 'ईमेल, फ़ोन, या कोई लिंक किया खाता',
     notifications: 'सूचनाएँ',
     notificationsHint: 'सिर्फ़ वही जिनसे मेरा वास्ता है',
-    exportDataRow: 'डेटा निर्यात',
-    exportHint: 'JSON + CSV, कुछ छूटता नहीं, मुफ़्त',
     importSplitwise: 'अपना डेटा आयात करें',
-    importHint: 'किसी दूसरे ऐप से अपना इतिहास ले आएँ',
     themeRow: 'रूप-रंग',
     languageFollowingPhone: 'आपके फ़ोन के अनुसार — {language}',
     languageRestartHint: '{language} · दिशा बदलने के लिए Waves दोबारा खोलें',
@@ -17484,6 +17505,7 @@ const hi: UiStrings = {
     statusProcessing: 'आपका खर्च समझ रहा हूँ…',
     statusNoSpeech: 'सुनाई नहीं दिया',
     statusNoAmount: 'सुना, पर कोई रकम नहीं मिली',
+    statusQuestion: 'यह एक सवाल है। Waves से पूछने के लिए छोटा वीडियो देखें या Pro लें।',
     statusPermission: 'माइक्रोफ़ोन की अनुमति चाहिए',
     statusError: 'कुछ गड़बड़ हो गई',
     statusExpenseReady: 'खर्च तैयार है',
@@ -20040,16 +20062,16 @@ const hi: UiStrings = {
   },
   groupImport: {
     menu: 'खर्च इम्पोर्ट करें',
-    emptyLink: 'ये स्प्रेडशीट में हैं? इम्पोर्ट करें',
+    emptyLink: 'Excel, CSV या Splitwise से इम्पोर्ट करें',
     titleNamed: '{group} में इम्पोर्ट',
     titleLead: 'इसमें इम्पोर्ट करें',
-    sourceIntro: 'जो खर्च आप कहीं और रखते हैं, उन्हें यहाँ ले आइए।',
-    sourceFileTitle: 'स्प्रेडशीट या CSV',
-    sourceFileHint: 'Google Sheets, Excel, Tricount, Settle Up and more',
-    sourceSplitwiseTitle: 'Splitwise एक्सपोर्ट',
-    sourceSplitwiseHint: 'Splitwise में: अपना ग्रुप, फिर “Export as spreadsheet”',
-    sourceShotTitle: 'स्क्रीनशॉट',
-    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो',
+    sourceIntro: 'ये खर्च अभी कहाँ हैं? एक चुनें, फिर फ़ाइल चुनें।',
+    sourceFileTitle: 'Excel या CSV से',
+    sourceFileHint: 'अपने फ़ोन से फ़ाइल चुनें (Google Sheets, Excel…)',
+    sourceSplitwiseTitle: 'Splitwise से',
+    sourceSplitwiseHint: 'Splitwise से डाउनलोड की गई फ़ाइल चुनें',
+    sourceShotTitle: 'स्क्रीनशॉट से',
+    sourceShotHint: 'लिस्ट, बैंक ऐप या चैट की फ़ोटो चुनें',
     proBadge: 'PRO',
     seeExamples: 'CSV के उदाहरण देखें और टेम्पलेट लें',
     nothingAdded: 'आपके जाँचने तक कुछ भी नहीं जुड़ेगा।',
@@ -20227,7 +20249,7 @@ const hi: UiStrings = {
     splitwiseTitle: 'Splitwise निर्यात आयात करें',
     ledgerTitle: 'हिसाब आयात करें',
     splitwiseHowTo: 'Splitwise में: समूह खोलें, फिर Export as spreadsheet।',
-    wavesHowTo: 'Waves में: सेटिंग्स, फिर निर्यात।',
+    wavesHowTo: 'Waves में: सेटिंग्स → आपका डेटा → डेटा निर्यात करें।',
     bringHistory: 'अपना इतिहास ले आएँ',
     free: 'मुफ़्त',
     ledgerHowTo: 'फ़ाइल में जिनका नाम है वे सब समूह में जुड़ जाते हैं। उन्हें ऐप की ज़रूरत नहीं।',
@@ -21993,7 +22015,6 @@ const ar: UiStrings = {
     ready: 'التصدير جاهز',
     webNote: 'على الويب يُكتب الملف في ذاكرة التطبيق المؤقتة؛ استخدم جهازًا لمشاركته.',
     shareTitle: 'تصدير Waves الخاص بك',
-    importInstead: 'استيراد من Splitwise',
   },
   groupExport: {
     menu: 'تصدير',
@@ -22334,6 +22355,14 @@ const ar: UiStrings = {
     gateAction: 'تسجيل الخروج من الأجهزة الأخرى',
     gateDismiss: 'ليس الآن',
   },
+  yourData: {
+    title: 'بياناتك',
+    rowHint: 'استيراد بياناتك أو تصديرها',
+    exportSection: 'تصدير',
+    importSection: 'استيراد',
+    exportHint: 'احفظ بصيغة JSON أو CSV أو PDF',
+    importHint: 'استورد ملف Splitwise CSV أو Waves JSON',
+  },
   account: {
     facePaying: 'الدفع',
     faceSettings: 'الإعدادات',
@@ -22380,10 +22409,7 @@ const ar: UiStrings = {
     yourAccountHint: 'بريد، هاتف، أو حساب مرتبط',
     notifications: 'الإشعارات',
     notificationsHint: 'ما يخصّني فقط',
-    exportDataRow: 'تصدير البيانات',
-    exportHint: 'JSON + CSV، بلا فقدان، مجانًا',
     importSplitwise: 'استيراد بياناتك',
-    importHint: 'أحضر سجلّك من تطبيق آخر',
     themeRow: 'المظهر',
     languageFollowingPhone: 'يتبع هاتفك — {language}',
     languageRestartHint: '{language} · أعد فتح Waves لعكس الاتجاه',
@@ -22660,6 +22686,7 @@ const ar: UiStrings = {
     statusProcessing: 'أفهم مصروفك…',
     statusNoSpeech: 'لم أسمع ذلك',
     statusNoAmount: 'سمعتك، لكن بلا مبلغ',
+    statusQuestion: 'هذا سؤال. شاهد فيديو قصيرًا أو اشترك في Pro لسؤال Waves.',
     statusPermission: 'يلزم إذن الميكروفون',
     statusError: 'حدث خطأ ما',
     statusExpenseReady: 'المصروف جاهز',
@@ -25572,16 +25599,16 @@ const ar: UiStrings = {
   },
   groupImport: {
     menu: 'استيراد المصاريف',
-    emptyLink: 'لديك هذه في جدول بيانات؟ استوردها',
+    emptyLink: 'استيراد من Excel أو CSV أو Splitwise',
     titleNamed: 'الاستيراد إلى {group}',
     titleLead: 'الاستيراد إلى',
-    sourceIntro: 'أحضر المصاريف التي تحتفظ بها في مكان آخر.',
-    sourceFileTitle: 'جدول بيانات أو CSV',
-    sourceFileHint: 'Google Sheets وExcel وTricount وSettle Up…',
-    sourceSplitwiseTitle: 'ملف تصدير Splitwise',
-    sourceSplitwiseHint: 'في Splitwise: مجموعتك ثم «Export as spreadsheet»',
-    sourceShotTitle: 'لقطة شاشة',
-    sourceShotHint: 'صورة لقائمة أو تطبيق بنكي أو محادثة',
+    sourceIntro: 'أين هذه المصاريف الآن؟ اختر واحدًا، ثم اختر الملف.',
+    sourceFileTitle: 'من Excel أو CSV',
+    sourceFileHint: 'اختر ملفًا من هاتفك (Google Sheets وExcel…)',
+    sourceSplitwiseTitle: 'من Splitwise',
+    sourceSplitwiseHint: 'اختر الملف الذي نزّلته من Splitwise',
+    sourceShotTitle: 'من لقطة شاشة',
+    sourceShotHint: 'اختر صورة لقائمة أو تطبيق بنكي أو محادثة',
     proBadge: 'PRO',
     seeExamples: 'اطّلع على أمثلة CSV واحصل على قالب',
     nothingAdded: 'لن يُضاف شيء حتى تراجعه.',
@@ -25806,7 +25833,7 @@ const ar: UiStrings = {
     splitwiseTitle: 'استيراد ملف Splitwise',
     ledgerTitle: 'استيراد دفتر',
     splitwiseHowTo: 'في Splitwise: افتح مجموعة، ثم Export as spreadsheet.',
-    wavesHowTo: 'في Waves: الإعدادات، ثم تصدير.',
+    wavesHowTo: 'في Waves: الإعدادات ← بياناتك ← تصدير بياناتك.',
     bringHistory: 'أحضر سجلّك معك',
     free: 'مجانًا',
     ledgerHowTo: 'كل من ورد اسمه في الملف ينضم إلى المجموعة. لا يحتاجون التطبيق.',

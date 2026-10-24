@@ -125,7 +125,7 @@ export function VoiceSuggestions({
             >
               <Ionicons name={row.icon} size={iconSize.base} color={tint.ink} />
             </View>
-            <Text variant="body" tone="muted" style={{ flex: 1 }}>
+            <Text variant="body" tone="muted" style={{ flexShrink: 1 }}>
               {row.text}
             </Text>
           </>
