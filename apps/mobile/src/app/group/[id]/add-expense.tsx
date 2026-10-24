@@ -1,3 +1,6 @@
+import { quietAdsFor } from '@/lib/adSensitiveMoment';
+import { afterGroupExpense, startAdSession, prewarmExpenseAd } from '@/lib/adGates';
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DateTimePicker, {
@@ -318,6 +321,10 @@ interface GroupRepeat {
 const NEW_GROUP_REPEAT: GroupRepeat = { frequency: Frequency.Monthly, interval: 2, secondDay: 15 };
 
 export default function AddExpenseScreen() {
+  const adGatesEnabled = useFlagEnabled('ads_gates');
+  useEffect(() => {
+    startAdSession();
+  }, []);
   const theme = useTheme();
   // The room the pinned action bar leaves under Save for the system navigation
   // bar. Read here rather than in the bar's style so the whole screen agrees on
@@ -420,6 +427,9 @@ export default function AddExpenseScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  useEffect(() => {
+    if (adGatesEnabled && viewerId && !expenseId && !movePersonal) void prewarmExpenseAd(viewerId);
+  }, [adGatesEnabled, viewerId, expenseId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
@@ -1636,8 +1646,18 @@ export default function AddExpenseScreen() {
         'positive',
       );
       router.back();
+      if (adGatesEnabled && viewerId && !expenseId && !movedFrom) {
+        void afterGroupExpense(
+          viewerId,
+          isPro,
+          !isQueuedOffline(syncStatus),
+          groupId,
+          targetExpenseId,
+        );
+      }
     } catch (caught) {
       // Not saved: what was typed is still the only copy, so keep drafting it.
+      quietAdsFor();
       setDraftsPaused(false);
       setError(friendlyError(caught, t.couldNotSave, 'expense.save'));
     } finally {
@@ -2001,6 +2021,7 @@ export default function AddExpenseScreen() {
               small pill beside it, the same split `ReceiptField` on the
               no-group capture screen draws. New expenses only: an existing
               one's bills are already managed by the gallery beneath this. */}
+            {!editing ? <RewardedAdEntry kind="scan" /> : null}
             {!editing ? (
               <Card padded={false} style={{ padding: theme.spacing.md }}>
                 <Pressable

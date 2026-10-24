@@ -1518,3 +1518,37 @@ export async function endAppNotice(id: string): Promise<void> {
     .eq('id', id.trim());
   if (error) throw new Error(`ending the notice failed: ${error.message}`);
 }
+
+export interface AdEventDay {
+  day: string;
+  placement: string;
+  shown: number | string;
+  completed: number | string;
+  skipped: number | string;
+  failed: number | string;
+  blocked_grace: number | string;
+}
+export interface AdGateSettings {
+  gap_min: number;
+  gap_max: number;
+  cooldown_seconds: number;
+  interstitial_daily_cap: number;
+  grace_days: number;
+  grace_expenses: number;
+  rewarded_quiet_seconds: number;
+  session_grace_seconds: number;
+  session_cap: number;
+}
+export const adEventDays = () => call<AdEventDay>('waves_admin_ad_events', { p_days: 30 });
+export const adGateSettings = async () =>
+  (await call<AdGateSettings>('waves_admin_ad_settings'))[0] ?? null;
+export async function saveAdGateSettings(settings: AdGateSettings): Promise<void> {
+  for (const value of Object.values(settings)) {
+    if (!Number.isSafeInteger(value) || value < 0)
+      throw new Error('Use non-negative whole numbers.');
+  }
+  if (settings.gap_min > settings.gap_max) throw new Error('Minimum gap must not exceed maximum.');
+  await requireSession();
+  const { error } = await client().rpc('waves_admin_save_ad_settings', { p_settings: settings });
+  if (error) throw new Error(error.message);
+}

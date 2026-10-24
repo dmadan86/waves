@@ -1,20 +1,19 @@
-# Rewarded ads (phase 1)
+# Ads for Free users
 
-Optional rewarded video ads on the Free plan, so a Free user who hits a monthly
-limit can earn a little more instead of stopping. Off by default (flag
+Optional rewarded video ads on the Free plan, so a Free user can earn a little more instead of stopping. Off by default (flag
 `ads_rewarded`, 0% rollout). Nothing is ever forced.
 
 ## Rules
 
 | Topic          | Rule                                                                                                                                                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Format         | Rewarded video only. No banners, interstitials, app-open or native ads.                                                                                                                                                                                                                                                        |
+| Format         | Optional rewarded video plus one labelled native card in long Activity and Friends lists. No banners, interstitials or app-open ads.                                                                                                                                                                                           |
 | Reward         | 1 completed ad = 2 AI voice commands or 2 receipt scans. The voice limit screen offers voice, the scan limit screen offers scans.                                                                                                                                                                                              |
 | Daily cap      | 3 rewarded ads per day.                                                                                                                                                                                                                                                                                                        |
 | Validity       | Valid for the calendar month (UTC) in which they are earned. Used after the monthly Free allowance (10 voice commands, 20 receipt scans).                                                                                                                                                                                      |
 | Eligibility    | Free plan only. Not Pro (including legacy Plus), not the 15-day Pro trial, not guests, account at least 7 days old, and flag `ads_rewarded` on for the user.                                                                                                                                                                   |
-| Placement      | Only when a Free user hits the AI voice limit or the receipt-scan limit: a small sheet with "Watch a short ad for 2 more AI voice commands", "Upgrade to Pro" and "Not now".                                                                                                                                                   |
-| Never shown on | Balances, groups, expenses, settle-up, the paywall, widgets, the watch or notifications.                                                                                                                                                                                                                                       |
+| Placement      | Visible links on Voice, receipt scan entry and Settings, plus quota fallback: a small sheet with "Watch a short ad for 2 more AI voice commands", "Upgrade to Pro" and "Not now".                                                                                                                                              |
+| Never shown on | Balances, groups, settle-up, the paywall, widgets, the watch or notifications. Native cards appear only in Activity and Friends after the eighth row, with at least nine rows.                                                                                                                                                 |
 | Privacy        | Google AdMob, non-personalized ads only (`requestNonPersonalizedAdsOnly`, `npa=1`). No advertising-ID tracking, no ATT prompt on iOS. Google UMP consent is used where legally required (EEA, UK, Switzerland). AdMob receives the device and IP-level information needed to serve ads and prevent fraud, per Google's policy. |
 
 ## Architecture
@@ -182,3 +181,24 @@ The website serves `google.com, pub-<id>, DIRECT, f08c47fec0942fa0` at
 
 - [ ] The privacy policy (`/privacy`) already has an Advertising section; re-read it
       against the final store answers.
+
+## Native list cards
+
+`ads_native` is seeded OFF with 0% rollout. It also requires the same affirmative
+`waves_my_ads_status` eligibility as rewarded ads (including no paid plans or trials).
+One placement follows eight real rows; Activity date headings do not count. Friends
+selection mode hides the card. Requests start when the placement approaches the viewport,
+require UMP `canRequestAds`, and are non-personalised. Native assets and media use
+the SDK native view, including its AdChoices overlay. No financial data is sent.
+
+The local per-account UTC-day cap is three request reservations shared across both
+screens and persisted before requesting, so failed loads also consume a slot. This
+conservatively bounds impressions to three on this installation; it is not a cross-device cap.
+
+Create one **native** AdMob unit per platform and set build environment variables
+`EXPO_PUBLIC_ADMOB_NATIVE_ANDROID` and `EXPO_PUBLIC_ADMOB_NATIVE_IOS`. Development
+and missing configuration use Google's platform test native units. Native units
+do not need rewarded SSV configuration or inclusion in `ADMOB_AD_UNIT_IDS`. Existing
+AdMob app IDs and Expo plugin configuration are shared; generated android files
+are not edited. Enable the new flag only after console units, consent messages,
+category restrictions and store privacy declarations are ready.

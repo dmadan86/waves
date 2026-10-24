@@ -171,7 +171,8 @@ function commit(): string | null {
  * test ads. A real build sets `ADMOB_ANDROID_APP_ID` / `ADMOB_IOS_APP_ID` (the
  * `ca-app-pub-…~…` ids from the AdMob console) and they replace the test ones
  * here, at config time. The rewarded ad UNIT ids are not native config: the app
- * reads `EXPO_PUBLIC_ADMOB_REWARDED_ANDROID` / `_IOS` at runtime. A new native
+ * reads `EXPO_PUBLIC_ADMOB_REWARDED_ANDROID` / `_IOS` and
+ * `EXPO_PUBLIC_ADMOB_NATIVE_ANDROID` / `_IOS` at runtime. A new native
  * build is needed when the app ids change, never for the unit ids.
  */
 function withAdMobAppIds(config: ExpoConfig): ExpoConfig {

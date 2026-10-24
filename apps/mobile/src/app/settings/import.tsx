@@ -1,3 +1,4 @@
+import { useAdGate } from '@/lib/useAdGate';
 /**
  * Bringing a ledger in — from Splitwise, or from Waves itself (ADR-012).
  *
@@ -132,6 +133,7 @@ function fromWaves(group: WavesImportGroup, fallbackName: string): Loaded {
 }
 
 export default function ImportScreen() {
+  const adGate = useAdGate();
   const labelOf = useGroupLabeller();
   const theme = useTheme();
   // The bottom bar shows on this screen (it is a settings page, not a modal), and
@@ -417,7 +419,7 @@ export default function ImportScreen() {
    * closes over everything it needs, so it runs to completion whether or not
    * this screen is still mounted (see `@/lib/importProgress`).
    */
-  const run = (): void => {
+  const run = async (): Promise<void> => {
     if (!parsed) return;
     const snapshot = parsed;
     const chosenMapping = mapping;
@@ -446,6 +448,7 @@ export default function ImportScreen() {
       return;
     }
 
+    if (chosenTarget === NEW_GROUP && !(await adGate.requireAd('group_create_rewarded'))) return;
     const scheduled = beginImport({
       name,
       run: async () => {
@@ -532,6 +535,7 @@ export default function ImportScreen() {
 
   return (
     <Screen>
+      {adGate.sheet}
       <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />

@@ -1,3 +1,4 @@
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 /**
  * The entry to the paid tiers, and the boundary they never cross.
  *
@@ -195,6 +196,8 @@ export default function UpgradeScreen() {
           {plansLive ? t.upgradeScreen.whatCosts : t.upgradeScreen.whatWouldCost}
         </Text>
 
+        <RewardedAdEntry kind="voice" />
+        <RewardedAdEntry kind="scan" />
         {cards(t).map((card) => {
           const expanded = open === card.title;
           return (

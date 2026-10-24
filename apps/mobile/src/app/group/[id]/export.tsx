@@ -1,3 +1,4 @@
+import { useAdGate } from '@/lib/useAdGate';
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -88,6 +89,7 @@ function slugify(name: string): string {
  * pure JS (SheetJS) and always works.
  */
 export default function GroupExportScreen() {
+  const adGate = useAdGate();
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -193,6 +195,7 @@ export default function GroupExportScreen() {
     }
 
     try {
+      if (!(await adGate.requireAd('export_rewarded'))) return;
       // Captured in the handler, never in render (React Compiler: no clock reads
       // during render).
       const generatedOnIso = new Date().toISOString();
@@ -324,6 +327,7 @@ export default function GroupExportScreen() {
 
   return (
     <Screen>
+      {adGate.sheet}
       <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons

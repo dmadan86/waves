@@ -63,6 +63,11 @@ export const ADS_REQUEST_CONFIGURATION = {
   maxAdContentRating: 'PG',
   tagForChildDirectedTreatment: false,
   tagForUnderAgeOfConsent: false,
+  // Comma-separated AdMob test device ids (logcat prints the id): these phones get test ads on real units.
+  testDeviceIdentifiers: (process.env.EXPO_PUBLIC_ADMOB_TEST_DEVICES ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
 } as const;
 
 /** How the attempt ended, for the sheet to say in a few friendly words. */

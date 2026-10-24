@@ -1,0 +1,37 @@
+# Free-plan ad pacing
+
+## Research and decisions
+
+- Games combine optional rewarded benefits with interstitials at natural breaks. [Deguci's simulation games](https://admob.google.com/home/resources/deguci-games-boosts-arpdau-by-10-percentage-with-rewarded-video/) added user-chosen rewards at pauses; [Refuel's Rally Fury](https://admob.google.com/home/resources/refuel-games-grows-ad-revenue-with-admob-rewarded-ads/) reported rewarded CPM above interstitial CPM. Rewarded is our high-value choice for groups/exports; no format guarantees the highest eCPM in every market.
+- [Instabridge](https://admob.google.com/home/resources/instabridge-boosts-revenue-by-ten-percent-with-rewarded-interstitial/) tuned frequency against engagement. [AdMob's gaming guidance](https://admob.google.com/home/resources/monetize-mobile-game-with-ads/) recommends starting conservatively and measuring retention. Our new-user/session grace and purchase/error quiet windows are product choices inspired by this retention-first approach, not published thresholds from these apps.
+- [Google prohibits](https://support.google.com/admob/answer/6201362?hl=en) launch/exit interstitials, ads after every action, consecutive interstitials, and unexpected ads during a task. [Placement guidance](https://support.google.com/admob/answer/6066980?hl=en) favors clear transitions. We use only the return from a successfully saved group expense. Personal expense flows and expense edits never trigger an ad.
+- [Unity's capping/pacing guidance](https://docs.unity.com/en-us/grow/levelplay/platform/settings/capping-pacing) separates impression budgets from minimum intervals and supports placement/session limits. [AdMob frequency caps](https://support.google.com/admob/answer/6244508?hl=en) add a network-side backstop. Configure those too.
+- A continuously refilling token bucket could allow bursts after idle time. Instead we use a one-token budget: successful group expenses earn progress toward a seeded random threshold, but grace, cooldown, session and daily budgets must all allow delivery. No accumulated debt produces back-to-back ads.
+
+## Algorithm
+
+`apps/mobile/src/lib/adPacingPure.ts` is a deterministic state transition with injected time, seed, counters and settings. A persisted, per-profile LCG draws an inclusive 3–5 expense gap. The initial seed mixes the profile with initialization time; tests inject a fixed seed. Only confirmed online group expense creates count. New-user grace requires both age and expense thresholds to pass. Offline/failed saves, personal entries, edits and disabled/paid accounts do not enter pacing. An expense error or paywall visit quiets interstitials for five minutes.
+
+Each eligible save advances progress. Show only after the selected gap, minimum cooldown, rewarded quiet window, any-ad 60-second separation, session grace, and session/daily caps. Consume a slot on an attempted transition, even on no-fill, preventing repeated attempts on every save. Draw the next gap and reset progress. Local conservative reservations survive restarts; daily budgets reset at midnight UTC. Session budgets reset on process restart (conservative across background/resume). Server impression history supplies cross-device daily counts and latest ad timestamps; local counts can only reduce delivery. Cross-device simultaneous requests can race; use AdMob's frequency cap as an additional backstop.
+
+Interstitials preload while the expense screen is open. The save itself is never awaited by ad code: navigate back immediately, then require sync confirmation, an already-ready ad, foreground state, and a transition still within 1.5 seconds. A late response skips advertising rather than interrupting the next task. The SDK supplies dismissal controls; disable **high-engagement ads**, long third-party video demand, and use short creatives in the interstitial unit. The app cannot impose a shorter close delay than the network creative permits.
+
+Group creation: the server counts all groups created by the profile, including soft-deleted groups; queued local group creates also count. First creation is free. Each subsequent creation and every group/account export uses a compact Watch/Cancel sheet. Watch invokes the existing lazy SDK/UMP/non-personalized configuration and rewarded unit IDs. Completion unlocks that single action, without granting voice/scan quota or imposing a group limit. Cancellation/early close does not unlock. Missing SDK, offline, denied consent, no-fill or load/show errors keep the action blocked (owner decision 2026-10-23: ads are the revenue, ad blockers must not bypass): the sheet shows "couldn't load, try again" and logs the failure. Only unreadable eligibility (status RPC down) lets the action through. Quota rewards retain their existing signed SSV grants and independent eligibility. Action gates use the local SDK reward event; they are a UX gate, not an abuse-resistant entitlement.
+
+## Knobs (one `ad_reward_settings` row; editable at `/ads`)
+
+| Column                      | Default | Meaning                                              |
+| --------------------------- | ------: | ---------------------------------------------------- |
+| gap_min / gap_max           |   3 / 5 | Inclusive expense gap; minimum cannot exceed maximum |
+| cooldown_seconds            |     180 | Between interstitials                                |
+| interstitial_daily_cap      |       3 | Per profile, UTC day; zero disables                  |
+| grace_days / grace_expenses |   3 / 5 | Both must pass; expense progress is device-local     |
+| rewarded_quiet_seconds      |     300 | No interstitials after any rewarded placement        |
+| session_grace_seconds       |      60 | First minute on the expense flow stays quiet         |
+| session_cap                 |       2 | Interstitial attempts per app process/session        |
+
+The universal 60-second separation and 1.5-second transition deadline are safety constraints, not monetization knobs. Paid/trial/guest checks reuse the existing quota eligibility's plan helpers. `waves_my_ad_gate_status` keeps the new `ads_gates` rollout independent of `ads_rewarded`; the existing allowlist works only when the gates master flag is enabled. Migration seeds `ads_gates` off, 0%. No migration is applied by this change.
+
+`ad_events` records shown/completed/skipped/failed/blocked_grace for `expense_interstitial`, `group_create_rewarded`, `export_rewarded`, `native_list`, `quota_rewarded`. Native impressions use the SDK impression event; fullscreen impressions use OPENED. Interstitial dismissals are skips (SDK cannot distinguish early from full viewing); completions mean an earned rewarded event. An own-profile insert policy permits no reads; admin RPCs are service-role only. Persisted event IDs and original timestamps make retries idempotent and preserve UTC-day attribution. The admin report is client telemetry, distinct from signed quota-credit totals. Pending events retry on subsequent events/status reads; it is not a billing ledger.
+
+Validation: pure tests cover grace, stable random gaps, cooldowns, daily/session caps, rewarded spacing, personal/paid/offline/failed saves, configurable settings, and fail-closed gates. Fake-SDK tests cover impressions, completion, early close, no-fill, SDK/consent errors, timeout cleanup and preload-only transition checks. Real device QA still needs test-unit videos, consent UI, backgrounding, and signed quota SSV callbacks before enabling rollout.

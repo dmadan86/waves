@@ -1,3 +1,4 @@
+import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
  *
@@ -2744,6 +2745,7 @@ export default function VoiceScreen() {
               compact={compactTop}
             />
           ) : null}
+          <RewardedAdEntry kind="voice" />
           {error ? <Callout tone="negative">{error}</Callout> : null}
           {agentQuotaNote && phase !== 'agent' ? (
             <Text variant="caption" tone="muted">
