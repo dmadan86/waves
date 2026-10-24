@@ -2346,7 +2346,7 @@ export function useRemoveMember(groupId: string) {
   });
 }
 
-export function useLeaveGroup(groupId: string) {
+export function useLeaveGroup(groupId: string, onLeft?: () => void) {
   const queryClient = useQueryClient();
   const { forgetGroup } = useSync();
   return useMutation({
@@ -2356,6 +2356,8 @@ export function useLeaveGroup(groupId: string) {
     // to signal its removal — the client must forget it locally, or it lingers
     // on the dashboard forever. Purge the mirror first, then refresh what is left.
     onSuccess: async () => {
+      // Leave the group screens before the mirror update makes them render as missing.
+      onLeft?.();
       await forgetGroup(groupId);
       invalidateGroup(queryClient, groupId);
     },
@@ -2370,12 +2372,14 @@ export function useLeaveGroup(groupId: string) {
  * filters hide it; on this device we forget it at once (like leave) so it drops
  * from the list before the pull round-trips, then flush to fetch the tombstone.
  */
-export function useDeleteGroup(groupId: string) {
+export function useDeleteGroup(groupId: string, onDeleted?: () => void) {
   const queryClient = useQueryClient();
   const { forgetGroup } = useSync();
   return useMutation({
     mutationFn: () => (isDemoGroupId(groupId) ? rejectDemoWrite<void>() : deleteGroup(groupId)),
     onSuccess: async () => {
+      // Hook callbacks run before mutate-level onSuccess, which is too late for navigation.
+      onDeleted?.();
       await forgetGroup(groupId);
       invalidateGroup(queryClient, groupId);
     },
