@@ -5738,6 +5738,8 @@ export interface UiStrings {
     addBudgetSub: string;
     budgetAboutMonth: string;
     tab: string;
+    /** The Personal-mode bottom bar: the way back to shared money, and its destinations. */
+    nav: { shared: string; overview: string; transactions: string; reports: string };
     title: string;
     subtitle: string;
     /** The entry form: its header line, sections, note prompt and payment methods. */
@@ -10879,6 +10881,12 @@ const en: UiStrings = {
     addBudgetSub: 'Set a monthly limit for your spending.',
     budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
+    nav: {
+      shared: 'Shared',
+      overview: 'Overview',
+      transactions: 'Transactions',
+      reports: 'Reports',
+    },
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
     entryScreen: {
@@ -16190,6 +16198,12 @@ const ta: UiStrings = {
     addBudgetSub: 'உங்கள் செலவுக்கு ஒரு மாத வரம்பை அமையுங்கள்.',
     budgetAboutMonth: 'மாதம் சுமார் {average}.',
     tab: 'தனிப்பட்டது',
+    nav: {
+      shared: 'பகிரப்பட்டது',
+      overview: 'மேலோட்டம்',
+      transactions: 'பரிவர்த்தனைகள்',
+      reports: 'அறிக்கைகள்',
+    },
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
     entryScreen: {
@@ -21319,6 +21333,7 @@ const hi: UiStrings = {
     addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
     budgetAboutMonth: 'लगभग {average} हर महीने।',
     tab: 'निजी',
+    nav: { shared: 'साझा', overview: 'अवलोकन', transactions: 'लेन-देन', reports: 'रिपोर्ट' },
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
     entryScreen: {
@@ -27104,6 +27119,12 @@ const ar: UiStrings = {
     addBudgetSub: 'حدّد حدًا شهريًا لإنفاقك.',
     budgetAboutMonth: 'نحو {average} في الشهر.',
     tab: 'الشخصي',
+    nav: {
+      shared: 'المشترك',
+      overview: 'نظرة عامة',
+      transactions: 'المعاملات',
+      reports: 'التقارير',
+    },
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
     entryScreen: {

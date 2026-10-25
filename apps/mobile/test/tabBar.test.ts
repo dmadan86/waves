@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveTabBar, tabBarRouteForSelection } from '../src/lib/tabBar';
+import {
+  isPersonalMode,
+  personalActiveKey,
+  personalRouteForSelection,
+  resolveTabBar,
+  tabBarRouteForSelection,
+} from '../src/lib/tabBar';
 
 describe('tabBarRouteForSelection', () => {
   it('does not navigate when the selected tab is already active', () => {
@@ -102,5 +108,28 @@ describe('contact pickers', () => {
   it('hides the bar on both the group-form picker and the Friends picker', () => {
     expect(resolveTabBar(['contact-picker']).hidden).toBe(true);
     expect(resolveTabBar(['friends', 'contacts']).hidden).toBe(true);
+  });
+});
+
+describe('personal mode', () => {
+  it('is on for the Personal tab and personal screens only', () => {
+    expect(isPersonalMode(['(tabs)', 'me'])).toBe(true);
+    expect(isPersonalMode(['personal', 'transactions'])).toBe(true);
+    expect(isPersonalMode(['(tabs)', 'index'])).toBe(false);
+    expect(isPersonalMode(['group', '[id]'])).toBe(false);
+  });
+
+  it('names the current personal destination', () => {
+    expect(personalActiveKey(['(tabs)', 'me'])).toBe('me');
+    expect(personalActiveKey(['personal', 'transactions'])).toBe('transactions');
+    expect(personalActiveKey(['personal', 'spending'])).toBe('spending');
+    expect(personalActiveKey(['personal', 'budgets'])).toBe('');
+  });
+
+  it('routes taps, and the way back goes home', () => {
+    expect(personalRouteForSelection('me', 'shared')).toBe('/');
+    expect(personalRouteForSelection('me', 'spending')).toBe('/personal/spending');
+    expect(personalRouteForSelection('spending', 'me')).toBe('/me');
+    expect(personalRouteForSelection('me', 'me')).toBeNull();
   });
 });

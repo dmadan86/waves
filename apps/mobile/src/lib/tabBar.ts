@@ -103,3 +103,37 @@ export function resolveTabBar(segments: readonly string[], signedOut = false): T
 
   return { hidden: false, activeKey };
 }
+
+/**
+ * Personal mode: the bar swaps to the private-money destinations while you are
+ * on the Personal tab or any `personal/*` screen, and swaps back the moment you
+ * leave. Derived from the route alone, so there is no state to forget to reset.
+ */
+export function isPersonalMode(segments: readonly string[]): boolean {
+  return (segments[0] === '(tabs)' && segments[1] === 'me') || segments[0] === 'personal';
+}
+
+/** The Personal-mode bar's current key: the screen's own name, or '' on any other personal screen. */
+export function personalActiveKey(segments: readonly string[]): string {
+  if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'me' : '';
+  const leaf = segments[1] ?? '';
+  return leaf === 'transactions' ? 'transactions' : leaf === 'spending' ? 'spending' : '';
+}
+
+/** Where a Personal-mode bar tap goes, or null when it is already current. */
+export function personalRouteForSelection(
+  activeKey: string,
+  selectedKey: string,
+): '/' | '/me' | '/personal/transactions' | '/personal/spending' | null {
+  if (selectedKey === activeKey) return null;
+  switch (selectedKey) {
+    case 'shared':
+      return '/';
+    case 'transactions':
+      return '/personal/transactions';
+    case 'spending':
+      return '/personal/spending';
+    default:
+      return '/me';
+  }
+}

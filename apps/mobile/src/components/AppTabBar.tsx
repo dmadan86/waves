@@ -36,7 +36,13 @@ import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
 import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
-import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
+import {
+  isPersonalMode,
+  personalActiveKey,
+  personalRouteForSelection,
+  resolveTabBar,
+  tabBarRouteForSelection,
+} from '@/lib/tabBar';
 import { useTabBarSuppressed } from '@/lib/tabBarSuppress';
 import { useVoiceWarmup } from '@/lib/voiceWarmup';
 
@@ -85,7 +91,11 @@ export function AppTabBar() {
 
   // No session means no bar anywhere — the privacy page opened from the login
   // legal line is the one place it used to leak onto a signed-out screen.
-  const { hidden, activeKey } = resolveTabBar(segments, !session);
+  const { hidden, activeKey: sharedKey } = resolveTabBar(segments, !session);
+  // On the Personal tab and its screens the bar swaps to the private-money
+  // destinations (same look, same mic); leaving them swaps it back. Route-derived.
+  const personal = isPersonalMode(segments);
+  const activeKey = personal ? personalActiveKey(segments) : sharedKey;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
   // the phone to itself rather than stacking on top of the navigation with the
@@ -109,7 +119,39 @@ export function AppTabBar() {
   const waitingCount = foldedCaptureCount(captures.data ?? []);
   const captureBadge = captureInboxActionState(waitingCount).badge;
 
-  const items = useMemo<PillTabItem[]>(
+  const personalItems = useMemo<PillTabItem[]>(
+    () => [
+      {
+        key: 'shared',
+        label: t.personal.nav.shared,
+        icon: (color) => (
+          <Ionicons
+            name={isRtl() ? 'chevron-forward' : 'chevron-back'}
+            size={iconSize.lg}
+            color={color}
+          />
+        ),
+      },
+      {
+        key: 'me',
+        label: t.personal.nav.overview,
+        icon: (color) => <Ionicons name="wallet-outline" size={iconSize.lg} color={color} />,
+      },
+      {
+        key: 'transactions',
+        label: t.personal.nav.transactions,
+        icon: (color) => <Ionicons name="list" size={iconSize.lg} color={color} />,
+      },
+      {
+        key: 'spending',
+        label: t.personal.nav.reports,
+        icon: (color) => <Ionicons name="pie-chart-outline" size={iconSize.lg} color={color} />,
+      },
+    ],
+    [t.personal.nav],
+  );
+
+  const sharedItems = useMemo<PillTabItem[]>(
     () => [
       {
         key: 'index',
@@ -160,10 +202,19 @@ export function AppTabBar() {
   // so repeated taps do not schedule redundant router work.
   const go = useCallback(
     (key: string): void => {
+      if (personal) {
+        const route = personalRouteForSelection(activeKey, key);
+        if (!route) return;
+        // Siblings inside the personal section replace each other rather than stack.
+        if (route.startsWith('/personal') && segments[0] === 'personal') router.replace(route);
+        else if (route.startsWith('/personal')) router.push(route);
+        else switchTab(route);
+        return;
+      }
       const route = tabBarRouteForSelection(activeKey, key);
       if (route) switchTab(route);
     },
-    [activeKey],
+    [activeKey, personal, segments],
   );
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
@@ -177,8 +228,10 @@ export function AppTabBar() {
   const cancelled = useRef(false);
 
   const openVoice = useCallback((): void => {
-    router.push(groupId ? { pathname: '/voice', params: { group: groupId } } : '/voice');
-  }, [groupId]);
+    // In Personal mode the mic adds a private expense: "only me" is preselected.
+    if (personal) router.push({ pathname: '/voice', params: { scope: 'personal' } });
+    else router.push(groupId ? { pathname: '/voice', params: { group: groupId } } : '/voice');
+  }, [groupId, personal]);
 
   // The finger has landed: open the voice screen *now*. The mic on that screen
   // starts itself as it mounts, so this is the earliest the recogniser can
@@ -241,7 +294,13 @@ export function AppTabBar() {
       {/* The in-app update bar rides on the navigation: there wherever the bar
           is, gone wherever it is not. */}
       <UpdateBar />
-      <PillTabBar items={items} activeKey={activeKey} onSelect={go} animated centerAction={voice} />
+      <PillTabBar
+        items={personal ? personalItems : sharedItems}
+        activeKey={activeKey}
+        onSelect={go}
+        animated
+        centerAction={voice}
+      />
     </>
   );
 }
