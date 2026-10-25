@@ -16,7 +16,7 @@
  */
 module.exports = {
   type: 'share',
-  name: 'WavesShare',
+  name: 'WavesShareExtension',
   displayName: 'Waves',
   bundleIdentifier: '.share',
   deploymentTarget: '15.1',

@@ -68,10 +68,9 @@ import { useKnownContacts } from '@/data/knownContacts';
 import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
 import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
-import { HeroScene } from '@/components/home/HeroScene';
+import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { useHeroStatusBar } from '@/components/ScreenHero';
-import { useHeroScene } from '@/lib/heroScenePreference';
-import { HERO_THEMES } from '@/lib/scene';
+import { useHomeHero } from '@/lib/useHomeHero';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
@@ -129,18 +128,14 @@ export default function NewGroupScreen() {
   // and where "Add contacts" sits. Everything else is flex and fits by itself.
   const { width: screenWidth } = useWindowDimensions();
   const narrow = screenWidth < NARROW_WIDTH;
-  // Home's scene behind the top of the form — the same one, for the same time
-  // of day (or the Background the person picked) — measured so it runs from
-  // under the status bar to just into the first card, where it fades out.
-  const scene = useHeroScene();
+  // Home's photo behind the top of the form — the same one, for the same time
+  // of day — measured so it runs from under the status bar to just into the
+  // first card, where it fades out.
+  const hero = useHomeHero();
   const [headerHeight, setHeaderHeight] = useState(0);
   const insetsTop = useSafeAreaInsets().top;
-  // The scene is under the status bar, so the clock goes white while this
-  // screen is in front.
-  // The title's ink follows the sky, as Home's greeting does: dark on a pale
-  // scene, white on a deep one — and the status bar with it.
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  // The photo's scrim keeps white text readable, as on Home.
+  useHeroStatusBar('light');
   // "Add contacts" beside the Add friends title only where both fit whole; on
   // a smaller phone it takes a line of its own rather than truncate the title.
   const contactsInline = screenWidth >= CONTACTS_INLINE_WIDTH;
@@ -757,12 +752,11 @@ export default function NewGroupScreen() {
       >
         {headerHeight > 0 ? (
           <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-            <HeroScene
-              scene={scene}
-              width={screenWidth}
+            <HomeHeroBackground
+              hero={hero}
               height={headerHeight + SCENE_INTO_CARD}
-              horizon={headerHeight - SCENE_OVERLAP}
-              headerBottom={insetsTop + HEADER_ROW}
+              photoHeight={headerHeight + SCENE_INTO_CARD}
+              scrimHeight={insetsTop + HEADER_ROW}
               pageColor={theme.color.bg}
             />
           </View>
@@ -770,7 +764,7 @@ export default function NewGroupScreen() {
         <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
           <NewGroupHeader
             title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title}
-            ink={darkInk ? SPEC_INK : '#FFFFFF'}
+            ink="#FFFFFF"
           />
         </View>
 
