@@ -19,6 +19,8 @@ export interface PacingState {
   day: string;
   today: number;
   sessionShown: number;
+  /** expenseId -> last time an edit of it counted as a step (newest ~20 kept). */
+  edited?: Record<string, number>;
 }
 export function nextGap(seed: number, min: number, max: number) {
   const next = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -35,6 +37,8 @@ export interface PacingInput {
   paid: boolean;
   personal: boolean;
   saved: boolean;
+  /** Set when saving an edit of an existing group expense; the same expense counts once per window. */
+  editOf?: string;
   online: boolean;
   lastAdAt: number;
   lastRewardedAt: number;
@@ -42,12 +46,25 @@ export interface PacingInput {
   /** An error or purchase-intent moment suppresses the next transition. */
   sensitiveMoment?: boolean;
 }
+/** Re-editing the same expense inside this window is one step, not many. */
+export const EDIT_WINDOW_MS = 10 * 60000;
 export function paceExpense(state: PacingState, input: PacingInput, knobs = AD_PACING_DEFAULTS) {
   if (!input.enabled || input.paid || input.personal || !input.saved || !input.online)
     return { state, show: false, reason: 'ineligible' };
+  let edited = state.edited;
+  if (input.editOf) {
+    const last = edited?.[input.editOf] ?? 0;
+    if (last > 0 && input.now - last < EDIT_WINDOW_MS)
+      return { state, show: false, reason: 'recent_edit' };
+    const newest = Object.entries({ ...edited, [input.editOf]: input.now })
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20);
+    edited = Object.fromEntries(newest);
+  }
   const day = new Date(input.now).toISOString().slice(0, 10);
   const next = {
     ...state,
+    edited,
     total: state.total + 1,
     since: state.since + 1,
     day,
@@ -105,5 +122,10 @@ export function gateRequired(input: {
 
 /** Blocking DNS (AdGuard, NextDNS, Pi-hole) answers ad hosts with 0.0.0.0 or nothing; offline is ruled out before loading. */
 export function looksAdBlocked(reason: string): boolean {
-  return /0\.0\.0\.0|127\.0\.0\.1|unable to resolve host/i.test(reason);
+  return (
+    /google|doubleclick|admob|gstatic|pagead|2mdn/i.test(reason) &&
+    /(?:^|[^\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?=$|[^\d.])|\[::\]|(?:^|[^\w:])::(?=$|[^\w:])|unable to resolve host/i.test(
+      reason,
+    )
+  );
 }
