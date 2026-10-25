@@ -92,3 +92,13 @@ it('retains failure text after logging and truncates explicit detail without upd
   expect(rpc.mock.calls[1]![1].p_detail).toHaveLength(200);
   expect(adClocks('details').lastAdAt).toBe(0);
 });
+
+it.each(['credit_used', 'credit_earned', 'offline_capped'] as const)(
+  'drops unsupported %s telemetry',
+  async (outcome) => {
+    rpc.mockResolvedValue({ error: { code: '23514', message: 'invalid outcome' } });
+    logAdEvent('credits', 'export_rewarded', outcome);
+    await flushAdEvents('credits');
+    expect(JSON.parse((await AsyncStorage.getItem('waves.adEvents.credits'))!)).toEqual([]);
+  },
+);

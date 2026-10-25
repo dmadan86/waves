@@ -1,59 +1,52 @@
-# Ad gate engine (Free users: create group / export)
+# Ad gate engine (Free users: create 2nd+ group / export)
 
-Owner's intent: offline users must never be stopped by an ad; real ad blockers must be named;
-when the phone comes back online the owed ad is shown by default; never a nuisance.
+Rule: Free needs **1 credit or a rewarded ad** per gated action. Pro never. Personal expenses never.
+The 3rd-5th group-expense interstitial (`adPacingPure.ts`) is unchanged. Logic is pure and unit-tested in
+`adGateEngine.ts` (decisions, ledger), `adGateCoordinator.ts` (one sheet at a time), `adGateRunner.ts` (SDK).
 
-## Signals (no new native module)
+## Decision table (`decideGate`)
 
-- **Offline** = `expo-network` `getNetworkStateAsync()`: `isConnected === false` or
-  `isInternetReachable === false` (Android: `NET_CAPABILITY_VALIDATED`; iOS: equals `isConnected`).
-  Airplane mode gives `isConnected: false` on both. Same check the sync engine already uses.
-- **Control host** = our own backend: `waves_my_ad_gate_status` answered a moment before the ad load.
-- **Ad blocker** (only judged when online and the control succeeded) =
-  SDK error code `network-error` **and** either the message names a DNS sinkhole
-  (`0.0.0.0`, `127.0.0.1`, `unable to resolve host` — the owner's AdGuard Private DNS case) **or**
-  a 3 s `fetch('https://pagead2.googlesyndication.com/pagead/gen_204')` throws (any HTTP status =
-  reachable). Covers DNS blockers (AdGuard/NextDNS/Pi-hole), VPN blockers (AdGuard app, Blokada) and
-  iOS DNS profiles. iOS content blockers do not affect apps. Known false positive: networks that
-  block Google entirely (corporate filters, China) — ads cannot be served there anyway.
-- **No fill** = SDK code `no-fill` / `timeout` / `internal-error` with the ad host reachable.
+| Situation                                              | Decision                                   | Logged                         |
+| ------------------------------------------------------ | ------------------------------------------ | ------------------------------ |
+| Paid, or gate not required (first group)               | allow                                      | -                              |
+| Online, our status RPC failed (any point, incl. Watch) | allow, no debt                             | `offline_allowed` (`status`)   |
+| Online, credit >= 1                                    | consume it, toast "Used 1 free credit"     | `credit_used`                  |
+| Online, no credit                                      | sheet: Watch ad (ad pays for this action)  | `shown` / `completed`          |
+| Offline, first group (0 local groups)                  | allow, never uses a pass                   | -                              |
+| Offline, < 2 passes in rolling 7 days                  | allow (free "offline pass")                | `offline_allowed` (`pass`)     |
+| Offline, pass cap reached                              | sheet "Connect to the internet to ..." OK  | `offline_capped`               |
+| Ad fails, no-fill x3                                   | allow, no debt                             | -                              |
+| Ad fails, strong blocker evidence                      | "The ad seems blocked" + Retry + Pro link  | `blocked_adblock`              |
+| Ad fails otherwise                                     | "Check your internet" + Retry              | `failed`                       |
 
-## Decision table (`apps/mobile/src/lib/adGateEngine.ts`, pure, unit-tested)
+## Ledger (AsyncStorage `waves.adLedger.<profileId>`, best-effort)
 
-| Situation                                   | Decision                                                                                    | Logged outcome                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Paid, or gate not required (first group)    | allow                                                                                       | —                                    |
-| Free, offline                               | allow now, **owe 1 ad**                                                                     | `offline_allowed` (detail `offline`) |
-| Free, online, status RPC failed             | allow now, owe 1 ad (never hard-block on our backend)                                       | `offline_allowed` (detail `status`)  |
-| Free, online, ad loads                      | watch, then proceed (as today)                                                              | `shown` / `completed`                |
-| Free, online, ad fails: blocked             | stay blocked: "The ad seems blocked — Turn off ad blocking or Private DNS", Retry, Pro link | `blocked_adblock`                    |
-| Free, online, ad fails: no fill ×3 in a row | allow now, owe 1 ad (AdMob has no inventory; don't trap the user)                           | `offline_allowed` (detail `nofill`)  |
-| Free, online, ad fails otherwise            | "The ad could not load / try again" + Retry (fail-closed, as today)                         | `failed`                             |
-| Connectivity lost mid-attempt               | allow now, owe 1 ad                                                                         | `offline_allowed`                    |
+`{ credits (cap 1), passes[], hw, declines[], offerPlacement }`. Storage errors never block an action.
+Clock safety: `hw` is the highest time ever seen; effective now = max(now, hw), so a backwards jump grants
+nothing and future-dated passes count as used. Residual: a forward jump while offline can free expired passes
+(max 2 free actions; no server clock available).
 
-## Owed ad ("ad debt")
+## Earning credits
 
-- Stored in AsyncStorage `waves.adOwed.<profileId>` as `{ placement, createdAt, prompts }`. **Cap 1**:
-  a second offline action never adds a second debt.
-- Offered in the same ad sheet (illustration → "Watch a short ad" → one line → Watch ad → Pro link),
-  body: "You created this offline. A short ad keeps Waves free." Triggered on app launch, app
-  foreground and network→online, only when online, Free, no gate running. **Once per session.**
-- **Skippable (recommended):** Google's rewarded-ad policy requires an affirmative opt-in and says
-  declining "must not impede normal usage"; the group already exists, so there is nothing to lock.
-  Closing the sheet counts as a decline. After **3 declines or 7 days** the debt is dropped
-  silently. A completed ad clears it. Going Pro clears it. Blocked/no-fill while owed: show the
-  same copy as the live gate; debt stays, next prompt is next session (backoff).
-- Logged: `owed_offered`, `owed_declined`; the watch itself logs `shown`/`completed`/`skipped` as usual.
+After an offline pass, once the phone is online, **once per session per profile**: "Get a free group or
+export / Watch a short ad to earn 1 credit." (Watch ad, X, Pro link). Completed ad = +1 credit (`credit_earned`).
+Dismiss = nothing (`owed_declined`); offers stop after 3 declines in 7 days. Never shown over another sheet.
 
-## Logging and schema
+## Blocker evidence
 
-`ad_events.outcome` has a CHECK of five values. Migration
-`packages/db/prisma/migrations/20261027120000_ad_gate_engine_outcomes` widens it with
-`offline_allowed`, `owed_offered`, `owed_declined`, `blocked_adblock` and adds those counts to
-`waves_admin_ad_events` (**written, not applied**). Until it is applied the server rejects the new
-values with `23514`; the client outbox drops such a row instead of stalling behind it.
+"Blocked" only when online, our backend answered, **and** the SDK text shows a sinkhole (`0.0.0.0`, `127.0.0.1`,
+`::`) or "unable to resolve host" for a Google ad host, and the `pagead2` probe does not reach it. Timeouts or
+fetch failures alone are "Check your internet".
 
-## Unchanged
+## Safety
 
-The 3rd–5th group-expense interstitial (`adPacingPure.ts`): never offline, never owed.
-Pro/paid never see anything. Personal expenses never show ads.
+- Watchdog: 90 s after show with no terminal SDK event, or 5 s after returning to foreground, settles as
+  failed (completed if the reward was earned); Close is never stuck.
+- Coordinator: one lease at a time across all hooks (export, new group, credit offer); account switch
+  invalidates in-flight checks and drops the sheet. Entitlement is re-checked before showing.
+
+## Schema
+
+Migration `20261028120000_ad_credits_outcomes` adds `credit_used`, `credit_earned`, `offline_capped` to the
+`ad_events` CHECK and admin counts (**written, not applied**). Until applied the server answers `23514` and
+the client drops those rows.

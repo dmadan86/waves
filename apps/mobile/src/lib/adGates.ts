@@ -1,4 +1,4 @@
-import { oweAd, type OwedAd } from '@/lib/adGateEngine';
+import { emptyLedger, parseLedger, type AdLedger } from '@/lib/adGateEngine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import { adTimeout } from '@/lib/adTimeout';
@@ -86,11 +86,12 @@ export async function watchGate(
   if (running) return 'cancelled' as const;
   running = true;
   try {
-    const current = await readGateStatus(profileId);
+    const current = await readGateStatus(profileId).catch(() => null);
     if (!current?.enabled) {
-      if (!current) logAdEvent(profileId, placement, 'failed');
-      return 'failed' as const;
+      if (!current) logAdEvent(profileId, placement, 'offline_allowed', 'status');
+      return 'bypass' as const;
     }
+    if (!canShow()) return 'bypass' as const;
     const deps = defaultRewardedAdDeps();
     const result = await runGateAd(
       true,
@@ -98,6 +99,12 @@ export async function watchGate(
       () => logAdEvent(profileId, placement, 'shown'),
       undefined,
       () => canShow() && AppState.currentState === 'active',
+      (cb) => {
+        const sub = AppState.addEventListener('change', (state) => {
+          if (state === 'active') cb();
+        });
+        return () => sub.remove();
+      },
     );
     logAdEvent(profileId, placement, result === 'cancelled' ? 'skipped' : result);
     return result;
@@ -206,33 +213,32 @@ export async function afterGroupExpense(
   }
 }
 
-const owedKey = (profileId: string) => `waves.adOwed.${profileId}`;
-export async function readOwedAd(profileId: string): Promise<OwedAd | null> {
+const ledgerKey = (id: string) => `waves.adLedger.${id}`;
+export function localGroupCount() {
+  return Object.keys(syncEngine.getState().mirror.tables.groups ?? {}).length;
+}
+export async function readLedger(id: string): Promise<AdLedger> {
   try {
-    const debt = JSON.parse((await AsyncStorage.getItem(owedKey(profileId))) ?? 'null');
-    if (
-      !debt ||
-      !['group_create_rewarded', 'export_rewarded'].includes(debt.placement) ||
-      !Number.isFinite(debt.createdAt) ||
-      debt.createdAt < 0 ||
-      !Number.isSafeInteger(debt.prompts) ||
-      debt.prompts < 0
-    )
-      return null;
-    return debt;
+    return parseLedger(JSON.parse((await AsyncStorage.getItem(ledgerKey(id))) ?? 'null'));
   } catch {
-    return null;
+    return emptyLedger();
   }
 }
-export async function writeOwedAd(profileId: string, debt: OwedAd | null) {
-  if (debt === null) await AsyncStorage.removeItem(owedKey(profileId));
-  else await AsyncStorage.setItem(owedKey(profileId), JSON.stringify(debt));
+async function storeLedger(id: string, l: AdLedger) {
+  try {
+    await AsyncStorage.setItem(ledgerKey(id), JSON.stringify(l));
+  } catch {}
 }
-export async function recordOwedAd(
-  profileId: string,
-  placement: OwedAd['placement'],
-  reason: 'offline' | 'status' | 'nofill',
-) {
-  await writeOwedAd(profileId, oweAd(await readOwedAd(profileId), placement, Date.now()));
-  logAdEvent(profileId, placement, 'offline_allowed', reason);
+let ledgerUpdates: Promise<unknown> = Promise.resolve();
+export function updateLedger(id: string, fn: (l: AdLedger) => AdLedger): Promise<AdLedger> {
+  const next = ledgerUpdates.then(async () => {
+    const l = fn(await readLedger(id));
+    await storeLedger(id, l);
+    return l;
+  });
+  ledgerUpdates = next.catch(() => undefined);
+  return next;
+}
+export async function writeLedger(id: string, l: AdLedger) {
+  await updateLedger(id, () => l);
 }

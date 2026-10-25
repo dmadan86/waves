@@ -13,11 +13,11 @@ import {
   gatesBusy,
   readGateStatus,
   watchGate,
-  readOwedAd,
-  writeOwedAd,
-  recordOwedAd,
+  readLedger,
+  updateLedger,
+  localGroupCount,
 } from '@/lib/adGates';
-import { gateAllows, gateRequired } from '@/lib/adPacingPure';
+import { gateRequired } from '@/lib/adPacingPure';
 import { clearAdFailure, lastFailureText, logAdEvent } from '@/lib/adEvents';
 import { defaultRewardedAdDeps, probeAdHost } from '@/lib/adsSdk';
 import {
@@ -25,75 +25,94 @@ import {
   classifyFailure,
   isNoFill,
   shouldProbeAdHost,
-  shouldOfferOwed,
-  afterOwedOutcome,
+  shouldOfferCredit,
+  touch,
+  passesUsed,
+  grantPass,
+  useCredit,
+  earnCredit,
+  declineOffer,
+  type Placement,
 } from '@/lib/adGateEngine';
+import * as coordinator from '@/lib/adGateCoordinator';
+import { useToast } from '@/lib/toast';
 import { router } from '@/lib/navigation';
 
 const IMG_VIDEO = require('../../assets/images/ad-video.png') as number;
 const IMG_FAILED = require('../../assets/images/ad-failed.png') as number;
-
-/** Width / height of the illustration at the top of the sheet. */
 const ILL_W = 180;
 const ILL_H = 112;
 
-type Placement = 'group_create_rewarded' | 'export_rewarded';
-
-let noFillStreak = 0;
-let owedPromptedSession = false;
-
-export function useAdGate(options?: { offerOwed?: boolean }) {
+export function useAdGate(options?: { offerCredit?: boolean }) {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const { t } = useStrings();
+  const toast = useToast();
   const theme = useTheme();
   const [placement, setPlacement] = useState<Placement | null>(null);
-  const [owed, setOwed] = useState(false);
-  const activePlacement = useRef<Placement | null>(null);
+  const [credit, setCredit] = useState(false);
+  const [capped, setCapped] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const resolve = useRef<((allowed: boolean) => void) | null>(null);
-  const checking = useRef(false);
-  const watching = useRef(false);
+  const lease = useRef<coordinator.Lease | null>(null);
   const mounted = useRef(true);
+  const watching = useRef(false);
   const paid = useRef(isPaid);
-  useEffect(() => {
-    paid.current = isPaid;
-  });
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      resolve.current?.(false);
-      resolve.current = null;
-    };
-  }, []);
-
+  paid.current = isPaid;
   const finish = (allowed: boolean) => {
     resolve.current?.(allowed);
     resolve.current = null;
-    checking.current = false;
+    lease.current?.release();
+    lease.current = null;
     watching.current = false;
     if (mounted.current) {
-      activePlacement.current = null;
       setPlacement(null);
       setBusy(false);
       setFailed(false);
+      setBlocked(false);
+      setCapped(false);
+      setCredit(false);
     }
   };
-
-  const requireAd = async (next: Placement): Promise<boolean> => {
-    if (isPaid || !viewerId) return true;
-    if (checking.current || activePlacement.current || gatesBusy()) return false;
-    checking.current = true;
+  useEffect(() => {
+    mounted.current = true;
+    coordinator.setProfile(viewerId);
+    finish(false);
+    return () => {
+      mounted.current = false;
+      finish(false);
+    };
+  }, [viewerId]);
+  useEffect(() => {
+    if (isPaid && placement !== null) finish(true);
+  }, [isPaid, placement]);
+  const valid = (l: coordinator.Lease) => {
+    if (mounted.current && l.valid()) return true;
+    l.release();
+    return false;
+  };
+  const open = (next: Placement, isCapped = false) => {
+    setCredit(false);
+    setCapped(isCapped);
+    setPlacement(next);
+    return new Promise<boolean>((done) => {
+      resolve.current = done;
+    });
+  };
+  const requireAdInner = async (next: Placement): Promise<boolean> => {
+    if (paid.current || !viewerId) return true;
+    const l = coordinator.acquire(viewerId, 'gate');
+    if (!l) return false;
+    lease.current = l;
     const online = await defaultRewardedAdDeps().isOnline();
+    if (!valid(l)) return false;
     const status = online ? await readGateStatus(viewerId).catch(() => null) : null;
-    if (!mounted.current) {
-      checking.current = false;
-      return false;
-    }
+    if (!valid(l)) return false;
+    const now = Date.now();
+    const ledger = await updateLedger(viewerId, (value) => (l.valid() ? touch(value, now) : value));
+    if (!valid(l)) return false;
     const required = status
       ? gateRequired({
           enabled: status.enabled,
@@ -102,136 +121,237 @@ export function useAdGate(options?: { offerOwed?: boolean }) {
           createdGroups: status.createdGroups,
         })
       : null;
-    const decision = decideGate({ paid: paid.current, online, required });
-    if (decision !== 'ask') {
-      checking.current = false;
-      if (decision === 'allow_owe')
-        await recordOwedAd(viewerId, next, online ? 'status' : 'offline');
+    const decision = decideGate({
+      paid: paid.current,
+      online,
+      required,
+      placement: next,
+      localGroups: localGroupCount(),
+      credits: ledger.credits,
+      passesUsed: passesUsed(ledger, now),
+    });
+    if (decision === 'use_credit' || decision === 'offline_pass') {
+      await updateLedger(viewerId, (value) =>
+        !l.valid() || paid.current
+          ? value
+          : decision === 'use_credit'
+            ? useCredit(value)
+            : grantPass(value, now, next),
+      );
+      if (!valid(l)) return false;
+      if (paid.current) {
+        finish(true);
+        return true;
+      }
+      if (decision === 'use_credit') toast.show(t.adGates.creditUsedToast);
+      logAdEvent(
+        viewerId,
+        next,
+        decision === 'use_credit' ? 'credit_used' : 'offline_allowed',
+        decision === 'offline_pass' ? 'pass' : undefined,
+      );
+    }
+    if (
+      paid.current ||
+      decision === 'allow' ||
+      decision === 'use_credit' ||
+      decision === 'offline_pass'
+    ) {
+      if (online && !status && !paid.current)
+        logAdEvent(viewerId, next, 'offline_allowed', 'status');
+      finish(true);
       return true;
     }
-    setOwed(false);
-    activePlacement.current = next;
-    setPlacement(next);
-    return new Promise<boolean>((done) => {
-      resolve.current = done;
-    });
+    if (decision === 'offline_capped') logAdEvent(viewerId, next, 'offline_capped');
+    return open(next, decision === 'offline_capped');
   };
-
-  useEffect(() => {
-    if (isPaid) finish(true);
-  }, [isPaid]);
-
-  useEffect(() => {
-    return () => {
-      resolve.current?.(false);
-      resolve.current = null;
-      checking.current = false;
-    };
-  }, [viewerId]);
-
+  // Any unexpected throw fails open and never leaks the lease.
+  const requireAd = async (next: Placement): Promise<boolean> => {
+    try {
+      return await requireAdInner(next);
+    } catch {
+      lease.current?.release();
+      lease.current = null;
+      return true;
+    }
+  };
   const watch = async () => {
-    if (watching.current || !placement || !viewerId) return;
-    watching.current = true;
+    const l = lease.current;
+    if (watching.current || !placement || !viewerId || !l || !valid(l)) return;
     if (paid.current) {
       finish(true);
       return;
     }
+    watching.current = true;
     setBusy(true);
     setFailed(false);
+    setBlocked(false);
     clearAdFailure();
-    const outcome = await watchGate(viewerId, placement, () => mounted.current && !paid.current);
+    const outcome = await watchGate(
+      viewerId,
+      placement,
+      () => mounted.current && l.valid() && !paid.current,
+    );
+    if (!valid(l)) return;
+    if (paid.current) {
+      finish(true);
+      return;
+    }
+    if (credit) {
+      if (outcome === 'completed') {
+        await updateLedger(viewerId, (value) => (l.valid() ? earnCredit(value) : value));
+        if (!valid(l)) return;
+        coordinator.resetNoFill(viewerId);
+        logAdEvent(viewerId, placement, 'credit_earned');
+      }
+      if (outcome !== 'failed') {
+        finish(false);
+        return;
+      }
+      watching.current = false;
+      setBusy(false);
+      setFailed(true);
+      return;
+    }
     if (outcome === 'failed') {
       const online = await defaultRewardedAdDeps().isOnline();
+      if (!valid(l)) return;
       const failure = lastFailureText();
-      const reachable = shouldProbeAdHost({ online, failure }) ? await probeAdHost() : null;
-      noFillStreak = isNoFill(failure) ? noFillStreak + 1 : 0;
-      const cls = classifyFailure({ online, failure, adHostReachable: reachable, noFillStreak });
-      if (cls === 'offline' || cls === 'nofill_allow') {
-        if (!owed)
-          await recordOwedAd(viewerId, placement, cls === 'offline' ? 'offline' : 'nofill');
-        noFillStreak = 0;
+      const reachable = shouldProbeAdHost({ online, backendOk: true, failure })
+        ? await probeAdHost()
+        : null;
+      if (!valid(l)) return;
+      const streak = isNoFill(failure)
+        ? coordinator.bumpNoFill(viewerId)
+        : (coordinator.resetNoFill(viewerId), 0);
+      const cls = classifyFailure({
+        online,
+        backendOk: true,
+        failure,
+        adHostReachable: reachable,
+        noFillStreak: streak,
+      });
+      if (cls === 'offline') {
+        const now = Date.now();
+        const ledger = await updateLedger(viewerId, (value) =>
+          l.valid() ? touch(value, now) : value,
+        );
+        if (!valid(l)) return;
+        const decision = decideGate({
+          paid: paid.current,
+          online: false,
+          required: true,
+          placement,
+          localGroups: localGroupCount(),
+          credits: ledger.credits,
+          passesUsed: passesUsed(ledger, now),
+        });
+        if (decision === 'offline_pass') {
+          await updateLedger(viewerId, (value) =>
+            l.valid() && !paid.current ? grantPass(value, now, placement) : value,
+          );
+          if (!valid(l)) return;
+          logAdEvent(viewerId, placement, 'offline_allowed', 'pass');
+        }
+        if (decision !== 'offline_capped') {
+          finish(true);
+          return;
+        }
+        logAdEvent(viewerId, placement, 'offline_capped');
+        watching.current = false;
+        setBusy(false);
+        setCapped(true);
+        return;
+      }
+      if (cls === 'nofill_allow') {
+        coordinator.resetNoFill(viewerId);
         finish(true);
         return;
       }
       if (cls === 'blocked') logAdEvent(viewerId, placement, 'blocked_adblock');
       watching.current = false;
-      if (mounted.current) {
-        setBusy(false);
-        setBlocked(cls === 'blocked');
-        setFailed(true);
-      }
+      setBusy(false);
+      setBlocked(cls === 'blocked');
+      setFailed(true);
       return;
     }
-    if (gateAllows(outcome)) noFillStreak = 0;
-    if (owed) {
-      const debt = await readOwedAd(viewerId);
-      if (debt) await writeOwedAd(viewerId, afterOwedOutcome(debt, outcome));
-    }
-    finish(gateAllows(outcome));
+    coordinator.resetNoFill(viewerId);
+    finish(outcome === 'completed' || outcome === 'bypass');
   };
-
   const close = async () => {
-    if (busy) return;
-    if (owed && viewerId && placement) {
-      const debt = await readOwedAd(viewerId);
-      if (debt) await writeOwedAd(viewerId, afterOwedOutcome(debt, 'declined'));
+    const l = lease.current;
+    if (busy || !l || !valid(l)) return;
+    if (credit && viewerId && placement) {
+      await updateLedger(viewerId, (value) =>
+        l.valid() ? declineOffer(value, Date.now()) : value,
+      );
+      if (!valid(l)) return;
       logAdEvent(viewerId, placement, 'owed_declined');
     }
     finish(false);
   };
-
   useEffect(() => {
-    if (!options?.offerOwed || !viewerId) return;
+    if (!options?.offerCredit || !viewerId) return;
     let disposed = false;
-    let offering = false;
-    const maybeOfferOwed = async () => {
-      if (disposed || offering || activePlacement.current || checking.current) return;
-      offering = true;
+    let checking = false;
+    const maybeOffer = async () => {
+      if (disposed || checking) return;
+      checking = true;
+      let owner: coordinator.Lease | null = null;
       try {
-        const debt = await readOwedAd(viewerId);
-        const online = await defaultRewardedAdDeps().isOnline();
+        const ledger = await readLedger(viewerId);
         if (disposed) return;
-        const verdict = shouldOfferOwed(debt, {
-          now: Date.now(),
-          online,
-          paid: paid.current,
-          promptedThisSession: owedPromptedSession,
-          busy: gatesBusy() || checking.current || activePlacement.current !== null,
-        });
-        if (verdict === 'clear') {
-          await writeOwedAd(viewerId, null);
+        const online = await defaultRewardedAdDeps().isOnline();
+        if (
+          disposed ||
+          shouldOfferCredit(ledger, {
+            now: Date.now(),
+            online,
+            paid: paid.current,
+            offeredThisSession: coordinator.wasOffered(viewerId),
+            busy: coordinator.isBusy() || gatesBusy(),
+          }) !== 'offer'
+        )
           return;
-        }
-        if (verdict !== 'offer' || !debt || !mounted.current) return;
-        owedPromptedSession = true;
-        logAdEvent(viewerId, debt.placement, 'owed_offered');
-        setOwed(true);
-        activePlacement.current = debt.placement;
-        setPlacement(debt.placement);
-        resolve.current = null;
+        owner = coordinator.acquire(viewerId, 'credit');
+        if (!owner) return;
+        const status = await readGateStatus(viewerId).catch(() => null);
+        if (disposed || !valid(owner) || paid.current || !status?.enabled || !ledger.offerPlacement)
+          return;
+        lease.current = owner;
+        coordinator.markOffered(viewerId);
+        logAdEvent(viewerId, ledger.offerPlacement, 'owed_offered');
+        setCredit(true);
+        setCapped(false);
+        setPlacement(ledger.offerPlacement);
+        owner = null;
       } finally {
-        offering = false;
+        owner?.release();
+        checking = false;
       }
     };
-    const offer = () => void maybeOfferOwed().catch(() => undefined);
+    const offer = () => {
+      void maybeOffer().catch(() => undefined);
+    };
     const timer = setTimeout(offer, 1500);
     const app = AppState.addEventListener('change', (state) => {
       if (state === 'active') offer();
     });
-    const network = Network.addNetworkStateListener(offer);
+    const network = Network.addNetworkStateListener((state) => {
+      if (state.isConnected && state.isInternetReachable !== false) offer();
+    });
     return () => {
       disposed = true;
       clearTimeout(timer);
       app.remove();
       network.remove();
     };
-  }, [viewerId, isPaid, options?.offerOwed]);
-
+  }, [viewerId, isPaid, options?.offerCredit]);
   const goUpgrade = () => {
-    finish(false);
+    if (busy) return;
+    void close();
     router.push('/settings/upgrade');
   };
-
   const g = t.adGates;
   const isGroup = placement === 'group_create_rewarded';
 
@@ -240,14 +360,10 @@ export function useAdGate(options?: { offerOwed?: boolean }) {
     sheet: (
       <Sheet
         visible={placement !== null && !isPaid}
-        onClose={() => {
-          if (!busy) void close();
-        }}
+        onClose={() => void close()}
         closeLabel={t.common.close}
-        // No Sheet title — we draw our own compact header with an X button.
         handle={false}
       >
-        {/* ── Close button row ─────────────────────────────────── */}
         <View
           style={{
             flexDirection: 'row',
@@ -255,17 +371,10 @@ export function useAdGate(options?: { offerOwed?: boolean }) {
             marginBottom: theme.spacing.xs,
           }}
         >
-          <IconButton
-            label={t.common.close}
-            onPress={() => {
-              if (!busy) void close();
-            }}
-          >
+          <IconButton label={t.common.close} onPress={() => void close()}>
             <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
           </IconButton>
         </View>
-
-        {/* ── Illustration ──────────────────────────────────────── */}
         <View style={{ alignItems: 'center', marginBottom: 8 }}>
           <Image
             source={failed ? IMG_FAILED : IMG_VIDEO}
@@ -273,93 +382,73 @@ export function useAdGate(options?: { offerOwed?: boolean }) {
             resizeMode="contain"
           />
         </View>
-
-        {failed ? (
-          /* ── State B: failed / blocked ────────────────────────── */
-          <View>
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              style={{ textAlign: 'center', marginBottom: 4 }}
-            >
-              {blocked ? g.blockedTitle : g.failedTitle}
-            </Text>
-            <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
-              {blocked ? g.blockedBody : g.failedBody}
-            </Text>
-
-            {busy ? (
-              <ActivityIndicator color={theme.color.brand} style={{ marginBottom: 8 }} />
-            ) : (
-              <Button
-                label={isGroup ? g.groupRetryBtn : g.exportRetryBtn}
-                variant="brand"
-                fullWidth
-                disabled={busy}
-                onPress={() => void watch()}
-                icon={<Ionicons name="refresh" size={iconSize.md} color={theme.color.onBrand} />}
-              />
-            )}
-
-            <Pressable
-              accessibilityRole="link"
-              onPress={goUpgrade}
-              style={{
-                alignItems: 'center',
-                minHeight: 44,
-                justifyContent: 'center',
-                marginTop: 8,
-              }}
-            >
-              <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-                {g.proLink}
-              </Text>
-            </Pressable>
-          </View>
+        <Text
+          variant="heading"
+          accessibilityRole="header"
+          style={{ textAlign: 'center', marginBottom: 4 }}
+        >
+          {capped
+            ? isGroup
+              ? g.offlineCappedGroup
+              : g.offlineCappedExport
+            : failed
+              ? blocked
+                ? g.blockedTitle
+                : g.failedTitle
+              : credit
+                ? g.creditOfferTitle
+                : g.title}
+        </Text>
+        {!capped && (
+          <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
+            {failed
+              ? blocked
+                ? g.blockedBody
+                : g.failedBody
+              : credit
+                ? g.creditOfferBody
+                : isGroup
+                  ? g.groupBody
+                  : g.exportBody}
+          </Text>
+        )}
+        {busy ? (
+          <ActivityIndicator color={theme.color.brand} style={{ marginBottom: 8 }} />
         ) : (
-          /* ── State A: ask ─────────────────────────────────────── */
-          <View>
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              style={{ textAlign: 'center', marginBottom: 4 }}
-            >
-              {g.title}
+          <Button
+            label={
+              capped
+                ? t.common.ok
+                : failed
+                  ? isGroup
+                    ? g.groupRetryBtn
+                    : g.exportRetryBtn
+                  : g.watchBtn
+            }
+            variant="brand"
+            fullWidth
+            onPress={() => (capped ? finish(false) : void watch())}
+            icon={
+              capped ? undefined : (
+                <Ionicons
+                  name={failed ? 'refresh' : 'play-circle'}
+                  size={iconSize.md}
+                  color={theme.color.onBrand}
+                />
+              )
+            }
+          />
+        )}
+        {!capped && (
+          <Pressable
+            accessibilityRole="link"
+            onPress={goUpgrade}
+            style={{ alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 }}
+          >
+            <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
+              {g.proLink}
             </Text>
-            <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
-              {owed ? g.owedBody : isGroup ? g.groupBody : g.exportBody}
-            </Text>
-
-            {busy ? (
-              <ActivityIndicator color={theme.color.brand} style={{ marginBottom: 8 }} />
-            ) : (
-              <Button
-                label={g.watchBtn}
-                variant="brand"
-                fullWidth
-                disabled={busy}
-                onPress={() => void watch()}
-                icon={
-                  <Ionicons name="play-circle" size={iconSize.md} color={theme.color.onBrand} />
-                }
-              />
-            )}
-
-            <Pressable
-              accessibilityRole="link"
-              onPress={goUpgrade}
-              style={{
-                alignItems: 'center',
-                minHeight: 44,
-                justifyContent: 'center',
-                marginTop: 8,
-              }}
-            >
-              <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
-                {g.proLink}
-              </Text>
-            </Pressable>
-          </View>
+          </Pressable>
         )}
       </Sheet>
     ),

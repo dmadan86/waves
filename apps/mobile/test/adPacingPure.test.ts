@@ -136,3 +136,11 @@ describe('looksAdBlocked', () => {
     expect(looksAdBlocked('timeout')).toBe(false);
   });
 });
+
+it('requires an ad host for sinkhole evidence and recognizes IPv6 blocking', () => {
+  expect(looksAdBlocked('googleads [::]')).toBe(true);
+  expect(looksAdBlocked('pagead2 :: port 443')).toBe(true);
+  expect(looksAdBlocked('unable to resolve host example.com')).toBe(false);
+  expect(looksAdBlocked('googleads 10.0.0.0')).toBe(false);
+  expect(looksAdBlocked('pagead2 network-error timeout')).toBe(false);
+});

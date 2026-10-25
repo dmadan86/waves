@@ -19,7 +19,10 @@ export type AdEventOutcome =
   | 'offline_allowed'
   | 'owed_offered'
   | 'owed_declined'
-  | 'blocked_adblock';
+  | 'blocked_adblock'
+  | 'credit_used'
+  | 'credit_earned'
+  | 'offline_capped';
 // Immediate process-wide timestamps complement the cross-device server history.
 const clocks = new Map<
   string,

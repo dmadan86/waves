@@ -1804,8 +1804,12 @@ export interface UiStrings {
     blockedTitle: string;
     /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
     blockedBody: string;
-    /** Explains the optional ad owed after an offline action. */
-    owedBody: string;
+    /** Optional credit offer after using an offline pass. */
+    creditOfferTitle: string;
+    creditOfferBody: string;
+    creditUsedToast: string;
+    offlineCappedGroup: string;
+    offlineCappedExport: string;
   };
   rewardedAds: {
     entryVoice: string;
@@ -7433,13 +7437,17 @@ const en: UiStrings = {
     exportBody: 'Then you can export.',
     watchBtn: 'Watch ad',
     proLink: 'Get Pro for no ads',
-    failedTitle: 'The ad could not load',
-    failedBody: 'Please try again.',
+    failedTitle: 'Check your internet',
+    failedBody: 'Then try again.',
     groupRetryBtn: 'Retry ad to create group',
     exportRetryBtn: 'Retry ad to export',
     blockedTitle: 'The ad seems blocked',
     blockedBody: 'Turn off ad blocking or Private DNS.',
-    owedBody: 'You created this offline. A short ad keeps Waves free.',
+    creditOfferTitle: 'Get a free group or export',
+    creditOfferBody: 'Watch a short ad to earn 1 credit.',
+    creditUsedToast: 'Used 1 free credit',
+    offlineCappedGroup: 'Connect to the internet to create this group',
+    offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -12570,13 +12578,17 @@ const ta: UiStrings = {
     exportBody: 'பிறகு ஏற்றுமதி செய்யலாம்.',
     watchBtn: 'விளம்பரம் பாருங்கள்',
     proLink: 'விளம்பரமின்றி Pro பெறுங்கள்',
-    failedTitle: 'விளம்பரம் ஏற்றப்படவில்லை',
-    failedBody: 'மீண்டும் முயலவும்.',
+    failedTitle: 'இணைய இணைப்பைச் சரிபாருங்கள்',
+    failedBody: 'பிறகு மீண்டும் முயலுங்கள்.',
     groupRetryBtn: 'குழு உருவாக்க விளம்பரம் மீண்டும் பாருங்கள்',
     exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
     blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
     blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
-    owedBody: 'இதை ஆஃப்லைனில் உருவாக்கினீர்கள். ஒரு சிறிய விளம்பரம் Waves-ஐ இலவசமாக வைக்கிறது.',
+    creditOfferTitle: 'ஒரு குழு அல்லது ஏற்றுமதி இலவசமாகப் பெறுங்கள்',
+    creditOfferBody: 'ஒரு சிறிய விளம்பரம் பார்த்து 1 கிரெடிட் பெறுங்கள்.',
+    creditUsedToast: '1 இலவச கிரெடிட் பயன்படுத்தப்பட்டது',
+    offlineCappedGroup: 'இந்தக் குழுவை உருவாக்க இணையத்தில் இணையுங்கள்',
+    offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -17855,13 +17867,17 @@ const hi: UiStrings = {
     exportBody: 'फिर आप एक्सपोर्ट कर सकते हैं।',
     watchBtn: 'विज्ञापन देखें',
     proLink: 'बिना विज्ञापन के Pro लें',
-    failedTitle: 'विज्ञापन लोड नहीं हो सका',
-    failedBody: 'कृपया फिर से कोशिश करें।',
+    failedTitle: 'इंटरनेट कनेक्शन जाँचें',
+    failedBody: 'फिर दोबारा कोशिश करें।',
     groupRetryBtn: 'ग्रुप बनाने के लिए विज्ञापन दोबारा देखें',
     exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
     blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
     blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
-    owedBody: 'आपने इसे ऑफ़लाइन बनाया। एक छोटा विज्ञापन Waves को मुफ़्त रखता है।',
+    creditOfferTitle: 'एक समूह या एक्सपोर्ट मुफ़्त पाएँ',
+    creditOfferBody: 'छोटा विज्ञापन देखकर 1 क्रेडिट पाएँ।',
+    creditUsedToast: '1 मुफ़्त क्रेडिट इस्तेमाल हुआ',
+    offlineCappedGroup: 'यह समूह बनाने के लिए इंटरनेट से जुड़ें',
+    offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -23058,13 +23074,17 @@ const ar: UiStrings = {
     exportBody: 'ثم يمكنك التصدير.',
     watchBtn: 'شاهد الإعلان',
     proLink: 'احصل على Pro بلا إعلانات',
-    failedTitle: 'تعذّر تحميل الإعلان',
-    failedBody: 'يُرجى المحاولة مرة أخرى.',
+    failedTitle: 'تحقق من اتصال الإنترنت',
+    failedBody: 'ثم حاول مرة أخرى.',
     groupRetryBtn: 'أعد الإعلان لإنشاء المجموعة',
     exportRetryBtn: 'أعد الإعلان للتصدير',
     blockedTitle: 'يبدو أن الإعلان محجوب',
     blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
-    owedBody: 'أنشأت هذا دون اتصال. إعلان قصير يُبقي Waves مجانيًا.',
+    creditOfferTitle: 'احصل على مجموعة أو تصدير مجانًا',
+    creditOfferBody: 'شاهد إعلانًا قصيرًا لتحصل على رصيد واحد.',
+    creditUsedToast: 'تم استخدام رصيد مجاني واحد',
+    offlineCappedGroup: 'اتصل بالإنترنت لإنشاء هذه المجموعة',
+    offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',

@@ -1,84 +1,159 @@
 import { expect, it } from 'vitest';
 import {
+  emptyLedger,
+  parseLedger,
+  touch,
+  passesUsed,
+  grantPass,
   decideGate,
+  earnCredit,
+  useCredit,
+  declineOffer,
+  shouldOfferCredit,
   classifyFailure,
-  isNoFill,
   shouldProbeAdHost,
-  oweAd,
-  shouldOfferOwed,
-  afterOwedOutcome,
-  OWED_TTL_MS,
-  type OwedAd,
+  isNoFill,
+  PASS_WINDOW_MS,
+  FUTURE_SKEW_MS,
 } from '@/lib/adGateEngine';
-
-it.each([
-  [true, false, null, 'allow'],
-  [false, false, false, 'allow'],
-  [false, false, true, 'allow_owe'],
-  [false, true, null, 'allow_owe'],
-  [false, true, true, 'ask'],
-] as const)('decides paid=%s online=%s required=%s', (paid, online, required, expected) => {
-  expect(decideGate({ paid, online, required })).toBe(expected);
+const placement = 'group_create_rewarded' as const;
+const input = {
+  paid: false,
+  online: false,
+  required: null,
+  placement,
+  localGroups: 1,
+  credits: 0,
+  passesUsed: 0,
+};
+it('caps passes at two in seven days and expires the window', () => {
+  let l = grantPass(emptyLedger(), 100, placement);
+  l = grantPass(l, 101, placement);
+  expect(passesUsed(l, 102)).toBe(2);
+  expect(decideGate({ ...input, passesUsed: passesUsed(l, 102) })).toBe('offline_capped');
+  expect(passesUsed(l, 101 + PASS_WINDOW_MS)).toBe(0);
+  expect(decideGate({ ...input, passesUsed: 0 })).toBe('offline_pass');
+});
+it('does not revive or extend passes on a backward jump', () => {
+  const l = touch(grantPass(grantPass(emptyLedger(), 100), 101), 1000);
+  expect(passesUsed(l, 0)).toBe(2);
+  expect(grantPass(l, 0).passes.at(-1)).toBe(1000);
+  const expired = touch(l, 101 + PASS_WINDOW_MS);
+  expect(passesUsed(expired, 0)).toBe(0);
+});
+it('counts future passes, including beyond the skew allowance', () => {
+  expect(passesUsed({ ...emptyLedger(), passes: [100 + FUTURE_SKEW_MS + 1] }, 100)).toBe(1);
+});
+it('accepts the documented offline forward-jump residual', () => {
+  const l = grantPass(grantPass(emptyLedger(), 100), 101);
+  expect(passesUsed(l, 102 + PASS_WINDOW_MS)).toBe(0);
+  expect(passesUsed(touch(l, 102 + PASS_WINDOW_MS), 100)).toBe(0);
 });
 it.each([
-  [false, 'network-error 0.0.0.0', false, 3, 'offline'],
-  [
-    true,
-    'network-error Failed to connect to googleads.g.doubleclick.net/0.0.0.0:443',
-    null,
-    0,
-    'blocked',
-  ],
-  [true, 'network-error unreachable', false, 0, 'blocked'],
-  [true, 'no-fill', true, 3, 'nofill_allow'],
-  [true, 'no-fill', true, 2, 'retry'],
-  [true, 'network-error', true, 3, 'retry'],
-  [true, 'network-error', null, 3, 'retry'],
-  [true, 'unknown', false, 3, 'retry'],
-] as const)(
-  'classifies online=%s failure=%s reachable=%s streak=%s',
-  (online, failure, adHostReachable, noFillStreak, expected) => {
-    expect(classifyFailure({ online, failure, adHostReachable, noFillStreak })).toBe(expected);
+  [{ localGroups: 0 }, 'allow'],
+  [{ localGroups: 0, passesUsed: 2 }, 'allow'],
+  [{ placement: 'export_rewarded' as const, localGroups: 0 }, 'offline_pass'],
+  [{ online: true, required: null }, 'allow'],
+  [{ online: true, required: false }, 'allow'],
+  [{ online: true, required: true, credits: 1 }, 'use_credit'],
+  [{ online: true, required: true }, 'ask'],
+  [{ paid: true, passesUsed: 2 }, 'allow'],
+] as const)('decides %j', (patch, expected) =>
+  expect(decideGate({ ...input, ...patch })).toBe(expected),
+);
+it('earns at most one credit, clears the offer, and consumes it', () => {
+  const l = earnCredit(earnCredit(grantPass(emptyLedger(), 100, placement)));
+  expect(l.credits).toBe(1);
+  expect(l.offerPlacement).toBeNull();
+  expect(useCredit(l).credits).toBe(0);
+});
+const ready = { now: 100, online: true, paid: false, offeredThisSession: false, busy: false };
+it('offers only after a pass and stops after three recent declines', () => {
+  expect(shouldOfferCredit(emptyLedger(), ready)).toBe('none');
+  let l = grantPass(emptyLedger(), 100, placement);
+  expect(shouldOfferCredit(l, ready)).toBe('offer');
+  for (let n = 0; n < 3; n++) l = declineOffer(l, 100);
+  expect(shouldOfferCredit(l, ready)).toBe('none');
+  expect(shouldOfferCredit(l, { ...ready, now: 100 + PASS_WINDOW_MS })).toBe('offer');
+});
+it.each([{ online: false }, { busy: true }, { offeredThisSession: true }])(
+  'waits for %j',
+  (patch) => {
+    expect(
+      shouldOfferCredit(grantPass(emptyLedger(), 100, placement), { ...ready, ...patch }),
+    ).toBe('wait');
   },
 );
-it.each(['no-fill', 'TIMEOUT', 'internal-error', 'mediation-no-fill'])('recognizes %s', (failure) =>
-  expect(isNoFill(failure)).toBe(true),
-);
-it('rejects other failures', () => expect(isNoFill('network-error')).toBe(false));
+it('never offers to paid users or credit holders', () => {
+  const l = grantPass(emptyLedger(), 100, placement);
+  expect(shouldOfferCredit(l, { ...ready, paid: true })).toBe('none');
+  expect(shouldOfferCredit({ ...l, credits: 1 }, ready)).toBe('none');
+});
+const failureInput = {
+  online: true,
+  backendOk: true,
+  adHostReachable: null,
+  noFillStreak: 0,
+  failure: '',
+};
 it.each([
-  [false, 'network-error', false],
-  [true, 'network-error', true],
-  [true, 'UNKNOWN', true],
-  [true, 'timeout', false],
-  [true, 'network-error 127.0.0.1', false],
-] as const)('probes online=%s failure=%s', (online, failure, expected) =>
-  expect(shouldProbeAdHost({ online, failure })).toBe(expected),
+  ['network-error pagead2.googlesyndication.com timeout', 'retry'],
+  ['network-error googleads.g.doubleclick.net/0.0.0.0:443', 'blocked'],
+  ['unable to resolve host googleads.g.doubleclick.net', 'blocked'],
+  ['googleads.g.doubleclick.net [::]', 'blocked'],
+  ['googleads.g.doubleclick.net :: port 443', 'blocked'],
+  ['googleads.g.doubleclick.net 2001::1', 'retry'],
+  ['0.0.0.0 example.com', 'retry'],
+  ['network-error pagead2 fetch failed', 'retry'],
+] as const)('classifies %s', (failure, expected) =>
+  expect(classifyFailure({ ...failureInput, failure })).toBe(expected),
 );
-const debt: OwedAd = { placement: 'group_create_rewarded', createdAt: 100, prompts: 0 };
-it('creates one debt', () => expect(oweAd(null, debt.placement, 100)).toEqual(debt));
-it('keeps existing debt intact', () => expect(oweAd(debt, 'export_rewarded', 200)).toBe(debt));
-const ready = { now: 101, online: true, paid: false, promptedThisSession: false, busy: false };
-it('has no debt to offer', () => expect(shouldOfferOwed(null, ready)).toBe('none'));
+it('requires backend evidence and respects reachable probe veto', () => {
+  const failure = 'googleads 127.0.0.1';
+  expect(classifyFailure({ ...failureInput, failure, backendOk: false })).toBe('retry');
+  expect(classifyFailure({ ...failureInput, failure, adHostReachable: true })).toBe('retry');
+  expect(
+    classifyFailure({ ...failureInput, failure: 'network-error', adHostReachable: false }),
+  ).toBe('retry');
+  expect(classifyFailure({ ...failureInput, failure, online: false })).toBe('offline');
+});
+it('allows only after three consecutive no-fills', () => {
+  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 2 })).toBe('retry');
+  expect(classifyFailure({ ...failureInput, failure: 'no-fill', noFillStreak: 3 })).toBe(
+    'nofill_allow',
+  );
+});
+it.each(['no-fill', 'TIMEOUT', 'internal-error', 'mediation-no-fill'])('recognizes %s', (s) =>
+  expect(isNoFill(s)).toBe(true),
+);
+it('probes only network errors with online backend and no sinkhole', () => {
+  const i = { online: true, backendOk: true, failure: 'network-error' };
+  expect(shouldProbeAdHost(i)).toBe(true);
+  for (const patch of [
+    { online: false },
+    { backendOk: false },
+    { failure: 'timeout' },
+    { failure: 'network-error [::]' },
+  ])
+    expect(shouldProbeAdHost({ ...i, ...patch })).toBe(false);
+});
 it.each([
-  [{ paid: true }, 'clear'],
-  [{ now: 100 + OWED_TTL_MS }, 'clear'],
-  [{ online: false }, 'wait'],
-  [{ promptedThisSession: true }, 'wait'],
-  [{ busy: true }, 'wait'],
-  [{ now: 99 + OWED_TTL_MS }, 'offer'],
-  [{}, 'offer'],
-] as const)('offers with %j', (patch, expected) =>
-  expect(shouldOfferOwed(debt, { ...ready, ...patch })).toBe(expected),
-);
-it('clears exhausted prompts before waiting', () =>
-  expect(shouldOfferOwed({ ...debt, prompts: 3 }, { ...ready, online: false })).toBe('clear'));
-it('completion clears debt', () => expect(afterOwedOutcome(debt, 'completed')).toBeNull());
-it.each(['skipped', 'declined'] as const)('%s increments prompts', (outcome) =>
-  expect(afterOwedOutcome(debt, outcome)).toEqual({ ...debt, prompts: 1 }),
-);
-it.each(['skipped', 'declined'] as const)('%s clears at the cap', (outcome) =>
-  expect(afterOwedOutcome({ ...debt, prompts: 2 }, outcome)).toBeNull(),
-);
-it.each(['failed', 'cancelled'] as const)('%s preserves debt', (outcome) =>
-  expect(afterOwedOutcome(debt, outcome)).toBe(debt),
-);
+  null,
+  [],
+  'bad',
+  {},
+  { passes: [] },
+  { ...emptyLedger(), hw: Infinity },
+  { ...emptyLedger(), offerPlacement: 'bad' },
+])('parses garbage %j', (raw) => expect(parseLedger(raw)).toEqual(emptyLedger()));
+it('clamps credit and drops nonfinite timestamps', () => {
+  expect(
+    parseLedger({
+      ...emptyLedger(),
+      credits: 3,
+      passes: [1, NaN, Infinity, '2'],
+      declines: [2, null],
+    }),
+  ).toEqual({ ...emptyLedger(), credits: 1, passes: [1], declines: [2] });
+  expect(parseLedger({ ...emptyLedger(), credits: -1 }).credits).toBe(0);
+});

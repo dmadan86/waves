@@ -105,5 +105,10 @@ export function gateRequired(input: {
 
 /** Blocking DNS (AdGuard, NextDNS, Pi-hole) answers ad hosts with 0.0.0.0 or nothing; offline is ruled out before loading. */
 export function looksAdBlocked(reason: string): boolean {
-  return /0\.0\.0\.0|127\.0\.0\.1|unable to resolve host/i.test(reason);
+  return (
+    /google|doubleclick|admob|gstatic|pagead|2mdn/i.test(reason) &&
+    /(?:^|[^\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?=$|[^\d.])|\[::\]|(?:^|[^\w:])::(?=$|[^\w:])|unable to resolve host/i.test(
+      reason,
+    )
+  );
 }
