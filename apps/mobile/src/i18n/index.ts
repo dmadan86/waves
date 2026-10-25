@@ -1790,6 +1790,24 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  credits: {
+    title: string;
+    balance: string;
+    usedOne: string;
+    used: string;
+    offer: string;
+    watch: string;
+    tomorrow: string;
+    later: string;
+    full: string;
+    unavailable: string;
+    earn: string;
+    voice: string;
+    scan: string;
+    export: string;
+    group: string;
+    price: string;
+  };
   adGates: {
     title: string;
     groupBody: string;
@@ -1804,6 +1822,12 @@ export interface UiStrings {
     blockedTitle: string;
     /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
     blockedBody: string;
+    /** Optional credit offer after using an offline pass. */
+    creditOfferTitle: string;
+    creditOfferBody: string;
+    creditUsedToast: string;
+    offlineCappedGroup: string;
+    offlineCappedExport: string;
   };
   rewardedAds: {
     entryVoice: string;
@@ -3090,6 +3114,9 @@ export interface UiStrings {
     interruptedHint: string;
     backedUp: PluralForms;
     backupFailed: string;
+    failReconnect: string;
+    failFull: string;
+    failNetwork: string;
     /** Under a button held down by some other in-flight action on the screen. */
     busy: string;
 
@@ -7425,18 +7452,41 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  credits: {
+    title: 'Credits',
+    balance: 'You have {n} credits',
+    usedOne: 'Used {n} credit',
+    used: 'Used {n} credits',
+    offer: 'Watch a short ad to earn +{n} credits.',
+    watch: 'Watch ad +{n}',
+    tomorrow: 'Come back tomorrow',
+    later: 'Try again later',
+    full: 'Wallet full',
+    unavailable: 'Ads unavailable',
+    earn: 'Credits never expire. Watch one ad to earn credits. Monthly free uses come first.',
+    voice: 'AI voice',
+    scan: 'Receipt scan',
+    export: 'Export',
+    group: 'Additional group',
+    price: '{n} credits',
+  },
   adGates: {
     title: 'Watch a short ad',
     groupBody: 'Then you can create this group.',
     exportBody: 'Then you can export.',
     watchBtn: 'Watch ad',
     proLink: 'Get Pro for no ads',
-    failedTitle: 'The ad could not load',
-    failedBody: 'Please try again.',
+    failedTitle: 'Couldn’t load the ad',
+    failedBody: 'Then try again.',
     groupRetryBtn: 'Retry ad to create group',
     exportRetryBtn: 'Retry ad to export',
     blockedTitle: 'The ad seems blocked',
     blockedBody: 'Turn off ad blocking or Private DNS.',
+    creditOfferTitle: 'Get a free group or export',
+    creditOfferBody: 'Watch a short ad to earn 1 credit.',
+    creditUsedToast: 'Used 1 free credit',
+    offlineCappedGroup: 'Connect to the internet to create this group',
+    offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -8469,6 +8519,9 @@ const en: UiStrings = {
       other: '{n} records backed up',
     },
     backupFailed: 'The backup did not finish. Try again in a moment.',
+    failReconnect: 'Reconnect Google Drive',
+    failFull: 'Your Google Drive is full',
+    failNetwork: 'Check your internet',
     busy: 'Just a moment…',
 
     never: 'Never backed up',
@@ -12561,18 +12614,41 @@ const ta: UiStrings = {
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
+  credits: {
+    title: 'கிரெடிட்கள்',
+    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
+    used: '{n} கிரெடிட்கள் பயன்படுத்தப்பட்டன',
+    offer: 'ஒரு சிறு விளம்பரம் பார்த்து +{n} கிரெடிட்கள் பெறுங்கள்.',
+    watch: 'விளம்பரம் பார் +{n}',
+    tomorrow: 'நாளை மீண்டும் வாருங்கள்',
+    later: 'பிறகு முயலுங்கள்',
+    full: 'கிரெடிட் வரம்பை எட்டிவிட்டீர்கள்',
+    unavailable: 'விளம்பரங்கள் கிடைக்கவில்லை',
+    earn: 'கிரெடிட்கள் காலாவதியாகாது. ஒரு விளம்பரம் பார்த்து பெறுங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    voice: 'AI குரல்',
+    scan: 'ரசீது ஸ்கேன்',
+    export: 'ஏற்றுமதி',
+    group: 'கூடுதல் குழு',
+    price: '{n} கிரெடிட்கள்',
+  },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
     groupBody: 'பிறகு இந்தக் குழுவை உருவாக்கலாம்.',
     exportBody: 'பிறகு ஏற்றுமதி செய்யலாம்.',
     watchBtn: 'விளம்பரம் பாருங்கள்',
     proLink: 'விளம்பரமின்றி Pro பெறுங்கள்',
-    failedTitle: 'விளம்பரம் ஏற்றப்படவில்லை',
-    failedBody: 'மீண்டும் முயலவும்.',
+    failedTitle: 'விளம்பரத்தை ஏற்ற முடியவில்லை',
+    failedBody: 'பிறகு மீண்டும் முயலுங்கள்.',
     groupRetryBtn: 'குழு உருவாக்க விளம்பரம் மீண்டும் பாருங்கள்',
     exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
     blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
     blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
+    creditOfferTitle: 'ஒரு குழு அல்லது ஏற்றுமதி இலவசமாகப் பெறுங்கள்',
+    creditOfferBody: 'ஒரு சிறிய விளம்பரம் பார்த்து 1 கிரெடிட் பெறுங்கள்.',
+    creditUsedToast: '1 இலவச கிரெடிட் பயன்படுத்தப்பட்டது',
+    offlineCappedGroup: 'இந்தக் குழுவை உருவாக்க இணையத்தில் இணையுங்கள்',
+    offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -13643,6 +13719,9 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
     },
     backupFailed: 'காப்புப்பிரதி முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    failReconnect: 'Google Drive-ஐ மீண்டும் இணைக்கவும்',
+    failFull: 'உங்கள் Google Drive நிரம்பிவிட்டது',
+    failNetwork: 'உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்',
     busy: 'ஒரு நிமிடம்…',
 
     never: 'இதுவரை காப்பு எடுக்கவில்லை',
@@ -17845,6 +17924,24 @@ const hi: UiStrings = {
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
+  credits: {
+    title: 'क्रेडिट',
+    balance: 'आपके पास {n} क्रेडिट हैं',
+    usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
+    used: '{n} क्रेडिट इस्तेमाल हुए',
+    offer: 'छोटा विज्ञापन देखकर +{n} क्रेडिट पाएँ।',
+    watch: 'विज्ञापन देखें +{n}',
+    tomorrow: 'कल फिर आएँ',
+    later: 'बाद में कोशिश करें',
+    full: 'वॉलेट भरा है',
+    unavailable: 'विज्ञापन उपलब्ध नहीं',
+    earn: 'क्रेडिट कभी समाप्त नहीं होते। एक विज्ञापन देखकर क्रेडिट पाएँ। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    voice: 'AI वॉइस',
+    scan: 'रसीद स्कैन',
+    export: 'एक्सपोर्ट',
+    group: 'अतिरिक्त समूह',
+    price: '{n} क्रेडिट',
+  },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
     groupBody: 'फिर आप यह ग्रुप बना सकते हैं।',
@@ -17852,11 +17949,16 @@ const hi: UiStrings = {
     watchBtn: 'विज्ञापन देखें',
     proLink: 'बिना विज्ञापन के Pro लें',
     failedTitle: 'विज्ञापन लोड नहीं हो सका',
-    failedBody: 'कृपया फिर से कोशिश करें।',
+    failedBody: 'फिर दोबारा कोशिश करें।',
     groupRetryBtn: 'ग्रुप बनाने के लिए विज्ञापन दोबारा देखें',
     exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
     blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
     blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
+    creditOfferTitle: 'एक समूह या एक्सपोर्ट मुफ़्त पाएँ',
+    creditOfferBody: 'छोटा विज्ञापन देखकर 1 क्रेडिट पाएँ।',
+    creditUsedToast: '1 मुफ़्त क्रेडिट इस्तेमाल हुआ',
+    offlineCappedGroup: 'यह समूह बनाने के लिए इंटरनेट से जुड़ें',
+    offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -18895,6 +18997,9 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड का बैकअप हो गया',
     },
     backupFailed: 'बैकअप पूरा नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    failReconnect: 'Google Drive फिर से कनेक्ट करें',
+    failFull: 'आपका Google Drive भर गया है',
+    failNetwork: 'अपना इंटरनेट कनेक्शन जाँचें',
     busy: 'एक पल…',
 
     never: 'अभी तक कोई बैकअप नहीं',
@@ -23047,6 +23152,24 @@ const ar: UiStrings = {
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
+  credits: {
+    title: 'الرصيد',
+    balance: 'لديك {n} من الرصيد',
+    usedOne: 'تم استخدام {n} من الرصيد',
+    used: 'تم استخدام {n} من الرصيد',
+    offer: 'شاهد إعلانًا قصيرًا واكسب +{n} من الرصيد.',
+    watch: 'شاهد إعلانًا +{n}',
+    tomorrow: 'عُد غدًا',
+    later: 'حاول لاحقًا',
+    full: 'المحفظة ممتلئة',
+    unavailable: 'الإعلانات غير متاحة',
+    earn: 'الرصيد لا ينتهي. شاهد إعلانًا لكسب الرصيد. تُستخدم الحصة الشهرية المجانية أولًا.',
+    voice: 'صوت الذكاء الاصطناعي',
+    scan: 'مسح إيصال',
+    export: 'تصدير',
+    group: 'مجموعة إضافية',
+    price: '{n} من الرصيد',
+  },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',
     groupBody: 'ثم يمكنك إنشاء هذه المجموعة.',
@@ -23054,11 +23177,16 @@ const ar: UiStrings = {
     watchBtn: 'شاهد الإعلان',
     proLink: 'احصل على Pro بلا إعلانات',
     failedTitle: 'تعذّر تحميل الإعلان',
-    failedBody: 'يُرجى المحاولة مرة أخرى.',
+    failedBody: 'ثم حاول مرة أخرى.',
     groupRetryBtn: 'أعد الإعلان لإنشاء المجموعة',
     exportRetryBtn: 'أعد الإعلان للتصدير',
     blockedTitle: 'يبدو أن الإعلان محجوب',
     blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
+    creditOfferTitle: 'احصل على مجموعة أو تصدير مجانًا',
+    creditOfferBody: 'شاهد إعلانًا قصيرًا لتحصل على رصيد واحد.',
+    creditUsedToast: 'تم استخدام رصيد مجاني واحد',
+    offlineCappedGroup: 'اتصل بالإنترنت لإنشاء هذه المجموعة',
+    offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
@@ -24207,6 +24335,9 @@ const ar: UiStrings = {
       other: 'نُسخ {n} سجل',
     },
     backupFailed: 'لم يكتمل النسخ. حاول بعد قليل.',
+    failReconnect: 'أعِد ربط Google Drive',
+    failFull: 'مساحة Google Drive ممتلئة',
+    failNetwork: 'تحقق من اتصالك بالإنترنت',
     busy: 'لحظة…',
 
     never: 'لم يحدث نسخ بعد',

@@ -1,3 +1,6 @@
+import { readCredits } from './adCredits';
+import { watchCreditAd } from './watchCreditAd';
+import type { CreditsStatus } from './adCreditsPure';
 import { logAdEvent } from '@/lib/adEvents';
 /**
  * Offering a rewarded ad at a natural moment: `offer('voice')` when the AI voice
@@ -38,6 +41,8 @@ export interface RewardedAdOffer {
   /** Render once, anywhere in the screen. */
   sheet: React.JSX.Element;
   canOffer(kind: AdKind): boolean;
+  amount(kind: AdKind): number;
+  creditsKnown: boolean;
 }
 
 export function useRewardedAdOffer(): RewardedAdOffer {
@@ -53,6 +58,13 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     staleTime: 0,
     refetchInterval: 30_000,
   });
+  const wallet = useQuery({
+    queryKey: ['credits', viewerId],
+    queryFn: readCredits,
+    enabled: !!viewerId,
+    refetchInterval: 30000,
+  });
+  const [creditStatus, setCreditStatus] = useState<CreditsStatus | null>(null);
   const [, setQuietTick] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setQuietTick(Date.now()), 30_000);
@@ -67,7 +79,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const canOffer = (next: AdKind): boolean =>
     !!viewerId &&
     !isPaid &&
-    eligibility.data?.eligible === true &&
+    (wallet.data ? wallet.data.canWatch : eligibility.data?.eligible === true) &&
     !visible &&
     !running.current &&
     Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
@@ -83,8 +95,10 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     async (next: AdKind): Promise<void> => {
       if (!viewerId || isPaid || running.current) return;
       if (Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
-      const current = await readAdsStatus().catch(() => null);
-      if (!mounted.current || !current?.eligible) return;
+      const credits = await readCredits();
+      const current = credits ? null : await readAdsStatus().catch(() => null);
+      setCreditStatus(credits);
+      if (!mounted.current || (credits ? !credits.canWatch : !current?.eligible)) return;
       setKind(next);
       setStatus(current);
       setState({ step: 'ready' });
@@ -109,7 +123,11 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         case 'credited':
           return {
             text: fill(kind === 'voice' ? a.creditedVoice : a.creditedScan, {
-              count: status ? rewardAmount(status, kind) : 2,
+              count: creditStatus
+                ? Math.floor(creditStatus.perAd / creditStatus.costs[kind])
+                : status
+                  ? rewardAmount(status, kind)
+                  : 2,
             }),
             tone: 'positive',
             done: true,
@@ -130,7 +148,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
           return { text: a.error, tone: 'warning', done: false };
       }
     },
-    [kind, status, t.rewardedAds],
+    [kind, status, creditStatus, t.rewardedAds],
   );
 
   const watch = useCallback(async (): Promise<void> => {
@@ -138,22 +156,25 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     running.current = true;
     setState({ step: 'busy', confirming: false });
     try {
-      const before = await readAdsStatus().catch(() => null);
-      if (!before?.eligible) {
+      const credits = await readCredits();
+      const before = credits ? null : await readAdsStatus().catch(() => null);
+      if (credits ? !credits.canWatch : !before?.eligible) {
         setVisible(false);
         void eligibility.refetch();
         return;
       }
-      const outcome = await runRewardedAd(
-        { profileId: viewerId, kind, baselineUsedToday: before?.usedToday ?? 0 },
-        {
-          ...defaultRewardedAdDeps(),
-          onShown: () => logAdEvent(viewerId, 'quota_rewarded', 'shown'),
-          onPhase: (phase) => {
-            if (mounted.current) setState({ step: 'busy', confirming: phase === 'confirming' });
-          },
-        },
-      );
+      const outcome = credits
+        ? await watchCreditAd(viewerId, kind === 'voice' ? 'voice' : 'gate', 'quota_rewarded')
+        : await runRewardedAd(
+            { profileId: viewerId, kind, baselineUsedToday: before?.usedToday ?? 0 },
+            {
+              ...defaultRewardedAdDeps(),
+              onShown: () => logAdEvent(viewerId, 'quota_rewarded', 'shown'),
+              onPhase: (phase) => {
+                if (mounted.current) setState({ step: 'busy', confirming: phase === 'confirming' });
+              },
+            },
+          );
       logAdEvent(
         viewerId,
         'quota_rewarded',
@@ -168,6 +189,8 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
         void queryClient.invalidateQueries({ queryKey: ['voiceAccess'] });
         void queryClient.invalidateQueries({ queryKey: ['adsStatus'] });
+        void queryClient.invalidateQueries({ queryKey: ['credits'] });
+        void queryClient.invalidateQueries({ queryKey: ['receiptCap'] });
       }
       if (!mounted.current) return;
       const shown = message(outcome);
@@ -188,15 +211,33 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       <RewardedAdSheet
         visible={visible && !isPaid}
         kind={kind}
-        amount={status ? rewardAmount(status, kind) : 2}
+        credits={creditStatus?.credits}
+        amount={
+          creditStatus
+            ? Math.floor(creditStatus.perAd / creditStatus.costs[kind])
+            : status
+              ? rewardAmount(status, kind)
+              : 2
+        }
         state={state}
         onWatch={() => void watch()}
         onUpgrade={upgrade}
         onClose={close}
       />
     ),
-    [close, kind, state, status, upgrade, visible, watch, isPaid],
+    [close, kind, state, status, creditStatus, upgrade, visible, watch, isPaid],
   );
 
-  return { offer, sheet, canOffer };
+  return {
+    offer,
+    sheet,
+    canOffer,
+    creditsKnown: !!wallet.data,
+    amount: (next) =>
+      wallet.data
+        ? Math.floor(wallet.data.perAd / wallet.data.costs[next])
+        : eligibility.data
+          ? rewardAmount(eligibility.data, next)
+          : 2,
+  };
 }

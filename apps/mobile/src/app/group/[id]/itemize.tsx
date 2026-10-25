@@ -1,3 +1,5 @@
+import { useToast } from '@/lib/toast';
+import { withScanCredits } from '@/lib/scanCredits';
 import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -163,6 +165,7 @@ export default function ItemizeScreen() {
   // At the scan limit a Free person may choose to watch one reward ad; the server
   // decides who is offered it.
   const adOffer = useRewardedAdOffer();
+  const toast = useToast();
   /** A bill that has been scanned but not yet handed to the table. */
   const [scanId, setScanId] = useState<string | null>(null);
 
@@ -254,19 +257,23 @@ export default function ItemizeScreen() {
       // When it does not — a dark or blurred photo — the image path reads such
       // a receipt far better, so it is worth the upload.
       const recognised = await recogniseReceipt(picked.uri);
-      const result = recognised
-        ? await scanReceiptText({
-            groupId,
-            rawText: recognised.text,
-            currency,
-            source: 'camera',
-          })
-        : await scanReceipt({
-            groupId,
-            base64: picked.base64,
-            mimeType: picked.mimeType,
-            currency,
-          });
+      const result = await withScanCredits(
+        async () =>
+          recognised
+            ? await scanReceiptText({
+                groupId,
+                rawText: recognised.text,
+                currency,
+                source: 'camera',
+              })
+            : await scanReceipt({
+                groupId,
+                base64: picked.base64,
+                mimeType: picked.mimeType,
+                currency,
+              }),
+        (n) => toast.show((n === 1 ? t.credits.usedOne : t.credits.used).replace('{n}', String(n))),
+      );
 
       fillFromReceipt(result.parsed);
       setScanId(result.receiptId);

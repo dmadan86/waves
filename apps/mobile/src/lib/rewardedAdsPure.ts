@@ -41,8 +41,8 @@ export function rewardedUnitId(
  */
 export function ssvOptions(
   profileId: string,
-  kind: AdKind,
-): { userId: string; customData: AdKind } {
+  kind: string,
+): { userId: string; customData: string } {
   return { userId: profileId, customData: kind };
 }
 
@@ -51,7 +51,7 @@ export function ssvOptions(
  * and no App Tracking Transparency prompt on iOS (the Info.plist has no
  * NSUserTrackingUsageDescription).
  */
-export function adRequestOptions(profileId: string, kind: AdKind) {
+export function adRequestOptions(profileId: string, kind: string) {
   return {
     requestNonPersonalizedAdsOnly: true,
     serverSideVerificationOptions: ssvOptions(profileId, kind),
@@ -134,7 +134,7 @@ export function parseAdsStatus(data: unknown): AdsStatus {
 }
 
 /** Units one ad is worth for this kind, from the server's settings. */
-export function rewardAmount(status: Pick<AdsStatus, 'voicePerAd' | 'scansPerAd'>, kind: AdKind) {
+export function rewardAmount(status: Pick<AdsStatus, 'voicePerAd' | 'scansPerAd'>, kind: string) {
   return kind === 'voice' ? status.voicePerAd : status.scansPerAd;
 }
 
