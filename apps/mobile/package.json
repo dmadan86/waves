@@ -69,7 +69,7 @@
     "expo-task-manager": "~57.0.21",
     "expo-updates": "~57.0.26",
     "expo-web-browser": "~57.0.3",
-    "pdfjs-dist": "4.10.38",
+    "pdfjs-dist": "6.4.299",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-native": "0.86.3",
