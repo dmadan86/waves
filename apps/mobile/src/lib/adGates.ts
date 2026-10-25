@@ -1,3 +1,7 @@
+import * as Network from 'expo-network';
+import { getLocales } from 'expo-localization';
+import { pickInterstitialUnit } from './adPacingPure';
+import { emptyLedger, parseLedger, type AdLedger } from '@/lib/adGateEngine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import { adTimeout } from '@/lib/adTimeout';
@@ -17,13 +21,17 @@ import { runGateAd, prepareInterstitial, type PreparedInterstitial } from '@/lib
 
 export interface GateStatus {
   enabled: boolean;
+  credits?: number;
+  walletCap?: number;
+  perAd?: number;
+  costs?: Record<'voice' | 'scan' | 'export' | 'group', number>;
   createdAt: string;
   createdGroups: number;
   interstitialToday: number;
   lastAdAt: string | null;
   lastRewardedAt: string | null;
   lastInterstitialAt: string | null;
-  settings: AdPacingSettings;
+  settings: AdPacingSettings & { interstitial_video_enabled?: boolean };
 }
 export async function readGateStatus(profileId: string): Promise<GateStatus | null> {
   await adTimeout(flushAdEvents(profileId), 500);
@@ -38,7 +46,9 @@ export async function readGateStatus(profileId: string): Promise<GateStatus | nu
   return { ...status, createdGroups: status.createdGroups + pendingGroups };
 }
 const preparedAds = new Map<string, PreparedInterstitial>();
-function interstitialDeps() {
+// The AdMob interstitial unit should be created as Display-only (no video) so ads stay short and closable quickly.
+// Shown only if already preloaded (prewarmExpenseAd): never a loading spinner after a save.
+function interstitialDeps(videoUnit?: string) {
   return {
     ...defaultRewardedAdDeps(),
     unitId: () => {
@@ -47,7 +57,7 @@ function interstitialDeps() {
           ? process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS
           : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID;
       return (
-        (!__DEV__ && configured?.trim()) ||
+        (!__DEV__ && (videoUnit || configured?.trim())) ||
         (Platform.OS === 'ios'
           ? 'ca-app-pub-3940256099942544/4411468910'
           : 'ca-app-pub-3940256099942544/1033173712')
@@ -67,7 +77,24 @@ export async function prewarmExpenseAd(profileId: string) {
     status.interstitialToday >= status.settings.interstitial_daily_cap
   )
     return;
-  const ad = await prepareInterstitial(interstitialDeps());
+  const videoUnit =
+    Platform.OS === 'ios'
+      ? process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_VIDEO_IOS
+      : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_VIDEO_ANDROID;
+  const network = await Network.getNetworkStateAsync().catch(() => null);
+  const unit = pickInterstitialUnit({
+    videoUnitConfigured: !!videoUnit?.trim(),
+    flagEnabled: status.settings.interstitial_video_enabled === true,
+    unmetered:
+      network?.type === Network.NetworkStateType.WIFI &&
+      (network as { isConnectionExpensive?: boolean }).isConnectionExpensive !== true,
+    firstAdOfDay: status.interstitialToday === 0,
+    sessionSeconds: (Date.now() - sessionStartedAt) / 1000,
+    country: getLocales()[0]?.regionCode ?? null,
+  });
+  const ad = await prepareInterstitial(
+    interstitialDeps(unit === 'video' ? videoUnit?.trim() : undefined),
+  );
   if (ad) preparedAds.set(profileId, ad);
   else logAdEvent(profileId, 'expense_interstitial', 'failed');
 }
@@ -85,11 +112,12 @@ export async function watchGate(
   if (running) return 'cancelled' as const;
   running = true;
   try {
-    const current = await readGateStatus(profileId);
+    const current = await readGateStatus(profileId).catch(() => null);
     if (!current?.enabled) {
-      if (!current) logAdEvent(profileId, placement, 'failed');
-      return 'failed' as const;
+      if (!current) logAdEvent(profileId, placement, 'offline_allowed', 'status');
+      return 'bypass' as const;
     }
+    if (!canShow()) return 'bypass' as const;
     const deps = defaultRewardedAdDeps();
     const result = await runGateAd(
       true,
@@ -97,6 +125,14 @@ export async function watchGate(
       () => logAdEvent(profileId, placement, 'shown'),
       undefined,
       () => canShow() && AppState.currentState === 'active',
+      (cb) => {
+        let prev = AppState.currentState;
+        const sub = AppState.addEventListener('change', (state) => {
+          if (state === 'active' && prev === 'background') cb();
+          prev = state;
+        });
+        return () => sub.remove();
+      },
     );
     logAdEvent(profileId, placement, result === 'cancelled' ? 'skipped' : result);
     return result;
@@ -118,6 +154,7 @@ export async function afterGroupExpense(
   onlineSave: boolean,
   groupId: string,
   expenseId: string,
+  edited = false,
 ) {
   if (paid || !onlineSave || running || Platform.OS === 'web') return;
   running = true;
@@ -167,6 +204,7 @@ export async function afterGroupExpense(
         paid,
         personal: false,
         saved: true,
+        editOf: edited ? expenseId : undefined,
         online: true,
         sensitiveMoment: adsAreQuiet(Date.now()),
         lastAdAt: Math.max(local.lastAdAt, time(status.lastAdAt)),
@@ -203,4 +241,34 @@ export async function afterGroupExpense(
   } finally {
     running = false;
   }
+}
+
+const ledgerKey = (id: string) => `waves.adLedger.${id}`;
+export function localGroupCount() {
+  return Object.keys(syncEngine.getState().mirror.tables.groups ?? {}).length;
+}
+export async function readLedger(id: string): Promise<AdLedger> {
+  try {
+    return parseLedger(JSON.parse((await AsyncStorage.getItem(ledgerKey(id))) ?? 'null'));
+  } catch {
+    return emptyLedger();
+  }
+}
+async function storeLedger(id: string, l: AdLedger) {
+  try {
+    await AsyncStorage.setItem(ledgerKey(id), JSON.stringify(l));
+  } catch {}
+}
+let ledgerUpdates: Promise<unknown> = Promise.resolve();
+export function updateLedger(id: string, fn: (l: AdLedger) => AdLedger): Promise<AdLedger> {
+  const next = ledgerUpdates.then(async () => {
+    const l = fn(await readLedger(id));
+    await storeLedger(id, l);
+    return l;
+  });
+  ledgerUpdates = next.catch(() => undefined);
+  return next;
+}
+export async function writeLedger(id: string, l: AdLedger) {
+  await updateLedger(id, () => l);
 }

@@ -1,3 +1,4 @@
+import { withScanCredits } from '@/lib/scanCredits';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { afterGroupExpense, startAdSession, prewarmExpenseAd } from '@/lib/adGates';
 import { RewardedAdEntry } from '@/components/RewardedAdEntry';
@@ -431,8 +432,8 @@ export default function AddExpenseScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
   useEffect(() => {
-    if (viewerId && !expenseId && !movePersonal) void prewarmExpenseAd(viewerId);
-  }, [viewerId, expenseId, movePersonal]);
+    if (viewerId && !movePersonal) void prewarmExpenseAd(viewerId);
+  }, [viewerId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
@@ -1694,13 +1695,14 @@ export default function AddExpenseScreen() {
         'positive',
       );
       router.back();
-      if (viewerId && !expenseId && !movedFrom) {
+      if (viewerId && !movedFrom) {
         void afterGroupExpense(
           viewerId,
           isPro,
           !isQueuedOffline(syncStatus),
           groupId,
           targetExpenseId,
+          Boolean(expenseId),
         );
       }
     } catch (caught) {
@@ -1812,14 +1814,23 @@ export default function AddExpenseScreen() {
       // device when it works, and it costs about a tenth as much. A dark or
       // blurred bill falls back to sending the image, which reads it better.
       const recognised = await recogniseReceipt(picked.uri);
-      const result = recognised
-        ? await scanReceiptText({ groupId, rawText: recognised.text, currency, source: 'camera' })
-        : await scanReceipt({
-            groupId,
-            base64: picked.base64,
-            mimeType: picked.mimeType,
-            currency,
-          });
+      const result = await withScanCredits(
+        async () =>
+          recognised
+            ? await scanReceiptText({
+                groupId,
+                rawText: recognised.text,
+                currency,
+                source: 'camera',
+              })
+            : await scanReceipt({
+                groupId,
+                base64: picked.base64,
+                mimeType: picked.mimeType,
+                currency,
+              }),
+        (n) => toast.show((n === 1 ? t.credits.usedOne : t.credits.used).replace('{n}', String(n))),
+      );
 
       if (result.parsed.grandTotal > 0) setAmount(BigInt(result.parsed.grandTotal));
       if (result.parsed.merchant && !description.trim()) setDescription(result.parsed.merchant);

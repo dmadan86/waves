@@ -181,55 +181,56 @@ model Profile {
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  memberships         GroupMember[]
-  membersRemoved      GroupMember[]          @relation("MemberRemovedBy")
-  captures            Capture[]
-  categoryTags        CategoryTag[]
-  personalRecords     PersonalRecord[]
-  packInstalls        PackInstall[]
-  packRequests        PackRequest[]
-  groupPins           GroupPin[]
-  groupMutes          GroupMute[]
-  agentWrites         AgentWrite[]
-  pushTokens          PushToken[]
-  notifications       Notification[]
-  emailEvents         EmailEvent[]
-  createdInvites      Invite[]               @relation("InviteCreatedBy")
-  usageEvents         UsageEvent[]
-  subscriptions       Subscription[]
-  promoRedemptions    PromoRedemption[]
-  referralCode        ReferralCode?
-  referralsMade       Referral[]        @relation("ReferralReferrer")
-  referralClaimed     Referral?         @relation("ReferralReferee")
-  campaignImpressions CampaignImpression[]
-  campaignEmailSends  CampaignEmailSend[]
-  feedback            Feedback[]
-  appEvents           AppEvent[]
-  purchasedPasses     GroupPass[]
-  syncMutations       SyncMutation[]
-  memberClaims        MemberClaim[]
-  linkRequestsForMe   MemberLinkRequest[] @relation("LinkRequestTarget")
-  linkRequestsMade    MemberLinkRequest[] @relation("LinkRequestRequester")
-  deviceSessions      DeviceSession[]
-  ghostMerges         GhostMerge[]
-  storageObjects      StorageObject[]
-  voiceSttUsage       VoiceSttUsage[]
-  voiceAgentUsage     VoiceAgentUsage[]
-  voiceAgentFollowupTurns VoiceAgentFollowupTurns[]
-  voiceAgentFollowupSlots VoiceAgentFollowupSlot[]
-  usageRestoreMark        UsageRestoreMark?
-  voiceStreamReservations VoiceStreamReservation[]
-  statementImportSessions StatementImportSession[]
-  voiceAgentAllowlist VoiceAgentAllowlist?
-  adRewards           AdReward[]
-  adEvents            AdEvent[]
-  adsAllowlist        AdsAllowlist?
-  aiUsage             AiUsage[]
+  memberships               GroupMember[]
+  membersRemoved            GroupMember[]              @relation("MemberRemovedBy")
+  captures                  Capture[]
+  categoryTags              CategoryTag[]
+  personalRecords           PersonalRecord[]
+  packInstalls              PackInstall[]
+  packRequests              PackRequest[]
+  groupPins                 GroupPin[]
+  groupMutes                GroupMute[]
+  agentWrites               AgentWrite[]
+  pushTokens                PushToken[]
+  notifications             Notification[]
+  emailEvents               EmailEvent[]
+  createdInvites            Invite[]                   @relation("InviteCreatedBy")
+  usageEvents               UsageEvent[]
+  subscriptions             Subscription[]
+  promoRedemptions          PromoRedemption[]
+  referralCode              ReferralCode?
+  referralsMade             Referral[]                 @relation("ReferralReferrer")
+  referralClaimed           Referral?                  @relation("ReferralReferee")
+  campaignImpressions       CampaignImpression[]
+  campaignEmailSends        CampaignEmailSend[]
+  feedback                  Feedback[]
+  appEvents                 AppEvent[]
+  purchasedPasses           GroupPass[]
+  syncMutations             SyncMutation[]
+  memberClaims              MemberClaim[]
+  linkRequestsForMe         MemberLinkRequest[]        @relation("LinkRequestTarget")
+  linkRequestsMade          MemberLinkRequest[]        @relation("LinkRequestRequester")
+  deviceSessions            DeviceSession[]
+  ghostMerges               GhostMerge[]
+  storageObjects            StorageObject[]
+  voiceSttUsage             VoiceSttUsage[]
+  voiceAgentUsage           VoiceAgentUsage[]
+  voiceAgentFollowupTurns   VoiceAgentFollowupTurns[]
+  voiceAgentFollowupSlots   VoiceAgentFollowupSlot[]
+  usageRestoreMark          UsageRestoreMark?
+  voiceStreamReservations   VoiceStreamReservation[]
+  statementImportSessions   StatementImportSession[]
+  voiceAgentAllowlist       VoiceAgentAllowlist?
+  adRewards                 AdReward[]
+  creditLedger              CreditLedger[]
+  adEvents                  AdEvent[]
+  adsAllowlist              AdsAllowlist?
+  aiUsage                   AiUsage[]
   screenshotImportAllowlist ScreenshotImportAllowlist?
-  voiceAttempts       VoiceAttempt[]
-  apiApps             ApiApp[]
-  apiTokens           ApiToken[]
-  apiCodes            ApiAuthorizationCode[]
+  voiceAttempts             VoiceAttempt[]
+  apiApps                   ApiApp[]
+  apiTokens                 ApiToken[]
+  apiCodes                  ApiAuthorizationCode[]
 
   @@map("profiles")
   @@schema("public")
@@ -396,81 +397,81 @@ model Group {
 /// A member is either a real profile or a ghost (name only) — ADR-006.
 /// Exactly one of profile_id / ghost_name is set (CHECK in migration SQL).
 model GroupMember {
-  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  groupId       String     @map("group_id") @db.Uuid
-  profileId     String?    @map("profile_id") @db.Uuid
-  ghostName     String?    @map("ghost_name")
-  role          MemberRole @default(member)
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId            String     @map("group_id") @db.Uuid
+  profileId          String?    @map("profile_id") @db.Uuid
+  ghostName          String?    @map("ghost_name")
+  role               MemberRole @default(member)
   /// How they got here: 'creator' | 'invite_link' | 'ghost' | 'import'.
-  joinedVia     String?    @map("joined_via")
+  joinedVia          String?    @map("joined_via")
   /// Where this person's invite should go. Lowercased. A hint for one invited
   /// person — never a copy of anybody's address book.
-  inviteEmail   String?    @map("invite_email")
+  inviteEmail        String?    @map("invite_email")
   /// E.164 only, e.g. +919876543210.
-  invitePhone   String?    @map("invite_phone")
+  invitePhone        String?    @map("invite_phone")
   /// Per-group override of the profile's default VPA. Superseded by
   /// `paymentRail` + `paymentHandle`; kept until the screens move over.
-  vpa           String?
+  vpa                String?
   /// Per-group override of how this person is paid — the same pair as on the
   /// profile. One group settles over UPI and another over Wise, and the person
   /// is the same person.
-  paymentRail   String?    @map("payment_rail")
-  paymentHandle String?    @map("payment_handle")
+  paymentRail        String?    @map("payment_rail")
+  paymentHandle      String?    @map("payment_handle")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
-  importBatchId String?    @map("import_batch_id") @db.Uuid
-  leftAt        DateTime?  @map("left_at") @db.Timestamptz(6)
+  importBatchId      String?    @map("import_batch_id") @db.Uuid
+  leftAt             DateTime?  @map("left_at") @db.Timestamptz(6)
   /// When an admin removed them (null: never removed, or they left by
   /// themselves). An invite minted at or before this cannot bring them back.
-  removedAt     DateTime?  @map("removed_at") @db.Timestamptz(6)
+  removedAt          DateTime?  @map("removed_at") @db.Timestamptz(6)
   /// The admin who removed them.
-  removedBy     String?    @map("removed_by") @db.Uuid
+  removedBy          String?    @map("removed_by") @db.Uuid
   /// Set when this placeholder was folded into another member of the same
   /// group (`waves_fold_member_into`): retired, kept for the history that
   /// names it.
-  mergedIntoMemberId String? @map("merged_into_member_id") @db.Uuid
-  updatedSeq    BigInt     @default(0) @map("updated_seq")
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  mergedIntoMemberId String?    @map("merged_into_member_id") @db.Uuid
+  updatedSeq         BigInt     @default(0) @map("updated_seq")
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  profile     Profile?     @relation(fields: [profileId], references: [id], onDelete: SetNull)
-  remover     Profile?     @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
-  importBatch ImportBatch? @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
-  mergedInto  GroupMember? @relation("MergedInto", fields: [mergedIntoMemberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  group       Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  profile     Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  remover     Profile?      @relation("MemberRemovedBy", fields: [removedBy], references: [id], onDelete: SetNull)
+  importBatch ImportBatch?  @relation("BatchGhosts", fields: [importBatchId], references: [id], onDelete: SetNull)
+  mergedInto  GroupMember?  @relation("MergedInto", fields: [mergedIntoMemberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   mergedFrom  GroupMember[] @relation("MergedInto")
 
-  authoredVersions   ExpenseVersion[]    @relation("VersionAuthor")
+  authoredVersions   ExpenseVersion[]        @relation("VersionAuthor")
   paidFor            ExpensePayer[]
   owes               ExpenseShare[]
-  settlementsSent    Settlement[]        @relation("SettlementFrom")
-  settlementsGot     Settlement[]        @relation("SettlementTo")
+  settlementsSent    Settlement[]            @relation("SettlementFrom")
+  settlementsGot     Settlement[]            @relation("SettlementTo")
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
-  commentsAuthored   ExpenseComment[]    @relation("ExpenseCommentAuthor")
-  commentsFlagged    ExpenseComment[]    @relation("ExpenseCommentFlagger")
-  commentsDeleted    ExpenseComment[]    @relation("ExpenseCommentDeleter")
+  commentsAuthored   ExpenseComment[]        @relation("ExpenseCommentAuthor")
+  commentsFlagged    ExpenseComment[]        @relation("ExpenseCommentFlagger")
+  commentsDeleted    ExpenseComment[]        @relation("ExpenseCommentDeleter")
   imageEvents        ExpenseImageEvent[]
   activity           ActivityLog[]
-  disputesRaised     ExpenseDispute[]    @relation("DisputeRaisedBy")
-  disputesResolved   ExpenseDispute[]    @relation("DisputeResolvedBy")
-  remindersSent      Reminder[]          @relation("ReminderFrom")
-  remindersGot       Reminder[]          @relation("ReminderTo")
+  disputesRaised     ExpenseDispute[]        @relation("DisputeRaisedBy")
+  disputesResolved   ExpenseDispute[]        @relation("DisputeResolvedBy")
+  remindersSent      Reminder[]              @relation("ReminderFrom")
+  remindersGot       Reminder[]              @relation("ReminderTo")
   balances           GroupBalance[]
-  pairwiseFrom       PairwiseBalance[]   @relation("PairwiseFrom")
-  pairwiseTo         PairwiseBalance[]   @relation("PairwiseTo")
-  createdExpenses    Expense[]           @relation("ExpenseCreatedBy")
-  deletedExpenses    Expense[]           @relation("ExpenseDeletedBy")
-  claimsOnThisPlace  MemberClaim[]       @relation("ClaimTarget")
-  claimsDecided      MemberClaim[]       @relation("ClaimDecider")
+  pairwiseFrom       PairwiseBalance[]       @relation("PairwiseFrom")
+  pairwiseTo         PairwiseBalance[]       @relation("PairwiseTo")
+  createdExpenses    Expense[]               @relation("ExpenseCreatedBy")
+  deletedExpenses    Expense[]               @relation("ExpenseDeletedBy")
+  claimsOnThisPlace  MemberClaim[]           @relation("ClaimTarget")
+  claimsDecided      MemberClaim[]           @relation("ClaimDecider")
   linkRequests       MemberLinkRequest[]
   tripBudget         TripMemberBudget?
   ghostMerges        GhostMerge[]
-  importsRun         ImportBatch[]       @relation("BatchActor")
-  importsUndone      ImportBatch[]       @relation("BatchUndoneBy")
+  importsRun         ImportBatch[]           @relation("BatchActor")
+  importsUndone      ImportBatch[]           @relation("BatchUndoneBy")
 
   @@unique([groupId, profileId])
   @@index([groupId])
@@ -1555,28 +1556,28 @@ model ReferralCode {
 /// exactly once, when the friend is verified and has recorded a genuine expense
 /// in a group of two or more. Days granted are capped at 30 per account.
 model Referral {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// Null once the referrer's account is deleted: the row (and the days it
   /// earned) outlives both accounts.
-  referrerId   String?   @map("referrer_id") @db.Uuid
-  refereeId    String?   @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
-  code         String?
-  source       String    @default("code")
-  status       String    @default("claimed")
-  rejectReason String?   @map("reject_reason")
-  claimedAt    DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
-  qualifiedAt  DateTime? @map("qualified_at") @db.Timestamptz(6)
-  referrerDays Int       @default(0) @map("referrer_days")
-  refereeDays  Int       @default(0) @map("referee_days")
+  referrerId         String?   @map("referrer_id") @db.Uuid
+  refereeId          String?   @unique(map: "referrals_referee_key") @map("referee_id") @db.Uuid
+  code               String?
+  source             String    @default("code")
+  status             String    @default("claimed")
+  rejectReason       String?   @map("reject_reason")
+  claimedAt          DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  qualifiedAt        DateTime? @map("qualified_at") @db.Timestamptz(6)
+  referrerDays       Int       @default(0) @map("referrer_days")
+  refereeDays        Int       @default(0) @map("referee_days")
   /// Salted identity hashes of the friend, stamped when evaluated.
-  identityKeys String[]  @default([]) @map("identity_keys")
+  identityKeys       String[]  @default([]) @map("identity_keys")
   /// The referrer's identity hashes, stamped at the same time, so the lifetime
   /// cap follows the person through a delete-and-sign-up-again.
-  referrerKeys String[]  @default([]) @map("referrer_keys")
+  referrerKeys       String[]  @default([]) @map("referrer_keys")
   /// Device hashes of the friend and of the referrer: the same phone on both
   /// sides is a self-referral.
-  deviceKeys         String[] @default([]) @map("device_keys")
-  referrerDeviceKeys String[] @default([]) @map("referrer_device_keys")
+  deviceKeys         String[]  @default([]) @map("device_keys")
+  referrerDeviceKeys String[]  @default([]) @map("referrer_device_keys")
 
   referrer     Profile?      @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull, map: "referrals_referrer_fkey")
   referee      Profile?      @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: SetNull, map: "referrals_referee_fkey")
@@ -1632,20 +1633,32 @@ model ProTrial {
 /// `waves_ads_grant` / `waves_ads_eligibility`; tune in SQL, no app release needed.
 /// Service-role only.
 model AdRewardSettings {
-  id                   Boolean @id @default(true)
-  voicePerAd           Int     @default(2) @map("voice_per_ad")
-  scansPerAd           Int     @default(2) @map("scans_per_ad")
-  dailyCap             Int     @default(3) @map("daily_cap")
-  minAccountAgeDays    Int     @default(7) @map("min_account_age_days")
-  gapMin               Int     @default(3) @map("gap_min")
-  gapMax               Int     @default(5) @map("gap_max")
-  cooldownSeconds      Int     @default(180) @map("cooldown_seconds")
-  interstitialDailyCap Int     @default(3) @map("interstitial_daily_cap")
-  graceDays            Int     @default(3) @map("grace_days")
-  graceExpenses        Int     @default(5) @map("grace_expenses")
-  rewardedQuietSeconds Int     @default(300) @map("rewarded_quiet_seconds")
-  sessionGraceSeconds  Int     @default(60) @map("session_grace_seconds")
-  sessionCap           Int     @default(2) @map("session_cap")
+  id                       Boolean @id @default(true)
+  voicePerAd               Int     @default(2) @map("voice_per_ad")
+  scansPerAd               Int     @default(2) @map("scans_per_ad")
+  dailyCap                 Int     @default(3) @map("daily_cap")
+  minAccountAgeDays        Int     @default(7) @map("min_account_age_days")
+  gapMin                   Int     @default(3) @map("gap_min")
+  gapMax                   Int     @default(5) @map("gap_max")
+  cooldownSeconds          Int     @default(180) @map("cooldown_seconds")
+  interstitialDailyCap     Int     @default(3) @map("interstitial_daily_cap")
+  graceDays                Int     @default(3) @map("grace_days")
+  graceExpenses            Int     @default(5) @map("grace_expenses")
+  rewardedQuietSeconds     Int     @default(300) @map("rewarded_quiet_seconds")
+  sessionGraceSeconds      Int     @default(60) @map("session_grace_seconds")
+  sessionCap               Int     @default(2) @map("session_cap")
+  creditsPerAd             Int     @default(6) @map("credits_per_ad")
+  voiceCost                Int     @default(1) @map("voice_cost")
+  scanCost                 Int     @default(2) @map("scan_cost")
+  exportCost               Int     @default(6) @map("export_cost")
+  groupCost                Int     @default(6) @map("group_cost")
+  walletCap                Int     @default(30) @map("wallet_cap")
+  rewardedDailyCap         Int     @default(5) @map("rewarded_daily_cap")
+  rewardedHourlyCap        Int     @default(2) @map("rewarded_hourly_cap")
+  rewardedGapSeconds       Int     @default(60) @map("rewarded_gap_seconds")
+  voluntaryDailyCap        Int     @default(3) @map("voluntary_daily_cap")
+  voluntaryWeeklyCap       Int     @default(10) @map("voluntary_weekly_cap")
+  interstitialVideoEnabled Boolean @default(false) @map("interstitial_video_enabled")
 
   @@map("ad_reward_settings")
   @@schema("public")
@@ -1683,12 +1696,31 @@ model AdReward {
   transactionId String   @unique(map: "ad_rewards_transaction_key") @map("transaction_id")
   adUnit        String   @map("ad_unit")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// 'voluntary' | 'voice' | 'offer' | 'gate' for kind 'credit'
+  source        String?
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId, createdAt], map: "ad_rewards_profile_created_idx")
   @@index([createdAt], map: "ad_rewards_created_idx")
   @@map("ad_rewards")
+  @@schema("public")
+}
+
+/// Credit wallet ledger (never expires; balance = sum(delta)). Written only by
+/// `waves_ads_grant` and `waves_spend_credits`. Service-role only.
+model CreditLedger {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  delta     Int
+  reason    String
+  ref       String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([profileId, createdAt], map: "credit_ledger_profile_created_idx")
+  @@map("credit_ledger")
   @@schema("public")
 }
 

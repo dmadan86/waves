@@ -938,23 +938,25 @@ export interface UiStrings {
   };
   /** The app lock, the delay before it asks again, and the way out. */
   lock: {
+    subtitle: string;
+    requireShort: string;
+    requireHint: string;
+    askAgainShort: string;
+    reopenShort: string;
+    footnoteShort: string;
     title: string;
     requireBiometrics: string;
-    requireExplain: string;
     appLock: string;
     unsupported: string;
     askAgainAfter: string;
-    askAgainExplain: string;
     graceImmediate: string;
     graceSeconds: PluralForms;
     graceMinutes: PluralForms;
-    reopenAlwaysAsks: string;
     signOut: string;
     signOutQuestion: string;
     signOutGuestWarning: string;
     signOutReassure: string;
     staySignedIn: string;
-    footnote: string;
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
     /** Heading on the shield in front of the private ledger. */
@@ -1790,6 +1792,24 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  credits: {
+    title: string;
+    balance: string;
+    usedOne: string;
+    used: string;
+    offer: string;
+    watch: string;
+    tomorrow: string;
+    later: string;
+    full: string;
+    unavailable: string;
+    earn: string;
+    voice: string;
+    scan: string;
+    export: string;
+    group: string;
+    price: string;
+  };
   adGates: {
     title: string;
     groupBody: string;
@@ -1804,6 +1824,12 @@ export interface UiStrings {
     blockedTitle: string;
     /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
     blockedBody: string;
+    /** Optional credit offer after using an offline pass. */
+    creditOfferTitle: string;
+    creditOfferBody: string;
+    creditUsedToast: string;
+    offlineCappedGroup: string;
+    offlineCappedExport: string;
   };
   rewardedAds: {
     entryVoice: string;
@@ -3090,6 +3116,9 @@ export interface UiStrings {
     interruptedHint: string;
     backedUp: PluralForms;
     backupFailed: string;
+    failReconnect: string;
+    failFull: string;
+    failNetwork: string;
     /** Under a button held down by some other in-flight action on the screen. */
     busy: string;
 
@@ -6691,27 +6720,26 @@ const en: UiStrings = {
     openDetail: 'Opens what needs your decision',
   },
   lock: {
+    subtitle: 'Keep your information private.',
+    requireShort: 'Require biometrics or passcode',
+    requireHint: 'Asks for fingerprint, face or passcode to open Waves.',
+    askAgainShort: 'How long Waves can stay unlocked in the background.',
+    reopenShort: 'Waves always asks after it has been fully closed.',
+    footnoteShort: 'Data that has synced is protected on our servers either way.',
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
-    requireExplain:
-      'Handing someone your phone to show them the split should not show them everything else.',
     appLock: 'App lock',
     unsupported: 'This device has no biometrics or passcode set up',
     askAgainAfter: 'Ask again after',
-    askAgainExplain:
-      'Time away before Waves asks again — for the app lock, and for the private personal ledger, which uses the same window when you leave it. Settling by UPI sends you to another app and back, so asking the instant you leave means unlocking every time you pay somebody.',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
-    reopenAlwaysAsks: 'Reopening Waves after it has been closed always asks, whatever this says.',
     signOut: 'Sign out',
     signOutQuestion: 'Sign out?',
     signOutGuestWarning:
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
     signOutReassure: 'You can sign back in whenever you like. Nothing is deleted.',
     staySignedIn: 'Stay signed in',
-    footnote:
-      'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
     personalLockedTitle: 'Your personal ledger is locked',
     personalLockedBody:
@@ -7425,18 +7453,41 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  credits: {
+    title: 'Credits',
+    balance: 'You have {n} credits',
+    usedOne: 'Used {n} credit',
+    used: 'Used {n} credits',
+    offer: 'Watch a short ad to earn +{n} credits.',
+    watch: 'Watch ad +{n}',
+    tomorrow: 'Come back tomorrow',
+    later: 'Try again later',
+    full: 'Wallet full',
+    unavailable: 'Ads unavailable',
+    earn: 'Credits never expire. Watch one ad to earn credits. Monthly free uses come first.',
+    voice: 'AI voice',
+    scan: 'Receipt scan',
+    export: 'Export',
+    group: 'Additional group',
+    price: '{n} credits',
+  },
   adGates: {
     title: 'Watch a short ad',
     groupBody: 'Then you can create this group.',
     exportBody: 'Then you can export.',
     watchBtn: 'Watch ad',
     proLink: 'Get Pro for no ads',
-    failedTitle: 'The ad could not load',
-    failedBody: 'Please try again.',
+    failedTitle: 'Couldn’t load the ad',
+    failedBody: 'Then try again.',
     groupRetryBtn: 'Retry ad to create group',
     exportRetryBtn: 'Retry ad to export',
     blockedTitle: 'The ad seems blocked',
     blockedBody: 'Turn off ad blocking or Private DNS.',
+    creditOfferTitle: 'Get a free group or export',
+    creditOfferBody: 'Watch a short ad to earn 1 credit.',
+    creditUsedToast: 'Used 1 free credit',
+    offlineCappedGroup: 'Connect to the internet to create this group',
+    offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -8469,6 +8520,9 @@ const en: UiStrings = {
       other: '{n} records backed up',
     },
     backupFailed: 'The backup did not finish. Try again in a moment.',
+    failReconnect: 'Reconnect Google Drive',
+    failFull: 'Your Google Drive is full',
+    failNetwork: 'Check your internet',
     busy: 'Just a moment…',
 
     never: 'Never backed up',
@@ -11813,27 +11867,26 @@ const ta: UiStrings = {
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
   },
   lock: {
+    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாக வைத்திருங்கள்.',
+    requireShort: 'கைரேகை அல்லது கடவுக்குறியீடு தேவை',
+    requireHint: 'Waves-ஐத் திறக்க கைரேகை, முகம் அல்லது கடவுக்குறியீட்டைக் கேட்கும்.',
+    askAgainShort: 'பின்னணியில் Waves எவ்வளவு நேரம் பூட்டப்படாமல் இருக்கலாம்.',
+    reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
+    footnoteShort: 'ஒத்திசைந்த தரவு எந்த நிலையிலும் எங்கள் சர்வர்களில் பாதுகாப்பாக உள்ளது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
-    requireExplain:
-      'பங்கீட்டைக் காட்ட ஃபோனைக் கொடுப்பது மற்ற எல்லாவற்றையும் காட்டுவதாக இருக்கக் கூடாது.',
     appLock: 'ஆப் பூட்டு',
     unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
     askAgainAfter: 'மீண்டும் கேட்க',
-    askAgainExplain:
-      'Waves மீண்டும் கேட்பதற்கு முன் நீங்கள் விலகி இருக்கும் நேரம் — ஆப் பூட்டுக்கும், தனிப்பட்ட கணக்குக்கும்; அதை விட்டு வெளியேறினாலும் இதே நேரம்தான். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே கேட்டால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
-    reopenAlwaysAsks: 'Waves-ஐ மூடிவிட்டுத் திறந்தால் இது என்னவாக இருந்தாலும் எப்போதும் கேட்கும்.',
     signOut: 'வெளியேறு',
     signOutQuestion: 'வெளியேறவா?',
     signOutGuestWarning:
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
     signOutReassure: 'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம். எதுவும் அழிக்கப்படவில்லை.',
     staySignedIn: 'உள்ளேயே இரு',
-    footnote:
-      'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
     personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
     personalLockedBody:
@@ -12561,18 +12614,41 @@ const ta: UiStrings = {
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
+  credits: {
+    title: 'கிரெடிட்கள்',
+    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
+    used: '{n} கிரெடிட்கள் பயன்படுத்தப்பட்டன',
+    offer: 'ஒரு சிறு விளம்பரம் பார்த்து +{n} கிரெடிட்கள் பெறுங்கள்.',
+    watch: 'விளம்பரம் பார் +{n}',
+    tomorrow: 'நாளை மீண்டும் வாருங்கள்',
+    later: 'பிறகு முயலுங்கள்',
+    full: 'கிரெடிட் வரம்பை எட்டிவிட்டீர்கள்',
+    unavailable: 'விளம்பரங்கள் கிடைக்கவில்லை',
+    earn: 'கிரெடிட்கள் காலாவதியாகாது. ஒரு விளம்பரம் பார்த்து பெறுங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    voice: 'AI குரல்',
+    scan: 'ரசீது ஸ்கேன்',
+    export: 'ஏற்றுமதி',
+    group: 'கூடுதல் குழு',
+    price: '{n} கிரெடிட்கள்',
+  },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
     groupBody: 'பிறகு இந்தக் குழுவை உருவாக்கலாம்.',
     exportBody: 'பிறகு ஏற்றுமதி செய்யலாம்.',
     watchBtn: 'விளம்பரம் பாருங்கள்',
     proLink: 'விளம்பரமின்றி Pro பெறுங்கள்',
-    failedTitle: 'விளம்பரம் ஏற்றப்படவில்லை',
-    failedBody: 'மீண்டும் முயலவும்.',
+    failedTitle: 'விளம்பரத்தை ஏற்ற முடியவில்லை',
+    failedBody: 'பிறகு மீண்டும் முயலுங்கள்.',
     groupRetryBtn: 'குழு உருவாக்க விளம்பரம் மீண்டும் பாருங்கள்',
     exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
     blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
     blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
+    creditOfferTitle: 'ஒரு குழு அல்லது ஏற்றுமதி இலவசமாகப் பெறுங்கள்',
+    creditOfferBody: 'ஒரு சிறிய விளம்பரம் பார்த்து 1 கிரெடிட் பெறுங்கள்.',
+    creditUsedToast: '1 இலவச கிரெடிட் பயன்படுத்தப்பட்டது',
+    offlineCappedGroup: 'இந்தக் குழுவை உருவாக்க இணையத்தில் இணையுங்கள்',
+    offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -13643,6 +13719,9 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
     },
     backupFailed: 'காப்புப்பிரதி முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    failReconnect: 'Google Drive-ஐ மீண்டும் இணைக்கவும்',
+    failFull: 'உங்கள் Google Drive நிரம்பிவிட்டது',
+    failNetwork: 'உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்',
     busy: 'ஒரு நிமிடம்…',
 
     never: 'இதுவரை காப்பு எடுக்கவில்லை',
@@ -17110,26 +17189,26 @@ const hi: UiStrings = {
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
+    subtitle: 'अपनी जानकारी निजी रखें।',
+    requireShort: 'बायोमेट्रिक या पासकोड ज़रूरी करें',
+    requireHint: 'Waves खोलने के लिए फ़िंगरप्रिंट, चेहरा या पासकोड माँगा जाएगा।',
+    askAgainShort: 'बैकग्राउंड में Waves कितनी देर तक अनलॉक रह सकता है।',
+    reopenShort: 'पूरी तरह बंद करने के बाद Waves खोलने पर हमेशा पुष्टि माँगी जाती है।',
+    footnoteShort: 'दोनों ही स्थितियों में सिंक हो चुका डेटा हमारे सर्वर पर सुरक्षित है।',
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
-    requireExplain: 'हिसाब दिखाने के लिए फ़ोन थमाना बाकी सब कुछ दिखाना नहीं होना चाहिए।',
     appLock: 'ऐप लॉक',
     unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
     askAgainAfter: 'दोबारा पूछें',
-    askAgainExplain:
-      'Waves के दोबारा पूछने से पहले आपके दूर रहने का समय — ऐप लॉक के लिए भी, और निजी हिसाब के लिए भी, जिसे छोड़ने पर यही समय लागू होता है। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही पूछने का मतलब है हर भुगतान पर दोबारा खोलना।',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
-    reopenAlwaysAsks: 'Waves को बंद करके दोबारा खोलने पर हमेशा पूछा जाएगा, यहाँ कुछ भी लिखा हो।',
     signOut: 'साइन आउट',
     signOutQuestion: 'साइन आउट करें?',
     signOutGuestWarning:
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
     signOutReassure: 'आप जब चाहें दोबारा साइन इन कर सकते हैं। कुछ भी मिटता नहीं।',
     staySignedIn: 'साइन इन रहें',
-    footnote:
-      'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
     personalLockedTitle: 'आपका निजी हिसाब लॉक है',
     personalLockedBody:
@@ -17845,6 +17924,24 @@ const hi: UiStrings = {
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
+  credits: {
+    title: 'क्रेडिट',
+    balance: 'आपके पास {n} क्रेडिट हैं',
+    usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
+    used: '{n} क्रेडिट इस्तेमाल हुए',
+    offer: 'छोटा विज्ञापन देखकर +{n} क्रेडिट पाएँ।',
+    watch: 'विज्ञापन देखें +{n}',
+    tomorrow: 'कल फिर आएँ',
+    later: 'बाद में कोशिश करें',
+    full: 'वॉलेट भरा है',
+    unavailable: 'विज्ञापन उपलब्ध नहीं',
+    earn: 'क्रेडिट कभी समाप्त नहीं होते। एक विज्ञापन देखकर क्रेडिट पाएँ। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    voice: 'AI वॉइस',
+    scan: 'रसीद स्कैन',
+    export: 'एक्सपोर्ट',
+    group: 'अतिरिक्त समूह',
+    price: '{n} क्रेडिट',
+  },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
     groupBody: 'फिर आप यह ग्रुप बना सकते हैं।',
@@ -17852,11 +17949,16 @@ const hi: UiStrings = {
     watchBtn: 'विज्ञापन देखें',
     proLink: 'बिना विज्ञापन के Pro लें',
     failedTitle: 'विज्ञापन लोड नहीं हो सका',
-    failedBody: 'कृपया फिर से कोशिश करें।',
+    failedBody: 'फिर दोबारा कोशिश करें।',
     groupRetryBtn: 'ग्रुप बनाने के लिए विज्ञापन दोबारा देखें',
     exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
     blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
     blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
+    creditOfferTitle: 'एक समूह या एक्सपोर्ट मुफ़्त पाएँ',
+    creditOfferBody: 'छोटा विज्ञापन देखकर 1 क्रेडिट पाएँ।',
+    creditUsedToast: '1 मुफ़्त क्रेडिट इस्तेमाल हुआ',
+    offlineCappedGroup: 'यह समूह बनाने के लिए इंटरनेट से जुड़ें',
+    offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -18895,6 +18997,9 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड का बैकअप हो गया',
     },
     backupFailed: 'बैकअप पूरा नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    failReconnect: 'Google Drive फिर से कनेक्ट करें',
+    failFull: 'आपका Google Drive भर गया है',
+    failNetwork: 'अपना इंटरनेट कनेक्शन जाँचें',
     busy: 'एक पल…',
 
     never: 'अभी तक कोई बैकअप नहीं',
@@ -22268,14 +22373,17 @@ const ar: UiStrings = {
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
   lock: {
+    subtitle: 'حافظ على خصوصية معلوماتك.',
+    requireShort: 'طلب البصمة أو رمز المرور',
+    requireHint: 'يطلب بصمة الإصبع أو الوجه أو رمز المرور لفتح Waves.',
+    askAgainShort: 'المدة التي يمكن أن يبقى فيها Waves مفتوحًا في الخلفية.',
+    reopenShort: 'يطلب Waves التحقق دائمًا بعد إغلاقه بالكامل.',
+    footnoteShort: 'البيانات التي تمت مزامنتها محمية على خوادمنا في كلتا الحالتين.',
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
-    requireExplain: 'إعطاء هاتفك لأحد كي يرى التقسيم لا ينبغي أن يريه كل شيء آخر.',
     appLock: 'قفل التطبيق',
     unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
     askAgainAfter: 'اسأل مرة أخرى بعد',
-    askAgainExplain:
-      'المدة التي تقضيها بعيدًا قبل أن يسأل Waves مرة أخرى — لقفل التطبيق، ولدفترك الشخصي الذي يستخدم المدة نفسها عند مغادرته. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالسؤال لحظة الخروج يعني فتح القفل مع كل دفعة.',
     graceImmediate: 'فورًا',
     graceSeconds: {
       zero: 'بعد {n} ثانية',
@@ -22293,15 +22401,12 @@ const ar: UiStrings = {
       many: 'بعد {n} دقيقة',
       other: 'بعد {n} دقيقة',
     },
-    reopenAlwaysAsks: 'إعادة فتح Waves بعد إغلاقه تطلب التحقق دائمًا، مهما كان هذا الإعداد.',
     signOut: 'تسجيل الخروج',
     signOutQuestion: 'تسجيل الخروج؟',
     signOutGuestWarning:
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
     signOutReassure: 'يمكنك تسجيل الدخول متى شئت. لا يُحذف شيء.',
     staySignedIn: 'ابقَ مسجّل الدخول',
-    footnote:
-      'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
     personalLockedTitle: 'دفترك الشخصي مقفل',
     personalLockedBody:
@@ -23047,6 +23152,24 @@ const ar: UiStrings = {
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
+  credits: {
+    title: 'الرصيد',
+    balance: 'لديك {n} من الرصيد',
+    usedOne: 'تم استخدام {n} من الرصيد',
+    used: 'تم استخدام {n} من الرصيد',
+    offer: 'شاهد إعلانًا قصيرًا واكسب +{n} من الرصيد.',
+    watch: 'شاهد إعلانًا +{n}',
+    tomorrow: 'عُد غدًا',
+    later: 'حاول لاحقًا',
+    full: 'المحفظة ممتلئة',
+    unavailable: 'الإعلانات غير متاحة',
+    earn: 'الرصيد لا ينتهي. شاهد إعلانًا لكسب الرصيد. تُستخدم الحصة الشهرية المجانية أولًا.',
+    voice: 'صوت الذكاء الاصطناعي',
+    scan: 'مسح إيصال',
+    export: 'تصدير',
+    group: 'مجموعة إضافية',
+    price: '{n} من الرصيد',
+  },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',
     groupBody: 'ثم يمكنك إنشاء هذه المجموعة.',
@@ -23054,11 +23177,16 @@ const ar: UiStrings = {
     watchBtn: 'شاهد الإعلان',
     proLink: 'احصل على Pro بلا إعلانات',
     failedTitle: 'تعذّر تحميل الإعلان',
-    failedBody: 'يُرجى المحاولة مرة أخرى.',
+    failedBody: 'ثم حاول مرة أخرى.',
     groupRetryBtn: 'أعد الإعلان لإنشاء المجموعة',
     exportRetryBtn: 'أعد الإعلان للتصدير',
     blockedTitle: 'يبدو أن الإعلان محجوب',
     blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
+    creditOfferTitle: 'احصل على مجموعة أو تصدير مجانًا',
+    creditOfferBody: 'شاهد إعلانًا قصيرًا لتحصل على رصيد واحد.',
+    creditUsedToast: 'تم استخدام رصيد مجاني واحد',
+    offlineCappedGroup: 'اتصل بالإنترنت لإنشاء هذه المجموعة',
+    offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
@@ -24207,6 +24335,9 @@ const ar: UiStrings = {
       other: 'نُسخ {n} سجل',
     },
     backupFailed: 'لم يكتمل النسخ. حاول بعد قليل.',
+    failReconnect: 'أعِد ربط Google Drive',
+    failFull: 'مساحة Google Drive ممتلئة',
+    failNetwork: 'تحقق من اتصالك بالإنترنت',
     busy: 'لحظة…',
 
     never: 'لم يحدث نسخ بعد',
