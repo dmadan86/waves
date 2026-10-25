@@ -33,6 +33,8 @@ class WavesBackupModule : Module() {
         Log.w("WavesBackup", "start service failed: " + e.javaClass.simpleName + ": " + e.message)
         throw e
       }
+      // startForegroundService returns a ComponentName, which the bridge can't send to JS.
+      Unit
     }
     Function("update") { status: String, percent: Int ->
       BackupService.live?.update(status, percent)
