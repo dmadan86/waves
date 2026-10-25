@@ -188,3 +188,28 @@ describe('edit pacing', () => {
     expect(step(s, { editOf: 'p', personal: true }).state).toBe(s);
   });
 });
+
+import { pickInterstitialUnit } from '@/lib/adPacingPure';
+const videoInput = {
+  videoUnitConfigured: true,
+  flagEnabled: true,
+  unmetered: true,
+  firstAdOfDay: false,
+  sessionSeconds: 120,
+  country: 'US',
+};
+it('selects video only after every network, session, region and configuration guard', () => {
+  expect(pickInterstitialUnit(videoInput)).toBe('video');
+  for (const patch of [
+    { videoUnitConfigured: false },
+    { flagEnabled: false },
+    { unmetered: false },
+    { firstAdOfDay: true },
+    { sessionSeconds: 119 },
+    { country: 'IN' },
+    { country: null },
+  ])
+    expect(pickInterstitialUnit({ ...videoInput, ...patch })).toBe('display');
+  for (const country of ['US', 'GB', 'AU', 'AE'])
+    expect(pickInterstitialUnit({ ...videoInput, country })).toBe('video');
+});

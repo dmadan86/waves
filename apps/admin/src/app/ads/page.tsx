@@ -3,10 +3,23 @@ import { redirect } from 'next/navigation';
 import { CsrfField } from '@/components/CsrfField';
 import { Card, Empty, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
 import { guardMutation } from '@/lib/csrf';
-import { adEventDays, adGateSettings, saveAdGateSettings, type AdGateSettings } from '@/lib/data';
+import {
+  adCreditStats,
+  adEventDays,
+  adGateSettings,
+  saveAdGateSettings,
+  type AdGateSettings,
+} from '@/lib/data';
+
+import { creditDays, creditKnobs, rewardedCompletions } from '@/lib/ads';
 
 export const dynamic = 'force-dynamic';
-const knobs: { key: keyof AdGateSettings; label: string; min: number; max: number }[] = [
+const knobs: {
+  key: Exclude<keyof AdGateSettings, 'interstitial_video_enabled'>;
+  label: string;
+  min: number;
+  max: number;
+}[] = [
   { key: 'gap_min', label: 'Minimum expense gap', min: 3, max: 20 },
   { key: 'gap_max', label: 'Maximum expense gap', min: 3, max: 20 },
   { key: 'cooldown_seconds', label: 'Interstitial cooldown (seconds)', min: 60, max: 86400 },
@@ -27,10 +40,11 @@ export default async function Ads({
 }: {
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  const [params, rows, settings] = await Promise.all([
+  const [params, rows, settings, credits] = await Promise.all([
     searchParams,
     adEventDays(),
     adGateSettings(),
+    adCreditStats(30),
   ]);
   async function save(form: FormData) {
     'use server';
@@ -38,13 +52,14 @@ export default async function Ads({
     try {
       await guardMutation(form);
       const values = {} as AdGateSettings;
-      for (const knob of knobs) {
+      for (const knob of [...knobs, ...creditKnobs]) {
         const raw = String(form.get(knob.key) ?? '').trim();
         const value = Number(raw);
         if (!raw || !Number.isSafeInteger(value) || value < knob.min || value > knob.max)
           throw new Error(`${knob.label}: enter a whole number from ${knob.min} to ${knob.max}.`);
-        values[knob.key] = value;
+        Object.assign(values, { [knob.key]: value });
       }
+      values.interstitial_video_enabled = form.get('interstitial_video_enabled') === 'on';
       await saveAdGateSettings(values);
     } catch (error) {
       failure = error instanceof Error ? error.message : String(error);
@@ -118,12 +133,73 @@ export default async function Ads({
           </Empty>
         ) : null}
       </Card>
-      <h2 className="section">Pacing settings</h2>
+      <h2 className="section">Rewarded completions by placement</h2>
+      <Card bare>
+        <TableScroll>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Placement</th>
+                <th scope="col">Completions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rewardedCompletions(rows).map((row) => (
+                <tr key={row.placement}>
+                  <th scope="row">{row.placement}</th>
+                  <td className="n">{row.completed}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
+      </Card>
+      <h2 className="section">Credits per day</h2>
+      <Card bare>
+        {credits === null ? (
+          <Empty title="Not available yet">
+            Credit reporting will appear after the credits migration is deployed.
+          </Empty>
+        ) : credits.length ? (
+          <TableScroll>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Day (UTC)</th>
+                  <th scope="col">Earned</th>
+                  <th scope="col">Spent</th>
+                  <th scope="col">Events per reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creditDays(credits).map((row) => (
+                  <tr key={row.day}>
+                    <th scope="row">{row.day}</th>
+                    <td className="n">{row.earned}</td>
+                    <td className="n">{row.spent}</td>
+                    <td>
+                      {Object.entries(row.reasons)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([reason, events]) => `${reason}: ${events}`)
+                        .join(' · ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        ) : (
+          <Empty title="No credit activity yet">
+            Earned and spent credits over the last 30 days (UTC).
+          </Empty>
+        )}
+      </Card>
+      <h2 className="section">Pacing and credit settings</h2>
       <Card>
         {settings ? (
           <form action={save}>
             <CsrfField />
-            {knobs.map((knob) => (
+            {[...knobs, ...creditKnobs].map((knob) => (
               <p key={knob.key}>
                 <label>
                   {knob.label}{' '}
@@ -133,12 +209,28 @@ export default async function Ads({
                     min={knob.min}
                     max={knob.max}
                     step={1}
-                    defaultValue={settings[knob.key]}
+                    defaultValue={
+                      settings[knob.key] ?? ('defaultValue' in knob ? knob.defaultValue : undefined)
+                    }
                     required
                   />
                 </label>
               </p>
             ))}
+            <p>
+              <label>
+                <input
+                  type="checkbox"
+                  name="interstitial_video_enabled"
+                  defaultChecked={settings.interstitial_video_enabled ?? false}
+                />{' '}
+                Enable interstitial video
+              </label>
+            </p>
+            <p>
+              Voice per ad: {settings.voice_per_ad ?? '—'} (legacy, unused) · Scans per ad:{' '}
+              {settings.scans_per_ad ?? '—'} (legacy, unused)
+            </p>
             <button type="submit" className="btn">
               Save settings
             </button>

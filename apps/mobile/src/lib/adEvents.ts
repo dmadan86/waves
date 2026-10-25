@@ -9,7 +9,9 @@ export type AdPlacement =
   | 'group_create_rewarded'
   | 'export_rewarded'
   | 'native_list'
-  | 'quota_rewarded';
+  | 'quota_rewarded'
+  | 'credit_voluntary'
+  | 'credit_offer';
 export type AdEventOutcome =
   | 'shown'
   | 'completed'
@@ -69,12 +71,21 @@ export function logAdEvent(
   outcome: AdEventOutcome,
   detail?: string,
 ): void {
-  if (outcome === 'shown' || outcome === 'completed' || outcome === 'skipped') {
+  if (
+    outcome === 'shown' ||
+    outcome === 'completed' ||
+    outcome === 'skipped' ||
+    outcome === 'credit_earned'
+  ) {
     const now = Date.now();
     clocks.set(profileId, {
       ...adClocks(profileId),
       lastAdAt: now,
-      ...(placement.endsWith('rewarded') ? { lastRewardedAt: now } : {}),
+      ...(placement.endsWith('rewarded') ||
+      placement === 'credit_voluntary' ||
+      placement === 'credit_offer'
+        ? { lastRewardedAt: now }
+        : {}),
       ...(placement === 'expense_interstitial' ? { lastInterstitialAt: now } : {}),
     });
   }

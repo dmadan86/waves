@@ -1790,6 +1790,24 @@ export interface UiStrings {
    */
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
+  credits: {
+    title: string;
+    balance: string;
+    usedOne: string;
+    used: string;
+    offer: string;
+    watch: string;
+    tomorrow: string;
+    later: string;
+    full: string;
+    unavailable: string;
+    earn: string;
+    voice: string;
+    scan: string;
+    export: string;
+    group: string;
+    price: string;
+  };
   adGates: {
     title: string;
     groupBody: string;
@@ -7431,6 +7449,24 @@ const en: UiStrings = {
     saved: 'Saved',
     traps: 'Read the sentence exactly as written.',
   },
+  credits: {
+    title: 'Credits',
+    balance: 'You have {n} credits',
+    usedOne: 'Used {n} credit',
+    used: 'Used {n} credits',
+    offer: 'Watch a short ad to earn +{n} credits.',
+    watch: 'Watch ad +{n}',
+    tomorrow: 'Come back tomorrow',
+    later: 'Try again later',
+    full: 'Wallet full',
+    unavailable: 'Ads unavailable',
+    earn: 'Credits never expire. Watch one ad to earn credits. Monthly free uses come first.',
+    voice: 'AI voice',
+    scan: 'Receipt scan',
+    export: 'Export',
+    group: 'Additional group',
+    price: '{n} credits',
+  },
   adGates: {
     title: 'Watch a short ad',
     groupBody: 'Then you can create this group.',
@@ -12571,6 +12607,24 @@ const ta: UiStrings = {
     onDeviceOff: 'இந்த ஃபோனால் சேமித்த ஆடியோவை எழுத்தாக்க முடியாது; ஆடியோ மட்டும் வைக்கப்படும்.',
     saved: 'சேமிக்கப்பட்டது',
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
+  },
+  credits: {
+    title: 'கிரெடிட்கள்',
+    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
+    used: '{n} கிரெடிட்கள் பயன்படுத்தப்பட்டன',
+    offer: 'ஒரு சிறு விளம்பரம் பார்த்து +{n} கிரெடிட்கள் பெறுங்கள்.',
+    watch: 'விளம்பரம் பார் +{n}',
+    tomorrow: 'நாளை மீண்டும் வாருங்கள்',
+    later: 'பிறகு முயலுங்கள்',
+    full: 'கிரெடிட் வரம்பை எட்டிவிட்டீர்கள்',
+    unavailable: 'விளம்பரங்கள் கிடைக்கவில்லை',
+    earn: 'கிரெடிட்கள் காலாவதியாகாது. ஒரு விளம்பரம் பார்த்து பெறுங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    voice: 'AI குரல்',
+    scan: 'ரசீது ஸ்கேன்',
+    export: 'ஏற்றுமதி',
+    group: 'கூடுதல் குழு',
+    price: '{n} கிரெடிட்கள்',
   },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
@@ -17861,6 +17915,24 @@ const hi: UiStrings = {
     saved: 'सेव हुआ',
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
+  credits: {
+    title: 'क्रेडिट',
+    balance: 'आपके पास {n} क्रेडिट हैं',
+    usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
+    used: '{n} क्रेडिट इस्तेमाल हुए',
+    offer: 'छोटा विज्ञापन देखकर +{n} क्रेडिट पाएँ।',
+    watch: 'विज्ञापन देखें +{n}',
+    tomorrow: 'कल फिर आएँ',
+    later: 'बाद में कोशिश करें',
+    full: 'वॉलेट भरा है',
+    unavailable: 'विज्ञापन उपलब्ध नहीं',
+    earn: 'क्रेडिट कभी समाप्त नहीं होते। एक विज्ञापन देखकर क्रेडिट पाएँ। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    voice: 'AI वॉइस',
+    scan: 'रसीद स्कैन',
+    export: 'एक्सपोर्ट',
+    group: 'अतिरिक्त समूह',
+    price: '{n} क्रेडिट',
+  },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
     groupBody: 'फिर आप यह ग्रुप बना सकते हैं।',
@@ -23067,6 +23139,24 @@ const ar: UiStrings = {
     onDeviceOff: 'لا يستطيع هذا الهاتف تفريغ الصوت المحفوظ، لذا يُحفظ الصوت فقط.',
     saved: 'تم الحفظ',
     traps: 'اقرأ الجملة كما هي مكتوبة.',
+  },
+  credits: {
+    title: 'الرصيد',
+    balance: 'لديك {n} من الرصيد',
+    usedOne: 'تم استخدام {n} من الرصيد',
+    used: 'تم استخدام {n} من الرصيد',
+    offer: 'شاهد إعلانًا قصيرًا واكسب +{n} من الرصيد.',
+    watch: 'شاهد إعلانًا +{n}',
+    tomorrow: 'عُد غدًا',
+    later: 'حاول لاحقًا',
+    full: 'المحفظة ممتلئة',
+    unavailable: 'الإعلانات غير متاحة',
+    earn: 'الرصيد لا ينتهي. شاهد إعلانًا لكسب الرصيد. تُستخدم الحصة الشهرية المجانية أولًا.',
+    voice: 'صوت الذكاء الاصطناعي',
+    scan: 'مسح إيصال',
+    export: 'تصدير',
+    group: 'مجموعة إضافية',
+    price: '{n} من الرصيد',
   },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',

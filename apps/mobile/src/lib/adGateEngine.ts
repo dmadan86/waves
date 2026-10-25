@@ -64,15 +64,15 @@ export function decideGate(i: {
   placement: Placement;
   localGroups: number;
   credits: number;
+  cost?: number;
   passesUsed: number;
 }): 'allow' | 'use_credit' | 'offline_pass' | 'offline_capped' | 'ask' {
   if (i.paid) return 'allow';
-  if (i.online) return i.required !== true ? 'allow' : i.credits >= 1 ? 'use_credit' : 'ask';
+  if (i.online)
+    return i.required !== true ? 'allow' : i.credits >= (i.cost ?? 6) ? 'use_credit' : 'ask';
   if (i.placement === 'group_create_rewarded' && i.localGroups === 0) return 'allow';
   return i.passesUsed < PASS_CAP ? 'offline_pass' : 'offline_capped';
 }
-export const spendCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 0 });
-export const earnCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 1, offerPlacement: null });
 export function declineOffer(l: AdLedger, now: number): AdLedger {
   const hw = effectiveNow(l, now);
   return { ...l, hw, declines: [...l.declines.filter((at) => at > hw - DECLINE_WINDOW_MS), hw] };
@@ -84,7 +84,6 @@ export function shouldOfferCredit(
   if (
     i.paid ||
     !l.offerPlacement ||
-    l.credits >= 1 ||
     l.declines.filter((at) => at > effectiveNow(l, i.now) - DECLINE_WINDOW_MS).length >= DECLINE_CAP
   )
     return 'none';

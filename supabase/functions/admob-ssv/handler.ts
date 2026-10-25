@@ -6,7 +6,7 @@
  * GET signed by Google; the signature is checked first, against Google's
  * published keys (verify.ts). Then the ad unit must be one of ours, the
  * `user_id` (the Waves profile id the app set on the ad) and `custom_data`
- * ('voice' or 'scan', set by the app) are read from the signed query, and
+ * ('voice', 'scan', or a credit source, set by the app) are read from the signed query, and
  * `waves_ads_grant` — service role only — checks eligibility and the daily cap
  * and records one `ad_rewards` row, idempotent on AdMob's `transaction_id`.
  *
@@ -129,7 +129,9 @@ export async function handleAdmobSsv(request: Request, deps: Deps): Promise<Resp
   const userId = params.get('user_id') ?? '';
   if (!UUID.test(userId)) return ignored('user_id');
   const kind = params.get('custom_data') ?? '';
-  if (kind !== 'voice' && kind !== 'scan') return ignored('custom_data');
+  if (!/^(voice|scan|credit(?::(voluntary|voice|offer|gate))?)$/.test(kind)) {
+    return ignored('custom_data');
+  }
   const transactionId = (params.get('transaction_id') ?? '').trim();
   if (!transactionId || transactionId.length > 200) return ignored('transaction_id');
 

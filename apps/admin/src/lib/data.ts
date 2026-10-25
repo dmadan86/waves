@@ -1,4 +1,5 @@
 import 'server-only';
+import { validateCreditSettings, type CreditSettings, type CreditStat } from './ads';
 
 import { PACK_STATUSES, parsePack } from '@waves/core';
 
@@ -1532,7 +1533,9 @@ export interface AdEventDay {
   owed_declined: number | string;
   blocked_adblock: number | string;
 }
-export interface AdGateSettings {
+export interface AdGateSettings extends CreditSettings {
+  voice_per_ad?: number;
+  scans_per_ad?: number;
   gap_min: number;
   gap_max: number;
   cooldown_seconds: number;
@@ -1543,11 +1546,23 @@ export interface AdGateSettings {
   session_grace_seconds: number;
   session_cap: number;
 }
+/** Credit reporting is optional until the credits migration is deployed. */
+export async function adCreditStats(days = 30): Promise<CreditStat[] | null> {
+  await requireSession();
+  try {
+    const { data, error } = await client().rpc('waves_admin_credit_stats', { p_days: days });
+    return error ? null : ((data ?? []) as CreditStat[]);
+  } catch {
+    return null;
+  }
+}
 export const adEventDays = () => call<AdEventDay>('waves_admin_ad_events', { p_days: 30 });
 export const adGateSettings = async () =>
   (await call<AdGateSettings>('waves_admin_ad_settings'))[0] ?? null;
 export async function saveAdGateSettings(settings: AdGateSettings): Promise<void> {
-  for (const value of Object.values(settings)) {
+  validateCreditSettings(settings);
+  for (const [key, value] of Object.entries(settings)) {
+    if (key === 'interstitial_video_enabled') continue;
     if (!Number.isSafeInteger(value) || value < 0)
       throw new Error('Use non-negative whole numbers.');
   }
