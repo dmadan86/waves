@@ -476,6 +476,9 @@ model GroupMember {
   @@index([groupId])
   @@index([groupId, updatedSeq])
   @@index([mergedIntoMemberId])
+  @@index([importBatchId])
+  @@index([profileId])
+  @@index([removedBy])
   @@map("group_members")
   @@schema("public")
 }
@@ -501,6 +504,7 @@ model GhostMerge {
   @@id([owner, memberId])
   @@index([owner, personId])
   @@index([owner, updatedSeq])
+  @@index([memberId])
   @@map("ghost_merges")
   @@schema("public")
 }
@@ -535,6 +539,8 @@ model MemberClaim {
 
   @@index([groupId, status, createdAt], map: "member_claims_group_id_status_created_at_idx")
   @@index([requesterId, createdAt], map: "member_claims_requester_id_created_at_idx")
+  @@index([decidedBy])
+  @@index([memberId])
   @@map("member_claims")
   @@schema("public")
 }
@@ -587,6 +593,7 @@ model Invite {
   creator Profile? @relation("InviteCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([groupId])
+  @@index([createdBy])
   @@map("invites")
   @@schema("public")
 }
@@ -622,6 +629,8 @@ model Expense {
   @@index([groupId, deletedAt])
   /// The sync pull is "everything in this group since seq N" (TDR §4).
   @@index([groupId, updatedSeq])
+  @@index([createdBy])
+  @@index([deletedBy])
   @@map("expenses")
   @@schema("public")
 }
@@ -652,6 +661,8 @@ model ExpenseDispute {
 
   @@unique([expenseId, memberId])
   @@index([expenseId, status])
+  @@index([memberId])
+  @@index([resolvedByMemberId])
   @@map("expense_disputes")
   @@schema("public")
 }
@@ -748,6 +759,9 @@ model ExpenseVersion {
 
   @@unique([expenseId, versionNo])
   @@index([expenseId])
+  @@index([authorMemberId])
+  @@index([importBatchId])
+  @@index([receiptId])
   @@map("expense_versions")
   @@schema("public")
 }
@@ -763,6 +777,7 @@ model ExpensePayer {
   member  GroupMember    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([expenseVersionId, memberId])
+  @@index([memberId])
   @@map("expense_payers")
   @@schema("public")
 }
@@ -778,6 +793,7 @@ model ExpenseShare {
   member  GroupMember    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([expenseVersionId, memberId])
+  @@index([memberId])
   @@map("expense_shares")
   @@schema("public")
 }
@@ -827,6 +843,7 @@ model ReceiptItemClaim {
   member  GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([receiptId, itemIndex, memberId])
+  @@index([memberId])
   @@map("receipt_item_claims")
   @@schema("public")
 }
@@ -870,6 +887,9 @@ model Settlement {
 
   @@index([groupId, status])
   @@index([groupId, updatedSeq])
+  @@index([fromMemberId])
+  @@index([importBatchId])
+  @@index([toMemberId])
   @@map("settlements")
   @@schema("public")
 }
@@ -885,6 +905,7 @@ model SettlementAllocation {
   expense    Expense    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   @@unique([settlementId, expenseId])
+  @@index([expenseId])
   @@map("settlement_allocations")
   @@schema("public")
 }
@@ -907,6 +928,7 @@ model ActivityLog {
 
   @@index([groupId, createdAt])
   @@index([groupId, updatedSeq])
+  @@index([actorMemberId])
   @@map("activity_log")
   @@schema("public")
 }
@@ -936,6 +958,8 @@ model ImportBatch {
   ghosts   GroupMember[]    @relation("BatchGhosts")
 
   @@index([groupId, createdAt])
+  @@index([actorMemberId])
+  @@index([undoneBy])
   @@map("import_batches")
   @@schema("public")
 }
@@ -955,6 +979,8 @@ model Reminder {
   toMember   GroupMember @relation("ReminderTo", fields: [toMemberId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, fromMemberId, toMemberId])
+  @@index([fromMemberId])
+  @@index([toMemberId])
   @@map("reminders")
   @@schema("public")
 }
@@ -1021,6 +1047,7 @@ model Notification {
   emails  EmailEvent[]
 
   @@index([profileId, readAt])
+  @@index([groupId])
   @@map("notifications")
   @@schema("public")
 }
@@ -1043,6 +1070,7 @@ model EmailEvent {
   @@index([profileId, createdAt])
   /// Every webhook call arrives knowing only Resend's id for the message.
   @@index([resendEmailId], map: "email_events_resend_email_id_idx")
+  @@index([notificationId])
   @@map("email_events")
   @@schema("public")
 }
@@ -1081,6 +1109,7 @@ model UsageEvent {
   group   Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([profileId, createdAt])
+  @@index([groupId])
   @@map("usage_events")
   @@schema("public")
 }
@@ -1101,6 +1130,7 @@ model GroupBalance {
   member GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@id([groupId, memberId, currency])
+  @@index([memberId])
   @@map("group_balances")
   @@schema("public")
 }
@@ -1118,6 +1148,8 @@ model PairwiseBalance {
   toMember   GroupMember @relation("PairwiseTo", fields: [toMemberId], references: [id], onDelete: Cascade)
 
   @@id([groupId, fromMemberId, toMemberId, currency])
+  @@index([fromMemberId])
+  @@index([toMemberId])
   @@map("pairwise_balances")
   @@schema("public")
 }
@@ -1138,6 +1170,7 @@ model SyncMutation {
   group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([profileId, appliedAt(sort: Desc)], map: "sync_mutations_profile_idx")
+  @@index([groupId])
   @@map("sync_mutations")
   @@schema("public")
 }
@@ -1227,6 +1260,7 @@ model CategoryTag {
   pack  Pack?   @relation(fields: [packId], references: [id], onDelete: SetNull)
 
   @@index([ownerUserId, updatedSeq], map: "category_tags_owner_user_id_updated_seq_idx")
+  @@index([packId])
   @@map("category_tags")
   @@schema("public")
 }
@@ -1370,6 +1404,7 @@ model PackInstall {
   pack  Pack    @relation(fields: [packId], references: [id], onDelete: Cascade)
 
   @@index([ownerUserId, updatedSeq], map: "pack_installs_owner_user_id_updated_seq_idx")
+  @@index([packId])
   @@map("pack_installs")
   @@schema("public")
 }
@@ -1390,6 +1425,7 @@ model PackRequest {
   requester Profile @relation(fields: [requesterId], references: [id], onDelete: Cascade)
 
   @@index([status, createdAt(sort: Desc)], map: "pack_requests_status_created_at_idx")
+  @@index([requesterId])
   @@map("pack_requests")
   @@schema("public")
 }
@@ -1549,6 +1585,7 @@ model Referral {
   @@index([referrerId, status], map: "referrals_referrer_idx")
   @@index([identityKeys], map: "referrals_identity_idx", type: Gin)
   @@index([referrerKeys], map: "referrals_referrer_keys_idx", type: Gin)
+  @@index([code])
   @@map("referrals")
   @@schema("public")
 }
@@ -1683,6 +1720,7 @@ model PromoRedemption {
 
   @@unique([code, profileId], map: "promo_redemptions_once")
   @@index([profileId, redeemedAt], map: "promo_redemptions_profile_idx")
+  @@index([subscriptionId])
   @@map("promo_redemptions")
   @@schema("public")
 }
@@ -1724,6 +1762,7 @@ model Campaign {
   emailSends  CampaignEmailSend[]
 
   @@index([startsAt, endsAt], map: "campaigns_window_idx")
+  @@index([promoCode])
   @@map("campaigns")
   @@schema("public")
 }
@@ -1744,6 +1783,7 @@ model CampaignImpression {
 
   @@unique([campaignId, profileId], map: "campaign_impressions_once")
   @@index([campaignId, seenAt], map: "campaign_impressions_campaign_idx")
+  @@index([profileId])
   @@map("campaign_impressions")
   @@schema("public")
 }
@@ -1773,6 +1813,7 @@ model CampaignEmailSend {
 
   @@unique([campaignId, profileId], map: "campaign_email_sends_once")
   @@index([campaignId, status], map: "campaign_email_sends_campaign_idx")
+  @@index([profileId])
   @@map("campaign_email_sends")
   @@schema("public")
 }
@@ -1803,6 +1844,7 @@ model Feedback {
   profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([createdAt(sort: Desc)], map: "feedback_recent_idx")
+  @@index([profileId])
   @@map("feedback")
   @@schema("public")
 }
@@ -1958,6 +2000,7 @@ model GroupPass {
   purchaser Profile? @relation(fields: [purchasedBy], references: [id], onDelete: SetNull)
 
   @@index([groupId, expiresAt], map: "group_passes_group_idx")
+  @@index([purchasedBy])
   @@map("group_passes")
   @@schema("public")
 }
@@ -1995,6 +2038,8 @@ model TripPlanItem {
 
   @@index([groupId, day, position], map: "trip_plan_items_group_day_idx")
   @@index([groupId, updatedSeq])
+  @@index([createdBy])
+  @@index([expenseId])
   @@map("trip_plan_items")
   @@schema("public")
 }
@@ -2030,6 +2075,7 @@ model TripPhoto {
   @@index([groupId, day], map: "trip_photos_group_day_idx")
   @@index([groupId, updatedSeq])
   @@index([expenseId], map: "trip_photos_expense_idx")
+  @@index([createdBy])
   @@map("trip_photos")
   @@schema("public")
 }
@@ -2064,6 +2110,9 @@ model ExpenseComment {
 
   @@index([groupId, updatedSeq])
   @@index([expenseId, createdAt], map: "expense_comments_expense_idx")
+  @@index([authorMemberId])
+  @@index([deletedBy])
+  @@index([flaggedBy])
   @@map("expense_comments")
   @@schema("public")
 }
@@ -2101,6 +2150,7 @@ model ExpenseImageEvent {
 
   @@index([groupId, updatedSeq])
   @@index([expenseId, createdAt], map: "expense_image_events_expense_idx")
+  @@index([actorMemberId])
   @@map("expense_image_events")
   @@schema("public")
 }
@@ -2132,6 +2182,7 @@ model SettlementProof {
 
   @@index([settlementId], map: "settlement_proofs_settlement_idx")
   @@index([groupId, updatedSeq])
+  @@index([uploaderMemberId])
   @@map("settlement_proofs")
   @@schema("public")
 }
@@ -2172,6 +2223,7 @@ model ExpenseAttachment {
 
   @@index([expenseId], map: "expense_attachments_expense_idx")
   @@index([groupId, updatedSeq])
+  @@index([uploaderMemberId])
   @@map("expense_attachments")
   @@schema("public")
 }
@@ -2509,6 +2561,7 @@ model VoiceStreamReservation {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId, createdAt], map: "voice_stream_reservations_open_idx")
+  @@index([profileId])
   @@map("voice_stream_reservations")
   @@schema("public")
 }
@@ -2669,6 +2722,7 @@ model VoiceAttempt {
   profile Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([createdAt(sort: Desc)], map: "voice_attempts_recent_idx")
+  @@index([profileId])
   @@map("voice_attempts")
   @@schema("public")
 }
@@ -2696,6 +2750,7 @@ model StorageObject {
 
   @@id([logicalBucket, path])
   @@index([ownerProfileId, counted], map: "storage_objects_owner_counted_idx")
+  @@index([groupId])
   @@map("storage_objects")
   @@schema("public")
 }
@@ -2789,6 +2844,7 @@ model ApiToken {
 
   @@index([profileId, createdAt(sort: Desc)], map: "api_tokens_profile_idx")
   @@index([appId, profileId], map: "api_tokens_app_idx")
+  @@index([parentId])
   @@map("api_tokens")
   @@schema("public")
 }
@@ -2814,6 +2870,8 @@ model ApiAuthorizationCode {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([expiresAt], map: "api_authorization_codes_expiry_idx")
+  @@index([appId])
+  @@index([profileId])
   @@map("api_authorization_codes")
   @@schema("public")
 }
@@ -2879,6 +2937,7 @@ model GroupRecurringExpense {
 
   @@index([groupId, updatedSeq])
   @@index([nextDate], map: "group_recurring_expenses_due_idx")
+  @@index([createdBy])
   @@map("group_recurring_expenses")
   @@schema("public")
 }
