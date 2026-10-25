@@ -122,7 +122,7 @@ function RecurringScreenBody() {
           <Text
             style={{
               marginTop: 2,
-                            maxWidth: '56%',
+              maxWidth: '56%',
               fontSize: 13,
               lineHeight: 18,
               color: theme.color.textMuted,
