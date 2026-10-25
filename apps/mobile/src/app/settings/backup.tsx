@@ -401,6 +401,7 @@ export default function BackupSettingsScreen() {
   const onConnect = async (): Promise<void> => {
     setPending('connect');
     setError(null);
+    setErrorCode(null);
     try {
       await backup.connect();
     } catch (caught) {
@@ -454,6 +455,7 @@ export default function BackupSettingsScreen() {
   const onCreateKey = async (): Promise<void> => {
     setPending('key');
     setError(null);
+    setErrorCode(null);
     try {
       setCopied(false);
       setUpgrading(false);
@@ -476,6 +478,7 @@ export default function BackupSettingsScreen() {
   const onOfferExtra = (): void => {
     setPitching(false);
     setError(null);
+    setErrorCode(null);
     setCopied(false);
     setUnderstood(false);
     setUpgrading(true);
@@ -497,6 +500,7 @@ export default function BackupSettingsScreen() {
     if (!shownKey) return;
     setPending('extra');
     setError(null);
+    setErrorCode(null);
     try {
       const outcome = await backup.commitExtra(shownKey);
       if (outcome.kind === 'refused') {
@@ -538,6 +542,7 @@ export default function BackupSettingsScreen() {
   const onShowKey = async (): Promise<void> => {
     setPending('key');
     setError(null);
+    setErrorCode(null);
     try {
       setCopied(false);
       setUpgrading(false);
@@ -586,6 +591,7 @@ export default function BackupSettingsScreen() {
   const onCheckForBackup = async (): Promise<void> => {
     setPending('scan');
     setError(null);
+    setErrorCode(null);
     setRestoreNote(null);
     setRestored(null);
     try {
@@ -654,6 +660,7 @@ export default function BackupSettingsScreen() {
     if (!backup.connected) {
       setPending('connect');
       setError(null);
+      setErrorCode(null);
       try {
         if (!(await backup.connect())) return;
       } catch (caught) {
