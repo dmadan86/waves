@@ -11,7 +11,8 @@ export type AdPlacement =
   | 'native_list'
   | 'quota_rewarded'
   | 'credit_voluntary'
-  | 'credit_offer';
+  | 'credit_offer'
+  | 'review_banner';
 export type AdEventOutcome =
   | 'shown'
   | 'completed'
