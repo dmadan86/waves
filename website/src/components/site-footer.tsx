@@ -6,7 +6,12 @@ import { site } from '@/lib/site';
 import { CopyrightYears } from './copyright-years';
 import { Wordmark } from './logo';
 
-type FooterLink = { label: string; href: string; kind: 'anchor' | 'route' | 'external' };
+type FooterLink = {
+  label: string;
+  href: string;
+  kind: 'anchor' | 'route' | 'external';
+  lang?: string;
+};
 
 export function SiteFooter({
   locale,
@@ -39,6 +44,8 @@ export function SiteFooter({
       links: [
         { label: t.links.webApp, href: appUrl, kind: 'external' },
         { label: legal.mcpTitle, href: `/${locale}/mcp`, kind: 'route' },
+        // English only, so it always points at /en whatever the page locale.
+        { label: 'Compare Waves', href: '/en/compare', kind: 'route', lang: 'en' },
         { label: t.links.markdown, href: `/${locale}/index.md`, kind: 'external' },
       ],
     },
@@ -77,7 +84,7 @@ export function SiteFooter({
                   {column.links.map((link) => (
                     <li key={link.label}>
                       {link.kind === 'route' ? (
-                        <Link href={link.href} className={cls}>
+                        <Link href={link.href} className={cls} lang={link.lang}>
                           {link.label}
                         </Link>
                       ) : (
