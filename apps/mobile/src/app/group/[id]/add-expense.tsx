@@ -431,8 +431,8 @@ export default function AddExpenseScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
   useEffect(() => {
-    if (viewerId && !expenseId && !movePersonal) void prewarmExpenseAd(viewerId);
-  }, [viewerId, expenseId, movePersonal]);
+    if (viewerId && !movePersonal) void prewarmExpenseAd(viewerId);
+  }, [viewerId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
@@ -1694,13 +1694,14 @@ export default function AddExpenseScreen() {
         'positive',
       );
       router.back();
-      if (viewerId && !expenseId && !movedFrom) {
+      if (viewerId && !movedFrom) {
         void afterGroupExpense(
           viewerId,
           isPro,
           !isQueuedOffline(syncStatus),
           groupId,
           targetExpenseId,
+          Boolean(expenseId),
         );
       }
     } catch (caught) {

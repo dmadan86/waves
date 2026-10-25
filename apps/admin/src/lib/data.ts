@@ -1527,6 +1527,10 @@ export interface AdEventDay {
   skipped: number | string;
   failed: number | string;
   blocked_grace: number | string;
+  offline_allowed: number | string;
+  owed_offered: number | string;
+  owed_declined: number | string;
+  blocked_adblock: number | string;
 }
 export interface AdGateSettings {
   gap_min: number;

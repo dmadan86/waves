@@ -106,3 +106,75 @@ describe('rewarded action gates with the existing SDK contract', () => {
     expect(f.shown).toHaveBeenCalledOnce();
   });
 });
+
+it.each([false, true])('bounds show with missing terminal events (earned=%s)', async (earned) => {
+  vi.useFakeTimers();
+  const f = fixture();
+  f.ad.show.mockImplementation(async () => {
+    f.listeners.get('opened')?.();
+    if (earned) f.listeners.get('earned')?.();
+  });
+  const result = runGateAd(true, f.deps, f.shown);
+  await vi.advanceTimersByTimeAsync(90001);
+  expect(await result).toBe(earned ? 'completed' : 'failed');
+  expect(f.listeners.size).toBe(0);
+  expect(vi.getTimerCount()).toBe(0);
+});
+it.each([false, true])('settles five seconds after foreground (earned=%s)', async (earned) => {
+  vi.useFakeTimers();
+  const f = fixture();
+  let foreground: (() => void) | undefined;
+  const off = vi.fn();
+  f.ad.show.mockImplementation(async () => {
+    if (earned) f.listeners.get('earned')?.();
+  });
+  const result = runGateAd(
+    true,
+    f.deps,
+    f.shown,
+    undefined,
+    () => true,
+    (cb) => {
+      foreground = cb;
+      return off;
+    },
+  );
+  await vi.advanceTimersByTimeAsync(1);
+  foreground!();
+  await vi.advanceTimersByTimeAsync(5001);
+  expect(await result).toBe(earned ? 'completed' : 'failed');
+  expect(off).toHaveBeenCalledOnce();
+  expect(f.listeners.size).toBe(0);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('bounds a stalled SDK initialization before load', async () => {
+  vi.useFakeTimers();
+  const f = fixture();
+  f.sdk.MobileAds = () => ({
+    setRequestConfiguration: async () => {},
+    initialize: () => new Promise(() => {}),
+  });
+  const result = runGateAd(true, f.deps, f.shown);
+  await vi.advanceTimersByTimeAsync(20001);
+  expect(await result).toBe('failed');
+  expect(f.ad.show).not.toHaveBeenCalled();
+  expect(vi.getTimerCount()).toBe(0);
+});
+it('cleans the foreground subscription and timers on a normal close', async () => {
+  vi.useFakeTimers();
+  const f = fixture();
+  const off = vi.fn();
+  expect(
+    await runGateAd(
+      true,
+      f.deps,
+      f.shown,
+      undefined,
+      () => true,
+      () => off,
+    ),
+  ).toBe('completed');
+  expect(off).toHaveBeenCalledOnce();
+  expect(vi.getTimerCount()).toBe(0);
+});

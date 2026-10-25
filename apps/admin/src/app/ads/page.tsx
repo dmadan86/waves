@@ -76,6 +76,10 @@ export default async function Ads({
                   'Skips / dismissals',
                   'Failures',
                   'Grace blocks',
+                  'Offline allowed',
+                  'Owed offered',
+                  'Owed declined',
+                  'Blocked (ad blocker)',
                 ].map((label) => (
                   <th key={label} scope="col">
                     {label}
@@ -88,13 +92,21 @@ export default async function Ads({
                 <tr key={`${row.day}:${row.placement}`}>
                   <th scope="row">{row.day}</th>
                   <td>{row.placement}</td>
-                  {[row.shown, row.completed, row.skipped, row.failed, row.blocked_grace].map(
-                    (value, i) => (
-                      <td key={i} className="n">
-                        {value}
-                      </td>
-                    ),
-                  )}
+                  {[
+                    row.shown,
+                    row.completed,
+                    row.skipped,
+                    row.failed,
+                    row.blocked_grace,
+                    row.offline_allowed,
+                    row.owed_offered,
+                    row.owed_declined,
+                    row.blocked_adblock,
+                  ].map((value, i) => (
+                    <td key={i} className="n">
+                      {value}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
