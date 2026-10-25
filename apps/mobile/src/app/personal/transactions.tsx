@@ -194,9 +194,6 @@ function PersonalTransactionsScreenBody() {
           alignItems: 'center',
         }}
       >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-        </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
           {/* The category's own name is the title when one is being shown, so
               the screen says what it is a list *of* rather than leaving the

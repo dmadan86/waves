@@ -35,7 +35,6 @@ import {
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   EmptyState,
   IconButton,
@@ -105,13 +104,6 @@ function RecurringScreenBody() {
           alignItems: 'center',
         }}
       >
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text variant="heading">{t.personal.recurring}</Text>
         </View>

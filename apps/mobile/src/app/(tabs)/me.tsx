@@ -326,17 +326,17 @@ function MeLedger() {
     {
       key: 'budgets',
       tint: 'peach',
-      icon: 'wallet-outline',
+      icon: 'speedometer-outline',
       title: t.personal.dash.toolBudgets,
       subtitle: t.personal.dash.toolBudgetsSub,
       onPress: () => router.push('/personal/budgets'),
     },
     {
-      key: 'analytics',
+      key: 'spending',
       tint: 'sky',
-      icon: 'stats-chart-outline',
-      title: t.personal.dash.toolAnalytics,
-      subtitle: t.personal.dash.toolAnalyticsSub,
+      icon: 'pie-chart-outline',
+      title: t.personal.nav.spending,
+      subtitle: t.personal.dash.toolSpendingSub,
       onPress: () => router.push('/personal/spending'),
     },
     {
@@ -470,7 +470,7 @@ function MeLedger() {
                 numberOfLines={1}
                 style={{ fontSize: 22, lineHeight: 27, fontWeight: '800' }}
               >
-                {t.personal.title}
+                {t.personal.nav.overview}
               </Text>
               <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
                 {t.personal.dash.tagline}
@@ -1790,7 +1790,7 @@ function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
       <HeroShell wash={SAVED_WASH}>
         <View style={{ gap: theme.spacing.xs }}>
           <Text variant="title" tone="onBrand" numberOfLines={1}>
-            {t.personal.title}
+            {t.personal.nav.overview}
           </Text>
           <Text variant="caption" tone="onBrand" numberOfLines={2} style={{ opacity: 0.85 }}>
             {t.personal.subtitle}

@@ -1,4 +1,4 @@
-import { memo, useRef, type ReactNode } from 'react';
+import { memo, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,11 +66,26 @@ export interface PillTabAction {
   onHoldMove?: (offset: { dx: number; dy: number }) => void;
 }
 
+/** The floating button's gap above the bar; lists clear it while it shows. */
+export const FAB_GAP = 20;
+let fabShown = false;
+const fabListeners = new Set<() => void>();
+const subscribeFab = (fn: () => void): (() => void) => {
+  fabListeners.add(fn);
+  return () => fabListeners.delete(fn);
+};
+/** The app says whether a floating button is up, so lists leave room under it. */
+export function setTabBarFab(shown: boolean): void {
+  if (fabShown === shown) return;
+  fabShown = shown;
+  fabListeners.forEach((fn) => fn());
+}
+
 /** The bar's own content height, above the system inset. WhatsApp sits ~56–64. */
-const BAR_HEIGHT = 60;
+export const BAR_HEIGHT = 60;
 
 /** The raised centre button's diameter, and how far it lifts above the bar. */
-const CENTER_SIZE = 58;
+export const CENTER_SIZE = 58;
 const CENTER_RAISE = 16;
 /** How far the white cradle behind the centre button reaches past its edge. */
 const CENTER_RIM = 5;
@@ -103,7 +118,8 @@ const INDICATOR_HEIGHT = 30;
  */
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
-  return insets.bottom + BAR_HEIGHT + spacing.lg;
+  const fab = useSyncExternalStore(subscribeFab, () => fabShown);
+  return insets.bottom + BAR_HEIGHT + spacing.lg + (fab ? CENTER_SIZE + FAB_GAP : 0);
 }
 
 /**
@@ -169,12 +185,22 @@ export function PillTabBar({
   onSelect,
   animated = false,
   centerAction,
+  renderItem,
+  renderCenterAction,
+  backgroundOverlay,
+  reserveCenterSpace = false,
 }: {
   items: readonly PillTabItem[];
   activeKey: string;
   onSelect: (key: string) => void;
   animated?: boolean;
   centerAction?: PillTabAction;
+  /** App-owned motion stays outside the shared kit and its dependencies. */
+  renderItem?: (content: ReactNode, index: number) => ReactNode;
+  renderCenterAction?: (content: ReactNode) => ReactNode;
+  backgroundOverlay?: ReactNode;
+  /** Keep matching frames while an app cross-fades bars with and without a mic. */
+  reserveCenterSpace?: boolean;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -185,15 +211,24 @@ export function PillTabBar({
   const left = items.slice(0, middle);
   const right = items.slice(middle);
 
-  const renderItem = (item: PillTabItem): ReactNode => (
-    <TabItem
-      key={item.key}
-      item={item}
-      focused={item.key === activeKey}
-      animated={animated}
-      onSelect={onSelect}
-    />
-  );
+  const renderTab = (item: PillTabItem): ReactNode => {
+    const content = (
+      <TabItem
+        key={item.key}
+        item={item}
+        focused={item.key === activeKey}
+        animated={animated}
+        onSelect={onSelect}
+      />
+    );
+    return renderItem ? (
+      <View key={item.key} style={{ flex: 1, height: '100%', justifyContent: 'center' }}>
+        {renderItem(content, items.indexOf(item))}
+      </View>
+    ) : (
+      content
+    );
+  };
 
   // The bar's touch area has to be taller than its paint by exactly the raise.
   // A view drawn outside its parent's bounds is still *painted* — neither
@@ -203,7 +238,7 @@ export function PillTabBar({
   // inviting, and completely dead. That is the part of a raised button a thumb
   // aims at. So the bar lives inside a taller box, and the button is drawn in
   // an overlay that fills it — nothing is outside its parent any more.
-  const raise = centerAction ? CENTER_RAISE : 0;
+  const raise = centerAction || reserveCenterSpace ? CENTER_RAISE : 0;
 
   return (
     <View
@@ -219,6 +254,7 @@ export function PillTabBar({
       }}
     >
       <View
+        accessibilityRole="tablist"
         style={{
           position: 'absolute',
           left: 0,
@@ -236,11 +272,12 @@ export function PillTabBar({
           borderTopColor: theme.color.border,
         }}
       >
-        {left.map(renderItem)}
+        {backgroundOverlay}
+        {left.map(renderTab)}
         {/* The centre button's column, held open so the destinations still split
             evenly around it. The button itself is drawn in the overlay below. */}
         {centerAction ? <View style={{ flex: 1 }} /> : null}
-        {right.map(renderItem)}
+        {right.map(renderTab)}
       </View>
 
       {centerAction ? (
@@ -285,7 +322,11 @@ export function PillTabBar({
                 backgroundColor: theme.color.surface,
               }}
             />
-            <CenterButton action={centerAction} />
+            {renderCenterAction ? (
+              renderCenterAction(<CenterButton action={centerAction} />)
+            ) : (
+              <CenterButton action={centerAction} />
+            )}
           </View>
           <View pointerEvents="none" style={{ flex: right.length }} />
         </View>
@@ -304,7 +345,7 @@ export function PillTabBar({
 const HOLD_RETENTION = { top: 140, bottom: 140, left: 200, right: 200 };
 
 /** The raised round action in the middle of the bar. */
-const CenterButton = memo(function CenterButton({ action }: { action: PillTabAction }) {
+export const CenterButton = memo(function CenterButton({ action }: { action: PillTabAction }) {
   const theme = useTheme();
   const holdable = action.onPressIn != null;
   // Where the finger landed, so a move can be reported as a distance rather
@@ -432,7 +473,8 @@ const TabItem = memo(function TabItem({
   const scale = useRef(new Animated.Value(1)).current;
 
   const press = (to: number): void => {
-    if (!animated) return;
+    // The active tab does nothing on tap, so it gives no press feedback either.
+    if (!animated || focused) return;
     Animated.spring(scale, {
       toValue: to,
       damping: 18,
@@ -454,7 +496,7 @@ const TabItem = memo(function TabItem({
       }}
       onPressIn={() => press(0.9)}
       onPressOut={() => press(1)}
-      style={{ flex: 1 }}
+      style={{ flex: 1, justifyContent: 'center' }}
     >
       <Animated.View
         style={{
@@ -520,6 +562,9 @@ const TabItem = memo(function TabItem({
         </View>
         <Text
           variant="micro"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
           tone={focused ? 'brand' : 'muted'}
           style={{ fontWeight: focused ? '700' : '600' }}
         >

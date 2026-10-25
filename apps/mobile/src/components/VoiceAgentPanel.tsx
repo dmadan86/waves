@@ -79,6 +79,7 @@ export interface VoiceAgentPanelProps {
   transcript: string;
   /** The group the mic was opened from, if any. */
   groupId: string | null;
+  personal?: boolean;
   today: string;
   /** The agent could not help; run the basic on-device path instead. */
   onFallback: (reason: AgentFallbackReason) => void;
@@ -166,6 +167,7 @@ const GROUP_TYPES: readonly string[] = Object.values(GroupType);
 export function VoiceAgentPanel({
   transcript,
   groupId,
+  personal,
   today,
   onFallback,
   onRetry,
@@ -203,6 +205,7 @@ export function VoiceAgentPanel({
     void sendVoiceTranscript({
       transcript,
       groupId,
+      personal,
       locale,
       today,
       followUp,

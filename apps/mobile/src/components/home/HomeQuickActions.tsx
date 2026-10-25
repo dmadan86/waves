@@ -1,12 +1,12 @@
 /**
- * The four things you start from Home — start a group, settle up, the reports,
+ * The three things you start from Home — start a group, settle up,
  * add an expense — as a strip along the foot of the balance card rather than
  * a row of tiles of their own: a small disc over a one-line word in each
- * quarter, so the actions cost the card a band instead of the screen a block.
+ * column, so the actions cost the card a band instead of the screen a block.
  *
  * Add expense sits at the right-hand end, where a right thumb rests — it is
  * what Home is opened for most often — and keeps the long press that raises
- * the type / scan / speak sheet. All four wear the same quiet disc: none is
+ * the type / scan / speak sheet. All three wear the same quiet disc: none is
  * lit up over the others. Add expense and New group keep their tour anchors,
  * so the coach-marks still spotlight them.
  *
@@ -29,14 +29,12 @@ import { useStrings } from '@/i18n';
 export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
-  onReports,
   onSettleUp,
   onNewGroup,
   radius,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
-  onReports: () => void;
   onSettleUp: () => void;
   /** Handed the tile's window position so the menu can drop from it. */
   onNewGroup: (anchor: MenuAnchor | null) => void;
@@ -61,12 +59,6 @@ export function HomeQuickActions({
       label: t.homeDash.settleUp,
       glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
       onPress: onSettleUp,
-    },
-    {
-      key: 'reports',
-      label: t.homeDash.reports,
-      glyph: (color) => <Ionicons name="stats-chart" size={19} color={color} />,
-      onPress: onReports,
     },
     // Last, at the right-hand end: the one reached for most, under the thumb.
     {
