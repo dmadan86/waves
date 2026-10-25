@@ -325,7 +325,6 @@ interface GroupRepeat {
 const NEW_GROUP_REPEAT: GroupRepeat = { frequency: Frequency.Monthly, interval: 2, secondDay: 15 };
 
 export default function AddExpenseScreen() {
-  const adGatesEnabled = useFlagEnabled('ads_gates');
   useEffect(() => {
     startAdSession();
   }, []);
@@ -432,8 +431,8 @@ export default function AddExpenseScreen() {
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
   useEffect(() => {
-    if (adGatesEnabled && viewerId && !expenseId && !movePersonal) void prewarmExpenseAd(viewerId);
-  }, [adGatesEnabled, viewerId, expenseId, movePersonal]);
+    if (viewerId && !expenseId && !movePersonal) void prewarmExpenseAd(viewerId);
+  }, [viewerId, expenseId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
   const groupFxRates = useGroupFxRates(groupId);
@@ -1695,7 +1694,7 @@ export default function AddExpenseScreen() {
         'positive',
       );
       router.back();
-      if (adGatesEnabled && viewerId && !expenseId && !movedFrom) {
+      if (viewerId && !expenseId && !movedFrom) {
         void afterGroupExpense(
           viewerId,
           isPro,

@@ -21,6 +21,8 @@ interface Script {
   onLoad: (emit: (type: string, payload?: unknown) => void) => void;
   canRequestAds?: boolean;
   consentFails?: boolean;
+  /** getConsentInfo().canRequestAds; undefined makes it throw. */
+  infoCanRequestAds?: boolean;
   showFails?: boolean;
 }
 
@@ -39,6 +41,10 @@ function fakeSdk(script: Script) {
       gatherConsent: async () => {
         if (script.consentFails) throw new Error('network error');
         return { canRequestAds: script.canRequestAds ?? true };
+      },
+      getConsentInfo: async () => {
+        if (script.infoCanRequestAds === undefined) throw new Error('no info');
+        return { canRequestAds: script.infoCanRequestAds };
       },
       requestInfoUpdate: async () => ({ privacyOptionsRequirementStatus: 'NOT_REQUIRED' }),
       showPrivacyOptionsForm: async () => undefined,
@@ -199,9 +205,20 @@ describe('runRewardedAd', () => {
     expect(f.initialize).not.toHaveBeenCalled();
   });
 
-  it('still loads the ad when the consent check itself errors', async () => {
-    const f = fakeSdk({ consentFails: true, onLoad: watched });
+  it('when gathering consent errors, loads only if the SDK says ads may be requested', async () => {
+    const f = fakeSdk({ consentFails: true, infoCanRequestAds: true, onLoad: watched });
     expect(await runRewardedAd(input, deps({ sdk: f.sdk }))).toBe('credited');
+  });
+
+  it('when gathering consent errors and the SDK says no, no ad is requested', async () => {
+    const f = fakeSdk({ consentFails: true, infoCanRequestAds: false, onLoad: watched });
+    expect(await runRewardedAd(input, deps({ sdk: f.sdk }))).toBe('consent');
+    expect(f.created).toHaveLength(0);
+  });
+
+  it('when both consent reads error, no ad is requested', async () => {
+    const f = fakeSdk({ consentFails: true, onLoad: watched });
+    expect(await runRewardedAd(input, deps({ sdk: f.sdk }))).toBe('consent');
   });
 
   it('gives up on an ad that never loads', async () => {
