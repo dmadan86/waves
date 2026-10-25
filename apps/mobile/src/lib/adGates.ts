@@ -39,6 +39,8 @@ export async function readGateStatus(profileId: string): Promise<GateStatus | nu
   return { ...status, createdGroups: status.createdGroups + pendingGroups };
 }
 const preparedAds = new Map<string, PreparedInterstitial>();
+// The AdMob interstitial unit should be created as Display-only (no video) so ads stay short and closable quickly.
+// Shown only if already preloaded (prewarmExpenseAd): never a loading spinner after a save.
 function interstitialDeps() {
   return {
     ...defaultRewardedAdDeps(),
@@ -126,6 +128,7 @@ export async function afterGroupExpense(
   onlineSave: boolean,
   groupId: string,
   expenseId: string,
+  edited = false,
 ) {
   if (paid || !onlineSave || running || Platform.OS === 'web') return;
   running = true;
@@ -175,6 +178,7 @@ export async function afterGroupExpense(
         paid,
         personal: false,
         saved: true,
+        editOf: edited ? expenseId : undefined,
         online: true,
         sensitiveMoment: adsAreQuiet(Date.now()),
         lastAdAt: Math.max(local.lastAdAt, time(status.lastAdAt)),

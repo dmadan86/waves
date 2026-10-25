@@ -144,3 +144,47 @@ it('requires an ad host for sinkhole evidence and recognizes IPv6 blocking', () 
   expect(looksAdBlocked('googleads 10.0.0.0')).toBe(false);
   expect(looksAdBlocked('pagead2 network-error timeout')).toBe(false);
 });
+
+describe('edit pacing', () => {
+  const fresh = { ...initialPacing(42), total: 10, since: 0, gap: 3 };
+  it('counts an edit as a step in the same counter', () => {
+    const r = paceExpense(fresh, { ...input, editOf: 'e1' });
+    expect(r.state.since).toBe(1);
+    expect(r.state.total).toBe(11);
+    expect(r.state.edited).toEqual({ e1: now });
+  });
+  it('counts the same expense once within 10 minutes, again after', () => {
+    const a = paceExpense(fresh, { ...input, editOf: 'e1' });
+    const b = paceExpense(a.state, { ...input, now: now + 9 * 60000, editOf: 'e1' });
+    expect(b).toMatchObject({ state: a.state, show: false, reason: 'recent_edit' });
+    const c = paceExpense(a.state, { ...input, now: now + 10 * 60000, editOf: 'e1' });
+    expect(c.state.since).toBe(2);
+  });
+  it('counts a different expense and keeps only the newest 20', () => {
+    let s = fresh;
+    for (let i = 0; i < 25; i++)
+      s = paceExpense(s, { ...input, now: now + i, editOf: `e${i}` }).state;
+    expect(Object.keys(s.edited ?? {})).toHaveLength(20);
+    expect(s.edited?.e0).toBeUndefined();
+    expect(s.total).toBe(35);
+  });
+  it('mixed adds and edits respect gap, cooldown and daily cap', () => {
+    const step = (s: typeof fresh, patch: Partial<PacingInput>) =>
+      paceExpense(s, { ...input, ...patch });
+    const a = step(fresh, {});
+    const b = step(a.state, { editOf: 'e1' });
+    expect(b.show).toBe(false);
+    const c = step(b.state, {});
+    expect(c.show).toBe(true);
+    expect(c.state.since).toBe(0);
+    // next gap reached but inside cooldown: no ad
+    let s = c.state;
+    for (let i = 0; i < 5; i++)
+      s = step(s, { editOf: `x${i}`, lastInterstitialAt: now - 1000 }).state;
+    expect(step(s, { lastInterstitialAt: now - 1000 }).show).toBe(false);
+    // daily cap
+    expect(step({ ...s, today: 3 }, {}).show).toBe(false);
+    // personal edits never count
+    expect(step(s, { editOf: 'p', personal: true }).state).toBe(s);
+  });
+});
