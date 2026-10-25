@@ -116,7 +116,9 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  const locale = negotiate(request.headers.get('accept-language'));
+  // The compare pages are English only; a Tamil browser must not be sent to a 404.
+  const englishOnly = pathname.startsWith('/compare') || pathname.startsWith('/alternatives');
+  const locale = englishOnly ? defaultLocale : negotiate(request.headers.get('accept-language'));
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
 
