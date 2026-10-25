@@ -1,3 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
+import { readCredits } from '@/lib/adCredits';
+import { showCreditsRow } from '@/lib/adCreditsPure';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -106,6 +110,12 @@ function ProfileForm() {
   const { t, locale } = useStrings();
   const referralsLive = useReferralsLive();
   const { session, profile, isGuest, signOut } = useAuth();
+  const { isPaid } = useEntitlement();
+  const credits = useQuery({
+    queryKey: ['credits', profile?.id],
+    queryFn: readCredits,
+    enabled: !!profile?.id,
+  });
   const showVoiceRecorder = __DEV__;
   // A Google/Apple sign-in carries a photo in the session's user metadata, but
   // the profile row only holds one if a trigger copied it across — older
@@ -325,6 +335,15 @@ function ProfileForm() {
         <SettingsSection
           title={t.account.sectionPreferences}
           rows={[
+            ...(showCreditsRow(isPaid, credits.data)
+              ? [
+                  {
+                    icon: 'wallet-outline' as const,
+                    label: t.credits.title,
+                    route: '/settings/credits' as const,
+                  },
+                ]
+              : []),
             {
               icon: 'language-outline',
               label: t.language,

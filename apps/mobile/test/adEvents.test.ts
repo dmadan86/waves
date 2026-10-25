@@ -102,3 +102,15 @@ it.each(['credit_used', 'credit_earned', 'offline_capped'] as const)(
     expect(JSON.parse((await AsyncStorage.getItem('waves.adEvents.credits'))!)).toEqual([]);
   },
 );
+
+it.each(['credit_offer', 'credit_voluntary'] as const)(
+  'keeps post-reward quiet time for %s',
+  async (placement) => {
+    rpc.mockResolvedValue({ error: null });
+    const before = Date.now();
+    logAdEvent('credit-profile', placement, 'credit_earned');
+    expect(adClocks('credit-profile').lastRewardedAt).toBeGreaterThanOrEqual(before);
+    expect(adClocks('credit-profile').lastAdAt).toBeGreaterThanOrEqual(before);
+    await flushAdEvents('credit-profile');
+  },
+);

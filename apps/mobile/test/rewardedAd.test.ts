@@ -240,3 +240,35 @@ describe('runRewardedAd', () => {
     expect(phases).toEqual(['preparing', 'loading', 'showing', 'confirming']);
   });
 });
+
+it('uses rewarded interstitial only for the credit offer, with SSV and wallet confirmation', async () => {
+  const f = fakeSdk({ onLoad: watched });
+  const create = vi.fn(f.sdk.RewardedAd.createForAdRequest);
+  f.sdk.RewardedInterstitialAd = { createForAdRequest: create };
+  const legacyRead = vi.fn();
+  const walletRead = vi
+    .fn()
+    .mockResolvedValueOnce({ credits: 6 })
+    .mockResolvedValueOnce({ credits: 12 });
+  expect(
+    await runRewardedAd(
+      { ...input, kind: 'credit:offer', format: 'rewardedInterstitial', baselineCredits: 6 },
+      deps({ sdk: f.sdk, readCredits: walletRead, readStatus: legacyRead }),
+    ),
+  ).toBe('credited');
+  expect(create).toHaveBeenCalledOnce();
+  expect(f.created[0]?.options).toMatchObject({
+    serverSideVerificationOptions: { userId: 'profile-1', customData: 'credit:offer' },
+  });
+  expect(walletRead).toHaveBeenCalledTimes(2);
+  expect(legacyRead).not.toHaveBeenCalled();
+});
+it('never grants wallet credits from a reward event alone or missing credit RPC', async () => {
+  const f = fakeSdk({ onLoad: watched });
+  expect(
+    await runRewardedAd(
+      { ...input, kind: 'credit:voice', baselineCredits: 0 },
+      deps({ sdk: f.sdk, readCredits: async () => null }),
+    ),
+  ).toBe('pending');
+});

@@ -64,15 +64,15 @@ export function decideGate(i: {
   placement: Placement;
   localGroups: number;
   credits: number;
+  cost?: number;
   passesUsed: number;
 }): 'allow' | 'use_credit' | 'offline_pass' | 'offline_capped' | 'ask' {
   if (i.paid) return 'allow';
-  if (i.online) return i.required !== true ? 'allow' : i.credits >= 1 ? 'use_credit' : 'ask';
+  if (i.online)
+    return i.required !== true ? 'allow' : i.credits >= (i.cost ?? 6) ? 'use_credit' : 'ask';
   if (i.placement === 'group_create_rewarded' && i.localGroups === 0) return 'allow';
   return i.passesUsed < PASS_CAP ? 'offline_pass' : 'offline_capped';
 }
-export const spendCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 0 });
-export const earnCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 1, offerPlacement: null });
 export function declineOffer(l: AdLedger, now: number): AdLedger {
   const hw = effectiveNow(l, now);
   return { ...l, hw, declines: [...l.declines.filter((at) => at > hw - DECLINE_WINDOW_MS), hw] };
@@ -84,7 +84,6 @@ export function shouldOfferCredit(
   if (
     i.paid ||
     !l.offerPlacement ||
-    l.credits >= 1 ||
     l.declines.filter((at) => at > effectiveNow(l, i.now) - DECLINE_WINDOW_MS).length >= DECLINE_CAP
   )
     return 'none';
@@ -92,8 +91,7 @@ export function shouldOfferCredit(
 }
 export type FailureClass = 'offline' | 'blocked' | 'nofill_allow' | 'retry';
 export const NOFILL_ALLOW_AFTER = 3;
-export const isNoFill = (failure: string) =>
-  /no-fill|timeout|internal-error|mediation-no-fill/i.test(failure);
+export const isNoFill = (failure: string) => /no-fill|timeout|mediation-no-fill/i.test(failure);
 const sinkhole = (s: string) =>
   /(?:^|[^\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?=$|[^\d.])|\[::\]|(?:^|[^\w:])::(?=$|[^\w:])|unable to resolve host/i.test(
     s,
@@ -120,5 +118,10 @@ export function shouldProbeAdHost(i: {
   backendOk: boolean;
   failure: string;
 }): boolean {
-  return i.online && i.backendOk && /network-error/i.test(i.failure) && !sinkhole(i.failure);
+  return (
+    i.online &&
+    i.backendOk &&
+    sinkhole(i.failure) &&
+    /google|doubleclick|admob|gstatic|pagead|2mdn/i.test(i.failure)
+  );
 }

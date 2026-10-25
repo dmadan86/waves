@@ -64,6 +64,7 @@ export interface AdsSdk {
     createForAdRequest(unitId: string, options: Record<string, unknown>): RewardedAdLike;
   };
   InterstitialAd?: AdsSdk['RewardedAd'];
+  RewardedInterstitialAd?: AdsSdk['RewardedAd'];
   AdEventType: { LOADED: string; CLOSED: string; ERROR: string; OPENED?: string };
   RewardedAdEventType: { LOADED: string; EARNED_REWARD: string };
 }
@@ -77,13 +78,20 @@ export interface RewardedAdDeps {
   sleep(ms: number): Promise<void>;
   onPhase?(phase: AdPhase): void;
   onShown?(): void;
+  readCredits?(): Promise<{ credits: number } | null>;
 }
 
 /** Where the attempt is, for the sheet's spinner text. */
 export type AdPhase = 'preparing' | 'loading' | 'showing' | 'confirming';
 
 export async function runRewardedAd(
-  input: { profileId: string; kind: AdKind; baselineUsedToday: number },
+  input: {
+    profileId: string;
+    kind: AdKind | `credit:${string}`;
+    baselineUsedToday: number;
+    format?: 'rewarded' | 'rewardedInterstitial';
+    baselineCredits?: number;
+  },
   deps: RewardedAdDeps,
 ): Promise<AdOutcome> {
   const phase = (p: AdPhase): void => deps.onPhase?.(p);
@@ -109,7 +117,10 @@ export async function runRewardedAd(
   }
 
   phase('loading');
-  const ad = sdk.RewardedAd.createForAdRequest(
+  const factory =
+    input.format === 'rewardedInterstitial' ? sdk.RewardedInterstitialAd : sdk.RewardedAd;
+  if (!factory) return 'unavailable';
+  const ad = factory.createForAdRequest(
     deps.unitId(),
     adRequestOptions(input.profileId, input.kind),
   );
@@ -150,6 +161,14 @@ export async function runRewardedAd(
   if (shown !== 'watched') return shown;
 
   phase('confirming');
+  if (input.baselineCredits !== undefined) {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const current = await deps.readCredits?.();
+      if (current && current.credits > input.baselineCredits) return 'credited';
+      await deps.sleep(1500);
+    }
+    return 'pending';
+  }
   const credited = await waitForCredit(input.baselineUsedToday, deps.readStatus, deps.sleep);
   return credited ? 'credited' : 'pending';
 }

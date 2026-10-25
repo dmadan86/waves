@@ -112,6 +112,33 @@ describe('admob-ssv', () => {
     expect(rpc.mock.calls[0]?.[1]).toMatchObject({ p_kind: 'scan' });
   });
 
+  it.each(['credit', 'credit:voluntary', 'credit:voice', 'credit:offer', 'credit:gate'])(
+    'passes signed %s unchanged to the grant RPC',
+    async (kind) => {
+      const { deps, rpc, callback } = await setup();
+      const response = await handleAdmobSsv(await callback({ custom_data: kind }), deps);
+      expect(response.status).toBe(200);
+      expect(rpc.mock.calls[0]?.[1]).toMatchObject({ p_kind: kind });
+    },
+  );
+
+  it.each(['capped', 'ineligible'])(
+    'acknowledges a verified credit callback refused as %s',
+    async (outcome) => {
+      const { deps, callback } = await setup();
+      deps.service.rpc = vi.fn(async () => ({
+        data: { outcome, reason: 'daily_cap' },
+        error: null,
+      }));
+      const response = await handleAdmobSsv(
+        await callback({ custom_data: 'credit:voluntary' }),
+        deps,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true, outcome });
+    },
+  );
+
   it('is idempotent: a replayed callback answers 200 duplicate and the database decides', async () => {
     const { deps, callback } = await setup();
     await handleAdmobSsv(await callback(), deps);
@@ -154,6 +181,10 @@ describe('admob-ssv', () => {
       { ad_unit: '555' },
       { user_id: 'not-a-uuid' },
       { custom_data: 'banner' },
+      { custom_data: 'credit:scan' },
+      { custom_data: 'credit:' },
+      { custom_data: 'credit:gate:voice' },
+      { custom_data: 'Credit' },
       { custom_data: '' },
       { transaction_id: '' },
     ]) {

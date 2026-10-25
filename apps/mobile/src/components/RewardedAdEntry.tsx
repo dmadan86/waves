@@ -1,6 +1,6 @@
 import { Pressable } from 'react-native';
 import { Text } from '@waves/ui';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
 import type { AdKind } from '@/lib/rewardedAdsPure';
 
@@ -12,7 +12,13 @@ export function RewardedAdEntry({ kind }: { kind: AdKind }) {
       {offer.canOffer(kind) ? (
         <Pressable accessibilityRole="button" onPress={() => void offer.offer(kind)}>
           <Text variant="caption" tone="brand">
-            {kind === 'voice' ? t.rewardedAds.entryVoice : t.rewardedAds.entryScan}
+            {offer.creditsKnown
+              ? fill(kind === 'voice' ? t.rewardedAds.voiceTitle : t.rewardedAds.scanTitle, {
+                  count: offer.amount(kind),
+                })
+              : kind === 'voice'
+                ? t.rewardedAds.entryVoice
+                : t.rewardedAds.entryScan}
           </Text>
         </Pressable>
       ) : null}

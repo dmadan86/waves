@@ -19,6 +19,7 @@ export async function loadAdsSdk(): Promise<AdsSdk> {
     AdsConsent: AdsSdk['AdsConsent'];
     RewardedAd: AdsSdk['RewardedAd'];
     InterstitialAd: AdsSdk['InterstitialAd'];
+    RewardedInterstitialAd: AdsSdk['RewardedAd'];
     AdEventType: AdsSdk['AdEventType'];
     RewardedAdEventType: AdsSdk['RewardedAdEventType'];
   };
@@ -27,6 +28,7 @@ export async function loadAdsSdk(): Promise<AdsSdk> {
     AdsConsent: sdk.AdsConsent,
     RewardedAd: sdk.RewardedAd,
     InterstitialAd: sdk.InterstitialAd,
+    RewardedInterstitialAd: sdk.RewardedInterstitialAd,
     AdEventType: sdk.AdEventType,
     RewardedAdEventType: sdk.RewardedAdEventType,
   };

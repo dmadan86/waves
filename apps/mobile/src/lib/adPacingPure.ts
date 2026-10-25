@@ -129,3 +129,21 @@ export function looksAdBlocked(reason: string): boolean {
     )
   );
 }
+
+export function pickInterstitialUnit(i: {
+  videoUnitConfigured: boolean;
+  flagEnabled: boolean;
+  unmetered: boolean;
+  firstAdOfDay: boolean;
+  sessionSeconds: number;
+  country: string | null;
+}): 'video' | 'display' {
+  return i.videoUnitConfigured &&
+    i.flagEnabled &&
+    i.unmetered &&
+    !i.firstAdOfDay &&
+    i.sessionSeconds >= 120 &&
+    ['US', 'GB', 'AU', 'AE'].includes(i.country ?? '')
+    ? 'video'
+    : 'display';
+}
