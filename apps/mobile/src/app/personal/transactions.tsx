@@ -25,14 +25,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import { format, money, resolveCategory, type PersonalTxn } from '@waves/core';
 import {
   Button,
   directionalIcon,
-  EmptyState,
   IconButton,
   iconSize,
   Row,
@@ -42,6 +41,8 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { filterTxns, groupByDay, type TxnTab } from '@/lib/txnLedger';
 import { CategoryBadge, CategoryPicker } from '@/components/Category';
 import { usePersonalLedger } from '@/data/personal';
 import { plural, useStrings } from '@/i18n';
@@ -51,7 +52,7 @@ import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
-type Tab = 'all' | 'expense' | 'income' | 'transfer';
+type Tab = TxnTab;
 
 /** One row of the flattened ledger: a day heading, or an entry under it. The
  *  entry knows whether it opens or closes its day, so the rows of one day draw
@@ -98,6 +99,17 @@ function PersonalTransactionsScreenBody() {
 
   const [tab, setTab] = useState<Tab>(kindParam ?? 'all');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const drillIn = [params.category, params.kind, params.month, params.from, params.to].some(
+    (value) => value !== undefined,
+  );
+  const addExpense = () =>
+    router.push({ pathname: '/personal/entry', params: { kind: 'expense' } });
   // The filter sheet's pick replaces the one the screen was opened with.
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -118,71 +130,73 @@ function PersonalTransactionsScreenBody() {
       (bucketed && picked === undefined
         ? (resolveCategory(category ?? null, null).builtinId ?? 'other') === filter
         : category === filter);
-    const needle = query.trim().toLocaleLowerCase(locale);
-    const matchesQuery = (txn: PersonalTxn): boolean => {
-      if (!needle) return true;
-      const label = txn.category
-        ? (t.categories[txn.category as keyof typeof t.categories] ?? txn.category)
-        : '';
-      return [txn.note ?? '', label, format(money(txn.amount, txn.currency), { locale })].some(
-        (text) => text.toLocaleLowerCase(locale).includes(needle),
-      );
-    };
-    const matchesTab = (txn: PersonalTxn): boolean =>
-      tab === 'all'
-        ? true
-        : tab === 'transfer'
-          ? txn.loanId !== null
-          : // Repayments stay under their kind too: the Personal tab's Spent and
-            // Income tiles count them, and the list they open has to add up.
-            txn.kind === tab;
-    const shown = txns.filter(
-      (txn) =>
-        matchesCategory(txn.category) &&
-        matchesTab(txn) &&
-        matchesQuery(txn) &&
-        (!month || txn.date.slice(0, 7) === month) &&
-        (!fromDate || txn.date >= fromDate) &&
-        (!toDate || txn.date <= toDate),
-    );
-
+    const shown = filterTxns(txns, {
+      tab,
+      needle: debouncedQuery,
+      locale,
+      categoryMatch: matchesCategory,
+      categoryLabel: (id) => t.categories[id as keyof typeof t.categories] ?? id,
+      month,
+      from: fromDate,
+      to: toDate,
+    });
     const list: LedgerItem[] = [];
-    for (let index = 0; index < shown.length;) {
-      const day = shown[index]!.date;
-      let end = index;
-      while (end < shown.length && shown[end]!.date === day) end += 1;
-      const rows = shown.slice(index, end);
-      const currency = rows[0]!.currency;
-      // The day's net, in the day's first currency; a day that mixes currencies
-      // shows no total rather than a sum of unlike things.
-      const mixed = rows.some((row) => row.currency !== currency);
-      const net = mixed
-        ? 0n
-        : rows.reduce((sum, row) => sum + (row.kind === 'income' ? row.amount : -row.amount), 0n);
-      list.push({
-        kind: 'day',
-        key: `day-${day}`,
-        day,
-        count: rows.length,
-        net,
-        currency: mixed ? '' : currency,
-      });
-      rows.forEach((txn, at) =>
-        list.push({ kind: 'txn', key: txn.id, txn, first: at === 0, last: at === rows.length - 1 }),
-      );
-      index = end;
+    for (const { rows, ...day } of groupByDay(shown)) {
+      list.push({ kind: 'day', key: `day-${day.day}`, ...day });
+      if (!collapsedDays.has(day.day)) {
+        rows.forEach((txn, at) =>
+          list.push({
+            kind: 'txn',
+            key: txn.id,
+            txn,
+            first: at === 0,
+            last: at === rows.length - 1,
+          }),
+        );
+      }
     }
     return list;
-  }, [txns, filter, picked, bucketed, month, fromDate, toDate, tab, query, locale, t]);
+  }, [
+    txns,
+    filter,
+    picked,
+    bucketed,
+    month,
+    fromDate,
+    toDate,
+    tab,
+    debouncedQuery,
+    locale,
+    t,
+    collapsedDays,
+  ]);
 
   const signed = (amount: bigint, currency: string, income: boolean): string =>
     `${income ? '+' : '-'}${format(money(amount < 0n ? -amount : amount, currency), { locale })}`;
 
-  const tabs: { value: Tab; label: string }[] = [
-    { value: 'all', label: t.personal.all },
-    { value: 'expense', label: t.personal.expenses },
-    { value: 'income', label: t.personal.income },
-    { value: 'transfer', label: t.personal.transfers },
+  const tabs: {
+    value: Tab;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    rotation?: `${number}deg`;
+  }[] = [
+    { value: 'all', label: t.personal.all, icon: 'list', color: accent },
+    {
+      value: 'expense',
+      label: t.personal.expenses,
+      icon: 'arrow-down',
+      color: EXPENSE_INK,
+      rotation: '-45deg',
+    },
+    {
+      value: 'income',
+      label: t.personal.income,
+      icon: 'arrow-up',
+      color: INCOME_INK,
+      rotation: '45deg',
+    },
+    { value: 'transfer', label: t.personal.transfers, icon: 'swap-horizontal', color: '#2875CE' },
   ];
 
   return (
@@ -194,13 +208,19 @@ function PersonalTransactionsScreenBody() {
           alignItems: 'center',
         }}
       >
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          {/* The category's own name is the title when one is being shown, so
-              the screen says what it is a list *of* rather than leaving the
-              person to wonder where the rest of their ledger went. */}
-          <Text style={{ fontSize: 20, fontWeight: '700', color: ink }} numberOfLines={1}>
-            {(filter ? labelFor(filter) : null) ?? t.personal.transactions}
+        {drillIn ? (
+          <IconButton label={t.common.back} onPress={() => router.back()}>
+            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
+          </IconButton>
+        ) : null}
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: ink }}>
+            {t.personal.transactions}
           </Text>
+          <Text style={{ fontSize: 12, color: muted }}>{t.personal.transactionsSubtitle}</Text>
+          {filter ? (
+            <Text style={{ fontSize: 12, color: muted }}>{labelFor(filter) ?? filter}</Text>
+          ) : null}
           {fromDate && toDate ? (
             <Text style={{ fontSize: 12, color: muted }} numberOfLines={1}>
               {fromDate === toDate ? fromDate : `${fromDate} – ${toDate}`}
@@ -222,12 +242,23 @@ function PersonalTransactionsScreenBody() {
         >
           <Ionicons name="sparkles-outline" size={iconSize.xl} color={accent} />
         </IconButton>
-        <IconButton
-          label={t.personal.add}
-          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.personal.add}
+          onPress={addExpense}
+          hitSlop={4}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.8 : 1,
+          })}
         >
-          <Ionicons name="add" size={iconSize.xxl} color={accent} />
-        </IconButton>
+          <Ionicons name="add" size={26} color="#FFFFFF" />
+        </Pressable>
       </Row>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, gap: 10, paddingTop: 6 }}>
@@ -289,10 +320,7 @@ function PersonalTransactionsScreenBody() {
           </Pressable>
         </Row>
 
-        <Row
-          accessibilityRole="tablist"
-          style={{ padding: 4, borderRadius: 24, backgroundColor: lavender, gap: 2 }}
-        >
+        <Row accessibilityRole="tablist" style={{ gap: 5 }}>
           {tabs.map((item) => {
             const on = item.value === tab;
             return (
@@ -303,16 +331,37 @@ function PersonalTransactionsScreenBody() {
                 onPress={() => setTab(item.value)}
                 style={{
                   flex: 1,
+                  minWidth: 0,
+                  flexDirection: 'row',
+                  gap: 3,
                   height: 36,
                   borderRadius: 18,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: on ? accent : 'transparent',
+                  backgroundColor: on ? accent : theme.color.surface,
                 }}
               >
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: on ? '#FFFFFF26' : `${item.color}18`,
+                  }}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={14}
+                    color={on ? '#FFFFFF' : item.color}
+                    style={item.rotation ? { transform: [{ rotate: item.rotation }] } : undefined}
+                  />
+                </View>
                 <Text
                   style={{
-                    fontSize: 14,
+                    flexShrink: 1,
+                    fontSize: 11,
                     fontWeight: on ? '700' : '500',
                     color: on ? '#FFFFFF' : muted,
                   }}
@@ -336,13 +385,18 @@ function PersonalTransactionsScreenBody() {
         drawDistance={1500}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: clearance,
+          paddingBottom: clearance + 96,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           <View style={{ paddingTop: theme.spacing.xxxl }}>
-            <EmptyState title={t.personal.empty} />
+            <EmptyStateCta
+              title={t.personal.empty}
+              body={t.personal.transactionsSubtitle}
+              action={t.personal.add}
+              onAdd={addExpense}
+            />
           </View>
         }
         ListFooterComponent={
@@ -379,6 +433,27 @@ function PersonalTransactionsScreenBody() {
                     {plural(locale, item.count, t.personal.txnCount)}
                   </Text>
                 </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${collapsedDays.has(item.day) ? t.personal.expandDay : t.personal.collapseDay}: ${dayLabel(item.day, locale)}`}
+                  accessibilityState={{ expanded: !collapsedDays.has(item.day) }}
+                  hitSlop={8}
+                  onPress={() =>
+                    setCollapsedDays((previous) => {
+                      const next = new Set(previous);
+                      if (next.has(item.day)) next.delete(item.day);
+                      else next.add(item.day);
+                      return next;
+                    })
+                  }
+                  style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Ionicons
+                    name={collapsedDays.has(item.day) ? 'chevron-down' : 'chevron-up'}
+                    size={18}
+                    color={muted}
+                  />
+                </Pressable>
                 {item.currency ? (
                   <Text
                     style={{
