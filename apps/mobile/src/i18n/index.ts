@@ -5744,6 +5744,7 @@ export interface UiStrings {
       overview: string;
       transactions: string;
       reports: string;
+      recurring: string;
       voiceFab: string;
     };
     title: string;
