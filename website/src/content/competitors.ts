@@ -56,7 +56,7 @@ const W = {
   currency: 'Every ISO 4217 currency, free. Fix the rate per bill, person or trip',
   receipts: 'Yes: 20 scans a month Free, 300 on Pro',
   voice: 'English, Hindi, Tamil, Arabic and Hinglish: 10 AI commands a month Free, 100 on Pro',
-  upi: 'Opens your UPI app with the exact amount. Also Venmo, PayPal, PayNow, Pix and more. Waves never holds money',
+  upi: 'Opens your UPI app with the exact amount. For PayPal it opens a payment link; for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds money',
   export: 'JSON, CSV and PDF, free',
   signup: 'Join a group from a link in a browser with no account (guest access is time-limited)',
   languages: 'English, Hindi, Tamil and Arabic (right to left)',
@@ -89,26 +89,26 @@ export const competitors: Competitor[] = [
     slug: 'splitwise',
     name: 'Splitwise',
     blurb:
-      'The best-known splitter. Daily limit on the free plan, Pro for scanning and currency conversion.',
+      'A widely used splitter. Daily limit on the free plan, Pro for scanning and currency conversion.',
     seoTitle: 'Waves vs Splitwise: free limits, features, price',
     seoDescription:
       'Waves and Splitwise compared: free-plan limits, ads, receipt scanning, offline, currencies, UPI and languages, plus an honest list of where Splitwise wins.',
     summary: [
-      'Splitwise is the best-known expense splitter, with about 29K ratings on the iOS App Store. Its free plan has a daily limit on new expenses, and scanning and currency conversion are on Pro.',
-      'Waves keeps groups, expenses, currencies and export unlimited on Free, works offline first, and adds UPI hand-off and Indian-language voice entry. It is newer and smaller.',
+      'Splitwise is a widely used expense splitter, with about 29K ratings on the iOS App Store. Its free plan has a daily limit on new expenses, and scanning and currency conversion are on Pro.',
+      'Waves keeps groups, expenses and currencies unlimited on Free, includes export, works offline first, and adds UPI hand-off and Indian-language voice entry. It is newer and smaller.',
     ],
     rows: [
       {
         feature: 'Free plan limits',
         waves: W.limits,
-        them: 'A daily limit on new expenses (count not published); Pro removes it',
+        them: 'A daily limit on new expenses (exact count not verified); Pro removes it',
       },
       {
         feature: 'Price',
         waves: W.price,
         them: 'Pro is a paid subscription; store prices vary by country',
       },
-      { feature: 'Ads', waves: W.ads, them: 'Free has ads; Pro is ad-free' },
+      { feature: 'Ads', waves: W.ads, them: 'Pro is described as ad-free' },
       { feature: 'Works offline', waves: true, them: 'Yes, offline mode with cloud sync' },
       {
         feature: 'Multi-currency',
@@ -144,7 +144,7 @@ export const competitors: Competitor[] = [
     theyAreBetter: [
       {
         title: 'Reach and track record',
-        body: 'Splitwise is far more widely used, so your friends may already have it. Waves is newer and smaller, so expect a shorter track record.',
+        body: 'Your friends may already have Splitwise. Waves is newer and smaller, so expect a shorter track record.',
       },
       {
         title: 'Card transaction import',
@@ -323,7 +323,7 @@ export const competitors: Competitor[] = [
         waves: W.signup,
         them: 'Share by link or QR; others can view balances without the app',
       },
-      { feature: 'Languages', waves: W.languages, them: '16 on iOS, none Indian' },
+      { feature: 'Languages', waves: W.languages, them: '16 on iOS, no Indian language listed' },
       { feature: 'Platforms', waves: W.platforms, them: 'iOS, Android and web' },
     ],
     switchReasons: [
@@ -487,7 +487,7 @@ export const competitors: Competitor[] = [
     blurb: 'Free, open source, no ads and no account. Anyone with the group link can edit.',
     seoTitle: 'Waves vs Spliit: open source vs full app, compared',
     seoDescription:
-      'Waves and Spliit compared: price, ads, accounts, receipt scanning, privacy, export and languages. Spliit is free and open source; see what each is better at.',
+      'Waves and Spliit compared: price, ads, accounts, receipt scanning, privacy, export and languages. Spliit is free and open source; see what each does best.',
     summary: [
       'Spliit is a free, open-source splitter with no ads and no account, available in 24 languages and with AI receipt scanning in beta.',
       'Waves adds offline-first sync, voice and UPI hand-off, with an optional paid Pro tier.',
@@ -574,14 +574,14 @@ export const competitors: Competitor[] = [
     seoDescription:
       'Waves and Kittysplit compared: group size limits, per-group pricing, currencies, receipts, export and languages. Plus where Kittysplit is the easier pick.',
     summary: [
-      'Kittysplit is a web, iOS and Android splitter where nobody has to register. Free groups hold up to 9 people, and Super Kitty (₹299 once per group) lifts that to 100 and adds currencies.',
+      'Kittysplit is a web, iOS and Android splitter where nobody has to register. Free groups hold up to 9 people, and Super Kitty (a one-time payment per group, ₹299 or €2.99 depending on market) lifts that to 100 and adds currencies.',
       'Waves has no group-size or currency limits on Free, and adds offline-first entry, receipt scanning and voice.',
     ],
     rows: [
       {
         feature: 'Price',
         waves: W.price,
-        them: 'Free up to 9 people; Super Kitty ₹299 once per group',
+        them: 'Free up to 9 people; Super Kitty is one payment per group (₹299 or €2.99 depending on market)',
       },
       {
         feature: 'Group size',
@@ -598,7 +598,11 @@ export const competitors: Competitor[] = [
       { feature: 'UPI hand-off', waves: W.upi, them: NL },
       { feature: 'Data export', waves: W.export, them: 'XLSX' },
       { feature: 'Account', waves: W.signup, them: 'No account required, including to upgrade' },
-      { feature: 'Languages', waves: W.languages, them: '8 on the website, none Indian' },
+      {
+        feature: 'Languages',
+        waves: W.languages,
+        them: '8 in the website language menu, no Indian language listed',
+      },
       { feature: 'Platforms', waves: W.platforms, them: 'Web, iOS and Android' },
     ],
     switchReasons: [
@@ -647,13 +651,12 @@ export const competitors: Competitor[] = [
   {
     slug: 'splitkaro',
     name: 'Splitkaro',
-    blurb:
-      'Bengaluru-built splitter with Splitwise import, UPI share and SMS tracking. English only.',
+    blurb: 'India-focused splitter with Splitwise import and UPI share import. English only.',
     seoTitle: 'Waves vs Splitkaro: Indian expense splitters compared',
     seoDescription:
       'Waves and Splitkaro compared: free receipt scans, Premium price, UPI import, export, languages and offline, with where Splitkaro does more for India.',
     summary: [
-      'Splitkaro is an India-built splitter with Splitwise import, UPI share import and, as rolling out, automatic tracking from SMS. Its app is in English.',
+      'Splitkaro is an India-focused splitter with Splitwise import and UPI share import. Its iOS listing is in English only.',
       'Waves offers Hindi, Tamil and Arabic, voice entry in those languages, JSON, CSV and PDF export on Free, and more receipt scans on Free.',
     ],
     rows: [
@@ -698,7 +701,7 @@ export const competitors: Competitor[] = [
     theyAreBetter: [
       {
         title: 'Built around Indian payment habits',
-        body: 'Splitkaro lists UPI share import, which adds expenses from UPI apps, and its release notes describe SMS-based tracking. Waves uses UPI for settling up.',
+        body: 'Splitkaro lists UPI share import, which adds expenses from UPI apps (unlimited on Premium). Waves uses UPI for settling up.',
       },
       {
         title: 'Lower entry price',
@@ -758,7 +761,7 @@ export const competitors: Competitor[] = [
       {
         feature: 'Settling up',
         waves: W.upi,
-        them: "Settles through Google Pay to the bill creator's linked bank account",
+        them: "Settles through Google Pay to the bill creator's linked bank account, as Google's help page describes. UPI collect requests were reported discontinued from October 2025, so check the app",
       },
       { feature: 'Multi-currency', waves: W.currency, them: NL },
       { feature: 'Works offline', waves: true, them: NL },
@@ -778,12 +781,12 @@ export const competitors: Competitor[] = [
     ],
     switchReasons: [
       {
-        title: 'A ledger, not a one-off request',
-        body: 'Waves keeps a running balance, edit history and comments per group, across trips and flats.',
+        title: 'History and comments',
+        body: 'Waves keeps a running balance, a full edit history and comments on every expense, per group, across trips and flats.',
       },
       {
         title: 'Any currency, offline',
-        body: 'Record spend abroad or with no signal, set the rate, and settle later.',
+        body: 'Record spend abroad, even with no signal, set the rate, and settle later.',
       },
       {
         title: 'Use it with Google Pay',
@@ -819,7 +822,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Is Google Pay split still available?',
-        a: 'Google India support pages document group expense tracking as of our check. Features and rules for UPI requests change, so check the app.',
+        a: 'Google India support pages document group expense tracking as of our check, but UPI collect requests were reported discontinued from October 2025, so check what the app offers today.',
       },
       {
         q: 'Do my friends need Waves?',
@@ -827,13 +830,17 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Can Waves settle with people outside India?',
-        a: 'It can hand off to rails such as Venmo, PayPal, PayNow and PayID as well as UPI. Waves never holds the money.',
+        a: 'UPI opens your payment app with the amount. For PayPal it opens a payment link, and for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds the money.',
       },
     ],
     sources: [
       {
         label: 'Google Pay India: group expenses',
         url: 'https://support.google.com/pay/india/answer/12025420?hl=en-IN',
+      },
+      {
+        label: 'Report on NPCI ending UPI collect requests (Oct 2025)',
+        url: 'https://www.moneycontrol.com/technology/npci-to-stop-upi-person-to-person-collect-requests-from-october-to-combat-fraud-article-13449038.html',
       },
       {
         label: 'Google Pay India: split a bill',
@@ -864,7 +871,11 @@ export const competitors: Competitor[] = [
       },
       { feature: 'Price', waves: W.price, them: 'Free app; no split-specific fee listed' },
       { feature: 'Who can take part', waves: W.signup, them: 'Groups or contacts on PhonePe' },
-      { feature: 'Settling up', waves: W.upi, them: 'Settle through PhonePe' },
+      {
+        feature: 'Settling up',
+        waves: W.upi,
+        them: 'Settle through PhonePe; check the app for what is available today',
+      },
       { feature: 'Multi-currency', waves: W.currency, them: NL },
       { feature: 'Works offline', waves: true, them: NL },
       {
@@ -889,7 +900,7 @@ export const competitors: Competitor[] = [
         title: 'A ledger over time',
         body: 'Running balances, edit history and comments, by group.',
       },
-      { title: 'Travel-ready', body: 'Any currency, and works with no network.' },
+      { title: 'Travel-ready', body: 'Any currency, and expenses can be added with no network.' },
     ],
     theyAreBetter: [
       {
@@ -941,7 +952,7 @@ export const competitors: Competitor[] = [
       'Waves vs Venmo Groups: members, accounts, currencies, offline, receipt scanning, voice and export, with where Venmo is more convenient for US friends.',
     summary: [
       'Venmo Groups tracks ongoing shared expenses inside Venmo, with up to 30 members, and settles in the Venmo app.',
-      'Waves works outside one payments network, in any currency and offline, and can hand off to Venmo as one of many ways to pay.',
+      'Waves works outside one payments network, in any currency and offline, and lists Venmo as one of many ways to pay.',
     ],
     rows: [
       {
@@ -962,7 +973,7 @@ export const competitors: Competitor[] = [
     switchReasons: [
       {
         title: 'Not tied to one network',
-        body: 'Your friends can pay by Venmo, PayPal, a bank transfer or UPI; Waves hands the amount to the app they choose.',
+        body: 'Your friends can pay by Venmo, PayPal, a bank transfer or UPI; Waves shows what is owed and the payee details for the method you pick.',
       },
       {
         title: 'International groups',
@@ -970,7 +981,7 @@ export const competitors: Competitor[] = [
       },
       {
         title: 'Offline and scanning',
-        body: 'Save the bill without signal, scan receipts and speak expenses.',
+        body: 'Add expenses with no signal; scan receipts and speak them when you are online.',
       },
     ],
     theyAreBetter: [
@@ -988,7 +999,7 @@ export const competitors: Competitor[] = [
       steps: [
         'Create a group in Waves and add the same people.',
         'Add expenses as they happen.',
-        'To settle, pick Venmo as the payment method in Waves and it opens Venmo with the amount.',
+        'To settle, pick Venmo as the payment method in Waves. It shows the payee details to copy into Venmo; Waves does not open Venmo for you.',
       ],
     },
     faq: [
@@ -998,7 +1009,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves work in the US?',
-        a: 'Yes, it supports USD and hands off to Venmo or PayPal. Waves never holds the money.',
+        a: 'Yes, it supports USD. For Venmo it shows the payee details to copy, and for PayPal it opens a payment link. Waves never holds the money.',
       },
       {
         q: 'Do my friends need Waves?',
@@ -1031,7 +1042,7 @@ export const competitors: Competitor[] = [
     rows: [
       {
         feature: 'Who owes whom',
-        waves: 'Calculated for you, with the fewest payments',
+        waves: 'Calculated for you, as simplified suggested payments',
         them: 'Formulas you write and keep correct, or by hand',
       },
       {
@@ -1061,7 +1072,7 @@ export const competitors: Competitor[] = [
       },
       {
         title: 'Capture in the moment',
-        body: 'Scan, speak or type at the table, even with no signal.',
+        body: 'Scan, speak or type at the table. With no signal you can still type, and photos queue until you are back online; scanning itself needs a connection.',
       },
     ],
     theyAreBetter: [

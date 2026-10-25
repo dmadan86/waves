@@ -18,25 +18,28 @@ export function SiteFooter({
   t,
   legal,
   appUrl,
+  anchorBase = '',
 }: {
   locale: Locale;
   t: Dictionary['footer'];
   legal: Dictionary['legal'];
   appUrl: string;
+  /** Prefix for the in-page product links, so a secondary page can point them at the home page. */
+  anchorBase?: string;
 }) {
   const columns: { heading: string; links: FooterLink[] }[] = [
     {
       heading: t.product,
       links: [
-        { label: t.links.features, href: '#features', kind: 'anchor' },
-        { label: t.links.how, href: '#how', kind: 'anchor' },
-        { label: t.links.offline, href: '#offline', kind: 'anchor' },
-        { label: t.links.voice, href: '#voice', kind: 'anchor' },
-        { label: t.links.wearables, href: '#wearables', kind: 'anchor' },
-        { label: t.links.agents, href: '#agents', kind: 'anchor' },
-        { label: t.links.pricing, href: '#pricing', kind: 'anchor' },
-        { label: t.links.security, href: '#security', kind: 'anchor' },
-        { label: t.links.faq, href: '#faq', kind: 'anchor' },
+        { label: t.links.features, href: `${anchorBase}#features`, kind: 'anchor' },
+        { label: t.links.how, href: `${anchorBase}#how`, kind: 'anchor' },
+        { label: t.links.offline, href: `${anchorBase}#offline`, kind: 'anchor' },
+        { label: t.links.voice, href: `${anchorBase}#voice`, kind: 'anchor' },
+        { label: t.links.wearables, href: `${anchorBase}#wearables`, kind: 'anchor' },
+        { label: t.links.agents, href: `${anchorBase}#agents`, kind: 'anchor' },
+        { label: t.links.pricing, href: `${anchorBase}#pricing`, kind: 'anchor' },
+        { label: t.links.security, href: `${anchorBase}#security`, kind: 'anchor' },
+        { label: t.links.faq, href: `${anchorBase}#faq`, kind: 'anchor' },
       ],
     },
     {

@@ -122,6 +122,12 @@ export function CompareShell({
         // Our own copy, not user input.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <a
+        href="#main"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:start-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:inline-flex focus-visible:h-11 focus-visible:items-center focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:text-sm focus-visible:font-medium focus-visible:text-bg"
+      >
+        {t.nav.skip}
+      </a>
       <header className="border-b border-line">
         <Container className="flex h-16 items-center justify-between">
           <Link href={`/${LOCALE}`} aria-label={site.name}>
@@ -139,7 +145,13 @@ export function CompareShell({
         <Container className="max-w-3xl">{children}</Container>
       </main>
       <DownloadBanner t={t.cta} stores={t.stores} />
-      <SiteFooter locale={LOCALE} t={t.footer} legal={t.legal} appUrl={site.appUrl} />
+      <SiteFooter
+        locale={LOCALE}
+        t={t.footer}
+        legal={t.legal}
+        appUrl={site.appUrl}
+        anchorBase={`/${LOCALE}`}
+      />
     </>
   );
 }
