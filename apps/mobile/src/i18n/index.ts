@@ -3090,6 +3090,9 @@ export interface UiStrings {
     interruptedHint: string;
     backedUp: PluralForms;
     backupFailed: string;
+    failReconnect: string;
+    failFull: string;
+    failNetwork: string;
     /** Under a button held down by some other in-flight action on the screen. */
     busy: string;
 
@@ -8469,6 +8472,9 @@ const en: UiStrings = {
       other: '{n} records backed up',
     },
     backupFailed: 'The backup did not finish. Try again in a moment.',
+    failReconnect: 'Reconnect Google Drive',
+    failFull: 'Your Google Drive is full',
+    failNetwork: 'Check your internet',
     busy: 'Just a moment…',
 
     never: 'Never backed up',
@@ -13643,6 +13649,9 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
     },
     backupFailed: 'காப்புப்பிரதி முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    failReconnect: 'Google Drive-ஐ மீண்டும் இணைக்கவும்',
+    failFull: 'உங்கள் Google Drive நிரம்பிவிட்டது',
+    failNetwork: 'உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்',
     busy: 'ஒரு நிமிடம்…',
 
     never: 'இதுவரை காப்பு எடுக்கவில்லை',
@@ -18895,6 +18904,9 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड का बैकअप हो गया',
     },
     backupFailed: 'बैकअप पूरा नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    failReconnect: 'Google Drive फिर से कनेक्ट करें',
+    failFull: 'आपका Google Drive भर गया है',
+    failNetwork: 'अपना इंटरनेट कनेक्शन जाँचें',
     busy: 'एक पल…',
 
     never: 'अभी तक कोई बैकअप नहीं',
@@ -24207,6 +24219,9 @@ const ar: UiStrings = {
       other: 'نُسخ {n} سجل',
     },
     backupFailed: 'لم يكتمل النسخ. حاول بعد قليل.',
+    failReconnect: 'أعِد ربط Google Drive',
+    failFull: 'مساحة Google Drive ممتلئة',
+    failNetwork: 'تحقق من اتصالك بالإنترنت',
     busy: 'لحظة…',
 
     never: 'لم يحدث نسخ بعد',

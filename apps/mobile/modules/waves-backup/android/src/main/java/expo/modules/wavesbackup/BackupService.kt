@@ -10,6 +10,7 @@ import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 
 /** No payload, credentials or account identifiers cross this boundary. */
 class BackupService : Service() {
@@ -19,8 +20,8 @@ class BackupService : Service() {
     const val ID = 7042
   }
   private val handler = android.os.Handler(android.os.Looper.getMainLooper())
-  private val runTimeout = Runnable { WavesBackupModule.live?.timeout(); finish("failed") }
-  private val pauseTimeout = Runnable { WavesBackupModule.live?.timeout(); finish("failed") }
+  private val runTimeout = Runnable { Log.w("WavesBackup", "runTimeout"); WavesBackupModule.live?.timeout(); finish("failed") }
+  private val pauseTimeout = Runnable { Log.w("WavesBackup", "pauseTimeout"); WavesBackupModule.live?.timeout(); finish("failed") }
   private var started = false
   private var wakeLock: android.os.PowerManager.WakeLock? = null
   private var lastUpdate = 0L
@@ -44,8 +45,14 @@ class BackupService : Service() {
     intent?.getStringExtra("labels")?.let { labels = org.json.JSONObject(it) }
     started = true
     val notification = notification("preparing", -1)
-    if (Build.VERSION.SDK_INT >= 29) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-    else startForeground(ID, notification)
+    try {
+      if (Build.VERSION.SDK_INT >= 29) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+      else startForeground(ID, notification)
+    } catch (e: Exception) {
+      Log.w("WavesBackup", "startForeground failed: " + e.javaClass.simpleName)
+      finish("failed")
+      return START_NOT_STICKY
+    }
     terminal?.let { finish(it) }
     return START_NOT_STICKY
   }
@@ -82,6 +89,7 @@ class BackupService : Service() {
     stopSelf()
   }
   override fun onTimeout(startId: Int, fgsType: Int) {
+    Log.w("WavesBackup", "onTimeout")
     WavesBackupModule.live?.timeout()
     finish("failed")
   }
