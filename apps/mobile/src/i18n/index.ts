@@ -5854,6 +5854,17 @@ export interface UiStrings {
     incomeKind: string;
     recurring: string;
     recurringSub: string;
+    recurringBills: string;
+    noMoreRecurring: string;
+    recurringEmptyBody: string;
+    addRecurringItem: string;
+    pauseRecurring: string;
+    resumeRecurring: string;
+    deleteRecurringTitle: string;
+    deleteRecurringBody: string;
+    recurringFilterLabel: string;
+    recurringMenuLabel: string;
+
     addRecurring: string;
     editRecurring: string;
     repeats: string;
@@ -11018,6 +11029,18 @@ const en: UiStrings = {
     incomeKind: 'Income',
     recurring: 'Recurring',
     recurringSub: 'Bills and income that repeat.',
+    recurringBills: 'Bills',
+    noMoreRecurring: 'No more recurring items',
+    recurringEmptyBody:
+      'Add your bills, subscriptions or income that repeat, and never miss a payment.',
+    addRecurringItem: '+ Add recurring item',
+    pauseRecurring: 'Pause',
+    resumeRecurring: 'Resume',
+    deleteRecurringTitle: 'Delete recurring item?',
+    deleteRecurringBody: 'This stops future entries. Existing history is kept.',
+    recurringFilterLabel: 'Filter recurring items',
+    recurringMenuLabel: 'Recurring item actions',
+
     addRecurring: 'Add recurring',
     editRecurring: 'Edit recurring',
     repeats: 'Repeats',
@@ -16352,6 +16375,18 @@ const ta: UiStrings = {
     incomeKind: 'வருமானம்',
     recurring: 'மீண்டும் வருபவை',
     recurringSub: 'மீண்டும் வரும் பில்கள், வருமானம்.',
+    recurringBills: 'பில்கள்',
+    noMoreRecurring: 'மேலும் தொடர் பதிவுகள் இல்லை',
+    recurringEmptyBody:
+      'மீண்டும் வரும் பில்கள், சந்தாக்கள் அல்லது வருமானத்தைச் சேர்த்து, பணம் செலுத்துவதைத் தவறவிடாதீர்கள்.',
+    addRecurringItem: '+ தொடர் பதிவைச் சேர்',
+    pauseRecurring: 'இடைநிறுத்து',
+    resumeRecurring: 'தொடர்',
+    deleteRecurringTitle: 'தொடர் பதிவை நீக்கவா?',
+    deleteRecurringBody: 'இது எதிர்காலப் பதிவுகளை நிறுத்தும். முந்தைய வரலாறு இருக்கும்.',
+    recurringFilterLabel: 'தொடர் பதிவுகளை வடிகட்டு',
+    recurringMenuLabel: 'தொடர் பதிவின் செயல்கள்',
+
     addRecurring: 'மீண்டும் வருவதைச் சேர்',
     editRecurring: 'மீண்டும் வருவதைத் திருத்து',
     repeats: 'திரும்பும்',
@@ -21504,6 +21539,17 @@ const hi: UiStrings = {
     incomeKind: 'आय',
     recurring: 'आवर्ती',
     recurringSub: 'दोहराए जाने वाले बिल और आय।',
+    recurringBills: 'बिल',
+    noMoreRecurring: 'और कोई आवर्ती आइटम नहीं',
+    recurringEmptyBody: 'अपने दोहराए जाने वाले बिल, सदस्यताएँ या आय जोड़ें और कोई भुगतान न चूकें।',
+    addRecurringItem: '+ आवर्ती आइटम जोड़ें',
+    pauseRecurring: 'रोकें',
+    resumeRecurring: 'फिर शुरू करें',
+    deleteRecurringTitle: 'आवर्ती आइटम हटाएँ?',
+    deleteRecurringBody: 'इससे भविष्य की प्रविष्टियाँ रुक जाएँगी। पुराना इतिहास बना रहेगा।',
+    recurringFilterLabel: 'आवर्ती आइटम फ़िल्टर करें',
+    recurringMenuLabel: 'आवर्ती आइटम की कार्रवाइयाँ',
+
     addRecurring: 'आवर्ती जोड़ें',
     editRecurring: 'आवर्ती संपादित करें',
     repeats: 'दोहराव',
@@ -27319,6 +27365,17 @@ const ar: UiStrings = {
     incomeKind: 'دخل',
     recurring: 'متكرر',
     recurringSub: 'فواتير ودخل يتكرران.',
+    recurringBills: 'الفواتير',
+    noMoreRecurring: 'لا مزيد من العناصر المتكررة',
+    recurringEmptyBody: 'أضف فواتيرك أو اشتراكاتك أو دخلك المتكرر، ولا تفوّت أي دفعة.',
+    addRecurringItem: '+ إضافة عنصر متكرر',
+    pauseRecurring: 'إيقاف مؤقت',
+    resumeRecurring: 'استئناف',
+    deleteRecurringTitle: 'حذف العنصر المتكرر؟',
+    deleteRecurringBody: 'سيوقف هذا الإدخالات المستقبلية. سيبقى السجل السابق محفوظًا.',
+    recurringFilterLabel: 'تصفية العناصر المتكررة',
+    recurringMenuLabel: 'إجراءات العنصر المتكرر',
+
     addRecurring: 'إضافة متكرر',
     editRecurring: 'تعديل المتكرر',
     repeats: 'يتكرر',

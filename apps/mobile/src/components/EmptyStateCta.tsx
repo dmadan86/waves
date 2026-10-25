@@ -16,7 +16,9 @@ export function EmptyStateCta({
   action,
   onAdd,
   secondary,
+  compact = false,
 }: {
+  compact?: boolean;
   title: string;
   body: string;
   action: string;
@@ -26,7 +28,7 @@ export function EmptyStateCta({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
-  const accent = dark ? theme.color.brand : SPEC_ACCENT;
+  const accent = compact || dark ? theme.color.brand : SPEC_ACCENT;
   return (
     <View style={{ alignItems: 'center', gap: theme.spacing.xs, paddingTop: theme.spacing.md }}>
       <Image
@@ -34,7 +36,10 @@ export function EmptyStateCta({
         resizeMode="contain"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={{ width: EMPTY_ART_WIDTH, height: EMPTY_ART_WIDTH / EMPTY_ART_RATIO }}
+        style={{
+          width: compact ? 72 : EMPTY_ART_WIDTH,
+          height: (compact ? 72 : EMPTY_ART_WIDTH) / EMPTY_ART_RATIO,
+        }}
       />
       <Text
         style={{
@@ -42,7 +47,7 @@ export function EmptyStateCta({
           lineHeight: 24,
           fontWeight: '800',
           textAlign: 'center',
-          color: dark ? theme.color.text : SPEC_INK,
+          color: compact || dark ? theme.color.text : SPEC_INK,
         }}
       >
         {title}
@@ -53,7 +58,7 @@ export function EmptyStateCta({
           lineHeight: 20,
           textAlign: 'center',
           maxWidth: 300,
-          color: dark ? theme.color.textMuted : SPEC_MUTED,
+          color: compact || dark ? theme.color.textMuted : SPEC_MUTED,
         }}
       >
         {body}
@@ -79,8 +84,18 @@ export function EmptyStateCta({
           opacity: pressed ? 0.85 : 1,
         })}
       >
-        <Ionicons name="add" size={20} color="#FFFFFF" />
-        <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>{action}</Text>
+        {action.startsWith('+') ? null : (
+          <Ionicons name="add" size={20} color={compact ? theme.color.onBrand : '#FFFFFF'} />
+        )}
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '700',
+            color: compact ? theme.color.onBrand : '#FFFFFF',
+          }}
+        >
+          {action}
+        </Text>
       </Pressable>
       {secondary ? (
         <Pressable
