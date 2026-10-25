@@ -390,7 +390,7 @@ describe('review fixes', () => {
   });
 
   it('keeps the ⓘ button and its explanation out of an accessible text group', () => {
-    const trailing = between(PARTS, 'const body = trailing', ') : onPress ? (');
+    const trailing = between(PARTS, 'const body =', ') : onPress ? (');
     expect(trailing).not.toContain('accessible\n');
     expect(trailing).not.toMatch(/accessible\s+accessibilityLabel/);
   });

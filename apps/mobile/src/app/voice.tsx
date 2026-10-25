@@ -2775,6 +2775,7 @@ export default function VoiceScreen() {
               key={agentRun}
               transcript={agentSession.transcript}
               groupId={launchGroupId}
+              personal={launchPersonal}
               today={today()}
               onFallback={agentFellBack}
               followUp={agentFollowUp}

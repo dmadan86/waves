@@ -51,7 +51,6 @@ import {
 import {
   directionalIcon,
   EmptyState,
-  IconButton,
   iconSize,
   Row,
   Screen,
@@ -65,7 +64,6 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
-import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How many columns the chart draws. Six is two quarters: long enough for a
@@ -116,22 +114,19 @@ function SpendingScreenBody() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* The header: back, the title big, the line on what the screen is,
+        {/* The header: the title big, the line on what the screen is,
             and the picture beside them. */}
         <View style={{ paddingTop: theme.spacing.sm, minHeight: 104 }}>
           <SpendingArt />
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <IconButton label={t.common.back} onPress={() => router.back()}>
-              <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color={ink} />
-            </IconButton>
+            <Ionicons name="pie-chart-outline" size={iconSize.lg} color={ink} />
             <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink }}>
-              {t.personal.spendingTitle}
+              {t.personal.nav.spending}
             </Text>
           </Row>
           <Text
             style={{
               marginTop: 2,
-              marginStart: 48,
               maxWidth: '56%',
               fontSize: 13,
               lineHeight: 18,

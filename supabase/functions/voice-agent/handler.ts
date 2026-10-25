@@ -615,6 +615,7 @@ function parseBody(raw: unknown): VoiceAgentRequest {
     !b ||
     b.schemaVersion !== VOICE_AGENT_SCHEMA_VERSION ||
     !(textMode || audioMode) ||
+    (b.personal !== undefined && typeof b.personal !== 'boolean') ||
     typeof b.locale !== 'string' ||
     typeof b.today !== 'string' ||
     !/^\d{4}-\d{2}-\d{2}$/.test(b.today) ||
@@ -650,7 +651,7 @@ export function loadContext(
   body: VoiceAgentRequest,
   now: number = Date.now(),
 ): Promise<VoiceContext> {
-  const key = `${profileId}|${body.groupId ?? ''}|${body.today}`;
+  const key = `${profileId}|${body.groupId ?? ''}|${body.today}|${body.personal === true}`;
   const hit = contextCache.get(key);
   if (hit && now - hit.at < CONTEXT_TTL_MS) return hit.value;
   const value = loadContextFresh(caller, profileId, body);
@@ -745,6 +746,7 @@ async function loadContextFresh(
       balances: [],
       meProfileId: profileId,
       currentGroupId: body.groupId,
+      personal: body.personal,
       today: body.today,
     });
   }
@@ -769,6 +771,7 @@ async function loadContextFresh(
     balances: (balances.error ? [] : (balances.data ?? [])) as RawBalance[],
     meProfileId: profileId,
     currentGroupId: body.groupId,
+    personal: body.personal,
     today: body.today,
   });
 }
