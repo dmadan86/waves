@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterRecurrings, nextDateLabel, type RecurringFilter } from './recurringList';
+import { filterRecurrings, nextDateLabel, type RecurringFilter } from '../src/lib/recurringList';
 
 const rules = [
   { txnKind: 'expense' as const, active: true },
