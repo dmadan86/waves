@@ -155,6 +155,13 @@ export function AppTabBar() {
         ),
       },
       {
+        key: 'recurring',
+        label: t.personal.nav.recurring,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'repeat' : 'repeat-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
+      {
         key: 'spending',
         label: t.personal.nav.spending,
         icon: (color, focused) => (
