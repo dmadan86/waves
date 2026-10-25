@@ -6,18 +6,18 @@ The 3rd-5th group-expense interstitial (`adPacingPure.ts`) is unchanged. Logic i
 
 ## Decision table (`decideGate`)
 
-| Situation                                              | Decision                                   | Logged                         |
-| ------------------------------------------------------ | ------------------------------------------ | ------------------------------ |
-| Paid, or gate not required (first group)               | allow                                      | -                              |
-| Online, our status RPC failed (any point, incl. Watch) | allow, no debt                             | `offline_allowed` (`status`)   |
-| Online, credit >= 1                                    | consume it, toast "Used 1 free credit"     | `credit_used`                  |
-| Online, no credit                                      | sheet: Watch ad (ad pays for this action)  | `shown` / `completed`          |
-| Offline, first group (0 local groups)                  | allow, never uses a pass                   | -                              |
-| Offline, < 2 passes in rolling 7 days                  | allow (free "offline pass")                | `offline_allowed` (`pass`)     |
-| Offline, pass cap reached                              | sheet "Connect to the internet to ..." OK  | `offline_capped`               |
-| Ad fails, no-fill x3                                   | allow, no debt                             | -                              |
-| Ad fails, strong blocker evidence                      | "The ad seems blocked" + Retry + Pro link  | `blocked_adblock`              |
-| Ad fails otherwise                                     | "Check your internet" + Retry              | `failed`                       |
+| Situation                                              | Decision                                  | Logged                       |
+| ------------------------------------------------------ | ----------------------------------------- | ---------------------------- |
+| Paid, or gate not required (first group)               | allow                                     | -                            |
+| Online, our status RPC failed (any point, incl. Watch) | allow, no debt                            | `offline_allowed` (`status`) |
+| Online, credit >= 1                                    | consume it, toast "Used 1 free credit"    | `credit_used`                |
+| Online, no credit                                      | sheet: Watch ad (ad pays for this action) | `shown` / `completed`        |
+| Offline, first group (0 local groups)                  | allow, never uses a pass                  | -                            |
+| Offline, < 2 passes in rolling 7 days                  | allow (free "offline pass")               | `offline_allowed` (`pass`)   |
+| Offline, pass cap reached                              | sheet "Connect to the internet to ..." OK | `offline_capped`             |
+| Ad fails, no-fill x3                                   | allow, no debt                            | -                            |
+| Ad fails, strong blocker evidence                      | "The ad seems blocked" + Retry + Pro link | `blocked_adblock`            |
+| Ad fails otherwise                                     | "Check your internet" + Retry             | `failed`                     |
 
 ## Ledger (AsyncStorage `waves.adLedger.<profileId>`, best-effort)
 
