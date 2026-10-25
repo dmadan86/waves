@@ -18,7 +18,6 @@ import {
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   ChipRow,
   IconButton,
@@ -114,13 +113,6 @@ function RecurringScreenBody() {
             style={{ position: 'absolute', top: theme.spacing.xs, end: 0, width: 96, height: 96 }}
           />
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <IconButton label={t.common.back} onPress={() => router.back()}>
-              <Ionicons
-                name={directionalIcon('chevron-back')}
-                size={iconSize.lg}
-                color={theme.color.text}
-              />
-            </IconButton>
             <Text
               style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: theme.color.text }}
             >
@@ -130,8 +122,7 @@ function RecurringScreenBody() {
           <Text
             style={{
               marginTop: 2,
-              marginStart: 48,
-              maxWidth: '56%',
+                            maxWidth: '56%',
               fontSize: 13,
               lineHeight: 18,
               color: theme.color.textMuted,

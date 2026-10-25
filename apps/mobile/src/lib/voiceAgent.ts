@@ -81,6 +81,7 @@ export function callVoiceAgent(request: VoiceAgentRequest): Promise<VoiceAgentRe
 export function sendVoiceTranscript(input: {
   transcript: string;
   groupId: string | null;
+  personal?: boolean;
   locale: string;
   today: string;
   /** This sentence answers the agent's last question. */
@@ -92,6 +93,7 @@ export function sendVoiceTranscript(input: {
     schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
     transcript: input.transcript,
     groupId: input.groupId,
+    personal: input.personal,
     locale: input.locale,
     today: input.today,
     ...(input.followUp ? { followUp: input.followUp } : {}),

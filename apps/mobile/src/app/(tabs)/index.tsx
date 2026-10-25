@@ -405,12 +405,6 @@ export default function HomeScreen() {
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
-  const monthSpent =
-    summary.monthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
-  const lastMonthSpent =
-    summary.lastMonthSpent.find((entry) => entry.currency === headline.currency)?.amount ?? 0n;
-  const openReports = () => router.push('/personal/spending');
-
   return (
     <Screen edges={[]}>
       {/* Static: the scene, the greeting and the balance card stay put; only
@@ -533,8 +527,6 @@ export default function HomeScreen() {
                 owing={headline.owing}
                 owedGroups={owedGroups}
                 owingGroups={owingGroups}
-                monthSpent={monthSpent}
-                lastMonthSpent={lastMonthSpent}
                 currency={headline.currency}
                 locale={locale}
                 hidden={balanceHidden || !balanceReady}
@@ -549,7 +541,6 @@ export default function HomeScreen() {
                     // press raises type / scan / speak, unchanged.
                     onAddExpense={() => setQuickExpenseOpen(true)}
                     onAddExpenseLong={() => setQuickAddOpen(true)}
-                    onReports={openReports}
                     onSettleUp={() => router.push('/settle-up')}
                     onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}

@@ -13,24 +13,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
 
-import {
-  Badge,
-  Card,
-  Chip,
-  directionalIcon,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  Toggle,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { Badge, iconSize, Row, Text, Toggle, useTabBarClearance, useTheme } from '@waves/ui';
 
+import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
-import { router } from '@/lib/navigation';
 
 export default function LockSettingsScreen() {
   const theme = useTheme();
@@ -38,49 +25,59 @@ export default function LockSettingsScreen() {
   const { t, locale } = useStrings();
   const { enabled, supported, graceSeconds, setEnabled, setGraceSeconds } = useLock();
 
-  return (
-    <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.lock.title}</Text>
-        </View>
-        <View style={{ width: 44 }} />
-      </Row>
+  const radio = (on: boolean) => (
+    <Ionicons
+      name={on ? 'radio-button-on' : 'radio-button-off'}
+      size={iconSize.lg}
+      color={on ? theme.color.brand : theme.color.textFaint}
+    />
+  );
 
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      <PlainHeader title={t.lock.title} />
+      <Text
+        variant="caption"
+        tone="muted"
+        style={{ paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.sm }}
+      >
+        {t.lock.subtitle}
+      </Text>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
           paddingBottom: clearance,
-          paddingTop: theme.spacing.lg,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.md,
         }}
+        showsVerticalScrollIndicator={false}
       >
-        <Card>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, paddingRight: theme.spacing.lg }}>
-              <Text variant="subheading">{t.lock.requireBiometrics}</Text>
-              <Text variant="caption" tone="muted">
-                {t.lock.requireExplain}
-              </Text>
-            </View>
-            <Toggle
-              value={enabled}
-              disabled={!supported}
-              onValueChange={(value) => void setEnabled(value)}
-              accessibilityLabel={t.lock.appLock}
-            />
-          </Row>
-        </Card>
-
-        {!supported ? <Badge label={t.lock.unsupported} /> : null}
+        <StandardCard style={{ paddingVertical: theme.spacing.sm }}>
+          <ListRow
+            leading={
+              <RowTile tint={theme.color.brandSoft}>
+                <Ionicons
+                  name="finger-print-outline"
+                  size={iconSize.lg}
+                  color={theme.color.brand}
+                />
+              </RowTile>
+            }
+            title={t.lock.requireShort}
+            subtitle={t.lock.requireHint}
+            titleLines={2}
+            subtitleLines={3}
+            trailing={
+              <Toggle
+                value={enabled}
+                disabled={!supported}
+                onValueChange={(value) => void setEnabled(value)}
+                accessibilityLabel={t.lock.appLock}
+              />
+            }
+          />
+          {!supported ? <Badge label={t.lock.unsupported} /> : null}
+        </StandardCard>
 
         {/* Shown whether or not the app lock is on, because the number governs
             two locks and only one of them is behind that switch: the private
@@ -91,33 +88,61 @@ export default function LockSettingsScreen() {
             `supported` instead, since with nothing enrolled neither lock can
             ask at all. */}
         {supported ? (
-          <Card style={{ gap: theme.spacing.md }}>
-            <Text variant="subheading">{t.lock.askAgainAfter}</Text>
-            <Text variant="caption" tone="muted">
-              {t.lock.askAgainExplain}
-            </Text>
-            <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
-              {GRACE_CHOICES.map((seconds) => (
-                <Chip
-                  key={seconds}
-                  label={describeGrace(seconds, t, locale)}
-                  selected={graceSeconds === seconds}
-                  onPress={() => void setGraceSeconds(seconds)}
-                  // Picking a value, not opening anything: every tap counts.
-                  repeatable
-                />
-              ))}
+          <StandardCard style={{ paddingVertical: theme.spacing.sm, gap: theme.spacing.xs }}>
+            <Row style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.xs }}>
+              <RowTile tint={theme.color.brandSoft}>
+                <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
+              </RowTile>
+              <View style={{ flex: 1 }}>
+                <SectionHeader title={t.lock.askAgainAfter} />
+                <Text variant="caption" tone="muted">
+                  {t.lock.askAgainShort}
+                </Text>
+              </View>
             </Row>
-            <Text variant="micro" tone="muted">
-              {t.lock.reopenAlwaysAsks}
+            {GRACE_CHOICES.map((seconds) => {
+              const selected = graceSeconds === seconds;
+              return (
+                <View
+                  key={seconds}
+                  style={{
+                    borderRadius: theme.radius.lg,
+                    borderWidth: 1.5,
+                    borderColor: selected ? theme.color.brand : 'transparent',
+                    backgroundColor: selected ? theme.color.brandSoft : undefined,
+                    paddingHorizontal: theme.spacing.md,
+                  }}
+                >
+                  <ListRow
+                    compact
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    title={describeGrace(seconds, t, locale)}
+                    trailing={radio(selected)}
+                    onPress={() => void setGraceSeconds(seconds)}
+                    // Picking a value, not opening anything: every tap counts.
+                    repeatable
+                  />
+                </View>
+              );
+            })}
+            <Text variant="micro" tone="muted" style={{ marginTop: theme.spacing.xs }}>
+              {t.lock.reopenShort}
             </Text>
-          </Card>
+          </StandardCard>
         ) : null}
 
-        <Text variant="micro" tone="muted" align="center">
-          {t.lock.footnote}
-        </Text>
+        <Row style={{ justifyContent: 'center', gap: theme.spacing.xs }}>
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+          <Text variant="micro" tone="muted" align="center" style={{ flexShrink: 1 }}>
+            {t.lock.footnoteShort}
+          </Text>
+        </Row>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }

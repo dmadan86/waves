@@ -79,6 +79,7 @@ export interface VoiceContext {
   /** Current group first. */
   readonly groups: readonly ContextGroup[];
   readonly currentGroupId: string | null;
+  readonly personal?: boolean;
   readonly today: string;
   /** Set for a follow-up turn: the expense the person just saved. */
   readonly saved?: VoiceSavedExpense;
@@ -144,6 +145,7 @@ export function buildContext(input: {
   balances: readonly RawBalance[];
   meProfileId: string;
   currentGroupId?: string | null;
+  personal?: boolean;
   today: string;
 }): VoiceContext {
   const ordered = [...input.groups].sort((a, b) => {
@@ -184,7 +186,7 @@ export function buildContext(input: {
     input.currentGroupId && groups.some((g) => g.id === input.currentGroupId)
       ? input.currentGroupId
       : null;
-  return { groups, currentGroupId: current, today: input.today };
+  return { groups, currentGroupId: current, personal: input.personal, today: input.today };
 }
 
 const FILLER_KEYTERMS = ['rupees', 'split'] as const;
@@ -222,6 +224,11 @@ export function keyterms(context: VoiceContext, maxWords = MAX_KEYTERM_WORDS): s
 /** The compact context block the model reads. */
 export function contextText(context: VoiceContext): string {
   const lines = [`Today: ${context.today}`];
+  if (context.personal) {
+    lines.push(
+      'The caller opened the assistant from their private Personal ledger, so default to add_personal for an expense unless the speaker explicitly names a group (named group wins).',
+    );
+  }
   if (context.saved) {
     const where =
       context.saved.kind === 'group'
