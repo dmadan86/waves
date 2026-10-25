@@ -54,7 +54,7 @@ export function VoiceStatus({ status, text }: { status: VoiceStatusKey; text: st
         minHeight: 36,
         paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.pill,
-        backgroundColor: ready ? theme.color.brandSoft : 'transparent',
+        backgroundColor: theme.color.brandSoft,
       }}
     >
       {ready ? null : <Ionicons name={ICON[status]} size={iconSize.sm} color={color} />}

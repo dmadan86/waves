@@ -17,7 +17,7 @@ const src = (path: string): string => readFileSync(join(__dirname, '../src', pat
 describe('entry points', () => {
   it('2: the voice screen has a typed composer behind a keyboard glyph on the mic', () => {
     const voice = src('app/voice.tsx');
-    expect(voice).toContain('<AssistantComposer');
+    expect(src('components/voice/VoiceTypedEntry.tsx')).toContain('<AssistantComposer');
     expect(voice).toContain('keypad-outline');
     expect(voice).toContain('t.assistant.composerTypeInstead');
     expect(voice).toContain('typed: true');
