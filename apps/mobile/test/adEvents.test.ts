@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { adClocks, flushAdEvents, logAdEvent } from '@/lib/adEvents';
+import {
+  adClocks,
+  flushAdEvents,
+  logAdEvent,
+  noteAdFailure,
+  lastFailureText,
+} from '@/lib/adEvents';
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock('@/lib/backend', () => ({ backend: { rpc } }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
@@ -47,3 +53,64 @@ describe('ad telemetry outbox', () => {
     await flushAdEvents('profile-b');
   });
 });
+
+it.each([
+  { code: '23514', message: 'invalid outcome' },
+  { message: 'ad_events_outcome_check' },
+  { message: 'check constraint violated' },
+])('drops unsupported events and continues after %j', async (error) => {
+  await AsyncStorage.setItem(
+    'waves.adEvents.profile-c',
+    JSON.stringify([
+      {
+        id: 'old',
+        createdAt: new Date().toISOString(),
+        placement: 'export_rewarded',
+        outcome: 'offline_allowed',
+      },
+      {
+        id: 'next',
+        createdAt: new Date().toISOString(),
+        placement: 'export_rewarded',
+        outcome: 'shown',
+      },
+    ]),
+  );
+  rpc.mockResolvedValueOnce({ error }).mockResolvedValue({ error: null });
+  await flushAdEvents('profile-c');
+  expect(rpc.mock.calls.map((call) => call[1].p_event_id)).toEqual(['old', 'next']);
+  expect(JSON.parse((await AsyncStorage.getItem('waves.adEvents.profile-c'))!)).toEqual([]);
+});
+it('retains failure text after logging and truncates explicit detail without updating clocks', async () => {
+  rpc.mockResolvedValue({ error: null });
+  noteAdFailure({ code: 'network-error', message: 'blocked' });
+  logAdEvent('details', 'export_rewarded', 'failed');
+  logAdEvent('details', 'export_rewarded', 'offline_allowed', 'x'.repeat(201));
+  await flushAdEvents('details');
+  expect(lastFailureText()).toBe('network-error blocked');
+  expect(rpc.mock.calls[0]![1].p_detail).toBe('network-error blocked');
+  expect(rpc.mock.calls[1]![1].p_detail).toHaveLength(200);
+  expect(adClocks('details').lastAdAt).toBe(0);
+});
+
+it.each(['credit_used', 'credit_earned', 'offline_capped'] as const)(
+  'drops unsupported %s telemetry',
+  async (outcome) => {
+    rpc.mockResolvedValue({ error: { code: '23514', message: 'invalid outcome' } });
+    logAdEvent('credits', 'export_rewarded', outcome);
+    await flushAdEvents('credits');
+    expect(JSON.parse((await AsyncStorage.getItem('waves.adEvents.credits'))!)).toEqual([]);
+  },
+);
+
+it.each(['credit_offer', 'credit_voluntary'] as const)(
+  'keeps post-reward quiet time for %s',
+  async (placement) => {
+    rpc.mockResolvedValue({ error: null });
+    const before = Date.now();
+    logAdEvent('credit-profile', placement, 'credit_earned');
+    expect(adClocks('credit-profile').lastRewardedAt).toBeGreaterThanOrEqual(before);
+    expect(adClocks('credit-profile').lastAdAt).toBeGreaterThanOrEqual(before);
+    await flushAdEvents('credit-profile');
+  },
+);

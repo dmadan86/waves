@@ -1,3 +1,4 @@
+import { adTimeout } from './adTimeout';
 import { noteAdFailure } from './adEvents';
 import {
   gatherConsentSafe,
@@ -62,6 +63,8 @@ export async function prepareInterstitial(
   }
 }
 
+export const SHOW_TIMEOUT_MS = 90000;
+
 /** Uses the existing lazy SDK and UMP wiring; gates never grant AI quota. */
 export async function runGateAd(
   rewarded: boolean,
@@ -69,39 +72,55 @@ export async function runGateAd(
   onShown: () => void,
   prepared?: PreparedInterstitial,
   canShow: () => boolean = () => true,
+  onForeground?: (cb: () => void) => () => void,
 ): Promise<GateResult> {
   try {
-    if (!(await deps.isOnline())) {
-      noteAdFailure('offline');
+    const setup = await adTimeout(
+      (async () => {
+        if (!(await deps.isOnline())) {
+          noteAdFailure('offline');
+          return 'failed';
+        }
+        const sdk: AdsSdk = prepared?.sdk ?? (await deps.loadSdk());
+        const consent = prepared ? { canRequestAds: true } : await gatherConsentSafe(sdk);
+        if (!consent.canRequestAds) {
+          noteAdFailure('consent: cannot request ads');
+          return 'failed';
+        }
+        if (!prepared) {
+          await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
+          await sdk.MobileAds().initialize();
+        }
+        const factory = rewarded ? sdk.RewardedAd : sdk.InterstitialAd;
+        if (!factory) {
+          noteAdFailure('no ad factory in SDK');
+          return 'failed';
+        }
+        const ad =
+          prepared?.ad ??
+          factory.createForAdRequest(deps.unitId(), { requestNonPersonalizedAdsOnly: true });
+        return { sdk, ad };
+      })(),
+      AD_LOAD_TIMEOUT_MS,
+    );
+    if (!setup || setup === 'failed') {
+      if (!setup) noteAdFailure('timeout');
       return 'failed';
     }
-    const sdk: AdsSdk = prepared?.sdk ?? (await deps.loadSdk());
-    const consent = prepared ? { canRequestAds: true } : await gatherConsentSafe(sdk);
-    if (!consent.canRequestAds) {
-      noteAdFailure('consent: cannot request ads');
-      return 'failed';
-    }
-    if (!prepared) {
-      await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
-      await sdk.MobileAds().initialize();
-    }
-    const factory = rewarded ? sdk.RewardedAd : sdk.InterstitialAd;
-    if (!factory) {
-      noteAdFailure('no ad factory in SDK');
-      return 'failed';
-    }
-    const ad =
-      prepared?.ad ??
-      factory.createForAdRequest(deps.unitId(), { requestNonPersonalizedAdsOnly: true });
+    const { sdk, ad } = setup;
     return await new Promise<GateResult>((resolve) => {
       let earned = false;
       let shown = false;
       let settled = false;
+      let showTimer: ReturnType<typeof setTimeout> | undefined;
+      let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
       const cleanups: (() => void)[] = [];
       const finish = (result: GateResult) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        clearTimeout(showTimer);
+        clearTimeout(foregroundTimer);
         cleanups.forEach((off) => off());
         resolve(result);
       };
@@ -109,6 +128,21 @@ export async function runGateAd(
         noteAdFailure('timeout');
         finish('failed');
       }, AD_LOAD_TIMEOUT_MS);
+      const show = () => {
+        const timeout = () => {
+          noteAdFailure('show-timeout');
+          finish(earned ? 'completed' : 'failed');
+        };
+        showTimer = setTimeout(timeout, SHOW_TIMEOUT_MS);
+        if (onForeground)
+          cleanups.push(
+            onForeground(() => {
+              clearTimeout(foregroundTimer);
+              foregroundTimer = setTimeout(timeout, 5000);
+            }),
+          );
+        void ad.show().catch(() => finish('failed'));
+      };
       const listen = (event: string, callback: () => void) =>
         cleanups.push(ad.addAdEventListener(event, callback));
       listen(rewarded ? sdk.RewardedAdEventType.LOADED : sdk.AdEventType.LOADED, () => {
@@ -118,7 +152,7 @@ export async function runGateAd(
           return;
         }
         try {
-          void ad.show().catch(() => finish('failed'));
+          show();
         } catch {
           finish('failed');
         }
@@ -146,7 +180,7 @@ export async function runGateAd(
         if (prepared) {
           clearTimeout(timer);
           if (!canShow()) finish('failed');
-          else void ad.show().catch(() => finish('failed'));
+          else show();
         } else ad.load();
       } catch {
         finish('failed');
