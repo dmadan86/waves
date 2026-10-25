@@ -328,6 +328,7 @@ const SlideCard = memo(function SlideCard({
             the layout. */}
         <Pressable
           onPress={onSkip}
+          testID="intro-skip"
           accessibilityRole="button"
           accessibilityLabel={skipLabel}
           hitSlop={12}
