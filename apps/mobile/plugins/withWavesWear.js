@@ -31,8 +31,15 @@ const APPLICATION_ID = 'app.waves.wear';
 const MARKER = 'waves:wear-module';
 // Kotlin 2 needs the Compose compiler Gradle plugin; Expo's generated root
 // build.gradle only ships kotlin-gradle-plugin. Pinned to the Kotlin the RN
-// gradle plugin resolves (Expo SDK 57 → 2.2.x); bump alongside an SDK upgrade.
-const COMPOSE_COMPILER_VERSION = '2.2.21';
+// gradle plugin resolves. The Compose compiler plugin is versioned in lockstep
+// with Kotlin, so follow expo-build-properties' android.kotlinVersion (which
+// also sets the Kotlin Gradle plugin); the fallback only applies without it.
+const FALLBACK_KOTLIN_VERSION = '2.2.21';
+
+function kotlinVersionOf(config) {
+  const bp = (config.plugins || []).find((p) => Array.isArray(p) && p[0] === 'expo-build-properties');
+  return bp?.[1]?.android?.kotlinVersion || FALLBACK_KOTLIN_VERSION;
+}
 
 // --- settings.gradle include --------------------------------------------------
 
@@ -50,17 +57,17 @@ function includeWearModule(config) {
 }
 
 /** Pure: add the Compose compiler plugin to the root buildscript classpath, once. */
-function buildscriptWithCompose(contents) {
+function buildscriptWithCompose(contents, kotlinVersion = FALLBACK_KOTLIN_VERSION) {
   if (contents.includes('compose-compiler-gradle-plugin')) return contents;
   return contents.replace(
     /classpath\((['"])org\.jetbrains\.kotlin:kotlin-gradle-plugin\1\)/,
-    `$&\n        classpath('org.jetbrains.kotlin:compose-compiler-gradle-plugin:${COMPOSE_COMPILER_VERSION}')`,
+    `$&\n        classpath('org.jetbrains.kotlin:compose-compiler-gradle-plugin:${kotlinVersion}')`,
   );
 }
 
 function addComposeClasspath(config) {
   return withProjectBuildGradle(config, (cfg) => {
-    cfg.modResults.contents = buildscriptWithCompose(cfg.modResults.contents);
+    cfg.modResults.contents = buildscriptWithCompose(cfg.modResults.contents, kotlinVersionOf(config));
     return cfg;
   });
 }
