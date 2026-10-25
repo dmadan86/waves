@@ -43,12 +43,16 @@ export function ReviewBanner() {
     isActive: () => boolean;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     if (!eligible || !viewerId || Platform.OS === 'web') return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       try {
         const current = await readAdsStatus();
+        // A failed fresh read must be retryable even when `eligible` doesn't change.
+        if (!cancelled && !current) timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
@@ -64,10 +68,11 @@ export function ReviewBanner() {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
       setBanner(null);
       setLoaded(false);
     };
-  }, [eligible, enabled, viewerId]);
+  }, [eligible, enabled, viewerId, retry]);
   if (Platform.OS === 'web' || !eligible || !banner) return null;
   const { sdk } = banner;
   return (
