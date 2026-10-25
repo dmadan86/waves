@@ -5754,6 +5754,9 @@ export interface UiStrings {
     pickName: string;
     all: string;
     transfers: string;
+    transactionsSubtitle: string;
+    collapseDay: string;
+    expandDay: string;
     searchTransactions: string;
     filterCategory: string;
     clearFilter: string;
@@ -10918,6 +10921,9 @@ const en: UiStrings = {
     pickName: 'Pick someone from earlier loans',
     all: 'All',
     transfers: 'Transfers',
+    transactionsSubtitle: 'All your expenses, income and transfers in one place.',
+    collapseDay: 'Collapse day',
+    expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
@@ -16252,6 +16258,9 @@ const ta: UiStrings = {
     pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
+    transactionsSubtitle: 'உங்கள் செலவுகள், வருமானம் மற்றும் பணப் பரிமாற்றங்கள் அனைத்தும் ஒரே இடத்தில்.',
+    collapseDay: 'நாளைச் சுருக்கு',
+    expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
@@ -21404,6 +21413,9 @@ const hi: UiStrings = {
     pickName: 'पिछले लोन से किसी को चुनें',
     all: 'सभी',
     transfers: 'ट्रांसफ़र',
+    transactionsSubtitle: 'आपके सभी खर्च, आय और पैसे के हस्तांतरण एक ही जगह पर।',
+    collapseDay: 'दिन का विवरण समेटें',
+    expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
@@ -27205,6 +27217,9 @@ const ar: UiStrings = {
     pickName: 'اختر شخصًا من قروض سابقة',
     all: 'الكل',
     transfers: 'التحويلات',
+    transactionsSubtitle: 'كل نفقاتك ودخلك وتحويلاتك في مكان واحد.',
+    collapseDay: 'طي تفاصيل اليوم',
+    expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
