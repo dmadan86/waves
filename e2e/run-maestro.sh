@@ -17,7 +17,7 @@ set -uo pipefail
 curl -Ls "https://get.maestro.mobile.dev" | bash
 export PATH="$PATH:$HOME/.maestro/bin"
 
-adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 # Fail here, loudly, if the app did not land — not 20 flows later as "not installed".
 adb devices -l
 adb shell pm list packages -3

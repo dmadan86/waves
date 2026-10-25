@@ -121,9 +121,9 @@ jobs:
       - name: Prebuild the Android project
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --clean
-      - name: Assemble debug APK
+      - name: Assemble release APK (JS bundled; the debug build is a dev-client launcher that waits for Metro)
         working-directory: apps/mobile/android
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: ./gradlew :app:assembleRelease --no-daemon
 
       # Without this the runner user cannot open /dev/kvm, the emulator falls back
       # to software emulation ("ProbeKVM: This user doesn't have permissions to use
