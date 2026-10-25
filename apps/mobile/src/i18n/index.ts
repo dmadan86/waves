@@ -5769,6 +5769,9 @@ export interface UiStrings {
     pickName: string;
     all: string;
     transfers: string;
+    transactionsSubtitle: string;
+    collapseDay: string;
+    expandDay: string;
     searchTransactions: string;
     filterCategory: string;
     clearFilter: string;
@@ -5877,6 +5880,17 @@ export interface UiStrings {
     incomeKind: string;
     recurring: string;
     recurringSub: string;
+    recurringBills: string;
+    noMoreRecurring: string;
+    recurringEmptyBody: string;
+    addRecurringItem: string;
+    pauseRecurring: string;
+    resumeRecurring: string;
+    deleteRecurringTitle: string;
+    deleteRecurringBody: string;
+    recurringFilterLabel: string;
+    recurringMenuLabel: string;
+
     addRecurring: string;
     editRecurring: string;
     repeats: string;
@@ -10952,6 +10966,9 @@ const en: UiStrings = {
     pickName: 'Pick someone from earlier loans',
     all: 'All',
     transfers: 'Transfers',
+    transactionsSubtitle: 'All your expenses, income and transfers in one place.',
+    collapseDay: 'Collapse day',
+    expandDay: 'Expand day',
     searchTransactions: 'Search transactions…',
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
@@ -11059,6 +11076,18 @@ const en: UiStrings = {
     incomeKind: 'Income',
     recurring: 'Recurring',
     recurringSub: 'Bills and income that repeat.',
+    recurringBills: 'Bills',
+    noMoreRecurring: 'No more recurring items',
+    recurringEmptyBody:
+      'Add your bills, subscriptions or income that repeat, and never miss a payment.',
+    addRecurringItem: '+ Add recurring item',
+    pauseRecurring: 'Pause',
+    resumeRecurring: 'Resume',
+    deleteRecurringTitle: 'Delete recurring item?',
+    deleteRecurringBody: 'This stops future entries. Existing history is kept.',
+    recurringFilterLabel: 'Filter recurring items',
+    recurringMenuLabel: 'Recurring item actions',
+
     addRecurring: 'Add recurring',
     editRecurring: 'Edit recurring',
     repeats: 'Repeats',
@@ -16305,6 +16334,10 @@ const ta: UiStrings = {
     pickName: 'முந்தைய கடன்களில் இருந்து ஒருவரைத் தேர்ந்தெடுக்கவும்',
     all: 'அனைத்தும்',
     transfers: 'பரிமாற்றங்கள்',
+    transactionsSubtitle:
+      'உங்கள் செலவுகள், வருமானம் மற்றும் பணப் பரிமாற்றங்கள் அனைத்தும் ஒரே இடத்தில்.',
+    collapseDay: 'நாளைச் சுருக்கு',
+    expandDay: 'நாளை விரி',
     searchTransactions: 'பரிவர்த்தனைகளைத் தேடுங்கள்…',
     filterCategory: 'வகைப்படி வடிகட்டு',
     clearFilter: 'வடிகட்டியை அழி',
@@ -16412,6 +16445,18 @@ const ta: UiStrings = {
     incomeKind: 'வருமானம்',
     recurring: 'மீண்டும் வருபவை',
     recurringSub: 'மீண்டும் வரும் பில்கள், வருமானம்.',
+    recurringBills: 'பில்கள்',
+    noMoreRecurring: 'மேலும் தொடர் பதிவுகள் இல்லை',
+    recurringEmptyBody:
+      'மீண்டும் வரும் பில்கள், சந்தாக்கள் அல்லது வருமானத்தைச் சேர்த்து, பணம் செலுத்துவதைத் தவறவிடாதீர்கள்.',
+    addRecurringItem: '+ தொடர் பதிவைச் சேர்',
+    pauseRecurring: 'இடைநிறுத்து',
+    resumeRecurring: 'தொடர்',
+    deleteRecurringTitle: 'தொடர் பதிவை நீக்கவா?',
+    deleteRecurringBody: 'இது எதிர்காலப் பதிவுகளை நிறுத்தும். முந்தைய வரலாறு இருக்கும்.',
+    recurringFilterLabel: 'தொடர் பதிவுகளை வடிகட்டு',
+    recurringMenuLabel: 'தொடர் பதிவின் செயல்கள்',
+
     addRecurring: 'மீண்டும் வருவதைச் சேர்',
     editRecurring: 'மீண்டும் வருவதைத் திருத்து',
     repeats: 'திரும்பும்',
@@ -21476,6 +21521,9 @@ const hi: UiStrings = {
     pickName: 'पिछले लोन से किसी को चुनें',
     all: 'सभी',
     transfers: 'ट्रांसफ़र',
+    transactionsSubtitle: 'आपके सभी खर्च, आय और पैसे के हस्तांतरण एक ही जगह पर।',
+    collapseDay: 'दिन का विवरण समेटें',
+    expandDay: 'दिन का विवरण खोलें',
     searchTransactions: 'लेन-देन खोजें…',
     filterCategory: 'श्रेणी से छाँटें',
     clearFilter: 'फ़िल्टर हटाएँ',
@@ -21583,6 +21631,17 @@ const hi: UiStrings = {
     incomeKind: 'आय',
     recurring: 'आवर्ती',
     recurringSub: 'दोहराए जाने वाले बिल और आय।',
+    recurringBills: 'बिल',
+    noMoreRecurring: 'और कोई आवर्ती आइटम नहीं',
+    recurringEmptyBody: 'अपने दोहराए जाने वाले बिल, सदस्यताएँ या आय जोड़ें और कोई भुगतान न चूकें।',
+    addRecurringItem: '+ आवर्ती आइटम जोड़ें',
+    pauseRecurring: 'रोकें',
+    resumeRecurring: 'फिर शुरू करें',
+    deleteRecurringTitle: 'आवर्ती आइटम हटाएँ?',
+    deleteRecurringBody: 'इससे भविष्य की प्रविष्टियाँ रुक जाएँगी। पुराना इतिहास बना रहेगा।',
+    recurringFilterLabel: 'आवर्ती आइटम फ़िल्टर करें',
+    recurringMenuLabel: 'आवर्ती आइटम की कार्रवाइयाँ',
+
     addRecurring: 'आवर्ती जोड़ें',
     editRecurring: 'आवर्ती संपादित करें',
     repeats: 'दोहराव',
@@ -27296,6 +27355,9 @@ const ar: UiStrings = {
     pickName: 'اختر شخصًا من قروض سابقة',
     all: 'الكل',
     transfers: 'التحويلات',
+    transactionsSubtitle: 'كل نفقاتك ودخلك وتحويلاتك في مكان واحد.',
+    collapseDay: 'طي تفاصيل اليوم',
+    expandDay: 'عرض تفاصيل اليوم',
     searchTransactions: 'ابحث في المعاملات…',
     filterCategory: 'التصفية حسب الفئة',
     clearFilter: 'مسح التصفية',
@@ -27417,6 +27479,17 @@ const ar: UiStrings = {
     incomeKind: 'دخل',
     recurring: 'متكرر',
     recurringSub: 'فواتير ودخل يتكرران.',
+    recurringBills: 'الفواتير',
+    noMoreRecurring: 'لا مزيد من العناصر المتكررة',
+    recurringEmptyBody: 'أضف فواتيرك أو اشتراكاتك أو دخلك المتكرر، ولا تفوّت أي دفعة.',
+    addRecurringItem: '+ إضافة عنصر متكرر',
+    pauseRecurring: 'إيقاف مؤقت',
+    resumeRecurring: 'استئناف',
+    deleteRecurringTitle: 'حذف العنصر المتكرر؟',
+    deleteRecurringBody: 'سيوقف هذا الإدخالات المستقبلية. سيبقى السجل السابق محفوظًا.',
+    recurringFilterLabel: 'تصفية العناصر المتكررة',
+    recurringMenuLabel: 'إجراءات العنصر المتكرر',
+
     addRecurring: 'إضافة متكرر',
     editRecurring: 'تعديل المتكرر',
     repeats: 'يتكرر',
