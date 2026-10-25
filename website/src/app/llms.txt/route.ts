@@ -30,6 +30,7 @@ export async function GET() {
     `- [Cancellation & Refund Policy](${absoluteUrl('/en/refund')}): how to cancel Pro and how app-store refunds work.`,
     `- [Connect an AI agent](${absoluteUrl('/en/mcp')}): Waves speaks MCP — setup for Claude, ChatGPT, Cursor and VS Code, every tool, what an agent may do with your ledger, and what it can never do.`,
     `- [MCP server](${mcpEndpoint(site.appUrl)}): remote MCP endpoint over streamable HTTP, OAuth sign-in.`,
+    `- [Compare Waves](${absoluteUrl('/en/compare')}): sourced side-by-side comparisons with Splitwise, Tricount, Settle Up, Splid, Spliit, Kittysplit, Splitkaro, Google Pay, PhonePe, Venmo and spreadsheets, including where each is better.`,
     `- [Web app](${site.appUrl})`,
     '',
     '## Languages',
