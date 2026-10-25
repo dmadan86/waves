@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Text, useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
-import { noteAdFailure } from '@/lib/adEvents';
+import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
 import { useViewerId } from '@/lib/auth';
 import { bannerUnitId } from '@/lib/bannerAdsPure';
@@ -44,6 +44,8 @@ export function ReviewBanner() {
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [retry, setRetry] = useState(0);
+  // One 'shown' per screen visit, however often the banner reloads.
+  const shownLogged = useRef(false);
   useEffect(() => {
     if (!eligible || !viewerId || Platform.OS === 'web') return;
     let cancelled = false;
@@ -64,6 +66,7 @@ export function ReviewBanner() {
         if (!cancelled) setBanner({ sdk: native, isActive: () => !cancelled });
       } catch (error) {
         noteAdFailure(error);
+        logAdEvent(viewerId, 'review_banner', 'failed');
       }
     })();
     return () => {
@@ -102,10 +105,16 @@ export function ReviewBanner() {
         size={sdk.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         onAdLoaded={() => {
-          if (banner.isActive()) setLoaded(true);
+          if (!banner.isActive()) return;
+          setLoaded(true);
+          if (viewerId && !shownLogged.current) {
+            shownLogged.current = true;
+            logAdEvent(viewerId, 'review_banner', 'shown');
+          }
         }}
         onAdFailedToLoad={(error) => {
           noteAdFailure(error);
+          if (viewerId) logAdEvent(viewerId, 'review_banner', 'failed');
           if (banner.isActive()) {
             setLoaded(false);
             setBanner(null);
