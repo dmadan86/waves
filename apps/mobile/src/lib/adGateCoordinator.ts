@@ -4,13 +4,11 @@ export type Lease = {
   valid(): boolean;
   release(): void;
 };
-let profile: string | null = null;
 let epoch = 0;
 let active: Lease | null = null;
 const offered = new Set<string>();
 const noFill = new Map<string, number>();
 export function setProfile(next: string | null) {
-  profile = next;
   if (active && active.profileId !== next) {
     epoch++;
     active.release();
@@ -47,7 +45,6 @@ export const resetNoFill = (id: string) => {
 };
 export function __reset() {
   active?.release();
-  profile = null;
   epoch++;
   offered.clear();
   noFill.clear();

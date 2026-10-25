@@ -71,7 +71,7 @@ export function decideGate(i: {
   if (i.placement === 'group_create_rewarded' && i.localGroups === 0) return 'allow';
   return i.passesUsed < PASS_CAP ? 'offline_pass' : 'offline_capped';
 }
-export const useCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 0 });
+export const spendCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 0 });
 export const earnCredit = (l: AdLedger): AdLedger => ({ ...l, credits: 1, offerPlacement: null });
 export function declineOffer(l: AdLedger, now: number): AdLedger {
   const hw = effectiveNow(l, now);

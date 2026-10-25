@@ -7,7 +7,7 @@ import {
   grantPass,
   decideGate,
   earnCredit,
-  useCredit,
+  spendCredit,
   declineOffer,
   shouldOfferCredit,
   classifyFailure,
@@ -65,7 +65,7 @@ it('earns at most one credit, clears the offer, and consumes it', () => {
   const l = earnCredit(earnCredit(grantPass(emptyLedger(), 100, placement)));
   expect(l.credits).toBe(1);
   expect(l.offerPlacement).toBeNull();
-  expect(useCredit(l).credits).toBe(0);
+  expect(spendCredit(l).credits).toBe(0);
 });
 const ready = { now: 100, online: true, paid: false, offeredThisSession: false, busy: false };
 it('offers only after a pass and stops after three recent declines', () => {

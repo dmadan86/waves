@@ -29,7 +29,7 @@ import {
   touch,
   passesUsed,
   grantPass,
-  useCredit,
+  spendCredit,
   earnCredit,
   declineOffer,
   type Placement,
@@ -60,7 +60,9 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
   const mounted = useRef(true);
   const watching = useRef(false);
   const paid = useRef(isPaid);
-  paid.current = isPaid;
+  useEffect(() => {
+    paid.current = isPaid;
+  });
   const finish = (allowed: boolean) => {
     resolve.current?.(allowed);
     resolve.current = null;
@@ -135,7 +137,7 @@ export function useAdGate(options?: { offerCredit?: boolean }) {
         !l.valid() || paid.current
           ? value
           : decision === 'use_credit'
-            ? useCredit(value)
+            ? spendCredit(value)
             : grantPass(value, now, next),
       );
       if (!valid(l)) return false;
