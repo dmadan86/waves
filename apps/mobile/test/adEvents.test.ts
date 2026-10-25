@@ -102,6 +102,7 @@ it.each(['credit_used', 'credit_earned', 'offline_capped'] as const)(
     expect(JSON.parse((await AsyncStorage.getItem('waves.adEvents.credits'))!)).toEqual([]);
   },
 );
+<<<<<<< HEAD
 
 it.each(['credit_offer', 'credit_voluntary'] as const)(
   'keeps post-reward quiet time for %s',
@@ -114,3 +115,5 @@ it.each(['credit_offer', 'credit_voluntary'] as const)(
     await flushAdEvents('credit-profile');
   },
 );
+=======
+>>>>>>> origin/main

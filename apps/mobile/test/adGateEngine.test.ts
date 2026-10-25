@@ -6,6 +6,11 @@ import {
   passesUsed,
   grantPass,
   decideGate,
+<<<<<<< HEAD
+=======
+  earnCredit,
+  spendCredit,
+>>>>>>> origin/main
   declineOffer,
   shouldOfferCredit,
   classifyFailure,
@@ -53,16 +58,28 @@ it.each([
   [{ placement: 'export_rewarded' as const, localGroups: 0 }, 'offline_pass'],
   [{ online: true, required: null }, 'allow'],
   [{ online: true, required: false }, 'allow'],
+<<<<<<< HEAD
   [{ online: true, required: true, credits: 6 }, 'use_credit'],
+=======
+  [{ online: true, required: true, credits: 1 }, 'use_credit'],
+>>>>>>> origin/main
   [{ online: true, required: true }, 'ask'],
   [{ paid: true, passesUsed: 2 }, 'allow'],
 ] as const)('decides %j', (patch, expected) =>
   expect(decideGate({ ...input, ...patch })).toBe(expected),
 );
+<<<<<<< HEAD
 it('parses old local credits but never uses them as the server balance', () => {
   const ledger = parseLedger({ ...emptyLedger(), credits: 1 });
   expect(ledger.credits).toBe(1);
   expect(decideGate({ ...input, online: true, required: true, credits: 0 })).toBe('ask');
+=======
+it('earns at most one credit, clears the offer, and consumes it', () => {
+  const l = earnCredit(earnCredit(grantPass(emptyLedger(), 100, placement)));
+  expect(l.credits).toBe(1);
+  expect(l.offerPlacement).toBeNull();
+  expect(spendCredit(l).credits).toBe(0);
+>>>>>>> origin/main
 });
 const ready = { now: 100, online: true, paid: false, offeredThisSession: false, busy: false };
 it('offers only after a pass and stops after three recent declines', () => {
@@ -81,10 +98,17 @@ it.each([{ online: false }, { busy: true }, { offeredThisSession: true }])(
     ).toBe('wait');
   },
 );
+<<<<<<< HEAD
 it('never offers to paid users and ignores legacy local credits', () => {
   const l = grantPass(emptyLedger(), 100, placement);
   expect(shouldOfferCredit(l, { ...ready, paid: true })).toBe('none');
   expect(shouldOfferCredit({ ...l, credits: 1 }, ready)).toBe('offer');
+=======
+it('never offers to paid users or credit holders', () => {
+  const l = grantPass(emptyLedger(), 100, placement);
+  expect(shouldOfferCredit(l, { ...ready, paid: true })).toBe('none');
+  expect(shouldOfferCredit({ ...l, credits: 1 }, ready)).toBe('none');
+>>>>>>> origin/main
 });
 const failureInput = {
   online: true,
