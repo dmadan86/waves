@@ -1,4 +1,5 @@
 import { NativeAdCard } from '@/components/NativeAdCard';
+import { ReviewBanner } from '@/components/ReviewBanner';
 import { nativePosition } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -950,6 +951,7 @@ export default function ActivityScreen() {
         <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
+          ListFooterComponent={ReviewBanner}
           onViewableItemsChanged={({ viewableItems }) =>
             setAdVisible(
               (seen) =>
