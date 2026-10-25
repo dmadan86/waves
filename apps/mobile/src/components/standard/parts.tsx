@@ -5,9 +5,15 @@
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  View,
+  type AccessibilityRole,
+  type AccessibilityState,
+  type ViewStyle,
+} from 'react-native';
 
-import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, directionalIcon, iconSize, Row, Text, useSingleAction, useTheme } from '@waves/ui';
 
 import { Sparkline } from '@/components/SpendingCharts';
 
@@ -297,7 +303,20 @@ export function ListRow({
   destructive = false,
   highlight,
   titleAccessory,
+  titleLines = 1,
+  compact = false,
+  repeatable = true,
+  accessibilityRole = 'button',
+  accessibilityState,
 }: {
+  /** Compact single-line choices keep a 44dp touch target. */
+  compact?: boolean;
+  /** Allow longer setting labels to wrap beside their control. */
+  titleLines?: number;
+  /** Selection controls answer every tap; existing rows remain repeatable. */
+  repeatable?: boolean;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
   leading?: ReactNode;
   title: string;
   subtitle?: string;
@@ -319,13 +338,15 @@ export function ListRow({
   titleAccessory?: ReactNode;
 }) {
   const theme = useTheme();
+  const press = useSingleAction(onPress, { repeatable });
   const spoken = [title, subtitle, amount, percent !== undefined ? `${percent}%` : null]
     .filter(Boolean)
     .join(', ');
   const rowStyle = {
     alignItems: 'center',
     gap: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: compact ? 0 : theme.spacing.sm,
+    ...(compact ? { minHeight: 44 } : null),
     ...(highlight
       ? {
           backgroundColor: highlight,
@@ -342,7 +363,7 @@ export function ListRow({
           <View style={{ flex: 1, minWidth: 0 }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <Text
-                numberOfLines={1}
+                numberOfLines={titleLines}
                 // Shrinks before it can reach the accessory or the control beside the row.
                 style={[
                   { flexShrink: 1 },
@@ -384,56 +405,73 @@ export function ListRow({
   // With a control of its own at the end (a toggle, a menu button) the text and
   // the control are siblings, so a screen reader can reach both; the whole row
   // is not one big accessible button swallowing it.
-  const body = trailing ? (
-    <Row style={rowStyle}>
-      {onPress ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={spoken}
-          onPress={onPress}
-          style={({ pressed }) => ({
-            flex: 1,
-            minWidth: 0,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
+  const body =
+    onPress && accessibilityRole === 'radio' ? (
+      <Pressable
+        accessibilityRole={accessibilityRole}
+        accessibilityState={accessibilityState}
+        accessibilityLabel={spoken}
+        onPress={press}
+        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+      >
+        <Row style={rowStyle}>
           {main}
-        </Pressable>
-      ) : (
-        // Not one accessible group: the ⓘ button and the explanation under the
-        // title must be reachable on their own, so the texts are read as they are
-        // and the control beside them carries its own label.
-        <View
-          style={{
-            flex: 1,
-            minWidth: 0,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-          }}
-        >
-          {main}
-        </View>
-      )}
-      {trailing}
-    </Row>
-  ) : onPress ? (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={spoken}
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-    >
-      <Row style={rowStyle}>{main}</Row>
-    </Pressable>
-  ) : (
-    <View accessible accessibilityLabel={spoken}>
-      <Row style={rowStyle}>{main}</Row>
-    </View>
-  );
+          {trailing}
+        </Row>
+      </Pressable>
+    ) : trailing ? (
+      <Row style={rowStyle}>
+        {onPress ? (
+          <Pressable
+            accessibilityRole={accessibilityRole}
+            accessibilityState={accessibilityState}
+            accessibilityLabel={spoken}
+            onPress={press}
+            style={({ pressed }) => ({
+              flex: 1,
+              ...(compact ? { minHeight: 44 } : null),
+              minWidth: 0,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            {main}
+          </Pressable>
+        ) : (
+          // Not one accessible group: the ⓘ button and the explanation under the
+          // title must be reachable on their own, so the texts are read as they are
+          // and the control beside them carries its own label.
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+            }}
+          >
+            {main}
+          </View>
+        )}
+        {trailing}
+      </Row>
+    ) : onPress ? (
+      <Pressable
+        accessibilityRole={accessibilityRole}
+        accessibilityState={accessibilityState}
+        accessibilityLabel={spoken}
+        onPress={press}
+        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+      >
+        <Row style={rowStyle}>{main}</Row>
+      </Pressable>
+    ) : (
+      <View accessible accessibilityLabel={spoken}>
+        <Row style={rowStyle}>{main}</Row>
+      </View>
+    );
   return (
     <View>
       {body}
