@@ -1804,6 +1804,8 @@ export interface UiStrings {
     blockedTitle: string;
     /** Shown instead of failedBody when an ad blocker or blocking Private DNS stopped the ad. */
     blockedBody: string;
+    /** Explains the optional ad owed after an offline action. */
+    owedBody: string;
   };
   rewardedAds: {
     entryVoice: string;
@@ -7437,6 +7439,7 @@ const en: UiStrings = {
     exportRetryBtn: 'Retry ad to export',
     blockedTitle: 'The ad seems blocked',
     blockedBody: 'Turn off ad blocking or Private DNS.',
+    owedBody: 'You created this offline. A short ad keeps Waves free.',
   },
   rewardedAds: {
     entryVoice: 'Watch a short video for 2 more voice commands',
@@ -12573,6 +12576,7 @@ const ta: UiStrings = {
     exportRetryBtn: 'ஏற்றுமதிக்கு விளம்பரம் மீண்டும் பாருங்கள்',
     blockedTitle: 'விளம்பரம் தடுக்கப்பட்டதாகத் தெரிகிறது',
     blockedBody: 'விளம்பரத் தடுப்பு அல்லது Private DNS-ஐ அணைக்கவும்.',
+    owedBody: 'இதை ஆஃப்லைனில் உருவாக்கினீர்கள். ஒரு சிறிய விளம்பரம் Waves-ஐ இலவசமாக வைக்கிறது.',
   },
   rewardedAds: {
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
@@ -17857,6 +17861,7 @@ const hi: UiStrings = {
     exportRetryBtn: 'एक्सपोर्ट के लिए विज्ञापन दोबारा देखें',
     blockedTitle: 'विज्ञापन ब्लॉक लग रहा है',
     blockedBody: 'ऐड ब्लॉकिंग या Private DNS बंद करें।',
+    owedBody: 'आपने इसे ऑफ़लाइन बनाया। एक छोटा विज्ञापन Waves को मुफ़्त रखता है।',
   },
   rewardedAds: {
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
@@ -23059,6 +23064,7 @@ const ar: UiStrings = {
     exportRetryBtn: 'أعد الإعلان للتصدير',
     blockedTitle: 'يبدو أن الإعلان محجوب',
     blockedBody: 'أوقف حظر الإعلانات أو Private DNS.',
+    owedBody: 'أنشأت هذا دون اتصال. إعلان قصير يُبقي Waves مجانيًا.',
   },
   rewardedAds: {
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',

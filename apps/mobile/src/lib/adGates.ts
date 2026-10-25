@@ -1,3 +1,4 @@
+import { oweAd, type OwedAd } from '@/lib/adGateEngine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import { adTimeout } from '@/lib/adTimeout';
@@ -203,4 +204,35 @@ export async function afterGroupExpense(
   } finally {
     running = false;
   }
+}
+
+const owedKey = (profileId: string) => `waves.adOwed.${profileId}`;
+export async function readOwedAd(profileId: string): Promise<OwedAd | null> {
+  try {
+    const debt = JSON.parse((await AsyncStorage.getItem(owedKey(profileId))) ?? 'null');
+    if (
+      !debt ||
+      !['group_create_rewarded', 'export_rewarded'].includes(debt.placement) ||
+      !Number.isFinite(debt.createdAt) ||
+      debt.createdAt < 0 ||
+      !Number.isSafeInteger(debt.prompts) ||
+      debt.prompts < 0
+    )
+      return null;
+    return debt;
+  } catch {
+    return null;
+  }
+}
+export async function writeOwedAd(profileId: string, debt: OwedAd | null) {
+  if (debt === null) await AsyncStorage.removeItem(owedKey(profileId));
+  else await AsyncStorage.setItem(owedKey(profileId), JSON.stringify(debt));
+}
+export async function recordOwedAd(
+  profileId: string,
+  placement: OwedAd['placement'],
+  reason: 'offline' | 'status' | 'nofill',
+) {
+  await writeOwedAd(profileId, oweAd(await readOwedAd(profileId), placement, Date.now()));
+  logAdEvent(profileId, placement, 'offline_allowed', reason);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, View } from 'react-native';
+import * as Network from 'expo-network';
+import { ActivityIndicator, AppState, Image, Pressable, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -8,9 +9,25 @@ import { Button, IconButton, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useEntitlement } from '@/lib/useEntitlement';
-import { gatesBusy, readGateStatus, watchGate } from '@/lib/adGates';
+import {
+  gatesBusy,
+  readGateStatus,
+  watchGate,
+  readOwedAd,
+  writeOwedAd,
+  recordOwedAd,
+} from '@/lib/adGates';
 import { gateAllows, gateRequired } from '@/lib/adPacingPure';
-import { lastFailureWasBlocked, logAdEvent } from '@/lib/adEvents';
+import { clearAdFailure, lastFailureText, logAdEvent } from '@/lib/adEvents';
+import { defaultRewardedAdDeps, probeAdHost } from '@/lib/adsSdk';
+import {
+  decideGate,
+  classifyFailure,
+  isNoFill,
+  shouldProbeAdHost,
+  shouldOfferOwed,
+  afterOwedOutcome,
+} from '@/lib/adGateEngine';
 import { router } from '@/lib/navigation';
 
 const IMG_VIDEO = require('../../assets/images/ad-video.png') as number;
@@ -22,12 +39,17 @@ const ILL_H = 112;
 
 type Placement = 'group_create_rewarded' | 'export_rewarded';
 
-export function useAdGate() {
+let noFillStreak = 0;
+let owedPromptedSession = false;
+
+export function useAdGate(options?: { offerOwed?: boolean }) {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const { t } = useStrings();
   const theme = useTheme();
   const [placement, setPlacement] = useState<Placement | null>(null);
+  const [owed, setOwed] = useState(false);
+  const activePlacement = useRef<Placement | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -55,6 +77,7 @@ export function useAdGate() {
     checking.current = false;
     watching.current = false;
     if (mounted.current) {
+      activePlacement.current = null;
       setPlacement(null);
       setBusy(false);
       setFailed(false);
@@ -62,31 +85,32 @@ export function useAdGate() {
   };
 
   const requireAd = async (next: Placement): Promise<boolean> => {
-    // The server decides (rollout % or allowlist) in `status.enabled` below.
     if (isPaid || !viewerId) return true;
-    if (checking.current || gatesBusy()) return false;
+    if (checking.current || activePlacement.current || gatesBusy()) return false;
     checking.current = true;
-    const status = await readGateStatus(viewerId).catch(() => null);
+    const online = await defaultRewardedAdDeps().isOnline();
+    const status = online ? await readGateStatus(viewerId).catch(() => null) : null;
     if (!mounted.current) {
       checking.current = false;
       return false;
     }
-    if (!status) {
-      logAdEvent(viewerId, next, 'failed');
+    const required = status
+      ? gateRequired({
+          enabled: status.enabled,
+          paid: paid.current,
+          placement: next,
+          createdGroups: status.createdGroups,
+        })
+      : null;
+    const decision = decideGate({ paid: paid.current, online, required });
+    if (decision !== 'ask') {
       checking.current = false;
+      if (decision === 'allow_owe')
+        await recordOwedAd(viewerId, next, online ? 'status' : 'offline');
       return true;
     }
-    if (
-      !gateRequired({
-        enabled: status.enabled,
-        paid: paid.current,
-        placement: next,
-        createdGroups: status.createdGroups,
-      })
-    ) {
-      checking.current = false;
-      return true;
-    }
+    setOwed(false);
+    activePlacement.current = next;
     setPlacement(next);
     return new Promise<boolean>((done) => {
       resolve.current = done;
@@ -114,19 +138,94 @@ export function useAdGate() {
     }
     setBusy(true);
     setFailed(false);
+    clearAdFailure();
     const outcome = await watchGate(viewerId, placement, () => mounted.current && !paid.current);
     if (outcome === 'failed') {
-      // Keep the sheet open: the action waits until an ad is actually watched.
+      const online = await defaultRewardedAdDeps().isOnline();
+      const failure = lastFailureText();
+      const reachable = shouldProbeAdHost({ online, failure }) ? await probeAdHost() : null;
+      noFillStreak = isNoFill(failure) ? noFillStreak + 1 : 0;
+      const cls = classifyFailure({ online, failure, adHostReachable: reachable, noFillStreak });
+      if (cls === 'offline' || cls === 'nofill_allow') {
+        if (!owed)
+          await recordOwedAd(viewerId, placement, cls === 'offline' ? 'offline' : 'nofill');
+        noFillStreak = 0;
+        finish(true);
+        return;
+      }
+      if (cls === 'blocked') logAdEvent(viewerId, placement, 'blocked_adblock');
       watching.current = false;
       if (mounted.current) {
         setBusy(false);
-        setBlocked(lastFailureWasBlocked());
+        setBlocked(cls === 'blocked');
         setFailed(true);
       }
       return;
     }
+    if (gateAllows(outcome)) noFillStreak = 0;
+    if (owed) {
+      const debt = await readOwedAd(viewerId);
+      if (debt) await writeOwedAd(viewerId, afterOwedOutcome(debt, outcome));
+    }
     finish(gateAllows(outcome));
   };
+
+  const close = async () => {
+    if (busy) return;
+    if (owed && viewerId && placement) {
+      const debt = await readOwedAd(viewerId);
+      if (debt) await writeOwedAd(viewerId, afterOwedOutcome(debt, 'declined'));
+      logAdEvent(viewerId, placement, 'owed_declined');
+    }
+    finish(false);
+  };
+
+  useEffect(() => {
+    if (!options?.offerOwed || !viewerId) return;
+    let disposed = false;
+    let offering = false;
+    const maybeOfferOwed = async () => {
+      if (disposed || offering || activePlacement.current || checking.current) return;
+      offering = true;
+      try {
+        const debt = await readOwedAd(viewerId);
+        const online = await defaultRewardedAdDeps().isOnline();
+        if (disposed) return;
+        const verdict = shouldOfferOwed(debt, {
+          now: Date.now(),
+          online,
+          paid: paid.current,
+          promptedThisSession: owedPromptedSession,
+          busy: gatesBusy() || checking.current || activePlacement.current !== null,
+        });
+        if (verdict === 'clear') {
+          await writeOwedAd(viewerId, null);
+          return;
+        }
+        if (verdict !== 'offer' || !debt || !mounted.current) return;
+        owedPromptedSession = true;
+        logAdEvent(viewerId, debt.placement, 'owed_offered');
+        setOwed(true);
+        activePlacement.current = debt.placement;
+        setPlacement(debt.placement);
+        resolve.current = null;
+      } finally {
+        offering = false;
+      }
+    };
+    const offer = () => void maybeOfferOwed().catch(() => undefined);
+    const timer = setTimeout(offer, 1500);
+    const app = AppState.addEventListener('change', (state) => {
+      if (state === 'active') offer();
+    });
+    const network = Network.addNetworkStateListener(offer);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+      app.remove();
+      network.remove();
+    };
+  }, [viewerId, isPaid, options?.offerOwed]);
 
   const goUpgrade = () => {
     finish(false);
@@ -142,7 +241,7 @@ export function useAdGate() {
       <Sheet
         visible={placement !== null && !isPaid}
         onClose={() => {
-          if (!busy) finish(false);
+          if (!busy) void close();
         }}
         closeLabel={t.common.close}
         // No Sheet title — we draw our own compact header with an X button.
@@ -159,7 +258,7 @@ export function useAdGate() {
           <IconButton
             label={t.common.close}
             onPress={() => {
-              if (!busy) finish(false);
+              if (!busy) void close();
             }}
           >
             <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
@@ -228,7 +327,7 @@ export function useAdGate() {
               {g.title}
             </Text>
             <Text variant="body" tone="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
-              {isGroup ? g.groupBody : g.exportBody}
+              {owed ? g.owedBody : isGroup ? g.groupBody : g.exportBody}
             </Text>
 
             {busy ? (
