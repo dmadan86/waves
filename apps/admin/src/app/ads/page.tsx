@@ -95,6 +95,9 @@ export default async function Ads({
                   'Owed offered',
                   'Owed declined',
                   'Blocked (ad blocker)',
+                  'Credits used',
+                  'Credits earned',
+                  'Offline capped',
                 ].map((label) => (
                   <th key={label} scope="col">
                     {label}
@@ -117,6 +120,9 @@ export default async function Ads({
                     row.owed_offered,
                     row.owed_declined,
                     row.blocked_adblock,
+                    row.credit_used,
+                    row.credit_earned,
+                    row.offline_capped,
                   ].map((value, i) => (
                     <td key={i} className="n">
                       {value}

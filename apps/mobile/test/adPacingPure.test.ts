@@ -189,7 +189,6 @@ describe('edit pacing', () => {
     expect(step(s, { editOf: 'p', personal: true }).state).toBe(s);
   });
 });
-<<<<<<< HEAD
 
 const videoInput = {
   videoUnitConfigured: true,
@@ -214,5 +213,3 @@ it('selects video only after every network, session, region and configuration gu
   for (const country of ['US', 'GB', 'AU', 'AE'])
     expect(pickInterstitialUnit({ ...videoInput, country })).toBe('video');
 });
-=======
->>>>>>> origin/main

@@ -1532,6 +1532,9 @@ export interface AdEventDay {
   owed_offered: number | string;
   owed_declined: number | string;
   blocked_adblock: number | string;
+  credit_used: number | string;
+  credit_earned: number | string;
+  offline_capped: number | string;
 }
 export interface AdGateSettings extends CreditSettings {
   voice_per_ad?: number;

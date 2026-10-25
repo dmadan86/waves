@@ -126,8 +126,10 @@ export async function watchGate(
       undefined,
       () => canShow() && AppState.currentState === 'active',
       (cb) => {
+        let prev = AppState.currentState;
         const sub = AppState.addEventListener('change', (state) => {
-          if (state === 'active') cb();
+          if (state === 'active' && prev === 'background') cb();
+          prev = state;
         });
         return () => sub.remove();
       },
