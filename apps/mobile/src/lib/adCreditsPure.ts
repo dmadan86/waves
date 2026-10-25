@@ -52,7 +52,7 @@ export function creditButtonKey(
   return 'unavailable';
 }
 export const showCreditsRow = (paid: boolean, status: CreditsStatus | null | undefined) =>
-  !paid && !!status;
+  !paid && !!status && !(status.reason === 'ineligible' && status.credits === 0);
 export function parseSpend(raw: unknown): { ok: boolean; spent?: number } | null {
   if (!raw || typeof raw !== 'object') return null;
   const s = raw as { ok: boolean; spent?: number; reason?: string; credits?: number };

@@ -222,7 +222,7 @@ BEGIN
       UPDATE public.ad_ssv_transactions SET outcome=v_outcome||':'||v_reason WHERE transaction_id=p_transaction_id;
       RETURN jsonb_build_object('outcome',v_outcome,'reason',v_reason);
     END IF;
-    v_amount := LEAST((v_elig->>'perAd')::integer,(v_elig->>'walletCap')::integer-(v_elig->>'credits')::integer);
+    v_amount := GREATEST(0, LEAST((v_elig->>'perAd')::integer,(v_elig->>'walletCap')::integer-(v_elig->>'credits')::integer));
     INSERT INTO public.ad_rewards(profile_id,kind,source,amount,transaction_id,ad_unit)
       VALUES(p_profile,'credit',v_source,v_amount,p_transaction_id,p_ad_unit);
     INSERT INTO public.credit_ledger(profile_id,delta,reason,ref)
