@@ -35,10 +35,13 @@ describe('definer grant tightening', () => {
   it('waves_my_member_id_for answers only for the caller, whatever profile is passed', async () => {
     const g = await seedGroup(client, { memberCount: 2 });
     const [me, other] = g.profileIds;
-    const seen = await asRole(client, 'authenticated', { sub: me, role: 'authenticated' }, async () =>
-      (
-        await client.query(`SELECT waves_my_member_id_for($1, $2) AS m`, [g.groupId, other])
-      ).rows[0].m,
+    const seen = await asRole(
+      client,
+      'authenticated',
+      { sub: me, role: 'authenticated' },
+      async () =>
+        (await client.query(`SELECT waves_my_member_id_for($1, $2) AS m`, [g.groupId, other]))
+          .rows[0].m,
     );
     expect(seen).toBe(g.memberIds[0]);
   });
