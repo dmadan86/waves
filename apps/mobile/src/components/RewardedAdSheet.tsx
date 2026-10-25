@@ -23,6 +23,7 @@ export function RewardedAdSheet({
   visible,
   kind,
   amount,
+  credits,
   state,
   onWatch,
   onUpgrade,
@@ -32,6 +33,7 @@ export function RewardedAdSheet({
   kind: AdKind;
   /** Units one ad gives, from the server's settings. */
   amount: number;
+  credits?: number;
   state: AdSheetState;
   onWatch: () => void;
   onUpgrade: () => void;
@@ -54,6 +56,11 @@ export function RewardedAdSheet({
           </Text>
         </View>
 
+        {credits !== undefined && (
+          <Text variant="caption" tone="muted">
+            {fill(t.credits.balance, { n: credits })}
+          </Text>
+        )}
         {busy ? (
           <View
             accessibilityLiveRegion="polite"

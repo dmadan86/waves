@@ -1,3 +1,6 @@
+import * as Network from 'expo-network';
+import { getLocales } from 'expo-localization';
+import { pickInterstitialUnit } from './adPacingPure';
 import { emptyLedger, parseLedger, type AdLedger } from '@/lib/adGateEngine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
@@ -18,13 +21,17 @@ import { runGateAd, prepareInterstitial, type PreparedInterstitial } from '@/lib
 
 export interface GateStatus {
   enabled: boolean;
+  credits?: number;
+  walletCap?: number;
+  perAd?: number;
+  costs?: Record<'voice' | 'scan' | 'export' | 'group', number>;
   createdAt: string;
   createdGroups: number;
   interstitialToday: number;
   lastAdAt: string | null;
   lastRewardedAt: string | null;
   lastInterstitialAt: string | null;
-  settings: AdPacingSettings;
+  settings: AdPacingSettings & { interstitial_video_enabled?: boolean };
 }
 export async function readGateStatus(profileId: string): Promise<GateStatus | null> {
   await adTimeout(flushAdEvents(profileId), 500);
@@ -41,7 +48,7 @@ export async function readGateStatus(profileId: string): Promise<GateStatus | nu
 const preparedAds = new Map<string, PreparedInterstitial>();
 // The AdMob interstitial unit should be created as Display-only (no video) so ads stay short and closable quickly.
 // Shown only if already preloaded (prewarmExpenseAd): never a loading spinner after a save.
-function interstitialDeps() {
+function interstitialDeps(videoUnit?: string) {
   return {
     ...defaultRewardedAdDeps(),
     unitId: () => {
@@ -50,7 +57,7 @@ function interstitialDeps() {
           ? process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS
           : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID;
       return (
-        (!__DEV__ && configured?.trim()) ||
+        (!__DEV__ && (videoUnit || configured?.trim())) ||
         (Platform.OS === 'ios'
           ? 'ca-app-pub-3940256099942544/4411468910'
           : 'ca-app-pub-3940256099942544/1033173712')
@@ -70,7 +77,24 @@ export async function prewarmExpenseAd(profileId: string) {
     status.interstitialToday >= status.settings.interstitial_daily_cap
   )
     return;
-  const ad = await prepareInterstitial(interstitialDeps());
+  const videoUnit =
+    Platform.OS === 'ios'
+      ? process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_VIDEO_IOS
+      : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_VIDEO_ANDROID;
+  const network = await Network.getNetworkStateAsync().catch(() => null);
+  const unit = pickInterstitialUnit({
+    videoUnitConfigured: !!videoUnit?.trim(),
+    flagEnabled: status.settings.interstitial_video_enabled === true,
+    unmetered:
+      network?.type === Network.NetworkStateType.WIFI &&
+      (network as { isConnectionExpensive?: boolean }).isConnectionExpensive !== true,
+    firstAdOfDay: status.interstitialToday === 0,
+    sessionSeconds: (Date.now() - sessionStartedAt) / 1000,
+    country: getLocales()[0]?.regionCode ?? null,
+  });
+  const ad = await prepareInterstitial(
+    interstitialDeps(unit === 'video' ? videoUnit?.trim() : undefined),
+  );
   if (ad) preparedAds.set(profileId, ad);
   else logAdEvent(profileId, 'expense_interstitial', 'failed');
 }
@@ -102,8 +126,10 @@ export async function watchGate(
       undefined,
       () => canShow() && AppState.currentState === 'active',
       (cb) => {
+        let prev = AppState.currentState;
         const sub = AppState.addEventListener('change', (state) => {
-          if (state === 'active') cb();
+          if (state === 'active' && prev === 'background') cb();
+          prev = state;
         });
         return () => sub.remove();
       },
