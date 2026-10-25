@@ -9,8 +9,22 @@ export type AdPlacement =
   | 'group_create_rewarded'
   | 'export_rewarded'
   | 'native_list'
-  | 'quota_rewarded';
-export type AdEventOutcome = 'shown' | 'completed' | 'skipped' | 'failed' | 'blocked_grace';
+  | 'quota_rewarded'
+  | 'credit_voluntary'
+  | 'credit_offer';
+export type AdEventOutcome =
+  | 'shown'
+  | 'completed'
+  | 'skipped'
+  | 'failed'
+  | 'blocked_grace'
+  | 'offline_allowed'
+  | 'owed_offered'
+  | 'owed_declined'
+  | 'blocked_adblock'
+  | 'credit_used'
+  | 'credit_earned'
+  | 'offline_capped';
 // Immediate process-wide timestamps complement the cross-device server history.
 const clocks = new Map<
   string,
@@ -28,11 +42,22 @@ interface PendingEvent {
 }
 // Why the last ad attempt failed (SDK error code/message), attached to the next 'failed' event.
 let lastFailure: string | undefined;
+let pendingFailure = false;
+export function lastFailureText(): string {
+  return lastFailure ?? '';
+}
+/** Before a new attempt, so a stale reason is never read as this attempt's. */
+export function clearAdFailure(): void {
+  lastFailure = undefined;
+  pendingFailure = false;
+  lastBlocked = false;
+}
 export function noteAdFailure(reason: unknown): void {
   const e = reason as { code?: unknown; message?: unknown } | null;
   lastFailure = String(e?.code ?? '') + ' ' + String(e?.message ?? reason ?? '');
   lastFailure = lastFailure.trim().slice(0, 200);
   lastBlocked = looksAdBlocked(lastFailure);
+  pendingFailure = true;
 }
 let lastBlocked = false;
 /** Whether the latest failed ad looked blocked, for the gate sheet's copy. */
@@ -44,13 +69,23 @@ export function logAdEvent(
   profileId: string,
   placement: AdPlacement,
   outcome: AdEventOutcome,
+  detail?: string,
 ): void {
-  if (outcome === 'shown' || outcome === 'completed' || outcome === 'skipped') {
+  if (
+    outcome === 'shown' ||
+    outcome === 'completed' ||
+    outcome === 'skipped' ||
+    outcome === 'credit_earned'
+  ) {
     const now = Date.now();
     clocks.set(profileId, {
       ...adClocks(profileId),
       lastAdAt: now,
-      ...(placement.endsWith('rewarded') ? { lastRewardedAt: now } : {}),
+      ...(placement.endsWith('rewarded') ||
+      placement === 'credit_voluntary' ||
+      placement === 'credit_offer'
+        ? { lastRewardedAt: now }
+        : {}),
       ...(placement === 'expense_interstitial' ? { lastInterstitialAt: now } : {}),
     });
   }
@@ -59,9 +94,10 @@ export function logAdEvent(
     createdAt: new Date().toISOString(),
     placement,
     outcome,
-    ...(outcome === 'failed' && lastFailure ? { detail: lastFailure } : {}),
+    ...(outcome === 'failed' && pendingFailure && lastFailure ? { detail: lastFailure } : {}),
+    ...(detail !== undefined ? { detail: detail.slice(0, 200) } : {}),
   };
-  if (outcome === 'failed') lastFailure = undefined;
+  if (outcome === 'failed') pendingFailure = false;
   // Persist before sending. A temporary connection failure is retried on the next
   // event/status read. An account change never attributes an old event to a new user.
   queue = queue
@@ -86,10 +122,16 @@ async function flush(profileId: string) {
         p_event_id: row.id,
         p_occurred_at: row.createdAt,
         p_profile: profileId,
-        ...(row.detail ? { p_detail: row.detail } : {}),
+        ...(row.detail !== undefined ? { p_detail: row.detail } : {}),
       }),
     );
-    if (!result || result.error) return;
+    if (!result) return;
+    if (
+      result.error &&
+      result.error.code !== '23514' &&
+      !/ad_events_outcome_check|check constraint/i.test(result.error.message ?? '')
+    )
+      return;
     rows.shift();
     await AsyncStorage.setItem(key, JSON.stringify(rows));
   }

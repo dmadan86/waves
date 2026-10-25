@@ -19,6 +19,7 @@ export async function loadAdsSdk(): Promise<AdsSdk> {
     AdsConsent: AdsSdk['AdsConsent'];
     RewardedAd: AdsSdk['RewardedAd'];
     InterstitialAd: AdsSdk['InterstitialAd'];
+    RewardedInterstitialAd: AdsSdk['RewardedAd'];
     AdEventType: AdsSdk['AdEventType'];
     RewardedAdEventType: AdsSdk['RewardedAdEventType'];
   };
@@ -27,6 +28,7 @@ export async function loadAdsSdk(): Promise<AdsSdk> {
     AdsConsent: sdk.AdsConsent,
     RewardedAd: sdk.RewardedAd,
     InterstitialAd: sdk.InterstitialAd,
+    RewardedInterstitialAd: sdk.RewardedInterstitialAd,
     AdEventType: sdk.AdEventType,
     RewardedAdEventType: sdk.RewardedAdEventType,
   };
@@ -77,5 +79,23 @@ export async function openAdPrivacyOptions(): Promise<'shown' | 'none'> {
     return 'shown';
   } catch {
     return 'none';
+  }
+}
+
+/** Any HTTP answer proves reachability; blockers and missing routes throw or time out. */
+export async function probeAdHost(timeoutMs = 3000): Promise<boolean> {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    await fetch('https://pagead2.googlesyndication.com/pagead/gen_204', {
+      method: 'GET',
+      cache: 'no-store',
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    if (timer !== null) clearTimeout(timer);
   }
 }
