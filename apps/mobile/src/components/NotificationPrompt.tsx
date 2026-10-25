@@ -183,21 +183,21 @@ export function NotificationPrompt() {
       visible
       onClose={dismiss}
       closeLabel={t.entry.notifyNotNow}
-      style={{ maxWidth: 360, alignItems: 'center', gap: theme.spacing.lg }}
+      style={{ maxWidth: 360, alignItems: 'center', gap: theme.spacing.md }}
     >
       {/* The brand tile with a notification badge — the reference's own way
               of saying, wordlessly, what the ask is about. */}
       <View
         style={{
-          width: 72,
-          height: 72,
-          borderRadius: 18,
+          width: 56,
+          height: 56,
+          borderRadius: 14,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Ionicons name="notifications" size={38} color={theme.color.onBrand} />
+        <Ionicons name="notifications" size={28} color={theme.color.onBrand} />
         <View
           style={{
             position: 'absolute',
@@ -213,7 +213,7 @@ export function NotificationPrompt() {
         />
       </View>
 
-      <View style={{ gap: theme.spacing.sm }}>
+      <View style={{ gap: theme.spacing.xs }}>
         <Text variant="heading" align="center">
           {t.entry.notifyTitle}
         </Text>
@@ -222,10 +222,10 @@ export function NotificationPrompt() {
         </Text>
       </View>
 
-      <View style={{ alignSelf: 'stretch', gap: theme.spacing.sm }}>
+      <View style={{ alignSelf: 'stretch', gap: theme.spacing.xs }}>
         <Button
           label={cta === 'settings' ? t.location.openSettings : t.notifications.turnOn}
-          size="lg"
+          size="md"
           fullWidth
           disabled={busy}
           onPress={() => void onEnable()}
@@ -233,7 +233,7 @@ export function NotificationPrompt() {
         <Button
           label={t.entry.notifyNotNow}
           variant="ghost"
-          size="lg"
+          size="md"
           fullWidth
           onPress={dismiss}
         />
