@@ -8,7 +8,6 @@ import { Button, IconButton, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useEntitlement } from '@/lib/useEntitlement';
-import { useFlagEnabled } from '@/lib/flags';
 import { gatesBusy, readGateStatus, watchGate } from '@/lib/adGates';
 import { gateAllows, gateRequired } from '@/lib/adPacingPure';
 import { lastFailureWasBlocked, logAdEvent } from '@/lib/adEvents';
@@ -26,7 +25,6 @@ type Placement = 'group_create_rewarded' | 'export_rewarded';
 export function useAdGate() {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
-  const enabled = useFlagEnabled('ads_gates');
   const { t } = useStrings();
   const theme = useTheme();
   const [placement, setPlacement] = useState<Placement | null>(null);
@@ -64,7 +62,8 @@ export function useAdGate() {
   };
 
   const requireAd = async (next: Placement): Promise<boolean> => {
-    if (!enabled || isPaid || !viewerId) return true;
+    // The server decides (rollout % or allowlist) in `status.enabled` below.
+    if (isPaid || !viewerId) return true;
     if (checking.current || gatesBusy()) return false;
     checking.current = true;
     const status = await readGateStatus(viewerId).catch(() => null);
