@@ -21,12 +21,22 @@
  * hold-only control is no control at all to a screen reader.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { Platform, Vibration } from 'react-native';
+import { Platform, Vibration, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@waves/ui';
+import {
+  BAR_HEIGHT,
+  CenterButton,
+  FAB_GAP,
+  iconSize,
+  PillTabBar,
+  setTabBarFab,
+  type PillTabAction,
+  type PillTabItem,
+} from '@waves/ui';
 
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
@@ -74,6 +84,7 @@ function buzz(ms: number): void {
 /** Renders the persistent bottom navigation bar and routes tab selections without stacking duplicates. */
 export function AppTabBar() {
   const { t, locale } = useStrings();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   // The bar carries the mic, so it is where the mic's slow answers are fetched
   // ahead of the tap: the voice screen then opens straight onto a live mic.
@@ -124,13 +135,7 @@ export function AppTabBar() {
       {
         key: 'shared',
         label: t.personal.nav.shared,
-        icon: (color) => (
-          <Ionicons
-            name={isRtl() ? 'chevron-forward' : 'chevron-back'}
-            size={iconSize.lg}
-            color={color}
-          />
-        ),
+        icon: (color) => <Ionicons name="home" size={iconSize.lg} color={color} />,
       },
       {
         key: 'me',
@@ -273,7 +278,7 @@ export function AppTabBar() {
   // shortcut over the same screen, so nothing is reachable only by holding.
   const voice = useMemo<PillTabAction>(
     () => ({
-      accessibilityLabel: t.voice.speakExpense,
+      accessibilityLabel: personal ? t.personal.nav.voiceFab : t.voice.speakExpense,
       accessibilityHint: t.voice.micHint,
       onPress: openVoice,
       onPressIn: holdStart,
@@ -281,13 +286,29 @@ export function AppTabBar() {
       onHoldMove: holdMove,
       icon: (color: string) => <Ionicons name="mic" size={iconSize.lg} color={color} />,
     }),
-    [holdEnd, holdMove, holdStart, openVoice, t.voice.micHint, t.voice.speakExpense],
+    [
+      holdEnd,
+      holdMove,
+      holdStart,
+      openVoice,
+      personal,
+      t.personal.nav.voiceFab,
+      t.voice.micHint,
+      t.voice.speakExpense,
+    ],
   );
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
   // and taking it away mid-sentence would cancel what somebody is saying.
-  if ((hidden || suppressed) && !holding) return null;
+  const showBar = !((hidden || suppressed) && !holding);
+  // Personal mode swaps the raised mic for a floating one, so lists leave room.
+  const fab = personal && showBar;
+  useEffect(() => {
+    setTabBarFab(fab);
+    return () => setTabBarFab(false);
+  }, [fab]);
+  if (!showBar) return null;
 
   return (
     <>
@@ -299,8 +320,21 @@ export function AppTabBar() {
         activeKey={activeKey}
         onSelect={go}
         animated
-        centerAction={voice}
+        centerAction={personal ? undefined : voice}
       />
+      {personal ? (
+        // Same button and the same hold-to-talk as the raised mic, floated
+        // bottom-right (bottom-left in RTL) above the Personal bar.
+        <View
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + BAR_HEIGHT + FAB_GAP,
+            ...(isRtl() ? { left: 16 } : { right: 16 }),
+          }}
+        >
+          <CenterButton action={voice} />
+        </View>
+      ) : null}
     </>
   );
 }

@@ -5739,7 +5739,13 @@ export interface UiStrings {
     budgetAboutMonth: string;
     tab: string;
     /** The Personal-mode bottom bar: the way back to shared money, and its destinations. */
-    nav: { shared: string; overview: string; transactions: string; reports: string };
+    nav: {
+      shared: string;
+      overview: string;
+      transactions: string;
+      reports: string;
+      voiceFab: string;
+    };
     title: string;
     subtitle: string;
     /** The entry form: its header line, sections, note prompt and payment methods. */
@@ -10882,10 +10888,11 @@ const en: UiStrings = {
     budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
     nav: {
-      shared: 'Shared',
+      shared: 'Home',
       overview: 'Overview',
       transactions: 'Transactions',
       reports: 'Reports',
+      voiceFab: 'Add personal expense by voice',
     },
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
@@ -16199,10 +16206,11 @@ const ta: UiStrings = {
     budgetAboutMonth: 'மாதம் சுமார் {average}.',
     tab: 'தனிப்பட்டது',
     nav: {
-      shared: 'பகிரப்பட்டது',
+      shared: 'முகப்பு',
       overview: 'மேலோட்டம்',
       transactions: 'பரிவர்த்தனைகள்',
       reports: 'அறிக்கைகள்',
+      voiceFab: 'குரலால் தனிப்பட்ட செலவைச் சேர்',
     },
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
@@ -21333,7 +21341,13 @@ const hi: UiStrings = {
     addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
     budgetAboutMonth: 'लगभग {average} हर महीने।',
     tab: 'निजी',
-    nav: { shared: 'साझा', overview: 'अवलोकन', transactions: 'लेन-देन', reports: 'रिपोर्ट' },
+    nav: {
+      shared: 'होम',
+      overview: 'अवलोकन',
+      transactions: 'लेन-देन',
+      reports: 'रिपोर्ट',
+      voiceFab: 'आवाज़ से निजी खर्च जोड़ें',
+    },
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
     entryScreen: {
@@ -27120,10 +27134,11 @@ const ar: UiStrings = {
     budgetAboutMonth: 'نحو {average} في الشهر.',
     tab: 'الشخصي',
     nav: {
-      shared: 'المشترك',
+      shared: 'الرئيسية',
       overview: 'نظرة عامة',
       transactions: 'المعاملات',
       reports: 'التقارير',
+      voiceFab: 'أضف مصروفًا شخصيًا بالصوت',
     },
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
