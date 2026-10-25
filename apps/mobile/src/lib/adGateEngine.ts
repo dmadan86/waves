@@ -91,8 +91,7 @@ export function shouldOfferCredit(
 }
 export type FailureClass = 'offline' | 'blocked' | 'nofill_allow' | 'retry';
 export const NOFILL_ALLOW_AFTER = 3;
-export const isNoFill = (failure: string) =>
-  /no-fill|timeout|mediation-no-fill/i.test(failure);
+export const isNoFill = (failure: string) => /no-fill|timeout|mediation-no-fill/i.test(failure);
 const sinkhole = (s: string) =>
   /(?:^|[^\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?=$|[^\d.])|\[::\]|(?:^|[^\w:])::(?=$|[^\w:])|unable to resolve host/i.test(
     s,

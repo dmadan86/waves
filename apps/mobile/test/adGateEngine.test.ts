@@ -123,7 +123,8 @@ it('allows only after three consecutive no-fills', () => {
 it.each(['no-fill', 'TIMEOUT', 'mediation-no-fill'])('recognizes %s', (s) =>
   expect(isNoFill(s)).toBe(true),
 );
-it('does not treat internal-error as no-fill', () => expect(isNoFill('internal-error')).toBe(false));
+it('does not treat internal-error as no-fill', () =>
+  expect(isNoFill('internal-error')).toBe(false));
 it('probes only ad-host sinkholes with online backend', () => {
   const i = { online: true, backendOk: true, failure: 'network-error doubleclick.net 0.0.0.0' };
   expect(shouldProbeAdHost(i)).toBe(true);
