@@ -118,6 +118,8 @@ it('gates every export and group after the first, never paid or disabled users',
   };
   expect(gateRequired(group)).toBe(false);
   expect(gateRequired({ ...group, createdGroups: 1 })).toBe(true);
+  // `enabled` is the server's verdict (rollout or allowlist); a server-disabled status never gates.
+  expect(gateRequired({ ...group, createdGroups: 1, enabled: false })).toBe(false);
   expect(gateRequired({ ...group, createdGroups: 10000 })).toBe(true);
   expect(gateRequired({ ...group, placement: 'export_rewarded' })).toBe(true);
   expect(gateRequired({ ...group, placement: 'export_rewarded', paid: true })).toBe(false);

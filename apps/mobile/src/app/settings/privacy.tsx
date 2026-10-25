@@ -13,6 +13,8 @@ import { useVoiceAgentEnabled } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
+import { useFollowUpPrefs } from '@/lib/followUpPrefs';
+import { setEnabled as setFollowUpsEnabled } from '@waves/core';
 import { clarityConfigured } from '@/lib/clarity';
 import { openAdPrivacyOptions } from '@/lib/adsSdk';
 import { router } from '@/lib/navigation';
@@ -86,6 +88,7 @@ export default function PrivacyScreen() {
   const { blocked } = useBlockedUsers();
   const voiceAgentOn = useVoiceAgentEnabled();
   const voiceConsent = useVoiceConsent(session?.user?.id);
+  const followUps = useFollowUpPrefs(session?.user?.id);
   const [consentSheet, setConsentSheet] = useState(false);
 
   // The session-replay opt-in, mirrored from storage. Only meaningful when a
@@ -257,6 +260,7 @@ export default function PrivacyScreen() {
                     leading={tile('cloud-outline')}
                     title={t.voiceConsent.row}
                     subtitle={t.voiceConsent.toggle}
+                    divider
                     trailing={
                       <Toggle
                         value={voiceConsent.state === 'granted'}
@@ -266,6 +270,24 @@ export default function PrivacyScreen() {
                           else voiceConsent.revoke();
                         }}
                         accessibilityLabel={t.voiceConsent.row}
+                      />
+                    }
+                  />
+                ) : null}
+                {/* The assistant's short questions after adding an expense (stored on this phone). */}
+                {voiceAgentOn ? (
+                  <ListRow
+                    leading={tile('chatbubble-ellipses-outline')}
+                    title={t.followUps.settingsRow}
+                    subtitle={t.followUps.settingsHint}
+                    trailing={
+                      <Toggle
+                        value={followUps.prefs.enabled}
+                        disabled={!followUps.ready}
+                        onValueChange={(on: boolean) =>
+                          followUps.update((p) => setFollowUpsEnabled(p, on))
+                        }
+                        accessibilityLabel={t.followUps.settingsRow}
                       />
                     }
                   />

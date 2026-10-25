@@ -29,6 +29,7 @@ function fixture(mode: 'completed' | 'skipped' | 'error' | 'timeout' | 'throw' =
     MobileAds: () => ({ setRequestConfiguration: async () => {}, initialize: async () => {} }),
     AdsConsent: {
       gatherConsent: async () => ({ canRequestAds: true }),
+      getConsentInfo: async () => ({ canRequestAds: true }),
       requestInfoUpdate: async () => ({}),
       showPrivacyOptionsForm: async () => {},
     },
