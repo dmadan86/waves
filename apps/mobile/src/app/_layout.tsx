@@ -863,9 +863,10 @@ function AuthGate() {
           <Stack.Screen name="contact-picker" options={slide} />
           <Stack.Screen name="country" options={slide} />
           <Stack.Screen name="scan" options={slide} />
-          <Stack.Screen name="personal/transactions" />
+          <Stack.Screen name="personal/spending" options={{ animation: 'none' }} />
+          <Stack.Screen name="personal/transactions" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/entry" options={slide} />
-          <Stack.Screen name="personal/recurring" />
+          <Stack.Screen name="personal/recurring" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/loans" />
           <Stack.Screen name="personal/budgets" />
           <Stack.Screen name="personal/source/[id]" />
