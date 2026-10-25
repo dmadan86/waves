@@ -64,7 +64,6 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { fill, useStrings } from '@/i18n';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
-import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 /** How many columns the chart draws. Six is two quarters: long enough for a
