@@ -21,22 +21,52 @@
  * hold-only control is no control at all to a screen reader.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { Platform, Vibration } from 'react-native';
+import { BackHandler, Platform, Vibration } from 'react-native';
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, PillTabBar, type PillTabAction, type PillTabItem } from '@waves/ui';
+import {
+  BAR_HEIGHT,
+  CenterButton,
+  FAB_GAP,
+  iconSize,
+  PillTabBar,
+  setTabBarFab,
+  useTheme,
+  type PillTabAction,
+  type PillTabItem,
+} from '@waves/ui';
 
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
+import { hapticLight } from '@/lib/assistantHaptics';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
 import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
-import { resolveTabBar, tabBarRouteForSelection } from '@/lib/tabBar';
+import {
+  isPersonalMode,
+  personalActiveKey,
+  personalRouteForSelection,
+  resolveFab,
+  resolveTabBar,
+  tabBarRouteForSelection,
+} from '@/lib/tabBar';
 import { useTabBarSuppressed } from '@/lib/tabBarSuppress';
 import { useVoiceWarmup } from '@/lib/voiceWarmup';
 
@@ -65,9 +95,52 @@ function buzz(ms: number): void {
   Vibration.vibrate(ms);
 }
 
+/** Each item reads the same clock, so a stagger never schedules React work. */
+function ModeItem({
+  children,
+  p,
+  index,
+  personal,
+  reduced,
+  focused,
+}: {
+  children: ReactNode;
+  p: SharedValue<number>;
+  index: number;
+  personal: boolean;
+  reduced: boolean;
+  focused: boolean;
+}) {
+  const focus = useSharedValue(focused ? 1 : 0);
+  useEffect(() => {
+    focus.value = reduced ? (focused ? 1 : 0) : withTiming(focused ? 1 : 0, { duration: 160 });
+  }, [focus, focused, reduced]);
+  const style = useAnimatedStyle(() => {
+    const progress = reduced
+      ? p.value
+      : interpolate(
+          p.value,
+          personal ? [(index * 30) / 280, (index * 30 + 140) / 280] : [0, 0.5],
+          [0, 1],
+          Extrapolation.CLAMP,
+        );
+    const visible = personal ? progress : 1 - progress;
+    return {
+      opacity: reduced ? 1 : visible * (0.92 + focus.value * 0.08),
+      transform: reduced
+        ? []
+        : [{ translateY: (1 - visible) * 10 }, { scale: 1 + focus.value * 0.035 }],
+    };
+  });
+  return (
+    <Animated.View style={[{ flex: 1, justifyContent: 'center' }, style]}>{children}</Animated.View>
+  );
+}
+
 /** Renders the persistent bottom navigation bar and routes tab selections without stacking duplicates. */
 export function AppTabBar() {
   const { t, locale } = useStrings();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   // The bar carries the mic, so it is where the mic's slow answers are fetched
   // ahead of the tap: the voice screen then opens straight onto a live mic.
@@ -85,7 +158,40 @@ export function AppTabBar() {
 
   // No session means no bar anywhere — the privacy page opened from the login
   // legal line is the one place it used to leak onto a signed-out screen.
-  const { hidden, activeKey } = resolveTabBar(segments, !session);
+  const { hidden, activeKey: sharedKey } = resolveTabBar(segments, !session);
+  // On the Personal tab and its screens the bar swaps to the private-money
+  // destinations (same look, same mic); leaving them swaps it back. Route-derived.
+  const personal = isPersonalMode(segments);
+  const theme = useTheme();
+  const reduced = useReducedMotion();
+  const p = useSharedValue(personal ? 1 : 0);
+  const mic = useSharedValue(personal ? 1 : 0);
+  const previousPersonal = useRef(personal);
+  useEffect(() => {
+    // Mount directly into the route's mode; only a real switch earns a tick.
+    if (previousPersonal.current === personal) return;
+    previousPersonal.current = personal;
+    hapticLight();
+    p.value = withTiming(personal ? 1 : 0, {
+      duration: reduced ? 120 : 280,
+      easing: Easing.linear,
+    });
+    mic.value = reduced
+      ? withTiming(personal ? 1 : 0, { duration: 120 })
+      : withSpring(personal ? 1 : 0, { duration: 300, dampingRatio: 0.8 });
+  }, [personal, reduced, p, mic]);
+  const sharedStyle = useAnimatedStyle(() => ({ opacity: 1 - p.value }));
+  const personalStyle = useAnimatedStyle(() => ({ opacity: p.value }));
+  const tintStyle = useAnimatedStyle(() => ({ opacity: p.value * 0.35 }));
+  const centerStyle = useAnimatedStyle(() => ({
+    opacity: reduced ? 1 : 1 - p.value,
+    transform: reduced ? [] : [{ scale: 1 - p.value * 0.4 }],
+  }));
+  const fabStyle = useAnimatedStyle(() => ({
+    opacity: p.value,
+    transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
+  }));
+  const activeKey = personal ? personalActiveKey(segments) : sharedKey;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
   // the phone to itself rather than stacking on top of the navigation with the
@@ -109,17 +215,66 @@ export function AppTabBar() {
   const waitingCount = foldedCaptureCount(captures.data ?? []);
   const captureBadge = captureInboxActionState(waitingCount).badge;
 
-  const items = useMemo<PillTabItem[]>(
+  const personalItems = useMemo<PillTabItem[]>(
+    () => [
+      {
+        key: 'shared',
+        label: t.personal.nav.shared,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
+      {
+        key: 'me',
+        label: t.personal.nav.overview,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'grid' : 'grid-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
+      {
+        key: 'transactions',
+        label: t.personal.nav.transactions,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'list' : 'list-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
+      {
+        key: 'recurring',
+        label: t.personal.nav.recurring,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'repeat' : 'repeat-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
+      {
+        key: 'spending',
+        label: t.personal.nav.spending,
+        icon: (color, focused) => (
+          <Ionicons
+            name={focused ? 'pie-chart' : 'pie-chart-outline'}
+            size={iconSize.lg}
+            color={color}
+          />
+        ),
+      },
+    ],
+    [t.personal.nav],
+  );
+
+  const sharedItems = useMemo<PillTabItem[]>(
     () => [
       {
         key: 'index',
         label: t.home,
-        icon: (color) => <Ionicons name="home" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'friends',
         label: t.friends,
-        icon: (color) => <Ionicons name="people" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'people' : 'people-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'captures',
@@ -132,15 +287,21 @@ export function AppTabBar() {
           waitingCount > 0
             ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
             : t.review,
-        icon: (color) => (
-          <Ionicons name="file-tray-full-outline" size={iconSize.lg} color={color} />
+        icon: (color, focused) => (
+          <Ionicons
+            name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+            size={iconSize.lg}
+            color={color}
+          />
         ),
         badge: captureBadge,
       },
       {
         key: 'me',
         label: t.personal.tab,
-        icon: (color) => <Ionicons name="wallet-outline" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={iconSize.lg} color={color} />
+        ),
       },
     ],
     [
@@ -160,11 +321,37 @@ export function AppTabBar() {
   // so repeated taps do not schedule redundant router work.
   const go = useCallback(
     (key: string): void => {
+      if (personal) {
+        const route = personalRouteForSelection(activeKey, key);
+        if (!route) return;
+        // Siblings inside the personal section replace each other rather than stack.
+        if (route.startsWith('/personal')) router.replace(route);
+        else switchTab(route);
+        return;
+      }
       const route = tabBarRouteForSelection(activeKey, key);
       if (route) switchTab(route);
     },
-    [activeKey],
+    [activeKey, personal],
   );
+
+  // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
+  const nestedPersonal =
+    personal && ['entry', 'source', 'budgets', 'loans'].includes(segments[1] ?? '');
+
+  useEffect(() => {
+    if (
+      nestedPersonal ||
+      !personal ||
+      !['me', 'transactions', 'recurring', 'spending'].includes(activeKey)
+    )
+      return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      switchTab('/');
+      return true;
+    });
+    return () => listener.remove();
+  }, [nestedPersonal, personal, activeKey]);
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
   // the bar hides itself on the `voice` route, and unmounting the button the
@@ -177,8 +364,10 @@ export function AppTabBar() {
   const cancelled = useRef(false);
 
   const openVoice = useCallback((): void => {
-    router.push(groupId ? { pathname: '/voice', params: { group: groupId } } : '/voice');
-  }, [groupId]);
+    // In Personal mode the mic adds a private expense: "only me" is preselected.
+    if (personal) router.push({ pathname: '/voice', params: { scope: 'personal' } });
+    else router.push(groupId ? { pathname: '/voice', params: { group: groupId } } : '/voice');
+  }, [groupId, personal]);
 
   // The finger has landed: open the voice screen *now*. The mic on that screen
   // starts itself as it mounts, so this is the earliest the recogniser can
@@ -220,7 +409,7 @@ export function AppTabBar() {
   // shortcut over the same screen, so nothing is reachable only by holding.
   const voice = useMemo<PillTabAction>(
     () => ({
-      accessibilityLabel: t.voice.speakExpense,
+      accessibilityLabel: personal ? t.personal.nav.voiceFab : t.voice.speakExpense,
       accessibilityHint: t.voice.micHint,
       onPress: openVoice,
       onPressIn: holdStart,
@@ -228,20 +417,112 @@ export function AppTabBar() {
       onHoldMove: holdMove,
       icon: (color: string) => <Ionicons name="mic" size={iconSize.lg} color={color} />,
     }),
-    [holdEnd, holdMove, holdStart, openVoice, t.voice.micHint, t.voice.speakExpense],
+    [
+      holdEnd,
+      holdMove,
+      holdStart,
+      openVoice,
+      personal,
+      t.personal.nav.voiceFab,
+      t.voice.micHint,
+      t.voice.speakExpense,
+    ],
   );
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
   // and taking it away mid-sentence would cancel what somebody is saying.
-  if ((hidden || suppressed) && !holding) return null;
+  const showBar = !((hidden || suppressed) && !holding);
+  // Personal mode swaps the raised mic for a floating one, so lists leave room.
+  const fab = personal && showBar && resolveFab(segments);
+  useEffect(() => {
+    setTabBarFab(fab);
+    return () => setTabBarFab(false);
+  }, [fab]);
+  if (!showBar) return null;
 
   return (
     <>
       {/* The in-app update bar rides on the navigation: there wherever the bar
           is, gone wherever it is not. */}
       <UpdateBar />
-      <PillTabBar items={items} activeKey={activeKey} onSelect={go} animated centerAction={voice} />
+      {/* Both frames stay put: fading destinations never moves screen content. */}
+      {[false, true].map((mode) => (
+        <Animated.View
+          key={String(mode)}
+          pointerEvents={personal === mode ? 'box-none' : 'none'}
+          accessibilityElementsHidden={personal !== mode}
+          importantForAccessibility={personal === mode ? 'auto' : 'no-hide-descendants'}
+          style={[
+            {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: BAR_HEIGHT + insets.bottom + 16,
+            },
+            mode ? personalStyle : sharedStyle,
+          ]}
+        >
+          <PillTabBar
+            items={mode ? personalItems : sharedItems}
+            activeKey={mode ? personalActiveKey(segments) : sharedKey}
+            onSelect={go}
+            animated={!reduced}
+            reserveCenterSpace
+            centerAction={mode ? undefined : voice}
+            renderItem={(content, index) => (
+              <ModeItem
+                p={p}
+                index={index}
+                personal={mode}
+                reduced={reduced}
+                focused={
+                  (mode ? personalItems : sharedItems)[index]?.key ===
+                  (mode ? personalActiveKey(segments) : sharedKey)
+                }
+              >
+                {content}
+              </ModeItem>
+            )}
+            renderCenterAction={(content) => (
+              <Animated.View style={centerStyle}>{content}</Animated.View>
+            )}
+            backgroundOverlay={
+              mode ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+                    { backgroundColor: theme.color.brandSoft },
+                    tintStyle,
+                  ]}
+                />
+              ) : undefined
+            }
+          />
+        </Animated.View>
+      ))}
+      {resolveFab(segments) ? (
+        // Same button and the same hold-to-talk as the raised mic, floated
+        // bottom-right (bottom-left in RTL) above the Personal bar.
+        <Animated.View
+          pointerEvents={personal ? 'auto' : 'none'}
+          accessibilityElementsHidden={!personal}
+          importantForAccessibility={personal ? 'auto' : 'no-hide-descendants'}
+          style={[
+            {
+              position: 'absolute',
+              bottom: insets.bottom + BAR_HEIGHT + FAB_GAP,
+              ...(isRtl() ? { left: 16 } : { right: 16 }),
+              transformOrigin: isRtl() ? 'bottom left' : 'bottom right',
+            },
+            fabStyle,
+          ]}
+        >
+          <CenterButton action={voice} />
+        </Animated.View>
+      ) : null}
     </>
   );
 }

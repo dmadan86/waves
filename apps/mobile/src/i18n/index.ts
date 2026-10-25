@@ -938,23 +938,25 @@ export interface UiStrings {
   };
   /** The app lock, the delay before it asks again, and the way out. */
   lock: {
+    subtitle: string;
+    requireShort: string;
+    requireHint: string;
+    askAgainShort: string;
+    reopenShort: string;
+    footnoteShort: string;
     title: string;
     requireBiometrics: string;
-    requireExplain: string;
     appLock: string;
     unsupported: string;
     askAgainAfter: string;
-    askAgainExplain: string;
     graceImmediate: string;
     graceSeconds: PluralForms;
     graceMinutes: PluralForms;
-    reopenAlwaysAsks: string;
     signOut: string;
     signOutQuestion: string;
     signOutGuestWarning: string;
     signOutReassure: string;
     staySignedIn: string;
-    footnote: string;
     /** Native biometric prompt shown on entering the private Me tab. */
     personalPrompt: string;
     /** Heading on the shield in front of the private ledger. */
@@ -1830,6 +1832,11 @@ export interface UiStrings {
     offlineCappedExport: string;
   };
   rewardedAds: {
+    balance: string;
+    perAdVoice: string;
+    watchWithCount: string;
+    upgradeBody: string;
+    dailyLimit: string;
     entryVoice: string;
     entryScan: string;
     adLabel: string;
@@ -3114,6 +3121,9 @@ export interface UiStrings {
     interruptedHint: string;
     backedUp: PluralForms;
     backupFailed: string;
+    failReconnect: string;
+    failFull: string;
+    failNetwork: string;
     /** Under a button held down by some other in-flight action on the screen. */
     busy: string;
 
@@ -5765,6 +5775,15 @@ export interface UiStrings {
     addBudgetSub: string;
     budgetAboutMonth: string;
     tab: string;
+    /** The Personal-mode bottom bar: the way back to shared money, and its destinations. */
+    nav: {
+      shared: string;
+      overview: string;
+      transactions: string;
+      spending: string;
+      recurring: string;
+      voiceFab: string;
+    };
     title: string;
     subtitle: string;
     /** The entry form: its header line, sections, note prompt and payment methods. */
@@ -5818,8 +5837,7 @@ export interface UiStrings {
       toolLoansSub: string;
       toolBudgets: string;
       toolBudgetsSub: string;
-      toolAnalytics: string;
-      toolAnalyticsSub: string;
+      toolSpendingSub: string;
       toolCategories: string;
       toolCategoriesSub: string;
       perMonth: string;
@@ -6012,7 +6030,6 @@ export interface UiStrings {
      * `everyday` is the third row — what was actually decided this month, once
      * the bills are out — and reads "Spending" like the screen it is on.
      */
-    spendingTitle: string;
     spendingSub: string;
     spendingEmpty: string;
     spendingEmptyBody: string;
@@ -6718,27 +6735,26 @@ const en: UiStrings = {
     openDetail: 'Opens what needs your decision',
   },
   lock: {
+    subtitle: 'Keep your information private.',
+    requireShort: 'Require biometrics or passcode',
+    requireHint: 'Asks for fingerprint, face or passcode to open Waves.',
+    askAgainShort: 'How long Waves can stay unlocked in the background.',
+    reopenShort: 'Waves always asks after it has been fully closed.',
+    footnoteShort: 'Data that has synced is protected on our servers either way.',
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
-    requireExplain:
-      'Handing someone your phone to show them the split should not show them everything else.',
     appLock: 'App lock',
     unsupported: 'This device has no biometrics or passcode set up',
     askAgainAfter: 'Ask again after',
-    askAgainExplain:
-      'Time away before Waves asks again — for the app lock, and for the private personal ledger, which uses the same window when you leave it. Settling by UPI sends you to another app and back, so asking the instant you leave means unlocking every time you pay somebody.',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
     graceMinutes: { one: 'After a minute', other: 'After {n} minutes' },
-    reopenAlwaysAsks: 'Reopening Waves after it has been closed always asks, whatever this says.',
     signOut: 'Sign out',
     signOutQuestion: 'Sign out?',
     signOutGuestWarning:
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
     signOutReassure: 'You can sign back in whenever you like. Nothing is deleted.',
     staySignedIn: 'Stay signed in',
-    footnote:
-      'This guards the screen, not the data — your ledger is protected by row-level security on the server whether the lock is on or not.',
     personalPrompt: 'Unlock your personal ledger',
     personalLockedTitle: 'Your personal ledger is locked',
     personalLockedBody:
@@ -7489,13 +7505,18 @@ const en: UiStrings = {
     offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
+    balance: 'You have {n} credits',
+    perAdVoice: 'Each ad gives {count} more AI voice commands.',
+    watchWithCount: 'Watch ad (+{count} commands)',
+    upgradeBody: 'Get unlimited voice commands, no ads and more.',
+    dailyLimit: 'Daily ad limit reached — try tomorrow',
     entryVoice: 'Watch a short video for 2 more voice commands',
     entryScan: 'Watch a short video for 2 more scans',
     adLabel: 'Ad',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
-      "You have used this month's free AI voice commands. Watch one short ad to get more now, or go on with basic voice.",
+      "You've used this month's free AI voice commands. Watch one short ad to get more now, or continue with basic voice.",
     scanBody:
       "You have used this month's free receipt scans. Watch one short ad to get more now, or add the items by hand, which is always free.",
     watch: 'Watch ad',
@@ -8519,6 +8540,9 @@ const en: UiStrings = {
       other: '{n} records backed up',
     },
     backupFailed: 'The backup did not finish. Try again in a moment.',
+    failReconnect: 'Reconnect Google Drive',
+    failFull: 'Your Google Drive is full',
+    failNetwork: 'Check your internet',
     busy: 'Just a moment…',
 
     never: 'Never backed up',
@@ -10932,6 +10956,14 @@ const en: UiStrings = {
     addBudgetSub: 'Set a monthly limit for your spending.',
     budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
+    nav: {
+      shared: 'Home',
+      overview: 'Overview',
+      transactions: 'Transactions',
+      spending: 'Spending',
+      recurring: 'Recurring',
+      voiceFab: 'Add personal expense by voice',
+    },
     title: 'Personal',
     subtitle: 'Your own money — private to you.',
     entryScreen: {
@@ -10985,8 +11017,7 @@ const en: UiStrings = {
       toolLoansSub: 'Track your loans',
       toolBudgets: 'Budgets',
       toolBudgetsSub: 'Set monthly limits',
-      toolAnalytics: 'Analytics',
-      toolAnalyticsSub: 'Understand spending patterns',
+      toolSpendingSub: 'Understand spending patterns',
       toolCategories: 'Categories',
       toolCategoriesSub: 'Organize expenses',
       perMonth: '/ month',
@@ -11157,7 +11188,6 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -11866,27 +11896,26 @@ const ta: UiStrings = {
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
   },
   lock: {
+    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாக வைத்திருங்கள்.',
+    requireShort: 'கைரேகை அல்லது கடவுக்குறியீடு தேவை',
+    requireHint: 'Waves-ஐத் திறக்க கைரேகை, முகம் அல்லது கடவுக்குறியீட்டைக் கேட்கும்.',
+    askAgainShort: 'பின்னணியில் Waves எவ்வளவு நேரம் பூட்டப்படாமல் இருக்கலாம்.',
+    reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
+    footnoteShort: 'ஒத்திசைந்த தரவு எந்த நிலையிலும் எங்கள் சர்வர்களில் பாதுகாப்பாக உள்ளது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
-    requireExplain:
-      'பங்கீட்டைக் காட்ட ஃபோனைக் கொடுப்பது மற்ற எல்லாவற்றையும் காட்டுவதாக இருக்கக் கூடாது.',
     appLock: 'ஆப் பூட்டு',
     unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
     askAgainAfter: 'மீண்டும் கேட்க',
-    askAgainExplain:
-      'Waves மீண்டும் கேட்பதற்கு முன் நீங்கள் விலகி இருக்கும் நேரம் — ஆப் பூட்டுக்கும், தனிப்பட்ட கணக்குக்கும்; அதை விட்டு வெளியேறினாலும் இதே நேரம்தான். UPI மூலம் தீர்ப்பது உங்களை வேறு ஆப்புக்கு அனுப்பி மீண்டும் கொண்டுவரும், எனவே வெளியேறியதுமே கேட்டால் ஒவ்வொரு முறை பணம் கொடுக்கும்போதும் திறக்க வேண்டியிருக்கும்.',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
     graceMinutes: { one: 'ஒரு நிமிடம் கழித்து', other: '{n} நிமிடங்கள் கழித்து' },
-    reopenAlwaysAsks: 'Waves-ஐ மூடிவிட்டுத் திறந்தால் இது என்னவாக இருந்தாலும் எப்போதும் கேட்கும்.',
     signOut: 'வெளியேறு',
     signOutQuestion: 'வெளியேறவா?',
     signOutGuestWarning:
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
     signOutReassure: 'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம். எதுவும் அழிக்கப்படவில்லை.',
     staySignedIn: 'உள்ளேயே இரு',
-    footnote:
-      'இது திரையைக் காக்கிறது, தரவை அல்ல — பூட்டு இருந்தாலும் இல்லாவிட்டாலும் உங்கள் கணக்கு சர்வரில் வரிசை அளவிலான பாதுகாப்பால் காக்கப்படுகிறது.',
     personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
     personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
     personalLockedBody:
@@ -12651,6 +12680,12 @@ const ta: UiStrings = {
     offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
+    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    perAdVoice: 'ஒவ்வொரு விளம்பரமும் மேலும் {count} AI குரல் கட்டளைகளை வழங்கும்.',
+    watchWithCount: 'விளம்பரம் பாருங்கள் (+{count} கட்டளைகள்)',
+    upgradeBody:
+      'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
+    dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
     entryScan: 'மேலும் 2 ஸ்கேன்களுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
     adLabel: 'விளம்பரம்',
@@ -13719,6 +13754,9 @@ const ta: UiStrings = {
       other: '{n} பதிவுகள் காப்பு செய்யப்பட்டன',
     },
     backupFailed: 'காப்புப்பிரதி முடியவில்லை. சிறிது நேரம் கழித்து முயலுங்கள்.',
+    failReconnect: 'Google Drive-ஐ மீண்டும் இணைக்கவும்',
+    failFull: 'உங்கள் Google Drive நிரம்பிவிட்டது',
+    failNetwork: 'உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்',
     busy: 'ஒரு நிமிடம்…',
 
     never: 'இதுவரை காப்பு எடுக்கவில்லை',
@@ -16270,6 +16308,14 @@ const ta: UiStrings = {
     addBudgetSub: 'உங்கள் செலவுக்கு ஒரு மாத வரம்பை அமையுங்கள்.',
     budgetAboutMonth: 'மாதம் சுமார் {average}.',
     tab: 'தனிப்பட்டது',
+    nav: {
+      shared: 'முகப்பு',
+      overview: 'மேலோட்டம்',
+      transactions: 'பரிவர்த்தனைகள்',
+      spending: 'செலவு',
+      recurring: 'தொடர்ச்சியானவை',
+      voiceFab: 'குரலால் தனிப்பட்ட செலவைச் சேர்',
+    },
     title: 'தனிப்பட்டது',
     subtitle: 'உங்கள் சொந்தப் பணம் — உங்களுக்கு மட்டும் தனிப்பட்டது.',
     entryScreen: {
@@ -16323,8 +16369,7 @@ const ta: UiStrings = {
       toolLoansSub: 'உங்கள் கடன்களைக் கண்காணிக்கவும்',
       toolBudgets: 'பட்ஜெட்கள்',
       toolBudgetsSub: 'மாத வரம்புகளை அமைக்கவும்',
-      toolAnalytics: 'பகுப்பாய்வு',
-      toolAnalyticsSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
+      toolSpendingSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
       toolCategories: 'வகைகள்',
       toolCategoriesSub: 'செலவுகளை ஒழுங்குபடுத்துங்கள்',
       perMonth: '/ மாதம்',
@@ -16496,7 +16541,6 @@ const ta: UiStrings = {
     openEntry: 'இந்தப் பதிவைத் திற',
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -17190,26 +17234,26 @@ const hi: UiStrings = {
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
+    subtitle: 'अपनी जानकारी निजी रखें।',
+    requireShort: 'बायोमेट्रिक या पासकोड ज़रूरी करें',
+    requireHint: 'Waves खोलने के लिए फ़िंगरप्रिंट, चेहरा या पासकोड माँगा जाएगा।',
+    askAgainShort: 'बैकग्राउंड में Waves कितनी देर तक अनलॉक रह सकता है।',
+    reopenShort: 'पूरी तरह बंद करने के बाद Waves खोलने पर हमेशा पुष्टि माँगी जाती है।',
+    footnoteShort: 'दोनों ही स्थितियों में सिंक हो चुका डेटा हमारे सर्वर पर सुरक्षित है।',
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
-    requireExplain: 'हिसाब दिखाने के लिए फ़ोन थमाना बाकी सब कुछ दिखाना नहीं होना चाहिए।',
     appLock: 'ऐप लॉक',
     unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
     askAgainAfter: 'दोबारा पूछें',
-    askAgainExplain:
-      'Waves के दोबारा पूछने से पहले आपके दूर रहने का समय — ऐप लॉक के लिए भी, और निजी हिसाब के लिए भी, जिसे छोड़ने पर यही समय लागू होता है। UPI से निपटाने पर आप दूसरे ऐप में जाकर लौटते हैं, इसलिए निकलते ही पूछने का मतलब है हर भुगतान पर दोबारा खोलना।',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
     graceMinutes: { one: 'एक मिनट बाद', other: '{n} मिनट बाद' },
-    reopenAlwaysAsks: 'Waves को बंद करके दोबारा खोलने पर हमेशा पूछा जाएगा, यहाँ कुछ भी लिखा हो।',
     signOut: 'साइन आउट',
     signOutQuestion: 'साइन आउट करें?',
     signOutGuestWarning:
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
     signOutReassure: 'आप जब चाहें दोबारा साइन इन कर सकते हैं। कुछ भी मिटता नहीं।',
     staySignedIn: 'साइन इन रहें',
-    footnote:
-      'यह स्क्रीन की रक्षा करता है, डेटा की नहीं — लॉक चालू हो या बंद, आपका हिसाब सर्वर पर रो-लेवल सुरक्षा से सुरक्षित है।',
     personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
     personalLockedTitle: 'आपका निजी हिसाब लॉक है',
     personalLockedBody:
@@ -17962,6 +18006,11 @@ const hi: UiStrings = {
     offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
+    balance: 'आपके पास {n} क्रेडिट हैं',
+    perAdVoice: 'हर विज्ञापन से {count} और AI वॉइस कमांड मिलते हैं।',
+    watchWithCount: 'विज्ञापन देखें (+{count} कमांड)',
+    upgradeBody: 'अनलिमिटेड वॉइस कमांड पाएँ, बिना विज्ञापनों के और भी बहुत कुछ।',
+    dailyLimit: 'आज की विज्ञापन सीमा पूरी हो गई — कल फिर कोशिश करें',
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
     entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
     adLabel: 'विज्ञापन',
@@ -18998,6 +19047,9 @@ const hi: UiStrings = {
       other: '{n} रिकॉर्ड का बैकअप हो गया',
     },
     backupFailed: 'बैकअप पूरा नहीं हुआ। थोड़ी देर में फिर कोशिश करें।',
+    failReconnect: 'Google Drive फिर से कनेक्ट करें',
+    failFull: 'आपका Google Drive भर गया है',
+    failNetwork: 'अपना इंटरनेट कनेक्शन जाँचें',
     busy: 'एक पल…',
 
     never: 'अभी तक कोई बैकअप नहीं',
@@ -21425,6 +21477,14 @@ const hi: UiStrings = {
     addBudgetSub: 'अपने खर्च की एक मासिक सीमा तय करें।',
     budgetAboutMonth: 'लगभग {average} हर महीने।',
     tab: 'निजी',
+    nav: {
+      shared: 'होम',
+      overview: 'अवलोकन',
+      transactions: 'लेन-देन',
+      spending: 'खर्च',
+      recurring: 'आवर्ती',
+      voiceFab: 'आवाज़ से निजी खर्च जोड़ें',
+    },
     title: 'निजी',
     subtitle: 'आपका अपना पैसा — सिर्फ़ आपके लिए निजी।',
     entryScreen: {
@@ -21478,8 +21538,7 @@ const hi: UiStrings = {
       toolLoansSub: 'अपने लोन ट्रैक करें',
       toolBudgets: 'बजट',
       toolBudgetsSub: 'मासिक सीमा तय करें',
-      toolAnalytics: 'एनालिटिक्स',
-      toolAnalyticsSub: 'खर्च के पैटर्न समझें',
+      toolSpendingSub: 'खर्च के पैटर्न समझें',
       toolCategories: 'श्रेणियाँ',
       toolCategoriesSub: 'खर्चों को व्यवस्थित करें',
       perMonth: '/ महीना',
@@ -21649,7 +21708,6 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -22374,14 +22432,17 @@ const ar: UiStrings = {
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
   lock: {
+    subtitle: 'حافظ على خصوصية معلوماتك.',
+    requireShort: 'طلب البصمة أو رمز المرور',
+    requireHint: 'يطلب بصمة الإصبع أو الوجه أو رمز المرور لفتح Waves.',
+    askAgainShort: 'المدة التي يمكن أن يبقى فيها Waves مفتوحًا في الخلفية.',
+    reopenShort: 'يطلب Waves التحقق دائمًا بعد إغلاقه بالكامل.',
+    footnoteShort: 'البيانات التي تمت مزامنتها محمية على خوادمنا في كلتا الحالتين.',
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
-    requireExplain: 'إعطاء هاتفك لأحد كي يرى التقسيم لا ينبغي أن يريه كل شيء آخر.',
     appLock: 'قفل التطبيق',
     unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
     askAgainAfter: 'اسأل مرة أخرى بعد',
-    askAgainExplain:
-      'المدة التي تقضيها بعيدًا قبل أن يسأل Waves مرة أخرى — لقفل التطبيق، ولدفترك الشخصي الذي يستخدم المدة نفسها عند مغادرته. التسوية عبر UPI تنقلك إلى تطبيق آخر ثم تعيدك، فالسؤال لحظة الخروج يعني فتح القفل مع كل دفعة.',
     graceImmediate: 'فورًا',
     graceSeconds: {
       zero: 'بعد {n} ثانية',
@@ -22399,15 +22460,12 @@ const ar: UiStrings = {
       many: 'بعد {n} دقيقة',
       other: 'بعد {n} دقيقة',
     },
-    reopenAlwaysAsks: 'إعادة فتح Waves بعد إغلاقه تطلب التحقق دائمًا، مهما كان هذا الإعداد.',
     signOut: 'تسجيل الخروج',
     signOutQuestion: 'تسجيل الخروج؟',
     signOutGuestWarning:
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
     signOutReassure: 'يمكنك تسجيل الدخول متى شئت. لا يُحذف شيء.',
     staySignedIn: 'ابقَ مسجّل الدخول',
-    footnote:
-      'هذا يحمي الشاشة لا البيانات — دفترك محمي على الخادم بأمان على مستوى الصفوف سواء كان القفل مفعّلًا أم لا.',
     personalPrompt: 'افتح قفل دفترك الشخصي',
     personalLockedTitle: 'دفترك الشخصي مقفل',
     personalLockedBody:
@@ -23190,6 +23248,11 @@ const ar: UiStrings = {
     offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
+    balance: 'لديك {n} من الرصيد',
+    perAdVoice: 'يمنحك كل إعلان {count} من الأوامر الصوتية الإضافية بالذكاء الاصطناعي.',
+    watchWithCount: 'شاهد إعلانًا (+{count} أوامر)',
+    upgradeBody: 'احصل على أوامر صوتية بلا حدود، وبدون إعلانات، والمزيد.',
+    dailyLimit: 'بلغت الحد اليومي للإعلانات — حاول غدًا',
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
     entryScan: 'شاهد فيديو قصيرًا للحصول على عمليتي مسح إضافيتين',
     adLabel: 'إعلان',
@@ -24336,6 +24399,9 @@ const ar: UiStrings = {
       other: 'نُسخ {n} سجل',
     },
     backupFailed: 'لم يكتمل النسخ. حاول بعد قليل.',
+    failReconnect: 'أعِد ربط Google Drive',
+    failFull: 'مساحة Google Drive ممتلئة',
+    failNetwork: 'تحقق من اتصالك بالإنترنت',
     busy: 'لحظة…',
 
     never: 'لم يحدث نسخ بعد',
@@ -27236,6 +27302,14 @@ const ar: UiStrings = {
     addBudgetSub: 'حدّد حدًا شهريًا لإنفاقك.',
     budgetAboutMonth: 'نحو {average} في الشهر.',
     tab: 'الشخصي',
+    nav: {
+      shared: 'الرئيسية',
+      overview: 'نظرة عامة',
+      transactions: 'المعاملات',
+      spending: 'الإنفاق',
+      recurring: 'المتكررة',
+      voiceFab: 'أضف مصروفًا شخصيًا بالصوت',
+    },
     title: 'الشخصي',
     subtitle: 'أموالك الخاصة — خاصة بك وحدك.',
     entryScreen: {
@@ -27296,8 +27370,7 @@ const ar: UiStrings = {
       toolLoansSub: 'تتبّع قروضك',
       toolBudgets: 'الميزانيات',
       toolBudgetsSub: 'حدّد الحدود الشهرية',
-      toolAnalytics: 'التحليلات',
-      toolAnalyticsSub: 'فهم أنماط الإنفاق',
+      toolSpendingSub: 'فهم أنماط الإنفاق',
       toolCategories: 'الفئات',
       toolCategoriesSub: 'تنظيم المصروفات',
       perMonth: '/ شهر',
@@ -27465,7 +27538,6 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',

@@ -52,6 +52,8 @@ export interface VoiceAgentRequest {
   readonly durationMs?: number;
   /** The group screen the mic was opened from, if any — a strong default. */
   readonly groupId?: string | null;
+  /** The mic was opened from the private Personal ledger. */
+  readonly personal?: boolean;
   /** UI locale (en, hi, ta, ar) — a language hint for transcription. */
   readonly locale: string;
   /** The caller's local date (YYYY-MM-DD), for "yesterday", "on Monday". */

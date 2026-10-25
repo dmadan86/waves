@@ -101,6 +101,14 @@ describe('buildContext / contextText / keyterms', () => {
     expect(systemPrompt(context())).toContain(text);
   });
 
+  it('defaults Personal-ledger expenses to add_personal while named groups win', () => {
+    const line =
+      'The caller opened the assistant from their private Personal ledger, so default to add_personal for an expense unless the speaker explicitly names a group (named group wins).';
+    expect(systemPrompt({ ...context(), personal: true })).toContain(line);
+    expect(systemPrompt({ ...context(), personal: false })).not.toContain(line);
+    expect(systemPrompt(context())).not.toContain(line);
+  });
+
   it('builds distinct keyterms, current group first, capped by words', () => {
     const terms = keyterms(context());
     expect(terms[0]).toBe('Goa trip');

@@ -246,6 +246,7 @@ function PersonalTransactionsScreenBody() {
           accessibilityRole="button"
           accessibilityLabel={t.personal.add}
           onPress={addExpense}
+          hitSlop={4}
           style={({ pressed }) => ({
             width: 40,
             height: 40,

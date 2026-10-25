@@ -6,8 +6,9 @@
  * lives in `useRewardedAdOffer`.
  */
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Callout, iconSize, Sheet, Text, useTheme, type CalloutTone } from '@waves/ui';
 
@@ -24,6 +25,7 @@ export function RewardedAdSheet({
   kind,
   amount,
   credits,
+  capReached = false,
   state,
   onWatch,
   onUpgrade,
@@ -34,6 +36,7 @@ export function RewardedAdSheet({
   /** Units one ad gives, from the server's settings. */
   amount: number;
   credits?: number;
+  capReached?: boolean;
   state: AdSheetState;
   onWatch: () => void;
   onUpgrade: () => void;
@@ -42,24 +45,73 @@ export function RewardedAdSheet({
   const theme = useTheme();
   const { t } = useStrings();
   const a = t.rewardedAds;
+  const balanceParts = a.balance.split('{n}');
   const busy = state.step === 'busy';
   const done = state.step === 'result' && state.done;
   return (
     <Sheet visible={visible} onClose={busy ? () => undefined : onClose} closeLabel={t.common.close}>
       <View style={{ gap: theme.spacing.md }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="title" accessibilityRole="header">
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name={kind === 'voice' ? 'mic' : 'scan'}
+              size={iconSize.xl}
+              color={theme.color.brand}
+            />
+          </View>
+          <Text variant="title" accessibilityRole="header" style={{ textAlign: 'center' }}>
             {fill(kind === 'voice' ? a.voiceTitle : a.scanTitle, { count: amount })}
           </Text>
-          <Text variant="caption" tone="muted">
+          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
             {kind === 'voice' ? a.voiceBody : a.scanBody}
           </Text>
         </View>
 
         {credits !== undefined && (
-          <Text variant="caption" tone="muted">
-            {fill(t.credits.balance, { n: credits })}
-          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              padding: theme.spacing.md,
+              borderRadius: theme.radius.md,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="flash" size={iconSize.md} color={theme.color.brand} />
+            </View>
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <Text variant="body">
+                {balanceParts[0]}
+                <Text style={{ color: theme.color.brand }}>{credits}</Text>
+                {balanceParts[1]}
+              </Text>
+              {kind === 'voice' && (
+                <Text variant="caption" tone="muted">
+                  {fill(a.perAdVoice, { count: amount })}
+                </Text>
+              )}
+            </View>
+          </View>
         )}
         {busy ? (
           <View
@@ -81,22 +133,49 @@ export function RewardedAdSheet({
           ) : (
             <>
               <Button
-                label={state.step === 'result' ? a.tryAgain : a.watch}
+                label={
+                  capReached
+                    ? a.dailyLimit
+                    : state.step === 'result'
+                      ? a.tryAgain
+                      : kind === 'voice'
+                        ? fill(a.watchWithCount, { count: amount })
+                        : a.watch
+                }
                 variant="brand"
                 fullWidth
-                disabled={busy}
+                disabled={busy || capReached}
                 onPress={onWatch}
                 icon={
                   <Ionicons name="play-circle" size={iconSize.md} color={theme.color.onBrand} />
                 }
               />
-              <Button
-                label={a.upgrade}
-                variant="secondary"
-                fullWidth
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${a.upgrade}. ${a.upgradeBody}`}
+                accessibilityState={{ disabled: busy }}
                 disabled={busy}
                 onPress={onUpgrade}
-              />
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.md,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.surface,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: theme.color.border,
+                  opacity: busy ? 0.5 : pressed ? 0.7 : 1,
+                })}
+              >
+                <MaterialCommunityIcons name="crown" size={iconSize.md} color={theme.color.brand} />
+                <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                  <Text variant="subheading">{a.upgrade}</Text>
+                  <Text variant="caption" tone="muted">
+                    {a.upgradeBody}
+                  </Text>
+                </View>
+              </Pressable>
               <Button
                 label={a.notNow}
                 variant="ghost"
@@ -107,9 +186,25 @@ export function RewardedAdSheet({
             </>
           )}
         </View>
-        <Text variant="micro" tone="faint" style={{ textAlign: 'center' }}>
-          {a.footnote}
-        </Text>
+        <View
+          style={{
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: theme.color.border,
+            paddingTop: theme.spacing.sm,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+          }}
+        >
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+          <Text variant="micro" tone="muted" style={{ flex: 1 }}>
+            {a.footnote}
+          </Text>
+        </View>
       </View>
     </Sheet>
   );
