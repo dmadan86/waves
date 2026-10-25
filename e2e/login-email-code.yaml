@@ -10,7 +10,7 @@
 # seeded staging project and a working Magic Link email template (the one that
 # carries {{ .Token }}). It is part of the gated `e2e (Maestro)` job, not a
 # device-free unit test.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true

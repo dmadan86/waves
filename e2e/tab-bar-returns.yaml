@@ -16,7 +16,7 @@
 #
 # "Friends" is the discriminator throughout: on the dashboard the word appears
 # in the tab bar and nowhere else, so it stands for "the navigation is there".
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

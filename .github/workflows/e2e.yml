@@ -129,7 +129,7 @@ jobs:
       # to software emulation ("ProbeKVM: This user doesn't have permissions to use
       # KVM") and takes ~14 min to boot; adb sits "offline" and the install lands
       # on a half-started package manager, so every flow then fails with
-      # "Package app.waves.mobile.debug is not installed".
+      # "Package app.waves.mobile is not installed".
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

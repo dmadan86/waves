@@ -2,7 +2,7 @@
 # Adds a capture from the dashboard with the group left as "Decide later", finds
 # it waiting in the captures inbox, and assigns it to the seeded group — which
 # opens add-expense prefilled with the captured note.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

@@ -3,7 +3,7 @@
 # mark, picks a new mark, and confirms the write landed. The photo path is a
 # separate paid-gated flow (group-photo-paid-gate.yaml); this covers the free
 # icon path every account has.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 

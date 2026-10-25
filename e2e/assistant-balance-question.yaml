@@ -2,7 +2,7 @@
 # people who owe the login user (Flat 4B: Sam and Priya, ₹300 each).
 #
 # Seed: E2E_SEED_EXTRAS=assistant.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

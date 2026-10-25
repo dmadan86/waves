@@ -2,7 +2,7 @@
 # things" card sits above the first follow-up of a fresh install. Every flow
 # starts from clearState, so every flow meets it once; this dismisses it when it
 # is there. assistant-intro-once.yaml is the flow that asserts the card itself.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow:
     when:

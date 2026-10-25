@@ -3,7 +3,7 @@
 #
 # Seed: E2E_SEED_EXTRAS=assistant,duplicate - the ghost Priya's ₹1,200 "Dinner"
 # in Goa trip, added a moment ago.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

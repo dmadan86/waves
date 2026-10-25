@@ -7,7 +7,7 @@
 # — it does not tap through a provider (completing either needs a real IdP
 # round-trip, which belongs to a manual/device pass) and it does not send a code
 # (that hits the mail provider — see login-email-code).
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true

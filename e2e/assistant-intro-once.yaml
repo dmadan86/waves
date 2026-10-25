@@ -1,6 +1,6 @@
 # E2E-12. The "I'll ask one or two quick things" card shows with the first
 # follow-up, "Got it" dismisses it, and the next expense does not show it again.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 

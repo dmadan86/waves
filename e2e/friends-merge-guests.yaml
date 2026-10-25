@@ -5,7 +5,7 @@
 # (which only shows with two or more mergeable guests) is present. This drives
 # the whole journey: open the merge screen, see the irreversible-warning before
 # any button, pick both Reeya rows, and confirm.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 

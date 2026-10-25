@@ -1,7 +1,7 @@
 # The M0 happy path, now against a seeded, signed-in account: read the headline
 # balance, open the seeded group, see its expense and its ghost member, and use
 # the calculator on the add-expense screen. Fixture: e2e/seed-e2e.mjs.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 

@@ -13,7 +13,7 @@
 # password form. The final tap targets the submit button by its testID
 # (`auth-submit`) because the screen carries the word "Sign in" three times —
 # the heading, the submit button, and the "Sign in with …" providers.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true

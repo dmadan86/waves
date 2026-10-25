@@ -1,7 +1,7 @@
 # User-defined expense tags (A42): make a tag in Settings, then tag an expense
 # with it and see it name the row. Covers the whole journey — the manager, the
 # create sheet, the picker in add-expense, and the tag rendering on the ledger.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

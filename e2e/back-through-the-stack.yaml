@@ -14,7 +14,7 @@
 #     that screen where it was, not navigate away underneath it.
 #  3. **The tabs.** Every tab, there and back, still rendering and still able to
 #     reach the next one — the "is the menu still there" sweep.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

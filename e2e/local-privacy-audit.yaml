@@ -1,6 +1,6 @@
 # Dev/e2e-only audit of local private-data cleanup. This verifies aggregate
 # device-local state after sign-out through a route that exposes counts only.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - runFlow: sign-out-privacy.yaml
 

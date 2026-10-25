@@ -9,7 +9,7 @@
 # provider — but it does exercise the guest way in, which only navigates to the
 # guest doorway (the anonymous session is minted a screen later, on Continue),
 # so it is deterministic and touches nothing on the server.
-appId: app.waves.mobile.debug
+appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
