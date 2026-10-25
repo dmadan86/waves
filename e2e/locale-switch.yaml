@@ -2,7 +2,7 @@
 # Goes to Account → Language, switches to Hindi by its own name, and confirms the
 # screen re-renders in Hindi without a restart. (Arabic mirrors the layout and so
 # needs a native restart — out of scope for a single-session flow.)
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

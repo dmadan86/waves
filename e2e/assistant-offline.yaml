@@ -3,7 +3,7 @@
 #
 # Android only (setAirplaneMode). ₹450, not the spec's ₹180: INR's small-spend
 # floor is ₹200, under which the assistant asks nothing at all.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

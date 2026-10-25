@@ -5,7 +5,7 @@
 #       file: assistant-say.yaml
 #       env:
 #         SENTENCE: 'dinner 1200 Goa'
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - tapOn: 'Type a command or a question|Ask or add.*'
 - inputText: '${SENTENCE}'

@@ -1,7 +1,7 @@
 # E2E-06. Undo takes the expense back out, the ledger is empty, Restore puts it
 # back. Needs the corrections work (WS2): "Undo" on the saved line, then
 # "Removed ... Restore" in its place.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

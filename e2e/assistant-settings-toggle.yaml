@@ -2,7 +2,7 @@
 # on brings them back.
 #
 # The switch is found to the right of its row's title: the row has no test id.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

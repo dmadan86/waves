@@ -1,6 +1,6 @@
 # Renaming a group persists, and archiving removes it from Home (F-CFG-01 /
 # F-CFG-04). Uses the seeded "Goa trip".
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

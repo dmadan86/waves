@@ -1,6 +1,6 @@
 # Deleting an expense removes it from balances and the default view; Restore
 # brings it back (F-EXP-03). Uses the seeded "Beach shack dinner".
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

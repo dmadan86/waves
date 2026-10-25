@@ -3,7 +3,7 @@
 # named person paid. Answering "Ravi paid" moves the payer.
 #
 # Seed: E2E_SEED_EXTRAS=assistant (Goa trip gains the ghost Ravi).
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

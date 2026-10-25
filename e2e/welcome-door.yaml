@@ -6,7 +6,7 @@
 # (ADR-006), and "Sign in" for a returning member. This asserts the door renders
 # those and that Skip reaches the guest doorway — it taps no provider, which
 # would need a real IdP round-trip and belongs to a manual device pass.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - launchApp:
     clearState: true

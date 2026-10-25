@@ -5,7 +5,7 @@
 # Maestro can't tap a real home-screen widget, so this drives the exact links
 # the widgets hold and asserts each lands on the right screen — which is the
 # whole of a launcher widget's behaviour. Fixture: e2e/seed-e2e.mjs.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

@@ -3,7 +3,7 @@
 # ₹8,000 personal asks the receipt question and then the payment method; skipping
 # both is two consecutive skips. (The chain is also capped at two questions, so
 # the assertion that matters is that the card ends rather than lingers.)
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

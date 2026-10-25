@@ -8,7 +8,7 @@
 # fixed: the receipt question first (a spend 40x the INR floor), then the payment
 # method (the category is stated, there is no place to offer). Then Personal's
 # ledger shows the entry.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

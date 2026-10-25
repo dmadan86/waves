@@ -1,7 +1,7 @@
 # Editing an expense keeps a version history and shows the new value (F-EXP-02).
 # Opens the seeded "Beach shack dinner", renames it, saves, and confirms the
 # ledger reflects the edit.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

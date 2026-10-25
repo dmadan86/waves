@@ -22,7 +22,7 @@
 # test.ts`: both are read as INR debits and both arrive pre-ticked, so a parser
 # change that stopped recognising them fails there loudly rather than leaving
 # this flow with no rows to tick and nothing to assert.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - assertVisible: 'Your groups'

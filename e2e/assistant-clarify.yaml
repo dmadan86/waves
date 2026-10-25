@@ -1,6 +1,6 @@
 # E2E-09. An amount with no group asks "which group?" with a chip per group;
 # tapping one completes the command and shows the card.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml

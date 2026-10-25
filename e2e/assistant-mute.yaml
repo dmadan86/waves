@@ -3,7 +3,7 @@
 #
 # ₹250 is above the INR floor (so questions are asked) and below the receipt
 # threshold, so the payment question is the first and only one.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

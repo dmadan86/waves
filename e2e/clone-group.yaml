@@ -13,7 +13,7 @@
 # Precondition: the standard e2e seed (the "Goa trip" group with a few members,
 # one of them named "Priya"). If your seed names its members differently, adjust
 # the chip name in the "drop a member" step below.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 

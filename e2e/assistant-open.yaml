@@ -6,7 +6,7 @@
 # it lands straight on the composer with the mic never mounted (no permission
 # dialog, no streaming). The first visit also shows the cloud-voice consent
 # sheet; "Allow" is tapped when it is there and ignored when it is not.
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - openLink: waves:///voice?source=typed
 - runFlow:

@@ -3,7 +3,7 @@
 # Needs the corrections work (WS2): the saved line under the card carries
 # "Undo" and "Change"; "Change" opens a one-line composer, and "no make it 800"
 # is applied locally (no network, no model).
-appId: app.waves.mobile
+appId: app.waves.mobile.debug
 ---
 - runFlow: login.yaml
 - runFlow: assistant-open.yaml
