@@ -143,6 +143,7 @@ import { plural, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
+import { backupFailure } from '@/lib/backup/failure';
 import { BackupFrequency } from '@/lib/backup/schedule';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import { backupSetup, BackupStep } from '@/lib/backup/setup';
@@ -265,6 +266,7 @@ export default function BackupSettingsScreen() {
 
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [shownKey, setShownKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -399,6 +401,7 @@ export default function BackupSettingsScreen() {
   const onConnect = async (): Promise<void> => {
     setPending('connect');
     setError(null);
+    setErrorCode(null);
     try {
       await backup.connect();
     } catch (caught) {
@@ -411,6 +414,7 @@ export default function BackupSettingsScreen() {
   const onBackUpNow = async (): Promise<void> => {
     setPending('backup');
     setError(null);
+    setErrorCode(null);
     try {
       const outcome = await backup.backupNow();
       // Wi‑Fi only and on mobile data: ask once instead of spending data silently.
@@ -426,7 +430,23 @@ export default function BackupSettingsScreen() {
         }
       }
     } catch (caught) {
-      setError(friendlyError(caught, t.backup.backupFailed, 'backup.run'));
+      const f = backupFailure(caught);
+      console.warn(
+        '[backup] failed',
+        f.code,
+        caught instanceof Error ? caught.message : String(caught),
+      );
+      const fallback = friendlyError(caught, t.backup.backupFailed, 'backup.run');
+      setError(
+        f.kind === 'reconnect'
+          ? t.backup.failReconnect
+          : f.kind === 'full'
+            ? t.backup.failFull
+            : f.kind === 'network'
+              ? t.backup.failNetwork
+              : fallback,
+      );
+      setErrorCode(f.code);
     } finally {
       setPending(null);
     }
@@ -435,6 +455,7 @@ export default function BackupSettingsScreen() {
   const onCreateKey = async (): Promise<void> => {
     setPending('key');
     setError(null);
+    setErrorCode(null);
     try {
       setCopied(false);
       setUpgrading(false);
@@ -457,6 +478,7 @@ export default function BackupSettingsScreen() {
   const onOfferExtra = (): void => {
     setPitching(false);
     setError(null);
+    setErrorCode(null);
     setCopied(false);
     setUnderstood(false);
     setUpgrading(true);
@@ -478,6 +500,7 @@ export default function BackupSettingsScreen() {
     if (!shownKey) return;
     setPending('extra');
     setError(null);
+    setErrorCode(null);
     try {
       const outcome = await backup.commitExtra(shownKey);
       if (outcome.kind === 'refused') {
@@ -519,6 +542,7 @@ export default function BackupSettingsScreen() {
   const onShowKey = async (): Promise<void> => {
     setPending('key');
     setError(null);
+    setErrorCode(null);
     try {
       setCopied(false);
       setUpgrading(false);
@@ -567,6 +591,7 @@ export default function BackupSettingsScreen() {
   const onCheckForBackup = async (): Promise<void> => {
     setPending('scan');
     setError(null);
+    setErrorCode(null);
     setRestoreNote(null);
     setRestored(null);
     try {
@@ -635,6 +660,7 @@ export default function BackupSettingsScreen() {
     if (!backup.connected) {
       setPending('connect');
       setError(null);
+      setErrorCode(null);
       try {
         if (!(await backup.connect())) return;
       } catch (caught) {
@@ -919,6 +945,11 @@ export default function BackupSettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {error ? <Callout tone="negative">{error}</Callout> : null}
+        {error && errorCode ? (
+          <Text variant="micro" tone="muted">
+            Code: {errorCode}
+          </Text>
+        ) : null}
 
         {/* The anchor: where things stand, and — under the same rule — either
             the one step outstanding or the button that is now possible. */}
