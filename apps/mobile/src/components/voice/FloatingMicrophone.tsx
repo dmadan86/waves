@@ -22,9 +22,9 @@ import Reanimated, {
 
 import { useTheme } from '@waves/ui';
 
-export const MIC_DIAMETER = 80;
+export const MIC_DIAMETER = 104;
 /** The square the mic and its glow sit in, so the glow never moves the layout. */
-export const MIC_BOX = 128;
+export const MIC_BOX = 156;
 
 export type MicMode = 'start' | 'stop' | 'busy' | 'retry';
 

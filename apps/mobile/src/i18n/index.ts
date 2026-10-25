@@ -1430,6 +1430,7 @@ export interface UiStrings {
     statusPermission: string;
     statusError: string;
     statusExpenseReady: string;
+    statusHeard: string;
     statusCheck: string;
     statusSaving: string;
     statusSaved: string;
@@ -1441,6 +1442,10 @@ export interface UiStrings {
     youSaid: string;
     editHeard: string;
     suggestionsTitle: string;
+    seeMore: string;
+    exampleCoffee: string;
+    exampleRent: string;
+    examplePetrol: string;
     category: string;
     splitWith: string;
     justYou: string;
@@ -7169,7 +7174,7 @@ const en: UiStrings = {
     typingOffline: 'Typing needs a connection',
   },
   voiceScreen: {
-    headline: 'Just say it naturally',
+    headline: 'Just say it naturally.',
     subline: 'I’ll understand and organize it for you.',
     statusReady: 'Tap and speak',
     statusStarting: 'Getting the mic ready…',
@@ -7181,6 +7186,7 @@ const en: UiStrings = {
     statusPermission: 'Microphone access needed',
     statusError: 'Something went wrong',
     statusExpenseReady: 'Expense ready',
+    statusHeard: 'Got it',
     statusCheck: 'Check one detail',
     statusSaving: 'Adding…',
     statusSaved: 'Added',
@@ -7191,7 +7197,11 @@ const en: UiStrings = {
     hearing: 'Hearing',
     youSaid: 'You said',
     editHeard: 'Edit text',
-    suggestionsTitle: 'Try saying something like:',
+    suggestionsTitle: 'Try saying...',
+    seeMore: 'See more',
+    exampleCoffee: 'Coffee {amount} at CCD',
+    exampleRent: 'Rent {amount} on 1st every month',
+    examplePetrol: 'Petrol {amount} split with Ravi',
     category: 'Category',
     splitWith: 'Split with',
     justYou: 'Just you',
@@ -12342,6 +12352,7 @@ const ta: UiStrings = {
     statusPermission: 'மைக்ரோஃபோன் அனுமதி தேவை',
     statusError: 'ஏதோ தவறு நடந்தது',
     statusExpenseReady: 'செலவு தயார்',
+    statusHeard: 'புரிந்தது',
     statusCheck: 'ஒரு விவரத்தைச் சரிபாருங்கள்',
     statusSaving: 'சேர்க்கிறேன்…',
     statusSaved: 'சேர்த்தாகிவிட்டது',
@@ -12352,7 +12363,11 @@ const ta: UiStrings = {
     hearing: 'கேட்கிறேன்',
     youSaid: 'நீங்கள் சொன்னது',
     editHeard: 'உரையைத் திருத்து',
-    suggestionsTitle: 'இப்படிச் சொல்லிப் பாருங்கள்:',
+    suggestionsTitle: 'சொல்லிப் பாருங்கள்...',
+    seeMore: 'மேலும் பார்க்க',
+    exampleCoffee: 'CCD-இல் காபி {amount}',
+    exampleRent: 'ஒவ்வொரு மாதமும் 1ஆம் தேதி வாடகை {amount}',
+    examplePetrol: 'பெட்ரோல் {amount} ரவியுடன் பகிர்',
     category: 'வகை',
     splitWith: 'யாருடன் பகிர்வது',
     justYou: 'நீங்கள் மட்டும்',
@@ -17658,6 +17673,7 @@ const hi: UiStrings = {
     statusPermission: 'माइक्रोफ़ोन की अनुमति चाहिए',
     statusError: 'कुछ गड़बड़ हो गई',
     statusExpenseReady: 'खर्च तैयार है',
+    statusHeard: 'समझ गया',
     statusCheck: 'एक बात जाँच लें',
     statusSaving: 'जोड़ रहा हूँ…',
     statusSaved: 'जोड़ दिया',
@@ -17668,7 +17684,11 @@ const hi: UiStrings = {
     hearing: 'सुन रहा हूँ',
     youSaid: 'आपने कहा',
     editHeard: 'टेक्स्ट बदलें',
-    suggestionsTitle: 'ऐसे बोलकर देखें:',
+    suggestionsTitle: 'बोलकर देखें...',
+    seeMore: 'और देखें',
+    exampleCoffee: 'CCD में कॉफ़ी {amount}',
+    exampleRent: 'हर महीने 1 तारीख को किराया {amount}',
+    examplePetrol: 'पेट्रोल {amount} रवि के साथ बाँटें',
     category: 'श्रेणी',
     splitWith: 'किसके साथ बाँटें',
     justYou: 'सिर्फ़ आप',
@@ -22888,6 +22908,7 @@ const ar: UiStrings = {
     statusPermission: 'يلزم إذن الميكروفون',
     statusError: 'حدث خطأ ما',
     statusExpenseReady: 'المصروف جاهز',
+    statusHeard: 'فهمت',
     statusCheck: 'راجع تفصيلًا واحدًا',
     statusSaving: 'جارٍ الإضافة…',
     statusSaved: 'تمت الإضافة',
@@ -22898,7 +22919,11 @@ const ar: UiStrings = {
     hearing: 'أسمع',
     youSaid: 'قلتَ',
     editHeard: 'عدّل النص',
-    suggestionsTitle: 'جرّب أن تقول شيئًا مثل:',
+    suggestionsTitle: 'جرّب أن تقول...',
+    seeMore: 'عرض المزيد',
+    exampleCoffee: 'قهوة {amount} في CCD',
+    exampleRent: 'إيجار {amount} يوم 1 من كل شهر',
+    examplePetrol: 'بنزين {amount} بالتساوي مع رافي',
     category: 'الفئة',
     splitWith: 'التقسيم مع',
     justYou: 'أنت فقط',

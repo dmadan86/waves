@@ -9,7 +9,7 @@
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
-import { Button, useTheme } from '@waves/ui';
+import { Button, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { TextAction } from './SavedSummary';
 
@@ -26,13 +26,15 @@ export interface FooterSpec {
 
 export function VoiceFooter({ spec, inset }: { spec: FooterSpec; inset: number }) {
   const theme = useTheme();
+  const clearance = useTabBarClearance();
   const { primary, secondary } = spec;
+  if (!primary && !secondary) return <View style={{ height: clearance }} />;
   return (
     <View
       style={{
         paddingHorizontal: theme.spacing.xl,
         paddingTop: theme.spacing.sm,
-        paddingBottom: inset + theme.spacing.xs,
+        paddingBottom: Math.max(inset, clearance) + theme.spacing.xs,
         borderTopWidth: 1,
         borderTopColor: primary ? theme.color.border : 'transparent',
         backgroundColor: primary ? theme.color.surface : 'transparent',

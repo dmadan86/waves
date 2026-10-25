@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { Linking } from 'react-native';
+import { Linking, View } from 'react-native';
 import { useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { Text } from '@waves/ui';
@@ -48,7 +48,8 @@ import {
 import { planAgentWait } from '@/lib/voiceStartPure';
 import { VoiceErrorState } from '@/components/voice/VoiceErrorState';
 import type { MicMode } from '@/components/voice/FloatingMicrophone';
-import { VoiceSheetBody } from '@/components/voice/VoiceStage';
+import { AssistantComposer } from '@/components/AssistantComposer';
+import { VoiceCreditRow } from '@/components/voice/VoiceCreditRow';
 import {
   useVoiceSuggestions,
   VoiceSuggestions,
@@ -197,6 +198,8 @@ export interface VoiceCaptureProps {
    * when the engine gave only one).
    */
   onDone: (transcript: string, info: VoiceDoneInfo) => void;
+  onType?: (text: string) => void;
+  onSendText?: (text: string) => void;
   /**
    * Stream the mic to Deepgram for the advanced voice agent (Pro). If the token
    * or the stream cannot be had, the capture quietly uses the on-device
@@ -343,6 +346,8 @@ export function coolVoiceCapture(): void {
 
 export function VoiceCapture({
   onDone,
+  onType,
+  onSendText,
   hints,
   groupNames = [],
   missed,
@@ -1151,7 +1156,6 @@ export function VoiceCapture({
   // What to show as heard: the words forming now, else the screen's last
   // sentence when it found no amount in it (so the miss says what it heard).
   const shownTranscript = micState.transcript || (missed ? heard : '');
-  const shownFinal = micState.final || (!micState.transcript && Boolean(missed && heard));
 
   // Hand the stage the mic's state before paint, so it never shows a stale frame.
   const toggleRef = useRef(toggle);
@@ -1177,7 +1181,7 @@ export function VoiceCapture({
   }
 
   return (
-    <VoiceSheetBody transcript={shownTranscript} final={shownFinal}>
+    <View style={{ gap: 12 }}>
       {problem ? (
         <VoiceErrorState
           problem={problem}
@@ -1186,9 +1190,19 @@ export function VoiceCapture({
         />
       ) : null}
 
-      {showSuggestions(flow, shownTranscript) ? (
+      {showSuggestions(flow, shownTranscript) || onSendText ? (
         <VoiceSuggestions suggestions={suggestions} onPick={onSuggestion} canPick={canPick} />
       ) : null}
-    </VoiceSheetBody>
+      <VoiceCreditRow />
+      {onType && onSendText ? (
+        <AssistantComposer
+          value={shownTranscript}
+          onChangeText={onType}
+          onSend={onSendText}
+          onUseMic={onMicPress}
+          autoFocus={false}
+        />
+      ) : null}
+    </View>
   );
 }

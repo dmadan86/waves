@@ -1,4 +1,3 @@
-import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
  *
@@ -178,7 +177,7 @@ import {
   voiceFlowState,
   type AgentStage,
 } from '@/lib/voiceFlowPure';
-import { AssistantComposer } from '@/components/AssistantComposer';
+import { VoiceTypedEntry } from '@/components/voice/VoiceTypedEntry';
 import { SavedSummary } from '@/components/voice/SavedSummary';
 import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
@@ -2492,19 +2491,9 @@ export default function VoiceScreen() {
     setPhase('listening');
   };
 
-  // A suggestion row. A question goes straight through the assistant (it
-  // answers it); an expense sentence is put in the composer to check and send,
-  // never saved on a tap.
   const pickSuggestion = (suggestion: Suggestion): void => {
     hapticSelect();
-    const words = suggestionWords(suggestion.text);
-    if (suggestion.kind === 'question') {
-      submitTyped(words);
-      return;
-    }
-    captureActive.current = false;
-    setTypedDraft(words);
-    setTypedMode(true);
+    submitTyped(suggestionWords(suggestion.text));
   };
   // "Who owes me?" has no on-device answer; only the assistant (agent) can
   // answer it, so it is a button only when the agent is on.
@@ -2696,7 +2685,7 @@ export default function VoiceScreen() {
     (phase === 'agent' && agentStage !== 'working');
   // A short phone trims the stage's gaps instead of scrolling it.
   const { height: windowHeight } = useWindowDimensions();
-  const compactTop = windowHeight < 720;
+  const compactTop = windowHeight < 800;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
@@ -2755,7 +2744,6 @@ export default function VoiceScreen() {
               compact={compactTop}
             />
           ) : null}
-          <RewardedAdEntry kind="voice" />
           {basicQuestion ? (
             <Link href="/paywall" asChild>
               <Text tone="brand" accessibilityRole="link" style={{ textAlign: 'center' }}>
@@ -3063,20 +3051,23 @@ export default function VoiceScreen() {
             // included. A heard-but-amountless try comes back as `missed`; the mic
             // is the retry, and tapping it (via `onListen`) clears the miss. No
             // warning banner and no separate button stacked around it.
-            <View style={{ flexGrow: 1, gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+            <View style={{ flexGrow: 1, gap: theme.spacing.sm, paddingTop: 0 }}>
               {launchPersonal ? (
                 <Text variant="caption" tone="muted" align="center">
                   {t.assistant.personalScope}
                 </Text>
               ) : null}
               {typedMode ? (
-                <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
+                <View style={{ gap: theme.spacing.sm, paddingTop: 0 }}>
                   {noAmount ? (
                     <Callout tone="warning">
                       {basicQuestion ? t.voiceScreen.statusQuestion : t.voice.noAmount}
                     </Callout>
                   ) : null}
-                  <AssistantComposer
+                  <VoiceTypedEntry
+                    groupNames={groupNames}
+                    onPick={pickSuggestion}
+                    canPick={canPickSuggestion}
                     value={typedDraft}
                     onChangeText={setTypedDraft}
                     onSend={submitTyped}
@@ -3105,6 +3096,11 @@ export default function VoiceScreen() {
                   missed={noAmount}
                   heard={noAmount ? heardText : ''}
                   onSuggestion={pickSuggestion}
+                  onType={(text) => {
+                    setTypedDraft(text);
+                    setTypedMode(true);
+                  }}
+                  onSendText={submitTyped}
                   canPick={canPickSuggestion}
                   autoStart={!noAmount}
                   endSignal={hold.ended}
