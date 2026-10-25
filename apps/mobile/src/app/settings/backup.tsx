@@ -430,12 +430,19 @@ export default function BackupSettingsScreen() {
       }
     } catch (caught) {
       const f = backupFailure(caught);
-      console.warn('[backup] failed', f.code, caught instanceof Error ? caught.message : String(caught));
+      console.warn(
+        '[backup] failed',
+        f.code,
+        caught instanceof Error ? caught.message : String(caught),
+      );
       const fallback = friendlyError(caught, t.backup.backupFailed, 'backup.run');
       setError(
-        f.kind === 'reconnect' ? t.backup.failReconnect
-          : f.kind === 'full' ? t.backup.failFull
-            : f.kind === 'network' ? t.backup.failNetwork
+        f.kind === 'reconnect'
+          ? t.backup.failReconnect
+          : f.kind === 'full'
+            ? t.backup.failFull
+            : f.kind === 'network'
+              ? t.backup.failNetwork
               : fallback,
       );
       setErrorCode(f.code);
@@ -931,7 +938,11 @@ export default function BackupSettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {error ? <Callout tone="negative">{error}</Callout> : null}
-        {error && errorCode ? <Text variant="micro" tone="muted">Code: {errorCode}</Text> : null}
+        {error && errorCode ? (
+          <Text variant="micro" tone="muted">
+            Code: {errorCode}
+          </Text>
+        ) : null}
 
         {/* The anchor: where things stand, and — under the same rule — either
             the one step outstanding or the button that is now possible. */}
