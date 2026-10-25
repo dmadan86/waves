@@ -245,10 +245,15 @@ export function AppTabBar() {
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
-  const nestedPersonal = personal && ['entry', 'source', 'budgets', 'loans'].includes(segments[1] ?? '');
+  const nestedPersonal =
+    personal && ['entry', 'source', 'budgets', 'loans'].includes(segments[1] ?? '');
 
   useEffect(() => {
-    if (nestedPersonal || !personal || !['me', 'transactions', 'recurring', 'spending'].includes(activeKey))
+    if (
+      nestedPersonal ||
+      !personal ||
+      !['me', 'transactions', 'recurring', 'spending'].includes(activeKey)
+    )
       return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       switchTab('/');
