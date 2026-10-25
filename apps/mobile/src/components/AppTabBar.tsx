@@ -21,10 +21,21 @@
  * hold-only control is no control at all to a screen reader.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { BackHandler, Platform, Vibration, View } from 'react-native';
+import { BackHandler, Platform, Vibration } from 'react-native';
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -34,6 +45,7 @@ import {
   iconSize,
   PillTabBar,
   setTabBarFab,
+  useTheme,
   type PillTabAction,
   type PillTabItem,
 } from '@waves/ui';
@@ -41,6 +53,7 @@ import {
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
+import { hapticLight } from '@/lib/assistantHaptics';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
@@ -82,6 +95,48 @@ function buzz(ms: number): void {
   Vibration.vibrate(ms);
 }
 
+/** Each item reads the same clock, so a stagger never schedules React work. */
+function ModeItem({
+  children,
+  p,
+  index,
+  personal,
+  reduced,
+  focused,
+}: {
+  children: ReactNode;
+  p: SharedValue<number>;
+  index: number;
+  personal: boolean;
+  reduced: boolean;
+  focused: boolean;
+}) {
+  const focus = useSharedValue(focused ? 1 : 0);
+  useEffect(() => {
+    focus.value = reduced ? (focused ? 1 : 0) : withTiming(focused ? 1 : 0, { duration: 160 });
+  }, [focus, focused, reduced]);
+  const style = useAnimatedStyle(() => {
+    const progress = reduced
+      ? p.value
+      : interpolate(
+          p.value,
+          personal ? [(index * 30) / 280, (index * 30 + 140) / 280] : [0, 0.5],
+          [0, 1],
+          Extrapolation.CLAMP,
+        );
+    const visible = personal ? progress : 1 - progress;
+    return {
+      opacity: reduced ? 1 : visible * (0.92 + focus.value * 0.08),
+      transform: reduced
+        ? []
+        : [{ translateY: (1 - visible) * 10 }, { scale: 1 + focus.value * 0.035 }],
+    };
+  });
+  return (
+    <Animated.View style={[{ flex: 1, justifyContent: 'center' }, style]}>{children}</Animated.View>
+  );
+}
+
 /** Renders the persistent bottom navigation bar and routes tab selections without stacking duplicates. */
 export function AppTabBar() {
   const { t, locale } = useStrings();
@@ -107,6 +162,35 @@ export function AppTabBar() {
   // On the Personal tab and its screens the bar swaps to the private-money
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
+  const theme = useTheme();
+  const reduced = useReducedMotion();
+  const p = useSharedValue(personal ? 1 : 0);
+  const mic = useSharedValue(personal ? 1 : 0);
+  const previousPersonal = useRef(personal);
+  useEffect(() => {
+    // Mount directly into the route's mode; only a real switch earns a tick.
+    if (previousPersonal.current === personal) return;
+    previousPersonal.current = personal;
+    hapticLight();
+    p.value = withTiming(personal ? 1 : 0, {
+      duration: reduced ? 120 : 280,
+      easing: Easing.linear,
+    });
+    mic.value = reduced
+      ? withTiming(personal ? 1 : 0, { duration: 120 })
+      : withSpring(personal ? 1 : 0, { duration: 300, dampingRatio: 0.8 });
+  }, [personal, reduced, p, mic]);
+  const sharedStyle = useAnimatedStyle(() => ({ opacity: 1 - p.value }));
+  const personalStyle = useAnimatedStyle(() => ({ opacity: p.value }));
+  const tintStyle = useAnimatedStyle(() => ({ opacity: p.value * 0.35 }));
+  const centerStyle = useAnimatedStyle(() => ({
+    opacity: reduced ? 1 : 1 - p.value,
+    transform: reduced ? [] : [{ scale: 1 - p.value * 0.4 }],
+  }));
+  const fabStyle = useAnimatedStyle(() => ({
+    opacity: p.value,
+    transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
+  }));
   const activeKey = personal ? personalActiveKey(segments) : sharedKey;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
@@ -362,25 +446,82 @@ export function AppTabBar() {
       {/* The in-app update bar rides on the navigation: there wherever the bar
           is, gone wherever it is not. */}
       <UpdateBar />
-      <PillTabBar
-        items={personal ? personalItems : sharedItems}
-        activeKey={activeKey}
-        onSelect={go}
-        animated
-        centerAction={personal ? undefined : voice}
-      />
-      {fab ? (
+      {/* Both frames stay put: fading destinations never moves screen content. */}
+      {[false, true].map((mode) => (
+        <Animated.View
+          key={String(mode)}
+          pointerEvents={personal === mode ? 'box-none' : 'none'}
+          accessibilityElementsHidden={personal !== mode}
+          importantForAccessibility={personal === mode ? 'auto' : 'no-hide-descendants'}
+          style={[
+            {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: BAR_HEIGHT + insets.bottom + 16,
+            },
+            mode ? personalStyle : sharedStyle,
+          ]}
+        >
+          <PillTabBar
+            items={mode ? personalItems : sharedItems}
+            activeKey={mode ? personalActiveKey(segments) : sharedKey}
+            onSelect={go}
+            animated={!reduced}
+            reserveCenterSpace
+            centerAction={mode ? undefined : voice}
+            renderItem={(content, index) => (
+              <ModeItem
+                p={p}
+                index={index}
+                personal={mode}
+                reduced={reduced}
+                focused={
+                  (mode ? personalItems : sharedItems)[index]?.key ===
+                  (mode ? personalActiveKey(segments) : sharedKey)
+                }
+              >
+                {content}
+              </ModeItem>
+            )}
+            renderCenterAction={(content) => (
+              <Animated.View style={centerStyle}>{content}</Animated.View>
+            )}
+            backgroundOverlay={
+              mode ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+                    { backgroundColor: theme.color.brandSoft },
+                    tintStyle,
+                  ]}
+                />
+              ) : undefined
+            }
+          />
+        </Animated.View>
+      ))}
+      {resolveFab(segments) ? (
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
-        <View
-          style={{
-            position: 'absolute',
-            bottom: insets.bottom + BAR_HEIGHT + FAB_GAP,
-            ...(isRtl() ? { left: 16 } : { right: 16 }),
-          }}
+        <Animated.View
+          pointerEvents={personal ? 'auto' : 'none'}
+          accessibilityElementsHidden={!personal}
+          importantForAccessibility={personal ? 'auto' : 'no-hide-descendants'}
+          style={[
+            {
+              position: 'absolute',
+              bottom: insets.bottom + BAR_HEIGHT + FAB_GAP,
+              ...(isRtl() ? { left: 16 } : { right: 16 }),
+              transformOrigin: isRtl() ? 'bottom left' : 'bottom right',
+            },
+            fabStyle,
+          ]}
         >
           <CenterButton action={voice} />
-        </View>
+        </Animated.View>
       ) : null}
     </>
   );

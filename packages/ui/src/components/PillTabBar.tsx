@@ -185,12 +185,22 @@ export function PillTabBar({
   onSelect,
   animated = false,
   centerAction,
+  renderItem,
+  renderCenterAction,
+  backgroundOverlay,
+  reserveCenterSpace = false,
 }: {
   items: readonly PillTabItem[];
   activeKey: string;
   onSelect: (key: string) => void;
   animated?: boolean;
   centerAction?: PillTabAction;
+  /** App-owned motion stays outside the shared kit and its dependencies. */
+  renderItem?: (content: ReactNode, index: number) => ReactNode;
+  renderCenterAction?: (content: ReactNode) => ReactNode;
+  backgroundOverlay?: ReactNode;
+  /** Keep matching frames while an app cross-fades bars with and without a mic. */
+  reserveCenterSpace?: boolean;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -201,15 +211,24 @@ export function PillTabBar({
   const left = items.slice(0, middle);
   const right = items.slice(middle);
 
-  const renderItem = (item: PillTabItem): ReactNode => (
-    <TabItem
-      key={item.key}
-      item={item}
-      focused={item.key === activeKey}
-      animated={animated}
-      onSelect={onSelect}
-    />
-  );
+  const renderTab = (item: PillTabItem): ReactNode => {
+    const content = (
+      <TabItem
+        key={item.key}
+        item={item}
+        focused={item.key === activeKey}
+        animated={animated}
+        onSelect={onSelect}
+      />
+    );
+    return renderItem ? (
+      <View key={item.key} style={{ flex: 1, height: '100%', justifyContent: 'center' }}>
+        {renderItem(content, items.indexOf(item))}
+      </View>
+    ) : (
+      content
+    );
+  };
 
   // The bar's touch area has to be taller than its paint by exactly the raise.
   // A view drawn outside its parent's bounds is still *painted* — neither
@@ -219,7 +238,7 @@ export function PillTabBar({
   // inviting, and completely dead. That is the part of a raised button a thumb
   // aims at. So the bar lives inside a taller box, and the button is drawn in
   // an overlay that fills it — nothing is outside its parent any more.
-  const raise = centerAction ? CENTER_RAISE : 0;
+  const raise = centerAction || reserveCenterSpace ? CENTER_RAISE : 0;
 
   return (
     <View
@@ -253,11 +272,12 @@ export function PillTabBar({
           borderTopColor: theme.color.border,
         }}
       >
-        {left.map(renderItem)}
+        {backgroundOverlay}
+        {left.map(renderTab)}
         {/* The centre button's column, held open so the destinations still split
             evenly around it. The button itself is drawn in the overlay below. */}
         {centerAction ? <View style={{ flex: 1 }} /> : null}
-        {right.map(renderItem)}
+        {right.map(renderTab)}
       </View>
 
       {centerAction ? (
@@ -302,7 +322,11 @@ export function PillTabBar({
                 backgroundColor: theme.color.surface,
               }}
             />
-            <CenterButton action={centerAction} />
+            {renderCenterAction ? (
+              renderCenterAction(<CenterButton action={centerAction} />)
+            ) : (
+              <CenterButton action={centerAction} />
+            )}
           </View>
           <View pointerEvents="none" style={{ flex: right.length }} />
         </View>
@@ -472,7 +496,7 @@ const TabItem = memo(function TabItem({
       }}
       onPressIn={() => press(0.9)}
       onPressOut={() => press(1)}
-      style={{ flex: 1 }}
+      style={{ flex: 1, justifyContent: 'center' }}
     >
       <Animated.View
         style={{
