@@ -148,6 +148,11 @@ export function AppTabBar() {
         icon: (color) => <Ionicons name="list" size={iconSize.lg} color={color} />,
       },
       {
+        key: 'recurring',
+        label: t.personal.nav.recurring,
+        icon: (color) => <Ionicons name="repeat" size={iconSize.lg} color={color} />,
+      },
+      {
         key: 'spending',
         label: t.personal.nav.reports,
         icon: (color) => <Ionicons name="pie-chart-outline" size={iconSize.lg} color={color} />,

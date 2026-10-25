@@ -123,12 +123,14 @@ describe('personal mode', () => {
     expect(personalActiveKey(['(tabs)', 'me'])).toBe('me');
     expect(personalActiveKey(['personal', 'transactions'])).toBe('transactions');
     expect(personalActiveKey(['personal', 'spending'])).toBe('spending');
+    expect(personalActiveKey(['personal', 'recurring'])).toBe('recurring');
     expect(personalActiveKey(['personal', 'budgets'])).toBe('');
   });
 
   it('routes taps, and the way back goes home', () => {
     expect(personalRouteForSelection('me', 'shared')).toBe('/');
     expect(personalRouteForSelection('me', 'spending')).toBe('/personal/spending');
+    expect(personalRouteForSelection('me', 'recurring')).toBe('/personal/recurring');
     expect(personalRouteForSelection('spending', 'me')).toBe('/me');
     expect(personalRouteForSelection('me', 'me')).toBeNull();
   });

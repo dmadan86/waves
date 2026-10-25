@@ -117,20 +117,22 @@ export function isPersonalMode(segments: readonly string[]): boolean {
 export function personalActiveKey(segments: readonly string[]): string {
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'me' : '';
   const leaf = segments[1] ?? '';
-  return leaf === 'transactions' ? 'transactions' : leaf === 'spending' ? 'spending' : '';
+  return leaf === 'transactions' || leaf === 'spending' || leaf === 'recurring' ? leaf : '';
 }
 
 /** Where a Personal-mode bar tap goes, or null when it is already current. */
 export function personalRouteForSelection(
   activeKey: string,
   selectedKey: string,
-): '/' | '/me' | '/personal/transactions' | '/personal/spending' | null {
+): '/' | '/me' | '/personal/transactions' | '/personal/recurring' | '/personal/spending' | null {
   if (selectedKey === activeKey) return null;
   switch (selectedKey) {
     case 'shared':
       return '/';
     case 'transactions':
       return '/personal/transactions';
+    case 'recurring':
+      return '/personal/recurring';
     case 'spending':
       return '/personal/spending';
     default:
