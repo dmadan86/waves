@@ -19,7 +19,9 @@ export PATH="$PATH:$HOME/.maestro/bin"
 
 adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
 # Fail here, loudly, if the app did not land — not 20 flows later as "not installed".
-adb shell pm list packages app.waves.mobile | grep -q app.waves.mobile
+adb devices -l
+adb shell pm list packages -3
+adb shell pm list packages app.waves.mobile | grep -q app.waves.mobile || { echo "app.waves.mobile not installed after adb install"; exit 1; }
 
 FLOWS=(
   home-to-add-expense
