@@ -235,6 +235,7 @@ export function PillTabBar({
       }}
     >
       <View
+        accessibilityRole="tablist"
         style={{
           position: 'absolute',
           left: 0,
@@ -448,7 +449,8 @@ const TabItem = memo(function TabItem({
   const scale = useRef(new Animated.Value(1)).current;
 
   const press = (to: number): void => {
-    if (!animated) return;
+    // The active tab does nothing on tap, so it gives no press feedback either.
+    if (!animated || focused) return;
     Animated.spring(scale, {
       toValue: to,
       damping: 18,

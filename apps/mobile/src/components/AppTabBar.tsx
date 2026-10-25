@@ -155,13 +155,6 @@ export function AppTabBar() {
         ),
       },
       {
-        key: 'recurring',
-        label: t.personal.nav.recurring,
-        icon: (color, focused) => (
-          <Ionicons name={focused ? 'repeat' : 'repeat-outline'} size={iconSize.lg} color={color} />
-        ),
-      },
-      {
         key: 'spending',
         label: t.personal.nav.spending,
         icon: (color, focused) => (
@@ -251,14 +244,18 @@ export function AppTabBar() {
     [activeKey, personal],
   );
 
+  // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
+  const nestedPersonal = personal && ['entry', 'source', 'budgets', 'loans'].includes(segments[1] ?? '');
+
   useEffect(() => {
-    if (!personal || !['me', 'transactions', 'recurring', 'spending'].includes(activeKey)) return;
+    if (nestedPersonal || !personal || !['me', 'transactions', 'recurring', 'spending'].includes(activeKey))
+      return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       switchTab('/');
       return true;
     });
     return () => listener.remove();
-  }, [personal, activeKey]);
+  }, [nestedPersonal, personal, activeKey]);
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
   // the bar hides itself on the `voice` route, and unmounting the button the
