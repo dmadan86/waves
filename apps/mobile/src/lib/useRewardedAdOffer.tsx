@@ -1,6 +1,6 @@
 import { readCredits } from './adCredits';
 import { watchCreditAd } from './watchCreditAd';
-import type { CreditsStatus } from './adCreditsPure';
+import { watchBlocked, type CreditsStatus } from './adCreditsPure';
 import { logAdEvent } from '@/lib/adEvents';
 /**
  * Offering a rewarded ad at a natural moment: `offer('voice')` when the AI voice
@@ -79,7 +79,9 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const canOffer = (next: AdKind): boolean =>
     !!viewerId &&
     !isPaid &&
-    (wallet.data ? wallet.data.canWatch : eligibility.data?.eligible === true) &&
+    (wallet.data
+      ? wallet.data.canWatch || (next === 'voice' && watchBlocked(wallet.data) === 'daily')
+      : eligibility.data?.eligible === true) &&
     !visible &&
     !running.current &&
     Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
@@ -98,7 +100,13 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       const credits = await readCredits();
       const current = credits ? null : await readAdsStatus().catch(() => null);
       setCreditStatus(credits);
-      if (!mounted.current || (credits ? !credits.canWatch : !current?.eligible)) return;
+      if (
+        !mounted.current ||
+        (credits
+          ? !credits.canWatch && !(next === 'voice' && watchBlocked(credits) === 'daily')
+          : !current?.eligible)
+      )
+        return;
       setKind(next);
       setStatus(current);
       setState({ step: 'ready' });
@@ -212,6 +220,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         visible={visible && !isPaid}
         kind={kind}
         credits={creditStatus?.credits}
+        capReached={kind === 'voice' && watchBlocked(creditStatus) === 'daily'}
         amount={
           creditStatus
             ? Math.floor(creditStatus.perAd / creditStatus.costs[kind])
