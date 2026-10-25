@@ -1,6 +1,5 @@
 import { readCredits, spendCredits } from './adCredits';
 import { watchCreditAd } from './watchCreditAd';
-import { fill } from '@/i18n';
 import { useEffect, useRef, useState } from 'react';
 import * as Network from 'expo-network';
 import { ActivityIndicator, AppState, Image, Pressable, View } from 'react-native';
@@ -9,7 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Button, IconButton, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {

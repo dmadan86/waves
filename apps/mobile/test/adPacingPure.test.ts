@@ -8,6 +8,7 @@ import {
   nextGap,
   paceExpense,
   type PacingInput,
+  pickInterstitialUnit,
 } from '@/lib/adPacingPure';
 const now = Date.UTC(2026, 9, 27, 12);
 const input: PacingInput = {
@@ -189,7 +190,6 @@ describe('edit pacing', () => {
   });
 });
 
-import { pickInterstitialUnit } from '@/lib/adPacingPure';
 const videoInput = {
   videoUnitConfigured: true,
   flagEnabled: true,

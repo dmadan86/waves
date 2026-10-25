@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
 import { creditButtonKey, parseCredits, parseSpend, showCreditsRow } from '@/lib/adCreditsPure';
 import { decideGate } from '@/lib/adGateEngine';
 const wallet = {
