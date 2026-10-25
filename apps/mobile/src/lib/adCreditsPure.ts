@@ -66,3 +66,7 @@ export function parseSpend(raw: unknown): { ok: boolean; spent?: number } | null
     return s;
   return null;
 }
+
+export function watchBlocked(s: CreditsStatus | null): 'daily' | null {
+  return s && creditButtonKey(s) === 'tomorrow' ? 'daily' : null;
+}

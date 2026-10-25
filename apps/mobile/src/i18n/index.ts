@@ -1830,6 +1830,11 @@ export interface UiStrings {
     offlineCappedExport: string;
   };
   rewardedAds: {
+    balance: string;
+    perAdVoice: string;
+    watchWithCount: string;
+    upgradeBody: string;
+    dailyLimit: string;
     entryVoice: string;
     entryScan: string;
     adLabel: string;
@@ -7486,13 +7491,18 @@ const en: UiStrings = {
     offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
+    balance: 'You have {n} credits',
+    perAdVoice: 'Each ad gives {count} more AI voice commands.',
+    watchWithCount: 'Watch ad (+{count} commands)',
+    upgradeBody: 'Get unlimited voice commands, no ads and more.',
+    dailyLimit: 'Daily ad limit reached — try tomorrow',
     entryVoice: 'Watch a short video for 2 more voice commands',
     entryScan: 'Watch a short video for 2 more scans',
     adLabel: 'Ad',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
-      "You have used this month's free AI voice commands. Watch one short ad to get more now, or go on with basic voice.",
+      "You've used this month's free AI voice commands. Watch one short ad to get more now, or continue with basic voice.",
     scanBody:
       "You have used this month's free receipt scans. Watch one short ad to get more now, or add the items by hand, which is always free.",
     watch: 'Watch ad',
@@ -12645,6 +12655,12 @@ const ta: UiStrings = {
     offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
+    balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
+    perAdVoice: 'ஒவ்வொரு விளம்பரமும் மேலும் {count} AI குரல் கட்டளைகளை வழங்கும்.',
+    watchWithCount: 'விளம்பரம் பாருங்கள் (+{count} கட்டளைகள்)',
+    upgradeBody:
+      'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
+    dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
     entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
     entryScan: 'மேலும் 2 ஸ்கேன்களுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
     adLabel: 'விளம்பரம்',
@@ -17952,6 +17968,11 @@ const hi: UiStrings = {
     offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
+    balance: 'आपके पास {n} क्रेडिट हैं',
+    perAdVoice: 'हर विज्ञापन से {count} और AI वॉइस कमांड मिलते हैं।',
+    watchWithCount: 'विज्ञापन देखें (+{count} कमांड)',
+    upgradeBody: 'अनलिमिटेड वॉइस कमांड पाएँ, बिना विज्ञापनों के और भी बहुत कुछ।',
+    dailyLimit: 'आज की विज्ञापन सीमा पूरी हो गई — कल फिर कोशिश करें',
     entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
     entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
     adLabel: 'विज्ञापन',
@@ -23177,6 +23198,11 @@ const ar: UiStrings = {
     offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
+    balance: 'لديك {n} من الرصيد',
+    perAdVoice: 'يمنحك كل إعلان {count} من الأوامر الصوتية الإضافية بالذكاء الاصطناعي.',
+    watchWithCount: 'شاهد إعلانًا (+{count} أوامر)',
+    upgradeBody: 'احصل على أوامر صوتية بلا حدود، وبدون إعلانات، والمزيد.',
+    dailyLimit: 'بلغت الحد اليومي للإعلانات — حاول غدًا',
     entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
     entryScan: 'شاهد فيديو قصيرًا للحصول على عمليتي مسح إضافيتين',
     adLabel: 'إعلان',
