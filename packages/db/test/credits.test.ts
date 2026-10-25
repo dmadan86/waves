@@ -182,6 +182,12 @@ describe('reward pacing', () => {
     expect(await status()).toMatchObject({ canWatch: false, reason });
     expect((await status()).nextAt).toBeTruthy();
   });
+  it('accepts the review_banner placement', async () => {
+    await client.query(
+      `INSERT INTO ad_events(profile_id,placement,outcome) VALUES($1,'review_banner','shown'),($1,'review_banner','failed')`,
+      [me],
+    );
+  });
   it('includes completed on-the-spot group/export ads in the shared count', async () => {
     await client.query(
       `INSERT INTO ad_events(profile_id,placement,outcome,created_at)
