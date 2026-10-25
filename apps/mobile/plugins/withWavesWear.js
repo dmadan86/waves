@@ -37,7 +37,9 @@ const MARKER = 'waves:wear-module';
 const FALLBACK_KOTLIN_VERSION = '2.2.21';
 
 function kotlinVersionOf(config) {
-  const bp = (config.plugins || []).find((p) => Array.isArray(p) && p[0] === 'expo-build-properties');
+  const bp = (config.plugins || []).find(
+    (p) => Array.isArray(p) && p[0] === 'expo-build-properties',
+  );
   return bp?.[1]?.android?.kotlinVersion || FALLBACK_KOTLIN_VERSION;
 }
 
@@ -67,7 +69,10 @@ function buildscriptWithCompose(contents, kotlinVersion = FALLBACK_KOTLIN_VERSIO
 
 function addComposeClasspath(config) {
   return withProjectBuildGradle(config, (cfg) => {
-    cfg.modResults.contents = buildscriptWithCompose(cfg.modResults.contents, kotlinVersionOf(config));
+    cfg.modResults.contents = buildscriptWithCompose(
+      cfg.modResults.contents,
+      kotlinVersionOf(config),
+    );
     return cfg;
   });
 }
