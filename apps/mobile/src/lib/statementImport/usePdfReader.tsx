@@ -18,12 +18,23 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import {
+  WebView as UntypedRefWebView,
+  type WebViewMessageEvent,
+  type WebViewProps,
+} from 'react-native-webview';
 
 import { PDF_READER_HTML } from './pdfReaderHtml.generated';
 import type { PdfReadResult } from './pdfReader';
 import { injectionFor, type ToPage } from './pdfReaderProtocol';
 import { PdfReadSession } from './pdfReaderSession';
+
+type WebViewHandle = { injectJavaScript(script: string): void };
+// react-native-webview 14 types WebView as a plain function component, which drops `ref`
+// from its props although the native component still forwards it.
+const WebView = UntypedRefWebView as unknown as React.ComponentType<
+  WebViewProps & { ref?: React.Ref<WebViewHandle> }
+>;
 
 export interface PdfReader {
   /** Render this once in the screen. It is null whenever no read is under way. */
@@ -38,7 +49,7 @@ const hidden = { position: 'absolute', width: 1, height: 1, opacity: 0.01 } as c
 
 export function usePdfReader(): PdfReader {
   const [mounted, setMounted] = useState(false);
-  const webView = useRef<WebView>(null);
+  const webView = useRef<WebViewHandle>(null);
   const session = useRef<PdfReadSession | null>(null);
 
   const teardown = useCallback(() => {
