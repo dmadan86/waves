@@ -4,6 +4,7 @@ import {
   isPersonalMode,
   personalActiveKey,
   personalRouteForSelection,
+  resolveFab,
   resolveTabBar,
   tabBarRouteForSelection,
 } from '../src/lib/tabBar';
@@ -47,7 +48,7 @@ describe('resolveTabBar', () => {
   });
 
   it('shows the bar with nothing current deeper in the app', () => {
-    expect(resolveTabBar(['group', '[id]'])).toEqual({ hidden: false, activeKey: '' });
+    expect(resolveTabBar(['group', '[id]'])).toEqual({ hidden: false, activeKey: 'index' });
     expect(resolveTabBar(['settings', 'notifications'])).toEqual({ hidden: false, activeKey: '' });
   });
 
@@ -60,15 +61,9 @@ describe('resolveTabBar', () => {
     expect(['index', 'friends', 'captures', 'me']).not.toContain(state.activeKey);
   });
 
-  it('shows the bar with nothing lit on Activity, now that it pushes rather than tabs', () => {
-    // Activity swapped places with Drafts: it moved out of `(tabs)` to a root
-    // stack screen (`app/activity.tsx`), reached from the dashboard hero rather
-    // than the bar — the same move Settings made before it. Its root segment is
-    // now `activity` with no `(tabs)` prefix, so it lights no tab, exactly like
-    // `profile` above.
-    const state = resolveTabBar(['activity']);
-    expect(state.hidden).toBe(false);
-    expect(['index', 'friends', 'captures', 'me']).not.toContain(state.activeKey);
+  it('lights Home on Activity and group subroutes', () => {
+    expect(resolveTabBar(['activity']).activeKey).toBe('index');
+    expect(resolveTabBar(['group', '[id]', 'members']).activeKey).toBe('index');
   });
 
   it('hides on the full-screen camera and the signed-out screens', () => {
@@ -124,7 +119,7 @@ describe('personal mode', () => {
     expect(personalActiveKey(['personal', 'transactions'])).toBe('transactions');
     expect(personalActiveKey(['personal', 'spending'])).toBe('spending');
     expect(personalActiveKey(['personal', 'recurring'])).toBe('recurring');
-    expect(personalActiveKey(['personal', 'budgets'])).toBe('');
+    expect(personalActiveKey(['personal', 'budgets'])).toBe('me');
   });
 
   it('routes taps, and the way back goes home', () => {
@@ -134,4 +129,44 @@ describe('personal mode', () => {
     expect(personalRouteForSelection('spending', 'me')).toBe('/me');
     expect(personalRouteForSelection('me', 'me')).toBeNull();
   });
+});
+
+it.each(['transactions', 'recurring', 'spending', 'budgets', 'loans', 'entry', 'source'])(
+  'uses Personal mode for personal/%s',
+  (screen) => {
+    expect(isPersonalMode(['personal', screen])).toBe(true);
+  },
+);
+it.each([
+  ['captures', 'statement'],
+  ['settings', 'categories'],
+])('keeps %s/%s in Personal without highlighting a tab', (root, screen) => {
+  expect(isPersonalMode([root, screen])).toBe(true);
+  expect(personalActiveKey([root, screen])).toBe('');
+});
+it('keeps profile and other settings outside Personal', () => {
+  expect(isPersonalMode(['profile'])).toBe(false);
+  expect(isPersonalMode(['settings', 'account'])).toBe(false);
+  expect(personalActiveKey(['settings', 'transactions'])).toBe('');
+});
+it.each([
+  ['budgets', 'me'],
+  ['loans', 'me'],
+  ['entry', 'transactions'],
+  ['source', 'transactions'],
+])('highlights %s as %s', (screen, key) => {
+  expect(personalActiveKey(['personal', screen, 'id'])).toBe(key);
+});
+it.each([
+  ['personal', 'entry'],
+  ['captures', 'paste'],
+  ['captures', 'statement'],
+  ['settings', 'categories'],
+])('hides the FAB on %s/%s forms', (root, screen) => {
+  expect(resolveFab([root, screen])).toBe(false);
+});
+it('hides the entry bar and keeps the FAB on Personal destinations', () => {
+  expect(resolveTabBar(['personal', 'entry']).hidden).toBe(true);
+  for (const screen of ['transactions', 'recurring', 'spending', 'budgets'])
+    expect(resolveFab(['personal', screen])).toBe(true);
 });

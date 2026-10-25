@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { Platform, Vibration, View } from 'react-native';
+import { BackHandler, Platform, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -50,6 +50,7 @@ import {
   isPersonalMode,
   personalActiveKey,
   personalRouteForSelection,
+  resolveFab,
   resolveTabBar,
   tabBarRouteForSelection,
 } from '@/lib/tabBar';
@@ -135,27 +136,41 @@ export function AppTabBar() {
       {
         key: 'shared',
         label: t.personal.nav.shared,
-        icon: (color) => <Ionicons name="home" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'me',
         label: t.personal.nav.overview,
-        icon: (color) => <Ionicons name="wallet-outline" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'grid' : 'grid-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'transactions',
         label: t.personal.nav.transactions,
-        icon: (color) => <Ionicons name="list" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'list' : 'list-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'recurring',
         label: t.personal.nav.recurring,
-        icon: (color) => <Ionicons name="repeat" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'repeat' : 'repeat-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'spending',
-        label: t.personal.nav.reports,
-        icon: (color) => <Ionicons name="pie-chart-outline" size={iconSize.lg} color={color} />,
+        label: t.personal.nav.spending,
+        icon: (color, focused) => (
+          <Ionicons
+            name={focused ? 'pie-chart' : 'pie-chart-outline'}
+            size={iconSize.lg}
+            color={color}
+          />
+        ),
       },
     ],
     [t.personal.nav],
@@ -166,12 +181,16 @@ export function AppTabBar() {
       {
         key: 'index',
         label: t.home,
-        icon: (color) => <Ionicons name="home" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'friends',
         label: t.friends,
-        icon: (color) => <Ionicons name="people" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'people' : 'people-outline'} size={iconSize.lg} color={color} />
+        ),
       },
       {
         key: 'captures',
@@ -184,15 +203,21 @@ export function AppTabBar() {
           waitingCount > 0
             ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
             : t.review,
-        icon: (color) => (
-          <Ionicons name="file-tray-full-outline" size={iconSize.lg} color={color} />
+        icon: (color, focused) => (
+          <Ionicons
+            name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+            size={iconSize.lg}
+            color={color}
+          />
         ),
         badge: captureBadge,
       },
       {
         key: 'me',
         label: t.personal.tab,
-        icon: (color) => <Ionicons name="wallet-outline" size={iconSize.lg} color={color} />,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={iconSize.lg} color={color} />
+        ),
       },
     ],
     [
@@ -216,16 +241,24 @@ export function AppTabBar() {
         const route = personalRouteForSelection(activeKey, key);
         if (!route) return;
         // Siblings inside the personal section replace each other rather than stack.
-        if (route.startsWith('/personal') && segments[0] === 'personal') router.replace(route);
-        else if (route.startsWith('/personal')) router.push(route);
+        if (route.startsWith('/personal')) router.replace(route);
         else switchTab(route);
         return;
       }
       const route = tabBarRouteForSelection(activeKey, key);
       if (route) switchTab(route);
     },
-    [activeKey, personal, segments],
+    [activeKey, personal],
   );
+
+  useEffect(() => {
+    if (!personal || !['me', 'transactions', 'recurring', 'spending'].includes(activeKey)) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      switchTab('/');
+      return true;
+    });
+    return () => listener.remove();
+  }, [personal, activeKey]);
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
   // the bar hides itself on the `voice` route, and unmounting the button the
@@ -308,7 +341,7 @@ export function AppTabBar() {
   // and taking it away mid-sentence would cancel what somebody is saying.
   const showBar = !((hidden || suppressed) && !holding);
   // Personal mode swaps the raised mic for a floating one, so lists leave room.
-  const fab = personal && showBar;
+  const fab = personal && showBar && resolveFab(segments);
   useEffect(() => {
     setTabBarFab(fab);
     return () => setTabBarFab(false);
@@ -327,7 +360,7 @@ export function AppTabBar() {
         animated
         centerAction={personal ? undefined : voice}
       />
-      {personal ? (
+      {fab ? (
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
         <View

@@ -36,6 +36,7 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'itemize',
   'voice',
   'paywall',
+  'entry',
 ]);
 
 export interface TabBarState {
@@ -43,7 +44,7 @@ export interface TabBarState {
   readonly hidden: boolean;
   /**
    * The destination key that reads as current: one of the four tabs, or '' when
-   * nothing is current (inside a group, settings, etc.).
+   * nothing is current (settings and other non-destinations).
    */
   readonly activeKey: string;
 }
@@ -83,8 +84,7 @@ export function tabBarRouteForSelection(
  * page — now reached from Settings — keeps the bar like any other settings page.
  *
  * Then `hidden`: a modal or the camera or a signed-out screen shows no bar.
- * Otherwise the active destination is the tab inside the `(tabs)` group, or
- * nothing when you are deeper in the app.
+ * Otherwise tabs select themselves; groups and Activity select Home.
  */
 export function resolveTabBar(segments: readonly string[], signedOut = false): TabBarState {
   if (signedOut) {
@@ -100,23 +100,32 @@ export function resolveTabBar(segments: readonly string[], signedOut = false): T
 
   let activeKey = '';
   if (root === '(tabs)') activeKey = segments[1] ?? 'index';
+  // Groups and Activity belong to Home; settings and other routes select nothing.
+  if (root === 'group' || root === 'activity') activeKey = 'index';
 
   return { hidden: false, activeKey };
 }
 
 /**
  * Personal mode: the bar swaps to the private-money destinations while you are
- * on the Personal tab or any `personal/*` screen, and swaps back the moment you
- * leave. Derived from the route alone, so there is no state to forget to reset.
+ * on the Personal tab, `personal/*`, or its linked ledger features. Derived from the route alone, so there is no state to forget to reset.
  */
 export function isPersonalMode(segments: readonly string[]): boolean {
-  return (segments[0] === '(tabs)' && segments[1] === 'me') || segments[0] === 'personal';
+  const [root, screen] = segments;
+  // Statement import is a personal-ledger feature opened from Overview.
+  if (root === 'captures' && screen === 'statement') return true;
+  // Categories is a personal-ledger feature opened from Overview.
+  if (root === 'settings' && screen === 'categories') return true;
+  return (root === '(tabs)' && screen === 'me') || root === 'personal';
 }
 
-/** The Personal-mode bar's current key: the screen's own name, or '' on any other personal screen. */
+/** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[]): string {
   if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'me' : '';
+  if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
+  if (leaf === 'budgets' || leaf === 'loans') return 'me';
+  if (leaf === 'entry' || leaf === 'source') return 'transactions';
   return leaf === 'transactions' || leaf === 'spending' || leaf === 'recurring' ? leaf : '';
 }
 
@@ -138,4 +147,29 @@ export function personalRouteForSelection(
     default:
       return '/me';
   }
+}
+
+/** Forms keep the mic out of their input and footer space. */
+export function resolveFab(segments: readonly string[]): boolean {
+  const [root, screen] = segments;
+  if (resolveTabBar(segments).hidden) return false;
+  if (root === 'captures' && (screen === 'paste' || screen === 'statement')) return false;
+  if (
+    root === 'settings' &&
+    [
+      'categories',
+      'account',
+      'delete-account',
+      'packs',
+      'paying',
+      'backup',
+      'import',
+      'feedback',
+      'redeem',
+      'invite',
+      'voice-recorder',
+    ].includes(screen ?? '')
+  )
+    return false;
+  return true;
 }

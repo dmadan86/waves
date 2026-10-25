@@ -5743,7 +5743,7 @@ export interface UiStrings {
       shared: string;
       overview: string;
       transactions: string;
-      reports: string;
+      spending: string;
       recurring: string;
       voiceFab: string;
     };
@@ -5800,8 +5800,7 @@ export interface UiStrings {
       toolLoansSub: string;
       toolBudgets: string;
       toolBudgetsSub: string;
-      toolAnalytics: string;
-      toolAnalyticsSub: string;
+      toolSpendingSub: string;
       toolCategories: string;
       toolCategoriesSub: string;
       perMonth: string;
@@ -5994,7 +5993,6 @@ export interface UiStrings {
      * `everyday` is the third row — what was actually decided this month, once
      * the bills are out — and reads "Spending" like the screen it is on.
      */
-    spendingTitle: string;
     spendingSub: string;
     spendingEmpty: string;
     spendingEmptyBody: string;
@@ -10892,7 +10890,7 @@ const en: UiStrings = {
       shared: 'Home',
       overview: 'Overview',
       transactions: 'Transactions',
-      reports: 'Reports',
+      spending: 'Spending',
       recurring: 'Recurring',
       voiceFab: 'Add personal expense by voice',
     },
@@ -10949,8 +10947,7 @@ const en: UiStrings = {
       toolLoansSub: 'Track your loans',
       toolBudgets: 'Budgets',
       toolBudgetsSub: 'Set monthly limits',
-      toolAnalytics: 'Analytics',
-      toolAnalyticsSub: 'Understand spending patterns',
+      toolSpendingSub: 'Understand spending patterns',
       toolCategories: 'Categories',
       toolCategoriesSub: 'Organize expenses',
       perMonth: '/ month',
@@ -11121,7 +11118,6 @@ const en: UiStrings = {
     openEntry: 'Open this entry',
     ofExpected: 'of {amount}',
     everySince: 'Since {date}',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -16211,7 +16207,7 @@ const ta: UiStrings = {
       shared: 'முகப்பு',
       overview: 'மேலோட்டம்',
       transactions: 'பரிவர்த்தனைகள்',
-      reports: 'அறிக்கைகள்',
+      spending: 'செலவு',
       recurring: 'தொடர்ச்சியானவை',
       voiceFab: 'குரலால் தனிப்பட்ட செலவைச் சேர்',
     },
@@ -16268,8 +16264,7 @@ const ta: UiStrings = {
       toolLoansSub: 'உங்கள் கடன்களைக் கண்காணிக்கவும்',
       toolBudgets: 'பட்ஜெட்கள்',
       toolBudgetsSub: 'மாத வரம்புகளை அமைக்கவும்',
-      toolAnalytics: 'பகுப்பாய்வு',
-      toolAnalyticsSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
+      toolSpendingSub: 'செலவு முறைகளைப் புரிந்துகொள்ளுங்கள்',
       toolCategories: 'வகைகள்',
       toolCategoriesSub: 'செலவுகளை ஒழுங்குபடுத்துங்கள்',
       perMonth: '/ மாதம்',
@@ -16441,7 +16436,6 @@ const ta: UiStrings = {
     openEntry: 'இந்தப் பதிவைத் திற',
     ofExpected: '{amount} இல்',
     everySince: '{date} முதல்',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -21348,7 +21342,7 @@ const hi: UiStrings = {
       shared: 'होम',
       overview: 'अवलोकन',
       transactions: 'लेन-देन',
-      reports: 'रिपोर्ट',
+      spending: 'खर्च',
       recurring: 'आवर्ती',
       voiceFab: 'आवाज़ से निजी खर्च जोड़ें',
     },
@@ -21405,8 +21399,7 @@ const hi: UiStrings = {
       toolLoansSub: 'अपने लोन ट्रैक करें',
       toolBudgets: 'बजट',
       toolBudgetsSub: 'मासिक सीमा तय करें',
-      toolAnalytics: 'एनालिटिक्स',
-      toolAnalyticsSub: 'खर्च के पैटर्न समझें',
+      toolSpendingSub: 'खर्च के पैटर्न समझें',
       toolCategories: 'श्रेणियाँ',
       toolCategoriesSub: 'खर्चों को व्यवस्थित करें',
       perMonth: '/ महीना',
@@ -21576,7 +21569,6 @@ const hi: UiStrings = {
     openEntry: 'यह प्रविष्टि खोलें',
     ofExpected: '{amount} में से',
     everySince: '{date} से',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',
@@ -27141,7 +27133,7 @@ const ar: UiStrings = {
       shared: 'الرئيسية',
       overview: 'نظرة عامة',
       transactions: 'المعاملات',
-      reports: 'التقارير',
+      spending: 'الإنفاق',
       recurring: 'المتكررة',
       voiceFab: 'أضف مصروفًا شخصيًا بالصوت',
     },
@@ -27205,8 +27197,7 @@ const ar: UiStrings = {
       toolLoansSub: 'تتبّع قروضك',
       toolBudgets: 'الميزانيات',
       toolBudgetsSub: 'حدّد الحدود الشهرية',
-      toolAnalytics: 'التحليلات',
-      toolAnalyticsSub: 'فهم أنماط الإنفاق',
+      toolSpendingSub: 'فهم أنماط الإنفاق',
       toolCategories: 'الفئات',
       toolCategoriesSub: 'تنظيم المصروفات',
       perMonth: '/ شهر',
@@ -27374,7 +27365,6 @@ const ar: UiStrings = {
     openEntry: 'افتح هذا القيد',
     ofExpected: 'من {amount}',
     everySince: 'منذ {date}',
-    spendingTitle: 'Spending',
     spendingSub:
       'A month taken apart: what came in, what was always going out, and what you chose.',
     spendingEmpty: 'Nothing here yet',

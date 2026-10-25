@@ -67,7 +67,7 @@ export interface PillTabAction {
 }
 
 /** The floating button's gap above the bar; lists clear it while it shows. */
-export const FAB_GAP = 12;
+export const FAB_GAP = 20;
 let fabShown = false;
 const fabListeners = new Set<() => void>();
 const subscribeFab = (fn: () => void): (() => void) => {
@@ -536,6 +536,9 @@ const TabItem = memo(function TabItem({
         </View>
         <Text
           variant="micro"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
           tone={focused ? 'brand' : 'muted'}
           style={{ fontWeight: focused ? '700' : '600' }}
         >
