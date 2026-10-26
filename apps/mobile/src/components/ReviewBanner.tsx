@@ -40,7 +40,7 @@ export function ReviewBanner({
     staleTime: 5 * 60_000,
   });
   const eligible =
-    nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0) && bannerGateOpen(gate.data);
+    nativeEligible(!!viewerId && !isPaid, enabled, gate.data) && bannerGateOpen(gate.data);
   const [banner, setBanner] = useState<{
     sdk: BannerSdk;
     isActive: () => boolean;
@@ -60,7 +60,7 @@ export function ReviewBanner({
         if (!cancelled && !currentGate) timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
         if (
           cancelled ||
-          !nativeEligible(true, enabled, currentGate, 0) ||
+          !nativeEligible(true, enabled, currentGate) ||
           !bannerGateOpen(currentGate)
         )
           return;
