@@ -1,3 +1,4 @@
+import { resplitActivityLabel } from '@/data/activityLabels';
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { ReviewBanner } from '@/components/ReviewBanner';
 import { nativePositions } from '@/lib/nativeAdsPure';
@@ -75,7 +76,7 @@ import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { useGroups, useRecentActivity, useUndoResplit, type RecentActivityRow } from '@/data/hooks';
-import { plural, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -102,8 +103,7 @@ type RowView = {
   headline: string;
   who: string | null;
   groupId: string | null;
-  /** The group's name, for the cross-group feed's subtitle. Null in a scoped
-   *  (single-group) feed where it would be redundant. */
+  /** The group's name, shown consistently across activity kinds. */
   groupName: string | null;
   timestamp: string;
   tintKey: TintName;
@@ -177,24 +177,12 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   // broken box. So the meta names the category, or else the kind of group.
   const kind = g ? groupTypeTag(g.type, null, ctx.groupTagLabels) : null;
   const amount = activityAmountStyle(entry.verb);
-  const resplit =
-    entry.verb === 'resplit'
-      ? plural(
-          ctx.locale,
-          Number(entry.payload.count ?? 0),
-          ctx.t.departedExpenses.activity,
-        ).replaceAll(
-          '{name}',
-          String(
-            entry.payload.name ??
-              entry.payload.member_name ??
-              entry.payload.memberName ??
-              ctx.t.misc.someone,
-          ),
-        )
-      : entry.verb === 'resplit_undone'
-        ? ctx.t.departedExpenses.activityUndone
-        : null;
+  const resplit = resplitActivityLabel(
+    entry,
+    ctx.locale,
+    ctx.t.departedExpenses,
+    ctx.t.misc.someone,
+  );
   return {
     undoBatchId: resplitBatchId(entry),
     href: activityTarget(entry) as Href,
@@ -208,7 +196,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       ? actorName(entry.actor, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone)
       : null,
     groupId: g?.id ?? null,
-    groupName: ctx.scoped ? null : g?.name?.trim() || null,
+    groupName: g?.name?.trim() || null,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
     glyph,

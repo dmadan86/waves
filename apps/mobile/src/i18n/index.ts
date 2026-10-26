@@ -8084,7 +8084,7 @@ const en: UiStrings = {
       one: 'Split {n} expense after {name} left',
       other: 'Split {n} expenses after {name} left',
     },
-    activityUndone: 'Re-split undone',
+    activityUndone: 'Undid split after {name} left',
     undo: 'Undo',
   },
   activityScreen: {
@@ -13358,10 +13358,10 @@ const ta: UiStrings = {
     offline: 'இந்தச் செலவுகளை மாற்ற இணையத்துடன் இணையுங்கள்.',
     memberRow: '{name} செலவுகள்',
     activity: {
-      one: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
+      one: '{name} வெளியேறிய பின் {n} செலவு பிரிக்கப்பட்டது',
       other: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
     },
-    activityUndone: 'மறுபிரிப்பு செயல்தவிர்க்கப்பட்டது',
+    activityUndone: '{name} வெளியேறிய பின் செய்த பிரிப்பு செயல்தவிர்க்கப்பட்டது',
     undo: 'செயல்தவிர்',
   },
   activityScreen: {
@@ -18756,10 +18756,10 @@ const hi: UiStrings = {
     offline: 'इन खर्चों को बदलने के लिए इंटरनेट से जुड़ें।',
     memberRow: '{name} के खर्च',
     activity: {
-      one: '{name} के जाने के बाद {n} खर्च बाँटे गए',
+      one: '{name} के जाने के बाद {n} खर्च बाँटा गया',
       other: '{name} के जाने के बाद {n} खर्च बाँटे गए',
     },
-    activityUndone: 'दोबारा बँटवारा वापस लिया',
+    activityUndone: '{name} के जाने के बाद का बँटवारा वापस लिया',
     undo: 'वापस लें',
   },
   activityScreen: {
@@ -24102,10 +24102,10 @@ const ar: UiStrings = {
     offline: 'اتصل بالإنترنت لنقل هذه المصاريف.',
     memberRow: 'مصاريف {name}',
     activity: {
-      one: 'قُسمت {n} مصاريف بعد مغادرة {name}',
+      one: 'قُسم مصروف واحد بعد مغادرة {name}',
       other: 'قُسمت {n} مصاريف بعد مغادرة {name}',
     },
-    activityUndone: 'تم التراجع عن إعادة التقسيم',
+    activityUndone: 'تم التراجع عن التقسيم بعد مغادرة {name}',
     undo: 'تراجع',
   },
   activityScreen: {

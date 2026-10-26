@@ -135,8 +135,25 @@ export function recentActivity(
     // dropped, because there we know the destination is gone.
     .filter((row) => !deleted.has(row.group_id))
     .sort(byNewest((row) => String(row.created_at)));
+  // Undo payloads only carry the batch id; the original event records the name.
+  const batchNames = new Map<string, unknown>();
+  for (const row of sorted) {
+    const batchId = resplitBatchId(row);
+    if (batchId) batchNames.set(`${row.group_id}:${batchId}`, row.payload.name);
+  }
   return (limit === undefined ? sorted : sorted.slice(0, limit)).map((row) => ({
     ...row,
+    payload:
+      row.verb === 'resplit_undone'
+        ? {
+            ...row.payload,
+            name:
+              row.payload.name ??
+              batchNames.get(
+                `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
+              ),
+          }
+        : row.payload,
     group: groups.get(row.group_id) ?? null,
     actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
     stake: stakeFor(row, expenseById, myMemberByGroup),
