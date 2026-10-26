@@ -74,7 +74,7 @@ async function setup(
       await crypto.subtle.sign(
         { name: 'ECDSA', hash: 'SHA-256' },
         pair.privateKey,
-        new TextEncoder().encode(message),
+        new TextEncoder().encode(decodeURIComponent(message)),
       ),
     );
     let query = `${message}&signature=${b64(der(raw), true)}&key_id=${over.keyId ?? '77'}`;

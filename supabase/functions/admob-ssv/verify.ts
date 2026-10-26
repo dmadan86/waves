@@ -90,7 +90,7 @@ export function splitSignedQuery(rawQuery: string): SsvParts | null {
   const query = rawQuery.startsWith('?') ? rawQuery.slice(1) : rawQuery;
   const marker = query.indexOf('&signature=');
   if (marker <= 0) return null;
-  const message = query.slice(0, marker);
+  const message = decodeURIComponent(query.slice(0, marker));
   const rest = new URLSearchParams(query.slice(marker + 1));
   const signature = rest.get('signature');
   const keyId = rest.get('key_id');
