@@ -127,7 +127,12 @@ import {
   type VoiceCloudConsent,
   type VoiceEngineInfo,
 } from '@/lib/voiceEnginePure';
-import { localParseIsConfident, parseLocally, type FastPathContext } from '@/lib/voiceFastPath';
+import {
+  owedQuestionTranscript,
+  localParseIsConfident,
+  parseLocally,
+  type FastPathContext,
+} from '@/lib/voiceFastPath';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
 import {
   useAgentLocalData,
@@ -1354,7 +1359,12 @@ export default function VoiceScreen() {
     if (
       micMode !== 'append' &&
       !agentFollowUp &&
-      (tryMoneyQuestion(transcript) || tryBalanceQuery(transcript))
+      (tryMoneyQuestion(transcript) ||
+        tryBalanceQuery(transcript) ||
+        (() => {
+          const owed = owedQuestionTranscript(transcript, alternatives, groupRefs);
+          return owed !== null && tryBalanceQuery(owed);
+        })())
     ) {
       // The cloud engine heard it, so the command counts like any fast-path one.
       if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
@@ -2498,6 +2508,9 @@ export default function VoiceScreen() {
   };
 
   const askAgain = (): void => {
+    setAgentSession(null);
+    setAgentFollowUp(null);
+    setPanelFooter(null);
     setAnswer(null);
     setQueryGroupId('');
     setMicMode('replace');
@@ -2545,10 +2558,32 @@ export default function VoiceScreen() {
       router.dismissTo(followUp === 'settle' ? '/settle-up' : '/capture');
       return;
     }
+    setAgentSession(null);
+    setAgentFollowUp(null);
     setAnswer(null);
     setQueryGroupId('');
     submitTyped(followUp === 'owe' ? 'Who do I owe?' : 'Who owes me?');
   };
+
+  const renderAnswerFollowUps = (value: Parameters<typeof answerFollowUps>[0]) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+      {answerFollowUps(value).map((followUp) => (
+        <Chip
+          key={followUp}
+          label={
+            followUp === 'owed'
+              ? t.voiceScreen.askWhoOwes
+              : followUp === 'owe'
+                ? t.voiceScreen.askWhoIOwe
+                : followUp === 'settle'
+                  ? t.homeDash.settleUp
+                  : t.voiceScreen.addExpense
+          }
+          onPress={() => pickAnswerFollowUp(followUp)}
+        />
+      ))}
+    </View>
+  );
 
   // Typed text enters the same pipeline as a spoken sentence: the mic is let go,
   // the text is treated as a live capture, and the screen decides who reads it.
@@ -2860,6 +2895,8 @@ export default function VoiceScreen() {
                 setAttempt((current) => current + 1);
                 setPhase('listening');
               }}
+              onAskAgain={askAgain}
+              renderAnswerFollowUps={() => renderAnswerFollowUps(null)}
               onClose={finishVoice}
               onAddAnother={addAnother}
               onStage={setAgentStage}
@@ -3107,23 +3144,7 @@ export default function VoiceScreen() {
                       </Card>
                     ) : null;
                   })()}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                {answerFollowUps(answer).map((followUp) => (
-                  <Chip
-                    key={followUp}
-                    label={
-                      followUp === 'owed'
-                        ? t.voiceScreen.askWhoOwes
-                        : followUp === 'owe'
-                          ? t.voiceScreen.askWhoIOwe
-                          : followUp === 'settle'
-                            ? t.homeDash.settleUp
-                            : t.voiceScreen.addExpense
-                    }
-                    onPress={() => pickAnswerFollowUp(followUp)}
-                  />
-                ))}
-              </View>
+              {renderAnswerFollowUps(answer)}
             </View>
           ) : (
             // Listening — the mic panel owns the whole capture surface, the miss

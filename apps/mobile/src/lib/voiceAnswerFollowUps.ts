@@ -7,3 +7,9 @@ export function answerFollowUps(
     ? [answer.direction === 'owed' ? 'owe' : 'owed', 'settle', 'expense']
     : ['owed', 'expense'];
 }
+
+export function isFinalAgentTextAnswer(
+  plan: { answer: string | null; clarify: string | null; cards: readonly unknown[] } | null,
+): boolean {
+  return Boolean(plan?.answer && !plan.clarify && plan.cards.length === 0);
+}

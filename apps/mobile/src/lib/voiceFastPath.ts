@@ -333,3 +333,18 @@ export function explainLocalParse(local: LocalParse, context: FastPathContext): 
 export function localParseIsConfident(local: LocalParse, context: FastPathContext): boolean {
   return explainLocalParse(local, context).confident;
 }
+
+/** Prefer the top reading; only overall owed questions may rescue an ASR miss. */
+export function owedQuestionTranscript(
+  transcript: string,
+  alternatives: readonly string[],
+  groups: readonly VoiceGroupRef[],
+): string | null {
+  return (
+    [transcript, ...alternatives].find(
+      (candidate) =>
+        detectOwedDirection(candidate) &&
+        parseVoiceExpenses(candidate, groups).group?.kind !== 'existing',
+    ) ?? null
+  );
+}
