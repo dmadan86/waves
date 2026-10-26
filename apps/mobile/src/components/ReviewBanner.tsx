@@ -112,7 +112,6 @@ export function ReviewBanner({
       ) : null}
       <View
         collapsable={false}
-        renderToHardwareTextureAndroid
         style={{
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
@@ -144,6 +143,20 @@ export function ReviewBanner({
               setLoaded(false);
               setBanner(null);
             }
+          }}
+        />
+        {/* Mask WebView corners when Android ignores native clipping. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -theme.radius.lg,
+            right: -theme.radius.lg,
+            bottom: -theme.radius.lg,
+            left: -theme.radius.lg,
+            borderRadius: theme.radius.lg * 2,
+            borderWidth: theme.radius.lg,
+            borderColor: theme.color.bg,
           }}
         />
       </View>

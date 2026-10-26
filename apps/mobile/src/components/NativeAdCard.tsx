@@ -179,8 +179,7 @@ export function NativeAdCard({
   const icon = ad.icon ?? ad.images?.[0];
   return (
     <View style={{ paddingTop: Math.max(0, rowGap - precedingGap), paddingBottom: rowGap }}>
-      <sdk.NativeAdView
-        nativeAd={ad}
+      <View
         style={{
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
@@ -191,86 +190,91 @@ export function NativeAdCard({
           shadowOpacity: 0,
         }}
       >
-        <View
-          style={{
-            backgroundColor: 'transparent',
-            padding: theme.spacing.sm,
-            // Keep the SDK's top-right AdChoices overlay clear of row content.
-            paddingRight: theme.spacing.xl,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-          }}
-        >
-          {icon ? (
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.ICON}>
-              <Image
-                source={{ uri: icon.url }}
-                style={{ width: 40, height: 40, borderRadius: theme.radius.sm }}
-              />
-            </sdk.NativeAsset>
-          ) : (
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.border,
-              }}
-            />
-          )}
-          <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-              <NativeText
+        <sdk.NativeAdView nativeAd={ad} style={{ width: '100%' }}>
+          <View
+            style={{
+              backgroundColor: 'transparent',
+              padding: theme.spacing.sm,
+              // Keep the SDK's top-right AdChoices overlay clear of row content.
+              paddingRight: theme.spacing.xl,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
+            {icon ? (
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.ICON}>
+                <Image
+                  source={{ uri: icon.url }}
+                  style={{ width: 40, height: 40, borderRadius: theme.radius.sm }}
+                />
+              </sdk.NativeAsset>
+            ) : (
+              <View
                 style={{
-                  color: theme.color.textMuted,
-                  fontSize: 10,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.xs,
-                  paddingVertical: 1,
+                  width: 40,
+                  height: 40,
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: theme.color.border,
                 }}
-              >
-                {t.rewardedAds.adLabel}
-              </NativeText>
-              <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
+              />
+            )}
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+                <NativeText
+                  style={{
+                    color: theme.color.textMuted,
+                    fontSize: 10,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
+                    borderRadius: theme.radius.pill,
+                    paddingHorizontal: theme.spacing.xs,
+                    paddingVertical: 1,
+                  }}
+                >
+                  {t.rewardedAds.adLabel}
+                </NativeText>
+                <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
+                  <NativeText
+                    numberOfLines={1}
+                    style={{ flex: 1, color: theme.color.text, fontWeight: '600' }}
+                  >
+                    {ad.headline}
+                  </NativeText>
+                </sdk.NativeAsset>
+              </View>
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
                 <NativeText
                   numberOfLines={1}
-                  style={{ flex: 1, color: theme.color.text, fontWeight: '600' }}
+                  style={{ color: theme.color.textMuted, fontSize: 12 }}
                 >
-                  {ad.headline}
+                  {ad.body}
                 </NativeText>
               </sdk.NativeAsset>
             </View>
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
-              <NativeText numberOfLines={1} style={{ color: theme.color.textMuted, fontSize: 12 }}>
-                {ad.body}
-              </NativeText>
-            </sdk.NativeAsset>
+            {ad.callToAction ? (
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.CALL_TO_ACTION}>
+                <NativeText
+                  numberOfLines={1}
+                  style={{
+                    flexShrink: 1,
+                    maxWidth: '30%',
+                    color: '#FFFFFF',
+                    backgroundColor: theme.color.brand,
+                    borderRadius: theme.radius.pill,
+                    paddingHorizontal: theme.spacing.sm,
+                    paddingVertical: theme.spacing.xs,
+                    fontSize: 12,
+                    fontWeight: '600',
+                  }}
+                >
+                  {ad.callToAction}
+                </NativeText>
+              </sdk.NativeAsset>
+            ) : null}
           </View>
-          {ad.callToAction ? (
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.CALL_TO_ACTION}>
-              <NativeText
-                numberOfLines={1}
-                style={{
-                  flexShrink: 1,
-                  maxWidth: '30%',
-                  color: '#FFFFFF',
-                  backgroundColor: theme.color.brand,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.sm,
-                  paddingVertical: theme.spacing.xs,
-                  fontSize: 12,
-                  fontWeight: '600',
-                }}
-              >
-                {ad.callToAction}
-              </NativeText>
-            </sdk.NativeAsset>
-          ) : null}
-        </View>
-      </sdk.NativeAdView>
+        </sdk.NativeAdView>
+      </View>
     </View>
   );
 }
