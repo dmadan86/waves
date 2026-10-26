@@ -11,7 +11,7 @@ export function potInput(pot: PotWithContributions, memberIds: readonly string[]
   };
 }
 export function potSettlements(pot: PotWithContributions): PotSettlement[] {
-  return pot.contributions.map((row) => ({
+  return (pot.contributions ?? []).map((row) => ({
     id: row.id,
     potId: row.pot_id,
     from: row.from_member_id,
@@ -39,13 +39,19 @@ export function tagPotLedger<
   E extends { id: string; potId?: string | null },
   S extends { id: string; potId?: string | null },
 >(
-  pots: readonly PotWithContributions[],
+  pots:
+    | readonly (Pick<PotWithContributions, 'id'> &
+        Partial<Pick<PotWithContributions, 'contributions'>>)[]
+    | null
+    | undefined,
   expenseTags: Readonly<Record<string, string>>,
   expenses: readonly E[],
   settlements: readonly S[],
 ) {
   const settlementTags = new Map(
-    pots.flatMap((pot) => pot.contributions.map((row) => [row.id, pot.id] as const)),
+    (pots ?? []).flatMap((pot) =>
+      (pot.contributions ?? []).map((row) => [row.id, pot.id] as const),
+    ),
   );
   return {
     expenses: expenses.map((row) => ({ ...row, potId: expenseTags[row.id] ?? row.potId })),

@@ -63,7 +63,7 @@ describe('public pot payment route', () => {
   });
 
   it('accepts optional references and normalises valid bank references', () => {
-    expect(potReportInput(' Maya ', ' ')).toEqual({ name: 'Maya', reference: '' });
+    expect(potReportInput(' Maya ', ' ')).toEqual({ name: 'Maya', reference: null });
     expect(potReportInput('Maya', ' 123456789012 ')).toEqual({
       name: 'Maya',
       reference: '123456789012',

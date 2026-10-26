@@ -23,5 +23,5 @@ export function potReportInput(payerName: string, utr: string) {
   if (!name || name.length > 100) return { error: 'badName' } as const;
   const reference = utr.trim() ? normalisePotUtr(utr) : '';
   if (reference === null) return { error: 'badUtr' } as const;
-  return { name, reference } as const;
+  return { name, reference: reference || null } as const;
 }

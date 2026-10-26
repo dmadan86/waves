@@ -1,4 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+import {
+  usePots,
+  useCreatePot,
+  useRecordPotContribution,
+  useConfirmPotContribution,
+  useClosePot,
+  useCarryPot,
+} from '../src/data/pots';
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn((options: unknown) => options),
@@ -22,14 +30,6 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('@waves/api-client', () => ({ createWavesClient: () => mocks.api }));
 vi.mock('../src/lib/backend', () => ({ backend: {} }));
 vi.mock('../src/sync', () => ({ useSync: () => ({ flush: mocks.flush }) }));
-import {
-  usePots,
-  useCreatePot,
-  useRecordPotContribution,
-  useConfirmPotContribution,
-  useClosePot,
-  useCarryPot,
-} from '../src/data/pots';
 
 type Mutation<T> = { mutationFn: (input: T) => Promise<unknown>; onSuccess: () => Promise<void> };
 

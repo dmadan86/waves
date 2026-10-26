@@ -87,3 +87,14 @@ describe('legacy mirror pot tagging', () => {
     expect(tagged.settlements[0].potId).toBe('known');
   });
 });
+
+it('tags older ledgers with missing pots or contributions without crashing', () => {
+  const rows = [{ id: 's' }];
+  expect(tagPotLedger(undefined, {}, [], rows).settlements).toEqual([
+    { id: 's', potId: undefined },
+  ]);
+  const olderPot = { ...pot, contributions: undefined };
+  expect(tagPotLedger([olderPot], {}, [], rows).settlements).toEqual([
+    { id: 's', potId: undefined },
+  ]);
+});

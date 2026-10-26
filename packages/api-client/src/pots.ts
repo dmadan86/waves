@@ -79,6 +79,7 @@ export function potExpensePayers(
 export function createPotApi(
   supabase: SupabaseClient,
   rpc: <T>(name: string, args: Record<string, unknown>) => Promise<T>,
+  callFunction: <T>(name: string, body: object) => Promise<T>,
 ) {
   return {
     createPot(input: CreatePotInput): Promise<string> {
@@ -142,10 +143,10 @@ export function createPotApi(
       return (data ?? []) as unknown as PotWithContributions[];
     },
     potPayLookup(code: string): Promise<PotPayInfo | null> {
-      return rpc('pot_pay_lookup', { code });
+      return callFunction('pot-pay', { action: 'lookup', code });
     },
     potPaySelfReport(code: string, payerName: string, utr: string | null = null): Promise<boolean> {
-      return rpc('pot_pay_self_report', { code, payer_name: payerName, utr });
+      return callFunction('pot-pay', { action: 'report', code, payerName, utr });
     },
   };
 }

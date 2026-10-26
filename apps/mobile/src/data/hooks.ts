@@ -1607,15 +1607,17 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
       toSettlementSnapshots(settlements.data ?? []),
     );
     const partition = partitionPotLedger(
-      (pots.data ?? []).map((pot) => ({
-        id: pot.id,
-        status: pot.status,
-        currency: pot.currency,
-        perHeadMinor: BigInt(pot.per_head_minor),
-        treasurerMemberId: pot.treasurer_member_id,
-        treasurerName: '',
-        memberIds: (members.data ?? []).map((member) => member.id),
-      })),
+      (pots.data ?? [])
+        .filter((pot) => pot.status === 'open')
+        .map((pot) => ({
+          id: pot.id,
+          status: pot.status,
+          currency: pot.currency,
+          perHeadMinor: BigInt(pot.per_head_minor),
+          treasurerMemberId: pot.treasurer_member_id,
+          treasurerName: '',
+          memberIds: (members.data ?? []).map((member) => member.id),
+        })),
       tagged.expenses,
       tagged.settlements,
     );

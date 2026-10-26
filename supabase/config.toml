@@ -458,3 +458,7 @@ verify_jwt = false
 
 [analytics]
 enabled = false
+
+# Pay links work before sign-in; the edge handler limits calls by IP.
+[functions.pot-pay]
+verify_jwt = false

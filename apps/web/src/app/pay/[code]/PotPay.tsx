@@ -24,6 +24,7 @@ export function PotPay({ code }: { code: string }) {
 
   useEffect(() => {
     let active = true;
+    // The client routes public pay links through the rate-limited pot-pay edge function.
     void waves
       .potPayLookup(code)
       .then(
