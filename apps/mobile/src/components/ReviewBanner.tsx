@@ -110,7 +110,15 @@ export function ReviewBanner({
           {t.rewardedAds.adLabel}
         </Text>
       ) : null}
-      <View style={isHome ? { borderRadius: theme.radius.lg, overflow: 'hidden' } : undefined}>
+      <View
+        collapsable={false}
+        renderToHardwareTextureAndroid
+        style={{
+          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.lg,
+          overflow: 'hidden',
+        }}
+      >
         <sdk.BannerAd
           unitId={bannerUnitId(
             Platform.OS,
