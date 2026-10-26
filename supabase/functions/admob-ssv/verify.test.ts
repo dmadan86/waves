@@ -92,9 +92,15 @@ describe('splitSignedQuery', () => {
   it('splits the signed message from the signature and key id', () => {
     expect(splitSignedQuery(`${MESSAGE}&signature=abc_-&key_id=42`)).toEqual({
       message: MESSAGE,
+      fields: new Map(MESSAGE.split('&').map((pair) => pair.split('=') as [string, string])),
       signature: 'abc_-',
       keyId: '42',
     });
+  });
+
+  it('rejects pairs without an equals sign and duplicate decoded keys', () => {
+    expect(splitSignedQuery('a=1%26bare&signature=x&key_id=1')).toBeNull();
+    expect(splitSignedQuery('a=1&%61=2&signature=x&key_id=1')).toBeNull();
   });
 
   it('is null for an unsigned query or one missing the key id', () => {
@@ -129,7 +135,9 @@ describe('verifyCallback', () => {
   it('accepts a callback signed by the published key', async () => {
     const key = await makeKey();
     const keys = new VerifierKeys(fetchOf(keyList(key)));
-    expect(await verifyCallback(await signedQuery(key), keys)).toBe(true);
+    expect(await verifyCallback(await signedQuery(key), keys)).toEqual(
+      splitSignedQuery(await signedQuery(key))?.fields,
+    );
   });
 
   it('decodes URL-encoded characters before verifying the message', async () => {
@@ -139,41 +147,70 @@ describe('verifyCallback', () => {
       key,
       MESSAGE.replace('custom_data=voice', 'custom_data=credit:voice'),
     );
-    expect(await verifyCallback(good.replace('credit:voice', 'credit%3Avoice'), keys)).toBe(true);
+    expect(
+      (await verifyCallback(good.replace('credit:voice', 'credit%3Avoice'), keys))?.get(
+        'custom_data',
+      ),
+    ).toBe('credit:voice');
   });
+
+  it('parses encoded separators only from the signed decoded content', async () => {
+    const key = await makeKey();
+    const keys = new VerifierKeys(fetchOf(keyList(key)));
+    const good = await signedQuery(key, `${MESSAGE}&extra=a=b`);
+    const fields = await verifyCallback(good.replace('&extra=a=b', '%26extra%3Da%3Db'), keys);
+    expect(fields?.get('extra')).toBe('a=b');
+    expect(fields?.get('user_id')).toBe('6f1c1d2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f');
+  });
+
+  it('rejects duplicate keys even with a valid signature', async () => {
+    const key = await makeKey();
+    const keys = new VerifierKeys(fetchOf(keyList(key)));
+    expect(
+      await verifyCallback(await signedQuery(key, `${MESSAGE}&user_id=other`), keys),
+    ).toBeNull();
+  });
+
+  it.each(['%', '%GG', '%C3%28'])(
+    'rejects malformed encoding %s without throwing',
+    async (value) => {
+      const keys = new VerifierKeys(fetchOf({}));
+      expect(await verifyCallback(`extra=${value}&signature=x&key_id=1`, keys)).toBeNull();
+    },
+  );
 
   it('rejects a changed message (a swapped user, kind or transaction)', async () => {
     const key = await makeKey();
     const keys = new VerifierKeys(fetchOf(keyList(key)));
     const good = await signedQuery(key);
-    expect(await verifyCallback(good.replace('user_id=6f1c', 'user_id=7f1c'), keys)).toBe(false);
-    expect(await verifyCallback(good.replace('custom_data=voice', 'custom_data=scan'), keys)).toBe(
-      false,
-    );
-    expect(await verifyCallback(good.replace('ABCDEF', 'ABCDEE'), keys)).toBe(false);
-    expect(await verifyCallback(`extra=1&${good}`, keys)).toBe(false);
+    expect(await verifyCallback(good.replace('user_id=6f1c', 'user_id=7f1c'), keys)).toBeNull();
+    expect(
+      await verifyCallback(good.replace('custom_data=voice', 'custom_data=scan'), keys),
+    ).toBeNull();
+    expect(await verifyCallback(good.replace('ABCDEF', 'ABCDEE'), keys)).toBeNull();
+    expect(await verifyCallback(`extra=1&${good}`, keys)).toBeNull();
   });
 
   it('rejects a signature from a different key pair', async () => {
     const published = await makeKey();
     const forger = await makeKey(published.keyId);
     const keys = new VerifierKeys(fetchOf(keyList(published)));
-    expect(await verifyCallback(await signedQuery(forger), keys)).toBe(false);
+    expect(await verifyCallback(await signedQuery(forger), keys)).toBeNull();
   });
 
   it('rejects garbage signatures and unsigned queries without throwing', async () => {
     const key = await makeKey();
     const keys = new VerifierKeys(fetchOf(keyList(key)));
-    expect(await verifyCallback(`${MESSAGE}&signature=!!!&key_id=${key.keyId}`, keys)).toBe(false);
-    expect(await verifyCallback(`${MESSAGE}&signature=AAAA&key_id=${key.keyId}`, keys)).toBe(false);
-    expect(await verifyCallback(MESSAGE, keys)).toBe(false);
+    expect(await verifyCallback(`${MESSAGE}&signature=!!!&key_id=${key.keyId}`, keys)).toBeNull();
+    expect(await verifyCallback(`${MESSAGE}&signature=AAAA&key_id=${key.keyId}`, keys)).toBeNull();
+    expect(await verifyCallback(MESSAGE, keys)).toBeNull();
   });
 
   it('rejects an unknown key id', async () => {
     const key = await makeKey('111');
     const other = await makeKey('222');
     const keys = new VerifierKeys(fetchOf(keyList(key)));
-    expect(await verifyCallback(await signedQuery(other), keys)).toBe(false);
+    expect(await verifyCallback(await signedQuery(other), keys)).toBeNull();
   });
 });
 

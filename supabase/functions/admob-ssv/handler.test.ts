@@ -165,6 +165,39 @@ describe('admob-ssv', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it('reads encoded separators from the verified decoded message', async () => {
+    const { deps, rpc, callback } = await setup();
+    const response = await handleAdmobSsv(
+      await callback({ transaction_id: 'TX-1&extra=a=b' }),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({ p_transaction_id: 'TX-1' });
+  });
+
+  it('does not decode signed field values a second time', async () => {
+    const { deps, rpc, callback } = await setup();
+    await handleAdmobSsv(await callback({ transaction_id: 'TX%26extra%3D1+2' }), deps);
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({ p_transaction_id: 'TX%26extra%3D1+2' });
+  });
+
+  it('rejects duplicate keys introduced by an encoded ampersand', async () => {
+    const { deps, rpc, callback } = await setup();
+    expect(
+      await status(
+        handleAdmobSsv(await callback({ transaction_id: 'TX-1&custom_data=scan' }), deps),
+      ),
+    ).toBe(403);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed percent-encoding with 403', async () => {
+    const { deps, rpc, callback } = await setup();
+    const request = await callback({}, { tamper: (q) => q.replace('TX-1', '%GG') });
+    expect(await status(handleAdmobSsv(request, deps))).toBe(403);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('answers the console ping (no query) with 200 and does nothing', async () => {
     const { deps, rpc } = await setup();
     const response = await handleAdmobSsv(
