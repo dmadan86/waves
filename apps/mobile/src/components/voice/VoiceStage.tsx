@@ -17,7 +17,7 @@ import { iconSize, Text, useTheme } from '@waves/ui';
 import { useStrings, type UiStrings } from '@/i18n';
 import type { VoiceStatusKey } from '@/lib/voiceFlowPure';
 
-import { VoiceMicScene } from './VoiceMicScene';
+import { AudioWaveform, WAVEFORM_HEIGHT } from './AudioWaveform';
 import { FloatingMicrophone, type MicMode } from './FloatingMicrophone';
 import { LiveTranscript } from './LiveTranscript';
 import { VoiceStatus } from './VoiceStatus';
@@ -32,7 +32,7 @@ export function statusText(t: UiStrings, key: VoiceStatusKey): string {
     case 'listening':
       return s.statusListening;
     case 'processing':
-      return s.statusHeard;
+      return s.statusProcessing;
     case 'noSpeech':
       return s.statusNoSpeech;
     case 'noAmount':
@@ -42,7 +42,7 @@ export function statusText(t: UiStrings, key: VoiceStatusKey): string {
     case 'error':
       return s.statusError;
     case 'expenseReady':
-      return s.statusHeard;
+      return s.statusExpenseReady;
     case 'check':
       return s.statusCheck;
     case 'saving':
@@ -116,27 +116,21 @@ export function VoiceTop({
 }: VoiceTopProps) {
   const theme = useTheme();
   const { t } = useStrings();
+  const open = micMode === 'stop';
   return (
     <View style={{ alignItems: 'center' }}>
       <Text
         align="center"
-        style={{
-          fontSize: compact ? 18 : 20,
-          lineHeight: 26,
-          fontWeight: '600',
-          marginTop: theme.spacing.xs,
-        }}
+        style={{ fontSize: 22, lineHeight: 28, fontWeight: '800', marginTop: theme.spacing.md }}
       >
         {t.voiceScreen.headline}
       </Text>
       <Text variant="body" tone="muted" align="center">
         {t.voiceScreen.subline}
       </Text>
-      <VoiceMicScene
-        live={micMode === 'stop'}
-        reduceMotion={reduceMotion}
-        level={level}
-        compact={compact}
+      {/* The halo's box is roomy; a short phone trims it rather than scrolling. */}
+      <View
+        style={{ alignSelf: 'stretch', alignItems: 'center', marginVertical: compact ? -14 : -4 }}
       >
         <FloatingMicrophone
           mode={micMode}
@@ -145,8 +139,21 @@ export function VoiceTop({
           label={micLabel(t, micMode)}
           reduceMotion={reduceMotion}
         />
-      </VoiceMicScene>
+      </View>
       <VoiceStatus status={status} text={statusMessage ?? statusText(t, status)} />
+      {/* The wave only while the mic is open, under the mic; the words and cards follow it. */}
+      {open && level ? (
+        <View
+          style={{
+            alignSelf: 'stretch',
+            height: WAVEFORM_HEIGHT,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <AudioWaveform level={level} reduceMotion={reduceMotion} />
+        </View>
+      ) : null}
     </View>
   );
 }
