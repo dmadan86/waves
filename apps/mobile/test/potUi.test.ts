@@ -1,6 +1,8 @@
+import { GroupType } from '../src/data/types';
 import { describe, expect, it } from 'vitest';
 import { SettlementStatus } from '@waves/core';
 import {
+  potVisibility,
   optionalPotUtr,
   potInput,
   potSettlements,
@@ -97,4 +99,29 @@ it('tags older ledgers with missing pots or contributions without crashing', () 
   expect(tagPotLedger([olderPot], {}, [], rows).settlements).toEqual([
     { id: 's', potId: undefined },
   ]);
+});
+
+describe('pot visibility', () => {
+  it.each(Object.values(GroupType))('%s only offers new pots for events', (type) => {
+    const canStart = type === GroupType.Event;
+    expect(potVisibility({ type }, [])).toEqual({ canStart, show: canStart });
+    expect(potVisibility({ type }, [pot])).toEqual({ canStart, show: true });
+  });
+
+  it('uses the event type even without a template', () => {
+    expect(potVisibility({ type: GroupType.Event }, undefined)).toEqual({
+      canStart: true,
+      show: true,
+    });
+    const trip = { type: GroupType.Trip, event_template: 'wedding_in' };
+    expect(potVisibility(trip, [])).toEqual({ canStart: false, show: false });
+  });
+
+  it.each([undefined, null, { type: null }, { type: 'unknown' }])(
+    'hides unknown or loading groups unless a pot already exists: %s',
+    (group) => {
+      expect(potVisibility(group, undefined)).toEqual({ canStart: false, show: false });
+      expect(potVisibility(group, [pot])).toEqual({ canStart: false, show: true });
+    },
+  );
 });

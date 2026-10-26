@@ -1,3 +1,4 @@
+import { showsVendorTools } from './eventOrganizer';
 import { normalisePotUtr, SettlementStatus, type PotInput, type PotSettlement } from '@waves/core';
 import type { PotWithContributions } from '@waves/api-client';
 
@@ -60,4 +61,13 @@ export function tagPotLedger<
       potId: row.potId ?? settlementTags.get(row.id),
     })),
   };
+}
+
+/** Existing pots stay accessible after a group changes type. */
+export function potVisibility(
+  group: { type: string | null } | null | undefined,
+  pots: readonly unknown[] | null | undefined,
+): { canStart: boolean; show: boolean } {
+  const canStart = showsVendorTools(group?.type);
+  return { canStart, show: canStart || (pots?.length ?? 0) > 0 };
 }
