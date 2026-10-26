@@ -39,15 +39,15 @@ appId: app.waves.mobile
 - tapOn: 'Goa trip'
 - tapOn: 'Expenses'
 - tapOn: 'Add expense'
-- assertVisible: 'What was it for?'
+- assertVisible: 'What was it for\?'
 
 # The amount, via the shared calculator.
 - tapOn: 'Amount 0 INR'
 - inputText: '300'
 - hideKeyboard
 
-# The new tag is a chip in the category picker — pick it. (No description, so the
-# tag itself will name the expense.)
+# With no description, the selected tag names the expense.
+- tapOn: 'Category, .*'
 - assertVisible: 'Client dinner'
 - tapOn: 'Client dinner'
 - tapOn: 'Save expense'

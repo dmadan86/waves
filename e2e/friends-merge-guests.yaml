@@ -42,5 +42,9 @@ appId: app.waves.mobile
 # The sheet warns that a merge cannot be undone and asks once more.
 - tapOn: 'Merge 2 people'
 
+# Close the optional invitation to finish without sharing a link.
+- assertVisible: 'Invite Reeya\?'
+- tapOn: 'Close'
+
 # Back on Friends, still a working screen.
 - assertVisible: 'Friends'

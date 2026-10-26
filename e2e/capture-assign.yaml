@@ -34,11 +34,11 @@ appId: app.waves.mobile
 
 # The waiting capture is listed; assign it to the seeded group.
 - assertVisible: 'Auto to airport'
-- tapOn: 'Assign to group'
+- tapOn: 'Which group\?'
 - tapOn: 'Goa trip'
 
 # Assigning opens add-expense — its description prompt ("What was it for?")
 # differs from the capture form's, so it proves we navigated off the inbox
 # before we check the captured note carried over as the prefill.
-- assertVisible: 'What was it for?'
+- assertVisible: 'What was it for\?'
 - assertVisible: 'Auto to airport'

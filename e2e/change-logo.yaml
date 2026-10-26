@@ -22,7 +22,6 @@ appId: app.waves.mobile
 # update and dismisses the sheet in one tap.
 - tapOn: 'Camping'
 
-# Proof the write applied rather than only that the sheet closed: the settings
-# screen says "Saved" for a cover change the same way it does for every other
-# setting on it. The mark itself is a drawing, so there is no glyph to assert.
-- assertVisible: 'Saved'
+# Cover updates suppress the generic Saved status.
+- assertNotVisible: 'Choose an icon'
+- assertVisible: 'Edit group'

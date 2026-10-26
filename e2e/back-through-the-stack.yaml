@@ -86,7 +86,7 @@ appId: app.waves.mobile
 - tapOn: 'Review'
 - assertVisible: 'Nothing needs you'
 - tapOn: 'Personal'
-- assertVisible: 'Your own money'
+- assertVisible: 'Your own money — private to you\.'
 - tapOn: 'Home'
 - extendedWaitUntil:
     visible: 'Your groups'

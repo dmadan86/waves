@@ -39,6 +39,14 @@ appId: app.waves.mobile
     id: 'intro-skip'
     optional: true
 
+# The release tour can hide Skip while its footer remains usable.
+- repeat:
+    times: 6
+    while:
+      visible: 'Next|Get started'
+    commands:
+      - tapOn: 'Next|Get started'
+
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.
 # KNOWN APP BUG: skipping the intro occasionally blanks the app (Fabric

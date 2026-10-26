@@ -51,6 +51,7 @@ appId: app.waves.mobile
 - assertVisible: 'Goa trip copy'
 
 # And the original is untouched — still on Home alongside the copy.
-- tapOn: 'Waves'
+- tapOn: 'Home'
+- assertVisible: 'Your groups'
 - assertVisible: 'Goa trip'
 - assertVisible: 'Goa trip copy'
