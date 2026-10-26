@@ -1,3 +1,13 @@
+export const NATIVE_DAILY_CAP = 3;
+export function nativeCapacityAvailable(impressions: number, pending: number): boolean {
+  return (
+    Number.isInteger(impressions) &&
+    impressions >= 0 &&
+    Number.isInteger(pending) &&
+    pending >= 0 &&
+    impressions + pending < NATIVE_DAILY_CAP
+  );
+}
 export function nativePositions(count: number, seed: string): number[] {
   if (!Number.isFinite(count) || count < 8) return [];
   // FNV-1a seeds a fresh mulberry32 stream so growing lists keep their prefix.
@@ -19,8 +29,16 @@ export function nativeEligible(
   signedIn: boolean,
   enabled: boolean,
   gate: { enabled?: boolean } | null | undefined,
+  impressions: number,
 ): boolean {
-  return signedIn && enabled && gate?.enabled === true;
+  return (
+    signedIn &&
+    enabled &&
+    gate?.enabled === true &&
+    Number.isInteger(impressions) &&
+    impressions >= 0 &&
+    impressions < NATIVE_DAILY_CAP
+  );
 }
 export function nativeUnitId(
   platform: string,

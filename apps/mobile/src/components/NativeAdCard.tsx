@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Image, Platform, Text as NativeText, View } from 'react-native';
 import type { ViewProps } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
@@ -13,7 +14,43 @@ import { loadAdsSdk } from '@/lib/adsSdk';
 import { readGateStatus } from '@/lib/adGates';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
-import { nativeEligible, nativeUnitId } from '@/lib/nativeAdsPure';
+import { nativeEligible, nativeUnitId, nativeCapacityAvailable } from '@/lib/nativeAdsPure';
+
+// Pending ads reserve capacity only in memory; only SDK impressions survive remounts.
+let counterQueue = Promise.resolve();
+const pending = new Map<string, number>();
+async function reserve(profileId: string) {
+  let reservation: { release(): void; record(): Promise<void> } | undefined;
+  const work = counterQueue.then(async () => {
+    const key = `waves.nativeImpressions.${profileId}.${new Date().toISOString().slice(0, 10)}`;
+    const count = Number((await AsyncStorage.getItem(key)) ?? 0);
+    const held = pending.get(key) ?? 0;
+    if (!nativeCapacityAvailable(count, held)) return;
+    pending.set(key, held + 1);
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      pending.set(key, Math.max(0, (pending.get(key) ?? 1) - 1));
+    };
+    reservation = {
+      release,
+      record: () => {
+        const write = counterQueue
+          .then(async () => {
+            const impressions = Number((await AsyncStorage.getItem(key)) ?? 0);
+            await AsyncStorage.setItem(key, String(impressions + 1));
+          })
+          .finally(release);
+        counterQueue = write.catch(() => undefined);
+        return write;
+      },
+    };
+  });
+  counterQueue = work.catch(() => undefined);
+  await work;
+  return reservation;
+}
 
 type NativeAd = {
   headline: string;
@@ -60,24 +97,30 @@ export function NativeAdCard({
     enabled: !!viewerId && enabled,
     staleTime: 5 * 60_000,
   });
-  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, gate.data);
+  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0);
   const [loaded, setLoaded] = useState<{ sdk: NativeSdk; ad: NativeAd } | null>(null);
   useEffect(() => {
     if (!eligible || !viewerId || !visible || !focused || Platform.OS === 'web') return;
     let cancelled = false;
     let ad: NativeAd | undefined;
+    let reservation: Awaited<ReturnType<typeof reserve>>;
     let impression: { remove(): void } | undefined;
     void (async () => {
       try {
         // Fresh server verdict immediately before loading: never request for paid users.
         const current = await readGateStatus(viewerId).catch(() => null);
-        if (cancelled || !nativeEligible(true, enabled, current)) return;
+        if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
         if (cancelled) return;
+        reservation = await reserve(viewerId);
+        if (cancelled || !reservation) {
+          reservation?.release();
+          return;
+        }
         const native = (await import('react-native-google-mobile-ads')) as unknown as NativeSdk;
         ad = await native.NativeAd.createForAdRequest(
           nativeUnitId(
@@ -91,31 +134,36 @@ export function NativeAdCard({
         );
         if (cancelled) {
           ad.destroy();
+          reservation.release();
           return;
         }
         // AdMob requires a MediaView for video ads; this compact row cannot show them.
         if (ad.mediaContent?.hasVideoContent) {
           ad.destroy();
           ad = undefined;
+          reservation.release();
           return;
         }
         let reported = false;
         impression = ad.addAdEventListener(native.NativeAdEventType.IMPRESSION, () => {
           if (!reported) {
             reported = true;
+            void reservation?.record().catch(noteAdFailure);
             logAdEvent(viewerId, 'native_list', 'shown');
           }
         });
         if (cancelled) ad.destroy();
         else setLoaded({ sdk: native, ad });
       } catch (error) {
+        reservation?.release();
         noteAdFailure(error);
         logAdEvent(viewerId, 'native_list', 'failed');
-        /* No fill or unavailable native module: omit the card. */
+        /* No fill, unavailable native module or storage failure: omit the card. */
       }
     })();
     return () => {
       cancelled = true;
+      reservation?.release();
       impression?.remove();
       ad?.destroy();
       setLoaded(null);
