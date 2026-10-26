@@ -368,6 +368,17 @@ describe('pots (every test rolls back)', () => {
       (await client.query('SELECT id FROM settlements WHERE pot_id = $1', [potId])).rowCount,
     ).toBe(0);
   });
+  it.each(['', '   ', null])('accepts an optional public UTR (%j) and keeps self attribution', async (ref) => {
+    const result = await as('anon', null, () =>
+      client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [code, 'Member 2', ref]),
+    );
+    expect(result.rows[0].ok).toBe(true);
+    const { rows } = await client.query(
+      'SELECT status, reference, reference_source FROM settlements WHERE pot_id = $1',
+      [potId],
+    );
+    expect(rows).toEqual([{ status: 'initiated', reference: null, reference_source: 'self' }]);
+  });
   it('public self-report is pending, keeps the UTR, and retries do not duplicate', async () => {
     const report = (name = 'Member 2', ref = '123456789012') =>
       as('anon', null, () =>
@@ -376,7 +387,9 @@ describe('pots (every test rolls back)', () => {
     expect((await report()).rows[0].ok).toBe(true);
     expect((await report()).rows[0].ok).toBe(true);
     expect((await report('Unknown')).rows[0].ok).toBe(false);
-    expect((await report('Member 2', 'bad')).rows[0].ok).toBe(false);
+    for (const ref of ['bad', '1234', 'UPI/123456789012', '1'.repeat(65)]) {
+      expect((await report('Member 2', ref)).rows[0].ok).toBe(false);
+    }
     const rows = (
       await client.query(
         'SELECT status, reference, reference_source, from_member_id, to_member_id FROM settlements WHERE pot_id = $1',

@@ -144,7 +144,7 @@ export function createPotApi(
     potPayLookup(code: string): Promise<PotPayInfo | null> {
       return rpc('pot_pay_lookup', { code });
     },
-    potPaySelfReport(code: string, payerName: string, utr: string): Promise<boolean> {
+    potPaySelfReport(code: string, payerName: string, utr: string | null = null): Promise<boolean> {
       return rpc('pot_pay_self_report', { code, payer_name: payerName, utr });
     },
   };

@@ -232,11 +232,12 @@ GRANT EXECUTE ON FUNCTION public.pot_pay_lookup(text) TO anon, authenticated, se
 
 CREATE FUNCTION public.pot_pay_self_report(code text, payer_name text, utr text) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO public, pg_temp AS $$
-DECLARE p pots; ids uuid[]; ref text := upper(btrim(utr));
+DECLARE p pots; ids uuid[]; ref text := NULLIF(upper(btrim(utr)), '');
 BEGIN
   IF NOT waves_pot_public_gate('pot-pay-self-report') THEN RETURN false; END IF;
-  IF length(btrim(payer_name)) NOT BETWEEN 1 AND 100 OR ref IS NULL OR
-     ref !~ '^([0-9]{12}|[A-Z]{4}[A-Z0-9][0-9]{9,})$' OR length(ref) > 64 THEN RETURN false; END IF;
+  IF length(btrim(payer_name)) NOT BETWEEN 1 AND 100 OR
+     (ref IS NOT NULL AND (ref !~ '^([0-9]{12}|[A-Z]{4}[A-Z0-9][0-9]{9,})$' OR length(ref) > 64))
+     THEN RETURN false; END IF;
   SELECT * INTO p FROM pots WHERE pay_code = code AND status = 'open' FOR UPDATE;
   IF NOT FOUND THEN RETURN false; END IF;
   -- A public name is never identity proof. Match only an unambiguous existing
