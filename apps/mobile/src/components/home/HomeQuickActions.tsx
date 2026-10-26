@@ -83,11 +83,11 @@ export function HomeQuickActions({
             label: homeCreditsLabel(credits.data?.credits, t.homeDash),
             glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
             onPress: () => {
-              if (!adOffer.canOffer('voice')) {
+              if (!adOffer.canOffer('voice', { userInitiated: true })) {
                 toast.show(t.homeDash.noAdAvailable);
                 return;
               }
-              void adOffer.offer('voice');
+              void adOffer.offer('voice', { userInitiated: true });
             },
           },
         ]
