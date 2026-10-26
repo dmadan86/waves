@@ -42,9 +42,9 @@ appId: app.waves.mobile
 - assertVisible: 'What was it for?'
 
 # The amount, via the shared calculator.
-- tapOn: '3'
-- tapOn: '0'
-- tapOn: '0'
+- tapOn: 'Amount 0 INR'
+- inputText: '300'
+- hideKeyboard
 
 # The new tag is a chip in the category picker — pick it. (No description, so the
 # tag itself will name the expense.)

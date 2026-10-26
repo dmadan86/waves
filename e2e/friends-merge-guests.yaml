@@ -39,6 +39,8 @@ appId: app.waves.mobile
 
 # A sheet asks which details the merged person keeps; its button carries the count.
 - tapOn: 'Merge 2 people'
+# The sheet warns that a merge cannot be undone and asks once more.
+- tapOn: 'Merge 2 people'
 
 # Back on Friends, still a working screen.
 - assertVisible: 'Friends'

@@ -27,5 +27,6 @@ appId: app.waves.mobile
 - tapOn: 'More'
 - tapOn: 'Restore this expense'
 - back
+- back
 - tapOn: '(?i)^expenses$'
 - assertVisible: 'Beach shack dinner'

@@ -24,9 +24,8 @@ appId: app.waves.mobile
 - tapOn: 'Expenses'
 - tapOn: 'Add expense'
 - assertVisible: 'What was it for?'
-- tapOn: '1'
-- tapOn: '2'
-- tapOn: '0'
-- tapOn: '0'
-- assertVisible: '1200.00'
+- tapOn: 'Amount 0 INR'
+- inputText: '1200'
+- hideKeyboard
+- assertVisible: 'Amount 1200.*'
 - tapOn: 'Save expense'

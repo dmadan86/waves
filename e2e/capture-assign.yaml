@@ -11,11 +11,11 @@ appId: app.waves.mobile
 # sheet instead). Amount from the step chips: $200.
 - openLink: waves:///capture
 - assertVisible: 'Save an expense'
-- tapOn: '\+\$100'
-- tapOn: '\+\$100'
+- tapOn: '\+.100'
+- tapOn: '\+.100'
 
 # A note to recognise it by.
-- tapOn: 'Coffee, taxi.*'
+- tapOn: 'What was it\?|Coffee, taxi.*'
 - inputText: 'Auto to airport'
 - hideKeyboard
 

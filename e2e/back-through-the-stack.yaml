@@ -84,7 +84,7 @@ appId: app.waves.mobile
 - tapOn: 'Friends'
 - assertVisible: 'Merge people'
 - tapOn: 'Review'
-- assertVisible: 'Added by you'
+- assertVisible: 'Nothing needs you'
 - tapOn: 'Personal'
 - assertVisible: 'Your own money'
 - tapOn: 'Home'

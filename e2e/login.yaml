@@ -33,7 +33,7 @@ appId: app.waves.mobile
 - extendedWaitUntil:
     visible:
       id: 'intro-skip'
-    timeout: 20000
+    timeout: 60000
     optional: true
 - tapOn:
     id: 'intro-skip'

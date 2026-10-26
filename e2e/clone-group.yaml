@@ -41,6 +41,7 @@ appId: app.waves.mobile
     direction: DOWN
 - tapOn: 'Remove Priya'
 - assertNotVisible: 'Remove Priya'
+- hideKeyboard
 
 # Make the group. It lands on the new group's own screen.
 - scrollUntilVisible:

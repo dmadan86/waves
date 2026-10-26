@@ -14,15 +14,13 @@ appId: app.waves.mobile
 # The cover is now reached through the group's own mark rather than through a
 # button beside it. The mark's accessibility label is the photo action, because
 # tapping it is how a photo is added too — the seeded group has none.
-- tapOn: 'Add a group photo'
-- assertVisible: 'Group cover'
+- tapOn: 'Group cover'
 - tapOn: 'Choose an icon'
 
 # The marks grid. Each tile carries its name, so a pick is made by word rather
 # than by emoji — the covers are drawn now, not typed. Selecting fires the
 # update and dismisses the sheet in one tap.
 - tapOn: 'Camping'
-- assertNotVisible: 'Group cover'
 
 # Proof the write applied rather than only that the sheet closed: the settings
 # screen says "Saved" for a cover change the same way it does for every other

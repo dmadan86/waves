@@ -28,6 +28,9 @@ adb devices -l
 adb shell pm list packages -3
 adb shell pm list packages app.waves.mobile | grep -q app.waves.mobile || { echo "app.waves.mobile not installed after adb install"; exit 1; }
 
+# local-privacy-audit is not here: its route (/dev/local-privacy) exists only in
+# __DEV__ builds and this run installs the release build. Run it by hand against a
+# debug build.
 FLOWS=(
   home-to-add-expense
   edit-expense
@@ -41,7 +44,6 @@ FLOWS=(
   custom-tags
   locale-switch
   sign-out-privacy
-  local-privacy-audit
   clone-group
   group-photo-paid-gate
   friends-merge-guests
