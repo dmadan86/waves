@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bannerUnitId, showHomeBanner } from '../src/lib/bannerAdsPure';
+import { bannerGateOpen, bannerUnitId, showHomeBanner } from '../src/lib/bannerAdsPure';
 
 describe('Home banner eligibility', () => {
   it.each([
@@ -30,5 +30,14 @@ describe('banner ad unit ids', () => {
   it('uses trimmed configured ids in production', () => {
     expect(bannerUnitId('ios', ' ios-real ', false)).toBe('ios-real');
     expect(bannerUnitId('android', ' android-real ', false)).toBe('android-real');
+  });
+});
+
+describe('banner age gate', () => {
+  it('requires an affirmative server decision', () => {
+    expect(bannerGateOpen({ bannerEligible: true })).toBe(true);
+    for (const status of [null, undefined, {}, { bannerEligible: false }])
+      expect(bannerGateOpen(status)).toBe(false);
+    expect(bannerGateOpen({ bannerEligible: 'true' as never })).toBe(false);
   });
 });

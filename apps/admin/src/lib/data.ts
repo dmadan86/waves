@@ -1543,6 +1543,7 @@ export interface AdGateSettings extends CreditSettings {
   gap_max: number;
   cooldown_seconds: number;
   interstitial_daily_cap: number;
+  banner_min_account_age_days: number;
   grace_days: number;
   grace_expenses: number;
   rewarded_quiet_seconds: number;
@@ -1564,6 +1565,8 @@ export const adGateSettings = async () =>
   (await call<AdGateSettings>('waves_admin_ad_settings'))[0] ?? null;
 export async function saveAdGateSettings(settings: AdGateSettings): Promise<void> {
   validateCreditSettings(settings);
+  if (settings.banner_min_account_age_days > 365)
+    throw new Error('Banner minimum account age must not exceed 365 days.');
   for (const [key, value] of Object.entries(settings)) {
     if (key === 'interstitial_video_enabled') continue;
     if (!Number.isSafeInteger(value) || value < 0)

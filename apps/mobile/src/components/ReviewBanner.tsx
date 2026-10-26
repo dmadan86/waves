@@ -6,7 +6,8 @@ import { useStrings } from '@/i18n';
 import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
 import { useViewerId } from '@/lib/auth';
-import { bannerUnitId } from '@/lib/bannerAdsPure';
+import { readGateStatus } from '@/lib/adGates';
+import { bannerGateOpen, bannerUnitId } from '@/lib/bannerAdsPure';
 import { useFlagEnabled } from '@/lib/flags';
 import { nativeEligible } from '@/lib/nativeAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
@@ -39,7 +40,14 @@ export function ReviewBanner({
     staleTime: 0,
     refetchInterval: 30_000,
   });
-  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, status.data, 0);
+  const gate = useQuery({
+    queryKey: ['bannerGate', viewerId],
+    queryFn: () => readGateStatus(viewerId!),
+    enabled: !!viewerId && enabled,
+    staleTime: 5 * 60_000,
+  });
+  const eligible =
+    nativeEligible(!!viewerId && !isPaid, enabled, status.data, 0) && bannerGateOpen(gate.data);
   const [banner, setBanner] = useState<{
     sdk: BannerSdk;
     isActive: () => boolean;
@@ -54,10 +62,15 @@ export function ReviewBanner({
     let timer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       try {
-        const current = await readAdsStatus();
+        const [current, currentGate] = await Promise.all([
+          readAdsStatus(),
+          readGateStatus(viewerId).catch(() => null),
+        ]);
         // A failed fresh read must be retryable even when `eligible` doesn't change.
-        if (!cancelled && !current) timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
-        if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
+        if (!cancelled && (!current || !currentGate))
+          timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
+        if (cancelled || !nativeEligible(true, enabled, current, 0) || !bannerGateOpen(currentGate))
+          return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;

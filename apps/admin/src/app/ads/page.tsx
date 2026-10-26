@@ -11,7 +11,7 @@ import {
   type AdGateSettings,
 } from '@/lib/data';
 
-import { creditDays, creditKnobs, rewardedCompletions } from '@/lib/ads';
+import { bannerStats, creditDays, creditKnobs, rewardedCompletions } from '@/lib/ads';
 
 export const dynamic = 'force-dynamic';
 const knobs: {
@@ -20,6 +20,12 @@ const knobs: {
   min: number;
   max: number;
 }[] = [
+  {
+    key: 'banner_min_account_age_days',
+    label: 'Banner minimum account age (days)',
+    min: 0,
+    max: 365,
+  },
   { key: 'gap_min', label: 'Minimum expense gap', min: 3, max: 20 },
   { key: 'gap_max', label: 'Maximum expense gap', min: 3, max: 20 },
   { key: 'cooldown_seconds', label: 'Interstitial cooldown (seconds)', min: 60, max: 86400 },
@@ -138,6 +144,42 @@ export default async function Ads({
             Events appear here after the ad gates migration is deployed and ads are served.
           </Empty>
         ) : null}
+      </Card>
+      <h2 className="section">Banner ads</h2>
+      <Card bare>
+        <TableScroll>
+          <table>
+            <thead>
+              <tr>
+                {[
+                  'Placement',
+                  'Shown today',
+                  'Failed today',
+                  'Shown last 7 days',
+                  'Failed last 7 days',
+                ].map((label) => (
+                  <th key={label} scope="col">
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bannerStats(rows, new Date().toISOString().slice(0, 10)).map((row) => (
+                <tr key={row.placement}>
+                  <th scope="row">{row.placement}</th>
+                  {[row.shownToday, row.failedToday, row.shownLast7Days, row.failedLast7Days].map(
+                    (value, i) => (
+                      <td key={i} className="n">
+                        {value}
+                      </td>
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
       </Card>
       <h2 className="section">Rewarded completions by placement</h2>
       <Card bare>

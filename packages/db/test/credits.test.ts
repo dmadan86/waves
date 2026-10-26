@@ -23,7 +23,7 @@ beforeEach(async () => {
   );
   await client.query(`UPDATE ad_reward_settings SET credits_per_ad=6,wallet_cap=30,voice_cost=1,
     scan_cost=2,export_cost=6,group_cost=6,rewarded_daily_cap=5,rewarded_hourly_cap=2,
-    rewarded_gap_seconds=60,voluntary_daily_cap=3,voluntary_weekly_cap=10`);
+    rewarded_gap_seconds=60,voluntary_daily_cap=3,voluntary_weekly_cap=10,banner_min_account_age_days=15`);
   me = randomUUID();
   await client.query(
     `INSERT INTO profiles(id,display_name,default_currency) VALUES($1,'Credits','INR')`,
@@ -357,5 +357,35 @@ describe('admin and privileges', () => {
           ).rows[0].ok,
         ).toBe(true);
     }
+  });
+});
+
+describe('banner account age gate', () => {
+  it('keeps new accounts ineligible without changing the existing gate', async () => {
+    expect(await mine('waves_my_ad_gate_status')).toMatchObject({
+      enabled: true,
+      bannerEligible: false,
+    });
+  });
+  it('allows accounts created twenty days ago', async () => {
+    await client.query(`UPDATE profiles SET created_at=now()-interval '20 days' WHERE id=$1`, [me]);
+    expect(await mine('waves_my_ad_gate_status')).toMatchObject({ bannerEligible: true });
+  });
+  it('lets allowlisted young accounts bypass age and rollout', async () => {
+    await client.query(`INSERT INTO ads_allowlist(profile_id) VALUES($1)`, [me]);
+    await client.query(`UPDATE feature_flags SET rollout_percent=0 WHERE key='ads_gates'`);
+    expect(await mine('waves_my_ad_gate_status')).toMatchObject({ bannerEligible: true });
+  });
+  it('allows new accounts when the minimum age is zero', async () => {
+    await rpc('waves_admin_save_ad_settings', [{ banner_min_account_age_days: 0 }]);
+    expect(await mine('waves_my_ad_gate_status')).toMatchObject({ bannerEligible: true });
+  });
+  it('keeps the master switch authoritative even for allowlisted accounts', async () => {
+    await client.query(`INSERT INTO ads_allowlist(profile_id) VALUES($1)`, [me]);
+    await client.query(`UPDATE feature_flags SET enabled=false WHERE key='ads_gates'`);
+    expect(await mine('waves_my_ad_gate_status')).toMatchObject({
+      enabled: false,
+      bannerEligible: false,
+    });
   });
 });

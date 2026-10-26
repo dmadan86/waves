@@ -129,3 +129,36 @@ export function rewardedCompletions(
   }
   return [...totals].map(([placement, completed]) => ({ placement, completed }));
 }
+
+export function bannerStats(
+  rows: readonly {
+    day: string;
+    placement: string;
+    shown: number | string;
+    failed: number | string;
+  }[],
+  todayUtc: string,
+) {
+  const firstDay = new Date(`${todayUtc}T00:00:00Z`);
+  firstDay.setUTCDate(firstDay.getUTCDate() - 6);
+  const since = firstDay.toISOString().slice(0, 10);
+  return ['review_banner', 'home_banner'].map((placement) => {
+    const totals = {
+      placement,
+      shownToday: 0,
+      failedToday: 0,
+      shownLast7Days: 0,
+      failedLast7Days: 0,
+    };
+    for (const row of rows) {
+      if (row.placement !== placement || row.day < since || row.day > todayUtc) continue;
+      totals.shownLast7Days += count(row.shown);
+      totals.failedLast7Days += count(row.failed);
+      if (row.day === todayUtc) {
+        totals.shownToday += count(row.shown);
+        totals.failedToday += count(row.failed);
+      }
+    }
+    return totals;
+  });
+}
