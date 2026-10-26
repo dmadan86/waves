@@ -1331,6 +1331,24 @@ const QUERY_PERSON_FRAMES: readonly RegExp[] = [
 // nothing is left, the frame did not really name a person.
 const QUERY_NON_PERSON = /\b(?:overall|in total|total|everyone|everybody|anyone|anybody|all)\b/giu;
 
+/** Only overall directional questions; named people/groups stay in the existing flow. */
+export function detectOwedDirection(transcript: string): 'owed' | 'owe' | null {
+  const norm = normalizeTranscript(transcript)
+    .trim()
+    .replace(/[?!.]+$/u, '')
+    .trim();
+  const suffix = '(?: overall| in total| across (?:all )?(?:my )?groups)?';
+  if (
+    new RegExp('^(?:who owes me|what am i owed|how much am i owed)' + suffix + '$', 'iu').test(norm)
+  )
+    return 'owed';
+  if (
+    new RegExp('^(?:who do i owe|what do i owe|how much do i owe)' + suffix + '$', 'iu').test(norm)
+  )
+    return 'owe';
+  return null;
+}
+
 export function detectBalanceQuery(transcript: string): VoiceBalanceQuery | null {
   const norm = normalizeTranscript(transcript);
 
@@ -1341,6 +1359,8 @@ export function detectBalanceQuery(transcript: string): VoiceBalanceQuery | null
       if (who) return { kind: 'person', who };
     }
   }
+
+  if (detectOwedDirection(norm)) return { kind: 'balance' };
 
   const framed = /\b(?:how much|what(?:'s| is)?|do i|am i|are we)\b/iu.test(norm);
   const aboutBalance = /\b(?:balance|owe|owed|owes|settled)\b/iu.test(norm);

@@ -1,3 +1,4 @@
+import { owedByGroup, viewerEdge, type OwedDirection, type OwedGroupMeta } from '@/lib/owedByGroup';
 import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
 /**
  * React Query hooks + the realtime bridge.
@@ -922,17 +923,18 @@ export function useGhostMergePersonIds(): ReadonlyMap<string, string> {
  * tapping a row in it kept it — and one question with two answers is worse than
  * either answer. A deleted group is excluded on both sides.
  */
-export function usePeopleBalances(profileId: string | null): LocalRead<PersonBalanceRow[]> {
+function useBalanceContributions(profileId: string | null) {
   const { mirror, queue } = useSync();
   const demoActive = useDemoActive(profileId, false);
 
   const rows = useMemo(() => {
-    if (!profileId) return [];
+    if (!profileId) return { contributions: [], groups: [] };
 
     // member_id → the viewer's recorded merge for that ghost (A38).
     const mergeByMember = new Map(ghostMerges(mirror).map((merge) => [merge.member_id, merge]));
 
     const contributions: PersonContribution[] = [];
+    const groupMeta: OwedGroupMeta[] = [];
     // The demo trip rides the same loop as every real group: its three
     // friends are rows this screen already knows how to fold and sum, not a
     // second list bolted on beside it.
@@ -950,6 +952,11 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
           }) as unknown as MemberRow[]);
       const me = members.find((member) => isViewer(member, profileId) && member.left_at === null);
       if (!me) continue;
+      groupMeta.push({
+        groupId: group.id,
+        groupName: groupLabel(group, members, profileId),
+        coverEmoji: group.cover_emoji,
+      });
       const byId = new Map(members.map((member) => [member.id, member] as const));
 
       const snapshots = (
@@ -974,17 +981,9 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       for (const edge of edges) {
         // Keep only the edges I am on, oriented from my side: they owe me is
         // positive, I owe them is negative — the RPC's sign.
-        let otherId: string;
-        let net: bigint;
-        if (edge.from === me.id) {
-          otherId = edge.to;
-          net = -edge.amount;
-        } else if (edge.to === me.id) {
-          otherId = edge.from;
-          net = edge.amount;
-        } else {
-          continue;
-        }
+        const oriented = viewerEdge(edge, me.id);
+        if (!oriented) continue;
+        const { otherId, net } = oriented;
 
         const other = byId.get(otherId);
         if (!other) continue;
@@ -1006,10 +1005,25 @@ export function usePeopleBalances(profileId: string | null): LocalRead<PersonBal
       }
     }
 
-    return aggregatePeopleBalances(contributions);
+    return { contributions, groups: groupMeta };
   }, [mirror, queue, profileId, demoActive]);
 
+  return rows;
+}
+
+export function usePeopleBalances(profileId: string | null): LocalRead<PersonBalanceRow[]> {
+  const { contributions } = useBalanceContributions(profileId);
+  const rows = useMemo(() => aggregatePeopleBalances(contributions), [contributions]);
   return useLocalRead(rows);
+}
+
+export function useOwedByGroup(profileId: string | null, direction: OwedDirection) {
+  const { contributions, groups } = useBalanceContributions(profileId);
+  const result = useMemo(
+    () => owedByGroup(contributions, groups, direction),
+    [contributions, groups, direction],
+  );
+  return useLocalRead(result);
 }
 
 /** One group you share with a person: what the pair screens draw about it. */
