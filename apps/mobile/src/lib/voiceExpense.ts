@@ -1337,13 +1337,19 @@ export function detectOwedDirection(transcript: string): 'owed' | 'owe' | null {
     .trim()
     .replace(/[?!.]+$/u, '')
     .trim();
-  const suffix = '(?: overall| in total| across (?:all )?(?:my )?groups)?';
+  const suffix = '(?: money)?(?: overall| in total| across (?:all )?(?:my )?groups)?';
   if (
-    new RegExp('^(?:who owes me|what am i owed|how much am i owed)' + suffix + '$', 'iu').test(norm)
+    new RegExp(
+      '^(?:who (?:owes|owe|was|owns|knows) me|what am i owed|how much am i owed)' + suffix + '$',
+      'iu',
+    ).test(norm)
   )
     return 'owed';
   if (
-    new RegExp('^(?:who do i owe|what do i owe|how much do i owe)' + suffix + '$', 'iu').test(norm)
+    new RegExp(
+      '^(?:who do i (?:owe|own|o)|what do i owe|how much do i owe)' + suffix + '$',
+      'iu',
+    ).test(norm)
   )
     return 'owe';
   return null;

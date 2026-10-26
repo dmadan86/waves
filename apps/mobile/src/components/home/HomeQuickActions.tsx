@@ -1,12 +1,12 @@
 /**
- * The three things you start from Home — start a group, settle up,
+ * The actions you start from Home — start a group, settle up, earn credits,
  * add an expense — as a strip along the foot of the balance card rather than
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
  * Add expense sits at the right-hand end, where a right thumb rests — it is
  * what Home is opened for most often — and keeps the long press that raises
- * the type / scan / speak sheet. All three wear the same quiet disc: none is
+ * the type / scan / speak sheet. All actions wear the same quiet disc: none is
  * lit up over the others. Add expense and New group keep their tour anchors,
  * so the coach-marks still spotlight them.
  *
@@ -15,6 +15,7 @@
  */
 
 import { useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { View } from 'react-native';
 
@@ -25,6 +26,12 @@ import { QuickActionsRow, type QuickAction } from '@/components/home/QuickAction
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { useStrings } from '@/i18n';
+import { readCredits } from '@/lib/adCredits';
+import { useViewerId } from '@/lib/auth';
+import { homeCreditsLabel } from '@/lib/homeCreditsLabel';
+import { useEntitlement } from '@/lib/useEntitlement';
+import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { useToast } from '@/lib/toast';
 
 export function HomeQuickActions({
   onAddExpense,
@@ -44,6 +51,15 @@ export function HomeQuickActions({
   const theme = useTheme();
   const { t } = useStrings();
   const groupRef = useRef<View>(null);
+  const viewerId = useViewerId();
+  const { isPaid } = useEntitlement();
+  const toast = useToast();
+  const adOffer = useRewardedAdOffer();
+  const credits = useQuery({
+    queryKey: ['credits', viewerId],
+    queryFn: readCredits,
+    enabled: !!viewerId,
+  });
 
   const actions: QuickAction[] = [
     {
@@ -60,6 +76,22 @@ export function HomeQuickActions({
       glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
       onPress: onSettleUp,
     },
+    ...(viewerId && !isPaid
+      ? [
+          {
+            key: 'credits',
+            label: homeCreditsLabel(credits.data?.credits, t.homeDash),
+            glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
+            onPress: () => {
+              if (!adOffer.canOffer('voice', { userInitiated: true })) {
+                toast.show(t.homeDash.noAdAvailable);
+                return;
+              }
+              void adOffer.offer('voice', { userInitiated: true });
+            },
+          },
+        ]
+      : []),
     // Last, at the right-hand end: the one reached for most, under the thumb.
     {
       key: 'expense',
@@ -72,12 +104,15 @@ export function HomeQuickActions({
   ];
 
   return (
-    <QuickActionsRow
-      actions={actions}
-      radius={radius}
-      discColor={theme.color.brandSoft}
-      iconColor={theme.color.brand}
-      rowPadding={theme.spacing.xs}
-    />
+    <>
+      <QuickActionsRow
+        actions={actions}
+        radius={radius}
+        discColor={theme.color.brandSoft}
+        iconColor={theme.color.brand}
+        rowPadding={theme.spacing.xs}
+      />
+      {adOffer.sheet}
+    </>
   );
 }

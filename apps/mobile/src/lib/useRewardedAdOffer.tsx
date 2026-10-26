@@ -36,12 +36,17 @@ import { useToast } from '@/lib/toast';
 export const DECLINE_QUIET_MS = 10 * 60_000;
 const declinedAt: Record<AdKind, number> = { voice: 0, scan: 0 };
 
+interface OfferOptions {
+  /** Explicit taps bypass the quiet period after declining an automatic offer. */
+  userInitiated?: boolean;
+}
+
 export interface RewardedAdOffer {
   /** Open the sheet if the server says this person may be offered an ad now. */
-  offer(kind: AdKind): Promise<void>;
+  offer(kind: AdKind, options?: OfferOptions): Promise<void>;
   /** Render once, anywhere in the screen. */
   sheet: React.JSX.Element;
-  canOffer(kind: AdKind): boolean;
+  canOffer(kind: AdKind, options?: OfferOptions): boolean;
   amount(kind: AdKind): number;
   creditsKnown: boolean;
 }
@@ -78,7 +83,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const mounted = useRef(true);
   const running = useRef(false);
   const lock = useRef(Symbol('adSheet'));
-  const canOffer = (next: AdKind): boolean =>
+  const canOffer = (next: AdKind, options?: OfferOptions): boolean =>
     !!viewerId &&
     !isPaid &&
     (wallet.data
@@ -87,7 +92,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     !visible &&
     !adSheetTaken(lock.current) &&
     !running.current &&
-    Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
+    (options?.userInitiated === true || Date.now() - declinedAt[next] >= DECLINE_QUIET_MS);
 
   useEffect(() => {
     const sheetLock = lock.current;
@@ -99,9 +104,9 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   }, []);
 
   const offer = useCallback(
-    async (next: AdKind): Promise<void> => {
+    async (next: AdKind, options?: OfferOptions): Promise<void> => {
       if (!viewerId || isPaid || running.current) return;
-      if (Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
+      if (!options?.userInitiated && Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
       const credits = await readCredits();
       const current = credits ? null : await readAdsStatus().catch(() => null);
       setCreditStatus(credits);
