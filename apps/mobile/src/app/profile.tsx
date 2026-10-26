@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { readCredits } from '@/lib/adCredits';
 import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
-import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AppState, ScrollView, View } from 'react-native';
@@ -281,8 +280,6 @@ function ProfileForm() {
             app. Storage and your AI keys belong to the account too, so they sit
             here rather than each claiming a section of its own. Only their
             state-bearing rows keep a subtitle; the rest say enough in the label. */}
-        <RewardedAdEntry kind="voice" />
-        <RewardedAdEntry kind="scan" />
         <SettingsSection
           title={t.account.sectionAccount}
           rows={[

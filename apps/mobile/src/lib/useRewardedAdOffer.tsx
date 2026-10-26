@@ -79,6 +79,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const [kind, setKind] = useState<AdKind>('voice');
   const [status, setStatus] = useState<AdsStatus | null>(null);
   const [visible, setVisible] = useState(false);
+  const [outOfCredits, setOutOfCredits] = useState(false);
   const [state, setState] = useState<AdSheetState>({ step: 'ready' });
   const mounted = useRef(true);
   const running = useRef(false);
@@ -119,6 +120,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         return;
       if (!claimAdSheet(lock.current)) return;
       setKind(next);
+      setOutOfCredits(options?.userInitiated !== true);
       setStatus(current);
       setState({ step: 'ready' });
       setVisible(true);
@@ -233,6 +235,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       <RewardedAdSheet
         visible={visible && !isPaid}
         kind={kind}
+        outOfCredits={outOfCredits}
         credits={creditStatus?.credits}
         capReached={kind === 'voice' && watchBlocked(creditStatus) === 'daily'}
         amount={
@@ -248,7 +251,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         onClose={close}
       />
     ),
-    [close, kind, state, status, creditStatus, upgrade, visible, watch, isPaid],
+    [close, kind, outOfCredits, state, status, creditStatus, upgrade, visible, watch, isPaid],
   );
 
   return {

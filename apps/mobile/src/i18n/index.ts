@@ -1847,13 +1847,14 @@ export interface UiStrings {
     offlineCappedExport: string;
   };
   rewardedAds: {
+    outOfCredits: string;
+    watchShort: string;
+    goPro: string;
     balance: string;
     perAdVoice: string;
     watchWithCount: string;
     upgradeBody: string;
     dailyLimit: string;
-    entryVoice: string;
-    entryScan: string;
     adLabel: string;
     voiceTitle: string;
     scanTitle: string;
@@ -7549,13 +7550,14 @@ const en: UiStrings = {
     offlineCappedExport: 'Connect to the internet to export',
   },
   rewardedAds: {
+    outOfCredits: 'Out of credits',
+    watchShort: 'Watch a short ad (+{count})',
+    goPro: 'Go Pro',
     balance: 'You have {n} credits',
     perAdVoice: 'Each ad gives {count} more AI voice commands.',
     watchWithCount: 'Watch ad (+{count} commands)',
     upgradeBody: 'Get unlimited voice commands, no ads and more.',
     dailyLimit: 'Daily ad limit reached — try tomorrow',
-    entryVoice: 'Watch a short video for 2 more voice commands',
-    entryScan: 'Watch a short video for 2 more scans',
     adLabel: 'Ad',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
@@ -10269,7 +10271,7 @@ const en: UiStrings = {
     freeFeatureBalances: 'Balances and settle up',
     freeFeatureScans: '{scans} receipt scans a month',
     freeFeatureVoice: '{commands} AI voice commands a month',
-    freeFeatureAds: 'Ads, with optional videos for extras',
+    freeFeatureAds: 'AI voice and scans use credits — earn them free from Home',
     proCardSubtitle: 'Everything in Free, plus:',
     proFeatureNoAds: 'No ads',
     proFeatureScans: '{scans} receipt scans a month',
@@ -12754,14 +12756,15 @@ const ta: UiStrings = {
     offlineCappedExport: 'ஏற்றுமதி செய்ய இணையத்தில் இணையுங்கள்',
   },
   rewardedAds: {
+    outOfCredits: 'கிரெடிட்கள் தீர்ந்துவிட்டன',
+    watchShort: 'ஒரு சிறிய விளம்பரத்தைப் பாருங்கள் (+{count})',
+    goPro: 'Pro பெறுங்கள்',
     balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
     perAdVoice: 'ஒவ்வொரு விளம்பரமும் மேலும் {count} AI குரல் கட்டளைகளை வழங்கும்.',
     watchWithCount: 'விளம்பரம் பாருங்கள் (+{count} கட்டளைகள்)',
     upgradeBody:
       'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
     dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
-    entryVoice: 'மேலும் 2 குரல் கட்டளைகளுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
-    entryScan: 'மேலும் 2 ஸ்கேன்களுக்கு ஒரு சிறிய காணொளியைப் பாருங்கள்',
     adLabel: 'விளம்பரம்',
     voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
@@ -15623,7 +15626,8 @@ const ta: UiStrings = {
     freeFeatureBalances: 'இருப்புகள் மற்றும் தீர்வு',
     freeFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     freeFeatureVoice: 'மாதத்திற்கு {commands} AI குரல் கட்டளைகள்',
-    freeFeatureAds: 'விளம்பரங்கள், கூடுதல் வசதிகளுக்கு விரும்பினால் வீடியோ',
+    freeFeatureAds:
+      'AI குரல் மற்றும் ஸ்கேன்களுக்கு கிரெடிட்கள் தேவை — முகப்பில் அவற்றை இலவசமாகப் பெறுங்கள்',
     proCardSubtitle: 'இலவசத்தில் உள்ள அனைத்தும், கூடுதலாக:',
     proFeatureNoAds: 'விளம்பரங்கள் இல்லை',
     proFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
@@ -18110,13 +18114,14 @@ const hi: UiStrings = {
     offlineCappedExport: 'एक्सपोर्ट करने के लिए इंटरनेट से जुड़ें',
   },
   rewardedAds: {
+    outOfCredits: 'क्रेडिट खत्म हो गए',
+    watchShort: 'छोटा विज्ञापन देखें (+{count})',
+    goPro: 'Pro लें',
     balance: 'आपके पास {n} क्रेडिट हैं',
     perAdVoice: 'हर विज्ञापन से {count} और AI वॉइस कमांड मिलते हैं।',
     watchWithCount: 'विज्ञापन देखें (+{count} कमांड)',
     upgradeBody: 'अनलिमिटेड वॉइस कमांड पाएँ, बिना विज्ञापनों के और भी बहुत कुछ।',
     dailyLimit: 'आज की विज्ञापन सीमा पूरी हो गई — कल फिर कोशिश करें',
-    entryVoice: '2 और वॉइस कमांड के लिए छोटा वीडियो देखें',
-    entryScan: '2 और स्कैन के लिए छोटा वीडियो देखें',
     adLabel: 'विज्ञापन',
     voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
     scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
@@ -20854,7 +20859,7 @@ const hi: UiStrings = {
     freeFeatureBalances: 'बैलेंस और हिसाब चुकाना',
     freeFeatureScans: 'हर महीने {scans} रसीद स्कैन',
     freeFeatureVoice: 'हर महीने {commands} AI वॉइस कमांड',
-    freeFeatureAds: 'विज्ञापन, अतिरिक्त सुविधाओं के लिए वैकल्पिक वीडियो',
+    freeFeatureAds: 'AI वॉइस और स्कैन में क्रेडिट लगते हैं — होम से मुफ़्त में पाएँ',
     proCardSubtitle: 'मुफ़्त वाला सब कुछ, साथ में:',
     proFeatureNoAds: 'कोई विज्ञापन नहीं',
     proFeatureScans: 'हर महीने {scans} रसीद स्कैन',
@@ -23381,13 +23386,14 @@ const ar: UiStrings = {
     offlineCappedExport: 'اتصل بالإنترنت للتصدير',
   },
   rewardedAds: {
+    outOfCredits: 'نفدت الأرصدة',
+    watchShort: 'شاهد إعلانًا قصيرًا (+{count})',
+    goPro: 'احصل على Pro',
     balance: 'لديك {n} من الرصيد',
     perAdVoice: 'يمنحك كل إعلان {count} من الأوامر الصوتية الإضافية بالذكاء الاصطناعي.',
     watchWithCount: 'شاهد إعلانًا (+{count} أوامر)',
     upgradeBody: 'احصل على أوامر صوتية بلا حدود، وبدون إعلانات، والمزيد.',
     dailyLimit: 'بلغت الحد اليومي للإعلانات — حاول غدًا',
-    entryVoice: 'شاهد فيديو قصيرًا للحصول على أمرين صوتيين إضافيين',
-    entryScan: 'شاهد فيديو قصيرًا للحصول على عمليتي مسح إضافيتين',
     adLabel: 'إعلان',
     voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
     scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
@@ -26636,7 +26642,7 @@ const ar: UiStrings = {
     freeFeatureBalances: 'الأرصدة والتسوية',
     freeFeatureScans: '{scans} مسحًا للإيصالات شهريًا',
     freeFeatureVoice: '{commands} أمر صوتي ذكي شهريًا',
-    freeFeatureAds: 'إعلانات، مع مقاطع فيديو اختيارية لمزايا إضافية',
+    freeFeatureAds: 'تستخدم ميزات الصوت بالذكاء الاصطناعي والمسح أرصدة — اكسبها مجانًا من الرئيسية',
     proCardSubtitle: 'كل ما في المجاني، إضافةً إلى:',
     proFeatureNoAds: 'بلا إعلانات',
     proFeatureScans: '{scans} مسحًا للإيصالات شهريًا',
