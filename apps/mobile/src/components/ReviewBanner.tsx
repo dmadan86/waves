@@ -24,7 +24,9 @@ type BannerSdk = {
   BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: string };
 };
 
-export function ReviewBanner() {
+export function ReviewBanner({
+  placement = 'review_banner',
+}: { placement?: 'review_banner' | 'home_banner' } = {}) {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const enabled = useFlagEnabled('ads_native');
@@ -66,7 +68,7 @@ export function ReviewBanner() {
         if (!cancelled) setBanner({ sdk: native, isActive: () => !cancelled });
       } catch (error) {
         noteAdFailure(error);
-        logAdEvent(viewerId, 'review_banner', 'failed');
+        logAdEvent(viewerId, placement, 'failed');
       }
     })();
     return () => {
@@ -75,15 +77,23 @@ export function ReviewBanner() {
       setBanner(null);
       setLoaded(false);
     };
-  }, [eligible, enabled, viewerId, retry]);
+  }, [eligible, enabled, viewerId, retry, placement]);
   if (Platform.OS === 'web' || !eligible || !banner) return null;
   const { sdk } = banner;
+  const isHome = placement === 'home_banner';
   return (
     <View
       // Mount the native request without reserving space until it has filled.
       style={
         loaded
-          ? { marginVertical: theme.spacing.lg }
+          ? {
+              marginVertical: isHome ? theme.spacing.sm : theme.spacing.lg,
+              ...(isHome && {
+                backgroundColor: theme.color.surface,
+                borderRadius: theme.radius.lg,
+                overflow: 'hidden' as const,
+              }),
+            }
           : { height: 0, overflow: 'hidden', opacity: 0 }
       }
       accessibilityElementsHidden={!loaded}
@@ -94,33 +104,35 @@ export function ReviewBanner() {
           {t.rewardedAds.adLabel}
         </Text>
       ) : null}
-      <sdk.BannerAd
-        unitId={bannerUnitId(
-          Platform.OS,
-          Platform.OS === 'ios'
-            ? process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS
-            : process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID,
-          __DEV__,
-        )}
-        size={sdk.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-        onAdLoaded={() => {
-          if (!banner.isActive()) return;
-          setLoaded(true);
-          if (viewerId && !shownLogged.current) {
-            shownLogged.current = true;
-            logAdEvent(viewerId, 'review_banner', 'shown');
-          }
-        }}
-        onAdFailedToLoad={(error) => {
-          noteAdFailure(error);
-          if (viewerId) logAdEvent(viewerId, 'review_banner', 'failed');
-          if (banner.isActive()) {
-            setLoaded(false);
-            setBanner(null);
-          }
-        }}
-      />
+      <View style={isHome ? { borderRadius: theme.radius.lg, overflow: 'hidden' } : undefined}>
+        <sdk.BannerAd
+          unitId={bannerUnitId(
+            Platform.OS,
+            Platform.OS === 'ios'
+              ? process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS
+              : process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID,
+            __DEV__,
+          )}
+          size={sdk.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          onAdLoaded={() => {
+            if (!banner.isActive()) return;
+            setLoaded(true);
+            if (viewerId && !shownLogged.current) {
+              shownLogged.current = true;
+              logAdEvent(viewerId, placement, 'shown');
+            }
+          }}
+          onAdFailedToLoad={(error) => {
+            noteAdFailure(error);
+            if (viewerId) logAdEvent(viewerId, placement, 'failed');
+            if (banner.isActive()) {
+              setLoaded(false);
+              setBanner(null);
+            }
+          }}
+        />
+      </View>
     </View>
   );
 }
