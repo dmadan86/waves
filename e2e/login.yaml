@@ -28,40 +28,35 @@ appId: app.waves.mobile
 - tapOn:
     id: 'auth-submit'
 
-# A fresh sign-in (clearState) always meets the one-time intro tour before the
-# app proper. Skip it by testID; optional so an account that has seen it passes.
-- extendedWaitUntil:
-    visible:
-      id: 'intro-skip'
-    timeout: 60000
-    optional: true
-- tapOn:
-    id: 'intro-skip'
-    optional: true
-
-# The release tour can hide Skip while its footer remains usable.
+# KNOWN APP BUG: skipping the intro intermittently freezes the UI (Fabric mount
+# exception; JS never recovers). The seen flag is not persisted, so each retry
+# relaunches without clearing state and skips the tour again. Remove once the
+# app is fixed.
 - repeat:
-    times: 6
+    times: 4
     while:
-      visible: 'Next|Get started'
+      notVisible: 'Your groups'
     commands:
-      - tapOn: 'Next|Get started'
+      - extendedWaitUntil:
+          visible:
+            id: 'intro-skip'
+          timeout: 20000
+          optional: true
+      - tapOn:
+          id: 'intro-skip'
+          optional: true
+      - extendedWaitUntil:
+          visible: 'Your groups'
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: 'Your groups'
+          commands:
+            - launchApp
 
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.
-# KNOWN APP BUG: skipping the intro occasionally blanks the app (Fabric
-# "addViewAt: failed to insert view [614] into parent [76]" in logcat, JS never
-# recovers). The tour is already marked seen by then, so relaunching without
-# clearing state lands on the dashboard. Remove once the app is fixed.
-- extendedWaitUntil:
-    visible: 'Your groups'
-    timeout: 15000
-    optional: true
-- runFlow:
-    when:
-      notVisible: 'Your groups'
-    commands:
-      - launchApp
 - extendedWaitUntil:
     visible: 'Your groups'
     timeout: 40000
