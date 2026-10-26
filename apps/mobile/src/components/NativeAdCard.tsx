@@ -2,10 +2,10 @@ import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Image, Platform, Text as NativeText, View } from 'react-native';
+import type { ViewProps } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@waves/ui';
-import { StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useViewerId } from '@/lib/auth';
@@ -64,7 +64,7 @@ type NativeAd = {
 type NativeSdk = {
   NativeAdEventType: { IMPRESSION: string };
   NativeAd: { createForAdRequest(id: string, options: object): Promise<NativeAd> };
-  NativeAdView: React.ComponentType<React.PropsWithChildren<{ nativeAd: NativeAd }>>;
+  NativeAdView: React.ComponentType<ViewProps & { nativeAd: NativeAd }>;
   NativeAsset: React.ComponentType<React.PropsWithChildren<{ assetType: string }>>;
   NativeAssetType: { ICON: string; HEADLINE: string; BODY: string; CALL_TO_ACTION: string };
 };
@@ -174,13 +174,24 @@ export function NativeAdCard({
   const icon = ad.icon ?? ad.images?.[0];
   return (
     <View style={{ paddingTop: Math.max(0, rowGap - precedingGap), paddingBottom: rowGap }}>
-      <sdk.NativeAdView nativeAd={ad}>
-        <StandardCard
+      <sdk.NativeAdView
+        nativeAd={ad}
+        style={{
+          backgroundColor: theme.color.surface,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          overflow: 'hidden',
+          elevation: 0,
+          shadowOpacity: 0,
+        }}
+      >
+        <View
           style={{
+            backgroundColor: 'transparent',
             padding: theme.spacing.sm,
             // Keep the SDK's top-right AdChoices overlay clear of row content.
             paddingRight: theme.spacing.xl,
-            borderRadius: theme.radius.lg,
             flexDirection: 'row',
             alignItems: 'center',
             gap: theme.spacing.sm,
@@ -253,7 +264,7 @@ export function NativeAdCard({
               </NativeText>
             </sdk.NativeAsset>
           ) : null}
-        </StandardCard>
+        </View>
       </sdk.NativeAdView>
     </View>
   );
