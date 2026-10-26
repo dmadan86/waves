@@ -23,7 +23,6 @@ import {
 import { iconSize, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
-import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 import { PlainHeader } from '@/components/standard/PlainHeader';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { openLegal } from '@/lib/legal';
@@ -227,8 +226,6 @@ export default function UpgradeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <RewardedAdEntry kind="voice" />
-        <RewardedAdEntry kind="scan" />
         {/* ── Hero row ──────────────────────────────────────────────── */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <View style={{ flex: 1, gap: 6 }}>

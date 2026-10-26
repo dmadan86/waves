@@ -22,10 +22,53 @@ describe('the string tables', () => {
   });
 
   it('gives every language every key', () => {
-    const english = Object.keys(STRINGS_BY_LANGUAGE.en).sort();
+    const pluralKeys = new Set(['zero', 'one', 'two', 'few', 'many', 'other']);
+    const keyPaths = (node: unknown, prefix = ''): string[] => {
+      if (!node || typeof node !== 'object') return [];
+      const entries = Object.entries(node);
+      // Arabic has additional plural forms; the message key must still match.
+      if (
+        entries.some(([key]) => key === 'other') &&
+        entries.every(([key, value]) => pluralKeys.has(key) && typeof value === 'string')
+      ) {
+        return [];
+      }
+      return entries
+        .flatMap(([key, value]) => {
+          const path = prefix ? `${prefix}.${key}` : key;
+          return [path, ...keyPaths(value, path)];
+        })
+        .sort();
+    };
+    const english = keyPaths(STRINGS_BY_LANGUAGE.en);
     for (const language of LANGUAGES) {
-      expect(Object.keys(STRINGS_BY_LANGUAGE[language]).sort(), language).toEqual(english);
+      expect(keyPaths(STRINGS_BY_LANGUAGE[language]), language).toEqual(english);
     }
+  });
+
+  it('localizes calm credit offers and keeps the reward count', async () => {
+    const { fill } = await import('../src/i18n');
+    for (const language of LANGUAGES) {
+      const strings = STRINGS_BY_LANGUAGE[language].rewardedAds;
+      expect(strings).not.toHaveProperty('entryVoice');
+      expect(strings).not.toHaveProperty('entryScan');
+      for (const key of ['outOfCredits', 'watchShort', 'goPro'] as const) {
+        expect(strings[key].trim(), `${language}.${key}`).not.toBe('');
+        if (language !== 'en') {
+          expect(strings[key], `${language}.${key}`).not.toBe(
+            STRINGS_BY_LANGUAGE.en.rewardedAds[key],
+          );
+        }
+      }
+      expect(strings.watchShort, language).toContain('{count}');
+      expect(fill(strings.watchShort, { count: 7 }), language).toContain('+7');
+    }
+    expect(STRINGS_BY_LANGUAGE.en.rewardedAds.outOfCredits).toBe('Out of credits');
+    expect(STRINGS_BY_LANGUAGE.en.rewardedAds.watchShort).toBe('Watch a short ad (+{count})');
+    expect(STRINGS_BY_LANGUAGE.en.rewardedAds.goPro).toBe('Go Pro');
+    expect(STRINGS_BY_LANGUAGE.en.planScreen.freeFeatureAds).toBe(
+      'AI voice and scans use credits — earn them free from Home',
+    );
   });
 
   it('gives every language every category', () => {

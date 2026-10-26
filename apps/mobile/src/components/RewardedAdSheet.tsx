@@ -1,7 +1,7 @@
 /**
  * The small sheet offered at the two natural moments for a Free person: the AI
- * voice monthly limit and the receipt-scan limit. "Watch a short ad for 2 more
- * AI voice commands" / "Upgrade to Pro" / "Not now". Nothing starts until the
+ * voice monthly limit and the receipt-scan limit, or opened from Home credits.
+ * Automatic offers use credit-focused copy. Nothing starts until the
  * Watch button is tapped, and nothing is forced. Presentational only: the flow
  * lives in `useRewardedAdOffer`.
  */
@@ -26,6 +26,7 @@ export function RewardedAdSheet({
   amount,
   credits,
   capReached = false,
+  outOfCredits = false,
   state,
   onWatch,
   onUpgrade,
@@ -37,6 +38,8 @@ export function RewardedAdSheet({
   amount: number;
   credits?: number;
   capReached?: boolean;
+  /** Automatic quota offers use credit-focused copy. */
+  outOfCredits?: boolean;
   state: AdSheetState;
   onWatch: () => void;
   onUpgrade: () => void;
@@ -45,6 +48,7 @@ export function RewardedAdSheet({
   const theme = useTheme();
   const { t } = useStrings();
   const a = t.rewardedAds;
+  const upgradeLabel = outOfCredits ? a.goPro : a.upgrade;
   const balanceParts = a.balance.split('{n}');
   const busy = state.step === 'busy';
   const done = state.step === 'result' && state.done;
@@ -69,11 +73,15 @@ export function RewardedAdSheet({
             />
           </View>
           <Text variant="title" accessibilityRole="header" style={{ textAlign: 'center' }}>
-            {fill(kind === 'voice' ? a.voiceTitle : a.scanTitle, { count: amount })}
+            {outOfCredits
+              ? a.outOfCredits
+              : fill(kind === 'voice' ? a.voiceTitle : a.scanTitle, { count: amount })}
           </Text>
-          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-            {kind === 'voice' ? a.voiceBody : a.scanBody}
-          </Text>
+          {!outOfCredits && (
+            <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+              {kind === 'voice' ? a.voiceBody : a.scanBody}
+            </Text>
+          )}
         </View>
 
         {credits !== undefined && (
@@ -138,9 +146,11 @@ export function RewardedAdSheet({
                     ? a.dailyLimit
                     : state.step === 'result'
                       ? a.tryAgain
-                      : kind === 'voice'
-                        ? fill(a.watchWithCount, { count: amount })
-                        : a.watch
+                      : outOfCredits
+                        ? fill(a.watchShort, { count: amount })
+                        : kind === 'voice'
+                          ? fill(a.watchWithCount, { count: amount })
+                          : a.watch
                 }
                 variant="brand"
                 fullWidth
@@ -152,7 +162,7 @@ export function RewardedAdSheet({
               />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${a.upgrade}. ${a.upgradeBody}`}
+                accessibilityLabel={`${upgradeLabel}. ${a.upgradeBody}`}
                 accessibilityState={{ disabled: busy }}
                 disabled={busy}
                 onPress={onUpgrade}
@@ -170,7 +180,7 @@ export function RewardedAdSheet({
               >
                 <MaterialCommunityIcons name="crown" size={iconSize.md} color={theme.color.brand} />
                 <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                  <Text variant="subheading">{a.upgrade}</Text>
+                  <Text variant="subheading">{upgradeLabel}</Text>
                   <Text variant="caption" tone="muted">
                     {a.upgradeBody}
                   </Text>
