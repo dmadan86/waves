@@ -56,7 +56,8 @@ BEGIN
   IF TG_OP = 'INSERT' THEN NEW.pay_code := replace(gen_random_uuid()::text, '-', ''); END IF;
   IF NOT EXISTS (SELECT 1 FROM group_members WHERE id = NEW.treasurer_member_id
     AND group_id = NEW.group_id AND left_at IS NULL) OR NOT EXISTS (
-    SELECT 1 FROM group_members WHERE id = NEW.created_by AND group_id = NEW.group_id) THEN
+    SELECT 1 FROM group_members WHERE id = NEW.created_by AND group_id = NEW.group_id
+      AND (TG_OP <> 'INSERT' OR left_at IS NULL)) THEN
     RAISE EXCEPTION 'POT_WRONG_GROUP';
   END IF;
   IF TG_OP = 'INSERT' AND NEW.carried_from_pot_id IS NOT NULL AND NOT EXISTS (
@@ -246,7 +247,9 @@ BEGIN
     WHERE m.group_id = p.group_id AND m.left_at IS NULL AND m.id <> p.treasurer_member_id
       AND lower(btrim(COALESCE(pr.display_name, m.ghost_name))) = lower(btrim(payer_name));
   IF COALESCE(cardinality(ids), 0) <> 1 THEN RETURN false; END IF;
-  IF EXISTS (SELECT 1 FROM settlements WHERE pot_id = p.id AND reference = ref) THEN RETURN true; END IF;
+  IF EXISTS (SELECT 1 FROM settlements WHERE pot_id = p.id AND
+    (reference = ref OR (ref IS NULL AND reference IS NULL AND from_member_id = ids[1]
+      AND reference_source = 'self' AND status = 'initiated'))) THEN RETURN true; END IF;
   INSERT INTO settlements(group_id, pot_id, from_member_id, to_member_id, currency, amount,
     method, rail, status, reference, reference_source)
     VALUES (p.group_id, p.id, ids[1], p.treasurer_member_id, p.currency, p.per_head_minor,
@@ -577,8 +580,10 @@ CREATE FUNCTION public.waves_record_pot_settlement(p_pot_id uuid, p_from_member_
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO public, pg_temp AS $$
 DECLARE p pots; v_id uuid; existing settlements;
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pots WHERE id = p_pot_id AND is_group_member(group_id)) THEN
+    RAISE EXCEPTION 'FORBIDDEN' USING ERRCODE = '42501';
+  END IF;
   SELECT * INTO STRICT p FROM pots WHERE id = p_pot_id FOR UPDATE;
-  IF NOT is_group_member(p.group_id) THEN RAISE EXCEPTION 'FORBIDDEN' USING ERRCODE = '42501'; END IF;
   IF p_client_mutation_id IS NULL THEN RAISE EXCEPTION 'MUTATION_ID_REQUIRED'; END IF;
   SELECT * INTO existing FROM settlements WHERE client_mutation_id = p_client_mutation_id;
   IF FOUND THEN
