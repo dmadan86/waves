@@ -203,7 +203,6 @@ AdMob app IDs and Expo plugin configuration are shared; generated android files
 are not edited. Enable the new flag only after console units, consent messages,
 category restrictions and store privacy declarations are ready.
 
-
 Banner placements `review_banner` and `home_banner` also require an affirmative
 `bannerEligible` decision from `waves_my_ad_gate_status`: Free accounts must be at
 least 15 days old by default, configurable in admin with “Banner minimum account
