@@ -30,7 +30,7 @@ appId: app.waves.mobile
 # only the detail carries — the ledger has no "Delete expense" — so a push that
 # never happened cannot read as a pass.
 - extendedWaitUntil:
-    visible: 'Delete expense'
+    visible: 'Edit'
     timeout: 20000
 
 - back
@@ -52,22 +52,22 @@ appId: app.waves.mobile
     timeout: 20000
 
 - tapOn: 'More'
-- assertVisible: 'Group settings'
+- assertVisible: 'Export'
 - back
 # The menu closed. What it must *not* have done is close and pop the group with
 # it — an overlay that lets its back press fall through leaves somebody two
 # screens from where they were after one press.
-- assertNotVisible: 'Group settings'
+- assertNotVisible: 'Export'
 - assertVisible: 'Beach shack dinner'
 
 # And the screen underneath still works, rather than being left inert behind a
 # scrim that is gone from the screen but not from the tree.
 - tapOn: 'More'
-- assertVisible: 'Group settings'
+- assertVisible: 'Export'
 - back
 - tapOn: 'Beach shack dinner'
 - extendedWaitUntil:
-    visible: 'Delete expense'
+    visible: 'Edit'
     timeout: 20000
 - back
 - back
@@ -84,9 +84,9 @@ appId: app.waves.mobile
 - tapOn: 'Friends'
 - assertVisible: 'Merge people'
 - tapOn: 'Review'
-- assertVisible: 'Added by you'
+- assertVisible: 'Nothing needs you'
 - tapOn: 'Personal'
-- assertVisible: 'Your own money'
+- assertVisible: 'Your own money — private to you\.'
 - tapOn: 'Home'
 - extendedWaitUntil:
     visible: 'Your groups'

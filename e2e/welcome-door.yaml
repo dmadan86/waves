@@ -10,6 +10,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # The ways in are on the door, not one screen behind it.
 - assertVisible:
@@ -22,5 +23,5 @@ appId: app.waves.mobile
 # Skip is the guest way in: it navigates to the guest doorway (no session yet).
 - tapOn: 'Skip'
 - extendedWaitUntil:
-    visible: 'Start splitting with'
+    visible: 'Start splitting with.*'
     timeout: 10000

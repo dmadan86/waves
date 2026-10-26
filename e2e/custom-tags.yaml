@@ -7,7 +7,10 @@ appId: app.waves.mobile
 - assertVisible: 'Your groups'
 
 # Header avatar → the profile/settings list → the tag manager.
-- tapOn: 'Profile'
+- tapOn: 'Account'
+- scrollUntilVisible:
+    element: 'Tags & categories'
+    direction: DOWN
 - tapOn: 'Tags & categories'
 - assertVisible: 'Tags & categories'
 # A built-in is present in the ordered list (proof the catalog rendered).
@@ -15,10 +18,13 @@ appId: app.waves.mobile
 
 # Make a new tag from the header "+". Its accessibility label is "New tag".
 - tapOn: 'New tag'
-- assertVisible: 'Save tag'
+- assertVisible: 'Name'
 - tapOn: 'Name'
 - inputText: 'Client dinner'
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Save tag'
+    direction: DOWN
 - tapOn: 'Save tag'
 
 # Back in the manager the new tag is listed.
@@ -33,15 +39,15 @@ appId: app.waves.mobile
 - tapOn: 'Goa trip'
 - tapOn: 'Expenses'
 - tapOn: 'Add expense'
-- assertVisible: 'What was it for?'
+- assertVisible: 'What was it for\?'
 
 # The amount, via the shared calculator.
-- tapOn: '3'
-- tapOn: '0'
-- tapOn: '0'
+- tapOn: 'Amount 0 INR'
+- inputText: '300'
+- hideKeyboard
 
-# The new tag is a chip in the category picker — pick it. (No description, so the
-# tag itself will name the expense.)
+# With no description, the selected tag names the expense.
+- tapOn: 'Category, .*'
 - assertVisible: 'Client dinner'
 - tapOn: 'Client dinner'
 - tapOn: 'Save expense'
