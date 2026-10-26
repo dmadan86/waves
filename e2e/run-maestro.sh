@@ -75,13 +75,50 @@ ASSISTANT_FLOWS=(
   assistant-intro-once:assistant
 )
 
-# E2E_FLOWS (space-separated) narrows the run to the named flows.
-[ -n "${E2E_FLOWS:-}" ] && read -ra FLOWS <<< "${E2E_FLOWS}"
+# A non-blank E2E_FLOWS (space-separated) narrows the run to the named flows.
+if [[ "${E2E_FLOWS:-}" =~ [^[:space:]] ]]; then
+  read -ra selected <<< "${E2E_FLOWS}"
+  if [ "${#selected[@]}" -eq 0 ]; then
+    echo "E2E_FLOWS must select at least one flow" >&2
+    exit 1
+  fi
+  main_flows=()
+  assistant_flows=()
+  for flow in "${selected[@]}"; do
+    found=0
+    for candidate in ${FLOWS[@]+"${FLOWS[@]}"}; do
+      if [ "$flow" = "$candidate" ]; then
+        main_flows+=("$candidate")
+        found=1
+        break
+      fi
+    done
+    for entry in ${ASSISTANT_FLOWS[@]+"${ASSISTANT_FLOWS[@]}"}; do
+      if [ "$flow" = "${entry%%:*}" ]; then
+        assistant_flows+=("$entry")
+        found=1
+        break
+      fi
+    done
+    if [ "$found" -eq 0 ]; then
+      echo "Unknown flow in E2E_FLOWS: $flow" >&2
+      exit 1
+    fi
+  done
+  FLOWS=(${main_flows[@]+"${main_flows[@]}"})
+  ASSISTANT_FLOWS=(${assistant_flows[@]+"${assistant_flows[@]}"})
+elif [ "${E2E_ASSISTANT:-0}" != "1" ]; then
+  ASSISTANT_FLOWS=()
+fi
 
 status=0
-for flow in "${FLOWS[@]}"; do
+for flow in ${FLOWS[@]+"${FLOWS[@]}"}; do
   echo "::group::seed + ${flow}"
-  node e2e/seed-e2e.mjs
+  if ! node e2e/seed-e2e.mjs; then
+    status=1
+    echo "::endgroup::"
+    continue
+  fi
   maestro test \
     --env E2E_EMAIL="${E2E_EMAIL}" \
     --env E2E_PASSWORD="${E2E_PASSWORD}" \
@@ -90,19 +127,22 @@ for flow in "${FLOWS[@]}"; do
 done
 
 # Off by default so the nightly stays what it was: set E2E_ASSISTANT=1 (or run the
-# workflow with it) once the staging stub is on.
-if [ "${E2E_ASSISTANT:-0}" = "1" ]; then
-  for entry in "${ASSISTANT_FLOWS[@]}"; do
-    flow="${entry%%:*}"
-    extras="${entry#*:}"
-    echo "::group::seed (${extras}) + ${flow}"
-    E2E_SEED_EXTRAS="${extras}" node e2e/seed-e2e.mjs
-    maestro test \
-      --env E2E_EMAIL="${E2E_EMAIL}" \
-      --env E2E_PASSWORD="${E2E_PASSWORD}" \
-      "e2e/${flow}.yaml" || status=1
+# workflow with it) once the staging stub is on, or select specific assistant flows
+# with E2E_FLOWS. Selection above preserves their seed extras.
+for entry in ${ASSISTANT_FLOWS[@]+"${ASSISTANT_FLOWS[@]}"}; do
+  flow="${entry%%:*}"
+  extras="${entry#*:}"
+  echo "::group::seed (${extras}) + ${flow}"
+  if ! E2E_SEED_EXTRAS="${extras}" node e2e/seed-e2e.mjs; then
+    status=1
     echo "::endgroup::"
-  done
-fi
+    continue
+  fi
+  maestro test \
+    --env E2E_EMAIL="${E2E_EMAIL}" \
+    --env E2E_PASSWORD="${E2E_PASSWORD}" \
+    "e2e/${flow}.yaml" || status=1
+  echo "::endgroup::"
+done
 
 exit "${status}"
