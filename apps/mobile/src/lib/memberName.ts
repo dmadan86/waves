@@ -11,6 +11,8 @@
  * active roster, so nobody who left is offered.
  */
 
+import { exportMemberName } from '@waves/core';
+
 import { displayName, isViewer, type MemberRow } from '@/data/types';
 
 export interface MemberNameOptions {
@@ -22,6 +24,7 @@ export interface MemberNameOptions {
   readonly leftLabel: string;
   /** Leave the "(left)" mark off — for an avatar, which takes the bare name. */
   readonly bare?: boolean;
+  readonly forExport?: boolean;
 }
 
 export function hasLeft(member: Pick<MemberRow, 'left_at'> | null | undefined): boolean {
@@ -33,10 +36,17 @@ export function memberNameFor(
   options: MemberNameOptions,
 ): string {
   if (!member) return options.someone;
-  const name = displayName(member, options.viewerId, options.blocked, options.someone);
+  const blocked =
+    member.profile_id &&
+    options.blocked?.has(member.profile_id) &&
+    !isViewer(member, options.viewerId);
+  const name =
+    options.forExport && !blocked
+      ? exportMemberName(member, options.someone)
+      : displayName(member, options.viewerId, options.blocked, options.someone);
   if (options.bare || !hasLeft(member)) return name;
   // The viewer reads "You" and a blocked person stays masked: neither is tagged.
-  if (isViewer(member, options.viewerId)) return name;
+  if (!options.forExport && isViewer(member, options.viewerId)) return name;
   if (member.profile_id && options.blocked?.has(member.profile_id)) return name;
   return `${name} ${options.leftLabel}`;
 }

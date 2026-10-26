@@ -215,6 +215,7 @@ export default function GroupExportScreen() {
           id: member.id,
           name: memberNameFor(member, {
             viewerId: profile?.id,
+            forExport: true,
             blocked: blockedIds,
             someone: t.misc.someone,
             leftLabel: t.misc.memberLeft,
