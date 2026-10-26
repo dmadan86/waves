@@ -36,11 +36,14 @@ export interface GroupLedger {
   transfers: Transfer[];
 }
 
-export function toExpenseSnapshot(expense: Expense): ExpenseSnapshot | null {
+export function toExpenseSnapshot(
+  expense: Expense,
+): (ExpenseSnapshot & { potId?: string | null }) | null {
   const version = expense.currentVersion;
   if (!version) return null;
   return {
     id: expense.id,
+    potId: version.pot_id ?? null,
     currency: version.currency as CurrencyCode,
     amount: BigInt(version.amount),
     payers: Object.fromEntries(version.payers.map((row) => [row.member_id, BigInt(row.amount)])),
@@ -51,9 +54,12 @@ export function toExpenseSnapshot(expense: Expense): ExpenseSnapshot | null {
   };
 }
 
-export function toSettlementSnapshot(settlement: Settlement): SettlementSnapshot {
+export function toSettlementSnapshot(
+  settlement: Settlement,
+): SettlementSnapshot & { potId?: string | null } {
   return {
     id: settlement.id,
+    potId: settlement.pot_id ?? null,
     from: settlement.from_member_id,
     to: settlement.to_member_id,
     currency: settlement.currency as CurrencyCode,

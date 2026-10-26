@@ -1,3 +1,4 @@
+import { optionalPotUtr } from '@/lib/potUi';
 /**
  * The "Got ₹1,602.15 from Renny?" question a Settle up row asks before it
  * writes anything.
@@ -18,7 +19,7 @@
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Pressable, TextInput, View } from 'react-native';
 
 import type { CurrencyCode } from '@waves/core';
 import { Button, iconSize, MoneyText, Popup, Row, Text, useTheme } from '@waves/ui';
@@ -34,6 +35,8 @@ const ART_WIDTH = Math.round((ART_HEIGHT * 330) / 176);
 const BADGE = 40;
 
 export interface SettleConfirmSheetProps {
+  reference?: string;
+  onReferenceChange?: (value: string) => void;
   visible: boolean;
   /** Answer yes: the caller records the payment. */
   onConfirm: () => void;
@@ -52,6 +55,8 @@ export interface SettleConfirmSheetProps {
 }
 
 export function SettleConfirmSheet({
+  reference,
+  onReferenceChange,
   visible,
   onConfirm,
   onClose,
@@ -143,6 +148,27 @@ export function SettleConfirmSheet({
           {body}
         </Text>
 
+        {reference !== undefined ? (
+          <TextInput
+            accessibilityLabel={t.pots.utr}
+            placeholder={t.pots.utr}
+            placeholderTextColor={theme.color.textMuted}
+            value={reference}
+            onChangeText={onReferenceChange}
+            autoCapitalize="characters"
+            style={{
+              alignSelf: 'stretch',
+              color: theme.color.text,
+              padding: theme.spacing.md,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              borderRadius: theme.radius.md,
+            }}
+          />
+        ) : null}
+        {reference && !optionalPotUtr(reference).valid ? (
+          <Text tone="negative">{t.pots.invalidUtr}</Text>
+        ) : null}
         {/* One fact, one stop for a screen reader: who, which way, how much. */}
         <Row
           accessible
@@ -192,6 +218,7 @@ export function SettleConfirmSheet({
           </View>
           <View style={{ flex: 1 }}>
             <Button
+              disabled={reference !== undefined && !optionalPotUtr(reference).valid}
               label={confirmLabel}
               variant="brand"
               fullWidth

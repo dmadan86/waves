@@ -281,6 +281,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.5
         version: 5.104.5(@types/react@19.3.0)(react@19.3.1)
+      '@waves/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@waves/core':
         specifier: workspace:*
         version: link:../../packages/core

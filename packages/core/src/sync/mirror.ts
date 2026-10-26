@@ -216,6 +216,7 @@ export interface MirrorExpense extends MirrorRow {
     /** "Work expense (to claim)"; optional because a row mirrored before it
      *  existed does not carry the column (read as false). */
     readonly reimbursable?: boolean;
+    readonly pot_id?: string | null;
     readonly created_at: string;
     readonly payers: readonly { member_id: string; amount: string }[];
     readonly shares: readonly { member_id: string; amount: string }[];
@@ -332,6 +333,7 @@ function applyPending(
           payee: resolvePayee(payload.payee, existing?.currentVersion?.payee),
           // Same carry-forward: a payload that does not say keeps the old flag.
           reimbursable: payload.reimbursable ?? existing?.currentVersion?.reimbursable ?? false,
+          pot_id: payload.potId ?? existing?.currentVersion?.pot_id ?? null,
           created_at: mutation.clientCreatedAt,
           payers: Object.entries(payload.payers).map(([member_id, amount]) => ({
             member_id,
@@ -392,6 +394,7 @@ export function toExpenseSnapshot(expense: MirrorExpense): ExpenseSnapshot | nul
   try {
     return {
       id: expense.id,
+      potId: version.pot_id ?? null,
       currency: version.currency as CurrencyCode,
       amount: parseAmount(version.amount),
       payers: Object.fromEntries(

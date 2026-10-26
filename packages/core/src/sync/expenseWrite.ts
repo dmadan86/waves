@@ -135,6 +135,7 @@ export interface ExpenseWriteBodyInput {
   /** "Work expense (to claim)". Null/absent keeps what the server already has;
    *  true/false replaces it. */
   readonly reimbursable?: boolean | null;
+  readonly potId?: string | null;
   /** Idempotency key: a retry after a flaky network must not double-post. */
   readonly clientMutationId: string;
 }
@@ -167,6 +168,7 @@ export interface ExpenseWriteBody {
   readonly occurredAt: string | null;
   readonly payee: string | null;
   readonly reimbursable: boolean | null;
+  readonly potId: string | null;
   readonly clientMutationId: string;
 }
 
@@ -210,6 +212,7 @@ export function buildExpenseWriteBody(input: ExpenseWriteBodyInput): ExpenseWrit
     occurredAt: input.occurredAt ?? null,
     payee: input.payee ?? null,
     reimbursable: input.reimbursable ?? null,
+    potId: input.potId ?? null,
     clientMutationId: input.clientMutationId,
   };
 }
@@ -265,6 +268,7 @@ export interface ApplyExpenseArgsInput {
   readonly payee?: string | null;
   /** "Work expense (to claim)". Null/absent keeps what the server already has. */
   readonly reimbursable?: boolean | null;
+  readonly potId?: string | null;
 }
 
 /** The named arguments passed to `waves_apply_expense`. `p_source` is left to
@@ -298,6 +302,7 @@ export interface ApplyExpenseRpcArgs {
   readonly p_occurred_at: string | null;
   readonly p_payee: string | null;
   readonly p_reimbursable: boolean | null;
+  readonly p_pot_id: string | null;
 }
 
 /** A client-supplied time of day as a canonical UTC ISO instant, or null when
@@ -347,5 +352,6 @@ export function buildApplyExpenseArgs(input: ApplyExpenseArgsInput): ApplyExpens
     p_occurred_at: normaliseOccurredAt(input.occurredAt),
     p_payee: payeeArgument(input.payee),
     p_reimbursable: input.reimbursable ?? null,
+    p_pot_id: input.potId ?? null,
   };
 }
