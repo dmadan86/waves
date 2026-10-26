@@ -21,6 +21,7 @@ import { runGateAd, prepareInterstitial, type PreparedInterstitial } from '@/lib
 
 export interface GateStatus {
   enabled: boolean;
+  bannerEligible?: boolean;
   credits?: number;
   walletCap?: number;
   perAd?: number;

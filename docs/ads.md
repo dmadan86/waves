@@ -202,3 +202,10 @@ do not need rewarded SSV configuration or inclusion in `ADMOB_AD_UNIT_IDS`. Exis
 AdMob app IDs and Expo plugin configuration are shared; generated android files
 are not edited. Enable the new flag only after console units, consent messages,
 category restrictions and store privacy declarations are ready.
+
+Banner placements `review_banner` and `home_banner` also require an affirmative
+`bannerEligible` decision from `waves_my_ad_gate_status`: Free accounts must be at
+least 15 days old by default, configurable in admin with “Banner minimum account
+age (days)” (`banner_min_account_age_days`, 0–365). Profiles in `ads_allowlist`
+bypass this age check for testing, but still require the `ads_gates` master switch
+and all existing eligibility checks. Home banners still require at least 10 groups.
