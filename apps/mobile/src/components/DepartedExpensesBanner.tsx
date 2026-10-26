@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
-import { Button, Card, IconButton, Row, Text, tintForKey, useTheme } from '@waves/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { directionalIcon, Text, tintForKey, useTheme } from '@waves/ui';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useGroup, useGroupLedger } from '@/data/hooks';
 import { displayName, type MemberRow } from '@/data/types';
@@ -28,47 +28,59 @@ function DepartedBanner({
   const color = theme.tint[tint];
   if (dismissed !== false) return null;
   return (
-    <Card
-      padded={false}
-      flat
-      style={{
-        paddingVertical: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.sm,
-        borderRadius: theme.radius.sm,
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={fill(t.departedExpenses.decideFor, { name })}
+      onPress={() => router.push(`/group/${groupId}/departed/${member.id}`)}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        minHeight: 56,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginBottom: theme.spacing.xl,
+        borderRadius: theme.radius.lg,
         backgroundColor: `${color.bg}40`,
         borderColor: `${color.bg}99`,
-        borderWidth: 1,
-      }}
+        borderWidth: StyleSheet.hairlineWidth,
+        opacity: pressed ? 0.7 : 1,
+      })}
     >
-      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-        <PersonAvatar name={name} tint={tint} size={28} />
-        <Text numberOfLines={1} ellipsizeMode="tail" style={{ flex: 1, minWidth: 0 }}>
-          {fill(plural(locale, count, t.departedExpenses.banner), { name })}
+      <PersonAvatar name={name} tint={tint} size={28} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 15, fontWeight: '600' }}>
+          {fill(t.departedExpenses.bannerTitle, { name })}
         </Text>
-        <Button
-          size="sm"
-          variant="brand"
-          label={t.departedExpenses.decide}
-          onPress={() => router.push(`/group/${groupId}/departed/${member.id}`)}
-          style={{ paddingHorizontal: theme.spacing.md }}
-        />
-        <IconButton label={t.departedExpenses.keepAsIs} onPress={dismiss}>
-          <Ionicons name="close" size={16} color={theme.color.textMuted} />
-        </IconButton>
-      </Row>
-    </Card>
+        <Text numberOfLines={1} ellipsizeMode="tail" tone="muted" style={{ fontSize: 13 }}>
+          {plural(locale, count, t.departedExpenses.banner)}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.departedExpenses.keepAsIs}
+        hitSlop={8}
+        onPress={(event) => {
+          event.stopPropagation();
+          dismiss();
+        }}
+        style={{ alignItems: 'center', justifyContent: 'center', width: 28, height: 28 }}
+      >
+        <Ionicons name="close" size={16} color={theme.color.textMuted} />
+      </Pressable>
+      <Ionicons name={directionalIcon('chevron-forward')} size={18} color={theme.color.textMuted} />
+    </Pressable>
   );
 }
 
 export function DepartedExpensesBanner({ groupId }: { groupId: string }) {
-  const theme = useTheme();
   const viewerId = useViewerId();
   const { members, everyone, expenses } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   if (!members.data?.some((m) => m.id === ledger.myMemberId && m.role === 'admin' && !m.left_at))
     return null;
   return (
-    <View style={{ gap: theme.spacing.sm }}>
+    <>
       {everyone.data
         ?.filter(
           (m) =>
@@ -82,6 +94,6 @@ export function DepartedExpensesBanner({ groupId }: { groupId: string }) {
             <DepartedBanner key={member.id} groupId={groupId} member={member} count={count} />
           ) : null;
         })}
-    </View>
+    </>
   );
 }

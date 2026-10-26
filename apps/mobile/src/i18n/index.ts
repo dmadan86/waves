@@ -2359,6 +2359,8 @@ export interface UiStrings {
     dialog: string;
     onlyViewer: string;
     onlyViewerDialog: string;
+    bannerTitle: string;
+    decideFor: string;
     banner: PluralForms;
     decide: string;
     keepAsIs: string;
@@ -8072,9 +8074,11 @@ const en: UiStrings = {
     onlyViewer: 'You’d take on {amount}',
     onlyViewerDialog:
       "You’d take on {amount}. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    bannerTitle: '{name} left the group',
+    decideFor: 'Decide for {name}',
     banner: {
-      one: '{name} left · {n} expense',
-      other: '{name} left · {n} expenses',
+      one: '{n} expense needs a decision',
+      other: '{n} expenses need a decision',
     },
     decide: 'Decide',
     keepAsIs: 'Keep as is',
@@ -13349,9 +13353,11 @@ const ta: UiStrings = {
     onlyViewer: 'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள்',
     onlyViewerDialog:
       'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    bannerTitle: '{name} குழுவிலிருந்து வெளியேறினார்',
+    decideFor: '{name}க்காக முடிவுசெய்',
     banner: {
-      one: '{name} வெளியேறினார் · {n} செலவு',
-      other: '{name} வெளியேறினார் · {n} செலவுகள்',
+      one: '{n} செலவுக்கு முடிவு தேவை',
+      other: '{n} செலவுகளுக்கு முடிவு தேவை',
     },
     decide: 'முடிவுசெய்',
     keepAsIs: 'அப்படியே வைத்திரு',
@@ -18747,9 +18753,11 @@ const hi: UiStrings = {
     onlyViewer: 'आपको {amount} और देने होंगे',
     onlyViewerDialog:
       'आपको {amount} और देने होंगे। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    bannerTitle: '{name} समूह छोड़ चुके हैं',
+    decideFor: '{name} के लिए तय करें',
     banner: {
-      one: '{name} जा चुके हैं · {n} खर्च',
-      other: '{name} जा चुके हैं · {n} खर्च',
+      one: '{n} खर्च पर फ़ैसला चाहिए',
+      other: '{n} खर्चों पर फ़ैसला चाहिए',
     },
     decide: 'तय करें',
     keepAsIs: 'ऐसे ही रखें',
@@ -24093,9 +24101,11 @@ const ar: UiStrings = {
     onlyViewer: 'ستتحمل {amount}',
     onlyViewerDialog:
       'ستتحمل {amount}. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    bannerTitle: 'غادر {name} المجموعة',
+    decideFor: 'اتخاذ قرار بشأن {name}',
     banner: {
-      one: 'غادر {name} · مصروف واحد ({n})',
-      other: 'غادر {name} · {n} مصاريف',
+      one: 'مصروف واحد ({n}) يحتاج إلى قرار',
+      other: '{n} مصاريف تحتاج إلى قرار',
     },
     decide: 'تقرير',
     keepAsIs: 'إبقاء كما هو',

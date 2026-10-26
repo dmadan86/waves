@@ -1821,17 +1821,13 @@ export default function GroupScreen() {
               ListHeaderComponent={
                 // Alerts, shared receipts and pending settlements — everything that
                 // is about the group rather than about one tab. It scrolls under the
-                // pinned tab bar. The stack used to open on 20pt of top margin plus a
-                // 20pt gap plus each card's own padding, which pushed the first
-                // expense most of a thumb below the tabs on a screen where nothing
-                // was wrong. Now it follows the screen standard: the first card sits
-                // `lg` under the tabs, cards are separate sections `xl` apart, and
-                // the list starts `xl` below the last one. With no cards the header
-                // takes no room at all and the rows start `lg` under the tabs.
+                // pinned tab bar. Sections use the same `xl` gap above and below;
+                // departed rows own their bottom gap so dismissed rows leave no space.
                 <View
                   style={{
                     // The balances heading is a header item too, but sits close
                     // above its rows rather than a whole section away.
+                    paddingTop: theme.spacing.xl,
                     marginBottom: hasHeaderCards
                       ? theme.spacing.xl
                       : tab === Tab.Balances
@@ -1839,9 +1835,9 @@ export default function GroupScreen() {
                         : 0,
                   }}
                 >
-                  <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                  <DepartedExpensesBanner groupId={groupId} />
+                  <View style={{ gap: theme.spacing.xl }}>
                     <ImportProgressBanner groupId={groupId} />
-                    <DepartedExpensesBanner groupId={groupId} />
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
