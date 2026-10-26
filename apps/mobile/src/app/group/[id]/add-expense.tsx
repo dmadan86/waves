@@ -1508,13 +1508,6 @@ export default function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
-    // The existing expense-write/sync edge handlers drop potId. Fail before
-    // queuing anything until that backend handoff is available; otherwise this
-    // would silently enter the ordinary ledger. Remove alongside that plumbing.
-    if (effectivePotId) {
-      setError(t.pots.spendUnavailable);
-      return;
-    }
     if (effectiveIsDeposit && !description.trim() && !namePrompted) {
       setNamePrompted(true);
       return;

@@ -30,6 +30,12 @@ const base = {
 } satisfies Parameters<typeof serialiseExpense>[0];
 
 describe('serialiseExpense', () => {
+  it('preserves pot identity in the durable JSON envelope', () => {
+    expect(
+      JSON.parse(JSON.stringify(serialiseExpense({ ...base, potId: 'pot-1' }))),
+    ).toHaveProperty('potId', 'pot-1');
+    expect(serialiseExpense(base).potId).toBeNull();
+  });
   it('carries baseVersionNo, receiptId and receiptShareUrl through the queue (parity)', () => {
     const out = serialiseExpense({
       ...base,

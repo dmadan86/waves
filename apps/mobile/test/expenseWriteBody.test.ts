@@ -32,10 +32,12 @@ describe('writeExpense body', () => {
       participants: ['m1', 'm2'],
       payers: { m1: 2000n },
       categoryMeta: meta,
+      potId: 'pot-1',
       baseVersionNo: 4,
       clientMutationId: 'mut-1',
     });
 
+    expect(body.potId).toBe('pot-1');
     expect(body.categoryMeta).toEqual(meta);
     expect(body.baseVersionNo).toBe(4);
     // And the fields that were always sent are still there and wire-safe.

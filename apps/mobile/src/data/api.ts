@@ -618,6 +618,7 @@ export interface WriteExpenseInput {
   payee?: string | null;
   /** "Work expense (to claim)". Leave it out to keep what the expense has. */
   reimbursable?: boolean;
+  potId?: string | null;
   /** How the money moved: cash | credit | debit | forex. Optional. */
   paymentMethod?: PaymentMethod | null;
   /** Denormalised custom-tag display (extends TDR §8); null for a built-in. */
@@ -676,6 +677,7 @@ export async function writeExpense(input: WriteExpenseInput): Promise<WriteExpen
       notes: input.notes ?? null,
       payee: input.payee,
       reimbursable: input.reimbursable,
+      potId: input.potId,
       paymentMethod: input.paymentMethod ?? null,
       categoryMeta: input.categoryMeta ?? null,
       location: input.location ?? null,
