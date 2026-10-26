@@ -121,6 +121,23 @@ export type ScopeWords = {
 };
 
 export interface WebStrings {
+  potPay: {
+    title: string;
+    loading: string;
+    notFound: string;
+    perHead: string;
+    payee: string;
+    openUpi: string;
+    noUpi: string;
+    payerName: string;
+    utr: string;
+    badUtr: string;
+    badName: string;
+    paid: string;
+    sending: string;
+    sent: string;
+    notSent: string;
+  };
   /** The page somebody reaches by typing the domain in. */
   home: {
     title: string;
@@ -1434,6 +1451,24 @@ export interface WebStrings {
 }
 
 const en: WebStrings = {
+  potPay: {
+    title: 'Pay into a pot',
+    loading: 'Loading…',
+    notFound: 'This payment link is unavailable.',
+    perHead: 'Amount per head',
+    payee: 'Pay to {name}',
+    openUpi: 'Open UPI app',
+    noUpi: 'UPI payment details are unavailable. Ask the payee how to pay.',
+    payerName: 'Your name in the group',
+    utr: 'UTR / bank reference (optional)',
+    badUtr: 'Enter a valid bank reference.',
+    badName: 'Enter your name (up to 100 characters).',
+    paid: 'I’ve paid',
+    sending: 'Sending…',
+    sent: 'Sent. {payee} will confirm it.',
+    notSent:
+      'Could not send this report. Check your details or try again later. If you left the reference blank, try adding it.',
+  },
   home: {
     title: 'Waves',
     description:
@@ -2533,6 +2568,24 @@ const en: WebStrings = {
 };
 
 const ta: WebStrings = {
+  potPay: {
+    title: 'பானைக்குப் பணம் செலுத்துங்கள்',
+    loading: 'ஏற்றுகிறது…',
+    notFound: 'இந்தக் கட்டண இணைப்பு கிடைக்கவில்லை.',
+    perHead: 'ஒருவருக்கான தொகை',
+    payee: '{name} என்பவருக்குச் செலுத்துங்கள்',
+    openUpi: 'UPI செயலியைத் திற',
+    noUpi: 'UPI விவரங்கள் கிடைக்கவில்லை. எப்படிச் செலுத்துவது என்று பெறுபவரிடம் கேளுங்கள்.',
+    payerName: 'குழுவில் உங்கள் பெயர்',
+    utr: 'UTR / வங்கிக் குறிப்பு (விருப்பம்)',
+    badUtr: 'சரியான வங்கிக் குறிப்பை உள்ளிடுங்கள்.',
+    badName: 'உங்கள் பெயரை உள்ளிடுங்கள் (100 எழுத்துகள் வரை).',
+    paid: 'செலுத்திவிட்டேன்',
+    sending: 'அனுப்புகிறது…',
+    sent: 'அனுப்பப்பட்டது. {payee} உறுதிப்படுத்துவார்.',
+    notSent:
+      'அறிக்கையை அனுப்ப முடியவில்லை. விவரங்களைச் சரிபாருங்கள் அல்லது பிறகு முயலுங்கள். குறிப்பை விடுத்திருந்தால், அதைச் சேர்த்து முயலுங்கள்.',
+  },
   home: {
     title: 'Waves',
     description:
@@ -3677,6 +3730,24 @@ const ta: WebStrings = {
 };
 
 const hi: WebStrings = {
+  potPay: {
+    title: 'पॉट में भुगतान करें',
+    loading: 'लोड हो रहा है…',
+    notFound: 'यह भुगतान लिंक उपलब्ध नहीं है।',
+    perHead: 'प्रति व्यक्ति राशि',
+    payee: '{name} को भुगतान करें',
+    openUpi: 'UPI ऐप खोलें',
+    noUpi: 'UPI विवरण उपलब्ध नहीं हैं। पाने वाले से भुगतान का तरीका पूछें।',
+    payerName: 'समूह में आपका नाम',
+    utr: 'UTR / बैंक संदर्भ (वैकल्पिक)',
+    badUtr: 'सही बैंक संदर्भ डालें।',
+    badName: 'अपना नाम डालें (अधिकतम 100 अक्षर)।',
+    paid: 'मैंने भुगतान कर दिया',
+    sending: 'भेज रहे हैं…',
+    sent: 'भेज दिया। {payee} इसकी पुष्टि करेंगे।',
+    notSent:
+      'रिपोर्ट नहीं भेज सके। विवरण जाँचें या बाद में कोशिश करें। संदर्भ खाली छोड़ा था तो उसे जोड़कर कोशिश करें।',
+  },
   home: {
     title: 'Waves',
     description:
@@ -4779,6 +4850,24 @@ const hi: WebStrings = {
 };
 
 const ar: WebStrings = {
+  potPay: {
+    title: 'ادفع إلى الصندوق',
+    loading: 'جارٍ التحميل…',
+    notFound: 'رابط الدفع هذا غير متاح.',
+    perHead: 'المبلغ لكل شخص',
+    payee: 'ادفع إلى {name}',
+    openUpi: 'فتح تطبيق UPI',
+    noUpi: 'تفاصيل UPI غير متاحة. اسأل المستلم عن طريقة الدفع.',
+    payerName: 'اسمك في المجموعة',
+    utr: 'UTR / مرجع البنك (اختياري)',
+    badUtr: 'أدخل مرجعًا مصرفيًا صالحًا.',
+    badName: 'أدخل اسمك (حتى 100 حرف).',
+    paid: 'لقد دفعت',
+    sending: 'جارٍ الإرسال…',
+    sent: 'أُرسلت. سيؤكدها {payee}.',
+    notSent:
+      'تعذّر إرسال التقرير. راجع التفاصيل أو حاول لاحقًا. إذا تركت المرجع فارغًا، فحاول إضافته.',
+  },
   home: {
     title: 'Waves',
     description:
