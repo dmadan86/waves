@@ -1,3 +1,4 @@
+import { potVisibility } from '@/lib/potUi';
 import { usePots } from '@/data/pots';
 import { potExpensePayers } from '@/lib/pots';
 import { withScanCredits } from '@/lib/scanCredits';
@@ -1027,7 +1028,8 @@ export default function AddExpenseScreen() {
   // The expense keeps the currency it was paid in; the group's is only the
   // default and what a converted total would be shown in (ADR-003).
   const existingPotId = editing?.currentVersion?.pot_id;
-  const effectivePotId = existingPotId ?? chosenPotId;
+  const showPots = potVisibility(group.data, pots.data).show;
+  const effectivePotId = existingPotId ?? (showPots ? chosenPotId : null);
   const selectedPot = pots.data?.find((pot) => pot.id === effectivePotId);
   const currency = String(selectedPot?.currency ?? expenseCurrency ?? groupCurrency);
   // The rate the trip has pinned for whatever this bill is in, if it has pinned
@@ -2282,7 +2284,7 @@ export default function AddExpenseScreen() {
                 stacked
               />
 
-              {(pots.data ?? [])
+              {(showPots ? (pots.data ?? []) : [])
                 .filter((pot) => pot.status === 'open' && (!expenseId || existingPotId === pot.id))
                 .map((pot) => (
                   <Button

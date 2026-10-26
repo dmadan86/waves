@@ -23,7 +23,7 @@ import {
 } from '@/data/pots';
 import { fill, useStrings } from '@/i18n';
 import { potMoney } from '@/lib/pots';
-import { optionalPotUtr, potInput, potSettlements } from '@/lib/potUi';
+import { optionalPotUtr, potInput, potSettlements, potVisibility } from '@/lib/potUi';
 import { WEB_URL } from '@/lib/webUrl';
 import { router } from '@/lib/navigation';
 import { useGuestGuard } from '@/lib/guestGuard';
@@ -62,6 +62,7 @@ export function PotCard({
     if (!mutationIds.current.has(key)) mutationIds.current.set(key, randomUUID());
     return mutationIds.current.get(key)!;
   };
+  const visibility = potVisibility(group.data, pots.data);
   const openPots = (pots.data ?? []).filter((pot) => pot.status === 'open');
   const potTags = usePotExpenseTags(groupId, openPots.length > 0);
   const pot = openPots.find((row) => row.id === potId) ?? openPots[0];
@@ -106,6 +107,7 @@ export function PotCard({
     }
   };
   const show = (next: typeof sheet, id?: string) => {
+    if (next === 'start' && !visibility.canStart) return;
     setError(null);
     setPotId(id ?? null);
     setSheet(next);
@@ -161,7 +163,7 @@ export function PotCard({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
   };
-  if (!myMemberId) return null;
+  if (!myMemberId || !visibility.show) return null;
   return (
     <>
       {pots.isLoading || (openPots.length > 0 && potTags.isLoading) ? null : pots.isError ||
@@ -175,14 +177,16 @@ export function PotCard({
           }}
         />
       ) : openPots.length === 0 ? (
-        <Button
-          label={t.pots.start}
-          variant="secondary"
-          onPress={() => {
-            setHolder(myMemberId);
-            show('start');
-          }}
-        />
+        visibility.canStart ? (
+          <Button
+            label={t.pots.start}
+            variant="secondary"
+            onPress={() => {
+              setHolder(myMemberId);
+              show('start');
+            }}
+          />
+        ) : null
       ) : (
         openPots.map((row) => {
           const stats = potBalances(
@@ -277,7 +281,7 @@ export function PotCard({
               {error}
             </Text>
           ) : null}
-          {sheet === 'start' ? (
+          {sheet === 'start' && visibility.canStart ? (
             <>
               <Text>{t.pots.amount}</Text>
               <TextInput
@@ -307,6 +311,7 @@ export function PotCard({
                 disabled={busy || !holder || parseMinorInput(amount, currency) <= 0n}
                 onPress={() =>
                   void run(async () => {
+                    if (!visibility.canStart) return;
                     const key = `create:${amount}:${holder}`;
                     await create.mutateAsync({
                       name: group.data?.name ?? t.pots.start,
@@ -469,21 +474,24 @@ export function PotCard({
                   })
                 }
               />
-              <Button
-                label={t.pots.carry}
-                variant="secondary"
-                disabled={busy}
-                onPress={() =>
-                  void run(async () => {
-                    await carry.mutateAsync({
-                      potId: pot.id,
-                      name: pot.name,
-                      clientMutationId: mutationId(`carry:${pot.id}`),
-                    });
-                    setSheet(null);
-                  })
-                }
-              />
+              {visibility.canStart ? (
+                <Button
+                  label={t.pots.carry}
+                  variant="secondary"
+                  disabled={busy}
+                  onPress={() =>
+                    void run(async () => {
+                      if (!visibility.canStart) return;
+                      await carry.mutateAsync({
+                        potId: pot.id,
+                        name: pot.name,
+                        clientMutationId: mutationId(`carry:${pot.id}`),
+                      });
+                      setSheet(null);
+                    })
+                  }
+                />
+              ) : null}
             </>
           ) : null}
         </ScrollView>
