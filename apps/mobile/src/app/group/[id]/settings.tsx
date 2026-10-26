@@ -498,9 +498,16 @@ export default function GroupSettingsScreen() {
     (row) => row.status !== SettlementStatus.Cancelled,
   ).length;
 
-  const leaveNow = (): void => {
-    if (!ledger.myMemberId) return;
-    leaveGroup.mutate(ledger.myMemberId);
+  const leaveNow = async (): Promise<boolean> => {
+    if (!ledger.myMemberId || leaveGroup.isPending) return false;
+    setStatus(null);
+    try {
+      await leaveGroup.mutateAsync(ledger.myMemberId);
+      return true;
+    } catch (caught) {
+      setStatus(friendlyError(caught, t.couldNotSave, 'settings.leaveGroup'));
+      return false;
+    }
   };
 
   const leave = async (): Promise<void> => {
@@ -510,14 +517,13 @@ export default function GroupSettingsScreen() {
       setSettleFirstOpen(true);
       return;
     }
-    const ok = await confirm({
+    await confirm({
       title: t.group.leaveQuestion,
       body: t.group.leaveBody,
       confirmLabel: t.group.leave,
       tone: 'danger',
+      onConfirm: leaveNow,
     });
-    if (!ok) return;
-    leaveNow();
   };
 
   // Archiving puts a group away; it does not throw anything out, and it can be
@@ -712,7 +718,7 @@ export default function GroupSettingsScreen() {
   const removeMember = async (member: MemberRow): Promise<void> => {
     if (removeFromGroup.isPending) return;
     const realName = displayName(member, null, blockedIds, t.misc.someone);
-    const ok = await confirm({
+    await confirm({
       title: fill(t.people.removeConfirmTitle, { name: realName }),
       body: removeMemberBody({
         name: realName,
@@ -727,19 +733,21 @@ export default function GroupSettingsScreen() {
       }),
       confirmLabel: t.people.removeFromGroup,
       tone: 'danger',
-    });
-    if (!ok) return;
-    setStatus(null);
-    removeFromGroup.mutate(member.id, {
-      onSuccess: async () => {
-        const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
-        if (!equal.length && !custom.some((c) => !c.noneRemaining)) return;
-        // The member list comes from the mirror; pull the successful removal before opening it.
-        await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
-        router.push(`/group/${groupId}/departed/${member.id}`);
+      onConfirm: async () => {
+        setStatus(null);
+        try {
+          await removeFromGroup.mutateAsync(member.id);
+          const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+          if (!equal.length && !custom.some((c) => !c.noneRemaining)) return true;
+          // The member list comes from the mirror; pull the successful removal before opening it.
+          await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
+          router.push(`/group/${groupId}/departed/${member.id}`);
+          return true;
+        } catch (caught) {
+          setStatus(friendlyError(caught, t.couldNotSave, 'settings.removeMember'));
+          return false;
+        }
       },
-      onError: (caught) =>
-        setStatus(friendlyError(caught, t.couldNotSave, 'settings.removeMember')),
     });
   };
 
@@ -1499,9 +1507,9 @@ export default function GroupSettingsScreen() {
           setSettleFirstOpen(false);
           router.push(settleHref(groupId));
         }}
-        onLeaveAnyway={() => {
+        onLeaveAnyway={async () => {
+          await leaveNow();
           setSettleFirstOpen(false);
-          leaveNow();
         }}
       />
 

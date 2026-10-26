@@ -40,6 +40,7 @@ import {
   useSetMemberRole,
   useUpdateMember,
 } from '@/data/hooks';
+import { syncEngine } from '@/sync';
 import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -508,7 +509,7 @@ export default function MemberScreen() {
     // One dialog / removal at a time: covers the dialog and the mutation.
     if (removing) return;
     setRemoving(true);
-    const ok = await confirm({
+    await confirm({
       title: fill(t.people.removeConfirmTitle, { name: realName }),
       body: removeMemberBody({
         name: realName,
@@ -523,20 +524,27 @@ export default function MemberScreen() {
       }),
       confirmLabel: t.people.removeFromGroup,
       tone: 'danger',
-    });
-    if (!ok) {
-      setRemoving(false);
-      return;
-    }
-    setStatus(null);
-    removeFromGroup.mutate(member.id, {
-      onSuccess: () => router.back(),
-      onError: (caught) => setStatus(friendlyError(caught, t.couldNotSave, 'member.remove')),
-      onSettled: () => {
-        setRemoving(false);
+      onConfirm: async () => {
+        setStatus(null);
+        try {
+          await removeFromGroup.mutateAsync(member.id);
+          const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+          if (equal.length || custom.some((c) => !c.noneRemaining)) {
+            await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
+            router.replace(`/group/${groupId}/departed/${member.id}`);
+          } else {
+            router.back();
+          }
+          return true;
+        } catch (caught) {
+          setStatus(friendlyError(caught, t.couldNotSave, 'member.remove'));
+          return false;
+        }
       },
     });
+    setRemoving(false);
   };
+
   // The hero wears the money colour for its meaning — mint when this person is
   // owed, pink when they owe — and a neutral lilac when they are square, so a
   // settled member is never painted a direction they are not in. Ink from the
