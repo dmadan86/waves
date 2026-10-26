@@ -1,0 +1,13 @@
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.wavesupi'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.wavesupi'
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
