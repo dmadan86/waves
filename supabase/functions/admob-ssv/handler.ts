@@ -51,16 +51,8 @@ export interface Deps {
  * before `&signature=`). A field that appears twice is refused: the verifier
  * cannot tell which copy Google meant, so neither is trusted.
  */
-export function signedParams(rawQuery: string): URLSearchParams | null {
-  const parts = splitSignedQuery(rawQuery);
-  if (!parts) return null;
-  const params = new URLSearchParams(parts.message);
-  const seen = new Set<string>();
-  for (const key of params.keys()) {
-    if (seen.has(key)) return null;
-    seen.add(key);
-  }
-  return params;
+export function signedParams(rawQuery: string): ReadonlyMap<string, string> | null {
+  return splitSignedQuery(rawQuery)?.fields ?? null;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -92,25 +84,20 @@ export async function handleAdmobSsv(request: Request, deps: Deps): Promise<Resp
   const units = allowedUnits(deps.env);
   if (units.size === 0) throw new HttpError(503, 'MISCONFIGURED', 'ADMOB_AD_UNIT_IDS is not set');
 
-  let genuine: boolean;
+  let params: ReadonlyMap<string, string> | null;
   try {
-    genuine = await verifyCallback(rawQuery, deps.keys);
+    params = await verifyCallback(rawQuery, deps.keys);
   } catch (error) {
     // Could not read Google's keys: AdMob retries a 5xx.
     console.error('admob-ssv keys unavailable', error instanceof Error ? error.message : 'error');
     throw new HttpError(503, 'KEYS_UNAVAILABLE', 'Verifier keys unavailable');
   }
-  if (!genuine) throw new HttpError(403, 'BAD_SIGNATURE', 'Signature does not verify');
+  if (!params) throw new HttpError(403, 'BAD_SIGNATURE', 'Signature does not verify');
 
   const ignored = (reason: string): Response => {
     console.log(JSON.stringify({ fn: 'admob-ssv', outcome: 'ignored', reason }));
     return json({ ok: true, outcome: 'ignored', reason });
   };
-
-  // Only what Google signed is read; a field appended after the signature, or
-  // repeated, is not Google's word.
-  const params = signedParams(rawQuery);
-  if (!params) return ignored('unsigned_params');
 
   // Freshness: the signed timestamp must be recent. A genuine callback kept for
   // a day the account is Free and under its cap would otherwise still verify.

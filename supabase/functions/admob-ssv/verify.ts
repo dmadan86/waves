@@ -4,7 +4,7 @@
  *
  * AdMob calls our URL with a GET whose query string ends in
  * `&signature=<base64url DER ECDSA>&key_id=<id>`. The signed message is the query
- * string exactly as sent, up to (not including) `&signature=`. The signature is
+ * string URL-decoded, up to (not including) `&signature=`. The signature is
  * ECDSA P-256 over SHA-256, checked against the public key whose id is `key_id`
  * in Google's published list:
  * https://www.gstatic.com/admob/reward/verifier-keys.json
@@ -76,8 +76,9 @@ export function derToP1363(der: Uint8Array, size = 32): Uint8Array {
 }
 
 export interface SsvParts {
-  /** The signed message: the query string before `&signature=`. */
+  /** The signed message: the decoded query string before `&signature=`. */
   readonly message: string;
+  readonly fields: ReadonlyMap<string, string>;
   readonly signature: string;
   readonly keyId: string;
 }
@@ -90,12 +91,25 @@ export function splitSignedQuery(rawQuery: string): SsvParts | null {
   const query = rawQuery.startsWith('?') ? rawQuery.slice(1) : rawQuery;
   const marker = query.indexOf('&signature=');
   if (marker <= 0) return null;
-  const message = decodeURIComponent(query.slice(0, marker));
+  let message: string;
+  try {
+    message = decodeURIComponent(query.slice(0, marker));
+  } catch {
+    return null;
+  }
+  const fields = new Map<string, string>();
+  for (const pair of message.split('&')) {
+    const separator = pair.indexOf('=');
+    if (separator < 0) return null;
+    const key = pair.slice(0, separator);
+    if (fields.has(key)) return null;
+    fields.set(key, pair.slice(separator + 1));
+  }
   const rest = new URLSearchParams(query.slice(marker + 1));
   const signature = rest.get('signature');
   const keyId = rest.get('key_id');
   if (!signature || !keyId) return null;
-  return { message, signature, keyId };
+  return { message, fields, signature, keyId };
 }
 
 export async function importKey(key: VerifierKey): Promise<CryptoKey> {
@@ -183,11 +197,14 @@ export class VerifierKeys {
   }
 }
 
-/** Checks a callback's raw query string against Google's keys. */
-export async function verifyCallback(rawQuery: string, keys: VerifierKeys): Promise<boolean> {
+/** Returns the signed fields when the callback verifies against Google's keys. */
+export async function verifyCallback(
+  rawQuery: string,
+  keys: VerifierKeys,
+): Promise<ReadonlyMap<string, string> | null> {
   const parts = splitSignedQuery(rawQuery);
-  if (!parts) return false;
+  if (!parts) return null;
   const key = await keys.get(parts.keyId);
-  if (!key) return false;
-  return verifySignature(key, parts.message, parts.signature);
+  if (!key) return null;
+  return (await verifySignature(key, parts.message, parts.signature)) ? parts.fields : null;
 }
