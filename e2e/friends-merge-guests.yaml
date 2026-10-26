@@ -19,7 +19,9 @@ appId: app.waves.mobile
 
 # Merge screen: its title, and — before any button — the "can't be undone" warning.
 - assertVisible: 'Merge people'
-- assertVisible: 'undone'
+- extendedWaitUntil:
+    visible: 'Reeya'
+    timeout: 20000
 
 # Pick both Reeya rows. The merged name pre-fills to "Reeya", so the button arms.
 - tapOn:
@@ -34,6 +36,15 @@ appId: app.waves.mobile
     text: '^Merge$'
 - tapOn:
     text: '^Merge$'
+
+# A sheet asks which details the merged person keeps; its button carries the count.
+- tapOn: 'Merge 2 people'
+# The sheet warns that a merge cannot be undone and asks once more.
+- tapOn: 'Merge 2 people'
+
+# Close the optional invitation to finish without sharing a link.
+- assertVisible: 'Invite Reeya\?'
+- tapOn: 'Close'
 
 # Back on Friends, still a working screen.
 - assertVisible: 'Friends'

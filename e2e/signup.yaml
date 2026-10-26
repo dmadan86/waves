@@ -13,6 +13,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # /welcome → /sign-up, the white sheet, from the email tile on the door.
 - tapOn:

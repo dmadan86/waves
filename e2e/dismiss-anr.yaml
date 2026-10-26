@@ -1,0 +1,8 @@
+# Reusable sub-flow; never run alone. Launcher ANRs can block app taps.
+appId: app.waves.mobile
+---
+- runFlow:
+    when:
+      visible: "Pixel Launcher isn't responding"
+    commands:
+      - tapOn: 'Wait'

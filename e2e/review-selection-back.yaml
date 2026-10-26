@@ -34,16 +34,11 @@ appId: app.waves.mobile
 
 # ── put two SMS-sourced drafts in Review ──────────────────────────────────
 - tapOn: 'Review'
-- tapOn: 'Add from bank messages'
+- tapOn: 'Add from a message'
 - tapOn: 'Paste bank messages'
-- inputText: 'Rs.970.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA TRADERS. UPI Ref 528913447120. -Axis Bank'
+# A blank line separates messages; typing updates the preview directly.
+- inputText: "Rs.970.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA TRADERS. UPI Ref 528913447120. -Axis Bank\n\nRs.20.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA THE SHOP. UPI Ref 528913447999. -Axis Bank"
 - hideKeyboard
-- tapOn: 'Paste'
-
-- tapOn: 'Paste bank messages'
-- inputText: 'Rs.20.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA THE SHOP. UPI Ref 528913447999. -Axis Bank'
-- hideKeyboard
-- tapOn: 'Paste'
 
 - assertVisible: 'We found 2 payments in what you pasted.'
 - tapOn: 'Add 2 to Review'
@@ -55,7 +50,7 @@ appId: app.waves.mobile
 # ── tick one, and the screen takes the bottom of the phone ────────────────
 # The tick boxes belong to the SMS tab only; the drafts somebody added by hand
 # have none. Both drafts landed there.
-- tapOn: 'SMS'
+- tapOn: 'SMS|Bank SMS'
 - assertVisible: 'M M RAITHARA TRADERS'
 - tapOn: 'M M RAITHARA TRADERS'
 
@@ -66,7 +61,7 @@ appId: app.waves.mobile
 
 # ── the destination sheet, and backing out of it ──────────────────────────
 - tapOn: 'Add to a group'
-- assertVisible: 'GROUPS'
+- assertVisible: 'Groups'
 - back
 # Back closed the sheet and left the selection where it was.
 - assertVisible: '1 selected'
@@ -103,9 +98,6 @@ appId: app.waves.mobile
 - assertVisible: 'Just me'
 
 # ── "Just me" files the drafts instead of refusing them ───────────────────
-- tapOn: 'SMS'
-- tapOn: 'M M RAITHARA TRADERS'
-- assertVisible: '1 selected'
 - tapOn: 'Just me'
 
 # The failure the phone showed. Asserted by its own words, because the whole

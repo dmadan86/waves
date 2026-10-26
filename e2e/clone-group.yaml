@@ -23,7 +23,7 @@ appId: app.waves.mobile
 
 # Into the group, then its settings, then Duplicate.
 - tapOn: 'Goa trip'
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
 - scrollUntilVisible:
     element: 'Duplicate group'
     direction: DOWN
@@ -39,8 +39,9 @@ appId: app.waves.mobile
 - scrollUntilVisible:
     element: 'Priya'
     direction: DOWN
-- tapOn: 'Priya'
-- assertNotVisible: 'Priya'
+- tapOn: 'Remove Priya'
+- assertNotVisible: 'Remove Priya'
+- hideKeyboard
 
 # Make the group. It lands on the new group's own screen.
 - scrollUntilVisible:
@@ -50,6 +51,7 @@ appId: app.waves.mobile
 - assertVisible: 'Goa trip copy'
 
 # And the original is untouched — still on Home alongside the copy.
-- tapOn: 'Waves'
+- tapOn: 'Home'
+- assertVisible: 'Your groups'
 - assertVisible: 'Goa trip'
 - assertVisible: 'Goa trip copy'

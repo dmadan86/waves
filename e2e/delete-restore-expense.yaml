@@ -8,6 +8,7 @@ appId: app.waves.mobile
 - tapOn: 'Beach shack dinner'
 
 # Delete, confirming the alert (exact-match so it isn't "Delete expense").
+- tapOn: 'More'
 - assertVisible: 'Delete expense'
 - tapOn: 'Delete expense'
 - assertVisible: 'Delete this expense?'
@@ -23,7 +24,9 @@ appId: app.waves.mobile
 - tapOn:
     text: '.*Beach shack dinner.*'
     index: 0
+- tapOn: 'More'
 - tapOn: 'Restore this expense'
+- back
 - back
 - tapOn: '(?i)^expenses$'
 - assertVisible: 'Beach shack dinner'

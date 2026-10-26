@@ -11,7 +11,7 @@ appId: app.waves.mobile
 
 # Quick-add-expense widget → /capture
 - openLink: waves:///capture
-- assertVisible: 'Capture an expense'
+- assertVisible: 'Save an expense'
 
 # Voice widget → /voice
 - openLink: waves:///voice
