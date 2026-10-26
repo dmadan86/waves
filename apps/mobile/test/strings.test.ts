@@ -27,14 +27,18 @@ describe('the string tables', () => {
       if (!node || typeof node !== 'object') return [];
       const entries = Object.entries(node);
       // Arabic has additional plural forms; the message key must still match.
-      if (entries.some(([key]) => key === 'other') &&
-          entries.every(([key, value]) => pluralKeys.has(key) && typeof value === 'string')) {
+      if (
+        entries.some(([key]) => key === 'other') &&
+        entries.every(([key, value]) => pluralKeys.has(key) && typeof value === 'string')
+      ) {
         return [];
       }
-      return entries.flatMap(([key, value]) => {
-        const path = prefix ? `${prefix}.${key}` : key;
-        return [path, ...keyPaths(value, path)];
-      }).sort();
+      return entries
+        .flatMap(([key, value]) => {
+          const path = prefix ? `${prefix}.${key}` : key;
+          return [path, ...keyPaths(value, path)];
+        })
+        .sort();
     };
     const english = keyPaths(STRINGS_BY_LANGUAGE.en);
     for (const language of LANGUAGES) {

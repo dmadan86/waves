@@ -15626,7 +15626,8 @@ const ta: UiStrings = {
     freeFeatureBalances: 'இருப்புகள் மற்றும் தீர்வு',
     freeFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',
     freeFeatureVoice: 'மாதத்திற்கு {commands} AI குரல் கட்டளைகள்',
-    freeFeatureAds: 'AI குரல் மற்றும் ஸ்கேன்களுக்கு கிரெடிட்கள் தேவை — முகப்பில் அவற்றை இலவசமாகப் பெறுங்கள்',
+    freeFeatureAds:
+      'AI குரல் மற்றும் ஸ்கேன்களுக்கு கிரெடிட்கள் தேவை — முகப்பில் அவற்றை இலவசமாகப் பெறுங்கள்',
     proCardSubtitle: 'இலவசத்தில் உள்ள அனைத்தும், கூடுதலாக:',
     proFeatureNoAds: 'விளம்பரங்கள் இல்லை',
     proFeatureScans: 'மாதத்திற்கு {scans} ரசீது ஸ்கேன்கள்',

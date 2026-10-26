@@ -1474,7 +1474,8 @@ export default function VoiceScreen() {
       if (mode === 'append') appendResult(parsed);
       else applyResult(parsed);
       offerIfNeeded(
-        parsed.items.length > 0 || (mode !== 'append' && voiceAutoAction(parsed)?.kind === 'create-group'),
+        parsed.items.length > 0 ||
+          (mode !== 'append' && voiceAutoAction(parsed)?.kind === 'create-group'),
       );
     })();
   };
