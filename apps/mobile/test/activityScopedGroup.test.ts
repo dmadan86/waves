@@ -11,8 +11,9 @@ const src = readFileSync(resolve(__dirname, '../src/app/activity.tsx'), 'utf8');
 
 describe('activity screen scoped to one group', () => {
   it('forces white ink with a text shadow and titles the screen with the group', () => {
-    expect(src).toContain('const darkInk = !onlyGroup && heroWantsDarkInk(hero);');
-    expect(src).toContain('textShadowColor');
+    expect(src).toContain("const heroInk = '#FFFFFF';");
+    expect(src).toContain('...HERO_TEXT_SHADOW');
+    expect(src).toContain('colors={scrimColorsFor(hero)}');
     expect(src).toMatch(/<GroupMark emoji=\{shownGroup\.cover_emoji\}/);
     expect(src).toContain('{shownGroup.name}');
     expect(src).toContain('shownGroup ? t.activity : t.activityScreen.subtitle');

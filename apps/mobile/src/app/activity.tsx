@@ -52,8 +52,9 @@ import { SplitMoney } from '@/components/SplitMoney';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
 import { useHeroStatusBar } from '@/components/ScreenHero';
+import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
 import {
-  HERO_SCRIM_COLORS,
+  scrimColorsFor,
   HERO_SCRIM_LOCATIONS,
   HOME_HERO_PHOTOS,
 } from '@/components/home/HomeHeroBackground';
@@ -68,7 +69,6 @@ import {
   activityTileGlyph,
   type AmountTone,
   type GlyphFamily,
-  heroWantsDarkInk,
 } from '@/lib/activityRowPure';
 import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
 import { useHomeHero } from '@/lib/useHomeHero';
@@ -568,26 +568,15 @@ export default function ActivityScreen() {
         ]),
   ];
 
-  // The scenic band behind the title: Home's own picture for the hour. Pale
-  // skies take dark ink and the status bar to match; the deep scenes keep white
-  // ink under the same top scrim Home uses.
+  // Home's scene, with white ink over the same top scrim at every hour.
   const hero = useHomeHero();
-  // One group's feed wears the group screen's hero: always white ink over the scrim.
-  const darkInk = !onlyGroup && heroWantsDarkInk(hero);
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  useHeroStatusBar('light');
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const photoH = insets.top + HERO_BODY;
   // `cover` by hand, anchored to the bottom, as Home's hero does.
   const scale = Math.max(windowWidth / PHOTO_W, photoH / PHOTO_H);
-  const heroInk = darkInk ? '#1B1840' : '#FFFFFF';
-  const inkShadow = darkInk
-    ? {}
-    : {
-        textShadowColor: 'rgba(0,0,0,0.45)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-      };
+  const heroInk = '#FFFFFF';
   const circle = (
     label: string,
     onPress: () => void,
@@ -627,14 +616,12 @@ export default function ActivityScreen() {
           top: photoH - PHOTO_H * scale,
         }}
       />
-      {darkInk ? null : (
-        <LinearGradient
-          pointerEvents="none"
-          colors={HERO_SCRIM_COLORS}
-          locations={HERO_SCRIM_LOCATIONS}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: photoH * 0.7 }}
-        />
-      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={scrimColorsFor(hero)}
+        locations={HERO_SCRIM_LOCATIONS}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: photoH * 0.7 }}
+      />
       <Row
         style={{
           paddingTop: insets.top + theme.spacing.sm,
@@ -662,7 +649,7 @@ export default function ActivityScreen() {
                   lineHeight: 30,
                   fontWeight: '800',
                   color: heroInk,
-                  ...inkShadow,
+                  ...HERO_TEXT_SHADOW,
                 }}
               >
                 {shownGroup.name}
@@ -671,14 +658,20 @@ export default function ActivityScreen() {
           ) : (
             <Text
               numberOfLines={1}
-              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: heroInk }}
+              style={{
+                fontSize: 24,
+                lineHeight: 30,
+                fontWeight: '800',
+                color: heroInk,
+                ...HERO_TEXT_SHADOW,
+              }}
             >
               {t.activity}
             </Text>
           )}
           <Text
             numberOfLines={1}
-            style={{ fontSize: 13, lineHeight: 18, color: heroInk, ...inkShadow }}
+            style={{ fontSize: 13, lineHeight: 18, color: heroInk, ...HERO_TEXT_SHADOW }}
           >
             {shownGroup ? t.activity : t.activityScreen.subtitle}
           </Text>
