@@ -56,8 +56,8 @@ describe('voice screen redesign wiring', () => {
     );
   });
 
-  it('VW-07: "Who owes me?" is a button only where the assistant can answer it', () => {
-    expect(voice).toContain("suggestion.kind === 'expense' || agentOn");
+  it('VW-07: local balance suggestions are available without the agent', () => {
+    expect(voice).toContain('Boolean(detectBalanceQuery(suggestionWords(suggestion.text)))');
   });
 
   it('VW-09: one stage stays mounted after the sentence; cards change in place under it', () => {

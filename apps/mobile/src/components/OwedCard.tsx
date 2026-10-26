@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
 import { format, money, type CurrencyCode } from '@waves/core';
-import { iconSize, Text, tintForKey, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Text, tintForKey, useTheme } from '@waves/ui';
 
 import { useOwedByGroup } from '@/data/hooks';
 import { fill, useStrings } from '@/i18n';
@@ -40,6 +40,7 @@ export function OwedCard({
   };
   const square = {
     padding: theme.spacing.sm,
+    flexShrink: 0,
     borderRadius: theme.radius.md,
     backgroundColor: theme.color.brandSoft,
   };
@@ -113,7 +114,7 @@ export function OwedCard({
                 </Text>
               ))}
             </View>
-            <View style={{ flexShrink: 1 }}>
+            <View style={{ flexShrink: 0, maxWidth: '45%' }}>
               <Text
                 variant="subheading"
                 style={{ color: theme.color.brand, textAlign: 'right', fontWeight: '700' }}
@@ -121,7 +122,11 @@ export function OwedCard({
                 {total}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.brand} />
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
           </Pressable>
         );
       })}
@@ -134,12 +139,12 @@ export function OwedCard({
         }}
       >
         <Ionicons name="wallet-outline" size={iconSize.md} color={theme.color.brand} />
-        <Text style={{ flex: 1 }}>{owed ? t.voice.owedTotal : t.voice.oweTotal}</Text>
-        <View style={{ alignItems: 'flex-end' }}>
+        <Text style={{ flex: 1, minWidth: 0 }}>{owed ? t.voice.owedTotal : t.voice.oweTotal}</Text>
+        <View style={{ alignItems: 'flex-end', maxWidth: '65%' }}>
           {totals.map((total) => (
             <Text
               key={total.currency}
-              variant="title"
+              variant="subheading"
               style={{ color: theme.color.brand, fontWeight: '700' }}
             >
               {amount(total.total, total.currency)}
