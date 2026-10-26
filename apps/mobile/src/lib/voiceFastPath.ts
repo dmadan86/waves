@@ -27,6 +27,7 @@ import {
   detectAddMember,
   detectBalanceQuery,
   detectMoneyIntent,
+  detectOwedDirection,
   isSafeVoiceAmount,
   matchMemberNames,
   parseVoiceExpense,
@@ -187,6 +188,12 @@ function balanceVerdict(local: LocalParse, context: FastPathContext): FastPathVe
   const query = local.balance;
   if (!query) return no('no-balance');
   if (local.parse.items.length > 0) return no('balance-with-amount');
+  // Match the basic answer's group resolution, without the launch group.
+  if (
+    detectOwedDirection(local.transcript) &&
+    parseVoiceExpenses(local.transcript, context.groups).group?.kind !== 'existing'
+  )
+    return yes('balance-overall');
   if (query.kind === 'person') {
     // Resolving to nobody is an answer the screen can give, but it is a miss
     // here: the agent may know who was meant.
@@ -325,4 +332,19 @@ export function explainLocalParse(local: LocalParse, context: FastPathContext): 
 
 export function localParseIsConfident(local: LocalParse, context: FastPathContext): boolean {
   return explainLocalParse(local, context).confident;
+}
+
+/** Prefer the top reading; only overall owed questions may rescue an ASR miss. */
+export function owedQuestionTranscript(
+  transcript: string,
+  alternatives: readonly string[],
+  groups: readonly VoiceGroupRef[],
+): string | null {
+  return (
+    [transcript, ...alternatives].find(
+      (candidate) =>
+        detectOwedDirection(candidate) &&
+        parseVoiceExpenses(candidate, groups).group?.kind !== 'existing',
+    ) ?? null
+  );
 }
