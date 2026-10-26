@@ -7,14 +7,15 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTabBarClearance, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 
 import { FooterWaves } from '@/components/FooterWaves';
 
 export function VoiceScene() {
   const theme = useTheme();
-  const clearance = useTabBarClearance();
+  const insets = useSafeAreaInsets();
   // Dark mode stays flat: a lighter lower half would glare.
   const end = theme.scheme === 'dark' ? theme.color.bg : theme.color.surface;
   return (
@@ -26,7 +27,7 @@ export function VoiceScene() {
     >
       <LinearGradient colors={[theme.color.bg, end]} style={StyleSheet.absoluteFill} />
       {/* Above the system navigation bar, which would otherwise cover them. */}
-      <FooterWaves bottom={clearance - theme.spacing.lg} />
+      <FooterWaves bottom={insets.bottom} />
     </View>
   );
 }
