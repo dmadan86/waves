@@ -1,3 +1,9 @@
+export const HOME_BANNER_MIN_GROUPS = 10;
+
+export function showHomeBanner(groupCount: number): boolean {
+  return groupCount >= HOME_BANNER_MIN_GROUPS;
+}
+
 export function bannerUnitId(
   platform: string,
   configured: string | undefined,

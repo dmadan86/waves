@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { bannerUnitId } from '../src/lib/bannerAdsPure';
+import { bannerUnitId, showHomeBanner } from '../src/lib/bannerAdsPure';
+
+describe('Home banner eligibility', () => {
+  it.each([
+    [9, false],
+    [10, true],
+    [0, false],
+    [NaN, false],
+    [-1, false],
+  ])('shows for %s groups: %s', (groupCount, expected) => {
+    expect(showHomeBanner(groupCount)).toBe(expected);
+  });
+});
 
 describe('banner ad unit ids', () => {
   it('uses platform test ids in development even when configured', () => {

@@ -24,7 +24,9 @@ type BannerSdk = {
   BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: string };
 };
 
-export function ReviewBanner() {
+export function ReviewBanner({
+  placement = 'review_banner',
+}: { placement?: 'review_banner' | 'home_banner' } = {}) {
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
   const enabled = useFlagEnabled('ads_native');
@@ -66,7 +68,7 @@ export function ReviewBanner() {
         if (!cancelled) setBanner({ sdk: native, isActive: () => !cancelled });
       } catch (error) {
         noteAdFailure(error);
-        logAdEvent(viewerId, 'review_banner', 'failed');
+        logAdEvent(viewerId, placement, 'failed');
       }
     })();
     return () => {
@@ -75,7 +77,7 @@ export function ReviewBanner() {
       setBanner(null);
       setLoaded(false);
     };
-  }, [eligible, enabled, viewerId, retry]);
+  }, [eligible, enabled, viewerId, retry, placement]);
   if (Platform.OS === 'web' || !eligible || !banner) return null;
   const { sdk } = banner;
   return (
@@ -109,12 +111,12 @@ export function ReviewBanner() {
           setLoaded(true);
           if (viewerId && !shownLogged.current) {
             shownLogged.current = true;
-            logAdEvent(viewerId, 'review_banner', 'shown');
+            logAdEvent(viewerId, placement, 'shown');
           }
         }}
         onAdFailedToLoad={(error) => {
           noteAdFailure(error);
-          if (viewerId) logAdEvent(viewerId, 'review_banner', 'failed');
+          if (viewerId) logAdEvent(viewerId, placement, 'failed');
           if (banner.isActive()) {
             setLoaded(false);
             setBanner(null);
