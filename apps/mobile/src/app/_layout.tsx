@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   I18nManager,
   Platform,
+  StyleSheet,
   Text as RNText,
   useWindowDimensions,
   View,
@@ -703,39 +704,9 @@ function AuthGate() {
     );
   }
 
-  // A signed-in person who has not seen the tour meets it here, once, before
-  // the app proper. Held while storage is still answering so the app tree does
-  // not paint under it for a frame.
-  if (session && ownerId && tourSeen !== true) {
-    if (tourSeen === null) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.bg,
-          }}
-        >
-          <ActivityIndicator color={theme.color.brand} />
-        </View>
-      );
-    }
-    return (
-      <Onboarding
-        onDone={() => {
-          setTourAnswer({ owner: ownerId, seen: true });
-          // Not awaited: the tour is over the moment they say so, and a write
-          // that fails costs them one repeat, not a stuck screen.
-          void rememberOnboardingSeen(ownerId);
-          track('onboarding_completed');
-          // One onboarding, not two: mark the coach tour seen as well so it does
-          // not autostart on the Home screen the intro just handed them to.
-          tour.finish();
-        }}
-      />
-    );
-  }
+  // Keep the navigator mounted beneath the intro: replacing it on dismissal
+  // races Android Fabric's native view teardown with the new Stack's mount.
+  const showIntro = Boolean(session && ownerId && tourSeen !== true);
 
   return (
     <View style={{ flex: 1 }}>
@@ -743,7 +714,7 @@ function AuthGate() {
           Here rather than higher up so a shortcut is never acted on while the
           app is locked or the intro is still running — there is nowhere to send
           somebody yet. The menu itself is published above every gate. */}
-      <QuickShortcutRouting />
+      {!showIntro && <QuickShortcutRouting />}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -929,6 +900,26 @@ function AuthGate() {
           screen — behind the `upload_progress` flag, so it renders nothing until
           the flag is on. */}
       <TransferProgressBar />
+      {showIntro && ownerId && (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.bg }]}>
+          {tourSeen === null ? (
+            <ActivityIndicator style={{ flex: 1 }} color={theme.color.brand} />
+          ) : (
+            <Onboarding
+              onDone={() => {
+                setTourAnswer({ owner: ownerId, seen: true });
+                // Not awaited: the tour is over the moment they say so, and a write
+                // that fails costs them one repeat, not a stuck screen.
+                void rememberOnboardingSeen(ownerId);
+                track('onboarding_completed');
+                // One onboarding, not two: mark the coach tour seen as well so it does
+                // not autostart on the Home screen the intro just handed them to.
+                tour.finish();
+              }}
+            />
+          )}
+        </View>
+      )}
     </View>
   );
 }
