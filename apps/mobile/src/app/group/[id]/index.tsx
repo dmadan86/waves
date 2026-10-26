@@ -112,6 +112,7 @@ import {
 import { groupTabFromParam } from '@/lib/groupTab';
 import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { DepartedExpensesBanner } from '@/components/DepartedExpensesBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { useImportProgress } from '@/lib/importProgress';
 import { useGuestGuard } from '@/lib/guestGuard';
@@ -1840,6 +1841,7 @@ export default function GroupScreen() {
                 >
                   <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
                     <ImportProgressBanner groupId={groupId} />
+                    <DepartedExpensesBanner groupId={groupId} />
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}

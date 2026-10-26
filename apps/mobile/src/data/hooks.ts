@@ -120,6 +120,8 @@ import {
   recordSettlement,
   leaveGroup,
   removeMember,
+  resplitDeparted,
+  undoResplit,
   updateGroup,
   updateMember,
   setMemberRole,
@@ -3385,5 +3387,46 @@ export function useVoiceAccess() {
     },
     enabled: !!profile?.id,
     staleTime: 60_000,
+  });
+}
+
+function invalidateResplit(queryClient: QueryClient, groupId: string): void {
+  invalidateGroup(queryClient, groupId);
+  for (const queryKey of [
+    keys.expenses(groupId),
+    keys.balances(groupId),
+    keys.activity(groupId),
+    ['notifications'],
+  ]) {
+    void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+export function useResplitDeparted(groupId: string) {
+  const queryClient = useQueryClient();
+  // Keep the id on the input across React Query retries of the same mutation.
+  const ids = useRef(new WeakMap<object, string>());
+  return useMutation({
+    mutationFn: (input: { memberId: string; items: import('./api').ResplitItem[] }) => {
+      if (isDemoGroupId(groupId)) return rejectDemoWrite<import('./api').ResplitResult>();
+      let id = ids.current.get(input);
+      if (!id) {
+        id = randomUUID();
+        ids.current.set(input, id);
+      }
+      return resplitDeparted(groupId, input.memberId, input.items, id);
+    },
+    onSuccess: () => invalidateResplit(queryClient, groupId),
+  });
+}
+
+export function useUndoResplit(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId }: { batchId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<import('./api').UndoResplitResult>()
+        : undoResplit(batchId),
+    onSuccess: () => invalidateResplit(queryClient, groupId),
   });
 }

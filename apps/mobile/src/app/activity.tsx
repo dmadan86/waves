@@ -44,6 +44,7 @@ import {
   isGroupChange,
   parseMoney,
 } from '@/data/activity';
+import { resplitBatchId } from '@/data/recentActivity';
 import { activityLabels } from '@/data/activityLabels';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -73,8 +74,8 @@ import {
 import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
-import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
-import { useStrings } from '@/i18n';
+import { useGroups, useRecentActivity, useUndoResplit, type RecentActivityRow } from '@/data/hooks';
+import { plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
@@ -93,6 +94,7 @@ import { SyncStatus, useSync } from '@/sync';
 // has to be near-free — recomputing all of that per mount is what let a hard
 // fling outrun the recycler into a blank screen.
 type RowView = {
+  undoBatchId: string | null;
   href: Href;
   /** The whole event as one sentence — the spoken (screen-reader) label. */
   label: string;
@@ -175,10 +177,31 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   // broken box. So the meta names the category, or else the kind of group.
   const kind = g ? groupTypeTag(g.type, null, ctx.groupTagLabels) : null;
   const amount = activityAmountStyle(entry.verb);
+  const resplit =
+    entry.verb === 'resplit'
+      ? plural(
+          ctx.locale,
+          Number(entry.payload.count ?? 0),
+          ctx.t.departedExpenses.activity,
+        ).replaceAll(
+          '{name}',
+          String(
+            entry.payload.name ??
+              entry.payload.member_name ??
+              entry.payload.memberName ??
+              ctx.t.misc.someone,
+          ),
+        )
+      : entry.verb === 'resplit_undone'
+        ? ctx.t.departedExpenses.activityUndone
+        : null;
   return {
+    undoBatchId: resplitBatchId(entry),
     href: activityTarget(entry) as Href,
-    label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
-    headline: activityHeadline(entry, ctx.labels),
+    label:
+      resplit ??
+      describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
+    headline: resplit ?? activityHeadline(entry, ctx.labels),
     // Nobody did an auto-event, so it carries no actor — omit it rather than say
     // "Someone". A blocked or since-left actor still resolves through actorName.
     who: entry.actor
@@ -256,6 +279,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
   // bill was for (or by the verb, when it is not a bill), the event as a title,
   // who · what · when beneath it, and the money on the right — blue, or red and
   // struck through once deleted — with a ⋮ for where the event leads.
+  const undo = useUndoResplit(view.groupId ?? '');
   const tint = theme.tint[view.tintKey];
   const amount = view.stake ?? view.money;
   const ink = view.amountTone === 'negative' ? theme.color.negative : theme.color.positive;
@@ -324,6 +348,15 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           ) : null}
         </Row>
       </View>
+      {view.undoBatchId && view.groupId ? (
+        <Button
+          label={t.departedExpenses.undo}
+          variant="secondary"
+          disabled={undo.isPending}
+          onPress={() => undo.mutate({ batchId: view.undoBatchId! })}
+        />
+      ) : null}
+      {undo.error ? <MetaText>{undo.error.message}</MetaText> : null}
       {/* An expense the reader is on shows THEIR side of it; anything else the
           total. `payload` is untyped JSON, so a bad amount renders as no
           amount, not a crashed tab. */}

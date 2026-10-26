@@ -40,6 +40,7 @@ import {
   useSetMemberRole,
   useUpdateMember,
 } from '@/data/hooks';
+import { classifyDepartedExpenses } from '@/lib/departedExpenses';
 import { friendlyError } from '@/lib/errors';
 import { expenseTitle } from '@/data/expenseTitle';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
@@ -247,7 +248,7 @@ export default function MemberScreen() {
   const viewerId = useViewerId();
   const familiesOn = useFlagEnabled('group_units');
 
-  const { group, members, expenses } = useGroup(groupId);
+  const { group, members, everyone, expenses } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const updateMember = useUpdateMember(groupId);
   const setRole = useSetMemberRole(groupId);
@@ -263,7 +264,7 @@ export default function MemberScreen() {
   const { blockedIds, block, unblock } = useBlockedUsers();
   const mergePersonIds = useGhostMergePersonIds();
 
-  const member = members.data?.find((row) => row.id === memberId);
+  const member = everyone.data?.find((row) => row.id === memberId);
   const isMe = member ? isViewer(member, viewerId) : false;
   const myRow = members.data?.find((row) => isViewer(row, viewerId));
   const iAmAdmin = myRow?.role === 'admin';
@@ -551,7 +552,20 @@ export default function MemberScreen() {
    * rather than drawing a heading over nothing. That is the case for yourself,
    * and for a ghost seen by a non-admin.
    */
+  const departed = classifyDepartedExpenses(expenses.rows, member.id);
   const manageRows: SettingsRow[] = [
+    ...(iAmAdmin &&
+    !myRow?.left_at &&
+    member.left_at &&
+    (departed.equal.length || departed.custom.some((c) => !c.noneRemaining))
+      ? [
+          {
+            icon: 'swap-horizontal-outline' as const,
+            label: fill(t.departedExpenses.memberRow, { name: shownName }),
+            onPress: () => router.push(`/group/${groupId}/departed/${member.id}`),
+          },
+        ]
+      : []),
     // Anybody in the group can say a placeholder is them; the server decides
     // whether an admin has to confirm it.
     ...(ghost && myRow

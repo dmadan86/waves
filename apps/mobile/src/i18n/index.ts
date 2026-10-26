@@ -2330,6 +2330,30 @@ export interface UiStrings {
     settlesWith: string;
   };
   /** The Activity screen: its subtitle, filter chips and row menu. */
+  departedExpenses: {
+    title: string;
+    owed: PluralForms;
+    equal: PluralForms;
+    perEach: string;
+    splitAmong: PluralForms;
+    custom: PluralForms;
+    keep: string;
+    shareEqually: string;
+    paid: PluralForms;
+    settle: string;
+    confirm: PluralForms;
+    dialog: string;
+    onlyViewer: string;
+    onlyViewerDialog: string;
+    banner: PluralForms;
+    decide: string;
+    keepAsIs: string;
+    offline: string;
+    memberRow: string;
+    activity: PluralForms;
+    activityUndone: string;
+    undo: string;
+  };
   activityScreen: {
     subtitle: string;
     all: string;
@@ -7993,6 +8017,44 @@ const en: UiStrings = {
     change: 'Change',
     settlesWith: 'Settles with {rails}',
   },
+  departedExpenses: {
+    title: "{name}'s expenses",
+    owed: {
+      one: '{name} owes {amount} across {n} expense',
+      other: '{name} owes {amount} across {n} expenses',
+    },
+    equal: { one: 'Split equally ({n}) · {amount}', other: 'Split equally ({n}) · {amount}' },
+    perEach: '+{amount} each',
+    splitAmong: { one: 'Split among the other {n}', other: 'Split among the other {n}' },
+    custom: { one: 'Custom splits ({n})', other: 'Custom splits ({n})' },
+    keep: 'Keep',
+    shareEqually: 'Share equally',
+    paid: {
+      one: '{name} paid ({n}) · still owed {amount}',
+      other: '{name} paid ({n}) · still owed {amount}',
+    },
+    settle: 'Settle up with {name}',
+    confirm: { one: 'Confirm {n} change', other: 'Confirm {n} changes' },
+    dialog:
+      "Move {name}'s {amount} to the other {n} members? Each owes about {perEach} more. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    onlyViewer: 'You’d take on {amount}',
+    onlyViewerDialog:
+      "You’d take on {amount}. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    banner: {
+      one: '{name} left · {n} expense still includes them',
+      other: '{name} left · {n} expenses still include them',
+    },
+    decide: 'Decide',
+    keepAsIs: 'Keep as is',
+    offline: 'Connect to the internet to move these expenses.',
+    memberRow: "{name}'s expenses",
+    activity: {
+      one: 'Split {n} expense after {name} left',
+      other: 'Split {n} expenses after {name} left',
+    },
+    activityUndone: 'Re-split undone',
+    undo: 'Undo',
+  },
   activityScreen: {
     subtitle: 'Your recent transactions and updates',
     all: 'All',
@@ -13213,6 +13275,44 @@ const ta: UiStrings = {
     howSub: 'நண்பர்கள் எளிதாகக் கணக்குத் தீர்க்க உங்கள் பணம் பெறும் விவரங்களைச் சேர்க்கவும்.',
     change: 'மாற்று',
     settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
+  },
+  departedExpenses: {
+    title: '{name} செலவுகள்',
+    owed: {
+      one: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+    },
+    equal: { one: 'சமமாகப் பிரி ({n}) · {amount}', other: 'சமமாகப் பிரி ({n}) · {amount}' },
+    perEach: 'ஒவ்வொருவருக்கும் +{amount}',
+    splitAmong: { one: 'மற்ற {n} பேரிடையே பிரி', other: 'மற்ற {n} பேரிடையே பிரி' },
+    custom: { one: 'தனிப்பயன் பிரிவுகள் ({n})', other: 'தனிப்பயன் பிரிவுகள் ({n})' },
+    keep: 'வைத்திரு',
+    shareEqually: 'சமமாகப் பகிர்',
+    paid: {
+      one: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+      other: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+    },
+    settle: '{name} உடன் கணக்கை முடி',
+    confirm: { one: '{n} மாற்றங்களை உறுதிசெய்', other: '{n} மாற்றங்களை உறுதிசெய்' },
+    dialog:
+      '{name} செலுத்த வேண்டிய {amount} தொகையை மற்ற {n} பேருக்கு மாற்றவா? ஒவ்வொருவருக்கும் சுமார் {perEach} கூடும். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    onlyViewer: 'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள்',
+    onlyViewerDialog:
+      'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    banner: {
+      one: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
+      other: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
+    },
+    decide: 'முடிவுசெய்',
+    keepAsIs: 'அப்படியே வைத்திரு',
+    offline: 'இந்தச் செலவுகளை மாற்ற இணையத்துடன் இணையுங்கள்.',
+    memberRow: '{name} செலவுகள்',
+    activity: {
+      one: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
+      other: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
+    },
+    activityUndone: 'மறுபிரிப்பு செயல்தவிர்க்கப்பட்டது',
+    undo: 'செயல்தவிர்',
   },
   activityScreen: {
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
@@ -18556,6 +18656,44 @@ const hi: UiStrings = {
     change: 'बदलें',
     settlesWith: '{rails} से हिसाब होता है',
   },
+  departedExpenses: {
+    title: '{name} के खर्च',
+    owed: {
+      one: '{n} खर्चों में {name} को {amount} देना है',
+      other: '{n} खर्चों में {name} को {amount} देना है',
+    },
+    equal: { one: 'बराबर बाँटें ({n}) · {amount}', other: 'बराबर बाँटें ({n}) · {amount}' },
+    perEach: 'हर व्यक्ति को +{amount}',
+    splitAmong: { one: 'बाकी {n} में बाँटें', other: 'बाकी {n} में बाँटें' },
+    custom: { one: 'कस्टम बँटवारे ({n})', other: 'कस्टम बँटवारे ({n})' },
+    keep: 'रखें',
+    shareEqually: 'बराबर बाँटें',
+    paid: {
+      one: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+      other: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+    },
+    settle: '{name} से हिसाब चुकाएँ',
+    confirm: { one: '{n} बदलाव पक्के करें', other: '{n} बदलाव पक्के करें' },
+    dialog:
+      '{name} के {amount} बाकी {n} सदस्यों में बाँटें? हर व्यक्ति को लगभग {perEach} ज़्यादा देना होगा। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    onlyViewer: 'आपको {amount} और देने होंगे',
+    onlyViewerDialog:
+      'आपको {amount} और देने होंगे। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    banner: {
+      one: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
+      other: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
+    },
+    decide: 'तय करें',
+    keepAsIs: 'ऐसे ही रखें',
+    offline: 'इन खर्चों को बदलने के लिए इंटरनेट से जुड़ें।',
+    memberRow: '{name} के खर्च',
+    activity: {
+      one: '{name} के जाने के बाद {n} खर्च बाँटे गए',
+      other: '{name} के जाने के बाद {n} खर्च बाँटे गए',
+    },
+    activityUndone: 'दोबारा बँटवारा वापस लिया',
+    undo: 'वापस लें',
+  },
   activityScreen: {
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
     all: 'सभी',
@@ -23842,6 +23980,47 @@ const ar: UiStrings = {
     howSub: 'أضف بيانات الدفع ليتمكن أصدقاؤك من التسوية معك بسهولة.',
     change: 'تغيير',
     settlesWith: 'التسوية عبر {rails}',
+  },
+  departedExpenses: {
+    title: 'مصاريف {name}',
+    owed: {
+      one: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+      other: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+    },
+    equal: { one: 'تقسيم بالتساوي ({n}) · {amount}', other: 'تقسيم بالتساوي ({n}) · {amount}' },
+    perEach: '+{amount} لكل شخص',
+    splitAmong: {
+      one: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+      other: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+    },
+    custom: { one: 'تقسيمات مخصصة ({n})', other: 'تقسيمات مخصصة ({n})' },
+    keep: 'إبقاء',
+    shareEqually: 'مشاركة بالتساوي',
+    paid: {
+      one: 'دفع {name} ({n}) · لا يزال له {amount}',
+      other: 'دفع {name} ({n}) · لا يزال له {amount}',
+    },
+    settle: 'تسوية مع {name}',
+    confirm: { one: 'تأكيد {n} تغييرات', other: 'تأكيد {n} تغييرات' },
+    dialog:
+      'نقل مبلغ {amount} المستحق على {name} إلى الأعضاء الآخرين وعددهم {n}؟ سيدين كل شخص بحوالي {perEach} إضافية. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    onlyViewer: 'ستتحمل {amount}',
+    onlyViewerDialog:
+      'ستتحمل {amount}. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    banner: {
+      one: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
+      other: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
+    },
+    decide: 'تقرير',
+    keepAsIs: 'إبقاء كما هو',
+    offline: 'اتصل بالإنترنت لنقل هذه المصاريف.',
+    memberRow: 'مصاريف {name}',
+    activity: {
+      one: 'قُسمت {n} مصاريف بعد مغادرة {name}',
+      other: 'قُسمت {n} مصاريف بعد مغادرة {name}',
+    },
+    activityUndone: 'تم التراجع عن إعادة التقسيم',
+    undo: 'تراجع',
   },
   activityScreen: {
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',

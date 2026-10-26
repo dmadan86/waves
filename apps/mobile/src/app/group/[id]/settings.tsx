@@ -39,6 +39,8 @@ import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
 import { addSomeoneRoutes, type AddSomeoneRoute } from '@/lib/addSomeoneRoutes';
 import { addPickedBatch } from '@/lib/addPickedBatch';
+import { classifyDepartedExpenses } from '@/lib/departedExpenses';
+import { syncEngine } from '@/sync';
 import { friendlyError } from '@/lib/errors';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
@@ -729,6 +731,13 @@ export default function GroupSettingsScreen() {
     if (!ok) return;
     setStatus(null);
     removeFromGroup.mutate(member.id, {
+      onSuccess: async () => {
+        const { equal, custom } = classifyDepartedExpenses(expenses.rows, member.id);
+        if (!equal.length && !custom.some((c) => !c.noneRemaining)) return;
+        // The member list comes from the mirror; pull the successful removal before opening it.
+        await syncEngine.flush({ groupIds: [groupId] }).catch(() => undefined);
+        router.push(`/group/${groupId}/departed/${member.id}`);
+      },
       onError: (caught) =>
         setStatus(friendlyError(caught, t.couldNotSave, 'settings.removeMember')),
     });

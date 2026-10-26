@@ -245,3 +245,10 @@ function stakeFor(
   if (stake === null || stake === 0n) return null;
   return { amount: stake, currency: version.currency };
 }
+
+/** Batch events have no individual expense target. Keep their Undo metadata on the row. */
+export function resplitBatchId(row: ActivityRow): string | null {
+  if (row.verb !== 'resplit') return null;
+  const id = row.payload.batchId ?? row.payload.batch_id ?? row.object_id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
+}
