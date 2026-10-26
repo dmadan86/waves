@@ -901,7 +901,7 @@ function AuthGate() {
           the flag is on. */}
       <TransferProgressBar />
       {showIntro && ownerId && (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.color.bg }]}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.bg }]}>
           {tourSeen === null ? (
             <ActivityIndicator style={{ flex: 1 }} color={theme.color.brand} />
           ) : (
