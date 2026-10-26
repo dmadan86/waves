@@ -90,10 +90,11 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
 
   useEffect(() => {
+    const sheetLock = lock.current;
     mounted.current = true;
     return () => {
       mounted.current = false;
-      releaseAdSheet(lock.current);
+      releaseAdSheet(sheetLock);
     };
   }, []);
 
