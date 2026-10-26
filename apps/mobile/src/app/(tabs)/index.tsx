@@ -1,3 +1,5 @@
+import { NativeAdCard } from '@/components/NativeAdCard';
+import { nativePositions } from '@/lib/nativeAdsPure';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -758,6 +760,10 @@ export default function HomeScreen() {
                     );
                   })}
                 </View>
+                {(groups.data?.length ?? 0) >= 10 &&
+                nativePositions(groups.data!.length, 'home').length > 0 ? (
+                  <NativeAdCard visible rowGap={theme.spacing.sm} />
+                ) : null}
               </ScrollView>
             </View>
           )}

@@ -272,7 +272,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         paddingVertical: theme.spacing.sm,
         paddingStart: theme.spacing.sm,
         paddingEnd: 2,
-        marginBottom: 6,
+        marginBottom: theme.spacing.sm,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: theme.color.border,
@@ -987,7 +987,11 @@ export default function ActivityScreen() {
           }
           renderItem={({ item, index }) =>
             item.kind === 'ad' ? (
-              <NativeAdCard visible={adVisible} />
+              <NativeAdCard
+                visible={adVisible}
+                rowGap={theme.spacing.sm}
+                precedingGap={theme.spacing.sm}
+              />
             ) : item.kind === 'header' ? (
               <Text
                 variant="caption"

@@ -601,8 +601,9 @@ export default function FriendsScreen() {
                         onToggleSelect={toggleSelect}
                       />
                     </View>
-                    {nativePositions(persons.length, 'friends').includes(index + 1) && !selectMode ? (
-                      <NativeAdCard visible={adVisible} />
+                    {nativePositions(persons.length, 'friends').includes(index + 1) &&
+                    !selectMode ? (
+                      <NativeAdCard visible={adVisible} rowGap={theme.spacing.sm} />
                     ) : null}
                   </>
                 );
