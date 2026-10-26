@@ -2,6 +2,7 @@ import { readCredits } from './adCredits';
 import { watchCreditAd } from './watchCreditAd';
 import { watchBlocked, type CreditsStatus } from './adCreditsPure';
 import { logAdEvent } from '@/lib/adEvents';
+import { adSheetTaken, claimAdSheet, releaseAdSheet } from './adSheetLock';
 /**
  * Offering a rewarded ad at a natural moment: `offer('voice')` when the AI voice
  * monthly limit is hit, `offer('scan')` when the receipt-scan limit is hit.
@@ -76,6 +77,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   const [state, setState] = useState<AdSheetState>({ step: 'ready' });
   const mounted = useRef(true);
   const running = useRef(false);
+  const lock = useRef(Symbol('adSheet'));
   const canOffer = (next: AdKind): boolean =>
     !!viewerId &&
     !isPaid &&
@@ -83,13 +85,16 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       ? wallet.data.canWatch || (next === 'voice' && watchBlocked(wallet.data) === 'daily')
       : eligibility.data?.eligible === true) &&
     !visible &&
+    !adSheetTaken(lock.current) &&
     !running.current &&
     Date.now() - declinedAt[next] >= DECLINE_QUIET_MS;
 
   useEffect(() => {
+    const sheetLock = lock.current;
     mounted.current = true;
     return () => {
       mounted.current = false;
+      releaseAdSheet(sheetLock);
     };
   }, []);
 
@@ -107,6 +112,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
           : !current?.eligible)
       )
         return;
+      if (!claimAdSheet(lock.current)) return;
       setKind(next);
       setStatus(current);
       setState({ step: 'ready' });
@@ -120,6 +126,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     // Closing without a reward (Not now, the backdrop, back) quiets this offer for a while.
     if (!(state.step === 'result' && state.done)) declinedAt[kind] = Date.now();
     setVisible(false);
+    releaseAdSheet(lock.current);
   }, [kind, state]);
 
   const message = useCallback(
@@ -168,6 +175,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
       const before = credits ? null : await readAdsStatus().catch(() => null);
       if (credits ? !credits.canWatch : !before?.eligible) {
         setVisible(false);
+        releaseAdSheet(lock.current);
         void eligibility.refetch();
         return;
       }
@@ -211,6 +219,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
 
   const upgrade = useCallback(() => {
     setVisible(false);
+    releaseAdSheet(lock.current);
     router.push('/paywall');
   }, []);
 
