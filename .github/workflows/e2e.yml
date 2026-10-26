@@ -180,6 +180,8 @@ jobs:
           # logged "Google Play services missing" before the post-sign-in crash.
           target: google_apis
           arch: x86_64
+          ram-size: 4096M
+          cores: 4
           profile: pixel_6
           disable-animations: true
           # A single line: android-emulator-runner parses `script` line-by-line,

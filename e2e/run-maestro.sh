@@ -19,6 +19,9 @@ export PATH="$PATH:$HOME/.maestro/bin"
 
 # Whole-session logcat for the artifact: the per-flow logs Maestro keeps start after launch.
 adb logcat -c; adb logcat -v time > logcat-full.txt 2>&1 &
+# A "Pixel Launcher isn't responding" ANR dialog on a loaded emulator sits on top of the
+# app and fails every flow; hide system error dialogs for the session.
+adb shell settings put global hide_error_dialogs 1
 adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 # Fail here, loudly, if the app did not land — not 20 flows later as "not installed".
 adb devices -l
