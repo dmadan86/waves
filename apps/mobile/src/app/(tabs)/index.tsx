@@ -104,6 +104,7 @@ export default function HomeScreen() {
   const avatarUrl = useAvatarUrl(profile?.avatar_url);
 
   const groups = useGroups();
+  const totalGroupCount = groups.data?.length ?? 0;
   const summary = useHomeSummary(viewerId);
   const guard = useGuestGuard();
   const tour = useTour();
@@ -760,7 +761,7 @@ export default function HomeScreen() {
                     );
                   })}
                 </View>
-                {showHomeBanner(list.length) ? <ReviewBanner placement="home_banner" /> : null}
+                {showHomeBanner(totalGroupCount) ? <ReviewBanner placement="home_banner" /> : null}
               </ScrollView>
             </View>
           )}

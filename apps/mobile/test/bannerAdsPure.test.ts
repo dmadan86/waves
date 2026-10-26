@@ -5,11 +5,12 @@ describe('Home banner eligibility', () => {
   it.each([
     [9, false],
     [10, true],
+    [13, true],
     [0, false],
     [NaN, false],
     [-1, false],
-  ])('shows for %s groups: %s', (groupCount, expected) => {
-    expect(showHomeBanner(groupCount)).toBe(expected);
+  ])('shows for %s total groups: %s', (totalGroupCount, expected) => {
+    expect(showHomeBanner(totalGroupCount)).toBe(expected);
   });
 });
 
