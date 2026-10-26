@@ -41,7 +41,7 @@ async function claims(profile: string) {
   ]);
 }
 async function as<T>(
-  role: 'anon' | 'authenticated',
+  role: 'anon' | 'authenticated' | 'service_role',
   profile: string | null,
   run: () => Promise<T>,
 ): Promise<T> {
@@ -388,6 +388,7 @@ describe('pots (every test rolls back)', () => {
   it('rolls back every close row and the status if any insertion fails', async () => {
     await fund();
     await expense();
+    await client.query('SET CONSTRAINTS ALL IMMEDIATE');
     await client.query(
       `ALTER TABLE settlements ADD CONSTRAINT pot_test_fail CHECK (note IS DISTINCT FROM 'Pot close' OR amount <> 20)`,
     );
@@ -437,9 +438,21 @@ describe('pots (every test rolls back)', () => {
       (await client.query('SELECT id FROM settlements WHERE pot_id = $1', [next.id])).rowCount,
     ).toBe(0);
   });
+  it('keeps pay RPCs executable only by the service role', async () => {
+    for (const signature of ['pot_pay_lookup(text)', 'pot_pay_self_report(text,text,text)']) {
+      for (const role of ['anon', 'authenticated', 'service_role']) {
+        const result = await client.query('SELECT has_function_privilege($1, $2, $3) AS allowed', [
+          role,
+          signature,
+          'EXECUTE',
+        ]);
+        expect(result.rows[0].allowed).toBe(role === 'service_role');
+      }
+    }
+  });
   it('public lookup exposes exactly the minimum, and nothing for unknown or closed codes', async () => {
     const lookup = (value: string) =>
-      as('anon', null, () => client.query('SELECT pot_pay_lookup($1) AS result', [value]));
+      as('service_role', null, () => client.query('SELECT pot_pay_lookup($1) AS result', [value]));
     const result = (await lookup(code)).rows[0].result;
     expect(result).toEqual({
       potName: 'Lunch kitty',
@@ -458,7 +471,7 @@ describe('pots (every test rolls back)', () => {
       `UPDATE profiles SET display_name = 'Same name' WHERE id = ANY($1::uuid[])`,
       [group.profileIds.slice(1)],
     );
-    const result = await as('anon', null, () =>
+    const result = await as('service_role', null, () =>
       client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [
         code,
         'Same name',
@@ -473,14 +486,14 @@ describe('pots (every test rolls back)', () => {
   it.each(['', '   ', null])(
     'accepts an optional public UTR (%j) and keeps self attribution',
     async (ref) => {
-      const result = await as('anon', null, () =>
+      const result = await as('service_role', null, () =>
         client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [code, 'Member 2', ref]),
       );
       expect(result.rows[0].ok).toBe(true);
       for (const blank of ['', '   ', null]) {
         expect(
           (
-            await as('anon', null, () =>
+            await as('service_role', null, () =>
               client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [
                 code,
                 ' member 2 ',
@@ -499,7 +512,7 @@ describe('pots (every test rolls back)', () => {
   );
   it('dedupes blank references per payer only while their self-report is initiated', async () => {
     const report = (name: string) =>
-      as('anon', null, () =>
+      as('service_role', null, () =>
         client.query('SELECT pot_pay_self_report($1, $2, NULL) AS ok', [code, name]),
       );
     await report('Member 2');
@@ -516,7 +529,7 @@ describe('pots (every test rolls back)', () => {
   });
   it('public self-report is pending, keeps the UTR, and retries do not duplicate', async () => {
     const report = (name = 'Member 2', ref = '123456789012') =>
-      as('anon', null, () =>
+      as('service_role', null, () =>
         client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [code, name, ref]),
       );
     expect((await report()).rows[0].ok).toBe(true);

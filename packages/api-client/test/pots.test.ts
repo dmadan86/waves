@@ -11,11 +11,15 @@ function fixture() {
     order: vi.fn().mockResolvedValue({ data: [], error: null }),
   };
   const from = vi.fn(() => query);
+  const invoke = vi.fn().mockResolvedValue({ data: true, error: null });
   return {
     rpc,
+    invoke,
     from,
     query,
-    api: createWavesClient({ supabase: { rpc, from } as unknown as SupabaseClient }),
+    api: createWavesClient({
+      supabase: { rpc, from, functions: { invoke } } as unknown as SupabaseClient,
+    }),
   };
 }
 const payment = {
@@ -96,29 +100,23 @@ describe('pot API', () => {
     expect(query.select.mock.calls[0]?.[0]).toContain('settlements!settlements_pot_id_fkey');
     expect(query.select.mock.calls[0]?.[0]).toContain('reference_source');
   });
-  it('uses only restricted public RPCs for pay codes', async () => {
-    const { api, rpc, from } = fixture();
-    rpc.mockResolvedValueOnce({ data: null, error: null });
+  it('uses the public edge endpoint without calling pay RPCs directly', async () => {
+    const { api, rpc, invoke, from } = fixture();
+    invoke.mockResolvedValueOnce({ data: null, error: null });
     expect(await api.potPayLookup('code')).toBeNull();
-    rpc.mockResolvedValueOnce({ data: false, error: null });
+    invoke.mockResolvedValueOnce({ data: false, error: null });
     expect(await api.potPaySelfReport('code', 'Ravi', '123456789012')).toBe(false);
-    expect(rpc.mock.calls).toEqual([
-      ['pot_pay_lookup', { code: 'code' }],
-      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: '123456789012' }],
-    ]);
-    expect(from).not.toHaveBeenCalled();
-  });
-  it('passes optional public UTRs to the RPC', async () => {
-    const { api, rpc } = fixture();
-    rpc.mockResolvedValue({ data: true, error: null });
     expect(await api.potPaySelfReport('code', 'Ravi')).toBe(true);
-    expect(await api.potPaySelfReport('code', 'Ravi', null)).toBe(true);
-    expect(await api.potPaySelfReport('code', 'Ravi', '')).toBe(true);
-    expect(rpc.mock.calls).toEqual([
-      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: null }],
-      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: null }],
-      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: '' }],
+    expect(invoke.mock.calls).toEqual([
+      ['pot-pay', { body: { action: 'lookup', code: 'code' } }],
+      [
+        'pot-pay',
+        { body: { action: 'report', code: 'code', payerName: 'Ravi', utr: '123456789012' } },
+      ],
+      ['pot-pay', { body: { action: 'report', code: 'code', payerName: 'Ravi', utr: null } }],
     ]);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
   });
   it('propagates authorization failures', async () => {
     const { rpc, api, query } = fixture();

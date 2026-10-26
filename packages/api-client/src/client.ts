@@ -247,7 +247,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
   }
 
   return {
-    ...createPotApi(supabase, rpc),
+    ...createPotApi(supabase, rpc, callFunction),
     /**
      * The real login (ADR-006 names Google among the upgrade providers). An
      * anonymous guest who does this keeps the same user id, so the groups and

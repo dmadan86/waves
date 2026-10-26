@@ -193,30 +193,11 @@ END $$;
 REVOKE ALL ON FUNCTION public.waves_carry_pot(uuid, uuid, text, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waves_carry_pot(uuid, uuid, text, uuid) TO authenticated, service_role;
 
--- Public endpoints use the existing proxy-header address convention and shared
--- rate-limit store. Return quietly when exhausted so the hit isn't rolled back.
--- Hash addresses, never keep the raw header. A missing header shares one bucket.
-CREATE FUNCTION public.waves_pot_public_gate(p_bucket text) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path TO public, pg_temp AS $$
-DECLARE h json; ip text; gate jsonb;
-BEGIN
-  BEGIN
-    h := NULLIF(current_setting('request.headers', true), '')::json;
-    ip := COALESCE(NULLIF(btrim(h->>'cf-connecting-ip'), ''),
-      NULLIF(btrim(split_part(COALESCE(h->>'x-forwarded-for', ''), ',', 1)), ''));
-  EXCEPTION WHEN OTHERS THEN ip := NULL;
-  END;
-  gate := waves_rate_limit('pot-ip:' || encode(sha256(convert_to('waves-pot-ip-v1:' || left(COALESCE(ip, 'unknown'), 64), 'UTF8')), 'hex'),
-    p_bucket, 30, 60);
-  RETURN (gate->>'allowed')::boolean;
-END $$;
-REVOKE ALL ON FUNCTION public.waves_pot_public_gate(text) FROM PUBLIC;
-
+-- Public access and IP rate limiting live in the pot-pay edge function.
 CREATE FUNCTION public.pot_pay_lookup(code text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO public, pg_temp AS $$
 DECLARE result jsonb;
 BEGIN
-  IF NOT waves_pot_public_gate('pot-pay-lookup') THEN RETURN NULL; END IF;
   SELECT jsonb_build_object('potName', p.name, 'groupName', g.name,
     'perHeadMinor', p.per_head_minor::text, 'currency', p.currency,
     'payeeName', COALESCE(pr.display_name, m.ghost_name),
@@ -228,14 +209,13 @@ BEGIN
     WHERE p.pay_code = code AND p.status = 'open' AND m.left_at IS NULL;
   RETURN result;
 END $$;
-REVOKE ALL ON FUNCTION public.pot_pay_lookup(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.pot_pay_lookup(text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.pot_pay_lookup(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.pot_pay_lookup(text) TO service_role;
 
 CREATE FUNCTION public.pot_pay_self_report(code text, payer_name text, utr text) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO public, pg_temp AS $$
 DECLARE p pots; ids uuid[]; ref text := NULLIF(upper(btrim(utr)), '');
 BEGIN
-  IF NOT waves_pot_public_gate('pot-pay-self-report') THEN RETURN false; END IF;
   IF length(btrim(payer_name)) NOT BETWEEN 1 AND 100 OR
      (ref IS NOT NULL AND (ref !~ '^([0-9]{12}|[A-Z]{4}[A-Z0-9][0-9]{9,})$' OR length(ref) > 64))
      THEN RETURN false; END IF;
@@ -256,8 +236,8 @@ BEGIN
       'upi', 'upi', 'initiated', ref, 'self');
   RETURN true;
 END $$;
-REVOKE ALL ON FUNCTION public.pot_pay_self_report(text, text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.pot_pay_self_report(text, text, text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.pot_pay_self_report(text, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.pot_pay_self_report(text, text, text) TO service_role;
 
 -- Replace, rather than overload, the current expense RPC.
 DROP FUNCTION public.waves_apply_expense(uuid, uuid, uuid, text, text, date, character, bigint, text, jsonb, jsonb, jsonb, uuid, text, uuid, integer, jsonb, text, text, text, jsonb, jsonb, text, boolean, bigint, date, timestamptz, text, uuid, boolean);
