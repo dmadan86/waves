@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { adsTotals } from '../src/lib/ads';
+import { adsTotals, bannerStats } from '../src/lib/ads';
 
 describe('adsTotals', () => {
   it('adds up the days, reading bigint strings as numbers', () => {
@@ -82,5 +82,50 @@ describe('credit settings validation', () => {
     expect(() =>
       validateCreditSettings({ ...defaults(), interstitial_video_enabled: 1 as never }),
     ).toThrow('boolean');
+  });
+});
+
+describe('bannerStats', () => {
+  it('includes both placements with zero totals when empty', () => {
+    expect(bannerStats([], '2026-11-02')).toEqual(
+      ['review_banner', 'home_banner'].map((placement) => ({
+        placement,
+        shownToday: 0,
+        failedToday: 0,
+        shownLast7Days: 0,
+        failedLast7Days: 0,
+      })),
+    );
+  });
+  it('sums bigint strings across an inclusive seven-day UTC window', () => {
+    expect(
+      bannerStats(
+        [
+          { day: '2026-11-02', placement: 'review_banner', shown: '3', failed: '1' },
+          { day: '2026-11-02', placement: 'review_banner', shown: 2, failed: 1 },
+          { day: '2026-10-27', placement: 'review_banner', shown: '4', failed: '2' },
+          { day: '2026-10-26', placement: 'review_banner', shown: 99, failed: 99 },
+          { day: '2026-11-03', placement: 'review_banner', shown: 99, failed: 99 },
+          { day: '2026-11-02', placement: 'quota_rewarded', shown: 99, failed: 99 },
+          { day: '2026-11-01', placement: 'home_banner', shown: '6', failed: 'bad' },
+        ],
+        '2026-11-02',
+      ),
+    ).toEqual([
+      {
+        placement: 'review_banner',
+        shownToday: 5,
+        failedToday: 2,
+        shownLast7Days: 9,
+        failedLast7Days: 4,
+      },
+      {
+        placement: 'home_banner',
+        shownToday: 0,
+        failedToday: 0,
+        shownLast7Days: 6,
+        failedLast7Days: 0,
+      },
+    ]);
   });
 });
