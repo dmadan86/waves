@@ -1,3 +1,7 @@
+export function bannerGateOpen(status: { bannerEligible?: boolean } | null | undefined): boolean {
+  return status?.bannerEligible === true;
+}
+
 export function bannerUnitId(
   platform: string,
   configured: string | undefined,
