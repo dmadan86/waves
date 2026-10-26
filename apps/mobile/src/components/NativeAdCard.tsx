@@ -11,7 +11,7 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
 import { loadAdsSdk } from '@/lib/adsSdk';
-import { readGateStatus } from '@/lib/adGates';
+import { adGateQuery } from '@/lib/adGateQuery';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
 import {
@@ -97,10 +97,8 @@ export function NativeAdCard({
   const { t } = useStrings();
   const theme = useTheme();
   const gate = useQuery({
-    queryKey: ['bannerGate', viewerId],
-    queryFn: () => readGateStatus(viewerId!),
-    enabled: !!viewerId && enabled,
-    staleTime: 5 * 60_000,
+    ...adGateQuery(viewerId),
+    enabled: !!viewerId && enabled && !isPaid,
   });
   const eligible = nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0);
   const [loaded, setLoaded] = useState<{ sdk: NativeSdk; ad: NativeAd } | null>(null);
@@ -112,8 +110,7 @@ export function NativeAdCard({
     let impression: { remove(): void } | undefined;
     void (async () => {
       try {
-        // Fresh server verdict immediately before loading: never request for paid users.
-        const current = await readGateStatus(viewerId).catch(() => null);
+        const current = gate.data;
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
@@ -173,7 +170,7 @@ export function NativeAdCard({
       ad?.destroy();
       setLoaded(null);
     };
-  }, [eligible, enabled, viewerId, visible, focused]);
+  }, [eligible, enabled, viewerId, visible, focused, gate.data]);
   if (!eligible || !visible || !focused || !loaded) return null;
   const { sdk, ad } = loaded;
   const icon = ad.icon ?? ad.images?.[0];

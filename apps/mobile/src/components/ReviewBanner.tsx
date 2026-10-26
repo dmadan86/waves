@@ -6,10 +6,9 @@ import { useStrings } from '@/i18n';
 import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { loadAdsSdk } from '@/lib/adsSdk';
 import { useViewerId } from '@/lib/auth';
-import { readGateStatus } from '@/lib/adGates';
-import { bannerGateOpen, bannerUnitId } from '@/lib/bannerAdsPure';
+import { adGateQuery } from '@/lib/adGateQuery';
+import { shouldMountBanner, bannerUnitId } from '@/lib/bannerAdsPure';
 import { useFlagEnabled } from '@/lib/flags';
-import { nativeEligible } from '@/lib/nativeAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
@@ -34,36 +33,23 @@ export function ReviewBanner({
   const { t } = useStrings();
   const theme = useTheme();
   const gate = useQuery({
-    queryKey: ['bannerGate', viewerId],
-    queryFn: () => readGateStatus(viewerId!),
-    enabled: !!viewerId && enabled,
-    staleTime: 5 * 60_000,
+    ...adGateQuery(viewerId),
+    enabled: !!viewerId && enabled && !isPaid,
   });
-  const eligible =
-    nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0) && bannerGateOpen(gate.data);
+  const eligible = !!viewerId && enabled && shouldMountBanner(gate.data, isPaid);
+  const confirmed = eligible && !gate.isFetching && !gate.isError;
   const [banner, setBanner] = useState<{
     sdk: BannerSdk;
     isActive: () => boolean;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [retry, setRetry] = useState(0);
   // One 'shown' per screen visit, however often the banner reloads.
   const shownLogged = useRef(false);
   useEffect(() => {
     if (!eligible || !viewerId || Platform.OS === 'web') return;
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       try {
-        const currentGate = await readGateStatus(viewerId).catch(() => null);
-        // A failed fresh read must be retryable even when `eligible` doesn't change.
-        if (!cancelled && !currentGate) timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
-        if (
-          cancelled ||
-          !nativeEligible(true, enabled, currentGate, 0) ||
-          !bannerGateOpen(currentGate)
-        )
-          return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;
@@ -79,11 +65,16 @@ export function ReviewBanner({
     })();
     return () => {
       cancelled = true;
-      clearTimeout(timer);
       setBanner(null);
       setLoaded(false);
     };
-  }, [eligible, enabled, viewerId, retry, placement]);
+  }, [eligible, viewerId, placement]);
+  const visible = loaded && confirmed;
+  useEffect(() => {
+    if (!visible || !viewerId || shownLogged.current) return;
+    shownLogged.current = true;
+    logAdEvent(viewerId, placement, 'shown');
+  }, [visible, viewerId, placement]);
   if (Platform.OS === 'web' || !eligible || !banner) return null;
   const { sdk } = banner;
   const isHome = placement === 'home_banner';
@@ -91,7 +82,7 @@ export function ReviewBanner({
     <View
       // Mount the native request without reserving space until it has filled.
       style={
-        loaded
+        visible
           ? {
               marginVertical: isHome ? theme.spacing.sm : theme.spacing.lg,
               ...(isHome && {
@@ -102,10 +93,10 @@ export function ReviewBanner({
             }
           : { height: 0, overflow: 'hidden', opacity: 0 }
       }
-      accessibilityElementsHidden={!loaded}
-      importantForAccessibility={loaded ? 'auto' : 'no-hide-descendants'}
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}
     >
-      {loaded ? (
+      {visible ? (
         <Text variant="caption" tone="muted">
           {t.rewardedAds.adLabel}
         </Text>
@@ -131,10 +122,6 @@ export function ReviewBanner({
           onAdLoaded={() => {
             if (!banner.isActive()) return;
             setLoaded(true);
-            if (viewerId && !shownLogged.current) {
-              shownLogged.current = true;
-              logAdEvent(viewerId, placement, 'shown');
-            }
           }}
           onAdFailedToLoad={(error) => {
             noteAdFailure(error);

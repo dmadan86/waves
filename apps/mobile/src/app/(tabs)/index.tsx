@@ -1,3 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { adGateQuery } from '@/lib/adGateQuery';
+import { useEntitlement } from '@/lib/useEntitlement';
+import { useFlagEnabled } from '@/lib/flags';
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -96,6 +100,13 @@ export default function HomeScreen() {
    * profile fields, and a name that appears a beat late is not a wrong name.
    */
   const viewerId = session?.user?.id ?? null;
+  const queryClient = useQueryClient();
+  const { isPaid, loading: entitlementLoading } = useEntitlement();
+  const adsEnabled = useFlagEnabled('ads_native');
+  useEffect(() => {
+    if (!viewerId || isGuest || isPaid || entitlementLoading || !adsEnabled) return;
+    void queryClient.prefetchQuery(adGateQuery(viewerId));
+  }, [viewerId, isGuest, isPaid, entitlementLoading, adsEnabled, queryClient]);
   // The header avatar sits in the private bucket, so its path has to be signed
   // before an Image can show it — the same resolution the profile screen does.
   // Without this the dashboard falls back to initials while settings shows the
