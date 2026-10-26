@@ -8,9 +8,11 @@ appId: app.waves.mobile
 - assertVisible: 'Your groups'
 
 # Account → Language (the row sits in the settings section, may be below fold).
-# Straight to the language screen: the profile page behind Account needs the
-# staging backend to serve waves_my_profile.
-- openLink: waves:///settings/language
+- tapOn: 'Account'
+- scrollUntilVisible:
+    element: 'Language'
+    direction: DOWN
+- tapOn: 'Language'
 - assertVisible: 'Language'
 
 # Pick Hindi by its endonym; the change applies to the live tree at once.
