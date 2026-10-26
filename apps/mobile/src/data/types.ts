@@ -146,6 +146,7 @@ export interface MemberRow {
 }
 
 export interface ExpenseVersionRow {
+  pot_id?: string | null;
   id: string;
   version_no: number;
   description: string;
@@ -278,6 +279,8 @@ export interface CaptureRow {
 }
 
 export interface SettlementRow {
+  pot_id?: string | null;
+  reference?: string | null;
   id: string;
   group_id: string;
   from_member_id: MemberId;

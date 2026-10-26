@@ -398,6 +398,7 @@ export function expenseWritePayload(input: {
   });
   return {
     expenseId,
+    ...(editing?.pot_id ? { potId: editing.pot_id } : {}),
     // Blank stays blank — no word nobody typed goes into the ledger.
     description: state.description.trim(),
     category: state.category,

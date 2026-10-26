@@ -1,3 +1,4 @@
+import { PotCard } from '@/components/PotCard';
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { nativePositions } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1839,6 +1840,11 @@ export default function GroupScreen() {
                   }}
                 >
                   <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                    <PotCard
+                      groupId={groupId}
+                      myMemberId={ledger.myMemberId}
+                      balances={tab === Tab.Balances}
+                    />
                     <ImportProgressBanner groupId={groupId} />
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,

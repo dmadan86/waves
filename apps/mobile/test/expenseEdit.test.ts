@@ -580,3 +580,13 @@ describe('amountEditsInline', () => {
     expect(amountEditsInline(version({ split_type: 'itemized' }))).toBe(false);
   });
 });
+
+describe('pot expense edits', () => {
+  it('keeps pot identity when a field or full edit writes another version', () => {
+    const saved = version({ pot_id: 'pot-trip' });
+    const state = editStateFromVersion(saved, null);
+    expect(expenseWritePayload({ expenseId: EXPENSE, state, editing: saved }).potId).toBe(
+      'pot-trip',
+    );
+  });
+});
