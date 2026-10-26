@@ -1,9 +1,3 @@
-export const HOME_BANNER_MIN_GROUPS = 10;
-
-export function showHomeBanner(totalGroupCount: number): boolean {
-  return totalGroupCount >= HOME_BANNER_MIN_GROUPS;
-}
-
 export function bannerGateOpen(status: { bannerEligible?: boolean } | null | undefined): boolean {
   return status?.bannerEligible === true;
 }

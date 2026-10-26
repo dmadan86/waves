@@ -1,18 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bannerGateOpen, bannerUnitId, showHomeBanner } from '../src/lib/bannerAdsPure';
-
-describe('Home banner eligibility', () => {
-  it.each([
-    [9, false],
-    [10, true],
-    [13, true],
-    [0, false],
-    [NaN, false],
-    [-1, false],
-  ])('shows for %s total groups: %s', (totalGroupCount, expected) => {
-    expect(showHomeBanner(totalGroupCount)).toBe(expected);
-  });
-});
+import { bannerGateOpen, bannerUnitId } from '../src/lib/bannerAdsPure';
 
 describe('banner ad unit ids', () => {
   it('uses platform test ids in development even when configured', () => {

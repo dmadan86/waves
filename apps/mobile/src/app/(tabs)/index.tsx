@@ -1,3 +1,4 @@
+import { NativeAdCard } from '@/components/NativeAdCard';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -66,8 +67,6 @@ import { groupLabel, GroupType } from '@/data/types';
 import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { usePullRefresh } from '@/lib/pullRefresh';
-import { ReviewBanner } from '@/components/ReviewBanner';
-import { showHomeBanner } from '@/lib/bannerAdsPure';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 export default function HomeScreen() {
@@ -761,7 +760,7 @@ export default function HomeScreen() {
                     );
                   })}
                 </View>
-                {showHomeBanner(totalGroupCount) ? <ReviewBanner placement="home_banner" /> : null}
+                {totalGroupCount >= 10 ? <NativeAdCard visible rowGap={theme.spacing.sm} /> : null}
               </ScrollView>
             </View>
           )}
