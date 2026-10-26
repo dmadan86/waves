@@ -1,5 +1,3 @@
-import type { AdsStatus } from './rewardedAdsPure';
-
 export const NATIVE_DAILY_CAP = 3;
 export function nativeCapacityAvailable(impressions: number, pending: number): boolean {
   return (
@@ -30,13 +28,13 @@ export function nativePositions(count: number, seed: string): number[] {
 export function nativeEligible(
   signedIn: boolean,
   enabled: boolean,
-  status: AdsStatus | null | undefined,
+  gate: { enabled?: boolean } | null | undefined,
   impressions: number,
 ): boolean {
   return (
     signedIn &&
     enabled &&
-    status?.eligible === true &&
+    gate?.enabled === true &&
     Number.isInteger(impressions) &&
     impressions >= 0 &&
     impressions < NATIVE_DAILY_CAP

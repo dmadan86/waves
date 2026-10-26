@@ -836,7 +836,7 @@ export default function GroupScreen() {
     familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
     familyLens ? (memberId) => unitOf(units, memberId) ?? memberId : undefined,
   );
-  const removeDemo = useRemoveDemo();
+  const removeDemo = useRemoveDemo(() => router.dismissTo('/'));
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();
   const guestGuard = useGuestGuard();
@@ -1248,10 +1248,7 @@ export default function GroupScreen() {
           {
             icon: 'flask-outline',
             label: t.demo.removeAction,
-            onPress: () =>
-              void removeDemo().then((removed) => {
-                if (removed) router.replace('/');
-              }),
+            onPress: () => void removeDemo(),
             tone: 'danger',
           } as OverflowMenuItem,
         ]
@@ -1861,11 +1858,7 @@ export default function GroupScreen() {
                           accessibilityRole="button"
                           accessibilityLabel={t.demo.removeAction}
                           hitSlop={8}
-                          onPress={() =>
-                            void removeDemo().then((removed) => {
-                              if (removed) router.replace('/');
-                            })
-                          }
+                          onPress={() => void removeDemo()}
                           style={({ pressed }) => ({
                             alignSelf: 'flex-start',
                             minHeight: 44,

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Text, useTheme } from '@waves/ui';
 import { useStrings } from '@/i18n';
 import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
-import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
+import { loadAdsSdk } from '@/lib/adsSdk';
 import { useViewerId } from '@/lib/auth';
 import { readGateStatus } from '@/lib/adGates';
 import { bannerGateOpen, bannerUnitId } from '@/lib/bannerAdsPure';
@@ -33,13 +33,6 @@ export function ReviewBanner({
   const enabled = useFlagEnabled('ads_native');
   const { t } = useStrings();
   const theme = useTheme();
-  const status = useQuery({
-    queryKey: ['adsStatus', viewerId],
-    queryFn: readAdsStatus,
-    enabled: !!viewerId && enabled,
-    staleTime: 0,
-    refetchInterval: 30_000,
-  });
   const gate = useQuery({
     queryKey: ['bannerGate', viewerId],
     queryFn: () => readGateStatus(viewerId!),
@@ -47,7 +40,7 @@ export function ReviewBanner({
     staleTime: 5 * 60_000,
   });
   const eligible =
-    nativeEligible(!!viewerId && !isPaid, enabled, status.data, 0) && bannerGateOpen(gate.data);
+    nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0) && bannerGateOpen(gate.data);
   const [banner, setBanner] = useState<{
     sdk: BannerSdk;
     isActive: () => boolean;
@@ -62,14 +55,14 @@ export function ReviewBanner({
     let timer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       try {
-        const [current, currentGate] = await Promise.all([
-          readAdsStatus(),
-          readGateStatus(viewerId).catch(() => null),
-        ]);
+        const currentGate = await readGateStatus(viewerId).catch(() => null);
         // A failed fresh read must be retryable even when `eligible` doesn't change.
-        if (!cancelled && (!current || !currentGate))
-          timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
-        if (cancelled || !nativeEligible(true, enabled, current, 0) || !bannerGateOpen(currentGate))
+        if (!cancelled && !currentGate) timer = setTimeout(() => setRetry((n) => n + 1), 15_000);
+        if (
+          cancelled ||
+          !nativeEligible(true, enabled, currentGate, 0) ||
+          !bannerGateOpen(currentGate)
+        )
           return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);

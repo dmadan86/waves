@@ -10,7 +10,8 @@ import { useStrings } from '@/i18n';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
-import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
+import { loadAdsSdk } from '@/lib/adsSdk';
+import { readGateStatus } from '@/lib/adGates';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
 import { nativeEligible, nativeUnitId, nativeCapacityAvailable } from '@/lib/nativeAdsPure';
@@ -90,14 +91,13 @@ export function NativeAdCard({
   const enabled = useFlagEnabled('ads_native');
   const { t } = useStrings();
   const theme = useTheme();
-  const status = useQuery({
-    queryKey: ['adsStatus', viewerId],
-    queryFn: readAdsStatus,
+  const gate = useQuery({
+    queryKey: ['bannerGate', viewerId],
+    queryFn: () => readGateStatus(viewerId!),
     enabled: !!viewerId && enabled,
-    staleTime: 0,
-    refetchInterval: 30_000,
+    staleTime: 5 * 60_000,
   });
-  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, status.data, 0);
+  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0);
   const [loaded, setLoaded] = useState<{ sdk: NativeSdk; ad: NativeAd } | null>(null);
   useEffect(() => {
     if (!eligible || !viewerId || !visible || !focused || Platform.OS === 'web') return;
@@ -108,7 +108,7 @@ export function NativeAdCard({
     void (async () => {
       try {
         // Fresh server verdict immediately before loading: never request for paid users.
-        const current = await readAdsStatus();
+        const current = await readGateStatus(viewerId).catch(() => null);
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);

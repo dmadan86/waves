@@ -5,20 +5,31 @@ import {
   nativeUnitId,
   nativeCapacityAvailable,
 } from '../src/lib/nativeAdsPure';
+import { bannerGateOpen } from '../src/lib/bannerAdsPure';
 import { parseAdsStatus } from '../src/lib/rewardedAdsPure';
 
 describe('native ads gates', () => {
-  const free = parseAdsStatus({ eligible: true });
-  it('requires sign-in, rollout and affirmative server eligibility', () => {
+  const free = { enabled: true };
+  it('requires sign-in, rollout and affirmative server gate', () => {
     expect(nativeEligible(true, true, free, 0)).toBe(true);
     expect(nativeEligible(false, true, free, 0)).toBe(false);
     expect(nativeEligible(true, false, free, 0)).toBe(false);
     expect(nativeEligible(true, true, null, 0)).toBe(false);
-    for (const reason of ['paid', 'trial', 'guest', 'too_new', 'disabled', 'capped']) {
-      expect(nativeEligible(true, true, parseAdsStatus({ eligible: false, reason }), 0)).toBe(
-        false,
-      );
-    }
+    expect(nativeEligible(true, true, undefined, 0)).toBe(false);
+    expect(nativeEligible(true, true, { enabled: false }, 0)).toBe(false);
+    expect(nativeEligible(true, true, {}, 0)).toBe(false);
+  });
+  it('keeps native and banner ads eligible after the rewarded daily cap', () => {
+    const rewarded = parseAdsStatus({
+      eligible: false,
+      reason: 'capped',
+      dailyCap: 3,
+      usedToday: 3,
+    });
+    const gate = { enabled: true, bannerEligible: true };
+    expect(rewarded.eligible).toBe(false);
+    expect(nativeEligible(true, true, gate, 0)).toBe(true);
+    expect(bannerGateOpen(gate)).toBe(true);
   });
   it('stops at three per UTC day and fails closed for invalid counters', () => {
     expect(nativeEligible(true, true, free, 2)).toBe(true);
