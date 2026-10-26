@@ -65,7 +65,18 @@ import {
   type VoiceParty,
   type VoiceSplitPlan,
 } from '@waves/core';
-import { Button, Callout, Card, Divider, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
+import {
+  Button,
+  Callout,
+  Card,
+  Chip,
+  Divider,
+  iconSize,
+  Row,
+  Sheet,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import {
   useAddGhostMember,
@@ -186,6 +197,7 @@ import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
 import { trackAssistant, type AssistantScope } from '@/lib/assistantTelemetry';
 import { useEntitlement } from '@/lib/useEntitlement';
+import { answerFollowUps, type AnswerFollowUp } from '@/lib/voiceAnswerFollowUps';
 import type { SavedState } from '@/lib/followUpApply';
 
 /** One editable line on the review screen. */
@@ -1339,7 +1351,11 @@ export default function VoiceScreen() {
     setEditingDraft(false);
     setDetailsOpen(true);
     // A money question is never an expense and never needs the agent.
-    if (micMode !== 'append' && !agentFollowUp && tryMoneyQuestion(transcript)) {
+    if (
+      micMode !== 'append' &&
+      !agentFollowUp &&
+      (tryMoneyQuestion(transcript) || tryBalanceQuery(transcript))
+    ) {
       // The cloud engine heard it, so the command counts like any fast-path one.
       if (streamed) void meterVoiceCommand({ transcript, locale, today: today() });
       return;
@@ -2517,10 +2533,22 @@ export default function VoiceScreen() {
     setTypedDraft(words);
     setTypedMode(true);
   };
-  // "Who owes me?" has no on-device answer; only the assistant (agent) can
-  // answer it, so it is a button only when the agent is on.
+  // Balance questions can be answered locally without the agent.
   const canPickSuggestion = (suggestion: Suggestion): boolean =>
-    suggestion.kind === 'expense' || agentOn;
+    suggestion.kind === 'expense' ||
+    agentOn ||
+    Boolean(detectBalanceQuery(suggestionWords(suggestion.text)));
+
+  const pickAnswerFollowUp = (followUp: AnswerFollowUp): void => {
+    hapticSelect();
+    if (followUp === 'settle' || followUp === 'expense') {
+      router.dismissTo(followUp === 'settle' ? '/settle-up' : '/capture');
+      return;
+    }
+    setAnswer(null);
+    setQueryGroupId('');
+    submitTyped(followUp === 'owe' ? 'Who do I owe?' : 'Who owes me?');
+  };
 
   // Typed text enters the same pipeline as a spoken sentence: the mic is let go,
   // the text is treated as a live capture, and the screen decides who reads it.
@@ -2648,29 +2676,31 @@ export default function VoiceScreen() {
   // The one action area at the foot. It holds the same slots in every step; only
   // what sits in them changes.
   const footerSpec: FooterSpec =
-    phase === 'review'
-      ? {
-          primary: {
-            label: saving ? t.voiceScreen.statusSaving : saveLabel,
-            disabled: !canSave,
-            onPress: () => void save(),
-          },
-        }
-      : phase === 'saved'
+    phase === 'answer'
+      ? { primary: { label: t.voiceScreen.askSomethingElse, onPress: askAgain } }
+      : phase === 'review'
         ? {
-            primary: { label: t.voiceScreen.done, onPress: finishVoice },
-            secondary: { label: t.voiceScreen.addAnother, onPress: addAnother },
+            primary: {
+              label: saving ? t.voiceScreen.statusSaving : saveLabel,
+              disabled: !canSave,
+              onPress: () => void save(),
+            },
           }
-        : phase === 'committing' && autoBanner?.needsConfirm
+        : phase === 'saved'
           ? {
-              primary: {
-                label: t.voice.autoConfirm,
-                onPress: () => runAutoCommit(autoBanner.fallback),
-              },
+              primary: { label: t.voiceScreen.done, onPress: finishVoice },
+              secondary: { label: t.voiceScreen.addAnother, onPress: addAnother },
             }
-          : phase === 'agent'
-            ? (panelFooter ?? {})
-            : {};
+          : phase === 'committing' && autoBanner?.needsConfirm
+            ? {
+                primary: {
+                  label: t.voice.autoConfirm,
+                  onPress: () => runAutoCommit(autoBanner.fallback),
+                },
+              }
+            : phase === 'agent'
+              ? (panelFooter ?? {})
+              : {};
 
   // The stage (headline, mic, status, wave) is the same in every phase until a
   // card is answering: while listening the mic panel reports its state up,
@@ -3045,11 +3075,10 @@ export default function VoiceScreen() {
               </Row>
             </View>
           ) : phase === 'answer' ? (
-            // A read-only answer to a spoken balance question. One line, and the mic
-            // to ask another — nothing to save, nothing to undo.
+            // Read-only answers with a next question or an explicit handoff.
             <View
               style={{
-                alignItems: 'center',
+                alignSelf: 'stretch',
                 gap: theme.spacing.lg,
                 paddingTop: theme.spacing.md,
               }}
@@ -3078,6 +3107,23 @@ export default function VoiceScreen() {
                       </Card>
                     ) : null;
                   })()}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+                {answerFollowUps(answer).map((followUp) => (
+                  <Chip
+                    key={followUp}
+                    label={
+                      followUp === 'owed'
+                        ? t.voiceScreen.askWhoOwes
+                        : followUp === 'owe'
+                          ? t.voiceScreen.askWhoIOwe
+                          : followUp === 'settle'
+                            ? t.homeDash.settleUp
+                            : t.voiceScreen.addExpense
+                    }
+                    onPress={() => pickAnswerFollowUp(followUp)}
+                  />
+                ))}
+              </View>
             </View>
           ) : (
             // Listening — the mic panel owns the whole capture surface, the miss
