@@ -17,7 +17,13 @@ set -uo pipefail
 curl -Ls "https://get.maestro.mobile.dev" | bash
 export PATH="$PATH:$HOME/.maestro/bin"
 
-adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+# Whole-session logcat for the artifact: the per-flow logs Maestro keeps start after launch.
+adb logcat -c; adb logcat -v time > logcat-full.txt 2>&1 &
+adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+# Fail here, loudly, if the app did not land — not 20 flows later as "not installed".
+adb devices -l
+adb shell pm list packages -3
+adb shell pm list packages app.waves.mobile | grep -q app.waves.mobile || { echo "app.waves.mobile not installed after adb install"; exit 1; }
 
 FLOWS=(
   home-to-add-expense
