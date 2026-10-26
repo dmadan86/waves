@@ -1616,6 +1616,18 @@ export interface UiStrings {
     /** A person with nothing outstanding. '{name}'. */
     ansSettled: string;
     /** A group balance answer. '{group}' and '{amount}'. */
+    owedTitle: string;
+    oweTitle: string;
+    owedSubtitle: string;
+    aiResult: string;
+    owedTotal: string;
+    oweTotal: string;
+    owesYou: string;
+    youOweName: string;
+    owesAmount: string;
+    youOweAmount: string;
+    nobodyOwes: string;
+    youOweNobody: string;
     ansGroupOwed: string;
     ansGroupOwe: string;
     /** A square group. '{group}'. */
@@ -7319,6 +7331,18 @@ const en: UiStrings = {
     ansTheyOweYou: '{name} owes you {amount}',
     ansYouOwe: 'You owe {name} {amount}',
     ansSettled: "You're settled up with {name}",
+    owedTitle: 'Here\'s what you\'re owed',
+    oweTitle: 'Here\'s what you owe',
+    owedSubtitle: 'Across your groups',
+    aiResult: '✦ AI result',
+    owedTotal: 'Total you\'re owed',
+    oweTotal: 'Total you owe',
+    owesYou: '{name} owes you',
+    youOweName: 'You owe {name}',
+    owesAmount: '{name} owes {amount}',
+    youOweAmount: 'You owe {name} {amount}',
+    nobodyOwes: 'Nobody owes you right now',
+    youOweNobody: 'You don\'t owe anyone right now',
     ansGroupOwed: 'In {group}, you are owed {amount}',
     ansGroupOwe: 'In {group}, you owe {amount}',
     ansGroupSettled: "You're all settled up in {group}",
@@ -12505,6 +12529,18 @@ const ta: UiStrings = {
     ansTheyOweYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
     ansYouOwe: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
     ansSettled: '{name} உடன் தீர்க்கப்பட்டது',
+    owedTitle: 'உங்களுக்கு வர வேண்டிய தொகை',
+    oweTitle: 'நீங்கள் கொடுக்க வேண்டிய தொகை',
+    owedSubtitle: 'உங்கள் குழுக்கள் அனைத்திலும்',
+    aiResult: '✦ AI முடிவு',
+    owedTotal: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
+    oweTotal: 'நீங்கள் கொடுக்க வேண்டிய மொத்தம்',
+    owesYou: '{name} உங்களுக்குத் தர வேண்டும்',
+    youOweName: 'நீங்கள் {name}க்குத் தர வேண்டும்',
+    owesAmount: '{name} {amount} தர வேண்டும்',
+    youOweAmount: 'நீங்கள் {name}க்கு {amount} தர வேண்டும்',
+    nobodyOwes: 'இப்போது யாரும் உங்களுக்குப் பணம் தர வேண்டியதில்லை',
+    youOweNobody: 'இப்போது நீங்கள் யாருக்கும் பணம் தர வேண்டியதில்லை',
     ansGroupOwed: '{group} இல், உங்களுக்கு {amount} வர வேண்டும்',
     ansGroupOwe: '{group} இல், நீங்கள் {amount} தர வேண்டும்',
     ansGroupSettled: '{group} இல் அனைத்தும் தீர்க்கப்பட்டது',
@@ -17844,6 +17880,18 @@ const hi: UiStrings = {
     ansTheyOweYou: '{name} आप पर {amount} बकाया है',
     ansYouOwe: 'आप {name} को {amount} देते हैं',
     ansSettled: '{name} के साथ हिसाब बराबर है',
+    owedTitle: 'आपको मिलने वाली रकम',
+    oweTitle: 'आपको चुकाने वाली रकम',
+    owedSubtitle: 'आपके सभी समूहों में',
+    aiResult: '✦ AI परिणाम',
+    owedTotal: 'आपको मिलने वाली कुल रकम',
+    oweTotal: 'आपको चुकाने वाली कुल रकम',
+    owesYou: '{name} को आपको देना है',
+    youOweName: 'आपको {name} को देना है',
+    owesAmount: '{name} को {amount} देना है',
+    youOweAmount: 'आपको {name} को {amount} देना है',
+    nobodyOwes: 'अभी किसी को आपको पैसे नहीं देने हैं',
+    youOweNobody: 'अभी आपको किसी को पैसे नहीं देने हैं',
     ansGroupOwed: '{group} में, आपको {amount} मिलने हैं',
     ansGroupOwe: '{group} में, आप {amount} देते हैं',
     ansGroupSettled: '{group} में सब हिसाब बराबर है',
@@ -23097,6 +23145,18 @@ const ar: UiStrings = {
     ansTheyOweYou: '{name} يدين لك بمبلغ {amount}',
     ansYouOwe: 'أنت تدين لـ {name} بمبلغ {amount}',
     ansSettled: 'تمت التسوية مع {name}',
+    owedTitle: 'إليك مستحقاتك',
+    oweTitle: 'إليك ما عليك دفعه',
+    owedSubtitle: 'عبر مجموعاتك',
+    aiResult: '✦ نتيجة الذكاء الاصطناعي',
+    owedTotal: 'إجمالي مستحقاتك',
+    oweTotal: 'إجمالي ما عليك دفعه',
+    owesYou: '{name} مدين لك',
+    youOweName: 'أنت مدين لـ {name}',
+    owesAmount: '{name} مدين بمبلغ {amount}',
+    youOweAmount: 'أنت مدين لـ {name} بمبلغ {amount}',
+    nobodyOwes: 'لا أحد مدين لك حاليًا',
+    youOweNobody: 'لست مدينًا لأحد حاليًا',
     ansGroupOwed: 'في {group}، لك {amount}',
     ansGroupOwe: 'في {group}، عليك {amount}',
     ansGroupSettled: 'تمت التسوية بالكامل في {group}',
