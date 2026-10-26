@@ -10,6 +10,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # The ways in are on the door, not one screen behind it.
 - assertVisible:

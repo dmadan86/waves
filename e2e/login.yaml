@@ -17,6 +17,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # /welcome → /sign-in, straight onto the white email + password sheet.
 - tapOn: 'Sign in'
@@ -27,6 +28,7 @@ appId: app.waves.mobile
 - hideKeyboard
 - tapOn:
     id: 'auth-submit'
+- runFlow: dismiss-anr.yaml
 
 # KNOWN APP BUG: skipping the intro intermittently freezes the UI (Fabric mount
 # exception; JS never recovers). The seen flag is not persisted, so each retry

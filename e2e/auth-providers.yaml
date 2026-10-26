@@ -11,6 +11,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # /welcome → /sign-in, the white sheet.
 - tapOn: 'Sign in'
