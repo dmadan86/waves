@@ -1,5 +1,5 @@
 import { NativeAdCard } from '@/components/NativeAdCard';
-import { nativePosition } from '@/lib/nativeAdsPure';
+import { nativePositions } from '@/lib/nativeAdsPure';
 /**
  * Everybody you are not square with, across every group.
  *
@@ -532,7 +532,16 @@ export default function FriendsScreen() {
             <FlashList
               data={persons}
               onViewableItemsChanged={({ viewableItems }) =>
-                setAdVisible((seen) => seen || viewableItems.some(({ index }) => index === 7))
+                setAdVisible(
+                  (seen) =>
+                    seen ||
+                    viewableItems.some(({ index }) => {
+                      const firstPosition = nativePositions(persons.length, 'friends')[0];
+                      return (
+                        firstPosition !== undefined && index !== null && index >= firstPosition - 1
+                      );
+                    }),
+                )
               }
               // Selection state lives outside the row data, so the list has to
               // be told to re-render its rows when it changes (the tick, the
@@ -592,7 +601,7 @@ export default function FriendsScreen() {
                         onToggleSelect={toggleSelect}
                       />
                     </View>
-                    {index === 7 && nativePosition(persons.length) !== null && !selectMode ? (
+                    {nativePositions(persons.length, 'friends').includes(index + 1) && !selectMode ? (
                       <NativeAdCard visible={adVisible} />
                     ) : null}
                   </>

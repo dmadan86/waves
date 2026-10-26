@@ -1,6 +1,6 @@
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { ReviewBanner } from '@/components/ReviewBanner';
-import { nativePosition } from '@/lib/nativeAdsPure';
+import { nativePositions } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -530,10 +530,10 @@ export default function ActivityScreen() {
         });
       });
     }
-    if (nativePosition(visibleEntries.length) !== null) {
+    for (const n of nativePositions(visibleEntries.length, 'activity').reverse()) {
       let count = 0;
-      const eighth = rows.findIndex((row) => row.kind === 'row' && ++count === 8);
-      rows.splice(eighth + 1, 0, { kind: 'ad', key: 'native-ad' });
+      const slot = rows.findIndex((row) => row.kind === 'row' && ++count === n);
+      rows.splice(slot + 1, 0, { kind: 'ad', key: `native-ad-${n}` });
     }
     return rows;
   }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);

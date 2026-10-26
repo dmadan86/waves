@@ -1,9 +1,9 @@
 import { logAdEvent, noteAdFailure } from '@/lib/adEvents';
 import { useEffect, useState } from 'react';
-import { Platform, Text as NativeText } from 'react-native';
+import { Image, Platform, Text as NativeText, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
-import { Text, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 import { StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { useEntitlement } from '@/lib/useEntitlement';
@@ -35,6 +35,9 @@ type NativeAd = {
   headline: string;
   body: string;
   callToAction?: string;
+  icon?: { url: string } | null;
+  images?: { url: string }[];
+  mediaContent?: { hasVideoContent: boolean } | null;
   addAdEventListener(event: string, callback: () => void): { remove(): void };
   destroy(): void;
 };
@@ -43,8 +46,7 @@ type NativeSdk = {
   NativeAd: { createForAdRequest(id: string, options: object): Promise<NativeAd> };
   NativeAdView: React.ComponentType<React.PropsWithChildren<{ nativeAd: NativeAd }>>;
   NativeAsset: React.ComponentType<React.PropsWithChildren<{ assetType: string }>>;
-  NativeAssetType: { HEADLINE: string; BODY: string; CALL_TO_ACTION: string };
-  NativeMediaView: React.ComponentType<{ style: { width: '100%'; height: number } }>;
+  NativeAssetType: { ICON: string; HEADLINE: string; BODY: string; CALL_TO_ACTION: string };
 };
 
 export function NativeAdCard({ visible }: { visible: boolean }) {
@@ -89,6 +91,12 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
           ),
           { requestNonPersonalizedAdsOnly: true },
         );
+        // AdMob requires a MediaView for video ads; this compact row cannot show them.
+        if (ad.mediaContent?.hasVideoContent) {
+          ad.destroy();
+          ad = undefined;
+          return;
+        }
         let reported = false;
         impression = ad.addAdEventListener(native.NativeAdEventType.IMPRESSION, () => {
           if (!reported) {
@@ -113,27 +121,89 @@ export function NativeAdCard({ visible }: { visible: boolean }) {
   }, [eligible, enabled, viewerId, visible]);
   if (!eligible || !loaded) return null;
   const { sdk, ad } = loaded;
+  const icon = ad.icon ?? ad.images?.[0];
   return (
-    <StandardCard style={{ marginVertical: theme.spacing.lg }}>
-      <Text variant="caption" tone="muted">
-        {t.rewardedAds.adLabel}
-      </Text>
-      <sdk.NativeAdView nativeAd={ad}>
-        <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
-          <NativeText style={{ color: theme.color.text, fontWeight: '600' }}>
-            {ad.headline}
-          </NativeText>
-        </sdk.NativeAsset>
-        <sdk.NativeMediaView style={{ width: '100%', height: 150 }} />
-        <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
-          <NativeText style={{ color: theme.color.text }}>{ad.body}</NativeText>
-        </sdk.NativeAsset>
+    <sdk.NativeAdView nativeAd={ad}>
+      <StandardCard
+        style={{
+          marginVertical: theme.spacing.xs,
+          padding: theme.spacing.sm,
+          // Keep the SDK's top-right AdChoices overlay clear of row content.
+          paddingRight: theme.spacing.xl,
+          borderRadius: theme.radius.lg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+        }}
+      >
+        {icon ? (
+          <sdk.NativeAsset assetType={sdk.NativeAssetType.ICON}>
+            <Image
+              source={{ uri: icon.url }}
+              style={{ width: 40, height: 40, borderRadius: theme.radius.sm }}
+            />
+          </sdk.NativeAsset>
+        ) : (
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: theme.radius.sm,
+              backgroundColor: theme.color.border,
+            }}
+          />
+        )}
+        <View style={{ flex: 1, gap: theme.spacing.xs }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+            <NativeText
+              style={{
+                color: theme.color.textMuted,
+                fontSize: 10,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                borderRadius: theme.radius.pill,
+                paddingHorizontal: theme.spacing.xs,
+                paddingVertical: 1,
+              }}
+            >
+              {t.rewardedAds.adLabel}
+            </NativeText>
+            <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
+              <NativeText
+                numberOfLines={1}
+                style={{ flex: 1, color: theme.color.text, fontWeight: '600' }}
+              >
+                {ad.headline}
+              </NativeText>
+            </sdk.NativeAsset>
+          </View>
+          <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
+            <NativeText numberOfLines={1} style={{ color: theme.color.textMuted, fontSize: 12 }}>
+              {ad.body}
+            </NativeText>
+          </sdk.NativeAsset>
+        </View>
         {ad.callToAction ? (
           <sdk.NativeAsset assetType={sdk.NativeAssetType.CALL_TO_ACTION}>
-            <NativeText style={{ color: theme.color.brand }}>{ad.callToAction}</NativeText>
+            <NativeText
+              numberOfLines={1}
+              style={{
+                flexShrink: 1,
+                maxWidth: '30%',
+                color: '#FFFFFF',
+                backgroundColor: theme.color.brand,
+                borderRadius: theme.radius.pill,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: theme.spacing.xs,
+                fontSize: 12,
+                fontWeight: '600',
+              }}
+            >
+              {ad.callToAction}
+            </NativeText>
           </sdk.NativeAsset>
         ) : null}
-      </sdk.NativeAdView>
-    </StandardCard>
+      </StandardCard>
+    </sdk.NativeAdView>
   );
 }
