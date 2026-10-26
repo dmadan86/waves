@@ -1420,6 +1420,9 @@ export interface UiStrings {
   };
   /** The Speak-an-expense capture surface (voice.tsx, VoiceCapture). */
   voiceScreen: {
+    askSomethingElse: string;
+    askWhoOwes: string;
+    askWhoIOwe: string;
     headline: string;
     subline: string;
     statusReady: string;
@@ -2432,6 +2435,9 @@ export interface UiStrings {
   };
   /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
+    creditsTitle: string;
+    creditsLabel: string;
+    noAdAvailable: string;
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
@@ -7206,6 +7212,9 @@ const en: UiStrings = {
     typingOffline: 'Typing needs a connection',
   },
   voiceScreen: {
+    askSomethingElse: 'Ask something else',
+    askWhoOwes: 'Who owes me?',
+    askWhoIOwe: 'Who do I owe?',
     headline: 'Just say it naturally',
     subline: 'I’ll understand and organize it for you.',
     statusReady: 'Tap and speak',
@@ -8076,6 +8085,9 @@ const en: UiStrings = {
     noCurrencyMatch: 'No currency matches',
   },
   homeDash: {
+    creditsTitle: 'Credits',
+    creditsLabel: '{n} credits',
+    noAdAvailable: 'No ad is available right now.',
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
@@ -12401,6 +12413,9 @@ const ta: UiStrings = {
     typingOffline: 'தட்டச்சு செய்ய இணைப்பு தேவை',
   },
   voiceScreen: {
+    askSomethingElse: 'வேறு ஏதாவது கேளுங்கள்',
+    askWhoOwes: 'எனக்கு யார் பணம் தர வேண்டும்?',
+    askWhoIOwe: 'நான் யாருக்குப் பணம் தர வேண்டும்?',
     headline: 'இயல்பாகச் சொல்லுங்கள்',
     subline: 'நான் புரிந்துகொண்டு உங்கள் செலவை ஒழுங்குபடுத்துகிறேன்.',
     statusReady: 'தட்டிப் பேசுங்கள்',
@@ -13296,6 +13311,9 @@ const ta: UiStrings = {
     noCurrencyMatch: 'பொருந்தும் நாணயம் இல்லை',
   },
   homeDash: {
+    creditsTitle: 'கிரெடிட்கள்',
+    creditsLabel: '{n} கிரெடிட்கள்',
+    noAdAvailable: 'இப்போது விளம்பரம் எதுவும் கிடைக்கவில்லை.',
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
@@ -17755,6 +17773,9 @@ const hi: UiStrings = {
     typingOffline: 'टाइप करने के लिए कनेक्शन चाहिए',
   },
   voiceScreen: {
+    askSomethingElse: 'कुछ और पूछें',
+    askWhoOwes: 'मेरा पैसा किस पर बाकी है?',
+    askWhoIOwe: 'मुझे किसे पैसे देने हैं?',
     headline: 'बस सहज रूप से बोलिए',
     subline: 'मैं समझकर आपका खर्च व्यवस्थित कर दूँगा।',
     statusReady: 'टैप करें और बोलें',
@@ -18627,6 +18648,9 @@ const hi: UiStrings = {
     noCurrencyMatch: 'कोई मुद्रा नहीं मिली',
   },
   homeDash: {
+    creditsTitle: 'क्रेडिट',
+    creditsLabel: '{n} क्रेडिट',
+    noAdAvailable: 'अभी कोई विज्ञापन उपलब्ध नहीं है।',
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
@@ -23020,6 +23044,9 @@ const ar: UiStrings = {
     typingOffline: 'الكتابة تحتاج إلى اتصال',
   },
   voiceScreen: {
+    askSomethingElse: 'اسأل عن شيء آخر',
+    askWhoOwes: 'من يدين لي؟',
+    askWhoIOwe: 'لمن أدين؟',
     headline: 'قلها ببساطة',
     subline: 'سأفهم مصروفك وأنظّمه.',
     statusReady: 'اضغط وتحدّث',
@@ -23918,6 +23945,9 @@ const ar: UiStrings = {
     noCurrencyMatch: 'لا توجد عملة مطابقة',
   },
   homeDash: {
+    creditsTitle: 'أرصدة',
+    creditsLabel: '{n} رصيد',
+    noAdAvailable: 'لا يتوفر إعلان حاليًا.',
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',

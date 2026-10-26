@@ -9,8 +9,11 @@ export function RewardedAdEntry({ kind }: { kind: AdKind }) {
   const { t } = useStrings();
   return (
     <>
-      {offer.canOffer(kind) ? (
-        <Pressable accessibilityRole="button" onPress={() => void offer.offer(kind)}>
+      {offer.canOffer(kind, { userInitiated: true }) ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void offer.offer(kind, { userInitiated: true })}
+        >
           <Text variant="caption" tone="brand">
             {offer.creditsKnown
               ? fill(kind === 'voice' ? t.rewardedAds.voiceTitle : t.rewardedAds.scanTitle, {
