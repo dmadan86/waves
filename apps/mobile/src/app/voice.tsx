@@ -1,3 +1,4 @@
+import { OwedCard } from '@/components/OwedCard';
 import { RewardedAdEntry } from '@/components/RewardedAdEntry';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
@@ -144,6 +145,7 @@ import { isRatelessTransfer } from '@/lib/settleCurrency';
 import {
   detectAddMember,
   detectBalanceQuery,
+  detectOwedDirection,
   detectMoneyIntent,
   matchMemberNames,
   parseVoiceExpenses,
@@ -628,9 +630,11 @@ export default function VoiceScreen() {
   // The answer shown in the 'answer' phase. `text` is a ready line (a person
   // balance, or "couldn't find X"); `group` is answered live from the group's
   // ledger once it loads, since that read is async.
+  const [owedLoading, setOwedLoading] = useState(true);
   const [answer, setAnswer] = useState<
     | { kind: 'text'; text: string }
     | { kind: 'group'; groupName: string; currency: string }
+    | { kind: 'owed'; direction: 'owed' | 'owe' }
     | { kind: 'spend'; query: SpendQuery }
     | null
   >(null);
@@ -1202,8 +1206,8 @@ export default function VoiceScreen() {
   // balance in Goa". Nothing is written: the number is looked up and shown on an
   // answer card. A person is resolved against the reader's 1:1 contacts; a group
   // question is resolved by the ordinary parse and answered from its ledger. An
-  // overall (no target) question falls through — voice does not sum across
-  // currencies (ADR-003). Returns true when it took and answered the question.
+  // overall directional question is grouped with separate currency totals.
+  // Returns true when it took and answered the question.
   const tryBalanceQuery = (transcript: string): boolean => {
     const query = detectBalanceQuery(transcript);
     if (!query) return false;
@@ -1251,9 +1255,15 @@ export default function VoiceScreen() {
     }
 
     // A group balance question — resolve the group the ordinary way. Overall
-    // (no group named) is not answered by voice, so it falls through.
+    // directional questions use the live owed card; other questions fall through.
     const parsed = parseVoiceExpenses(transcript, groupRefs);
-    if (parsed.group?.kind !== 'existing') return false;
+    if (parsed.group?.kind !== 'existing') {
+      const direction = detectOwedDirection(transcript);
+      if (!direction) return false;
+      setAnswer({ kind: 'owed', direction });
+      setPhase('answer');
+      return true;
+    }
     const groupId = parsed.group.groupId;
     const group = groupRows.find((candidate) => candidate.id === groupId);
     const groupName = group?.name?.trim();
@@ -2278,7 +2288,8 @@ export default function VoiceScreen() {
     saving,
     needsAnswer: whoBlocked,
     agent: agentStage,
-    answering: answer?.kind === 'group' && queryLedger.loading,
+    answering:
+      (answer?.kind === 'group' && queryLedger.loading) || (answer?.kind === 'owed' && owedLoading),
   };
   const stageState = voiceFlowState(stageInput);
   const stageTap = stageMicTap(phase, stageState);
@@ -2408,7 +2419,7 @@ export default function VoiceScreen() {
   const answerLine = (): { text: string } | { loading: true } => {
     if (!answer) return { text: '' };
     if (answer.kind === 'text') return { text: answer.text };
-    if (answer.kind === 'spend') return { text: '' };
+    if (answer.kind === 'spend' || answer.kind === 'owed') return { text: '' };
     if (queryLedger.loading) return { loading: true };
     const balance = queryLedger.myBalance;
     const amount = (minor: bigint): string =>
@@ -3043,12 +3054,21 @@ export default function VoiceScreen() {
                 paddingTop: theme.spacing.md,
               }}
             >
+              {answer?.kind === 'owed' ? (
+                <OwedCard
+                  profileId={viewerId}
+                  direction={answer.direction}
+                  onLoadingChange={setOwedLoading}
+                />
+              ) : null}
               {answer?.kind === 'spend' ? (
                 <View style={{ alignSelf: 'stretch' }}>
                   <AssistantMoneyAnswer query={answer.query} onNavigate={dismiss} />
                 </View>
               ) : null}
-              {answer?.kind === 'spend' || (answer?.kind === 'group' && queryLedger.loading)
+              {answer?.kind === 'owed' ||
+              answer?.kind === 'spend' ||
+              (answer?.kind === 'group' && queryLedger.loading)
                 ? null
                 : (() => {
                     const line = answerLine();
