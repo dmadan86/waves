@@ -77,9 +77,11 @@ export function RewardedAdSheet({
               ? a.outOfCredits
               : fill(kind === 'voice' ? a.voiceTitle : a.scanTitle, { count: amount })}
           </Text>
-          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-            {kind === 'voice' ? a.voiceBody : a.scanBody}
-          </Text>
+          {!outOfCredits && (
+            <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+              {kind === 'voice' ? a.voiceBody : a.scanBody}
+            </Text>
+          )}
         </View>
 
         {credits !== undefined && (

@@ -104,6 +104,7 @@ import { SaveToSheet, type SaveToPerson } from '@/components/SaveToSheet';
 import { VoiceConsentSheet } from '@/components/VoiceConsentSheet';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
+import { shouldAutoOfferVoiceAd } from '@/lib/voiceAdOfferPure';
 import { isVoiceAssistantRequest } from '@/lib/voiceAssistantRequest';
 import { useVoiceStreamsToCloud } from '@/lib/useVoiceRouting';
 import { meterVoiceCommand } from '@/lib/voiceAgent';
@@ -1398,18 +1399,22 @@ export default function VoiceScreen() {
     setAgentQuotaNote(reason === 'quota');
     if (reason === 'quota') {
       setEngine(local('quota'));
-      // The natural moment: the monthly limit was just hit. A Free person who is
-      // eligible is offered one reward ad (never forced; the server decides).
-      void adOffer.offer('voice');
     } else {
       // The call failed or timed out: offline when the phone says so, otherwise
       // the cloud was unavailable — the badge says which, honestly.
       void checkOnline().then((online) => setEngine(engineAfterAgentFailure(reason, online)));
     }
-    runBasic(heard, heardAlternatives);
+    runBasic(heard, heardAlternatives, reason);
   };
 
-  const runBasic = (transcript: string, alternatives: readonly string[] = []): void => {
+  const runBasic = (
+    transcript: string,
+    alternatives: readonly string[] = [],
+    fallbackReason?: AgentFallbackReason,
+  ): void => {
+    const offerIfNeeded = (basicHandled: boolean): void => {
+      if (shouldAutoOfferVoiceAd(fallbackReason, basicHandled)) void adOffer.offer('voice');
+    };
     const mode = micMode;
     commandPath.current = 'fast';
     // A settle/remind/add-member command, or a read-only balance question, only
@@ -1429,6 +1434,7 @@ export default function VoiceScreen() {
       setNoAmount(true);
       setAttempt((current) => current + 1);
       setPhase('listening');
+      offerIfNeeded(false);
       return;
     }
     setPhase('thinking');
@@ -1441,6 +1447,9 @@ export default function VoiceScreen() {
       if (interpretToken.current !== token) return;
       if (mode === 'append') appendResult(parsed);
       else applyResult(parsed);
+      offerIfNeeded(
+        parsed.items.length > 0 || (mode !== 'append' && voiceAutoAction(parsed)?.kind === 'create-group'),
+      );
     })();
   };
 
