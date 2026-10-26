@@ -132,6 +132,16 @@ describe('verifyCallback', () => {
     expect(await verifyCallback(await signedQuery(key), keys)).toBe(true);
   });
 
+  it('decodes URL-encoded characters before verifying the message', async () => {
+    const key = await makeKey();
+    const keys = new VerifierKeys(fetchOf(keyList(key)));
+    const good = await signedQuery(
+      key,
+      MESSAGE.replace('custom_data=voice', 'custom_data=credit:voice'),
+    );
+    expect(await verifyCallback(good.replace('credit:voice', 'credit%3Avoice'), keys)).toBe(true);
+  });
+
   it('rejects a changed message (a swapped user, kind or transaction)', async () => {
     const key = await makeKey();
     const keys = new VerifierKeys(fetchOf(keyList(key)));
