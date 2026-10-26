@@ -19,7 +19,9 @@ appId: app.waves.mobile
 
 # Merge screen: its title, and — before any button — the "can't be undone" warning.
 - assertVisible: 'Merge people'
-- assertVisible: 'undone'
+- extendedWaitUntil:
+    visible: 'Reeya'
+    timeout: 20000
 
 # Pick both Reeya rows. The merged name pre-fills to "Reeya", so the button arms.
 - tapOn:

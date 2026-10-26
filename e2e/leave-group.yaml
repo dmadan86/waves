@@ -22,7 +22,7 @@ appId: app.waves.mobile
 
 # Into the group, then its settings
 - tapOn: 'Goa trip'
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
 - assertVisible: 'Members'
 
 # The Leave row sits under Archive at the very bottom, under the tab bar —

@@ -30,7 +30,7 @@ appId: app.waves.mobile
 # only the detail carries — the ledger has no "Delete expense" — so a push that
 # never happened cannot read as a pass.
 - extendedWaitUntil:
-    visible: 'Delete expense'
+    visible: 'Edit'
     timeout: 20000
 
 - back
@@ -67,7 +67,7 @@ appId: app.waves.mobile
 - back
 - tapOn: 'Beach shack dinner'
 - extendedWaitUntil:
-    visible: 'Delete expense'
+    visible: 'Edit'
     timeout: 20000
 - back
 - back

@@ -34,7 +34,7 @@ appId: app.waves.mobile
 
 # ── put two SMS-sourced drafts in Review ──────────────────────────────────
 - tapOn: 'Review'
-- tapOn: 'Add from bank messages'
+- tapOn: 'Add from a message'
 - tapOn: 'Paste bank messages'
 - inputText: 'Rs.970.00 debited from A/c XX4521 on 14-09-26 to M M RAITHARA TRADERS. UPI Ref 528913447120. -Axis Bank'
 - hideKeyboard

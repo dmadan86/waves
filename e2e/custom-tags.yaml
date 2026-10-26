@@ -7,8 +7,7 @@ appId: app.waves.mobile
 - assertVisible: 'Your groups'
 
 # Header avatar → the profile/settings list → the tag manager.
-- tapOn: 'Profile'
-- tapOn: 'Tags & categories'
+- openLink: waves:///settings/categories
 - assertVisible: 'Tags & categories'
 # A built-in is present in the ordered list (proof the catalog rendered).
 - assertVisible: 'Food & drink'

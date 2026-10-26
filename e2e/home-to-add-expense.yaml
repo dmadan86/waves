@@ -6,7 +6,7 @@ appId: app.waves.mobile
 - runFlow: login.yaml
 
 # Home — the headline and the seeded group
-- assertVisible: 'Your balance'
+- assertVisible: 'Total you are owed'
 - assertVisible: 'Your groups'
 - assertVisible: 'Goa trip'
 

@@ -7,24 +7,21 @@ appId: app.waves.mobile
 - runFlow: login.yaml
 - assertVisible: 'Your groups'
 
-# Dashboard add row → the short capture form.
-- tapOn: 'Add expense'
-- assertVisible: 'Capture an expense'
-
-# Amount via the shared calculator keypad: 250.00.
-- tapOn: '2'
-- tapOn: '5'
-- tapOn: '0'
-- tapOn: '0'
+# The full capture form (the widget's door; Home's Add expense opens the quick
+# sheet instead). Amount from the step chips: $200.
+- openLink: waves:///capture
+- assertVisible: 'Save an expense'
+- tapOn: '\+\$100'
+- tapOn: '\+\$100'
 
 # A note to recognise it by.
-- tapOn: 'What was it?'
+- tapOn: 'Coffee, taxi.*'
 - inputText: 'Auto to airport'
 - hideKeyboard
 
 # Group left unset — the capture stays in the inbox rather than landing anywhere.
 - assertVisible: 'Decide later'
-- tapOn: 'Save capture'
+- tapOn: '^Save$'
 
 # The drafts inbox is a bar tab now ("Review"), badged with the folded count —
 # it used to be a dashboard hero circle before Activity took that spot. Wait

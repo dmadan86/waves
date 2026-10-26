@@ -23,7 +23,7 @@ appId: app.waves.mobile
 
 # Into the group, then its settings, then Duplicate.
 - tapOn: 'Goa trip'
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
 - scrollUntilVisible:
     element: 'Duplicate group'
     direction: DOWN

@@ -5,7 +5,7 @@ appId: app.waves.mobile
 - runFlow: login.yaml
 
 - tapOn: 'Goa trip'
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
 - assertVisible: 'Name (optional)'
 
 # Rename: the name field holds "Goa trip". There is no Save button any more —
@@ -26,7 +26,7 @@ appId: app.waves.mobile
 - assertVisible: 'Goa 2026'
 
 # Archive it from settings — the row sits below, past the roster.
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
 - scrollUntilVisible:
     element: 'Archive group'
     direction: DOWN
