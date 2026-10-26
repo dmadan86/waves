@@ -162,6 +162,108 @@ describe('pots (every test rolls back)', () => {
       ),
     ).rejects.toThrow(/FORBIDDEN/);
   });
+  it('rejects outsiders before looking up or locking a settlement pot', async () => {
+    for (const id of [potId, randomUUID()]) {
+      await expect(
+        as('authenticated', outsider.profileIds[0]!, () =>
+          client.query('SELECT waves_record_pot_settlement($1, $2, $3, 100, $4)', [
+            id,
+            group.memberIds[1],
+            group.memberIds[0],
+            randomUUID(),
+          ]),
+        ),
+      ).rejects.toThrow(/FORBIDDEN/);
+    }
+  });
+  it('checks pot guards when attaching an existing settlement on UPDATE', async () => {
+    const { rows } = await client.query(
+      `INSERT INTO settlements(group_id, from_member_id, to_member_id, currency, amount, method)
+       VALUES ($1, $2, $3, 'USD', 100, 'upi') RETURNING id`,
+      [group.groupId, group.memberIds[1], group.memberIds[0]],
+    );
+    await denied(
+      () => client.query('UPDATE settlements SET pot_id = $1 WHERE id = $2', [potId, rows[0].id]),
+      /POT_INVALID_SETTLEMENT/,
+    );
+    await client.query("UPDATE settlements SET currency = 'INR' WHERE id = $1", [rows[0].id]);
+    await close();
+    await denied(
+      () => client.query('UPDATE settlements SET pot_id = $1 WHERE id = $2', [potId, rows[0].id]),
+      /POT_NOT_OPEN/,
+    );
+  });
+  it('requires a live creator on insert, while preserving pots after the creator leaves', async () => {
+    await client.query('UPDATE group_members SET left_at = now() WHERE id = $1', [
+      group.memberIds[2],
+    ]);
+    await denied(
+      () =>
+        client.query(
+          `INSERT INTO pots(group_id, name, currency, per_head_minor, treasurer_member_id, created_by)
+         VALUES ($1, 'Departed creator', 'INR', 100, $2, $3)`,
+          [group.groupId, group.memberIds[0], group.memberIds[2]],
+        ),
+      /POT_WRONG_GROUP/,
+    );
+    await client.query('UPDATE group_members SET left_at = NULL WHERE id = $1', [
+      group.memberIds[2],
+    ]);
+    const { rows } = await client.query(
+      `INSERT INTO pots(group_id, name, currency, per_head_minor, treasurer_member_id, created_by)
+       VALUES ($1, 'Former creator', 'INR', 100, $2, $3) RETURNING id`,
+      [group.groupId, group.memberIds[0], group.memberIds[2]],
+    );
+    await client.query('UPDATE group_members SET left_at = now() WHERE id = $1', [
+      group.memberIds[2],
+    ]);
+    await as('authenticated', group.profileIds[0]!, () =>
+      client.query('SELECT waves_close_pot($1, $2)', [rows[0].id, randomUUID()]),
+    );
+  });
+  it('preserves expense history through normal edits and soft deletion', async () => {
+    const first = await expense();
+    const edited = await expense(group.memberIds[0], first.expenseId);
+    expect(edited.versionNo).toBe(2);
+    expect(
+      (
+        await client.query(
+          `SELECT ep.member_id FROM expense_payers ep JOIN expense_versions ev ON ev.id = ep.expense_version_id
+       WHERE ev.expense_id = $1`,
+          [first.expenseId],
+        )
+      ).rows,
+    ).toEqual([{ member_id: group.memberIds[0] }, { member_id: group.memberIds[0] }]);
+    await as('authenticated', group.profileIds[0]!, () =>
+      client.query('SELECT waves_delete_expense($1)', [first.expenseId]),
+    );
+    expect(
+      (await client.query('SELECT deleted_at FROM expenses WHERE id = $1', [first.expenseId]))
+        .rows[0].deleted_at,
+    ).not.toBeNull();
+  });
+  it('prevents changing or clearing an expense version pot on UPDATE', async () => {
+    const exp = await expense();
+    await denied(
+      () =>
+        client.query('UPDATE expense_versions SET pot_id = NULL WHERE id = $1', [exp.versionId]),
+      /APPEND_ONLY/,
+    );
+    await denied(
+      () =>
+        client.query('UPDATE expense_versions SET pot_id = $1 WHERE id = $2', [
+          randomUUID(),
+          exp.versionId,
+        ]),
+      /APPEND_ONLY/,
+    );
+    await close();
+    await denied(
+      () =>
+        client.query('UPDATE expense_versions SET pot_id = pot_id WHERE id = $1', [exp.versionId]),
+      /APPEND_ONLY/,
+    );
+  });
   it('lets group members read, hides rows from outsiders, and denies anon table access', async () => {
     expect(
       (
@@ -368,16 +470,49 @@ describe('pots (every test rolls back)', () => {
       (await client.query('SELECT id FROM settlements WHERE pot_id = $1', [potId])).rowCount,
     ).toBe(0);
   });
-  it.each(['', '   ', null])('accepts an optional public UTR (%j) and keeps self attribution', async (ref) => {
-    const result = await as('anon', null, () =>
-      client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [code, 'Member 2', ref]),
-    );
-    expect(result.rows[0].ok).toBe(true);
-    const { rows } = await client.query(
-      'SELECT status, reference, reference_source FROM settlements WHERE pot_id = $1',
-      [potId],
-    );
-    expect(rows).toEqual([{ status: 'initiated', reference: null, reference_source: 'self' }]);
+  it.each(['', '   ', null])(
+    'accepts an optional public UTR (%j) and keeps self attribution',
+    async (ref) => {
+      const result = await as('anon', null, () =>
+        client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [code, 'Member 2', ref]),
+      );
+      expect(result.rows[0].ok).toBe(true);
+      for (const blank of ['', '   ', null]) {
+        expect(
+          (
+            await as('anon', null, () =>
+              client.query('SELECT pot_pay_self_report($1, $2, $3) AS ok', [
+                code,
+                ' member 2 ',
+                blank,
+              ]),
+            )
+          ).rows[0].ok,
+        ).toBe(true);
+      }
+      const { rows } = await client.query(
+        'SELECT status, reference, reference_source FROM settlements WHERE pot_id = $1',
+        [potId],
+      );
+      expect(rows).toEqual([{ status: 'initiated', reference: null, reference_source: 'self' }]);
+    },
+  );
+  it('dedupes blank references per payer only while their self-report is initiated', async () => {
+    const report = (name: string) =>
+      as('anon', null, () =>
+        client.query('SELECT pot_pay_self_report($1, $2, NULL) AS ok', [code, name]),
+      );
+    await report('Member 2');
+    await report('Member 3');
+    expect(
+      (await client.query('SELECT id FROM settlements WHERE pot_id = $1', [potId])).rowCount,
+    ).toBe(2);
+    await client.query("UPDATE settlements SET status = 'confirmed' WHERE pot_id = $1", [potId]);
+    await report('Member 2');
+    await report('Member 2');
+    expect(
+      (await client.query('SELECT id FROM settlements WHERE pot_id = $1', [potId])).rowCount,
+    ).toBe(3);
   });
   it('public self-report is pending, keeps the UTR, and retries do not duplicate', async () => {
     const report = (name = 'Member 2', ref = '123456789012') =>
