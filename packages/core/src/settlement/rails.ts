@@ -482,6 +482,8 @@ export interface PaymentLinkInput {
   readonly amount: bigint;
   readonly currency: CurrencyCode;
   readonly note?: string;
+  /** Short collection code; encoded in both UPI reference and note. */
+  readonly referenceCode?: string;
 }
 
 /**
@@ -515,7 +517,10 @@ export function buildPaymentUri(
       ['am', major],
       ['cu', input.currency],
     ];
-    if (input.note) params.push(['tn', input.note.slice(0, 50)]);
+    const reference = input.referenceCode ? paymentReference(input.referenceCode) : null;
+    if (reference) params.push(['tr', reference]);
+    const note = [reference, input.note].filter(Boolean).join(' ');
+    if (note) params.push(['tn', note.slice(0, 50)]);
     const query = params
       .map(([key, value]) => `${key}=${encodeURIComponent(value).replace(/%20/g, '+')}`)
       .join('&');
@@ -552,4 +557,18 @@ export function buildPaymentUri(
 function cashtag(handle: string): string {
   const bare = handle.replace(/^[@$]/, '');
   return `$${bare}`;
+}
+
+/** A stable reference is a reconciliation hint, never payment confirmation. */
+export function paymentReference(shortCode: string): string {
+  if (!/^[a-zA-Z0-9-]{1,32}$/.test(shortCode)) throw new Error('INVALID_REFERENCE_CODE');
+  return `WV-${shortCode}`;
+}
+
+/** The QR contains exactly the same payment request as the app handoff. */
+export function buildPaymentQrPayload(
+  input: PaymentLinkInput,
+  formatMajor: (amount: bigint, currency: CurrencyCode) => string,
+): string | null {
+  return buildPaymentUri(input, formatMajor)?.uri ?? null;
 }

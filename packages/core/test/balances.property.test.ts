@@ -1,3 +1,4 @@
+import { potClosePlan } from '../src/pots';
 /**
  * ADR-004 / ADR-014: balances are derived, and they always sum to zero.
  * The Postgres derived tables are tested against these same rules in
@@ -569,6 +570,66 @@ describe('a group that settles in its own currency', () => {
         expect(netEntries(netFromPairwise(transfers))).toEqual(netEntries(net));
         for (const transfer of transfers) expect(transfer.amount > 0n).toBe(true);
       }),
+    );
+  });
+});
+
+describe('pot ledger conservation', () => {
+  it('conserves balances before and after socially confirming the treasurer close plan', () => {
+    fc.assert(
+      fc.property(
+        fc.bigInt({ min: 1n, max: 10000000000000000n }),
+        fc.bigInt({ min: 1n, max: 10000000000000000n }),
+        (paid, used) => {
+          const pot = {
+            id: 'pot',
+            currency: INR,
+            treasurerMemberId: 't',
+            memberIds: ['t', 'a', 'b'],
+            perHeadMinor: paid,
+          };
+          const expenses = [
+            {
+              id: 'pot-expense',
+              potId: 'pot',
+              currency: INR,
+              amount: used * 2n,
+              payers: { t: used * 2n },
+              shares: { a: used, b: used },
+              date: '2026-11-02',
+            },
+          ];
+          const settlements = ['a', 'b'].map((from) => ({
+            id: from,
+            potId: 'pot',
+            from,
+            to: 't',
+            currency: INR,
+            amount: paid,
+            status: SettlementStatus.Confirmed,
+            at: '2026-11-02',
+          }));
+          const pending = potClosePlan(pot, expenses, settlements).map((s, i) => ({
+            ...s,
+            status: SettlementStatus.Initiated,
+            id: `close-${i}`,
+            at: '2026-11-02',
+          }));
+          for (const rows of [
+            settlements,
+            [...settlements, ...pending],
+            [...settlements, ...pending.map((s) => ({ ...s, status: SettlementStatus.Confirmed }))],
+          ]) {
+            const net = computeNetBalances(expenses, rows);
+            expect(balanceSums(net).get(INR)).toBe(0n);
+          }
+          const closed = computeNetBalances(expenses, [
+            ...settlements,
+            ...pending.map((s) => ({ ...s, status: SettlementStatus.Confirmed })),
+          ]);
+          for (const value of closed.get(INR)!.values()) expect(value).toBe(0n);
+        },
+      ),
     );
   });
 });
