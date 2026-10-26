@@ -1,3 +1,6 @@
+import { tagPotLedger } from '@/lib/potUi';
+import { usePots, usePotExpenseTags } from './pots';
+import { partitionPotLedger } from '@/lib/pots';
 import { owedByGroup, viewerEdge, type OwedDirection, type OwedGroupMeta } from '@/lib/owedByGroup';
 import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
 /**
@@ -1461,12 +1464,15 @@ export function useGroup(groupId: string) {
  * every caller filters nulls — which is one line missing from a list rather than
  * a ledger nobody can open.
  */
-export function toSnapshot(expense: ExpenseRow): ExpenseSnapshot | null {
+export function toSnapshot(
+  expense: ExpenseRow,
+): (ExpenseSnapshot & { potId?: string | null }) | null {
   const version = expense.currentVersion;
   if (!version) return null;
   try {
     return {
       id: expense.id,
+      potId: version.pot_id,
       currency: version.currency,
       amount: BigInt(version.amount),
       payers: Object.fromEntries(version.payers.map((row) => [row.member_id, BigInt(row.amount)])),
@@ -1490,14 +1496,21 @@ export function toSnapshot(expense: ExpenseRow): ExpenseSnapshot | null {
 export function toLedgerSnapshots(
   rows: readonly ExpenseRow[],
   group: Pick<GroupRow, 'default_currency' | 'convert_to_group_currency'> | null | undefined,
-): ExpenseSnapshot[] {
-  return ledgerSnapshotsOf(rows.map(toSnapshot), group);
+): (ExpenseSnapshot & { potId?: string | null })[] {
+  const potIds = new Map(rows.map((row) => [row.id, row.currentVersion?.pot_id]));
+  return ledgerSnapshotsOf(rows.map(toSnapshot), group).map((snapshot) => ({
+    ...snapshot,
+    potId: potIds.get(snapshot.id),
+  }));
 }
 
-export function toSettlementSnapshot(row: SettlementRow): SettlementSnapshot | null {
+export function toSettlementSnapshot(
+  row: SettlementRow,
+): (SettlementSnapshot & { potId?: string | null }) | null {
   try {
     return {
       id: row.id,
+      potId: row.pot_id,
       from: row.from_member_id,
       to: row.to_member_id,
       currency: row.currency,
@@ -1515,7 +1528,9 @@ export function toSettlementSnapshot(row: SettlementRow): SettlementSnapshot | n
 }
 
 /** `toSettlementSnapshot` over a list, minus the rows that would not read. */
-export function toSettlementSnapshots(rows: readonly SettlementRow[]): SettlementSnapshot[] {
+export function toSettlementSnapshots(
+  rows: readonly SettlementRow[],
+): (SettlementSnapshot & { potId?: string | null })[] {
   return rows
     .map(toSettlementSnapshot)
     .filter((snapshot): snapshot is SettlementSnapshot => snapshot !== null);
@@ -1553,6 +1568,9 @@ export interface GroupLedger {
 
 export function useGroupLedger(groupId: string, myProfileId: string | null): GroupLedger {
   const { group, members, expenses, settlements, balances } = useGroup(groupId);
+  const pots = usePots(groupId);
+  const hasOpenPots = pots.data?.some((pot) => pot.status === 'open') ?? false;
+  const potTags = usePotExpenseTags(groupId, hasOpenPots);
   const { queue, status } = useSync();
   const lastSyncedAt = useLastSyncedAt();
 
@@ -1569,12 +1587,44 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
 
   const ledger = useMemo(() => {
     const loading =
-      group.isLoading || members.isLoading || expenses.isLoading || settlements.isLoading;
+      group.isLoading ||
+      members.isLoading ||
+      expenses.isLoading ||
+      settlements.isLoading ||
+      pots.isLoading ||
+      pots.isError ||
+      (hasOpenPots && !potTags.data);
 
     const currency = group.data?.default_currency ?? 'INR';
     const convertsToGroupCurrency = group.data?.convert_to_group_currency === true;
-    const snapshots = toLedgerSnapshots(expenses.rows, group.data);
-    const settlementSnapshots = toSettlementSnapshots(settlements.data ?? []);
+    const tagged = tagPotLedger(
+      pots.data ?? [],
+      potTags.data ?? {},
+      expenses.rows.flatMap((row) => {
+        const snapshot = toSnapshot(row);
+        return snapshot ? [snapshot] : [];
+      }),
+      toSettlementSnapshots(settlements.data ?? []),
+    );
+    const partition = partitionPotLedger(
+      (pots.data ?? []).map((pot) => ({
+        id: pot.id,
+        status: pot.status,
+        currency: pot.currency,
+        perHeadMinor: BigInt(pot.per_head_minor),
+        treasurerMemberId: pot.treasurer_member_id,
+        treasurerName: '',
+        memberIds: (members.data ?? []).map((member) => member.id),
+      })),
+      tagged.expenses,
+      tagged.settlements,
+    );
+    const visibleExpenseIds = new Set(partition.expenses.map((expense) => expense.id));
+    const snapshots = toLedgerSnapshots(
+      expenses.rows.filter((expense) => visibleExpenseIds.has(expense.id)),
+      group.data,
+    );
+    const settlementSnapshots = partition.settlements;
 
     const net = computeNetBalances(snapshots, settlementSnapshots);
     const withPending = computeNetBalances(snapshots, settlementSnapshots, {
@@ -1608,7 +1658,7 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     // Cross-check against what the database derived independently, but only
     // when the two are describing the same moment (`comparable`).
     let mismatch = false;
-    if (balances.data && comparable) {
+    if (balances.data && comparable && !pots.data?.some((pot) => pot.status === 'open')) {
       const stored = new Map(
         balances.data
           .filter((row) => row.currency === currency)
@@ -1636,7 +1686,7 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     return {
       balances: computed,
       net,
-      transfers,
+      transfers: pots.isError || (hasOpenPots && !potTags.data) ? [] : transfers,
       myMemberId,
       myBalance,
       groupSettled,
@@ -1658,6 +1708,11 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     balances.data,
     comparable,
     myProfileId,
+    pots.data,
+    pots.isLoading,
+    pots.isError,
+    hasOpenPots,
+    potTags.data,
   ]);
 
   useBalanceCrossCheck(groupId, ledger.mismatch, balances);

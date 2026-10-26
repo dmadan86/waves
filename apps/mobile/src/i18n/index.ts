@@ -183,6 +183,31 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
 }
 
 export interface UiStrings {
+  pots: {
+    spendUnavailable: string;
+    start: string;
+    amount: string;
+    holder: string;
+    paidIn: string;
+    spend: string;
+    fromPot: string;
+    close: string;
+    summary: string;
+    held: string;
+    waiting: string;
+    confirmed: string;
+    utr: string;
+    invalidUtr: string;
+    share: string;
+    noVpa: string;
+    refund: string;
+    carry: string;
+    topup: string;
+    person: string;
+    owes: string;
+    none: string;
+    closeHint: string;
+  };
   greeting: string;
   yourWaves: string;
   /** "across N groups" on the dashboard total. Plural so it never reads
@@ -6139,6 +6164,31 @@ export interface UiStrings {
 }
 
 const en: UiStrings = {
+  pots: {
+    spendUnavailable: 'Spending from the pot is not available yet.',
+    start: 'Start a pot',
+    amount: 'Amount per head',
+    holder: 'Who holds the cash',
+    paidIn: 'Paid in',
+    spend: 'Spend from pot',
+    fromPot: 'From the pot',
+    close: 'Close pot',
+    summary: '{amount} in the pot · {paid} of {total} paid in · {name} holds the money',
+    held: 'In the pot, held by {name}',
+    waiting: 'says paid · waiting for {name}',
+    confirmed: 'Confirmed by {name}',
+    utr: 'UTR / transaction reference (optional)',
+    invalidUtr: 'Enter a valid UTR or leave it empty',
+    share: 'Share QR / link',
+    noVpa: 'Ask the treasurer to add a UPI ID',
+    refund: 'Give back',
+    carry: 'Keep for next time',
+    topup: 'Ask for top-up',
+    person: 'paid {paid} · used {used} · gets back {back}',
+    owes: 'paid {paid} · used {used} · owes {back}',
+    none: 'No payments needed',
+    closeHint: 'Closing creates payments for the treasurer and members to confirm.',
+  },
   greeting: 'Hello',
   yourWaves: 'Your balance',
   acrossGroups: { one: 'across {n} group', other: 'across {n} groups' },
@@ -11323,6 +11373,33 @@ const en: UiStrings = {
  * compile error in every language until somebody writes the words.
  */
 const ta: UiStrings = {
+  pots: {
+    spendUnavailable: 'சேர்த்த பணத்திலிருந்து செலவு செய்வது இன்னும் கிடைக்கவில்லை.',
+    start: 'பணம் சேர்க்கத் தொடங்கு',
+    amount: 'ஒருவருக்கான தொகை',
+    holder: 'பணத்தை வைத்திருப்பவர்',
+    paidIn: 'செலுத்தியது',
+    spend: 'சேர்த்த பணத்திலிருந்து செலவு',
+    fromPot: 'சேர்த்த பணத்திலிருந்து',
+    close: 'கணக்கை முடி',
+    summary:
+      'சேர்த்த பணம் {amount} · {total} பேரில் {paid} பேர் செலுத்தினர் · {name} பணத்தை வைத்துள்ளார்',
+    held: 'சேர்த்த பணம், {name} வசம்',
+    waiting: 'செலுத்தியதாகக் கூறுகிறார் · {name} உறுதிப்படுத்தக் காத்திருக்கிறது',
+    confirmed: '{name} உறுதிப்படுத்தினார்',
+    utr: 'UTR / பரிவர்த்தனை எண் (விருப்பம்)',
+    invalidUtr: 'சரியான UTR உள்ளிடவும் அல்லது காலியாக விடவும்',
+    share: 'QR / இணைப்பைப் பகிர்',
+    noVpa: 'பணம் வைத்திருப்பவரை UPI ID சேர்க்கச் சொல்லுங்கள்',
+    refund: 'திருப்பிக் கொடு',
+    carry: 'அடுத்த முறைக்கு வைத்திரு',
+    topup: 'கூடுதல் தொகை கேள்',
+    person: 'செலுத்தியது {paid} · பயன்படுத்தியது {used} · திரும்பப் பெறுவது {back}',
+    owes: 'செலுத்தியது {paid} · பயன்படுத்தியது {used} · தர வேண்டியது {back}',
+    none: 'பணம் செலுத்தத் தேவையில்லை',
+    closeHint:
+      'முடித்ததும் பணம் வைத்திருப்பவரும் உறுப்பினர்களும் உறுதிப்படுத்த வேண்டிய பரிவர்த்தனைகள் உருவாகும்.',
+  },
   greeting: 'வணக்கம்',
   yourWaves: 'உங்கள் பாக்கி',
   acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
@@ -16701,6 +16778,31 @@ const ta: UiStrings = {
 };
 
 const hi: UiStrings = {
+  pots: {
+    spendUnavailable: 'पॉट से खर्च करना अभी उपलब्ध नहीं है।',
+    start: 'पॉट शुरू करें',
+    amount: 'प्रति व्यक्ति राशि',
+    holder: 'पैसे कौन रखेगा',
+    paidIn: 'जमा किया',
+    spend: 'पॉट से खर्च करें',
+    fromPot: 'पॉट से',
+    close: 'पॉट बंद करें',
+    summary: 'पॉट में {amount} · {total} में से {paid} ने जमा किया · पैसे {name} के पास हैं',
+    held: 'पॉट में, {name} के पास',
+    waiting: 'भुगतान बताया · {name} की पुष्टि बाकी',
+    confirmed: '{name} ने पुष्टि की',
+    utr: 'UTR / लेनदेन संदर्भ (वैकल्पिक)',
+    invalidUtr: 'सही UTR दर्ज करें या खाली छोड़ें',
+    share: 'QR / लिंक साझा करें',
+    noVpa: 'पैसे रखने वाले से UPI ID जोड़ने को कहें',
+    refund: 'वापस दें',
+    carry: 'अगली बार के लिए रखें',
+    topup: 'अतिरिक्त राशि माँगें',
+    person: 'जमा {paid} · खर्च {used} · वापसी {back}',
+    owes: 'जमा {paid} · खर्च {used} · बाकी {back}',
+    none: 'कोई भुगतान बाकी नहीं',
+    closeHint: 'बंद करने पर पैसे रखने वाले और सदस्यों की पुष्टि के लिए भुगतान बनेंगे।',
+  },
   greeting: 'नमस्ते',
   yourWaves: 'आपकी बाकी',
   acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
@@ -21901,6 +22003,31 @@ const hi: UiStrings = {
  * is why it is not translated away here.
  */
 const ar: UiStrings = {
+  pots: {
+    spendUnavailable: 'الإنفاق من الصندوق غير متاح بعد.',
+    start: 'ابدأ صندوقًا',
+    amount: 'المبلغ لكل شخص',
+    holder: 'من يحتفظ بالنقود',
+    paidIn: 'المساهمات',
+    spend: 'أنفق من الصندوق',
+    fromPot: 'من الصندوق',
+    close: 'أغلق الصندوق',
+    summary: '{amount} في الصندوق · ساهم {paid} من {total} · النقود لدى {name}',
+    held: 'في الصندوق، لدى {name}',
+    waiting: 'يقول إنه دفع · بانتظار {name}',
+    confirmed: 'أكّد {name}',
+    utr: 'UTR / مرجع المعاملة (اختياري)',
+    invalidUtr: 'أدخل مرجعًا صالحًا أو اتركه فارغًا',
+    share: 'شارك رمز QR / الرابط',
+    noVpa: 'اطلب من أمين الصندوق إضافة معرّف UPI',
+    refund: 'أعِد المال',
+    carry: 'احتفظ به للمرة القادمة',
+    topup: 'اطلب استكمال المبلغ',
+    person: 'دفع {paid} · استُخدم {used} · يسترد {back}',
+    owes: 'دفع {paid} · استُخدم {used} · عليه {back}',
+    none: 'لا توجد دفعات مطلوبة',
+    closeHint: 'يؤدي الإغلاق إلى إنشاء دفعات يؤكدها أمين الصندوق والأعضاء.',
+  },
   greeting: 'أهلاً',
   yourWaves: 'باقيك',
   acrossGroups: {
