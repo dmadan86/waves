@@ -70,6 +70,9 @@ ASSISTANT_FLOWS=(
   assistant-intro-once:assistant
 )
 
+# E2E_FLOWS (space-separated) narrows the run to the named flows.
+[ -n "${E2E_FLOWS:-}" ] && read -ra FLOWS <<< "${E2E_FLOWS}"
+
 status=0
 for flow in "${FLOWS[@]}"; do
   echo "::group::seed + ${flow}"
