@@ -29,45 +29,33 @@ function DepartedBanner({
   if (dismissed !== false) return null;
   return (
     <Card
+      padded={false}
       flat
       style={{
-        padding: theme.spacing.md,
+        paddingVertical: theme.spacing.xs,
+        paddingHorizontal: theme.spacing.sm,
+        borderRadius: theme.radius.sm,
         backgroundColor: `${color.bg}40`,
         borderColor: `${color.bg}99`,
         borderWidth: 1,
       }}
     >
-      <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-        <PersonAvatar name={name} tint={tint} size={40} />
-        <View style={{ flex: 1, gap: theme.spacing.xs }}>
-          <Text variant="subheading" style={{ paddingEnd: theme.spacing.xxl }}>
-            {fill(plural(locale, count, t.departedExpenses.banner), { name })}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {fill(plural(locale, count, t.departedExpenses.bannerExplainer), { name })}
-          </Text>
-          <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', marginTop: theme.spacing.xs }}>
-            <Button
-              size="sm"
-              variant="brand"
-              label={t.departedExpenses.decide}
-              onPress={() => router.push(`/group/${groupId}/departed/${member.id}`)}
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              label={t.departedExpenses.keepAsIs}
-              onPress={dismiss}
-              style={{ borderWidth: 1, borderColor: theme.color.brandSoft }}
-            />
-          </Row>
-        </View>
-      </Row>
-      <View style={{ position: 'absolute', top: theme.spacing.xs, end: theme.spacing.xs }}>
-        <IconButton label={t.common.close} onPress={dismiss}>
-          <Ionicons name="close" size={20} color={theme.color.textMuted} />
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <PersonAvatar name={name} tint={tint} size={28} />
+        <Text numberOfLines={1} ellipsizeMode="tail" style={{ flex: 1, minWidth: 0 }}>
+          {fill(plural(locale, count, t.departedExpenses.banner), { name })}
+        </Text>
+        <Button
+          size="sm"
+          variant="brand"
+          label={t.departedExpenses.decide}
+          onPress={() => router.push(`/group/${groupId}/departed/${member.id}`)}
+          style={{ paddingHorizontal: theme.spacing.md }}
+        />
+        <IconButton label={t.departedExpenses.keepAsIs} onPress={dismiss}>
+          <Ionicons name="close" size={16} color={theme.color.textMuted} />
         </IconButton>
-      </View>
+      </Row>
     </Card>
   );
 }

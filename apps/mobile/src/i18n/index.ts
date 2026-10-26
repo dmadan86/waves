@@ -2360,7 +2360,6 @@ export interface UiStrings {
     onlyViewer: string;
     onlyViewerDialog: string;
     banner: PluralForms;
-    bannerExplainer: PluralForms;
     decide: string;
     keepAsIs: string;
     offline: string;
@@ -8074,12 +8073,8 @@ const en: UiStrings = {
     onlyViewerDialog:
       "You’d take on {amount}. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
     banner: {
-      one: '{name} left · {n} expense still includes them',
-      other: '{name} left · {n} expenses still include them',
-    },
-    bannerExplainer: {
-      one: 'This expense was added before {name} left the group.',
-      other: 'These expenses were added before {name} left the group.',
+      one: '{name} left · {n} expense',
+      other: '{name} left · {n} expenses',
     },
     decide: 'Decide',
     keepAsIs: 'Keep as is',
@@ -13355,12 +13350,8 @@ const ta: UiStrings = {
     onlyViewerDialog:
       'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
     banner: {
-      one: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
-      other: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
-    },
-    bannerExplainer: {
-      one: '{name} குழுவிலிருந்து வெளியேறும் முன் இந்தச் செலவு சேர்க்கப்பட்டது.',
-      other: '{name} குழுவிலிருந்து வெளியேறும் முன் இந்தச் செலவுகள் சேர்க்கப்பட்டன.',
+      one: '{name} வெளியேறினார் · {n} செலவு',
+      other: '{name} வெளியேறினார் · {n} செலவுகள்',
     },
     decide: 'முடிவுசெய்',
     keepAsIs: 'அப்படியே வைத்திரு',
@@ -18757,12 +18748,8 @@ const hi: UiStrings = {
     onlyViewerDialog:
       'आपको {amount} और देने होंगे। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
     banner: {
-      one: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
-      other: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
-    },
-    bannerExplainer: {
-      one: '{name} के समूह छोड़ने से पहले यह खर्च जोड़ा गया था।',
-      other: '{name} के समूह छोड़ने से पहले ये खर्च जोड़े गए थे।',
+      one: '{name} जा चुके हैं · {n} खर्च',
+      other: '{name} जा चुके हैं · {n} खर्च',
     },
     decide: 'तय करें',
     keepAsIs: 'ऐसे ही रखें',
@@ -24107,12 +24094,8 @@ const ar: UiStrings = {
     onlyViewerDialog:
       'ستتحمل {amount}. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
     banner: {
-      one: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
-      other: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
-    },
-    bannerExplainer: {
-      one: 'أُضيف هذا المصروف قبل مغادرة {name} المجموعة.',
-      other: 'أُضيفت هذه المصاريف قبل مغادرة {name} المجموعة.',
+      one: 'غادر {name} · مصروف واحد ({n})',
+      other: 'غادر {name} · {n} مصاريف',
     },
     decide: 'تقرير',
     keepAsIs: 'إبقاء كما هو',
