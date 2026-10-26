@@ -1,3 +1,5 @@
+import { NativeAdCard } from '@/components/NativeAdCard';
+import { nativePositions } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
@@ -321,6 +323,7 @@ function monthDate(key: string): Date {
  * item is the section heading, an `expense` item is one bill.
  */
 type FeedItem =
+  | { readonly kind: 'ad'; readonly key: string }
   | { readonly kind: 'month'; readonly key: string; readonly date: string }
   | {
       readonly kind: 'expense';
@@ -990,8 +993,20 @@ export default function GroupScreen() {
         }),
       );
     }
-    return items;
-  }, [expenseSections, newMarks]);
+    const positions = new Set(
+      nativePositions(
+        expenseSections.reduce((n, section) => n + section.rows.length, 0),
+        `group:${groupId}`,
+      ),
+    );
+    let count = 0;
+    return items.flatMap((item): FeedItem[] => {
+      if (item.kind === 'expense' && positions.has(++count)) {
+        return [item, { kind: 'ad', key: `ad-${count}` }];
+      }
+      return [item];
+    });
+  }, [expenseSections, newMarks, groupId]);
   // The "N new" pill: how many marked rows the feed holds, where the first
   // one is, and which rows are on screen — so it shows only while that first
   // one is out of sight, and tapping it scrolls there.
@@ -1261,6 +1276,7 @@ export default function GroupScreen() {
   // only stable props, so a recycled cell that lands on the same expense does no
   // work — the allocation and re-render both moved out of the hot fling path.
   const renderFeedItem = ({ item, index }: { item: FeedItem; index: number }) => {
+    if (item.kind === 'ad') return <NativeAdCard visible rowGap={theme.spacing.sm} />;
     if (item.kind === 'month') {
       return (
         <Text

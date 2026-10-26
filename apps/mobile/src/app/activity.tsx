@@ -1,6 +1,6 @@
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { ReviewBanner } from '@/components/ReviewBanner';
-import { nativePosition } from '@/lib/nativeAdsPure';
+import { nativePositions } from '@/lib/nativeAdsPure';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -272,7 +272,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         paddingVertical: theme.spacing.sm,
         paddingStart: theme.spacing.sm,
         paddingEnd: 2,
-        marginBottom: 6,
+        marginBottom: theme.spacing.sm,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: theme.color.border,
@@ -530,10 +530,10 @@ export default function ActivityScreen() {
         });
       });
     }
-    if (nativePosition(visibleEntries.length) !== null) {
+    for (const n of nativePositions(visibleEntries.length, 'activity').reverse()) {
       let count = 0;
-      const eighth = rows.findIndex((row) => row.kind === 'row' && ++count === 8);
-      rows.splice(eighth + 1, 0, { kind: 'ad', key: 'native-ad' });
+      const slot = rows.findIndex((row) => row.kind === 'row' && ++count === n);
+      rows.splice(slot + 1, 0, { kind: 'ad', key: `native-ad-${n}` });
     }
     return rows;
   }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);
@@ -980,7 +980,11 @@ export default function ActivityScreen() {
           }
           renderItem={({ item, index }) =>
             item.kind === 'ad' ? (
-              <NativeAdCard visible={adVisible} />
+              <NativeAdCard
+                visible={adVisible}
+                rowGap={theme.spacing.sm}
+                precedingGap={theme.spacing.sm}
+              />
             ) : item.kind === 'header' ? (
               <Text
                 variant="caption"
