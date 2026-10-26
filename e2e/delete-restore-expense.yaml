@@ -24,6 +24,7 @@ appId: app.waves.mobile
 - tapOn:
     text: '.*Beach shack dinner.*'
     index: 0
+- tapOn: 'More'
 - tapOn: 'Restore this expense'
 - back
 - tapOn: '(?i)^expenses$'

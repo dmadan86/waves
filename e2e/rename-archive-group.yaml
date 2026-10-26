@@ -6,6 +6,7 @@ appId: app.waves.mobile
 
 - tapOn: 'Goa trip'
 - tapOn: 'Group settings'
+- tapOn: 'Edit group'
 - assertVisible: 'Name (optional)'
 
 # Rename: the name field holds "Goa trip". There is no Save button any more —
@@ -27,6 +28,7 @@ appId: app.waves.mobile
 
 # Archive it from settings — the row sits below, past the roster.
 - tapOn: 'Group settings'
+- tapOn: 'Archive, leave or delete'
 - scrollUntilVisible:
     element: 'Archive group'
     direction: DOWN

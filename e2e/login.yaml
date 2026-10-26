@@ -41,6 +41,19 @@ appId: app.waves.mobile
 
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.
+# KNOWN APP BUG: skipping the intro occasionally blanks the app (Fabric
+# "addViewAt: failed to insert view [614] into parent [76]" in logcat, JS never
+# recovers). The tour is already marked seen by then, so relaunching without
+# clearing state lands on the dashboard. Remove once the app is fixed.
+- extendedWaitUntil:
+    visible: 'Your groups'
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      notVisible: 'Your groups'
+    commands:
+      - launchApp
 - extendedWaitUntil:
     visible: 'Your groups'
     timeout: 40000

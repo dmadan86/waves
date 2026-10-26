@@ -39,8 +39,8 @@ appId: app.waves.mobile
 - scrollUntilVisible:
     element: 'Priya'
     direction: DOWN
-- tapOn: 'Priya'
-- assertNotVisible: 'Priya'
+- tapOn: 'Remove Priya'
+- assertNotVisible: 'Remove Priya'
 
 # Make the group. It lands on the new group's own screen.
 - scrollUntilVisible:

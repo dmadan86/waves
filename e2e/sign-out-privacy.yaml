@@ -18,5 +18,6 @@ appId: app.waves.mobile
     text: '^Sign out$'
 
 # Back at the signed-out gateway; the account and its groups are off screen.
-- assertVisible: 'Create account'
+- assertVisible:
+    id: 'auth-email'
 - assertNotVisible: 'Goa trip'

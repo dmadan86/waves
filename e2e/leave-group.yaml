@@ -23,7 +23,8 @@ appId: app.waves.mobile
 # Into the group, then its settings
 - tapOn: 'Goa trip'
 - tapOn: 'Group settings'
-- assertVisible: 'Members'
+- assertVisible: 'Members.*'
+- tapOn: 'Archive, leave or delete'
 
 # The Leave row sits under Archive at the very bottom, under the tab bar —
 # scroll it into reach (the clearance this flow also guards) and confirm.

@@ -12,7 +12,7 @@ appId: app.waves.mobile
 
 # Group — the seeded expense and the Settle action
 - tapOn: 'Goa trip'
-- assertVisible: 'Settle up'
+- assertVisible: 'All settled'
 - assertVisible: 'Beach shack dinner'
 
 # Balances tab shows the seeded, unclaimed ghost

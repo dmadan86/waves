@@ -18,10 +18,13 @@ appId: app.waves.mobile
 
 # Make a new tag from the header "+". Its accessibility label is "New tag".
 - tapOn: 'New tag'
-- assertVisible: 'Save tag'
+- assertVisible: 'Name'
 - tapOn: 'Name'
 - inputText: 'Client dinner'
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Save tag'
+    direction: DOWN
 - tapOn: 'Save tag'
 
 # Back in the manager the new tag is listed.
