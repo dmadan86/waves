@@ -28,6 +28,17 @@ appId: app.waves.mobile
 - tapOn:
     id: 'auth-submit'
 
+# A fresh sign-in (clearState) always meets the one-time intro tour before the
+# app proper. Skip it by testID; optional so an account that has seen it passes.
+- extendedWaitUntil:
+    visible:
+      id: 'intro-skip'
+    timeout: 20000
+    optional: true
+- tapOn:
+    id: 'intro-skip'
+    optional: true
+
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.
 - extendedWaitUntil:
