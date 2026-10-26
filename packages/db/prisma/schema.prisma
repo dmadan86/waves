@@ -239,6 +239,8 @@ model Profile {
 // ────────────────────────────────────────────────── groups & membership ──
 
 model Group {
+  pots Pot[]
+
   id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// Optional: starting a group should cost one tap, and the people in it
   /// identify it better than a name does. NULL means "unnamed", not "".
@@ -397,6 +399,9 @@ model Group {
 /// A member is either a real profile or a ghost (name only) — ADR-006.
 /// Exactly one of profile_id / ghost_name is set (CHECK in migration SQL).
 model GroupMember {
+  treasuryPots Pot[] @relation("PotTreasurer")
+  createdPots Pot[] @relation("PotCreator")
+
   id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   groupId            String     @map("group_id") @db.Uuid
   profileId          String?    @map("profile_id") @db.Uuid
@@ -670,6 +675,9 @@ model ExpenseDispute {
 
 /// Immutable. An edit inserts a new version; nothing is ever updated in place.
 model ExpenseVersion {
+  potId String? @map("pot_id") @db.Uuid
+  pot Pot? @relation(fields: [potId], references: [id], onDelete: Restrict)
+
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   expenseId        String        @map("expense_id") @db.Uuid
   versionNo        Int           @map("version_no")
@@ -765,6 +773,7 @@ model ExpenseVersion {
   @@index([receiptId])
   @@map("expense_versions")
   @@schema("public")
+  @@index([potId])
 }
 
 /// Multi-payer support: who actually put money down (TDR §3.1).
@@ -852,6 +861,11 @@ model ReceiptItemClaim {
 // ───────────────────────────────────────────────────────── settlements ──
 
 model Settlement {
+  potId String? @map("pot_id") @db.Uuid
+  pot Pot? @relation(fields: [potId], references: [id], onDelete: Restrict)
+  reference String?
+  referenceSource SettlementReferenceSource? @map("reference_source")
+
   id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   groupId          String           @map("group_id") @db.Uuid
   fromMemberId     String           @map("from_member_id") @db.Uuid
@@ -893,6 +907,7 @@ model Settlement {
   @@index([toMemberId])
   @@map("settlements")
   @@schema("public")
+  @@index([potId])
 }
 
 /// Partial / per-expense settlement — the 985-vote gap (ADR-007).
@@ -2984,5 +2999,52 @@ model WavesRecurringAuthoring {
 
   @@id([txid, memberId])
   @@map("waves_recurring_authoring")
+  @@schema("public")
+}
+
+
+enum PotStatus {
+  open
+  closed
+  carried
+
+  @@schema("public")
+}
+
+enum SettlementReferenceSource {
+  self
+  sms
+  statement
+  intent
+
+  @@schema("public")
+}
+
+model Pot {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId               String    @map("group_id") @db.Uuid
+  name                  String
+  currency              String    @db.Char(3)
+  perHeadMinor          BigInt    @map("per_head_minor")
+  treasurerMemberId     String    @map("treasurer_member_id") @db.Uuid
+  status                PotStatus @default(open)
+  carriedFromPotId      String?   @unique @map("carried_from_pot_id") @db.Uuid
+  createdBy             String    @map("created_by") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  closedAt              DateTime? @map("closed_at") @db.Timestamptz(6)
+  payCode               String    @unique @default(dbgenerated("replace((gen_random_uuid())::text, '-'::text, ''::text)")) @map("pay_code")
+  clientMutationId      String?   @unique @map("client_mutation_id") @db.Uuid
+  closeClientMutationId String?   @unique @map("close_client_mutation_id") @db.Uuid
+
+  group        Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  treasurer    GroupMember @relation("PotTreasurer", fields: [treasurerMemberId], references: [id], onDelete: Restrict)
+  creator      GroupMember @relation("PotCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  carriedFrom  Pot?        @relation("PotCarry", fields: [carriedFromPotId], references: [id], onDelete: Restrict)
+  carriedTo    Pot?        @relation("PotCarry")
+  expenses     ExpenseVersion[]
+  settlements  Settlement[]
+
+  @@index([groupId])
+  @@map("pots")
   @@schema("public")
 }
