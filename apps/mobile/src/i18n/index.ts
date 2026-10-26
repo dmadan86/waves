@@ -2360,6 +2360,7 @@ export interface UiStrings {
     onlyViewer: string;
     onlyViewerDialog: string;
     banner: PluralForms;
+    bannerExplainer: PluralForms;
     decide: string;
     keepAsIs: string;
     offline: string;
@@ -8076,6 +8077,10 @@ const en: UiStrings = {
       one: '{name} left · {n} expense still includes them',
       other: '{name} left · {n} expenses still include them',
     },
+    bannerExplainer: {
+      one: 'This expense was added before {name} left the group.',
+      other: 'These expenses were added before {name} left the group.',
+    },
     decide: 'Decide',
     keepAsIs: 'Keep as is',
     offline: 'Connect to the internet to move these expenses.',
@@ -13352,6 +13357,10 @@ const ta: UiStrings = {
     banner: {
       one: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
       other: '{name} வெளியேறினார் · {n} செலவுகளில் இன்னும் உள்ளார்',
+    },
+    bannerExplainer: {
+      one: '{name} குழுவிலிருந்து வெளியேறும் முன் இந்தச் செலவு சேர்க்கப்பட்டது.',
+      other: '{name} குழுவிலிருந்து வெளியேறும் முன் இந்தச் செலவுகள் சேர்க்கப்பட்டன.',
     },
     decide: 'முடிவுசெய்',
     keepAsIs: 'அப்படியே வைத்திரு',
@@ -18751,6 +18760,10 @@ const hi: UiStrings = {
       one: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
       other: '{name} जा चुके हैं · {n} खर्चों में अभी भी शामिल हैं',
     },
+    bannerExplainer: {
+      one: '{name} के समूह छोड़ने से पहले यह खर्च जोड़ा गया था।',
+      other: '{name} के समूह छोड़ने से पहले ये खर्च जोड़े गए थे।',
+    },
     decide: 'तय करें',
     keepAsIs: 'ऐसे ही रखें',
     offline: 'इन खर्चों को बदलने के लिए इंटरनेट से जुड़ें।',
@@ -24096,6 +24109,10 @@ const ar: UiStrings = {
     banner: {
       one: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
       other: 'غادر {name} · لا يزال مشمولًا في {n} مصاريف',
+    },
+    bannerExplainer: {
+      one: 'أُضيف هذا المصروف قبل مغادرة {name} المجموعة.',
+      other: 'أُضيفت هذه المصاريف قبل مغادرة {name} المجموعة.',
     },
     decide: 'تقرير',
     keepAsIs: 'إبقاء كما هو',
