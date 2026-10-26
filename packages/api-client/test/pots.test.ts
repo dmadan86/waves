@@ -108,6 +108,18 @@ describe('pot API', () => {
     ]);
     expect(from).not.toHaveBeenCalled();
   });
+  it('passes optional public UTRs to the RPC', async () => {
+    const { api, rpc } = fixture();
+    rpc.mockResolvedValue({ data: true, error: null });
+    expect(await api.potPaySelfReport('code', 'Ravi')).toBe(true);
+    expect(await api.potPaySelfReport('code', 'Ravi', null)).toBe(true);
+    expect(await api.potPaySelfReport('code', 'Ravi', '')).toBe(true);
+    expect(rpc.mock.calls).toEqual([
+      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: null }],
+      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: null }],
+      ['pot_pay_self_report', { code: 'code', payer_name: 'Ravi', utr: '' }],
+    ]);
+  });
   it('propagates authorization failures', async () => {
     const { rpc, api, query } = fixture();
     rpc.mockResolvedValue({ data: null, error: { message: 'FORBIDDEN' } });
