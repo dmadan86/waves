@@ -20,6 +20,7 @@ import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@w
 import { sanitiseMinorInput } from '@waves/core';
 import { Card, Divider, IconButton, iconSize, Text, useTheme } from '@waves/ui';
 
+import { isFinalAgentTextAnswer } from '@/lib/voiceAnswerFollowUps';
 import { DraftRow } from '@/components/voice/DraftRow';
 import { useReportFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 
@@ -94,6 +95,8 @@ export interface VoiceAgentPanelProps {
   onClose: () => void;
   /** Speak another command on this same screen, after a save. */
   onAddAnother?: () => void;
+  onAskAgain?: () => void;
+  renderAnswerFollowUps?: () => ReactNode;
   /**
    * What the person sees after a single expense is saved, in place of the
    * follow-up questions. The screen passes this for a Free account (the Pro
@@ -176,6 +179,8 @@ export function VoiceAgentPanel({
   onClose,
   renderAfterSave,
   onAddAnother,
+  onAskAgain,
+  renderAnswerFollowUps,
   onResolved,
   onSavedBarEvent,
   onStage,
@@ -291,24 +296,28 @@ export function VoiceAgentPanel({
           },
         }
       : undefined;
-  const spec: FooterSpec = savedFollowUp
-    ? { primary: { label: t.voiceScreen.done, onPress: onClose }, secondary: another(false) }
-    : plan?.clarify || solo
-      ? {}
-      : footer.kind === 'add'
-        ? {
-            primary: {
-              label: footer.count > 1 ? t.voiceScreen.addAll : t.voiceScreen.addExpense,
-              disabled: footer.disabled,
-              onPress: () => setConfirmAllSeq((current) => current + 1),
-            },
-          }
-        : footer.kind === 'done'
-          ? {
-              primary: { label: t.voiceScreen.done, onPress: finish },
-              secondary: footer.addAnother ? another(true) : undefined,
-            }
-          : {};
+  const finalTextAnswer = isFinalAgentTextAnswer(plan);
+  const spec: FooterSpec =
+    finalTextAnswer && onAskAgain
+      ? { primary: { label: t.voiceScreen.askSomethingElse, onPress: onAskAgain } }
+      : savedFollowUp
+        ? { primary: { label: t.voiceScreen.done, onPress: onClose }, secondary: another(false) }
+        : plan?.clarify || solo
+          ? {}
+          : footer.kind === 'add'
+            ? {
+                primary: {
+                  label: footer.count > 1 ? t.voiceScreen.addAll : t.voiceScreen.addExpense,
+                  disabled: footer.disabled,
+                  onPress: () => setConfirmAllSeq((current) => current + 1),
+                },
+              }
+            : footer.kind === 'done'
+              ? {
+                  primary: { label: t.voiceScreen.done, onPress: finish },
+                  secondary: footer.addAnother ? another(true) : undefined,
+                }
+              : {};
   useReportFooter(solo && !savedFollowUp ? undefined : onFooter, spec);
 
   // The stage above already says "Understanding…" with its busy mic: no second wait.
@@ -424,6 +433,8 @@ export function VoiceAgentPanel({
           <Text variant="subheading">{plan.answer}</Text>
         </Card>
       ) : null}
+
+      {finalTextAnswer ? renderAnswerFollowUps?.() : null}
 
       {/* A question open means nothing else is shown until it is answered. */}
       {!plan.clarify && plan.cards.some((card) => statusOf(card.key) !== 'discarded') ? (

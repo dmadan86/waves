@@ -35,6 +35,24 @@ const confident = (transcript: string, context: FastPathContext = base): boolean
   localParseIsConfident(parseLocally(transcript, context), context);
 
 describe('localParseIsConfident: confident', () => {
+  it('answers overall owed questions locally, including when opened in a group', () => {
+    for (const transcript of [
+      'Who owes me?',
+      'Who do I owe?',
+      'how much do I owe',
+      'How much am I owed overall?',
+    ]) {
+      for (const context of [base, { ...base, currentGroupId: 'g-goa' }]) {
+        expect(verdict(transcript, context)).toEqual({
+          confident: true,
+          reason: 'balance-overall',
+        });
+      }
+    }
+    const context = { ...base, groups: [{ id: 'g-overall', name: 'overall' }] };
+    expect(verdict('How much am I owed overall?', context).reason).not.toBe('balance-overall');
+  });
+
   it('a single expense with a named group and named people', () => {
     expect(verdict('I paid 1200 for dinner in Goa Trip split with Ravi and Anu')).toEqual({
       confident: true,
@@ -119,7 +137,6 @@ describe('localParseIsConfident: not confident', () => {
 
   it('a question with the names missing', () => {
     expect(confident('how much does Dev owe me')).toBe(false);
-    expect(confident('how much do I owe')).toBe(false);
   });
 
   it('a balance question about someone with no single contact', () => {

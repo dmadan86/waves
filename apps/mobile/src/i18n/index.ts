@@ -1420,6 +1420,9 @@ export interface UiStrings {
   };
   /** The Speak-an-expense capture surface (voice.tsx, VoiceCapture). */
   voiceScreen: {
+    askSomethingElse: string;
+    askWhoOwes: string;
+    askWhoIOwe: string;
     headline: string;
     subline: string;
     statusReady: string;
@@ -7210,6 +7213,9 @@ const en: UiStrings = {
     typingOffline: 'Typing needs a connection',
   },
   voiceScreen: {
+    askSomethingElse: 'Ask something else',
+    askWhoOwes: 'Who owes me?',
+    askWhoIOwe: 'Who do I owe?',
     headline: 'Just say it naturally',
     subline: 'I’ll understand and organize it for you.',
     statusReady: 'Tap and speak',
@@ -12409,6 +12415,9 @@ const ta: UiStrings = {
     typingOffline: 'தட்டச்சு செய்ய இணைப்பு தேவை',
   },
   voiceScreen: {
+    askSomethingElse: 'வேறு ஏதாவது கேளுங்கள்',
+    askWhoOwes: 'எனக்கு யார் பணம் தர வேண்டும்?',
+    askWhoIOwe: 'நான் யாருக்குப் பணம் தர வேண்டும்?',
     headline: 'இயல்பாகச் சொல்லுங்கள்',
     subline: 'நான் புரிந்துகொண்டு உங்கள் செலவை ஒழுங்குபடுத்துகிறேன்.',
     statusReady: 'தட்டிப் பேசுங்கள்',
@@ -17767,6 +17776,9 @@ const hi: UiStrings = {
     typingOffline: 'टाइप करने के लिए कनेक्शन चाहिए',
   },
   voiceScreen: {
+    askSomethingElse: 'कुछ और पूछें',
+    askWhoOwes: 'मेरा पैसा किस पर बाकी है?',
+    askWhoIOwe: 'मुझे किसे पैसे देने हैं?',
     headline: 'बस सहज रूप से बोलिए',
     subline: 'मैं समझकर आपका खर्च व्यवस्थित कर दूँगा।',
     statusReady: 'टैप करें और बोलें',
@@ -23036,6 +23048,9 @@ const ar: UiStrings = {
     typingOffline: 'الكتابة تحتاج إلى اتصال',
   },
   voiceScreen: {
+    askSomethingElse: 'اسأل عن شيء آخر',
+    askWhoOwes: 'من يدين لي؟',
+    askWhoIOwe: 'لمن أدين؟',
     headline: 'قلها ببساطة',
     subline: 'سأفهم مصروفك وأنظّمه.',
     statusReady: 'اضغط وتحدّث',

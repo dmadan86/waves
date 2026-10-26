@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -20,7 +20,7 @@ import {
   VOICE_AGENT_FREE_MONTHLY,
   VOICE_AGENT_PRO_MONTHLY,
 } from '@waves/core';
-import { iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { iconSize, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
 import { PlainHeader } from '@/components/standard/PlainHeader';
@@ -65,6 +65,7 @@ export default function UpgradeScreen() {
     return () => quietAdsFor();
   }, []);
   const theme = useTheme();
+  const clearance = useTabBarClearance();
   const { t, language } = useStrings();
   const toast = useToast();
   const entitlement = useEntitlement();
@@ -211,14 +212,16 @@ export default function UpgradeScreen() {
   ];
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    // PlainHeader already supplies the top safe-area inset.
+    <Screen edges={Platform.OS === 'android' ? ['bottom'] : ['top', 'bottom']}>
       <PlainHeader title={t.planScreen.title} />
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.lg,
+          paddingTop: Platform.OS === 'android' ? theme.spacing.sm : 0,
+          paddingBottom: Platform.OS === 'android' ? clearance : theme.spacing.lg,
           gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
@@ -353,7 +356,8 @@ export default function UpgradeScreen() {
             shadowOpacity: theme.scheme !== 'dark' ? 0.1 : 0,
             shadowRadius: 16,
             shadowOffset: { width: 0, height: 4 },
-            elevation: 3,
+            // Android elevation leaves a box behind the translucent gradient.
+            elevation: Platform.OS === 'android' ? 0 : 3,
           }}
         >
           <LinearGradient

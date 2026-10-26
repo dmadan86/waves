@@ -12,7 +12,8 @@ export type AdPlacement =
   | 'quota_rewarded'
   | 'credit_voluntary'
   | 'credit_offer'
-  | 'review_banner';
+  | 'review_banner'
+  | 'home_banner';
 export type AdEventOutcome =
   | 'shown'
   | 'completed'
