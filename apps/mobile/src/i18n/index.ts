@@ -2331,6 +2331,20 @@ export interface UiStrings {
   };
   /** The Activity screen: its subtitle, filter chips and row menu. */
   departedExpenses: {
+    all: string;
+    youLent: string;
+    youOwe: string;
+    selectAll: string;
+    dateNewest: string;
+    dateOldest: string;
+    amountSort: string;
+    equalShare: string;
+    customShare: string;
+    paidBy: string;
+    selectedShares: string;
+    splitOthers: string;
+    expenseCount: PluralForms;
+    isOwed: PluralForms;
     title: string;
     owed: PluralForms;
     equal: PluralForms;
@@ -8018,6 +8032,24 @@ const en: UiStrings = {
     settlesWith: 'Settles with {rails}',
   },
   departedExpenses: {
+    all: 'All',
+    youLent: 'You lent to {name}',
+    youOwe: 'You owe {name}',
+    selectAll: 'Select all ({n})',
+    dateNewest: 'Date (newest)',
+    dateOldest: 'Date (oldest)',
+    amountSort: 'Amount',
+    equalShare: 'Split equally · their share {amount}',
+    customShare: 'Custom split · their share {amount}',
+    paidBy: 'Paid by {name}',
+    selectedShares: '{n} selected · {amount} of their shares',
+    splitOthers: 'Split among others',
+    expenseCount: { one: '{n} expense', other: '{n} expenses' },
+    isOwed: {
+      one: '{name} is owed {amount} across {n} expense',
+      other: '{name} is owed {amount} across {n} expenses',
+    },
+
     title: "{name}'s expenses",
     owed: {
       one: '{name} owes {amount} across {n} expense',
@@ -13277,6 +13309,24 @@ const ta: UiStrings = {
     settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
   },
   departedExpenses: {
+    all: 'அனைத்தும்',
+    youLent: 'நீங்கள் {name}க்கு கொடுத்தது',
+    youOwe: 'நீங்கள் {name}க்கு கொடுக்க வேண்டியது',
+    selectAll: 'அனைத்தையும் தேர்ந்தெடு ({n})',
+    dateNewest: 'தேதி (புதியவை)',
+    dateOldest: 'தேதி (பழையவை)',
+    amountSort: 'தொகை',
+    equalShare: 'சமப் பங்கீடு · அவரின் பங்கு {amount}',
+    customShare: 'தனிப்பயன் பங்கீடு · அவரின் பங்கு {amount}',
+    paidBy: '{name} செலுத்தியது',
+    selectedShares: '{n} தேர்வு · அவரின் பங்குகள் {amount}',
+    splitOthers: 'மற்றவர்களிடையே பிரி',
+    expenseCount: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    isOwed: {
+      one: '{n} செலவில் {name}க்கு வர வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name}க்கு வர வேண்டியது {amount}',
+    },
+
     title: '{name} செலவுகள்',
     owed: {
       one: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
@@ -18657,6 +18707,24 @@ const hi: UiStrings = {
     settlesWith: '{rails} से हिसाब होता है',
   },
   departedExpenses: {
+    all: 'सभी',
+    youLent: 'आपने {name} को दिए',
+    youOwe: 'आपको {name} को देने हैं',
+    selectAll: 'सभी चुनें ({n})',
+    dateNewest: 'तारीख (नई पहले)',
+    dateOldest: 'तारीख (पुरानी पहले)',
+    amountSort: 'राशि',
+    equalShare: 'बराबर बँटवारा · उनका हिस्सा {amount}',
+    customShare: 'कस्टम बँटवारा · उनका हिस्सा {amount}',
+    paidBy: '{name} ने चुकाया',
+    selectedShares: '{n} चुने · उनके हिस्सों के {amount}',
+    splitOthers: 'बाकी लोगों में बाँटें',
+    expenseCount: { one: '{n} खर्च', other: '{n} खर्च' },
+    isOwed: {
+      one: '{n} खर्च में {name} को {amount} मिलने हैं',
+      other: '{n} खर्चों में {name} को {amount} मिलने हैं',
+    },
+
     title: '{name} के खर्च',
     owed: {
       one: '{n} खर्चों में {name} को {amount} देना है',
@@ -23982,6 +24050,24 @@ const ar: UiStrings = {
     settlesWith: 'التسوية عبر {rails}',
   },
   departedExpenses: {
+    all: 'الكل',
+    youLent: 'أقرضت {name}',
+    youOwe: 'عليك دفعه إلى {name}',
+    selectAll: 'تحديد الكل ({n})',
+    dateNewest: 'التاريخ (الأحدث)',
+    dateOldest: 'التاريخ (الأقدم)',
+    amountSort: 'المبلغ',
+    equalShare: 'تقسيم بالتساوي · حصته {amount}',
+    customShare: 'تقسيم مخصص · حصته {amount}',
+    paidBy: 'دفعه {name}',
+    selectedShares: 'تم تحديد {n} · حصصه {amount}',
+    splitOthers: 'تقسيم بين الآخرين',
+    expenseCount: { one: 'مصروف واحد ({n})', other: '{n} مصروفات' },
+    isOwed: {
+      one: 'يستحق {name} مبلغ {amount} عبر مصروف واحد ({n})',
+      other: 'يستحق {name} مبلغ {amount} عبر {n} مصروفات',
+    },
+
     title: 'مصاريف {name}',
     owed: {
       one: 'على {name} مبلغ {amount} عبر {n} مصاريف',

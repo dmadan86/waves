@@ -3,6 +3,11 @@ import { computeShares, type SplitParams } from '@waves/core';
 import type { Expense } from '../src/lib/departedExpenses';
 import {
   buildResplitItem,
+  departedCategoryCounts,
+  departedExpenseTotals,
+  departedPairSummary,
+  selectedDepartedCandidates,
+  sortDepartedExpenses,
   classifyDepartedExpenses,
   summarizeDepartedExpenses,
 } from '../src/lib/departedExpenses';
@@ -108,5 +113,168 @@ describe('departed expenses', () => {
       ]),
     );
     expect(result.amount).toBe(101n);
+  });
+});
+
+describe('departed screen calculations', () => {
+  it('starts empty and selects only live candidates that have remaining participants', () => {
+    const equal = expense('equal');
+    const custom = expense('custom', { kind: 'exact', amounts: { a: 21n, b: 40n, c: 40n } });
+    const alone = expense('alone', { kind: 'equal' }, ['a']);
+    const paid = expense('paid', { kind: 'equal' }, ['a', 'b'], 'a');
+    const classified = classifyDepartedExpenses([equal, custom, alone, paid], 'a');
+    const candidates = [...classified.equal, ...classified.custom];
+    expect(selectedDepartedCandidates(candidates, new Set())).toEqual([]);
+    const selected = selectedDepartedCandidates(
+      candidates,
+      new Set(['custom', 'alone', 'paid', 'stale']),
+    );
+    expect(selected.map((candidate) => candidate.expense.id)).toEqual(['custom']);
+    expect(
+      summarizeDepartedExpenses(
+        selected.map((candidate) => candidate.expense),
+        'a',
+      ).totals.get('INR'),
+    ).toBe(21n);
+    expect(selected.map((candidate) => buildResplitItem(candidate, 'a')!.expense_id)).toEqual([
+      'custom',
+    ]);
+    expect(
+      selectedDepartedCandidates(
+        candidates,
+        new Set(candidates.map((candidate) => candidate.expense.id)),
+      ),
+    ).toHaveLength(2);
+  });
+
+  it('counts present categories including paid bills, ignoring missing and deleted versions', () => {
+    const food = expense('food');
+    food.currentVersion!.category = 'food';
+    const paid = expense('paid', { kind: 'equal' }, ['a', 'b'], 'a');
+    paid.currentVersion!.category = 'food';
+    expect(
+      departedCategoryCounts([
+        food,
+        paid,
+        expense(),
+        { ...expense(), deleted_at: 'today' },
+        { ...expense(), currentVersion: null },
+      ]),
+    ).toEqual(
+      new Map([
+        ['food', 2],
+        ['other', 1],
+      ]),
+    );
+  });
+
+  it('sorts dates in both directions and bigint amounts without mutating input', () => {
+    const early = expense('early');
+    const late = expense('late');
+    const large = expense('large');
+    early.currentVersion!.expense_date = '2026-10-14';
+    late.currentVersion!.expense_date = '2026-10-26';
+    large.currentVersion!.expense_date = '2026-10-25';
+    large.currentVersion!.amount = '900719925474099300';
+    const input = [early, late, large];
+    expect(sortDepartedExpenses(input, 'newest').map((row) => row.id)).toEqual([
+      'late',
+      'large',
+      'early',
+    ]);
+    expect(sortDepartedExpenses(input, 'oldest').map((row) => row.id)).toEqual([
+      'early',
+      'large',
+      'late',
+    ]);
+    expect(sortDepartedExpenses(input, 'amount').map((row) => row.id)).toEqual([
+      'large',
+      'late',
+      'early',
+    ]);
+    expect(input.map((row) => row.id)).toEqual(['early', 'late', 'large']);
+    expect(
+      sortDepartedExpenses(
+        [
+          { ...early, deleted_at: 'today' },
+          { ...late, currentVersion: null },
+        ],
+        'amount',
+      ),
+    ).toEqual([]);
+  });
+
+  it('summarizes only the viewer pair, keeping both directions and currencies separate', () => {
+    const lent = expense('lent', { kind: 'exact', amounts: { a: 21n, b: 80n } }, ['a', 'b'], 'b');
+    const owe = expense('owe', { kind: 'exact', amounts: { a: 61n, b: 40n } }, ['a', 'b'], 'a');
+    const unrelated = expense('unrelated', { kind: 'equal' }, ['a'], 'c');
+    const usd = expense('usd', { kind: 'equal' }, ['a'], 'b', 'USD');
+    const result = departedPairSummary(
+      [lent, owe, unrelated, usd, { ...lent, deleted_at: 'today' }],
+      'a',
+      'b',
+    );
+    expect(result.lent).toEqual({
+      totals: new Map([
+        ['INR', 21n],
+        ['USD', 101n],
+      ]),
+      count: 2,
+    });
+    expect(result.owe).toEqual({ totals: new Map([['INR', 40n]]), count: 1 });
+    expect(result.net).toEqual(
+      new Map([
+        ['INR', 82n],
+        ['USD', 101n],
+      ]),
+    );
+    expect(departedPairSummary([owe], 'a', 'b').net.get('INR')).toBe(-40n);
+    expect(departedPairSummary([unrelated], 'a', 'b').lent.count).toBe(0);
+  });
+
+  it('uses stored FX for summary, selected shares, and section totals', () => {
+    const bill = expense('usd', { kind: 'equal' }, ['a'], 'b', 'USD');
+    bill.currentVersion!.fx = {
+      from: 'USD',
+      to: 'INR',
+      num: '80',
+      den: '1',
+      ts: '2026-10-26T00:00:00Z',
+      source: 'manual',
+    };
+    const group = { default_currency: 'INR', convert_to_group_currency: true };
+    expect(departedPairSummary([bill], 'a', 'b', group).lent.totals).toEqual(
+      new Map([['INR', 8080n]]),
+    );
+    expect(summarizeDepartedExpenses([bill], 'a', group).totals).toEqual(new Map([['INR', 8080n]]));
+    expect(departedExpenseTotals([bill], group)).toEqual(new Map([['INR', 8080n]]));
+    expect(departedExpenseTotals([bill], { ...group, convert_to_group_currency: false })).toEqual(
+      new Map([['USD', 101n]]),
+    );
+  });
+
+  it('uses real net edges for co-payers rather than attributing their entire share to the viewer', () => {
+    const bill = expense('co', { kind: 'exact', amounts: { a: 61n, b: 40n } }, ['a', 'b'], 'b');
+    bill.currentVersion!.payers = [
+      { member_id: 'a', amount: '21' },
+      { member_id: 'b', amount: '80' },
+    ];
+    const result = departedPairSummary([bill], 'a', 'b');
+    expect(result.lent.totals.get('INR')).toBe(40n);
+    expect(result.lent.count).toBe(1);
+    expect(result.owe.count).toBe(0);
+    expect(result.net.get('INR')).toBe(40n);
+  });
+
+  it('totals complete bills separately from selected shares and excludes deleted bills', () => {
+    const bill = expense();
+    expect(
+      departedExpenseTotals([
+        bill,
+        { ...bill, deleted_at: 'today' },
+        { ...bill, currentVersion: null },
+      ]),
+    ).toEqual(new Map([['INR', 101n]]));
+    expect(summarizeDepartedExpenses([bill], 'a').amount).toBeLessThan(101n);
   });
 });

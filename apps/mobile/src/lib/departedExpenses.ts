@@ -1,5 +1,6 @@
 import {
   computeShares,
+  pairwiseForExpense,
   parseSplitParams,
   serialiseSplitParams,
   toLedgerSnapshots,
@@ -158,4 +159,87 @@ export function summarizeDepartedExpenses(
   }
   const currency = group?.default_currency ?? totals.keys().next().value ?? 'INR';
   return { totals, count, currency, amount: totals.get(currency) ?? 0n };
+}
+
+export type DepartedSort = 'newest' | 'oldest' | 'amount';
+
+export function selectedDepartedCandidates(
+  candidates: readonly Candidate[],
+  ids: ReadonlySet<string>,
+) {
+  return candidates.filter(
+    (candidate) => !candidate.noneRemaining && ids.has(candidate.expense.id),
+  );
+}
+
+export function departedCategoryCounts(expenses: readonly Expense[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const expense of expenses) {
+    if (expense.deleted_at || !expense.currentVersion) continue;
+    const category = expense.currentVersion.category ?? 'other';
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+  return counts;
+}
+
+export function sortDepartedExpenses(expenses: readonly Expense[], sort: DepartedSort): Expense[] {
+  return expenses
+    .filter((expense) => !expense.deleted_at && expense.currentVersion)
+    .sort((a, b) => {
+      const av = a.currentVersion!;
+      const bv = b.currentVersion!;
+      if (sort === 'amount') {
+        // Amounts in unrelated currencies cannot be compared.
+        const currency = av.currency.localeCompare(bv.currency);
+        if (currency) return currency;
+        const aa = BigInt(av.amount);
+        const ba = BigInt(bv.amount);
+        if (aa !== ba) return aa > ba ? -1 : 1;
+      }
+      return (
+        (sort === 'oldest' ? 1 : -1) * av.expense_date.localeCompare(bv.expense_date) ||
+        a.id.localeCompare(b.id)
+      );
+    });
+}
+
+/** Gross pair directions across these bills, before settlements; currencies follow group FX. */
+export function departedPairSummary(
+  expenses: readonly Expense[],
+  memberId: string,
+  viewerId: string,
+  group?: { default_currency: string; convert_to_group_currency?: boolean } | null,
+) {
+  const lent = { totals: new Map<string, bigint>(), count: 0 };
+  const owe = { totals: new Map<string, bigint>(), count: 0 };
+  const net = new Map<string, bigint>();
+  for (const row of toLedgerSnapshots(expenses.map(toExpenseSnapshot), group)) {
+    if (row.deletedAt) continue;
+    const debt = (row.shares[memberId] ?? 0n) - (row.payers[memberId] ?? 0n);
+    net.set(row.currency, (net.get(row.currency) ?? 0n) + debt);
+    for (const edge of pairwiseForExpense(row)) {
+      const side =
+        edge.from === memberId && edge.to === viewerId
+          ? lent
+          : edge.from === viewerId && edge.to === memberId
+            ? owe
+            : null;
+      if (!side) continue;
+      side.totals.set(row.currency, (side.totals.get(row.currency) ?? 0n) + edge.amount);
+      side.count += 1;
+    }
+  }
+  return { lent, owe, net };
+}
+
+export function departedExpenseTotals(
+  expenses: readonly Expense[],
+  group?: { default_currency: string; convert_to_group_currency?: boolean } | null,
+): Map<string, bigint> {
+  const totals = new Map<string, bigint>();
+  for (const row of toLedgerSnapshots(expenses.map(toExpenseSnapshot), group)) {
+    if (row.deletedAt) continue;
+    totals.set(row.currency, (totals.get(row.currency) ?? 0n) + row.amount);
+  }
+  return totals;
 }
