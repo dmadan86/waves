@@ -1638,6 +1638,7 @@ model AdRewardSettings {
   scansPerAd               Int     @default(2) @map("scans_per_ad")
   dailyCap                 Int     @default(3) @map("daily_cap")
   minAccountAgeDays        Int     @default(7) @map("min_account_age_days")
+  nativeDailyCap           Int?    @map("native_daily_cap")
   bannerMinAccountAgeDays  Int     @default(15) @map("banner_min_account_age_days")
   gapMin                   Int     @default(3) @map("gap_min")
   gapMax                   Int     @default(5) @map("gap_max")

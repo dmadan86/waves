@@ -1,11 +1,24 @@
-export const NATIVE_DAILY_CAP = 3;
-export function nativeCapacityAvailable(impressions: number, pending: number): boolean {
+type NativeGate = {
+  enabled?: boolean;
+  nativeDailyCap?: number | null;
+  settings?: { native_daily_cap?: number | null };
+};
+export function nativeDailyCap(gate: NativeGate | null | undefined): number | null | undefined {
+  return gate?.settings?.native_daily_cap !== undefined
+    ? gate.settings.native_daily_cap
+    : gate?.nativeDailyCap;
+}
+export function nativeCapacityAvailable(
+  impressions: number,
+  pending: number,
+  cap?: number | null,
+): boolean {
   return (
     Number.isInteger(impressions) &&
     impressions >= 0 &&
     Number.isInteger(pending) &&
     pending >= 0 &&
-    impressions + pending < NATIVE_DAILY_CAP
+    (cap == null || impressions + pending < cap)
   );
 }
 export function nativePositions(count: number, seed: string): number[] {
@@ -28,16 +41,14 @@ export function nativePositions(count: number, seed: string): number[] {
 export function nativeEligible(
   signedIn: boolean,
   enabled: boolean,
-  gate: { enabled?: boolean } | null | undefined,
+  gate: NativeGate | null | undefined,
   impressions: number,
 ): boolean {
   return (
     signedIn &&
     enabled &&
     gate?.enabled === true &&
-    Number.isInteger(impressions) &&
-    impressions >= 0 &&
-    impressions < NATIVE_DAILY_CAP
+    nativeCapacityAvailable(impressions, 0, nativeDailyCap(gate))
   );
 }
 export function nativeUnitId(

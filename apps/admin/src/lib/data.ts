@@ -1544,6 +1544,7 @@ export interface AdGateSettings extends CreditSettings {
   cooldown_seconds: number;
   interstitial_daily_cap: number;
   banner_min_account_age_days: number;
+  native_daily_cap: number | null;
   grace_days: number;
   grace_expenses: number;
   rewarded_quiet_seconds: number;
@@ -1567,8 +1568,11 @@ export async function saveAdGateSettings(settings: AdGateSettings): Promise<void
   validateCreditSettings(settings);
   if (settings.banner_min_account_age_days > 365)
     throw new Error('Banner minimum account age must not exceed 365 days.');
+  if (settings.native_daily_cap != null && settings.native_daily_cap > 100)
+    throw new Error('Native ads per day must not exceed 100.');
   for (const [key, value] of Object.entries(settings)) {
-    if (key === 'interstitial_video_enabled') continue;
+    if (key === 'interstitial_video_enabled' || (key === 'native_daily_cap' && value === null))
+      continue;
     if (!Number.isSafeInteger(value) || value < 0)
       throw new Error('Use non-negative whole numbers.');
   }

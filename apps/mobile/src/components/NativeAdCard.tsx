@@ -14,18 +14,23 @@ import { loadAdsSdk } from '@/lib/adsSdk';
 import { readGateStatus } from '@/lib/adGates';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
-import { nativeEligible, nativeUnitId, nativeCapacityAvailable } from '@/lib/nativeAdsPure';
+import {
+  nativeEligible,
+  nativeUnitId,
+  nativeCapacityAvailable,
+  nativeDailyCap,
+} from '@/lib/nativeAdsPure';
 
 // Pending ads reserve capacity only in memory; only SDK impressions survive remounts.
 let counterQueue = Promise.resolve();
 const pending = new Map<string, number>();
-async function reserve(profileId: string) {
+async function reserve(profileId: string, cap?: number | null) {
   let reservation: { release(): void; record(): Promise<void> } | undefined;
   const work = counterQueue.then(async () => {
     const key = `waves.nativeImpressions.${profileId}.${new Date().toISOString().slice(0, 10)}`;
     const count = Number((await AsyncStorage.getItem(key)) ?? 0);
     const held = pending.get(key) ?? 0;
-    if (!nativeCapacityAvailable(count, held)) return;
+    if (!nativeCapacityAvailable(count, held, cap)) return;
     pending.set(key, held + 1);
     let released = false;
     const release = () => {
@@ -116,7 +121,7 @@ export function NativeAdCard({
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
         if (cancelled) return;
-        reservation = await reserve(viewerId);
+        reservation = await reserve(viewerId, nativeDailyCap(current));
         if (cancelled || !reservation) {
           reservation?.release();
           return;

@@ -22,6 +22,7 @@ import { runGateAd, prepareInterstitial, type PreparedInterstitial } from '@/lib
 export interface GateStatus {
   enabled: boolean;
   bannerEligible?: boolean;
+  nativeDailyCap?: number | null;
   credits?: number;
   walletCap?: number;
   perAd?: number;
@@ -32,7 +33,10 @@ export interface GateStatus {
   lastAdAt: string | null;
   lastRewardedAt: string | null;
   lastInterstitialAt: string | null;
-  settings: AdPacingSettings & { interstitial_video_enabled?: boolean };
+  settings: AdPacingSettings & {
+    interstitial_video_enabled?: boolean;
+    native_daily_cap?: number | null;
+  };
 }
 export async function readGateStatus(profileId: string): Promise<GateStatus | null> {
   await adTimeout(flushAdEvents(profileId), 500);
