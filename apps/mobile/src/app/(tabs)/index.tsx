@@ -760,9 +760,7 @@ export default function HomeScreen() {
                     );
                   })}
                 </View>
-                {totalGroupCount >= 10 ? (
-                  <NativeAdCard visible rowGap={theme.spacing.sm} />
-                ) : null}
+                {totalGroupCount >= 10 ? <NativeAdCard visible rowGap={theme.spacing.sm} /> : null}
               </ScrollView>
             </View>
           )}
