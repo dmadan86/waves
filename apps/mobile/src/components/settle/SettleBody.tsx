@@ -644,7 +644,12 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
               old illustration and sentence spent 120pt on nothing. */}
         <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
           <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
-          <Text variant="subheading" accessibilityRole="header">
+          <Text
+            variant="caption"
+            tone="muted"
+            accessibilityRole="header"
+            style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
+          >
             {t.misc.settleHistory}
           </Text>
           <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
@@ -766,33 +771,22 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
 
 const HISTORY_PREVIEW = 3;
 
-/** A white card: the one surface every block below the summary sits on. */
+/** A section of compact settlement rows. */
 function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          // Tiles sit 8pt apart, the compact rhythm the design uses.
-          gap: theme.spacing.sm,
-        },
-        theme.shadow.soft,
-      ]}
-    >
-      {children}
-    </View>
-  );
+  return <View style={{ gap: theme.spacing.xs }}>{children}</View>;
 }
 
 /** The card's title; the optional subtitle is only for copy that changes what a row means. */
 function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <View>
-      <Text variant="subheading" accessibilityRole="header">
+      <Text
+        variant="caption"
+        tone="muted"
+        accessibilityRole="header"
+        style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
+      >
         {title}
       </Text>
       {subtitle ? (
@@ -830,7 +824,7 @@ function PayPill({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 32,
-        paddingHorizontal: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.md,
         borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
@@ -845,19 +839,16 @@ function PayPill({
   );
 }
 
-/** The light rounded tile each person or payment sits on inside a card. */
+/** Standard rows, separated by a subtle rule. */
 function Tile({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={{
-        backgroundColor: theme.color.surfaceMuted,
-        borderRadius: theme.radius.md,
-        paddingHorizontal: theme.spacing.md,
-        // Dense (payments, no action button) rows land at 48pt; people rows
-        // keep 56pt, the height of their 40pt avatar plus padding.
-        paddingVertical: dense ? theme.spacing.xs : theme.spacing.sm,
-        minHeight: dense ? 48 : 56,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.color.border,
+        paddingVertical: theme.spacing.sm,
+        minHeight: dense ? 56 : 64,
         justifyContent: 'center',
       }}
     >
@@ -955,17 +946,7 @@ function FilterChip({
   );
 }
 
-/**
- * One person on a settle row, laid out the same for everyone: avatar, then the
- * name with what they owe on the right (one amount per currency, stacked), then
- * a one-line status with the row's one action (a Remind pill) at its end. The
- * action sits on the status line, not the name's, so it never squeezes the name
- * or the amount. The row keeps its old job (mark as received / paid), so the
- * action adds to it rather than replacing it.
- *
- * The status line may wrap when it is long, but it never truncates:
- * "Tap to mark recei…" said nothing.
- */
+/** The row action and reminder stay separate for screen readers. */
 function PersonTile({
   name,
   member,
@@ -1039,13 +1020,13 @@ function PersonTile({
               onPress={onPress}
               style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
             >
-              <Text variant="caption" tone="muted">
+              <Text variant="caption" tone="muted" numberOfLines={1}>
                 {status ?? hint}
               </Text>
             </Pressable>
-            {action}
           </Row>
         </View>
+        {action}
       </Row>
     </Tile>
   );

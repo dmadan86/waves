@@ -1,37 +1,13 @@
-/**
- * The "Got ₹1,602.15 from Renny?" question a Settle up row asks before it
- * writes anything.
- *
- * ## Why this is not `useDialog().confirm`
- *
- * The shared confirm is deliberately generic: a title, a paragraph and two
- * stacked doors, used by forty-odd sites. This one is the app's most-seen
- * money question and the design gives it its own face: an illustration, the
- * person and the amount on a tile, and two side-by-side doors. Bending the
- * shared dialog to carry that would push settle-only layout onto every other
- * caller, so it is built from the same overlay primitive (`Popup`) instead and
- * gets the same scrim tap and Android back behaviour for free.
- *
- * Dismissing it by any route (the X, the scrim, back, "No") is a no, exactly as
- * a declined `confirm` was: nothing is recorded.
- */
+/** Confirm a settlement before recording it. Dismissing records nothing. */
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { CurrencyCode } from '@waves/core';
 import { Button, iconSize, MoneyText, Popup, Row, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
-
-const WALLET_ART = require('../../../assets/images/settle-wallet.webp') as number;
-
-/** Tall enough to read as the hero of the dialog, short enough to stay compact. */
-const ART_HEIGHT = 112;
-/** The wallet art's own proportions (330x176), so it is never stretched. */
-const ART_WIDTH = Math.round((ART_HEIGHT * 330) / 176);
-const BADGE = 40;
 
 export interface SettleConfirmSheetProps {
   visible: boolean;
@@ -92,43 +68,13 @@ export function SettleConfirmSheet({
           <Ionicons name="close" size={iconSize.md} color={theme.color.text} />
         </Pressable>
 
-        {/* Decorative: the title says everything the picture does. The check is
-            drawn over the wallet rather than baked into new art, so the badge
-            takes the theme's own "good" colour. */}
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ width: ART_WIDTH, height: ART_HEIGHT, marginTop: theme.spacing.xs }}
-        >
-          <Image
-            source={WALLET_ART}
-            style={{ width: ART_WIDTH, height: ART_HEIGHT }}
-            resizeMode="contain"
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              alignSelf: 'center',
-              width: BADGE,
-              height: BADGE,
-              borderRadius: BADGE / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.positive,
-              ...theme.shadow.soft,
-            }}
-          >
-            <Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />
-          </View>
-        </View>
-
         <Text
           variant="title"
           accessibilityRole="header"
           style={{
-            fontSize: 22,
-            lineHeight: 28,
+            fontSize: 20,
+            lineHeight: 26,
+            paddingHorizontal: 32,
             textAlign: 'center',
             marginTop: theme.spacing.sm,
           }}
@@ -150,11 +96,11 @@ export function SettleConfirmSheet({
           style={{
             alignSelf: 'stretch',
             gap: theme.spacing.md,
-            marginTop: theme.spacing.lg,
+            marginTop: theme.spacing.md,
             paddingVertical: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.lg,
-            backgroundColor: theme.color.brandSoft,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.color.border,
           }}
         >
           {avatar}
@@ -176,7 +122,7 @@ export function SettleConfirmSheet({
           />
         </Row>
 
-        <Row style={{ alignSelf: 'stretch', gap: theme.spacing.md, marginTop: theme.spacing.lg }}>
+        <Row style={{ alignSelf: 'stretch', gap: theme.spacing.md, marginTop: theme.spacing.md }}>
           <View style={{ flex: 1 }}>
             <Button
               label={t.misc.recordNo}
