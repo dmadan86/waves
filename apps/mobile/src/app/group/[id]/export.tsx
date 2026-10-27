@@ -1,34 +1,14 @@
 import { useAdGate } from '@/lib/useAdGate';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import {
-  ActivityIndicator,
-  I18nManager,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
 
-import {
-  Callout,
-  Card,
-  directionalIcon,
-  Gradient,
-  IconButton,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { Callout, Button, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { useGroup, useGroupLedger } from '@/data/hooks';
 import { memberNameFor } from '@/lib/memberName';
@@ -42,30 +22,29 @@ import {
   type GroupExportSheetLabels,
 } from '@/data/groupExportXlsx';
 import { friendlyError } from '@/lib/errors';
-import { router } from '@/lib/navigation';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { plural, useStrings } from '@/i18n';
-import { TYPE_ICON } from '@/components/invite/inviteCardModel';
+import { readCredits } from '@/lib/adCredits';
+import { exportCreditsLabel } from '@/lib/exportCreditsLabel';
+import { useEntitlement } from '@/lib/useEntitlement';
+import {
+  ListRow,
+  PlainHeader,
+  SectionHeader,
+  SegmentedPills,
+  StandardCard,
+} from '@/components/standard';
 import { useBottomClearance } from '@/lib/clearance';
 
 /** The correct OOXML spreadsheet MIME type + Apple UTI for an .xlsx. */
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const XLSX_UTI = 'org.openxmlformats.spreadsheetml.sheet';
 
-const BANNER = require('../../../../assets/images/export-banner.webp') as number;
-
 enum Format {
   Pdf = 'pdf',
   Excel = 'excel',
 }
-
-// File-type hues for the format cards and the settlements row. The app palette
-// is deliberately green-free, so these are local to this screen.
-const PDF_RED = { fill: '#FDE7E9', ink: '#E5484D' };
-const EXCEL_GREEN = { fill: '#DDF3E4', ink: '#1D7A45' };
-
-const BANNER_HEIGHT = 88;
 
 /** A filesystem-safe slug for the group name, so the shared file is recognisable. */
 function slugify(name: string): string {
@@ -96,6 +75,13 @@ export default function GroupExportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { profile } = useAuth();
+  const { isPaid } = useEntitlement();
+  const wallet = useQuery({
+    queryKey: ['credits', profile?.id],
+    queryFn: readCredits,
+    enabled: !!profile?.id && !isPaid,
+    refetchInterval: 30000,
+  });
   const { blockedIds } = useBlockedUsers();
 
   const { group, members, everyone, expenses, settlements } = useGroup(groupId);
@@ -215,6 +201,7 @@ export default function GroupExportScreen() {
           id: member.id,
           name: memberNameFor(member, {
             viewerId: profile?.id,
+            forExport: true,
             blocked: blockedIds,
             someone: t.misc.someone,
             leftLabel: t.misc.memberLeft,
@@ -317,191 +304,86 @@ export default function GroupExportScreen() {
       setError(friendlyError(caught, t.groupExport.exportFailed, 'groupExport.run'));
     } finally {
       setBusy(false);
+      if (!isPaid) void wallet.refetch();
     }
   };
 
   const memberTotal = (members.data ?? []).length;
   const expenseTotal = expenses.rows.length;
-  const rtl = I18nManager.isRTL;
-  const cardBg = theme.color.surface;
+  const creditLine = exportCreditsLabel(isPaid, wallet.data, t.groupExport.creditUsage);
 
   return (
     <Screen>
       {adGate.sheet}
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <IconButton label={t.common.back} onPress={() => router.back()}>
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />
-        </IconButton>
-        <View style={{ flex: 1 }}>
-          <Text variant="heading">{t.groupExport.title}</Text>
-          <Text variant="caption" tone="muted">
-            {t.groupExport.subtitle}
-          </Text>
-        </View>
-      </Row>
-
+      <PlainHeader title={t.groupExport.title} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
-          paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: theme.spacing.lg,
+          gap: theme.spacing.md,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[{ backgroundColor: cardBg, borderRadius: theme.radius.lg }, theme.shadow.soft]}
-        >
-          <View style={{ borderRadius: theme.radius.lg, overflow: 'hidden' }}>
-            <Image
-              source={BANNER}
-              contentFit="cover"
-              contentPosition="right"
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                end: 0,
-                width: '62%',
-              }}
-            />
-            <LinearGradient
-              colors={[cardBg, `${cardBg}00`]}
-              start={{ x: rtl ? 1 : 0, y: 0 }}
-              end={{ x: rtl ? 0 : 1, y: 0 }}
-              locations={[0.35, 0.95]}
-              style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}
-            />
-            <Row
-              style={{
-                gap: theme.spacing.lg,
-                padding: theme.spacing.lg,
-                minHeight: BANNER_HEIGHT,
-              }}
-            >
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: theme.radius.md,
-                  backgroundColor: theme.color.positiveSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons
-                  name={TYPE_ICON[groupData?.type ?? ''] ?? 'people'}
-                  size={iconSize.xl}
-                  color={theme.color.positive}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="subheading" numberOfLines={1}>
-                  {title}
-                </Text>
-                <Text variant="caption" tone="muted" numberOfLines={1}>
-                  {plural(locale, memberTotal, t.memberCount)}
-                  {' • '}
-                  {plural(locale, expenseTotal, t.importLedger.expenseCount)}
-                </Text>
-              </View>
-            </Row>
-          </View>
-        </View>
-
-        <Text variant="caption" tone="muted">
-          {t.groupExport.intro}
-        </Text>
-
-        <View style={{ gap: theme.spacing.md }}>
-          <Text variant="caption" tone="muted">
-            {t.groupExport.formatLabel}
+        <StandardCard>
+          <Text variant="subheading" numberOfLines={1}>
+            {title}
           </Text>
-          <Row style={{ gap: theme.spacing.md, alignItems: 'stretch' }}>
-            <FormatCard
-              selected={format === Format.Pdf}
-              onPress={() => setFormat(Format.Pdf)}
-              tone={PDF_RED}
-              icon="file-pdf-box"
-              title={t.groupExport.pdf}
-              hint={t.groupExport.pdfHint}
-            />
-            <FormatCard
-              selected={format === Format.Excel}
-              onPress={() => setFormat(Format.Excel)}
-              tone={EXCEL_GREEN}
-              icon="microsoft-excel"
-              title={t.groupExport.excel}
-              hint={t.groupExport.excelHint}
+          <Text variant="caption" tone="muted">
+            {plural(locale, memberTotal, t.memberCount)}
+            {' • '}
+            {plural(locale, expenseTotal, t.importLedger.expenseCount)}
+          </Text>
+        </StandardCard>
+        <View style={{ gap: theme.spacing.sm }}>
+          <SectionHeader title={t.groupExport.formatLabel} />
+          <Row style={{ gap: theme.spacing.sm }}>
+            <SegmentedPills
+              options={[
+                { value: Format.Pdf, label: t.groupExport.pdf },
+                { value: Format.Excel, label: t.groupExport.excel },
+              ]}
+              value={format}
+              onChange={setFormat}
             />
           </Row>
-        </View>
-
-        <View style={{ gap: theme.spacing.md }}>
           <Text variant="caption" tone="muted">
-            {t.groupExport.includeLabel}
+            {format === Format.Pdf ? t.groupExport.pdfHint : t.groupExport.excelHint}
           </Text>
-          <Card padded={false}>
-            <IncludeRow
-              checked={include.balances}
-              onPress={() => toggle('balances')}
-              tone={{ fill: theme.color.brandSoft, ink: theme.color.brand }}
-              icon="people-outline"
-              title={t.groupExport.includeBalances}
-              hint={t.groupExport.includeBalancesHint}
-            />
-            <IncludeRow
-              checked={include.expenses}
-              onPress={() => toggle('expenses')}
-              tone={{ fill: theme.color.positiveSoft, ink: theme.color.positive }}
-              icon="list-outline"
-              title={t.groupExport.includeExpenses}
-              hint={t.groupExport.includeExpensesHint}
-              divided
-            />
-            <IncludeRow
-              checked={include.settlements}
-              onPress={() => toggle('settlements')}
-              tone={EXCEL_GREEN}
-              icon="swap-horizontal"
-              title={t.groupExport.includeSettlements}
-              hint={t.groupExport.includeSettlementsHint}
-              divided
-            />
-          </Card>
         </View>
-
-        <Gradient radius={theme.radius.pill} style={theme.shadow.soft}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.groupExport.generate}
-            accessibilityState={{ disabled: busy || !groupData || nothingIncluded }}
-            disabled={busy || !groupData || nothingIncluded}
-            onPress={() => void run()}
-            style={({ pressed }) => ({
-              minHeight: 56,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-              opacity: busy || !groupData || nothingIncluded ? 0.5 : pressed ? 0.85 : 1,
-            })}
-          >
-            <Ionicons name="document-text-outline" size={iconSize.md} color={theme.color.onBrand} />
-            <Text variant="subheading" tone="onBrand">
-              {busy ? t.groupExport.preparing : t.groupExport.generate}
-            </Text>
-          </Pressable>
-        </Gradient>
-        {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-
+        <View style={{ gap: theme.spacing.sm }}>
+          <SectionHeader title={t.groupExport.includeLabel} />
+          <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+            {(['balances', 'expenses', 'settlements'] as const).map((key) => (
+              <ListRow
+                key={key}
+                compact
+                titleLines={2}
+                title={
+                  key === 'balances'
+                    ? t.groupExport.includeBalances
+                    : key === 'expenses'
+                      ? t.groupExport.includeExpenses
+                      : t.groupExport.includeSettlements
+                }
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: include[key] }}
+                onPress={() => toggle(key)}
+                divider={key !== 'settlements'}
+                trailing={
+                  <Ionicons
+                    name={include[key] ? 'checkbox' : 'square-outline'}
+                    size={iconSize.lg}
+                    color={include[key] ? theme.color.brand : theme.color.textFaint}
+                  />
+                }
+              />
+            ))}
+          </StandardCard>
+        </View>
         {done ? (
-          <Card style={{ gap: theme.spacing.sm }}>
+          <StandardCard style={{ gap: theme.spacing.sm }}>
             <Text variant="subheading" tone="positive">
               {t.groupExport.ready}
             </Text>
@@ -513,173 +395,36 @@ export default function GroupExportScreen() {
                 {t.groupExport.webNote}
               </Text>
             ) : null}
-          </Card>
+          </StandardCard>
         ) : null}
 
         {error ? <Callout tone="negative">{error}</Callout> : null}
       </ScrollView>
-    </Screen>
-  );
-}
-
-interface Tone {
-  readonly fill: string;
-  readonly ink: string;
-}
-
-/** A soft-tinted circle holding a glyph. */
-function TintCircle({ tone, size, children }: { tone: Tone; size: number; children: ReactNode }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: tone.fill,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-/** One of the two side-by-side format cards: purple border + filled tick when picked. */
-function FormatCard({
-  selected,
-  onPress,
-  tone,
-  icon,
-  title,
-  hint,
-}: {
-  selected: boolean;
-  onPress: () => void;
-  tone: Tone;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  title: string;
-  hint: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      accessibilityLabel={title}
-      onPress={onPress}
-      style={[
-        {
-          flex: 1,
-          gap: theme.spacing.xs,
-          padding: theme.spacing.lg,
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1.5,
-          borderColor: selected ? theme.color.brand : theme.color.border,
-        },
-        theme.shadow.soft,
-      ]}
-    >
-      <View style={{ position: 'absolute', top: theme.spacing.md, end: theme.spacing.md }}>
-        {selected ? (
-          <View
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              backgroundColor: theme.color.brand,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="checkmark" size={iconSize.sm} color={theme.color.onBrand} />
-          </View>
-        ) : (
-          <View
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              borderWidth: 1.5,
-              borderColor: theme.color.textFaint,
-            }}
-          />
-        )}
-      </View>
-      <TintCircle tone={tone} size={52}>
-        <MaterialCommunityIcons name={icon} size={30} color={tone.ink} />
-      </TintCircle>
-      <Text variant="subheading" style={{ marginTop: theme.spacing.xs }}>
-        {title}
-      </Text>
-      <Text variant="caption" tone="muted">
-        {hint}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** A row of the "Include" list: tinted icon, title + hint, purple checkbox. */
-function IncludeRow({
-  checked,
-  onPress,
-  tone,
-  icon,
-  title,
-  hint,
-  divided = false,
-}: {
-  checked: boolean;
-  onPress: () => void;
-  tone: Tone;
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  hint: string;
-  divided?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
-      accessibilityLabel={title}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
-        borderTopWidth: divided ? 1 : 0,
-        borderTopColor: theme.color.border,
-      }}
-    >
-      <TintCircle tone={tone} size={40}>
-        <Ionicons name={icon} size={iconSize.md} color={tone.ink} />
-      </TintCircle>
-      <View style={{ flex: 1 }}>
-        <Text variant="subheading">{title}</Text>
-        <Text variant="caption" tone="muted">
-          {hint}
-        </Text>
-      </View>
       <View
         style={{
-          width: 26,
-          height: 26,
-          borderRadius: 7,
-          borderWidth: 1.5,
-          borderColor: checked ? theme.color.brand : theme.color.textFaint,
-          backgroundColor: checked ? theme.color.brand : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: clearance,
+          gap: theme.spacing.sm,
+          borderTopWidth: 1,
+          borderTopColor: theme.color.border,
+          backgroundColor: theme.color.surface,
         }}
       >
-        {checked ? (
-          <Ionicons name="checkmark" size={iconSize.sm} color={theme.color.onBrand} />
+        {creditLine ? (
+          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+            {creditLine}
+          </Text>
         ) : null}
+        <Button
+          label={busy ? t.groupExport.preparing : t.groupExport.generate}
+          variant="brand"
+          fullWidth
+          disabled={busy || !groupData || nothingIncluded}
+          onPress={() => void run()}
+          icon={busy ? <ActivityIndicator color={theme.color.onBrand} /> : undefined}
+        />
       </View>
-    </Pressable>
+    </Screen>
   );
 }

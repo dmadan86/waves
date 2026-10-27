@@ -772,6 +772,7 @@ export interface UiStrings {
    * account-wide data export under Settings.
    */
   groupExport: {
+    creditUsage: string;
     /** Overflow-menu row + screen title. */
     menu: string;
     title: string;
@@ -6609,6 +6610,7 @@ const en: UiStrings = {
     shareTitle: 'Your Waves export',
   },
   groupExport: {
+    creditUsage: '⚡ Uses {cost} credits · you have {balance}',
     menu: 'Export',
     title: 'Export this group',
     intro:
@@ -11807,6 +11809,7 @@ const ta: UiStrings = {
     shareTitle: 'உங்கள் Waves ஏற்றுமதி',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} கிரெடிட்கள் தேவை · உங்களிடம் {balance}',
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
@@ -17186,6 +17189,7 @@ const hi: UiStrings = {
     shareTitle: 'आपका Waves निर्यात',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} क्रेडिट लगेंगे · आपके पास {balance} हैं',
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
@@ -22420,6 +22424,7 @@ const ar: UiStrings = {
     shareTitle: 'تصدير Waves الخاص بك',
   },
   groupExport: {
+    creditUsage: '⚡ يستخدم {cost} رصيدًا · لديك {balance}',
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:

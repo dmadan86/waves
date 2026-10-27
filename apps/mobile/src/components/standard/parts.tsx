@@ -406,7 +406,7 @@ export function ListRow({
   // the control are siblings, so a screen reader can reach both; the whole row
   // is not one big accessible button swallowing it.
   const body =
-    onPress && accessibilityRole === 'radio' ? (
+    onPress && (accessibilityRole === 'radio' || accessibilityRole === 'checkbox') ? (
       <Pressable
         accessibilityRole={accessibilityRole}
         accessibilityState={accessibilityState}

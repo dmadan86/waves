@@ -673,7 +673,12 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
               old illustration and sentence spent 120pt on nothing. */}
         <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
           <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
-          <Text variant="subheading" accessibilityRole="header">
+          <Text
+            variant="caption"
+            tone="muted"
+            accessibilityRole="header"
+            style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
+          >
             {t.misc.settleHistory}
           </Text>
           <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
@@ -795,33 +800,22 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
 
 const HISTORY_PREVIEW = 3;
 
-/** A white card: the one surface every block below the summary sits on. */
+/** A section of compact settlement rows. */
 function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          // Tiles sit 8pt apart, the compact rhythm the design uses.
-          gap: theme.spacing.sm,
-        },
-        theme.shadow.soft,
-      ]}
-    >
-      {children}
-    </View>
-  );
+  return <View style={{ gap: theme.spacing.xs }}>{children}</View>;
 }
 
 /** The card's title; the optional subtitle is only for copy that changes what a row means. */
 function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <View>
-      <Text variant="subheading" accessibilityRole="header">
+      <Text
+        variant="caption"
+        tone="muted"
+        accessibilityRole="header"
+        style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
+      >
         {title}
       </Text>
       {subtitle ? (
@@ -874,20 +868,16 @@ function PayPill({
   );
 }
 
-/** The light rounded tile each person or payment sits on inside a card. */
+/** Standard rows, separated by a subtle rule. */
 function Tile({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={{
-        backgroundColor: theme.color.surface,
         borderBottomWidth: 1,
         borderBottomColor: theme.color.border,
-        paddingHorizontal: 0,
-        // Dense (payments, no action button) rows land at 48pt; people rows
-        // keep 56pt, the height of their 40pt avatar plus padding.
-        paddingVertical: dense ? theme.spacing.xs : theme.spacing.sm,
-        minHeight: dense ? 48 : 56,
+        paddingVertical: theme.spacing.sm,
+        minHeight: dense ? 56 : 64,
         justifyContent: 'center',
       }}
     >
@@ -985,7 +975,7 @@ function FilterChip({
   );
 }
 
-/** A person's status and amounts, with record/pay and reminder buttons as sibling targets. */
+/** The row action and reminder stay separate for screen readers. */
 function PersonTile({
   name,
   member,
@@ -1020,36 +1010,51 @@ function PersonTile({
   const dim = ({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.7 : 1 });
   return (
     <Tile>
-      <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
         <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          onPress={onPress}
-          style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
-        >
-          <Text variant="subheading" numberOfLines={1}>
-            {name}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {status ?? hint}
-          </Text>
-        </Pressable>
-        <View style={{ alignItems: 'flex-end' }}>
-          {amounts.map((amount) => (
-            <MoneyText
-              key={amount.currency}
-              amount={amount.minor}
-              currency={amount.currency as CurrencyCode}
-              locale={locale}
-              mode="plain"
-              direction={direction}
-              tone="brand"
-              variant="body"
-            />
-          ))}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            onPress={onPress}
+            style={(state) => [
+              { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
+              dim(state),
+            ]}
+          >
+            <Text variant="subheading" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+              {name}
+            </Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              {amounts.map((amount) => (
+                <MoneyText
+                  key={amount.currency}
+                  amount={amount.minor}
+                  currency={amount.currency as CurrencyCode}
+                  locale={locale}
+                  mode="balance"
+                  direction={direction}
+                  // Money owed to me wears the brand colour, as the design has it;
+                  // money I owe keeps the red the rest of the app reads as "out".
+                  tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
+                />
+              ))}
+            </View>
+          </Pressable>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            <Pressable
+              accessible={false}
+              disabled={disabled}
+              onPress={onPress}
+              style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
+            >
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {status ?? hint}
+              </Text>
+            </Pressable>
+          </Row>
         </View>
         <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>{action}</Row>
       </Row>
