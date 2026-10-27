@@ -20,6 +20,7 @@
 
 import { asService, errorResponse, serveWithCors, HttpError, json } from '../_shared/auth.ts';
 import { verifyWebhookSignature } from '../_shared/core.js';
+import { readBoundedText } from '../otp-send/handler.ts';
 
 interface ResendWebhook {
   type?: string;
@@ -60,7 +61,14 @@ serveWithCors(async (request) => {
     // The check itself is in `@waves/core`, where CI runs it against Svix's
     // published test vector. It also enforces the timestamp tolerance, so a
     // body captured once cannot be posted back tomorrow.
-    const body = await request.text();
+    const rawBody = await readBoundedText(request, 256 * 1024);
+    if (rawBody === null) {
+      return new Response(JSON.stringify({ error: { http_code: 413, message: 'Request body too large' } }), {
+        status: 413,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const body = rawBody;
     const verified = await verifyWebhookSignature({
       secret,
       id: svixId,
@@ -90,7 +98,10 @@ serveWithCors(async (request) => {
       p_address: address ?? null,
       p_payload: payload,
     });
-    if (error) throw new HttpError(500, 'RECORD_FAILED', error.message);
+    if (error) {
+      console.error(JSON.stringify({ fn: 'email-events', event: 'RECORD_FAILED', detail: error.message }));
+      throw new HttpError(500, 'RECORD_FAILED', 'Could not complete request');
+    }
 
     return json({ ok: true, ...(data as Record<string, unknown>) });
   } catch (error) {

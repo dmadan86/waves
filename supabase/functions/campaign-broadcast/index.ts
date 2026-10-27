@@ -33,6 +33,7 @@ import {
   json,
   type SupabaseClient,
 } from '../_shared/auth.ts';
+import { safeEqual } from '../revenuecat-webhook/handler.ts';
 import {
   buildCampaignFor,
   pause,
@@ -63,7 +64,7 @@ serveWithCors(async (request) => {
     }
 
     const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!expected || request.headers.get('Authorization') !== `Bearer ${expected}`) {
+    if (!expected || !safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${expected}`)) {
       throw new HttpError(401, 'NOT_AUTHORISED', 'This endpoint is not for clients');
     }
 

@@ -25,6 +25,7 @@ import {
   type SupabaseClient,
 } from '../_shared/auth.ts';
 import { objectUrl, r2, r2Configured, type LogicalBucket } from '../_shared/r2.ts';
+import { safeEqual } from '../revenuecat-webhook/handler.ts';
 
 /** How many queued keys one invocation reclaims. Well inside an edge wall clock. */
 const SWEEP_BATCH = 200;
@@ -72,7 +73,7 @@ serveWithCors(async (request) => {
     }
 
     const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!expected || request.headers.get('Authorization') !== `Bearer ${expected}`) {
+    if (!expected || !safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${expected}`)) {
       throw new HttpError(401, 'NOT_AUTHORISED', 'This endpoint is not for clients');
     }
 
