@@ -1815,6 +1815,9 @@ export interface UiStrings {
     sheetWatch: string;
     sheetAdded: string;
     sheetBalance: string;
+    sheetFull: string;
+    sheetFullBody: string;
+    sheetGap: string;
     sheetUnavailable: string;
     sheetRetry: string;
     sheetPro: string;
@@ -7587,6 +7590,9 @@ const en: UiStrings = {
     sheetWatch: 'Watch ad · Get {n} credits',
     sheetAdded: '+{n} credits added!',
     sheetBalance: 'You now have {n} credits.',
+    sheetFull: 'Credits full',
+    sheetFullBody: 'You have {n} of {max} credits. Use some, then watch again.',
+    sheetGap: 'Next ad in a minute',
     sheetUnavailable: 'Ads unavailable right now',
     sheetRetry: 'Please try again later.',
     sheetPro: 'No ads · {n} voice commands/month',
@@ -12878,6 +12884,10 @@ const ta: UiStrings = {
     sheetWatch: 'விளம்பரம் பார் · {n} கிரெடிட்களைப் பெறு',
     sheetAdded: '+{n} கிரெடிட்கள் சேர்க்கப்பட்டன!',
     sheetBalance: 'இப்போது உங்களிடம் {n} கிரெடிட்கள் உள்ளன.',
+    sheetFull: 'கிரெடிட்கள் நிரம்பிவிட்டன',
+    sheetFullBody:
+      'உங்களிடம் {max} கிரெடிட்களில் {n} உள்ளன. சிலவற்றைப் பயன்படுத்திவிட்டு, மீண்டும் விளம்பரம் பாருங்கள்.',
+    sheetGap: 'அடுத்த விளம்பரம் ஒரு நிமிடத்தில்',
     sheetUnavailable: 'இப்போது விளம்பரங்கள் கிடைக்கவில்லை',
     sheetRetry: 'பிறகு மீண்டும் முயற்சிக்கவும்.',
     sheetPro: 'விளம்பரமில்லை · மாதம் {n} குரல் கட்டளைகள்',
@@ -18320,6 +18330,9 @@ const hi: UiStrings = {
     sheetWatch: 'विज्ञापन देखें · {n} क्रेडिट पाएं',
     sheetAdded: '+{n} क्रेडिट जुड़ गए!',
     sheetBalance: 'अब आपके पास {n} क्रेडिट हैं।',
+    sheetFull: 'क्रेडिट पूरे हैं',
+    sheetFullBody: 'आपके पास {max} में से {n} क्रेडिट हैं। कुछ इस्तेमाल करें, फिर विज्ञापन देखें।',
+    sheetGap: 'अगला विज्ञापन एक मिनट में',
     sheetUnavailable: 'अभी विज्ञापन उपलब्ध नहीं हैं',
     sheetRetry: 'कृपया बाद में फिर कोशिश करें।',
     sheetPro: 'कोई विज्ञापन नहीं · {n} वॉइस कमांड/माह',
@@ -23677,6 +23690,9 @@ const ar: UiStrings = {
     sheetWatch: 'شاهد إعلانًا · احصل على {n} أرصدة',
     sheetAdded: 'تمت إضافة +{n} أرصدة!',
     sheetBalance: 'لديك الآن {n} أرصدة.',
+    sheetFull: 'الأرصدة مكتملة',
+    sheetFullBody: 'لديك {n} من أصل {max} رصيدًا. استخدم بعضها، ثم شاهد إعلانًا آخر.',
+    sheetGap: 'الإعلان التالي خلال دقيقة',
     sheetUnavailable: 'الإعلانات غير متاحة الآن',
     sheetRetry: 'يرجى المحاولة لاحقًا.',
     sheetPro: 'بلا إعلانات · {n} أمر صوتي/شهر',

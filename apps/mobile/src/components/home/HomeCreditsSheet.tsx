@@ -64,8 +64,25 @@ export function HomeCreditsSheet({
     [t.rewardedAds.noFill, t.rewardedAds.offline, t.rewardedAds.unavailable].includes(
       state.message,
     );
-  const blocked = !status?.canWatch || !!watchBlocked(status) || failedAvailability;
-  const circle = (name: 'flash' | 'checkmark' | 'play', bg: string, ink: string, size = 64) => (
+  const full = status?.reason === 'wallet_full' || !!(status && status.credits >= status.walletCap);
+  const gap = status?.reason === 'gap';
+  const blocked = full || gap || !status?.canWatch || !!watchBlocked(status) || failedAvailability;
+  const blockedTitle = full
+    ? t.credits.sheetFull
+    : gap
+      ? t.credits.sheetGap
+      : t.credits.sheetUnavailable;
+  const blockedBody = full
+    ? fill(t.credits.sheetFullBody, { n: status?.credits ?? 0, max: status?.walletCap ?? 0 })
+    : gap
+      ? undefined
+      : t.credits.sheetRetry;
+  const circle = (
+    name: 'flash' | 'checkmark' | 'checkmark-circle' | 'play',
+    bg: string,
+    ink: string,
+    size = 64,
+  ) => (
     <View
       style={{
         width: size,
@@ -241,26 +258,30 @@ export function HomeCreditsSheet({
                 </Text>
               </View>
             </View>
-            {blocked ? (
+            {blocked && !busy ? (
               <View
-                accessibilityRole="button"
-                accessibilityState={{ disabled: true }}
-                accessibilityLabel={`${t.credits.sheetUnavailable}. ${t.credits.sheetRetry}`}
+                accessible
+                accessibilityLabel={[blockedTitle, blockedBody].filter(Boolean).join('. ')}
                 style={{
                   ...card,
-                  backgroundColor: c.border,
+                  backgroundColor: full ? c.positiveSoft : c.border,
                   flexDirection: 'row',
                   alignItems: 'center',
                 }}
               >
-                {circle('play', c.surfaceMuted, c.textFaint, 40)}
+                {circle(
+                  full ? 'checkmark-circle' : 'play',
+                  full ? c.positiveSoft : c.surfaceMuted,
+                  full ? c.positive : c.textFaint,
+                  40,
+                )}
                 <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                  <Text style={{ fontWeight: '700', color: c.textMuted }}>
-                    {t.credits.sheetUnavailable}
-                  </Text>
-                  <Text variant="caption" tone="muted">
-                    {t.credits.sheetRetry}
-                  </Text>
+                  <Text style={{ fontWeight: '700', color: c.textMuted }}>{blockedTitle}</Text>
+                  {blockedBody ? (
+                    <Text variant="caption" tone="muted">
+                      {blockedBody}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
             ) : (
@@ -268,8 +289,20 @@ export function HomeCreditsSheet({
                 fullWidth
                 size="lg"
                 disabled={busy}
-                label={fill(t.credits.sheetWatch, { n: status?.perAd ?? 0 })}
-                icon={<Ionicons name="play-circle" size={24} color={c.onButtonPrimary} />}
+                label={
+                  busy
+                    ? state.confirming
+                      ? t.rewardedAds.confirming
+                      : t.rewardedAds.preparing
+                    : fill(t.credits.sheetWatch, { n: status?.perAd ?? 0 })
+                }
+                icon={
+                  busy ? (
+                    <ActivityIndicator size="small" color={c.onButtonPrimary} />
+                  ) : (
+                    <Ionicons name="play-circle" size={24} color={c.onButtonPrimary} />
+                  )
+                }
                 onPress={onWatch}
               />
             )}
@@ -297,17 +330,6 @@ export function HomeCreditsSheet({
               </View>
               <Ionicons name={directionalIcon('chevron-forward')} size={22} color={c.textMuted} />
             </Pressable>
-            {busy ? (
-              <View
-                accessibilityLiveRegion="polite"
-                style={{ flexDirection: 'row', gap: theme.spacing.sm }}
-              >
-                <ActivityIndicator color={c.brand} />
-                <Text variant="caption">
-                  {state.confirming ? t.rewardedAds.confirming : t.rewardedAds.preparing}
-                </Text>
-              </View>
-            ) : null}
             {state.step === 'result' && !failedAvailability ? (
               <Callout tone={state.tone}>{state.message}</Callout>
             ) : null}
