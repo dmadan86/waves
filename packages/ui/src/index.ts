@@ -33,3 +33,5 @@ export * from './components/AmountField';
 export * from './components/Overlay';
 export * from './components/Chart';
 export * from './direction';
+
+export { createOverlayCloseGuard } from './overlayCloseGuard';

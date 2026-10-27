@@ -31,6 +31,7 @@ export function RewardedAdSheet({
   onWatch,
   onUpgrade,
   onClose,
+  onClosed,
 }: {
   visible: boolean;
   kind: AdKind;
@@ -44,6 +45,7 @@ export function RewardedAdSheet({
   onWatch: () => void;
   onUpgrade: () => void;
   onClose: () => void;
+  onClosed?: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const { t } = useStrings();
@@ -53,7 +55,12 @@ export function RewardedAdSheet({
   const busy = state.step === 'busy';
   const done = state.step === 'result' && state.done;
   return (
-    <Sheet visible={visible} onClose={busy ? () => undefined : onClose} closeLabel={t.common.close}>
+    <Sheet
+      onClosed={onClosed}
+      visible={visible}
+      onClose={busy ? () => undefined : onClose}
+      closeLabel={t.common.close}
+    >
       <View style={{ gap: theme.spacing.md }}>
         <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
           <View
