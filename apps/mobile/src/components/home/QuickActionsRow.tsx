@@ -27,9 +27,11 @@ export interface QuickAction {
   /** Wraps the button in a `TourTarget` with this id, for a coach-mark
    *  anchor — only Home's "add group" and "add expense" tiles use this. */
   tourId?: string;
-  /** A small red count badge on the disc's corner — only Friends' "Merge
-   *  people" tile uses this, and only once there is a count to show. */
+  /** A count badge on the disc’s corner, including zero. */
   badge?: number;
+  badgeColor?: string;
+  backgroundColor?: string;
+  accessibilityLabel?: string;
   /** Measured for a menu that has to drop from this tile — only Friends'
    *  "Add people" tile uses this. */
   ref?: RefObject<View | null>;
@@ -90,20 +92,40 @@ export function QuickActionsRow({
         const button = (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={action.badge ? `${action.label} (${action.badge})` : action.label}
+            accessibilityLabel={
+              action.accessibilityLabel ??
+              (action.badge != null ? `${action.label} (${action.badge})` : action.label)
+            }
             onPress={action.onPress}
             onLongPress={action.onLongPress}
             hitSlop={4}
             style={({ pressed }) => ({
               alignItems: 'center',
               gap: 4,
+              alignSelf: 'center',
+              maxWidth: '100%',
               paddingHorizontal: 2,
+              borderRadius: 16,
               opacity: pressed ? 0.6 : 1,
             })}
           >
+            {action.backgroundColor ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  bottom: -4,
+                  left: -4,
+                  right: -4,
+                  borderRadius: 16,
+                  backgroundColor: action.backgroundColor,
+                }}
+              />
+            ) : null}
             <View>
               {disc}
-              {action.badge ? (
+              {action.badge != null ? (
                 <View
                   accessible={false}
                   pointerEvents="none"
@@ -117,7 +139,7 @@ export function QuickActionsRow({
                     borderRadius: 9,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: theme.color.negative,
+                    backgroundColor: action.badgeColor ?? theme.color.negative,
                     borderWidth: 2,
                     borderColor: theme.color.surface,
                   }}
@@ -135,6 +157,7 @@ export function QuickActionsRow({
               adjustsFontSizeToFit
               minimumFontScale={0.8}
               style={{
+                maxWidth: '100%',
                 fontWeight: '600',
                 color: theme.color.text,
                 ...(labelSize ? { fontSize: labelSize, lineHeight: labelSize + 4 } : null),

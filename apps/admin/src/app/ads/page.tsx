@@ -26,6 +26,7 @@ const knobs: {
     min: 0,
     max: 365,
   },
+  { key: 'native_daily_cap', label: 'Native ads per day', min: 0, max: 100 },
   { key: 'gap_min', label: 'Minimum expense gap', min: 3, max: 20 },
   { key: 'gap_max', label: 'Maximum expense gap', min: 3, max: 20 },
   { key: 'cooldown_seconds', label: 'Interstitial cooldown (seconds)', min: 60, max: 86400 },
@@ -60,6 +61,10 @@ export default async function Ads({
       const values = {} as AdGateSettings;
       for (const knob of [...knobs, ...creditKnobs]) {
         const raw = String(form.get(knob.key) ?? '').trim();
+        if (knob.key === 'native_daily_cap' && !raw) {
+          values.native_daily_cap = null;
+          continue;
+        }
         const value = Number(raw);
         if (!raw || !Number.isSafeInteger(value) || value < knob.min || value > knob.max)
           throw new Error(`${knob.label}: enter a whole number from ${knob.min} to ${knob.max}.`);
@@ -260,7 +265,8 @@ export default async function Ads({
                     defaultValue={
                       settings[knob.key] ?? ('defaultValue' in knob ? knob.defaultValue : undefined)
                     }
-                    required
+                    placeholder={knob.key === 'native_daily_cap' ? 'Unlimited' : undefined}
+                    required={knob.key !== 'native_daily_cap'}
                   />
                 </label>
               </p>

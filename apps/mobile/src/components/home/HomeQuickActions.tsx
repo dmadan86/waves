@@ -4,11 +4,8 @@
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
- * Add expense sits at the right-hand end, where a right thumb rests — it is
- * what Home is opened for most often — and keeps the long press that raises
- * the type / scan / speak sheet. All actions wear the same quiet disc: none is
- * lit up over the others. Add expense and New group keep their tour anchors,
- * so the coach-marks still spotlight them.
+ * Free users get a compact credits sheet. A low balance
+ * highlights that action while keeping every disc and label aligned.
  *
  * Draws itself with `QuickActionsRow`, the same disc-and-label strip
  * Friends' own quick actions use — brand-tinted here, lilac there.
@@ -25,13 +22,12 @@ import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { readCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
-import { homeCreditsLabel } from '@/lib/homeCreditsLabel';
+import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
-import { useToast } from '@/lib/toast';
 
 export function HomeQuickActions({
   onAddExpense,
@@ -53,13 +49,15 @@ export function HomeQuickActions({
   const groupRef = useRef<View>(null);
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
-  const toast = useToast();
   const adOffer = useRewardedAdOffer();
   const credits = useQuery({
     queryKey: ['credits', viewerId],
     queryFn: readCredits,
     enabled: !!viewerId,
   });
+
+  const balance = credits.data?.credits;
+  const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
   const actions: QuickAction[] = [
     {
@@ -80,15 +78,13 @@ export function HomeQuickActions({
       ? [
           {
             key: 'credits',
-            label: homeCreditsLabel(credits.data?.credits, t.homeDash),
+            label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
+            badge: creditAction.badge,
+            badgeColor: theme.color.brand,
+            backgroundColor: creditAction.highlight ? theme.color.brandSoft : undefined,
+            accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
             glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
-            onPress: () => {
-              if (!adOffer.canOffer('voice', { userInitiated: true })) {
-                toast.show(t.homeDash.noAdAvailable);
-                return;
-              }
-              void adOffer.offer('voice', { userInitiated: true });
-            },
+            onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
           },
         ]
       : []),

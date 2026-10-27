@@ -1,13 +1,24 @@
-import type { AdsStatus } from './rewardedAdsPure';
-
-export const NATIVE_DAILY_CAP = 3;
-export function nativeCapacityAvailable(impressions: number, pending: number): boolean {
+type NativeGate = {
+  enabled?: boolean;
+  nativeDailyCap?: number | null;
+  settings?: { native_daily_cap?: number | null };
+};
+export function nativeDailyCap(gate: NativeGate | null | undefined): number | null | undefined {
+  return gate?.settings?.native_daily_cap !== undefined
+    ? gate.settings.native_daily_cap
+    : gate?.nativeDailyCap;
+}
+export function nativeCapacityAvailable(
+  impressions: number,
+  pending: number,
+  cap?: number | null,
+): boolean {
   return (
     Number.isInteger(impressions) &&
     impressions >= 0 &&
     Number.isInteger(pending) &&
     pending >= 0 &&
-    impressions + pending < NATIVE_DAILY_CAP
+    (cap == null || impressions + pending < cap)
   );
 }
 export function nativePositions(count: number, seed: string): number[] {
@@ -30,16 +41,14 @@ export function nativePositions(count: number, seed: string): number[] {
 export function nativeEligible(
   signedIn: boolean,
   enabled: boolean,
-  status: AdsStatus | null | undefined,
+  gate: NativeGate | null | undefined,
   impressions: number,
 ): boolean {
   return (
     signedIn &&
     enabled &&
-    status?.eligible === true &&
-    Number.isInteger(impressions) &&
-    impressions >= 0 &&
-    impressions < NATIVE_DAILY_CAP
+    gate?.enabled === true &&
+    nativeCapacityAvailable(impressions, 0, nativeDailyCap(gate))
   );
 }
 export function nativeUnitId(

@@ -19,6 +19,7 @@ import { adSheetTaken, claimAdSheet, releaseAdSheet } from './adSheetLock';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { HomeCreditsSheet } from '@/components/home/HomeCreditsSheet';
 import { RewardedAdSheet, type AdSheetState } from '@/components/RewardedAdSheet';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
@@ -39,6 +40,7 @@ const declinedAt: Record<AdKind, number> = { voice: 0, scan: 0 };
 interface OfferOptions {
   /** Explicit taps bypass the quiet period after declining an automatic offer. */
   userInitiated?: boolean;
+  homeCredits?: boolean;
 }
 
 export interface RewardedAdOffer {
@@ -76,6 +78,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     const timer = setInterval(() => setQuietTick(Date.now()), 30_000);
     return () => clearInterval(timer);
   }, []);
+  const [homeCredits, setHomeCredits] = useState(false);
   const [kind, setKind] = useState<AdKind>('voice');
   const [status, setStatus] = useState<AdsStatus | null>(null);
   const [visible, setVisible] = useState(false);
@@ -106,26 +109,28 @@ export function useRewardedAdOffer(): RewardedAdOffer {
 
   const offer = useCallback(
     async (next: AdKind, options?: OfferOptions): Promise<void> => {
-      if (!viewerId || isPaid || running.current) return;
+      if (!viewerId || isPaid || running.current || visible) return;
       if (!options?.userInitiated && Date.now() - declinedAt[next] < DECLINE_QUIET_MS) return;
       const credits = await readCredits();
       const current = credits ? null : await readAdsStatus().catch(() => null);
       setCreditStatus(credits);
       if (
         !mounted.current ||
-        (credits
-          ? !credits.canWatch && !(next === 'voice' && watchBlocked(credits) === 'daily')
-          : !current?.eligible)
+        (!options?.homeCredits &&
+          (credits
+            ? !credits.canWatch && !(next === 'voice' && watchBlocked(credits) === 'daily')
+            : !current?.eligible))
       )
         return;
       if (!claimAdSheet(lock.current)) return;
+      setHomeCredits(options?.homeCredits === true);
       setKind(next);
       setOutOfCredits(options?.userInitiated !== true);
       setStatus(current);
       setState({ step: 'ready' });
       setVisible(true);
     },
-    [viewerId, isPaid],
+    [viewerId, isPaid, visible],
   );
 
   const close = useCallback(() => {
@@ -180,9 +185,14 @@ export function useRewardedAdOffer(): RewardedAdOffer {
     try {
       const credits = await readCredits();
       const before = credits ? null : await readAdsStatus().catch(() => null);
+      setCreditStatus(credits);
       if (credits ? !credits.canWatch : !before?.eligible) {
-        setVisible(false);
-        releaseAdSheet(lock.current);
+        if (homeCredits) {
+          setState({ step: 'ready' });
+        } else {
+          setVisible(false);
+          releaseAdSheet(lock.current);
+        }
         void eligibility.refetch();
         return;
       }
@@ -215,14 +225,28 @@ export function useRewardedAdOffer(): RewardedAdOffer {
         void queryClient.invalidateQueries({ queryKey: ['credits'] });
         void queryClient.invalidateQueries({ queryKey: ['receiptCap'] });
       }
+      if (homeCredits) setCreditStatus((await readCredits()) ?? credits);
       if (!mounted.current) return;
       const shown = message(outcome);
       if (outcome === 'credited') toast.show(shown.text);
       setState({ step: 'result', message: shown.text, tone: shown.tone, done: shown.done });
+    } catch {
+      if (mounted.current)
+        setState({ step: 'result', message: t.rewardedAds.error, tone: 'warning', done: false });
     } finally {
       running.current = false;
     }
-  }, [kind, message, queryClient, toast, viewerId, eligibility, isPaid]);
+  }, [
+    kind,
+    message,
+    queryClient,
+    toast,
+    viewerId,
+    eligibility,
+    isPaid,
+    homeCredits,
+    t.rewardedAds.error,
+  ]);
 
   const upgrade = useCallback(() => {
     setVisible(false);
@@ -231,27 +255,49 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   }, []);
 
   const sheet = useMemo(
-    () => (
-      <RewardedAdSheet
-        visible={visible && !isPaid}
-        kind={kind}
-        outOfCredits={outOfCredits}
-        credits={creditStatus?.credits}
-        capReached={kind === 'voice' && watchBlocked(creditStatus) === 'daily'}
-        amount={
-          creditStatus
-            ? Math.floor(creditStatus.perAd / creditStatus.costs[kind])
-            : status
-              ? rewardAmount(status, kind)
-              : 2
-        }
-        state={state}
-        onWatch={() => void watch()}
-        onUpgrade={upgrade}
-        onClose={close}
-      />
-    ),
-    [close, kind, outOfCredits, state, status, creditStatus, upgrade, visible, watch, isPaid],
+    () =>
+      homeCredits ? (
+        <HomeCreditsSheet
+          visible={visible && !isPaid}
+          status={creditStatus}
+          state={state}
+          onWatch={() => void watch()}
+          onUpgrade={upgrade}
+          onClose={close}
+        />
+      ) : (
+        <RewardedAdSheet
+          visible={visible && !isPaid}
+          kind={kind}
+          outOfCredits={outOfCredits}
+          credits={creditStatus?.credits}
+          capReached={kind === 'voice' && watchBlocked(creditStatus) === 'daily'}
+          amount={
+            creditStatus
+              ? Math.floor(creditStatus.perAd / creditStatus.costs[kind])
+              : status
+                ? rewardAmount(status, kind)
+                : 2
+          }
+          state={state}
+          onWatch={() => void watch()}
+          onUpgrade={upgrade}
+          onClose={close}
+        />
+      ),
+    [
+      close,
+      kind,
+      outOfCredits,
+      state,
+      status,
+      creditStatus,
+      upgrade,
+      visible,
+      watch,
+      isPaid,
+      homeCredits,
+    ],
   );
 
   return {
