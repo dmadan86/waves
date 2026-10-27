@@ -373,29 +373,40 @@ DROP TRIGGER IF EXISTS invites_guard_insert ON public.invites;
 CREATE TRIGGER invites_guard_insert BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.waves_guard_invite_insert();
 
-DROP POLICY IF EXISTS "group photos are removable by members" ON storage.objects;
-CREATE POLICY "group photos are removable by members" ON storage.objects
-  FOR DELETE
-  USING (
-    bucket_id = 'group-photos'
-    AND public.is_group_member(public.waves_group_from_storage_path(name))
-    AND (
-      owner_id = (select auth.uid())::text
-      OR public.is_group_admin(public.waves_group_from_storage_path(name))
-    )
-  );
+DO $$
+BEGIN
+  IF to_regclass('storage.buckets') IS NULL THEN
+    RAISE NOTICE 'storage schema absent (plain Postgres): skipping';
+    RETURN;
+  END IF;
 
-DROP POLICY IF EXISTS "receipts are removable by members" ON storage.objects;
-CREATE POLICY "receipts are removable by members" ON storage.objects
-  FOR DELETE
-  USING (
-    bucket_id = 'receipts'
-    AND public.is_group_member(public.waves_group_from_storage_path(name))
-    AND (
-      owner_id = (select auth.uid())::text
-      OR public.is_group_admin(public.waves_group_from_storage_path(name))
-    )
-  );
+  EXECUTE $policy$
+    DROP POLICY IF EXISTS "group photos are removable by members" ON storage.objects;
+    CREATE POLICY "group photos are removable by members" ON storage.objects
+      FOR DELETE TO authenticated, anon
+      USING (
+        bucket_id = 'group-photos'
+        AND public.is_group_member(public.waves_group_from_storage_path(name))
+        AND (
+          owner_id = (select auth.uid())::text
+          OR public.is_group_admin(public.waves_group_from_storage_path(name))
+        )
+      );
+
+    DROP POLICY IF EXISTS "receipts are removable by members" ON storage.objects;
+    CREATE POLICY "receipts are removable by members" ON storage.objects
+      FOR DELETE TO authenticated, anon
+      USING (
+        bucket_id = 'receipts'
+        AND public.is_group_member(public.waves_group_from_storage_path(name))
+        AND (
+          owner_id = (select auth.uid())::text
+          OR public.is_group_admin(public.waves_group_from_storage_path(name))
+        )
+      );
+  $policy$;
+END
+$$;
 
 CREATE OR REPLACE FUNCTION public.waves_phone_gate(p_phone text)
  RETURNS jsonb
