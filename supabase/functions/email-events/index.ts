@@ -63,10 +63,7 @@ serveWithCors(async (request) => {
     // body captured once cannot be posted back tomorrow.
     const rawBody = await readBoundedText(request, 256 * 1024);
     if (rawBody === null) {
-      return new Response(JSON.stringify({ error: { http_code: 413, message: 'Request body too large' } }), {
-        status: 413,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      throw new HttpError(413, 'BODY_TOO_LARGE', 'Request body too large');
     }
     const body = rawBody;
     const verified = await verifyWebhookSignature({
@@ -99,7 +96,9 @@ serveWithCors(async (request) => {
       p_payload: payload,
     });
     if (error) {
-      console.error(JSON.stringify({ fn: 'email-events', event: 'RECORD_FAILED', detail: error.message }));
+      console.error(
+        JSON.stringify({ fn: 'email-events', event: 'RECORD_FAILED', detail: error.message }),
+      );
       throw new HttpError(500, 'RECORD_FAILED', 'Could not complete request');
     }
 
