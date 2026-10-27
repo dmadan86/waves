@@ -42,6 +42,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { createOverlayCloseGuard } from '../overlayCloseGuard';
 import { useTheme } from '../theme';
 import { useScreenClearance } from './PillTabBar';
 import { Text } from './Text';
@@ -139,25 +140,34 @@ function useOverlay(visible: boolean, onClosed?: () => void) {
   // never calls setState synchronously in its body).
   if (visible && !mounted) setMounted(true);
 
+  const closeGuard = useRef(createOverlayCloseGuard()).current;
+  closeGuard.request(visible);
   useEffect(() => {
-    if (visible) {
-      // `progress` drives the fade for every surface, so it runs at full
-      // duration even under reduced motion — a fade is the accessible way to
-      // appear, not the motion reduced motion is there to spare. What reduced
-      // motion drops is the travel and the scale, and those are gated where they
-      // are applied (the sheet's translate, the popup's scale), not here.
-      Animated.spring(progress, { toValue: 1, useNativeDriver: true, ...OPEN_SPRING }).start();
-    } else if (mounted) {
-      Animated.timing(progress, {
-        toValue: 0,
-        duration: CLOSE_MS,
-        easing: Easing.bezier(0.4, 0, 1, 1),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setMounted(false);
-      });
-    }
-  }, [visible, mounted, progress]);
+    const current = closeGuard.begin();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      if (closeGuard.canClose(current)) setMounted(false);
+    };
+    const animation = visible
+      ? Animated.spring(progress, { toValue: 1, useNativeDriver: true, ...OPEN_SPRING })
+      : mounted
+        ? Animated.timing(progress, {
+            toValue: 0,
+            duration: CLOSE_MS,
+            easing: Easing.bezier(0.4, 0, 1, 1),
+            useNativeDriver: true,
+          })
+        : undefined;
+    if (!visible && mounted) timer = setTimeout(finish, CLOSE_MS + 300);
+    animation?.start(({ finished }) => {
+      if (finished && !visible) finish();
+    });
+    return () => {
+      closeGuard.cancel();
+      clearTimeout(timer);
+      animation?.stop();
+    };
+  }, [visible, mounted, progress, closeGuard]);
 
   // Told once the surface is really gone: its exit has played and the Modal
   // holding it has left the screen. Run from an effect, so after the commit that

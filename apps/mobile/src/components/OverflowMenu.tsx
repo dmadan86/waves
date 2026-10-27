@@ -16,11 +16,12 @@
  * drops the scale.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -29,7 +30,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
+import { iconSize, Text, useTheme, MODAL_ORIENTATIONS, createOverlayCloseGuard } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -90,7 +91,17 @@ export function OverflowMenu({
   // it never calls setState synchronously in its body).
   if (visible && !mounted) setMounted(true);
 
+  const [closeGuard] = useState(createOverlayCloseGuard);
+  useLayoutEffect(() => {
+    closeGuard.request(visible);
+    return () => closeGuard.cancel();
+  }, [closeGuard, visible]);
   useEffect(() => {
+    const current = closeGuard.begin();
+    const finish = () => {
+      if (closeGuard.canClose(current)) setMounted(false);
+    };
+    const timer = !visible && mounted ? setTimeout(finish, CLOSE_MS + 300) : undefined;
     if (visible) {
       // `progress` drives the scrim and card opacity, so it always fades at full
       // duration — a fade is the accessible way to appear, not the motion reduced
@@ -102,11 +113,16 @@ export function OverflowMenu({
       // exit be seen before the tree unmounts.
       progress.set(
         withTiming(0, { duration: CLOSE_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
-          if (finished) runOnJS(setMounted)(false);
+          if (finished) runOnJS(finish)();
         }),
       );
     }
-  }, [visible, mounted, progress]);
+    return () => {
+      closeGuard.cancel();
+      clearTimeout(timer);
+      cancelAnimation(progress);
+    };
+  }, [visible, mounted, progress, closeGuard]);
 
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.get() }));
   const cardStyle = useAnimatedStyle(() => ({

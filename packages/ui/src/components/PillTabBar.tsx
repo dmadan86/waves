@@ -492,7 +492,7 @@ const TabItem = memo(function TabItem({
       accessibilityState={{ selected: focused }}
       accessibilityLabel={item.accessibilityLabel ?? item.label}
       onPress={() => {
-        if (!focused) onSelect(item.key);
+        onSelect(item.key);
       }}
       onPressIn={() => press(0.9)}
       onPressOut={() => press(1)}

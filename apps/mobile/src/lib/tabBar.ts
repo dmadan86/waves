@@ -53,14 +53,14 @@ export type TabBarRoute = '/' | '/friends' | '/captures' | '/me';
 
 /**
  * The route a bottom-bar tap should navigate to, or null when the destination is
- * already current. The null is intentional: a repeated tap on the highlighted
- * tab should not schedule router work or rebuild the same scene.
+ * already at its root. Nested screens may highlight the same destination.
  */
 export function tabBarRouteForSelection(
   activeKey: string,
   selectedKey: string,
+  atRoot = true,
 ): TabBarRoute | null {
-  if (selectedKey === activeKey) return null;
+  if (selectedKey === activeKey && atRoot) return null;
 
   switch (selectedKey) {
     case 'friends':
@@ -133,8 +133,9 @@ export function personalActiveKey(segments: readonly string[]): string {
 export function personalRouteForSelection(
   activeKey: string,
   selectedKey: string,
+  atRoot = true,
 ): '/' | '/me' | '/personal/transactions' | '/personal/recurring' | '/personal/spending' | null {
-  if (selectedKey === activeKey) return null;
+  if (selectedKey === activeKey && atRoot) return null;
   switch (selectedKey) {
     case 'shared':
       return '/';
@@ -172,4 +173,12 @@ export function resolveFab(segments: readonly string[]): boolean {
   )
     return false;
   return true;
+}
+
+/** Highlighting an owner does not mean its root is on screen. */
+export function isTabRoot(segments: readonly string[], key: string): boolean {
+  if (segments[0] === '(tabs)') {
+    return (segments[1] ?? 'index') === key && segments.length <= 2;
+  }
+  return segments[0] === 'personal' && segments[1] === key && segments.length === 2;
 }
