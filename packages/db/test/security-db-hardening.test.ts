@@ -42,7 +42,9 @@ describe('security DB hardening', () => {
         ]),
       );
 
-    expect(await expectDenied(patch(profileIds[1]!, 'vpa', 'guest@upi'))).toMatch(/FORBIDDEN_COLUMN/);
+    expect(await expectDenied(patch(profileIds[1]!, 'vpa', 'guest@upi'))).toMatch(
+      /FORBIDDEN_COLUMN/,
+    );
     expect((await patch(profileIds[1]!, 'ghost_name', 'Renamed guest')).rows[0]?.ghost_name).toBe(
       'Renamed guest',
     );
