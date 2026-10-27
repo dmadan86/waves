@@ -10,21 +10,27 @@ import { useStrings } from '@/i18n';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useViewerId } from '@/lib/auth';
 import { useFlagEnabled } from '@/lib/flags';
-import { loadAdsSdk, readAdsStatus } from '@/lib/adsSdk';
+import { loadAdsSdk } from '@/lib/adsSdk';
+import { adGateQuery } from '@/lib/adGateQuery';
 import { ADS_REQUEST_CONFIGURATION } from '@/lib/rewardedAdsPure';
 import { gatherConsentSafe } from '@/lib/rewardedAd';
-import { nativeEligible, nativeUnitId, nativeCapacityAvailable } from '@/lib/nativeAdsPure';
+import {
+  nativeEligible,
+  nativeUnitId,
+  nativeCapacityAvailable,
+  nativeDailyCap,
+} from '@/lib/nativeAdsPure';
 
 // Pending ads reserve capacity only in memory; only SDK impressions survive remounts.
 let counterQueue = Promise.resolve();
 const pending = new Map<string, number>();
-async function reserve(profileId: string) {
+async function reserve(profileId: string, cap?: number | null) {
   let reservation: { release(): void; record(): Promise<void> } | undefined;
   const work = counterQueue.then(async () => {
     const key = `waves.nativeImpressions.${profileId}.${new Date().toISOString().slice(0, 10)}`;
     const count = Number((await AsyncStorage.getItem(key)) ?? 0);
     const held = pending.get(key) ?? 0;
-    if (!nativeCapacityAvailable(count, held)) return;
+    if (!nativeCapacityAvailable(count, held, cap)) return;
     pending.set(key, held + 1);
     let released = false;
     const release = () => {
@@ -90,14 +96,11 @@ export function NativeAdCard({
   const enabled = useFlagEnabled('ads_native');
   const { t } = useStrings();
   const theme = useTheme();
-  const status = useQuery({
-    queryKey: ['adsStatus', viewerId],
-    queryFn: readAdsStatus,
-    enabled: !!viewerId && enabled,
-    staleTime: 0,
-    refetchInterval: 30_000,
+  const gate = useQuery({
+    ...adGateQuery(viewerId),
+    enabled: !!viewerId && enabled && !isPaid,
   });
-  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, status.data, 0);
+  const eligible = nativeEligible(!!viewerId && !isPaid, enabled, gate.data, 0);
   const [loaded, setLoaded] = useState<{ sdk: NativeSdk; ad: NativeAd } | null>(null);
   useEffect(() => {
     if (!eligible || !viewerId || !visible || !focused || Platform.OS === 'web') return;
@@ -107,8 +110,7 @@ export function NativeAdCard({
     let impression: { remove(): void } | undefined;
     void (async () => {
       try {
-        // Fresh server verdict immediately before loading: never request for paid users.
-        const current = await readAdsStatus();
+        const current = gate.data;
         if (cancelled || !nativeEligible(true, enabled, current, 0)) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
@@ -116,7 +118,7 @@ export function NativeAdCard({
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
         if (cancelled) return;
-        reservation = await reserve(viewerId);
+        reservation = await reserve(viewerId, nativeDailyCap(current));
         if (cancelled || !reservation) {
           reservation?.release();
           return;
@@ -168,14 +170,13 @@ export function NativeAdCard({
       ad?.destroy();
       setLoaded(null);
     };
-  }, [eligible, enabled, viewerId, visible, focused]);
+  }, [eligible, enabled, viewerId, visible, focused, gate.data]);
   if (!eligible || !visible || !focused || !loaded) return null;
   const { sdk, ad } = loaded;
   const icon = ad.icon ?? ad.images?.[0];
   return (
     <View style={{ paddingTop: Math.max(0, rowGap - precedingGap), paddingBottom: rowGap }}>
-      <sdk.NativeAdView
-        nativeAd={ad}
+      <View
         style={{
           backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
@@ -186,86 +187,91 @@ export function NativeAdCard({
           shadowOpacity: 0,
         }}
       >
-        <View
-          style={{
-            backgroundColor: 'transparent',
-            padding: theme.spacing.sm,
-            // Keep the SDK's top-right AdChoices overlay clear of row content.
-            paddingRight: theme.spacing.xl,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.sm,
-          }}
-        >
-          {icon ? (
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.ICON}>
-              <Image
-                source={{ uri: icon.url }}
-                style={{ width: 40, height: 40, borderRadius: theme.radius.sm }}
-              />
-            </sdk.NativeAsset>
-          ) : (
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.border,
-              }}
-            />
-          )}
-          <View style={{ flex: 1, gap: theme.spacing.xs }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-              <NativeText
+        <sdk.NativeAdView nativeAd={ad} style={{ width: '100%' }}>
+          <View
+            style={{
+              backgroundColor: 'transparent',
+              padding: theme.spacing.sm,
+              // Keep the SDK's top-right AdChoices overlay clear of row content.
+              paddingRight: theme.spacing.xl,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
+            {icon ? (
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.ICON}>
+                <Image
+                  source={{ uri: icon.url }}
+                  style={{ width: 40, height: 40, borderRadius: theme.radius.sm }}
+                />
+              </sdk.NativeAsset>
+            ) : (
+              <View
                 style={{
-                  color: theme.color.textMuted,
-                  fontSize: 10,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.xs,
-                  paddingVertical: 1,
+                  width: 40,
+                  height: 40,
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: theme.color.border,
                 }}
-              >
-                {t.rewardedAds.adLabel}
-              </NativeText>
-              <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
+              />
+            )}
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+                <NativeText
+                  style={{
+                    color: theme.color.textMuted,
+                    fontSize: 10,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
+                    borderRadius: theme.radius.pill,
+                    paddingHorizontal: theme.spacing.xs,
+                    paddingVertical: 1,
+                  }}
+                >
+                  {t.rewardedAds.adLabel}
+                </NativeText>
+                <sdk.NativeAsset assetType={sdk.NativeAssetType.HEADLINE}>
+                  <NativeText
+                    numberOfLines={1}
+                    style={{ flex: 1, color: theme.color.text, fontWeight: '600' }}
+                  >
+                    {ad.headline}
+                  </NativeText>
+                </sdk.NativeAsset>
+              </View>
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
                 <NativeText
                   numberOfLines={1}
-                  style={{ flex: 1, color: theme.color.text, fontWeight: '600' }}
+                  style={{ color: theme.color.textMuted, fontSize: 12 }}
                 >
-                  {ad.headline}
+                  {ad.body}
                 </NativeText>
               </sdk.NativeAsset>
             </View>
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.BODY}>
-              <NativeText numberOfLines={1} style={{ color: theme.color.textMuted, fontSize: 12 }}>
-                {ad.body}
-              </NativeText>
-            </sdk.NativeAsset>
+            {ad.callToAction ? (
+              <sdk.NativeAsset assetType={sdk.NativeAssetType.CALL_TO_ACTION}>
+                <NativeText
+                  numberOfLines={1}
+                  style={{
+                    flexShrink: 1,
+                    maxWidth: '30%',
+                    color: '#FFFFFF',
+                    backgroundColor: theme.color.brand,
+                    borderRadius: theme.radius.pill,
+                    paddingHorizontal: theme.spacing.sm,
+                    paddingVertical: theme.spacing.xs,
+                    fontSize: 12,
+                    fontWeight: '600',
+                  }}
+                >
+                  {ad.callToAction}
+                </NativeText>
+              </sdk.NativeAsset>
+            ) : null}
           </View>
-          {ad.callToAction ? (
-            <sdk.NativeAsset assetType={sdk.NativeAssetType.CALL_TO_ACTION}>
-              <NativeText
-                numberOfLines={1}
-                style={{
-                  flexShrink: 1,
-                  maxWidth: '30%',
-                  color: '#FFFFFF',
-                  backgroundColor: theme.color.brand,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.sm,
-                  paddingVertical: theme.spacing.xs,
-                  fontSize: 12,
-                  fontWeight: '600',
-                }}
-              >
-                {ad.callToAction}
-              </NativeText>
-            </sdk.NativeAsset>
-          ) : null}
-        </View>
-      </sdk.NativeAdView>
+        </sdk.NativeAdView>
+      </View>
     </View>
   );
 }

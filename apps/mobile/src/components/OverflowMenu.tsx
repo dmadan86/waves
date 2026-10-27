@@ -16,7 +16,7 @@
  * drops the scale.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -91,8 +91,11 @@ export function OverflowMenu({
   // it never calls setState synchronously in its body).
   if (visible && !mounted) setMounted(true);
 
-  const closeGuard = useRef(createOverlayCloseGuard()).current;
-  closeGuard.request(visible);
+  const [closeGuard] = useState(createOverlayCloseGuard);
+  useLayoutEffect(() => {
+    closeGuard.request(visible);
+    return () => closeGuard.cancel();
+  }, [closeGuard, visible]);
   useEffect(() => {
     const current = closeGuard.begin();
     const finish = () => {

@@ -85,6 +85,7 @@ import { initClarity } from '@/lib/clarity';
 import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
+import { PLAN_CHANGE_QUERY_KEYS } from '@/lib/planChangeKeys';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -551,7 +552,7 @@ function AuthGate() {
   const paywallFlag = useFlagEnabled('paywall');
   const paywallEnabled = paywallFlag && purchasesAvailable();
 
-  // Cloud voice and the server's plan (scan limits, the plan badge) depend on
+  // Cloud voice, ads and the server's plan (scan limits, the plan badge) depend on
   // the subscription, and both answers are cached for minutes. When RevenueCat
   // reports a different plan (buy, restore, lapse), re-ask now and once more
   // shortly after: the server learns of the change through the webhook, which
@@ -563,9 +564,9 @@ function AuthGate() {
     if (lastTier.current === tier) return;
     lastTier.current = tier;
     const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
-      void queryClient.invalidateQueries({ queryKey: ['myPlan'] });
-      void queryClient.invalidateQueries({ queryKey: ['myProTrial'] });
+      for (const queryKey of PLAN_CHANGE_QUERY_KEYS) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
     };
     refresh();
     const timer = setTimeout(refresh, 5000);
@@ -812,6 +813,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/settings" />
           <Stack.Screen name="group/[id]/members" />
           <Stack.Screen name="group/[id]/member/[memberId]" />
+          <Stack.Screen name="group/[id]/departed/[memberId]" />
           <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
           <Stack.Screen name="group/[id]/invite" options={slide} />
           <Stack.Screen name="group/[id]/itemize" options={slide} />

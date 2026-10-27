@@ -40,11 +40,12 @@ export interface SettleCandidate {
 }
 
 /** The disc a group's picture sits in. */
-const DISC = 48;
-const ROW_HEIGHT = 74;
+const DISC = 40;
+const ROW_HEIGHT = 64;
 
 function Separator() {
-  return <View style={{ height: 8 }} />;
+  const theme = useTheme();
+  return <View style={{ height: 1, backgroundColor: theme.color.border }} />;
 }
 
 const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
@@ -103,11 +104,9 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          height: ROW_HEIGHT,
-          paddingHorizontal: theme.spacing.md,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.color.border,
+          minHeight: ROW_HEIGHT,
+          paddingVertical: theme.spacing.sm,
+
           backgroundColor: theme.color.surface,
           opacity: pressed ? 0.7 : 1,
         })}
@@ -132,7 +131,7 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
             background="transparent"
           />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}
             style={{ fontSize: 16, fontWeight: '700', color: theme.color.text }}
@@ -184,8 +183,8 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
       ItemSeparatorComponent={Separator}
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingHorizontal: theme.spacing.xl,
-        paddingTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.xs,
         paddingBottom: clearance,
       }}
     />

@@ -1,6 +1,6 @@
 /**
  * The small sheet offered at the two natural moments for a Free person: the AI
- * voice monthly limit and the receipt-scan limit, or opened from Home credits.
+ * voice monthly limit and the receipt-scan limit.
  * Automatic offers use credit-focused copy. Nothing starts until the
  * Watch button is tapped, and nothing is forced. Presentational only: the flow
  * lives in `useRewardedAdOffer`.

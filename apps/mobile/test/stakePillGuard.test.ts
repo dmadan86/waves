@@ -15,6 +15,8 @@ import { describe, expect, it } from 'vitest';
 const SRC = join(process.cwd(), 'src');
 
 const ALLOWED: Record<string, string> = {
+  'app/group/[id]/departed/[memberId].tsx':
+    'the mockup’s "You lent to {name}" summary card label, not a row caption',
   'components/home/HomeBalanceCard.tsx': 'the "You lent" headline summary label, not a row caption',
   'app/group/[id]/index.tsx': 'directionLabel feeds the row accessibilityLabel only',
   'components/timeline/TimelineList.tsx': 'the long form rides the row accessibilityLabel only',

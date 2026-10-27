@@ -41,3 +41,22 @@ export function activityLabels(
     group: groupChangeLabels(locale, strings.group, typeNames),
   };
 }
+
+/** The batch headline uses the departed member recorded in the activity payload. */
+export function resplitActivityLabel(
+  entry: { verb: string; payload: Record<string, unknown> },
+  locale: string,
+  strings: { activity: PluralForms; activityUndone: string },
+  someone: string,
+): string | null {
+  const template =
+    entry.verb === 'resplit'
+      ? plural(locale, Number(entry.payload.count ?? 0), strings.activity)
+      : entry.verb === 'resplit_undone'
+        ? strings.activityUndone
+        : null;
+  const name = entry.payload.name ?? entry.payload.member_name ?? entry.payload.memberName;
+  return (
+    template?.replaceAll('{name}', typeof name === 'string' && name.trim() ? name : someone) ?? null
+  );
+}
