@@ -13,6 +13,7 @@ export function HomeCreditsSheet({
   onWatch,
   onUpgrade,
   onClose,
+  onClosed,
 }: {
   visible: boolean;
   status: CreditsStatus | null;
@@ -20,6 +21,7 @@ export function HomeCreditsSheet({
   onWatch: () => void;
   onUpgrade: () => void;
   onClose: () => void;
+  onClosed?: () => void;
 }) {
   const { t } = useStrings();
   const theme = useTheme();
@@ -34,6 +36,7 @@ export function HomeCreditsSheet({
       visible={visible}
       title={t.credits.title}
       onClose={busy ? () => undefined : onClose}
+      onClosed={onClosed}
       closeLabel={t.common.close}
     >
       <View style={{ gap: theme.spacing.sm }}>

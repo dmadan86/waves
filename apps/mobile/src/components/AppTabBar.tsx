@@ -61,6 +61,7 @@ import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
   isPersonalMode,
+  isTabRoot,
   personalActiveKey,
   personalRouteForSelection,
   resolveFab,
@@ -317,22 +318,21 @@ export function AppTabBar() {
   );
 
   // All bar destinations are tabs now. `navigate` switches to the existing tab
-  // route instead of stacking a second copy; tapping the active tab is a no-op
-  // so repeated taps do not schedule redundant router work.
+  // route instead of stacking a second copy; only a tap at its root is a no-op.
   const go = useCallback(
     (key: string): void => {
       if (personal) {
-        const route = personalRouteForSelection(activeKey, key);
+        const route = personalRouteForSelection(activeKey, key, isTabRoot(segments, key));
         if (!route) return;
         // Siblings inside the personal section replace each other rather than stack.
         if (route.startsWith('/personal')) router.replace(route);
         else switchTab(route);
         return;
       }
-      const route = tabBarRouteForSelection(activeKey, key);
+      const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, personal],
+    [activeKey, personal, segments],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
