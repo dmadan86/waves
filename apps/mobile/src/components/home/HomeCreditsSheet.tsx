@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -33,24 +33,30 @@ export function HomeCreditsSheet({
   const theme = useTheme();
   const c = theme.color;
   const [pro, setPro] = useState(false);
-  const [price, setPrice] = useState<string>();
   const plansLive = useFlagEnabled('paywall') && purchasesAvailable();
+  const loadKey = useMemo(() => ({ visible, pro, plansLive }), [visible, pro, plansLive]);
+  const [priceResult, setPriceResult] = useState<{
+    key: typeof loadKey;
+    price: string | undefined;
+  }>();
+  const price = priceResult?.key === loadKey ? priceResult.price : undefined;
   useEffect(() => {
-    setPro(false);
-  }, [visible]);
-  useEffect(() => {
-    setPrice(undefined);
-    if (!visible || !pro || !plansLive) return;
+    if (!loadKey.visible || !loadKey.pro || !loadKey.plansLive) return;
     let active = true;
     loadOffering()
       .then((offering) => {
-        if (active) setPrice(planCardsFromOffering(offering, 'monthly')[0]?.priceString);
+        if (active) {
+          setPriceResult({
+            key: loadKey,
+            price: planCardsFromOffering(offering, 'monthly')[0]?.priceString,
+          });
+        }
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, [visible, pro, plansLive]);
+  }, [loadKey]);
   const busy = state.step === 'busy';
   const success = state.step === 'result' && state.done && state.tone === 'positive';
   const failedAvailability =
@@ -92,7 +98,10 @@ export function HomeCreditsSheet({
     <Sheet
       visible={visible}
       onClose={busy ? () => undefined : onClose}
-      onClosed={onClosed}
+      onClosed={() => {
+        setPro(false);
+        onClosed?.();
+      }}
       closeLabel={t.common.close}
     >
       <View style={{ gap: theme.spacing.md }}>
