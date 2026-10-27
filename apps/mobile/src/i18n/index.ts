@@ -2437,6 +2437,8 @@ export interface UiStrings {
   /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
     creditsTitle: string;
+    addCredits: string;
+    creditsAccessibility: string;
     creditsLabel: string;
     noAdAvailable: string;
     totalOwed: string;
@@ -8088,6 +8090,8 @@ const en: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'Credits',
+    addCredits: 'Add credits',
+    creditsAccessibility: 'Credits: {n}. Add credits',
     creditsLabel: '{n} credits',
     noAdAvailable: 'No ad is available right now.',
     totalOwed: 'Total you are owed',
@@ -13315,6 +13319,8 @@ const ta: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'கிரெடிட்கள்',
+    addCredits: 'கிரெடிட்களைச் சேர்',
+    creditsAccessibility: 'கிரெடிட்கள்: {n}. கிரெடிட்களைச் சேர்',
     creditsLabel: '{n} கிரெடிட்கள்',
     noAdAvailable: 'இப்போது விளம்பரம் எதுவும் கிடைக்கவில்லை.',
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
@@ -18654,6 +18660,8 @@ const hi: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'क्रेडिट',
+    addCredits: 'क्रेडिट जोड़ें',
+    creditsAccessibility: 'क्रेडिट: {n}। क्रेडिट जोड़ें',
     creditsLabel: '{n} क्रेडिट',
     noAdAvailable: 'अभी कोई विज्ञापन उपलब्ध नहीं है।',
     totalOwed: 'आपको कुल मिलने हैं',
@@ -23952,6 +23960,8 @@ const ar: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'أرصدة',
+    addCredits: 'إضافة أرصدة',
+    creditsAccessibility: 'الأرصدة: {n}. إضافة أرصدة',
     creditsLabel: '{n} رصيد',
     noAdAvailable: 'لا يتوفر إعلان حاليًا.',
     totalOwed: 'إجمالي المستحق لك',

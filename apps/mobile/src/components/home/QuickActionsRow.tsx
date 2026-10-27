@@ -27,9 +27,12 @@ export interface QuickAction {
   /** Wraps the button in a `TourTarget` with this id, for a coach-mark
    *  anchor — only Home's "add group" and "add expense" tiles use this. */
   tourId?: string;
-  /** A small red count badge on the disc's corner — only Friends' "Merge
-   *  people" tile uses this, and only once there is a count to show. */
+  /** A count badge on the disc’s corner, including zero. */
   badge?: number;
+  badgeColor?: string;
+  backgroundColor?: string;
+  pillLabel?: string;
+  accessibilityLabel?: string;
   /** Measured for a menu that has to drop from this tile — only Friends'
    *  "Add people" tile uses this. */
   ref?: RefObject<View | null>;
@@ -61,6 +64,7 @@ export function QuickActionsRow({
   rowPadding?: number;
 }) {
   const theme = useTheme();
+  const hasPills = actions.some((action) => action.pillLabel);
 
   return (
     <View
@@ -90,7 +94,10 @@ export function QuickActionsRow({
         const button = (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={action.badge ? `${action.label} (${action.badge})` : action.label}
+            accessibilityLabel={
+              action.accessibilityLabel ??
+              (action.badge != null ? `${action.label} (${action.badge})` : action.label)
+            }
             onPress={action.onPress}
             onLongPress={action.onLongPress}
             hitSlop={4}
@@ -98,12 +105,15 @@ export function QuickActionsRow({
               alignItems: 'center',
               gap: 4,
               paddingHorizontal: 2,
+              paddingVertical: hasPills ? 6 : 0,
+              borderRadius: 16,
+              backgroundColor: action.backgroundColor,
               opacity: pressed ? 0.6 : 1,
             })}
           >
             <View>
               {disc}
-              {action.badge ? (
+              {action.badge != null ? (
                 <View
                   accessible={false}
                   pointerEvents="none"
@@ -117,7 +127,7 @@ export function QuickActionsRow({
                     borderRadius: 9,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: theme.color.negative,
+                    backgroundColor: action.badgeColor ?? theme.color.negative,
                     borderWidth: 2,
                     borderColor: theme.color.surface,
                   }}
@@ -135,6 +145,7 @@ export function QuickActionsRow({
               adjustsFontSizeToFit
               minimumFontScale={0.8}
               style={{
+                maxWidth: '100%',
                 fontWeight: '600',
                 color: theme.color.text,
                 ...(labelSize ? { fontSize: labelSize, lineHeight: labelSize + 4 } : null),
@@ -142,6 +153,27 @@ export function QuickActionsRow({
             >
               {action.label}
             </Text>
+            {hasPills ? (
+              <View style={{ minHeight: 20, maxWidth: '100%' }}>
+                {action.pillLabel ? (
+                  <Text
+                    variant="micro"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{
+                      color: theme.color.brand,
+                      backgroundColor: theme.color.brandSoft,
+                      borderRadius: 10,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {action.pillLabel} ›
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </Pressable>
         );
         return (

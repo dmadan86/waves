@@ -4,11 +4,8 @@
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
- * Add expense sits at the right-hand end, where a right thumb rests — it is
- * what Home is opened for most often — and keeps the long press that raises
- * the type / scan / speak sheet. All actions wear the same quiet disc: none is
- * lit up over the others. Add expense and New group keep their tour anchors,
- * so the coach-marks still spotlight them.
+ * Free users get a credits badge and an add-credits pill. A low balance
+ * highlights that action while keeping every disc and label aligned.
  *
  * Draws itself with `QuickActionsRow`, the same disc-and-label strip
  * Friends' own quick actions use — brand-tinted here, lilac there.
@@ -28,7 +25,7 @@ import { measureAnchor } from '@/lib/measureAnchor';
 import { useStrings } from '@/i18n';
 import { readCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
-import { homeCreditsLabel } from '@/lib/homeCreditsLabel';
+import { isHomeCreditsLow } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
 import { useToast } from '@/lib/toast';
@@ -61,6 +58,9 @@ export function HomeQuickActions({
     enabled: !!viewerId,
   });
 
+  const balance = credits.data?.credits;
+  const lowCredits = isHomeCreditsLow(balance, credits.data?.costs.voice);
+
   const actions: QuickAction[] = [
     {
       key: 'group',
@@ -80,7 +80,15 @@ export function HomeQuickActions({
       ? [
           {
             key: 'credits',
-            label: homeCreditsLabel(credits.data?.credits, t.homeDash),
+            label: t.homeDash.creditsTitle,
+            badge: balance ?? undefined,
+            badgeColor: lowCredits ? theme.color.negative : theme.color.brand,
+            backgroundColor: lowCredits ? theme.color.negativeSoft : undefined,
+            pillLabel: t.homeDash.addCredits,
+            accessibilityLabel:
+              balance == null
+                ? `${t.homeDash.creditsTitle}. ${t.homeDash.addCredits}`
+                : t.homeDash.creditsAccessibility.replace('{n}', String(balance)),
             glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
             onPress: () => {
               if (!adOffer.canOffer('voice', { userInitiated: true })) {
