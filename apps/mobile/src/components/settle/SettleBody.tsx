@@ -72,6 +72,7 @@ import { pendingPairKey, splitSettlePlan, type PlanTransfer } from '@/lib/settle
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 import { useRemind } from '@/lib/useRemind';
+import { filterOtherTransfers, sortPeopleDebts } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 /**
@@ -280,11 +281,7 @@ export function useSettleFlow(
   // A member who has dropped out of the list (their debts settled) cannot
   // stay selected, or the list would be empty with no way to see why.
   const activeFilter = filterMember && otherMembers.includes(filterMember) ? filterMember : null;
-  const shownOthers = activeFilter
-    ? split.others.filter(
-        (transfer) => transfer.from === activeFilter || transfer.to === activeFilter,
-      )
-    : split.others;
+  const shownOthers = filterOtherTransfers(split.others, activeFilter);
 
   const personFor = (memberId: string): MemberRow | undefined => lookup.get(memberId);
   const ghostFor = (member: MemberRow | undefined): boolean =>
@@ -430,6 +427,37 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
     shownOthers,
     split,
   } = flow;
+  const [sort, setSort] = useState<'amount' | 'name'>('amount');
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortControls = (title: string, subtitle: string) => (
+    <>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <CardHeader title={title} subtitle={subtitle} />
+        </View>
+        <FilterPill
+          label={sort === 'amount' ? t.misc.balanceSortAmount : t.misc.balanceSortName}
+          open={sortOpen}
+          onPress={() => setSortOpen((open) => !open)}
+        />
+      </Row>
+      {sortOpen ? (
+        <Row style={{ gap: theme.spacing.sm }}>
+          {(['amount', 'name'] as const).map((value) => (
+            <FilterChip
+              key={value}
+              label={t.sort[value]}
+              selected={sort === value}
+              onPress={() => {
+                setSort(value);
+                setSortOpen(false);
+              }}
+            />
+          ))}
+        </Row>
+      ) : null}
+    </>
+  );
   const nothingToSettle =
     split.owesMe.length === 0 && split.iOwe.length === 0 && split.others.length === 0;
   return (
@@ -443,8 +471,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
 
       {split.owesMe.length > 0 ? (
         <Card>
-          <CardHeader title={t.misc.settleOweYouTitle} />
-          {owedPeople.map((debts) => {
+          {sortControls(t.group.paymentsToSettle, t.misc.settleOweYouTitle)}
+          {sortPeopleDebts(owedPeople, sort, nameOf, locale).map((debts) => {
             const person = personFor(debts.memberId);
             // Who left says so on the status line, not as a "(left)" on the name.
             const name = nameOf(debts.memberId, true);
@@ -498,8 +526,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
 
       {split.iOwe.length > 0 ? (
         <Card>
-          <CardHeader title={t.misc.settleYouOweTitle} />
-          {owingPeople.map((debts) => {
+          {sortControls(t.misc.paymentsToMake, t.misc.settleYouOweTitle)}
+          {sortPeopleDebts(owingPeople, sort, nameOf, locale).map((debts) => {
             const person = personFor(debts.memberId);
             const name = nameOf(debts.memberId);
             const amountText = amountsText(debts.amounts);
@@ -605,6 +633,7 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
           {shownOthers.map((transfer) => (
             <OtherTile
               key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
+              onPress={() => router.push(`/group/${groupId}/simplify`)}
               fromName={nameOf(transfer.from)}
               toName={nameOf(transfer.to)}
               from={personFor(transfer.from)}
@@ -987,6 +1016,7 @@ function PersonTile({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled }}
             disabled={disabled}
             onPress={onPress}
             style={(state) => [
@@ -1026,7 +1056,7 @@ function PersonTile({
             </Pressable>
           </Row>
         </View>
-        {action}
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>{action}</Row>
       </Row>
     </Tile>
   );
@@ -1036,7 +1066,7 @@ function PersonTile({
  * Someone who owes me, and the one reminder they get however many currencies
  * they owe in.
  *
- * One Remind pill for everybody; it opens the channel sheet (`useRemind`):
+ * One reminder for everybody; it opens the channel sheet (`useRemind`):
  * Waves push for members on Waves, WhatsApp, SMS or Share otherwise. The push is
  * sent once: `waves_nudge_to_settle` takes a currency and its one-a-day limit is
  * per pair, not per currency, so it goes about the first amount (the group's
@@ -1224,6 +1254,7 @@ function RatelessTile({
  * transfer is computed and has none).
  */
 function OtherTile({
+  onPress,
   fromName,
   toName,
   from,
@@ -1240,6 +1271,7 @@ function OtherTile({
   toName: string;
   from?: MemberRow;
   to?: MemberRow;
+  onPress?: () => void;
   fromGhost: boolean;
   toGhost: boolean;
   amount: bigint;
@@ -1262,60 +1294,76 @@ function OtherTile({
   });
   const amountText = format(money(amount, currency as CurrencyCode), { locale });
   return (
-    <Tile dense>
-      <Row
-        accessible
-        accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
-        style={{ gap: theme.spacing.md, alignItems: 'center' }}
-      >
-        {/* The pair, overlapped, and the names stacked beside them: the payer
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessible={Boolean(onPress)}
+      accessibilityLabel={onPress ? `${who}. ${amountText}` : undefined}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <Tile dense>
+        <Row
+          accessible={!onPress}
+          accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
+          style={{ gap: theme.spacing.md, alignItems: 'center' }}
+        >
+          {/* The pair, overlapped, and the names stacked beside them: the payer
             on the first line, "→ receiver" on the second. Two names side by
             side squeezed each into a third of the row, and a long one
             ("Rvs R Deepak") was cut to nothing; stacked, each gets the full
             width of the text column. */}
-        <View style={{ flexDirection: 'row' }}>
-          <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={30} />
-          <View
-            style={{
-              marginStart: -8,
-              borderRadius: 17,
-              borderWidth: 2,
-              borderColor: theme.color.surfaceMuted,
-            }}
-          >
-            <MemberAvatar name={toName} member={to} ghost={toGhost} size={30} />
+          <View style={{ flexDirection: 'row' }}>
+            <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={30} />
+            <View
+              style={{
+                marginStart: -8,
+                borderRadius: 17,
+                borderWidth: 2,
+                borderColor: theme.color.surfaceMuted,
+              }}
+            >
+              <MemberAvatar name={toName} member={to} ghost={toGhost} size={30} />
+            </View>
           </View>
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {fromName}
-          </Text>
-          <Row style={{ gap: 4, alignItems: 'center' }}>
-            <Ionicons
-              name={directionalIcon('arrow-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+              {fromName}
+            </Text>
+            <Row style={{ gap: 4, alignItems: 'center' }}>
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {toName}
+              </Text>
+            </Row>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <MoneyText
+              amount={amount}
+              currency={currency as CurrencyCode}
+              locale={locale}
+              variant="body"
+              mode="plain"
+              tone={onPress ? 'brand' : undefined}
             />
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {toName}
-            </Text>
-          </Row>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <MoneyText
-            amount={amount}
-            currency={currency as CurrencyCode}
-            locale={locale}
-            variant="body"
-            mode="plain"
-          />
-          {dateText ? (
-            <Text variant="micro" tone="muted">
-              {dateText}
-            </Text>
+            {dateText ? (
+              <Text variant="micro" tone="muted">
+                {dateText}
+              </Text>
+            ) : null}
+          </View>
+          {onPress ? (
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.md}
+              color={theme.color.textMuted}
+            />
           ) : null}
-        </View>
-      </Row>
-    </Tile>
+        </Row>
+      </Tile>
+    </Pressable>
   );
 }

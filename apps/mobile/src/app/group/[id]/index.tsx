@@ -121,6 +121,7 @@ import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
 import { memberNameById, memberNameFor } from '@/lib/memberName';
+import { memberBalanceStatus } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 enum Tab {
@@ -649,24 +650,29 @@ const ROW_PAD = 10;
  * throughout, the top edge and corners on the first, the bottom on the last, a
  * hairline between neighbours.
  */
-/**
- * One member's balance as its own white card — separate cards a small gap
- * apart, as the Balances design has them, rather than the hairline-divided
- * block the expense rows share.
- */
+/** Joined card edges keep member rows virtualized within one balance section. */
 function BalanceCard({
   theme,
+  isFirst = true,
+  isLast = true,
   children,
 }: {
   theme: ReturnType<typeof useTheme>;
+  isFirst?: boolean;
+  isLast?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <View
       style={{
         backgroundColor: theme.color.surface,
-        borderRadius: theme.radius.lg,
-        marginBottom: theme.spacing.sm,
+        borderTopLeftRadius: isFirst ? theme.radius.lg : 0,
+        borderTopRightRadius: isFirst ? theme.radius.lg : 0,
+        borderBottomLeftRadius: isLast ? theme.radius.lg : 0,
+        borderBottomRightRadius: isLast ? theme.radius.lg : 0,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        borderTopWidth: isFirst ? 1 : 0,
         overflow: 'hidden',
       }}
     >
@@ -1043,6 +1049,7 @@ export default function GroupScreen() {
     const shown = (everyone.data ?? []).filter(
       (member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n,
     );
+    shown.sort((a, b) => Number(b.id === ledger.myMemberId) - Number(a.id === ledger.myMemberId));
     const row = (member: MemberRow, index: number, count: number): FeedItem => ({
       kind: 'balance',
       key: `balance-${member.id}`,
@@ -1071,7 +1078,7 @@ export default function GroupScreen() {
       });
     }
     return items;
-  }, [everyone.data, ledger.balances, familyLens, units, openFamilies]);
+  }, [everyone.data, ledger.balances, ledger.myMemberId, familyLens, units, openFamilies]);
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
   // two hand-rolled footers.
@@ -1351,8 +1358,12 @@ export default function GroupScreen() {
           style={{
             gap: theme.spacing.md,
             alignItems: 'center',
-            paddingVertical: ROW_PAD,
+            paddingVertical: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
+            backgroundColor:
+              member.id === ledger.myMemberId ? theme.color.brandSoft : theme.color.surface,
+            borderRadius: theme.radius.md,
+            marginHorizontal: theme.spacing.sm,
           }}
         >
           <PersonAvatar
@@ -1367,7 +1378,7 @@ export default function GroupScreen() {
               Members-screen fact, not a balance; Remind sits under the amount. */}
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Text variant="subheading" numberOfLines={1}>
-              {shownName}
+              {member.id === ledger.myMemberId ? t.comments.you : shownName}
             </Text>
             <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
               <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -1382,7 +1393,7 @@ export default function GroupScreen() {
                       // the old column showed a dash to everybody whose handle is
                       // a Pix key, a PayID or a Venmo name. With none, words
                       // rather than a bare dash that read as missing data.
-                      (payableAt(member)?.handle ?? t.misc.noUpiYet)}
+                      (payableAt(member)?.handle ?? t.notJoinedYet)}
               </Text>
             </Row>
           </View>
@@ -1392,16 +1403,27 @@ export default function GroupScreen() {
                 {/* Owed to you reads in the brand colour, what you owe in the
                     negative one; the paise fade is MoneyText's default. */}
                 <MoneyText
-                  amount={balance}
+                  amount={balance < 0n ? -balance : balance}
                   currency={currency}
                   locale={locale}
-                  mode="balance"
+                  mode="plain"
                   tone={
                     balanceDirection(balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
                   }
                 />
                 {member.pending ? <PendingMark /> : null}
               </Row>
+              <Text variant="caption" tone="muted">
+                {
+                  t.misc[
+                    memberBalanceStatus(
+                      balance,
+                      member.id === ledger.myMemberId,
+                      settleFlow.split.owesMe.some((transfer) => transfer.from === member.id),
+                    )
+                  ]
+                }
+              </Text>
               {/* Somebody who owes the group money can be nudged from the row
                   that says so, the way Friends already does. Ghosts have nowhere
                   to send it. Touch keeps the visible chip; screen readers get the
@@ -1470,6 +1492,60 @@ export default function GroupScreen() {
         </>
       );
     };
+    const balanceHeading = (
+      <>
+        {item.key === balanceItems[0]?.key ? (
+          <View style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}>
+            <SectionHeader
+              title={t.group.everyonesBalance}
+              trailing={
+                familiesOn ? (
+                  <PillButton
+                    label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
+                    onPress={() => void pickLens()}
+                  />
+                ) : undefined
+              }
+            />
+            <Row
+              style={{
+                alignSelf: 'flex-end',
+                backgroundColor: theme.color.brandSoft,
+                borderRadius: theme.radius.pill,
+                padding: theme.spacing.xs,
+              }}
+            >
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: true }}
+                accessibilityLabel={t.sort.amount}
+                style={{
+                  backgroundColor: theme.color.brand,
+                  borderRadius: theme.radius.pill,
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                }}
+              >
+                <Text variant="caption" tone="onBrand">
+                  {t.sort.amount}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: false }}
+                accessibilityLabel={t.misc.balanceSimplified}
+                onPress={() => router.push(`/group/${groupId}/simplify`)}
+                style={{ paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm }}
+              >
+                <Text variant="caption" tone="brand">
+                  {t.misc.balanceSimplified}
+                </Text>
+              </Pressable>
+            </Row>
+          </View>
+        ) : null}
+      </>
+    );
     if (item.kind === 'family') {
       const toggle = () =>
         setOpenFamilies((current) => {
@@ -1480,6 +1556,7 @@ export default function GroupScreen() {
         });
       return (
         <BalanceCard theme={theme}>
+          {balanceHeading}
           <Row
             style={{
               gap: theme.spacing.md,
@@ -1573,7 +1650,12 @@ export default function GroupScreen() {
       );
     }
     if (item.kind === 'balance') {
-      return <BalanceCard theme={theme}>{balanceBody(item.member, item.balance)}</BalanceCard>;
+      return (
+        <BalanceCard theme={theme} isFirst={item.isFirst} isLast={item.isLast}>
+          {balanceHeading}
+          {balanceBody(item.member, item.balance)}
+        </BalanceCard>
+      );
     }
     return null;
   };
@@ -2002,21 +2084,7 @@ export default function GroupScreen() {
                         make or receive come first, then everyone's balance. */}
                     {tab === Tab.Balances ? (
                       <View style={{ gap: theme.spacing.sm }}>
-                        <SectionHeader title={t.group.paymentsToSettle} />
                         {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
-                        <SectionHeader
-                          title={t.group.everyonesBalance}
-                          trailing={
-                            familiesOn ? (
-                              <PillButton
-                                label={
-                                  lens === 'families' ? t.families.byFamily : t.families.byPerson
-                                }
-                                onPress={() => void pickLens()}
-                              />
-                            ) : undefined
-                          }
-                        />
                       </View>
                     ) : null}
                   </View>
