@@ -1809,6 +1809,20 @@ export interface UiStrings {
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
   credits: {
+    sheetTitle: string;
+    sheetLeft: string;
+    sheetHelp: string;
+    sheetWatch: string;
+    sheetAdded: string;
+    sheetBalance: string;
+    sheetUnavailable: string;
+    sheetRetry: string;
+    sheetPro: string;
+    sheetProSubtitle: string;
+    sheetVoice: string;
+    sheetPrice: string;
+    sheetLater: string;
+    sheetContinue: string;
     title: string;
     balance: string;
     usedOne: string;
@@ -7567,6 +7581,20 @@ const en: UiStrings = {
     traps: 'Read the sentence exactly as written.',
   },
   credits: {
+    sheetTitle: 'Voice credits',
+    sheetLeft: '{n} credits left',
+    sheetHelp: 'Use credits for AI voice commands like add, split, or settle expenses.',
+    sheetWatch: 'Watch ad · Get {n} credits',
+    sheetAdded: '+{n} credits added!',
+    sheetBalance: 'You now have {n} credits.',
+    sheetUnavailable: 'Ads unavailable right now',
+    sheetRetry: 'Please try again later.',
+    sheetPro: 'No ads · {n} voice commands/month',
+    sheetProSubtitle: 'No ads and {n} voice commands a month',
+    sheetVoice: '{n} voice commands per month',
+    sheetPrice: 'Go Pro – {price}/month',
+    sheetLater: 'Maybe later',
+    sheetContinue: 'Continue',
     title: 'Credits',
     balance: 'You have {n} credits',
     usedOne: 'Used {n} credit',
@@ -12843,6 +12871,21 @@ const ta: UiStrings = {
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   credits: {
+    sheetTitle: 'குரல் கிரெடிட்கள்',
+    sheetLeft: '{n} கிரெடிட்கள் மீதம்',
+    sheetHelp:
+      'செலவுகளைச் சேர்க்க, பிரிக்க அல்லது தீர்க்க AI குரல் கட்டளைகளுக்கு கிரெடிட்களைப் பயன்படுத்தவும்.',
+    sheetWatch: 'விளம்பரம் பார் · {n} கிரெடிட்களைப் பெறு',
+    sheetAdded: '+{n} கிரெடிட்கள் சேர்க்கப்பட்டன!',
+    sheetBalance: 'இப்போது உங்களிடம் {n} கிரெடிட்கள் உள்ளன.',
+    sheetUnavailable: 'இப்போது விளம்பரங்கள் கிடைக்கவில்லை',
+    sheetRetry: 'பிறகு மீண்டும் முயற்சிக்கவும்.',
+    sheetPro: 'விளம்பரமில்லை · மாதம் {n} குரல் கட்டளைகள்',
+    sheetProSubtitle: 'விளம்பரமில்லை, மாதம் {n} குரல் கட்டளைகள்',
+    sheetVoice: 'மாதத்திற்கு {n} குரல் கட்டளைகள்',
+    sheetPrice: 'Pro பெறுங்கள் – {price}/மாதம்',
+    sheetLater: 'பிறகு பார்க்கலாம்',
+    sheetContinue: 'தொடரவும்',
     title: 'கிரெடிட்கள்',
     balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
     usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
@@ -18271,6 +18314,20 @@ const hi: UiStrings = {
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   credits: {
+    sheetTitle: 'वॉइस क्रेडिट',
+    sheetLeft: '{n} क्रेडिट बाकी',
+    sheetHelp: 'खर्च जोड़ने, बाँटने या चुकाने जैसे AI वॉइस कमांड के लिए क्रेडिट इस्तेमाल करें।',
+    sheetWatch: 'विज्ञापन देखें · {n} क्रेडिट पाएं',
+    sheetAdded: '+{n} क्रेडिट जुड़ गए!',
+    sheetBalance: 'अब आपके पास {n} क्रेडिट हैं।',
+    sheetUnavailable: 'अभी विज्ञापन उपलब्ध नहीं हैं',
+    sheetRetry: 'कृपया बाद में फिर कोशिश करें।',
+    sheetPro: 'कोई विज्ञापन नहीं · {n} वॉइस कमांड/माह',
+    sheetProSubtitle: 'कोई विज्ञापन नहीं और हर महीने {n} वॉइस कमांड',
+    sheetVoice: 'हर महीने {n} वॉइस कमांड',
+    sheetPrice: 'Pro लें – {price}/माह',
+    sheetLater: 'शायद बाद में',
+    sheetContinue: 'जारी रखें',
     title: 'क्रेडिट',
     balance: 'आपके पास {n} क्रेडिट हैं',
     usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
@@ -23613,6 +23670,21 @@ const ar: UiStrings = {
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   credits: {
+    sheetTitle: 'أرصدة الصوت',
+    sheetLeft: '{n} أرصدة متبقية',
+    sheetHelp:
+      'استخدم الأرصدة لأوامر الصوت بالذكاء الاصطناعي مثل إضافة النفقات أو تقسيمها أو تسويتها.',
+    sheetWatch: 'شاهد إعلانًا · احصل على {n} أرصدة',
+    sheetAdded: 'تمت إضافة +{n} أرصدة!',
+    sheetBalance: 'لديك الآن {n} أرصدة.',
+    sheetUnavailable: 'الإعلانات غير متاحة الآن',
+    sheetRetry: 'يرجى المحاولة لاحقًا.',
+    sheetPro: 'بلا إعلانات · {n} أمر صوتي/شهر',
+    sheetProSubtitle: 'بلا إعلانات و{n} أمر صوتي شهريًا',
+    sheetVoice: '{n} أمر صوتي شهريًا',
+    sheetPrice: 'احصل على Pro – {price}/شهر',
+    sheetLater: 'ربما لاحقًا',
+    sheetContinue: 'متابعة',
     title: 'الرصيد',
     balance: 'لديك {n} من الرصيد',
     usedOne: 'تم استخدام {n} من الرصيد',
