@@ -147,7 +147,7 @@ export default function GroupSettingsScreen() {
   const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
   const updateGroup = useUpdateGroup(groupId);
-  const removeDemo = useRemoveDemo();
+  const removeDemo = useRemoveDemo(() => router.dismissTo('/'));
   const leaveGroup = useLeaveGroup(groupId, () => router.dismissTo('/'));
   const deleteGroup = useDeleteGroup(groupId, () => router.dismissTo('/'));
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
@@ -1362,11 +1362,7 @@ export default function GroupSettingsScreen() {
                   title={t.demo.removeAction}
                   subtitle={t.demo.removeHint}
                   destructive
-                  onPress={() =>
-                    void removeDemo().then((removed) => {
-                      if (removed) router.replace('/');
-                    })
-                  }
+                  onPress={() => void removeDemo()}
                 />
               ) : (
                 <>

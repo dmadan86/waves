@@ -22,6 +22,7 @@ import { runGateAd, prepareInterstitial, type PreparedInterstitial } from '@/lib
 export interface GateStatus {
   enabled: boolean;
   bannerEligible?: boolean;
+  nativeDailyCap?: number | null;
   credits?: number;
   walletCap?: number;
   perAd?: number;
@@ -32,10 +33,19 @@ export interface GateStatus {
   lastAdAt: string | null;
   lastRewardedAt: string | null;
   lastInterstitialAt: string | null;
-  settings: AdPacingSettings & { interstitial_video_enabled?: boolean };
+  settings: AdPacingSettings & {
+    interstitial_video_enabled?: boolean;
+    native_daily_cap?: number | null;
+  };
 }
-export async function readGateStatus(profileId: string): Promise<GateStatus | null> {
-  await adTimeout(flushAdEvents(profileId), 500);
+export async function readGateStatus(
+  profileId: string,
+  waitForEvents = false,
+): Promise<GateStatus | null> {
+  const flush = flushAdEvents(profileId);
+  // Only pacing reads need the just-flushed impression counters.
+  if (waitForEvents) await adTimeout(flush, 500);
+  else void flush.catch(() => undefined);
   const result = await adTimeout(backend.rpc('waves_my_ad_gate_status'));
   if (!result) return null;
   const { data, error } = result;
@@ -71,7 +81,7 @@ export async function prewarmExpenseAd(profileId: string) {
   const cached = preparedAds.get(profileId);
   if (cached && Date.now() - cached.loadedAt >= 45 * 60000) preparedAds.delete(profileId);
   if (Platform.OS === 'web' || running || preparedAds.has(profileId)) return;
-  const status = await readGateStatus(profileId).catch(() => null);
+  const status = await readGateStatus(profileId, true).catch(() => null);
   if (
     !status?.enabled ||
     Date.now() - Date.parse(status.createdAt) < status.settings.grace_days * 86400000 ||
@@ -175,7 +185,7 @@ export async function afterGroupExpense(
     )
       return;
     if (Date.now() - savedAt >= SHOW_WINDOW_MS) return;
-    const status = await readGateStatus(profileId);
+    const status = await readGateStatus(profileId, true);
     if (!status?.enabled) return;
     const deps = defaultRewardedAdDeps();
     if (!(await deps.isOnline())) return;

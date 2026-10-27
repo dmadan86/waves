@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bannerGateOpen, bannerUnitId } from '../src/lib/bannerAdsPure';
+import { bannerGateOpen, bannerUnitId, shouldMountBanner } from '../src/lib/bannerAdsPure';
 
 describe('banner ad unit ids', () => {
   it('uses platform test ids in development even when configured', () => {
@@ -26,5 +26,23 @@ describe('banner age gate', () => {
     for (const status of [null, undefined, {}, { bannerEligible: false }])
       expect(bannerGateOpen(status)).toBe(false);
     expect(bannerGateOpen({ bannerEligible: 'true' as never })).toBe(false);
+  });
+});
+
+describe('banner request eligibility', () => {
+  it('requires an eligible cached gate and always blocks paid users', () => {
+    const gate = { enabled: true, bannerEligible: true };
+    expect(shouldMountBanner(gate, false)).toBe(true);
+    expect(shouldMountBanner(gate, true)).toBe(false);
+    for (const cached of [
+      undefined,
+      null,
+      {},
+      { ...gate, enabled: false },
+      { ...gate, bannerEligible: false },
+      { ...gate, nativeDailyCap: 0 },
+    ]) {
+      expect(shouldMountBanner(cached, false)).toBe(false);
+    }
   });
 });

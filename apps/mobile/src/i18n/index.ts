@@ -2478,8 +2478,11 @@ export interface UiStrings {
   /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
     creditsTitle: string;
-    creditsLabel: string;
-    noAdAvailable: string;
+    getCredits: string;
+    creditOne: string;
+    creditMany: string;
+    creditReward: string;
+    creditPro: string;
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
@@ -8196,8 +8199,11 @@ const en: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'Credits',
-    creditsLabel: '{n} credits',
-    noAdAvailable: 'No ad is available right now.',
+    getCredits: 'Get credits',
+    creditOne: '{n} credit',
+    creditMany: '{n} credits',
+    creditReward: 'Get {n} credits',
+    creditPro: 'No ads, {n} voice/month',
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
@@ -13490,8 +13496,11 @@ const ta: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'கிரெடிட்கள்',
-    creditsLabel: '{n} கிரெடிட்கள்',
-    noAdAvailable: 'இப்போது விளம்பரம் எதுவும் கிடைக்கவில்லை.',
+    getCredits: 'கிரெடிட்களைப் பெறு',
+    creditOne: '{n} கிரெடிட்',
+    creditMany: '{n} கிரெடிட்கள்',
+    creditReward: '{n} கிரெடிட்களைப் பெறு',
+    creditPro: 'விளம்பரமில்லை, மாதம் {n} குரல்',
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
@@ -18896,8 +18905,11 @@ const hi: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'क्रेडिट',
-    creditsLabel: '{n} क्रेडिट',
-    noAdAvailable: 'अभी कोई विज्ञापन उपलब्ध नहीं है।',
+    getCredits: 'क्रेडिट पाएं',
+    creditOne: '{n} क्रेडिट',
+    creditMany: '{n} क्रेडिट',
+    creditReward: '{n} क्रेडिट पाएं',
+    creditPro: 'विज्ञापन नहीं, {n} वॉइस/माह',
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
@@ -24264,8 +24276,11 @@ const ar: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'أرصدة',
-    creditsLabel: '{n} رصيد',
-    noAdAvailable: 'لا يتوفر إعلان حاليًا.',
+    getCredits: 'احصل على أرصدة',
+    creditOne: '{n} رصيد',
+    creditMany: '{n} أرصدة',
+    creditReward: 'احصل على {n} أرصدة',
+    creditPro: 'بلا إعلانات، {n} صوت/شهر',
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
