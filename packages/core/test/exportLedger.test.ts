@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  exportDescription,
+  exportMemberName,
   familyName,
   familySubtotals,
   memberAmounts,
@@ -111,5 +113,35 @@ describe('export families', () => {
 
   it('is empty for a group without families', () => {
     expect(familySubtotals(null, [{ currency: 'INR', payers: [], shares: [] }])).toEqual([]);
+  });
+});
+
+describe('shared export labels', () => {
+  it('uses a hyphen for missing or blank descriptions', () => {
+    for (const description of [undefined, null, '', '  \n ']) {
+      expect(exportDescription(description)).toBe('-');
+    }
+    expect(exportDescription(' Dinner ')).toBe('Dinner');
+    expect(exportDescription('Untitled')).toBe('Untitled');
+  });
+
+  it('names the viewer in balances, payers, shares and settlements', () => {
+    const viewer = { profile: { display_name: 'Madan' }, ghost_name: null };
+    const name = exportMemberName(viewer);
+    expect(name).toBe('Madan');
+    const amounts = memberAmounts([{ member_id: 'viewer', amount: 100n }], 'USD', () => name);
+    const pdf = new PdfBuilder()
+      .body(`Balance: ${name}`)
+      .body(`Paid by: ${amounts}`)
+      .body(`Shares: ${amounts}`)
+      .body(`Settlement: ${name} -> Renny`)
+      .build();
+    expect(pdf).toContain('(Balance: Madan) Tj');
+    expect(pdf).toContain('(Paid by: Madan 1.00) Tj');
+    expect(pdf).toContain('(Shares: Madan 1.00) Tj');
+    expect(pdf).toContain('(Settlement: Madan -> Renny) Tj');
+    expect(pdf).not.toContain('You');
+    expect(exportMemberName({ ghost_name: 'Guest' })).toBe('Guest');
+    expect(exportMemberName({}, 'Unknown')).toBe('Unknown');
   });
 });

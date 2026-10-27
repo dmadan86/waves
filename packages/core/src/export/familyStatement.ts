@@ -4,7 +4,7 @@ import { familyTransfers } from '../group/families';
 import { unitMembers, unitNetBalances, unitOf, type GroupUnits } from '../group/units';
 import type { Transfer } from '../simplify';
 import { formatMinor } from './pdf';
-import { wrapText } from './ledger';
+import { exportDescription, wrapText } from './ledger';
 
 export interface FamilyStatementExpense extends ExpenseSnapshot {
   readonly description: string;
@@ -42,7 +42,12 @@ export function familyStatement(
   const lines = expenses
     .filter(isLive)
     .filter((expense) => members.some((id) => id in expense.shares || id in expense.payers))
-    .map((expense) => ({ ...expense, share: sum(expense.shares), paid: sum(expense.payers) }))
+    .map((expense) => ({
+      ...expense,
+      description: exportDescription(expense.description),
+      share: sum(expense.shares),
+      paid: sum(expense.payers),
+    }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   const payments = settlements
     .filter(
