@@ -24277,7 +24277,7 @@ const ar: UiStrings = {
   homeDash: {
     creditsTitle: 'أرصدة',
     getCredits: 'احصل على أرصدة',
-    creditOne: 'رصيد واحد',
+    creditOne: '{n} رصيد',
     creditMany: '{n} أرصدة',
     creditReward: 'احصل على {n} أرصدة',
     creditPro: 'بلا إعلانات، {n} صوت/شهر',
