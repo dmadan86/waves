@@ -31,7 +31,6 @@ export interface QuickAction {
   badge?: number;
   badgeColor?: string;
   backgroundColor?: string;
-  pillLabel?: string;
   accessibilityLabel?: string;
   /** Measured for a menu that has to drop from this tile — only Friends'
    *  "Add people" tile uses this. */
@@ -64,7 +63,6 @@ export function QuickActionsRow({
   rowPadding?: number;
 }) {
   const theme = useTheme();
-  const hasPills = actions.some((action) => action.pillLabel);
 
   return (
     <View
@@ -104,13 +102,27 @@ export function QuickActionsRow({
             style={({ pressed }) => ({
               alignItems: 'center',
               gap: 4,
+              alignSelf: 'center',
+              maxWidth: '100%',
               paddingHorizontal: 2,
-              paddingVertical: hasPills ? 6 : 0,
               borderRadius: 16,
-              backgroundColor: action.backgroundColor,
               opacity: pressed ? 0.6 : 1,
             })}
           >
+            {action.backgroundColor ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  bottom: -4,
+                  left: -4,
+                  right: -4,
+                  borderRadius: 16,
+                  backgroundColor: action.backgroundColor,
+                }}
+              />
+            ) : null}
             <View>
               {disc}
               {action.badge != null ? (
@@ -153,27 +165,6 @@ export function QuickActionsRow({
             >
               {action.label}
             </Text>
-            {hasPills ? (
-              <View style={{ minHeight: 20, maxWidth: '100%' }}>
-                {action.pillLabel ? (
-                  <Text
-                    variant="micro"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{
-                      color: theme.color.brand,
-                      backgroundColor: theme.color.brandSoft,
-                      borderRadius: 10,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      fontWeight: '600',
-                    }}
-                  >
-                    {action.pillLabel} ›
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
           </Pressable>
         );
         return (

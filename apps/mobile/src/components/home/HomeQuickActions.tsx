@@ -4,7 +4,7 @@
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
- * Free users get a credits badge and an add-credits pill. A low balance
+ * Free users get a compact credits sheet. A low balance
  * highlights that action while keeping every disc and label aligned.
  *
  * Draws itself with `QuickActionsRow`, the same disc-and-label strip
@@ -22,13 +22,12 @@ import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { readCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
-import { isHomeCreditsLow } from '@/lib/isHomeCreditsLow';
+import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
-import { useToast } from '@/lib/toast';
 
 export function HomeQuickActions({
   onAddExpense,
@@ -50,7 +49,6 @@ export function HomeQuickActions({
   const groupRef = useRef<View>(null);
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
-  const toast = useToast();
   const adOffer = useRewardedAdOffer();
   const credits = useQuery({
     queryKey: ['credits', viewerId],
@@ -59,7 +57,7 @@ export function HomeQuickActions({
   });
 
   const balance = credits.data?.credits;
-  const lowCredits = isHomeCreditsLow(balance, credits.data?.costs.voice);
+  const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
   const actions: QuickAction[] = [
     {
@@ -80,23 +78,13 @@ export function HomeQuickActions({
       ? [
           {
             key: 'credits',
-            label: t.homeDash.creditsTitle,
-            badge: balance ?? undefined,
-            badgeColor: lowCredits ? theme.color.negative : theme.color.brand,
-            backgroundColor: lowCredits ? theme.color.negativeSoft : undefined,
-            pillLabel: t.homeDash.addCredits,
-            accessibilityLabel:
-              balance == null
-                ? `${t.homeDash.creditsTitle}. ${t.homeDash.addCredits}`
-                : t.homeDash.creditsAccessibility.replace('{n}', String(balance)),
+            label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
+            badge: creditAction.badge,
+            badgeColor: theme.color.brand,
+            backgroundColor: creditAction.highlight ? theme.color.brandSoft : undefined,
+            accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
             glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
-            onPress: () => {
-              if (!adOffer.canOffer('voice', { userInitiated: true })) {
-                toast.show(t.homeDash.noAdAvailable);
-                return;
-              }
-              void adOffer.offer('voice', { userInitiated: true });
-            },
+            onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
           },
         ]
       : []),
