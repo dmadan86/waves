@@ -32,3 +32,7 @@ describe('activity screen scoped to one group', () => {
     expect(src).toContain('onlyGroup ? undefined : hasGroups');
   });
 });
+
+it('keeps the group name in every row meta line', () => {
+  expect(src).toContain('groupName: g?.name?.trim() || null');
+});

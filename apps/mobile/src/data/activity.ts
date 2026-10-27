@@ -728,7 +728,7 @@ export function verbIcon(verb: string): React.ComponentProps<typeof Ionicons>['n
     case 'member_removed':
       return 'person-remove-outline';
     case 'member_left':
-      return 'exit-outline';
+      return 'person-remove-outline';
     case 'member_role_changed':
       return 'shield-checkmark-outline';
     case 'claimed':
@@ -811,6 +811,7 @@ export function verbTint(verb: string): ActivityTint {
     case 'import_undone':
     case 'recurring_stopped':
     case 'member_removed':
+    case 'member_left':
       return 'coral';
     case 'added':
     case 'joined':

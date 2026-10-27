@@ -473,3 +473,49 @@ describe('splitDeviceFact', () => {
     });
   });
 });
+
+describe('a departed member re-split notice', () => {
+  const resplit = {
+    ...ROW,
+    kind: 'resplit',
+    deepLink: null,
+    facts: {
+      counterparty: 'Madan',
+      group: 'Goa trip',
+      count: '3',
+      amount: '-12500',
+      currency: 'INR',
+    },
+  };
+
+  it('explains the move and formats the new balance from minor units', () => {
+    expect(templateForKind('resplit')).toBe('resplit');
+    const built = buildEmail(resplit, OPTIONS);
+    expect(built?.text).toContain(
+      'Madan moved your share of 3 expenses in Goa trip to the other members.',
+    );
+    expect(built?.text).toMatch(/Your balance there is now .*125/);
+    expect(built?.text).toContain('₹');
+    expect(built?.text).not.toContain('12500');
+    expect(built?.headers['List-Unsubscribe']).toBe(`<${OPTIONS.unsubscribeUrl}>`);
+  });
+
+  it('shows zero as a real balance and escapes actor and group names', () => {
+    const built = buildEmail(
+      {
+        ...resplit,
+        facts: {
+          ...resplit.facts,
+          amount: '0',
+          counterparty: '<Admin>',
+          group: '<Trip>',
+        },
+      },
+      OPTIONS,
+    );
+    expect(built?.text).toMatch(/Your balance there is now .*0/);
+    expect(built?.html).toContain('&lt;Admin&gt;');
+    expect(built?.html).toContain('&lt;Trip&gt;');
+    expect(built?.html).not.toContain('<Admin>');
+  });
+});

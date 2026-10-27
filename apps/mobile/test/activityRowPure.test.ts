@@ -105,3 +105,13 @@ describe('activityTileGlyph, a group settings change', () => {
     expect(activityTileGlyph('member_removed', 'member', null).tint).toBe('coral');
   });
 });
+
+it('uses a red person-remove glyph for removed and departed members', () => {
+  for (const verb of ['member_removed', 'member_left']) {
+    expect(activityTileGlyph(verb, 'member', null)).toEqual({
+      family: 'ion',
+      name: 'person-remove-outline',
+      tint: 'coral',
+    });
+  }
+});

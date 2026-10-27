@@ -295,3 +295,50 @@ describe('the dialog hub', () => {
     expect(hub.queue().current).toBeNull();
   });
 });
+
+describe('async confirmations', () => {
+  it('stays busy and ignores repeat taps and dismissal until success', async () => {
+    const hub = createDialogHub(() => undefined);
+    let finish!: (ok: boolean) => void;
+    let calls = 0;
+    const answer = hub.ask(
+      ask({
+        onConfirm: () => {
+          calls += 1;
+          return new Promise<boolean>((resolve) => {
+            finish = resolve;
+          });
+        },
+      }),
+    );
+    const id = hub.queue().current!.id;
+    hub.respond(id, DIALOG_CONFIRM);
+    hub.respond(id, DIALOG_CONFIRM);
+    hub.respond(id, null);
+    hub.respond(id, DIALOG_CANCEL);
+    expect(hub.queue().current?.busy).toBe(true);
+    await Promise.resolve();
+    expect(calls).toBe(1);
+    finish(true);
+    expect(await answer).toBe(DIALOG_CONFIRM);
+    expect(hub.queue().current).toBeNull();
+  });
+
+  it.each(['refused', 'rejected'])('releases the dialog after a %s write', async (failure) => {
+    const hub = createDialogHub(() => undefined);
+    const answer = hub.ask(
+      ask({
+        onConfirm: async () => {
+          if (failure === 'rejected') throw new Error('offline');
+          return false;
+        },
+      }),
+    );
+    hub.respond(hub.queue().current!.id, DIALOG_CONFIRM);
+    expect(await answer).toBe(DIALOG_CANCEL);
+    expect(hub.queue().current).toBeNull();
+    const next = hub.ask(ask());
+    hub.respond(hub.queue().current!.id, DIALOG_CANCEL);
+    expect(await next).toBe(DIALOG_CANCEL);
+  });
+});

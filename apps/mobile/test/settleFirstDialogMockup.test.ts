@@ -41,7 +41,15 @@ describe('settle-first dialog', () => {
     expect(DIALOG).toContain('theme.radius.pill');
     expect(DIALOG).toContain('variant="brand"');
     expect(DIALOG).toContain("directionalIcon('chevron-forward')");
-    expect(DIALOG).toContain('onPress={onSettle}');
+    const balanceCard = DIALOG.slice(DIALOG.indexOf('<Pressable'), DIALOG.indexOf('</Pressable>'));
+    const settleButton = DIALOG.slice(DIALOG.indexOf('<Button'), DIALOG.indexOf('</Row>'));
+    for (const control of [balanceCard, settleButton]) {
+      expect(control).toContain('disabled={busy}');
+      expect(control).toMatch(
+        /onPress=\{\(\) => \{\s*if \(!pending\.current\) onSettle\(\);\s*\}\}/,
+      );
+    }
+    expect(settleButton).toContain('label={g.settleFirstSettle}');
   });
 
   it('draws "Leave anyway" only when the caller passes the handler', () => {
@@ -74,9 +82,18 @@ describe('leave() routing in group settings', () => {
   it('sends the balance card and Settle up to the group Balances tab, and Leave anyway to the mutation', () => {
     const block = SCREEN.slice(SCREEN.indexOf('<SettleFirstDialog'));
     const dialog = block.slice(0, block.indexOf('/>'));
-    expect(dialog).toContain('router.push(settleHref(groupId))');
-    expect(dialog).toContain('leaveNow()');
-    expect(SCREEN).toContain('leaveGroup.mutate(ledger.myMemberId');
+    expect(dialog).toMatch(
+      /onSettle=\{\(\) => \{\s*setSettleFirstOpen\(false\);\s*router\.push\(settleHref\(groupId\)\);\s*\}\}/,
+    );
+    expect(dialog).toMatch(
+      /onLeaveAnyway=\{async \(\) => \{\s*await leaveNow\(\);\s*setSettleFirstOpen\(false\);\s*\}\}/,
+    );
+    const leaveNow = SCREEN.slice(
+      SCREEN.indexOf('const leaveNow = async'),
+      SCREEN.indexOf('const leave = async'),
+    );
+    expect(leaveNow).toContain('if (!ledger.myMemberId || leaveGroup.isPending) return false;');
+    expect(leaveNow).toContain('await leaveGroup.mutateAsync(ledger.myMemberId);');
   });
 
   it('is the only place that leaves a group', () => {

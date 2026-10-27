@@ -106,6 +106,7 @@ export enum NotificationKind {
    * and not at all to somebody who muted the group.
    */
   GroupImport = 'group_import',
+  Resplit = 'resplit',
 }
 
 /**
@@ -297,6 +298,10 @@ const en: CopyStrings = {
       title: 'Your week on Waves',
       body: '{count} expenses · {amount}',
     },
+    [NotificationKind.Resplit]: {
+      title: '{actor} moved your expense shares',
+      body: '{actor} moved your share of {count} expenses in {group} to the other members. Your balance there is now {amount}.',
+    },
     [NotificationKind.GroupImport]: {
       title: '{actor} imported expenses',
       body: '{count} expenses added to {group}',
@@ -445,6 +450,10 @@ const ta: CopyStrings = {
       title: 'Waves-இல் உங்கள் வாரம்',
       body: '{count} செலவுகள் · {amount}',
     },
+    [NotificationKind.Resplit]: {
+      title: '{actor} உங்கள் செலவுப் பங்குகளை மாற்றினார்',
+      body: '{group} இல் {count} செலவுகளில் உங்கள் பங்கை மற்ற உறுப்பினர்களுக்கு {actor} மாற்றினார். அங்கு உங்கள் இருப்பு இப்போது {amount}.',
+    },
     [NotificationKind.GroupImport]: {
       title: '{actor} செலவுகளை இறக்குமதி செய்தார்',
       body: '{group} இல் {count} செலவுகள் சேர்க்கப்பட்டன',
@@ -590,6 +599,10 @@ const hi: CopyStrings = {
       title: 'Waves पर आपका हफ़्ता',
       body: '{count} ख़र्च · {amount}',
     },
+    [NotificationKind.Resplit]: {
+      title: '{actor} ने आपके खर्चों के हिस्से बाँटे',
+      body: '{actor} ने {group} में {count} खर्चों का आपका हिस्सा बाकी सदस्यों में बाँट दिया। वहाँ आपका बैलेंस अब {amount} है।',
+    },
     [NotificationKind.GroupImport]: {
       title: '{actor} ने ख़र्च इम्पोर्ट किए',
       body: '{group} में {count} ख़र्च जुड़े',
@@ -734,6 +747,10 @@ const ar: CopyStrings = {
     [NotificationKind.DigestWeekly]: {
       title: 'أسبوعك على Waves',
       body: '{count} مصروفات · {amount}',
+    },
+    [NotificationKind.Resplit]: {
+      title: 'نقل {actor} حصصك من المصاريف',
+      body: 'نقل {actor} حصتك من {count} مصاريف في {group} إلى الأعضاء الآخرين. رصيدك هناك الآن {amount}.',
     },
     [NotificationKind.GroupImport]: {
       title: 'استورد {actor} مصروفات',

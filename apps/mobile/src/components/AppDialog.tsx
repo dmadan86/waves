@@ -43,7 +43,14 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AccessibilityInfo, Image, ScrollView, useWindowDimensions, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   Button,
@@ -61,6 +68,7 @@ import {
 import { useStrings } from '@/i18n';
 import {
   DIALOG_CANCEL,
+  DIALOG_CONFIRM,
   presentationFor,
   type DialogAction,
   type DialogChoice,
@@ -156,10 +164,12 @@ function variantFor(action: DialogAction, illustrated = false): ButtonVariant {
 function DialogContent({
   request,
   bodyMax,
+  busy,
   onChoose,
 }: {
   request: DialogRequest;
   bodyMax: number;
+  busy: boolean;
   onChoose: (choice: DialogChoice) => void;
 }) {
   const theme = useTheme();
@@ -288,9 +298,15 @@ function DialogContent({
           <Button
             key={action.id}
             label={action.label}
+            disabled={busy}
+            accessibilityState={{ disabled: busy, busy: busy && action.id === DIALOG_CONFIRM }}
             variant={variantFor(action, centred)}
             icon={
-              action.icon ? (
+              busy && action.id === DIALOG_CONFIRM ? (
+                <ActivityIndicator
+                  color={action.tone === 'danger' ? theme.color.onBrand : theme.color.brand}
+                />
+              ) : action.icon ? (
                 <Ionicons
                   name={action.icon as keyof typeof Ionicons.glyphMap}
                   size={iconSize.md}
@@ -386,6 +402,7 @@ export function AppDialog({
     content: (
       <DialogContent
         request={shown.request}
+        busy={shown.busy ?? false}
         bodyMax={Math.round(screenHeight * BODY_FRACTION[on])}
         onChoose={(choice) => onChoose(shown.id, choice)}
       />

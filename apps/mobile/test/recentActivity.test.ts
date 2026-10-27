@@ -224,3 +224,27 @@ describe('a group settings change in the feed', () => {
     expect(rows[1]?.actor?.id).toBe('m-me');
   });
 });
+
+it('joins the group for edits and all other verbs, and recovers undo names by batch', () => {
+  const state = mirror();
+  const tables = (state as unknown as { tables: Record<string, Record<string, unknown>> }).tables;
+  tables.activity_log = Object.fromEntries(
+    ['edited', 'added', 'member_left', 'resplit', 'resplit_undone'].map((verb, i) => [
+      verb,
+      {
+        id: verb,
+        group_id: 'g-goa',
+        actor_member_id: 'm-me',
+        verb,
+        object_type: verb === 'edited' ? 'expense' : 'resplit_batch',
+        object_id: 'batch',
+        payload:
+          verb === 'resplit' ? { name: 'Ravi', count: 4, batchId: 'batch' } : { batchId: 'batch' },
+        created_at: `2026-09-10T10:00:0${i}.000Z`,
+      },
+    ]),
+  );
+  const rows = recentActivity(state, 'p-me', 1);
+  expect(rows[0]?.payload.name).toBe('Ravi');
+  for (const row of recentActivity(state)) expect(row.group?.name).toBe('Goa');
+});

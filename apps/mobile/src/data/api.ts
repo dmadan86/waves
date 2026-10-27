@@ -2408,3 +2408,42 @@ export async function disabledCountries(): Promise<string[]> {
   if (error) return [];
   return (data ?? []).map((row) => (row as { code: string }).code);
 }
+
+export async function resplitDeparted(
+  groupId: string,
+  memberId: string,
+  items: ResplitItem[],
+  clientMutationId: string,
+): Promise<ResplitResult> {
+  return unwrap(
+    await backend.rpc('waves_resplit_departed', {
+      p_group_id: groupId,
+      p_member_id: memberId,
+      p_items: items,
+      p_client_mutation_id: clientMutationId,
+    }),
+  );
+}
+
+export async function undoResplit(batchId: string): Promise<UndoResplitResult> {
+  return unwrap(await backend.rpc('waves_undo_resplit', { p_batch_id: batchId }));
+}
+
+/** JSON-safe arguments for one version in a departed-member re-split. */
+export interface ResplitItem {
+  expense_id: string;
+  base_version_no: number;
+  split_type: 'equal' | 'exact';
+  split_params: Record<string, unknown>;
+  shares: { member_id: string; amount_minor: string }[];
+}
+export interface ResplitResult {
+  batchId: string;
+  count: number;
+  amount: string;
+  replayed: boolean;
+}
+export interface UndoResplitResult {
+  restored: number;
+  skipped: number;
+}

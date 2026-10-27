@@ -146,3 +146,22 @@ export function pastNameOf(member: Member, leftLabel: string): string {
   const name = nameOf(member);
   return member.left_at ? `${name} ${leftLabel}` : name;
 }
+
+/** JSON-safe arguments for one version in a departed-member re-split. */
+export interface ResplitItem {
+  expense_id: string;
+  base_version_no: number;
+  split_type: 'equal' | 'exact';
+  split_params: Record<string, unknown>;
+  shares: { member_id: string; amount_minor: string }[];
+}
+export interface ResplitResult {
+  batchId: string;
+  count: number;
+  amount: string;
+  replayed: boolean;
+}
+export interface UndoResplitResult {
+  restored: number;
+  skipped: number;
+}

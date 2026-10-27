@@ -120,6 +120,8 @@ export interface DialogRow {
 }
 
 export interface DialogRequest {
+  /** Keep the confirmation open until the write settles; false means failure. */
+  readonly onConfirm?: () => Promise<boolean>;
   readonly title: string;
   readonly body?: string;
   /** Structured consequences, drawn as rows rather than folded into `body`. */
@@ -187,6 +189,7 @@ export function presentationFor(request: DialogRequest): DialogPresentation {
 
 /** A request waiting its turn, or being read right now. */
 export interface DialogSlot {
+  readonly busy?: boolean;
   readonly id: number;
   readonly request: DialogRequest;
 }
@@ -324,6 +327,21 @@ export function createDialogHub(onChange: (queue: DialogQueue) => void): DialogH
       }),
 
     respond: (id, choice) => {
+      const current = queue.current;
+      if (current?.id !== id || current.busy) return;
+      if (choice === DIALOG_CONFIRM && current.request.onConfirm) {
+        move({ ...queue, current: { ...current, busy: true } });
+        const finish = (ok: boolean): void => {
+          const step = closeDialog(queue, id);
+          if (step.closed === null) return;
+          move(step.queue);
+          settle(id, ok ? DIALOG_CONFIRM : DIALOG_CANCEL);
+        };
+        void Promise.resolve()
+          .then(current.request.onConfirm)
+          .then(finish, () => finish(false));
+        return;
+      }
       const step = closeDialog(queue, id);
       if (step.closed === null) return;
       move(step.queue);

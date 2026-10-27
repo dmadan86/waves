@@ -363,6 +363,7 @@ model Group {
   settlements        Settlement[]
   activity           ActivityLog[]
   importBatches      ImportBatch[]
+  resplitBatches     ResplitBatch[]
   reminders          Reminder[]
   balances           GroupBalance[]
   pairwise           PairwiseBalance[]
@@ -472,6 +473,8 @@ model GroupMember {
   ghostMerges        GhostMerge[]
   importsRun         ImportBatch[]           @relation("BatchActor")
   importsUndone      ImportBatch[]           @relation("BatchUndoneBy")
+  resplitBatches     ResplitBatch[]           @relation("ResplitMember")
+  resplitsRun        ResplitBatch[]           @relation("ResplitActor")
 
   @@unique([groupId, profileId])
   @@index([groupId])
@@ -745,24 +748,28 @@ model ExpenseVersion {
   /// The import this version came in with (`import_batches`), set on version 1
   /// of an imported expense only; edits carry none. What Undo import acts on.
   importBatchId    String?       @map("import_batch_id") @db.Uuid
+  resplitBatchId   String?       @map("resplit_batch_id") @db.Uuid
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  expense     Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
-  currentOf   Expense?       @relation("CurrentVersion")
-  author      GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
-  importBatch ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
-  receipt     Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
-  payers      ExpensePayer[]
-  shares      ExpenseShare[]
+  expense      Expense          @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
+  currentOf    Expense?         @relation("CurrentVersion")
+  author       GroupMember?     @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
+  importBatch  ImportBatch?     @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  resplitBatch ResplitBatch?    @relation(fields: [resplitBatchId], references: [id], onDelete: SetNull)
+  receipt      Receipt?         @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  payers       ExpensePayer[]
+  shares       ExpenseShare[]
 
   @@unique([expenseId, versionNo])
   @@index([expenseId])
   @@index([authorMemberId])
   @@index([importBatchId])
   @@index([receiptId])
+  // The partial expense_versions_resplit_batch_id_idx index (WHERE
+  // resplit_batch_id IS NOT NULL) lives in the migration SQL.
   @@map("expense_versions")
   @@schema("public")
 }
@@ -962,6 +969,26 @@ model ImportBatch {
   @@index([actorMemberId])
   @@index([undoneBy])
   @@map("import_batches")
+  @@schema("public")
+}
+
+/// A departed member's re-split batch, written by RPCs and read by group members.
+model ResplitBatch {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId          String    @map("group_id") @db.Uuid
+  memberId         String    @map("member_id") @db.Uuid
+  actorMemberId    String?   @map("actor_member_id") @db.Uuid
+  clientMutationId String    @unique @map("client_mutation_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  undoneAt         DateTime? @map("undone_at") @db.Timestamptz(6)
+
+  group    Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member   GroupMember      @relation("ResplitMember", fields: [memberId], references: [id], onDelete: NoAction)
+  actor    GroupMember?     @relation("ResplitActor", fields: [actorMemberId], references: [id], onDelete: SetNull)
+  versions ExpenseVersion[]
+
+  @@index([groupId, createdAt])
+  @@map("resplit_batches")
   @@schema("public")
 }
 

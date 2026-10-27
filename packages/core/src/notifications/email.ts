@@ -44,6 +44,7 @@ export enum EmailTemplate {
   Digest = 'digest',
   Nudge = 'nudge',
   GroupAdded = 'group-added',
+  Resplit = 'resplit',
   /**
    * A sign-in on a device this account has not used before. The only
    * *security* mail here, and it is shaped differently for that reason: no
@@ -113,6 +114,7 @@ export const TEMPLATE_FOR_KIND: Readonly<Record<string, EmailTemplate>> = Object
      * other one, not here.
      */
     group_added: EmailTemplate.GroupAdded,
+    resplit: EmailTemplate.Resplit,
   },
 );
 

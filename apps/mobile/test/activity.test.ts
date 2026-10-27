@@ -31,7 +31,7 @@ import {
   verbTint,
 } from '@/data/activity';
 import type { ActivityActor, ActivityRow } from '@/data/types';
-import { activityLabels } from '@/data/activityLabels';
+import { activityLabels, resplitActivityLabel } from '@/data/activityLabels';
 import { Language, STRINGS_BY_LANGUAGE } from '@/i18n';
 
 // `@/i18n` reads the device locale; the import lines below are tested per language.
@@ -998,7 +998,7 @@ describe('people in the feed', () => {
     expect(verbTint('member_added')).toBe('sky');
     expect(verbTint('claimed')).toBe('sky');
     expect(verbTint('member_removed')).toBe('coral');
-    expect(verbTint('member_left')).toBe('lilac');
+    expect(verbTint('member_left')).toBe('coral');
   });
 
   it('opens the member who was added, and the list for somebody who is gone', () => {
@@ -1062,5 +1062,46 @@ describe('group changes in every language', () => {
         }
       }
     }
+  });
+});
+
+describe('re-split activity headlines', () => {
+  it('names the departed member in every locale for split and undo', () => {
+    for (const [locale, strings] of Object.entries(STRINGS_BY_LANGUAGE)) {
+      for (const verb of ['resplit', 'resplit_undone']) {
+        for (const count of [1, 4]) {
+          const label = resplitActivityLabel(
+            { verb, payload: { name: 'Ravi', count } },
+            locale,
+            strings.departedExpenses,
+            strings.misc.someone,
+          );
+          expect(label).toContain('Ravi');
+          expect(label).not.toMatch(/\{(?:name|n)\}/);
+        }
+      }
+    }
+  });
+
+  it('uses singular and plural English and a fallback for missing names', () => {
+    const strings = STRINGS_BY_LANGUAGE[Language.En];
+    for (const count of [1, 4]) {
+      expect(
+        resplitActivityLabel(
+          { verb: 'resplit', payload: { name: 'Ravi', count } },
+          'en',
+          strings.departedExpenses,
+          'Someone',
+        ),
+      ).toBe(`Split ${count} expense${count === 1 ? '' : 's'} after Ravi left`);
+    }
+    expect(
+      resplitActivityLabel(
+        { verb: 'resplit_undone', payload: {} },
+        'en',
+        strings.departedExpenses,
+        'Someone',
+      ),
+    ).toBe('Undid split after Someone left');
   });
 });
