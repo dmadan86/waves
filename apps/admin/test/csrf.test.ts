@@ -25,7 +25,7 @@ const HOST = 'admin.wavs.co.in';
 beforeEach(() => {
   headerStore.clear();
   cookieStore.clear();
-  process.env.ADMIN_SESSION_SECRET = 'test-session-secret';
+  process.env.ADMIN_SESSION_SECRET = 's'.repeat(40);
   delete process.env.ADMIN_ALLOWED_ORIGIN;
 });
 
