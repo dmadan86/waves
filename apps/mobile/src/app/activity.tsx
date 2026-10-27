@@ -1,4 +1,4 @@
-import { resplitActivityLabel } from '@/data/activityLabels';
+import { activityLabels, resplitActivityLabel } from '@/data/activityLabels';
 import { NativeAdCard } from '@/components/NativeAdCard';
 import { ReviewBanner } from '@/components/ReviewBanner';
 import { nativePositions } from '@/lib/nativeAdsPure';
@@ -46,7 +46,6 @@ import {
   parseMoney,
 } from '@/data/activity';
 import { resplitBatchId } from '@/data/recentActivity';
-import { activityLabels } from '@/data/activityLabels';
 import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { GroupMark } from '@/components/GroupMark';
