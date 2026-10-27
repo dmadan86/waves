@@ -45,7 +45,7 @@ async function asUser<T>(profileId: string, run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** One `UPDATE groups SET <column> = <value>` run as an ordinary member. */
+/** One `UPDATE groups SET <column> = <value>` run as the given member. */
 function patch(profileId: string, groupId: string, column: string, value: unknown) {
   return asUser(profileId, () =>
     client.query(`UPDATE groups SET ${column} = $1 WHERE id = $2`, [value, groupId]),
@@ -146,8 +146,7 @@ describe('the guard is an allowlist, not a list of known villains', () => {
 
 describe('the columns the app actually writes still go through', () => {
   it('lets a member rename, re-emoji and re-date the group', async () => {
-    // Exactly the fields `/sync`'s GROUP_UPDATABLE_FIELDS allows. If this test
-    // fails, the allowlist and the edge function have drifted apart.
+    // Ordinary edits remain available to members; debt simplification needs an admin.
     const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
     const member = profileIds[1]!;
 
@@ -158,19 +157,20 @@ describe('the columns the app actually writes still go through', () => {
     await patch(member, groupId, 'end_date', '2026-01-08');
     await patch(member, groupId, 'time_zone', 'Asia/Kolkata');
     await patch(member, groupId, 'remind_daily', false);
-    await patch(member, groupId, 'simplify_debts', false);
+    await patch(profileIds[0]!, groupId, 'simplify_debts', false);
     await patch(member, groupId, 'default_currency', 'EUR');
     await patch(member, groupId, 'country_code', 'IN');
     await patch(member, groupId, 'custom_tag', 'Diwali 2026');
     await patch(member, groupId, 'cover_color', 'peach');
 
     const { rows } = await client.query(
-      `SELECT name, description, cover_emoji, remind_daily FROM groups WHERE id = $1`,
+      `SELECT name, description, cover_emoji, remind_daily, simplify_debts FROM groups WHERE id = $1`,
       [groupId],
     );
     expect(rows[0]?.name).toBe('Goa 2026');
     expect(rows[0]?.description).toBe('January, the four of us');
     expect(rows[0]?.remind_daily).toBe(false);
+    expect(rows[0]?.simplify_debts).toBe(false);
   });
 
   it('caps a description at 280 characters, and lets exactly 280 through', async () => {
@@ -230,15 +230,24 @@ describe('the columns the app actually writes still go through', () => {
     expect(rows[0]?.description).toBeNull();
   });
 
-  it('lets a member archive and unarchive, which is deliberate', async () => {
-    // Archiving is in the `/sync` whitelist: any member putting a finished trip
-    // away is the shipped capability, not an escalation. It is the one column on
-    // this list that looks like `deleted_at` and is not.
+  it('reserves archiving and debt simplification for an admin', async () => {
+    // Client writes to these settings need admin authority, even through a bare PATCH.
     const { groupId, profileIds } = await seedGroup(client, { memberCount: 2 });
     const member = profileIds[1]!;
+    const admin = profileIds[0]!;
 
-    await patch(member, groupId, 'archived_at', new Date().toISOString());
-    await patch(member, groupId, 'archived_at', null);
+    expect(
+      await expectDenied(patch(member, groupId, 'archived_at', new Date().toISOString())),
+    ).toMatch(/NOT_AN_ADMIN/);
+    expect(await expectDenied(patch(member, groupId, 'simplify_debts', false))).toMatch(
+      /NOT_AN_ADMIN/,
+    );
+
+    await patch(admin, groupId, 'archived_at', new Date().toISOString());
+    const archived = await client.query(`SELECT archived_at FROM groups WHERE id = $1`, [groupId]);
+    expect(archived.rows[0]?.archived_at).not.toBeNull();
+    expect(await expectDenied(patch(member, groupId, 'archived_at', null))).toMatch(/NOT_AN_ADMIN/);
+    await patch(admin, groupId, 'archived_at', null);
 
     const { rows } = await client.query(`SELECT archived_at FROM groups WHERE id = $1`, [groupId]);
     expect(rows[0]?.archived_at).toBeNull();

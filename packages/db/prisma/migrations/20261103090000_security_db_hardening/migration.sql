@@ -21,6 +21,8 @@ BEGIN
 END
 $function$
 ;
+REVOKE EXECUTE ON FUNCTION public.waves_guard_membership_insert() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_guard_membership_insert() TO service_role;
 DROP TRIGGER IF EXISTS group_members_guard_insert ON public.group_members;
 CREATE TRIGGER group_members_guard_insert BEFORE INSERT ON public.group_members
   FOR EACH ROW EXECUTE FUNCTION public.waves_guard_membership_insert();
@@ -284,7 +286,7 @@ BEGIN
      SET profile_id = v_claim.requester_id,
          ghost_name = NULL,
          joined_via = v_via,
-         role = v_role
+         role = v_role::"MemberRole"
    WHERE id = v_claim.member_id
      AND profile_id IS NULL
      AND left_at IS NULL;
@@ -371,6 +373,8 @@ BEGIN
 END
 $function$
 ;
+REVOKE EXECUTE ON FUNCTION public.waves_guard_invite_insert() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_guard_invite_insert() TO service_role;
 DROP TRIGGER IF EXISTS invites_guard_insert ON public.invites;
 CREATE TRIGGER invites_guard_insert BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.waves_guard_invite_insert();
