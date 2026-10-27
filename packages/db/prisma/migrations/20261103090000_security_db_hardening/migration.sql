@@ -351,6 +351,8 @@ BEGIN
 END
 $function$
 ;
+REVOKE EXECUTE ON FUNCTION public.waves_decide_member_claim(uuid, boolean) FROM anon, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_decide_member_claim(uuid, boolean) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.waves_guard_invite_insert()
  RETURNS trigger
@@ -474,3 +476,5 @@ BEGIN
 END;
 $function$
 ;
+REVOKE EXECUTE ON FUNCTION public.waves_phone_gate(text) FROM anon, authenticated, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waves_phone_gate(text) TO service_role;
