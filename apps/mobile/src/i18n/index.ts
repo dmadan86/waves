@@ -3989,6 +3989,14 @@ export interface UiStrings {
     settleNoHistory: string;
     settlePaymentsCount: PluralForms;
     settleBetweenOthersSub: string;
+    paymentsToMake: string;
+    balanceSortAmount: string;
+    balanceSortName: string;
+    balanceSimplified: string;
+    balanceIsOwed: string;
+    balanceOwesYou: string;
+    balanceOwes: string;
+    balanceSettled: string;
     settleOweYouTitle: string;
     settleYouOweTitle: string;
     settleStatusPending: string;
@@ -9268,6 +9276,14 @@ const en: UiStrings = {
     settleNoHistory: 'No payments yet',
     settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
     settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
+    paymentsToMake: 'Payments to make',
+    balanceSortAmount: 'Sort by amount',
+    balanceSortName: 'Sort by name',
+    balanceSimplified: 'Simplified',
+    balanceIsOwed: 'is owed',
+    balanceOwesYou: 'owes you',
+    balanceOwes: 'owes',
+    balanceSettled: 'settled',
     settleOweYouTitle: 'People who owe you',
     settleYouOweTitle: 'People you owe',
     settleStatusPending: 'pending',
@@ -14551,6 +14567,14 @@ const ta: UiStrings = {
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
     settleBetweenOthersSub:
       'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    paymentsToMake: 'செலுத்த வேண்டியவை',
+    balanceSortAmount: 'தொகைப்படி வரிசை',
+    balanceSortName: 'பெயர்ப்படி வரிசை',
+    balanceSimplified: 'எளிமைப்படுத்தியது',
+    balanceIsOwed: 'பெற வேண்டும்',
+    balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
+    balanceOwes: 'தர வேண்டும்',
+    balanceSettled: 'தீர்க்கப்பட்டது',
     settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
     settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
     settleStatusPending: 'நிலுவையில்',
@@ -19848,6 +19872,14 @@ const hi: UiStrings = {
     settleNoHistory: 'अभी कोई भुगतान नहीं',
     settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
     settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
+    paymentsToMake: 'करने वाले भुगतान',
+    balanceSortAmount: 'राशि के अनुसार',
+    balanceSortName: 'नाम के अनुसार',
+    balanceSimplified: 'सरलीकृत',
+    balanceIsOwed: 'लेना है',
+    balanceOwesYou: 'आपको देना है',
+    balanceOwes: 'देना है',
+    balanceSettled: 'निपट गया',
     settleOweYouTitle: 'जिनसे आपको लेना है',
     settleYouOweTitle: 'जिन्हें आपको चुकाना है',
     settleStatusPending: 'लंबित',
@@ -25310,6 +25342,14 @@ const ar: UiStrings = {
       other: 'عبر {n} دفعة',
     },
     settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
+    paymentsToMake: 'دفعات مستحقة',
+    balanceSortAmount: 'ترتيب حسب المبلغ',
+    balanceSortName: 'ترتيب حسب الاسم',
+    balanceSimplified: 'مبسّط',
+    balanceIsOwed: 'له مستحقات',
+    balanceOwesYou: 'مدين لك',
+    balanceOwes: 'مدين',
+    balanceSettled: 'تمت التسوية',
     settleOweYouTitle: 'من يدينون لك',
     settleYouOweTitle: 'من تدين لهم',
     settleStatusPending: 'قيد الانتظار',
