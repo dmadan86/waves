@@ -20,6 +20,8 @@ export type Source = { label: string; url: string };
 export type Faq = { q: string; a: string };
 
 export type Competitor = {
+  heroTicks?: string[];
+  heroChip?: string;
   slug: string;
   name: string;
   /** One line for the /compare index. */
@@ -87,6 +89,8 @@ const moveGeneric = (name: string): Competitor['move'] => ({
 export const competitors: Competitor[] = [
   {
     slug: 'splitwise',
+    heroTicks: ['No daily limits', 'Free forever plan', 'Settle with UPI', 'Works globally'],
+    heroChip: 'No daily limits',
     name: 'Splitwise',
     blurb:
       'A widely used splitter. Daily limit on the free plan, Pro for scanning and currency conversion.',
