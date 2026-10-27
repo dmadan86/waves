@@ -35,7 +35,17 @@ import {
   type Viewer,
 } from '@waves/core';
 
-import type { AcceptedInvite, Expense, Group, InvitePreview, Member, Settlement } from './types';
+import type {
+  ResplitItem,
+  ResplitResult,
+  UndoResplitResult,
+  AcceptedInvite,
+  Expense,
+  Group,
+  InvitePreview,
+  Member,
+  Settlement,
+} from './types';
 import {
   coarseMethod,
   type ActivityGroup,
@@ -246,6 +256,22 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
   }
 
   return {
+    resplitDeparted(
+      groupId: string,
+      memberId: string,
+      items: ResplitItem[],
+      clientMutationId: string,
+    ): Promise<ResplitResult> {
+      return rpc('waves_resplit_departed', {
+        p_group_id: groupId,
+        p_member_id: memberId,
+        p_items: items,
+        p_client_mutation_id: clientMutationId,
+      });
+    },
+    undoResplit(batchId: string): Promise<UndoResplitResult> {
+      return rpc('waves_undo_resplit', { p_batch_id: batchId });
+    },
     /**
      * The real login (ADR-006 names Google among the upgrade providers). An
      * anonymous guest who does this keeps the same user id, so the groups and

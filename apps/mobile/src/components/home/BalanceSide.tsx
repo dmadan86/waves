@@ -35,6 +35,7 @@ export function BalanceSide({
   icon,
   color,
   amount,
+  amountColor,
   label,
   detail,
   chips,
@@ -47,6 +48,7 @@ export function BalanceSide({
   icon: 'arrow-up' | 'arrow-down';
   color: string;
   amount: bigint;
+  amountColor?: string;
   label: string;
   /** The muted caption under the figure; omitted by Friends. */
   detail?: string | null;
@@ -101,7 +103,7 @@ export function BalanceSide({
           amount={amount}
           currency={currency}
           locale={locale}
-          color={theme.color.text}
+          color={amountColor ?? theme.color.text}
           fontSize={18}
         />
       )}
