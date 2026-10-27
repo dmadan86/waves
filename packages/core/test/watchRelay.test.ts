@@ -133,6 +133,202 @@ describe('encodePhoneToWatch', () => {
   });
 });
 
+describe('parseWatchToPhone input-length and format guards', () => {
+  // -- id (all message types) ------------------------------------------------
+  it('rejects a quickAdd whose id exceeds 64 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'a'.repeat(65),
+        amountMinor: '100',
+        currency: 'INR',
+        note: '',
+      }),
+    ).toBeNull();
+  });
+
+  it('accepts a quickAdd whose id is exactly 64 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'a'.repeat(64),
+        amountMinor: '100',
+        currency: 'INR',
+        note: '',
+      }),
+    ).not.toBeNull();
+  });
+
+  it('rejects a voiceAdd whose id exceeds 64 chars', () => {
+    expect(
+      parseWatchToPhone({ t: 'voiceAdd', id: 'a'.repeat(65), transcript: 'hello' }),
+    ).toBeNull();
+  });
+
+  it('rejects a voiceClip whose id exceeds 64 chars', () => {
+    expect(
+      parseWatchToPhone({ t: 'voiceClip', id: 'a'.repeat(65), durationMs: 1000 }),
+    ).toBeNull();
+  });
+
+  // -- quickAdd.amountMinor max 12 digits ------------------------------------
+  it('rejects a quickAdd with an amountMinor longer than 12 digits', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '1'.repeat(13),
+        currency: 'INR',
+        note: '',
+      }),
+    ).toBeNull();
+  });
+
+  it('accepts a quickAdd with exactly 12 digits', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '1'.repeat(12),
+        currency: 'INR',
+        note: '',
+      }),
+    ).not.toBeNull();
+  });
+
+  // -- quickAdd.currency must match /^[A-Za-z]{3}$/ -------------------------
+  it('rejects a quickAdd with a currency that is not exactly 3 ASCII letters', () => {
+    // Too short
+    expect(
+      parseWatchToPhone({ t: 'quickAdd', id: 'w1', amountMinor: '100', currency: 'IN', note: '' }),
+    ).toBeNull();
+    // Too long
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '100',
+        currency: 'INRX',
+        note: '',
+      }),
+    ).toBeNull();
+    // Contains digits
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '100',
+        currency: 'IN3',
+        note: '',
+      }),
+    ).toBeNull();
+    // Empty string (previously accepted)
+    expect(
+      parseWatchToPhone({ t: 'quickAdd', id: 'w1', amountMinor: '100', currency: '', note: '' }),
+    ).toBeNull();
+  });
+
+  it('accepts a quickAdd with a lowercase 3-letter currency', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '100',
+        currency: 'usd',
+        note: '',
+      }),
+    ).not.toBeNull();
+  });
+
+  // -- quickAdd.note max 500 chars -------------------------------------------
+  it('rejects a quickAdd with a note longer than 500 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '100',
+        currency: 'INR',
+        note: 'a'.repeat(501),
+      }),
+    ).toBeNull();
+  });
+
+  it('accepts a quickAdd with a note of exactly 500 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'w1',
+        amountMinor: '100',
+        currency: 'INR',
+        note: 'a'.repeat(500),
+      }),
+    ).not.toBeNull();
+  });
+
+  // -- voiceAdd.transcript max 2000 chars ------------------------------------
+  it('rejects a voiceAdd with a transcript longer than 2000 chars', () => {
+    expect(
+      parseWatchToPhone({ t: 'voiceAdd', id: 'w1', transcript: 'a'.repeat(2001) }),
+    ).toBeNull();
+  });
+
+  it('accepts a voiceAdd with a transcript of exactly 2000 chars', () => {
+    expect(
+      parseWatchToPhone({ t: 'voiceAdd', id: 'w1', transcript: 'a'.repeat(2000) }),
+    ).not.toBeNull();
+  });
+
+  // -- notifAction ids max 128 chars -----------------------------------------
+  it('rejects a notifAction with an actionId longer than 128 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'notifAction',
+        actionId: 'a'.repeat(129),
+        objectId: 'x',
+      }),
+    ).toBeNull();
+  });
+
+  it('rejects a notifAction with an objectId longer than 128 chars', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'notifAction',
+        actionId: 'remind',
+        objectId: 'a'.repeat(129),
+      }),
+    ).toBeNull();
+  });
+
+  it('accepts a notifAction with ids at the 128-char limit', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'notifAction',
+        actionId: 'a'.repeat(128),
+        objectId: 'b'.repeat(128),
+      }),
+    ).not.toBeNull();
+  });
+
+  // -- Confirm existing well-formed fixtures still pass ----------------------
+  it('existing well-formed quickAdd fixture still passes all new guards', () => {
+    expect(
+      parseWatchToPhone({
+        t: 'quickAdd',
+        id: 'intent-1',
+        amountMinor: '25000',
+        currency: 'INR',
+        note: 'Chai',
+      }),
+    ).not.toBeNull();
+  });
+
+  it('existing well-formed voiceAdd fixture still passes all new guards', () => {
+    expect(
+      parseWatchToPhone({ t: 'voiceAdd', id: 'intent-2', transcript: '500 rupees tea' }),
+    ).not.toBeNull();
+  });
+});
+
 describe('parseWatchToPhone voiceClip', () => {
   it('accepts the clip metadata the watch attaches to a file transfer', () => {
     expect(parseWatchToPhone({ t: 'voiceClip', id: 'c1', durationMs: 4200, version: 1 })).toEqual({

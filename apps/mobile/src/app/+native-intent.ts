@@ -5,6 +5,42 @@ import { referralCodeFromUrl } from '@/lib/referral';
 import { isShareLaunchUrl } from '@/lib/sharedReceipt';
 
 /**
+ * Remove the `resume` query parameter from any incoming link.
+ *
+ * `resume=1` is only ever set by in-app router calls
+ * (`PendingInviteResume.tsx` → `router.replace(resumeRoute(token))`), which
+ * never pass through `redirectSystemPath`. Stripping it here prevents an
+ * externally crafted link from triggering the auto-join path on `join.tsx`.
+ *
+ * Handles:
+ *   - sole query param:    `/join?resume=1`        → `/join`
+ *   - first param:         `/join?resume=1&token=X`→ `/join?token=X`
+ *   - middle/last param:   `?token=X&resume=1`     → `?token=X`
+ *   - fragment preserved:  `?resume=1#frag`        → `#frag`
+ *   - no `resume` param:   unchanged
+ */
+export function stripResumeParam(path: string): string {
+  // Split fragment off first so we never corrupt it.
+  const hashIndex = path.indexOf('#');
+  const base = hashIndex === -1 ? path : path.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : path.slice(hashIndex);
+
+  const qIndex = base.indexOf('?');
+  if (qIndex === -1) return path; // no query string — nothing to strip
+
+  const beforeQuery = base.slice(0, qIndex);
+  const queryString = base.slice(qIndex + 1);
+
+  // Filter out all occurrences of the `resume` key (any value).
+  const kept = queryString
+    .split('&')
+    .filter((part) => !/^resume($|=)/i.test(part));
+
+  const newQuery = kept.length > 0 ? `?${kept.join('&')}` : '';
+  return beforeQuery + newQuery + fragment;
+}
+
+/**
  * Rewrite incoming native deep links before expo-router tries to match them.
  *
  * Two kinds of link arrive here. An invite — now that the app claims its own
@@ -39,6 +75,11 @@ export function redirectSystemPath({
   initial: boolean;
 }): string | null {
   try {
+    // Strip any externally supplied `resume` param before any other handling.
+    // The only legitimate setter is in-app (PendingInviteResume.tsx via
+    // router.replace), which never goes through this function.
+    path = stripResumeParam(path);
+
     // Firebase's phone check coming back from its reCAPTCHA page
     // (`waves://firebaseauth/link?deep_link_id=…`). The Firebase SDK reads it
     // natively; it is not a screen, and handing it to the router drew

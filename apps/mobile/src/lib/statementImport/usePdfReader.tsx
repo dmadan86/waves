@@ -27,6 +27,7 @@ import {
 import { PDF_READER_HTML } from './pdfReaderHtml.generated';
 import type { PdfReadResult } from './pdfReader';
 import { injectionFor, type ToPage } from './pdfReaderProtocol';
+import { isAllowedReaderUrl } from './pdfReaderNavGuard';
 import { PdfReadSession } from './pdfReaderSession';
 
 type WebViewHandle = { injectJavaScript(script: string): void };
@@ -105,6 +106,15 @@ export function usePdfReader(): PdfReader {
     session.current?.cancel();
   }, []);
 
+  // Allow only the synthetic about:blank frame and the html-source data: URI.
+  // Every other navigation (redirects, javascript: URIs, external URLs) is
+  // blocked at the WebView level so that a script injection vulnerability in
+  // pdf.js cannot open an arbitrary page inside this WebView.
+  const onShouldStartLoadWithRequest = useCallback(
+    (req: { url: string }) => isAllowedReaderUrl(req.url),
+    [],
+  );
+
   const element = useMemo(
     () =>
       mounted ? (
@@ -112,6 +122,7 @@ export function usePdfReader(): PdfReader {
           <WebView
             ref={webView}
             source={{ html: PDF_READER_HTML }}
+            originWhitelist={['about:blank']}
             javaScriptEnabled
             domStorageEnabled={false}
             cacheEnabled={false}
@@ -125,11 +136,12 @@ export function usePdfReader(): PdfReader {
             onHttpError={onFailure}
             onContentProcessDidTerminate={onFailure}
             onRenderProcessGone={onFailure}
+            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
             style={{ width: 1, height: 1 }}
           />
         </View>
       ) : null,
-    [mounted, onFailure, onMessage],
+    [mounted, onFailure, onMessage, onShouldStartLoadWithRequest],
   );
 
   return useMemo(
