@@ -772,6 +772,7 @@ export interface UiStrings {
    * account-wide data export under Settings.
    */
   groupExport: {
+    creditUsage: string;
     /** Overflow-menu row + screen title. */
     menu: string;
     title: string;
@@ -2330,6 +2331,46 @@ export interface UiStrings {
     settlesWith: string;
   };
   /** The Activity screen: its subtitle, filter chips and row menu. */
+  departedExpenses: {
+    all: string;
+    youLent: string;
+    youOwe: string;
+    selectAll: string;
+    dateNewest: string;
+    dateOldest: string;
+    amountSort: string;
+    equalShare: string;
+    customShare: string;
+    paidBy: string;
+    selectedShares: string;
+    splitOthers: string;
+    expenseCount: PluralForms;
+    isOwed: PluralForms;
+    title: string;
+    owed: PluralForms;
+    equal: PluralForms;
+    perEach: string;
+    splitAmong: PluralForms;
+    custom: PluralForms;
+    keep: string;
+    shareEqually: string;
+    paid: PluralForms;
+    settle: string;
+    confirm: PluralForms;
+    dialog: string;
+    onlyViewer: string;
+    onlyViewerDialog: string;
+    bannerTitle: string;
+    decideFor: string;
+    banner: PluralForms;
+    decide: string;
+    keepAsIs: string;
+    offline: string;
+    memberRow: string;
+    activity: PluralForms;
+    activityUndone: string;
+    undo: string;
+  };
   activityScreen: {
     subtitle: string;
     all: string;
@@ -3992,6 +4033,14 @@ export interface UiStrings {
     settleNoHistory: string;
     settlePaymentsCount: PluralForms;
     settleBetweenOthersSub: string;
+    paymentsToMake: string;
+    balanceSortAmount: string;
+    balanceSortName: string;
+    balanceSimplified: string;
+    balanceIsOwed: string;
+    balanceOwesYou: string;
+    balanceOwes: string;
+    balanceSettled: string;
     settleOweYouTitle: string;
     settleYouOweTitle: string;
     settleStatusPending: string;
@@ -6604,6 +6653,7 @@ const en: UiStrings = {
     shareTitle: 'Your Waves export',
   },
   groupExport: {
+    creditUsage: '⚡ Uses {cost} credits · you have {balance}',
     menu: 'Export',
     title: 'Export this group',
     intro:
@@ -7996,6 +8046,64 @@ const en: UiStrings = {
     change: 'Change',
     settlesWith: 'Settles with {rails}',
   },
+  departedExpenses: {
+    all: 'All',
+    youLent: 'You lent to {name}',
+    youOwe: 'You owe {name}',
+    selectAll: 'Select all ({n})',
+    dateNewest: 'Date (newest)',
+    dateOldest: 'Date (oldest)',
+    amountSort: 'Amount',
+    equalShare: 'Split equally · their share {amount}',
+    customShare: 'Custom split · their share {amount}',
+    paidBy: 'Paid by {name}',
+    selectedShares: '{n} selected · {amount} of their shares',
+    splitOthers: 'Split among others',
+    expenseCount: { one: '{n} expense', other: '{n} expenses' },
+    isOwed: {
+      one: '{name} is owed {amount} across {n} expense',
+      other: '{name} is owed {amount} across {n} expenses',
+    },
+
+    title: "{name}'s expenses",
+    owed: {
+      one: '{name} owes {amount} across {n} expense',
+      other: '{name} owes {amount} across {n} expenses',
+    },
+    equal: { one: 'Split equally ({n}) · {amount}', other: 'Split equally ({n}) · {amount}' },
+    perEach: '+{amount} each',
+    splitAmong: { one: 'Split among the other {n}', other: 'Split among the other {n}' },
+    custom: { one: 'Custom splits ({n})', other: 'Custom splits ({n})' },
+    keep: 'Keep',
+    shareEqually: 'Share equally',
+    paid: {
+      one: '{name} paid ({n}) · still owed {amount}',
+      other: '{name} paid ({n}) · still owed {amount}',
+    },
+    settle: 'Settle up with {name}',
+    confirm: { one: 'Confirm {n} change', other: 'Confirm {n} changes' },
+    dialog:
+      "Move {name}'s {amount} to the other {n} members? Each owes about {perEach} more. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    onlyViewer: 'You’d take on {amount}',
+    onlyViewerDialog:
+      "You’d take on {amount}. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    bannerTitle: '{name} left the group',
+    decideFor: 'Decide for {name}',
+    banner: {
+      one: '{n} expense needs a decision',
+      other: '{n} expenses need a decision',
+    },
+    decide: 'Decide',
+    keepAsIs: 'Keep as is',
+    offline: 'Connect to the internet to move these expenses.',
+    memberRow: "{name}'s expenses",
+    activity: {
+      one: 'Split {n} expense after {name} left',
+      other: 'Split {n} expenses after {name} left',
+    },
+    activityUndone: 'Undid split after {name} left',
+    undo: 'Undo',
+  },
   activityScreen: {
     subtitle: 'Your recent transactions and updates',
     all: 'All',
@@ -9274,6 +9382,14 @@ const en: UiStrings = {
     settleNoHistory: 'No payments yet',
     settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
     settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
+    paymentsToMake: 'Payments to make',
+    balanceSortAmount: 'Sort by amount',
+    balanceSortName: 'Sort by name',
+    balanceSimplified: 'Simplified',
+    balanceIsOwed: 'is owed',
+    balanceOwesYou: 'owes you',
+    balanceOwes: 'owes',
+    balanceSettled: 'settled',
     settleOweYouTitle: 'People who owe you',
     settleYouOweTitle: 'People you owe',
     settleStatusPending: 'pending',
@@ -11797,6 +11913,7 @@ const ta: UiStrings = {
     shareTitle: 'உங்கள் Waves ஏற்றுமதி',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} கிரெடிட்கள் தேவை · உங்களிடம் {balance}',
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
@@ -13220,6 +13337,64 @@ const ta: UiStrings = {
     change: 'மாற்று',
     settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
   },
+  departedExpenses: {
+    all: 'அனைத்தும்',
+    youLent: 'நீங்கள் {name}க்கு கொடுத்தது',
+    youOwe: 'நீங்கள் {name}க்கு கொடுக்க வேண்டியது',
+    selectAll: 'அனைத்தையும் தேர்ந்தெடு ({n})',
+    dateNewest: 'தேதி (புதியவை)',
+    dateOldest: 'தேதி (பழையவை)',
+    amountSort: 'தொகை',
+    equalShare: 'சமப் பங்கீடு · அவரின் பங்கு {amount}',
+    customShare: 'தனிப்பயன் பங்கீடு · அவரின் பங்கு {amount}',
+    paidBy: '{name} செலுத்தியது',
+    selectedShares: '{n} தேர்வு · அவரின் பங்குகள் {amount}',
+    splitOthers: 'மற்றவர்களிடையே பிரி',
+    expenseCount: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    isOwed: {
+      one: '{n} செலவில் {name}க்கு வர வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name}க்கு வர வேண்டியது {amount}',
+    },
+
+    title: '{name} செலவுகள்',
+    owed: {
+      one: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+    },
+    equal: { one: 'சமமாகப் பிரி ({n}) · {amount}', other: 'சமமாகப் பிரி ({n}) · {amount}' },
+    perEach: 'ஒவ்வொருவருக்கும் +{amount}',
+    splitAmong: { one: 'மற்ற {n} பேரிடையே பிரி', other: 'மற்ற {n} பேரிடையே பிரி' },
+    custom: { one: 'தனிப்பயன் பிரிவுகள் ({n})', other: 'தனிப்பயன் பிரிவுகள் ({n})' },
+    keep: 'வைத்திரு',
+    shareEqually: 'சமமாகப் பகிர்',
+    paid: {
+      one: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+      other: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+    },
+    settle: '{name} உடன் கணக்கை முடி',
+    confirm: { one: '{n} மாற்றங்களை உறுதிசெய்', other: '{n} மாற்றங்களை உறுதிசெய்' },
+    dialog:
+      '{name} செலுத்த வேண்டிய {amount} தொகையை மற்ற {n} பேருக்கு மாற்றவா? ஒவ்வொருவருக்கும் சுமார் {perEach} கூடும். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    onlyViewer: 'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள்',
+    onlyViewerDialog:
+      'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    bannerTitle: '{name} குழுவிலிருந்து வெளியேறினார்',
+    decideFor: '{name}க்காக முடிவுசெய்',
+    banner: {
+      one: '{n} செலவுக்கு முடிவு தேவை',
+      other: '{n} செலவுகளுக்கு முடிவு தேவை',
+    },
+    decide: 'முடிவுசெய்',
+    keepAsIs: 'அப்படியே வைத்திரு',
+    offline: 'இந்தச் செலவுகளை மாற்ற இணையத்துடன் இணையுங்கள்.',
+    memberRow: '{name} செலவுகள்',
+    activity: {
+      one: '{name} வெளியேறிய பின் {n} செலவு பிரிக்கப்பட்டது',
+      other: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
+    },
+    activityUndone: '{name} வெளியேறிய பின் செய்த பிரிப்பு செயல்தவிர்க்கப்பட்டது',
+    undo: 'செயல்தவிர்',
+  },
   activityScreen: {
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
     all: 'அனைத்தும்',
@@ -14560,6 +14735,14 @@ const ta: UiStrings = {
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
     settleBetweenOthersSub:
       'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    paymentsToMake: 'செலுத்த வேண்டியவை',
+    balanceSortAmount: 'தொகைப்படி வரிசை',
+    balanceSortName: 'பெயர்ப்படி வரிசை',
+    balanceSimplified: 'எளிமைப்படுத்தியது',
+    balanceIsOwed: 'பெற வேண்டும்',
+    balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
+    balanceOwes: 'தர வேண்டும்',
+    balanceSettled: 'தீர்க்கப்பட்டது',
     settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
     settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
     settleStatusPending: 'நிலுவையில்',
@@ -17171,6 +17354,7 @@ const hi: UiStrings = {
     shareTitle: 'आपका Waves निर्यात',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} क्रेडिट लगेंगे · आपके पास {balance} हैं',
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
@@ -18565,6 +18749,64 @@ const hi: UiStrings = {
     change: 'बदलें',
     settlesWith: '{rails} से हिसाब होता है',
   },
+  departedExpenses: {
+    all: 'सभी',
+    youLent: 'आपने {name} को दिए',
+    youOwe: 'आपको {name} को देने हैं',
+    selectAll: 'सभी चुनें ({n})',
+    dateNewest: 'तारीख (नई पहले)',
+    dateOldest: 'तारीख (पुरानी पहले)',
+    amountSort: 'राशि',
+    equalShare: 'बराबर बँटवारा · उनका हिस्सा {amount}',
+    customShare: 'कस्टम बँटवारा · उनका हिस्सा {amount}',
+    paidBy: '{name} ने चुकाया',
+    selectedShares: '{n} चुने · उनके हिस्सों के {amount}',
+    splitOthers: 'बाकी लोगों में बाँटें',
+    expenseCount: { one: '{n} खर्च', other: '{n} खर्च' },
+    isOwed: {
+      one: '{n} खर्च में {name} को {amount} मिलने हैं',
+      other: '{n} खर्चों में {name} को {amount} मिलने हैं',
+    },
+
+    title: '{name} के खर्च',
+    owed: {
+      one: '{n} खर्चों में {name} को {amount} देना है',
+      other: '{n} खर्चों में {name} को {amount} देना है',
+    },
+    equal: { one: 'बराबर बाँटें ({n}) · {amount}', other: 'बराबर बाँटें ({n}) · {amount}' },
+    perEach: 'हर व्यक्ति को +{amount}',
+    splitAmong: { one: 'बाकी {n} में बाँटें', other: 'बाकी {n} में बाँटें' },
+    custom: { one: 'कस्टम बँटवारे ({n})', other: 'कस्टम बँटवारे ({n})' },
+    keep: 'रखें',
+    shareEqually: 'बराबर बाँटें',
+    paid: {
+      one: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+      other: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+    },
+    settle: '{name} से हिसाब चुकाएँ',
+    confirm: { one: '{n} बदलाव पक्के करें', other: '{n} बदलाव पक्के करें' },
+    dialog:
+      '{name} के {amount} बाकी {n} सदस्यों में बाँटें? हर व्यक्ति को लगभग {perEach} ज़्यादा देना होगा। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    onlyViewer: 'आपको {amount} और देने होंगे',
+    onlyViewerDialog:
+      'आपको {amount} और देने होंगे। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    bannerTitle: '{name} समूह छोड़ चुके हैं',
+    decideFor: '{name} के लिए तय करें',
+    banner: {
+      one: '{n} खर्च पर फ़ैसला चाहिए',
+      other: '{n} खर्चों पर फ़ैसला चाहिए',
+    },
+    decide: 'तय करें',
+    keepAsIs: 'ऐसे ही रखें',
+    offline: 'इन खर्चों को बदलने के लिए इंटरनेट से जुड़ें।',
+    memberRow: '{name} के खर्च',
+    activity: {
+      one: '{name} के जाने के बाद {n} खर्च बाँटा गया',
+      other: '{name} के जाने के बाद {n} खर्च बाँटे गए',
+    },
+    activityUndone: '{name} के जाने के बाद का बँटवारा वापस लिया',
+    undo: 'वापस लें',
+  },
   activityScreen: {
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
     all: 'सभी',
@@ -19860,6 +20102,14 @@ const hi: UiStrings = {
     settleNoHistory: 'अभी कोई भुगतान नहीं',
     settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
     settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
+    paymentsToMake: 'करने वाले भुगतान',
+    balanceSortAmount: 'राशि के अनुसार',
+    balanceSortName: 'नाम के अनुसार',
+    balanceSimplified: 'सरलीकृत',
+    balanceIsOwed: 'लेना है',
+    balanceOwesYou: 'आपको देना है',
+    balanceOwes: 'देना है',
+    balanceSettled: 'निपट गया',
     settleOweYouTitle: 'जिनसे आपको लेना है',
     settleYouOweTitle: 'जिन्हें आपको चुकाना है',
     settleStatusPending: 'लंबित',
@@ -22400,6 +22650,7 @@ const ar: UiStrings = {
     shareTitle: 'تصدير Waves الخاص بك',
   },
   groupExport: {
+    creditUsage: '⚡ يستخدم {cost} رصيدًا · لديك {balance}',
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:
@@ -23854,6 +24105,67 @@ const ar: UiStrings = {
     howSub: 'أضف بيانات الدفع ليتمكن أصدقاؤك من التسوية معك بسهولة.',
     change: 'تغيير',
     settlesWith: 'التسوية عبر {rails}',
+  },
+  departedExpenses: {
+    all: 'الكل',
+    youLent: 'أقرضت {name}',
+    youOwe: 'عليك دفعه إلى {name}',
+    selectAll: 'تحديد الكل ({n})',
+    dateNewest: 'التاريخ (الأحدث)',
+    dateOldest: 'التاريخ (الأقدم)',
+    amountSort: 'المبلغ',
+    equalShare: 'تقسيم بالتساوي · حصته {amount}',
+    customShare: 'تقسيم مخصص · حصته {amount}',
+    paidBy: 'دفعه {name}',
+    selectedShares: 'تم تحديد {n} · حصصه {amount}',
+    splitOthers: 'تقسيم بين الآخرين',
+    expenseCount: { one: 'مصروف واحد ({n})', other: '{n} مصروفات' },
+    isOwed: {
+      one: 'يستحق {name} مبلغ {amount} عبر مصروف واحد ({n})',
+      other: 'يستحق {name} مبلغ {amount} عبر {n} مصروفات',
+    },
+
+    title: 'مصاريف {name}',
+    owed: {
+      one: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+      other: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+    },
+    equal: { one: 'تقسيم بالتساوي ({n}) · {amount}', other: 'تقسيم بالتساوي ({n}) · {amount}' },
+    perEach: '+{amount} لكل شخص',
+    splitAmong: {
+      one: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+      other: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+    },
+    custom: { one: 'تقسيمات مخصصة ({n})', other: 'تقسيمات مخصصة ({n})' },
+    keep: 'إبقاء',
+    shareEqually: 'مشاركة بالتساوي',
+    paid: {
+      one: 'دفع {name} ({n}) · لا يزال له {amount}',
+      other: 'دفع {name} ({n}) · لا يزال له {amount}',
+    },
+    settle: 'تسوية مع {name}',
+    confirm: { one: 'تأكيد {n} تغييرات', other: 'تأكيد {n} تغييرات' },
+    dialog:
+      'نقل مبلغ {amount} المستحق على {name} إلى الأعضاء الآخرين وعددهم {n}؟ سيدين كل شخص بحوالي {perEach} إضافية. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    onlyViewer: 'ستتحمل {amount}',
+    onlyViewerDialog:
+      'ستتحمل {amount}. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    bannerTitle: 'غادر {name} المجموعة',
+    decideFor: 'اتخاذ قرار بشأن {name}',
+    banner: {
+      one: 'مصروف واحد ({n}) يحتاج إلى قرار',
+      other: '{n} مصاريف تحتاج إلى قرار',
+    },
+    decide: 'تقرير',
+    keepAsIs: 'إبقاء كما هو',
+    offline: 'اتصل بالإنترنت لنقل هذه المصاريف.',
+    memberRow: 'مصاريف {name}',
+    activity: {
+      one: 'قُسم مصروف واحد بعد مغادرة {name}',
+      other: 'قُسمت {n} مصاريف بعد مغادرة {name}',
+    },
+    activityUndone: 'تم التراجع عن التقسيم بعد مغادرة {name}',
+    undo: 'تراجع',
   },
   activityScreen: {
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',
@@ -25325,6 +25637,14 @@ const ar: UiStrings = {
       other: 'عبر {n} دفعة',
     },
     settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
+    paymentsToMake: 'دفعات مستحقة',
+    balanceSortAmount: 'ترتيب حسب المبلغ',
+    balanceSortName: 'ترتيب حسب الاسم',
+    balanceSimplified: 'مبسّط',
+    balanceIsOwed: 'له مستحقات',
+    balanceOwesYou: 'مدين لك',
+    balanceOwes: 'مدين',
+    balanceSettled: 'تمت التسوية',
     settleOweYouTitle: 'من يدينون لك',
     settleYouOweTitle: 'من تدين لهم',
     settleStatusPending: 'قيد الانتظار',

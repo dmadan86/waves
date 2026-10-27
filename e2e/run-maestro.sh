@@ -19,12 +19,18 @@ export PATH="$PATH:$HOME/.maestro/bin"
 
 # Whole-session logcat for the artifact: the per-flow logs Maestro keeps start after launch.
 adb logcat -c; adb logcat -v time > logcat-full.txt 2>&1 &
+# A "Pixel Launcher isn't responding" ANR dialog on a loaded emulator sits on top of the
+# app and fails every flow; hide system error dialogs for the session.
+adb shell settings put global hide_error_dialogs 1
 adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 # Fail here, loudly, if the app did not land — not 20 flows later as "not installed".
 adb devices -l
 adb shell pm list packages -3
 adb shell pm list packages app.waves.mobile | grep -q app.waves.mobile || { echo "app.waves.mobile not installed after adb install"; exit 1; }
 
+# local-privacy-audit is not here: its route (/dev/local-privacy) exists only in
+# __DEV__ builds and this run installs the release build. Run it by hand against a
+# debug build.
 FLOWS=(
   home-to-add-expense
   edit-expense
@@ -38,7 +44,6 @@ FLOWS=(
   custom-tags
   locale-switch
   sign-out-privacy
-  local-privacy-audit
   clone-group
   group-photo-paid-gate
   friends-merge-guests
@@ -70,10 +75,50 @@ ASSISTANT_FLOWS=(
   assistant-intro-once:assistant
 )
 
+# A non-blank E2E_FLOWS (space-separated) narrows the run to the named flows.
+if [[ "${E2E_FLOWS:-}" =~ [^[:space:]] ]]; then
+  read -ra selected <<< "${E2E_FLOWS}"
+  if [ "${#selected[@]}" -eq 0 ]; then
+    echo "E2E_FLOWS must select at least one flow" >&2
+    exit 1
+  fi
+  main_flows=()
+  assistant_flows=()
+  for flow in "${selected[@]}"; do
+    found=0
+    for candidate in ${FLOWS[@]+"${FLOWS[@]}"}; do
+      if [ "$flow" = "$candidate" ]; then
+        main_flows+=("$candidate")
+        found=1
+        break
+      fi
+    done
+    for entry in ${ASSISTANT_FLOWS[@]+"${ASSISTANT_FLOWS[@]}"}; do
+      if [ "$flow" = "${entry%%:*}" ]; then
+        assistant_flows+=("$entry")
+        found=1
+        break
+      fi
+    done
+    if [ "$found" -eq 0 ]; then
+      echo "Unknown flow in E2E_FLOWS: $flow" >&2
+      exit 1
+    fi
+  done
+  FLOWS=(${main_flows[@]+"${main_flows[@]}"})
+  ASSISTANT_FLOWS=(${assistant_flows[@]+"${assistant_flows[@]}"})
+elif [ "${E2E_ASSISTANT:-0}" != "1" ]; then
+  ASSISTANT_FLOWS=()
+fi
+
 status=0
-for flow in "${FLOWS[@]}"; do
+for flow in ${FLOWS[@]+"${FLOWS[@]}"}; do
   echo "::group::seed + ${flow}"
-  node e2e/seed-e2e.mjs
+  if ! node e2e/seed-e2e.mjs; then
+    status=1
+    echo "::endgroup::"
+    continue
+  fi
   maestro test \
     --env E2E_EMAIL="${E2E_EMAIL}" \
     --env E2E_PASSWORD="${E2E_PASSWORD}" \
@@ -82,19 +127,22 @@ for flow in "${FLOWS[@]}"; do
 done
 
 # Off by default so the nightly stays what it was: set E2E_ASSISTANT=1 (or run the
-# workflow with it) once the staging stub is on.
-if [ "${E2E_ASSISTANT:-0}" = "1" ]; then
-  for entry in "${ASSISTANT_FLOWS[@]}"; do
-    flow="${entry%%:*}"
-    extras="${entry#*:}"
-    echo "::group::seed (${extras}) + ${flow}"
-    E2E_SEED_EXTRAS="${extras}" node e2e/seed-e2e.mjs
-    maestro test \
-      --env E2E_EMAIL="${E2E_EMAIL}" \
-      --env E2E_PASSWORD="${E2E_PASSWORD}" \
-      "e2e/${flow}.yaml" || status=1
+# workflow with it) once the staging stub is on, or select specific assistant flows
+# with E2E_FLOWS. Selection above preserves their seed extras.
+for entry in ${ASSISTANT_FLOWS[@]+"${ASSISTANT_FLOWS[@]}"}; do
+  flow="${entry%%:*}"
+  extras="${entry#*:}"
+  echo "::group::seed (${extras}) + ${flow}"
+  if ! E2E_SEED_EXTRAS="${extras}" node e2e/seed-e2e.mjs; then
+    status=1
     echo "::endgroup::"
-  done
-fi
+    continue
+  fi
+  maestro test \
+    --env E2E_EMAIL="${E2E_EMAIL}" \
+    --env E2E_PASSWORD="${E2E_PASSWORD}" \
+    "e2e/${flow}.yaml" || status=1
+  echo "::endgroup::"
+done
 
 exit "${status}"

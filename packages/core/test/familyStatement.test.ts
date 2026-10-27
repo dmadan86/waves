@@ -33,6 +33,11 @@ const statement = (expenses = [expense], settlements: SettlementSnapshot[] = [])
   familyStatement({ name: 'Trip', currency: 'INR' }, units, 'family', expenses, settlements);
 
 describe('family statement', () => {
+  it('prints a hyphen for a blank description', () => {
+    const result = statement([{ ...expense, description: '  ' }]);
+    expect(result.expenses[0]?.description).toBe('-');
+    expect(formatFamilyStatement(result)).toContain('2026-10-22 · -');
+  });
   it('sums stored rounded shares and settles using family heads', () => {
     const result = statement();
     expect(result.members).toEqual(['a', 'b']);

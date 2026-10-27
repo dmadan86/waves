@@ -13,9 +13,9 @@
  * dialog cannot outlive a screen it has just sent somebody away from.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { Button, directionalIcon, iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
 
@@ -35,7 +35,7 @@ export interface SettleFirstDialogProps {
   /** Both the balance card and the "Settle up" door. */
   onSettle: () => void;
   /** Omit when the server would refuse; the door is then not drawn. */
-  onLeaveAnyway?: () => void;
+  onLeaveAnyway?: () => void | Promise<void>;
 }
 
 export function SettleFirstDialog({
@@ -45,6 +45,19 @@ export function SettleFirstDialog({
   onSettle,
   onLeaveAnyway,
 }: SettleFirstDialogProps): React.JSX.Element {
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
+  const leave = async (): Promise<void> => {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    try {
+      await onLeaveAnyway?.();
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
+  };
   const theme = useTheme();
   const { t } = useStrings();
   const g = t.group;
@@ -55,7 +68,9 @@ export function SettleFirstDialog({
   return (
     <Popup
       visible={visible}
-      onClose={onClose}
+      onClose={() => {
+        if (!pending.current) onClose();
+      }}
       closeLabel={g.settleFirstClose}
       style={{ borderRadius: 28, padding: theme.spacing.lg, maxWidth: 420 }}
     >
@@ -98,7 +113,10 @@ export function SettleFirstDialog({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={fill(g.settleFirstBalanceLabel, { amount })}
-        onPress={onSettle}
+        disabled={busy}
+        onPress={() => {
+          if (!pending.current) onSettle();
+        }}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
@@ -148,7 +166,9 @@ export function SettleFirstDialog({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={g.leaveAnyway}
-            onPress={onLeaveAnyway}
+            disabled={busy}
+            accessibilityState={{ disabled: busy, busy }}
+            onPress={() => void leave()}
             style={({ pressed }) => ({
               flex: 1,
               minHeight: 56,
@@ -162,6 +182,7 @@ export function SettleFirstDialog({
               opacity: pressed ? 0.85 : 1,
             })}
           >
+            {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
             <Text
               variant="subheading"
               numberOfLines={1}
@@ -179,7 +200,10 @@ export function SettleFirstDialog({
             size="lg"
             fullWidth
             accessibilityLabel={g.settleFirstSettle}
-            onPress={onSettle}
+            disabled={busy}
+            onPress={() => {
+              if (!pending.current) onSettle();
+            }}
           />
         </View>
       </Row>

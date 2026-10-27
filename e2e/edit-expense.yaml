@@ -12,11 +12,13 @@ appId: app.waves.mobile
 # Into the editor (the pencil), change the description, save.
 - tapOn: 'Edit'
 - assertVisible: 'What was it for?'
-- tapOn: 'Beach shack dinner'
+# Tap past the end of the text so the cursor lands after it and erase takes it all.
+- tapOn:
+    point: '72%,33%'
 - eraseText: 40
 - inputText: 'Beach shack lunch'
 - hideKeyboard
-- tapOn: 'Save expense'
+- tapOn: 'Save changes'
 
 # The edit is reflected.
 - assertVisible: 'Beach shack lunch'

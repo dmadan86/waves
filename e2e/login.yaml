@@ -17,6 +17,7 @@ appId: app.waves.mobile
 ---
 - launchApp:
     clearState: true
+- runFlow: dismiss-anr.yaml
 
 # /welcome → /sign-in, straight onto the white email + password sheet.
 - tapOn: 'Sign in'
@@ -27,17 +28,34 @@ appId: app.waves.mobile
 - hideKeyboard
 - tapOn:
     id: 'auth-submit'
+- runFlow: dismiss-anr.yaml
 
-# A fresh sign-in (clearState) always meets the one-time intro tour before the
-# app proper. Skip it by testID; optional so an account that has seen it passes.
-- extendedWaitUntil:
-    visible:
-      id: 'intro-skip'
-    timeout: 20000
-    optional: true
-- tapOn:
-    id: 'intro-skip'
-    optional: true
+# KNOWN APP BUG: skipping the intro intermittently freezes the UI (Fabric mount
+# exception; JS never recovers). The seen flag is not persisted, so each retry
+# relaunches without clearing state and skips the tour again. Remove once the
+# app is fixed.
+- repeat:
+    times: 4
+    while:
+      notVisible: 'Your groups'
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: 'intro-skip'
+          timeout: 20000
+          optional: true
+      - tapOn:
+          id: 'intro-skip'
+          optional: true
+      - extendedWaitUntil:
+          visible: 'Your groups'
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: 'Your groups'
+          commands:
+            - launchApp
 
 # The dashboard appears once the first sync has pulled the seeded group. Give it
 # room — a cold sign-in does an auth round-trip and a full cursor pull.

@@ -1,30 +1,29 @@
-# Changing a group's icon (its "logo") applies live from Group settings
-# (F-CFG-02). Opens the seeded group, opens the cover sheet from the group's own
-# mark, picks a new mark, and confirms the write landed. The photo path is a
-# separate paid-gated flow (group-photo-paid-gate.yaml); this covers the free
-# icon path every account has.
+# Changing a group's icon commits on Done (F-CFG-02). Reopening the
+# cover sheet must load the saved icon rather than the previous draft.
 appId: app.waves.mobile
 ---
 - runFlow: login.yaml
 
-# Home → the seeded group → its settings (the photo-and-name cluster opens it).
 - tapOn: 'Goa trip'
 - tapOn: 'Group settings'
-
-# The cover is now reached through the group's own mark rather than through a
-# button beside it. The mark's accessibility label is the photo action, because
-# tapping it is how a photo is added too — the seeded group has none.
-- tapOn: 'Add a group photo'
-- assertVisible: 'Group cover'
-- tapOn: 'Choose an icon'
-
-# The marks grid. Each tile carries its name, so a pick is made by word rather
-# than by emoji — the covers are drawn now, not typed. Selecting fires the
-# update and dismisses the sheet in one tap.
+- tapOn: 'Group cover'
+- assertVisible: '1. Choose an icon'
+- tapOn: 'See all'
+- tapOn: 'Search icons'
+- inputText: 'Camping'
+- hideKeyboard
 - tapOn: 'Camping'
-- assertNotVisible: 'Group cover'
+- tapOn: 'Done'
 
-# Proof the write applied rather than only that the sheet closed: the settings
-# screen says "Saved" for a cover change the same way it does for every other
-# setting on it. The mark itself is a drawing, so there is no glyph to assert.
-- assertVisible: 'Saved'
+# Done closes the editor. Reopen it to verify the committed selection.
+- assertNotVisible: 'Search icons'
+- assertVisible: 'Edit group'
+- tapOn: 'Group cover'
+- tapOn: 'See all'
+- tapOn: 'Search icons'
+- inputText: 'Camping'
+- hideKeyboard
+- assertVisible:
+    text: 'Camping'
+    selected: true
+- tapOn: 'Close'

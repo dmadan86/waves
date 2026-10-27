@@ -37,6 +37,15 @@ on:
     # morning rather than interrupting the evening.
     - cron: '0 19 * * *'
   workflow_dispatch:
+    inputs:
+      apk_run:
+        description: 'Run id whose app-release APK to reuse (skips the 25-minute build). Only valid when the app code is unchanged since that run.'
+        required: false
+        default: ''
+      flows:
+        description: 'Space-separated flow names to run instead of all of them'
+        required: false
+        default: ''
   pull_request:
     types: [labeled]
 
@@ -100,6 +109,7 @@ jobs:
       # Build the app against the SAME staging project. The public keys are baked
       # at bundle time from the env below; app.config reads them via .env.
       - name: Point the build at staging
+        if: ${{ inputs.apk_run == '' }}
         run: |
           printf 'EXPO_PUBLIC_SUPABASE_URL=%s\nEXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' \
             "${{ secrets.E2E_SUPABASE_URL }}" "${{ secrets.E2E_SUPABASE_ANON_KEY }}" \
@@ -116,14 +126,33 @@ jobs:
       # — and beside the point, because the file prebuild needs lives outside
       # android/ and nothing wipes it.
       - name: Restore Waves google-services.json
+        if: ${{ inputs.apk_run == '' }}
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > apps/mobile/google-services.json
       - name: Prebuild the Android project
+        if: ${{ inputs.apk_run == '' }}
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --clean
-      - name: Assemble release APK (JS bundled; the debug build is a dev-client launcher that waits for Metro)
+      # JS bundled: the debug build is a dev-client launcher that waits for Metro.
+      - name: Assemble release APK
+        if: ${{ inputs.apk_run == '' }}
         working-directory: apps/mobile/android
         run: ./gradlew :app:assembleRelease --no-daemon
+      - name: Keep the APK for flow-only reruns
+        if: ${{ inputs.apk_run == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+      - name: Reuse the APK from an earlier run
+        if: ${{ inputs.apk_run != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: app-release-apk
+          run-id: ${{ inputs.apk_run }}
+          github-token: ${{ github.token }}
+          path: apps/mobile/android/app/build/outputs/apk/release
 
       # Without this the runner user cannot open /dev/kvm, the emulator falls back
       # to software emulation ("ProbeKVM: This user doesn't have permissions to use
@@ -144,12 +173,15 @@ jobs:
           E2E_SERVICE_KEY: ${{ secrets.E2E_SERVICE_KEY }}
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_FLOWS: ${{ inputs.flows }}
         with:
           api-level: 34
           # Play services present: the default image has none, and Firebase/ads init
           # logged "Google Play services missing" before the post-sign-in crash.
           target: google_apis
           arch: x86_64
+          ram-size: 4096M
+          cores: 4
           profile: pixel_6
           disable-animations: true
           # A single line: android-emulator-runner parses `script` line-by-line,

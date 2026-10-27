@@ -23,11 +23,12 @@ describe('group screen: one Balances tab', () => {
   });
 
   it("shows the payments section, then everyone's balance, on Balances", () => {
-    const payments = screen.indexOf('<SettlePayments');
-    const balances = screen.indexOf('title={t.group.everyonesBalance}');
-    expect(payments).toBeGreaterThan(-1);
-    expect(balances).toBeGreaterThan(payments);
-    expect(screen.indexOf('t.group.paymentsToSettle')).toBeLessThan(payments);
+    const body = read('components/settle/SettleBody.tsx');
+    expect(screen).toContain('<SettlePayments');
+    expect(body).toContain('sortControls(t.group.paymentsToSettle');
+    expect(screen).toContain('title={t.group.everyonesBalance}');
+    expect(screen).toContain('{balanceHeading}');
+    expect(screen).toContain('{balanceBody(item.member, item.balance)}');
   });
 
   it('keeps the missing-rates card on Balances', () => {

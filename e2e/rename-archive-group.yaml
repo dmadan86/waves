@@ -5,28 +5,24 @@ appId: app.waves.mobile
 - runFlow: login.yaml
 
 - tapOn: 'Goa trip'
-- tapOn: 'Settings'
-- assertVisible: 'Name (optional)'
+- tapOn: 'Group settings'
+- tapOn: 'Edit group'
+- assertVisible: 'Changes save automatically'
 
-# Rename: the name field holds "Goa trip". There is no Save button any more —
-# the field commits itself on the keyboard's "done" and again on blur, so the
-# Enter key is the whole of the save.
+# Done commits the name and closes the sheet.
 - tapOn: 'Goa trip'
 - eraseText: 30
 - inputText: 'Goa 2026'
-- pressKey: Enter
 - hideKeyboard
-- assertVisible: 'Saved'
+- tapOn: 'Done'
 
-# Prove the rename persisted before archiving: back on the group screen the new
-# name shows (it is re-read from the mirror, not the input we typed into). Without
-# this, a failed rename would leave "Goa 2026" nonexistent and the final
-# assertNotVisible would pass for the wrong reason.
+# Verify persistence outside the input before checking removal.
 - tapOn: 'Back'
 - assertVisible: 'Goa 2026'
 
 # Archive it from settings — the row sits below, past the roster.
-- tapOn: 'Settings'
+- tapOn: 'Group settings'
+- tapOn: 'Archive, leave or delete'
 - scrollUntilVisible:
     element: 'Archive group'
     direction: DOWN
