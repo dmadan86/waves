@@ -122,7 +122,8 @@ export function usePdfReader(): PdfReader {
           <WebView
             ref={webView}
             source={{ html: PDF_READER_HTML }}
-            originWhitelist={['about:blank']}
+            // react-native-webview hands non-whitelisted URLs to Linking.openURL before onShouldStartLoadWithRequest runs, so the guard must see every URL.
+            originWhitelist={['*']}
             javaScriptEnabled
             domStorageEnabled={false}
             cacheEnabled={false}

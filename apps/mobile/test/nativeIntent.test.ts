@@ -125,6 +125,25 @@ describe('stripResumeParam', () => {
   it('preserves other params when there is no resume', () => {
     expect(stripResumeParam('/capture?scan=1&foo=bar')).toBe('/capture?scan=1&foo=bar');
   });
+
+  it('strips a percent-encoded lowercase resume key (%72esume=1)', () => {
+    // %72 decodes to 'r', so %72esume=1 is resume=1 in disguise.
+    expect(stripResumeParam('/join?token=X&%72esume=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%72esume=1')).toBe('/join');
+  });
+
+  it('strips a percent-encoded mixed-case resume key (%52ESUME=1)', () => {
+    // %52 decodes to 'R', so %52ESUME=1 is RESUME=1 — still matches case-insensitively.
+    expect(stripResumeParam('/join?token=X&%52ESUME=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%52ESUME=1')).toBe('/join');
+  });
+
+  it('drops a part with a malformed percent-encoded key entirely', () => {
+    // %E0%A4%A is an incomplete UTF-8 sequence — decodeURIComponent throws.
+    // The part is dropped rather than passed through (safe-fail behaviour).
+    expect(stripResumeParam('/join?token=X&%E0%A4%A=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%E0%A4%A=1')).toBe('/join');
+  });
 });
 
 describe('redirectSystemPath strips externally supplied resume param', () => {

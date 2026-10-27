@@ -32,9 +32,22 @@ export function stripResumeParam(path: string): string {
   const queryString = base.slice(qIndex + 1);
 
   // Filter out all occurrences of the `resume` key (any value).
-  const kept = queryString
-    .split('&')
-    .filter((part) => !/^resume($|=)/i.test(part));
+  // Keys are compared after percent-decoding ('+' → space) so that an
+  // externally crafted link cannot sneak `resume` past the guard as `%72esume`
+  // or any other encoded variant.  A part whose key fails to decode is
+  // malformed and is dropped rather than passed through.
+  const kept = queryString.split('&').filter((part) => {
+    const eqIdx = part.indexOf('=');
+    const rawKey = eqIdx === -1 ? part : part.slice(0, eqIdx);
+    // Replace '+' with space before decoding, mirroring application/x-www-form-urlencoded.
+    try {
+      const key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
+      return key.toLowerCase() !== 'resume';
+    } catch {
+      // Malformed percent-encoding — drop the part entirely.
+      return false;
+    }
+  });
 
   const newQuery = kept.length > 0 ? `?${kept.join('&')}` : '';
   return beforeQuery + newQuery + fragment;
