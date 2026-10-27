@@ -193,6 +193,7 @@
       ],
       "./plugins/withShortNativeBuildPath",
       "./plugins/withGradleMemory",
+      "./plugins/withR8Optimization",
       "./plugins/withHermesHeaders",
       "./plugins/withSideBySideDebug",
       "./plugins/withEdgeToEdgeTheme",
