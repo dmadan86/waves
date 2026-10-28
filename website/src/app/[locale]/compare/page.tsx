@@ -147,7 +147,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
               className="flex h-full min-h-28 items-center gap-4 rounded-xl border border-blue bg-blue/5 p-5 transition-colors hover:bg-blue/10"
             >
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue/10">
-                <WaveMark className="h-9 w-10" />
+                <WaveMark className="h-9 w-9" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-lg font-bold text-ink">Waves</span>

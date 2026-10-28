@@ -36,7 +36,9 @@ export function StoreBadges({
           <>
             <Icon className={`${mark} shrink-0`} />
             <span className="flex flex-col text-start leading-none">
-              <span className="text-[0.55rem] tracking-wide uppercase opacity-85">{small}</span>
+              <span className="text-[0.55rem] tracking-wide uppercase opacity-85">
+                {href ? small : t.soon}
+              </span>
               <span className="mt-1 text-[1.02rem] font-semibold tracking-[-0.01em]">{name}</span>
             </span>
           </>
@@ -52,7 +54,7 @@ export function StoreBadges({
                 {inner}
               </a>
             ) : (
-              <span className={`${cls} cursor-default opacity-90`} title={t.soon}>
+              <span className={`${cls} cursor-default opacity-60 saturate-50`} title={t.soon}>
                 {inner}
                 <span className="sr-only">({t.soon})</span>
               </span>
