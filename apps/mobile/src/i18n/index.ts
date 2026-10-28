@@ -42,6 +42,7 @@ import {
   type EventTemplateId,
 } from '@waves/core';
 
+import { setDemoGroupName } from '@/demo/label';
 import type { HomeHero } from '@/lib/homeHeroPure';
 
 export enum Language {
@@ -29032,6 +29033,7 @@ let chosenLanguage: Language | null = null;
 
 export function setActiveLanguage(language: Language): void {
   chosenLanguage = language;
+  setDemoGroupName(STRINGS[language].demo.groupName);
 }
 
 export function activeStrings(): UiStrings {

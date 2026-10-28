@@ -1,6 +1,6 @@
 import { payableFor } from '@waves/core';
 
-import { activeStrings } from '@/i18n';
+import { getDemoGroupName } from '@/demo/label';
 import type {
   CategoryMeta,
   ExpenseLocation,
@@ -448,7 +448,7 @@ export function groupLabel(
 ): string {
   // The fixture group always reads "Demo group" (localized), never a realistic
   // name or the friends' names — so it cannot pass for the user's own money.
-  if (group?.isDemo) return activeStrings().demo.groupName;
+  if (group?.isDemo) return getDemoGroupName();
   const named = group?.name?.trim();
   if (named) return named;
 
