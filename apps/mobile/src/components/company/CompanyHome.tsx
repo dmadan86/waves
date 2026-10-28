@@ -57,6 +57,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [policiesOpen, setPoliciesOpen] = useState(false);
   const [kmOpen, setKmOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
 
@@ -113,6 +114,24 @@ export function CompanyHome({ groupId }: { groupId: string }) {
         <ScenicHeader
           title={view.name || t.extras.typeCompany}
           subtitle={view.isAdmin ? undefined : t.company.myStatement}
+          action={
+            view.isOwner ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.group.settings}
+                onPress={() => router.push(`/group/${groupId}/settings`)}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="settings-outline" size={iconSize.lg} color="#FFFFFF" />
+              </Pressable>
+            ) : undefined
+          }
         />
         <ScenicBody>
           {!view.ready || !view.me ? null : view.isAdmin ? (
@@ -217,6 +236,16 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                         divider
                       />
                       <ListRow
+                        title={t.company.dailyRate}
+                        amount={
+                          view.defaultRateMinor !== null
+                            ? fmt(view.defaultRateMinor)
+                            : t.company.rateNotSet
+                        }
+                        onPress={() => setRateOpen(true)}
+                        divider
+                      />
+                      <ListRow
                         title={t.company.mileageRate}
                         amount={
                           view.defaultMileageRateMinor !== null
@@ -284,6 +313,21 @@ export function CompanyHome({ groupId }: { groupId: string }) {
       </ScrollView>
       {view.me ? plus : null}
       {addSite.sheet}
+      <EditTextSheet
+        visible={rateOpen}
+        title={t.company.dailyRate}
+        value={
+          view.defaultRateMinor !== null ? formatMinorInput(view.defaultRateMinor, currency) : ''
+        }
+        autoCapitalize="none"
+        saving={settings.isPending}
+        onClose={() => setRateOpen(false)}
+        onSave={(text) => {
+          const minor = parseMinorInput(text, currency);
+          setRateOpen(false);
+          settings.mutate({ defaultDailyRateMinor: text.trim() === '' ? null : minor.toString() });
+        }}
+      />
       <EditTextSheet
         visible={kmOpen}
         title={t.company.mileageRate}
