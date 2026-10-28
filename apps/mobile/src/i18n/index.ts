@@ -1300,6 +1300,20 @@ export interface UiStrings {
     kAllowance: string;
     kAdvance: string;
     kWages: string;
+    gaveMoney: string;
+    theySpent: string;
+    iSpent: string;
+    paidWagesVerb: string;
+    hasOfYours: string;
+    youOweName: string;
+    youHaveOfCompany: string;
+    shareWhatsApp: string;
+    threadEmpty: string;
+    addPerson: string;
+    moreOptions: string;
+    wageFormula: string;
+    canPayPeople: string;
+    setDailyRate: string;
     kAllocation: string;
     kPoolReturn: string;
     kPoolAdjustment: string;
@@ -7458,6 +7472,20 @@ const en: UiStrings = {
     kAllowance: 'Bata (daily allowance)',
     kAdvance: 'Advance given',
     kWages: 'Wages paid',
+    gaveMoney: 'Gave money',
+    theySpent: 'They spent',
+    iSpent: 'I spent',
+    paidWagesVerb: 'Paid wages',
+    hasOfYours: '{name} has {amount} of yours',
+    youOweName: 'You owe {name} {amount}',
+    youHaveOfCompany: 'You have {amount} of company money',
+    shareWhatsApp: 'Send on WhatsApp',
+    threadEmpty: 'Tap + to add the first one',
+    addPerson: 'Add a person',
+    moreOptions: 'More',
+    wageFormula: '{gross} - advance {cut} = {net}',
+    canPayPeople: 'Can pay people',
+    setDailyRate: 'Set daily rate',
     kAllocation: 'Cash given to manager',
     kPoolReturn: 'Cash taken back',
     kPoolAdjustment: 'Correction',
@@ -13061,6 +13089,20 @@ const ta: UiStrings = {
     kAllowance: 'படி (தினசரி)',
     kAdvance: 'கொடுத்த முன்பணம்',
     kWages: 'செலுத்திய சம்பளம்',
+    gaveMoney: 'பணம் கொடுத்தது',
+    theySpent: 'அவர்கள் செலவு',
+    iSpent: 'நான் செலவு செய்தேன்',
+    paidWagesVerb: 'சம்பளம் கொடுத்தது',
+    hasOfYours: '{name} இடம் உங்கள் {amount} உள்ளது',
+    youOweName: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
+    youHaveOfCompany: 'உங்களிடம் நிறுவன பணம் {amount} உள்ளது',
+    shareWhatsApp: 'WhatsApp இல் அனுப்பு',
+    threadEmpty: 'முதலில் சேர்க்க + அழுத்துங்கள்',
+    addPerson: 'நபரைச் சேர்',
+    moreOptions: 'மேலும்',
+    wageFormula: '{gross} - முன்பணம் {cut} = {net}',
+    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    setDailyRate: 'தினசரி விகிதம் அமை',
     kAllocation: 'மேலாளருக்கு பணம்',
     kPoolReturn: 'திரும்பப் பெற்ற பணம்',
     kPoolAdjustment: 'திருத்தம்',
@@ -18829,6 +18871,20 @@ const hi: UiStrings = {
     kAllowance: 'भत्ता (दैनिक)',
     kAdvance: 'दिया गया अग्रिम',
     kWages: 'दिया गया वेतन',
+    gaveMoney: 'पैसे दिए',
+    theySpent: 'उन्होंने खर्च किया',
+    iSpent: 'मैंने खर्च किया',
+    paidWagesVerb: 'वेतन दिया',
+    hasOfYours: '{name} के पास आपके {amount} हैं',
+    youOweName: 'आप पर {name} के {amount} बाकी',
+    youHaveOfCompany: 'आपके पास कंपनी के {amount} हैं',
+    shareWhatsApp: 'WhatsApp पर भेजें',
+    threadEmpty: 'पहली प्रविष्टि के लिए + दबाएँ',
+    addPerson: 'व्यक्ति जोड़ें',
+    moreOptions: 'और',
+    wageFormula: '{gross} - एडवांस {cut} = {net}',
+    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    setDailyRate: 'दैनिक दर तय करें',
     kAllocation: 'मैनेजर को नकद',
     kPoolReturn: 'वापस लिया नकद',
     kPoolAdjustment: 'सुधार',
@@ -24487,6 +24543,20 @@ const ar: UiStrings = {
     kAllowance: 'بدل (يومي)',
     kAdvance: 'سلفة مُعطاة',
     kWages: 'أجور مدفوعة',
+    gaveMoney: 'أعطيت مالاً',
+    theySpent: 'أنفقوا',
+    iSpent: 'أنفقت',
+    paidWagesVerb: 'دفعت الأجور',
+    hasOfYours: 'لدى {name} مبلغ {amount} منك',
+    youOweName: 'عليك لـ {name} مبلغ {amount}',
+    youHaveOfCompany: 'لديك {amount} من مال الشركة',
+    shareWhatsApp: 'أرسل عبر واتساب',
+    threadEmpty: 'اضغط + لإضافة الأول',
+    addPerson: 'أضف شخصاً',
+    moreOptions: 'المزيد',
+    wageFormula: '{gross} - سلفة {cut} = {net}',
+    canPayPeople: 'يمكنه الدفع للناس',
+    setDailyRate: 'حدد الأجر اليومي',
     kAllocation: 'نقد للمدير',
     kPoolReturn: 'نقد مسترجع',
     kPoolAdjustment: 'تصحيح',

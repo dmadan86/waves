@@ -76,7 +76,11 @@ export function CompanySites({ groupId, view }: { groupId: string; view: Company
                     ? fill(t.company.siteOver, { amount: fmt(spent - budget) })
                     : fill(t.company.siteLeft, { amount: fmt(budget - spent) })
               }
-              amount={budget === null ? fmt(spent) : fill(t.company.siteSpent, { spent: fmt(spent), budget: fmt(budget) })}
+              amount={
+                budget === null
+                  ? fmt(spent)
+                  : fill(t.company.siteSpent, { spent: fmt(spent), budget: fmt(budget) })
+              }
               onPress={() => setBudgetFor(project.id)}
               divider={index < projects.length - 1}
               footer={

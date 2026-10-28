@@ -129,7 +129,9 @@ function CashSheet({
       {
         managerId: manager.id,
         kind: action,
-        amountMinor: ((action === 'pool_adjustment' && minus ? -amount : amount) as bigint).toString(),
+        amountMinor: (
+          (action === 'pool_adjustment' && minus ? -amount : amount) as bigint
+        ).toString(),
         projectId: null,
         occurredOn: todayIso(),
         reason: needsReason ? reason.trim() : null,

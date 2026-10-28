@@ -24,11 +24,12 @@ import {
   type CurrencyCode,
   type WageTerms,
 } from '@waves/core';
-import { Button, ChipRow, Screen, Text, iconSize, useTheme } from '@waves/ui';
+import { Button, Chip, ChipRow, Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
-import { usePayWages, useCompanyEntries } from '@/data/companyEntries';
+import { EditTextSheet } from '@/components/EditTextSheet';
+import { usePayWages, useCompanyEntries, useSetCompanyRate } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -57,6 +58,9 @@ export default function CompanyWagesScreen() {
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
   const pay = usePayWages(groupId);
+  const setRate = useSetCompanyRate(groupId);
+  // The daily rate is asked here, the first time wages need it, not in a settings screen.
+  const [rateFor, setRateFor] = useState<string | null>(null);
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
 
@@ -242,7 +246,13 @@ export default function CompanyWagesScreen() {
                           gap: theme.spacing.sm,
                         }}
                       >
-                        {rateOf(m.id) > 0n ? (
+                        {rateOf(m.id) === 0n ? (
+                          <Chip
+                            label={t.company.setDailyRate}
+                            onCard
+                            onPress={() => setRateFor(m.id)}
+                          />
+                        ) : (
                           <ChipRow
                             onCard
                             options={[
@@ -252,7 +262,7 @@ export default function CompanyWagesScreen() {
                             value={row.mode}
                             onChange={(mode) => patch({ mode })}
                           />
-                        ) : null}
+                        )}
                         <TextInput
                           value={row.mode === 'days_rate' ? row.days : row.fixed}
                           onChangeText={(text) =>
@@ -295,6 +305,21 @@ export default function CompanyWagesScreen() {
           )}
         </ScenicBody>
       </ScrollView>
+      <EditTextSheet
+        visible={rateFor !== null}
+        title={t.company.rateTitle}
+        value=""
+        autoCapitalize="none"
+        saving={setRate.isPending}
+        onClose={() => setRateFor(null)}
+        onSave={(text) => {
+          const minor = parseMinorInput(text, currency);
+          const target = rateFor;
+          setRateFor(null);
+          if (target && minor > 0n)
+            setRate.mutate({ memberId: target, dailyRateMinor: minor.toString() });
+        }}
+      />
       <View
         style={{
           position: 'absolute',

@@ -9,27 +9,22 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
-import { Platform, Share, View } from 'react-native';
+import { Platform, Pressable, Share, View } from 'react-native';
 
 import {
   buildReimbursementPreview,
   companyStatement,
-  flagsForEntry,
   isReimbursable,
-  reimbursedOn,
   reimbursementOutcome,
   format,
   formatCompanyStatement,
-  formatMinorInput,
   formatParts,
   money,
-  parseMinorInput,
   type CompanyEntry,
   type CurrencyCode,
 } from '@waves/core';
 import { Button, Text, iconSize, useTheme } from '@waves/ui';
 
-import { EditTextSheet } from '@/components/EditTextSheet';
 import {
   ListRow,
   SectionHeader,
@@ -38,12 +33,7 @@ import {
   StandardCard,
   StatCard,
 } from '@/components/standard';
-import {
-  useReimburseCompany,
-  useSetCompanyRate,
-  useSetMileageRate,
-  type CompanyView,
-} from '@/data/companyEntries';
+import { useReimburseCompany, type CompanyView } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, useStrings, type UiStrings } from '@/i18n';
@@ -115,11 +105,7 @@ export function CompanyStatementView({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const tagLabel = useCompanyTags(groupId, view).label;
-  const setRate = useSetCompanyRate(groupId);
-  const setKmRate = useSetMileageRate(groupId);
   const reimburse = useReimburseCompany(groupId);
-  const [rateOpen, setRateOpen] = useState(false);
-  const [kmOpen, setKmOpen] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   // Set when picked by date: every claim and credit through it is frozen into the payment.
@@ -131,7 +117,6 @@ export function CompanyStatementView({
   );
   const currency = view.currency as CurrencyCode;
   const mine = view.me?.id === member.id;
-  const name = mine ? '' : displayName(member, null, null, t.misc.someone);
 
   const statement = useMemo(() => {
     const { from, to } = periodRange(period, todayIso());
@@ -141,26 +126,17 @@ export function CompanyStatementView({
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
   const abs = statement.closing < 0n ? -statement.closing : statement.closing;
   const parts = formatParts({ minor: abs, currency }, { locale });
+  const who = displayName(member, null, null, t.misc.someone);
   const sideText =
     statement.side === 'settled'
       ? t.company.settled
       : statement.side === 'company_owes'
         ? mine
           ? t.company.companyOwesYou
-          : fill(t.company.companyOwesName, { name })
+          : fill(t.company.youOweName, { name: who, amount: fmt(abs) })
         : mine
-          ? t.company.youOweCompany
-          : fill(t.company.nameOwesCompany, { name });
-
-  const totals = statement.totals;
-  const totalRows: [string, bigint][] = [
-    [t.company.expenses, totals.expenses],
-    [t.company.bata, totals.allowance],
-    [t.company.advances, totals.advances],
-    [t.company.wages, totals.wages],
-    [t.company.paidOut, totals.paidOut],
-    [t.company.returned, totals.returned],
-  ];
+          ? fill(t.company.youHaveOfCompany, { amount: fmt(abs) })
+          : fill(t.company.hasOfYours, { name: who, amount: fmt(abs) });
 
   const open = (entry: CompanyEntry): void =>
     router.push(`/group/${groupId}/company-entry-view?entry=${entry.id}`);
@@ -254,13 +230,20 @@ export function CompanyStatementView({
       });
   }, [lastPay, view.entries, view.members, t]);
 
-  const rate = member.daily_rate_minor ? BigInt(member.daily_rate_minor) : null;
-  const entryRows = [...statement.rows].reverse();
+  // A chat reads oldest first; unpaid / rejected claims sit in it with a "waiting" mark.
+  const bubbles = [
+    ...statement.rows.map(({ entry, delta }) => ({ entry, delta })),
+    ...statement.pending.map((entry) => ({ entry, delta: 0n })),
+  ].sort((a, b) =>
+    a.entry.occurredOn === b.entry.occurredOn
+      ? a.entry.createdAt.localeCompare(b.entry.createdAt)
+      : a.entry.occurredOn.localeCompare(b.entry.occurredOn),
+  );
 
   return (
     <>
       <StatCard
-        label={t.company.balance}
+        label={mine ? t.company.balance : who}
         lead={parts.lead}
         fraction={`${parts.fraction}${parts.trail}`}
         accessibilityLabel={`${t.company.balance}: ${fmt(abs)}`}
@@ -277,53 +260,6 @@ export function CompanyStatementView({
           {line}
         </Text>
       ))}
-
-      <StandardCard>
-        {statement.opening !== 0n ? (
-          <ListRow
-            title={t.company.brought}
-            amount={`${statement.opening < 0n ? '-' : ''}${fmt(statement.opening < 0n ? -statement.opening : statement.opening)}`}
-            divider
-          />
-        ) : null}
-        {totalRows
-          .filter(([, value]) => value !== 0n)
-          .map(([label, value], index, all) => (
-            <ListRow
-              key={label}
-              title={label}
-              amount={fmt(value)}
-              divider={index < all.length - 1}
-            />
-          ))}
-        {totalRows.every(([, value]) => value === 0n) && statement.opening === 0n ? (
-          <Text variant="caption" tone="muted">
-            {t.company.none}
-          </Text>
-        ) : null}
-      </StandardCard>
-
-      {view.isAdmin ? (
-        <StandardCard>
-          <ListRow
-            title={t.company.dailyRate}
-            amount={rate !== null ? fmt(rate) : t.company.rateNotSet}
-            onPress={() => setRateOpen(true)}
-            divider
-          />
-          <ListRow
-            title={t.company.mileageRate}
-            amount={
-              member.mileage_rate_minor
-                ? fmt(BigInt(member.mileage_rate_minor))
-                : view.defaultMileageRateMinor !== null
-                  ? fmt(view.defaultMileageRateMinor)
-                  : t.company.rateNotSet
-            }
-            onPress={() => setKmOpen(true)}
-          />
-        </StandardCard>
-      ) : null}
 
       {view.isAdmin && due.length > 0 ? (
         <View style={{ gap: theme.spacing.md }}>
@@ -414,127 +350,111 @@ export function CompanyStatementView({
         </View>
       ) : null}
 
-      {entryRows.length > 0 ? (
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeader title={t.company.entries} />
-          <StandardCard>
-            {entryRows.map(({ entry, delta }, index) => (
-              <ListRow
-                key={entry.id}
-                title={kindLabel(t, entry, tagLabel)}
-                subtitle={[
-                  showDate(entry.occurredOn, locale),
-                  entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
-                    ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
-                    : null,
-                  entry.calcMode === 'distance_rate' && entry.distanceKm && entry.rateMinor !== null
-                    ? fill(t.company.mileageAt, {
-                        km: entry.distanceKm,
-                        rate: fmt(entry.rateMinor),
-                      })
-                    : null,
-                  entry.vendor,
-                  reimbursedOn(entry, view.entries)
-                    ? fill(t.company.reimbursedOn, {
-                        date: showDate(reimbursedOn(entry, view.entries) ?? '', locale),
-                      })
-                    : null,
-                  view.isAdmin &&
-                  flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds).length > 0
-                    ? `! ${t.company.policyFlagged}`
-                    : null,
-                  entry.note,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                subtitleLines={2}
-                amount={`${entry.kind === 'wages' ? '' : delta < 0n ? '-' : '+'}${fmt(entry.amount)}`}
-                onPress={() => open(entry)}
-                divider={index < entryRows.length - 1}
-              />
-            ))}
-          </StandardCard>
+      {bubbles.length === 0 ? (
+        <Text variant="caption" tone="muted" align="center">
+          {t.company.threadEmpty}
+        </Text>
+      ) : (
+        <View style={{ gap: theme.spacing.sm }}>
+          {bubbles.map(({ entry }) => (
+            <Bubble
+              key={entry.id}
+              entry={entry}
+              label={kindLabel(t, entry, tagLabel)}
+              fmt={fmt}
+              locale={locale}
+              hasPhoto={view.receiptEntryIds.has(entry.id)}
+              onPress={() => open(entry)}
+            />
+          ))}
         </View>
-      ) : null}
-
-      {statement.pending.length > 0 ? (
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeader title={t.company.pending} />
-          <StandardCard>
-            {statement.pending.map((entry, index) => (
-              <ListRow
-                key={entry.id}
-                title={kindLabel(t, entry, tagLabel)}
-                subtitle={[
-                  entry.status === 'rejected' ? t.company.rejected : t.company.awaiting,
-                  showDate(entry.occurredOn, locale),
-                  entry.status === 'rejected' ? entry.reviewNote : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                subtitleLines={2}
-                amount={fmt(entry.amount)}
-                onPress={() => open(entry)}
-                divider={index < statement.pending.length - 1}
-              />
-            ))}
-          </StandardCard>
-        </View>
-      ) : null}
+      )}
 
       {statement.rows.length > 0 ? (
-        <Button label={t.company.share} variant="secondary" onPress={share} />
+        <Button label={t.company.shareWhatsApp} variant="secondary" onPress={share} />
       ) : null}
       <Text variant="micro" tone="muted" align="center">
         {view.isAdmin ? t.company.privacyAdmin : t.company.privacyEmployee}
       </Text>
-
-      <EditTextSheet
-        visible={kmOpen}
-        title={t.company.mileageRate}
-        hint={fill(t.company.rateHint, { name: displayName(member, null, null, t.misc.someone) })}
-        value={
-          member.mileage_rate_minor
-            ? formatMinorInput(BigInt(member.mileage_rate_minor), currency)
-            : ''
-        }
-        autoCapitalize="none"
-        saving={setKmRate.isPending}
-        onClose={() => setKmOpen(false)}
-        onSave={(text) => {
-          const minor = parseMinorInput(text, currency);
-          setKmOpen(false);
-          setKmRate
-            .mutateAsync({
-              memberId: member.id,
-              rateMinor: text.trim() === '' ? null : minor.toString(),
-            })
-            .catch((caught) =>
-              setError(friendlyError(caught, t.company.couldNotSave, 'company.mileage')),
-            );
-        }}
-      />
-      <EditTextSheet
-        visible={rateOpen}
-        title={t.company.rateTitle}
-        hint={fill(t.company.rateHint, { name: displayName(member, null, null, t.misc.someone) })}
-        value={rate !== null ? formatMinorInput(rate, currency) : ''}
-        autoCapitalize="none"
-        saving={setRate.isPending}
-        onClose={() => setRateOpen(false)}
-        onSave={(text) => {
-          const minor = parseMinorInput(text, currency);
-          setRateOpen(false);
-          setRate
-            .mutateAsync({
-              memberId: member.id,
-              dailyRateMinor: minor > 0n ? minor.toString() : null,
-            })
-            .catch((caught) =>
-              setError(friendlyError(caught, t.company.couldNotSave, 'company.rate')),
-            );
-        }}
-      />
     </>
+  );
+}
+
+const GIVEN_KINDS = new Set(['advance', 'wages', 'wage_payment', 'allocation']);
+
+/** One money event as a chat bubble: money handed over leans right, what they spent leans left. */
+function Bubble({
+  entry,
+  label,
+  fmt,
+  locale,
+  hasPhoto,
+  onPress,
+}: {
+  entry: CompanyEntry;
+  label: string;
+  fmt: (minor: bigint) => string;
+  locale: string;
+  hasPhoto: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const gave =
+    GIVEN_KINDS.has(entry.kind) ||
+    (entry.kind === 'reimbursement' && entry.direction !== 'employee_to_company');
+  const wage = entry.kind === 'wages' || entry.kind === 'wage_payment';
+  const waiting = entry.status === 'submitted' || entry.status === 'rejected';
+  const icon = wage ? 'cash' : gave ? 'arrow-up-circle' : 'arrow-down-circle';
+  const verb = wage ? t.company.paidWagesVerb : gave ? t.company.gaveMoney : label;
+  const formula =
+    entry.kind === 'wage_payment' && (entry.recoveryMinor ?? 0n) > 0n
+      ? fill(t.company.wageFormula, {
+          gross: fmt(entry.grossMinor ?? entry.amount),
+          cut: fmt(entry.recoveryMinor ?? 0n),
+          net: fmt(entry.amount),
+        })
+      : entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
+        ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
+        : null;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${verb} ${fmt(entry.amount)}`}
+      onPress={onPress}
+      style={{
+        alignSelf: gave ? 'flex-end' : 'flex-start',
+        maxWidth: '82%',
+        gap: 2,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: gave ? theme.color.brandSoft : theme.color.surfaceMuted,
+        opacity: waiting ? 0.7 : 1,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+        <Ionicons
+          name={icon}
+          size={iconSize.md}
+          color={gave || wage ? theme.color.brand : theme.color.negative}
+        />
+        <Text variant="body">{fmt(entry.amount)}</Text>
+        {hasPhoto ? (
+          <Ionicons name="camera" size={iconSize.sm} color={theme.color.textMuted} />
+        ) : null}
+      </View>
+      <Text variant="caption" tone="muted">
+        {[verb, formula, entry.note].filter(Boolean).join(' · ')}
+      </Text>
+      <Text variant="micro" tone="muted">
+        {[
+          showDate(entry.occurredOn, locale),
+          waiting ? (entry.status === 'rejected' ? t.company.rejected : t.company.awaiting) : null,
+          entry.pending ? '\u23F2' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </Text>
+    </Pressable>
   );
 }

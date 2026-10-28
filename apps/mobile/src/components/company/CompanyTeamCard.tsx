@@ -7,9 +7,9 @@
 
 import { View } from 'react-native';
 
-import { Button, Chip, ChipRow, Text, useTheme } from '@waves/ui';
+import { Chip, ChipRow, Text, Toggle, useTheme } from '@waves/ui';
 
-import { StandardCard } from '@/components/standard';
+import { ListRow, StandardCard } from '@/components/standard';
 import {
   useAssignCompanyMember,
   useCompanyProjectMembers,
@@ -45,26 +45,20 @@ export function CompanyTeamCard({
 
   return (
     <StandardCard style={{ gap: theme.spacing.md }}>
-      {isManager ? (
-        hasTeam ? (
-          <Text variant="caption" tone="muted">
-            {t.company.moveTeamFirst}
-          </Text>
-        ) : (
-          <Button
-            label={t.company.makeEmployee}
-            variant="secondary"
-            disabled={role.isPending}
-            onPress={() => role.mutate({ memberId: member.id, role: 'member' })}
+      <ListRow
+        title={t.company.canPayPeople}
+        subtitle={isManager && hasTeam ? t.company.moveTeamFirst : undefined}
+        trailing={
+          <Toggle
+            value={isManager}
+            disabled={role.isPending || (isManager && hasTeam)}
+            onValueChange={(on) =>
+              role.mutate({ memberId: member.id, role: on ? 'manager' : 'member' })
+            }
+            accessibilityLabel={t.company.canPayPeople}
           />
-        )
-      ) : (
-        <Button
-          label={t.company.makeManager}
-          disabled={role.isPending}
-          onPress={() => role.mutate({ memberId: member.id, role: 'manager' })}
-        />
-      )}
+        }
+      />
       {!isManager && managers.length > 0 ? (
         <View style={{ gap: theme.spacing.xs }}>
           <Text variant="caption" tone="muted">

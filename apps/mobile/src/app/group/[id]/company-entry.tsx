@@ -86,7 +86,8 @@ export default function CompanyEntryScreen() {
 
   const projects = useCompanyProjects(groupId).filter((p) => !p.archived_at);
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [kind, setKind] = useState<CompanyEntryKind>('expense');
+  const [pickedKind, setKind] = useState<CompanyEntryKind | null>(null);
+  const [moreKinds, setMoreKinds] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(memberParam ?? null);
   const employee = view.members.find((m) => m.id === (memberId ?? view.me?.id)) ?? view.me;
   // A manager's own entries are expense / bata only; money to the team comes from their pool.
@@ -94,6 +95,10 @@ export default function CompanyEntryScreen() {
   const kinds: CompanyEntryKind[] = moneyKinds
     ? ['expense', 'allowance', 'advance', 'wages', 'reimbursement']
     : ['expense', 'allowance'];
+  // Inside a person's thread the first verb is giving money; anywhere else it is spending.
+  const kind: CompanyEntryKind =
+    pickedKind ??
+    (moneyKinds && memberParam && memberParam !== view.me?.id ? 'advance' : 'expense');
   const tags = useCompanyTags(groupId, view);
   // Nothing tapped yet: the tag this person uses most is already chosen.
   const [pickedTag, setPickedTag] = useState<string | null>(null);
@@ -392,10 +397,41 @@ export default function CompanyEntryScreen() {
               <ChipRow
                 wrap
                 onCard
-                options={kinds.map((value) => ({ value, label: kindLabel[value] }))}
-                value={kind}
-                onChange={setKind}
+                options={[
+                  ...(moneyKinds
+                    ? [
+                        { value: 'advance' as string, label: t.company.gaveMoney },
+                        { value: 'expense' as string, label: t.company.theySpent },
+                        { value: '__wages', label: t.company.paidWagesVerb },
+                      ]
+                    : [
+                        { value: 'expense' as string, label: t.company.iSpent },
+                        { value: 'allowance' as string, label: kindLabel.allowance },
+                      ]),
+                  ...(moneyKinds ? [{ value: '__more', label: t.company.moreOptions }] : []),
+                ]}
+                value={moreKinds ? '__more' : kind}
+                onChange={(next) => {
+                  if (next === '__wages') {
+                    router.push(`/group/${groupId}/company-wages`);
+                  } else if (next === '__more') setMoreKinds((on) => !on);
+                  else {
+                    setMoreKinds(false);
+                    setKind(next as CompanyEntryKind);
+                  }
+                }}
               />
+              {moreKinds ? (
+                <ChipRow
+                  wrap
+                  onCard
+                  options={kinds
+                    .filter((value) => !['advance', 'expense'].includes(value))
+                    .map((value) => ({ value, label: kindLabel[value] }))}
+                  value={kind}
+                  onChange={setKind}
+                />
+              ) : null}
               {projects.length > 0 ? (
                 <ChipRow
                   wrap
