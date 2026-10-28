@@ -57,8 +57,22 @@ function isItem(value: unknown): value is PdfTextItem {
   );
 }
 
+/**
+ * Maximum raw byte length accepted from the page before JSON parsing.
+ *
+ * An `items` page carries positioned text runs (~50 bytes each × ~500 items =
+ * ~25 kB). An `image` page carries a base64-encoded JPEG at PDF_SCAN_WIDTH_PX
+ * (1400 px), which in practice is well under 1 MB. 10 MB gives plenty of
+ * headroom for every legitimate payload while blocking a maliciously oversized
+ * string before it ever touches JSON.parse.
+ */
+export const RAW_MESSAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
 /** A message from the page, or null when it is not one we know. */
 export function parseFromPage(raw: string): FromPage | null {
+  // Reject oversized payloads before parsing — a string's .length is in UTF-16
+  // code units, which is >= the UTF-8 byte count, so this is a safe upper bound.
+  if (raw.length > RAW_MESSAGE_MAX_BYTES) return null;
   let value: unknown;
   try {
     value = JSON.parse(raw);
@@ -75,11 +89,18 @@ export function parseFromPage(raw: string): FromPage | null {
         ? { t: 'opened', pages: m.pages }
         : null;
     case 'items':
-      return typeof m.n === 'number' && Array.isArray(m.items) && m.items.every(isItem)
+      return typeof m.n === 'number' &&
+        Number.isInteger(m.n) &&
+        m.n >= 1 &&
+        Array.isArray(m.items) &&
+        m.items.every(isItem)
         ? { t: 'items', n: m.n, items: m.items as PdfTextItem[] }
         : null;
     case 'image':
-      return typeof m.n === 'number' && typeof m.base64 === 'string'
+      return typeof m.n === 'number' &&
+        Number.isInteger(m.n) &&
+        m.n >= 1 &&
+        typeof m.base64 === 'string'
         ? { t: 'image', n: m.n, base64: m.base64 }
         : null;
     case 'error':
