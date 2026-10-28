@@ -3631,6 +3631,12 @@ export interface UiStrings {
     emailSubject: string;
     hideContacts: string;
     browseContacts: string;
+    addSomeoneBody: string;
+    browseContactsBody: string;
+    shareInviteBody: string;
+    orAddManually: string;
+    contactOptional: string;
+    addToGroupButton: string;
     /** The line under "From your contacts", saying which book is read. */
     fromContactsHint: string;
     /** The way in for somebody who joins themselves: link or QR. */
@@ -9089,6 +9095,12 @@ const en: UiStrings = {
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
+    addSomeoneBody: 'Add friends to start splitting expenses together.',
+    browseContactsBody: 'Find and add from your phone contacts',
+    shareInviteBody: 'Send a link to anyone',
+    orAddManually: 'or add manually',
+    contactOptional: 'Phone number or email (optional)',
+    addToGroupButton: 'Add to group',
     fromContactsHint: 'Pick names out of this phone’s address book',
     shareJoinLink: 'Share a join link',
     shareJoinLinkHint: 'Send the link or show the QR — they join themselves',
@@ -14446,6 +14458,12 @@ const ta: UiStrings = {
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
+    addSomeoneBody: 'செலவுகளைப் பகிர்ந்துகொள்ள நண்பர்களைச் சேர்.',
+    browseContactsBody: 'உன் போன் தொடர்புகளிலிருந்து தேடிச் சேர்',
+    shareInviteBody: 'யாருக்கும் இணைப்பை அனுப்பு',
+    orAddManually: 'அல்லது கைமுறையாகச் சேர்',
+    contactOptional: 'தொலைபேசி எண் அல்லது மின்னஞ்சல் (விருப்பம்)',
+    addToGroupButton: 'குழுவில் சேர்',
     fromContactsHint: 'இந்த போனின் தொடர்புப் பட்டியலிலிருந்து பெயர்களைத் தேர்ந்தெடு',
     shareJoinLink: 'சேரும் இணைப்பைப் பகிர்',
     shareJoinLinkHint: 'இணைப்பை அனுப்பு அல்லது QR-ஐக் காட்டு — அவர்களே சேர்ந்துகொள்வார்கள்',
@@ -19841,6 +19859,12 @@ const hi: UiStrings = {
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
+    addSomeoneBody: 'खर्च साथ बाँटना शुरू करने के लिए दोस्तों को जोड़ें।',
+    browseContactsBody: 'अपने फ़ोन के संपर्कों से खोजें और जोड़ें',
+    shareInviteBody: 'किसी को भी लिंक भेजें',
+    orAddManually: 'या मैन्युअल रूप से जोड़ें',
+    contactOptional: 'फ़ोन नंबर या ईमेल (वैकल्पिक)',
+    addToGroupButton: 'समूह में जोड़ें',
     fromContactsHint: 'इस फ़ोन की संपर्क सूची से नाम चुनें',
     shareJoinLink: 'जुड़ने का लिंक साझा करें',
     shareJoinLinkHint: 'लिंक भेजें या QR दिखाएँ — वे खुद जुड़ जाएँगे',
@@ -25355,6 +25379,12 @@ const ar: UiStrings = {
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
+    addSomeoneBody: 'أضف أصدقاءك لبدء تقاسم المصاريف معًا.',
+    browseContactsBody: 'ابحث وأضف من جهات اتصال هاتفك',
+    shareInviteBody: 'أرسل رابطًا لأي شخص',
+    orAddManually: 'أو أضف يدويًا',
+    contactOptional: 'رقم الهاتف أو البريد الإلكتروني (اختياري)',
+    addToGroupButton: 'أضف إلى المجموعة',
     fromContactsHint: 'اختر أسماءً من دفتر عناوين هذا الهاتف',
     shareJoinLink: 'شارك رابط الانضمام',
     shareJoinLinkHint: 'أرسل الرابط أو اعرض رمز QR — وسينضمّون بأنفسهم',
