@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -202,9 +202,9 @@ export default function MembersScreen() {
             color={theme.color.text}
           />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
+        <View style={{ flex: 1 }}>
           <Text variant="heading">{t.members}</Text>
-          <Text variant="micro" tone="muted">
+          <Text variant="caption" tone="muted" numberOfLines={1}>
             {groupLabel(group.data, members.data ?? [])}
           </Text>
         </View>
@@ -294,7 +294,11 @@ export default function MembersScreen() {
                       <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
                     ) : null}
                     {member.role === 'admin' && !isGhost(member) ? (
-                      <Badge label={t.people.admin} tone="brand" />
+                      <Badge
+                        label={t.people.admin}
+                        tone="brand"
+                        icon={(color) => <Ionicons name="ribbon" size={12} color={color} />}
+                      />
                     ) : null}
                     <MoneyText
                       amount={ledger.balances.get(member.id) ?? 0n}
@@ -302,6 +306,23 @@ export default function MembersScreen() {
                       locale={locale}
                       mode="balance"
                     />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={displayName(
+                        member,
+                        profile?.id,
+                        blockedIds,
+                        t.misc.someone,
+                      )}
+                      hitSlop={12}
+                      onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={iconSize.md}
+                        color={theme.color.textMuted}
+                      />
+                    </Pressable>
                   </Row>
                 }
               />
@@ -333,19 +354,24 @@ export default function MembersScreen() {
             same place would be the second door that this app keeps deciding not
             to build. */}
         <Card style={{ gap: theme.spacing.lg }}>
-          <Text variant="caption" tone="muted">
-            {t.people.addSomeone}
-          </Text>
+          <View>
+            <Text variant="heading">{t.people.addSomeone}</Text>
+            <Text variant="caption" tone="muted">
+              {t.people.addSomeoneBody}
+            </Text>
+          </View>
 
-          <Row style={{ gap: theme.spacing.sm }}>
+          <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
             <AddTile
               icon="people-outline"
               label={t.people.browseContacts}
+              body={t.people.browseContactsBody}
               onPress={openContactPicker}
             />
             <AddTile
               icon="link-outline"
               label={t.people.shareInvite}
+              body={t.people.shareInviteBody}
               onPress={() => router.push(`/group/${groupId}/invite`)}
             />
           </Row>
@@ -355,13 +381,13 @@ export default function MembersScreen() {
           <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
             <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
             <Text variant="micro" tone="faint">
-              {t.people.orByName}
+              {t.people.orAddManually}
             </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
           </Row>
 
           <View style={{ gap: theme.spacing.sm }}>
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
+            <Field icon="person-outline">
               <TextInput
                 value={ghostName}
                 onChangeText={setGhostName}
@@ -372,55 +398,59 @@ export default function MembersScreen() {
                 returnKeyType="done"
                 style={{
                   flex: 1,
-                  fontSize: 17,
-                  fontWeight: '600',
+                  fontSize: 16,
                   color: theme.color.text,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  borderRadius: theme.radius.lg,
-                  paddingHorizontal: theme.spacing.md,
                   paddingVertical: theme.spacing.sm,
                 }}
               />
-              <Button
-                label={t.add}
-                size="sm"
-                disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
-                onPress={add}
+            </Field>
+            <Field icon="at-outline">
+              <TextInput
+                value={ghostContact}
+                onChangeText={setGhostContact}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder={t.people.contactOptional}
+                placeholderTextColor={theme.color.textFaint}
+                accessibilityLabel={t.common.emailOrPhone}
+                onSubmitEditing={add}
+                returnKeyType="done"
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: theme.color.text,
+                  paddingVertical: theme.spacing.sm,
+                }}
               />
-            </Row>
-
-            {/* The contact is optional and looked compulsory: a second field of
-                the same weight directly under the first reads as the rest of the
-                form. It is a quieter, smaller row now, and says so in its own
-                placeholder. */}
-            <TextInput
-              value={ghostContact}
-              onChangeText={setGhostContact}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholder={t.people.contactPlaceholder}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.common.emailOrPhone}
-              onSubmitEditing={add}
-              returnKeyType="done"
-              style={{
-                fontSize: 15,
-                color: theme.color.text,
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                borderRadius: theme.radius.lg,
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-              }}
+            </Field>
+            <Button
+              label={t.people.addToGroupButton}
+              disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
+              onPress={add}
             />
-            <Text variant="micro" tone="muted">
-              {t.misc.nameAloneBody}
-            </Text>
           </View>
 
           {addGhost.isPending || adding ? <ActivityIndicator color={theme.color.brand} /> : null}
           {error ? <Callout tone="negative">{error}</Callout> : null}
+
+          <Row
+            style={{
+              alignItems: 'flex-start',
+              gap: theme.spacing.md,
+              padding: theme.spacing.md,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={iconSize.md}
+              color={theme.color.brand}
+            />
+            <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+              {t.misc.nameAloneBody}
+            </Text>
+          </Row>
         </Card>
 
         {ghosts.length > 0 ? (
@@ -451,33 +481,63 @@ export default function MembersScreen() {
 function AddTile({
   icon,
   label,
+  body,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  body: string;
   onPress: () => void;
 }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`${label}, ${body}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        alignItems: 'center',
         gap: theme.spacing.xs,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.sm,
+        padding: theme.spacing.md,
         borderRadius: theme.radius.lg,
         backgroundColor: theme.color.brandSoft,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
-      <Text variant="caption" tone="brand" numberOfLines={1} style={{ fontWeight: '700' }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.sm}
+          color={theme.color.brand}
+        />
+      </Row>
+      <Text variant="body" style={{ fontWeight: '700' }}>
         {label}
       </Text>
+      <Text variant="micro" tone="muted">
+        {body}
+      </Text>
     </Pressable>
+  );
+}
+
+/** A bordered input row with a leading glyph. */
+function Field({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        borderRadius: theme.radius.lg,
+        paddingHorizontal: theme.spacing.md,
+      }}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+      {children}
+    </Row>
   );
 }

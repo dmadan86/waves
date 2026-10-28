@@ -134,9 +134,12 @@ export function ChipRow<T extends string>({
 export function Badge({
   label,
   tone = 'neutral',
+  icon,
 }: {
   label: string;
   tone?: 'neutral' | 'positive' | 'negative' | 'brand';
+  /** A small glyph before the label; receives the tone colour. */
+  icon?: (color: string) => ReactNode;
 }) {
   const theme = useTheme();
   const background =
@@ -159,12 +162,16 @@ export function Badge({
   return (
     <View
       style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: 4,
         borderRadius: theme.radius.pill,
         backgroundColor: background,
       }}
     >
+      {icon?.(color)}
       <Text variant="micro" style={{ color }}>
         {label}
       </Text>
