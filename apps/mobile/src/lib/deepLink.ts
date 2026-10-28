@@ -54,3 +54,48 @@ export function createOnceGate(store: KV) {
     return true;
   };
 }
+
+const PENDING = 'deeplink.pending';
+
+/** Signed out: keep the target until there is a session to open it with. */
+export async function queueDeepLink(store: KV, path: string): Promise<void> {
+  try {
+    await store.setItem(PENDING, path);
+  } catch {
+    // Storage unavailable: the tap is lost, nothing worse.
+  }
+}
+
+/** The queued target, once; empty afterwards. */
+export async function takeQueuedDeepLink(store: KV & { removeItem: (k: string) => Promise<void> }) {
+  try {
+    const path = await store.getItem(PENDING);
+    if (path) await store.removeItem(PENDING);
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Links the OS hands to expo-router (widgets, https/app links, watch) land as a
+ * one-screen stack. `redirectSystemPath` notes the target here, and the root
+ * re-seats it with `openDeepLink` once the router has arrived on it.
+ */
+let external: { path: string; at: number } | null = null;
+const EXTERNAL_TTL_MS = 15_000;
+
+export function noteExternalLink(url: string, now = Date.now()): void {
+  const path = url.replace(/^waves:\/\//i, '/');
+  // Only group screens have a parent to add; re-seating a scan link would replay its one-shot nonce.
+  external = path.startsWith('/group/') ? { path, at: now } : null;
+}
+
+/** Returns the full target if `pathname` is the one just noted, and clears it. */
+export function takeExternalLink(pathname: string, now = Date.now()): string | null {
+  const e = external;
+  if (!e || now - e.at > EXTERNAL_TTL_MS) return null;
+  if ((e.path.split(/[?#]/)[0] ?? e.path) !== pathname) return null;
+  external = null;
+  return e.path;
+}

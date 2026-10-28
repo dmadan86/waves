@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createOnceGate, openDeepLink, stackForPath } from '../src/lib/deepLink';
+import {
+  createOnceGate,
+  noteExternalLink,
+  openDeepLink,
+  queueDeepLink,
+  stackForPath,
+  takeExternalLink,
+  takeQueuedDeepLink,
+} from '../src/lib/deepLink';
 
 describe('stackForPath', () => {
   it('puts the group under an expense', () => {
@@ -85,5 +93,47 @@ describe('back from a deep-linked expense', () => {
     expect(stack).toEqual(['/', '/group/g1', '/group/g1/expense/e1']);
     stack.pop(); // header back arrow
     expect(stack.at(-1)).toBe('/group/g1');
+  });
+});
+
+describe('entry-point targets', () => {
+  it.each([
+    ['notification expense', '/group/g1/expense/e1', ['/group/g1', '/group/g1/expense/e1']],
+    ['watch/widget add-expense', '/group/g1/add-expense', ['/group/g1', '/group/g1/add-expense']],
+    ['shortcut scan', '/capture?scan=1', ['/capture?scan=1']],
+    ['shortcut voice', '/voice', ['/voice']],
+    ['share receipt', '/capture?receipt=k&shared=1', ['/capture?receipt=k&shared=1']],
+    ['invite', '/join?token=t', ['/join?token=t']],
+  ])('%s', (_n, path, stack) => {
+    expect(stackForPath(path)).toEqual(stack);
+  });
+});
+
+describe('external link note', () => {
+  it('re-seats a group link once, only on its own path, and expires', () => {
+    noteExternalLink('waves://group/g1/expense/e1', 0);
+    expect(takeExternalLink('/group/g1', 1)).toBeNull();
+    expect(takeExternalLink('/group/g1/expense/e1', 1)).toBe('/group/g1/expense/e1');
+    expect(takeExternalLink('/group/g1/expense/e1', 1)).toBeNull();
+    noteExternalLink('waves://group/g1', 0);
+    expect(takeExternalLink('/group/g1', 20_000)).toBeNull();
+  });
+  it('ignores non-group links', () => {
+    noteExternalLink('waves://capture?scan=1', 0);
+    expect(takeExternalLink('/capture', 1)).toBeNull();
+  });
+});
+
+describe('queued link', () => {
+  it('is taken once', async () => {
+    const m = new Map<string, string>();
+    const st = {
+      getItem: async (k: string) => m.get(k) ?? null,
+      setItem: async (k: string, v: string) => void m.set(k, v),
+      removeItem: async (k: string) => void m.delete(k),
+    };
+    await queueDeepLink(st, '/group/g1');
+    expect(await takeQueuedDeepLink(st)).toBe('/group/g1');
+    expect(await takeQueuedDeepLink(st)).toBeNull();
   });
 });
