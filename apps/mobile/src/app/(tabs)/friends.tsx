@@ -1672,14 +1672,17 @@ function VividAvatar({
 }): React.JSX.Element {
   const theme = useTheme();
   const pair = theme.tint[tintForKey(name)];
+  // An expired or refused photo URL falls back to initials, not a blank disc.
+  const [broken, setBroken] = useState<string | null>(null);
 
-  if (photoUrl) {
+  if (photoUrl && broken !== photoUrl) {
     return (
       <Image
         source={{ uri: photoUrl }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
         resizeMode="cover"
         accessibilityLabel={name}
+        onError={() => setBroken(photoUrl)}
       />
     );
   }
