@@ -1092,7 +1092,7 @@ function GroupRow({
   pendingLabel: string | null;
   tag: string | null;
   tagTone: 'positive' | 'brand' | 'neutral' | 'warning';
-  /** The sample group: amber-tinted row, "sample data" subtitle. */
+  /** The sample group: "sample data" subtitle. */
   isDemo?: boolean;
   /** The dashboard's eye is shut: show the mask in place of the amount. The
       row's standing ("You owe") stays — it is the figure that is private. */
@@ -1162,7 +1162,6 @@ function GroupRow({
           gap: theme.spacing.md,
           paddingVertical: theme.spacing.sm,
           paddingHorizontal: theme.spacing.sm,
-          backgroundColor: isDemo ? theme.color.warningSoft : undefined,
           borderTopWidth: divider ? 1 : 0,
           borderTopColor: theme.color.border,
           opacity: pressed ? 0.6 : 1,

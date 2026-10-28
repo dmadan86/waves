@@ -674,11 +674,10 @@ const GroupListRow = memo(function GroupListRow({
         accessibilityLabel={`${label}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken}`}
         onPress={() => router.push(`/group/${groupId}`)}
         style={({ pressed }) => ({
-          backgroundColor: isDemo ? theme.color.warningSoft : theme.color.surface,
+          backgroundColor: theme.color.surface,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
-          borderColor: isDemo ? theme.color.warning : theme.color.border,
-          borderStyle: isDemo ? 'dashed' : 'solid',
+          borderColor: theme.color.border,
           opacity: pressed ? 0.6 : 1,
         })}
       >
