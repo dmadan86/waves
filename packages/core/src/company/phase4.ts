@@ -52,9 +52,12 @@ export function manageableMemberIds(
   people: readonly CompanyPerson[],
   viewer: { readonly memberId: string; readonly role: CompanyRole },
 ): string[] {
-  if (viewer.role === 'owner') return people.filter((p) => p.role !== 'owner').map((p) => p.memberId);
+  if (viewer.role === 'owner')
+    return people.filter((p) => p.role !== 'owner').map((p) => p.memberId);
   if (viewer.role === 'manager')
-    return people.filter((p) => p.role === 'employee' && p.managerId === viewer.memberId).map((p) => p.memberId);
+    return people
+      .filter((p) => p.role === 'employee' && p.managerId === viewer.memberId)
+      .map((p) => p.memberId);
   return [];
 }
 
@@ -117,7 +120,8 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
     wages,
     ownSpend,
     cashReturned,
-    balance: allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned,
+    balance:
+      allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned,
   };
 }
 
@@ -139,10 +143,27 @@ export function outstandingAdvance(
   let recovered = 0n;
   for (const e of entries) {
     if (e.memberId !== memberId || e.deleted) continue;
-    // Advances netted into a Phase 3 payment are already settled.
-    if (e.kind === 'advance' && e.status === 'approved' && e.reimbursementId === null && e.occurredOn <= through)
+    // Advances netted into a Phase 3 payment are already settled, and so are the recoveries
+    // that payment counted (it links them too).
+    if (
+      e.kind === 'advance' &&
+      e.status === 'approved' &&
+      e.reimbursementId === null &&
+      e.occurredOn <= through
+    )
       advanced += e.amount;
-    else if (e.kind === 'wage_payment') recovered += e.recoveryMinor ?? 0n;
+    else if (e.kind === 'wage_payment' && e.reimbursementId === null)
+      recovered += e.recoveryMinor ?? 0n;
+    // Cash the employee handed back reduces what they still owe.
+    else if (
+      e.kind === 'reimbursement' &&
+      e.direction === 'employee_to_company' &&
+      e.status === 'approved' &&
+      e.reimbursementId === null &&
+      !e.coversClaims &&
+      e.occurredOn <= through
+    )
+      recovered += e.amount;
   }
   return advanced > recovered ? advanced - recovered : 0n;
 }
@@ -204,7 +225,9 @@ export function wageClaims(
   memberId: string,
   through: string,
 ): CompanyEntry[] {
-  return entries.filter((e) => e.memberId === memberId && isWageClaim(e) && e.occurredOn <= through);
+  return entries.filter(
+    (e) => e.memberId === memberId && isWageClaim(e) && e.occurredOn <= through,
+  );
 }
 
 export interface WageRunDraftLine extends WageLine {
@@ -286,7 +309,6 @@ export function projectSpend(entries: readonly CompanyEntry[]): Map<string, bigi
   }
   return out;
 }
-
 
 /** True when the employee already has a wage payment overlapping [start, end] (the server refuses a second). */
 export function wagePaidInPeriod(

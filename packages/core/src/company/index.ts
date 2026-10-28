@@ -874,7 +874,12 @@ export function buildReimbursementPreview(
   // entryDelta of an adjustment is its effect on "company owes"; credits are the opposite.
   // Advance already taken back through wage runs is not a credit any more (the server nets it too).
   const recovered = mine
-    .filter((e) => e.kind === 'wage_payment' && (e.periodEnd ?? e.occurredOn) <= cutoff)
+    .filter(
+      (e) =>
+        e.kind === 'wage_payment' &&
+        e.reimbursementId === null &&
+        (e.periodEnd ?? e.occurredOn) <= cutoff,
+    )
     .reduce((sum, e) => sum + (e.recoveryMinor ?? 0n), 0n);
   const creditsMinor = adjustments.reduce((sum, e) => sum - entryDelta(e), 0n) - recovered;
   return {

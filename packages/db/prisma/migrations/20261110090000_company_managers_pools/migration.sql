@@ -161,10 +161,14 @@ BEGIN
  IF p_project_id IS NULL OR jsonb_typeof(p_data) IS DISTINCT FROM 'object' OR EXISTS(SELECT 1 FROM jsonb_object_keys(p_data) k WHERE k NOT IN ('name','budgetMinor','archived')) THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
  PERFORM 1 FROM public.groups WHERE id=p_group_id FOR UPDATE;
  IF EXISTS(SELECT 1 FROM public.company_projects WHERE id=p_project_id AND group_id<>p_group_id) THEN RAISE EXCEPTION 'NOT_ALLOWED'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.company_projects WHERE id=p_project_id) AND coalesce(btrim(p_data->>'name'),'')='' THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
  INSERT INTO public.company_projects(id,group_id,name,archived_at) VALUES(p_project_id,p_group_id,btrim(p_data->>'name'),CASE WHEN coalesce((p_data->>'archived')::boolean,false) THEN now() END)
- ON CONFLICT(id) DO UPDATE SET name=excluded.name,archived_at=excluded.archived_at,updated_at=now();
- INSERT INTO public.company_project_budgets(project_id,group_id,budget_minor) VALUES(p_project_id,p_group_id,(p_data->>'budgetMinor')::bigint)
- ON CONFLICT(project_id) DO UPDATE SET budget_minor=excluded.budget_minor;
+ ON CONFLICT(id) DO UPDATE SET name=coalesce(nullif(btrim(p_data->>'name'),''),company_projects.name),
+  archived_at=CASE WHEN p_data ? 'archived' THEN (CASE WHEN (p_data->>'archived')::boolean THEN coalesce(company_projects.archived_at,now()) END) ELSE company_projects.archived_at END,updated_at=now();
+ IF p_data ? 'budgetMinor' THEN
+  INSERT INTO public.company_project_budgets(project_id,group_id,budget_minor) VALUES(p_project_id,p_group_id,(p_data->>'budgetMinor')::bigint)
+  ON CONFLICT(project_id) DO UPDATE SET budget_minor=excluded.budget_minor;
+ END IF;
  RETURN p_project_id;
 END $$;
 CREATE FUNCTION public.waves_company_member_projects_set(p_member_id uuid,p_project_ids uuid[]) RETURNS void
@@ -175,7 +179,7 @@ BEGIN
  PERFORM public.waves_company_actor(g);
  PERFORM 1 FROM public.groups WHERE id=g FOR UPDATE;
  IF NOT public.is_group_admin(g) AND NOT public.waves_company_team(g,p_member_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
- IF EXISTS(SELECT 1 FROM unnest(p_project_ids) id WHERE NOT EXISTS(SELECT 1 FROM public.company_projects p WHERE p.id=id AND p.group_id=g AND p.archived_at IS NULL AND p.deleted_at IS NULL)) THEN RAISE EXCEPTION 'INVALID_PROJECT'; END IF;
+ IF EXISTS(SELECT 1 FROM unnest(p_project_ids) AS u(pid) WHERE NOT EXISTS(SELECT 1 FROM public.company_projects p WHERE p.id=u.pid AND p.group_id=g AND p.archived_at IS NULL AND p.deleted_at IS NULL)) THEN RAISE EXCEPTION 'INVALID_PROJECT'; END IF;
  UPDATE public.company_project_members SET deleted_at=now(),updated_at=now() WHERE member_id=p_member_id AND deleted_at IS NULL AND NOT(project_id=ANY(coalesce(p_project_ids,'{}'::uuid[])));
  INSERT INTO public.company_project_members(group_id,project_id,member_id)
  SELECT g,id,p_member_id FROM (SELECT DISTINCT unnest(p_project_ids) id) s
@@ -193,6 +197,11 @@ BEGIN
  IF length(btrim(coalesce(p_reason,''))) > 500 THEN RAISE EXCEPTION 'REASON_TOO_LONG'; END IF;
  UPDATE public.group_members SET manager_id=p_manager_id,updated_at=now() WHERE id=p_member_id AND role::text='member' AND left_at IS NULL AND removed_at IS NULL;
  IF NOT FOUND THEN RAISE EXCEPTION 'UNKNOWN_MEMBER'; END IF;
+ -- History follows the current team: re-stamp it so the new manager's next pull receives it.
+ UPDATE public.company_entry_attachments a SET updated_at=now() FROM public.company_entries e WHERE a.entry_id=e.id AND e.member_id=p_member_id;
+ PERFORM set_config('waves.company_restamp',p_member_id::text,true);
+ UPDATE public.company_entries SET updated_at=updated_at WHERE member_id=p_member_id;
+ PERFORM set_config('waves.company_restamp','',true);
 END $$;
 CREATE FUNCTION public.waves_company_member_add(p_group_id uuid,p_member_id uuid,p_data jsonb) RETURNS uuid
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
@@ -533,7 +542,7 @@ BEGIN
  WHERE group_id=p_group_id AND member_id=p_member_id AND deleted_at IS NULL AND status='approved'
  AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_cutoff AND entry_kind IN ('advance','reimbursement');
  -- Phase 4: advance already taken back through wage runs is not a credit any more.
- credits_minor:=credits_minor-(SELECT coalesce(sum(recovery_minor),0) FROM public.company_entries WHERE group_id=p_group_id AND member_id=p_member_id AND entry_kind='wage_payment' AND deleted_at IS NULL AND period_end<=p_cutoff);
+ credits_minor:=credits_minor-(SELECT coalesce(sum(recovery_minor),0) FROM public.company_entries WHERE group_id=p_group_id AND member_id=p_member_id AND entry_kind='wage_payment' AND deleted_at IS NULL AND reimbursement_id IS NULL AND period_end<=p_cutoff);
  payout:=claims_minor-credits_minor;
  -- Version changes are tolerated unless they would exceed the requested ceiling.
  IF payout>p_expected_amount_minor THEN
@@ -548,6 +557,8 @@ BEGIN
  INSERT INTO public.company_entries(id,group_id,member_id,entry_kind,amount,currency,occurred_on,direction,status,note,created_by,updated_by,reimbursement_details,funding_manager_id)
  VALUES(p_reimbursement_id,p_group_id,p_member_id,'reimbursement',payout::bigint,currency,p_paid_on,'company_to_employee','approved',p_note,actor,actor,
  jsonb_build_object('requestHash',request_hash,'cutoff',p_cutoff,'claimIds',to_jsonb(claim_ids),'adjustmentIds',to_jsonb(adjustment_ids),'skippedIds',to_jsonb(skipped_ids),'claimsMinor',claims_minor::text,'creditsMinor',credits_minor::text,'payoutMinor',payout::text),CASE WHEN public.is_group_admin(p_group_id) THEN NULL ELSE actor END);
+ UPDATE public.company_entries SET reimbursement_id=p_reimbursement_id,version=version+1,updated_by=actor,updated_at=now()
+ WHERE group_id=p_group_id AND member_id=p_member_id AND entry_kind='wage_payment' AND deleted_at IS NULL AND reimbursement_id IS NULL AND recovery_minor>0 AND period_end<=p_cutoff;
  UPDATE public.company_entries SET reimbursement_id=p_reimbursement_id,
  status=CASE WHEN id=ANY(claim_ids) THEN 'reimbursed' ELSE status END,version=version+1,updated_by=actor,updated_at=now() WHERE id=ANY(ids);
  PERFORM set_config('waves.company_reimburse','',true);
@@ -1474,6 +1485,15 @@ BEGIN
 END
 $$;
 
+CREATE POLICY company_members_privacy_upd ON public.group_members AS RESTRICTIVE FOR UPDATE TO authenticated
+ USING(NOT public.waves_is_company(group_id) OR public.waves_company_detail(group_id,id));
+CREATE POLICY company_members_privacy_del ON public.group_members AS RESTRICTIVE FOR DELETE TO authenticated
+ USING(NOT public.waves_is_company(group_id) OR public.waves_company_detail(group_id,id));
+CREATE FUNCTION public.waves_company_manager_ok(p_group_id uuid,p_member_id uuid) RETURNS boolean
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+ SELECT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND role::text='manager' AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL) $$;
+REVOKE ALL ON FUNCTION public.waves_company_manager_ok(uuid,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_manager_ok(uuid,uuid) TO authenticated,service_role;
 -- Sibling invariants cover privileged writers without weakening generic membership guards.
 CREATE FUNCTION public.waves_company_phase4_member_guard() RETURNS trigger
  LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
@@ -1488,7 +1508,7 @@ BEGIN
   SELECT id INTO actor FROM public.group_members WHERE group_id=NEW.group_id AND profile_id=public.waves_current_profile_id() AND role::text='manager' AND left_at IS NULL AND removed_at IS NULL;
   IF actor IS NOT NULL THEN NEW.manager_id:=actor; NEW.role:='member'; END IF;
  END IF;
- IF NEW.manager_id IS NOT NULL AND (NEW.role::text<>'member' OR NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=NEW.manager_id AND group_id=NEW.group_id AND role::text='manager' AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL)) THEN RAISE EXCEPTION 'INVALID_MANAGER'; END IF;
+ IF NEW.manager_id IS NOT NULL AND (NEW.role::text<>'member' OR NOT public.waves_company_manager_ok(NEW.group_id,NEW.manager_id)) THEN RAISE EXCEPTION 'INVALID_MANAGER'; END IF;
  IF TG_OP='UPDATE' AND OLD.role::text='manager' AND (NEW.role IS DISTINCT FROM OLD.role OR NEW.left_at IS DISTINCT FROM OLD.left_at OR NEW.removed_at IS DISTINCT FROM OLD.removed_at) THEN
   IF EXISTS(SELECT 1 FROM public.group_members WHERE manager_id=OLD.id AND left_at IS NULL AND removed_at IS NULL)
    OR EXISTS(SELECT 1 FROM public.invites WHERE company_manager_id=OLD.id AND revoked_at IS NULL AND expires_at>now()) THEN RAISE EXCEPTION 'MANAGER_HAS_TEAM_OR_INVITES'; END IF;
@@ -1523,6 +1543,7 @@ BEGIN
  actor:=public.waves_company_actor(p_group_id);
  PERFORM 1 FROM public.groups WHERE id=p_group_id FOR UPDATE;
  IF NOT public.is_group_admin(p_group_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
+ p_reason:=nullif(btrim(p_reason),''); IF length(p_reason)>500 THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
  IF p_kind IS NULL OR p_kind NOT IN ('allocation','pool_return','pool_adjustment') OR p_amount_minor IS NULL OR p_amount_minor=0 OR (p_kind<>'pool_adjustment' AND p_amount_minor<0) OR p_occurred_on IS NULL OR p_entry_id IS NULL OR p_manager_id IS NULL THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
  IF p_kind IN ('pool_return','pool_adjustment') AND coalesce(length(btrim(p_reason)),0) NOT BETWEEN 1 AND 500 THEN RAISE EXCEPTION 'REASON_REQUIRED'; END IF;
  h:=encode(sha256(convert_to(jsonb_build_array(p_group_id,p_manager_id,p_kind,p_amount_minor::text,p_project_id,p_occurred_on,btrim(p_reason))::text,'UTF8')),'hex');
@@ -1578,7 +1599,7 @@ DECLARE actor uuid; owner boolean; h text; old public.company_wage_runs%ROWTYPE;
 BEGIN
  actor:=public.waves_company_actor(p_group_id);
  -- The company row serializes wage, reimbursement, project, membership and entry writers.
- PERFORM 1 FROM public.groups WHERE id=p_group_id FOR UPDATE;
+ PERFORM pg_advisory_xact_lock(hashtextextended(p_group_id::text,4)); PERFORM 1 FROM public.groups WHERE id=p_group_id FOR UPDATE;
  owner:=public.is_group_admin(p_group_id);
  IF NOT owner AND NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=actor AND role::text='manager') THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
  IF p_run_id IS NULL OR p_period_start IS NULL OR p_period_end IS NULL OR p_period_start>p_period_end OR p_paid_on IS NULL OR jsonb_typeof(p_lines) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
@@ -1630,7 +1651,7 @@ BEGIN
    IF r.group_id<>p_group_id OR r.member_id<>employee OR r.version IS DISTINCT FROM (claim->>'expectedVersion')::integer OR r.status<>'approved' OR r.deleted_at IS NOT NULL OR r.reimbursement_id IS NOT NULL OR r.reimbursement_details IS NOT NULL OR r.entry_kind NOT IN ('expense','allowance') OR (r.entry_kind='expense' AND r.calc_mode<>'distance_rate') OR r.occurred_on>p_period_end THEN RAISE EXCEPTION 'SELECTION_CHANGED'; END IF;
    claims:=claims+r.amount;
   END LOOP;
-  SELECT greatest(0,coalesce(sum(CASE WHEN entry_kind='advance' AND reimbursement_id IS NULL AND occurred_on<=p_period_end THEN amount WHEN entry_kind='wage_payment' AND period_end<p_period_start THEN -recovery_minor ELSE 0 END),0)) INTO outstanding FROM public.company_entries WHERE group_id=p_group_id AND member_id=employee AND deleted_at IS NULL;
+  SELECT greatest(0,coalesce(sum(CASE WHEN entry_kind='advance' AND reimbursement_id IS NULL AND occurred_on<=p_period_end THEN amount WHEN entry_kind='wage_payment' AND period_end<p_period_start AND reimbursement_id IS NULL THEN -recovery_minor WHEN entry_kind='reimbursement' AND direction='employee_to_company' AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_period_end THEN -amount ELSE 0 END),0)) INTO outstanding FROM public.company_entries WHERE group_id=p_group_id AND member_id=employee AND deleted_at IS NULL;
   gross:=base+claims; recovery:=least(outstanding,gross); net:=gross-recovery;
   IF (line->>'expectedGrossMinor')::numeric IS DISTINCT FROM gross OR (line->>'expectedRecoveryMinor')::numeric IS DISTINCT FROM recovery OR (line->>'expectedNetMinor')::numeric IS DISTINCT FROM net THEN RAISE EXCEPTION 'AMOUNT_MISMATCH'; END IF;
   INSERT INTO public.company_entries(id,group_id,member_id,entry_kind,amount,currency,calc_mode,days,rate_minor,occurred_on,note,created_by,updated_by,project_id,funding_manager_id,wage_run_id,gross_minor,claims_minor,recovery_minor,period_start,period_end)
