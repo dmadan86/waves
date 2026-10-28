@@ -66,6 +66,7 @@ export default function SettleUpScreen() {
           </View>
           <IconButton
             label={searchOpen ? t.common.close : t.searchGroups}
+            repeatable
             onPress={() => {
               // A hidden filter still narrowing the list would read as groups gone.
               if (searchOpen) setQuery('');
