@@ -386,8 +386,9 @@ describe('company image isolation', () => {
     { attachmentId: 'image' },
   ])('rejects company selectors before parsing: %j', async (selectors) => {
     const t = setup();
-    const res = await handleReceiptParse(t.request(selectors), t.deps);
-    expect(res.status).toBe(400);
+    await expect(handleReceiptParse(t.request(selectors), t.deps)).rejects.toMatchObject({
+      status: 400,
+    });
     expect(t.fetchMock).not.toHaveBeenCalled();
     expect(t.rpcLog).toHaveLength(0);
   });

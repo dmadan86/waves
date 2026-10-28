@@ -143,20 +143,20 @@ Mobile/server contract (amounts and rates are decimal strings in mutation payloa
 - `company.settings_set`: `{defaultDailyRateMinor: string | null, approvalsEnabled: boolean}`.
   Both fields are required; null clears the rate.
 - `company_entry.transition`: `{entryId, to: 'approved' | 'rejected', note?: string | null,
-  expectedVersion: number}`. Version is mandatory for review.
+expectedVersion: number}`. Version is mandatory for review.
 - `group.create`: optional `companyDefaultDailyRateMinor: string | null`, passed atomically
   to the trailing `p_company_default_daily_rate_minor bigint DEFAULT NULL` argument.
 - Direct RPCs: `waves_attach_company_entry_image(p_entry_id uuid, p_storage_path text,
-  p_attachment_id uuid, p_preview text DEFAULT NULL) RETURNS uuid`;
+p_attachment_id uuid, p_preview text DEFAULT NULL) RETURNS uuid`;
   `waves_remove_company_entry_image(p_attachment_id uuid) RETURNS void`;
   `waves_company_settings_set(p_group_id uuid, p_default_daily_rate_minor bigint,
-  p_approvals_enabled boolean) RETURNS void`;
+p_approvals_enabled boolean) RETURNS void`;
   `waves_company_entry_transition(p_entry_id uuid, p_to text, p_note text DEFAULT NULL,
-  p_expected_version integer DEFAULT NULL) RETURNS void` (null version is refused).
+p_expected_version integer DEFAULT NULL) RETURNS void` (null version is refused).
 - Readers: `waves_can_read_company_entry(p_entry_id uuid) RETURNS boolean`,
   `waves_company_plan(p_group_id uuid) RETURNS TABLE(plan text, storage_quota_bytes bigint)`,
   `waves_company_storage_usage(p_group_id uuid) RETURNS TABLE(used_bytes bigint,
-  reserved_bytes bigint, quota_bytes bigint)`.
+reserved_bytes bigint, quota_bytes bigint)`.
 - Sync groups add `company_default_daily_rate_minor`, `company_approvals_enabled`; entries
   add `review_note`, `reviewed_by`, `reviewed_at`. Attachments sync `id`, `entry_id`,
   `group_id`, `uploader_member_id`, `storage_path`, `preview`, `created_at`, `updated_at`,
