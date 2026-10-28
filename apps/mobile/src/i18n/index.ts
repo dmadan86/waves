@@ -1328,6 +1328,7 @@ export interface UiStrings {
     hierTitle: string;
     viewAll: string;
     ownersControl: string;
+    nameYou: string;
     budgetPerMonth: string;
     teamCount: string;
     recentTitle: string;
@@ -7565,6 +7566,7 @@ const en: UiStrings = {
     hierTitle: 'Team hierarchy',
     viewAll: 'View all',
     ownersControl: '{n} owners · Overall control',
+    nameYou: '{name} (You)',
     budgetPerMonth: 'Budget: {amount} / month',
     teamCount: '{n} employees',
     recentTitle: 'Recent activity',
@@ -13249,6 +13251,7 @@ const ta: UiStrings = {
     hierTitle: 'குழு படிநிலை',
     viewAll: 'அனைத்தும்',
     ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
+    nameYou: '{name} (நீங்கள்)',
     budgetPerMonth: 'பட்ஜெட்: {amount} / மாதம்',
     teamCount: '{n} ஊழியர்கள்',
     recentTitle: 'சமீபத்திய செயல்பாடு',
@@ -19097,6 +19100,7 @@ const hi: UiStrings = {
     hierTitle: 'टीम हाइरार्की',
     viewAll: 'सभी देखें',
     ownersControl: '{n} मालिक · पूरा नियंत्रण',
+    nameYou: '{name} (आप)',
     budgetPerMonth: 'बजट: {amount} / माह',
     teamCount: '{n} कर्मचारी',
     recentTitle: 'हाल की गतिविधि',
@@ -24835,6 +24839,7 @@ const ar: UiStrings = {
     hierTitle: 'هيكل الفريق',
     viewAll: 'عرض الكل',
     ownersControl: '{n} مالكين · تحكم كامل',
+    nameYou: '{name} (أنت)',
     budgetPerMonth: 'الميزانية: {amount} / شهر',
     teamCount: '{n} موظفين',
     recentTitle: 'النشاط الأخير',

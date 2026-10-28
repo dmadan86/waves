@@ -6,27 +6,31 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ScrollView, View } from 'react-native';
 
 import { dashboardStats } from '@waves/core';
-import { ChipRow, Screen, Sheet, Text, iconSize, useTheme } from '@waves/ui';
+import { Screen, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 
 import { ManagerCashRowPublic, OwnerCashList } from '@/components/company/CompanyCash';
 import { CompanyRules } from '@/components/company/CompanyRules';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
 import { CompanySites, useAddSiteSheet } from '@/components/company/CompanySites';
 import {
+  DashBody,
   DashHeader,
-  PlusButton,
+  InviteBanner,
+  PersonLine,
+  SectionCard,
+  TabPills,
   QuickActions,
   RecentActivity,
   RolePill,
   StatTriple,
-  TitleRow,
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, ScenicBody, StandardCard } from '@/components/standard';
+import { ListRow, StandardCard } from '@/components/standard';
 import { useCompanyEntries, type CompanyView } from '@/data/companyEntries';
 import { useSetMemberRole } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
@@ -72,22 +76,31 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
     .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
 
   const tabs = (
-    <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <ChipRow
-          options={[
-            { value: 'overview' as Tab, label: t.company.tabOverview },
-            { value: 'employees' as Tab, label: t.company.tabEmployees },
-            { value: 'managers' as Tab, label: t.company.tabManagers },
-            { value: 'budgets' as Tab, label: t.company.tabBudgets },
-            { value: 'payments' as Tab, label: t.company.tabPayments },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
-      </ScrollView>
-    </View>
+    <TabPills
+      options={[
+        { value: 'overview' as Tab, label: t.company.tabOverview },
+        { value: 'employees' as Tab, label: t.company.tabEmployees },
+        { value: 'managers' as Tab, label: t.company.tabManagers },
+        { value: 'budgets' as Tab, label: t.company.tabBudgets },
+        { value: 'payments' as Tab, label: t.company.tabPayments },
+      ]}
+      value={tab}
+      onChange={setTab}
+    />
   );
+
+  const monthBudget = (managerId: string): bigint => {
+    const month = new Date().toISOString().slice(0, 7);
+    return view.entries
+      .filter(
+        (e) =>
+          e.kind === 'allocation' &&
+          !e.deleted &&
+          e.memberId === managerId &&
+          e.occurredOn.slice(0, 7) === month,
+      )
+      .reduce((sum, e) => sum + e.amount, 0n);
+  };
 
   const personRow = (m: (typeof live)[number], index: number, count: number, sub?: string) => (
     <ListRow
@@ -111,7 +124,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
       >
         <DashHeader
@@ -125,7 +138,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
           })}
           tabs={tabs}
         />
-        <ScenicBody>
+        <DashBody>
           {tab === 'overview' ? (
             <>
               <PendingApprovals groupId={groupId} view={view} />
@@ -159,62 +172,94 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 ]}
               />
               {employees.length < 3 ? (
-                <Pressable
-                  accessibilityRole="button"
+                <InviteBanner
+                  title={t.company.promoTitle}
+                  body={t.company.promoBody}
                   onPress={() => router.push(`/group/${groupId}/invite`)}
-                >
-                  <StandardCard
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
-                  >
-                    <Ionicons name="people" size={44} color={theme.color.brand} />
-                    <View style={{ flex: 1 }}>
-                      <Text variant="body" style={{ fontWeight: '700' }}>
-                        {t.company.promoTitle}
-                      </Text>
-                      <Text variant="caption" tone="muted">
-                        {t.company.promoBody}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={iconSize.md}
-                      color={theme.color.textMuted}
-                    />
-                  </StandardCard>
-                </Pressable>
+                />
               ) : null}
-              <TitleRow
+              <SectionCard
+                icon="people-outline"
                 title={t.company.hierTitle}
                 onViewAll={() => router.push(`/group/${groupId}/company-hierarchy`)}
-              />
-              <StandardCard>
+              >
                 {view.me ? (
-                  <ListRow
-                    leading={
-                      <PersonAvatar member={view.me} name={displayName(view.me)} size={40} />
-                    }
-                    title={displayName(view.me, null, null, t.misc.someone)}
-                    titleAccessory={<RolePill label={t.company.pillOwner} />}
-                    subtitle={fill(t.company.ownersControl, { n: String(owners.length) })}
-                    amount={String(live.length - owners.length)}
-                    onPress={() => router.push(`/group/${groupId}/company-hierarchy`)}
-                    divider={managers.length > 0}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons
+                      name="chevron-down"
+                      size={iconSize.sm}
+                      color={theme.color.textMuted}
+                      style={{ marginEnd: 4 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <PersonLine
+                        avatar={
+                          <PersonAvatar member={view.me} name={displayName(view.me)} size={36} />
+                        }
+                        title={fill(t.company.nameYou, {
+                          name: displayName(view.me, null, null, t.misc.someone),
+                        })}
+                        accessory={
+                          <>
+                            <MaterialCommunityIcons name="crown" size={14} color="#F5B301" />
+                            <RolePill label={t.company.pillOwner} />
+                          </>
+                        }
+                        subtitle={fill(t.company.ownersControl, { n: String(owners.length) })}
+                        count={String(live.length - owners.length)}
+                        onPress={() => router.push(`/group/${groupId}/company-hierarchy`)}
+                      />
+                    </View>
+                  </View>
                 ) : null}
                 {managers.map((m, i) => (
-                  <ManagerCashRowPublic
-                    key={m.id}
-                    groupId={groupId}
-                    view={view}
-                    manager={m}
-                    team={teamOf(m.id)}
-                    onPress={() => thread(m.id)}
-                    divider={i < managers.length - 1}
-                  />
+                  <View key={m.id} style={{ marginStart: 9, paddingStart: 20 }}>
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        height: i === managers.length - 1 ? '50%' : '100%',
+                        borderLeftWidth: 1.5,
+                        borderColor: theme.color.border,
+                      }}
+                    />
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: '50%',
+                        width: 12,
+                        borderTopWidth: 1.5,
+                        borderColor: theme.color.border,
+                      }}
+                    />
+                    <PersonLine
+                      avatar={
+                        <PersonAvatar
+                          member={m}
+                          name={displayName(m)}
+                          ghost={isGhost(m)}
+                          size={36}
+                          tint="pink"
+                        />
+                      }
+                      title={displayName(m, null, null, t.misc.someone)}
+                      accessory={<RolePill label={t.company.manager} />}
+                      subtitle={fill(t.company.budgetPerMonth, { amount: fmt(monthBudget(m.id)) })}
+                      count={String(teamOf(m.id))}
+                      onPress={() => thread(m.id)}
+                    />
+                  </View>
                 ))}
-              </StandardCard>
-              <TitleRow title={t.company.recentTitle} onViewAll={() => setTab('payments')} />
-              <RecentActivity groupId={groupId} view={view} entries={view.entries} limit={4} />
+              </SectionCard>
+              <RecentActivity
+                groupId={groupId}
+                view={view}
+                entries={view.entries}
+                limit={4}
+                header={{ title: t.company.recentTitle, onViewAll: () => setTab('payments') }}
+              />
             </>
           ) : null}
 
@@ -331,9 +376,8 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
               <CompanyRules groupId={groupId} view={view} />
             </>
           ) : null}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
-      <PlusButton groupId={groupId} bottom={clearance} />
       {addSite.sheet}
       <Sheet visible={promoting} onClose={() => setPromoting(false)} closeLabel={t.common.close}>
         <View>
