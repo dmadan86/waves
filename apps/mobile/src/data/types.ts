@@ -121,6 +121,11 @@ export interface GroupRow {
   company_default_daily_rate_minor?: string | null;
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
+  /** Company groups: default mileage rate per km, minor units (decimal string). */
+  company_default_mileage_rate_minor?: string | null;
+  /** Company groups: the admin's policy rules (see `CompanyPolicies` in @waves/core). */
+  company_policies?: unknown;
+  company_policy_revision?: number;
 }
 
 export interface MemberRow {
@@ -141,6 +146,8 @@ export interface MemberRow {
   left_at: string | null;
   /** Company groups: this employee's default daily bata rate, minor units (decimal string). */
   daily_rate_minor?: string | null;
+  /** Company groups: this employee's mileage rate per km, minor units (decimal string). */
+  mileage_rate_minor?: string | null;
   profile?: {
     id: string;
     display_name: string;

@@ -12,6 +12,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
+import { reimbursedOn } from '@waves/core';
 import { Button, Callout, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { CompanyPeriodPills, kindLabel } from '@/components/company/CompanyStatementView';
@@ -75,6 +76,21 @@ export function CompanyExport({ groupId }: { groupId: string }) {
     colBalance: t.groupExport.colBalance,
     colNote: c.formNote,
     colReview: c.colReview,
+    colVendor: c.vendor,
+    colGstin: c.gstin,
+    colInvoice: c.invoiceNo,
+    colGst: c.gstAmount,
+    detail: (entry, all) =>
+      [
+        entry.calcMode === 'distance_rate' && entry.distanceKm && entry.rateMinor !== null
+          ? `${entry.distanceKm} km${entry.fromText || entry.toText ? ` (${entry.fromText ?? ''} - ${entry.toText ?? ''})` : ''}`
+          : null,
+        reimbursedOn(entry, all)
+          ? fill(c.reimbursedOn, { date: reimbursedOn(entry, all) ?? '' })
+          : null,
+      ]
+        .filter(Boolean)
+        .join('; '),
     none: c.none,
     footer: t.groupExport.footer,
     kind: (entry) => kindLabel(t, entry),
@@ -103,6 +119,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
       [c.wages, totals.wages],
       [c.paidOut, totals.paidOut],
       [c.returned, totals.returned],
+      [c.gstTotal, totals.gst],
     ],
   };
 

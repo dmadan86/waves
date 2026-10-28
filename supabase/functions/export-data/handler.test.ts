@@ -48,6 +48,18 @@ function setup(options: { failEntries?: boolean; member?: boolean } = {}) {
     note: '=unsafe',
     review_note: 'Check dates',
     version: 1,
+    vendor: '=Private, Shop',
+    gstin: '27AAPFU0939F1ZV',
+    invoice_no: 'INV-7',
+    gst_rate_bps: 1800,
+    gst_amount_minor: '19',
+    distance_km: '1.25',
+    from_text: 'From A',
+    to_text: 'To B',
+    rate_minor: '3',
+    calc_mode: 'distance_rate',
+    reimbursement_id: 'covering-entry',
+    reimbursement_details: { requestHash: 'test-hash', payoutMinor: '123' },
     storage_path: 'secret/key.jpg',
     preview: 'secret-preview',
   };
@@ -89,6 +101,27 @@ describe('caller-visible company exports', () => {
       const { content } = await response.json();
       expect(content).toContain('123');
       expect(content).toContain('Check dates');
+      for (const value of [
+        '27AAPFU0939F1ZV',
+        'INV-7',
+        '1800',
+        '1.25',
+        'From A',
+        'To B',
+        'covering-entry',
+        'test-hash',
+      ])
+        expect(content).toContain(value);
+      if (format === 'json')
+        expect(JSON.parse(content).groups[0].companyEntries[0]).toMatchObject({
+          vendor: '=Private, Shop',
+          gst_amount_minor: '19',
+          rate_minor: '3',
+        });
+      else {
+        expect(content).toContain("'=Private, Shop");
+        expect(content.split('\n')[0]).toContain('reimbursement_details');
+      }
       expect(content).not.toContain('secret/key');
       expect(content).not.toContain('secret-preview');
       expect(t.caller.from).toHaveBeenCalledWith('company_entries');

@@ -146,3 +146,207 @@ it('returns stale reviews as deterministic conflicts', async () => {
     ),
   ).toMatchObject({ status: 'rejected', code: 'VERSION_CONFLICT' });
 });
+
+const policies = {
+  version: 1,
+  rules: [
+    {
+      id: 'fuel-month',
+      type: 'period_limit',
+      target: 'fuel',
+      period: 'month',
+      limitMinor: '50000',
+      effect: 'block',
+    },
+    { id: 'receipt', type: 'receipt_above', limitMinor: '10000', effect: 'warn' },
+  ],
+};
+const reimbursement = {
+  reimbursementId: ENTRY,
+  memberId: MEMBER_ID,
+  claims: [{ entryId: GROUP_ID, expectedVersion: 2 }],
+  adjustments: [],
+  cutoff: '2026-11-30',
+  paidOn: '2026-12-01',
+  expectedAmountMinor: '100',
+  note: null,
+};
+
+it.each([
+  [
+    'company.policies_set',
+    { policies, expectedRevision: 0 },
+    'waves_company_policies_set',
+    { p_group_id: GROUP_ID, p_policies: policies, p_expected_revision: 0 },
+  ],
+  [
+    'company.mileage_rate_set',
+    { memberId: null, rateMinor: '0' },
+    'waves_company_mileage_rate_set',
+    { p_group_id: GROUP_ID, p_member_id: null, p_rate_minor: '0' },
+  ],
+  [
+    'company.mileage_rate_set',
+    { memberId: MEMBER_ID, rateMinor: null },
+    'waves_company_mileage_rate_set',
+    { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_rate_minor: null },
+  ],
+  [
+    'company.reimburse',
+    reimbursement,
+    'waves_company_reimburse',
+    {
+      p_group_id: GROUP_ID,
+      p_reimbursement_id: ENTRY,
+      p_member_id: MEMBER_ID,
+      p_claims: reimbursement.claims,
+      p_adjustments: [],
+      p_cutoff: reimbursement.cutoff,
+      p_paid_on: reimbursement.paidOn,
+      p_expected_amount_minor: '100',
+      p_note: null,
+    },
+  ],
+  [
+    'company_entry.update',
+    {
+      entryId: ENTRY,
+      patch: {
+        vendor: 'Shop',
+        gstin: '27AAPFU0939F1ZV',
+        invoiceNo: 'INV-1',
+        gstRateBps: 1800,
+        gstAmountMinor: '15',
+        distanceKm: null,
+        fromText: null,
+        toText: null,
+      },
+    },
+    'waves_company_entry_update',
+    {
+      p_entry_id: ENTRY,
+      p_patch: {
+        vendor: 'Shop',
+        gstin: '27AAPFU0939F1ZV',
+        invoiceNo: 'INV-1',
+        gstRateBps: 1800,
+        gstAmountMinor: '15',
+        distanceKm: null,
+        fromText: null,
+        toText: null,
+      },
+    },
+  ],
+  [
+    'company_entry.create',
+    {
+      entryId: ENTRY,
+      memberId: MEMBER_ID,
+      entryKind: 'expense',
+      data: {
+        ...data,
+        calcMode: 'distance_rate',
+        category: 'fuel',
+        distanceKm: '1.25',
+        rateMinor: '3',
+        fromText: 'A',
+        toText: 'B',
+      },
+    },
+    'waves_company_entry_create',
+    {
+      p_group_id: GROUP_ID,
+      p_entry_id: ENTRY,
+      p_member_id: MEMBER_ID,
+      p_entry_kind: 'expense',
+      p_data: {
+        ...data,
+        calcMode: 'distance_rate',
+        category: 'fuel',
+        distanceKm: '1.25',
+        rateMinor: '3',
+        fromText: 'A',
+        toText: 'B',
+      },
+    },
+  ],
+])('dispatches Phase 3 %s as caller', async (kind, payload, rpc, args) => {
+  const scoped = caller();
+  const session = new SyncSession(scoped.client, service().client, OWNER);
+  expect(
+    await session.apply(mutation(kind as string, payload as Record<string, unknown>)),
+  ).toMatchObject({ status: 'applied' });
+  expect(scoped.rpc).toHaveBeenCalledWith(rpc, args);
+});
+
+it.each([
+  ['company.policies_set', { policies, expectedRevision: -1 }],
+  [
+    'company.policies_set',
+    {
+      policies: {
+        version: 1,
+        rules: [{ id: 'r', type: 'receipt_above', effect: 'block', limitMinor: '1' }],
+      },
+      expectedRevision: 0,
+    },
+  ],
+  [
+    'company.policies_set',
+    {
+      policies: {
+        version: 1,
+        rules: [
+          {
+            id: 'r',
+            type: 'period_limit',
+            effect: 'block',
+            limitMinor: 1,
+            target: 'fuel',
+            period: 'year',
+          },
+        ],
+      },
+      expectedRevision: 0,
+    },
+  ],
+  ['company.mileage_rate_set', { memberId: MEMBER_ID, rateMinor: 10 }],
+  ['company.mileage_rate_set', { memberId: MEMBER_ID, rateMinor: '-1' }],
+  ['company.mileage_rate_set', { memberId: 'foreign', rateMinor: '1' }],
+  ['company.reimburse', { ...reimbursement, expectedAmountMinor: 100 }],
+  ['company.reimburse', { ...reimbursement, claims: [] }],
+  [
+    'company.reimburse',
+    { ...reimbursement, claims: [{ entryId: GROUP_ID, expectedVersion: '2' }] },
+  ],
+  ['company.reimburse', { ...reimbursement, adjustments: null }],
+  ['company.reimburse', { ...reimbursement, cutoff: '2026-02-30' }],
+  ['company_entry.update', { entryId: ENTRY, patch: { gstRateBps: '1800' } }],
+  ['company_entry.update', { entryId: ENTRY, patch: { gstAmountMinor: 10 } }],
+  ['company_entry.update', { entryId: ENTRY, patch: { distanceKm: '1.001' } }],
+  ['company_entry.update', { entryId: ENTRY, patch: { policyFlags: [] } }],
+  ['company_entry.update', { entryId: ENTRY, patch: { reimbursementId: ENTRY } }],
+])('rejects malformed Phase 3 %s', async (kind, payload) => {
+  const scoped = caller();
+  const session = new SyncSession(scoped.client, service().client, OWNER);
+  expect(
+    await session.apply(mutation(kind as string, payload as Record<string, unknown>)),
+  ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+  expect(scoped.rpc).not.toHaveBeenCalled();
+});
+
+it.each(['POLICY_BLOCKED', 'ENTRY_REIMBURSED', 'SELECTION_CHANGED', 'IDEMPOTENCY_CONFLICT'])(
+  'preserves %s',
+  async (code) => {
+    const scoped = caller();
+    scoped.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '23514', message: `${code}: detail` },
+    } as never);
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+    expect(await session.apply(mutation('company.reimburse', reimbursement))).toMatchObject({
+      status: 'rejected',
+      code,
+    });
+  },
+);

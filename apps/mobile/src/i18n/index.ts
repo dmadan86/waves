@@ -1338,6 +1338,53 @@ export interface UiStrings {
     privacyAdmin: string;
     daysAt: string;
     forPerson: string;
+    kMileage: string;
+    formDistance: string;
+    formRatePerKm: string;
+    formFrom: string;
+    formTo: string;
+    mileageAt: string;
+    needDistance: string;
+    needMileageRate: string;
+    mileageRate: string;
+    gstSection: string;
+    vendor: string;
+    gstin: string;
+    gstinBad: string;
+    invoiceNo: string;
+    gstRate: string;
+    gstAmount: string;
+    gstBefore: string;
+    gstTotal: string;
+    policiesTitle: string;
+    policyReceipt: string;
+    policyLimit: string;
+    policyWarn: string;
+    policyBlock: string;
+    policyAddReceipt: string;
+    policyAddLimit: string;
+    policyHintReceipt: string;
+    policyHintLimit: string;
+    policyBlocked: string;
+    policyFlagged: string;
+    perDay: string;
+    perMonth: string;
+    select: string;
+    selectAllDue: string;
+    payCount: string;
+    payCredits: string;
+    payTotal: string;
+    payExternal: string;
+    reimbursedOn: string;
+    payNeedMore: string;
+    payUpTo: string;
+    payNone: string;
+    dupHint: string;
+    payTitle: string;
+    policyEditorHint: string;
+    policyNone: string;
+    policyRemove: string;
+    policyLimitLabel: string;
     editEntry: string;
     awaiting: string;
     approve: string;
@@ -7348,6 +7395,53 @@ const en: UiStrings = {
     privacyAdmin: 'Employees see only their own entries.',
     daysAt: '{days} days x {rate}',
     forPerson: 'for {name}',
+    kMileage: 'Mileage',
+    formDistance: 'Distance (km)',
+    formRatePerKm: 'Rate per km',
+    formFrom: 'From (optional)',
+    formTo: 'To (optional)',
+    mileageAt: '{km} km at {rate}/km',
+    needDistance: 'Enter the distance in km',
+    needMileageRate: 'Set a rate per km',
+    mileageRate: 'Mileage rate per km',
+    gstSection: 'GST and vendor (optional)',
+    vendor: 'Vendor',
+    gstin: 'GSTIN',
+    gstinBad: 'Enter a valid 15-character GSTIN',
+    invoiceNo: 'Invoice number',
+    gstRate: 'GST rate',
+    gstAmount: 'GST included',
+    gstBefore: 'Before GST',
+    gstTotal: 'GST total',
+    policiesTitle: 'Policy hints',
+    policyReceipt: 'Receipt above {amount}',
+    policyLimit: '{what} over {amount} a {period}',
+    policyWarn: 'Warn',
+    policyBlock: 'Block',
+    policyAddReceipt: 'Receipt rule',
+    policyAddLimit: 'Limit rule',
+    policyHintReceipt: 'Over {limit}: add a receipt photo',
+    policyHintLimit: 'Makes {actual} for the {period}; limit is {limit}',
+    policyBlocked: 'Over the limit of {limit}. Lower the amount.',
+    policyFlagged: 'Over policy',
+    perDay: 'day',
+    perMonth: 'month',
+    select: 'Select',
+    selectAllDue: 'All due',
+    payCount: '{count} selected',
+    payCredits: 'Less advances and earlier payments {amount}',
+    payTotal: 'Record payment of {amount}',
+    payExternal: 'Payment already made outside Waves',
+    reimbursedOn: 'Reimbursed on {date}',
+    payNeedMore: 'Selected claims are less than advances already paid',
+    payUpTo: 'All due up to {date}',
+    payNone: 'Nothing due to pay',
+    dupHint: 'Looks like an entry you already added',
+    payTitle: 'Pay what is due',
+    policyEditorHint: 'Warn or block when an entry goes over',
+    policyNone: 'No rules yet',
+    policyRemove: 'Remove rule',
+    policyLimitLabel: 'Limit',
     editEntry: 'Entry',
     awaiting: 'Awaiting approval',
     approve: 'Approve',
@@ -12805,6 +12899,53 @@ const ta: UiStrings = {
     privacyAdmin: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்கள்.',
     daysAt: '{days} நாட்கள் x {rate}',
     forPerson: '{name}க்காக',
+    kMileage: 'மைலேஜ்',
+    formDistance: 'தூரம் (கி.மீ)',
+    formRatePerKm: 'கி.மீ.க்கு கட்டணம்',
+    formFrom: 'எங்கிருந்து (விருப்பம்)',
+    formTo: 'எங்கு (விருப்பம்)',
+    mileageAt: '{km} கி.மீ x {rate}/கி.மீ',
+    needDistance: 'தூரத்தை கி.மீ.யில் உள்ளிடவும்',
+    needMileageRate: 'கி.மீ. கட்டணத்தை அமைக்கவும்',
+    mileageRate: 'கி.மீ.க்கு மைலேஜ் கட்டணம்',
+    gstSection: 'ஜிஎஸ்டி மற்றும் விற்பனையாளர் (விருப்பம்)',
+    vendor: 'விற்பனையாளர்',
+    gstin: 'ஜிஎஸ்டிஐஎன்',
+    gstinBad: 'சரியான 15 எழுத்து GSTIN ஐ உள்ளிடவும்',
+    invoiceNo: 'விலைப்பட்டியல் எண்',
+    gstRate: 'ஜிஎஸ்டி விகிதம்',
+    gstAmount: 'உள்ளடங்கிய ஜிஎஸ்டி',
+    gstBefore: 'ஜிஎஸ்டிக்கு முன்',
+    gstTotal: 'மொத்த ஜிஎஸ்டி',
+    policiesTitle: 'கொள்கை குறிப்புகள்',
+    policyReceipt: '{amount}க்கு மேல் ரசீது',
+    policyLimit: '{what} {period}க்கு {amount}க்கு மேல்',
+    policyWarn: 'எச்சரி',
+    policyBlock: 'தடு',
+    policyAddReceipt: 'ரசீது விதி',
+    policyAddLimit: 'வரம்பு விதி',
+    policyHintReceipt: '{limit} க்கு மேல்: ரசீது படம் சேர்க்கவும்',
+    policyHintLimit: '{period}க்கு {actual} ஆகிறது; வரம்பு {limit}',
+    policyBlocked: '{limit} வரம்பை மீறுகிறது. தொகையை குறைக்கவும்.',
+    policyFlagged: 'கொள்கையை மீறியது',
+    perDay: 'நாள்',
+    perMonth: 'மாதம்',
+    select: 'தேர்வு',
+    selectAllDue: 'அனைத்தும்',
+    payCount: '{count} தேர்ந்தெடுக்கப்பட்டது',
+    payCredits: 'முன்பணம் மற்றும் முந்தைய கொடுப்பனவுகள் கழிவு {amount}',
+    payTotal: '{amount} கொடுப்பனவை பதிவு செய்',
+    payExternal: 'கொடுப்பனவு Waves க்கு வெளியே செய்யப்பட்டது',
+    reimbursedOn: '{date} அன்று திருப்பிச் செலுத்தப்பட்டது',
+    payNeedMore: 'தேர்ந்தெடுத்த கோரிக்கைகள் ஏற்கனவே கொடுத்த முன்பணத்தை விட குறைவு',
+    payUpTo: '{date} வரை அனைத்தும்',
+    payNone: 'செலுத்த எதுவும் இல்லை',
+    dupHint: 'இது ஏற்கனவே சேர்த்த பதிவு போல் உள்ளது',
+    payTitle: 'நிலுவையை செலுத்து',
+    policyEditorHint: 'ஒரு பதிவு மீறினால் எச்சரி அல்லது தடு',
+    policyNone: 'விதிகள் இல்லை',
+    policyRemove: 'விதியை நீக்கு',
+    policyLimitLabel: 'வரம்பு',
     editEntry: 'பதிவு',
     awaiting: 'ஒப்புதலுக்காகக் காத்திருக்கிறது',
     approve: 'ஒப்புக்கொள்',
@@ -18427,6 +18568,53 @@ const hi: UiStrings = {
     privacyAdmin: 'कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखते हैं।',
     daysAt: '{days} दिन x {rate}',
     forPerson: '{name} के लिए',
+    kMileage: 'माइलेज',
+    formDistance: 'दूरी (किमी)',
+    formRatePerKm: 'प्रति किमी दर',
+    formFrom: 'कहाँ से (वैकल्पिक)',
+    formTo: 'कहाँ तक (वैकल्पिक)',
+    mileageAt: '{km} किमी x {rate}/किमी',
+    needDistance: 'दूरी किमी में डालें',
+    needMileageRate: 'प्रति किमी दर तय करें',
+    mileageRate: 'प्रति किमी माइलेज दर',
+    gstSection: 'जीएसटी और विक्रेता (वैकल्पिक)',
+    vendor: 'विक्रेता',
+    gstin: 'GSTIN',
+    gstinBad: '15 अक्षरों का सही GSTIN डालें',
+    invoiceNo: 'इनवॉइस नंबर',
+    gstRate: 'जीएसटी दर',
+    gstAmount: 'शामिल जीएसटी',
+    gstBefore: 'जीएसटी से पहले',
+    gstTotal: 'कुल जीएसटी',
+    policiesTitle: 'नीति संकेत',
+    policyReceipt: '{amount} से ऊपर रसीद',
+    policyLimit: '{what} {period} में {amount} से ऊपर',
+    policyWarn: 'चेतावनी',
+    policyBlock: 'रोकें',
+    policyAddReceipt: 'रसीद नियम',
+    policyAddLimit: 'सीमा नियम',
+    policyHintReceipt: '{limit} से ऊपर: रसीद की फोटो जोड़ें',
+    policyHintLimit: '{period} में {actual} हो जाएगा; सीमा {limit}',
+    policyBlocked: '{limit} की सीमा से ऊपर। राशि घटाएँ।',
+    policyFlagged: 'नीति से ऊपर',
+    perDay: 'दिन',
+    perMonth: 'महीना',
+    select: 'चुनें',
+    selectAllDue: 'सब बकाया',
+    payCount: '{count} चुने गए',
+    payCredits: 'घटाएँ: अग्रिम और पिछले भुगतान {amount}',
+    payTotal: '{amount} का भुगतान दर्ज करें',
+    payExternal: 'भुगतान Waves के बाहर किया जा चुका है',
+    reimbursedOn: '{date} को चुकाया गया',
+    payNeedMore: 'चुने गए दावे पहले दिए अग्रिम से कम हैं',
+    payUpTo: '{date} तक सब बकाया',
+    payNone: 'चुकाने को कुछ नहीं',
+    dupHint: 'यह पहले जोड़ी गई प्रविष्टि जैसी लगती है',
+    payTitle: 'बकाया चुकाएँ',
+    policyEditorHint: 'प्रविष्टि सीमा पार करे तो चेतावनी या रोक',
+    policyNone: 'अभी कोई नियम नहीं',
+    policyRemove: 'नियम हटाएँ',
+    policyLimitLabel: 'सीमा',
     editEntry: 'एंट्री',
     awaiting: 'अनुमोदन की प्रतीक्षा में',
     approve: 'मंज़ूर करें',
@@ -23939,6 +24127,53 @@ const ar: UiStrings = {
     privacyAdmin: 'يرى الموظفون قيودهم فقط.',
     daysAt: '{days} أيام x {rate}',
     forPerson: 'لـ {name}',
+    kMileage: 'المسافة',
+    formDistance: 'المسافة (كم)',
+    formRatePerKm: 'السعر لكل كم',
+    formFrom: 'من (اختياري)',
+    formTo: 'إلى (اختياري)',
+    mileageAt: '{km} كم x {rate}/كم',
+    needDistance: 'أدخل المسافة بالكيلومتر',
+    needMileageRate: 'حدد السعر لكل كم',
+    mileageRate: 'سعر المسافة لكل كم',
+    gstSection: 'ضريبة السلع والخدمات والمورد (اختياري)',
+    vendor: 'المورد',
+    gstin: 'الرقم الضريبي GSTIN',
+    gstinBad: 'أدخل رقم GSTIN صحيحاً من 15 خانة',
+    invoiceNo: 'رقم الفاتورة',
+    gstRate: 'نسبة الضريبة',
+    gstAmount: 'الضريبة المضمنة',
+    gstBefore: 'قبل الضريبة',
+    gstTotal: 'إجمالي الضريبة',
+    policiesTitle: 'تنبيهات السياسة',
+    policyReceipt: 'إيصال فوق {amount}',
+    policyLimit: '{what} فوق {amount} لكل {period}',
+    policyWarn: 'تحذير',
+    policyBlock: 'منع',
+    policyAddReceipt: 'قاعدة الإيصال',
+    policyAddLimit: 'قاعدة الحد',
+    policyHintReceipt: 'فوق {limit}: أضف صورة الإيصال',
+    policyHintLimit: 'يصبح {actual} لهذا {period}؛ الحد {limit}',
+    policyBlocked: 'تجاوز الحد {limit}. خفّض المبلغ.',
+    policyFlagged: 'خارج السياسة',
+    perDay: 'يوم',
+    perMonth: 'شهر',
+    select: 'تحديد',
+    selectAllDue: 'كل المستحق',
+    payCount: 'تم تحديد {count}',
+    payCredits: 'ناقص السلف والدفعات السابقة {amount}',
+    payTotal: 'تسجيل دفعة {amount}',
+    payExternal: 'تم الدفع خارج Waves',
+    reimbursedOn: 'تم السداد في {date}',
+    payNeedMore: 'المطالبات المحددة أقل من السلف المدفوعة',
+    payUpTo: 'كل المستحق حتى {date}',
+    payNone: 'لا شيء مستحق',
+    dupHint: 'يبدو أنه إدخال مضاف سابقاً',
+    payTitle: 'سداد المستحق',
+    policyEditorHint: 'تحذير أو منع عند تجاوز الإدخال',
+    policyNone: 'لا قواعد بعد',
+    policyRemove: 'إزالة القاعدة',
+    policyLimitLabel: 'الحد',
     editEntry: 'قيد',
     awaiting: 'بانتظار الموافقة',
     approve: 'موافقة',

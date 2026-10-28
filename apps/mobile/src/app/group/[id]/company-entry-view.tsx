@@ -10,7 +10,14 @@ import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { format, money, type CompanyEntry, type CurrencyCode } from '@waves/core';
+import {
+  flagsForEntry,
+  format,
+  money,
+  reimbursedOn,
+  type CompanyEntry,
+  type CurrencyCode,
+} from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
@@ -50,8 +57,16 @@ export default function CompanyEntryViewScreen() {
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
   const mine = !!entry && entry.memberId === view.me?.id;
   const ownKind = entry?.kind === 'expense' || entry?.kind === 'allowance';
+  // A paid claim (or the payment itself, or the credits it netted in) is frozen.
+  const frozen =
+    !!entry &&
+    (entry.status === 'reimbursed' || entry.reimbursementId !== null || entry.coversClaims);
   const canWithdraw =
-    !!entry && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
+    !!entry && !frozen && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
+  const paidOn = entry ? reimbursedOn(entry, view.entries) : null;
+  const flags = entry
+    ? flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds)
+    : [];
   const status =
     entry?.status === 'submitted'
       ? t.company.awaiting
@@ -103,6 +118,17 @@ export default function CompanyEntryViewScreen() {
                     entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
                       ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
                       : null,
+                    entry.calcMode === 'distance_rate' &&
+                    entry.distanceKm &&
+                    entry.rateMinor !== null
+                      ? fill(t.company.mileageAt, {
+                          km: entry.distanceKm,
+                          rate: fmt(entry.rateMinor),
+                        })
+                      : null,
+                    entry.fromText || entry.toText
+                      ? `${entry.fromText ?? ''} - ${entry.toText ?? ''}`
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -115,6 +141,46 @@ export default function CompanyEntryViewScreen() {
                   subtitle={entry.status === 'submitted' ? t.company.notCounted : undefined}
                   divider={!!entry.note || !!entry.reviewNote}
                 />
+                {paidOn ? (
+                  <ListRow
+                    title={fill(t.company.reimbursedOn, { date: showDate(paidOn, locale) })}
+                    divider
+                  />
+                ) : null}
+                {view.isAdmin && flags.length > 0 ? (
+                  <ListRow
+                    title={`! ${t.company.policyFlagged}`}
+                    subtitle={flags
+                      .map((f) =>
+                        f.code === 'RECEIPT'
+                          ? fill(t.company.policyHintReceipt, { limit: fmt(f.limitMinor) })
+                          : fill(t.company.policyHintLimit, {
+                              actual: fmt(f.actualMinor),
+                              period: f.period === 'day' ? t.company.perDay : t.company.perMonth,
+                              limit: fmt(f.limitMinor),
+                            }),
+                      )
+                      .join('\n')}
+                    subtitleLines={4}
+                    divider
+                  />
+                ) : null}
+                {entry.vendor || entry.gstin || entry.invoiceNo || entry.gstAmount !== null ? (
+                  <ListRow
+                    title={entry.vendor ?? t.company.gstSection}
+                    subtitle={[
+                      entry.gstin,
+                      entry.invoiceNo,
+                      entry.gstAmount !== null
+                        ? `${t.company.gstBefore} ${fmt(entry.amount - entry.gstAmount)} · ${t.company.gstAmount} ${fmt(entry.gstAmount)}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    subtitleLines={3}
+                    divider={!!entry.note || !!entry.reviewNote}
+                  />
+                ) : null}
                 {entry.note ? (
                   <ListRow
                     title={t.company.formNote}
@@ -140,8 +206,8 @@ export default function CompanyEntryViewScreen() {
                   <CompanyEntryPhotos
                     groupId={groupId}
                     entryId={entry.id}
-                    canAdd={view.isAdmin || mine}
-                    canRemove={(uploader) => view.isAdmin || uploader === view.me?.id}
+                    canAdd={!frozen && (view.isAdmin || mine)}
+                    canRemove={(uploader) => !frozen && (view.isAdmin || uploader === view.me?.id)}
                   />
                 </StandardCard>
               )}
@@ -151,7 +217,9 @@ export default function CompanyEntryViewScreen() {
                   <Button
                     label={t.company.approve}
                     fullWidth
-                    disabled={review.isPending || !!entry.pending}
+                    disabled={
+                      review.isPending || !!entry.pending || flags.some((f) => f.effect === 'block')
+                    }
                     onPress={() =>
                       void run(
                         () =>
@@ -180,6 +248,13 @@ export default function CompanyEntryViewScreen() {
                   fullWidth
                   onPress={() => void withdraw()}
                 />
+              ) : null}
+              {view.isAdmin && flags.some((f) => f.effect === 'block') ? (
+                <Text variant="caption" tone="negative">
+                  {fill(t.company.policyBlocked, {
+                    limit: fmt(flags.find((f) => f.effect === 'block')?.limitMinor ?? 0n),
+                  })}
+                </Text>
               ) : null}
               {error ? (
                 <Text variant="caption" tone="negative">

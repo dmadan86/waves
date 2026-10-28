@@ -140,7 +140,7 @@ export async function handleExportData(
           ? caller
               .from('company_entries')
               .select(
-                'id,group_id,member_id,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason',
+                'id,group_id,member_id,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
               )
               .eq('group_id', groupId)
           : Promise.resolve({ data: [], error: null }),
@@ -391,6 +391,19 @@ export async function handleExportData(
         'company_category',
         'company_direction',
         'review_note',
+        'vendor',
+        'gstin',
+        'invoice_no',
+        'gst_rate_bps',
+        'gst_amount_minor',
+        'distance_km',
+        'from_text',
+        'to_text',
+        'reimbursement_id',
+        'reimbursement_details',
+        'calc_mode',
+        'days',
+        'rate_minor',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -408,7 +421,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 17 - cells.length)).fill(''),
+              ...Array(Math.max(0, 30 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -434,6 +447,19 @@ export async function handleExportData(
               row.category ?? '',
               row.direction ?? '',
               row.review_note ?? '',
+              String(row.vendor ?? ''),
+              String(row.gstin ?? ''),
+              String(row.invoice_no ?? ''),
+              String(row.gst_rate_bps ?? ''),
+              String(row.gst_amount_minor ?? ''),
+              String(row.distance_km ?? ''),
+              String(row.from_text ?? ''),
+              String(row.to_text ?? ''),
+              String(row.reimbursement_id ?? ''),
+              JSON.stringify(row.reimbursement_details ?? null),
+              String(row.calc_mode ?? ''),
+              String(row.days ?? ''),
+              String(row.rate_minor ?? ''),
             ],
             row.member_id,
           ),
