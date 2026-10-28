@@ -65,7 +65,11 @@ export function UnassignedCapturesCard({
             {body}
           </Text>
         </View>
-        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.lg} color={theme.color.textFaint} />
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.lg}
+          color={theme.color.textFaint}
+        />
       </Card>
     </Pressable>
   );
