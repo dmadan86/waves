@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   companyActiveKey,
   companyTabRoute,
+  homeSecondActionKey,
   isCompanyTabRoot,
   reviewSlotKey,
   viewerCompanyIds,
@@ -60,6 +61,12 @@ describe('company tab destinations', () => {
     expect(reviewSlotKey([])).toBe('captures');
     expect(reviewSlotKey(['a'])).toBe('company');
     expect(reviewSlotKey(['a', 'b'])).toBe('company');
+  });
+
+  it('swaps Settle up for Review on Home only for company users', () => {
+    expect(homeSecondActionKey([])).toBe('settle');
+    expect(homeSecondActionKey(['a'])).toBe('review');
+    expect(homeSecondActionKey(['a', 'b'])).toBe('review');
   });
 
   it('routes zero, one and multiple companies', () => {

@@ -1243,7 +1243,6 @@ export interface UiStrings {
   company: {
     tab: string;
     listTitle: string;
-    reviewCard: PluralForms;
     myStatement: string;
     summary: string;
     employees: string;
@@ -7235,7 +7234,6 @@ const en: UiStrings = {
   company: {
     tab: 'Company',
     listTitle: 'Your companies',
-    reviewCard: { one: '{n} item to review', other: '{n} items to review' },
     myStatement: 'My statement',
     summary: 'Company summary',
     employees: 'Employees',
@@ -12673,7 +12671,6 @@ const ta: UiStrings = {
   company: {
     tab: 'நிறுவனம்',
     listTitle: 'உங்கள் நிறுவனங்கள்',
-    reviewCard: { one: 'மறுபார்வைக்கு {n} பதிவு', other: 'மறுபார்வைக்கு {n} பதிவுகள்' },
     myStatement: 'என் அறிக்கை',
     summary: 'நிறுவன சுருக்கம்',
     employees: 'ஊழியர்கள்',
@@ -18279,7 +18276,6 @@ const hi: UiStrings = {
   company: {
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
-    reviewCard: { one: 'समीक्षा के लिए {n} प्रविष्टि', other: 'समीक्षा के लिए {n} प्रविष्टियाँ' },
     myStatement: 'मेरा स्टेटमेंट',
     summary: 'कंपनी सारांश',
     employees: 'कर्मचारी',
@@ -23776,13 +23772,6 @@ const ar: UiStrings = {
   company: {
     tab: 'الشركة',
     listTitle: 'شركاتك',
-    reviewCard: {
-      one: 'عنصر واحد للمراجعة',
-      two: 'عنصران للمراجعة',
-      few: '{n} عناصر للمراجعة',
-      many: '{n} عنصرًا للمراجعة',
-      other: '{n} عنصر للمراجعة',
-    },
     myStatement: 'كشف حسابي',
     summary: 'ملخص الشركة',
     employees: 'الموظفون',

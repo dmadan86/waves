@@ -69,3 +69,8 @@ export function isCompanyTabRoot(
       groupId === companyIds[0])
   );
 }
+
+/** Home's second quick action: Review swaps in for Settle up when it swaps the Review tab out. */
+export function homeSecondActionKey(companyIds: readonly string[]): 'review' | 'settle' {
+  return reviewSlotKey(companyIds) === 'company' ? 'review' : 'settle';
+}

@@ -51,8 +51,6 @@ import { useNavigation } from 'expo-router';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
 import { tourMayStart, useOverlayBusy } from '@/lib/firstRun';
-import { UnassignedCapturesCard } from '@/components/UnassignedCapturesCard';
-import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
 import { SyncStatusIcon } from '@/components/SyncBanner';
@@ -93,7 +91,6 @@ export default function HomeScreen() {
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const isCompanyUser = useViewerCompanyIds().length > 0;
   const { session, profile, isGuest } = useAuth();
   /**
    * Who to compute balances as — the *session's* user id, not the profile's.
@@ -615,6 +612,7 @@ export default function HomeScreen() {
                     onAddExpense={() => setQuickExpenseOpen(true)}
                     onAddExpenseLong={() => setQuickAddOpen(true)}
                     onSettleUp={() => router.push('/settle-up')}
+                    onReview={() => router.navigate('/captures')}
                     onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}
                   />
@@ -631,12 +629,6 @@ export default function HomeScreen() {
               person as a placeholder in their group, and only they can say
               yes. Drawn only while something is waiting. */}
           <LinkRequestsCard enabled={session !== null && !isGuest} />
-
-          {/* Company users have no Review tab: anything waiting in Review is
-              surfaced here instead, and only while something is waiting. */}
-          {isCompanyUser ? (
-            <UnassignedCapturesCard title={t.review} forms={t.company.reviewCard} />
-          ) : null}
 
           {showSkeleton ? (
             <SkeletonList rows={3} />
