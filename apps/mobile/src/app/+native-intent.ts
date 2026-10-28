@@ -1,5 +1,6 @@
 import { CategoryId } from '@waves/core';
 
+import { noteExternalLink } from '@/lib/deepLink';
 import { tokenFromScan } from '@/lib/inviteLink';
 import { referralCodeFromUrl } from '@/lib/referral';
 import { isShareLaunchUrl } from '@/lib/sharedReceipt';
@@ -192,6 +193,7 @@ export function redirectSystemPath({
         ? `/capture?category=${id}`
         : '/capture';
     }
+    noteExternalLink(path);
     return path;
   } catch {
     return path;

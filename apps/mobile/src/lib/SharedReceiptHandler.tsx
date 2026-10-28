@@ -13,6 +13,7 @@ import { AppState } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
 import { receiptFromFile } from '@/lib/image';
+import { openDeepLink } from '@/lib/deepLink';
 import { router } from '@/lib/navigation';
 import { handOffReceipt } from '@/lib/receiptHandoff';
 import { shareRoute } from '@/lib/sharedReceipt';
@@ -36,7 +37,7 @@ export function SharedReceiptHandler() {
       try {
         const image = await receiptFromFile(share.uri);
         const key = handOffReceipt(image);
-        router.push(shareRoute({ receiptKey: key }) as never);
+        openDeepLink(router, shareRoute({ receiptKey: key }) as string);
       } catch {
         // An unreadable image is dropped; nothing to retry.
       }
