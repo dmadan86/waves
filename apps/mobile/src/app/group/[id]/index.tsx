@@ -1923,26 +1923,30 @@ function LedgerGroupScreen() {
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
                     {groupData.isDemo ? (
-                      <Card
-                        style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}
+                      <Row
+                        style={{
+                          gap: theme.spacing.sm,
+                          alignItems: 'center',
+                          backgroundColor: theme.color.warningSoft,
+                          borderRadius: theme.radius.md,
+                          paddingHorizontal: theme.spacing.md,
+                          minHeight: 44,
+                        }}
                       >
-                        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                          <Ionicons
-                            name="flask-outline"
-                            size={iconSize.md}
-                            color={theme.color.textMuted}
-                          />
-                          <Text variant="subheading" style={{ flex: 1 }}>
-                            {t.demo.bannerTitle}
-                          </Text>
-                        </Row>
+                        <Ionicons
+                          name="flask-outline"
+                          size={iconSize.md}
+                          color={theme.color.warning}
+                        />
+                        <Text variant="caption" style={{ flex: 1 }}>
+                          {t.demo.bannerTitle}
+                        </Text>
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={t.demo.removeAction}
                           hitSlop={8}
                           onPress={() => void removeDemo()}
                           style={({ pressed }) => ({
-                            alignSelf: 'flex-start',
                             minHeight: 44,
                             justifyContent: 'center',
                             opacity: pressed ? 0.6 : 1,
@@ -1952,7 +1956,7 @@ function LedgerGroupScreen() {
                             {t.demo.removeAction}
                           </Text>
                         </Pressable>
-                      </Card>
+                      </Row>
                     ) : null}
 
                     {/* Only the banners that need a decision survive inline — they

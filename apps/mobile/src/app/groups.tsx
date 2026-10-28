@@ -674,10 +674,11 @@ const GroupListRow = memo(function GroupListRow({
         accessibilityLabel={`${label}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken}`}
         onPress={() => router.push(`/group/${groupId}`)}
         style={({ pressed }) => ({
-          backgroundColor: theme.color.surface,
+          backgroundColor: isDemo ? theme.color.warningSoft : theme.color.surface,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
-          borderColor: theme.color.border,
+          borderColor: isDemo ? theme.color.warning : theme.color.border,
+          borderStyle: isDemo ? 'dashed' : 'solid',
           opacity: pressed ? 0.6 : 1,
         })}
       >
@@ -722,17 +723,17 @@ const GroupListRow = memo(function GroupListRow({
                     paddingHorizontal: 6,
                     paddingVertical: 1,
                     borderRadius: 6,
-                    backgroundColor: theme.color.surfaceMuted,
+                    backgroundColor: theme.color.warningSoft,
                   }}
                 >
-                  <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
+                  <Text variant="micro" style={{ color: theme.color.warning, fontWeight: '700' }}>
                     {t.demo.badge}
                   </Text>
                 </View>
               ) : null}
             </Row>
             <Text variant="micro" tone="muted" numberOfLines={1}>
-              {subtitle}
+              {isDemo ? t.demo.rowSubtitle : subtitle}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>

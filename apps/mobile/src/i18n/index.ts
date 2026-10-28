@@ -42,6 +42,7 @@ import {
   type EventTemplateId,
 } from '@waves/core';
 
+import { setDemoGroupName } from '@/demo/label';
 import type { HomeHero } from '@/lib/homeHeroPure';
 
 export enum Language {
@@ -6335,6 +6336,10 @@ export interface UiStrings {
   demo: {
     /** The small pill on the demo group's card and on each demo friend's row. */
     badge: string;
+    /** The demo group's display name, wherever a group name is shown. */
+    groupName: string;
+    /** One-line subtitle on the demo group's row. */
+    rowSubtitle: string;
     /** The banner across the top of the demo group's own screen. */
     bannerTitle: string;
     /** The destructive row — the group's ••• menu and Settings alike. */
@@ -11771,7 +11776,9 @@ const en: UiStrings = {
   },
   demo: {
     badge: 'Demo',
-    bannerTitle: 'This is a demo group — explore freely',
+    groupName: 'Demo group',
+    rowSubtitle: 'Sample data · remove anytime',
+    bannerTitle: 'This is a demo group with sample data.',
     removeAction: 'Remove demo',
     removeHint: "Takes the demo trip off your dashboard. This can't be undone.",
     removeConfirmTitle: 'Remove the demo group?',
@@ -17420,7 +17427,9 @@ const ta: UiStrings = {
   },
   demo: {
     badge: 'டெமோ',
-    bannerTitle: 'இது ஒரு டெமோ குழு — தாராளமாக ஆராயுங்கள்',
+    groupName: 'டெமோ குழு',
+    rowSubtitle: 'மாதிரி தரவு · எப்போது வேண்டுமானாலும் அகற்றலாம்',
+    bannerTitle: 'இது மாதிரி தரவுடன் கூடிய டெமோ குழு.',
     removeAction: 'டெமோவை அகற்று',
     removeHint: 'டெமோ பயணத்தை உங்கள் டாஷ்போர்டிலிருந்து அகற்றும். இதை மாற்ற முடியாது.',
     removeConfirmTitle: 'டெமோ குழுவை அகற்றவா?',
@@ -22867,7 +22876,9 @@ const hi: UiStrings = {
   },
   demo: {
     badge: 'डेमो',
-    bannerTitle: 'यह एक डेमो ग्रुप है — बेझिझक इसे एक्सप्लोर करें',
+    groupName: 'डेमो ग्रुप',
+    rowSubtitle: 'नमूना डेटा · कभी भी हटाएं',
+    bannerTitle: 'यह नमूना डेटा वाला डेमो ग्रुप है।',
     removeAction: 'डेमो हटाएं',
     removeHint: 'डेमो ट्रिप को आपके डैशबोर्ड से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।',
     removeConfirmTitle: 'डेमो ग्रुप हटाएं?',
@@ -28978,7 +28989,9 @@ const ar: UiStrings = {
   },
   demo: {
     badge: 'تجربة',
-    bannerTitle: 'هذي مجموعة تجريبية — تصفّح بحرية',
+    groupName: 'مجموعة تجريبية',
+    rowSubtitle: 'بيانات تجريبية · احذفها متى شئت',
+    bannerTitle: 'هذي مجموعة تجريبية ببيانات تجريبية.',
     removeAction: 'إزالة التجربة',
     removeHint: 'يشيل رحلة التجربة من لوحتك. ما يمكن التراجع عن هذا.',
     removeConfirmTitle: 'إزالة المجموعة التجريبية؟',
@@ -29035,6 +29048,7 @@ let chosenLanguage: Language | null = null;
 
 export function setActiveLanguage(language: Language): void {
   chosenLanguage = language;
+  setDemoGroupName(STRINGS[language].demo.groupName);
 }
 
 export function activeStrings(): UiStrings {
