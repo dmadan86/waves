@@ -219,7 +219,9 @@ export function DashHeader({
             disabled={!canSwitch}
             accessibilityRole={canSwitch ? 'button' : undefined}
             accessibilityLabel={
-              canSwitch ? `${view.name || t.extras.typeCompany}, ${t.company.switchCompany}` : undefined
+              canSwitch
+                ? `${view.name || t.extras.typeCompany}, ${t.company.switchCompany}`
+                : undefined
             }
             onPress={() => setSwitching(true)}
             style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
@@ -653,7 +655,11 @@ export function PersonLine({
         </View>
       ) : null}
       {right ? (
-        <Text variant="body" numberOfLines={1} style={{ fontWeight: '800', fontSize: 14, color: rightColor, flexShrink: 0 }}>
+        <Text
+          variant="body"
+          numberOfLines={1}
+          style={{ fontWeight: '800', fontSize: 14, color: rightColor, flexShrink: 0 }}
+        >
           {right}
         </Text>
       ) : null}
