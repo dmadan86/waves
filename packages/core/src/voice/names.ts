@@ -400,8 +400,17 @@ export function namesSoundAlike(heard: string, name: string): boolean {
 
 /** 3 exact, 2 sounds alike, 1 same consonant skeleton, 0 unrelated. Used for group names. */
 function tokenTier(heard: string, name: string): 0 | 1 | 2 | 3 {
-  if (heard === name) return heard.length >= 2 ? 3 : 0;
+  if (heard === name) return 3;
+  // Identifiers are literal: 4b must never sound like 4c or 5b.
+  if (/\p{N}/u.test(heard + name)) return 0;
   if (heard.length < 3 || name.length < 3) return 0;
+  if (
+    Math.min(heard.length, name.length) >= 4 &&
+    Math.abs(heard.length - name.length) <= 2 &&
+    (heard.startsWith(name) || name.startsWith(heard))
+  )
+    return 2;
+  if (Math.max(heard.length, name.length) >= 4 && withinOneEdit(heard, name)) return 2;
   if (namesSoundAlike(heard, name)) return 2;
   const a = skeleton(heard);
   const b = skeleton(name);
@@ -1047,12 +1056,6 @@ function soundAlike(a: string, b: string): number {
   return size === 0 ? 0 : 1 - (previous[right.length] ?? 0) / size;
 }
 
-interface Scored<T> {
-  readonly item: T;
-  readonly score: number;
-  readonly worst: number;
-}
-
 /** The best similarity of a heard word to any word of a name, any heard form. */
 function bestAgainst(heard: string, nameWords: readonly string[]): number {
   let best = 0;
@@ -1450,18 +1453,26 @@ function scoreAgainst(
 ): { score: number; worst: number } | null {
   let score = 0;
   let worst = 3;
+  const used = new Set<number>();
   let matched = 0;
   for (const token of heard) {
     let best = 0;
-    for (const other of candidateTokens) best = Math.max(best, tokenTier(token, other));
-    if (best > 0) {
-      matched += 1;
+    let index = -1;
+    candidateTokens.forEach((other, i) => {
+      const tier = used.has(i) ? 0 : tokenTier(token, other);
+      if (tier > best) {
+        best = tier;
+        index = i;
+      }
+    });
+    if (index >= 0) {
+      used.add(index);
+      matched++;
       score += best;
       worst = Math.min(worst, best);
     }
   }
-  if (matched === 0) return null;
-  if (requireAll && matched < heard.length) return null;
+  if (!matched || (requireAll && matched < heard.length)) return null;
   return { score, worst };
 }
 
@@ -1477,8 +1488,13 @@ export type GroupResolution =
       readonly name: string;
       /** The spoken words are the whole of the name, spelled right. */
       readonly exact: boolean;
+      readonly distinctiveAnchor?: boolean;
     }
-  | { readonly status: 'ambiguous'; readonly candidates: readonly VoiceGroupCandidate[] }
+  | {
+      readonly status: 'ambiguous';
+      readonly candidates: readonly VoiceGroupCandidate[];
+      readonly distinctiveAnchor?: boolean;
+    }
   | { readonly status: 'unresolved' };
 
 /**
@@ -1489,45 +1505,118 @@ export type GroupResolution =
 export function resolveSpokenGroup(
   heard: string,
   groups: readonly VoiceGroupCandidate[],
+  allowExtraWords = true,
 ): GroupResolution {
-  const tokens = nameTokens(heard).filter((token) => !FILLER.has(token));
-  if (tokens.length === 0) return { status: 'unresolved' };
+  return createSpokenGroupResolver(groups)(heard, allowExtraWords);
+}
 
-  const scored: (Scored<VoiceGroupCandidate> & { covered: boolean })[] = [];
-  for (const group of groups) {
-    if (!group.name) continue;
-    const groupTokens = nameTokens(group.name).filter((token) => !FILLER.has(token));
-    if (groupTokens.length === 0) continue;
-    const result = scoreAgainst(tokens, groupTokens, true);
-    if (!result) continue;
-    // Naming the whole group beats naming part of it; leftover words in the
-    // group's name cost a little, so "goa trip" prefers "Goa Trip" to
-    // "Goa Trip Day 2".
-    const coveredCount = groupTokens.filter((groupToken) =>
-      tokens.some((token) => tokenTier(token, groupToken) > 0),
-    ).length;
-    const covered = coveredCount === groupTokens.length;
-    scored.push({
-      item: group,
-      score: result.score * 10 + (covered ? 5 : 0) - (groupTokens.length - coveredCount),
-      worst: result.worst,
-      covered,
-    });
-  }
-  if (scored.length === 0) return { status: 'unresolved' };
-
-  const top = Math.max(...scored.map((entry) => entry.score));
-  const best = scored.filter((entry) => entry.score === top);
-  if (best.length > 1) return { status: 'ambiguous', candidates: best.map((entry) => entry.item) };
-  const winner = best[0];
-  if (!winner) return { status: 'unresolved' };
-  return {
-    status: 'resolved',
-    id: winner.item.id,
-    name: winner.item.name ?? '',
-    exact:
-      winner.covered &&
-      winner.worst === 3 &&
-      tokens.length === nameTokens(winner.item.name ?? '').filter((t) => !FILLER.has(t)).length,
+/** Compile once per parse; span trials reuse normalized group names. */
+export function createSpokenGroupResolver(groups: readonly VoiceGroupCandidate[]) {
+  // Keep combining marks in scripts such as Tamil; dropping them collapses names.
+  const groupTokens = (text: string): string[] =>
+    text
+      .split(/\s+/)
+      .map((word) =>
+        romanise(word.normalize('NFKC'))
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{M}\p{N}]/gu, ''),
+      )
+      .filter(Boolean);
+  const entries = groups
+    .map((item) => ({
+      item,
+      words: groupTokens(item.name ?? '').filter((t) => !FILLER.has(t) && t !== 'group'),
+    }))
+    .filter((entry) => entry.words.length > 0);
+  const vocabulary = new Set(entries.flatMap((entry) => entry.words));
+  return (heard: string, allowExtraWords = true): GroupResolution => {
+    // Join adjacent ASR fragments before fillers remove the "a" in "go a".
+    const raw = groupTokens(heard);
+    const literal = raw.filter((t) => !FILLER.has(t) && t !== 'group').join(' ');
+    const hasLiteral = entries.some(({ words }) => words.join(' ') === literal);
+    for (let i = 0; i < raw.length - 1; i++) {
+      {
+        const joined = `${raw[i] ?? ''}${raw[i + 1] ?? ''}`;
+        if (!hasLiteral && vocabulary.has(joined)) raw.splice(i, 2, joined);
+      }
+    }
+    const tokens = raw.filter((t) => !FILLER.has(t) && t !== 'group');
+    if (!tokens.length) return { status: 'unresolved' };
+    const generic = new Set([
+      'trip',
+      'trips',
+      'tip',
+      'flat',
+      'expenses',
+      'expense',
+      'express',
+      'expres',
+      'office',
+      'lunch',
+      'party',
+      'weekend',
+      'group',
+      'dinner',
+      'petrol',
+      'rent',
+      'tea',
+      'coffee',
+      'snacks',
+      'groceries',
+    ]);
+    const variants = new Set(['express', 'expres', 'expenses', 'expense', 'trip', 'trips', 'tip']);
+    const scored: { item: VoiceGroupCandidate; score: number; exact: boolean; anchor: boolean }[] =
+      [];
+    for (const { item: group, words } of entries) {
+      if (!words.length) continue;
+      const exact = tokens.join(' ') === words.join(' ');
+      const anchor = tokens.some(
+        (t) => !generic.has(t) && words.some((w) => !generic.has(w) && tokenTier(t, w) >= 2),
+      );
+      // Generic words may match in strong routing slots, but cannot anchor a
+      // fuzzy group after a weak preposition such as "for".
+      if (!exact && !anchor && !tokens.every((t) => words.some((w) => tokenTier(t, w) >= 2)))
+        continue;
+      const fit = scoreAgainst(tokens, words, false);
+      if (!fit) continue;
+      const unexplained = tokens.filter(
+        (t) => !variants.has(t) && !words.some((w) => tokenTier(t, w) > 0),
+      );
+      if (unexplained.length && (!allowExtraWords || !anchor)) continue;
+      const covered = words.filter((w) => tokens.some((t) => tokenTier(t, w) > 0)).length;
+      const score = exact
+        ? 1
+        : 0.7 *
+            (fit.score /
+              (3 *
+                Math.max(1, tokens.filter((t) => words.some((w) => tokenTier(t, w) > 0)).length))) +
+          (0.3 * covered) / words.length -
+          0.08 * unexplained.length;
+      if (score >= 0.55) scored.push({ item: group, score, exact, anchor });
+    }
+    scored.sort(
+      (a, b) =>
+        Number(b.exact) - Number(a.exact) ||
+        b.score - a.score ||
+        (a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0),
+    );
+    const top = scored[0];
+    if (!top) return { status: 'unresolved' };
+    const close = scored.filter((c) => (!top.exact || c.exact) && top.score - c.score < 0.15);
+    if (close.length > 1 || top.score < 0.8)
+      return {
+        status: 'ambiguous',
+        candidates: close.slice(0, 3).map((c) => c.item),
+        distinctiveAnchor: top.anchor,
+      };
+    return {
+      status: 'resolved',
+      id: top.item.id,
+      name: top.item.name ?? '',
+      exact: top.exact,
+      distinctiveAnchor: top.anchor,
+    };
   };
 }

@@ -1,0 +1,17 @@
+
+ RUN  v4.1.10 /Users/in45889244/madan/baaki-wt-voice/apps/mobile
+
+FIELD | CORRECT | TOTAL | ACCURACY
+amount | 101 | 102 | 99.0%
+currency | 101 | 102 | 99.0%
+group | 102 | 102 | 100.0%
+description | 100 | 102 | 98.0%
+payer | 102 | 102 | 100.0%
+split | 102 | 102 | 100.0%
+Wrong confident groups: 0
+Group misses: 
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:35:42
+   Duration  900ms (transform 566ms, setup 0ms, import 706ms, tests 115ms, environment 0ms)
+

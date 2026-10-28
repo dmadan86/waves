@@ -585,7 +585,7 @@ function tokenize(text: string): string[] {
   return text
     .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/[^\p{L}\p{M}\p{N}\s]/gu, ' ')
     .split(/\s+/)
     .filter(Boolean);
 }
@@ -639,26 +639,26 @@ function detectCurrency(text: string): string | null {
  * treated as no match, so the screen asks rather than guessing wrong.
  */
 function matchGroup(tokens: readonly string[], groups: readonly VoiceGroupRef[]): string | null {
-  const heard = new Set(tokens.filter((token) => !STOPWORDS.has(token)));
-  if (heard.size === 0) return null;
-
-  let best: { id: string; score: number } | null = null;
-  let tied = false;
-
-  for (const group of groups) {
-    if (!group.name) continue;
-    const nameTokens = tokenize(group.name).filter((token) => !STOPWORDS.has(token));
-    const score = nameTokens.reduce((count, token) => count + (heard.has(token) ? 1 : 0), 0);
-    if (score === 0) continue;
-    if (!best || score > best.score) {
-      best = { id: group.id, score };
-      tied = false;
-    } else if (score === best.score) {
-      tied = true;
+  // Only whole names may be found outside a routing phrase. Partial token
+  // overlap turns ordinary "office supplies" and "trip tickets" into groups.
+  const text = tokens.join(' ');
+  const full = groups.filter((g) => {
+    const words = tokenize(g.name ?? '');
+    if (
+      words.length === 1 &&
+      /^(dinner|rent|lunch|petrol|tea|coffee|snacks|groceries)$/.test(words[0])
+    ) {
+      return new RegExp(`(?:^| )(?:in|to|into|under|inside|group) ${words[0]}(?: |$)`).test(text);
     }
+    return words.length > 0 && ` ${text} `.includes(` ${words.join(' ')} `);
+  });
+  if (full.length === 1) return full[0].id;
+  // Preserve the established short routing form, without matching flat rent.
+  if (/\b(?:for|in|to|on) (?:the )?flat$/.test(text)) {
+    const flats = groups.filter((g) => g.name && /^flat\b/i.test(g.name));
+    if (flats.length === 1) return flats[0].id;
   }
-
-  return best && !tied ? best.id : null;
+  return null;
 }
 
 /**
@@ -1103,6 +1103,8 @@ export type VoiceGroupTarget =
 export interface VoiceParseResult {
   items: VoiceExpenseItem[];
   group: VoiceGroupTarget;
+  /** Ranked lexical suggestions when the destination still needs confirmation. */
+  groupCandidates?: { id: string; name: string }[];
   /** A split count, when one was heard — carried through for the group case. */
   splitCount: number | null;
   /** The cleaned transcript fragment that may name split participants. */
@@ -2284,8 +2286,6 @@ export function parseVoiceExpenses(
 
   // The date is read before the non-money numbers are hidden; everything after
   // reads the masked sentence, so "on the 5th" or "at 7" is never an amount.
-  const normalize = (text: string): string =>
-    maskNonMoneyNumbers(normalizeTranscript(text), keepDaysAgo);
   const unmasked = normalizeTranscript(transcript);
   const normalized = maskNonMoneyNumbers(unmasked, keepDaysAgo);
   const created = detectCreateGroup(normalized);
@@ -2297,7 +2297,7 @@ export function parseVoiceExpenses(
   // than a word in the description.
   const intent = created
     ? null
-    : parseVoiceIntent(normalized, {
+    : parseVoiceIntent(unmasked, {
         groups,
         members: context.members,
         families: context.families,
@@ -2305,7 +2305,7 @@ export function parseVoiceExpenses(
         now: context.now,
         // The recogniser's other hypotheses, read the same way, so a name is
         // scored across all of them.
-        alternatives: context.alternatives?.map(normalize),
+        alternatives: context.alternatives?.map(normalizeTranscript),
         learned: context.learned,
       });
   // Money handed over ("Madan gave me 400") is not an expense at all. A
@@ -2511,6 +2511,9 @@ export function parseVoiceExpenses(
   }
 
   return {
+    groupCandidates: !group
+      ? intent?.groupHint?.candidates?.slice(0, 3).map((g) => ({ id: g.id, name: g.name ?? '' }))
+      : undefined,
     items: readItems,
     group,
     splitCount,
