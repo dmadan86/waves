@@ -1,7 +1,7 @@
 import { activityLabels, resplitActivityLabel } from '@/data/activityLabels';
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { ReviewBanner } from '@/components/ReviewBanner';
-import { nativePositions } from '@/lib/nativeAdsPure';
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -120,7 +120,7 @@ type RowView = {
 };
 
 type FeedRow =
-  | { kind: 'ad'; key: string }
+  | { kind: 'ad'; key: string; slot: number }
   | { kind: 'header'; key: string; date: string }
   | { kind: 'row'; key: string; firstOfDay: boolean; view: RowView };
 
@@ -515,6 +515,13 @@ export default function ActivityScreen() {
   // mounts with no work. This whole pass only reruns when the data, filter or
   // locale changes — never on scroll — so the up-front cost is paid off-fling.
   const groupTagLabels = useGroupTypeTagLabels();
+  const adHandle = useAdPlan('activity', {
+    rowCount: visibleEntries.length,
+    listKey: onlyGroup ? String(onlyGroup) : '',
+    surfaceState: { sheetOpen: filterOpen },
+  });
+  const adPlan = adHandle.plan;
+  const adSlotsKey = adPlan.slots.join(',');
   const listData = useMemo(() => {
     const ctx: RowContext = {
       locale,
@@ -550,13 +557,19 @@ export default function ActivityScreen() {
         });
       });
     }
-    for (const n of nativePositions(visibleEntries.length, 'activity').reverse()) {
-      let count = 0;
-      const slot = rows.findIndex((row) => row.kind === 'row' && ++count === n);
-      rows.splice(slot + 1, 0, { kind: 'ad', key: `native-ad-${n}` });
-    }
-    return rows;
-  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);
+    return placeSlots(rows, adPlan.slots, undefined, undefined, adHandle.minGap) as FeedRow[];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adPlan.slots is the only part of the plan used
+  }, [
+    visibleEntries,
+    locale,
+    t,
+    myProfileId,
+    blockedIds,
+    rtf,
+    groupTagLabels,
+    onlyGroup,
+    adSlotsKey,
+  ]);
 
   // The active range worded for the chip: one date when start and end share a
   // day, "start – end" otherwise. Formatted in the current locale.
@@ -964,7 +977,17 @@ export default function ActivityScreen() {
         <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
-          ListFooterComponent={ReviewBanner}
+          // Too short for a native slot: one inline banner at the foot instead.
+          ListFooterComponent={
+            adPlan.footerBanner ? (
+              <AdSlot
+                handle={adHandle}
+                format="inline_banner"
+                slot={0}
+                style={{ marginVertical: theme.spacing.lg }}
+              />
+            ) : null
+          }
           onViewableItemsChanged={({ viewableItems }) =>
             setAdVisible(
               (seen) =>
@@ -1000,7 +1023,10 @@ export default function ActivityScreen() {
           }
           renderItem={({ item, index }) =>
             item.kind === 'ad' ? (
-              <NativeAdCard
+              <AdSlot
+                handle={adHandle}
+                format="native"
+                slot={item.slot}
                 visible={adVisible}
                 rowGap={theme.spacing.sm}
                 precedingGap={theme.spacing.sm}

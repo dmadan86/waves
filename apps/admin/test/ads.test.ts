@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { adsTotals, bannerStats } from '../src/lib/ads';
+import { adsTotals, bannerStats, passiveStats } from '../src/lib/ads';
 
 describe('adsTotals', () => {
   it('adds up the days, reading bigint strings as numbers', () => {
@@ -127,5 +127,42 @@ describe('bannerStats', () => {
         failedLast7Days: 0,
       },
     ]);
+  });
+});
+
+describe('passiveStats', () => {
+  it('sums clicks, CTR and paid micros over seven UTC days, tolerating missing columns', () => {
+    const out = passiveStats(
+      [
+        {
+          day: '2026-11-02',
+          placement: 'native_list',
+          shown: '100',
+          failed: 1,
+          clicked: '2',
+          paid_micros: '3500000',
+        },
+        {
+          day: '2026-10-26',
+          placement: 'native_list',
+          shown: 99,
+          failed: 9,
+          clicked: 9,
+          paid_micros: 9,
+        },
+        { day: '2026-11-02', placement: 'settings_banner', shown: 4, failed: 0 },
+      ],
+      '2026-11-02',
+    );
+    expect(out.find((r) => r.placement === 'native_list')).toEqual({
+      placement: 'native_list',
+      shown: 100,
+      clicked: 2,
+      failed: 1,
+      ctr: 0.02,
+      paid: 3.5,
+    });
+    expect(out.find((r) => r.placement === 'settings_banner')?.shown).toBe(4);
+    expect(out.find((r) => r.placement === 'voice_banner')?.ctr).toBe(0);
   });
 });

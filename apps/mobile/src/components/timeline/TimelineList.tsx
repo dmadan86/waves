@@ -22,7 +22,10 @@ import Reanimated, {
 import { format, money, type CurrencyCode } from '@waves/core';
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
+import { AdSlot } from '@/components/AdSlot';
 import { CategoryBadge } from '@/components/Category';
+import type { AdItem } from '@/lib/adPlanPure';
+import type { AdPlanHandle } from '@/lib/useAdPlan';
 import { StakeCaptionPill, stakeColorFor } from '@/components/standard/StakePill';
 import { expenseTitle } from '@/data/expenseTitle';
 import { fill, plural, useStrings } from '@/i18n';
@@ -35,8 +38,13 @@ const RAIL_COL = 18;
 /** Equal space either side of the rail: time | gap | rail | gap | card. */
 const RAIL_GAP = 6;
 
+/** The timeline's rows plus an ad slot the host may have placed between them. */
+export type ListRow = TimelineRow | AdItem;
+
 export interface TimelineListProps {
-  rows: readonly TimelineRow[];
+  rows: readonly ListRow[];
+  /** Plan for the native cards among `rows`; none when absent. */
+  ads?: AdPlanHandle;
   focusId: string | null;
   onOpen: (entry: TimelineEntry) => void;
   onFocusVisible?: (visible: boolean) => void;
@@ -47,16 +55,16 @@ export interface TimelineListProps {
   showPeople?: boolean;
 }
 
-export const TimelineList = forwardRef<FlashListRef<TimelineRow>, TimelineListProps>(
+export const TimelineList = forwardRef<FlashListRef<ListRow>, TimelineListProps>(
   function TimelineList(
-    { rows, focusId, onOpen, onFocusVisible, header, empty, bottomInset, showPeople = false },
+    { rows, ads, focusId, onOpen, onFocusVisible, header, empty, bottomInset, showPeople = false },
     ref,
   ) {
     const theme = useTheme();
     return (
       <FlashList
         ref={ref}
-        data={rows as TimelineRow[]}
+        data={rows as ListRow[]}
         keyExtractor={(row) => row.key}
         getItemType={(row) => row.kind}
         drawDistance={2500}
@@ -74,14 +82,18 @@ export const TimelineList = forwardRef<FlashListRef<TimelineRow>, TimelineListPr
                 onFocusVisible(
                   viewableItems.some(
                     (item) =>
-                      (item.item as TimelineRow).kind === 'entry' &&
+                      (item.item as ListRow).kind === 'entry' &&
                       (item.item as Extract<TimelineRow, { kind: 'entry' }>).entry.id === focusId,
                   ),
                 )
             : undefined
         }
         renderItem={({ item }) =>
-          item.kind === 'day' ? (
+          item.kind === 'ad' ? (
+            ads ? (
+              <AdSlot handle={ads} format="native" slot={item.slot} rowGap={theme.spacing.sm} />
+            ) : null
+          ) : item.kind === 'day' ? (
             <DayHeader day={item.day} />
           ) : item.kind === 'gap' ? (
             <GapRow hours={item.hours} />

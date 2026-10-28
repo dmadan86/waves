@@ -8,14 +8,22 @@ import {
   adEventDays,
   adGateSettings,
   saveAdGateSettings,
+  saveAdPlacements,
   type AdGateSettings,
 } from '@/lib/data';
+import {
+  AD_SURFACES,
+  GLOBAL_KNOBS,
+  SURFACE_RANGES,
+  mergePlacements,
+  type SurfaceConfig,
+} from '@waves/core';
 
-import { bannerStats, creditDays, creditKnobs, rewardedCompletions } from '@/lib/ads';
+import { bannerStats, creditDays, creditKnobs, passiveStats, rewardedCompletions } from '@/lib/ads';
 
 export const dynamic = 'force-dynamic';
 const knobs: {
-  key: Exclude<keyof AdGateSettings, 'interstitial_video_enabled'>;
+  key: Exclude<keyof AdGateSettings, 'interstitial_video_enabled' | 'placements'>;
   label: string;
   min: number;
   max: number;
@@ -79,6 +87,36 @@ export default async function Ads({
     revalidatePath('/ads');
     redirect('/ads?saved=1');
   }
+  async function savePlacements(form: FormData) {
+    'use server';
+    let failure: string | null = null;
+    try {
+      await guardMutation(form);
+      const placements: Record<string, unknown> = {};
+      for (const knob of GLOBAL_KNOBS) {
+        const raw = String(form.get(`g_${knob.key}`) ?? '').trim();
+        if (raw) placements[knob.key] = Number(raw);
+      }
+      const surfaces: Record<string, Record<string, unknown>> = {};
+      for (const name of AD_SURFACES) {
+        const entry: Record<string, unknown> = { enabled: form.get(`s_${name}_enabled`) === 'on' };
+        for (const field of Object.keys(SURFACE_RANGES)) {
+          const raw = String(form.get(`s_${name}_${field}`) ?? '').trim();
+          if (raw) entry[field] = Number(raw);
+        }
+        surfaces[name] = entry;
+      }
+      placements.surfaces = surfaces;
+      await saveAdPlacements(placements);
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+    if (failure) redirect(`/ads?error=${encodeURIComponent(failure)}`);
+    revalidatePath('/ads');
+    redirect('/ads?saved=1');
+  }
+  const placements = mergePlacements(settings?.placements);
+  const today = new Date().toISOString().slice(0, 10);
   return (
     <main className="page">
       <PageHeader eyebrow="Monetization" title="Ads" />
@@ -186,6 +224,41 @@ export default async function Ads({
           </table>
         </TableScroll>
       </Card>
+      <h2 className="section">Passive ads, last 7 days</h2>
+      <Card bare>
+        <TableScroll>
+          <table>
+            <thead>
+              <tr>
+                {[
+                  'Placement',
+                  'Impressions',
+                  'Clicks',
+                  'CTR',
+                  'Failures',
+                  'AdMob paid (as reported)',
+                ].map((label) => (
+                  <th key={label} scope="col">
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {passiveStats(rows, today).map((row) => (
+                <tr key={row.placement}>
+                  <th scope="row">{row.placement}</th>
+                  <td className="n">{row.shown}</td>
+                  <td className="n">{row.clicked}</td>
+                  <td className="n">{(row.ctr * 100).toFixed(2)}%</td>
+                  <td className="n">{row.failed}</td>
+                  <td className="n">{row.paid.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
+      </Card>
       <h2 className="section">Rewarded completions by placement</h2>
       <Card bare>
         <TableScroll>
@@ -244,6 +317,73 @@ export default async function Ads({
         ) : (
           <Empty title="No credit activity yet">
             Earned and spent credits over the last 30 days (UTC).
+          </Empty>
+        )}
+      </Card>
+      <h2 className="section">Banner and native placement settings</h2>
+      <Card>
+        {settings ? (
+          <form action={savePlacements}>
+            <CsrfField />
+            <p>
+              Where and how often passive ads appear. Blank keeps the default. Min/max pairs must be
+              in order. Takes effect on phones within about five minutes.
+            </p>
+            {GLOBAL_KNOBS.map((knob) => (
+              <p key={knob.key}>
+                <label>
+                  {knob.label}{' '}
+                  <input
+                    type="number"
+                    name={`g_${knob.key}`}
+                    min={knob.min}
+                    max={knob.max}
+                    step={1}
+                    defaultValue={placements[knob.key] as number}
+                  />{' '}
+                  ({knob.min} to {knob.max})
+                </label>
+              </p>
+            ))}
+            {AD_SURFACES.map((name) => {
+              const s = placements.surfaces[name];
+              return (
+                <fieldset key={name}>
+                  <legend>
+                    {name} ({s.format})
+                  </legend>
+                  <label>
+                    <input type="checkbox" name={`s_${name}_enabled`} defaultChecked={s.enabled} />{' '}
+                    Enabled
+                  </label>
+                  {Object.entries(SURFACE_RANGES)
+                    .filter(([field]) => s[field as keyof SurfaceConfig] != null)
+                    .map(([field, [lo, hi]]) => (
+                      <p key={field}>
+                        <label>
+                          {field.replaceAll('_', ' ')}{' '}
+                          <input
+                            type="number"
+                            name={`s_${name}_${field}`}
+                            min={lo}
+                            max={hi}
+                            step={1}
+                            defaultValue={s[field as keyof SurfaceConfig] as number}
+                          />{' '}
+                          ({lo} to {hi})
+                        </label>
+                      </p>
+                    ))}
+                </fieldset>
+              );
+            })}
+            <button type="submit" className="btn">
+              Save placement settings
+            </button>
+          </form>
+        ) : (
+          <Empty title="Settings unavailable" migration="20261110120000_ad_intelligence">
+            Deploy the migration to configure placements.
           </Empty>
         )}
       </Card>

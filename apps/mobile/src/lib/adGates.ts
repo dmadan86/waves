@@ -30,12 +30,16 @@ export interface GateStatus {
   createdAt: string;
   createdGroups: number;
   interstitialToday: number;
+  /** Passive (native/banner) impressions today; absent before the ad-intelligence migration. */
+  passiveToday?: number;
   lastAdAt: string | null;
   lastRewardedAt: string | null;
   lastInterstitialAt: string | null;
   settings: AdPacingSettings & {
     interstitial_video_enabled?: boolean;
     native_daily_cap?: number | null;
+    /** Ad placement config jsonb; absent before the ad-intelligence migration. */
+    placements?: unknown;
   };
 }
 export async function readGateStatus(

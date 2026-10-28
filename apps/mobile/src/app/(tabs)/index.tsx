@@ -2,8 +2,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { adGateQuery } from '@/lib/adGateQuery';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useFlagEnabled } from '@/lib/flags';
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -398,6 +399,11 @@ export default function HomeScreen() {
   };
   // Every "new group" door on Home opens this menu: create, scan, or join.
   const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const homeAds = useAdPlan('home_groups', {
+    rowCount: totalGroupCount,
+    surfaceState: { sheetOpen: menuOpen || newGroupOpen },
+  });
+  const homeAdSlot = homeAds.plan.slots[0];
   const [newGroupAnchor, setNewGroupAnchor] = useState<MenuAnchor | null>(null);
   const openNewGroupMenu = (anchor: MenuAnchor | null): void => {
     setNewGroupAnchor(anchor);
@@ -774,68 +780,79 @@ export default function HomeScreen() {
                           ? t.tagNew
                           : null;
                     return (
-                      <GroupRow
-                        key={group.id}
-                        title={groupLabel(group, members, viewerId)}
-                        memberLabel={plural(
-                          locale,
-                          summary.memberCountFor(group.id),
-                          t.memberCount,
-                        )}
-                        draftLabel={
-                          draftsByGroup.has(group.id)
-                            ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
-                            : null
-                        }
-                        coverEmoji={group.cover_emoji}
-                        coverColor={
-                          group.cover_color ??
-                          (companyIds.includes(group.id) ? companyCoverKey(group.id) : null)
-                        }
-                        groupType={group.type}
-                        eventTemplate={group.event_template}
-                        customTag={group.custom_tag}
-                        balance={balance}
-                        currency={group.default_currency}
-                        locale={locale}
-                        statusLabel={
-                          balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                        }
-                        directionLabel={
-                          balance === 0n
-                            ? t.group.rowSettled
-                            : balance > 0n
-                              ? t.group.rowOwed
-                              : t.group.rowYouOwe
-                        }
-                        pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                        tag={tag}
-                        isDemo={group.isDemo === true}
-                        tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
-                        divider={index > 0}
-                        // The eye in the hero shuts the whole screen's money, not
-                        // just the headline: masking one figure while twelve sit
-                        // uncovered below it is privacy theatre. Masked too until
-                        // the saved preference has loaded — `balanceHidden` starts
-                        // false while AsyncStorage resolves, so without the
-                        // `!balanceReady` guard a hidden balance flashes in plain
-                        // before the eye's state lands. The hero is already gated
-                        // this way upstream (it shows its skeleton until ready).
-                        hidden={balanceHidden || !balanceReady}
-                        // The just-imported group slides and fades into place
-                        // rather than blinking in under the success banner.
-                        enter={group.id === justAddedId}
-                        // Its balance materialises a beat after the group row does,
-                        // so mask the amount until the ledger lands rather than show
-                        // a confident wrong ₹0 that then jumps to the real figure.
-                        pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                        onPress={() => router.push(`/group/${group.id}`)}
-                        unread={unreadGroups.has(group.id)}
-                      />
+                      <Fragment key={group.id}>
+                        <GroupRow
+                          title={groupLabel(group, members, viewerId)}
+                          memberLabel={plural(
+                            locale,
+                            summary.memberCountFor(group.id),
+                            t.memberCount,
+                          )}
+                          draftLabel={
+                            draftsByGroup.has(group.id)
+                              ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                              : null
+                          }
+                          coverEmoji={group.cover_emoji}
+                          coverColor={
+                            group.cover_color ??
+                            (companyIds.includes(group.id) ? companyCoverKey(group.id) : null)
+                          }
+                          groupType={group.type}
+                          eventTemplate={group.event_template}
+                          customTag={group.custom_tag}
+                          balance={balance}
+                          currency={group.default_currency}
+                          locale={locale}
+                          statusLabel={
+                            balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
+                          }
+                          directionLabel={
+                            balance === 0n
+                              ? t.group.rowSettled
+                              : balance > 0n
+                                ? t.group.rowOwed
+                                : t.group.rowYouOwe
+                          }
+                          pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
+                          tag={tag}
+                          isDemo={group.isDemo === true}
+                          tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
+                          divider={index > 0}
+                          // The eye in the hero shuts the whole screen's money, not
+                          // just the headline: masking one figure while twelve sit
+                          // uncovered below it is privacy theatre. Masked too until
+                          // the saved preference has loaded — `balanceHidden` starts
+                          // false while AsyncStorage resolves, so without the
+                          // `!balanceReady` guard a hidden balance flashes in plain
+                          // before the eye's state lands. The hero is already gated
+                          // this way upstream (it shows its skeleton until ready).
+                          hidden={balanceHidden || !balanceReady}
+                          // The just-imported group slides and fades into place
+                          // rather than blinking in under the success banner.
+                          enter={group.id === justAddedId}
+                          // Its balance materialises a beat after the group row does,
+                          // so mask the amount until the ledger lands rather than show
+                          // a confident wrong ₹0 that then jumps to the real figure.
+                          pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
+                          onPress={() => router.push(`/group/${group.id}`)}
+                          unread={unreadGroups.has(group.id)}
+                        />
+                        {/* One native card inside the list (>= 10 groups), never on the row that is sliding in. */}
+                        {homeAdSlot === index + 1 && justAddedId == null ? (
+                          <View style={{ paddingHorizontal: theme.spacing.sm }}>
+                            <AdSlot
+                              handle={homeAds}
+                              format="native"
+                              slot={index + 1}
+                              rowGap={theme.spacing.sm}
+                            />
+                          </View>
+                        ) : null}
+                      </Fragment>
                     );
                   })}
                 </View>
-                {totalGroupCount >= 10 ? <NativeAdCard visible rowGap={theme.spacing.sm} /> : null}
               </ScrollView>
             </View>
           )}

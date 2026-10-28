@@ -1,5 +1,6 @@
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { nativePositions } from '@/lib/nativeAdsPure';
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
@@ -327,7 +328,7 @@ function monthDate(key: string): Date {
  * item is the section heading, an `expense` item is one bill.
  */
 type FeedItem =
-  | { readonly kind: 'ad'; readonly key: string }
+  | { readonly kind: 'ad'; readonly key: string; readonly slot: number }
   | { readonly kind: 'month'; readonly key: string; readonly date: string }
   | {
       readonly kind: 'expense';
@@ -985,6 +986,13 @@ function LedgerGroupScreen() {
     );
     return newMarksSince(activity.data ?? [], (id) => mine.has(id), lastSeenAt);
   }, [activity.data, everyone.data, viewerId, lastSeenAt]);
+  const adHandle = useAdPlan('group_expenses', {
+    rowCount: filteredExpenses.length,
+    listKey: groupId,
+    // No ads while a search is typed into the list.
+    surfaceState: { selectMode: query.trim().length > 0 },
+  });
+  const adSlotsKey = adHandle.plan.slots.join(',');
   const feedItems: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
     for (const section of expenseSections) {
@@ -1002,20 +1010,20 @@ function LedgerGroupScreen() {
         }),
       );
     }
-    const positions = new Set(
-      nativePositions(
-        expenseSections.reduce((n, section) => n + section.rows.length, 0),
-        `group:${groupId}`,
-      ),
-    );
-    let count = 0;
-    return items.flatMap((item): FeedItem[] => {
-      if (item.kind === 'expense' && positions.has(++count)) {
-        return [item, { kind: 'ad', key: `ad-${count}` }];
-      }
-      return [item];
-    });
-  }, [expenseSections, newMarks, groupId]);
+    // A row with a "new/edited" mark is never the one an ad follows.
+    const blocked = new Set<number>();
+    let n = 0;
+    for (const item of items)
+      if (item.kind === 'expense' && ++n && item.mark !== null) blocked.add(n);
+    return placeSlots(
+      items,
+      adHandle.plan.slots,
+      blocked,
+      { row: 'expense', header: 'month' },
+      adHandle.minGap,
+    ) as FeedItem[];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
+  }, [expenseSections, newMarks, groupId, adSlotsKey]);
   // The "N new" pill: how many marked rows the feed holds, where the first
   // one is, and which rows are on screen — so it shows only while that first
   // one is out of sight, and tapping it scrolls there.
@@ -1283,7 +1291,10 @@ function LedgerGroupScreen() {
   // only stable props, so a recycled cell that lands on the same expense does no
   // work — the allocation and re-render both moved out of the hot fling path.
   const renderFeedItem = ({ item, index }: { item: FeedItem; index: number }) => {
-    if (item.kind === 'ad') return <NativeAdCard visible rowGap={theme.spacing.sm} />;
+    if (item.kind === 'ad')
+      return (
+        <AdSlot handle={adHandle} format="native" slot={item.slot} rowGap={theme.spacing.sm} />
+      );
     if (item.kind === 'month') {
       return (
         <Text
