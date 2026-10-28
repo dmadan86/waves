@@ -154,7 +154,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
         ids.add(member.id);
     }
     return ids;
-  }, [people, isOwner, isManager, me?.id, me?.role, directory]);
+  }, [people, isOwner, isManager, me, directory]);
   const manageableIds = useMemo(() => {
     const ids = new Set<string>();
     for (const member of people) {
