@@ -247,7 +247,8 @@ def report(path, mask):
 
 def main():
     render_mark()
-    render_icons()
+    # Launcher icons are now rendered from infra/art/brand/app-icon-shared-crest.svg
+    # (Shared Crest); render_icons() cuts the old yellow drawing and would clobber them.
 
 
 if __name__ == "__main__":
