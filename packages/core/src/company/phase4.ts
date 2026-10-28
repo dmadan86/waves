@@ -329,8 +329,8 @@ export function wagePaidInPeriod(
       e.kind === 'wage_payment' &&
       e.periodStart !== null &&
       e.periodEnd !== null &&
-      e.periodStart <= end &&
-      start <= e.periodEnd,
+      // Overlapping, or earlier than a period already paid: the server refuses both.
+      (e.periodEnd > end || (e.periodStart <= end && start <= e.periodEnd)),
   );
 }
 

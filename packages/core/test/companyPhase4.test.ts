@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advanceRecovered,
+  wagePaidInPeriod,
   buildReimbursementPreview,
   buildWageRun,
   companyCapabilities,
@@ -247,4 +248,18 @@ it('an advance recovered through a wage run is locked', () => {
     period_end: '2026-11-07',
   });
   expect(advanceRecovered([adv, pay], adv)).toBe(true);
+});
+
+it('a wage period earlier than one already paid is not offered', () => {
+  const pay = e({
+    entry_kind: 'wage_payment',
+    amount: 0,
+    gross_minor: 0,
+    claims_minor: 0,
+    recovery_minor: 0,
+    period_start: '2026-11-08',
+    period_end: '2026-11-14',
+  });
+  expect(wagePaidInPeriod([pay], 'emp', '2026-11-01', '2026-11-07')).toBe(true);
+  expect(wagePaidInPeriod([pay], 'emp', '2026-11-15', '2026-11-21')).toBe(false);
 });

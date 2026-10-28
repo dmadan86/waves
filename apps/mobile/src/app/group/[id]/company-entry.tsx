@@ -94,7 +94,9 @@ export default function CompanyEntryScreen() {
   // A manager's own entries are expense / bata only; money to the team comes from their pool.
   const moneyKinds = view.isAdmin && (view.isOwner || employee?.id !== view.me?.id);
   const kinds: CompanyEntryKind[] = moneyKinds
-    ? ['expense', 'allowance', 'advance', 'wages', 'reimbursement']
+    ? view.isOwner
+      ? ['expense', 'allowance', 'advance', 'wages', 'reimbursement']
+      : ['expense', 'allowance', 'advance', 'reimbursement']
     : ['expense', 'allowance'];
   // Inside a person's thread the first verb is giving money; anywhere else it is spending.
   const kind: CompanyEntryKind =

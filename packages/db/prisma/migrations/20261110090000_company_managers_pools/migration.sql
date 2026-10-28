@@ -19,7 +19,10 @@ CREATE TABLE public.company_projects (
 );
 CREATE TABLE public.company_project_budgets (
  project_id uuid PRIMARY KEY, group_id uuid NOT NULL,
+ id uuid GENERATED ALWAYS AS (project_id) STORED,
  budget_minor bigint CHECK(budget_minor>=0),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ deleted_at timestamptz, updated_seq bigint NOT NULL DEFAULT 0,
  FOREIGN KEY(project_id,group_id) REFERENCES public.company_projects(id,group_id) ON DELETE CASCADE
 );
 CREATE TABLE public.company_project_members (
@@ -31,6 +34,8 @@ CREATE TABLE public.company_project_members (
  FOREIGN KEY(project_id,group_id) REFERENCES public.company_projects(id,group_id) ON DELETE CASCADE,
  FOREIGN KEY(member_id,group_id) REFERENCES public.group_members(id,group_id) ON DELETE CASCADE
 );
+CREATE INDEX company_project_budgets_sync_idx ON public.company_project_budgets(group_id,updated_seq);
+CREATE TRIGGER company_project_budgets_stamp BEFORE INSERT OR UPDATE ON public.company_project_budgets FOR EACH ROW EXECUTE FUNCTION public.waves_stamp_seq();
 CREATE INDEX company_projects_sync_idx ON public.company_projects(group_id,updated_seq);
 CREATE INDEX company_project_members_sync_idx ON public.company_project_members(group_id,updated_seq);
 CREATE INDEX company_project_members_member_idx ON public.company_project_members(member_id,project_id);
@@ -214,7 +219,8 @@ BEGIN
  manager:=CASE WHEN public.is_group_admin(p_group_id) THEN (p_data->>'managerId')::uuid ELSE actor END;
  SELECT * INTO r FROM public.group_members WHERE id=p_member_id;
  IF FOUND THEN
-  IF r.group_id=p_group_id AND r.manager_id IS NOT DISTINCT FROM manager AND r.ghost_name=btrim(p_data->>'name') AND public.waves_company_detail(p_group_id,r.id) THEN RETURN r.id; END IF;
+  IF r.group_id=p_group_id AND r.manager_id IS NOT DISTINCT FROM manager AND r.ghost_name=btrim(p_data->>'name') AND public.waves_company_detail(p_group_id,r.id)
+   AND ARRAY(SELECT project_id FROM public.company_project_members WHERE member_id=r.id AND deleted_at IS NULL ORDER BY 1)=ARRAY(SELECT DISTINCT value::uuid FROM jsonb_array_elements_text(coalesce(p_data->'projectIds','[]')) ORDER BY 1) THEN RETURN r.id; END IF;
   RAISE EXCEPTION 'IDEMPOTENCY_CONFLICT';
  END IF;
  INSERT INTO public.group_members(id,group_id,ghost_name,role,joined_via,manager_id) VALUES(p_member_id,p_group_id,btrim(p_data->>'name'),'member','ghost',manager);
@@ -433,6 +439,7 @@ CREATE OR REPLACE FUNCTION public.waves_company_phase3_entry_guard() RETURNS tri
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE rule jsonb; actual numeric; start_on date; end_on date; cover public.company_entries%ROWTYPE;
 BEGIN
+ IF TG_OP='UPDATE' AND public.waves_company_bookkeeping_update(OLD,NEW) THEN RETURN NEW; END IF;
  IF TG_OP='DELETE' THEN
   IF OLD.reimbursement_id IS NOT NULL OR OLD.reimbursement_details IS NOT NULL THEN RAISE EXCEPTION 'ENTRY_REIMBURSED: covered entries are frozen' USING ERRCODE='check_violation'; END IF;
   RETURN OLD;
@@ -1519,9 +1526,18 @@ BEGIN
  RETURN NEW;
 END $$;
 CREATE TRIGGER company_phase4_member_guard BEFORE INSERT OR UPDATE ON public.group_members FOR EACH ROW EXECUTE FUNCTION public.waves_company_phase4_member_guard();
+CREATE FUNCTION public.waves_company_bookkeeping_update(o public.company_entries,n public.company_entries) RETURNS boolean
+ LANGUAGE sql STABLE SET search_path TO 'public','pg_temp' AS $$
+ SELECT (coalesce(current_setting('waves.company_restamp',true),'')=o.member_id::text
+   AND (to_jsonb(n)-ARRAY['updated_at','updated_seq'])=(to_jsonb(o)-ARRAY['updated_at','updated_seq']))
+  OR (coalesce(current_setting('waves.company_reimburse',true),'')<>'' AND o.entry_kind='wage_payment'
+   AND (to_jsonb(n)-ARRAY['reimbursement_id','version','updated_by','updated_at','updated_seq'])=(to_jsonb(o)-ARRAY['reimbursement_id','version','updated_by','updated_at','updated_seq'])) $$;
+REVOKE ALL ON FUNCTION public.waves_company_bookkeeping_update(public.company_entries,public.company_entries) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.waves_company_bookkeeping_update(public.company_entries,public.company_entries) TO authenticated,service_role;
 CREATE FUNCTION public.waves_company_phase4_entry_guard() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
+ IF TG_OP='UPDATE' AND public.waves_company_bookkeeping_update(OLD,NEW) THEN RETURN NEW; END IF;
  IF TG_OP<>'INSERT' AND OLD.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') AND NOT (TG_OP='DELETE' AND NOT EXISTS(SELECT 1 FROM public.groups WHERE id=OLD.group_id)) THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
  IF TG_OP='UPDATE' AND (NEW.funding_manager_id IS DISTINCT FROM OLD.funding_manager_id OR ((OLD.funding_manager_id IS NOT NULL OR OLD.wage_run_id IS NOT NULL) AND (NEW.member_id,NEW.group_id) IS DISTINCT FROM (OLD.member_id,OLD.group_id))) THEN RAISE EXCEPTION 'ENTRY_SCOPE_IMMUTABLE'; END IF;
@@ -1656,7 +1672,7 @@ BEGIN
    IF r.group_id<>p_group_id OR r.member_id<>employee OR r.version IS DISTINCT FROM (claim->>'expectedVersion')::integer OR r.status<>'approved' OR r.deleted_at IS NOT NULL OR r.reimbursement_id IS NOT NULL OR r.reimbursement_details IS NOT NULL OR r.entry_kind NOT IN ('expense','allowance') OR (r.entry_kind='expense' AND r.calc_mode<>'distance_rate') OR r.occurred_on>p_period_end THEN RAISE EXCEPTION 'SELECTION_CHANGED'; END IF;
    claims:=claims+r.amount;
   END LOOP;
-  SELECT greatest(0,coalesce(sum(CASE WHEN entry_kind='advance' AND reimbursement_id IS NULL AND occurred_on<=p_period_end THEN amount WHEN entry_kind='wage_payment' AND period_end<p_period_start AND reimbursement_id IS NULL THEN -recovery_minor WHEN entry_kind='reimbursement' AND direction='employee_to_company' AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_period_end THEN -amount ELSE 0 END),0)) INTO outstanding FROM public.company_entries WHERE group_id=p_group_id AND member_id=employee AND deleted_at IS NULL;
+  SELECT greatest(0,coalesce(sum(CASE WHEN entry_kind='advance' AND status='approved' AND reimbursement_id IS NULL AND occurred_on<=p_period_end THEN amount WHEN entry_kind='wage_payment' AND period_end<p_period_start AND reimbursement_id IS NULL THEN -recovery_minor WHEN entry_kind='reimbursement' AND direction='employee_to_company' AND status='approved' AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_period_end THEN -amount ELSE 0 END),0)) INTO outstanding FROM public.company_entries WHERE group_id=p_group_id AND member_id=employee AND deleted_at IS NULL;
   gross:=base+claims; recovery:=least(outstanding,gross); net:=gross-recovery;
   IF (line->>'expectedGrossMinor')::numeric IS DISTINCT FROM gross OR (line->>'expectedRecoveryMinor')::numeric IS DISTINCT FROM recovery OR (line->>'expectedNetMinor')::numeric IS DISTINCT FROM net THEN RAISE EXCEPTION 'AMOUNT_MISMATCH'; END IF;
   INSERT INTO public.company_entries(id,group_id,member_id,entry_kind,amount,currency,calc_mode,days,rate_minor,occurred_on,note,created_by,updated_by,project_id,funding_manager_id,wage_run_id,gross_minor,claims_minor,recovery_minor,period_start,period_end)

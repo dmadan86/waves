@@ -998,7 +998,11 @@ export class SyncSession {
           p_amount_minor: companySignedDecimal(mutation.payload.amountMinor, 'amountMinor'),
           p_project_id: companyUuid(mutation.payload.projectId, 'projectId', true),
           p_occurred_on: companyDate(mutation.payload.occurredOn, 'occurredOn'),
-          p_reason: companyReason(mutation.payload.reason, 'reason', kind !== 'allocation'),
+          p_reason: companyReason(
+            mutation.payload.reason,
+            'reason',
+            kind === 'pool_return' || kind === 'pool_adjustment',
+          ),
         });
       }
       case 'company_wage.pay':

@@ -136,23 +136,31 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const hasManagers = people.some((member) => member.role === 'manager' && !member.left_at);
   // The server only sends each person what they may read, but a phone that was once an
   // owner's (or whose employee moved teams) may still hold more: show only own + own team.
+  // The server's directory is authoritative for a manager: after a reassignment their phone
+  // still holds the old row, so the team is whoever the directory says they may see in detail.
+  const directory = useCompanyPeople(groupId).data;
   const visibleIds = useMemo(() => {
     const ids = new Set<string>();
+    if (me?.role === 'manager' && directory) {
+      for (const person of directory) if (person.detail) ids.add(person.member_id);
+      return ids;
+    }
     for (const member of people) {
       if (isOwner || member.id === me?.id || (isManager && member.manager_id === me?.id))
         ids.add(member.id);
     }
     return ids;
-  }, [people, isOwner, isManager, me?.id]);
+  }, [people, isOwner, isManager, me?.id, me?.role, directory]);
   const manageableIds = useMemo(() => {
     const ids = new Set<string>();
     for (const member of people) {
       if (member.id === me?.id || member.left_at) continue;
+      if (isManager && !visibleIds.has(member.id)) continue;
       if (isOwner ? member.role !== 'admin' : isManager && member.manager_id === me?.id)
         ids.add(member.id);
     }
     return ids;
-  }, [people, isOwner, isManager, me?.id]);
+  }, [people, isOwner, isManager, me?.id, visibleIds]);
   const entries = useMemo(
     () =>
       materialiseCompanyEntries(mirror, queue, {
@@ -474,7 +482,6 @@ export function usePayWages(groupId: string) {
  */
 export function usePoolBalance(groupId: string, managerId: string | null): bigint | null {
   const { entries } = useCompanyEntries(groupId);
-  const { queue } = useSync();
   const server = useQuery({
     queryKey: ['company-pool', groupId, managerId],
     enabled: !!managerId,
@@ -488,12 +495,18 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
       return BigInt(String((data as { balance: string | number }).balance));
     },
   });
-  const queued = queue.some((m) => m.groupId === groupId && m.kind.startsWith('company'));
+  // The server's figure is the truth (it also counts people who moved teams); queued entries
+  // add only their own effect on top of it.
   return useMemo(() => {
     if (!managerId) return null;
-    if (server.data !== undefined && !queued) return server.data;
-    return poolBalance(entries, managerId).balance;
-  }, [entries, managerId, server.data, queued]);
+    const mine = poolBalance(entries, managerId).balance;
+    if (server.data === undefined) return mine;
+    const settled = poolBalance(
+      entries.filter((e) => !e.pending),
+      managerId,
+    ).balance;
+    return server.data + (mine - settled);
+  }, [entries, managerId, server.data]);
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */

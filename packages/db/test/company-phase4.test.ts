@@ -749,4 +749,83 @@ describe('company Phase 4: people, invites and approvals', () => {
         ).rows[0].n,
       ).toBe(0);
     }));
+  it('reassigning an employee with wage payments and reimbursed claims re-stamps without error', () =>
+    isolated(async () => {
+      const adv = await user(1, () => entry(3, 'advance', { amount: '1000' }));
+      await user(1, () => wage([line(3, '400', '400', '0')]));
+      await user(0, () =>
+        db.query('SELECT waves_company_member_assign($1,$2,NULL)', [
+          g.memberIds[3],
+          g.memberIds[2],
+        ]),
+      );
+      expect(adv).toBeTruthy();
+    }));
+  it('an ordinary reimbursement after a wage recovery works and consumes the recovery', () =>
+    isolated(async () => {
+      const adv = await user(1, () => entry(3, 'advance', { amount: '1000' }));
+      await user(1, () => wage([line(3, '400', '400', '0')]));
+      const claim = await user(3, () => entry(3, 'expense', { amount: '800' }));
+      await user(1, () =>
+        db.query('SELECT waves_company_reimburse($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
+          g.groupId,
+          randomUUID(),
+          g.memberIds[3],
+          JSON.stringify([{ entryId: claim, expectedVersion: 1 }]),
+          JSON.stringify([{ entryId: adv, expectedVersion: 1 }]),
+          '2026-11-30',
+          '2026-11-30',
+          '200',
+          null,
+        ]),
+      );
+      expect(
+        (
+          await db.query(
+            "SELECT count(*)::int n FROM company_entries WHERE entry_kind='wage_payment' AND reimbursement_id IS NOT NULL",
+          )
+        ).rows[0].n,
+      ).toBe(1);
+    }));
+  it('only approved advances reduce a wage; project budgets sync with a sequence', () =>
+    isolated(async () => {
+      await db.query('UPDATE groups SET company_approvals_enabled=true WHERE id=$1', [g.groupId]);
+      await user(0, () => entry(3, 'advance', { amount: '1000' }));
+      await db.query(
+        "UPDATE company_entries SET status='submitted' WHERE entry_kind='advance' AND group_id=$1",
+        [g.groupId],
+      );
+      await user(1, () => wage([line(3, '600', '0', '600')]));
+      const b = (
+        await db.query(
+          'SELECT id,updated_seq,deleted_at FROM company_project_budgets WHERE group_id=$1',
+          [g.groupId],
+        )
+      ).rows[0];
+      expect(b.id).toBe(project);
+      expect(Number(b.updated_seq)).toBeGreaterThan(0);
+    }));
+  it('replaying member add with different projects is a conflict', () =>
+    isolated(async () => {
+      const id = randomUUID();
+      await user(1, async () => {
+        await db.query('SELECT waves_company_member_add($1,$2,$3)', [
+          g.groupId,
+          id,
+          JSON.stringify({ name: 'Same', projectIds: [project] }),
+        ]);
+        await db.query('SELECT waves_company_member_add($1,$2,$3)', [
+          g.groupId,
+          id,
+          JSON.stringify({ name: 'Same', projectIds: [project] }),
+        ]);
+        await denied(() =>
+          db.query('SELECT waves_company_member_add($1,$2,$3)', [
+            g.groupId,
+            id,
+            JSON.stringify({ name: 'Same', projectIds: [] }),
+          ]),
+        );
+      });
+    }));
 });
