@@ -98,6 +98,7 @@ export function createAdBudget(deps: { now: () => number; storage: Storage }) {
       };
     },
     todayCount: (profileId: string) => today.get(dayKey(profileId)) ?? 0,
+    pendingCount: () => pending,
     reserve(profileId: string) {
       pending++;
       let done = false;

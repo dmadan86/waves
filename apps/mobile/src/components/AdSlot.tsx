@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Platform, Text as NativeText, View } from 'react-native';
 import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -231,7 +231,6 @@ function NativeSlot({
       try {
         await prev;
         if (cancelled || !handle.canRequest()) return;
-        if (handle.nativeCap != null && adBudget.todayCount(profileId) >= handle.nativeCap) return;
         const sdk = await loadAdsSdk();
         const consent = await gatherConsentSafe(sdk);
         if (cancelled || !consent.canRequestAds) return;
@@ -239,6 +238,12 @@ function NativeSlot({
         await sdk.MobileAds().initialize();
         // Re-checked after the awaits, and reserved in the same tick, so slots cannot overrun a cap.
         if (cancelled || !handle.canRequest()) return;
+        // The optional native-only daily cap counts requests still in flight.
+        if (
+          handle.nativeCap != null &&
+          adBudget.todayCount(profileId) + adBudget.pendingCount() >= handle.nativeCap
+        )
+          return;
         reservation = adBudget.reserve(profileId);
         const native = (await import('react-native-google-mobile-ads')) as unknown as NativeSdk;
         ad =
@@ -438,6 +443,7 @@ function BannerSlot({
   const [sdk, setSdk] = useState<BannerSdk | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [width, setWidth] = useState(0);
+  const firstShown = useRef(false);
   const [reservation, setReservation] = useState<ReturnType<typeof adBudget.reserve> | null>(null);
   useEffect(() => {
     if (!go || !profileId) return;
@@ -472,6 +478,7 @@ function BannerSlot({
     return () => {
       cancelled = true;
       held?.release();
+      firstShown.current = false;
       setReservation(null);
       setSdk(null);
       setLoaded(false);
@@ -516,8 +523,10 @@ function BannerSlot({
               requestOptions={{ requestNonPersonalizedAdsOnly: true }}
               onAdLoaded={() => setLoaded(true)}
               onAdImpression={() => {
-                if (!reservation) return;
-                reservation.confirm();
+                // AdMob may refresh a banner: each later impression takes a fresh reservation.
+                if (firstShown.current) adBudget.reserve(profileId).confirm();
+                else reservation?.confirm();
+                firstShown.current = true;
                 handle.markShown();
                 logAdEvent(profileId, placement, 'shown', detail);
               }}
