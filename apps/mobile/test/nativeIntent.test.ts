@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { redirectSystemPath } from '@/app/+native-intent';
+import { redirectSystemPath, stripResumeParam } from '@/app/+native-intent';
 
 const go = (path: string): string | null => redirectSystemPath({ path, initial: true });
 
@@ -94,6 +94,80 @@ describe('the links that were already rewritten', () => {
   it('passes anything it does not recognise straight through', () => {
     expect(go('waves://group/abc')).toBe('waves://group/abc');
     expect(go('not a url at all')).toBe('not a url at all');
+  });
+});
+
+describe('stripResumeParam', () => {
+  it('removes resume when it is the only query param', () => {
+    expect(stripResumeParam('/join?resume=1')).toBe('/join');
+    expect(stripResumeParam('waves://join?resume=1')).toBe('waves://join');
+  });
+
+  it('removes resume when it is the first param, preserving the rest', () => {
+    expect(stripResumeParam('/join?resume=1&token=X')).toBe('/join?token=X');
+  });
+
+  it('removes resume when it is a trailing param', () => {
+    expect(stripResumeParam('/join?token=X&resume=1')).toBe('/join?token=X');
+  });
+
+  it('preserves the fragment when stripping resume', () => {
+    expect(stripResumeParam('/join?resume=1#frag')).toBe('/join#frag');
+    expect(stripResumeParam('/join?token=X&resume=1#frag')).toBe('/join?token=X#frag');
+  });
+
+  it('leaves a link with no resume param unchanged', () => {
+    expect(stripResumeParam('/join?token=X')).toBe('/join?token=X');
+    expect(stripResumeParam('waves://group/abc')).toBe('waves://group/abc');
+    expect(stripResumeParam('/join')).toBe('/join');
+  });
+
+  it('preserves other params when there is no resume', () => {
+    expect(stripResumeParam('/capture?scan=1&foo=bar')).toBe('/capture?scan=1&foo=bar');
+  });
+
+  it('strips a percent-encoded lowercase resume key (%72esume=1)', () => {
+    // %72 decodes to 'r', so %72esume=1 is resume=1 in disguise.
+    expect(stripResumeParam('/join?token=X&%72esume=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%72esume=1')).toBe('/join');
+  });
+
+  it('strips a percent-encoded mixed-case resume key (%52ESUME=1)', () => {
+    // %52 decodes to 'R', so %52ESUME=1 is RESUME=1 — still matches case-insensitively.
+    expect(stripResumeParam('/join?token=X&%52ESUME=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%52ESUME=1')).toBe('/join');
+  });
+
+  it('drops a part with a malformed percent-encoded key entirely', () => {
+    // %E0%A4%A is an incomplete UTF-8 sequence — decodeURIComponent throws.
+    // The part is dropped rather than passed through (safe-fail behaviour).
+    expect(stripResumeParam('/join?token=X&%E0%A4%A=1')).toBe('/join?token=X');
+    expect(stripResumeParam('/join?%E0%A4%A=1')).toBe('/join');
+  });
+});
+
+describe('redirectSystemPath strips externally supplied resume param', () => {
+  it('strips resume from a custom-scheme join link', () => {
+    // An attacker-crafted link must not reach join.tsx with resume=1 set.
+    expect(go('waves://join?token=X&resume=1')).toBe('waves://join?token=X');
+  });
+
+  it('strips resume from a schemeless join path', () => {
+    expect(go('/join?token=X&resume=1')).toBe('/join?token=X');
+  });
+
+  it('preserves all other params after stripping resume', () => {
+    expect(go('waves://join?token=X&resume=1&other=2')).toBe('waves://join?token=X&other=2');
+  });
+
+  it('leaves a link with no resume param unchanged (pass-through)', () => {
+    expect(go('waves://join?token=X')).toBe('waves://join?token=X');
+  });
+
+  it('https invite rewrite is unaffected by resume stripping', () => {
+    // The https rewrite reconstructs the URL from the token, so resume is
+    // already not present in its output — but confirm the rewrite still fires.
+    expect(go('https://app.wavs.co.in/join#abc123')).toBe('/join?token=abc123');
   });
 });
 

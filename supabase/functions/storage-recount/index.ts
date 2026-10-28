@@ -14,6 +14,7 @@
 
 import { asService, serveWithCors, errorResponse, HttpError, json } from '../_shared/auth.ts';
 import { LOGICAL_BUCKETS, type LogicalBucket, objectUrl, r2, r2Configured } from '../_shared/r2.ts';
+import { safeEqual } from '../revenuecat-webhook/handler.ts';
 
 serveWithCors(async (request) => {
   try {
@@ -22,7 +23,7 @@ serveWithCors(async (request) => {
     }
 
     const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!expected || request.headers.get('Authorization') !== `Bearer ${expected}`) {
+    if (!expected || !safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${expected}`)) {
       throw new HttpError(401, 'NOT_AUTHORISED', 'This endpoint is not for clients');
     }
     if (!r2Configured()) {
@@ -53,7 +54,10 @@ serveWithCors(async (request) => {
       p_bytes: size,
       p_content_type: contentType,
     });
-    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (error) {
+      console.error(JSON.stringify({ fn: 'storage-recount', detail: error.message }));
+      throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    }
 
     return json({ ok: true, bytes: size });
   } catch (error) {
