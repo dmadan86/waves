@@ -42,8 +42,8 @@ beforeEach(() => {
   forgetSigningProbe();
   vi.stubEnv('WAVES_API_SUPABASE_URL', 'https://backend.example.test');
   vi.stubEnv('WAVES_API_SUPABASE_ANON_KEY', 'anon-key');
-  vi.stubEnv('WAVES_API_JWT_SECRET', 'jwt-secret');
-  vi.stubEnv('WAVES_API_TOKEN_SECRET', 'token-secret');
+  vi.stubEnv('WAVES_API_JWT_SECRET', 'j'.repeat(40));
+  vi.stubEnv('WAVES_API_TOKEN_SECRET', 't'.repeat(40));
 });
 
 afterEach(() => {

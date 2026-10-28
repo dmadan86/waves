@@ -30,6 +30,8 @@
  * the protocol core stateless for exactly this reason.
  */
 
+import { agentClientId } from '@/lib/agentToken';
+
 import { createClient } from '@supabase/supabase-js';
 import { serveMcpOverHttp } from '@waves/agent-mcp/http';
 import { bearerToken, challengeHeader, metadataUrlFor } from '@waves/agent-mcp/oauth';
@@ -99,7 +101,7 @@ export async function POST(request: Request): Promise<Response> {
   // signature and expiry; a token this server cannot resolve to a user is not a
   // caller with fewer permissions, it is not a caller at all.
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return unauthorized(request, 'invalid_token');
+  if (error || !data.user || !agentClientId(token)) return unauthorized(request, 'invalid_token');
 
   return serveMcpOverHttp(buildWavesServer(supabase, data.user.id, readOnly()), request);
 }
