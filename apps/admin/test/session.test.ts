@@ -1,11 +1,17 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { hasTrustedOrigin, isValidToken, issueToken, checkPassword } from '@/lib/session';
+import {
+  hasTrustedOrigin,
+  isValidToken,
+  issueToken,
+  checkPassword,
+  csrfTokenFor,
+} from '@/lib/session';
 
 const ORIGIN_SECRET = 'origin-secret-value';
 
 beforeAll(() => {
-  process.env.ADMIN_SESSION_SECRET = 'test-session-secret';
+  process.env.ADMIN_SESSION_SECRET = 's'.repeat(40);
   process.env.ADMIN_PASSWORD = 'correct horse battery staple';
 });
 
@@ -60,5 +66,43 @@ describe('session cookie', () => {
     await expect(checkPassword('correct horse battery staple')).resolves.toBe(true);
     await expect(checkPassword('wrong')).resolves.toBe(false);
     await expect(checkPassword('')).resolves.toBe(false);
+  });
+});
+
+describe('session secret strength', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('rejects a 31-character secret for signing, verification, and CSRF', async () => {
+    const token = await issueToken();
+    vi.stubEnv('ADMIN_SESSION_SECRET', 'x'.repeat(31));
+    const message = 'ADMIN_SESSION_SECRET must be at least 32 characters.';
+    await expect(issueToken()).rejects.toThrow(message);
+    await expect(isValidToken(token.value)).rejects.toThrow(message);
+    await expect(csrfTokenFor(token.value)).rejects.toThrow(message);
+  });
+
+  it('accepts a 32-character secret', async () => {
+    vi.stubEnv('ADMIN_SESSION_SECRET', 'x'.repeat(32));
+    const token = await issueToken();
+    await expect(isValidToken(token.value)).resolves.toBe(true);
+  });
+});
+
+describe('session cookie name', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it.each([
+    ['production', '__Host-waves_admin'],
+    ['development', 'waves_admin'],
+    ['test', 'waves_admin'],
+  ])('uses the correct name in %s', async (env, name) => {
+    vi.stubEnv('NODE_ENV', env);
+    vi.resetModules();
+    const session = await import('@/lib/session');
+    expect(session.SESSION_COOKIE).toBe(name);
+    expect((await session.issueToken()).name).toBe(name);
   });
 });

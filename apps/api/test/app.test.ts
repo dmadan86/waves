@@ -25,8 +25,8 @@ beforeEach(() => {
   forgetSigningProbe();
   vi.stubEnv('WAVES_API_SUPABASE_URL', 'https://backend.example.test');
   vi.stubEnv('WAVES_API_SUPABASE_ANON_KEY', 'anon-key');
-  vi.stubEnv('WAVES_API_JWT_SECRET', 'jwt-secret');
-  vi.stubEnv('WAVES_API_TOKEN_SECRET', 'token-secret');
+  vi.stubEnv('WAVES_API_JWT_SECRET', 'j'.repeat(40));
+  vi.stubEnv('WAVES_API_TOKEN_SECRET', 't'.repeat(40));
   vi.stubEnv('WAVES_API_WEB_URL', 'https://app.example.test');
   vi.stubEnv('WAVES_API_ALLOWED_ORIGINS', 'https://app.example.test');
 });
@@ -70,7 +70,7 @@ describe('the shape of a refusal', () => {
     // The database refuses it too; this is the cheaper half of the same rule.
     const { mintCredential, CredentialKind } = await import('../src/server/credentials');
     const refresh = mintCredential(
-      'token-secret',
+      't'.repeat(40),
       CredentialKind.Refresh,
       '33333333-3333-4333-8333-333333333333',
     );
@@ -151,6 +151,17 @@ describe('what a stranger can read', () => {
     expect(body.data.some((entry) => entry.scope === 'offline_access')).toBe(true);
   });
 
+  it.each(['WAVES_API_JWT_SECRET', 'WAVES_API_TOKEN_SECRET'])(
+    'reports a 31-character %s as missing',
+    async (name) => {
+      vi.stubEnv(name, 'x'.repeat(31));
+      const response = await get('/health');
+      const body = (await response.json()) as { status: string; missing: string[] };
+      expect(body.status).toBe('misconfigured');
+      expect(body.missing).toContain(name);
+    },
+  );
+
   it('says which configuration is missing without saying what any of it is', async () => {
     vi.stubEnv('WAVES_API_TOKEN_SECRET', '');
     const response = await get('/health');
@@ -158,7 +169,7 @@ describe('what a stranger can read', () => {
     expect(body.status).toBe('misconfigured');
     expect(body.missing).toContain('WAVES_API_TOKEN_SECRET');
     // Names, never values.
-    expect(JSON.stringify(body)).not.toContain('jwt-secret');
+    expect(JSON.stringify(body)).not.toContain('j'.repeat(40));
   });
 });
 

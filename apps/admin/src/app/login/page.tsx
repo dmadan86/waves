@@ -29,7 +29,7 @@ export default async function Login({
     // Throttle next, on the address, so a locked source cannot even test a
     // guess. Counts this attempt whether or not the password is right — the
     // operator logs in a handful of times a day and never meets the limit.
-    const address = clientAddress((await headers()).get('x-forwarded-for'));
+    const address = clientAddress(await headers());
     const gate = await recordLoginAttempt(address);
     if (!gate.allowed) {
       redirect('/login?error=locked');

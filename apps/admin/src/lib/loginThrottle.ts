@@ -5,9 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 /**
  * Slows a brute-force at the login form.
  *
- * The console is one shared password. On a hostname that is (until Cloudflare
- * Access is wired up) publicly reachable, that makes the login form the whole
- * attack surface, and an unlimited form is a password guessed at line speed.
+ * The console is one shared password behind Cloudflare Access. Limit guesses
+ * both per address and globally so rotating addresses cannot bypass the gate.
  *
  * The counting is done in Postgres by `waves_rate_limit` — the same limiter the
  * edge functions use (`supabase/functions/_shared/rateLimit.ts`) — and not in
@@ -18,11 +17,8 @@ import { createClient } from '@supabase/supabase-js';
  * a login. The bucket carries its own limit here rather than relying on a
  * `rate_limit_rules` row, so it works whether or not one has been configured.
  *
- * Fails open. If the count cannot be taken — the only realistic cause being the
- * database being unreachable — the attempt proceeds. This console must keep
- * working when the thing it watches is down, and a limiter that turns a database
- * blip into a lockout of the one operator has done more harm than the slow
- * guessing it was there to stop.
+ * Fails closed when the database check fails, and when service configuration
+ * is missing in production. Local development may run without Supabase.
  */
 
 const BUCKET = 'admin-login';
@@ -48,47 +44,55 @@ function service() {
 }
 
 /**
- * Reads the client address the way the edge limiter does: the first entry of
- * `x-forwarded-for`, which is the client as the first proxy saw it. Spoofable in
- * general, but a caller willing to rotate that header per request only earns a
- * slower oracle, not an open one — and behind Cloudflare the header is set by a
- * hop the attacker does not control.
+ * Prefer Cloudflare's injected address: proxy.ts requires its origin secret,
+ * so callers cannot bypass Cloudflare Access and forge this header. Fall back
+ * to x-real-ip, then the last (nearest proxy) x-forwarded-for entry.
  */
-export function clientAddress(forwardedFor: string | null | undefined): string {
-  const first = (forwardedFor ?? '').split(',')[0]?.trim();
-  return first || 'unknown';
+export function clientAddress(headers: { get(name: string): string | null }): string {
+  return (
+    headers.get('cf-connecting-ip')?.trim() ||
+    headers.get('x-real-ip')?.trim() ||
+    headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ||
+    'unknown'
+  );
 }
 
-/**
- * Counts one login attempt against the address and reports whether it is now
- * over the line. Call it on every submit, before checking the password, so a
- * locked address cannot even test a guess.
- */
+/** Count submits per address, then globally only if the address is not blocked. */
 export async function recordLoginAttempt(address: string): Promise<ThrottleDecision> {
-  const svc = service();
-  if (!svc) return { allowed: true, retryAfter: 0 };
+  const closed = { allowed: false, retryAfter: 60 };
+  try {
+    const svc = service();
+    if (!svc)
+      return process.env.NODE_ENV === 'production' ? closed : { allowed: true, retryAfter: 0 };
 
-  const { data, error } = await svc.rpc('waves_rate_limit', {
-    p_subject: `ip:${address}`,
-    p_bucket: BUCKET,
-    p_limit: MAX_ATTEMPTS,
-    p_window_seconds: WINDOW_SECONDS,
-  });
-
-  if (error) {
-    console.error('admin login throttle check failed, allowing attempt:', error.message);
-    return { allowed: true, retryAfter: 0 };
+    let retryAfter = 0;
+    for (const [subject, bucket, limit] of [
+      [`ip:${address}`, BUCKET, MAX_ATTEMPTS],
+      ['global', 'admin-login-global', 100],
+    ] as const) {
+      const { data, error } = await svc.rpc('waves_rate_limit', {
+        p_subject: subject,
+        p_bucket: bucket,
+        p_limit: limit,
+        p_window_seconds: WINDOW_SECONDS,
+      });
+      if (error || !data || typeof data.allowed !== 'boolean') {
+        console.error('admin login throttle check failed, refusing attempt:', error);
+        retryAfter = Math.max(retryAfter, 60);
+        continue;
+      }
+      if (!data.allowed) {
+        const delay = Math.max(Number(data.retryAfter) || 1, 1);
+        retryAfter = Math.max(retryAfter, delay);
+        console.warn(
+          `[ALERT] admin-login lockout: address=${address} bucket=${bucket} retryAfterSeconds=${delay}`,
+        );
+        break;
+      }
+    }
+    return { allowed: retryAfter === 0, retryAfter };
+  } catch (error) {
+    console.error('admin login throttle check failed, refusing attempt:', error);
+    return closed;
   }
-
-  const decision = data as { allowed?: boolean; retryAfter?: number } | null;
-  if (!decision || decision.allowed) return { allowed: true, retryAfter: 0 };
-
-  const retryAfter = Math.max(Number(decision.retryAfter) || 1, 1);
-  // The alert signal. A lockout means either the operator is having a bad day or
-  // somebody is guessing; both are worth a line that log-based alerting can key
-  // on. No secret, no address of ours, nothing that helps an attacker.
-  console.warn(
-    `[ALERT] admin-login lockout: address=${address} bucket=${BUCKET} retryAfterSeconds=${retryAfter}`,
-  );
-  return { allowed: false, retryAfter };
 }

@@ -17,7 +17,8 @@
  * say to put it behind network restriction too rather than only behind this.
  */
 
-const COOKIE = 'waves_admin';
+export const SESSION_COOKIE =
+  process.env.NODE_ENV === 'production' ? '__Host-waves_admin' : 'waves_admin';
 
 /** Eight hours. Long enough for a working day, short enough to not be a key. */
 const TTL_SECONDS = 8 * 60 * 60;
@@ -31,6 +32,12 @@ function required(name: string): string {
     );
   }
   return value;
+}
+
+function sessionSecret(): string {
+  const secret = required('ADMIN_SESSION_SECRET');
+  if (secret.length < 32) throw new Error('ADMIN_SESSION_SECRET must be at least 32 characters.');
+  return secret;
 }
 
 /** Base64url, because a cookie value may not contain `+`, `/` or `=`. */
@@ -85,8 +92,8 @@ export async function checkPassword(candidate: string): Promise<boolean> {
 /** `<expiry>.<signature>`. There is nothing to say beyond "this was us". */
 export async function issueToken(): Promise<{ name: string; value: string; maxAge: number }> {
   const expiresAt = Math.floor(Date.now() / 1000) + TTL_SECONDS;
-  const signature = await hmac(String(expiresAt), required('ADMIN_SESSION_SECRET'));
-  return { name: COOKIE, value: `${expiresAt}.${signature}`, maxAge: TTL_SECONDS };
+  const signature = await hmac(String(expiresAt), sessionSecret());
+  return { name: SESSION_COOKIE, value: `${expiresAt}.${signature}`, maxAge: TTL_SECONDS };
 }
 
 export async function isValidToken(token: string | undefined): Promise<boolean> {
@@ -95,14 +102,12 @@ export async function isValidToken(token: string | undefined): Promise<boolean> 
   if (!expiresAt || !signature) return false;
 
   // Signature first, then expiry: an unsigned token has no expiry worth reading.
-  const expected = await hmac(expiresAt, required('ADMIN_SESSION_SECRET'));
+  const expected = await hmac(expiresAt, sessionSecret());
   if (!(await equals(signature, expected))) return false;
 
   const seconds = Number(expiresAt);
   return Number.isFinite(seconds) && seconds > Math.floor(Date.now() / 1000);
 }
-
-export const SESSION_COOKIE = COOKIE;
 
 /**
  * The second door: proof the request arrived through the trusted proxy.
@@ -141,7 +146,7 @@ export async function constantTimeEquals(a: string, b: string): Promise<boolean>
  * session signature, which is the same input under the same key.
  */
 export async function csrfTokenFor(sessionValue: string): Promise<string> {
-  return hmac(`csrf.${sessionValue}`, required('ADMIN_SESSION_SECRET'));
+  return hmac(`csrf.${sessionValue}`, sessionSecret());
 }
 
 /**
