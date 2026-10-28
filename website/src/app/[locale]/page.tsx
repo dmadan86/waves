@@ -122,7 +122,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
         <Faq t={t.faq} />
-        <DownloadBanner t={t.cta} stores={t.stores} />
+        <DownloadBanner t={t.cta} stores={t.stores} result={t.hero.split.result} />
       </main>
 
       <SiteFooter locale={locale} t={t.footer} legal={t.legal} appUrl={site.appUrl} />

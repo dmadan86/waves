@@ -3,7 +3,7 @@
     "title": "Waves — split, track and settle together",
     "description": "Waves helps you split, track and settle shared expenses with friends, family and roommates. Scan receipts, add expenses by voice and keep going offline. Free to get started, no credit card required.",
     "ogAlt": "Waves — split, track and settle together",
-    "priceCurrency": "USD"
+    "priceCurrency": "INR"
   },
   "nav": {
     "features": "Features",
@@ -58,7 +58,21 @@
         "item": "Scooter",
         "amount": "₹450"
       }
-    ]
+    ],
+    "split": {
+      "label": "Animated example: a dinner bill of ₹1,665 split three ways; Ravi owes Asha ₹555",
+      "bill": "Dinner",
+      "total": "₹1,665",
+      "paidBy": "Asha paid",
+      "each": "₹555 each",
+      "people": ["Asha", "Ravi", "Meera"],
+      "result": "Ravi pays you ₹555",
+      "resultNote": "Who owes whom",
+      "settle": "Settle with UPI",
+      "upi": "Opens your UPI app",
+      "replay": "Replay",
+      "example": "Example"
+    }
   },
   "features": {
     "label": "What Waves does",
@@ -158,10 +172,10 @@
         "tagline": "Everything that matters, forever",
         "badge": "",
         "features": [
-          "Unlimited groups, expenses and splits",
-          "Settle up and export, no limits",
-          "20 receipt scans a month",
-          "AI voice: 10 commands a month"
+          "Unlimited people, expenses, currencies and splits",
+          "Settle up is unlimited",
+          "Watch a short ad for 6 credits; hold up to 30",
+          "AI voice 1 credit · receipt scan 2 · export 6 · extra group 6 (first group free)"
         ]
       },
       {
@@ -170,20 +184,20 @@
         "tagline": "Everything you need",
         "badge": "Recommended",
         "features": [
+          "No ads",
+          "100 AI voice commands a month",
           "300 receipt scans a month",
-          "Use on up to 3 devices",
-          "Bigger exports, imports and backups",
-          "Advanced AI voice: 100 commands a month"
+          "Use on up to 3 devices"
         ]
       }
     ],
-    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no card at sign-up. AI voice: 10 commands a month. Free has optional reward ads for extra AI voice commands and scans; Pro has no ads.",
+    "freeNote": "Free is ad-supported: watch a short ad whenever you like and each one gives 6 credits (hold up to 30). AI voice costs 1 credit, a receipt scan 2, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
     "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We never sell your data. Free has optional reward ads you choose to watch, never on your money screens. Pro has none.",
+    "body": "Your data belongs to you. We never sell your data. Free is ad-supported: you choose to watch a short ad for credits, and ads never appear on your money screens. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
@@ -198,11 +212,11 @@
     "items": [
       {
         "q": "Is Waves really free?",
-        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier. Pro exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
+        "a": "Yes. People, expenses, currencies, splits, offline use and settling up are unlimited on the free plan, and your first group is free. A few things cost credits, which you earn by watching a short ad. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
       },
       {
         "q": "What does Pro add?",
-        "a": "Pro adds 300 receipt scans a month, use on up to 3 devices, bigger exports, imports and backups, and the advanced AI voice agent with 100 commands a month. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
+        "a": "Pro has no ads and adds 100 AI voice commands and 300 receipt scans a month, with use on up to 3 devices. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -210,19 +224,19 @@
       },
       {
         "q": "What do you do with my data?",
-        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free has optional reward ads you choose to watch, never on your money screens; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free is ad-supported: you choose to watch a short ad for credits, never on your money screens; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
         "q": "Does Waves show ads?",
-        "a": "Only if you choose to, and only on Free. When you reach the monthly limit for AI voice commands or receipt scans, you can watch one short ad to earn 2 more of them, up to 3 ads a day, or upgrade to Pro instead. Nothing is ever forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Pro has no ads at all."
+        "a": "On Free, yes: the way to earn credits is to watch a short ad, which gives you 6 credits (you can hold up to 30). Credits pay for AI voice (1 credit), receipt scans (2), exports (6) and extra groups (6; your first group is free). Nothing is forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Pro has no ads at all."
       },
       {
         "q": "Can I import or export my data?",
-        "a": "Yes. Exporting your ledger is part of the free plan, and your data is yours to take with you. Pro raises the limits for bigger exports, imports and backups."
+        "a": "Yes. You can export your ledger from the app; on Free an export costs 6 credits. Your data is yours to take with you."
       },
       {
         "q": "Can I add expenses by voice?",
-        "a": "Yes. Everyone gets a voice allowance. Pro adds the advanced AI voice agent with 100 commands a month."
+        "a": "Yes. On Free an AI voice command costs 1 credit. Pro has no ads and includes 100 AI voice commands a month."
       },
       {
         "q": "What happens when I have no signal?",

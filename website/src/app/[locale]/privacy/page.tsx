@@ -56,7 +56,7 @@ const sections: LegalSection[] = [
   {
     heading: 'Advertising',
     body: [
-      'On the Free plan, when you reach the monthly limit for AI voice commands or receipt scans, you can choose to watch one short rewarded video ad in exchange for extra commands or scans. Ads only appear when you choose to watch one, and only on Free. Pro, and the 15-day Pro trial, see none. We never show ads on balances, groups, expenses or settling up.',
+      'On the Free plan, you can choose to watch a short rewarded video ad in exchange for credits, which pay for AI voice commands, receipt scans, exports and extra groups. Ads only appear when you choose to watch one, and only on Free. Pro, and the 15-day Pro trial, see none. We never show ads on balances, groups, expenses or settling up.',
       'Ads are served by Google AdMob and are non-personalized only. The AdMob software in the app can read your device\u2019s advertising ID, which Google uses to serve the ad and prevent fraud. We do not use it to personalize ads, we do not ask to track you across other companies\u2019 apps and websites, and we never share your expenses, groups or balances with advertisers.',
       'To serve an ad and prevent fraud, AdMob receives device and IP-level information, as described in Google\u2019s policy. In the European Economic Area, the United Kingdom and Switzerland, Google\u2019s consent form is shown first, and you can change your choice later.',
       'When you finish an ad, Google confirms it to our server so the reward can be credited; the app never grants a reward by itself. To match the reward to you, we give Google an internal account ID with the ad request. It is not your name or email address.',

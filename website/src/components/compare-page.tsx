@@ -224,7 +224,7 @@ export function CompareBody({
 }) {
   const others = competitors.filter((o) => o.slug !== c.slug);
   const ticks = c.heroTicks ?? [
-    'Unlimited groups and expenses',
+    'Unlimited people and expenses',
     'Free forever plan',
     'Settle with UPI',
     'Works globally',
@@ -270,7 +270,7 @@ export function CompareBody({
             <span className="text-blue">Not your freedom.</span>
           </h1>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-2">
-            Unlimited groups and expenses for free. Settle with UPI, scan receipts, and keep
+            Unlimited people and expenses for free. Settle with UPI, scan receipts, and keep
             everyone in sync.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
@@ -333,7 +333,7 @@ export function CompareBody({
           </div>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <WaveMark className="mx-auto mb-2 h-10 w-12" />
+              <WaveMark className="mx-auto mb-2 h-10 w-10" />
               <p className="text-lg font-bold text-ink">Waves</p>
               <p className="text-xs text-ink-2">Your shared expenses, together.</p>
             </div>
@@ -405,7 +405,7 @@ export function CompareBody({
         <FeatureCard
           symbol="∞"
           title="Split without limits"
-          body="Groups, people, expenses and currencies are unlimited on Waves Free."
+          body="People, expenses and currencies are unlimited on Waves Free."
           href="#table"
           label="Explore the comparison"
         />

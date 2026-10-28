@@ -16,7 +16,7 @@ export function generateStaticParams() {
 const path = '/alternatives/splitwise-alternative';
 const title = 'A Splitwise alternative with no daily expense limit';
 const description =
-  'Looking for a Splitwise alternative? Waves keeps expenses, groups and currencies unlimited on Free, works offline and imports your Splitwise export.';
+  'Looking for a Splitwise alternative? Waves keeps expenses, people and currencies unlimited on Free, works offline and imports your Splitwise export.';
 
 export const metadata: Metadata = socialMetadata({ title, description, path });
 
