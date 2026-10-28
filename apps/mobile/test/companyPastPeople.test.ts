@@ -37,6 +37,18 @@ describe('foldPastPeople', () => {
   });
 });
 
+describe('foldPastPeople bridges', () => {
+  it('merges rows linked only through a third row', () => {
+    const out = foldPastPeople([
+      row('1', 'A', 'Acme', { phone: '+911111111111' }),
+      row('2', 'A', 'Beta', { email: 'a@x.com' }),
+      row('3', 'A', 'Gamma', { phone: '+911111111111', email: 'a@x.com' }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.sourceMemberIds).toEqual(['1', '2', '3']);
+  });
+});
+
 describe('searchPastPeople', () => {
   const people = foldPastPeople([
     row('1', 'Ravi', 'Acme Traders', { phone: '+919876543210' }),

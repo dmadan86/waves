@@ -39,43 +39,29 @@ const keysOf = (row: PastPersonRow): string[] => {
 };
 
 export function foldPastPeople(rows: readonly PastPersonRow[]): PastPerson[] {
-  const people: {
-    ids: string[];
-    name: string;
-    phone: string | null;
-    email: string | null;
-    companies: string[];
-  }[] = [];
-  const byKey = new Map<string, number>();
-  for (const row of rows) {
-    const keys = keysOf(row);
-    const at = keys.map((key) => byKey.get(key)).find((index) => index !== undefined);
-    let index = at;
-    if (index === undefined) {
-      index = people.length;
-      people.push({
-        ids: [],
-        name: row.display_name,
-        phone: row.phone,
-        email: row.email,
-        companies: [],
-      });
+  // Union-find over rows: any shared account / number / email links two rows,
+  // including through a third (phone X, email Y, then both X and Y).
+  const parent = rows.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i]!)));
+  const seen = new Map<string, number>();
+  rows.forEach((row, i) => {
+    for (const key of keysOf(row)) {
+      const at = seen.get(key);
+      if (at === undefined) seen.set(key, i);
+      else parent[find(i)] = find(at);
     }
-    const person = people[index]!;
-    person.ids.push(row.source_member_id);
-    person.phone ??= row.phone;
-    person.email ??= row.email;
-    if (!person.companies.includes(row.source_group_name)) {
-      person.companies.push(row.source_group_name);
-    }
-    for (const key of keys) byKey.set(key, index);
-  }
-  return people.map((person) => ({
-    sourceMemberIds: person.ids,
-    name: person.name,
-    phone: person.phone,
-    email: person.email,
-    companies: person.companies,
+  });
+  const groups = new Map<number, PastPersonRow[]>();
+  rows.forEach((row, i) => {
+    const root = find(i);
+    groups.set(root, [...(groups.get(root) ?? []), row]);
+  });
+  return [...groups.values()].map((members) => ({
+    sourceMemberIds: members.map((row) => row.source_member_id),
+    name: members[0]!.display_name,
+    phone: members.find((row) => row.phone)?.phone ?? null,
+    email: members.find((row) => row.email)?.email ?? null,
+    companies: [...new Set(members.map((row) => row.source_group_name))],
   }));
 }
 

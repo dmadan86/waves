@@ -70,7 +70,7 @@ export default function MembersScreen() {
 
   const [pastOpen, setPastOpen] = useState(false);
   const [pastQuery, setPastQuery] = useState('');
-  const [pastPicked, setPastPicked] = useState<ReadonlySet<number>>(new Set());
+  const [pastPicked, setPastPicked] = useState<ReadonlySet<string>>(new Set());
   const [ghostName, setGhostName] = useState('');
   const [ghostContact, setGhostContact] = useState('');
   const [adding, setAdding] = useState(false);
@@ -90,17 +90,13 @@ export default function MembersScreen() {
   const canAdd = !isCompany || iAmAdmin;
   const past = useCompanyPastPeople(groupId, isCompany && iAmAdmin && pastOpen);
   const pastPeople = useMemo(() => foldPastPeople(past.data ?? []), [past.data]);
-  const pastShown = useMemo(
-    () =>
-      searchPastPeople(pastPeople, pastQuery).map((person) => ({
-        person,
-        index: pastPeople.indexOf(person),
-      })),
-    [pastPeople, pastQuery],
-  );
+  const pastShown = useMemo(() => searchPastPeople(pastPeople, pastQuery), [pastPeople, pastQuery]);
   const addPastPicked = (): void => {
     setError(null);
-    const ids = [...pastPicked].flatMap((index) => pastPeople[index]?.sourceMemberIds ?? []);
+    // Keyed by a stable source id, so a refetch can never shift a tick onto someone else.
+    const ids = pastPeople
+      .filter((person) => pastPicked.has(person.sourceMemberIds[0]!))
+      .flatMap((person) => person.sourceMemberIds);
     addPast.mutate(ids, {
       onSuccess: () => {
         setPastPicked(new Set());
@@ -465,8 +461,9 @@ export default function MembersScreen() {
                     {t.company.pastEmpty}
                   </Text>
                 ) : null}
-                {pastShown.map(({ person, index }) => {
-                  const on = pastPicked.has(index);
+                {pastShown.map((person) => {
+                  const key = person.sourceMemberIds[0]!;
+                  const on = pastPicked.has(key);
                   return (
                     <Pressable
                       key={person.sourceMemberIds[0]}
@@ -475,8 +472,8 @@ export default function MembersScreen() {
                       onPress={() =>
                         setPastPicked((prev) => {
                           const next = new Set(prev);
-                          if (on) next.delete(index);
-                          else next.add(index);
+                          if (on) next.delete(key);
+                          else next.add(key);
                           return next;
                         })
                       }

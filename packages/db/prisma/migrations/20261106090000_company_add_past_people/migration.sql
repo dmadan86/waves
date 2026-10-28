@@ -37,7 +37,11 @@ BEGIN
       WHERE target.group_id = p_target_group
         AND target.left_at IS NULL AND target.removed_at IS NULL AND target.merged_into_member_id IS NULL
         AND (target.profile_id = m.profile_id OR target.invite_phone = m.invite_phone
-             OR target.invite_email = m.invite_email)
+             OR target.invite_email = m.invite_email
+             -- A placeholder with no contact is matched by name, so a retry cannot copy it twice.
+             OR (m.profile_id IS NULL AND m.invite_phone IS NULL AND m.invite_email IS NULL
+                 AND target.profile_id IS NULL AND target.invite_phone IS NULL AND target.invite_email IS NULL
+                 AND lower(target.ghost_name) = lower(m.ghost_name)))
     )
   ORDER BY g.name, CASE WHEN m.profile_id IS NULL THEN m.ghost_name ELSE p.display_name END, m.id
   LIMIT 500;
@@ -88,11 +92,22 @@ BEGIN
       RAISE EXCEPTION 'FORBIDDEN' USING ERRCODE = 'insufficient_privilege';
     END IF;
     source_member_id := v_id;
+    member_id := NULL;
+    IF v_source.profile_id IS NULL AND v_source.invite_phone IS NULL AND v_source.invite_email IS NULL THEN
+      SELECT t.id INTO member_id FROM public.group_members t
+       WHERE t.group_id = p_target_group AND t.left_at IS NULL AND t.removed_at IS NULL
+         AND t.merged_into_member_id IS NULL AND t.profile_id IS NULL
+         AND t.invite_phone IS NULL AND t.invite_email IS NULL
+         AND lower(t.ghost_name) = lower(v_source.name)
+       LIMIT 1;
+    END IF;
+    IF member_id IS NULL THEN
     member_id := public.waves_add_ghost_member(
       p_target_group, v_source.name, NULL, v_source.invite_email,
       CASE WHEN v_source.invite_phone LIKE '+%' THEN v_source.invite_phone ELSE NULL END,
       v_source.profile_id
     );
+    END IF;
     RETURN NEXT;
   END LOOP;
 END
