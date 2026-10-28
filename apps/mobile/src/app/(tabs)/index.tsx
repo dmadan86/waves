@@ -612,6 +612,7 @@ export default function HomeScreen() {
                     onAddExpense={() => setQuickExpenseOpen(true)}
                     onAddExpenseLong={() => setQuickAddOpen(true)}
                     onSettleUp={() => router.push('/settle-up')}
+                    onReview={() => router.navigate('/captures')}
                     onNewGroup={openNewGroupMenu}
                     radius={theme.radius.xl}
                   />

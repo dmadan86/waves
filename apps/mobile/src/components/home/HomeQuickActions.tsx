@@ -25,6 +25,11 @@ import { measureAnchor } from '@/lib/measureAnchor';
 import { fill, useStrings } from '@/i18n';
 import { readCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
+import { useCaptures } from '@/data/hooks';
+import { foldedCaptureCount } from '@/lib/captureBatch';
+import { homeSecondActionKey } from '@/lib/companyTab';
+import { captureInboxActionState } from '@/lib/dashboardActions';
+import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
@@ -33,12 +38,15 @@ export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
   onSettleUp,
+  onReview,
   onNewGroup,
   radius,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
   onSettleUp: () => void;
+  /** Company users: opens Review, which has no tab of its own for them. */
+  onReview: () => void;
   /** Handed the tile's window position so the menu can drop from it. */
   onNewGroup: (anchor: MenuAnchor | null) => void;
   /** The card's corner radius, which the strip's bottom corners follow. */
@@ -56,6 +64,10 @@ export function HomeQuickActions({
     enabled: !!viewerId,
   });
 
+  const isReview = homeSecondActionKey(useViewerCompanyIds()) === 'review';
+  // Same folded count as the Review tab's badge.
+  const reviewBadge = captureInboxActionState(foldedCaptureCount(useCaptures().data ?? [])).badge;
+
   const balance = credits.data?.credits;
   const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
@@ -68,12 +80,21 @@ export function HomeQuickActions({
       ref: groupRef,
       tourId: 'addGroup',
     },
-    {
-      key: 'settle',
-      label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
-      onPress: onSettleUp,
-    },
+    isReview
+      ? {
+          key: 'review',
+          label: t.review,
+          badge: reviewBadge,
+          badgeColor: theme.color.brand,
+          glyph: (color) => <Ionicons name="file-tray-full-outline" size={20} color={color} />,
+          onPress: onReview,
+        }
+      : {
+          key: 'settle',
+          label: t.homeDash.settleUp,
+          glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
+          onPress: onSettleUp,
+        },
     ...(viewerId && !isPaid
       ? [
           {

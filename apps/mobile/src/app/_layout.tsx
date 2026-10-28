@@ -786,6 +786,7 @@ function AuthGate() {
               opened from. */}
           <Stack.Screen name="profile" options={slide} />
           <Stack.Screen name="link-requests" options={slide} />
+          <Stack.Screen name="companies" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
