@@ -5,7 +5,7 @@
  * to show: the entry screen only ever offers keys the server will accept.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   BUILTIN_COMPANY_TAGS,
@@ -124,6 +124,8 @@ export function useCompanyTags(groupId: string, view: CompanyView): CompanyTags 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stored, industry, usedKeys, t]);
 
+  // Ranking only needs day-level recency, so the mount time is fresh enough.
+  const [now] = useState(Date.now);
   const ranked = useMemo(() => {
     const visible = all.filter((tag) => !tag.hidden);
     const mine = view.entries.filter(
@@ -132,13 +134,13 @@ export function useCompanyTags(groupId: string, view: CompanyView): CompanyTags 
     const order = rankTags({
       keys: visible.map((tag) => tag.key),
       uses: mine.map((e) => ({ key: e.category as string, at: e.createdAt || e.occurredOn })),
-      now: Date.now(),
+      now,
       starred: packTags(industry)
         .filter((p) => p.starred)
         .map((p) => p.key),
     });
     return order.map((key) => visible.find((tag) => tag.key === key) as CompanyTag);
-  }, [all, view.entries, view.me?.id, industry]);
+  }, [all, view.entries, view.me?.id, industry, now]);
 
   const label = (key: string): string => companyTagLabel(key, all, builtinLabel);
 
