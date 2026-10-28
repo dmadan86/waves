@@ -138,7 +138,7 @@ export function SettleGroupList({
             <Ionicons
               name={GROUP_TYPE_ICON[item.type] ?? 'people-outline'}
               size={iconSize.lg}
-              color={tint.fg}
+              color={tint.ink}
             />
           )}
         </View>
